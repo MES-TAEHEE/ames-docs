@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.4 · PP-05 · MRP — Material Requirements Planning · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+
+:root{
+  --gold:#d4a017; --gold-lt:#fdf6e3; --gold-dk:#a07810;
+  --ink:#0d1117; --ink2:#161b22; --ink3:#21262d;
+  --surface:#ffffff; --bg:#f6f8fa; --border:#d0d7de;
+  --text:#24292f; --sub:#656d76;
+  --wh:#0891b2; --pp:#059669; --inj:#2563eb; --img:#7c3aed;
+  --pnt:#ea580c; --qc:#dc2626; --fg:#0db87a; --mnt:#0284c7;
+  --rpt:#6366f1; --sys:#475569; --md:#d97706;
+  --mod-color:var(--pp);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+
+/* NAV */
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
+.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}
+.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;transition:color .12s;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}
+.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+
+/* L3 CRUMB */
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;transition:color .12s;}
+.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}
+.l3-crumb .current{color:var(--gold);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+
+/* LAYOUT */
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(212,160,23,.15) transparent;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:#fff;}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;transition:all .12s;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:42px;flex-shrink:0;color:rgba(52,211,153,.7);}
+.sb-link.on .sl-id{color:var(--gold);}
+.sb-link .sl-en{font-size:10px;font-weight:600;}
+.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);margin-top:1px;}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;border-left:2px solid transparent;margin-left:-2px;transition:all .12s;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+
+.main{flex:1;min-width:0;}
+
+/* SCREEN HEADER */
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#031712 0%,#052e1f 50%,#03251a 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(52,211,153,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(52,211,153,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(52,211,153,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(52,211,153,.10),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#34d399;margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:#34d399;border-radius:50%;box-shadow:0 0 8px #34d399;}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:14px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:#34d399;line-height:.9;text-shadow:0 0 22px rgba(52,211,153,.2);}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:46px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:4px;margin-bottom:14px;}
+
+.scr-meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.web{border-color:rgba(26,111,255,.3);color:#7ab4ff;}
+.meta-chip.batch{border-color:rgba(124,58,237,.3);color:#c4b5fd;}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(52,211,153,.3);color:#6ee7b7;}
+
+.content{padding:0 48px 60px;}
+
+/* SECTION */
+.sec{margin-top:36px;}
+.sec-hdr{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.sec-num{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--pp);letter-spacing:1px;line-height:1;min-width:42px;}
+.sec-title-wrap{flex:1;}
+.sec-title-en{font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.3px;}
+.sec-title-ko{font-size:11px;color:var(--sub);margin-top:1px;}
+.sec-line{flex:1;height:1px;background:linear-gradient(90deg,var(--pp),transparent);max-width:200px;}
+
+/* OVERVIEW */
+.ov-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;}
+.ov-desc{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--pp);border-radius:0 6px 6px 0;padding:16px 18px;}
+.ov-desc-en{font-size:12px;color:var(--text);line-height:1.85;margin-bottom:10px;}
+.ov-desc-ko{font-size:11px;color:var(--sub);line-height:1.85;padding-top:10px;border-top:1px dashed var(--border);}
+.ov-meta{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.ov-meta-row{display:flex;border-bottom:1px solid var(--border);font-size:11px;}
+.ov-meta-row:last-child{border-bottom:none;}
+.ov-meta-k{flex:0 0 110px;background:#f6f8fa;padding:8px 12px;font-weight:700;color:var(--sub);font-size:10px;letter-spacing:.5px;text-transform:uppercase;border-right:1px solid var(--border);}
+.ov-meta-v{flex:1;padding:8px 12px;color:var(--text);}
+.ov-meta-v .ko{font-size:10px;color:var(--sub);margin-left:6px;}
+.ov-meta-v code{font-family:'JetBrains Mono',monospace;font-size:10px;background:#f0f3f7;padding:1px 6px;border-radius:3px;color:var(--pp);}
+
+/* MOCKUP */
+.mock-wrap{background:#eef1f5;border:1px solid var(--border);border-radius:8px;padding:14px;}
+.mock-lbl{font-size:9px;font-weight:700;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.mock-lbl::before{content:'';width:6px;height:6px;background:var(--pp);border-radius:50%;}
+.mock-win{background:#fff;border:1px solid #c8d0db;border-radius:6px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.08);}
+.mock-tbar{background:var(--text);color:#fff;padding:8px 14px;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;}
+.mock-tbar .bc{margin-left:auto;font-size:9px;color:rgba(255,255,255,.35);font-family:'JetBrains Mono',monospace;}
+.mock-toolbar{background:#f6f8fa;border-bottom:1px solid var(--border);padding:8px 14px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+.mock-toolbar select,.mock-toolbar input{padding:4px 9px;border:1px solid var(--border);border-radius:3px;font-size:11px;background:#fff;}
+.mock-body{padding:14px;}
+
+.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:14px;}
+.kc{flex:1;padding:10px 13px;border-right:1px solid var(--border);background:#fafbfc;}
+.kc:last-child{border-right:none;}
+.kv{font-size:22px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
+.kl-en{font-size:9px;color:var(--sub);margin-top:3px;}
+.kl-ko{font-size:8px;color:rgba(100,116,139,.6);}
+
+.tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.tbl th{background:#f0f3f7;padding:7px 9px;font-weight:700;border:1px solid var(--border);text-align:left;font-size:10px;color:var(--text);}
+.tbl th .th-ko{font-weight:400;color:var(--sub);font-size:9px;display:block;}
+.tbl td{padding:6px 9px;border:1px solid var(--border);vertical-align:middle;}
+.tbl .rh td{background:#f0fdf4;}
+.tbl .rw td{background:#fffbeb;}
+.tbl .rd td{background:#fef2f2;}
+.tbl tr:hover td{background:#f9fafb;}
+.tbl td .ko{color:var(--sub);font-size:10px;}
+
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
+.b-ok{background:#dcfce7;color:#166534;}
+.b-w{background:#fef9c3;color:#92400e;}
+.b-e{background:#fee2e2;color:#991b1b;}
+.b-i{background:#dbeafe;color:#1e40af;}
+.b-n{background:#f3f4f6;color:#4b5563;}
+
+.btn{padding:5px 13px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
+.btn-primary{background:var(--pp);color:#fff;border-color:var(--pp);}
+.btn-secondary{background:#f6f8fa;color:var(--text);border-color:var(--border);}
+.btn-danger{background:#dc2626;color:#fff;}
+.btn-success{background:#22c55e;color:#fff;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+
+/* COMPONENT SPEC */
+.cs-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.cs-tbl th{background:linear-gradient(180deg,#03251a,#031712);color:#6ee7b7;padding:9px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid var(--ink3);}
+.cs-tbl th .th-ko{display:block;color:rgba(110,231,183,.55);font-weight:400;font-size:9px;letter-spacing:0;text-transform:none;margin-top:1px;}
+.cs-tbl td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.cs-tbl tr:last-child td{border-bottom:none;}
+.cs-tbl tr:hover td{background:#f9fafb;}
+.cs-tbl .c-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--pp);}
+.cs-tbl .c-name{font-weight:700;color:var(--text);}
+.cs-tbl .c-name .ko{font-size:10px;font-weight:400;color:var(--sub);display:block;margin-top:1px;}
+.cs-tbl .c-type{font-family:'JetBrains Mono',monospace;font-size:10px;color:#7c3aed;background:#f5f3ff;padding:2px 6px;border-radius:3px;display:inline-block;}
+.cs-tbl .c-req{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;}
+.cs-tbl .c-req.y{color:#dc2626;}
+.cs-tbl .c-req.n{color:var(--sub);}
+.cs-tbl .c-validation{font-size:10px;color:var(--text);line-height:1.6;}
+.cs-tbl .c-validation code{font-family:'JetBrains Mono',monospace;font-size:9px;background:#fff7ed;color:#9a3412;padding:1px 5px;border-radius:2px;}
+.cs-tbl .c-default{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sub);}
+
+/* EVENT FLOW */
+.ef-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px 20px;}
+.ef-flow{position:relative;}
+.ef-step{display:grid;grid-template-columns:46px 1fr;gap:14px;padding:10px 0;position:relative;}
+.ef-step:not(:last-child)::before{content:'';position:absolute;left:23px;top:42px;bottom:-10px;width:2px;background:linear-gradient(180deg,var(--pp),rgba(5,150,105,.15));}
+.ef-num{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--pp),#047857);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;box-shadow:0 4px 12px rgba(5,150,105,.25);position:relative;z-index:1;}
+.ef-step.terminal .ef-num{background:linear-gradient(135deg,#0891b2,#0e7490);box-shadow:0 4px 12px rgba(8,145,178,.25);}
+.ef-step.error .ef-num{background:linear-gradient(135deg,#dc2626,#991b1b);box-shadow:0 4px 12px rgba(220,38,38,.25);}
+.ef-body{padding-top:2px;}
+.ef-trig{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.ef-trig-tag{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;border-radius:2px;}
+.ef-trig-tag.user{background:#dbeafe;color:#1e40af;}
+.ef-trig-tag.system{background:#f3e8ff;color:#7c3aed;}
+.ef-trig-tag.scheduled{background:#fef3c7;color:#92400e;}
+.ef-trig-tag.api{background:#dcfce7;color:#166534;}
+.ef-trig-name{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--text);}
+.ef-action{font-size:12px;color:var(--text);line-height:1.7;margin-bottom:3px;}
+.ef-action-ko{font-size:11px;color:var(--sub);line-height:1.7;}
+.ef-result{margin-top:6px;padding:7px 10px;background:#f6f8fa;border-left:2px solid var(--pp);border-radius:0 3px 3px 0;font-size:10px;color:var(--text);}
+.ef-result .er-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;color:var(--pp);letter-spacing:1px;margin-right:6px;}
+.ef-result code{font-family:'JetBrains Mono',monospace;font-size:10px;background:#fff;padding:1px 5px;border-radius:2px;border:1px solid var(--border);color:#7c3aed;}
+.ef-step.error .ef-result{border-left-color:#dc2626;background:#fef2f2;}
+.ef-step.error .ef-result .er-lbl{color:#dc2626;}
+.ef-step.terminal .ef-result{border-left-color:#0891b2;background:#ecfeff;}
+.ef-step.terminal .ef-result .er-lbl{color:#0891b2;}
+
+/* EXCEPTION */
+.exc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+.exc-card{background:var(--surface);border:1px solid var(--border);border-top:3px solid #dc2626;border-radius:0 0 6px 6px;padding:13px 15px;}
+.exc-card.warn{border-top-color:#f59e0b;}
+.exc-card.info{border-top-color:#059669;}
+.exc-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.exc-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#dc2626;background:#fef2f2;padding:2px 8px;border-radius:3px;}
+.exc-card.warn .exc-code{color:#92400e;background:#fef3c7;}
+.exc-card.info .exc-code{color:#065f46;background:#dcfce7;}
+.exc-name{font-size:12px;font-weight:700;color:var(--text);flex:1;}
+.exc-name .ko{font-size:10px;font-weight:400;color:var(--sub);display:block;}
+.exc-row{display:grid;grid-template-columns:64px 1fr;gap:8px;padding:5px 0;border-top:1px dashed var(--border);font-size:10px;}
+.exc-row:first-of-type{border-top:none;}
+.exc-row .lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;padding-top:2px;}
+.exc-row .val{color:var(--text);line-height:1.6;}
+.exc-row .val code{font-family:'JetBrains Mono',monospace;font-size:9px;background:#f0f3f7;padding:1px 5px;border-radius:2px;color:#7c3aed;}
+.exc-row .val .ko{color:var(--sub);display:block;font-size:9px;margin-top:1px;}
+.exc-msg{margin-top:8px;padding:7px 10px;background:#1a0808;border:1px solid #3a1010;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#ff8a82;text-align:center;}
+.exc-card.warn .exc-msg{background:#1a1408;border-color:#3a2a10;color:#fbbf24;}
+.exc-card.info .exc-msg{background:#03251a;border-color:#052e1f;color:#6ee7b7;}
+
+/* LINKAGE */
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px 24px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#f0fdf4;border-color:#22c55e;}
+.lnk-node.cur{background:linear-gradient(135deg,#031712,#052e1f);border-color:#34d399;color:#fff;box-shadow:0 4px 16px rgba(52,211,153,.2);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.5px;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#15803d;}
+.lnk-node.cur .lnk-id{color:#34d399;}
+.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}
+.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}
+.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.lnk-arr-lbl{font-size:8px;color:var(--sub);font-family:'JetBrains Mono',monospace;letter-spacing:1px;text-transform:uppercase;display:block;text-align:center;margin-top:-6px;}
+
+/* BR MINI */
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid #f3e0b0;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.br-mini tr:last-child td{border-bottom:none;}
+.br-mini .br-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-mini .br-en{font-size:11px;color:var(--text);line-height:1.6;}
+.br-mini .br-ko{font-size:10px;color:var(--sub);line-height:1.6;margin-top:3px;}
+.br-mini .br-act{text-align:center;}
+.br-mini .br-act span{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-mini .br-act .blk{background:#fee2e2;color:#991b1b;}
+.br-mini .br-act .alt{background:#fef9c3;color:#92400e;}
+.br-mini .br-act .aut{background:#dbeafe;color:#1e40af;}
+
+.alert{display:flex;gap:9px;align-items:flex-start;padding:9px 13px;border-radius:5px;border:1px solid;font-size:11px;line-height:1.65;}
+.alert-i{background:#ecfdf5;border-color:#a7f3d0;color:#065f46;}
+.alert-w{background:#fef9c3;border-color:#fde68a;color:#92400e;}
+
+.page-footer{padding:24px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;align-items:center;font-size:10px;}
+.page-footer .pf-l{font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.page-footer .pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+
+@media (max-width:1100px){
+  .ov-grid{grid-template-columns:1fr;}
+  .exc-grid{grid-template-columns:1fr;}
+  .scr-id-block{flex-direction:column;align-items:flex-start;gap:6px;}
+  .scr-id{font-size:42px;}
+  .scr-title-en{font-size:32px;}
+}
+</style>
+</head>
+<body>
+
+<nav class="ames-nav"><div class="ames-nav-inner">
+  <a class="nav-home" href="INDEX.html">
+    <div><div class="nav-home-logo">A-MES</div><div class="nav-home-sub">Index</div></div>
+  </a>
+  <a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span>Warehouse</span></a>
+  <a href="VOL04_PP_Production_Plan.html" class="nav-vol active"><span class="nv-code" style="color:#059669;">PP</span><span>Plan</span></a>
+  <a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span>Injection</span></a>
+  <a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span>Wrapping</span></a>
+  <a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span>Painting</span></a>
+  <a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span>Quality</span></a>
+  <a href="VOL09_FG_Finished.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span>Finished Goods</span></a>
+  <a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span>Maintenance</span></a>
+  <a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span>Reports</span></a>
+  <a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span>System</span></a>
+  <a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span>Master Data</span></a>
+</div></nav>
+
+<div class="l3-crumb">
+  <span class="lvl">L1</span><a href="INDEX.html">A-MES Index</a>
+  <span class="arr">▸</span>
+  <span class="lvl">L2</span><a href="VOL04_PP_Production_Plan.html">VOL.4 · PP Production Plan</a>
+  <span class="arr">▸</span>
+  <span class="lvl">L3</span><span class="current">PP-05 · MRP — Material Requirements Planning</span>
+</div>
+
+<div class="page-wrap">
+
+<nav class="sidebar">
+  <div class="sb-head">
+    <div class="sb-vol">VOL.4 · PP MODULE</div>
+    <div class="sb-mod-en">PRODUCTION PLAN</div>
+    <div class="sb-mod-ko">생산계획</div>
+  </div>
+  <div class="sb-section">L3 Screens · 화면 상세</div>
+  <a class="sb-link" href="VOL04_PP01_Forecast.html"><span class="sl-id">PP-01</span><div><div class="sl-en">Forecast Mgmt</div><div class="sl-ko">Forecast 관리</div></div></a>
+  <a class="sb-link" href="VOL04_PP02_SAP_Import.html"><span class="sl-id">PP-02</span><div><div class="sl-en">SAP B1 Import</div><div class="sl-ko">공급계획 수신</div></div></a>
+  <a class="sb-link" href="VOL04_PP03_Plan_Confirm.html"><span class="sl-id">PP-03</span><div><div class="sl-en">Plan & Confirm</div><div class="sl-ko">생산계획 수립</div></div></a>
+  <a class="sb-link" href="VOL04_PP04_Work_Order.html"><span class="sl-id">PP-04</span><div><div class="sl-en">Work Order Mgmt</div><div class="sl-ko">작업지시 관리</div></div></a>
+  <a class="sb-link on" href="VOL04_PP05_MRP.html"><span class="sl-id">PP-05</span><div><div class="sl-en">MRP</div><div class="sl-ko">자재 소요 계획</div></div></a>
+  <a class="sb-link" href="VOL04_PP06_Purchase_Req.html"><span class="sl-id">PP-06</span><div><div class="sl-en">Purchase Req.</div><div class="sl-ko">자재발주 요청</div></div></a>
+  <a class="sb-link" href="VOL04_PP07_WO_Release.html"><span class="sl-id">PP-07</span><div><div class="sl-en">WO Release</div><div class="sl-ko">WO 발행</div></div></a>
+  <a class="sb-link" href="VOL04_PP_CAL_Calendar.html"><span class="sl-id">PP-CAL</span><div><div class="sl-en">Production Calendar</div><div class="sl-ko">생산 캘린더</div></div></a>
+  <a class="sb-link" href="VOL04_PP_OTD_Delivery.html"><span class="sl-id">PP-OTD</span><div><div class="sl-en">Delivery KPI</div><div class="sl-ko">납기 현황</div></div></a>
+
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page</div>
+    <a href="#s1"><span class="num">01</span>Overview</a>
+    <a href="#s2"><span class="num">02</span>Screen Mockup</a>
+    <a href="#s3"><span class="num">03</span>UI Components</a>
+    <a href="#s4"><span class="num">04</span>Event &amp; Action Flow</a>
+    <a href="#s5"><span class="num">05</span>Exception Handling</a>
+    <a href="#s6"><span class="num">06</span>Linked Screens</a>
+    <a href="#s7"><span class="num">07</span>Business Rules</a>
+  </div>
+</nav>
+
+<div class="main">
+
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.4 · PP · Production Planning · 자재 소요 계획</div>
+      <div class="scr-id-block">
+        <div class="scr-id">PP-05</div>
+        <div>
+          <div class="scr-title-en">MRP — Material Requirements Planning</div>
+        </div>
+      </div>
+      <div class="scr-title-ko">M R P</div>
+      <div class="scr-meta">
+        <div class="meta-chip batch"><span class="mc-lbl">Device</span><span class="mc-val">🖥 Web PC</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">1st Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">PLAN Manager · System</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Freq</span><span class="mc-val">Daily 00:00 + on-demand <span class='ko'>일 1회 + 수시</span></span></div>
+        <div class="meta-chip"><span class="mc-lbl">URL</span><span class="mc-val" style="font-family:'JetBrains Mono',monospace;">/pp/mrp</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="sec" id="s1">
+      <div class="sec-hdr">
+        <div class="sec-num">01</div>
+        <div class="sec-title-wrap">
+          <div class="sec-title-en">Overview</div>
+          <div class="sec-title-ko">화면 개요 · 목적 · 컨텍스트</div>
+        </div>
+        <div class="sec-line"></div>
+      </div>
+      <div class="ov-grid">
+        <div class="ov-desc">
+          <div class="ov-desc-en">Calculates material requirements by exploding BOM for each open WO and comparing against current stock and on-order quantities. <code>Shortage = Required − Stock − OnOrder</code>. Shortages over zero block the affected WOs (<code>IsBlocked=1</code>) and surface for PR generation in PP-06. Auto-runs nightly at 00:00; can be manually triggered for partial recalculation.</div>
+          <div class="ov-desc-ko">각 활성 WO의 BOM 분해 → 현재고·발주중 수량과 대조하여 자재 소요량 계산. <code>부족량 = 소요 − 재고 − 발주중</code>. 부족 발생 시 해당 WO 차단(<code>IsBlocked=1</code>)·PP-06 PR 생성 대상 목록 표시. 매일 00:00 자동 실행, 수동 부분 재실행 지원.</div>
+        </div>
+        <div class="ov-meta">
+        <div class="ov-meta-row"><div class="ov-meta-k">Screen ID</div><div class="ov-meta-v"><code>PP-05</code></div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">Schedule</div><div class="ov-meta-v">Daily 00:00 KST + manual</div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">Formula</div><div class="ov-meta-v">Shortage = Req − Stock − OnOrder</div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">Effect</div><div class="ov-meta-v">WO.IsBlocked=1 on shortage > 0</div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">Tables</div><div class="ov-meta-v"><code>PP_WO</code>, <code>MD_BOM</code>, <code>WH_Inventory</code>, <code>WH_PurchaseOrder</code>, <code>PP_MRPLog</code></div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">RBAC</div><div class="ov-meta-v"><code>PP.MRP</code></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="s2">
+      <div class="sec-hdr">
+        <div class="sec-num">02</div>
+        <div class="sec-title-wrap">
+          <div class="sec-title-en">Screen Mockup</div>
+          <div class="sec-title-ko">화면 목업 — 주요 UI 구성</div>
+        </div>
+        <div class="sec-line"></div>
+      </div>
+      <div class="mock-wrap">
+        <div class="mock-lbl">PP-05 · MRP — Material Requirements Planning · Web PC</div>
+        <div class="mock-win">
+  <div class="mock-tbar">📊 A-MES · PP · Material Requirements Planning <span class="bc">PP &gt; MRP</span></div>
+  <div class="mock-toolbar">
+    <span style="font-size:10px;color:var(--sub);">Last run:</span><span style="font-weight:700;color:#059669;">2025-08-15 00:00:32</span>
+    <button class="btn btn-primary btn-sm">▶ Run Now</button>
+    <select><option>All WOs</option><option>Released only</option><option>Blocked only</option></select>
+    <input type="text" placeholder="Item..." style="width:160px;">
+    <button class="btn btn-secondary btn-sm" style="margin-left:auto;">📥 Export</button>
+  </div>
+  <div class="mock-body">
+    <div class="kpi-strip">
+      <div class="kc"><div class="kv" style="color:#059669;">87</div><div class="kl-en">Materials Calc'd</div><div class="kl-ko">계산 자재</div></div>
+      <div class="kc"><div class="kv" style="color:#22c55e;">71</div><div class="kl-en">Sufficient</div><div class="kl-ko">충족</div></div>
+      <div class="kc"><div class="kv" style="color:#dc2626;">8</div><div class="kl-en">Shortage</div><div class="kl-ko">부족</div></div>
+      <div class="kc"><div class="kv" style="color:#f59e0b;">3</div><div class="kl-en">WO Blocked</div><div class="kl-ko">차단 WO</div></div>
+    </div>
+    <table class="tbl">
+      <thead><tr><th>Material</th><th>Required<span class="th-ko">소요</span></th><th>Stock<span class="th-ko">재고</span></th><th>OnOrder<span class="th-ko">발주중</span></th><th>Shortage<span class="th-ko">부족</span></th><th>Lead Time</th><th>Order Due<span class="th-ko">발주 기한</span></th><th>Action</th></tr></thead>
+      <tbody>
+        <tr class="rd"><td style="font-family:monospace;font-size:9px;">RM-PP-NAT-20<div class="ko">PP 펠렛 나튜럴</div></td><td style="text-align:right;">3,600 kg</td><td style="text-align:right;">2,100 kg</td><td style="text-align:right;">500 kg</td><td style="text-align:right;color:#dc2626;font-weight:700;">−1,000 kg</td><td style="text-align:center;">7 days</td><td style="font-weight:700;color:#dc2626;">2025-09-08</td><td><button class="btn btn-success btn-sm" style="background:#059669;">+ PR 생성</button></td></tr>
+        <tr class="rd"><td style="font-family:monospace;font-size:9px;">FAB-BK-001<div class="ko">원단(흑)</div></td><td style="text-align:right;">1,200 roll</td><td style="text-align:right;">800 roll</td><td style="text-align:right;">0</td><td style="text-align:right;color:#dc2626;font-weight:700;">−400 roll</td><td style="text-align:center;">14 days</td><td style="font-weight:700;color:#dc2626;">2025-09-01</td><td><button class="btn btn-success btn-sm" style="background:#059669;">+ PR 생성</button></td></tr>
+        <tr class="rh"><td style="font-family:monospace;font-size:9px;">ADH-001<div class="ko">접착제</div></td><td style="text-align:right;">650 kg</td><td style="text-align:right;">980 kg</td><td style="text-align:right;">0</td><td style="text-align:right;color:#22c55e;font-weight:700;">+330 kg</td><td style="text-align:center;">5 days</td><td>—</td><td>—</td></tr>
+        <tr><td style="font-family:monospace;font-size:9px;">MAT-INJ-002<div class="ko">수지 B</div></td><td style="text-align:right;">2,000 kg</td><td style="text-align:right;">2,000 kg</td><td style="text-align:right;">0</td><td style="text-align:right;font-weight:700;">±0</td><td style="text-align:center;">10 days</td><td>—</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+      </div>
+    </div>
+
+    <div class="sec" id="s3">
+      <div class="sec-hdr">
+        <div class="sec-num">03</div>
+        <div class="sec-title-wrap">
+          <div class="sec-title-en">UI Components Specification</div>
+          <div class="sec-title-ko">UI 컴포넌트 명세 · 검증 규칙</div>
+        </div>
+        <div class="sec-line"></div>
+      </div>
+      <table class="cs-tbl">
+        <thead>
+          <tr>
+            <th style="width:70px;">ID</th>
+            <th>Component<span class="th-ko">컴포넌트</span></th>
+            <th style="width:90px;">Type</th>
+            <th style="width:60px;">Req.<span class="th-ko">필수</span></th>
+            <th>Validation / Behavior<span class="th-ko">검증·동작</span></th>
+            <th style="width:90px;">Default</th>
+          </tr>
+        </thead>
+        <tbody>
+        <tr>
+          <td class="c-id">CMP-01</td>
+          <td class="c-name">Last Run Display<span class="ko">최근 실행</span></td>
+          <td><span class="c-type">DISPLAY</span></td>
+          <td class="c-req n">—</td>
+          <td class="c-validation">Shows last successful MRP run timestamp with green indicator.</td>
+          <td class="c-default">—</td>
+        </tr>
+        <tr>
+          <td class="c-id">CMP-02</td>
+          <td class="c-name">[▶ Run Now]<span class="ko">수동 실행</span></td>
+          <td><span class="c-type">BUTTON</span></td>
+          <td class="c-req n">N</td>
+          <td class="c-validation">Triggers immediate MRP run. Locks UI until complete. Manager role required.</td>
+          <td class="c-default">—</td>
+        </tr>
+        <tr>
+          <td class="c-id">CMP-03</td>
+          <td class="c-name">Scope Filter<span class="ko">범위 필터</span></td>
+          <td><span class="c-type">SELECT</span></td>
+          <td class="c-req n">N</td>
+          <td class="c-validation">All WOs / Released only / Blocked only. Affects calculation scope.</td>
+          <td class="c-default">All</td>
+        </tr>
+        <tr>
+          <td class="c-id">CMP-04</td>
+          <td class="c-name">Material Search<span class="ko">자재 검색</span></td>
+          <td><span class="c-type">TEXT</span></td>
+          <td class="c-req n">N</td>
+          <td class="c-validation">Search by item code/name.</td>
+          <td class="c-default">(empty)</td>
+        </tr>
+        <tr>
+          <td class="c-id">CMP-05</td>
+          <td class="c-name">Shortage Badge<span class="ko">부족 배지</span></td>
+          <td><span class="c-type">AUTO</span></td>
+          <td class="c-req n">—</td>
+          <td class="c-validation">Red for shortage, gray for balanced, green for surplus.</td>
+          <td class="c-default">—</td>
+        </tr>
+        <tr>
+          <td class="c-id">CMP-06</td>
+          <td class="c-name">[+ PR 생성]<span class="ko">PR 생성</span></td>
+          <td><span class="c-type">BUTTON</span></td>
+          <td class="c-req n">N</td>
+          <td class="c-validation">Per-row button enabled if shortage. Pre-fills PP-06 form with item, qty, due.</td>
+          <td class="c-default">—</td>
+        </tr>
+        <tr>
+          <td class="c-id">CMP-07</td>
+          <td class="c-name">Excel Export<span class="ko">엑셀 출력</span></td>
+          <td><span class="c-type">BUTTON</span></td>
+          <td class="c-req n">N</td>
+          <td class="c-validation">Exports full MRP result table.</td>
+          <td class="c-default">—</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="s4">
+      <div class="sec-hdr">
+        <div class="sec-num">04</div>
+        <div class="sec-title-wrap">
+          <div class="sec-title-en">Event &amp; Action Flow</div>
+          <div class="sec-title-ko">이벤트 흐름 · 사용자 액션 → 시스템 반응</div>
+        </div>
+        <div class="sec-line"></div>
+      </div>
+      <div class="ef-wrap">
+        <div class="ef-flow">
+        <div class="ef-step ">
+          <div class="ef-num">1</div>
+          <div class="ef-body">
+            <div class="ef-trig">
+              <span class="ef-trig-tag scheduled">SCHEDULED</span>
+              <span class="ef-trig-name">cron · 00:00 daily MRP</span>
+            </div>
+            <div class="ef-action">Auto-runs nightly at 00:00 KST. Iterates all open WOs and explodes BOM via recursive query.</div>
+            <div class="ef-action-ko">매일 00:00 KST 자동 실행. 활성 WO 전체에 대해 BOM 재귀 분해.</div>
+            <div class="ef-result"><span class="er-lbl">EFFECT</span>BR-PP-005 · runtime 5-15 min · result in <code>PP_MRPLog</code></div>
+          </div>
+        </div>
+        <div class="ef-step ">
+          <div class="ef-num">2</div>
+          <div class="ef-body">
+            <div class="ef-trig">
+              <span class="ef-trig-tag user">USER</span>
+              <span class="ef-trig-name">click · [▶ Run Now]</span>
+            </div>
+            <div class="ef-action">Manual MRP trigger. Useful after PP-03 plan changes or PP-02 import.</div>
+            <div class="ef-action-ko">수동 MRP. PP-03 계획 변경 또는 PP-02 import 후 사용.</div>
+            <div class="ef-result"><span class="er-lbl">API</span><code>POST /api/pp/mrp/run</code> · returns job_id, polling for status</div>
+          </div>
+        </div>
+        <div class="ef-step ">
+          <div class="ef-num">3</div>
+          <div class="ef-body">
+            <div class="ef-trig">
+              <span class="ef-trig-tag system">SYSTEM</span>
+              <span class="ef-trig-name">calc · BOM explosion</span>
+            </div>
+            <div class="ef-action">For each WO, recursively expand BOM to leaf-level materials. Apply <code>WO.Qty × BOM.ChildQty</code>.</div>
+            <div class="ef-action-ko">WO별 BOM을 leaf까지 재귀 분해. <code>WO.Qty × BOM.ChildQty</code>로 소요량 누적.</div>
+            <div class="ef-result"><span class="er-lbl">DB</span>Recursive CTE on <code>MD_BOM</code></div>
+          </div>
+        </div>
+        <div class="ef-step ">
+          <div class="ef-num">4</div>
+          <div class="ef-body">
+            <div class="ef-trig">
+              <span class="ef-trig-tag system">SYSTEM</span>
+              <span class="ef-trig-name">calc · shortage</span>
+            </div>
+            <div class="ef-action"><code>Stock = WH_Inventory.AvailableQty</code> (OnHand - Reserved). <code>OnOrder = WH_PurchaseOrder.pending</code>. <code>Shortage = Required - Stock - OnOrder</code>.</div>
+            <div class="ef-action-ko"><code>Stock = WH_Inventory.AvailableQty</code> (OnHand - Reserved). <code>OnOrder = WH_PurchaseOrder 미입고</code>. <code>부족 = 소요 - 재고 - 발주중</code>.</div>
+            <div class="ef-result"><span class="er-lbl">OUTPUT</span>If &gt; 0 → WO.IsBlocked=1 + insert <code>PP_MRPLog</code></div>
+          </div>
+        </div>
+        <div class="ef-step ">
+          <div class="ef-num">5</div>
+          <div class="ef-body">
+            <div class="ef-trig">
+              <span class="ef-trig-tag system">SYSTEM</span>
+              <span class="ef-trig-name">block · affected WOs</span>
+            </div>
+            <div class="ef-action">WOs with material shortage are auto-blocked. PLAN team notified.</div>
+            <div class="ef-action-ko">부족 자재 보유 WO 자동 차단. PLAN팀에 알림.</div>
+            <div class="ef-result"><span class="er-lbl">EFFECT</span>BR-PP-002 · WO.Status unchanged but IsBlocked=1</div>
+          </div>
+        </div>
+        <div class="ef-step ">
+          <div class="ef-num">6</div>
+          <div class="ef-body">
+            <div class="ef-trig">
+              <span class="ef-trig-tag user">USER</span>
+              <span class="ef-trig-name">click · [+ PR 생성]</span>
+            </div>
+            <div class="ef-action">From shortage row, clicks PR. Pre-fills PP-06 form with item, shortage qty, required date.</div>
+            <div class="ef-action-ko">부족 행에서 [PR 생성] 클릭 시 PP-06 폼에 자재·부족량·필요일 사전 입력.</div>
+            <div class="ef-result"><span class="er-lbl">NAV</span><code>/pp/pr?item=...&qty=...&due=...</code></div>
+          </div>
+        </div>
+        <div class="ef-step terminal">
+          <div class="ef-num">7</div>
+          <div class="ef-body">
+            <div class="ef-trig">
+              <span class="ef-trig-tag system">SYSTEM</span>
+              <span class="ef-trig-name">complete · ready for PR</span>
+            </div>
+            <div class="ef-action">MRP cycle complete. Shortages visible. PR generation ready in PP-06.</div>
+            <div class="ef-action-ko">MRP 사이클 완료. 부족 자재 표시. PP-06에서 PR 생성 가능.</div>
+            <div class="ef-result"><span class="er-lbl">DOWNSTREAM</span>PP-06 (PR), PP-04 (WO unblock after PO arrival)</div>
+          </div>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="s5">
+      <div class="sec-hdr">
+        <div class="sec-num">05</div>
+        <div class="sec-title-wrap">
+          <div class="sec-title-en">Exception Handling</div>
+          <div class="sec-title-ko">예외 처리 · 오류 코드 · 복구 절차</div>
+        </div>
+        <div class="sec-line"></div>
+      </div>
+      <div class="exc-grid">
+        <div class="exc-card error">
+          <div class="exc-hdr">
+            <span class="exc-code">E-PP05-001</span>
+            <div class="exc-name">BOM Not Found<span class="ko">BOM 미정의</span></div>
+          </div>
+          <div class="exc-row"><span class="lbl">Cause</span><span class="val">Item in WO has no BOM in MD-02.</span></div>
+          <div class="exc-row"><span class="lbl">Detect</span><span class="val">BOM lookup.</span></div>
+          <div class="exc-row"><span class="lbl">Action</span><span class="val">Skip item, log error. WO marked partial calc.</span></div>
+          <div class="exc-row"><span class="lbl">Recover</span><span class="val">MD team defines BOM.</span></div>
+          <div class="exc-msg">⛔ NO BOM · SEE MD-02</div>
+        </div>
+        <div class="exc-card error">
+          <div class="exc-hdr">
+            <span class="exc-code">E-PP05-002</span>
+            <div class="exc-name">Circular BOM Reference<span class="ko">BOM 순환참조</span></div>
+          </div>
+          <div class="exc-row"><span class="lbl">Cause</span><span class="val">BOM contains cycle (A→B→A).</span></div>
+          <div class="exc-row"><span class="lbl">Detect</span><span class="val">Cycle detection.</span></div>
+          <div class="exc-row"><span class="lbl">Action</span><span class="val">Halt calculation, alert MD team.</span></div>
+          <div class="exc-row"><span class="lbl">Recover</span><span class="val">MD team fixes BOM.</span></div>
+          <div class="exc-msg">⛔ CYCLE DETECTED</div>
+        </div>
+        <div class="exc-card warn">
+          <div class="exc-hdr">
+            <span class="exc-code">E-PP05-003</span>
+            <div class="exc-name">Long Runtime<span class="ko">장시간 실행</span></div>
+          </div>
+          <div class="exc-row"><span class="lbl">Cause</span><span class="val">MRP run exceeds 15 min.</span></div>
+          <div class="exc-row"><span class="lbl">Detect</span><span class="val">Runtime monitor.</span></div>
+          <div class="exc-row"><span class="lbl">Action</span><span class="val">Continue but flag. Investigate WO count or BOM depth.</span></div>
+          <div class="exc-row"><span class="lbl">Recover</span><span class="val">Optimize: archive Closed WOs.</span></div>
+          <div class="exc-msg">⚠ SLOW MRP</div>
+        </div>
+        <div class="exc-card error">
+          <div class="exc-hdr">
+            <span class="exc-code">E-PP05-004</span>
+            <div class="exc-name">Database Lock<span class="ko">DB 잠금</span></div>
+          </div>
+          <div class="exc-row"><span class="lbl">Cause</span><span class="val">Concurrent inventory update during MRP.</span></div>
+          <div class="exc-row"><span class="lbl">Detect</span><span class="val">Lock timeout 60s.</span></div>
+          <div class="exc-row"><span class="lbl">Action</span><span class="val">Abort run, retry once. Then alert.</span></div>
+          <div class="exc-row"><span class="lbl">Recover</span><span class="val">Check WH transaction load.</span></div>
+          <div class="exc-msg">⛔ DB LOCK · RETRY</div>
+        </div>
+        <div class="exc-card warn">
+          <div class="exc-hdr">
+            <span class="exc-code">E-PP05-005</span>
+            <div class="exc-name">Stale Inventory<span class="ko">재고 데이터 노후화</span></div>
+          </div>
+          <div class="exc-row"><span class="lbl">Cause</span><span class="val">WH_Inventory.last_updated &gt; 1 hour ago.</span></div>
+          <div class="exc-row"><span class="lbl">Detect</span><span class="val">Pre-run staleness check.</span></div>
+          <div class="exc-row"><span class="lbl">Action</span><span class="val">Yellow warning. Continue with current data.</span></div>
+          <div class="exc-row"><span class="lbl">Recover</span><span class="val">Check WH module health.</span></div>
+          <div class="exc-msg">⚠ STALE STOCK</div>
+        </div>
+        <div class="exc-card warn">
+          <div class="exc-hdr">
+            <span class="exc-code">E-PP05-006</span>
+            <div class="exc-name">Massive Shortage<span class="ko">대규모 부족</span></div>
+          </div>
+          <div class="exc-row"><span class="lbl">Cause</span><span class="val">Shortage count exceeds 50 materials in single run.</span></div>
+          <div class="exc-row"><span class="lbl">Detect</span><span class="val">Post-run summary.</span></div>
+          <div class="exc-row"><span class="lbl">Action</span><span class="val">Alert plant director. Likely supply chain issue.</span></div>
+          <div class="exc-row"><span class="lbl">Recover</span><span class="val">Convene S&OP meeting.</span></div>
+          <div class="exc-msg">⚠ MASS SHORTAGE</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="s6">
+      <div class="sec-hdr">
+        <div class="sec-num">06</div>
+        <div class="sec-title-wrap">
+          <div class="sec-title-en">Linked Screens &amp; Data Flow</div>
+          <div class="sec-title-ko">연계 화면 · 상·하류 데이터 흐름</div>
+        </div>
+        <div class="sec-line"></div>
+      </div>
+      <div class="lnk-wrap">
+        <div style="font-size:10px;color:var(--sub);text-align:center;margin-bottom:10px;letter-spacing:1px;text-transform:uppercase;font-weight:700;">▲ UPSTREAM · 상위 화면 / 데이터 ▲</div>
+        <div class="lnk-row" style="margin-bottom:14px;"><div class="lnk-node up"><div class="lnk-id">PP-04</div><div class="lnk-name">WO Master</div><div class="lnk-ko">WO</div></div><div class="lnk-node up"><div class="lnk-id">MD-02</div><div class="lnk-name">BOM</div><div class="lnk-ko">자재명세서</div></div><div class="lnk-node up"><div class="lnk-id">WH-03</div><div class="lnk-name">Inventory</div><div class="lnk-ko">재고</div></div></div>
+        <div style="text-align:center;color:var(--pp);font-size:24px;">↓</div>
+        <div class="lnk-row" style="margin:14px 0;">
+          <div class="lnk-node cur">
+            <div class="lnk-id">PP-05</div>
+            <div class="lnk-name">MRP — Material Requirements Planning</div>
+            <div class="lnk-ko">자재 소요 계획</div>
+          </div>
+        </div>
+        <div style="text-align:center;color:var(--pp);font-size:24px;">↓</div>
+        <div class="lnk-row" style="margin-top:14px;"><div class="lnk-node down"><div class="lnk-id">PP-06</div><div class="lnk-name">PR Generation</div><div class="lnk-ko">PR 생성</div></div><div class="lnk-node down"><div class="lnk-id">PP-04</div><div class="lnk-name">WO Unblock</div><div class="lnk-ko">WO 차단해제</div></div><div class="lnk-node down"><div class="lnk-id">RPT-04</div><div class="lnk-name">MRP Analysis</div><div class="lnk-ko">분석</div></div></div>
+        <div style="font-size:10px;color:var(--sub);text-align:center;margin-top:10px;letter-spacing:1px;text-transform:uppercase;font-weight:700;">▼ DOWNSTREAM · 하위 화면 / 데이터 ▼</div>
+      </div>
+    </div>
+
+    <div class="sec" id="s7">
+      <div class="sec-hdr">
+        <div class="sec-num">07</div>
+        <div class="sec-title-wrap">
+          <div class="sec-title-en">Applicable Business Rules</div>
+          <div class="sec-title-ko">적용 업무 규칙</div>
+        </div>
+        <div class="sec-line"></div>
+      </div>
+      <table class="br-mini">
+        <thead>
+          <tr>
+            <th style="width:90px;">Rule ID</th>
+            <th>Rule (EN)</th>
+            <th>규칙 (KO)</th>
+            <th style="width:80px;text-align:center;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+            <tr>
+              <td class="br-id">BR-PP-002</td>
+              <td class="br-en">Auto-block WO when MRP detects material shortage.</td>
+              <td class="br-ko">MRP 자재 부족 시 WO 자동 차단.</td>
+              <td class="br-act"><span class="blk">BLK</span></td>
+            </tr>
+            <tr>
+              <td class="br-id">BR-PP-005</td>
+              <td class="br-en">Auto-run MRP nightly at 00:00 KST.</td>
+              <td class="br-ko">매일 00:00 KST MRP 야간 자동 실행.</td>
+              <td class="br-act"><span class="aut">AUT</span></td>
+            </tr>
+        </tbody>
+      </table>
+    </div>
+  </div><!-- /content -->
+
+  <div class="page-footer">
+    <div class="pf-l">A-MES · VOL.4 · PP-05 MRP — Material Requirements Planning · L3 Detail Spec v1.0 · Bilingual EN/KO</div>
+    <div class="pf-r">Automotive Parts MES · SAV &amp; GEO Supply · Confidential</div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /page-wrap -->
+
+</body>
+</html>
