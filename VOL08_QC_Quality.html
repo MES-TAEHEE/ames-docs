@@ -1,0 +1,290 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>A-MES · VOL.8 · QC · Quality Control</title><style>/* ═══════════════════════════════════════
+   A-MES SHARED STYLESHEET v2.0
+   Bilingual EN/KO · UI Labels English
+═══════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+
+:root{
+  --gold:#d4a017; --gold-lt:#fdf6e3; --gold-dk:#a07810;
+  --ink:#0d1117; --ink2:#161b22; --ink3:#21262d;
+  --surface:#ffffff; --bg:#f6f8fa; --border:#d0d7de;
+  --text:#24292f; --sub:#656d76;
+  /* module colors */
+  --wh:#0891b2; --pp:#059669; --inj:#2563eb; --img:#7c3aed;
+  --pnt:#ea580c; --qc:#dc2626; --fg:#0db87a; --mnt:#0284c7;
+  --rpt:#6366f1; --sys:#475569; --md:#d97706;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+
+/* ── NAV BAR (injected per file) ── */
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
+.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}
+.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;transition:color .12s;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}
+.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+
+/* ── PAGE LAYOUT ── */
+.page-wrap{display:flex;}
+.sidebar{width:230px;min-width:230px;background:var(--ink2);position:sticky;top:40px;height:calc(100vh - 40px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(212,160,23,.15) transparent;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.15);padding:12px 14px 4px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.35);font-size:11px;border-left:2px solid transparent;transition:all .12s;}
+.sb-link:hover{color:rgba(255,255,255,.7);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:32px;flex-shrink:0;}
+.sb-link .sl-en{font-size:10px;font-weight:600;}
+.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.2);margin-top:1px;}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+
+.main{flex:1;min-width:0;}
+
+/* ── MODULE HEADER ── */
+.mod-hdr{padding:36px 48px 24px;position:relative;overflow:hidden;}
+.mod-hdr-inner{position:relative;z-index:1;}
+.mod-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;opacity:.7;}
+.mod-title-en{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:.95;letter-spacing:2px;color:#fff;margin-bottom:4px;}
+.mod-title-ko{font-size:14px;font-weight:300;color:rgba(255,255,255,.35);letter-spacing:4px;margin-bottom:16px;}
+.mod-desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:840px;margin-bottom:18px;}
+.mdb-en{font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;border-left:2px solid rgba(255,255,255,.12);padding-left:12px;}
+.mdb-ko{font-size:11px;color:rgba(255,255,255,.3);line-height:1.8;border-left:2px solid rgba(255,255,255,.06);padding-left:12px;}
+.screen-pills{display:flex;gap:5px;flex-wrap:wrap;}
+.sp{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:9px;color:rgba(255,255,255,.4);}
+.sp-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold);}
+
+/* ── CONTENT AREA ── */
+.content{padding:0 48px 48px;}
+
+/* ── SCREEN CARD ── */
+.screen-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;}
+.sc-hdr{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.sc-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.sc-title-en{font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px;}
+.sc-title-ko{font-size:10px;color:rgba(255,255,255,.35);margin-top:2px;}
+.sc-tags{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+.tag{font-size:9px;font-weight:700;padding:2px 9px;border-radius:3px;}
+.t-web{background:rgba(26,111,255,.2);color:#7ab4ff;border:1px solid rgba(26,111,255,.3);}
+.t-pda{background:rgba(13,184,122,.2);color:#5dffc4;border:1px solid rgba(13,184,122,.3);}
+.t-pop{background:rgba(234,88,12,.2);color:#fdba74;border:1px solid rgba(234,88,12,.3);}
+.t-p0{background:rgba(212,160,23,.15);color:#fbbf24;border:1px solid rgba(212,160,23,.2);}
+.t-1st{background:rgba(26,111,255,.12);color:#93c5fd;border:1px solid rgba(26,111,255,.18);}
+.t-2nd{background:rgba(124,58,237,.12);color:#c4b5fd;border:1px solid rgba(124,58,237,.18);}
+.t-3rd{background:rgba(255,107,0,.12);color:#fdba74;border:1px solid rgba(255,107,0,.18);}
+.sc-body{padding:14px 18px;}
+
+/* ── BILINGUAL DESC ── */
+.desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;background:#f6f8ff;border:1px solid var(--border);border-left:3px solid;border-radius:0 6px 6px 0;padding:11px 14px;}
+.db-lbl{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;opacity:.5;}
+.db-en{font-size:11px;color:#1e40af;line-height:1.75;}
+.db-ko{font-size:11px;color:var(--sub);line-height:1.75;}
+
+/* ── KPI STRIP ── */
+.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:12px;}
+.kc{flex:1;padding:9px 12px;border-right:1px solid var(--border);}
+.kc:last-child{border-right:none;}
+.kv{font-size:20px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
+.kl-en{font-size:9px;color:var(--sub);margin-top:2px;}
+.kl-ko{font-size:8px;color:rgba(100,116,139,.55);}
+
+/* ── MOCK WINDOW ── */
+.mock-wrap{background:#eef1f5;border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;}
+.mock-lbl{font-size:9px;font-weight:700;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;}
+.mock-win{background:#fff;border:1px solid #c8d0db;border-radius:6px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.07);}
+.mock-tbar{background:var(--text);color:#fff;padding:7px 13px;display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;}
+.mock-tbar .bc{margin-left:auto;font-size:9px;color:rgba(255,255,255,.3);font-family:'JetBrains Mono',monospace;}
+.mock-body{padding:12px 13px;}
+.mock-toolbar{background:#f6f8fa;border-bottom:1px solid var(--border);padding:6px 13px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+.mock-toolbar select,.mock-toolbar input{padding:3px 8px;border:1px solid var(--border);border-radius:3px;font-size:11px;background:#fff;}
+
+/* ── TABLE ── */
+.tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.tbl th{background:#f0f3f7;padding:6px 9px;font-weight:700;border:1px solid var(--border);text-align:left;font-size:10px;color:var(--text);}
+.tbl th .th-ko{font-weight:400;color:var(--sub);font-size:9px;}
+.tbl td{padding:5px 9px;border:1px solid var(--border);vertical-align:middle;}
+.tbl .rh td{background:#f0fdf4;}
+.tbl .rw td{background:#fffbeb;}
+.tbl .rd td{background:#fef2f2;}
+.tbl tr:hover td{background:#f9fafb;}
+.tbl td .ko{color:var(--sub);font-size:10px;}
+
+/* ── BADGES ── */
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
+.b-ok{background:#dcfce7;color:#166534;}
+.b-w{background:#fef9c3;color:#92400e;}
+.b-e{background:#fee2e2;color:#991b1b;}
+.b-i{background:#dbeafe;color:#1e40af;}
+.b-n{background:#f3f4f6;color:#4b5563;}
+
+/* ── BUTTONS ── */
+.btn{padding:5px 13px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
+.btn-primary{background:var(--mod-color,#0891b2);color:#fff;border-color:var(--mod-color,#0891b2);}
+.btn-secondary{background:#f6f8fa;color:var(--text);border-color:var(--border);}
+.btn-danger{background:#dc2626;color:#fff;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+
+/* ── FEATURE GRID ── */
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.feat-item{background:#f6f8ff;border:1px solid var(--border);border-radius:6px;padding:11px 13px;border-top:2px solid;}
+.fi-title-en{font-size:11px;font-weight:700;margin-bottom:1px;}
+.fi-title-ko{font-size:10px;color:var(--sub);margin-bottom:6px;}
+ul.fi-list{list-style:none;}
+ul.fi-list li{padding:2px 0 2px 12px;position:relative;font-size:10px;line-height:1.6;}
+ul.fi-list li::before{content:'–';position:absolute;left:0;color:var(--sub);}
+ul.fi-list li .ko{color:var(--sub);font-size:9px;}
+
+/* ── PDA MOCK ── */
+.pda-row{display:flex;gap:14px;flex-wrap:wrap;}
+.pda-unit{text-align:center;}
+.pdu-step{font-size:9px;font-weight:700;color:var(--sub);margin-bottom:5px;}
+.pda-shell{background:#1a1e2e;border-radius:16px;padding:9px;width:172px;border:2px solid #2a3048;box-shadow:0 6px 20px rgba(0,0,0,.3);}
+.pda-scr{background:#0a1628;border-radius:10px;overflow:hidden;border:1px solid #1a3050;}
+.pda-sbar{background:#060e1c;padding:3px 8px;display:flex;justify-content:space-between;}
+.pda-sbar span{font-size:7px;color:#2a4a7a;font-family:'JetBrains Mono',monospace;}
+.pda-sbar .online{color:#00e5a0;}
+.pda-tbar{padding:7px 10px;border-bottom:1px solid #0a3050;}
+.pda-title{font-size:11px;font-weight:700;color:#00e5a0;}
+.pda-sub{font-size:8px;color:rgba(255,255,255,.3);}
+.pda-bd{padding:8px 10px;}
+.pda-scan{background:#060e1c;border:2px dashed rgba(0,229,160,.3);border-radius:6px;padding:12px;text-align:center;margin-bottom:7px;}
+.pda-scan-icon{font-size:22px;margin-bottom:3px;}
+.pda-scan-en{font-size:10px;font-weight:700;color:#00e5a0;}
+.pda-scan-ko{font-size:8px;color:rgba(255,255,255,.3);}
+.pda-field{margin-bottom:5px;}
+.pda-fl{font-size:8px;color:#1a5a4a;margin-bottom:2px;font-weight:600;}
+.pda-fv{background:#040c18;border:1px solid #1a3050;border-radius:4px;padding:4px 8px;font-size:10px;color:#a0c8f0;font-family:'JetBrains Mono',monospace;}
+.pda-fv.ok{border-color:#00e5a0;color:#00e5a0;}
+.pda-fv.er{border-color:#ff8a82;color:#ff8a82;}
+.pda-numpad{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;margin-bottom:6px;}
+.pda-key{background:#0d1e30;border:1px solid #1a3050;border-radius:4px;padding:7px 4px;text-align:center;font-size:13px;font-weight:700;color:#c0e0f0;font-family:'JetBrains Mono',monospace;}
+.pda-key.k-ok{background:#0a2a1a;color:#00e5a0;border-color:#0a5a38;}
+.pda-key.k-del{background:#1a0808;color:#ff8a82;border-color:#3a1010;}
+.pda-disp{background:#040c18;border:1px solid #1a3050;border-radius:4px;padding:5px 9px;font-size:24px;font-weight:900;color:#00e5a0;text-align:right;margin-bottom:6px;font-family:'JetBrains Mono',monospace;}
+.pda-btn{width:100%;padding:7px;border-radius:5px;font-size:10px;font-weight:700;border:none;cursor:pointer;margin-bottom:4px;font-family:'Noto Sans KR',sans-serif;}
+.pda-pri{background:linear-gradient(135deg,#0a9060,#0db87a);color:#fff;}
+.pda-sec{background:#0a1428;color:#4a7aaa;border:1px solid #1a3050;}
+.pda-dan{background:#1a0808;color:#ff8a82;border:1px solid #3a1010;}
+.pda-progress-bar{height:4px;background:#060e1c;border-radius:2px;overflow:hidden;margin:4px 0 8px;}
+.pda-progress-fill{height:100%;background:linear-gradient(90deg,#0a9060,#00e5a0);border-radius:2px;}
+
+/* ── BR TABLE ── */
+.br-wrap{margin-bottom:16px;}
+.br-title{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:7px;display:flex;align-items:center;gap:10px;}
+.br-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.br-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.br-tbl th{background:var(--text);color:#fff;padding:6px 10px;text-align:left;border:1px solid rgba(255,255,255,.08);font-size:9px;}
+.br-tbl td{padding:6px 10px;border:1px solid var(--border);vertical-align:top;line-height:1.6;}
+.br-tbl tr:nth-child(even) td{background:#fafbfd;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-en{color:var(--text);}
+.br-ko{color:var(--sub);font-size:10px;margin-top:2px;}
+
+/* ── SECTION DIV ── */
+.sec-div{display:flex;align-items:center;gap:12px;margin:20px 0 12px;}
+.sd-line{flex:1;height:1px;background:var(--border);}
+.sd-lbl{font-size:10px;font-weight:700;color:var(--sub);white-space:nowrap;}
+
+/* ── ALERTS ── */
+.alert{padding:8px 12px;border-radius:5px;font-size:10px;margin-bottom:9px;display:flex;gap:8px;line-height:1.7;}
+.alert-i{background:#eff6ff;border-left:3px solid #3b82f6;}
+.alert-w{background:#fffbeb;border-left:3px solid #f59e0b;}
+.alert-s{background:#f0fdf4;border-left:3px solid #22c55e;}
+.alert-d{background:#fef2f2;border-left:3px solid #ef4444;}
+
+/* ── ROUTING FLOW ── */
+.rflow{display:flex;align-items:center;gap:0;flex-wrap:nowrap;overflow-x:auto;padding:4px 0;}
+.rs{padding:9px 14px;border-radius:5px;font-size:11px;font-weight:700;text-align:center;flex-shrink:0;text-decoration:none;}
+.rs-en{font-size:12px;font-weight:800;}
+.rs-ko{font-size:9px;font-weight:400;opacity:.7;margin-top:2px;}
+.rarr{color:var(--sub);font-size:14px;padding:0 5px;flex-shrink:0;}
+.rs-inj{background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;}
+.rs-img{background:#f5f3ff;color:#5b21b6;border:1px solid #c4b5fd;}
+.rs-pnt{background:#fff7ed;color:#9a3412;border:1px solid #fdba74;}
+.rs-qc{background:#fef2f2;color:#991b1b;border:1px solid #fca5a5;}
+.rs-fg{background:#f0fdf4;color:#065f46;border:1px solid #6ee7b7;}
+
+/* ── GRID ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+
+/* ── PROGRESS BAR ── */
+.prog-track{height:5px;background:#f0f2f5;border-radius:3px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:3px;}
+
+/* ── DATA MODEL TABLE ── */
+.dm-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.dm-tbl th{background:var(--ink2);color:#fff;padding:6px 10px;text-align:left;border:1px solid var(--ink3);font-size:9px;}
+.dm-tbl td{padding:5px 10px;border:1px solid var(--border);vertical-align:top;}
+.dm-tbl tr:nth-child(even) td{background:#fafbfd;}
+.dm-col{font-family:'JetBrains Mono',monospace;color:#1e40af;font-weight:600;}
+.dm-type{font-family:'JetBrains Mono',monospace;color:var(--sub);font-size:10px;}
+.dm-pk{color:#dc2626;font-weight:700;}
+.dm-fk{color:#7c3aed;}
+
+/* ── PAGE FOOTER ── */
+.page-footer{padding:14px 48px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--ink);margin-top:20px;}
+.pf-l{font-size:10px;color:rgba(255,255,255,.2);}
+.pf-r{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(212,160,23,.4);}
+:root{--mod-color:#dc2626;}.mod-hdr{background:linear-gradient(135deg,color-mix(in srgb,#dc2626 30%,#000),color-mix(in srgb,#dc2626 12%,#000));}.sc-hdr{background:linear-gradient(135deg,color-mix(in srgb,#dc2626 22%,#000),color-mix(in srgb,#dc2626 10%,#000));}.sc-id{color:#dc2626;}.sb-mod-en{color:#dc2626;}.sb-link.on{border-left-color:#dc2626;}</style></head><body><nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol active"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav><div class="page-wrap"><nav class="sidebar"><div class="sb-head"><div class="sb-vol">VOL.8 · QC MODULE</div><div class="sb-mod-en">QUALITY CONTROL</div><div class="sb-mod-ko">품질 관리</div></div><div class="sb-section">Screens</div><a class="sb-link on" href="#qc01"><span class="sl-id">QC-01</span><div><div class="sl-en">Incoming Inspection</div><div class="sl-ko">수입 검사</div></div></a><a class="sb-link" href="#qc02"><span class="sl-id">QC-02</span><div><div class="sl-en">In-Process Inspection</div><div class="sl-ko">공정 검사</div></div></a><a class="sb-link" href="#qc03"><span class="sl-id">QC-03</span><div><div class="sl-en">Final Inspection</div><div class="sl-ko">최종 검사</div></div></a><a class="sb-link" href="#qc04"><span class="sl-id">QC-04</span><div><div class="sl-en">Inspection History</div><div class="sl-ko">검사 이력</div></div></a><a class="sb-link" href="#qc05"><span class="sl-id">QC-05</span><div><div class="sl-en">Defect Analysis</div><div class="sl-ko">불량 분석</div></div></a><a class="sb-link" href="#qc06"><span class="sl-id">QC-06</span><div><div class="sl-en">CAPA</div><div class="sl-ko">시정조치</div></div></a><a class="sb-link" href="#qc07"><span class="sl-id">QC-07</span><div><div class="sl-en">Claim Management</div><div class="sl-ko">클레임 관리</div></div></a><div class="sb-sep"></div><a class="sb-link" href="#br-qc"><span class="sl-id">BR</span><div><div class="sl-en">Business Rules</div><div class="sl-ko">업무 규칙</div></div></a></nav><div class="main"><div class="mod-hdr"><div class="mod-hdr-inner"><div class="mod-eyebrow" style="color:#f87171;">VOL.8 · QC · Quality Control · 품질 관리</div><div class="mod-title-en" style="color:#f87171;">QUALITY<br>CONTROL</div><div class="mod-title-ko">품질 관리</div><div class="mod-desc-bi"><div class="mdb-en">Three-gate quality inspection system: Incoming Inspection (auto-triggered from WH inbound) → In-Process Inspection (PDA + Web) → Final Inspection (gate before FG stocking). Includes defect Pareto analysis (QC-05), CAPA (Corrective and Preventive Action) management (QC-06), and client claim management for SAV/GEO (QC-07). Oven-deviation WOs are auto-flagged for enhanced 100% inspection.</div><div class="mdb-ko">3단계 검사 게이트: 수입검사(WH 입고 자동 트리거)→공정검사(PDA+Web)→최종검사(FG 적재 전 게이트). 불량 파레토 분석(QC-05), CAPA 관리(QC-06), SAV·GEO 클레임 관리(QC-07). 건조로 이탈 WO 100% 강화검사 자동 설정.</div></div><div class="screen-pills"><span class="sp"><span class="sp-id">QC-01</span> Incoming Inspection</span><span class="sp"><span class="sp-id">QC-02</span> In-Process</span><span class="sp"><span class="sp-id">QC-03</span> Final Inspection</span><span class="sp"><span class="sp-id">QC-04</span> History</span><span class="sp"><span class="sp-id">QC-05</span> Defect Analysis</span><span class="sp"><span class="sp-id">QC-06</span> CAPA</span><span class="sp"><span class="sp-id">QC-07</span> Claims</span></div></div></div>
+<div class="content">
+<!-- QC Gate Summary -->
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:20px;">
+<div style="font-size:11px;font-weight:700;margin-bottom:12px;">QC 3-Gate Flow · 3단계 검사 게이트</div>
+<div class="rflow">
+<div style="text-align:center;flex-shrink:0;"><div style="background:#eff6ff;border:2px solid #2563eb;border-radius:6px;padding:10px 14px;font-size:11px;font-weight:800;color:#1e40af;">QC-01<div style="font-size:9px;font-weight:400;margin-top:2px;">Incoming Inspection<br>수입 검사</div></div><div style="font-size:9px;color:var(--sub);margin-top:4px;">Auto-triggered from WH<br>WH 입고 자동 트리거</div></div>
+<div class="rarr">→</div>
+<div style="text-align:center;flex-shrink:0;"><div style="background:#fef9c3;border:2px solid #d97706;border-radius:6px;padding:10px 14px;font-size:11px;font-weight:800;color:#92400e;">QC-02<div style="font-size:9px;font-weight:400;margin-top:2px;">In-Process Inspection<br>공정 검사</div></div><div style="font-size:9px;color:var(--sub);margin-top:4px;">PDA + Web<br>공정 중 샘플 검사</div></div>
+<div class="rarr">→</div>
+<div style="text-align:center;flex-shrink:0;"><div style="background:#fef2f2;border:2px solid #dc2626;border-radius:6px;padding:10px 14px;font-size:11px;font-weight:800;color:#991b1b;">QC-03<div style="font-size:9px;font-weight:400;margin-top:2px;">Final Inspection<br>최종 검사</div></div><div style="font-size:9px;color:var(--sub);margin-top:4px;">Gate before FG stocking<br>FG 적재 전 최종 게이트</div></div>
+<div class="rarr">→</div>
+<div style="text-align:center;flex-shrink:0;"><div style="background:#f0fdf4;border:2px solid #22c55e;border-radius:6px;padding:10px 14px;font-size:11px;font-weight:800;color:#065f46;">PASS<div style="font-size:9px;font-weight:400;margin-top:2px;">FG Stocking<br>완제품 적재</div></div></div>
+<div class="rarr" style="color:#dc2626;">⤵</div>
+<div style="text-align:center;flex-shrink:0;"><div style="background:#fef2f2;border:2px solid #dc2626;border-radius:6px;padding:10px 14px;font-size:11px;font-weight:800;color:#991b1b;">FAIL<div style="font-size:9px;font-weight:400;margin-top:2px;">Reject + CAPA<br>반품 + 시정조치</div></div></div>
+</div></div>
+<!-- QC-03 Final Inspection -->
+<div class="screen-card" id="qc03"><div class="sc-hdr"><div><div class="sc-id">QC-03</div><div class="sc-title-en">Final Inspection</div><div class="sc-title-ko">최종 검사</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-1st">1st Dev</span></div></div>
+<div class="sc-body"><div class="desc-bi" style="border-left-color:#dc2626;"><div><div class="db-lbl">EN</div><div class="db-en">Final quality gate before finished goods stocking. Inspection checklist is automatically loaded from MD-13 inspection standards for the specific item and inspection type. PASS → auto-triggers FG-01 PDA stocking flow. FAIL → reject quarantine + optional CAPA creation. WOs flagged by PNT-07 oven deviation are auto-switched to Enhanced Inspection mode (100% full inspection).</div></div><div><div class="db-lbl">KO</div><div class="db-ko">완제품 적재 전 최종 검사 게이트. MD-13 기준 품목별 검사 체크리스트 자동 로드. 합격 → FG-01 PDA 적재 자동 트리거. 불합격 → 격리 + 선택적 CAPA 생성. PNT-07 이탈 플래그 WO → 강화검사(100% 전수) 모드 자동 전환.</div></div></div>
+<div class="mock-wrap"><div class="mock-lbl">QC-03 · Final Inspection · Web PC</div><div class="mock-win">
+<div class="mock-tbar">🔍 A-MES · Quality · Final Inspection <span class="bc">QC &gt; Final Inspection</span></div>
+<div class="mock-body">
+<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;">
+<div style="background:#f0f3f7;border:1px solid var(--border);border-radius:5px;padding:8px 12px;flex:1;"><div style="font-size:9px;color:var(--sub);">WO / Item · 작업 지시 / 품목</div><div style="font-size:12px;font-weight:700;">WO-20250701-007 · Door Trim LH · 200 EA</div></div>
+<div class="alert alert-d" style="margin:0;"><span>⚠️</span><div><strong>Enhanced Inspection Mode</strong> — Oven deviation flag (PNT-07). 100% full inspection required. <strong>강화검사 모드 — 건조로 이탈 플래그. 전수 검사 필수.</strong></div></div>
+</div>
+<table class="tbl"><thead><tr><th>#</th><th>Inspection Item (EN) <span class="th-ko">검사 항목</span></th><th>Standard <span class="th-ko">기준</span></th><th>Method <span class="th-ko">방법</span></th><th>Defect Qty <span class="th-ko">불량 수</span></th><th>Result <span class="th-ko">판정</span></th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Visual — Surface Defect <div class="ko">외관 검사 (스크래치·오염·버·변색)</div></td><td>No defects · 이상 없음</td><td>Visual / 육안</td><td style="text-align:center;">0</td><td><span class="b b-ok">✅ Pass</span></td></tr>
+<tr><td>2</td><td>Dimension — Overall Length <div class="ko">치수 (전장)</div></td><td>148 ± 0.5 mm</td><td>Vernier caliper / 캘리퍼</td><td style="text-align:center;">0</td><td><span class="b b-ok">✅ Pass</span></td></tr>
+<tr><td>3</td><td>Fabric Adhesion — Peel Test <div class="ko">원단 부착력 (박리 테스트)</div></td><td>No lifting / 박리 없음</td><td>Manual peel / 손 박리</td><td style="text-align:center;">0</td><td><span class="b b-ok">✅ Pass</span></td></tr>
+<tr class="rw"><td>4</td><td>Color Difference — Colorimeter <div class="ko">원단 색차 (색상계 측정)</div></td><td>ΔE ≤ 1.0</td><td>Colorimeter / 색차계</td><td style="text-align:center;color:#f59e0b;font-weight:700;">2</td><td><span class="b b-w">⚠ Review</span></td></tr>
+<tr><td>5</td><td>Assembly — Clip &amp; Boss Fit <div class="ko">조립 상태 (클립·보스)</div></td><td>Normal / 정상 조립</td><td>Visual + touch / 육안·촉감</td><td style="text-align:center;">0</td><td><span class="b b-ok">✅ Pass</span></td></tr>
+</tbody></table>
+<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+<div style="font-size:10px;color:var(--sub);align-self:center;">Inspected: 200/200 EA · 검사 완료: 200/200 EA</div>
+<button class="btn btn-primary" style="background:#22c55e;border-color:#22c55e;">✅ PASS · 합격 확정</button>
+<button class="btn btn-danger">❌ FAIL · 불합격</button>
+</div>
+</div></div></div>
+<div class="g2" style="gap:12px;margin-top:12px;">
+<div class="screen-card" id="qc01" style="margin-bottom:0;"><div class="sc-hdr"><div><div class="sc-id">QC-01</div><div class="sc-title-en">Incoming Inspection</div><div class="sc-title-ko">수입 검사</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-pda">📱 PDA</span><span class="tag t-1st">1st</span></div></div><div class="sc-body"><div class="desc-bi" style="border-left-color:#dc2626;"><div><div class="db-lbl">EN</div><div class="db-en">Auto-triggered from WH-01/02 inbound. Inspector selects inspection standard from MD-13 for inbound raw material or fabric. AQL sampling or 100% inspection. Pass → stock update. Fail → WH quarantine zone.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">WH-01/02 입고 시 자동 트리거. MD-13 수입검사 기준 적용. AQL 또는 전수검사. 합격 → 재고 반영. 불합격 → WH 격리 구역 이동.</div></div></div></div></div>
+<div class="screen-card" id="qc05" style="margin-bottom:0;"><div class="sc-hdr"><div><div class="sc-id">QC-05</div><div class="sc-title-en">Defect Pareto Analysis</div><div class="sc-title-ko">불량 파레토 분석</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd</span></div></div><div class="sc-body"><div class="desc-bi" style="border-left-color:#dc2626;"><div><div class="db-lbl">EN</div><div class="db-en">Pareto chart of defect frequency by type, process, line, and item. Drill-down to individual defect records. Trend line shows 30/60/90-day moving averages. Export for CAPA reports.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">불량 유형·공정·라인·품목별 파레토 차트. 개별 불량 기록 드릴다운. 30/60/90일 추이선. CAPA 보고서 출력.</div></div></div></div></div>
+</div>
+<div class="g2" style="gap:12px;margin-top:12px;margin-bottom:20px;">
+<div class="screen-card" id="qc06" style="margin-bottom:0;"><div class="sc-hdr"><div><div class="sc-id">QC-06</div><div class="sc-title-en">CAPA Management</div><div class="sc-title-ko">시정 조치 (CAPA)</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd</span></div></div><div class="sc-body"><div class="desc-bi" style="border-left-color:#dc2626;"><div><div class="db-lbl">EN</div><div class="db-en">Corrective and Preventive Action management. CAPA auto-recommended when same defect type recurs 3+ times within 30 days. Tracks root cause, corrective action, responsible person, due date, and verification status.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">시정·예방 조치 관리. 30일 내 동일 불량 3회↑ 시 CAPA 자동 권고. 근본 원인·조치 내용·담당자·기한·검증 상태 추적.</div></div></div></div></div>
+<div class="screen-card" id="qc07" style="margin-bottom:0;"><div class="sc-hdr"><div><div class="sc-id">QC-07</div><div class="sc-title-en">Client Claim Management</div><div class="sc-title-ko">클레임 관리 (SAV / GEO)</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd</span></div></div><div class="sc-body"><div class="desc-bi" style="border-left-color:#dc2626;"><div><div class="db-lbl">EN</div><div class="db-en">Records and manages quality claims received from SAV and GEO client plants. Links to original WO, batch, and inspection records. Tracks claim resolution status and feeds CAPA. Email notification to QC lead and sales team on new claim.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">SAV·GEO 거래선 클레임 등록·관리. 원래 WO·배치·검사 기록 연계. 처리 상태 추적 + CAPA 연동. 신규 클레임 시 QC 담당·영업팀 이메일 알림.</div></div></div></div></div>
+</div>
+</div></div>
+<div class="br-wrap" id="br-qc"><div class="br-title">Business Rules · 업무 규칙 (QC)</div><table class="br-tbl"><thead><tr><th>Rule ID</th><th>Category</th><th>Rule (EN)</th><th>규칙 (KO)</th><th>Action</th></tr></thead><tbody>
+<tr><td class="br-id">BR-QC-01</td><td>FG Gate</td><td class="br-en">Only QC-03 passed WOs can proceed to FG-01 stocking. Failed items must be quarantined and cannot be shipped.</td><td class="br-ko">QC-03 합격 WO만 FG 적재 가능. 불합격 품목 격리 필수, 출하 불가.</td><td><span class="b b-e">Block</span></td></tr>
+<tr><td class="br-id">BR-QC-02</td><td>Enhanced Inspection</td><td class="br-en">WOs auto-flagged by PNT-07 oven deviation must undergo 100% enhanced final inspection. The mode cannot be manually overridden to standard sampling.</td><td class="br-ko">PNT-07 이탈 플래그 WO 100% 전수 강화검사 필수. 표준 샘플링으로 수동 변경 불가.</td><td><span class="b b-e">Forced</span></td></tr>
+<tr><td class="br-id">BR-QC-03</td><td>CAPA Trigger</td><td class="br-en">When the same defect code recurs 3 or more times within a rolling 30-day window, system auto-generates a CAPA creation recommendation and alerts QC manager.</td><td class="br-ko">30일 이내 동일 불량 코드 3회↑ → CAPA 자동 권고 + QC 관리자 알림.</td><td><span class="b b-w">Alert + Auto</span></td></tr>
+</tbody></table></div>
+<div class="page-footer"><div class="pf-l">A-MES · VOL.8 · QC Quality Control · UI Design Spec v1.0 · Bilingual EN/KO</div><div class="pf-r">7 Screens · Web + PDA · 1st–2nd Dev</div></div></div></div></body></html>
