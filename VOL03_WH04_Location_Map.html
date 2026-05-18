@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.3 · WH-04 · Location Map · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+
+:root{
+  --gold:#d4a017; --gold-lt:#fdf6e3; --gold-dk:#a07810;
+  --ink:#0d1117; --ink2:#161b22; --ink3:#21262d;
+  --surface:#ffffff; --bg:#f6f8fa; --border:#d0d7de;
+  --text:#24292f; --sub:#656d76;
+  --wh:#0891b2; --pp:#059669; --inj:#2563eb; --img:#7c3aed;
+  --pnt:#ea580c; --qc:#dc2626; --fg:#0db87a; --mnt:#0284c7;
+  --rpt:#6366f1; --sys:#475569; --md:#d97706;
+  --mod-color:var(--wh);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+
+/* NAV */
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
+.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}
+.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;transition:color .12s;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}
+.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+
+/* L3 BREADCRUMB */
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;transition:color .12s;}
+.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}
+.l3-crumb .current{color:var(--gold);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+
+/* LAYOUT */
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(212,160,23,.15) transparent;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:#fff;}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;transition:all .12s;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:32px;flex-shrink:0;color:rgba(34,211,238,.7);}
+.sb-link.on .sl-id{color:var(--gold);}
+.sb-link .sl-en{font-size:10px;font-weight:600;}
+.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);margin-top:1px;}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;border-left:2px solid transparent;margin-left:-2px;transition:all .12s;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+
+.main{flex:1;min-width:0;}
+
+/* SCREEN HEADER */
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#0c1a23 0%,#0f2632 50%,#0d1f2a 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(34,211,238,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(34,211,238,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(34,211,238,.10),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#22d3ee;margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:#22d3ee;border-radius:50%;box-shadow:0 0 8px #22d3ee;}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:14px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:#22d3ee;line-height:.9;text-shadow:0 0 22px rgba(34,211,238,.2);}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:46px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:4px;margin-bottom:14px;}
+
+.scr-meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.web{border-color:rgba(26,111,255,.3);color:#7ab4ff;}
+.meta-chip.pda{border-color:rgba(13,184,122,.3);color:#5dffc4;}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+
+.content{padding:0 48px 60px;}
+
+/* SECTION */
+.sec{margin-top:36px;}
+.sec-hdr{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.sec-num{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--wh);letter-spacing:1px;line-height:1;min-width:42px;}
+.sec-title-wrap{flex:1;}
+.sec-title-en{font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.3px;}
+.sec-title-ko{font-size:11px;color:var(--sub);margin-top:1px;}
+.sec-line{flex:1;height:1px;background:linear-gradient(90deg,var(--wh),transparent);max-width:200px;}
+
+/* OVERVIEW */
+.ov-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;}
+.ov-desc{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--wh);border-radius:0 6px 6px 0;padding:16px 18px;}
+.ov-desc-en{font-size:12px;color:var(--text);line-height:1.85;margin-bottom:10px;}
+.ov-desc-ko{font-size:11px;color:var(--sub);line-height:1.85;padding-top:10px;border-top:1px dashed var(--border);}
+.ov-meta{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.ov-meta-row{display:flex;border-bottom:1px solid var(--border);font-size:11px;}
+.ov-meta-row:last-child{border-bottom:none;}
+.ov-meta-k{flex:0 0 110px;background:#f6f8fa;padding:8px 12px;font-weight:700;color:var(--sub);font-size:10px;letter-spacing:.5px;text-transform:uppercase;border-right:1px solid var(--border);}
+.ov-meta-v{flex:1;padding:8px 12px;color:var(--text);}
+.ov-meta-v .ko{font-size:10px;color:var(--sub);margin-left:6px;}
+.ov-meta-v code{font-family:'JetBrains Mono',monospace;font-size:10px;background:#f0f3f7;padding:1px 6px;border-radius:3px;color:var(--wh);}
+
+/* MOCKUP */
+.mock-wrap{background:#eef1f5;border:1px solid var(--border);border-radius:8px;padding:14px;}
+.mock-lbl{font-size:9px;font-weight:700;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.mock-lbl::before{content:'';width:6px;height:6px;background:var(--wh);border-radius:50%;}
+.mock-win{background:#fff;border:1px solid #c8d0db;border-radius:6px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.08);}
+.mock-tbar{background:var(--text);color:#fff;padding:8px 14px;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;}
+.mock-tbar .bc{margin-left:auto;font-size:9px;color:rgba(255,255,255,.35);font-family:'JetBrains Mono',monospace;}
+.mock-toolbar{background:#f6f8fa;border-bottom:1px solid var(--border);padding:8px 14px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+.mock-toolbar select,.mock-toolbar input{padding:4px 9px;border:1px solid var(--border);border-radius:3px;font-size:11px;background:#fff;}
+.mock-body{padding:14px;}
+
+.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:14px;}
+.kc{flex:1;padding:10px 13px;border-right:1px solid var(--border);background:#fafbfc;}
+.kc:last-child{border-right:none;}
+.kv{font-size:22px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
+.kl-en{font-size:9px;color:var(--sub);margin-top:3px;}
+.kl-ko{font-size:8px;color:rgba(100,116,139,.6);}
+
+.tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.tbl th{background:#f0f3f7;padding:7px 9px;font-weight:700;border:1px solid var(--border);text-align:left;font-size:10px;color:var(--text);}
+.tbl th .th-ko{font-weight:400;color:var(--sub);font-size:9px;display:block;}
+.tbl td{padding:6px 9px;border:1px solid var(--border);vertical-align:middle;}
+.tbl .rh td{background:#f0fdf4;}
+.tbl .rw td{background:#fffbeb;}
+.tbl .rd td{background:#fef2f2;}
+.tbl tr:hover td{background:#f9fafb;}
+.tbl td .ko{color:var(--sub);font-size:10px;}
+
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
+.b-ok{background:#dcfce7;color:#166534;}
+.b-w{background:#fef9c3;color:#92400e;}
+.b-e{background:#fee2e2;color:#991b1b;}
+.b-i{background:#dbeafe;color:#1e40af;}
+.b-n{background:#f3f4f6;color:#4b5563;}
+
+.btn{padding:5px 13px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
+.btn-primary{background:var(--wh);color:#fff;border-color:var(--wh);}
+.btn-secondary{background:#f6f8fa;color:var(--text);border-color:var(--border);}
+.btn-danger{background:#dc2626;color:#fff;}
+.btn-success{background:#22c55e;color:#fff;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+
+/* COMPONENT SPEC TABLE */
+.cs-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.cs-tbl th{background:linear-gradient(180deg,#0d1f2a,#0c1a23);color:#67e8f9;padding:9px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid var(--ink3);}
+.cs-tbl th .th-ko{display:block;color:rgba(103,232,249,.55);font-weight:400;font-size:9px;letter-spacing:0;text-transform:none;margin-top:1px;}
+.cs-tbl td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.cs-tbl tr:last-child td{border-bottom:none;}
+.cs-tbl tr:hover td{background:#f9fafb;}
+.cs-tbl .c-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--wh);}
+.cs-tbl .c-name{font-weight:700;color:var(--text);}
+.cs-tbl .c-name .ko{font-size:10px;font-weight:400;color:var(--sub);display:block;margin-top:1px;}
+.cs-tbl .c-type{font-family:'JetBrains Mono',monospace;font-size:10px;color:#7c3aed;background:#f5f3ff;padding:2px 6px;border-radius:3px;display:inline-block;}
+.cs-tbl .c-req{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;}
+.cs-tbl .c-req.y{color:#dc2626;}
+.cs-tbl .c-req.n{color:var(--sub);}
+.cs-tbl .c-validation{font-size:10px;color:var(--text);line-height:1.6;}
+.cs-tbl .c-validation code{font-family:'JetBrains Mono',monospace;font-size:9px;background:#fff7ed;color:#9a3412;padding:1px 5px;border-radius:2px;}
+.cs-tbl .c-default{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sub);}
+
+/* EVENT FLOW */
+.ef-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px 20px;}
+.ef-flow{position:relative;}
+.ef-step{display:grid;grid-template-columns:46px 1fr;gap:14px;padding:10px 0;position:relative;}
+.ef-step:not(:last-child)::before{content:'';position:absolute;left:23px;top:42px;bottom:-10px;width:2px;background:linear-gradient(180deg,var(--wh),rgba(8,145,178,.15));}
+.ef-num{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--wh),#0e7490);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;box-shadow:0 4px 12px rgba(8,145,178,.25);position:relative;z-index:1;}
+.ef-step.terminal .ef-num{background:linear-gradient(135deg,#059669,#047857);box-shadow:0 4px 12px rgba(5,150,105,.25);}
+.ef-step.error .ef-num{background:linear-gradient(135deg,#dc2626,#991b1b);box-shadow:0 4px 12px rgba(220,38,38,.25);}
+.ef-body{padding-top:2px;}
+.ef-trig{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.ef-trig-tag{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;border-radius:2px;}
+.ef-trig-tag.user{background:#dbeafe;color:#1e40af;}
+.ef-trig-tag.system{background:#f3e8ff;color:#7c3aed;}
+.ef-trig-tag.scheduled{background:#fef3c7;color:#92400e;}
+.ef-trig-tag.pda{background:#d1fae5;color:#065f46;}
+.ef-trig-name{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--text);}
+.ef-action{font-size:12px;color:var(--text);line-height:1.7;margin-bottom:3px;}
+.ef-action-ko{font-size:11px;color:var(--sub);line-height:1.7;}
+.ef-result{margin-top:6px;padding:7px 10px;background:#f6f8fa;border-left:2px solid var(--wh);border-radius:0 3px 3px 0;font-size:10px;color:var(--text);}
+.ef-result .er-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;color:var(--wh);letter-spacing:1px;margin-right:6px;}
+.ef-result code{font-family:'JetBrains Mono',monospace;font-size:10px;background:#fff;padding:1px 5px;border-radius:2px;border:1px solid var(--border);color:#7c3aed;}
+.ef-step.error .ef-result{border-left-color:#dc2626;background:#fef2f2;}
+.ef-step.error .ef-result .er-lbl{color:#dc2626;}
+.ef-step.terminal .ef-result{border-left-color:#059669;background:#f0fdf4;}
+.ef-step.terminal .ef-result .er-lbl{color:#059669;}
+
+/* EXCEPTION */
+.exc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+.exc-card{background:var(--surface);border:1px solid var(--border);border-top:3px solid #dc2626;border-radius:0 0 6px 6px;padding:13px 15px;}
+.exc-card.warn{border-top-color:#f59e0b;}
+.exc-card.info{border-top-color:#0891b2;}
+.exc-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.exc-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#dc2626;background:#fef2f2;padding:2px 8px;border-radius:3px;}
+.exc-card.warn .exc-code{color:#92400e;background:#fef3c7;}
+.exc-card.info .exc-code{color:#1e40af;background:#dbeafe;}
+.exc-name{font-size:12px;font-weight:700;color:var(--text);flex:1;}
+.exc-name .ko{font-size:10px;font-weight:400;color:var(--sub);display:block;}
+.exc-row{display:grid;grid-template-columns:64px 1fr;gap:8px;padding:5px 0;border-top:1px dashed var(--border);font-size:10px;}
+.exc-row:first-of-type{border-top:none;}
+.exc-row .lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;padding-top:2px;}
+.exc-row .val{color:var(--text);line-height:1.6;}
+.exc-row .val code{font-family:'JetBrains Mono',monospace;font-size:9px;background:#f0f3f7;padding:1px 5px;border-radius:2px;color:#7c3aed;}
+.exc-row .val .ko{color:var(--sub);display:block;font-size:9px;margin-top:1px;}
+.exc-msg{margin-top:8px;padding:7px 10px;background:#1a0808;border:1px solid #3a1010;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#ff8a82;text-align:center;}
+.exc-card.warn .exc-msg{background:#1a1408;border-color:#3a2a10;color:#fbbf24;}
+.exc-card.info .exc-msg{background:#08141a;border-color:#102a3a;color:#67e8f9;}
+
+/* LINKAGE */
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px 24px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#f0fdf4;border-color:#22c55e;}
+.lnk-node.cur{background:linear-gradient(135deg,#0c1a23,#0f2632);border-color:#22d3ee;color:#fff;box-shadow:0 4px 16px rgba(34,211,238,.2);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.5px;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#15803d;}
+.lnk-node.cur .lnk-id{color:#22d3ee;}
+.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}
+.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}
+.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.lnk-arr-lbl{font-size:8px;color:var(--sub);font-family:'JetBrains Mono',monospace;letter-spacing:1px;text-transform:uppercase;display:block;text-align:center;margin-top:-6px;}
+
+/* BR MINI */
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid #f3e0b0;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.br-mini tr:last-child td{border-bottom:none;}
+.br-mini .br-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-mini .br-en{font-size:11px;color:var(--text);line-height:1.6;}
+.br-mini .br-ko{font-size:10px;color:var(--sub);line-height:1.6;margin-top:3px;}
+.br-mini .br-act{text-align:center;}
+.br-mini .br-act span{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-mini .br-act .blk{background:#fee2e2;color:#991b1b;}
+.br-mini .br-act .alt{background:#fef9c3;color:#92400e;}
+.br-mini .br-act .aut{background:#dbeafe;color:#1e40af;}
+
+/* ALERTS */
+.alert{display:flex;gap:9px;align-items:flex-start;padding:9px 13px;border-radius:5px;border:1px solid;font-size:11px;line-height:1.65;}
+.alert-i{background:#eff6ff;border-color:#bfdbfe;color:#1e40af;}
+.alert-w{background:#fef9c3;border-color:#fde68a;color:#92400e;}
+
+/* PDA MOCKUP */
+.pda-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.pda-unit{display:flex;flex-direction:column;}
+.pdu-step{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--wh);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;text-align:center;}
+.pda-shell{background:#000;border:6px solid #1a1f2e;border-radius:24px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:240px;margin:0 auto;}
+.pda-scr{background:#0c1a23;border-radius:16px;overflow:hidden;font-family:'JetBrains Mono',monospace;color:#e2e8f0;min-height:380px;display:flex;flex-direction:column;}
+.pda-sbar{background:#000;padding:5px 12px;font-size:9px;display:flex;justify-content:space-between;color:rgba(255,255,255,.7);}
+.pda-sbar .online{color:#22c55e;}
+.pda-tbar{background:linear-gradient(135deg,#060e1c,#091628);padding:10px 14px;border-bottom:1px solid rgba(34,211,238,.2);}
+.pda-title{font-size:13px;font-weight:700;color:#fff;letter-spacing:.5px;font-family:'Noto Sans KR',sans-serif;}
+.pda-sub{font-size:9px;color:rgba(255,255,255,.4);margin-top:2px;}
+.pda-bd{padding:12px;flex:1;display:flex;flex-direction:column;gap:8px;}
+.pda-scan{background:rgba(34,211,238,.05);border:1px dashed rgba(34,211,238,.3);border-radius:8px;padding:18px 10px;text-align:center;}
+.pda-scan-icon{font-size:32px;margin-bottom:6px;}
+.pda-scan-en{font-size:11px;font-weight:700;color:#22d3ee;font-family:'Noto Sans KR',sans-serif;}
+.pda-scan-ko{font-size:9px;color:rgba(34,211,238,.6);margin-top:2px;font-family:'Noto Sans KR',sans-serif;}
+.pda-field{background:rgba(255,255,255,.03);border-left:2px solid rgba(34,211,238,.4);padding:6px 10px;border-radius:0 3px 3px 0;}
+.pda-fl{font-size:8px;color:rgba(255,255,255,.4);letter-spacing:.5px;text-transform:uppercase;margin-bottom:1px;font-family:'Noto Sans KR',sans-serif;}
+.pda-fv{font-size:11px;color:#e2e8f0;font-weight:700;}
+.pda-fv.ok{color:#5dffc4;}
+.pda-fv.er{color:#ff8a82;}
+.pda-disp{background:#000;color:#22d3ee;font-family:'Bebas Neue',sans-serif;font-size:32px;text-align:center;padding:10px;border-radius:5px;letter-spacing:2px;border:1px solid rgba(34,211,238,.2);}
+.pda-numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:6px;}
+.pda-key{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:4px;padding:8px;text-align:center;font-size:14px;color:#e2e8f0;font-family:'Noto Sans KR',sans-serif;}
+.pda-key.k-ok{background:rgba(34,211,238,.2);color:#22d3ee;border-color:rgba(34,211,238,.3);}
+.pda-key.k-del{background:rgba(239,68,68,.15);color:#ff8a82;border-color:rgba(239,68,68,.25);}
+.pda-btn{padding:9px;border-radius:5px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:'Noto Sans KR',sans-serif;margin-top:4px;}
+.pda-pri{background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;}
+.pda-sec{background:rgba(255,255,255,.06);color:#e2e8f0;border:1px solid rgba(255,255,255,.1);}
+.pda-dan{background:linear-gradient(135deg,#dc2626,#991b1b);color:#fff;}
+
+/* LOCATION MAP GRID */
+.loc-grid-wrap{background:#fff;border:1px solid var(--border);border-radius:6px;padding:16px;}
+.loc-grid-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+.loc-legend{display:flex;gap:14px;font-size:9px;color:var(--sub);}
+.loc-legend .lg{display:flex;align-items:center;gap:4px;}
+.loc-legend .lg-sw{width:12px;height:12px;border-radius:2px;border:1px solid rgba(0,0,0,.1);}
+.loc-zone{margin-bottom:14px;}
+.loc-zone-hdr{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--wh);letter-spacing:.5px;margin-bottom:6px;}
+.loc-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;}
+.loc-cell{aspect-ratio:1;border:1px solid #c8d0db;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:8px;font-family:'JetBrains Mono',monospace;font-weight:700;color:#fff;cursor:pointer;transition:transform .1s;}
+.loc-cell:hover{transform:scale(1.1);z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+.loc-cell.empty{background:#e5e7eb;color:#94a3b8;}
+.loc-cell.partial{background:#fbbf24;}
+.loc-cell.full{background:#22c55e;}
+.loc-cell.over{background:#ef4444;}
+
+/* DATA MODEL */
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}
+.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;}
+.dm-pk{color:#f59e0b;}
+.dm-fk{color:#8b5cf6;}
+.dm-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:9px;}
+
+/* FOOTER */
+.page-footer{padding:24px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;align-items:center;font-size:10px;}
+.page-footer .pf-l{font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.page-footer .pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+
+@media (max-width:1100px){
+  .ov-grid{grid-template-columns:1fr;}
+  .exc-grid{grid-template-columns:1fr;}
+  .scr-id-block{flex-direction:column;align-items:flex-start;gap:6px;}
+  .scr-id{font-size:42px;}
+  .scr-title-en{font-size:32px;}
+  .pda-row{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<nav class="ames-nav"><div class="ames-nav-inner">
+  <a class="nav-home" href="INDEX.html">
+    <div><div class="nav-home-logo">A-MES</div><div class="nav-home-sub">Index</div></div>
+  </a>
+  <a href="VOL03_WH_Warehouse.html" class="nav-vol active"><span class="nv-code" style="color:#0891b2;">WH</span><span>Warehouse</span></a>
+  <a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span>Plan</span></a>
+  <a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span>Injection</span></a>
+  <a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span>Wrapping</span></a>
+  <a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span>Painting</span></a>
+  <a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span>Quality</span></a>
+  <a href="VOL09_FG_Finished.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span>Finished Goods</span></a>
+  <a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span>Maintenance</span></a>
+  <a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span>Reports</span></a>
+  <a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span>System</span></a>
+  <a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span>Master Data</span></a>
+</div></nav>
+
+<div class="l3-crumb">
+  <span class="lvl">L1</span><a href="INDEX.html">A-MES Index</a>
+  <span class="arr">▸</span>
+  <span class="lvl">L2</span><a href="VOL03_WH_Warehouse.html">VOL.3 · WH Warehouse</a>
+  <span class="arr">▸</span>
+  <span class="lvl">L3</span><span class="current">WH-04 · Location Map</span>
+</div>
+
+<div class="page-wrap">
+
+<nav class="sidebar">
+  <div class="sb-head">
+    <div class="sb-vol">VOL.3 · WH MODULE</div>
+    <div class="sb-mod-en">WAREHOUSE</div>
+    <div class="sb-mod-ko">창고 관리</div>
+  </div>
+  <div class="sb-section">L3 Screens · 화면 상세</div>
+  <a class="sb-link" href="VOL03_WH01_Inbound_Schedule.html"><span class="sl-id">WH-01</span><div><div class="sl-en">Inbound Schedule</div><div class="sl-ko">입고 예정</div></div></a>
+  <a class="sb-link" href="VOL03_WH02_PDA_Inbound.html"><span class="sl-id">WH-02</span><div><div class="sl-en">PDA Inbound</div><div class="sl-ko">PDA 입고 처리</div></div></a>
+  <a class="sb-link" href="VOL03_WH03_Inventory_Status.html"><span class="sl-id">WH-03</span><div><div class="sl-en">Inventory Status</div><div class="sl-ko">재고 현황</div></div></a>
+  <a class="sb-link on" href="VOL03_WH04_Location_Map.html"><span class="sl-id">WH-04</span><div><div class="sl-en">Location Map</div><div class="sl-ko">로케이션 맵</div></div></a>
+  <a class="sb-link" href="VOL03_WH05_Inventory_Adjust.html"><span class="sl-id">WH-05</span><div><div class="sl-en">Inventory Adjust</div><div class="sl-ko">재고 조정</div></div></a>
+  <a class="sb-link" href="VOL03_WH06_Release_Schedule.html"><span class="sl-id">WH-06</span><div><div class="sl-en">Release Schedule</div><div class="sl-ko">출고 예정</div></div></a>
+  <a class="sb-link" href="VOL03_WH07_PDA_Release.html"><span class="sl-id">WH-07</span><div><div class="sl-en">PDA Release</div><div class="sl-ko">PDA 출고 피킹</div></div></a>
+  <a class="sb-link" href="VOL03_WH08_Transaction_History.html"><span class="sl-id">WH-08</span><div><div class="sl-en">Transaction History</div><div class="sl-ko">입출고 이력</div></div></a>
+
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page</div>
+    <a href="#s1"><span class="num">01</span>Overview</a>
+    <a href="#s2"><span class="num">02</span>Screen Mockup</a>
+    <a href="#s3"><span class="num">03</span>UI Components</a>
+    <a href="#s4"><span class="num">04</span>Event &amp; Action Flow</a>
+    <a href="#s5"><span class="num">05</span>Exception Handling</a>
+    <a href="#s6"><span class="num">06</span>Linked Screens</a>
+    <a href="#s7"><span class="num">07</span>Business Rules</a>
+  </div>
+</nav>
+
+<div class="main">
+
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.3 · WH · Warehouse Management · 로케이션 맵</div>
+      <div class="scr-id-block">
+        <div class="scr-id">WH-04</div>
+        <div>
+          <div class="scr-title-en">Location Map</div>
+        </div>
+      </div>
+      <div class="scr-title-ko">로 케 이 션   맵</div>
+      <div class="scr-meta">
+        <div class="meta-chip web"><span class="mc-lbl">Device</span><span class="mc-val">🖥 Web PC</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">2nd Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">Warehouse Staff · Manager</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Freq</span><span class="mc-val">On-demand · 필요시</span></div>
+        <div class="meta-chip"><span class="mc-lbl">URL</span><span class="mc-val" style="font-family:'JetBrains Mono',monospace;">/wh/location-map</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+  <!-- 1. OVERVIEW -->
+  <section class="sec" id="s1">
+    <div class="sec-hdr">
+      <div class="sec-num">01</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Overview</div>
+        <div class="sec-title-ko">화면 개요</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="ov-grid">
+      <div class="ov-desc">
+        <div class="ov-desc-en">
+          Visual grid map of all warehouse zones and shelf locations. Each cell represents one storage cell and is color-coded by fill rate: <strong style="color:#6b7280;">empty (grey)</strong>, <strong style="color:#d97706;">partial (yellow)</strong>, <strong style="color:#15803d;">full (green)</strong>, or <strong style="color:#b91c1c;">over-capacity (red)</strong>. Clicking a cell opens a detail panel with stored items, quantities, inbound dates, and a link to the cell's stock movement history. Location codes follow the convention <code style="font-family:'JetBrains Mono',monospace;background:#f0f3f7;padding:1px 5px;border-radius:2px;">[Warehouse]-[Zone]-[Row]-[Col]-[Level]</code>.
+        </div>
+        <div class="ov-desc-ko">
+          모든 창고 구역과 선반 로케이션을 그리드 형태로 시각화한 화면입니다. 각 셀은 한 개의 저장 위치를 나타내며 충전율에 따라 색상이 다릅니다: <strong style="color:#6b7280;">비어있음(회색)</strong>, <strong style="color:#d97706;">일부 사용(노랑)</strong>, <strong style="color:#15803d;">가득 참(초록)</strong>, <strong style="color:#b91c1c;">초과(빨강)</strong>. 셀 클릭 시 보관 품목·수량·입고일·이력 링크가 포함된 상세 패널이 열립니다. 로케이션 코드 체계: <code style="font-family:'JetBrains Mono',monospace;background:#f0f3f7;padding:1px 5px;border-radius:2px;">[창고]-[구역]-[행]-[열]-[층]</code>.
+        </div>
+      </div>
+      <div class="ov-meta">
+        <div class="ov-meta-row"><div class="ov-meta-k">Screen ID</div><div class="ov-meta-v"><code>WH-04</code></div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">Layout</div><div class="ov-meta-v">Multi-zone visual grid + side panel <span class="ko">다중 구역 그리드</span></div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">Refresh</div><div class="ov-meta-v">Real-time (WebSocket) <span class="ko">실시간</span></div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">Phase</div><div class="ov-meta-v">2nd Dev <span class="ko">2차 개발</span></div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">Code Format</div><div class="ov-meta-v"><code>WH-FAB-D-01-1</code></div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">Tables</div><div class="ov-meta-v"><code>md_location</code>, <code>wh_inventory</code></div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">RBAC</div><div class="ov-meta-v"><code>WH.View</code></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. MOCKUP -->
+  <section class="sec" id="s2">
+    <div class="sec-hdr">
+      <div class="sec-num">02</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Screen Mockup</div>
+        <div class="sec-title-ko">화면 목업 — 시각적 그리드 맵</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="mock-wrap">
+      <div class="mock-lbl">WH-04 · Location Map · Web PC</div>
+      <div class="mock-win">
+        <div class="mock-tbar">📦 A-MES · Warehouse · Location Map <span class="bc">Warehouse &gt; Location Map</span></div>
+        <div class="mock-toolbar">
+          <select><option>All Warehouses</option><option>WH-RM (원자재)</option><option>WH-FAB (원단)</option><option>WH-PNT (도료)</option><option>WH-FG (완제품)</option></select>
+          <select><option>All Levels · 전체 층</option><option>L1 · 1층</option><option>L2 · 2층</option><option>L3 · 3층</option></select>
+          <input type="text" placeholder="Location code search..." style="width:160px;">
+          <button class="btn btn-primary btn-sm">🔍 Search</button>
+          <button class="btn btn-secondary btn-sm">🖨 Print QR Labels</button>
+          <button class="btn btn-secondary btn-sm" style="margin-left:auto;">📥 Excel</button>
+        </div>
+        <div class="mock-body">
+          <div class="kpi-strip">
+            <div class="kc"><div class="kv" style="color:#0891b2;">240</div><div class="kl-en">Total Cells</div><div class="kl-ko">전체 셀</div></div>
+            <div class="kc"><div class="kv" style="color:#6b7280;">38</div><div class="kl-en">Empty</div><div class="kl-ko">비어있음</div></div>
+            <div class="kc"><div class="kv" style="color:#f59e0b;">52</div><div class="kl-en">Partial</div><div class="kl-ko">일부 사용</div></div>
+            <div class="kc"><div class="kv" style="color:#22c55e;">148</div><div class="kl-en">Full</div><div class="kl-ko">가득 참</div></div>
+            <div class="kc"><div class="kv" style="color:#ef4444;">2</div><div class="kl-en">Over Cap</div><div class="kl-ko">초과</div></div>
+          </div>
+
+          <div class="loc-grid-wrap">
+            <div class="loc-grid-title">
+              <span>📍 Warehouse Map View · 창고 맵 (Level 1)</span>
+              <div class="loc-legend">
+                <div class="lg"><div class="lg-sw" style="background:#e5e7eb;"></div>Empty · 비어있음</div>
+                <div class="lg"><div class="lg-sw" style="background:#fbbf24;"></div>Partial · 일부</div>
+                <div class="lg"><div class="lg-sw" style="background:#22c55e;"></div>Full · 가득</div>
+                <div class="lg"><div class="lg-sw" style="background:#ef4444;"></div>Over · 초과</div>
+              </div>
+            </div>
+
+            <div class="loc-zone">
+              <div class="loc-zone-hdr">▼ WH-RM-A · Raw Material Zone A · 원자재 A구역</div>
+              <div class="loc-grid">
+<div class="loc-cell full">A-01-1</div>
+          <div class="loc-cell full">A-02-1</div>
+          <div class="loc-cell partial">A-03-1</div>
+          <div class="loc-cell full">A-04-1</div>
+          <div class="loc-cell empty">A-05-1</div>
+          <div class="loc-cell full">A-06-1</div>
+          <div class="loc-cell full">A-07-1</div>
+          <div class="loc-cell empty">A-08-1</div>
+          <div class="loc-cell full">A-09-1</div>
+          <div class="loc-cell partial">A-10-1</div>
+              </div>
+            </div>
+
+            <div class="loc-zone">
+              <div class="loc-zone-hdr">▼ WH-FAB-D · Fabric Zone D · 원단 D구역 (2 rows × 10 cols)</div>
+              <div class="loc-grid">
+<div class="loc-cell full">D-01-1</div>
+          <div class="loc-cell full">D-02-1</div>
+          <div class="loc-cell partial">D-03-1</div>
+          <div class="loc-cell full">D-04-1</div>
+          <div class="loc-cell empty">D-05-1</div>
+          <div class="loc-cell full">D-06-1</div>
+          <div class="loc-cell partial">D-07-1</div>
+          <div class="loc-cell over">D-08-1</div>
+          <div class="loc-cell full">D-09-1</div>
+          <div class="loc-cell partial">D-10-1</div>
+          <div class="loc-cell full">D-01-2</div>
+          <div class="loc-cell empty">D-02-2</div>
+          <div class="loc-cell full">D-03-2</div>
+          <div class="loc-cell full">D-04-2</div>
+          <div class="loc-cell partial">D-05-2</div>
+          <div class="loc-cell full">D-06-2</div>
+          <div class="loc-cell empty">D-07-2</div>
+          <div class="loc-cell full">D-08-2</div>
+          <div class="loc-cell partial">D-09-2</div>
+          <div class="loc-cell full">D-10-2</div>
+              </div>
+            </div>
+
+            <div class="loc-zone">
+              <div class="loc-zone-hdr">▼ WH-PNT-E · Paint Zone E · 도료 E구역</div>
+              <div class="loc-grid">
+<div class="loc-cell full">E-01-1</div>
+          <div class="loc-cell partial">E-02-1</div>
+          <div class="loc-cell full">E-03-1</div>
+          <div class="loc-cell empty">E-04-1</div>
+          <div class="loc-cell full">E-05-1</div>
+          <div class="loc-cell full">E-06-1</div>
+          <div class="loc-cell partial">E-07-1</div>
+          <div class="loc-cell full">E-08-1</div>
+          <div class="loc-cell empty">E-09-1</div>
+          <div class="loc-cell full">E-10-1</div>
+              </div>
+            </div>
+
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;">
+            <div style="background:#f6f8fa;border:1px solid var(--border);border-radius:6px;padding:12px 14px;">
+              <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:8px;">📍 Selected Cell · 선택 셀: <code style="background:#0c1a23;color:#22d3ee;padding:2px 6px;border-radius:3px;font-family:'JetBrains Mono',monospace;">WH-FAB-D-01-1</code></div>
+              <table style="width:100%;font-size:10px;border-collapse:collapse;">
+                <tr><td style="padding:4px 0;color:var(--sub);">Zone</td><td style="font-weight:700;">Fabric Zone D · Row 1 / Col 1 / Level 1</td></tr>
+                <tr><td style="padding:4px 0;color:var(--sub);">Capacity</td><td style="font-weight:700;">50 rolls</td></tr>
+                <tr><td style="padding:4px 0;color:var(--sub);">On Hand</td><td style="font-weight:700;color:#22c55e;">42 rolls (84%)</td></tr>
+                <tr><td style="padding:4px 0;color:var(--sub);">Item</td><td style="font-weight:700;font-family:monospace;">FAB-GY-C03</td></tr>
+                <tr><td style="padding:4px 0;color:var(--sub);">FIFO Date</td><td style="font-weight:700;">2025-07-01 09:14</td></tr>
+              </table>
+            </div>
+            <div style="background:#f6f8fa;border:1px solid var(--border);border-radius:6px;padding:12px 14px;">
+              <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:8px;">🕐 Recent Activity · 최근 거래</div>
+              <div style="font-size:10px;color:var(--sub);line-height:1.8;">
+                <div style="border-left:2px solid #22c55e;padding-left:8px;margin-bottom:4px;"><strong style="color:#22c55e;">▲ IN</strong> · 20 rolls · 2025-07-01 09:14 · 김기사</div>
+                <div style="border-left:2px solid #ef4444;padding-left:8px;margin-bottom:4px;"><strong style="color:#ef4444;">▼ OUT</strong> · 5 rolls · 2025-07-02 14:22 · 박작업</div>
+                <div style="border-left:2px solid #22c55e;padding-left:8px;margin-bottom:4px;"><strong style="color:#22c55e;">▲ IN</strong> · 30 rolls · 2025-07-03 11:05 · 김기사</div>
+                <div style="text-align:right;margin-top:6px;"><a style="color:#0891b2;font-weight:700;">View full history → WH-08</a></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="alert alert-i" style="margin-top:14px;"><span>ℹ️</span><div><strong>Fill rate · 충전율 계산</strong> — empty: 0% · partial: 1–80% · full: 80–100% · over: &gt;100% (capacity exceeded). Hover any cell for tooltip with item code and qty.</div></div>
+  </section>
+
+  <!-- 3. UI COMPONENT SPEC -->
+  <section class="sec" id="s3">
+    <div class="sec-hdr">
+      <div class="sec-num">03</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">UI Component Specification</div>
+        <div class="sec-title-ko">UI 컴포넌트 명세</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <h3 style="font-size:12px;font-weight:700;color:var(--sub);margin:6px 0 8px;letter-spacing:.5px;">3.1 Filter Toolbar <span style="color:var(--sub);font-weight:400;">· 필터</span></h3>
+    <table class="cs-tbl">
+      <thead><tr><th style="width:90px;">ID</th><th style="width:180px;">Component</th><th style="width:120px;">Type</th><th style="width:60px;">Req</th><th>Validation / Behavior</th><th style="width:140px;">Default</th></tr></thead>
+      <tbody>
+        <tr><td class="c-id">CMP-01</td><td class="c-name">Warehouse Filter<span class="ko">창고 필터</span></td><td><span class="c-type">SELECT</span></td><td class="c-req n">N</td><td class="c-validation">Loaded from <code>md_warehouse</code>. Selecting a warehouse shows only its zones.</td><td class="c-default">All</td></tr>
+        <tr><td class="c-id">CMP-02</td><td class="c-name">Level Filter<span class="ko">층 필터</span></td><td><span class="c-type">SELECT</span></td><td class="c-req n">N</td><td class="c-validation">For multi-level racks. Filters by <code>md_location.level</code>.</td><td class="c-default">L1</td></tr>
+        <tr><td class="c-id">CMP-03</td><td class="c-name">Location Search<span class="ko">로케이션 검색</span></td><td><span class="c-type">TEXT</span></td><td class="c-req n">N</td><td class="c-validation">Searches by <code>location_code</code> or stored <code>item_code</code>. Match → cell flashes + zoom-in.</td><td class="c-default">(empty)</td></tr>
+        <tr><td class="c-id">CMP-04</td><td class="c-name">Print QR Labels<span class="ko">QR 라벨 출력</span></td><td><span class="c-type">BUTTON</span></td><td class="c-req n">N</td><td class="c-validation">Opens print modal. Select cells (or zone) → batch-print location QR labels. Requires <code>WH.Manage</code>.</td><td class="c-default">—</td></tr>
+        <tr><td class="c-id">CMP-05</td><td class="c-name">Excel Export<span class="ko">엑셀 출력</span></td><td><span class="c-type">BUTTON</span></td><td class="c-req n">N</td><td class="c-validation">Exports cell inventory list. Includes capacity, on-hand, fill rate %.</td><td class="c-default">—</td></tr>
+      </tbody>
+    </table>
+
+    <h3 style="font-size:12px;font-weight:700;color:var(--sub);margin:18px 0 8px;letter-spacing:.5px;">3.2 Grid Cell Component <span style="color:var(--sub);font-weight:400;">· 그리드 셀</span></h3>
+    <table class="cs-tbl">
+      <thead><tr><th style="width:90px;">ID</th><th style="width:180px;">Component</th><th style="width:120px;">Type</th><th style="width:60px;">Req</th><th>Validation / Behavior</th><th style="width:140px;">Default</th></tr></thead>
+      <tbody>
+        <tr><td class="c-id">CMP-06</td><td class="c-name">Cell Color State<span class="ko">셀 색상 상태</span></td><td><span class="c-type">DERIVED</span></td><td class="c-req n">—</td><td class="c-validation">Auto: 0% → grey · 1–80% → yellow · 80–100% → green · &gt;100% → red.</td><td class="c-default">—</td></tr>
+        <tr><td class="c-id">CMP-07</td><td class="c-name">Cell Hover Tooltip<span class="ko">호버 툴팁</span></td><td><span class="c-type">TOOLTIP</span></td><td class="c-req n">—</td><td class="c-validation">Shows: location_code, item_code, on_hand / capacity, fill %, FIFO date. 200ms delay.</td><td class="c-default">—</td></tr>
+        <tr><td class="c-id">CMP-08</td><td class="c-name">Cell Click<span class="ko">셀 클릭</span></td><td><span class="c-type">CLICK</span></td><td class="c-req n">—</td><td class="c-validation">Opens side panel with full details + activity log. URL updates with <code>?focus=...</code> for deep linking.</td><td class="c-default">—</td></tr>
+        <tr><td class="c-id">CMP-09</td><td class="c-name">Empty Cell Action<span class="ko">빈 셀 클릭</span></td><td><span class="c-type">CLICK</span></td><td class="c-req n">—</td><td class="c-validation">For empty cells, panel shows "Available" state + capacity. Manager can flag as "blocked/maintenance".</td><td class="c-default">—</td></tr>
+      </tbody>
+    </table>
+
+    <h3 style="font-size:12px;font-weight:700;color:var(--sub);margin:18px 0 8px;letter-spacing:.5px;">3.3 Detail Side Panel <span style="color:var(--sub);font-weight:400;">· 상세 패널</span></h3>
+    <table class="cs-tbl">
+      <thead><tr><th style="width:90px;">ID</th><th style="width:180px;">Field</th><th style="width:120px;">Source</th><th>Format</th><th style="width:90px;">Editable</th></tr></thead>
+      <tbody>
+        <tr><td class="c-id">FLD-01</td><td class="c-name">Location Code<span class="ko">위치 코드</span></td><td><code class="c-type">md_location.code</code></td><td class="c-validation">Monospace, cyan badge.</td><td class="c-default">No</td></tr>
+        <tr><td class="c-id">FLD-02</td><td class="c-name">Zone / Row / Col / Level</td><td><code class="c-type">md_location</code></td><td class="c-validation">Decomposed display.</td><td class="c-default">No</td></tr>
+        <tr><td class="c-id">FLD-03</td><td class="c-name">Capacity<span class="ko">용량</span></td><td><code class="c-type">md_location.capacity</code></td><td class="c-validation">Number + unit (rolls/kg/L/EA per item type).</td><td class="c-default">Manager</td></tr>
+        <tr><td class="c-id">FLD-04</td><td class="c-name">On Hand / Fill %<span class="ko">현재고·충전율</span></td><td><code class="c-type">wh_inventory</code></td><td class="c-validation">Number + percentage. Color matches cell state.</td><td class="c-default">No (use WH-05)</td></tr>
+        <tr><td class="c-id">FLD-05</td><td class="c-name">FIFO Date<span class="ko">FIFO 기준일</span></td><td><code class="c-type">MIN(wh_inbound.inbound_date)</code></td><td class="c-validation">Oldest inbound date in the cell. Datetime format.</td><td class="c-default">No</td></tr>
+        <tr><td class="c-id">FLD-06</td><td class="c-name">Recent Activity<span class="ko">최근 거래</span></td><td><code class="c-type">wh_transaction</code></td><td class="c-validation">Last 5 entries: IN/OUT, qty, time, operator. Link to WH-08 for full.</td><td class="c-default">No</td></tr>
+        <tr><td class="c-id">FLD-07</td><td class="c-name">Location Status<span class="ko">위치 상태</span></td><td><code class="c-type">md_location.status</code></td><td class="c-validation">Active / Blocked / Maintenance. Manager can toggle.</td><td class="c-default">Manager</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 4. EVENT FLOW -->
+  <section class="sec" id="s4">
+    <div class="sec-hdr">
+      <div class="sec-num">04</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Event &amp; Action Flow</div>
+        <div class="sec-title-ko">이벤트 · 액션 흐름</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="ef-wrap"><div class="ef-flow">
+
+      <div class="ef-step">
+        <div class="ef-num">1</div>
+        <div class="ef-body">
+          <div class="ef-trig"><span class="ef-trig-tag user">User</span><span class="ef-trig-name">page.load · WH-04 진입</span></div>
+          <div class="ef-action">User opens WH-04. System loads location master + current inventory per location. Renders grid color-coded by fill rate. WebSocket subscribes to inventory deltas.</div>
+          <div class="ef-action-ko">WH-04 진입 시 위치 마스터 + 현재 재고를 로딩하여 충전율 색상 그리드 렌더링. WebSocket 구독.</div>
+          <div class="ef-result"><span class="er-lbl">API</span><code>GET /api/wh/locations</code> · <code>WS /ws/location.subscribe</code>.</div>
+        </div>
+      </div>
+
+      <div class="ef-step">
+        <div class="ef-num">2</div>
+        <div class="ef-body">
+          <div class="ef-trig"><span class="ef-trig-tag user">User</span><span class="ef-trig-name">hover · cell</span></div>
+          <div class="ef-action">User hovers a cell. Tooltip appears after 200ms with item code, qty, fill %, FIFO date.</div>
+          <div class="ef-action-ko">셀 호버 시 200ms 지연 후 툴팁 표시(품목·수량·충전율·FIFO 일자).</div>
+          <div class="ef-result"><span class="er-lbl">UI</span> No network call · uses cached data from initial load.</div>
+        </div>
+      </div>
+
+      <div class="ef-step">
+        <div class="ef-num">3</div>
+        <div class="ef-body">
+          <div class="ef-trig"><span class="ef-trig-tag user">User</span><span class="ef-trig-name">click · cell</span></div>
+          <div class="ef-action">User clicks a cell. Side panel opens with full detail + recent activity. URL updates with <code>?focus=WH-FAB-D-01-1</code> for shareable deep link.</div>
+          <div class="ef-action-ko">셀 클릭 시 상세 패널이 열리고 최근 거래 표시. URL이 <code>?focus=...</code>로 갱신되어 딥링크 공유 가능.</div>
+          <div class="ef-result"><span class="er-lbl">API</span><code>GET /api/wh/location/:code/detail</code>.</div>
+        </div>
+      </div>
+
+      <div class="ef-step">
+        <div class="ef-num">4</div>
+        <div class="ef-body">
+          <div class="ef-trig"><span class="ef-trig-tag system">System</span><span class="ef-trig-name">push · location.updated</span></div>
+          <div class="ef-action">When WH-02 inbound or WH-07 release commits, server pushes the location delta. Cell color and tooltip update with smooth transition animation.</div>
+          <div class="ef-action-ko">WH-02·WH-07 커밋 시 위치 변경분 푸시. 셀 색상·툴팁이 부드러운 전환과 함께 갱신.</div>
+          <div class="ef-result"><span class="er-lbl">PAYLOAD</span><code>{location_code, on_hand, capacity, fill_rate}</code>.</div>
+        </div>
+      </div>
+
+      <div class="ef-step">
+        <div class="ef-num">5</div>
+        <div class="ef-body">
+          <div class="ef-trig"><span class="ef-trig-tag user">User</span><span class="ef-trig-name">click · [Print QR Labels]</span></div>
+          <div class="ef-action">Manager selects one or more cells (or entire zone) and clicks Print. System generates a printable HTML page with QR codes for each location.</div>
+          <div class="ef-action-ko">매니저가 셀(또는 구역)을 선택하고 [QR 출력] 클릭 시 QR 코드 포함 인쇄 페이지 생성.</div>
+          <div class="ef-result"><span class="er-lbl">REQUIRE</span> Role <code>WH.Manage</code> · QR encodes <code>location_code</code> · ZPL or HTML format.</div>
+        </div>
+      </div>
+
+      <div class="ef-step terminal">
+        <div class="ef-num">✓</div>
+        <div class="ef-body">
+          <div class="ef-trig"><span class="ef-trig-tag user">User</span><span class="ef-trig-name">click · "View history"</span></div>
+          <div class="ef-action">From side panel, user clicks "View full history" link. Navigates to WH-08 with location pre-filter applied.</div>
+          <div class="ef-action-ko">상세 패널에서 [전체 이력] 클릭 시 WH-08로 이동(해당 위치 필터 사전 적용).</div>
+          <div class="ef-result"><span class="er-lbl">NAV</span><code>/wh/history?location=WH-FAB-D-01-1</code>.</div>
+        </div>
+      </div>
+
+    </div></div>
+  </section>
+
+  <!-- 5. EXCEPTION -->
+  <section class="sec" id="s5">
+    <div class="sec-hdr">
+      <div class="sec-num">05</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Exception &amp; Error Handling</div>
+        <div class="sec-title-ko">예외 · 에러 처리</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="exc-grid">
+      <div class="exc-card">
+        <div class="exc-hdr"><span class="exc-code">E-WH04-001</span><div class="exc-name">Over-Capacity Detected<span class="ko">초과 적재 감지</span></div></div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val">Cell's on_hand exceeds defined capacity (data anomaly or manual override). <span class="ko">정의 용량 초과(이상·수동 입력).</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val">Cell render: <code>on_hand &gt; capacity</code>.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Cell color = red. KPI "Over Cap" increments. Alert to WH manager. Recommend relocation.</div></div>
+        <div class="exc-row"><div class="lbl">Recovery</div><div class="val">Manager redistributes via WH-05 or expands capacity in MD-11.</div></div>
+        <div class="exc-msg">⛔ OVER CAPACITY — RELOCATE</div>
+      </div>
+
+      <div class="exc-card warn">
+        <div class="exc-hdr"><span class="exc-code">E-WH04-002</span><div class="exc-name">Location Blocked<span class="ko">위치 차단</span></div></div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val">Cell marked as <code>Blocked</code> or <code>Maintenance</code> in MD-11. <span class="ko">차단·정비 상태.</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val"><code>md_location.status != 'Active'</code>.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Cell shown with diagonal stripe pattern. WH-02/WH-07 reject scanning this location until reactivated.</div></div>
+        <div class="exc-row"><div class="lbl">Recovery</div><div class="val">Manager re-activates location in MD-11.</div></div>
+        <div class="exc-msg">⚠ BLOCKED — SEE MD-11</div>
+      </div>
+
+      <div class="exc-card warn">
+        <div class="exc-hdr"><span class="exc-code">E-WH04-003</span><div class="exc-name">Mixed Items in Cell<span class="ko">셀 내 품목 혼재</span></div></div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val">Multiple item codes stored in same cell (violates BR-WH-07 if not allowed). <span class="ko">한 셀에 복수 품목 보관.</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val">COUNT(DISTINCT item_code) &gt; 1 per location.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Cell badge shows "Mixed". Detail panel lists all items separately. Yellow warning icon.</div></div>
+        <div class="exc-row"><div class="lbl">Recovery</div><div class="val">If policy disallows, WH-05 adjustment to relocate.</div></div>
+        <div class="exc-msg">⚠ MIXED ITEMS — REVIEW</div>
+      </div>
+
+      <div class="exc-card warn">
+        <div class="exc-hdr"><span class="exc-code">E-WH04-004</span><div class="exc-name">QR Print Permission Denied<span class="ko">QR 출력 권한 없음</span></div></div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val">Non-manager attempts to print QR labels. <span class="ko">매니저 권한 없는 사용자가 출력 시도.</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val">Server RBAC check on print request.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Return 403. Modal: "QR label printing requires WH.Manage role. Contact your manager."</div></div>
+        <div class="exc-row"><div class="lbl">Recovery</div><div class="val">Request from manager or escalate.</div></div>
+        <div class="exc-msg">⛔ ACCESS DENIED — WH.MANAGE REQUIRED</div>
+      </div>
+
+      <div class="exc-card info">
+        <div class="exc-hdr"><span class="exc-code">E-WH04-005</span><div class="exc-name">Empty Warehouse View<span class="ko">빈 창고 뷰</span></div></div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val">Selected warehouse has no defined locations in MD-11. <span class="ko">선택 창고에 위치 미정의.</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val">Locations query returns empty.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Show illustration: "No locations defined for this warehouse. Configure in MD-11."</div></div>
+        <div class="exc-row"><div class="lbl">Recovery</div><div class="val">Master data manager defines locations.</div></div>
+        <div class="exc-msg">ℹ NO LOCATIONS — SEE MD-11</div>
+      </div>
+
+      <div class="exc-card warn">
+        <div class="exc-hdr"><span class="exc-code">E-WH04-006</span><div class="exc-name">Rendering Performance<span class="ko">렌더링 성능</span></div></div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val">Large warehouse (&gt; 1,000 cells) causes slow render. <span class="ko">대형 창고(1000셀 초과) 렌더링 지연.</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val">Cell count check at load time.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Activate virtualized rendering (only visible cells). Show progress bar during initial render.</div></div>
+        <div class="exc-row"><div class="lbl">Recovery</div><div class="val">User applies warehouse/level filter to reduce scope.</div></div>
+        <div class="exc-msg">ℹ LARGE GRID — VIRTUALIZED</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. LINKED -->
+  <section class="sec" id="s6">
+    <div class="sec-hdr">
+      <div class="sec-num">06</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Linked Screens</div>
+        <div class="sec-title-ko">선행 · 후행 연계 화면</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="lnk-wrap">
+      <div class="lnk-row" style="margin-bottom:18px;">
+        <div class="lnk-node up"><div class="lnk-id">MD-11</div><div class="lnk-name">Location Master</div><div class="lnk-ko">로케이션 마스터</div></div>
+        <div style="text-align:center;"><div class="lnk-arr">→</div><div class="lnk-arr-lbl">grid structure</div></div>
+        <div class="lnk-node up"><div class="lnk-id">WH-02</div><div class="lnk-name">PDA Inbound</div><div class="lnk-ko">입고</div></div>
+        <div style="text-align:center;"><div class="lnk-arr">→</div><div class="lnk-arr-lbl">qty ++</div></div>
+        <div class="lnk-node up"><div class="lnk-id">WH-07</div><div class="lnk-name">PDA Release</div><div class="lnk-ko">출고</div></div>
+        <div style="text-align:center;"><div class="lnk-arr">→</div><div class="lnk-arr-lbl">qty −−</div></div>
+        <div class="lnk-node cur"><div class="lnk-id">WH-04</div><div class="lnk-name">Location Map</div><div class="lnk-ko">로케이션 맵 (현재)</div></div>
+      </div>
+
+      <div class="lnk-row">
+        <div class="lnk-node cur"><div class="lnk-id">WH-04</div><div class="lnk-name">Location Map</div><div class="lnk-ko">로케이션 맵 (현재)</div></div>
+        <div style="text-align:center;"><div class="lnk-arr">→</div><div class="lnk-arr-lbl">cell click</div></div>
+        <div class="lnk-node down"><div class="lnk-id">WH-08</div><div class="lnk-name">Transaction History</div><div class="lnk-ko">입출고 이력</div></div>
+        <div style="text-align:center;"><div class="lnk-arr">→</div><div class="lnk-arr-lbl">discrepancy</div></div>
+        <div class="lnk-node down"><div class="lnk-id">WH-05</div><div class="lnk-name">Inventory Adjust</div><div class="lnk-ko">재고 조정</div></div>
+        <div style="text-align:center;"><div class="lnk-arr">→</div><div class="lnk-arr-lbl">QR labels</div></div>
+        <div class="lnk-node down"><div class="lnk-id">PRINT</div><div class="lnk-name">Zebra Printer</div><div class="lnk-ko">QR 라벨 출력</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. BR -->
+  <section class="sec" id="s7">
+    <div class="sec-hdr">
+      <div class="sec-num">07</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Applicable Business Rules</div>
+        <div class="sec-title-ko">적용 업무 규칙</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <table class="br-mini">
+      <thead><tr><th style="width:90px;">Rule ID</th><th>Description</th><th style="width:80px;text-align:center;">Action</th></tr></thead>
+      <tbody>
+        <tr><td class="br-id">BR-WH-07</td><td><div class="br-en">Each storage cell should hold a single item code. Mixed-item cells require manager approval and are flagged in the map view.</div><div class="br-ko">각 셀은 단일 품목 보관 원칙. 혼재 시 매니저 승인 + 맵에 플래그 표시.</div></td><td class="br-act"><span class="alt">Warn</span></td></tr>
+        <tr><td class="br-id">BR-WH-08</td><td><div class="br-en">Blocked or maintenance-status locations cannot receive new inbound. WH-02 / WH-05 scans are rejected until reactivated.</div><div class="br-ko">차단·정비 상태 위치 신규 입고 불가. WH-02·WH-05 스캔 거부.</div></td><td class="br-act"><span class="blk">Block</span></td></tr>
+        <tr><td class="br-id">BR-WH-09</td><td><div class="br-en">Location capacity is defined in MD-11 and is hard-enforced at WH-02 receiving time. Over-capacity stocking is rejected unless override approved.</div><div class="br-ko">로케이션 용량은 MD-11에 정의되며 WH-02 입고 시 강제 적용. 초과 시 거부(승인 시 예외).</div></td><td class="br-act"><span class="blk">Block</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  </div><!-- /content -->
+
+  <div class="page-footer">
+    <div class="pf-l">A-MES · VOL.3 · WH-04 Location Map · L3 Detail Spec v1.0 · Bilingual EN/KO</div>
+    <div class="pf-r">Automotive Parts MES · SAV &amp; GEO Supply · Confidential</div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /page-wrap -->
+
+</body>
+</html>
