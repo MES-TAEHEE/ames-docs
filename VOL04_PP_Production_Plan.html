@@ -1,336 +1,641 @@
 <!DOCTYPE html>
-
-<html lang="en">
+<html lang="ko">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>A-MES · VOL.4 PP Production Planning</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.4 · PP · Production Planning</title>
 <style>
-
+/* ═══════════════════════════════════════
+   A-MES SHARED STYLESHEET v2.0
+   Bilingual EN/KO · UI Labels English
+═══════════════════════════════════════ */
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Noto Sans KR',sans-serif;background:#0f1923;color:#e2e8f0;font-size:13px;line-height:1.65;}
+
 :root{
-  --gold:#d4a017;--gold2:rgba(212,160,23,.15);
-  --border:rgba(255,255,255,.07);
-  --card:rgba(255,255,255,.03);
-  --text2:rgba(255,255,255,.45);
-  --text3:rgba(255,255,255,.22);
+  --gold:#d4a017; --gold-lt:#fdf6e3; --gold-dk:#a07810;
+  --ink:#0d1117; --ink2:#161b22; --ink3:#21262d;
+  --surface:#ffffff; --bg:#f6f8fa; --border:#d0d7de;
+  --text:#24292f; --sub:#656d76;
+  /* module colors */
+  --wh:#0891b2; --pp:#059669; --inj:#2563eb; --img:#7c3aed;
+  --pnt:#ea580c; --qc:#dc2626; --fg:#0db87a; --mnt:#0284c7;
+  --rpt:#6366f1; --sys:#475569; --md:#d97706;
 }
-/* COVER */
-.cover{padding:56px 64px 48px;position:relative;overflow:hidden;}
-.cover::before{content:'';position:absolute;inset:0;
-  background-image:linear-gradient(rgba(212,160,23,.025) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(212,160,23,.025) 1px,transparent 1px);
-  background-size:48px 48px;pointer-events:none;}
-.cover-eyebrow{display:inline-flex;align-items:center;gap:10px;
-  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:3px;
-  color:rgba(212,160,23,.6);text-transform:uppercase;margin-bottom:14px;}
-.cover-eyebrow::before,.cover-eyebrow::after{content:'';display:block;width:28px;height:1px;background:rgba(212,160,23,.3);}
-.cover-title{font-family:'Bebas Neue',sans-serif;font-size:58px;line-height:.95;letter-spacing:2px;margin-bottom:6px;}
-.cover-title span{color:var(--gold);}
-.cover-sub{font-size:15px;font-weight:300;color:var(--text2);letter-spacing:4px;margin-bottom:28px;}
-.bi-box{display:flex;gap:0;border:1px solid rgba(212,160,23,.12);border-radius:6px;overflow:hidden;margin-bottom:0;max-width:780px;}
-.bi-en{padding:14px 20px;flex:1;background:rgba(255,255,255,.02);border-right:1px solid rgba(212,160,23,.1);
-  font-size:12px;color:rgba(255,255,255,.5);line-height:1.85;}
-.bi-ko{padding:14px 20px;flex:1;font-size:12px;color:rgba(255,255,255,.28);line-height:1.85;}
-.screen-index{display:flex;gap:8px;flex-wrap:wrap;margin-top:28px;}
-.si-chip{background:rgba(255,255,255,.04);border:1px solid var(--border);
-  border-radius:5px;padding:8px 14px;display:flex;flex-direction:column;gap:3px;min-width:110px;}
-.si-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;}
-.si-en{font-size:10px;font-weight:700;color:rgba(255,255,255,.8);}
-.si-ko{font-size:9px;color:var(--text3);}
-.meta-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:5px;overflow:hidden;margin-top:20px;max-width:640px;}
-.ms-item{flex:1;padding:10px 14px;border-right:1px solid var(--border);text-align:center;}
-.ms-item:last-child{border-right:none;}
-.ms-l{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;}
-.ms-v{font-size:12px;font-weight:700;margin-top:2px;}
-.wrap{max-width:1100px;margin:0 auto;padding:40px 40px 80px;}
-.sec-divider{border-top:1px solid var(--border);margin:40px 0 28px;padding-top:28px;}
-.screen-banner{
-  background:linear-gradient(135deg,rgba(255,255,255,.025),rgba(255,255,255,.01));
-  border:1px solid var(--border);border-radius:8px;
-  padding:22px 28px;margin-bottom:24px;
-}
-.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:2px;
-  color:var(--gold);opacity:.7;margin-bottom:6px;}
-.sb-code{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;line-height:1;}
-.sb-en{font-size:14px;font-weight:700;color:rgba(255,255,255,.85);margin-top:3px;}
-.sb-ko{font-size:12px;color:var(--text2);margin-top:2px;}
-.desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:0;
-  border:1px solid var(--border);border-radius:6px;overflow:hidden;margin:16px 0;}
-.db-en{padding:14px 18px;background:rgba(255,255,255,.02);border-right:1px solid var(--border);
-  font-size:12px;color:rgba(255,255,255,.5);line-height:1.85;}
-.db-ko{padding:14px 18px;font-size:12px;color:var(--text3);line-height:1.85;}
-.db-label{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:2px;
-  margin-bottom:8px;display:block;}
-.db-label-en{color:rgba(212,160,23,.5);}
-.db-label-ko{color:rgba(255,255,255,.2);}
-.str-row{display:flex;align-items:center;gap:12px;margin:20px 0 12px;}
-.str-line{flex:1;height:1px;background:var(--border);}
-.str-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(212,160,23,.5);letter-spacing:2px;white-space:nowrap;}
-.tbl-wrap{overflow-x:auto;margin:12px 0;}
-table{width:100%;border-collapse:collapse;font-size:12px;}
-th{background:rgba(255,255,255,.05);color:rgba(255,255,255,.55);
-  font-size:10px;font-weight:700;letter-spacing:.5px;
-  padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.1);text-align:left;}
-th .th-ko{display:block;font-size:8px;color:var(--text3);font-weight:400;letter-spacing:0;margin-top:1px;}
-td{padding:8px 12px;border-bottom:1px solid var(--border);color:rgba(255,255,255,.65);vertical-align:top;}
-tr:hover td{background:rgba(255,255,255,.02);}
-.badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;}
-.badge-ok{background:rgba(13,184,122,.15);color:#5dffc4;border:1px solid rgba(13,184,122,.3);}
-.badge-warn{background:rgba(234,179,8,.15);color:#fde047;border:1px solid rgba(234,179,8,.3);}
-.badge-err{background:rgba(220,38,38,.15);color:#fca5a5;border:1px solid rgba(220,38,38,.3);}
-.badge-info{background:rgba(37,99,235,.15);color:#93c5fd;border:1px solid rgba(37,99,235,.3);}
-.badge-gray{background:rgba(255,255,255,.05);color:rgba(255,255,255,.4);border:1px solid var(--border);}
-.mock-win{border:1px solid rgba(255,255,255,.12);border-radius:8px;overflow:hidden;background:#1a2332;margin:12px 0;font-size:11px;}
-.mock-titlebar{background:#0d1117;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:8px;}
-.mock-dots{display:flex;gap:5px;}
-.mock-dots span{width:9px;height:9px;border-radius:50%;display:block;}
-.mock-title{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(255,255,255,.4);margin-left:6px;}
-.mock-toolbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:8px 16px;background:rgba(0,0,0,.2);border-bottom:1px solid var(--border);}
-.btn{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:'Noto Sans KR',sans-serif;}
-.btn-primary{background:#1a6fff;color:#fff;}
-.btn-secondary{background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);border:1px solid var(--border);}
-.btn-danger{background:rgba(220,38,38,.15);color:#fca5a5;border:1px solid rgba(220,38,38,.3);}
-.btn-success{background:rgba(13,184,122,.15);color:#5dffc4;border:1px solid rgba(13,184,122,.3);}
-.btn-warn{background:rgba(234,179,8,.12);color:#fde047;border:1px solid rgba(234,179,8,.25);}
-.sep{width:1px;height:20px;background:var(--border);}
-.inp{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:4px;padding:5px 10px;font-size:11px;color:rgba(255,255,255,.7);font-family:'Noto Sans KR',sans-serif;min-width:120px;}
-select.inp{background:rgba(0,0,0,.3);}
-.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin:12px 0;}
-.kpi-item{flex:1;padding:14px 16px;border-right:1px solid var(--border);text-align:center;}
-.kpi-item:last-child{border-right:none;}
-.kpi-v{font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1;}
-.kpi-en{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:3px;}
-.kpi-ko{font-size:8px;color:var(--text3);margin-top:1px;}
-.rflow{display:flex;align-items:center;gap:0;flex-wrap:wrap;margin:12px 0;}
-.rf-step{display:flex;flex-direction:column;align-items:center;padding:10px 16px;border-radius:6px;font-size:11px;font-weight:700;min-width:90px;text-align:center;}
-.rf-step .rs-en{font-size:13px;font-weight:800;}
-.rf-step .rs-ko{font-size:9px;font-weight:400;opacity:.65;margin-top:2px;}
-.rf-arr{color:rgba(255,255,255,.2);font-size:16px;padding:0 4px;}
-.page-footer{border-top:1px solid var(--border);padding-top:20px;margin-top:48px;font-size:10px;color:var(--text3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;}
-.if-card{background:rgba(5,150,105,.04);border:1px solid rgba(5,150,105,.18);border-radius:8px;padding:16px 20px;margin:10px 0;}
-.if-title{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;letter-spacing:2px;margin-bottom:10px;}
-.road-chip{display:inline-block;padding:2px 8px;border-radius:3px;font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;}
-.road-current{background:rgba(5,150,105,.2);border:1px solid rgba(5,150,105,.4);color:#6ee7b7;}
-.road-future{background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:#a5b4fc;}
-.br-tbl table td:first-child{font-family:'JetBrains Mono',monospace;font-size:10px;color:#d4a017;font-weight:700;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
 
+/* ── NAV BAR (injected per file) ── */
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
+.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}
+.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;transition:color .12s;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}
+.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
 
-/* L3 LINK STYLES v1.1 (PP module) */
-.si-chip{position:relative;transition:all .15s;cursor:pointer;}
-.si-chip:hover{background:rgba(5,150,105,.12)!important;border-color:rgba(5,150,105,.5)!important;transform:translateY(-2px);box-shadow:0 4px 14px rgba(5,150,105,.18);}
-.si-chip .si-l3{display:inline-block;font-size:8px;color:rgba(212,160,23,.55);font-weight:700;letter-spacing:1px;margin-top:3px;padding:1px 5px;background:rgba(212,160,23,.07);border:1px solid rgba(212,160,23,.18);border-radius:2px;text-align:center;}
-.si-chip:hover .si-l3{background:rgba(212,160,23,.9);color:#000;border-color:#d4a017;}
-.sb-l3-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:linear-gradient(135deg,#d4a017,#a07810);color:#000;font-size:10px;font-weight:800;border-radius:4px;text-decoration:none;letter-spacing:1px;text-transform:uppercase;border:1px solid #a07810;box-shadow:0 2px 8px rgba(212,160,23,.3);transition:all .15s;margin-top:14px;}
-.sb-l3-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(212,160,23,.5);background:linear-gradient(135deg,#fbbf24,#d4a017);}
-.l3-hint{display:inline-block;font-size:10px;color:rgba(212,160,23,.7);font-weight:600;letter-spacing:1px;padding:5px 12px;background:rgba(212,160,23,.08);border:1px dashed rgba(212,160,23,.35);border-radius:3px;margin-bottom:14px;}
+/* ── PAGE LAYOUT ── */
+.page-wrap{display:flex;}
+.sidebar{width:230px;min-width:230px;background:var(--ink2);position:sticky;top:40px;height:calc(100vh - 40px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(212,160,23,.15) transparent;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.15);padding:12px 14px 4px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.35);font-size:11px;border-left:2px solid transparent;transition:all .12s;}
+.sb-link:hover{color:rgba(255,255,255,.7);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:42px;flex-shrink:0;}
+.sb-link .sl-en{font-size:10px;font-weight:600;}
+.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.2);margin-top:1px;}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+
+.main{flex:1;min-width:0;}
+
+/* ── MODULE HEADER ── */
+.mod-hdr{padding:36px 48px 24px;position:relative;overflow:hidden;}
+.mod-hdr-inner{position:relative;z-index:1;}
+.mod-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;opacity:.7;}
+.mod-title-en{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:.95;letter-spacing:2px;color:#fff;margin-bottom:4px;}
+.mod-title-ko{font-size:14px;font-weight:300;color:rgba(255,255,255,.35);letter-spacing:4px;margin-bottom:16px;}
+.mod-desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:840px;margin-bottom:18px;}
+.mdb-en{font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;border-left:2px solid rgba(255,255,255,.12);padding-left:12px;}
+.mdb-ko{font-size:11px;color:rgba(255,255,255,.3);line-height:1.8;border-left:2px solid rgba(255,255,255,.06);padding-left:12px;}
+.screen-pills{display:flex;gap:5px;flex-wrap:wrap;}
+.sp{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:9px;color:rgba(255,255,255,.4);}
+.sp-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold);}
+
+/* ── MOD META STRIP ── */
+.mod-meta-strip{display:flex;gap:0;border:1px solid rgba(255,255,255,.08);border-radius:5px;overflow:hidden;margin:16px 0 18px;max-width:840px;background:rgba(0,0,0,.18);}
+.mms-item{flex:1;padding:9px 14px;border-right:1px solid rgba(255,255,255,.05);}
+.mms-item:last-child{border-right:none;}
+.mms-l{font-size:8px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:1.2px;}
+.mms-v{font-size:11px;font-weight:700;color:#fff;margin-top:2px;}
+
+/* ── CONTENT AREA ── */
+.content{padding:0 48px 48px;}
+
+/* ── SCREEN CARD ── */
+.screen-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;}
+.sc-hdr{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.sc-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.sc-title-en{font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px;}
+.sc-title-ko{font-size:10px;color:rgba(255,255,255,.35);margin-top:2px;}
+.sc-tags{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+.tag{font-size:9px;font-weight:700;padding:2px 9px;border-radius:3px;}
+.t-web{background:rgba(26,111,255,.2);color:#7ab4ff;border:1px solid rgba(26,111,255,.3);}
+.t-pda{background:rgba(13,184,122,.2);color:#5dffc4;border:1px solid rgba(13,184,122,.3);}
+.t-pop{background:rgba(234,88,12,.2);color:#fdba74;border:1px solid rgba(234,88,12,.3);}
+.t-p0{background:rgba(212,160,23,.15);color:#fbbf24;border:1px solid rgba(212,160,23,.2);}
+.t-1st{background:rgba(26,111,255,.12);color:#93c5fd;border:1px solid rgba(26,111,255,.18);}
+.t-2nd{background:rgba(124,58,237,.12);color:#c4b5fd;border:1px solid rgba(124,58,237,.18);}
+.t-3rd{background:rgba(255,107,0,.12);color:#fdba74;border:1px solid rgba(255,107,0,.18);}
+.t-sap{background:rgba(96,165,250,.15);color:#93c5fd;border:1px solid rgba(96,165,250,.25);}
+.t-batch{background:rgba(168,85,247,.15);color:#c4b5fd;border:1px solid rgba(168,85,247,.25);}
+.sc-body{padding:14px 18px;}
+
+/* ── BILINGUAL DESC ── */
+.desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;background:#f6f8ff;border:1px solid var(--border);border-left:3px solid;border-radius:0 6px 6px 0;padding:11px 14px;}
+.db-lbl{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;opacity:.5;}
+.db-en{font-size:11px;color:#1e40af;line-height:1.75;}
+.db-ko{font-size:11px;color:var(--sub);line-height:1.75;}
+
+/* ── KPI STRIP ── */
+.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:18px;background:var(--surface);}
+.kc{flex:1;padding:12px 14px;border-right:1px solid var(--border);}
+.kc:last-child{border-right:none;}
+.kv{font-size:24px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
+.kl-en{font-size:9px;color:var(--sub);margin-top:3px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;}
+.kl-ko{font-size:9px;color:rgba(100,116,139,.7);margin-top:1px;}
+
+/* ── FLOW BOX (custom dark info card) ── */
+.flow-card{background:var(--ink2);border:1px solid var(--ink3);border-radius:8px;padding:20px 22px;margin-bottom:18px;color:rgba(255,255,255,.8);}
+.flow-card-title{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:2px;margin-bottom:14px;color:#34d399;text-transform:uppercase;}
+.flow-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.flow-step{display:flex;align-items:flex-start;gap:10px;margin:6px 0;}
+.flow-step .fs-tag{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#34d399;min-width:72px;flex-shrink:0;}
+.flow-step .fs-text{font-size:11px;color:rgba(255,255,255,.65);line-height:1.6;}
+
+/* ── BADGES ── */
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
+.b-ok{background:#dcfce7;color:#166534;}
+.b-w{background:#fef9c3;color:#92400e;}
+.b-e{background:#fee2e2;color:#991b1b;}
+.b-i{background:#dbeafe;color:#1e40af;}
+.b-n{background:#f3f4f6;color:#4b5563;}
+
+/* ── BR TABLE ── */
+.br-wrap{margin-bottom:16px;}
+.br-title{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:7px;display:flex;align-items:center;gap:10px;}
+.br-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.br-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.br-tbl th{background:var(--text);color:#fff;padding:6px 10px;text-align:left;border:1px solid rgba(255,255,255,.08);font-size:9px;}
+.br-tbl td{padding:6px 10px;border:1px solid var(--border);vertical-align:top;line-height:1.6;}
+.br-tbl tr:nth-child(even) td{background:#fafbfd;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-en{color:var(--text);}
+.br-ko{color:var(--sub);font-size:10px;margin-top:2px;}
+
+/* ── SECTION DIV ── */
+.sec-div{display:flex;align-items:center;gap:12px;margin:20px 0 12px;}
+.sd-line{flex:1;height:1px;background:var(--border);}
+.sd-lbl{font-size:10px;font-weight:700;color:var(--sub);white-space:nowrap;letter-spacing:1px;}
+
+/* ── ROUTING / WO STATUS FLOW ── */
+.rflow{display:flex;align-items:center;gap:0;flex-wrap:wrap;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:18px;}
+.rs{padding:9px 14px;border-radius:5px;font-size:11px;font-weight:700;text-align:center;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:96px;}
+.rs-en{font-size:12px;font-weight:800;}
+.rs-ko{font-size:9px;font-weight:400;opacity:.75;margin-top:1px;}
+.rarr{color:var(--sub);font-size:14px;padding:0 5px;flex-shrink:0;}
+.rs-pp{background:#ecfdf5;color:#065f46;border:1px solid #6ee7b7;}
+
+/* ── PAGE FOOTER ── */
+.page-footer{padding:14px 48px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--ink);margin-top:20px;}
+.pf-l{font-size:10px;color:rgba(255,255,255,.2);}
+.pf-r{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(212,160,23,.4);}
+
+/* ── MODULE COLOR THEME (PP = green #059669) ── */
+:root{ --mod-color:#059669; }
+.mod-hdr{ background:linear-gradient(135deg, color-mix(in srgb,#059669 30%,#000) 0%, color-mix(in srgb,#059669 15%,#000) 100%); }
+.sc-hdr{ background:linear-gradient(135deg, color-mix(in srgb,#059669 25%,#000) 0%, color-mix(in srgb,#059669 12%,#000) 100%); }
+.sc-id{ color:#34d399; }
+.sb-mod-en{ color:#34d399; }
+.sb-link.on{ border-left-color:#059669; }
+.btn-primary{background:#059669;color:#fff;}
+
+/* L3 LINK STYLES v1.1 */
+.sb-link{position:relative;}
+.sb-l3{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:3px;background:rgba(212,160,23,.1);color:rgba(212,160,23,.7);font-size:9px;text-decoration:none;margin-left:auto;transition:all .15s;flex-shrink:0;border:1px solid rgba(212,160,23,.2);}
+.sb-l3:hover{background:var(--gold);color:#000;border-color:var(--gold);transform:scale(1.15);}
+.sc-l3-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:linear-gradient(135deg,#d4a017,#a07810);color:#000;font-size:10px;font-weight:800;border-radius:4px;text-decoration:none;letter-spacing:.5px;text-transform:uppercase;border:1px solid #a07810;box-shadow:0 2px 6px rgba(212,160,23,.3);transition:all .15s;margin-top:6px;}
+.sc-l3-btn:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(212,160,23,.45);background:linear-gradient(135deg,#fbbf24,#d4a017);}
+.l3-hint{display:inline-block;font-size:9px;color:rgba(212,160,23,.6);font-weight:600;letter-spacing:1px;padding:2px 8px;background:rgba(212,160,23,.08);border:1px dashed rgba(212,160,23,.3);border-radius:3px;}
+
 </style>
 </head>
 <body>
-<nav id="ames-nb" style="position:sticky;top:0;z-index:9999;background:#0d1117;border-bottom:1px solid rgba(212,160,23,.2);display:flex;align-items:center;gap:0;overflow-x:auto;scrollbar-width:none;font-family:'Noto Sans KR',sans-serif;">
-<a href="INDEX.html" style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;">
-<span style="font-family:'Bebas Neue',sans-serif;font-size:15px;color:#d4a017;letter-spacing:2px;">A-MES</span>
-<span style="font-size:8px;color:rgba(255,255,255,.25);">▲ Index</span>
-</a>
-<a class="nb-item" href="VOL03_WH_Warehouse.html" style="border-bottom:2px solid transparent;"><span style="color:#0891b2;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">WH</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Warehouse</span></a><a class="nb-item" href="VOL04_PP_Production_Plan.html" style="background:rgba(255,255,255,.1);border-bottom:2px solid #059669;"><span style="color:#059669;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">PP</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Prod Plan</span></a><a class="nb-item" href="VOL05_INJ_Injection.html" style="border-bottom:2px solid transparent;"><span style="color:#2563eb;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">INJ</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Injection</span></a><a class="nb-item" href="VOL06_IMG_Wrapping.html" style="border-bottom:2px solid transparent;"><span style="color:#7c3aed;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">IMG</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Wrapping</span></a><a class="nb-item" href="VOL07_PNT_Painting.html" style="border-bottom:2px solid transparent;"><span style="color:#ea580c;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">PNT</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Painting</span></a><a class="nb-item" href="VOL08_QC_Quality.html" style="border-bottom:2px solid transparent;"><span style="color:#dc2626;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">QC</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Quality</span></a><a class="nb-item" href="VOL09_FG_Finished_Goods.html" style="border-bottom:2px solid transparent;"><span style="color:#0db87a;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">FG</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Fin.Goods</span></a><a class="nb-item" href="VOL10_MNT_Maintenance.html" style="border-bottom:2px solid transparent;"><span style="color:#0891b2;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">MNT</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Maintenance</span></a><a class="nb-item" href="VOL11_RPT_Reports.html" style="border-bottom:2px solid transparent;"><span style="color:#6366f1;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">RPT</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Reports</span></a><a class="nb-item" href="VOL12_SYS_System.html" style="border-bottom:2px solid transparent;"><span style="color:#475569;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">SYS</span><span style="font-size:9px;color:rgba(255,255,255,.45);">System</span></a><a class="nb-item" href="VOL13_MD_Master_Data.html" style="border-bottom:2px solid transparent;"><span style="color:#d97706;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">MD</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Master Data</span></a>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol active"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head">
+    <div class="sb-vol">VOL.4 · PP MODULE</div>
+    <div class="sb-mod-en">PRODUCTION</div>
+    <div class="sb-mod-ko">생산계획</div>
+  </div>
+  <div class="sb-section">Screens · 화면</div>
+  <a class="sb-link on" href="#pp01"><span class="sl-id">PP-01</span><div><div class="sl-en">Forecast Mgmt</div><div class="sl-ko">Forecast 관리</div></div><a class="sb-l3" href="VOL04_PP01_Forecast.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#pp02"><span class="sl-id">PP-02</span><div><div class="sl-en">SAP B1 Import</div><div class="sl-ko">공급계획 수신</div></div><a class="sb-l3" href="VOL04_PP02_SAP_Import.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#pp03"><span class="sl-id">PP-03</span><div><div class="sl-en">Plan &amp; Confirm</div><div class="sl-ko">생산계획 수립</div></div><a class="sb-l3" href="VOL04_PP03_Plan_Confirm.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#pp04"><span class="sl-id">PP-04</span><div><div class="sl-en">Work Order</div><div class="sl-ko">작업지시 관리</div></div><a class="sb-l3" href="VOL04_PP04_Work_Order.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#pp05"><span class="sl-id">PP-05</span><div><div class="sl-en">MRP</div><div class="sl-ko">자재 소요 계획</div></div><a class="sb-l3" href="VOL04_PP05_MRP.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#pp06"><span class="sl-id">PP-06</span><div><div class="sl-en">Purchase Req.</div><div class="sl-ko">자재발주 요청</div></div><a class="sb-l3" href="VOL04_PP06_Purchase_Req.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#pp07"><span class="sl-id">PP-07</span><div><div class="sl-en">WO Release</div><div class="sl-ko">WO 발행</div></div><a class="sb-l3" href="VOL04_PP07_WO_Release.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#ppcal"><span class="sl-id">PP-CAL</span><div><div class="sl-en">Calendar</div><div class="sl-ko">생산 캘린더</div></div><a class="sb-l3" href="VOL04_PP_CAL_Calendar.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#ppotd"><span class="sl-id">PP-OTD</span><div><div class="sl-en">Delivery KPI</div><div class="sl-ko">납기 현황</div></div><a class="sb-l3" href="VOL04_PP_OTD_Delivery.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <div class="sb-sep"></div>
+  <a class="sb-link" href="#flow"><span class="sl-id">FLOW</span><div><div class="sl-en">End-to-End Flow</div><div class="sl-ko">전체 흐름</div></div></a>
+  <a class="sb-link" href="#kpi"><span class="sl-id">KPI</span><div><div class="sl-en">KPI Dashboard</div><div class="sl-ko">주요 지표</div></div></a>
+  <a class="sb-link" href="#wo"><span class="sl-id">WO</span><div><div class="sl-en">WO Status Flow</div><div class="sl-ko">WO 상태 흐름</div></div></a>
+  <a class="sb-link" href="#br-pp"><span class="sl-id">BR</span><div><div class="sl-en">Business Rules</div><div class="sl-ko">업무 규칙</div></div></a>
 </nav>
-<style>
-.nb-item{display:flex;flex-direction:column;align-items:center;padding:6px 11px;text-decoration:none;flex-shrink:0;transition:background .1s;white-space:nowrap;gap:1px;}
-.nb-item:hover{background:rgba(255,255,255,.06)!important;}
-</style>
-<div class="cover" style="border-bottom:1px solid rgba(5,150,105,.15);">
-<div class="cover-eyebrow">VOL.4 · PP Module</div>
-<div class="cover-title">Production <span>Planning</span></div>
-<div class="cover-sub">생산계획 — Forecast · SAP B1 · MRP · 자재발주</div>
-<div class="bi-box">
-<div class="bi-en">Manages the full production planning cycle: from customer Forecast intake and SAP B1 supply plan import, through Work Order creation, MRP material requirements calculation, and Purchase Requisition transmission back to SAP B1.</div>
-<div class="bi-ko">고객사 Forecast 수신 → SAP B1 공급계획 Import → 생산계획 수립 → WO 생성 → MRP 자재 소요 계획 → 자재발주 요청서(PR) SAP B1 전송까지 생산계획 전 사이클을 관리한다.</div>
+<div class="main">
+  <!-- MODULE HEADER -->
+  <div class="mod-hdr">
+    <div class="mod-hdr-inner">
+      <div class="mod-eyebrow" style="color:#34d399;">VOL.4 · PP · Production Planning · 생산계획</div>
+      <div class="mod-title-en" style="color:#34d399;">PRODUCTION<br>PLANNING</div>
+      <div class="mod-title-ko">생산계획 — Forecast · SAP B1 · MRP · 자재발주</div>
+      <div class="mod-desc-bi">
+        <div class="mdb-en">Manages the full production planning cycle: from customer Forecast intake and SAP B1 supply plan import, through Work Order creation, MRP material requirements calculation, and Purchase Requisition transmission back to SAP B1.</div>
+        <div class="mdb-ko">고객사 Forecast 수신 → SAP B1 공급계획 Import → 생산계획 수립 → WO 생성 → MRP 자재 소요 계획 → 자재발주 요청서(PR) SAP B1 전송까지 생산계획 전 사이클을 관리한다.</div>
+      </div>
+      <div class="mod-meta-strip">
+        <div class="mms-item"><div class="mms-l">ERP</div><div class="mms-v" style="color:#60a5fa;">SAP B1</div></div>
+        <div class="mms-item"><div class="mms-l">Customer</div><div class="mms-v">SAV / GEO</div></div>
+        <div class="mms-item"><div class="mms-l">MRP</div><div class="mms-v">A-MES + SAP B1</div></div>
+        <div class="mms-item"><div class="mms-l">PR Interface</div><div class="mms-v" style="color:#34d399;">Service Layer</div></div>
+        <div class="mms-item"><div class="mms-l">Routing</div><div class="mms-v">A / B</div></div>
+      </div>
+      <div style="margin-bottom:8px;"><span class="l3-hint">📋 Click any screen card / pill / sidebar link to view L3 detail spec · 클릭 시 L3 상세 설계서</span></div>
+      <div class="screen-pills">
+        <a class="sp" href="VOL04_PP01_Forecast.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · PP-01"><span class="sp-id">PP-01</span> Forecast Mgmt <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL04_PP02_SAP_Import.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · PP-02"><span class="sp-id">PP-02</span> SAP B1 Import <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL04_PP03_Plan_Confirm.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · PP-03"><span class="sp-id">PP-03</span> Plan &amp; Confirm <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL04_PP04_Work_Order.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · PP-04"><span class="sp-id">PP-04</span> Work Order <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL04_PP05_MRP.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · PP-05"><span class="sp-id">PP-05</span> MRP <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL04_PP06_Purchase_Req.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · PP-06"><span class="sp-id">PP-06</span> Purchase Req. <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL04_PP07_WO_Release.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · PP-07"><span class="sp-id">PP-07</span> WO Release <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL04_PP_CAL_Calendar.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · PP-CAL"><span class="sp-id">PP-CAL</span> Calendar <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL04_PP_OTD_Delivery.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · PP-OTD"><span class="sp-id">PP-OTD</span> Delivery KPI <span style="opacity:.5;font-size:8px;">📋</span></a>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+  <!-- END-TO-END FLOW -->
+  <div class="sec-div" id="flow"><div class="sd-line"></div><div class="sd-lbl">OVERALL PROCESS FLOW · 전체 업무 흐름</div><div class="sd-line"></div></div>
+  <div class="flow-card">
+    <div class="flow-card-title">End-to-End Flow</div>
+    <div class="flow-grid">
+      <div>
+        <div class="flow-step"><div class="fs-tag">[고객사]</div><div class="fs-text">Customer Forecast 수신 (SCM 포탈 Excel 다운로드)</div></div>
+        <div class="flow-step"><div class="fs-tag">[PP-01]</div><div class="fs-text">Forecast 등록 &amp; 품번 매핑</div></div>
+        <div class="flow-step"><div class="fs-tag">[SAP B1]</div><div class="fs-text">공급계획 Export (Excel → A-MES Import)</div></div>
+        <div class="flow-step"><div class="fs-tag">[PP-02]</div><div class="fs-text">공급계획 수신 &amp; 확인</div></div>
+        <div class="flow-step"><div class="fs-tag">[PP-03]</div><div class="fs-text">생산계획 수립 (납기·재고·설비 검토)</div></div>
+        <div class="flow-step"><div class="fs-tag">[PP-04]</div><div class="fs-text">작업지시 (WO) 생성</div></div>
+      </div>
+      <div>
+        <div class="flow-step"><div class="fs-tag">[PP-05]</div><div class="fs-text">MRP 실행 → 자재 소요 계산</div></div>
+        <div class="flow-step"><div class="fs-tag">[PP-06]</div><div class="fs-text">자재발주 요청서 (PR) 생성</div></div>
+        <div class="flow-step"><div class="fs-tag">[SAP B1]</div><div class="fs-text">PR 전송 → PO 변환 → 공급업체 발주</div></div>
+        <div class="flow-step"><div class="fs-tag">[WH]</div><div class="fs-text">자재 입고 (WH 모듈)</div></div>
+        <div class="flow-step"><div class="fs-tag">[PP-07]</div><div class="fs-text">WO 발행 → 생산 착수</div></div>
+        <div class="flow-step"><div class="fs-tag">[INJ/IMG/PNT]</div><div class="fs-text">POP 화면 생산 실적 입력</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI DASHBOARD -->
+  <div class="sec-div" id="kpi"><div class="sd-line"></div><div class="sd-lbl">KPI DASHBOARD · 주요 지표</div><div class="sd-line"></div></div>
+  <div class="kpi-strip">
+    <div class="kc"><div class="kv" style="color:#059669;">0</div><div class="kl-en">MRP Blocked WO</div><div class="kl-ko">MRP 차단 WO</div></div>
+    <div class="kc"><div class="kv" style="color:#d97706;">—</div><div class="kl-en">Forecast vs Order Gap</div><div class="kl-ko">Forecast 대비 수주 편차</div></div>
+    <div class="kc"><div class="kv" style="color:#0db87a;">95%</div><div class="kl-en">On-Time Delivery</div><div class="kl-ko">납기 준수율</div></div>
+    <div class="kc"><div class="kv" style="color:#1e40af;">—</div><div class="kl-en">Unreleased WO</div><div class="kl-ko">미발행 WO</div></div>
+    <div class="kc"><div class="kv" style="color:#dc2626;">—</div><div class="kl-en">PR Pending (SAP)</div><div class="kl-ko">발주요청 미전송</div></div>
+  </div>
+
+  <!-- PP-01 -->
+  <div class="screen-card" id="pp01">
+    <div class="sc-hdr">
+      <div>
+        <div class="sc-id">PP-01</div>
+        <div class="sc-title-en">Customer Forecast Management</div>
+        <div class="sc-title-ko">고객사 Forecast 수신 및 관리</div>
+      </div>
+      <div class="sc-tags">
+        <span class="tag t-web">🖥 Web PC</span>
+        <span class="tag t-1st">1st Dev</span>
+      </div>
+      <a class="sc-l3-btn" href="VOL04_PP01_Forecast.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#059669;">
+        <div>
+          <div class="db-lbl">EN · Description</div>
+          <div class="db-en">Receives and manages customer demand forecasts (M+1 to M+6) from SAV/GEO SCM Portal. Downloads Forecast Excel from the customer SCM portal and imports it into A-MES. Tracks gaps between forecast and confirmed orders.</div>
+        </div>
+        <div>
+          <div class="db-lbl">KO · 설명</div>
+          <div class="db-ko">고객사(SAV/GEO) SCM 포탈에서 Forecast Excel을 다운로드하여 A-MES에 Import한다. Forecast 대비 확정 수주 편차를 추적한다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PP-02 -->
+  <div class="screen-card" id="pp02">
+    <div class="sc-hdr">
+      <div>
+        <div class="sc-id">PP-02</div>
+        <div class="sc-title-en">SAP B1 Supply Plan Import</div>
+        <div class="sc-title-ko">SAP B1 공급계획 수신</div>
+      </div>
+      <div class="sc-tags">
+        <span class="tag t-web">🖥 Web PC</span>
+        <span class="tag t-sap">⇄ SAP B1</span>
+      </div>
+      <a class="sc-l3-btn" href="VOL04_PP02_SAP_Import.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#059669;">
+        <div>
+          <div class="db-lbl">EN · Description</div>
+          <div class="db-en">Receives confirmed supply plans from SAP Business One. Current method: SAP B1 Excel Export → A-MES manual import. Future roadmap: SAP B1 Service Layer REST API auto-polling every 1 hour.</div>
+        </div>
+        <div>
+          <div class="db-lbl">KO · 설명</div>
+          <div class="db-ko">SAP Business One의 확정 공급계획(판매오더)을 A-MES로 수신한다. 현행: SAP B1 Excel Export → 수동 Import. 향후: SAP B1 Service Layer REST API 자동 폴링(1시간)으로 전환 예정.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PP-03 -->
+  <div class="screen-card" id="pp03">
+    <div class="sc-hdr">
+      <div>
+        <div class="sc-id">PP-03</div>
+        <div class="sc-title-en">Production Planning &amp; Confirmation</div>
+        <div class="sc-title-ko">생산계획 수립 및 확인</div>
+      </div>
+      <div class="sc-tags">
+        <span class="tag t-web">🖥 Web PC</span>
+        <span class="tag t-1st">1st Dev</span>
+      </div>
+      <a class="sc-l3-btn" href="VOL04_PP03_Plan_Confirm.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#059669;">
+        <div>
+          <div class="db-lbl">EN · Description</div>
+          <div class="db-en">PLAN manager reviews the received supply plans against current FG inventory, equipment load, and Forecast reference. Confirms feasible items for WO batch creation.</div>
+        </div>
+        <div>
+          <div class="db-lbl">KO · 설명</div>
+          <div class="db-ko">PLAN 담당자가 공급계획을 완제품 재고·설비 부하·Forecast 참고치와 대조하여 생산 가능 여부를 검토하고 WO 일괄 생성 대상을 확정한다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PP-04 -->
+  <div class="screen-card" id="pp04">
+    <div class="sc-hdr">
+      <div>
+        <div class="sc-id">PP-04</div>
+        <div class="sc-title-en">Work Order Management</div>
+        <div class="sc-title-ko">작업지시 (WO) 관리</div>
+      </div>
+      <div class="sc-tags">
+        <span class="tag t-web">🖥 Web PC</span>
+        <span class="tag t-1st">1st Dev</span>
+      </div>
+      <a class="sc-l3-btn" href="VOL04_PP04_Work_Order.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#059669;">
+        <div>
+          <div class="db-lbl">EN · Description</div>
+          <div class="db-en">Manages Work Orders from Draft through Released, In Progress, to Closed. Displays routing type badge (A/B), progress bar, DDay indicator, and SAP B1 supply plan link.</div>
+        </div>
+        <div>
+          <div class="db-lbl">KO · 설명</div>
+          <div class="db-ko">WO를 Draft → Released → In Progress → Closed 상태로 관리한다. 라우팅 A/B 배지·진행률·납기 D-Day·SAP B1 공급계획 연결을 표시한다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WO STATUS FLOW -->
+  <div class="sec-div" id="wo"><div class="sd-line"></div><div class="sd-lbl">WO STATUS FLOW · WO 상태 흐름</div><div class="sd-line"></div></div>
+  <div class="rflow">
+    <div class="rs rs-pp"><span class="rs-en">Draft</span><span class="rs-ko">초안</span></div>
+    <span class="rarr">→</span>
+    <div class="rs rs-pp"><span class="rs-en">Released</span><span class="rs-ko">발행</span></div>
+    <span class="rarr">→</span>
+    <div class="rs rs-pp"><span class="rs-en">In Progress</span><span class="rs-ko">생산중</span></div>
+    <span class="rarr">→</span>
+    <div class="rs rs-pp"><span class="rs-en">Closed</span><span class="rs-ko">완료</span></div>
+  </div>
+
+  <!-- PP-05 -->
+  <div class="screen-card" id="pp05">
+    <div class="sc-hdr">
+      <div>
+        <div class="sc-id">PP-05</div>
+        <div class="sc-title-en">MRP — Material Requirements Planning</div>
+        <div class="sc-title-ko">자재 소요 계획</div>
+      </div>
+      <div class="sc-tags">
+        <span class="tag t-web">🖥 Web PC</span>
+        <span class="tag t-batch">⏱ Batch</span>
+      </div>
+      <a class="sc-l3-btn" href="VOL04_PP05_MRP.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#059669;">
+        <div>
+          <div class="db-lbl">EN · Description</div>
+          <div class="db-en">Runs MRP to calculate material shortage quantities. A-MES MRP handles real-time WO blocking. SAP B1 MRP handles mid/long-term procurement planning and PO generation.</div>
+        </div>
+        <div>
+          <div class="db-lbl">KO · 설명</div>
+          <div class="db-ko">A-MES MRP는 실시간 WO 차단·가용 여부 판단. SAP B1 MRP는 중장기 자재 소요·공급업체 발주 담당. 두 MRP를 역할 분리하여 병행 운영한다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PP-06 -->
+  <div class="screen-card" id="pp06">
+    <div class="sc-hdr">
+      <div>
+        <div class="sc-id">PP-06</div>
+        <div class="sc-title-en">Purchase Requisition → SAP B1</div>
+        <div class="sc-title-ko">자재발주 요청서 (PR) → SAP B1 전송</div>
+      </div>
+      <div class="sc-tags">
+        <span class="tag t-web">🖥 Web PC</span>
+        <span class="tag t-sap">⇄ SAP B1</span>
+      </div>
+      <a class="sc-l3-btn" href="VOL04_PP06_Purchase_Req.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#059669;">
+        <div>
+          <div class="db-lbl">EN · Description</div>
+          <div class="db-en">Generates Purchase Requisition records from MRP shortage results and transmits them to SAP B1 via Service Layer API (POST /PurchaseRequests). Tracks SAP B1 DocNum after successful transmission.</div>
+        </div>
+        <div>
+          <div class="db-lbl">KO · 설명</div>
+          <div class="db-ko">MRP 부족 자재를 기반으로 발주요청서(PR)를 생성하고, SAP B1 Service Layer API(POST /PurchaseRequests)로 전송한다. 전송 성공 시 SAP B1 DocNum을 수신하여 저장한다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PP-07 -->
+  <div class="screen-card" id="pp07">
+    <div class="sc-hdr">
+      <div>
+        <div class="sc-id">PP-07</div>
+        <div class="sc-title-en">Work Order Release</div>
+        <div class="sc-title-ko">WO 발행 및 생산 착수</div>
+      </div>
+      <div class="sc-tags">
+        <span class="tag t-web">🖥 Web PC</span>
+        <span class="tag t-p0">Phase 0 + 1st</span>
+      </div>
+      <a class="sc-l3-btn" href="VOL04_PP07_WO_Release.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#059669;">
+        <div>
+          <div class="db-lbl">EN · Description</div>
+          <div class="db-en">Validates all release conditions before transitioning WO to Released status: Phase-0 complete, MRP no shortage, equipment available, delivery lead time sufficient.</div>
+        </div>
+        <div>
+          <div class="db-lbl">KO · 설명</div>
+          <div class="db-ko">WO Released 전환 전 4가지 조건을 순서대로 검증한다: Phase-0 완료, MRP 자재 충족, 설비 가용, 납기 여유. 모두 통과 시 WO 발행 → 자재 자동 예약 → POP 화면 노출.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PP-CAL -->
+  <div class="screen-card" id="ppcal">
+    <div class="sc-hdr">
+      <div>
+        <div class="sc-id">PP-CAL</div>
+        <div class="sc-title-en">Production Calendar</div>
+        <div class="sc-title-ko">생산 캘린더</div>
+      </div>
+      <div class="sc-tags">
+        <span class="tag t-web">🖥 Web PC</span>
+        <span class="tag t-2nd">2nd Dev</span>
+      </div>
+      <a class="sc-l3-btn" href="VOL04_PP_CAL_Calendar.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#059669;">
+        <div>
+          <div class="db-lbl">EN · Description</div>
+          <div class="db-en">Visual monthly/weekly calendar of all Work Orders with due dates. D-3 items are highlighted in red. Drag-to-reschedule supported. Filters by routing, customer, and status.</div>
+        </div>
+        <div>
+          <div class="db-lbl">KO · 설명</div>
+          <div class="db-ko">전체 WO를 월/주 단위 캘린더로 시각화. D-3 이내 항목 빨간색 강조. 드래그 일정 조정 지원. 라우팅·고객사·상태 필터.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PP-OTD -->
+  <div class="screen-card" id="ppotd">
+    <div class="sc-hdr">
+      <div>
+        <div class="sc-id">PP-OTD</div>
+        <div class="sc-title-en">On-Time Delivery KPI</div>
+        <div class="sc-title-ko">납기 준수율 현황</div>
+      </div>
+      <div class="sc-tags">
+        <span class="tag t-web">🖥 Web PC</span>
+        <span class="tag t-2nd">2nd Dev</span>
+      </div>
+      <a class="sc-l3-btn" href="VOL04_PP_OTD_Delivery.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#059669;">
+        <div>
+          <div class="db-lbl">EN · Description</div>
+          <div class="db-en">Real-time OTD KPI dashboard by customer, routing, and time period. Shows on-time vs delayed deliveries with root-cause attribution (material shortage, equipment, quality, etc.).</div>
+        </div>
+        <div>
+          <div class="db-lbl">KO · 설명</div>
+          <div class="db-ko">고객사·라우팅·기간별 OTD 실시간 대시보드. 정시/지연 비율, 지연 원인(자재·설비·품질 등) 분석 제공.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BR -->
+  <div class="br-wrap" id="br-pp">
+    <div class="br-title">Business Rules · 업무 규칙 (PP)</div>
+    <table class="br-tbl">
+      <thead>
+        <tr>
+          <th style="width:90px;">Rule ID</th>
+          <th>Rule Description (EN)</th>
+          <th>규칙 설명 (KO)</th>
+          <th style="width:160px;">조건 · Condition</th>
+          <th style="width:120px;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="br-id">BR-PP-F001</td>
+          <td class="br-en">Warn on unmapped customer item no.</td>
+          <td class="br-ko">고객사 품번 미매핑 시 경고</td>
+          <td>CustomerItemNo 매핑 없음</td>
+          <td><span class="b b-w">Warn</span></td>
+        </tr>
+        <tr>
+          <td class="br-id">BR-PP-F002</td>
+          <td class="br-en">Alert on Forecast vs Order gap &gt; 20%</td>
+          <td class="br-ko">Forecast 대비 수주 편차 20% 초과 알림</td>
+          <td>Gap &gt; Forecast × 0.2</td>
+          <td><span class="b b-w">Alert</span></td>
+        </tr>
+        <tr>
+          <td class="br-id">BR-PP-F003</td>
+          <td class="br-en">Retain history on Forecast re-upload</td>
+          <td class="br-ko">Forecast 재업로드 시 이력 보관 후 UPDATE</td>
+          <td>동일 월·품목 중복</td>
+          <td><span class="b b-i">Auto</span></td>
+        </tr>
+        <tr>
+          <td class="br-id">BR-PP-001</td>
+          <td class="br-en">Block WO if Phase-0 incomplete</td>
+          <td class="br-ko">Phase-0 미완료 WO 생성 차단</td>
+          <td>Phase0Complete = 0</td>
+          <td><span class="b b-e">Block</span></td>
+        </tr>
+        <tr>
+          <td class="br-id">BR-PP-002</td>
+          <td class="br-en">Block WO on MRP shortage</td>
+          <td class="br-ko">MRP 재고 부족 WO 자동 차단</td>
+          <td>ShortageQty &gt; 0</td>
+          <td><span class="b b-e">Block</span></td>
+        </tr>
+        <tr>
+          <td class="br-id">BR-PP-003</td>
+          <td class="br-en">Auto-reserve material on WO release</td>
+          <td class="br-ko">WO 발행 시 자재 자동 예약</td>
+          <td>Status = Released</td>
+          <td><span class="b b-i">Auto</span></td>
+        </tr>
+        <tr>
+          <td class="br-id">BR-PP-004</td>
+          <td class="br-en">Release reserved qty on WO cancel</td>
+          <td class="br-ko">WO 취소 시 예약 수량 자동 해제</td>
+          <td>Status = Cancelled</td>
+          <td><span class="b b-i">Auto</span></td>
+        </tr>
+        <tr>
+          <td class="br-id">BR-PP-005</td>
+          <td class="br-en">MRP auto-run nightly at 00:00</td>
+          <td class="br-ko">MRP 야간 자동 실행</td>
+          <td>매일 00:00 배치</td>
+          <td><span class="b b-i">Auto</span></td>
+        </tr>
+        <tr>
+          <td class="br-id">BR-PP-006</td>
+          <td class="br-en">Retry PR SAP B1 transmission ×3</td>
+          <td class="br-ko">PR SAP B1 전송 실패 시 3회 재시도</td>
+          <td>전송 오류</td>
+          <td><span class="b b-w">Retry</span></td>
+        </tr>
+        <tr>
+          <td class="br-id">BR-PP-007</td>
+          <td class="br-en">Warn if equipment blocked on WO release</td>
+          <td class="br-ko">WO 발행 전 설비 가용 상태 확인</td>
+          <td>Equipment.Status = Blocked</td>
+          <td><span class="b b-w">Warn</span></td>
+        </tr>
+        <tr>
+          <td class="br-id">BR-PP-008</td>
+          <td class="br-en">Alert DDay ≤ 3 WO</td>
+          <td class="br-ko">납기 D-3 이내 WO 강조 알림</td>
+          <td>DueDate − TODAY ≤ 3</td>
+          <td><span class="b b-w">Alert</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  </div><!-- /content -->
+
+  <div class="page-footer">
+    <div class="pf-l">A-MES · VOL.4 · PP Production Planning · UI Design Spec v1.0 · Bilingual EN/KO</div>
+    <div class="pf-r">9 Screens · Web PC · Phase 0 + 1st Dev</div>
+  </div>
+</div><!-- /main -->
 </div>
-<div style="margin-top:24px;margin-bottom:-12px;"><span class="l3-hint">📋 Click any screen chip or [View L3 Detail Spec] button to view detailed UI specifications · L3 상세 설계서 보기</span></div><div class="screen-index">
-<a class="si-chip" href="VOL04_PP01_Forecast.html" style="text-decoration:none;color:inherit;" title="L3 상세 설계서 · PP-01">
-<span class="si-id" style="color:#059669;">PP-01</span>
-<span class="si-en">Forecast Mgmt</span>
-<span class="si-ko">Forecast 관리</span>
-<span class="si-l3">📋 L3</span></a><a class="si-chip" href="VOL04_PP02_SAP_Import.html" style="text-decoration:none;color:inherit;" title="L3 상세 설계서 · PP-02">
-<span class="si-id" style="color:#059669;">PP-02</span>
-<span class="si-en">SAP B1 Import</span>
-<span class="si-ko">공급계획 수신</span>
-<span class="si-l3">📋 L3</span></a><a class="si-chip" href="VOL04_PP03_Plan_Confirm.html" style="text-decoration:none;color:inherit;" title="L3 상세 설계서 · PP-03">
-<span class="si-id" style="color:#059669;">PP-03</span>
-<span class="si-en">Plan &amp; Confirm</span>
-<span class="si-ko">생산계획 수립</span>
-<span class="si-l3">📋 L3</span></a><a class="si-chip" href="VOL04_PP04_Work_Order.html" style="text-decoration:none;color:inherit;" title="L3 상세 설계서 · PP-04">
-<span class="si-id" style="color:#059669;">PP-04</span>
-<span class="si-en">Work Order</span>
-<span class="si-ko">작업지시 관리</span>
-<span class="si-l3">📋 L3</span></a><a class="si-chip" href="VOL04_PP05_MRP.html" style="text-decoration:none;color:inherit;" title="L3 상세 설계서 · PP-05">
-<span class="si-id" style="color:#059669;">PP-05</span>
-<span class="si-en">MRP</span>
-<span class="si-ko">자재 소요 계획</span>
-<span class="si-l3">📋 L3</span></a><a class="si-chip" href="VOL04_PP06_Purchase_Req.html" style="text-decoration:none;color:inherit;" title="L3 상세 설계서 · PP-06">
-<span class="si-id" style="color:#059669;">PP-06</span>
-<span class="si-en">Purchase Req.</span>
-<span class="si-ko">자재발주 요청</span>
-<span class="si-l3">📋 L3</span></a><a class="si-chip" href="VOL04_PP07_WO_Release.html" style="text-decoration:none;color:inherit;" title="L3 상세 설계서 · PP-07">
-<span class="si-id" style="color:#059669;">PP-07</span>
-<span class="si-en">WO Release</span>
-<span class="si-ko">WO 발행</span>
-<span class="si-l3">📋 L3</span></a><a class="si-chip" href="VOL04_PP_CAL_Calendar.html" style="text-decoration:none;color:inherit;" title="L3 상세 설계서 · PP-CAL">
-<span class="si-id" style="color:#059669;">PP-CAL</span>
-<span class="si-en">Calendar</span>
-<span class="si-ko">생산 캘린더</span>
-<span class="si-l3">📋 L3</span></a><a class="si-chip" href="VOL04_PP_OTD_Delivery.html" style="text-decoration:none;color:inherit;" title="L3 상세 설계서 · PP-OTD">
-<span class="si-id" style="color:#059669;">PP-OTD</span>
-<span class="si-en">Delivery KPI</span>
-<span class="si-ko">납기 현황</span>
-<span class="si-l3">📋 L3</span></a>
-</div>
-<div class="meta-strip" style="margin-top:24px;">
-<div class="ms-item"><div class="ms-l">ERP</div><div class="ms-v" style="color:#60a5fa;">SAP B1</div></div>
-<div class="ms-item"><div class="ms-l">Customer</div><div class="ms-v">SAV / GEO</div></div>
-<div class="ms-item"><div class="ms-l">MRP</div><div class="ms-v">A-MES + SAP B1</div></div>
-<div class="ms-item"><div class="ms-l">PR Interface</div><div class="ms-v" style="color:#059669;">Service Layer</div></div>
-<div class="ms-item"><div class="ms-l">Routing</div><div class="ms-v">A / B</div></div>
-</div>
-</div>
-<div class="wrap">
-<div class="str-row"><div class="str-line"></div><div class="str-label">OVERALL PROCESS FLOW · 전체 업무 흐름</div><div class="str-line"></div></div>
-<div style="background:#0d1117;border:1px solid rgba(5,150,105,.2);border-radius:8px;padding:20px 24px;margin:12px 0;">
-<div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;letter-spacing:2px;margin-bottom:16px;">END-TO-END FLOW</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-<div>
-<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[고객사]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">Customer Forecast 수신 (SCM 포탈 Excel 다운로드)</div></div>
-<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[PP-01]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">Forecast 등록 &amp; 품번 매핑</div></div>
-<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[SAP B1]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">공급계획 Export (Excel → A-MES Import)</div></div>
-<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[PP-02]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">공급계획 수신 &amp; 확인</div></div>
-<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[PP-03]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">생산계획 수립 (납기·재고·설비 검토)</div></div>
-<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[PP-04]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">작업지시 (WO) 생성</div></div>
-</div>
-<div>
-<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[PP-05]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">MRP 실행 → 자재 소요 계산</div></div>
-<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[PP-06]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">자재발주 요청서 (PR) 생성</div></div>
-<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[SAP B1]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">PR 전송 → PO 변환 → 공급업체 발주</div></div>
-<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[WH]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">자재 입고 (WH 모듈)</div></div>
-<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[PP-07]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">WO 발행 → 생산 착수</div></div>
-<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[INJ/IMG/PNT]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">POP 화면 생산 실적 입력</div></div>
-</div>
-</div>
-</div>
-<div class="str-row"><div class="str-line"></div><div class="str-label">KPI DASHBOARD · 주요 지표</div><div class="str-line"></div></div>
-<div class="kpi-strip">
-<div class="kpi-item"><div class="kpi-v" style="color:#059669;">0</div><div class="kpi-en">MRP Blocked WO</div><div class="kpi-ko">MRP 차단 WO</div></div>
-<div class="kpi-item"><div class="kpi-v" style="color:#fde047;">—</div><div class="kpi-en">Forecast vs Order Gap</div><div class="kpi-ko">Forecast 대비 수주 편차</div></div>
-<div class="kpi-item"><div class="kpi-v" style="color:#5dffc4;">95%</div><div class="kpi-en">On-Time Delivery</div><div class="kpi-ko">납기 준수율</div></div>
-<div class="kpi-item"><div class="kpi-v" style="color:#93c5fd;">—</div><div class="kpi-en">Unreleased WO</div><div class="kpi-ko">미발행 WO</div></div>
-<div class="kpi-item"><div class="kpi-v" style="color:#fca5a5;">—</div><div class="kpi-en">PR Pending (SAP)</div><div class="kpi-ko">발주요청 미전송</div></div>
-</div>
-<div class="sec-divider"></div>
-<div class="screen-banner" style="border-left:3px solid #059669;">
-<div class="sb-vol" style="color:#059669;">PP — Production Planning</div>
-<div class="sb-code" style="color:#059669;">PP-01</div>
-<div class="sb-en">Customer Forecast Management</div>
-<div class="sb-ko">고객사 Forecast 수신 및 관리</div>
-<div class="desc-bi" style="margin-top:12px;">
-<div class="db-en"><span class="db-label db-label-en">OVERVIEW</span>Receives and manages customer demand forecasts (M+1 to M+6) from SAV/GEO SCM Portal. Downloads Forecast Excel from the customer SCM portal and imports it into A-MES. Tracks gaps between forecast and confirmed orders.</div>
-<div class="db-ko"><span class="db-label db-label-ko">개요</span>고객사(SAV/GEO) SCM 포탈에서 Forecast Excel을 다운로드하여 A-MES에 Import한다. Forecast 대비 확정 수주 편차를 추적한다.</div>
-</div>
-<a class="sb-l3-btn" href="VOL04_PP01_Forecast.html" title="L3 상세 설계서 보기 · PP-01">📋 View L3 Detail Spec →</a></div>
-<div class="sec-divider"></div>
-<div class="screen-banner" style="border-left:3px solid #059669;">
-<div class="sb-vol" style="color:#059669;">PP — Production Planning</div>
-<div class="sb-code" style="color:#059669;">PP-02</div>
-<div class="sb-en">SAP B1 Supply Plan Import</div>
-<div class="sb-ko">SAP B1 공급계획 수신</div>
-<div class="desc-bi" style="margin-top:12px;">
-<div class="db-en"><span class="db-label db-label-en">OVERVIEW</span>Receives confirmed supply plans from SAP Business One. Current method: SAP B1 Excel Export → A-MES manual import. Future roadmap: SAP B1 Service Layer REST API auto-polling every 1 hour.</div>
-<div class="db-ko"><span class="db-label db-label-ko">개요</span>SAP Business One의 확정 공급계획(판매오더)을 A-MES로 수신한다. 현행: SAP B1 Excel Export → 수동 Import. 향후: SAP B1 Service Layer REST API 자동 폴링(1시간)으로 전환 예정.</div>
-</div>
-<a class="sb-l3-btn" href="VOL04_PP02_SAP_Import.html" title="L3 상세 설계서 보기 · PP-02">📋 View L3 Detail Spec →</a></div>
-<div class="sec-divider"></div>
-<div class="screen-banner" style="border-left:3px solid #059669;">
-<div class="sb-vol" style="color:#059669;">PP — Production Planning</div>
-<div class="sb-code" style="color:#059669;">PP-03</div>
-<div class="sb-en">Production Planning &amp; Confirmation</div>
-<div class="sb-ko">생산계획 수립 및 확인</div>
-<div class="desc-bi" style="margin-top:12px;">
-<div class="db-en"><span class="db-label db-label-en">OVERVIEW</span>PLAN manager reviews the received supply plans against current FG inventory, equipment load, and Forecast reference. Confirms feasible items for WO batch creation.</div>
-<div class="db-ko"><span class="db-label db-label-ko">개요</span>PLAN 담당자가 공급계획을 완제품 재고·설비 부하·Forecast 참고치와 대조하여 생산 가능 여부를 검토하고 WO 일괄 생성 대상을 확정한다.</div>
-</div>
-<a class="sb-l3-btn" href="VOL04_PP03_Plan_Confirm.html" title="L3 상세 설계서 보기 · PP-03">📋 View L3 Detail Spec →</a></div>
-<div class="sec-divider"></div>
-<div class="screen-banner" style="border-left:3px solid #059669;">
-<div class="sb-vol" style="color:#059669;">PP — Production Planning</div>
-<div class="sb-code" style="color:#059669;">PP-04</div>
-<div class="sb-en">Work Order Management</div>
-<div class="sb-ko">작업지시 (WO) 관리</div>
-<div class="desc-bi" style="margin-top:12px;">
-<div class="db-en"><span class="db-label db-label-en">OVERVIEW</span>Manages Work Orders from Draft through Released, In Progress, to Closed. Displays routing type badge (A/B), progress bar, DDay indicator, and SAP B1 supply plan link.</div>
-<div class="db-ko"><span class="db-label db-label-ko">개요</span>WO를 Draft → Released → In Progress → Closed 상태로 관리한다. 라우팅 A/B 배지·진행률·납기 D-Day·SAP B1 공급계획 연결을 표시한다.</div>
-</div>
-<a class="sb-l3-btn" href="VOL04_PP04_Work_Order.html" title="L3 상세 설계서 보기 · PP-04">📋 View L3 Detail Spec →</a></div>
-<div class="str-row"><div class="str-line"></div><div class="str-label">WO STATUS FLOW · WO 상태 흐름</div><div class="str-line"></div></div>
-<div class="rflow">
-<div class="rf-step" style="background:rgba(5,150,105,.12);border:1px solid rgba(5,150,105,.25);"><span class="rs-en" style="color:#059669;">Draft</span><span class="rs-ko">초안</span></div>
-<div class="rf-arr">→</div>
-<div class="rf-step" style="background:rgba(5,150,105,.12);border:1px solid rgba(5,150,105,.25);"><span class="rs-en" style="color:#059669;">Released</span><span class="rs-ko">발행</span></div>
-<div class="rf-arr">→</div>
-<div class="rf-step" style="background:rgba(5,150,105,.12);border:1px solid rgba(5,150,105,.25);"><span class="rs-en" style="color:#059669;">In Progress</span><span class="rs-ko">생산중</span></div>
-<div class="rf-arr">→</div>
-<div class="rf-step" style="background:rgba(5,150,105,.12);border:1px solid rgba(5,150,105,.25);"><span class="rs-en" style="color:#059669;">Closed</span><span class="rs-ko">완료</span></div>
-</div>
-<div class="sec-divider"></div>
-<div class="screen-banner" style="border-left:3px solid #059669;">
-<div class="sb-vol" style="color:#059669;">PP — Production Planning</div>
-<div class="sb-code" style="color:#059669;">PP-05</div>
-<div class="sb-en">MRP — Material Requirements Planning</div>
-<div class="sb-ko">자재 소요 계획</div>
-<div class="desc-bi" style="margin-top:12px;">
-<div class="db-en"><span class="db-label db-label-en">OVERVIEW</span>Runs MRP to calculate material shortage quantities. A-MES MRP handles real-time WO blocking. SAP B1 MRP handles mid/long-term procurement planning and PO generation.</div>
-<div class="db-ko"><span class="db-label db-label-ko">개요</span>A-MES MRP는 실시간 WO 차단·가용 여부 판단. SAP B1 MRP는 중장기 자재 소요·공급업체 발주 담당. 두 MRP를 역할 분리하여 병행 운영한다.</div>
-</div>
-<a class="sb-l3-btn" href="VOL04_PP05_MRP.html" title="L3 상세 설계서 보기 · PP-05">📋 View L3 Detail Spec →</a></div>
-<div class="sec-divider"></div>
-<div class="screen-banner" style="border-left:3px solid #059669;">
-<div class="sb-vol" style="color:#059669;">PP — Production Planning</div>
-<div class="sb-code" style="color:#059669;">PP-06</div>
-<div class="sb-en">Purchase Requisition → SAP B1</div>
-<div class="sb-ko">자재발주 요청서 (PR) → SAP B1 전송</div>
-<div class="desc-bi" style="margin-top:12px;">
-<div class="db-en"><span class="db-label db-label-en">OVERVIEW</span>Generates Purchase Requisition records from MRP shortage results and transmits them to SAP B1 via Service Layer API (POST /PurchaseRequests). Tracks SAP B1 DocNum after successful transmission.</div>
-<div class="db-ko"><span class="db-label db-label-ko">개요</span>MRP 부족 자재를 기반으로 발주요청서(PR)를 생성하고, SAP B1 Service Layer API(POST /PurchaseRequests)로 전송한다. 전송 성공 시 SAP B1 DocNum을 수신하여 저장한다.</div>
-</div>
-<a class="sb-l3-btn" href="VOL04_PP06_Purchase_Req.html" title="L3 상세 설계서 보기 · PP-06">📋 View L3 Detail Spec →</a></div>
-<div class="sec-divider"></div>
-<div class="screen-banner" style="border-left:3px solid #059669;">
-<div class="sb-vol" style="color:#059669;">PP — Production Planning</div>
-<div class="sb-code" style="color:#059669;">PP-07</div>
-<div class="sb-en">Work Order Release</div>
-<div class="sb-ko">WO 발행 및 생산 착수</div>
-<div class="desc-bi" style="margin-top:12px;">
-<div class="db-en"><span class="db-label db-label-en">OVERVIEW</span>Validates all release conditions before transitioning WO to Released status: Phase-0 complete, MRP no shortage, equipment available, delivery lead time sufficient.</div>
-<div class="db-ko"><span class="db-label db-label-ko">개요</span>WO Released 전환 전 4가지 조건을 순서대로 검증한다: Phase-0 완료, MRP 자재 충족, 설비 가용, 납기 여유. 모두 통과 시 WO 발행 → 자재 자동 예약 → POP 화면 노출.</div>
-</div>
-<a class="sb-l3-btn" href="VOL04_PP07_WO_Release.html" title="L3 상세 설계서 보기 · PP-07">📋 View L3 Detail Spec →</a></div>
-<div class="sec-divider"></div>
-<div class="str-row"><div class="str-line"></div><div class="str-label">BUSINESS RULES · 업무 규칙 전체</div><div class="str-line"></div></div>
-<div class="br-tbl"><div class="tbl-wrap"><table><thead><tr><th>BR ID</th><th>규칙 (EN)</th><th>규칙 (KO)</th><th>조건</th><th>조치</th></tr></thead><tbody>
-<tr><td>BR-PP-F001</td><td>Warn on unmapped customer item no.</td><td>고객사 품번 미매핑 시 경고</td><td>CustomerItemNo 매핑 없음</td><td>경고 표시, 해당 행 제외 후 저장</td></tr>
-<tr><td>BR-PP-F002</td><td>Alert on Forecast vs Order gap &gt; 20%</td><td>Forecast 대비 수주 편차 20% 초과 알림</td><td>Gap &gt; Forecast×0.2</td><td>PLAN/MGR 알림</td></tr>
-<tr><td>BR-PP-F003</td><td>Retain history on Forecast re-upload</td><td>Forecast 재업로드 시 이력 보관 후 UPDATE</td><td>동일 월·품목 중복</td><td>PP_ForecastHistory 이관 후 UPDATE</td></tr>
-<tr><td>BR-PP-001</td><td>Block WO if Phase-0 incomplete</td><td>Phase-0 미완료 WO 생성 차단</td><td>Phase0Complete=0</td><td>400 오류</td></tr>
-<tr><td>BR-PP-002</td><td>Block WO on MRP shortage</td><td>MRP 재고 부족 WO 자동 차단</td><td>ShortageQty&gt;0</td><td>IsBlocked=1, BlockReason 기록</td></tr>
-<tr><td>BR-PP-003</td><td>Auto-reserve material on WO release</td><td>WO 발행 시 자재 자동 예약</td><td>Status=Released</td><td>PP_WOMaterial Reserved</td></tr>
-<tr><td>BR-PP-004</td><td>Release reserved qty on WO cancel</td><td>WO 취소 시 예약 수량 자동 해제</td><td>Status=Cancelled</td><td>ReservedQty 감소</td></tr>
-<tr><td>BR-PP-005</td><td>MRP auto-run nightly at 00:00</td><td>MRP 야간 자동 실행</td><td>매일 00:00 배치</td><td>ShortageQty 전체 재계산</td></tr>
-<tr><td>BR-PP-006</td><td>Retry PR SAP B1 transmission x3</td><td>PR SAP B1 전송 실패 시 3회 재시도</td><td>전송 오류</td><td>3회 재시도 → 실패 지속 시 PLAN 알림</td></tr>
-<tr><td>BR-PP-007</td><td>Warn if equipment blocked on WO release</td><td>WO 발행 전 설비 가용 상태 확인</td><td>Equipment.Status=Blocked</td><td>경고 팝업, 발행 보류 권고</td></tr>
-<tr><td>BR-PP-008</td><td>Alert DDay ≤ 3 WO</td><td>납기 D-3 이내 WO 강조 알림</td><td>DueDate-TODAY≤3</td><td>PLAN/MGR 알림 + 캘린더 빨간 강조</td></tr>
-</tbody></table></div></div>
-</div>
-<div class="page-footer wrap" style="padding-top:20px;padding-bottom:40px;">
-<span>A-MES · VOL.4 · PP Production Planning · UI Design Specification v1.0 · Bilingual EN/KO</span>
-<span style="font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.3);">Automotive Parts MES · SAV &amp; GEO Supply · Confidential</span>
-</div>
-</body></html>
+</body>
+</html>
