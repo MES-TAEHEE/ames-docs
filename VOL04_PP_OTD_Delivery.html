@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.4 · PP-OTD · On-Time Delivery KPI · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+
+:root{
+  --gold:#d4a017; --gold-lt:#fdf6e3; --gold-dk:#a07810;
+  --ink:#0d1117; --ink2:#161b22; --ink3:#21262d;
+  --surface:#ffffff; --bg:#f6f8fa; --border:#d0d7de;
+  --text:#24292f; --sub:#656d76;
+  --wh:#0891b2; --pp:#059669; --inj:#2563eb; --img:#7c3aed;
+  --pnt:#ea580c; --qc:#dc2626; --fg:#0db87a; --mnt:#0284c7;
+  --rpt:#6366f1; --sys:#475569; --md:#d97706;
+  --mod-color:var(--pp);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+
+/* NAV */
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
+.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}
+.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;transition:color .12s;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}
+.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+
+/* L3 CRUMB */
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;transition:color .12s;}
+.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}
+.l3-crumb .current{color:var(--gold);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+
+/* LAYOUT */
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(212,160,23,.15) transparent;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:#fff;}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;transition:all .12s;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:42px;flex-shrink:0;color:rgba(52,211,153,.7);}
+.sb-link.on .sl-id{color:var(--gold);}
+.sb-link .sl-en{font-size:10px;font-weight:600;}
+.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);margin-top:1px;}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;border-left:2px solid transparent;margin-left:-2px;transition:all .12s;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+
+.main{flex:1;min-width:0;}
+
+/* SCREEN HEADER */
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#031712 0%,#052e1f 50%,#03251a 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(52,211,153,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(52,211,153,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(52,211,153,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(52,211,153,.10),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#34d399;margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:#34d399;border-radius:50%;box-shadow:0 0 8px #34d399;}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:14px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:#34d399;line-height:.9;text-shadow:0 0 22px rgba(52,211,153,.2);}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:46px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:4px;margin-bottom:14px;}
+
+.scr-meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.web{border-color:rgba(26,111,255,.3);color:#7ab4ff;}
+.meta-chip.batch{border-color:rgba(124,58,237,.3);color:#c4b5fd;}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(52,211,153,.3);color:#6ee7b7;}
+
+.content{padding:0 48px 60px;}
+
+/* SECTION */
+.sec{margin-top:36px;}
+.sec-hdr{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.sec-num{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--pp);letter-spacing:1px;line-height:1;min-width:42px;}
+.sec-title-wrap{flex:1;}
+.sec-title-en{font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.3px;}
+.sec-title-ko{font-size:11px;color:var(--sub);margin-top:1px;}
+.sec-line{flex:1;height:1px;background:linear-gradient(90deg,var(--pp),transparent);max-width:200px;}
+
+/* OVERVIEW */
+.ov-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;}
+.ov-desc{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--pp);border-radius:0 6px 6px 0;padding:16px 18px;}
+.ov-desc-en{font-size:12px;color:var(--text);line-height:1.85;margin-bottom:10px;}
+.ov-desc-ko{font-size:11px;color:var(--sub);line-height:1.85;padding-top:10px;border-top:1px dashed var(--border);}
+.ov-meta{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.ov-meta-row{display:flex;border-bottom:1px solid var(--border);font-size:11px;}
+.ov-meta-row:last-child{border-bottom:none;}
+.ov-meta-k{flex:0 0 110px;background:#f6f8fa;padding:8px 12px;font-weight:700;color:var(--sub);font-size:10px;letter-spacing:.5px;text-transform:uppercase;border-right:1px solid var(--border);}
+.ov-meta-v{flex:1;padding:8px 12px;color:var(--text);}
+.ov-meta-v .ko{font-size:10px;color:var(--sub);margin-left:6px;}
+.ov-meta-v code{font-family:'JetBrains Mono',monospace;font-size:10px;background:#f0f3f7;padding:1px 6px;border-radius:3px;color:var(--pp);}
+
+/* MOCKUP */
+.mock-wrap{background:#eef1f5;border:1px solid var(--border);border-radius:8px;padding:14px;}
+.mock-lbl{font-size:9px;font-weight:700;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.mock-lbl::before{content:'';width:6px;height:6px;background:var(--pp);border-radius:50%;}
+.mock-win{background:#fff;border:1px solid #c8d0db;border-radius:6px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.08);}
+.mock-tbar{background:var(--text);color:#fff;padding:8px 14px;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;}
+.mock-tbar .bc{margin-left:auto;font-size:9px;color:rgba(255,255,255,.35);font-family:'JetBrains Mono',monospace;}
+.mock-toolbar{background:#f6f8fa;border-bottom:1px solid var(--border);padding:8px 14px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+.mock-toolbar select,.mock-toolbar input{padding:4px 9px;border:1px solid var(--border);border-radius:3px;font-size:11px;background:#fff;}
+.mock-body{padding:14px;}
+
+.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:14px;}
+.kc{flex:1;padding:10px 13px;border-right:1px solid var(--border);background:#fafbfc;}
+.kc:last-child{border-right:none;}
+.kv{font-size:22px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
+.kl-en{font-size:9px;color:var(--sub);margin-top:3px;}
+.kl-ko{font-size:8px;color:rgba(100,116,139,.6);}
+
+.tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.tbl th{background:#f0f3f7;padding:7px 9px;font-weight:700;border:1px solid var(--border);text-align:left;font-size:10px;color:var(--text);}
+.tbl th .th-ko{font-weight:400;color:var(--sub);font-size:9px;display:block;}
+.tbl td{padding:6px 9px;border:1px solid var(--border);vertical-align:middle;}
+.tbl .rh td{background:#f0fdf4;}
+.tbl .rw td{background:#fffbeb;}
+.tbl .rd td{background:#fef2f2;}
+.tbl tr:hover td{background:#f9fafb;}
+.tbl td .ko{color:var(--sub);font-size:10px;}
+
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
+.b-ok{background:#dcfce7;color:#166534;}
+.b-w{background:#fef9c3;color:#92400e;}
+.b-e{background:#fee2e2;color:#991b1b;}
+.b-i{background:#dbeafe;color:#1e40af;}
+.b-n{background:#f3f4f6;color:#4b5563;}
+
+.btn{padding:5px 13px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
+.btn-primary{background:var(--pp);color:#fff;border-color:var(--pp);}
+.btn-secondary{background:#f6f8fa;color:var(--text);border-color:var(--border);}
+.btn-danger{background:#dc2626;color:#fff;}
+.btn-success{background:#22c55e;color:#fff;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+
+/* COMPONENT SPEC */
+.cs-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.cs-tbl th{background:linear-gradient(180deg,#03251a,#031712);color:#6ee7b7;padding:9px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid var(--ink3);}
+.cs-tbl th .th-ko{display:block;color:rgba(110,231,183,.55);font-weight:400;font-size:9px;letter-spacing:0;text-transform:none;margin-top:1px;}
+.cs-tbl td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.cs-tbl tr:last-child td{border-bottom:none;}
+.cs-tbl tr:hover td{background:#f9fafb;}
+.cs-tbl .c-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--pp);}
+.cs-tbl .c-name{font-weight:700;color:var(--text);}
+.cs-tbl .c-name .ko{font-size:10px;font-weight:400;color:var(--sub);display:block;margin-top:1px;}
+.cs-tbl .c-type{font-family:'JetBrains Mono',monospace;font-size:10px;color:#7c3aed;background:#f5f3ff;padding:2px 6px;border-radius:3px;display:inline-block;}
+.cs-tbl .c-req{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;}
+.cs-tbl .c-req.y{color:#dc2626;}
+.cs-tbl .c-req.n{color:var(--sub);}
+.cs-tbl .c-validation{font-size:10px;color:var(--text);line-height:1.6;}
+.cs-tbl .c-validation code{font-family:'JetBrains Mono',monospace;font-size:9px;background:#fff7ed;color:#9a3412;padding:1px 5px;border-radius:2px;}
+.cs-tbl .c-default{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sub);}
+
+/* EVENT FLOW */
+.ef-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px 20px;}
+.ef-flow{position:relative;}
+.ef-step{display:grid;grid-template-columns:46px 1fr;gap:14px;padding:10px 0;position:relative;}
+.ef-step:not(:last-child)::before{content:'';position:absolute;left:23px;top:42px;bottom:-10px;width:2px;background:linear-gradient(180deg,var(--pp),rgba(5,150,105,.15));}
+.ef-num{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--pp),#047857);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;box-shadow:0 4px 12px rgba(5,150,105,.25);position:relative;z-index:1;}
+.ef-step.terminal .ef-num{background:linear-gradient(135deg,#0891b2,#0e7490);box-shadow:0 4px 12px rgba(8,145,178,.25);}
+.ef-step.error .ef-num{background:linear-gradient(135deg,#dc2626,#991b1b);box-shadow:0 4px 12px rgba(220,38,38,.25);}
+.ef-body{padding-top:2px;}
+.ef-trig{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.ef-trig-tag{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;border-radius:2px;}
+.ef-trig-tag.user{background:#dbeafe;color:#1e40af;}
+.ef-trig-tag.system{background:#f3e8ff;color:#7c3aed;}
+.ef-trig-tag.scheduled{background:#fef3c7;color:#92400e;}
+.ef-trig-tag.api{background:#dcfce7;color:#166534;}
+.ef-trig-name{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--text);}
+.ef-action{font-size:12px;color:var(--text);line-height:1.7;margin-bottom:3px;}
+.ef-action-ko{font-size:11px;color:var(--sub);line-height:1.7;}
+.ef-result{margin-top:6px;padding:7px 10px;background:#f6f8fa;border-left:2px solid var(--pp);border-radius:0 3px 3px 0;font-size:10px;color:var(--text);}
+.ef-result .er-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;color:var(--pp);letter-spacing:1px;margin-right:6px;}
+.ef-result code{font-family:'JetBrains Mono',monospace;font-size:10px;background:#fff;padding:1px 5px;border-radius:2px;border:1px solid var(--border);color:#7c3aed;}
+.ef-step.error .ef-result{border-left-color:#dc2626;background:#fef2f2;}
+.ef-step.error .ef-result .er-lbl{color:#dc2626;}
+.ef-step.terminal .ef-result{border-left-color:#0891b2;background:#ecfeff;}
+.ef-step.terminal .ef-result .er-lbl{color:#0891b2;}
+
+/* EXCEPTION */
+.exc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+.exc-card{background:var(--surface);border:1px solid var(--border);border-top:3px solid #dc2626;border-radius:0 0 6px 6px;padding:13px 15px;}
+.exc-card.warn{border-top-color:#f59e0b;}
+.exc-card.info{border-top-color:#059669;}
+.exc-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.exc-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#dc2626;background:#fef2f2;padding:2px 8px;border-radius:3px;}
+.exc-card.warn .exc-code{color:#92400e;background:#fef3c7;}
+.exc-card.info .exc-code{color:#065f46;background:#dcfce7;}
+.exc-name{font-size:12px;font-weight:700;color:var(--text);flex:1;}
+.exc-name .ko{font-size:10px;font-weight:400;color:var(--sub);display:block;}
+.exc-row{display:grid;grid-template-columns:64px 1fr;gap:8px;padding:5px 0;border-top:1px dashed var(--border);font-size:10px;}
+.exc-row:first-of-type{border-top:none;}
+.exc-row .lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;padding-top:2px;}
+.exc-row .val{color:var(--text);line-height:1.6;}
+.exc-row .val code{font-family:'JetBrains Mono',monospace;font-size:9px;background:#f0f3f7;padding:1px 5px;border-radius:2px;color:#7c3aed;}
+.exc-row .val .ko{color:var(--sub);display:block;font-size:9px;margin-top:1px;}
+.exc-msg{margin-top:8px;padding:7px 10px;background:#1a0808;border:1px solid #3a1010;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#ff8a82;text-align:center;}
+.exc-card.warn .exc-msg{background:#1a1408;border-color:#3a2a10;color:#fbbf24;}
+.exc-card.info .exc-msg{background:#03251a;border-color:#052e1f;color:#6ee7b7;}
+
+/* LINKAGE */
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px 24px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#f0fdf4;border-color:#22c55e;}
+.lnk-node.cur{background:linear-gradient(135deg,#031712,#052e1f);border-color:#34d399;color:#fff;box-shadow:0 4px 16px rgba(52,211,153,.2);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.5px;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#15803d;}
+.lnk-node.cur .lnk-id{color:#34d399;}
+.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}
+.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}
+.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.lnk-arr-lbl{font-size:8px;color:var(--sub);font-family:'JetBrains Mono',monospace;letter-spacing:1px;text-transform:uppercase;display:block;text-align:center;margin-top:-6px;}
+
+/* BR MINI */
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid #f3e0b0;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.br-mini tr:last-child td{border-bottom:none;}
+.br-mini .br-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-mini .br-en{font-size:11px;color:var(--text);line-height:1.6;}
+.br-mini .br-ko{font-size:10px;color:var(--sub);line-height:1.6;margin-top:3px;}
+.br-mini .br-act{text-align:center;}
+.br-mini .br-act span{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-mini .br-act .blk{background:#fee2e2;color:#991b1b;}
+.br-mini .br-act .alt{background:#fef9c3;color:#92400e;}
+.br-mini .br-act .aut{background:#dbeafe;color:#1e40af;}
+
+.alert{display:flex;gap:9px;align-items:flex-start;padding:9px 13px;border-radius:5px;border:1px solid;font-size:11px;line-height:1.65;}
+.alert-i{background:#ecfdf5;border-color:#a7f3d0;color:#065f46;}
+.alert-w{background:#fef9c3;border-color:#fde68a;color:#92400e;}
+
+.page-footer{padding:24px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;align-items:center;font-size:10px;}
+.page-footer .pf-l{font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.page-footer .pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+
+@media (max-width:1100px){
+  .ov-grid{grid-template-columns:1fr;}
+  .exc-grid{grid-template-columns:1fr;}
+  .scr-id-block{flex-direction:column;align-items:flex-start;gap:6px;}
+  .scr-id{font-size:42px;}
+  .scr-title-en{font-size:32px;}
+}
+</style>
+</head>
+<body>
+
+<nav class="ames-nav"><div class="ames-nav-inner">
+  <a class="nav-home" href="INDEX.html">
+    <div><div class="nav-home-logo">A-MES</div><div class="nav-home-sub">Index</div></div>
+  </a>
+  <a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span>Warehouse</span></a>
+  <a href="VOL04_PP_Production_Plan.html" class="nav-vol active"><span class="nv-code" style="color:#059669;">PP</span><span>Plan</span></a>
+  <a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span>Injection</span></a>
+  <a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span>Wrapping</span></a>
+  <a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span>Painting</span></a>
+  <a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span>Quality</span></a>
+  <a href="VOL09_FG_Finished.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span>Finished Goods</span></a>
+  <a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span>Maintenance</span></a>
+  <a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span>Reports</span></a>
+  <a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span>System</span></a>
+  <a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span>Master Data</span></a>
+</div></nav>
+
+<div class="l3-crumb">
+  <span class="lvl">L1</span><a href="INDEX.html">A-MES Index</a>
+  <span class="arr">▸</span>
+  <span class="lvl">L2</span><a href="VOL04_PP_Production_Plan.html">VOL.4 · PP Production Plan</a>
+  <span class="arr">▸</span>
+  <span class="lvl">L3</span><span class="current">PP-OTD · On-Time Delivery KPI</span>
+</div>
+
+<div class="page-wrap">
+
+<nav class="sidebar">
+  <div class="sb-head">
+    <div class="sb-vol">VOL.4 · PP MODULE</div>
+    <div class="sb-mod-en">PRODUCTION PLAN</div>
+    <div class="sb-mod-ko">생산계획</div>
+  </div>
+  <div class="sb-section">L3 Screens · 화면 상세</div>
+  <a class="sb-link" href="VOL04_PP01_Forecast.html"><span class="sl-id">PP-01</span><div><div class="sl-en">Forecast Mgmt</div><div class="sl-ko">Forecast 관리</div></div></a>
+  <a class="sb-link" href="VOL04_PP02_SAP_Import.html"><span class="sl-id">PP-02</span><div><div class="sl-en">SAP B1 Import</div><div class="sl-ko">공급계획 수신</div></div></a>
+  <a class="sb-link" href="VOL04_PP03_Plan_Confirm.html"><span class="sl-id">PP-03</span><div><div class="sl-en">Plan & Confirm</div><div class="sl-ko">생산계획 수립</div></div></a>
+  <a class="sb-link" href="VOL04_PP04_Work_Order.html"><span class="sl-id">PP-04</span><div><div class="sl-en">Work Order Mgmt</div><div class="sl-ko">작업지시 관리</div></div></a>
+  <a class="sb-link" href="VOL04_PP05_MRP.html"><span class="sl-id">PP-05</span><div><div class="sl-en">MRP</div><div class="sl-ko">자재 소요 계획</div></div></a>
+  <a class="sb-link" href="VOL04_PP06_Purchase_Req.html"><span class="sl-id">PP-06</span><div><div class="sl-en">Purchase Req.</div><div class="sl-ko">자재발주 요청</div></div></a>
+  <a class="sb-link" href="VOL04_PP07_WO_Release.html"><span class="sl-id">PP-07</span><div><div class="sl-en">WO Release</div><div class="sl-ko">WO 발행</div></div></a>
+  <a class="sb-link" href="VOL04_PP_CAL_Calendar.html"><span class="sl-id">PP-CAL</span><div><div class="sl-en">Production Calendar</div><div class="sl-ko">생산 캘린더</div></div></a>
+  <a class="sb-link on" href="VOL04_PP_OTD_Delivery.html"><span class="sl-id">PP-OTD</span><div><div class="sl-en">Delivery KPI</div><div class="sl-ko">납기 현황</div></div></a>
+
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page</div>
+    <a href="#s1"><span class="num">01</span>Overview</a>
+    <a href="#s2"><span class="num">02</span>Screen Mockup</a>
+    <a href="#s3"><span class="num">03</span>UI Components</a>
+    <a href="#s4"><span class="num">04</span>Event &amp; Action Flow</a>
+    <a href="#s5"><span class="num">05</span>Exception Handling</a>
+    <a href="#s6"><span class="num">06</span>Linked Screens</a>
+    <a href="#s7"><span class="num">07</span>Business Rules</a>
+  </div>
+</nav>
+
+<div class="main">
+
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.4 · PP · Production Planning · 납기 준수율 현황</div>
+      <div class="scr-id-block">
+        <div class="scr-id">PP-OTD</div>
+        <div>
+          <div class="scr-title-en">On-Time Delivery KPI</div>
+        </div>
+      </div>
+      <div class="scr-title-ko">O T D   K P I</div>
+      <div class="scr-meta">
+        <div class="meta-chip web"><span class="mc-lbl">Device</span><span class="mc-val">🖥 Web PC</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">2nd Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">PLAN Manager · Director</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Freq</span><span class="mc-val">Real-time + daily summary</span></div>
+        <div class="meta-chip"><span class="mc-lbl">URL</span><span class="mc-val" style="font-family:'JetBrains Mono',monospace;">/pp/otd</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="sec" id="s1">
+      <div class="sec-hdr">
+        <div class="sec-num">01</div>
+        <div class="sec-title-wrap">
+          <div class="sec-title-en">Overview</div>
+          <div class="sec-title-ko">화면 개요 · 목적 · 컨텍스트</div>
+        </div>
+        <div class="sec-line"></div>
+      </div>
+      <div class="ov-grid">
+        <div class="ov-desc">
+          <div class="ov-desc-en">Tracks On-Time Delivery (OTD) KPI by customer (SAV/GEO), item, and period. Calculates <code>OTD% = (Shipped on or before due / Total shipped) × 100</code>. Targets: SAV ≥ 98%, GEO ≥ 96%. Shows trend chart (12-month), delay root-cause Pareto, and individual delayed shipment drill-down. Feeds RPT-05 monthly KPI dashboard.</div>
+          <div class="ov-desc-ko">거래선(SAV/GEO)·품목·기간별 OTD KPI 추적. <code>OTD% = (납기 내 출하 / 총 출하) × 100</code>. 목표: SAV ≥ 98% · GEO ≥ 96%. 12개월 추이 차트·지연 원인 Pareto·개별 지연건 드릴다운. RPT-05 월간 KPI 대시보드 연계.</div>
+        </div>
+        <div class="ov-meta">
+        <div class="ov-meta-row"><div class="ov-meta-k">Screen ID</div><div class="ov-meta-v"><code>PP-OTD</code></div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">Target</div><div class="ov-meta-v">SAV ≥ 98% · GEO ≥ 96%</div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">Formula</div><div class="ov-meta-v">(On-time / Total) × 100</div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">Source</div><div class="ov-meta-v">FG_Shipment.actual_date vs PP_WO.due_date</div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">Tables</div><div class="ov-meta-v"><code>FG_Shipment</code>, <code>PP_WO</code></div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">RBAC</div><div class="ov-meta-v"><code>PP.View</code> · <code>Director</code></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="s2">
+      <div class="sec-hdr">
+        <div class="sec-num">02</div>
+        <div class="sec-title-wrap">
+          <div class="sec-title-en">Screen Mockup</div>
+          <div class="sec-title-ko">화면 목업 — 주요 UI 구성</div>
+        </div>
+        <div class="sec-line"></div>
+      </div>
+      <div class="mock-wrap">
+        <div class="mock-lbl">PP-OTD · On-Time Delivery KPI · Web PC</div>
+        <div class="mock-win">
+  <div class="mock-tbar">📊 A-MES · PP · On-Time Delivery KPI <span class="bc">PP &gt; OTD</span></div>
+  <div class="mock-toolbar">
+    <select><option>All Customers</option><option>SAV</option><option>GEO</option></select>
+    <select><option>2025-Q3</option><option>2025-Q2</option><option>YTD</option></select>
+    <select><option>All Items</option></select>
+    <button class="btn btn-primary btn-sm">🔍 Apply</button>
+    <button class="btn btn-secondary btn-sm" style="margin-left:auto;">📥 Export</button>
+  </div>
+  <div class="mock-body">
+    <div class="kpi-strip">
+      <div class="kc" style="background:#f0fdf4;"><div class="kv" style="color:#22c55e;">98.2%</div><div class="kl-en">SAV OTD<span style="font-size:8px;margin-left:4px;">target 98%</span></div><div class="kl-ko">SAV 납기준수율</div></div>
+      <div class="kc" style="background:#fef3c7;"><div class="kv" style="color:#f59e0b;">95.4%</div><div class="kl-en">GEO OTD<span style="font-size:8px;margin-left:4px;">target 96%</span></div><div class="kl-ko">GEO 납기준수율</div></div>
+      <div class="kc"><div class="kv" style="color:#0891b2;">847</div><div class="kl-en">Total Shipments</div><div class="kl-ko">총 출하건</div></div>
+      <div class="kc"><div class="kv" style="color:#dc2626;">16</div><div class="kl-en">Delayed</div><div class="kl-ko">지연건</div></div>
+      <div class="kc"><div class="kv" style="color:#6366f1;">2.3d</div><div class="kl-en">Avg Delay</div><div class="kl-ko">평균 지연일</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:14px;">
+      <div style="background:#fff;border:1px solid var(--border);border-radius:6px;padding:14px;">
+        <div style="font-size:11px;font-weight:700;color:var(--pp);margin-bottom:10px;">📈 12-Month OTD Trend</div>
+        <div style="display:flex;align-items:flex-end;gap:6px;height:130px;border-bottom:1px solid var(--border);padding:0 4px;"><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:100%;height:110px;background:linear-gradient(180deg,#22c55e,#15803d);border-radius:2px 2px 0 0;"></div><div style="font-size:7px;color:var(--sub);">S</div></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:100%;height:108px;background:linear-gradient(180deg,#22c55e,#15803d);border-radius:2px 2px 0 0;"></div><div style="font-size:7px;color:var(--sub);">O</div></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:100%;height:115px;background:linear-gradient(180deg,#22c55e,#15803d);border-radius:2px 2px 0 0;"></div><div style="font-size:7px;color:var(--sub);">N</div></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:100%;height:112px;background:linear-gradient(180deg,#22c55e,#15803d);border-radius:2px 2px 0 0;"></div><div style="font-size:7px;color:var(--sub);">D</div></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:100%;height:118px;background:linear-gradient(180deg,#22c55e,#15803d);border-radius:2px 2px 0 0;"></div><div style="font-size:7px;color:var(--sub);">J</div></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:100%;height:109px;background:linear-gradient(180deg,#22c55e,#15803d);border-radius:2px 2px 0 0;"></div><div style="font-size:7px;color:var(--sub);">F</div></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:100%;height:113px;background:linear-gradient(180deg,#22c55e,#15803d);border-radius:2px 2px 0 0;"></div><div style="font-size:7px;color:var(--sub);">M</div></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:100%;height:116px;background:linear-gradient(180deg,#22c55e,#15803d);border-radius:2px 2px 0 0;"></div><div style="font-size:7px;color:var(--sub);">A</div></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:100%;height:120px;background:linear-gradient(180deg,#22c55e,#15803d);border-radius:2px 2px 0 0;"></div><div style="font-size:7px;color:var(--sub);">M</div></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:100%;height:114px;background:linear-gradient(180deg,#22c55e,#15803d);border-radius:2px 2px 0 0;"></div><div style="font-size:7px;color:var(--sub);">J</div></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:100%;height:117px;background:linear-gradient(180deg,#22c55e,#15803d);border-radius:2px 2px 0 0;"></div><div style="font-size:7px;color:var(--sub);">J</div></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:100%;height:122px;background:linear-gradient(180deg,#22c55e,#15803d);border-radius:2px 2px 0 0;"></div><div style="font-size:7px;color:var(--sub);">A</div></div></div>
+        <div style="text-align:center;font-size:9px;color:var(--sub);margin-top:8px;">2024-09 ~ 2025-08 (Target: 98%/96%)</div>
+      </div>
+
+      <div style="background:#fff;border:1px solid var(--border);border-radius:6px;padding:14px;">
+        <div style="font-size:11px;font-weight:700;color:var(--pp);margin-bottom:10px;">📊 Delay Root Cause Pareto</div>
+        <table style="width:100%;font-size:10px;border-collapse:collapse;">
+          <tr><td>① Material Shortage</td><td style="text-align:right;font-weight:700;color:#dc2626;">7건 (44%)</td></tr>
+          <tr><td>② Equipment Breakdown</td><td style="text-align:right;font-weight:700;color:#f59e0b;">4건 (25%)</td></tr>
+          <tr><td>③ QC Rejection</td><td style="text-align:right;font-weight:700;">3건 (19%)</td></tr>
+          <tr><td>④ Logistics</td><td style="text-align:right;font-weight:700;">1건 (6%)</td></tr>
+          <tr><td>⑤ Other</td><td style="text-align:right;font-weight:700;">1건 (6%)</td></tr>
+        </table>
+        <button class="btn btn-secondary btn-sm" style="margin-top:10px;width:100%;">View Delayed Details →</button>
+      </div>
+    </div>
+  </div>
+</div>
+      </div>
+    </div>
+
+    <div class="sec" id="s3">
+      <div class="sec-hdr">
+        <div class="sec-num">03</div>
+        <div class="sec-title-wrap">
+          <div class="sec-title-en">UI Components Specification</div>
+          <div class="sec-title-ko">UI 컴포넌트 명세 · 검증 규칙</div>
+        </div>
+        <div class="sec-line"></div>
+      </div>
+      <table class="cs-tbl">
+        <thead>
+          <tr>
+            <th style="width:70px;">ID</th>
+            <th>Component<span class="th-ko">컴포넌트</span></th>
+            <th style="width:90px;">Type</th>
+            <th style="width:60px;">Req.<span class="th-ko">필수</span></th>
+            <th>Validation / Behavior<span class="th-ko">검증·동작</span></th>
+            <th style="width:90px;">Default</th>
+          </tr>
+        </thead>
+        <tbody>
+        <tr>
+          <td class="c-id">CMP-01</td>
+          <td class="c-name">Customer Filter<span class="ko">고객사</span></td>
+          <td><span class="c-type">SELECT</span></td>
+          <td class="c-req n">N</td>
+          <td class="c-validation">All / SAV / GEO.</td>
+          <td class="c-default">All</td>
+        </tr>
+        <tr>
+          <td class="c-id">CMP-02</td>
+          <td class="c-name">Period Filter<span class="ko">기간</span></td>
+          <td><span class="c-type">SELECT</span></td>
+          <td class="c-req n">N</td>
+          <td class="c-validation">Q/M/Custom date range.</td>
+          <td class="c-default">Current Q</td>
+        </tr>
+        <tr>
+          <td class="c-id">CMP-03</td>
+          <td class="c-name">Item Filter<span class="ko">품목</span></td>
+          <td><span class="c-type">SELECT</span></td>
+          <td class="c-req n">N</td>
+          <td class="c-validation">Filter by specific item.</td>
+          <td class="c-default">All</td>
+        </tr>
+        <tr>
+          <td class="c-id">CMP-04</td>
+          <td class="c-name">OTD Card<span class="ko">OTD 카드</span></td>
+          <td><span class="c-type">DISPLAY</span></td>
+          <td class="c-req n">—</td>
+          <td class="c-validation"><code>OTD% = (On-time / Total) × 100</code>. Target indicator.</td>
+          <td class="c-default">—</td>
+        </tr>
+        <tr>
+          <td class="c-id">CMP-05</td>
+          <td class="c-name">Trend Chart<span class="ko">추이 차트</span></td>
+          <td><span class="c-type">CHART</span></td>
+          <td class="c-req n">—</td>
+          <td class="c-validation">12-month bar chart. Click bar drills into that month.</td>
+          <td class="c-default">—</td>
+        </tr>
+        <tr>
+          <td class="c-id">CMP-06</td>
+          <td class="c-name">Pareto Chart<span class="ko">Pareto</span></td>
+          <td><span class="c-type">CHART</span></td>
+          <td class="c-req n">—</td>
+          <td class="c-validation">Top 5 delay reasons. Click row drills to detailed cases.</td>
+          <td class="c-default">—</td>
+        </tr>
+        <tr>
+          <td class="c-id">CMP-07</td>
+          <td class="c-name">[View Delayed Details]<span class="ko">지연 상세</span></td>
+          <td><span class="c-type">BUTTON</span></td>
+          <td class="c-req n">N</td>
+          <td class="c-validation">Drill into individual delayed shipments with root cause.</td>
+          <td class="c-default">—</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="s4">
+      <div class="sec-hdr">
+        <div class="sec-num">04</div>
+        <div class="sec-title-wrap">
+          <div class="sec-title-en">Event &amp; Action Flow</div>
+          <div class="sec-title-ko">이벤트 흐름 · 사용자 액션 → 시스템 반응</div>
+        </div>
+        <div class="sec-line"></div>
+      </div>
+      <div class="ef-wrap">
+        <div class="ef-flow">
+        <div class="ef-step ">
+          <div class="ef-num">1</div>
+          <div class="ef-body">
+            <div class="ef-trig">
+              <span class="ef-trig-tag user">USER</span>
+              <span class="ef-trig-name">page.load · open OTD</span>
+            </div>
+            <div class="ef-action">Loads current period OTD with all filters at default. Calls aggregate API.</div>
+            <div class="ef-action-ko">현재 기간 OTD를 기본 필터로 로드. 집계 API 호출.</div>
+            <div class="ef-result"><span class="er-lbl">API</span><code>GET /api/pp/otd?period=current_quarter</code></div>
+          </div>
+        </div>
+        <div class="ef-step ">
+          <div class="ef-num">2</div>
+          <div class="ef-body">
+            <div class="ef-trig">
+              <span class="ef-trig-tag system">SYSTEM</span>
+              <span class="ef-trig-name">calc · OTD%</span>
+            </div>
+            <div class="ef-action">Aggregates: <code>FG_Shipment</code> joined with <code>PP_WO</code>. Counts where <code>actual_ship_date ≤ wo_due_date</code>.</div>
+            <div class="ef-action-ko"><code>FG_Shipment × PP_WO</code> 조인. <code>actual_ship_date ≤ wo_due_date</code> 건수 집계.</div>
+            <div class="ef-result"><span class="er-lbl">FORMULA</span><code>OTD% = COUNT(on_time) / COUNT(*) * 100</code></div>
+          </div>
+        </div>
+        <div class="ef-step ">
+          <div class="ef-num">3</div>
+          <div class="ef-body">
+            <div class="ef-trig">
+              <span class="ef-trig-tag user">USER</span>
+              <span class="ef-trig-name">click · trend bar</span>
+            </div>
+            <div class="ef-action">Drills into selected month. Re-fetches detailed shipments for that month.</div>
+            <div class="ef-action-ko">추이 차트 막대 클릭 시 해당 월 상세 출하 데이터 조회.</div>
+            <div class="ef-result"><span class="er-lbl">API</span><code>GET /api/pp/otd/detail?month=YYYY-MM</code></div>
+          </div>
+        </div>
+        <div class="ef-step ">
+          <div class="ef-num">4</div>
+          <div class="ef-body">
+            <div class="ef-trig">
+              <span class="ef-trig-tag user">USER</span>
+              <span class="ef-trig-name">click · Pareto row</span>
+            </div>
+            <div class="ef-action">Drills into shipments with that delay reason. Shows root cause analysis link to QC/MNT data.</div>
+            <div class="ef-action-ko">Pareto 행 클릭 시 해당 사유 지연건 목록 + QC/MNT 데이터 링크.</div>
+            <div class="ef-result"><span class="er-lbl">NAV</span><code>/pp/otd/detail?cause=MaterialShortage</code></div>
+          </div>
+        </div>
+        <div class="ef-step ">
+          <div class="ef-num">5</div>
+          <div class="ef-body">
+            <div class="ef-trig">
+              <span class="ef-trig-tag scheduled">SCHEDULED</span>
+              <span class="ef-trig-name">cron · daily KPI snapshot</span>
+            </div>
+            <div class="ef-action">Every day at 00:30, snapshots OTD for previous day into <code>PP_OTD_Snapshot</code>.</div>
+            <div class="ef-action-ko">매일 00:30 전일 OTD 스냅샷을 <code>PP_OTD_Snapshot</code>에 저장.</div>
+            <div class="ef-result"><span class="er-lbl">EFFECT</span>Used for fast trend rendering</div>
+          </div>
+        </div>
+        <div class="ef-step terminal">
+          <div class="ef-num">6</div>
+          <div class="ef-body">
+            <div class="ef-trig">
+              <span class="ef-trig-tag system">SYSTEM</span>
+              <span class="ef-trig-name">feed · monthly KPI</span>
+            </div>
+            <div class="ef-action">Aggregated to RPT-05 monthly KPI dashboard. Director-level visibility.</div>
+            <div class="ef-action-ko">월간 RPT-05 KPI 대시보드에 집계 전달. 임원진 가시성.</div>
+            <div class="ef-result"><span class="er-lbl">DOWNSTREAM</span>RPT-05 · Email digest to plant director on miss</div>
+          </div>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="s5">
+      <div class="sec-hdr">
+        <div class="sec-num">05</div>
+        <div class="sec-title-wrap">
+          <div class="sec-title-en">Exception Handling</div>
+          <div class="sec-title-ko">예외 처리 · 오류 코드 · 복구 절차</div>
+        </div>
+        <div class="sec-line"></div>
+      </div>
+      <div class="exc-grid">
+        <div class="exc-card info">
+          <div class="exc-hdr">
+            <span class="exc-code">E-PPOTD-001</span>
+            <div class="exc-name">No Shipments<span class="ko">출하 없음</span></div>
+          </div>
+          <div class="exc-row"><span class="lbl">Cause</span><span class="val">No FG shipments in filter range.</span></div>
+          <div class="exc-row"><span class="lbl">Detect</span><span class="val">Empty data.</span></div>
+          <div class="exc-row"><span class="lbl">Action</span><span class="val">Show empty state.</span></div>
+          <div class="exc-row"><span class="lbl">Recover</span><span class="val">Widen date range.</span></div>
+          <div class="exc-msg">ℹ NO DATA</div>
+        </div>
+        <div class="exc-card warn">
+          <div class="exc-hdr">
+            <span class="exc-code">E-PPOTD-002</span>
+            <div class="exc-name">Below Target<span class="ko">목표 미달</span></div>
+          </div>
+          <div class="exc-row"><span class="lbl">Cause</span><span class="val">OTD &lt; target (SAV 98% / GEO 96%).</span></div>
+          <div class="exc-row"><span class="lbl">Detect</span><span class="val">Daily check.</span></div>
+          <div class="exc-row"><span class="lbl">Action</span><span class="val">Red KPI card. Alert plant director.</span></div>
+          <div class="exc-row"><span class="lbl">Recover</span><span class="val">Root cause analysis + CAPA.</span></div>
+          <div class="exc-msg">⚠ BELOW TARGET</div>
+        </div>
+        <div class="exc-card warn">
+          <div class="exc-hdr">
+            <span class="exc-code">E-PPOTD-003</span>
+            <div class="exc-name">Missing WO Reference<span class="ko">WO 참조 누락</span></div>
+          </div>
+          <div class="exc-row"><span class="lbl">Cause</span><span class="val">Shipment has no linked WO (manual ship?).</span></div>
+          <div class="exc-row"><span class="lbl">Detect</span><span class="val">Join NULL.</span></div>
+          <div class="exc-row"><span class="lbl">Action</span><span class="val">Excluded from OTD calc. Listed separately.</span></div>
+          <div class="exc-row"><span class="lbl">Recover</span><span class="val">Reconcile in FG module.</span></div>
+          <div class="exc-msg">⚠ ORPHAN SHIPMENT</div>
+        </div>
+        <div class="exc-card warn">
+          <div class="exc-hdr">
+            <span class="exc-code">E-PPOTD-004</span>
+            <div class="exc-name">Slow Query<span class="ko">쿼리 지연</span></div>
+          </div>
+          <div class="exc-row"><span class="lbl">Cause</span><span class="val">Aggregation &gt; 10s for large period.</span></div>
+          <div class="exc-row"><span class="lbl">Detect</span><span class="val">Timeout monitor.</span></div>
+          <div class="exc-row"><span class="lbl">Action</span><span class="val">Use snapshot table or narrow scope.</span></div>
+          <div class="exc-row"><span class="lbl">Recover</span><span class="val">Apply more specific filter.</span></div>
+          <div class="exc-msg">⚠ SLOW · USE SNAPSHOT</div>
+        </div>
+        <div class="exc-card warn">
+          <div class="exc-hdr">
+            <span class="exc-code">E-PPOTD-005</span>
+            <div class="exc-name">Snapshot Missing<span class="ko">스냅샷 결손</span></div>
+          </div>
+          <div class="exc-row"><span class="lbl">Cause</span><span class="val">Daily snapshot job failed yesterday.</span></div>
+          <div class="exc-row"><span class="lbl">Detect</span><span class="val">Existence check.</span></div>
+          <div class="exc-row"><span class="lbl">Action</span><span class="val">Re-aggregate from raw. Mark with warning badge.</span></div>
+          <div class="exc-row"><span class="lbl">Recover</span><span class="val">SYS reruns snapshot job.</span></div>
+          <div class="exc-msg">⚠ NO SNAPSHOT</div>
+        </div>
+        <div class="exc-card error">
+          <div class="exc-hdr">
+            <span class="exc-code">E-PPOTD-006</span>
+            <div class="exc-name">Export Permission<span class="ko">출력 권한 없음</span></div>
+          </div>
+          <div class="exc-row"><span class="lbl">Cause</span><span class="val">User lacks PP.OTD.Export role.</span></div>
+          <div class="exc-row"><span class="lbl">Detect</span><span class="val">RBAC.</span></div>
+          <div class="exc-row"><span class="lbl">Action</span><span class="val">Block export. View only.</span></div>
+          <div class="exc-row"><span class="lbl">Recover</span><span class="val">Request role.</span></div>
+          <div class="exc-msg">⛔ EXPORT DENIED</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="s6">
+      <div class="sec-hdr">
+        <div class="sec-num">06</div>
+        <div class="sec-title-wrap">
+          <div class="sec-title-en">Linked Screens &amp; Data Flow</div>
+          <div class="sec-title-ko">연계 화면 · 상·하류 데이터 흐름</div>
+        </div>
+        <div class="sec-line"></div>
+      </div>
+      <div class="lnk-wrap">
+        <div style="font-size:10px;color:var(--sub);text-align:center;margin-bottom:10px;letter-spacing:1px;text-transform:uppercase;font-weight:700;">▲ UPSTREAM · 상위 화면 / 데이터 ▲</div>
+        <div class="lnk-row" style="margin-bottom:14px;"><div class="lnk-node up"><div class="lnk-id">PP-04</div><div class="lnk-name">WO Master</div><div class="lnk-ko">WO 납기</div></div><div class="lnk-node up"><div class="lnk-id">FG</div><div class="lnk-name">FG Shipment</div><div class="lnk-ko">출하</div></div><div class="lnk-node up"><div class="lnk-id">QC</div><div class="lnk-name">Defects</div><div class="lnk-ko">불량</div></div></div>
+        <div style="text-align:center;color:var(--pp);font-size:24px;">↓</div>
+        <div class="lnk-row" style="margin:14px 0;">
+          <div class="lnk-node cur">
+            <div class="lnk-id">PP-OTD</div>
+            <div class="lnk-name">On-Time Delivery KPI</div>
+            <div class="lnk-ko">납기 준수율 현황</div>
+          </div>
+        </div>
+        <div style="text-align:center;color:var(--pp);font-size:24px;">↓</div>
+        <div class="lnk-row" style="margin-top:14px;"><div class="lnk-node down"><div class="lnk-id">RPT-05</div><div class="lnk-name">Monthly KPI</div><div class="lnk-ko">월간 KPI</div></div><div class="lnk-node down"><div class="lnk-id">Director</div><div class="lnk-name">Plant Director</div><div class="lnk-ko">공장장 대시보드</div></div></div>
+        <div style="font-size:10px;color:var(--sub);text-align:center;margin-top:10px;letter-spacing:1px;text-transform:uppercase;font-weight:700;">▼ DOWNSTREAM · 하위 화면 / 데이터 ▼</div>
+      </div>
+    </div>
+
+    <div class="sec" id="s7">
+      <div class="sec-hdr">
+        <div class="sec-num">07</div>
+        <div class="sec-title-wrap">
+          <div class="sec-title-en">Applicable Business Rules</div>
+          <div class="sec-title-ko">적용 업무 규칙</div>
+        </div>
+        <div class="sec-line"></div>
+      </div>
+      <table class="br-mini">
+        <thead>
+          <tr>
+            <th style="width:90px;">Rule ID</th>
+            <th>Rule (EN)</th>
+            <th>규칙 (KO)</th>
+            <th style="width:80px;text-align:center;">Action</th>
+          </tr>
+        </thead>
+        <tbody><tr><td colspan="4" style="text-align:center;color:var(--sub);padding:14px;">No specific business rules apply to this screen. <span style="font-size:10px;">이 화면에 직접 적용되는 업무 규칙은 없습니다.</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div><!-- /content -->
+
+  <div class="page-footer">
+    <div class="pf-l">A-MES · VOL.4 · PP-OTD On-Time Delivery KPI · L3 Detail Spec v1.0 · Bilingual EN/KO</div>
+    <div class="pf-r">Automotive Parts MES · SAV &amp; GEO Supply · Confidential</div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /page-wrap -->
+
+</body>
+</html>
