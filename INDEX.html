@@ -194,6 +194,184 @@ select.inp{background:rgba(0,0,0,.3);}
 .br-overview td{padding:6px 10px;border-bottom:1px solid #1e293b;color:#cbd5e1;}
 .br-overview tr:hover td{background:#1e293b;}
 
+/* ════════════════════════════════════════════════════════════════ */
+/* ENHANCED DESIGN v2 — overrides above for a more polished look    */
+/* ════════════════════════════════════════════════════════════════ */
+
+/* ── Cover hero ── */
+.cover-hero{
+  position:relative;background:linear-gradient(135deg,#0a1119 0%,#1e293b 50%,#0a1119 100%);
+  border:1px solid rgba(212,160,23,.15);border-radius:14px;
+  padding:54px 46px 42px;margin-bottom:36px;overflow:hidden;
+}
+.cover-hero::before{
+  content:'';position:absolute;inset:0;
+  background-image:linear-gradient(rgba(212,160,23,.05) 1px,transparent 1px),
+                    linear-gradient(90deg,rgba(212,160,23,.05) 1px,transparent 1px);
+  background-size:44px 44px;
+  -webkit-mask-image:radial-gradient(ellipse at 100% 0%,#000 0%,transparent 65%);
+          mask-image:radial-gradient(ellipse at 100% 0%,#000 0%,transparent 65%);
+  pointer-events:none;
+}
+.cover-hero::after{
+  content:'';position:absolute;top:-100px;right:-100px;width:340px;height:340px;
+  background:radial-gradient(circle,rgba(212,160,23,.18),transparent 65%);
+  pointer-events:none;
+}
+.ch-eyebrow{
+  position:relative;display:inline-flex;align-items:center;gap:10px;
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;
+  color:rgba(212,160,23,.9);letter-spacing:3px;text-transform:uppercase;
+  margin-bottom:22px;padding:6px 14px;border:1px solid rgba(212,160,23,.3);
+  border-radius:20px;background:rgba(212,160,23,.06);
+}
+.ch-dot{width:6px;height:6px;border-radius:50%;background:#d4a017;
+  box-shadow:0 0 10px rgba(212,160,23,.8);}
+.ch-title{
+  position:relative;font-family:'Bebas Neue',sans-serif;font-size:88px;
+  letter-spacing:7px;line-height:.95;color:#f8fafc;margin-bottom:0;
+  text-shadow:0 0 40px rgba(212,160,23,.2);
+}
+.ch-title-accent{color:#d4a017;}
+.ch-divider{display:block;width:110px;height:3px;margin:16px 0 20px;
+  background:linear-gradient(90deg,#d4a017,rgba(212,160,23,.1));border-radius:2px;}
+.ch-sub{position:relative;font-family:'Bebas Neue',sans-serif;font-size:22px;
+  letter-spacing:2px;color:#e2e8f0;margin-bottom:6px;}
+.ch-sub-ko{position:relative;font-size:14px;color:#94a3b8;margin-bottom:28px;letter-spacing:.5px;}
+.ch-meta{position:relative;display:flex;gap:10px;flex-wrap:wrap;}
+.ch-chip{display:flex;flex-direction:column;gap:3px;
+  padding:10px 16px;background:rgba(15,23,42,.7);
+  border:1px solid rgba(71,85,105,.6);border-radius:6px;min-width:120px;
+  transition:border-color .18s ease,background .18s ease;}
+.ch-chip:hover{border-color:rgba(212,160,23,.4);background:rgba(15,23,42,.85);}
+.ch-chip-l{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;
+  letter-spacing:1.5px;color:rgba(212,160,23,.75);text-transform:uppercase;}
+.ch-chip-v{font-size:13px;font-weight:700;color:#f1f5f9;}
+
+/* ── Stats ── */
+.stat-bar{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:0;
+  background:linear-gradient(135deg,rgba(30,41,59,.7) 0%,rgba(15,23,42,.7) 100%);
+  border:1px solid #334155;border-radius:10px;padding:0;margin:20px 0 28px;overflow:hidden;
+}
+.stat-item{
+  text-align:center;padding:20px 14px;
+  border-right:1px solid rgba(71,85,105,.4);
+  transition:background .18s ease;position:relative;
+}
+.stat-item:last-child{border-right:none;}
+.stat-item:hover{background:rgba(212,160,23,.04);}
+.stat-num{font-size:38px;font-weight:800;font-family:'Bebas Neue',sans-serif;
+  line-height:1;letter-spacing:1.5px;}
+.stat-lbl{font-size:10px;color:#94a3b8;margin-top:8px;letter-spacing:.8px;
+  text-transform:uppercase;font-weight:600;}
+
+/* ── Section title ── */
+.sec-title{
+  position:relative;display:flex;align-items:center;gap:12px;
+  font-size:11px;font-weight:700;color:#cbd5e1;
+  letter-spacing:2.5px;text-transform:uppercase;
+  margin:40px 0 16px;padding-left:14px;
+}
+.sec-title::before{
+  content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:4px;height:18px;background:linear-gradient(180deg,#d4a017,rgba(212,160,23,.2));
+  border-radius:2px;
+}
+.sec-title::after{
+  content:'';flex:1;height:1px;
+  background:linear-gradient(90deg,rgba(148,163,184,.25),transparent);
+}
+
+/* ── Flow box ── */
+.flow-box{
+  background:linear-gradient(135deg,rgba(30,41,59,.45) 0%,rgba(15,23,42,.45) 100%);
+  border:1px solid #334155;border-radius:10px;padding:22px 24px;
+  margin-bottom:18px;overflow-x:auto;
+}
+
+/* ── Module index cards ── */
+.idx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));
+  gap:14px;margin:20px 0 32px;}
+.idx-card{
+  position:relative;display:block;text-decoration:none;
+  background:linear-gradient(160deg,rgba(30,41,59,.95) 0%,rgba(15,23,42,.95) 100%);
+  border:1px solid #334155;border-radius:10px;padding:20px 20px 18px;
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+  overflow:hidden;border-top:none;
+}
+.idx-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--c);
+}
+.idx-card::after{
+  content:'';position:absolute;top:-30px;right:-30px;width:100px;height:100px;
+  background:radial-gradient(circle,var(--c),transparent 65%);
+  opacity:.13;transition:opacity .25s ease;pointer-events:none;
+}
+.idx-card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 12px 30px rgba(0,0,0,.5),0 0 0 1px var(--c);
+  border-color:var(--c);
+}
+.idx-card:hover::after{opacity:.28;}
+.idx-badge{
+  display:inline-block;background:var(--c);color:#fff;font-size:10px;
+  font-weight:700;font-family:'JetBrains Mono',monospace;
+  padding:3px 9px;border-radius:3px;letter-spacing:1px;margin-bottom:12px;
+}
+.idx-code{
+  font-size:28px;font-weight:800;color:var(--c);
+  font-family:'Bebas Neue',sans-serif;letter-spacing:2.5px;line-height:1;
+}
+.idx-en{font-size:14px;font-weight:700;color:#f1f5f9;margin:5px 0 2px;}
+.idx-ko{
+  font-size:12px;color:#94a3b8;margin-bottom:12px;
+  padding-bottom:12px;border-bottom:1px dashed rgba(148,163,184,.2);
+}
+.idx-feat{font-size:11px;line-height:1.55;}
+.idx-feat-en{display:block;color:#cbd5e1;font-weight:500;}
+.idx-feat-ko{display:block;color:#64748b;margin-top:3px;}
+
+/* ── Business rule / integration tables ── */
+.br-overview{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;margin-top:6px;}
+.br-overview th{
+  background:#0f172a;color:#94a3b8;font-weight:700;padding:11px 14px;
+  text-align:left;border-bottom:1px solid #334155;
+  font-size:10px;letter-spacing:1.2px;text-transform:uppercase;
+}
+.br-overview td{
+  padding:10px 14px;border-bottom:1px solid rgba(51,65,85,.45);color:#cbd5e1;
+  transition:background .12s ease;
+}
+.br-overview tr:nth-child(even) td{background:rgba(255,255,255,.012);}
+.br-overview tr:hover td{background:rgba(212,160,23,.05);color:#f1f5f9;}
+.br-overview td:nth-child(2){
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  color:#d4a017;font-weight:700;letter-spacing:.5px;
+}
+
+/* ── Routing flow (was missing — fix) ── */
+.rflow-wrap{display:flex;flex-direction:column;gap:14px;}
+.rflow-row{
+  display:flex;align-items:center;gap:24px;flex-wrap:wrap;
+  padding:16px 20px;background:rgba(15,23,42,.55);
+  border:1px solid rgba(51,65,85,.7);border-radius:8px;
+}
+.rflow-label{min-width:180px;font-size:12px;color:#cbd5e1;line-height:1.5;}
+.rflow-label strong{
+  font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;
+  color:#f1f5f9;display:block;margin-bottom:3px;
+}
+.rflow-steps{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1;}
+.rflow-steps .rf-step{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:9px 18px;border-radius:6px;min-width:auto;flex-direction:row;
+  font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;letter-spacing:1px;
+  background:rgba(0,0,0,.25);color:var(--rc);border:1px solid var(--rc);
+  text-align:center;
+}
+.rf-arrow{color:#475569;font-size:20px;font-weight:700;line-height:1;}
+
 </style>
 </head>
 <body><nav id="ames-nb" style="
@@ -216,11 +394,21 @@ select.inp{background:rgba(0,0,0,.3);}
 .nb-item:hover{background:rgba(255,255,255,.06)!important;}
 </style><div class="content">
 
-<div class="cover" style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);padding:48px 40px;border-radius:12px;margin-bottom:32px;">
-  <div style="font-family:'Bebas Neue',sans-serif;font-size:56px;letter-spacing:2px;color:#f1f5f9;line-height:1">A-MES</div>
-  <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;color:#94a3b8;margin-bottom:12px">Automotive MES — UI Design Specification</div>
-  <div style="font-size:16px;color:#64748b;margin-bottom:4px">자동차 부품 제조실행시스템 UI 설계서</div>
-  <div style="font-size:12px;color:#475569;margin-top:16px">Version 3.0 &nbsp;|&nbsp; 서연이화 SAV / GEO Plant &nbsp;|&nbsp; VOL.03 – VOL.13</div>
+<div class="cover-hero">
+  <div class="ch-eyebrow">
+    <span class="ch-dot"></span>
+    <span>Automotive MES · UI Design Specification</span>
+  </div>
+  <div class="ch-title">A-<span class="ch-title-accent">MES</span></div>
+  <span class="ch-divider"></span>
+  <div class="ch-sub">Manufacturing Execution System</div>
+  <div class="ch-sub-ko">자동차 부품 제조실행시스템 UI 설계서</div>
+  <div class="ch-meta">
+    <div class="ch-chip"><span class="ch-chip-l">Version</span><span class="ch-chip-v">3.0</span></div>
+    <div class="ch-chip"><span class="ch-chip-l">Client</span><span class="ch-chip-v">서연이화</span></div>
+    <div class="ch-chip"><span class="ch-chip-l">Plant</span><span class="ch-chip-v">SAV / GEO</span></div>
+    <div class="ch-chip"><span class="ch-chip-l">Volumes</span><span class="ch-chip-v">VOL.03 – VOL.13</span></div>
+  </div>
 </div>
 <div class="stat-bar">
   <div class="stat-item"><div class="stat-num" style="color:#0891b2">11</div><div class="stat-lbl">Modules / 모듈</div></div>
