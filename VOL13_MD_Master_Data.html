@@ -1,249 +1,546 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>A-MES VOL.13 · MD Master Data Management · 기준정보 관리 UI 설계서</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.13 · MD · Master Data Management</title>
 <style>
-
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Noto Sans KR',sans-serif;background:#0f1923;color:#e2e8f0;font-size:13px;line-height:1.65;}
 :root{
-  --gold:#d4a017;--gold2:rgba(212,160,23,.15);
-  --border:rgba(255,255,255,.07);
-  --card:rgba(255,255,255,.03);
-  --text2:rgba(255,255,255,.45);
-  --text3:rgba(255,255,255,.22);
+  --gold:#d4a017;--gold-lt:#fdf6e3;--gold-dk:#a07810;
+  --ink:#0d1117;--ink2:#161b22;--ink3:#21262d;
+  --surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;
+  --wh:#0891b2;--pp:#059669;--inj:#2563eb;--img:#7c3aed;
+  --pnt:#ea580c;--qc:#dc2626;--fg:#0db87a;--mnt:#0284c7;
+  --rpt:#6366f1;--sys:#475569;--md:#d97706;
+  --mod-color:#d97706;
 }
-/* ── COVER ── */
-.cover{padding:56px 64px 48px;position:relative;overflow:hidden;}
-.cover::before{content:'';position:absolute;inset:0;
-  background-image:linear-gradient(rgba(212,160,23,.025) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(212,160,23,.025) 1px,transparent 1px);
-  background-size:48px 48px;pointer-events:none;}
-.cover-eyebrow{display:inline-flex;align-items:center;gap:10px;
-  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:3px;
-  color:rgba(212,160,23,.6);text-transform:uppercase;margin-bottom:14px;}
-.cover-eyebrow::before,.cover-eyebrow::after{content:'';display:block;width:28px;height:1px;background:rgba(212,160,23,.3);}
-.cover-title{font-family:'Bebas Neue',sans-serif;font-size:58px;line-height:.95;letter-spacing:2px;margin-bottom:6px;}
-.cover-title span{color:var(--gold);}
-.cover-sub{font-size:15px;font-weight:300;color:var(--text2);letter-spacing:4px;margin-bottom:28px;}
-/* bilingual description box */
-.bi-box{display:flex;gap:0;border:1px solid rgba(212,160,23,.12);border-radius:6px;overflow:hidden;margin-bottom:0;max-width:780px;}
-.bi-en{padding:14px 20px;flex:1;background:rgba(255,255,255,.02);border-right:1px solid rgba(212,160,23,.1);
-  font-size:12px;color:rgba(255,255,255,.5);line-height:1.85;}
-.bi-ko{padding:14px 20px;flex:1;font-size:12px;color:rgba(255,255,255,.28);line-height:1.85;}
-/* screen index chips */
-.screen-index{display:flex;gap:8px;flex-wrap:wrap;margin-top:28px;}
-.si-chip{background:rgba(255,255,255,.04);border:1px solid var(--border);
-  border-radius:5px;padding:8px 14px;display:flex;flex-direction:column;gap:3px;min-width:110px;}
-.si-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;}
-.si-en{font-size:10px;font-weight:700;color:rgba(255,255,255,.8);}
-.si-ko{font-size:9px;color:var(--text3);}
-/* meta strip */
-.meta-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:5px;overflow:hidden;margin-top:20px;max-width:640px;}
-.ms-item{flex:1;padding:10px 14px;border-right:1px solid var(--border);text-align:center;}
-.ms-item:last-child{border-right:none;}
-.ms-l{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;}
-.ms-v{font-size:12px;font-weight:700;margin-top:2px;}
-/* ── LAYOUT ── */
-.wrap{max-width:1100px;margin:0 auto;padding:40px 40px 80px;}
-/* ── SECTION HEADER ── */
-.sec-divider{border-top:1px solid var(--border);margin:40px 0 28px;padding-top:28px;}
-.screen-banner{
-  background:linear-gradient(135deg,rgba(255,255,255,.025),rgba(255,255,255,.01));
-  border:1px solid var(--border);border-radius:8px;
-  padding:22px 28px;margin-bottom:24px;
-}
-.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:2px;
-  color:var(--gold);opacity:.7;margin-bottom:6px;}
-.sb-code{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;line-height:1;}
-.sb-en{font-size:14px;font-weight:700;color:rgba(255,255,255,.85);margin-top:3px;}
-.sb-ko{font-size:12px;color:var(--text2);margin-top:2px;}
-/* ── BI DESCRIPTION ── */
-.desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:0;
-  border:1px solid var(--border);border-radius:6px;overflow:hidden;margin:16px 0;}
-.db-en{padding:14px 18px;background:rgba(255,255,255,.02);border-right:1px solid var(--border);
-  font-size:12px;color:rgba(255,255,255,.5);line-height:1.85;}
-.db-ko{padding:14px 18px;font-size:12px;color:var(--text3);line-height:1.85;}
-.db-label{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:2px;
-  margin-bottom:8px;display:block;}
-.db-label-en{color:rgba(212,160,23,.5);}
-.db-label-ko{color:rgba(255,255,255,.2);}
-/* ── SECTION LABEL ── */
-.str-row{display:flex;align-items:center;gap:12px;margin:20px 0 12px;}
-.str-line{flex:1;height:1px;background:var(--border);}
-.str-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(212,160,23,.5);letter-spacing:2px;white-space:nowrap;}
-/* ── TABLE ── */
-.tbl-wrap{overflow-x:auto;margin:12px 0;}
-table{width:100%;border-collapse:collapse;font-size:12px;}
-th{background:rgba(255,255,255,.05);color:rgba(255,255,255,.55);
-  font-size:10px;font-weight:700;letter-spacing:.5px;
-  padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.1);text-align:left;}
-th .th-ko{display:block;font-size:8px;color:var(--text3);font-weight:400;letter-spacing:0;margin-top:1px;}
-td{padding:8px 12px;border-bottom:1px solid var(--border);color:rgba(255,255,255,.65);vertical-align:top;}
-tr:hover td{background:rgba(255,255,255,.02);}
-/* status badges */
-.badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;}
-.badge-ok{background:rgba(13,184,122,.15);color:#5dffc4;border:1px solid rgba(13,184,122,.3);}
-.badge-warn{background:rgba(234,179,8,.15);color:#fde047;border:1px solid rgba(234,179,8,.3);}
-.badge-err{background:rgba(220,38,38,.15);color:#fca5a5;border:1px solid rgba(220,38,38,.3);}
-.badge-info{background:rgba(37,99,235,.15);color:#93c5fd;border:1px solid rgba(37,99,235,.3);}
-.badge-gray{background:rgba(255,255,255,.05);color:rgba(255,255,255,.4);border:1px solid var(--border);}
-/* ── MOCK WINDOW ── */
-.mock-win{
-  border:1px solid rgba(255,255,255,.12);border-radius:8px;overflow:hidden;
-  background:#1a2332;margin:12px 0;font-size:11px;
-}
-.mock-titlebar{
-  background:#0d1117;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.08);
-  display:flex;align-items:center;gap:8px;
-}
-.mock-dots{display:flex;gap:5px;}
-.mock-dots span{width:9px;height:9px;border-radius:50%;display:block;}
-.mock-title{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(255,255,255,.4);margin-left:6px;}
-.mock-body{padding:14px 16px;}
-.mock-topbar{
-  background:#131c27;border-bottom:1px solid rgba(255,255,255,.06);
-  padding:8px 16px;display:flex;align-items:center;justify-content:space-between;
-  font-size:11px;
-}
-.mock-topbar .tb-logo{font-family:'Bebas Neue',sans-serif;font-size:14px;color:#d4a017;letter-spacing:2px;}
-.mock-topbar .tb-user{font-size:10px;color:rgba(255,255,255,.3);}
-.mock-breadcrumb{font-size:10px;color:rgba(255,255,255,.3);padding:5px 16px;background:#0f1923;border-bottom:1px solid var(--border);}
-/* toolbar */
-.mock-toolbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:8px 16px;background:rgba(0,0,0,.2);border-bottom:1px solid var(--border);}
-.btn{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:'Noto Sans KR',sans-serif;}
-.btn-primary{background:#1a6fff;color:#fff;}
-.btn-secondary{background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);border:1px solid var(--border);}
-.btn-danger{background:rgba(220,38,38,.15);color:#fca5a5;border:1px solid rgba(220,38,38,.3);}
-.btn-success{background:rgba(13,184,122,.15);color:#5dffc4;border:1px solid rgba(13,184,122,.3);}
-.btn-warn{background:rgba(234,179,8,.12);color:#fde047;border:1px solid rgba(234,179,8,.25);}
-.sep{width:1px;height:20px;background:var(--border);}
-/* search bar */
-.search-bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:#131c27;border-bottom:1px solid var(--border);}
-.inp{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:4px;
-  padding:5px 10px;font-size:11px;color:rgba(255,255,255,.7);font-family:'Noto Sans KR',sans-serif;min-width:120px;}
-.inp-label{font-size:10px;color:var(--text2);white-space:nowrap;}
-select.inp{background:rgba(0,0,0,.3);}
-/* PDA mock */
-.pda-wrap{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0;}
-.pda{width:200px;min-width:200px;background:#111827;border:2px solid rgba(255,255,255,.12);
-  border-radius:16px;overflow:hidden;font-size:11px;}
-.pda-head{background:#0d1117;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.08);
-  display:flex;align-items:center;justify-content:space-between;}
-.pda-step{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.7);}
-.pda-body{padding:12px;}
-.pda-btn{display:block;width:100%;padding:10px;border-radius:6px;font-size:12px;font-weight:700;
-  text-align:center;cursor:pointer;margin:6px 0;border:none;font-family:'Noto Sans KR',sans-serif;}
-.pda-btn-primary{background:#1a6fff;color:#fff;}
-.pda-btn-scan{background:rgba(212,160,23,.15);border:1px solid rgba(212,160,23,.3);color:#fbbf24;}
-.pda-btn-ok{background:rgba(13,184,122,.15);border:1px solid rgba(13,184,122,.3);color:#5dffc4;}
-.pda-field{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);
-  border-radius:4px;padding:7px 10px;margin:5px 0;font-size:11px;color:rgba(255,255,255,.6);}
-.pda-field .pf-l{font-size:9px;color:var(--text3);margin-bottom:2px;}
-.pda-field .pf-v{font-size:12px;font-weight:700;color:rgba(255,255,255,.85);}
-/* KPI strip */
-.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin:12px 0;}
-.kpi-item{flex:1;padding:14px 16px;border-right:1px solid var(--border);text-align:center;}
-.kpi-item:last-child{border-right:none;}
-.kpi-v{font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1;}
-.kpi-en{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:3px;}
-.kpi-ko{font-size:8px;color:var(--text3);margin-top:1px;}
-/* feature grid */
-.feat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin:12px 0;}
-.feat-card{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:14px 16px;}
-.fc-icon{font-size:16px;margin-bottom:6px;}
-.fc-en{font-size:12px;font-weight:700;color:rgba(255,255,255,.8);margin-bottom:3px;}
-.fc-ko{font-size:11px;color:var(--text2);margin-bottom:6px;}
-.fc-desc-en{font-size:11px;color:rgba(255,255,255,.4);line-height:1.75;}
-.fc-desc-ko{font-size:10px;color:var(--text3);line-height:1.75;margin-top:4px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
+.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}
+.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}
+.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:40px;height:calc(100vh - 40px);overflow-y:auto;scrollbar-width:thin;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:#fbbf24;}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.4);font-size:11px;border-left:2px solid transparent;transition:all .12s;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:42px;flex-shrink:0;color:rgba(251,191,36,.7);}
+.sb-link .sl-en{font-size:10px;font-weight:600;}
+.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.22);margin-top:1px;}
+.sb-link.new{position:relative;}
+.sb-link.new::after{content:'NEW';position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:7px;font-weight:800;background:#ea580c;color:#fff;padding:1px 4px;border-radius:2px;letter-spacing:.5px;}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+
+.main{flex:1;min-width:0;}
+
+.mod-hdr{padding:36px 48px 24px;position:relative;overflow:hidden;background:linear-gradient(135deg,color-mix(in srgb,#d97706 32%,#000) 0%,color-mix(in srgb,#d97706 14%,#000) 100%);}
+.mod-hdr-inner{position:relative;z-index:1;}
+.mod-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;opacity:.85;color:#fbbf24;}
+.mod-title-en{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:.95;letter-spacing:2px;color:#fbbf24;margin-bottom:4px;}
+.mod-title-ko{font-size:14px;font-weight:300;color:rgba(255,255,255,.4);letter-spacing:4px;margin-bottom:16px;}
+.mod-desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:900px;margin-bottom:14px;}
+.mdb-en{font-size:11px;color:rgba(255,255,255,.6);line-height:1.8;border-left:2px solid rgba(255,255,255,.12);padding-left:12px;}
+.mdb-ko{font-size:11px;color:rgba(255,255,255,.3);line-height:1.8;border-left:2px solid rgba(255,255,255,.06);padding-left:12px;}
+.mod-meta-strip{display:flex;gap:0;border:1px solid rgba(255,255,255,.08);border-radius:5px;overflow:hidden;margin:14px 0 16px;max-width:900px;background:rgba(0,0,0,.18);}
+.mms-item{flex:1;padding:9px 14px;border-right:1px solid rgba(255,255,255,.05);}
+.mms-item:last-child{border-right:none;}
+.mms-l{font-size:8px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:1.2px;}
+.mms-v{font-size:11px;font-weight:700;color:#fff;margin-top:2px;}
+.screen-pills{display:flex;gap:5px;flex-wrap:wrap;}
+.sp{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:9px;color:rgba(255,255,255,.55);}
+.sp.new{background:rgba(234,88,12,.18);border-color:rgba(234,88,12,.4);color:#fdba74;}
+.sp-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:#fbbf24;}
+.sp.new .sp-id{color:#fdba74;}
+
+.content{padding:28px 48px 48px;}
+
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid var(--md);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--md);background:#fef3c7;padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+
+/* Phase 0 sequence */
+.phase0-card{background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border:1px solid #f59e0b;border-radius:8px;padding:18px 22px;margin-bottom:14px;}
+.phase0-title{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.phase0-title .p0-icon{font-size:22px;}
+.phase0-title .p0-t{font-size:14px;font-weight:800;color:#92400e;}
+.phase0-title .p0-k{font-size:11px;color:#a07810;margin-left:6px;}
+.phase0-flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;}
+.p0-step{background:#fff;border:1px solid #f59e0b;border-radius:5px;padding:9px 10px;text-align:center;position:relative;}
+.p0-step .p0-num{font-family:'Bebas Neue',sans-serif;font-size:18px;color:#92400e;line-height:1;}
+.p0-step .p0-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#a07810;letter-spacing:.5px;}
+.p0-step .p0-name{font-size:10px;color:var(--text);margin-top:2px;font-weight:600;}
+.p0-step .p0-ko{font-size:9px;color:var(--sub);}
+.p0-step.new{border-color:#ea580c;background:#fff7ed;}
+.p0-step.new .p0-id{color:#9a3412;}
+.p0-step.new::after{content:'NEW';position:absolute;top:-7px;right:-7px;font-size:7px;font-weight:800;background:#ea580c;color:#fff;padding:1px 4px;border-radius:2px;letter-spacing:.5px;}
+
+/* Master card */
+.master-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+.master-card{background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--md);border-radius:0 0 6px 6px;padding:14px 16px;display:flex;flex-direction:column;}
+.master-card.new{border-top-color:#ea580c;background:linear-gradient(180deg,#fff7ed 0%,#fff 30%);}
+.mc-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;}
+.mc-id{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--md);background:#fef3c7;padding:2px 8px;border-radius:3px;letter-spacing:.5px;}
+.master-card.new .mc-id{color:#9a3412;background:#fed7aa;}
+.mc-new-tag{font-size:8px;font-weight:800;background:#ea580c;color:#fff;padding:1px 6px;border-radius:2px;letter-spacing:.5px;}
+.mc-icon{font-size:20px;}
+.mc-title{font-size:13px;font-weight:800;color:var(--text);margin-bottom:2px;}
+.mc-ko{font-size:11px;color:var(--sub);margin-bottom:8px;}
+.mc-desc{font-size:11px;color:var(--text);line-height:1.65;flex:1;}
+.mc-desc-ko{font-size:10px;color:var(--sub);line-height:1.6;margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);}
+.mc-fields{display:flex;flex-wrap:wrap;gap:3px;margin-top:8px;}
+.mc-fld{font-family:'JetBrains Mono',monospace;font-size:8px;color:#92400e;background:#fef9c3;padding:1px 5px;border-radius:2px;letter-spacing:.3px;}
+.master-card.new .mc-fld{color:#9a3412;background:#fed7aa;}
+.mc-deps{font-size:9px;color:var(--sub);margin-top:6px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+.mc-deps strong{font-family:'JetBrains Mono',monospace;font-size:8px;color:#a07810;}
+.mc-deps .dep-mod{display:inline-block;padding:1px 5px;border-radius:2px;font-size:8px;font-weight:700;}
+
+/* BOP routing table */
+.bop-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.bop-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.bop-tbl td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.bop-tbl tr:last-child td{border-bottom:none;}
+.bop-tbl tr:nth-child(even) td{background:#fafbfd;}
+.r-step{display:inline-block;padding:3px 9px;border-radius:3px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.r-inj{background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;}
+.r-img{background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd;}
+.r-pnt{background:#ffedd5;color:#9a3412;border:1px solid #fdba74;}
+.r-qc{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+.r-fg{background:#dcfce7;color:#065f46;border:1px solid #6ee7b7;}
+.r-arr{color:var(--sub);font-size:14px;padding:0 4px;}
+
 /* BR table */
-.br-tbl table td:first-child{font-family:'JetBrains Mono',monospace;font-size:10px;color:#d4a017;font-weight:700;}
-/* flow diagram */
-.rflow{display:flex;align-items:center;gap:0;flex-wrap:wrap;margin:12px 0;}
-.rf-step{display:flex;flex-direction:column;align-items:center;padding:10px 16px;
-  border-radius:6px;font-size:11px;font-weight:700;min-width:90px;text-align:center;}
-.rf-step .rs-en{font-size:13px;font-weight:800;}
-.rf-step .rs-ko{font-size:9px;font-weight:400;opacity:.65;margin-top:2px;}
-.rf-arr{color:rgba(255,255,255,.2);font-size:16px;padding:0 4px;}
-/* footer */
-.page-footer{border-top:1px solid var(--border);padding-top:20px;margin-top:48px;
-  font-size:10px;color:var(--text3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.br-wrap{margin-bottom:16px;}
+.br-title{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:7px;display:flex;align-items:center;gap:10px;}
+.br-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.br-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-tbl th{background:var(--text);color:#fff;padding:7px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-tbl td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.6;}
+.br-tbl tr:last-child td{border-bottom:none;}
+.br-tbl tr:nth-child(even) td{background:#fafbfd;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}
+.br-act.alt{background:#fef9c3;color:#92400e;}
+.br-act.aut{background:#dbeafe;color:#1e40af;}
+.br-act.val{background:#ede9fe;color:#5b21b6;}
 
+/* Module color tint */
+.mod-amber{color:var(--md);}
+.mod-cyan{color:var(--wh);}
+.mod-blue{color:var(--inj);}
+.mod-violet{color:var(--img);}
+.mod-orange{color:var(--pnt);}
+.mod-red{color:var(--qc);}
+.mod-green{color:var(--fg);}
+.mod-mint{color:#0db87a;}
+.mod-indigo{color:var(--rpt);}
+.mod-slate{color:var(--sys);}
 
+.dep-mod.dep-pnt{background:#ffedd5;color:#9a3412;}
+.dep-mod.dep-pp{background:#d1fae5;color:#065f46;}
+.dep-mod.dep-inj{background:#dbeafe;color:#1e40af;}
+.dep-mod.dep-img{background:#ede9fe;color:#5b21b6;}
+.dep-mod.dep-qc{background:#fee2e2;color:#991b1b;}
+.dep-mod.dep-wh{background:#cffafe;color:#155e75;}
+.dep-mod.dep-mnt{background:#dbeafe;color:#0c4a6e;}
+.dep-mod.dep-fg{background:#dcfce7;color:#065f46;}
+
+/* Section divider */
+.sec-div{display:flex;align-items:center;gap:12px;margin:20px 0 14px;}
+.sd-line{flex:1;height:1px;background:var(--border);}
+.sd-lbl{font-size:10px;font-weight:700;color:var(--sub);white-space:nowrap;letter-spacing:1px;}
+
+.alert{padding:10px 14px;border-radius:5px;font-size:11px;line-height:1.7;margin-bottom:12px;border-left:3px solid;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}
+.alert-w{background:#fef9c3;border-color:#f59e0b;color:#92400e;}
+.alert-h{background:#fff7ed;border-color:#ea580c;color:#9a3412;}
+.alert-title{font-weight:800;display:block;margin-bottom:3px;}
+
+.page-footer{padding:14px 48px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--ink);margin-top:20px;}
+.pf-l{font-size:10px;color:rgba(255,255,255,.2);font-family:'JetBrains Mono',monospace;}
+.pf-r{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(212,160,23,.4);}
 </style>
 </head>
-<body><nav id="ames-nb" style="
-        position:sticky;top:0;z-index:9999;background:#0d1117;
-        border-bottom:1px solid rgba(212,160,23,.2);
-        display:flex;align-items:center;gap:0;overflow-x:auto;scrollbar-width:none;
-        font-family:'Noto Sans KR',sans-serif;
-    ">
-  <a href="INDEX.html" style="display:flex;align-items:center;gap:6px;padding:8px 16px;
-     background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);
-     text-decoration:none;flex-shrink:0;">
-    <span style="font-family:'Bebas Neue',sans-serif;font-size:15px;color:#d4a017;letter-spacing:2px;">A-MES</span>
-    <span style="font-size:8px;color:rgba(255,255,255,.25);">▲ Index</span>
-  </a>
-  <a href="VOL03_WH_Warehouse.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#0891b2;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">WH</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#059669;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">PP</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Prod Plan</span></a><a href="VOL05_INJ_Injection.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#2563eb;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">INJ</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#7c3aed;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">IMG</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#ea580c;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">PNT</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Painting</span></a><a href="VOL08_QC_Quality.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#dc2626;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">QC</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#0db87a;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">FG</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Fin.Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#0891b2;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">MNT</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#6366f1;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">RPT</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Reports</span></a><a href="VOL12_SYS_System.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#475569;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">SYS</span><span style="font-size:9px;color:rgba(255,255,255,.45);">System</span></a><a href="VOL13_MD_Master_Data.html" class="nb-item" style="background:rgba(255,255,255,.1);border-bottom:2px solid #d97706;"><span style="color:#d97706;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">MD</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Master Data</span></a>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol active"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head">
+    <div class="sb-vol">VOL.13 · MD MODULE</div>
+    <div class="sb-mod-en">MASTER DATA</div>
+    <div class="sb-mod-ko">기준정보 관리</div>
+  </div>
+  <div class="sb-section">Foundation · 기반</div>
+  <a class="sb-link" href="#md01"><span class="sl-id">MD-01</span><div><div class="sl-en">Item Master</div><div class="sl-ko">품목 마스터</div></div></a>
+  <a class="sb-link" href="#md02"><span class="sl-id">MD-02</span><div><div class="sl-en">BOM</div><div class="sl-ko">자재명세서</div></div></a>
+  <a class="sb-link" href="#md03"><span class="sl-id">MD-03</span><div><div class="sl-en">BOM Version</div><div class="sl-ko">BOM 버전</div></div></a>
+  <a class="sb-link" href="#md13"><span class="sl-id">MD-13</span><div><div class="sl-en">UOM</div><div class="sl-ko">단위</div></div></a>
+  <a class="sb-link" href="#md14"><span class="sl-id">MD-14</span><div><div class="sl-en">Calendar</div><div class="sl-ko">생산 캘린더</div></div></a>
+  <div class="sb-section">Routing &amp; Production · 라우팅·생산</div>
+  <a class="sb-link" href="#md04"><span class="sl-id">MD-04</span><div><div class="sl-en">BOP Routing</div><div class="sl-ko">공정 경로</div></div></a>
+  <a class="sb-link" href="#md05"><span class="sl-id">MD-05</span><div><div class="sl-en">Work Center</div><div class="sl-ko">작업장</div></div></a>
+  <a class="sb-link new" href="#md20"><span class="sl-id">MD-20</span><div><div class="sl-en">Line Master</div><div class="sl-ko">라인 마스터</div></div></a>
+  <div class="sb-section">Resources · 자원</div>
+  <a class="sb-link" href="#md07"><span class="sl-id">MD-07</span><div><div class="sl-en">Vendor Master</div><div class="sl-ko">거래선</div></div></a>
+  <a class="sb-link" href="#md08"><span class="sl-id">MD-08</span><div><div class="sl-en">Equipment</div><div class="sl-ko">설비</div></div></a>
+  <a class="sb-link" href="#md09"><span class="sl-id">MD-09</span><div><div class="sl-en">Mold Master</div><div class="sl-ko">금형</div></div></a>
+  <a class="sb-link new" href="#md18"><span class="sl-id">MD-18</span><div><div class="sl-en">Oven Master</div><div class="sl-ko">오븐</div></div></a>
+  <a class="sb-link new" href="#md15"><span class="sl-id">MD-15</span><div><div class="sl-en">Jig Master</div><div class="sl-ko">지그</div></div></a>
+  <a class="sb-link new" href="#md16"><span class="sl-id">MD-16</span><div><div class="sl-en">RFID Tag</div><div class="sl-ko">RFID 태그</div></div></a>
+  <a class="sb-link new" href="#md19"><span class="sl-id">MD-19</span><div><div class="sl-en">RFID Reader</div><div class="sl-ko">RFID 리더</div></div></a>
+  <div class="sb-section">Materials · 자재</div>
+  <a class="sb-link" href="#md10"><span class="sl-id">MD-10</span><div><div class="sl-en">Paint / Fabric</div><div class="sl-ko">도료·원단</div></div></a>
+  <a class="sb-link new" href="#md17"><span class="sl-id">MD-17</span><div><div class="sl-en">RAL Paint Color</div><div class="sl-ko">RAL 컬러</div></div></a>
+  <div class="sb-section">Storage &amp; Quality · 저장·품질</div>
+  <a class="sb-link" href="#md11"><span class="sl-id">MD-11</span><div><div class="sl-en">Location</div><div class="sl-ko">로케이션</div></div></a>
+  <a class="sb-link" href="#md06"><span class="sl-id">MD-06</span><div><div class="sl-en">Inspection Std</div><div class="sl-ko">검사 기준</div></div></a>
+  <a class="sb-link" href="#md12"><span class="sl-id">MD-12</span><div><div class="sl-en">Defect Type</div><div class="sl-ko">불량 유형</div></div></a>
+  <div class="sb-sep"></div>
+  <a class="sb-link" href="#phase0"><span class="sl-id">P0</span><div><div class="sl-en">Phase-0 Sequence</div><div class="sl-ko">입력 순서</div></div></a>
+  <a class="sb-link" href="#bop"><span class="sl-id">BOP</span><div><div class="sl-en">BOP Routings</div><div class="sl-ko">제품 라우팅</div></div></a>
+  <a class="sb-link" href="#br-md"><span class="sl-id">BR</span><div><div class="sl-en">Business Rules</div><div class="sl-ko">업무 규칙</div></div></a>
 </nav>
-<style>
-.nb-item{display:flex;flex-direction:column;align-items:center;padding:6px 11px;
-  text-decoration:none;flex-shrink:0;transition:background .1s;white-space:nowrap;gap:1px;}
-.nb-item:hover{background:rgba(255,255,255,.06)!important;}
-</style><div class="cover" style="background:linear-gradient(135deg,#0d0d14 0%,#141424 100%);">
-  <div class="cover-eyebrow">A-MES · VOL.13 · Master Data Management</div>
-  <div class="cover-title" style="color:#d97706;">MD<br><span style="color:#fff;">MASTER DATA MANAGEMENT</span></div>
-  <div class="cover-sub">기준정보 관리</div>
-  <div class="bi-box"><div class="bi-en">Foundation of the entire A-MES system. 14 master data entities must be entered in Phase 0 before any operational screen functions. Key masters: Item, BOM, BOP Routing, Vendor (SAV/GEO), Equipment, Location (WH-08), Mold, Inspection Standard, Defect Types.</div><div class="bi-ko">A-MES 전체 시스템의 기반. 14개 기준정보를 Phase 0에서 아래 순서로 입력 완료해야 운영 화면이 동작. 핵심 마스터: 품목, BOM, BOP 라우팅, 거래선(SAV/GEO), 설비, 로케이션(WH-08), 금형, 검사기준, 불량유형.</div></div>
-  <div class="screen-index"><div class="si-chip" style="border-color:rgba(217,119,6,.15);"><div class="si-id" style="color:#d97706;">MD-01</div><div class="si-en">Item Master</div><div class="si-ko">품목 마스터</div></div><div class="si-chip" style="border-color:rgba(217,119,6,.15);"><div class="si-id" style="color:#d97706;">MD-02</div><div class="si-en">BOM</div><div class="si-ko">자재명세서</div></div><div class="si-chip" style="border-color:rgba(217,119,6,.15);"><div class="si-id" style="color:#d97706;">MD-03</div><div class="si-en">BOM Version</div><div class="si-ko">BOM 버전</div></div><div class="si-chip" style="border-color:rgba(217,119,6,.15);"><div class="si-id" style="color:#d97706;">MD-04</div><div class="si-en">BOP Routing</div><div class="si-ko">공정 경로</div></div><div class="si-chip" style="border-color:rgba(217,119,6,.15);"><div class="si-id" style="color:#d97706;">MD-05</div><div class="si-en">Work Center</div><div class="si-ko">작업장</div></div><div class="si-chip" style="border-color:rgba(217,119,6,.15);"><div class="si-id" style="color:#d97706;">MD-06</div><div class="si-en">Inspection Standard</div><div class="si-ko">검사 기준</div></div><div class="si-chip" style="border-color:rgba(217,119,6,.15);"><div class="si-id" style="color:#d97706;">MD-07</div><div class="si-en">Vendor Master</div><div class="si-ko">거래선 마스터</div></div><div class="si-chip" style="border-color:rgba(217,119,6,.15);"><div class="si-id" style="color:#d97706;">MD-08</div><div class="si-en">Equipment Master</div><div class="si-ko">설비 마스터</div></div><div class="si-chip" style="border-color:rgba(217,119,6,.15);"><div class="si-id" style="color:#d97706;">MD-09</div><div class="si-en">Mold Master</div><div class="si-ko">금형 마스터</div></div><div class="si-chip" style="border-color:rgba(217,119,6,.15);"><div class="si-id" style="color:#d97706;">MD-10</div><div class="si-en">Paint / Fabric</div><div class="si-ko">도료·원단</div></div><div class="si-chip" style="border-color:rgba(217,119,6,.15);"><div class="si-id" style="color:#d97706;">MD-11</div><div class="si-en">Location Master</div><div class="si-ko">로케이션 마스터</div></div><div class="si-chip" style="border-color:rgba(217,119,6,.15);"><div class="si-id" style="color:#d97706;">MD-12</div><div class="si-en">Defect Type</div><div class="si-ko">불량 유형</div></div><div class="si-chip" style="border-color:rgba(217,119,6,.15);"><div class="si-id" style="color:#d97706;">MD-13</div><div class="si-en">UOM</div><div class="si-ko">단위</div></div><div class="si-chip" style="border-color:rgba(217,119,6,.15);"><div class="si-id" style="color:#d97706;">MD-14</div><div class="si-en">Calendar</div><div class="si-ko">생산 달력</div></div></div></div><div class="wrap"><div class="sec-divider" id="phase0">
-  <div class="screen-banner" style="border-color:rgba(217,119,6,.3);">
-    <div class="sb-vol" style="color:#d97706;">⚡ Phase 0 — Mandatory Input Order Before Go-Live</div>
-    <div class="sb-code" style="color:#d97706;">MASTER DATA SETUP SEQUENCE</div>
-    <div class="sb-en">All master data must be entered in this sequence before any operational screen can function</div>
-    <div class="sb-ko">가동 전 아래 순서로 반드시 모든 기준정보 입력 완료 필요</div>
+<div class="main">
+  <div class="mod-hdr">
+    <div class="mod-hdr-inner">
+      <div class="mod-eyebrow">VOL.13 · MD · Master Data Management · 기준정보</div>
+      <div class="mod-title-en">MASTER DATA</div>
+      <div class="mod-title-ko">기준정보 관리 — 20 Entities · Phase-0 Foundation</div>
+      <div class="mod-desc-bi">
+        <div class="mdb-en">Foundation of the entire A-MES system. 20 master data entities (14 original + 6 new for RFID painting line) must be entered in Phase-0 before any operational screen functions. New masters: MD-15 Jig, MD-16 RFID Tag, MD-17 RAL Paint Color, MD-18 Oven, MD-19 RFID Reader, MD-20 Line — all required by VOL.7 PNT module.</div>
+        <div class="mdb-ko">A-MES 전체 시스템의 기반. 20개 기준정보(기존 14 + RFID 도장 라인용 신규 6)를 Phase-0에서 입력 완료해야 운영 화면이 동작. 신규 마스터: MD-15 지그·MD-16 RFID 태그·MD-17 RAL 컬러·MD-18 오븐·MD-19 RFID 리더·MD-20 라인 — 모두 VOL.7 PNT 모듈 의존.</div>
+      </div>
+      <div class="mod-meta-strip">
+        <div class="mms-item"><div class="mms-l">Total Entities</div><div class="mms-v" style="color:#fbbf24;">20</div></div>
+        <div class="mms-item"><div class="mms-l">New (PNT)</div><div class="mms-v" style="color:#fdba74;">+6</div></div>
+        <div class="mms-item"><div class="mms-l">Phase-0</div><div class="mms-v">Mandatory</div></div>
+        <div class="mms-item"><div class="mms-l">BOP Routings</div><div class="mms-v">2 (A · B)</div></div>
+        <div class="mms-item"><div class="mms-l">Customers</div><div class="mms-v">SAV · GEO</div></div>
+      </div>
+      <div class="screen-pills">
+        <a class="sp" href="#md01" style="text-decoration:none;color:inherit;"><span class="sp-id">MD-01</span> Item</a>
+        <a class="sp" href="#md02" style="text-decoration:none;color:inherit;"><span class="sp-id">MD-02</span> BOM</a>
+        <a class="sp" href="#md04" style="text-decoration:none;color:inherit;"><span class="sp-id">MD-04</span> BOP</a>
+        <a class="sp" href="#md05" style="text-decoration:none;color:inherit;"><span class="sp-id">MD-05</span> WorkCtr</a>
+        <a class="sp" href="#md06" style="text-decoration:none;color:inherit;"><span class="sp-id">MD-06</span> InspStd</a>
+        <a class="sp" href="#md07" style="text-decoration:none;color:inherit;"><span class="sp-id">MD-07</span> Vendor</a>
+        <a class="sp" href="#md08" style="text-decoration:none;color:inherit;"><span class="sp-id">MD-08</span> Equip</a>
+        <a class="sp" href="#md09" style="text-decoration:none;color:inherit;"><span class="sp-id">MD-09</span> Mold</a>
+        <a class="sp" href="#md10" style="text-decoration:none;color:inherit;"><span class="sp-id">MD-10</span> Paint/Fabric</a>
+        <a class="sp" href="#md11" style="text-decoration:none;color:inherit;"><span class="sp-id">MD-11</span> Location</a>
+        <a class="sp" href="#md12" style="text-decoration:none;color:inherit;"><span class="sp-id">MD-12</span> Defect</a>
+        <a class="sp" href="#md13" style="text-decoration:none;color:inherit;"><span class="sp-id">MD-13</span> UOM</a>
+        <a class="sp" href="#md14" style="text-decoration:none;color:inherit;"><span class="sp-id">MD-14</span> Calendar</a>
+        <a class="sp new" href="#md15" style="text-decoration:none;color:inherit;"><span class="sp-id">MD-15</span> Jig · NEW</a>
+        <a class="sp new" href="#md16" style="text-decoration:none;color:inherit;"><span class="sp-id">MD-16</span> RFID Tag · NEW</a>
+        <a class="sp new" href="#md17" style="text-decoration:none;color:inherit;"><span class="sp-id">MD-17</span> RAL Color · NEW</a>
+        <a class="sp new" href="#md18" style="text-decoration:none;color:inherit;"><span class="sp-id">MD-18</span> Oven · NEW</a>
+        <a class="sp new" href="#md19" style="text-decoration:none;color:inherit;"><span class="sp-id">MD-19</span> Reader · NEW</a>
+        <a class="sp new" href="#md20" style="text-decoration:none;color:inherit;"><span class="sp-id">MD-20</span> Line · NEW</a>
+      </div>
+    </div>
   </div>
-  <div class="rflow" style="flex-wrap:wrap;gap:8px;justify-content:center;">
-    <div class="rf-step" style="background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.3);"><div class="rs-en" style="color:#fbbf24;font-size:11px;">①<br>MD-07</div><div class="rs-ko" style="font-size:9px;">Vendor<br>거래선</div></div>
-    <div class="rf-arr">→</div>
-    <div class="rf-step" style="background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.3);"><div class="rs-en" style="color:#fbbf24;font-size:11px;">②<br>MD-01</div><div class="rs-ko" style="font-size:9px;">Item Master<br>품목</div></div>
-    <div class="rf-arr">→</div>
-    <div class="rf-step" style="background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.3);"><div class="rs-en" style="color:#fbbf24;font-size:11px;">③<br>MD-02</div><div class="rs-ko" style="font-size:9px;">BOM<br>자재명세서</div></div>
-    <div class="rf-arr">→</div>
-    <div class="rf-step" style="background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.3);"><div class="rs-en" style="color:#fbbf24;font-size:11px;">④<br>MD-04</div><div class="rs-ko" style="font-size:9px;">BOP Routing<br>공정 경로</div></div>
-    <div class="rf-arr">→</div>
-    <div class="rf-step" style="background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.3);"><div class="rs-en" style="color:#fbbf24;font-size:11px;">⑤<br>MD-08</div><div class="rs-ko" style="font-size:9px;">Equipment<br>설비</div></div>
-    <div class="rf-arr">→</div>
-    <div class="rf-step" style="background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.3);"><div class="rs-en" style="color:#fbbf24;font-size:11px;">⑥<br>MD-11</div><div class="rs-ko" style="font-size:9px;">Location<br>로케이션</div></div>
-    <div class="rf-arr">→</div>
-    <div class="rf-step" style="background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.3);"><div class="rs-en" style="color:#fbbf24;font-size:11px;">⑦<br>MD-06</div><div class="rs-ko" style="font-size:9px;">Insp. Std<br>검사 기준</div></div>
+
+  <div class="content">
+
+    <!-- PHASE 0 -->
+    <div class="sec" id="phase0">
+      <div class="sec-hdr"><span class="sec-num">⚡</span><span class="sec-title">Phase-0 Setup Sequence</span><span class="sec-ko">Phase-0 입력 순서 (Mandatory Before Go-Live)</span></div>
+      <div class="phase0-card">
+        <div class="phase0-title"><span class="p0-icon">⚡</span><span class="p0-t">All 20 master data entities must be entered in this sequence before any operational screen can function.</span><span class="p0-k">가동 전 아래 순서로 반드시 입력 완료</span></div>
+        <div class="phase0-flow">
+          <div class="p0-step"><div class="p0-num">①</div><div class="p0-id">MD-07</div><div class="p0-name">Vendor</div><div class="p0-ko">거래선</div></div>
+          <div class="p0-step"><div class="p0-num">②</div><div class="p0-id">MD-13</div><div class="p0-name">UOM</div><div class="p0-ko">단위</div></div>
+          <div class="p0-step"><div class="p0-num">③</div><div class="p0-id">MD-01</div><div class="p0-name">Item</div><div class="p0-ko">품목</div></div>
+          <div class="p0-step"><div class="p0-num">④</div><div class="p0-id">MD-02</div><div class="p0-name">BOM</div><div class="p0-ko">BOM</div></div>
+          <div class="p0-step"><div class="p0-num">⑤</div><div class="p0-id">MD-04</div><div class="p0-name">BOP</div><div class="p0-ko">공정 경로</div></div>
+          <div class="p0-step new"><div class="p0-num">⑥</div><div class="p0-id">MD-20</div><div class="p0-name">Line</div><div class="p0-ko">라인</div></div>
+          <div class="p0-step"><div class="p0-num">⑦</div><div class="p0-id">MD-05</div><div class="p0-name">WorkCtr</div><div class="p0-ko">작업장</div></div>
+          <div class="p0-step"><div class="p0-num">⑧</div><div class="p0-id">MD-08</div><div class="p0-name">Equipment</div><div class="p0-ko">설비</div></div>
+          <div class="p0-step"><div class="p0-num">⑨</div><div class="p0-id">MD-09</div><div class="p0-name">Mold</div><div class="p0-ko">금형</div></div>
+          <div class="p0-step new"><div class="p0-num">⑩</div><div class="p0-id">MD-18</div><div class="p0-name">Oven</div><div class="p0-ko">오븐</div></div>
+          <div class="p0-step"><div class="p0-num">⑪</div><div class="p0-id">MD-11</div><div class="p0-name">Location</div><div class="p0-ko">로케이션</div></div>
+          <div class="p0-step new"><div class="p0-num">⑫</div><div class="p0-id">MD-15</div><div class="p0-name">Jig</div><div class="p0-ko">지그</div></div>
+          <div class="p0-step new"><div class="p0-num">⑬</div><div class="p0-id">MD-16</div><div class="p0-name">RFID Tag</div><div class="p0-ko">태그</div></div>
+          <div class="p0-step new"><div class="p0-num">⑭</div><div class="p0-id">MD-19</div><div class="p0-name">Reader</div><div class="p0-ko">리더</div></div>
+          <div class="p0-step"><div class="p0-num">⑮</div><div class="p0-id">MD-10</div><div class="p0-name">Paint/Fabric</div><div class="p0-ko">도료/원단</div></div>
+          <div class="p0-step new"><div class="p0-num">⑯</div><div class="p0-id">MD-17</div><div class="p0-name">RAL Color</div><div class="p0-ko">RAL 컬러</div></div>
+          <div class="p0-step"><div class="p0-num">⑰</div><div class="p0-id">MD-06</div><div class="p0-name">Insp Std</div><div class="p0-ko">검사 기준</div></div>
+          <div class="p0-step"><div class="p0-num">⑱</div><div class="p0-id">MD-12</div><div class="p0-name">Defect</div><div class="p0-ko">불량 유형</div></div>
+          <div class="p0-step"><div class="p0-num">⑲</div><div class="p0-id">MD-03</div><div class="p0-name">BOM Ver</div><div class="p0-ko">BOM 버전</div></div>
+          <div class="p0-step"><div class="p0-num">⑳</div><div class="p0-id">MD-14</div><div class="p0-name">Calendar</div><div class="p0-ko">캘린더</div></div>
+        </div>
+      </div>
+      <div class="alert alert-h">
+        <div><span class="alert-title">⚠ Phase-0 Rule · 핵심 규칙</span>
+        Any missing master in Phase-0 = downstream module BLOCKED. 누락된 마스터가 있으면 의존 모듈 사용 불가 (BR-MD-04). PNT 모듈 가동 전에는 신규 6개(MD-15~MD-20) 모두 입력 필수.</div>
+      </div>
+    </div>
+
+    <!-- BOP -->
+    <div class="sec" id="bop">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">BOP Routings</span><span class="sec-ko">제품 라우팅</span></div>
+      <table class="bop-tbl">
+        <thead><tr><th style="width:18%;">Routing</th><th style="width:24%;">Product Group · 제품군</th><th>Process Flow · 공정 흐름</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Routing A</strong><br><span style="font-size:10px;color:var(--sub);">감싸기</span></td><td>Door Trim LH/RH/RR, Console Upper<br><span style="font-size:10px;color:var(--sub);">도어트림·콘솔어퍼</span></td><td><span class="r-step r-inj">INJ</span> <span class="r-arr">→</span> <span class="r-step r-img">IMG</span> <span class="r-arr">→</span> <span class="r-step r-qc">QC</span> <span class="r-arr">→</span> <span class="r-step r-fg">FG</span></td></tr>
+          <tr><td><strong>Routing B</strong><br><span style="font-size:10px;color:var(--sub);">분체도장 + RFID</span></td><td>Interior Painted Parts<br><span style="font-size:10px;color:var(--sub);">내장 도색 사출품</span></td><td><span class="r-step r-inj">INJ</span> <span class="r-arr">→</span> <span class="r-step r-pnt">PNT</span> <span class="r-arr">→</span> <span class="r-step r-qc">QC</span> <span class="r-arr">→</span> <span class="r-step r-fg">FG</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- FOUNDATION MASTERS -->
+    <div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">FOUNDATION · 기반 마스터</div><div class="sd-line"></div></div>
+    <div class="master-grid">
+      <div class="master-card" id="md01">
+        <div class="mc-hdr"><span class="mc-id">MD-01</span><span class="mc-icon">📋</span></div>
+        <div class="mc-title">Item Master</div>
+        <div class="mc-ko">품목 마스터</div>
+        <div class="mc-desc">All items: raw material, fabric, powder, paint, semi-finished, finished. Code, name, type, default UOM, min/max stock, customer item-no mapping (SAV/GEO).</div>
+        <div class="mc-desc-ko">전 품목: 원자재·원단·분체·도료·반제품·완제품. 코드·명·유형·기본단위·최소/최대재고·고객사 품번 매핑.</div>
+        <div class="mc-fields"><span class="mc-fld">ItemNo PK</span><span class="mc-fld">ItemName</span><span class="mc-fld">ItemType</span><span class="mc-fld">UOM FK</span><span class="mc-fld">MinStock</span><span class="mc-fld">CustItemNo</span></div>
+        <div class="mc-deps"><strong>USED BY:</strong> <span class="dep-mod dep-pp">PP</span><span class="dep-mod dep-wh">WH</span><span class="dep-mod dep-inj">INJ</span><span class="dep-mod dep-img">IMG</span><span class="dep-mod dep-pnt">PNT</span><span class="dep-mod dep-qc">QC</span><span class="dep-mod dep-fg">FG</span></div>
+      </div>
+      <div class="master-card" id="md02">
+        <div class="mc-hdr"><span class="mc-id">MD-02</span><span class="mc-icon">🌲</span></div>
+        <div class="mc-title">BOM — Bill of Materials</div>
+        <div class="mc-ko">자재명세서</div>
+        <div class="mc-desc">Multi-level BOM per finished good. Component item, qty per parent, scrap factor. Drives MRP shortage calculation in PP-05.</div>
+        <div class="mc-desc-ko">완제품별 다단계 BOM. 부모-자식 수량·스크랩률. PP-05 MRP 자재 부족 계산 기반.</div>
+        <div class="mc-fields"><span class="mc-fld">BOMID PK</span><span class="mc-fld">ParentItem FK</span><span class="mc-fld">CompItem FK</span><span class="mc-fld">Qty</span><span class="mc-fld">ScrapPct</span></div>
+        <div class="mc-deps"><strong>USED BY:</strong> <span class="dep-mod dep-pp">PP</span></div>
+      </div>
+      <div class="master-card" id="md03">
+        <div class="mc-hdr"><span class="mc-id">MD-03</span><span class="mc-icon">📚</span></div>
+        <div class="mc-title">BOM Version</div>
+        <div class="mc-ko">BOM 버전 관리</div>
+        <div class="mc-desc">Version control for BOM changes. Effective dates, change reason, approver. WO uses BOM as-of WO creation date.</div>
+        <div class="mc-desc-ko">BOM 변경 버전 관리. 발효일·변경사유·승인자. WO는 생성일 기준 BOM 적용.</div>
+        <div class="mc-fields"><span class="mc-fld">VerID PK</span><span class="mc-fld">BOMID FK</span><span class="mc-fld">EffFrom</span><span class="mc-fld">EffTo</span><span class="mc-fld">Reason</span></div>
+        <div class="mc-deps"><strong>USED BY:</strong> <span class="dep-mod dep-pp">PP</span></div>
+      </div>
+      <div class="master-card" id="md13">
+        <div class="mc-hdr"><span class="mc-id">MD-13</span><span class="mc-icon">📏</span></div>
+        <div class="mc-title">UOM — Unit of Measure</div>
+        <div class="mc-ko">단위 마스터</div>
+        <div class="mc-desc">Base + alternate units with conversion factors. EA, KG, L, M, ROLL, etc. Required by Item, BOM, Inventory.</div>
+        <div class="mc-desc-ko">기본·대체 단위 + 환산계수. EA·KG·L·M·ROLL 등. Item·BOM·재고 필수.</div>
+        <div class="mc-fields"><span class="mc-fld">UOMCode PK</span><span class="mc-fld">UOMName</span><span class="mc-fld">BaseFlag</span><span class="mc-fld">ConvFactor</span></div>
+        <div class="mc-deps"><strong>USED BY:</strong> ALL</div>
+      </div>
+      <div class="master-card" id="md14">
+        <div class="mc-hdr"><span class="mc-id">MD-14</span><span class="mc-icon">📅</span></div>
+        <div class="mc-title">Production Calendar</div>
+        <div class="mc-ko">생산 캘린더</div>
+        <div class="mc-desc">Working days, shifts, holidays per plant. Drives PP capacity calculation and OEE denominator.</div>
+        <div class="mc-desc-ko">공장별 근무일·교대·휴일. PP 생산능력·OEE 분모 계산 기반.</div>
+        <div class="mc-fields"><span class="mc-fld">PlantID</span><span class="mc-fld">Date</span><span class="mc-fld">ShiftCode</span><span class="mc-fld">WorkHours</span></div>
+        <div class="mc-deps"><strong>USED BY:</strong> <span class="dep-mod dep-pp">PP</span><span class="dep-mod dep-mnt">MNT</span></div>
+      </div>
+    </div>
+
+    <!-- ROUTING & PRODUCTION -->
+    <div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">ROUTING &amp; PRODUCTION · 라우팅·생산</div><div class="sd-line"></div></div>
+    <div class="master-grid">
+      <div class="master-card" id="md04">
+        <div class="mc-hdr"><span class="mc-id">MD-04</span><span class="mc-icon">🔀</span></div>
+        <div class="mc-title">BOP — Bill of Process</div>
+        <div class="mc-ko">공정 경로 (Routing A·B)</div>
+        <div class="mc-desc">Process routing per item. Routing A (Wrapping): INJ→IMG→QC→FG. Routing B (Powder Paint): INJ→PNT→QC→FG.</div>
+        <div class="mc-desc-ko">품목별 공정 경로. Routing A(감싸기) / Routing B(분체도장).</div>
+        <div class="mc-fields"><span class="mc-fld">BOPID PK</span><span class="mc-fld">ItemNo FK</span><span class="mc-fld">RoutingType</span><span class="mc-fld">StepSeq</span><span class="mc-fld">WorkCenter FK</span></div>
+        <div class="mc-deps"><strong>USED BY:</strong> <span class="dep-mod dep-pp">PP</span><span class="dep-mod dep-inj">INJ</span><span class="dep-mod dep-img">IMG</span><span class="dep-mod dep-pnt">PNT</span></div>
+      </div>
+      <div class="master-card" id="md05">
+        <div class="mc-hdr"><span class="mc-id">MD-05</span><span class="mc-icon">🏭</span></div>
+        <div class="mc-title">Work Center</div>
+        <div class="mc-ko">작업장</div>
+        <div class="mc-desc">Logical grouping of equipment performing the same operation. Linked to BOP steps; drives capacity and scheduling.</div>
+        <div class="mc-desc-ko">동일 공정 수행 설비의 논리적 그룹. BOP 단계 연계, 캐파/스케줄링 기반.</div>
+        <div class="mc-fields"><span class="mc-fld">WCID PK</span><span class="mc-fld">WCName</span><span class="mc-fld">ProcessType</span><span class="mc-fld">DailyCapacity</span></div>
+        <div class="mc-deps"><strong>USED BY:</strong> <span class="dep-mod dep-pp">PP</span><span class="dep-mod dep-mnt">MNT</span></div>
+      </div>
+      <div class="master-card new" id="md20">
+        <div class="mc-hdr"><span class="mc-id">MD-20</span><span class="mc-new-tag">NEW</span></div>
+        <div class="mc-title">Line Master <span style="font-size:10px;color:var(--sub);">(PNT)</span></div>
+        <div class="mc-ko">라인 마스터</div>
+        <div class="mc-desc">Physical production lines (PNT-L1, PNT-L2, INJ-L1, etc.). Line code, type, daily capacity, default WorkCenter, shift assignment.</div>
+        <div class="mc-desc-ko">물리적 생산 라인(PNT-L1, PNT-L2, INJ-L1 등). 라인 코드·유형·일일캐파·기본 작업장·교대 배정.</div>
+        <div class="mc-fields"><span class="mc-fld">LineID PK</span><span class="mc-fld">LineType</span><span class="mc-fld">WCID FK</span><span class="mc-fld">DailyCap</span><span class="mc-fld">ShiftPattern</span></div>
+        <div class="mc-deps"><strong>USED BY:</strong> <span class="dep-mod dep-pnt">PNT-01/02</span><span class="dep-mod dep-pp">PP</span></div>
+      </div>
+    </div>
+
+    <!-- RESOURCES -->
+    <div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">RESOURCES · 자원 (Vendor · Equipment · Mold · Oven · Jig · RFID)</div><div class="sd-line"></div></div>
+    <div class="master-grid">
+      <div class="master-card" id="md07">
+        <div class="mc-hdr"><span class="mc-id">MD-07</span><span class="mc-icon">🏢</span></div>
+        <div class="mc-title">Vendor Master</div>
+        <div class="mc-ko">거래선 마스터</div>
+        <div class="mc-desc">Vendor code, name, type (material supplier / customer SAV-GEO), contact, EDI/SCM link. SAV &amp; GEO are ship-to customers.</div>
+        <div class="mc-desc-ko">거래선 코드·명·유형(공급사/고객 SAV-GEO)·연락처·EDI/SCM 연결.</div>
+        <div class="mc-fields"><span class="mc-fld">VendorID PK</span><span class="mc-fld">VendorType</span><span class="mc-fld">SCM_URL</span><span class="mc-fld">EDIFlag</span></div>
+        <div class="mc-deps"><strong>USED BY:</strong> <span class="dep-mod dep-pp">PP</span><span class="dep-mod dep-wh">WH</span><span class="dep-mod dep-fg">FG</span></div>
+      </div>
+      <div class="master-card" id="md08">
+        <div class="mc-hdr"><span class="mc-id">MD-08</span><span class="mc-icon">⚙️</span></div>
+        <div class="mc-title">Equipment Master</div>
+        <div class="mc-ko">설비 마스터</div>
+        <div class="mc-desc">All equipment: injection machines, wrapping presses, painting robots, spray booths. Capacity, mold compatibility, current status, OEE base.</div>
+        <div class="mc-desc-ko">사출기·감싸기 프레스·도장 로봇·도장부스 등 전 설비. 생산능력·금형 호환·상태·OEE 기준.</div>
+        <div class="mc-fields"><span class="mc-fld">EquipID PK</span><span class="mc-fld">EquipType</span><span class="mc-fld">LineID FK</span><span class="mc-fld">Capacity</span><span class="mc-fld">Status</span></div>
+        <div class="mc-deps"><strong>USED BY:</strong> <span class="dep-mod dep-mnt">MNT</span><span class="dep-mod dep-inj">INJ</span><span class="dep-mod dep-img">IMG</span><span class="dep-mod dep-pnt">PNT</span></div>
+      </div>
+      <div class="master-card" id="md09">
+        <div class="mc-hdr"><span class="mc-id">MD-09</span><span class="mc-icon">🔩</span></div>
+        <div class="mc-title">Mold Master</div>
+        <div class="mc-ko">금형 마스터</div>
+        <div class="mc-desc">Mold ID, compatible items, shot count (rated / current), cavity count. Triggers warning at 90% / forced block at 100% shot count.</div>
+        <div class="mc-desc-ko">금형ID·호환 품목·쇼트수(정격/누적)·캐비티 수. 90% 경고, 100% 강제차단.</div>
+        <div class="mc-fields"><span class="mc-fld">MoldID PK</span><span class="mc-fld">RatedShots</span><span class="mc-fld">CurrentShots</span><span class="mc-fld">Cavity</span></div>
+        <div class="mc-deps"><strong>USED BY:</strong> <span class="dep-mod dep-inj">INJ</span><span class="dep-mod dep-mnt">MNT</span></div>
+      </div>
+      <div class="master-card new" id="md18">
+        <div class="mc-hdr"><span class="mc-id">MD-18</span><span class="mc-new-tag">NEW</span></div>
+        <div class="mc-title">Oven Master <span style="font-size:10px;color:var(--sub);">(PNT)</span></div>
+        <div class="mc-ko">오븐 마스터</div>
+        <div class="mc-desc">Powder coating ovens. Oven ID, zone count, cure spec (target temp ±tolerance, dwell time), entry/exit conveyor speed. Drives PNT-05 monitoring.</div>
+        <div class="mc-desc-ko">분체도장 오븐. 오븐ID·zone수·경화 스펙(목표온도±공차·체류시간)·컨베이어 속도. PNT-05 모니터링 기반.</div>
+        <div class="mc-fields"><span class="mc-fld">OvenID PK</span><span class="mc-fld">ZoneCount</span><span class="mc-fld">TargetTemp</span><span class="mc-fld">Tolerance</span><span class="mc-fld">DwellSec</span></div>
+        <div class="mc-deps"><strong>USED BY:</strong> <span class="dep-mod dep-pnt">PNT-05</span><span class="dep-mod dep-mnt">MNT</span></div>
+      </div>
+      <div class="master-card new" id="md15">
+        <div class="mc-hdr"><span class="mc-id">MD-15</span><span class="mc-new-tag">NEW</span></div>
+        <div class="mc-title">Jig Master <span style="font-size:10px;color:var(--sub);">(PNT)</span></div>
+        <div class="mc-ko">지그 마스터</div>
+        <div class="mc-desc">Powder painting jigs. Jig ID, hanger count (capacity per cycle), compatible items, cumulative thermal cycles, read failure rate, last service date. Drives PNT-02 binding logic.</div>
+        <div class="mc-desc-ko">분체도장용 지그. 지그ID·행거수(사이클당 캐파)·호환 품목·누적 열사이클·인식 실패율·최근 점검일. PNT-02 바인딩 기반.</div>
+        <div class="mc-fields"><span class="mc-fld">JigID PK</span><span class="mc-fld">HangerCount</span><span class="mc-fld">CompatItems(JSON)</span><span class="mc-fld">CycleCount</span><span class="mc-fld">RatedCycle</span><span class="mc-fld">ReadFailRate</span><span class="mc-fld">HealthStatus</span><span class="mc-fld">LastUsedTS</span></div>
+        <div class="mc-deps"><strong>USED BY:</strong> <span class="dep-mod dep-pnt">PNT-01/02/06/JIG</span></div>
+      </div>
+      <div class="master-card new" id="md16">
+        <div class="mc-hdr"><span class="mc-id">MD-16</span><span class="mc-new-tag">NEW</span></div>
+        <div class="mc-title">RFID Tag Master <span style="font-size:10px;color:var(--sub);">(PNT)</span></div>
+        <div class="mc-ko">RFID 태그 마스터</div>
+        <div class="mc-desc">UHF Gen2 tags bonded to jigs. EPC, role (MAIN/SPARE), heat rating, mount location, install date, cycle count, replacement schedule. Required for 230°C oven survival.</div>
+        <div class="mc-desc-ko">지그 영구 부착 UHF Gen2 태그. EPC·역할(메인/예비)·내열등급·장착위치·설치일·누적사이클·교체일정. 230°C 오븐 통과 사양.</div>
+        <div class="mc-fields"><span class="mc-fld">TagID PK</span><span class="mc-fld">EPC</span><span class="mc-fld">JigID FK</span><span class="mc-fld">Role(MAIN/SPARE)</span><span class="mc-fld">HeatRating</span><span class="mc-fld">CycleCount</span><span class="mc-fld">MountPos</span></div>
+        <div class="mc-deps"><strong>USED BY:</strong> <span class="dep-mod dep-pnt">PNT-03/05/06</span></div>
+      </div>
+      <div class="master-card new" id="md19">
+        <div class="mc-hdr"><span class="mc-id">MD-19</span><span class="mc-new-tag">NEW</span></div>
+        <div class="mc-title">RFID Reader Master <span style="font-size:10px;color:var(--sub);">(PNT)</span></div>
+        <div class="mc-ko">RFID 리더 마스터</div>
+        <div class="mc-desc">Fixed readers at 3 gates (R1 Load · R2 Oven · R3 Unload). Reader ID, location, antenna count, RF power, PE trigger config, read window duration.</div>
+        <div class="mc-desc-ko">3개 게이트 고정형 리더(R1 로딩 · R2 오븐 · R3 언로딩). 리더ID·위치·안테나수·RF 출력·PE 트리거 설정·read window.</div>
+        <div class="mc-fields"><span class="mc-fld">ReaderID PK</span><span class="mc-fld">Location(R1/R2/R3)</span><span class="mc-fld">LineID FK</span><span class="mc-fld">AntennaCount</span><span class="mc-fld">PowerDbm</span><span class="mc-fld">WindowMs</span></div>
+        <div class="mc-deps"><strong>USED BY:</strong> <span class="dep-mod dep-pnt">PNT-03/05/06</span></div>
+      </div>
+    </div>
+
+    <!-- MATERIALS -->
+    <div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">MATERIALS &amp; COLOR · 자재·컬러</div><div class="sd-line"></div></div>
+    <div class="master-grid">
+      <div class="master-card" id="md10">
+        <div class="mc-hdr"><span class="mc-id">MD-10</span><span class="mc-icon">🎨</span></div>
+        <div class="mc-title">Paint / Fabric Material</div>
+        <div class="mc-ko">도료·원단 마스터</div>
+        <div class="mc-desc">Liquid paint, fabric rolls, adhesive materials. LOT, supplier, expiry, storage condition. Auto-deduction via BOM on production.</div>
+        <div class="mc-desc-ko">액상 도료·원단롤·접착제. LOT·공급사·유효기간·보관 조건. BOM 기준 생산 시 자동 차감.</div>
+        <div class="mc-fields"><span class="mc-fld">MatID PK</span><span class="mc-fld">MatType</span><span class="mc-fld">LotNo</span><span class="mc-fld">ExpDate</span><span class="mc-fld">StorageReq</span></div>
+        <div class="mc-deps"><strong>USED BY:</strong> <span class="dep-mod dep-pnt">PNT</span><span class="dep-mod dep-img">IMG</span></div>
+      </div>
+      <div class="master-card new" id="md17">
+        <div class="mc-hdr"><span class="mc-id">MD-17</span><span class="mc-new-tag">NEW</span></div>
+        <div class="mc-title">RAL Paint Color <span style="font-size:10px;color:var(--sub);">(PNT)</span></div>
+        <div class="mc-ko">RAL 분체 컬러 마스터</div>
+        <div class="mc-desc">RAL color codes for powder coating. RAL code, color name, current powder LOT, cure spec (temp/time), customer mapping, recipe parameters (electrostatic V, particle µm).</div>
+        <div class="mc-desc-ko">분체도장 RAL 컬러 코드. RAL코드·컬러명·현재 분체 LOT·경화 스펙(온도/시간)·고객 매핑·레시피(정전압·입자크기).</div>
+        <div class="mc-fields"><span class="mc-fld">RALCode PK</span><span class="mc-fld">ColorName</span><span class="mc-fld">CurrentPowderLot</span><span class="mc-fld">CureTemp</span><span class="mc-fld">CureDuration</span><span class="mc-fld">ElectroV</span></div>
+        <div class="mc-deps"><strong>USED BY:</strong> <span class="dep-mod dep-pnt">PNT-01/07</span></div>
+      </div>
+    </div>
+
+    <!-- STORAGE & QUALITY -->
+    <div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">STORAGE &amp; QUALITY · 저장·품질</div><div class="sd-line"></div></div>
+    <div class="master-grid">
+      <div class="master-card" id="md11">
+        <div class="mc-hdr"><span class="mc-id">MD-11</span><span class="mc-icon">📦</span></div>
+        <div class="mc-title">Location Master</div>
+        <div class="mc-ko">로케이션 마스터</div>
+        <div class="mc-desc">WH zone/row/column/level hierarchy. QR label generation. Capacity per location. Mirrored from WH-08 screen.</div>
+        <div class="mc-desc-ko">WH 구역/행/열/층 계층. QR 라벨 생성·용량. WH-08 화면과 미러.</div>
+        <div class="mc-fields"><span class="mc-fld">LocID PK</span><span class="mc-fld">Zone</span><span class="mc-fld">Row</span><span class="mc-fld">Capacity</span><span class="mc-fld">QRCode</span></div>
+        <div class="mc-deps"><strong>USED BY:</strong> <span class="dep-mod dep-wh">WH</span><span class="dep-mod dep-fg">FG</span></div>
+      </div>
+      <div class="master-card" id="md06">
+        <div class="mc-hdr"><span class="mc-id">MD-06</span><span class="mc-icon">🔬</span></div>
+        <div class="mc-title">Inspection Standard</div>
+        <div class="mc-ko">검사 기준</div>
+        <div class="mc-desc">Inspection items, measurement method, tolerance, AQL level per item/process. Source for QC-01/02/03 checklists.</div>
+        <div class="mc-desc-ko">검사 항목·측정방법·허용공차·AQL 레벨. QC 체크리스트 원본.</div>
+        <div class="mc-fields"><span class="mc-fld">InspID PK</span><span class="mc-fld">ItemNo FK</span><span class="mc-fld">Method</span><span class="mc-fld">Tolerance</span><span class="mc-fld">AQL</span></div>
+        <div class="mc-deps"><strong>USED BY:</strong> <span class="dep-mod dep-qc">QC</span></div>
+      </div>
+      <div class="master-card" id="md12">
+        <div class="mc-hdr"><span class="mc-id">MD-12</span><span class="mc-icon">📐</span></div>
+        <div class="mc-title">Defect Type Master</div>
+        <div class="mc-ko">불량 유형 마스터</div>
+        <div class="mc-desc">All defect codes per module: INJ-D01~06, IMG-D01~06, PNT-D01~06, QC. Likely cause, default disposition, CAPA trigger rules, photo reference.</div>
+        <div class="mc-desc-ko">모듈별 전체 불량 코드 + 가능 원인·기본 처리방안·CAPA 트리거·사진 레퍼런스.</div>
+        <div class="mc-fields"><span class="mc-fld">DefCode PK</span><span class="mc-fld">Module</span><span class="mc-fld">NameEN/KO</span><span class="mc-fld">LikelyCause</span><span class="mc-fld">DefaultDispo</span><span class="mc-fld">PhotoExample</span></div>
+        <div class="mc-deps"><strong>USED BY:</strong> <span class="dep-mod dep-inj">INJ</span><span class="dep-mod dep-img">IMG</span><span class="dep-mod dep-pnt">PNT-08</span><span class="dep-mod dep-qc">QC</span></div>
+      </div>
+    </div>
+
+    <!-- BR -->
+    <div class="sec" id="br-md" style="margin-top:30px;">
+      <div class="sec-hdr"><span class="sec-num">BR</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-tbl">
+        <thead><tr><th style="width:120px;">Rule ID</th><th>Rule (EN)</th><th style="width:30%;">규칙 (KO)</th><th style="width:120px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-MD-01</td><td>BOP routing must be defined in MD-04 before PP-03 WO creation. Planner cannot manually set a non-BOP routing.</td><td>MD-04 BOP 없으면 PP-03 WO 생성 불가. BOP 외 라우팅 수동 지정 불가.</td><td><span class="br-act val">Validation</span></td></tr>
+          <tr><td class="br-id">BR-MD-02</td><td>BOM must exist for item before MRP (PP-05) can calculate material requirements.</td><td>PP-05 MRP 실행 전 BOM 필수.</td><td><span class="br-act val">Validation</span></td></tr>
+          <tr><td class="br-id">BR-MD-03</td><td>Inspection standards (MD-06) must exist before QC screens accept inspection entry.</td><td>MD-06 검사 기준 없으면 QC 검사 입력 불가.</td><td><span class="br-act val">Validation</span></td></tr>
+          <tr><td class="br-id">BR-MD-04</td><td>All 20 master data entities must be complete before go-live (Phase-0). Any missing master = downstream module BLOCKED.</td><td>20개 기준정보 전부 완성 필수(Phase-0). 누락 시 해당 모듈 차단.</td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-MD-05</td><td><strong>(NEW)</strong> MD-15 Jig must have at least 1 MAIN tag (MD-16) before binding in PNT-02.</td><td>MD-15 지그는 1개 이상 MAIN 태그(MD-16) 등록 후 PNT-02 바인딩 가능.</td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-MD-06</td><td><strong>(NEW)</strong> MD-15 Jig.CompatibleItems must reference valid items in MD-01.</td><td>MD-15 지그 호환 품목은 MD-01 유효 품목만 참조.</td><td><span class="br-act val">FK</span></td></tr>
+          <tr><td class="br-id">BR-MD-07</td><td><strong>(NEW)</strong> MD-17 RAL color must have PowderLot mapped to MD-10 Paint material with valid expiry.</td><td>MD-17 RAL 컬러는 MD-10 도료의 유효 LOT과 매핑 필수.</td><td><span class="br-act val">FK</span></td></tr>
+          <tr><td class="br-id">BR-MD-08</td><td><strong>(NEW)</strong> MD-18 Oven CureSpec must satisfy: 150°C ≤ TargetTemp ≤ 200°C, 5 ≤ DwellMin ≤ 30.</td><td>MD-18 오븐 경화 스펙 범위 강제(150–200°C, 5–30분).</td><td><span class="br-act val">Range</span></td></tr>
+          <tr><td class="br-id">BR-MD-09</td><td><strong>(NEW)</strong> MD-16 Tag HeatRating must be ≥ Oven.TargetTemp + 30°C (margin).</td><td>MD-16 태그 내열등급은 오븐 목표온도 + 30°C 마진 이상.</td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-MD-10</td><td><strong>(NEW)</strong> MD-19 RFID Reader: each Line must have exactly 3 readers (R1/R2/R3) registered before PNT line go-live.</td><td>MD-19 RFID 리더는 라인당 정확히 3개(R1/R2/R3) 등록 후 PNT 가동.</td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-MD-11</td><td><strong>(NEW)</strong> MD-12 Defect codes used in PNT-08 must include all of PNT-D01~D06 (6 mandatory).</td><td>PNT-08에서 사용하는 MD-12 불량코드는 PNT-D01~D06 6종 필수 포함.</td><td><span class="br-act val">Required</span></td></tr>
+          <tr><td class="br-id">BR-MD-12</td><td>Master data changes require approval workflow (creator ≠ approver) and audit trail retention ≥ 7 years.</td><td>마스터 변경은 승인 워크플로(생성자 ≠ 승인자) + 7년 이상 감사로그.</td><td><span class="br-act aut">Audit</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <div class="page-footer">
+    <div class="pf-l">A-MES · VOL.13 · MD Master Data · UI Design Spec v2.0 · 20 Entities (14 + 6 NEW)</div>
+    <div class="pf-r">Phase-0 Foundation · Bilingual EN/KO</div>
   </div>
 </div>
-<div class="sec-divider" id="bop">
-  <div class="screen-banner" style="border-color:rgba(217,119,6,.2);">
-    <div class="sb-vol" style="color:#d97706;">MD-04 · BOP Routing</div>
-    <div class="sb-code" style="color:#d97706;">BILL OF PROCESS — 3 ROUTING TYPES</div>
-  </div>
-  <div class="tbl-wrap"><table>
-    <thead><tr><th>Product Group<span class="th-ko">제품군</span></th><th>Items<span class="th-ko">품목</span></th><th>Routing (EN)<span class="th-ko">공정 경로</span></th></tr></thead>
-    <tbody>
-      <tr>
-        <td>Door Trim &amp; Console<br><span style="font-size:10px;color:rgba(255,255,255,.3);">도어트림·콘솔</span></td>
-        <td>Door Trim LH/RH/RR, Console Upper</td>
-        <td><span style="background:rgba(37,99,235,.12);color:#60a5fa;border:1px solid rgba(37,99,235,.3);padding:2px 8px;border-radius:3px;font-size:11px;font-weight:700;">INJ</span> → <span style="background:rgba(124,58,237,.12);color:#a78bfa;border:1px solid rgba(124,58,237,.3);padding:2px 8px;border-radius:3px;font-size:11px;font-weight:700;">IMG</span> → <span style="background:rgba(220,38,38,.12);color:#f87171;border:1px solid rgba(220,38,38,.3);padding:2px 8px;border-radius:3px;font-size:11px;font-weight:700;">QC</span> → <span style="background:rgba(13,184,122,.12);color:#5dffc4;border:1px solid rgba(13,184,122,.3);padding:2px 8px;border-radius:3px;font-size:11px;font-weight:700;">FG</span></td>
-      </tr>
-      <tr>
-        <td>Interior Painted Parts<br><span style="font-size:10px;color:rgba(255,255,255,.3);">내장 도색 사출품 (TBD)</span></td>
-        <td>내장 도색 사출품 (미정)</td>
-        <td><span style="background:rgba(37,99,235,.12);color:#60a5fa;border:1px solid rgba(37,99,235,.3);padding:2px 8px;border-radius:3px;font-size:11px;font-weight:700;">INJ</span> → <span style="background:rgba(234,88,12,.12);color:#fb923c;border:1px solid rgba(234,88,12,.3);padding:2px 8px;border-radius:3px;font-size:11px;font-weight:700;">PNT</span> → <span style="background:rgba(220,38,38,.12);color:#f87171;border:1px solid rgba(220,38,38,.3);padding:2px 8px;border-radius:3px;font-size:11px;font-weight:700;">QC</span> → <span style="background:rgba(13,184,122,.12);color:#5dffc4;border:1px solid rgba(13,184,122,.3);padding:2px 8px;border-radius:3px;font-size:11px;font-weight:700;">FG</span></td>
-      </tr>
-    </tbody>
-  </table></div>
-</div><div class="sec-divider"><div class="str-row"><div class="str-line"></div><div class="str-label">SCREEN FEATURES · 주요 기능</div><div class="str-line"></div></div><div class="feat-grid"><div class="feat-card"><div class="fc-icon">📋</div><div class="fc-en">MD-01 Item Master</div><div class="fc-ko">품목 마스터</div><div class="fc-desc-en">All items: raw material, fabric, paint, semi-finished, finished goods. Item code, name, type, unit, min/max stock.</div><div class="fc-desc-ko">전 품목: 원자재·원단·도료·반제품·완제품. 품목코드·명·유형·단위·최소/최대재고.</div></div><div class="feat-card"><div class="fc-icon">🌲</div><div class="fc-en">MD-02 BOM — Bill of Materials</div><div class="fc-ko">자재명세서</div><div class="fc-desc-en">Multi-level BOM per finished good. Component item, qty, unit. Links to MRP. Version-controlled (MD-03).</div><div class="fc-desc-ko">완제품별 다단계 BOM. 구성 품목·수량·단위. MRP 연계. 버전 관리(MD-03).</div></div><div class="feat-card"><div class="fc-icon">🔀</div><div class="fc-en">MD-04 BOP — Bill of Process</div><div class="fc-ko">공정 경로</div><div class="fc-desc-en">Routing per product group. Door Trim/Console: INJ→IMG→QC→FG. Interior Painted Parts (TBD): INJ→PNT→QC→FG.</div><div class="fc-desc-ko">제품군별 공정 경로. 도어트림/콘솔: INJ→IMG→QC→FG. 내장 도색 사출품(TBD): INJ→PNT→QC→FG.</div></div><div class="feat-card"><div class="fc-icon">🏢</div><div class="fc-en">MD-07 Vendor Master</div><div class="fc-ko">거래선 마스터</div><div class="fc-desc-en">Vendor code, name, type (material supplier / customer SAV-GEO), contact, EDI/SCM link. SAV & GEO as ship-to customers.</div><div class="fc-desc-ko">거래선 코드·명·유형(공급사/고객 SAV-GEO)·연락처·EDI/SCM 연결. SAV·GEO 납품 거래선.</div></div><div class="feat-card"><div class="fc-icon">⚙️</div><div class="fc-en">MD-08 Equipment Master</div><div class="fc-ko">설비 마스터</div><div class="fc-desc-en">Equipment ID, name, line, type (injection/painting/wrapping), capacity, mold compatibility, current status.</div><div class="fc-desc-ko">설비ID·명·라인·유형(사출/도장/감싸기)·생산능력·금형 호환성·현재 상태.</div></div><div class="feat-card"><div class="fc-icon">🔬</div><div class="fc-en">MD-06 Inspection Standard</div><div class="fc-ko">검사 기준</div><div class="fc-desc-en">Inspection items, measurement method, tolerance, AQL level per item/process. Source for QC-01/02/03 checklists.</div><div class="fc-desc-ko">검사 항목·측정 방법·허용 공차·AQL 레벨. QC-01/02/03 체크리스트 원본.</div></div><div class="feat-card"><div class="fc-icon">📐</div><div class="fc-en">MD-12 Defect Types</div><div class="fc-ko">불량 유형 마스터</div><div class="fc-desc-en">All defect codes per module (INJ-D01~06, IMG-D01~06, PNT-D01~06, QC). Linked to CAPA trigger rules.</div><div class="fc-desc-ko">모듈별 전체 불량 코드(INJ-D01~06, IMG-D01~06, PNT-D01~06, QC). CAPA 트리거 연계.</div></div><div class="feat-card"><div class="fc-icon">📦</div><div class="fc-en">MD-11 Location Master</div><div class="fc-ko">로케이션 마스터</div><div class="fc-desc-en">WH zone/row/column/level hierarchy. QR label generation. Capacity per location. (= WH-08 screen)</div><div class="fc-desc-ko">WH 구역/행/열/층 계층 구조. QR 라벨 생성. 로케이션별 용량. (= WH-08 화면)</div></div></div></div><div class="sec-divider"><div class="str-row"><div class="str-line"></div><div class="str-label">⚙ BUSINESS RULES · 업무 규칙</div><div class="str-line"></div></div><div class="br-tbl tbl-wrap"><table><thead><tr><th>Rule ID</th><th>Rule (EN)</th><th>KO</th><th>Action</th></tr></thead><tbody><tr><td>BR-MD-01</td><td>BOP routing must be defined in MD-04 before PP-03 WO creation. Planner cannot manually set a non-BOP routing.</td><td>MD-04 BOP 없으면 PP-03 WO 생성 불가. BOP 외 라우팅 수동 지정 불가.</td><td>Validation</td></tr><tr><td>BR-MD-02</td><td>BOM must exist for item before MRP (PP-05) can calculate material requirements.</td><td>PP-05 MRP 실행 전 BOM 필수.</td><td>Validation</td></tr><tr><td>BR-MD-03</td><td>Inspection standards (MD-06) must exist before QC screens accept inspection entry.</td><td>MD-06 검사 기준 없으면 QC 검사 입력 불가.</td><td>Validation</td></tr><tr><td>BR-MD-04</td><td>All 14 master data entities must be complete before go-live (Phase 0). Any missing master = module blocked.</td><td>14개 기준정보 전부 완성 필수(Phase 0). 누락 시 해당 모듈 차단.</td><td>Phase 0 block</td></tr></tbody></table></div></div>
-<div class="page-footer wrap" style="padding-top:20px;padding-bottom:40px;">
-  <span>A-MES · VOL.13 MD · Master Data Management · UI Design Specification v1.0 · Bilingual EN/KO</span>
-  <span style="font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.3);">Automotive Parts MES · SAV &amp; GEO Supply · Confidential</span>
 </div>
-</body></html>
+</body>
+</html>
