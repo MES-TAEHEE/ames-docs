@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.7 · PNT-07 · LOT Label Print &amp; Apply · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--pnt:#ea580c;--mod:#ea580c;--mod-lt:#fff7ed;--mod-dk:#9a3412;--mod-tint:#fdba74;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(253,186,116,.7);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#1a0800 0%,#2d1000 50%,#1a0800 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(234,88,12,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(234,88,12,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(234,88,12,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(234,88,12,.12),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.web{border-color:rgba(26,111,255,.3);color:#7ab4ff;}
+.meta-chip.pda{border-color:rgba(13,184,122,.3);color:#5dffc4;}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-w{background:#fef9c3;border-color:#f59e0b;color:#92400e;}.alert-h{background:#fff7ed;border-color:var(--mod);color:var(--mod-dk);}
+.alert-d{background:#fef2f2;border-color:#dc2626;color:#991b1b;}
+.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#f0fdf4;border-color:#22c55e;}
+.lnk-node.cur{background:linear-gradient(135deg,#2d1000,#1a0800);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(234,88,12,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#15803d;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;}.dm-pk{color:#f59e0b;font-size:8px;font-weight:700;}.dm-fk{color:#8b5cf6;font-size:8px;font-weight:700;}
+.code-card{background:#0d1117;color:#e2e8f0;border:1px solid var(--ink3);border-radius:6px;padding:14px 18px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.7;margin-bottom:12px;overflow-x:auto;}
+.code-card .calc-lbl{color:var(--mod-tint);font-weight:700;display:block;margin-bottom:6px;font-size:10px;letter-spacing:1px;text-transform:uppercase;}
+.code-card .k{color:#fb923c;}.code-card .s{color:#5dffc4;}.code-card .n{color:#fbbf24;}.code-card .c{color:rgba(255,255,255,.35);font-style:italic;}
+.label-mock{background:#fff;border:2px dashed var(--mod);border-radius:6px;padding:18px 22px;margin:0 auto 14px;max-width:340px;font-family:'JetBrains Mono',monospace;color:#000;}
+.label-line{display:flex;justify-content:space-between;padding:3px 0;font-size:11px;border-bottom:1px dotted #999;}
+.label-line:last-child{border-bottom:none;}
+.label-l{font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.5px;}
+.label-v{font-weight:700;color:#000;}
+.label-bar{margin:8px 0;font-family:'Libre Barcode 128',monospace;font-size:34px;text-align:center;letter-spacing:0;color:#000;}
+.label-title{font-size:14px;font-weight:900;text-align:center;margin-bottom:8px;letter-spacing:1px;border-bottom:2px solid #000;padding-bottom:4px;}
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol active"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL07_PNT_Painting.html">VOL.7 · PNT</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">PNT-07 · LOT Label Print &amp; Apply</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.7 · PNT · L3</div><div class="sb-mod-en">PAINTING</div><div class="sb-mod-ko">분체도장 · RFID</div></div>
+  <div class="sb-section">Screens · 화면</div>
+  <a class="sb-link" href="VOL07_PNT01_Daily_Plan.html"><span class="sl-id">PNT-01</span><div><div class="sl-en">Daily Plan</div><div class="sl-ko">일일 생산계획</div></div></a>
+  <a class="sb-link" href="VOL07_PNT02_Lot_PreIssue.html"><span class="sl-id">PNT-02</span><div><div class="sl-en">Lot Pre-Issue</div><div class="sl-ko">가상LOT 발급</div></div></a>
+  <a class="sb-link" href="VOL07_PNT03_Loading.html"><span class="sl-id">PNT-03</span><div><div class="sl-en">Loading (R1)</div><div class="sl-ko">로딩</div></div></a>
+  <a class="sb-link" href="VOL07_PNT04_Line_Board.html"><span class="sl-id">PNT-04</span><div><div class="sl-en">Line Board</div><div class="sl-ko">라인 흐름판</div></div></a>
+  <a class="sb-link" href="VOL07_PNT05_Oven_Monitor.html"><span class="sl-id">PNT-05</span><div><div class="sl-en">Oven Monitor (R2)</div><div class="sl-ko">오븐 모니터</div></div></a>
+  <a class="sb-link" href="VOL07_PNT06_Unloading.html"><span class="sl-id">PNT-06</span><div><div class="sl-en">Unloading (R3)</div><div class="sl-ko">언로딩</div></div></a>
+  <a class="sb-link on" href="VOL07_PNT07_Label_Apply.html"><span class="sl-id">PNT-07</span><div><div class="sl-en">Label &amp; Apply</div><div class="sl-ko">LOT 라벨 부착</div></div></a>
+  <a class="sb-link" href="VOL07_PNT08_Defect.html"><span class="sl-id">PNT-08</span><div><div class="sl-en">Defect</div><div class="sl-ko">불량 등록</div></div></a>
+  <a class="sb-link" href="VOL07_PNT09_Shift_Report.html"><span class="sl-id">PNT-09</span><div><div class="sl-en">Shift Report</div><div class="sl-ko">교대 일지</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-2"><span class="num">02</span>Pre-Conditions</a>
+    <a href="#sec-3"><span class="num">03</span>Label Format</a>
+    <a href="#sec-4"><span class="num">04</span>Printer Integration</a>
+    <a href="#sec-5"><span class="num">05</span>PDA Confirm</a>
+    <a href="#sec-6"><span class="num">06</span>Workflow</a>
+    <a href="#sec-7"><span class="num">07</span>Business Rules</a>
+    <a href="#sec-8"><span class="num">08</span>Data Model</a>
+    <a href="#sec-9"><span class="num">09</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.7 · PNT · Powder Painting · L3 · Post-Cure Labeling</div>
+      <div class="scr-id-block"><div class="scr-id">PNT-07</div><div class="scr-title-en">LOT Label Print &amp; Apply</div></div>
+      <div class="scr-title-ko">LOT 라벨 인쇄·후부착 — QC 합격 후 실제 LOT 라벨 부착 확정</div>
+      <div class="scr-meta">
+        <div class="meta-chip web"><span class="mc-lbl">UI</span><span class="mc-val">🖥 Web PC</span></div>
+        <div class="meta-chip pda"><span class="mc-lbl">UI</span><span class="mc-val">📱 PDA</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">1st Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">QC + PNT Operator</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Inputs</span><span class="mc-val">QC PASS event, LotPreIssue.CONFIRMED</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Outputs</span><span class="mc-val">LotLabel, LABELED→SHIPPABLE</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          Triggered exclusively by a QC PASS event for a CONFIRMED LOT. Operator clicks "Print Label" and the Zebra industrial printer issues N adhesive labels (one per part) printed with: real LOT number (= virtual LOT, unchanged), item, RAL color, production date, jig ID, and a Code-128 barcode encoding the LotID. Operator applies labels to parts and confirms by PDA-scanning the first and last label. LOT transitions CONFIRMED → LABELED → SHIPPABLE; FG module is notified for handover.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          CONFIRMED LOT에 대한 QC PASS 이벤트로만 활성화. 작업자가 [라벨 인쇄] 클릭 시 Zebra 산업용 프린터가 부품 수만큼 점착 라벨 발행 (실제 LOT번호=가상LOT 그대로·품명·RAL·생산일·지그ID·LotID Code-128 바코드). 작업자가 부품에 부착 후 PDA로 첫·마지막 라벨 스캔하여 전수 부착 확정. LOT 상태 CONFIRMED → LABELED → SHIPPABLE, FG 모듈에 이관 통지.
+        </div>
+      </div>
+      <div class="alert alert-h">
+        <div><span class="alert-title">🔒 Critical Block · 핵심 차단</span>
+        QC PASS 미수령 LOT은 라벨 인쇄 자체가 차단된다 (BR-PNT-08). 라벨 미부착 LOT은 FG 출고 불가 (BR-PNT-09). 가상 LOT 번호와 실제 라벨 LOT 번호는 동일하므로 변환 단계가 없으며, 이력 추적이 단순화된다.</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Pre-Conditions</span><span class="sec-ko">사전 조건</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:24%;">Condition · 조건</th><th style="width:14%;">Source</th><th>Required Value</th></tr></thead>
+        <tbody>
+          <tr><td>LOT Status</td><td>LotPreIssue</td><td>CONFIRMED (R3 이후) — 그 외 모두 차단.</td></tr>
+          <tr><td>QC Inspection Result</td><td>QC module</td><td>PASS (또는 PASS_WITH_FLAG: EnhancedInspection 시).</td></tr>
+          <tr><td>Defect Disposition</td><td>PNT-08</td><td>해당 LOT 부적합 부품 격리·차감 완료(또는 전수 합격).</td></tr>
+          <tr><td>Printer Health</td><td>Zebra Link-OS</td><td>Online, Ribbon &gt; 10%, Label stock &gt; 20%.</td></tr>
+          <tr><td>Operator Auth</td><td>SYS RBAC</td><td>Role = PNT_OPERATOR or PNT_SUPERVISOR.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Label Format</span><span class="sec-ko">라벨 포맷</span></div>
+      <div class="label-mock">
+        <div class="label-title">SEOYON E-HWA · PNT</div>
+        <div class="label-line"><span class="label-l">LOT</span><span class="label-v">PNT-20260518-L1-0007</span></div>
+        <div class="label-line"><span class="label-l">Item</span><span class="label-v">DR-TRM-LH-A1</span></div>
+        <div class="label-line"><span class="label-l">Color</span><span class="label-v">RAL 9005 · Jet Black</span></div>
+        <div class="label-line"><span class="label-l">Prod Date</span><span class="label-v">2026-05-18</span></div>
+        <div class="label-line"><span class="label-l">Jig / Seq</span><span class="label-v">JIG-007 / 01 of 32</span></div>
+        <div class="label-bar" style="font-family:monospace;font-size:11px;letter-spacing:-1px;border-top:1px solid #000;padding-top:6px;margin-top:8px;">█▌█ ▌█▌▌█ █▌█▌▌ █▌▌█ █▌▌█▌ ▌█▌█ █▌▌█▌█ ▌█▌█▌█ ▌█▌</div>
+        <div style="text-align:center;font-size:9px;margin-top:2px;color:#000;">(Code 128 · LotID + SeqNo)</div>
+      </div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:20%;">Field</th><th>Format · 양식</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">Header</td><td>"SEOYON E-HWA · PNT" 고정 + 공장 코드 (SAV / GEO).</td></tr>
+          <tr><td class="fld-name">LotID</td><td>PNT-YYYYMMDD-LineID-SEQ (PNT-02 사전 발급값 그대로).</td></tr>
+          <tr><td class="fld-name">ItemNo</td><td>고객사 품번 (예: DR-TRM-LH-A1).</td></tr>
+          <tr><td class="fld-name">RALColor</td><td>RAL 코드 + 컬러명 (예: RAL 9005 · Jet Black).</td></tr>
+          <tr><td class="fld-name">ProdDate</td><td>생산일 YYYY-MM-DD.</td></tr>
+          <tr><td class="fld-name">Jig / Seq</td><td>지그ID / 라벨순번 (01 of N).</td></tr>
+          <tr><td class="fld-name">Barcode</td><td>Code-128, payload = LotID + "-" + SeqNo (예: PNT-20260518-L1-0007-01). 4 mil 권장.</td></tr>
+          <tr><td class="fld-name">Size</td><td>40 mm × 25 mm. 점착 라벨, 후가공 환경 견디는 PET 재질 + 영구 접착제.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Printer Integration</span><span class="sec-ko">프린터 연동</span></div>
+      <div class="code-card">
+<span class="calc-lbl">Zebra ZPL II API</span>
+<span class="k">POST</span> /printer/{printerID}/job
+{
+  <span class="k">"lot_id"</span>: <span class="s">"PNT-20260518-L1-0007"</span>,
+  <span class="k">"copies"</span>: <span class="n">32</span>,            <span class="c">// = ConfirmedQty</span>
+  <span class="k">"template"</span>: <span class="s">"PNT_LABEL_V2"</span>,
+  <span class="k">"data"</span>: { ... }
+}
+
+<span class="c">// Server constructs ZPL and POSTs to printer Web API</span>
+^XA
+^FO20,20^A0N,30,30^FDSEOYON E-HWA · PNT^FS
+^FO20,60^A0N,22,22^FDLOT: PNT-20260518-L1-0007^FS
+...
+^FO20,180^BCN,80,Y,N,N^FD&gt;:PNT-20260518-L1-0007-01^FS
+^XZ
+      </div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:24%;">Aspect</th><th>Detail · 상세</th></tr></thead>
+        <tbody>
+          <tr><td>Printer Model</td><td>Zebra ZT411 / ZT231 (산업용, 203~300 DPI). Ethernet 또는 Wi-Fi 6.</td></tr>
+          <tr><td>Print Engine</td><td>Direct Thermal Transfer (감열 전사). 이층 시 견디는 잉크/리본 사용.</td></tr>
+          <tr><td>Language</td><td>ZPL II. 서버에서 템플릿 빌드 후 직접 송신.</td></tr>
+          <tr><td>Async Mode</td><td>인쇄 잡 요청 후 Webhook으로 완료/오류 수신 (Job Status). 5초 timeout.</td></tr>
+          <tr><td>Failure Handling</td><td>리본/라벨 부족·오류 시 PNT-ALR 즉시 알림. Job auto-retry 1회.</td></tr>
+          <tr><td>Throughput</td><td>4 ips · 1초당 약 4매. 32매 LOT 8초 내외 완료.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">PDA Confirm</span><span class="sec-ko">PDA 부착 확정</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Process</span>
+          After applying all labels, operator scans the <strong>first label</strong> and the <strong>last label</strong> with PDA. System verifies both barcodes are part of the same LOT and SeqNo range matches the printed range. On success, LotLabel row is created, LOT transitions LABELED → SHIPPABLE.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 절차</span>
+          작업자가 모든 라벨 부착 후 PDA로 <strong>첫 라벨</strong>과 <strong>마지막 라벨</strong>을 스캔. 시스템이 두 바코드가 동일 LOT에 속하며 SeqNo 범위가 인쇄 범위와 일치함을 확인. 성공 시 LotLabel 행 생성, LOT 상태 LABELED → SHIPPABLE 전이.
+        </div>
+      </div>
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 Why first + last? · 첫·마지막만 스캔하는 이유</span>
+        모든 라벨 스캔은 작업 시간 부담이 큼. 첫·마지막 스캔으로 인쇄된 연속 SeqNo 범위가 부착됐음을 검증 가능하다. 인쇄→부착 사이 누락된 라벨은 시각 검수로 보완 (라벨 수 = 부품 수 시각 확인).</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">QC module fires PASS event for LotID → PNT-07 enables Print Label button.</div><div class="wf-ko">QC 모듈이 LotID에 PASS 이벤트 발송 → PNT-07 인쇄 버튼 활성.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Operator selects LOT, reviews ConfirmedQty &amp; printer status, clicks Print Label.</div><div class="wf-ko">작업자가 LOT 선택, ConfirmedQty·프린터 상태 확인 후 [라벨 인쇄] 클릭.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Server builds ZPL, sends job to printer; tracks job status via webhook.</div><div class="wf-ko">서버가 ZPL 빌드, 프린터에 잡 송신; 웹훅으로 잡 상태 추적.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Printer issues N labels in sequence (01..N of N). Job completion event recorded.</div><div class="wf-ko">프린터가 N매 라벨을 순서대로 발행(01..N of N). 잡 완료 이벤트 기록.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Operator applies labels to parts following hanger map order.</div><div class="wf-ko">작업자가 행거 맵 순서대로 부품에 라벨 부착.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">PDA: scan first label → scan last label → confirm. Server validates range.</div><div class="wf-ko">PDA로 첫 라벨 → 마지막 라벨 스캔 → 확정. 서버가 범위 검증.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">LOT → LABELED → SHIPPABLE. FG module notified for handover.</div><div class="wf-ko">LOT 상태 LABELED → SHIPPABLE 전이. FG 모듈에 이관 통지.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-PNT-08</td><td><div>Label print blocked unless QC PASS event received.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">QC PASS 미수령 LOT 인쇄 차단.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-PNT-09</td><td><div>FG handover blocked unless LOT.Status == LABELED.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">LABELED 미달 LOT FG 이관 차단.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-PNT-LB01</td><td><div>Label count must equal ConfirmedQty exactly; partial print blocked.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">라벨 매수 = ConfirmedQty 일치 강제.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-PNT-LB02</td><td><div>Reprint requires supervisor PIN + reason (RIBBON_OUT, MISAPPLIED, etc.).</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">재인쇄는 라인장 PIN + 사유 필수.</div></td><td><span class="br-act alt">Audit</span></td></tr>
+          <tr><td class="br-id">BR-PNT-LB03</td><td><div>First &amp; last scan must belong to same LOT and cover printed range.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">첫·마지막 스캔은 동일 LOT + 인쇄 범위 일치 검증.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-PNT-LB04</td><td><div>Damaged label can be replaced with reprint of same SeqNo; old marked INVALID.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">손상 라벨 동일 SeqNo로 재인쇄, 구버전 INVALID 처리.</div></td><td><span class="br-act alt">Audit</span></td></tr>
+          <tr><td class="br-id">BR-PNT-LB05</td><td><div>EnhancedInspection LOT requires QC sign-off PIN before label print.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">강화검사 LOT은 QC 라인장 PIN 필요.</div></td><td><span class="br-act alt">Sign-off</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-8">
+      <div class="sec-hdr"><span class="sec-num">08</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Table</th><th>Key Columns</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">LotLabel</span></td><td><span class="dm-pk">PK</span> LabelID · <span class="dm-fk">FK</span> LotID · SeqNo · TotalQty · PrintTS · PrintedBy · AppliedTS · AppliedBy · Status (PRINTED/APPLIED/INVALID/REPRINTED)</td><td>라벨 인쇄·부착 헤더. 부착 확정 시 AppliedTS 채워짐.</td></tr>
+          <tr><td><span class="dm-col">LabelPrintJob</span></td><td><span class="dm-pk">PK</span> JobID · <span class="dm-fk">FK</span> LotID · PrinterID · ZPL · SubmitTS · CompleteTS · Status (PENDING/PRINTED/FAILED)</td><td>프린터 잡 큐. Webhook으로 상태 업데이트.</td></tr>
+          <tr><td><span class="dm-col">LabelScanLog</span></td><td><span class="dm-pk">PK</span> ScanID · <span class="dm-fk">FK</span> LotID · ScannedSeq · Position(FIRST/LAST) · ScannedBy · ScannedTS</td><td>PDA 첫·마지막 스캔 이력.</td></tr>
+          <tr><td><span class="dm-col">LotPreIssue</span> <em style="opacity:.6;">(update)</em></td><td>Status → LABELED → SHIPPABLE</td><td>부착 확정 시 전이.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-9">
+      <div class="sec-hdr"><span class="sec-num">09</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">QC</div><div class="lnk-name">PASS Event</div><div class="lnk-ko">QC 합격 통지</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node up"><div class="lnk-id">PNT-06</div><div class="lnk-name">CONFIRMED</div><div class="lnk-ko">언로딩 확정</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">PNT-07</div><div class="lnk-name">Label &amp; Apply</div><div class="lnk-ko">라벨 인쇄·부착</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">FG</div><div class="lnk-name">Handover</div><div class="lnk-ko">완제품 이관</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.7 · PNT-07 · LOT Label Print &amp; Apply · L3 Spec v1.0</div><div class="pf-r">Post-Cure Labeling · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>

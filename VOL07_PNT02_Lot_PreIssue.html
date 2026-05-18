@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.7 · PNT-02 · Virtual LOT Pre-Issue · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--pnt:#ea580c;--mod:#ea580c;--mod-lt:#fff7ed;--mod-dk:#9a3412;--mod-tint:#fdba74;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
+.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}
+.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}
+.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(253,186,116,.7);}
+.sb-link.on .sl-id{color:var(--gold);}
+.sb-link .sl-en{font-size:10px;font-weight:600;}
+.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#1a0800 0%,#2d1000 50%,#1a0800 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(234,88,12,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(234,88,12,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(234,88,12,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(234,88,12,.12),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.web{border-color:rgba(26,111,255,.3);color:#7ab4ff;}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(234,88,12,.3);color:var(--mod-tint);}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}
+.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.fld-req{display:inline-block;font-size:8px;font-weight:700;padding:1px 6px;border-radius:2px;background:#fee2e2;color:#991b1b;margin-left:4px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}
+.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}
+.br-act.alt{background:#fef9c3;color:#92400e;}
+.br-act.aut{background:#dbeafe;color:#1e40af;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}
+.alert-w{background:#fef9c3;border-color:#f59e0b;color:#92400e;}
+.alert-h{background:#fff7ed;border-color:var(--mod);color:var(--mod-dk);}
+.alert-d{background:#fef2f2;border-color:#dc2626;color:#991b1b;}
+.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#f0fdf4;border-color:#22c55e;}
+.lnk-node.cur{background:linear-gradient(135deg,#2d1000,#1a0800);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(234,88,12,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#15803d;}
+.lnk-node.cur .lnk-id{color:var(--mod-tint);}
+.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}
+.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}
+.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}
+.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;}
+.dm-pk{color:#f59e0b;font-size:8px;font-weight:700;}
+.dm-fk{color:#8b5cf6;font-size:8px;font-weight:700;}
+.dm-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:9px;}
+.calc-card{background:#0d1117;color:#e2e8f0;border:1px solid var(--ink3);border-radius:6px;padding:14px 18px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.8;margin-bottom:12px;}
+.calc-card .calc-lbl{color:var(--mod-tint);font-weight:700;display:block;margin-bottom:6px;font-size:10px;letter-spacing:1px;text-transform:uppercase;}
+.calc-card code{color:#fbbf24;}
+.state-flow{display:flex;align-items:center;gap:0;flex-wrap:wrap;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:12px;}
+.state-chip{padding:8px 14px;border-radius:5px;font-size:11px;font-weight:700;text-align:center;background:var(--mod-lt);color:var(--mod-dk);border:1px solid var(--mod-tint);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.state-arr{color:var(--sub);font-size:14px;padding:0 6px;font-weight:700;}
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}
+.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol active"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL07_PNT_Painting.html">VOL.7 · PNT</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">PNT-02 · Virtual LOT Pre-Issue</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.7 · PNT · L3</div><div class="sb-mod-en">PAINTING</div><div class="sb-mod-ko">분체도장 · RFID</div></div>
+  <div class="sb-section">Screens · 화면</div>
+  <a class="sb-link" href="VOL07_PNT01_Daily_Plan.html"><span class="sl-id">PNT-01</span><div><div class="sl-en">Daily Plan</div><div class="sl-ko">일일 생산계획</div></div></a>
+  <a class="sb-link on" href="VOL07_PNT02_Lot_PreIssue.html"><span class="sl-id">PNT-02</span><div><div class="sl-en">Lot Pre-Issue</div><div class="sl-ko">가상LOT 발급</div></div></a>
+  <a class="sb-link" href="VOL07_PNT03_Loading.html"><span class="sl-id">PNT-03</span><div><div class="sl-en">Loading (R1)</div><div class="sl-ko">로딩</div></div></a>
+  <a class="sb-link" href="VOL07_PNT04_Line_Board.html"><span class="sl-id">PNT-04</span><div><div class="sl-en">Line Board</div><div class="sl-ko">라인 흐름판</div></div></a>
+  <a class="sb-link" href="VOL07_PNT05_Oven_Monitor.html"><span class="sl-id">PNT-05</span><div><div class="sl-en">Oven Monitor (R2)</div><div class="sl-ko">오븐 모니터</div></div></a>
+  <a class="sb-link" href="VOL07_PNT06_Unloading.html"><span class="sl-id">PNT-06</span><div><div class="sl-en">Unloading (R3)</div><div class="sl-ko">언로딩</div></div></a>
+  <a class="sb-link" href="VOL07_PNT07_Label_Apply.html"><span class="sl-id">PNT-07</span><div><div class="sl-en">Label &amp; Apply</div><div class="sl-ko">LOT 라벨 부착</div></div></a>
+  <a class="sb-link" href="VOL07_PNT08_Defect.html"><span class="sl-id">PNT-08</span><div><div class="sl-en">Defect</div><div class="sl-ko">불량 등록</div></div></a>
+  <a class="sb-link" href="VOL07_PNT09_Shift_Report.html"><span class="sl-id">PNT-09</span><div><div class="sl-en">Shift Report</div><div class="sl-ko">교대 일지</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-2"><span class="num">02</span>LOT Number Format</a>
+    <a href="#sec-3"><span class="num">03</span>Jig Binding Logic</a>
+    <a href="#sec-4"><span class="num">04</span>State Machine</a>
+    <a href="#sec-5"><span class="num">05</span>Field Spec</a>
+    <a href="#sec-6"><span class="num">06</span>Workflow</a>
+    <a href="#sec-7"><span class="num">07</span>Business Rules</a>
+    <a href="#sec-8"><span class="num">08</span>Data Model</a>
+    <a href="#sec-9"><span class="num">09</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.7 · PNT · Powder Painting · L3 Detail Spec</div>
+      <div class="scr-id-block"><div class="scr-id">PNT-02</div><div class="scr-title-en">Virtual LOT Pre-Issue</div></div>
+      <div class="scr-title-ko">가상 LOT 사전 발급 · 지그 바인딩</div>
+      <div class="scr-meta">
+        <div class="meta-chip web"><span class="mc-lbl">UI</span><span class="mc-val">🖥 Web PC</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">Phase-0 + 1st</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">PNT Supervisor</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Inputs</span><span class="mc-val">PNT_DailyPlan, MD_Jig</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Outputs</span><span class="mc-val">LotPreIssue, JigBinding</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          For each Ready row in PNT_DailyPlan, the system pre-issues N virtual LOT numbers where N = LotsRequired. Each LOT is bound to a specific healthy jig from the available pool. LOTs in PRE state are placeholders; once a jig is assigned, the LOT transitions to BOUND. The RFID-driven loading station (PNT-03) consumes BOUND LOTs in FIFO order. Unused LOTs auto-expire 24h after issue.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          PNT_DailyPlan의 Ready 행마다 N개의 가상 LOT을 사전 발급한다(N = LotsRequired). 각 LOT은 정상 가용 지그 풀에서 1개 지그에 바인딩된다. PRE 상태 LOT은 임시 자리표시자이며, 지그 배정 시 BOUND로 전환. PNT-03 로딩 스테이션이 BOUND LOT을 FIFO로 소비. 미사용 LOT은 발급 24시간 후 자동 만료.
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">LOT Number Format</span><span class="sec-ko">LOT 번호 형식</span></div>
+      <div class="calc-card">
+        <span class="calc-lbl">Pattern · 패턴</span>
+        <code>PNT-{YYYYMMDD}-{LineID}-{SEQ:0000}</code><br><br>
+        <span class="calc-lbl">Components · 구성요소</span>
+        <code>PNT</code> &nbsp;&nbsp; 도장 모듈 식별자<br>
+        <code>YYYYMMDD</code> &nbsp;&nbsp; PlanDate (8자리)<br>
+        <code>LineID</code> &nbsp;&nbsp; 라인 코드 (예: L1, L2)<br>
+        <code>SEQ</code> &nbsp;&nbsp; 라인×일자 단위 일련번호 (0001~9999)<br><br>
+        <span class="calc-lbl">Example · 예시</span>
+        <code style="color:#5dffc4;">PNT-20260518-L1-0007</code> &nbsp;&nbsp; 2026-05-18 L1라인 7번째 LOT
+      </div>
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 Uniqueness · 유일성</span>
+        (PlanDate, LineID, SEQ) 복합 UNIQUE 제약. LOT 번호는 라벨 인쇄(PNT-07) 시 실제 라벨에 그대로 사용되며, 가상→실제 LOT 변환은 일어나지 않는다 (사전 발급된 번호 = 최종 라벨 번호).</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Jig Binding Logic</span><span class="sec-ko">지그 바인딩 로직</span></div>
+      <div class="calc-card">
+        <span class="calc-lbl">Eligible Jig Pool · 후보 지그 풀</span>
+        SELECT * FROM MD_Jig WHERE<br>
+        &nbsp;&nbsp;1. <code>JigID</code> NOT IN (진행중 LOT의 바인딩 JigID 집합)  <span style="color:rgba(255,255,255,.4);">// 미사용</span><br>
+        &nbsp;&nbsp;2. <code>CycleCount</code> &lt; <code>RatedCycle</code> × 0.80                <span style="color:rgba(255,255,255,.4);">// 수명 정상</span><br>
+        &nbsp;&nbsp;3. <code>ReadFailRate</code> &lt; 0.05                                <span style="color:rgba(255,255,255,.4);">// 인식 정상</span><br>
+        &nbsp;&nbsp;4. <code>CompatibleItems</code> CONTAINS <code>Plan.ItemNo</code>       <span style="color:rgba(255,255,255,.4);">// 호환</span><br>
+        &nbsp;&nbsp;5. <code>HealthStatus</code> = 'OK'<br><br>
+        <span class="calc-lbl">Selection Order · 선택 순서</span>
+        ORDER BY <code>LastUsedTS</code> ASC, <code>CycleCount</code> ASC<br>
+        <span style="color:rgba(255,255,255,.4);">// 가장 오래 미사용 + 가장 적게 사용된 지그 우선 (수명 평준화)</span>
+      </div>
+      <div class="alert alert-w">
+        <div><span class="alert-title">⚠ Manual Override · 수동 지정</span>
+        라인장이 자동 추천 지그를 거부하고 수동 지정 가능. 단, 위 5개 조건 중 1~3, 5는 절대 우회 불가(BR-PNT-L02). 호환 품목 조건(4)은 라인장 권한으로 일회성 우회 가능 + 사유 코드 기록.</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">LOT State Machine</span><span class="sec-ko">LOT 상태 머신</span></div>
+      <div class="state-flow">
+        <div class="state-chip">PRE</div>
+        <span class="state-arr">→</span>
+        <div class="state-chip">BOUND</div>
+        <span class="state-arr">→</span>
+        <div class="state-chip">IN_LOAD</div>
+        <span class="state-arr">→</span>
+        <div class="state-chip">IN_OVEN</div>
+        <span class="state-arr">→</span>
+        <div class="state-chip">CONFIRMED</div>
+        <span class="state-arr">→</span>
+        <div class="state-chip">LABELED</div>
+        <span class="state-arr">→</span>
+        <div class="state-chip">SHIPPABLE</div>
+      </div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:14%;">State</th><th style="width:18%;">Set By</th><th>Transition Trigger · 전이 조건</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">PRE</td><td>PNT-02 (Issue)</td><td>가상 LOT 발급 시 초기 상태. 지그 미배정.</td></tr>
+          <tr><td class="fld-name">BOUND</td><td>PNT-02 (Bind)</td><td>지그 ID 배정 시. 24h 내 IN_LOAD로 전이되지 않으면 EXPIRED.</td></tr>
+          <tr><td class="fld-name">IN_LOAD</td><td>PNT-03 (R1)</td><td>R1 리더 인식 + 작업자 거치 확정. JigLoad 행 생성.</td></tr>
+          <tr><td class="fld-name">IN_OVEN</td><td>PNT-05 (R2)</td><td>R2 리더 인식. OvenLog 시작 기록.</td></tr>
+          <tr><td class="fld-name">CONFIRMED</td><td>PNT-06 (R3)</td><td>R3 리더 인식 + 작업자 수량 확정. QC 대기열 진입.</td></tr>
+          <tr><td class="fld-name">LABELED</td><td>PNT-07</td><td>QC PASS 후 라벨 인쇄·PDA 부착 확인.</td></tr>
+          <tr><td class="fld-name">SHIPPABLE</td><td>PNT-07</td><td>FG 이관 가능. FG 모듈이 후속.</td></tr>
+          <tr><td class="fld-name" style="color:#991b1b;">EXPIRED</td><td>System (BR-PNT-04)</td><td>BOUND 후 24h 미사용. 지그 풀로 반환 + 알림.</td></tr>
+          <tr><td class="fld-name" style="color:#991b1b;">CANCELLED</td><td>Supervisor</td><td>계획 취소·라인 정지·자재 부족 등 사유 코드 필수.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Field Specification</span><span class="sec-ko">필드 사양</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:20%;">Field</th><th style="width:14%;">Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">LotID <span class="fld-req">PK</span></td><td class="fld-type">VARCHAR(24)</td><td>위 §02 패턴. 발급 시점에 SEQ 단조증가 채번.</td></tr>
+          <tr><td class="fld-name">PlanID <span class="fld-req">FK</span></td><td class="fld-type">VARCHAR(20)</td><td>PNT_DailyPlan.PlanID 참조.</td></tr>
+          <tr><td class="fld-name">JigID <span class="fld-req">FK</span></td><td class="fld-type">VARCHAR(12)</td><td>지그 마스터 참조. PRE 상태에서는 NULL, BOUND 시 채워짐.</td></tr>
+          <tr><td class="fld-name">ItemNo</td><td class="fld-type">VARCHAR(30)</td><td>PNT_DailyPlan에서 상속.</td></tr>
+          <tr><td class="fld-name">RALColor</td><td class="fld-type">VARCHAR(10)</td><td>RAL 코드. 라벨 인쇄 시 그대로 사용.</td></tr>
+          <tr><td class="fld-name">TargetQty</td><td class="fld-type">INT</td><td>해당 LOT의 부품 수 = JigCapacity (변동 가능 — R3에서 실제 수량 보정).</td></tr>
+          <tr><td class="fld-name">Status</td><td class="fld-type">ENUM</td><td>위 §04 상태 머신.</td></tr>
+          <tr><td class="fld-name">IssueTS</td><td class="fld-type">DATETIME</td><td>발급 시각. EXPIRED 판정 기준.</td></tr>
+          <tr><td class="fld-name">BindTS</td><td class="fld-type">DATETIME</td><td>지그 바인딩 시각.</td></tr>
+          <tr><td class="fld-name">BindReason</td><td class="fld-type">VARCHAR(40)</td><td>수동 지정 시 사유 코드 (AUTO / MANUAL_OVERRIDE / RECOVERY 등).</td></tr>
+          <tr><td class="fld-name">IssuedBy</td><td class="fld-type">VARCHAR(20)</td><td>발급 작업자 ID (Audit).</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">PNT-01 saves a row with Ready=1 → server trigger fires.</div><div class="wf-ko">PNT-01에서 Ready=1로 저장 → 서버 트리거 발동.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">System reserves the next available SEQ for (PlanDate, LineID) atomically.</div><div class="wf-ko">시스템이 (PlanDate, LineID) 단위 다음 SEQ를 원자적으로 예약.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">For i = 1..LotsRequired: build LotID, query eligible jig pool, pick one, INSERT LotPreIssue row in BOUND state.</div><div class="wf-ko">LotsRequired만큼 반복: LotID 생성 → 후보 지그 조회 → 1개 선택 → LotPreIssue BOUND 행 INSERT.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">If pool is insufficient (fewer healthy jigs than needed), throw warning to supervisor and partial-issue what's possible.</div><div class="wf-ko">가용 지그 부족 시 라인장 경고 + 가능한 만큼만 부분 발급.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Display issued LOTs in PNT-02 list with LotID + JigID + IssueTS. Supervisor can re-bind any PRE/BOUND LOT.</div><div class="wf-ko">발급된 LOT을 PNT-02 목록에 LotID + JigID + IssueTS로 표시. 라인장이 PRE/BOUND LOT 재바인딩 가능.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Nightly batch (00:00) scans BOUND LOTs older than 24h → mark EXPIRED → release jigs back to pool.</div><div class="wf-ko">매일 00:00 배치가 24시간 초과 BOUND LOT을 EXPIRED 처리 → 지그 풀 반환.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-PNT-L01</td><td><div>1 LOT must be bound to exactly 1 jig (1:1).</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">LOT-지그 1:1 바인딩 강제.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-PNT-L02</td><td><div>Reject jig with CycleCount ≥ 80% rated, ReadFailRate ≥ 5%, or HealthStatus ≠ OK.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">수명/실패율/상태 미달 지그 배정 차단.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-PNT-L03</td><td><div>BOUND LOT not consumed within 24h → EXPIRED + alert.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">24시간 미사용 LOT 자동 만료.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-PNT-L04</td><td><div>LotID once issued is immutable; re-binding only changes JigID.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">발급 후 LotID 변경 불가, 재바인딩은 JigID만 교체.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-PNT-L05</td><td><div>Same jig cannot host two active LOTs at the same time.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">동일 지그에 진행중 LOT 2개 동시 보유 불가.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-PNT-L06</td><td><div>Manual override (incompatible item) requires reason code + supervisor PIN.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">호환 외 품목 수동 배정은 사유 코드 + 라인장 PIN 필요.</div></td><td><span class="br-act alt">Audit</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-8">
+      <div class="sec-hdr"><span class="sec-num">08</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Table</th><th>Key Columns</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">LotPreIssue</span></td><td><span class="dm-pk">PK</span> LotID · <span class="dm-fk">FK</span> PlanID · <span class="dm-fk">FK</span> JigID · ItemNo · RALColor · TargetQty · Status · IssueTS · BindTS · BindReason · IssuedBy</td><td>가상 LOT 헤더. 발급 후 LotID 영구 불변.</td></tr>
+          <tr><td><span class="dm-col">JigBindingLog</span></td><td><span class="dm-pk">PK</span> LogID · <span class="dm-fk">FK</span> LotID · <span class="dm-fk">FK</span> JigID · BindTS · UnbindTS · Reason · ActorID</td><td>지그 바인딩 이력. 재바인딩 시마다 새 row.</td></tr>
+          <tr><td><span class="dm-col">SeqAllocator</span></td><td><span class="dm-pk">PK</span> (PlanDate, LineID) · NextSEQ · UpdatedTS</td><td>LotID SEQ 채번 락 테이블 (원자적 INCR).</td></tr>
+          <tr><td><span class="dm-col">MD_Jig</span> <em style="opacity:.6;">(read/write CycleCount)</em></td><td><span class="dm-pk">PK</span> JigID · HangerCount · CompatibleItems · CycleCount · RatedCycle · ReadFailRate · HealthStatus · LastUsedTS</td><td>지그 마스터. CycleCount는 R3 인식 시 +1.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-9">
+      <div class="sec-hdr"><span class="sec-num">09</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">PNT-01</div><div class="lnk-name">Daily Plan</div><div class="lnk-ko">일일계획</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node up"><div class="lnk-id">PNT-JIG / MD_Jig</div><div class="lnk-name">Jig Master</div><div class="lnk-ko">지그 마스터</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">PNT-02</div><div class="lnk-name">Lot Pre-Issue</div><div class="lnk-ko">가상LOT 발급</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">PNT-03</div><div class="lnk-name">Loading (R1)</div><div class="lnk-ko">로딩</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.7 · PNT-02 · Virtual LOT Pre-Issue · L3 Spec v1.0</div><div class="pf-r">RFID + Jig + Virtual LOT · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>

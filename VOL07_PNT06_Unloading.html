@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.7 · PNT-06 · Unloading &amp; Count (R3) · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--pnt:#ea580c;--mod:#ea580c;--mod-lt:#fff7ed;--mod-dk:#9a3412;--mod-tint:#fdba74;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(253,186,116,.7);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#1a0800 0%,#2d1000 50%,#1a0800 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(234,88,12,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(234,88,12,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(234,88,12,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(234,88,12,.12),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(234,88,12,.3);color:var(--mod-tint);}
+.meta-chip.rfid{border-color:rgba(234,88,12,.45);background:rgba(234,88,12,.1);color:var(--mod-tint);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-w{background:#fef9c3;border-color:#f59e0b;color:#92400e;}.alert-h{background:#fff7ed;border-color:var(--mod);color:var(--mod-dk);}
+.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#f0fdf4;border-color:#22c55e;}
+.lnk-node.cur{background:linear-gradient(135deg,#2d1000,#1a0800);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(234,88,12,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#15803d;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;}.dm-pk{color:#f59e0b;font-size:8px;font-weight:700;}.dm-fk{color:#8b5cf6;font-size:8px;font-weight:700;}
+.code-card{background:#0d1117;color:#e2e8f0;border:1px solid var(--ink3);border-radius:6px;padding:14px 18px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.7;margin-bottom:12px;overflow-x:auto;}
+.code-card .calc-lbl{color:var(--mod-tint);font-weight:700;display:block;margin-bottom:6px;font-size:10px;letter-spacing:1px;text-transform:uppercase;}
+.code-card .k{color:#fb923c;}.code-card .s{color:#5dffc4;}.code-card .n{color:#fbbf24;}.code-card .c{color:rgba(255,255,255,.35);font-style:italic;}
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol active"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL07_PNT_Painting.html">VOL.7 · PNT</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">PNT-06 · Unloading &amp; Count (R3)</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.7 · PNT · L3</div><div class="sb-mod-en">PAINTING</div><div class="sb-mod-ko">분체도장 · RFID</div></div>
+  <div class="sb-section">Screens · 화면</div>
+  <a class="sb-link" href="VOL07_PNT01_Daily_Plan.html"><span class="sl-id">PNT-01</span><div><div class="sl-en">Daily Plan</div><div class="sl-ko">일일 생산계획</div></div></a>
+  <a class="sb-link" href="VOL07_PNT02_Lot_PreIssue.html"><span class="sl-id">PNT-02</span><div><div class="sl-en">Lot Pre-Issue</div><div class="sl-ko">가상LOT 발급</div></div></a>
+  <a class="sb-link" href="VOL07_PNT03_Loading.html"><span class="sl-id">PNT-03</span><div><div class="sl-en">Loading (R1)</div><div class="sl-ko">로딩</div></div></a>
+  <a class="sb-link" href="VOL07_PNT04_Line_Board.html"><span class="sl-id">PNT-04</span><div><div class="sl-en">Line Board</div><div class="sl-ko">라인 흐름판</div></div></a>
+  <a class="sb-link" href="VOL07_PNT05_Oven_Monitor.html"><span class="sl-id">PNT-05</span><div><div class="sl-en">Oven Monitor (R2)</div><div class="sl-ko">오븐 모니터</div></div></a>
+  <a class="sb-link on" href="VOL07_PNT06_Unloading.html"><span class="sl-id">PNT-06</span><div><div class="sl-en">Unloading (R3)</div><div class="sl-ko">언로딩</div></div></a>
+  <a class="sb-link" href="VOL07_PNT07_Label_Apply.html"><span class="sl-id">PNT-07</span><div><div class="sl-en">Label &amp; Apply</div><div class="sl-ko">LOT 라벨 부착</div></div></a>
+  <a class="sb-link" href="VOL07_PNT08_Defect.html"><span class="sl-id">PNT-08</span><div><div class="sl-en">Defect</div><div class="sl-ko">불량 등록</div></div></a>
+  <a class="sb-link" href="VOL07_PNT09_Shift_Report.html"><span class="sl-id">PNT-09</span><div><div class="sl-en">Shift Report</div><div class="sl-ko">교대 일지</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-2"><span class="num">02</span>Hardware Setup</a>
+    <a href="#sec-3"><span class="num">03</span>Count Verification</a>
+    <a href="#sec-4"><span class="num">04</span>Loss Reason Codes</a>
+    <a href="#sec-5"><span class="num">05</span>Jig Release Logic</a>
+    <a href="#sec-6"><span class="num">06</span>Workflow</a>
+    <a href="#sec-7"><span class="num">07</span>Business Rules</a>
+    <a href="#sec-8"><span class="num">08</span>Data Model</a>
+    <a href="#sec-9"><span class="num">09</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.7 · PNT · Powder Painting · L3 · RFID R3</div>
+      <div class="scr-id-block"><div class="scr-id">PNT-06</div><div class="scr-title-en">Unloading &amp; Count (R3)</div></div>
+      <div class="scr-title-ko">언로딩 · 3번 리더 · 완료 카운트 확정 · 지그 반환</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">UI</span><span class="mc-val">⚙ POP + 📱 PDA</span></div>
+        <div class="meta-chip rfid"><span class="mc-lbl">RFID</span><span class="mc-val">📡 R3 · ANT-UNLOAD</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">1st Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">Unloader Operator</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Outputs</span><span class="mc-val">CONFIRMED, QC handoff, jig pool return</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          R3 reader at the unload station detects each jig exiting the oven. Operator confirms actual part count on the jig (must match LotPreIssue.TargetQty; any discrepancy requires a loss reason code). On confirm, LOT transitions IN_OVEN → CONFIRMED, the jig's CycleCount is incremented by 1 and it is returned to the available pool for next-day binding. The LOT is queued for QC inspection.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          R3 리더가 오븐을 통과한 지그를 인식한다. 작업자가 실제 부품 수량을 확인(LotPreIssue.TargetQty와 일치해야 하며 차이 발생 시 손실 사유 코드 필수). 확정 시 LOT 상태 IN_OVEN → CONFIRMED, 지그의 CycleCount +1 적용 후 가용 풀로 반환(다음 사이클 바인딩 대상). LOT은 QC 검사 대기열로 진입.
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Hardware Setup</span><span class="sec-ko">하드웨어 구성</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:24%;">Item</th><th>Specification</th></tr></thead>
+        <tbody>
+          <tr><td>Reader · R3</td><td>Impinj R420 / Zebra FX9600. 오븐 출구로부터 컨베이어 ~2m 후방 설치 (잔열 회피, 오븐 시야 차단). PoE 25dBm.</td></tr>
+          <tr><td>Antenna</td><td>Circular 9 dBic, 게이트 양측 2개. 차폐 박스로 R2와의 cross-read 방지(20m 이상 간격 권장).</td></tr>
+          <tr><td>Read Window</td><td>PE 센서 트리거 1.5초. 잔열 영역 외 안정적 인식.</td></tr>
+          <tr><td>POP Terminal</td><td>15" 산업용 터치 모니터, 작업자 키 입력 대응. PDA 보조.</td></tr>
+          <tr><td>PDA</td><td>Zebra MC3300 / Honeywell CK65. R3 매칭 실패 시 수기 폴백 + 수량 확인 입력.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Count Verification</span><span class="sec-ko">수량 확인 로직</span></div>
+      <div class="code-card">
+<span class="calc-lbl">Verification · 검증 로직</span>
+expectedQty = LotPreIssue.TargetQty
+actualQty   = Operator input (numeric)
+
+delta = expectedQty - actualQty
+
+<span class="k">IF</span> delta == <span class="n">0</span>:
+  LotPreIssue.Status = CONFIRMED
+  Jig.CycleCount += <span class="n">1</span>
+  Jig.LastUsedTS = NOW
+  Jig.Status = AVAILABLE
+  <span class="k">PUSH</span> QC handoff queue
+<span class="k">ELSE IF</span> delta &gt; <span class="n">0</span>:
+  <span class="c">// 부족 — 손실 사유 코드 필수</span>
+  <span class="k">REQUIRE</span> ShortReason <span class="k">IN</span> [DROPPED, REJECTED_AT_LINE, MISSING_AT_LOAD, OTHER]
+  PartLossLog.insert(LotID, delta, ShortReason)
+  LotPreIssue.ConfirmedQty = actualQty
+  LotPreIssue.Status = CONFIRMED
+<span class="k">ELSE</span>:
+  <span class="c">// 초과 — 비정상 (라인 혼선 의심)</span>
+  <span class="k">BLOCK</span> conveyor <span class="k">AND</span> <span class="k">ALERT</span> supervisor
+  <span class="k">REQUIRE</span> supervisor PIN to override + reason
+      </div>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Loss Reason Codes</span><span class="sec-ko">손실 사유 코드</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:18%;">Code</th><th style="width:24%;">Reason (EN)</th><th style="width:24%;">사유 (KO)</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">DROPPED</td><td>Part dropped during transport</td><td>이송 중 부품 낙하</td><td>전처리/도장 부스 내부 낙하. 회수 가능 시 별도 처리.</td></tr>
+          <tr><td class="fld-name">REJECTED_AT_LINE</td><td>Operator rejected at-line</td><td>라인내 즉시 폐기</td><td>이물·표면 손상 등 명백 불량. PNT-08에도 자동 등록.</td></tr>
+          <tr><td class="fld-name">MISSING_AT_LOAD</td><td>Loaded short of target</td><td>거치 시 부족</td><td>R1 시점 부품 부족 (PNT-03 ShortReason 연결).</td></tr>
+          <tr><td class="fld-name">JIG_FAILURE</td><td>Hanger broken / part fell off</td><td>지그/행거 파손으로 탈락</td><td>지그 점검 알림 자동 발생.</td></tr>
+          <tr><td class="fld-name">OTHER</td><td>Other (text required)</td><td>기타 (자유 기술 필수)</td><td>자유 텍스트 200자 + 라인장 PIN.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Jig Release Logic</span><span class="sec-ko">지그 반환 로직</span></div>
+      <div class="code-card">
+<span class="calc-lbl">Jig Pool Return · 풀 반환</span>
+<span class="k">ON</span> R3 confirmed (LOT CONFIRMED):
+  Jig.CycleCount += <span class="n">1</span>
+  Jig.LastUsedTS = NOW
+  Jig.Status = COOLING        <span class="c">// 30분 냉각 대기</span>
+  <span class="k">SCHEDULE</span> after 30 min:
+    <span class="k">IF</span> Jig.CycleCount &gt;= Jig.RatedCycle × <span class="n">0.80</span>:
+      Jig.HealthStatus = 'PREVENTIVE_MAINT_DUE'
+      <span class="k">PUSH</span> PNT-ALR alert (BR-PNT-T02)
+    <span class="k">IF</span> Jig.ReadFailRate &gt;= <span class="n">0.05</span>:
+      Jig.HealthStatus = 'REPLACE_REQUIRED'
+      <span class="k">PUSH</span> PNT-ALR alert (BR-PNT-T01)
+    <span class="k">IF</span> Jig.HealthStatus == 'OK':
+      Jig.Status = AVAILABLE   <span class="c">// 다음 LOT 바인딩 가능</span>
+      </div>
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 Why 30-min cooling? · 30분 냉각 이유</span>
+        오븐 직후 지그 표면 온도가 50~80°C로 남아있어 즉시 새 부품을 거치하면 화상·접착·열변형 위험. 30분 자연냉각 후 AVAILABLE 전환. 단열 인클로저가 있는 지그는 마스터에서 CoolingPeriod를 단축 조정 가능.</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">Jig exits oven; PE sensor triggers R3 read window.</div><div class="wf-ko">지그가 오븐을 통과; PE 센서가 R3 인식 윈도우 활성.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">R3 reads tag → POST /rfid/event. Server validates against IN_OVEN LotPreIssue.</div><div class="wf-ko">R3 태그 인식 → 서버가 IN_OVEN 상태 LOT과 매칭.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">POP screen displays LotID, ItemName, RALColor, expected qty, oven log summary.</div><div class="wf-ko">POP 화면이 LOT 정보·예상 수량·오븐 로그 요약 표시.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Operator counts actual parts on jig and enters quantity. If short → select Loss Reason Code.</div><div class="wf-ko">작업자가 지그 위 실수량 카운트 입력. 부족 시 손실 사유 코드 선택.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">On confirm: LOT → CONFIRMED, jig CycleCount +1, jig set to COOLING. QC queue receives the LOT.</div><div class="wf-ko">확정 시 LOT CONFIRMED, 지그 CycleCount +1, 지그 냉각 상태. QC 검사 대기열 등록.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Operator unloads parts to QC handoff cart. Empty jig returns via conveyor loop to loading station after cooling.</div><div class="wf-ko">작업자가 부품을 QC 인계 카트로 이송. 빈 지그는 냉각 후 컨베이어 루프로 로딩 스테이션 반환.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-PNT-U01</td><td><div>R3 read only valid for LOT in IN_OVEN state; otherwise quarantine.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">IN_OVEN 상태 외 R3 인식은 검역.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-PNT-U02</td><td><div>Quantity short requires reason code; over-quantity blocks until supervisor PIN.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">부족 사유 필수, 초과는 라인장 PIN 필요.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-PNT-U03</td><td><div>Jig CycleCount auto-incremented on CONFIRMED; counter immutable by user.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">CycleCount 자동 +1, 사용자 수정 불가.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-PNT-U04</td><td><div>Jig is COOLING for ≥ 30 min before being marked AVAILABLE.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">지그는 30분 이상 냉각 후 AVAILABLE.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-PNT-U05</td><td><div>If oven dwell out of spec (BR-PNT-O05/O06) → LOT auto-flagged for QC.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">오븐 체류 이상 LOT은 QC 자동 플래그.</div></td><td><span class="br-act alt">Flag</span></td></tr>
+          <tr><td class="br-id">BR-PNT-U06</td><td><div>Confirmed LOT pushed to QC queue with 5-min SLA for inspection start.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">CONFIRMED LOT은 5분 내 QC 검사 시작 SLA.</div></td><td><span class="br-act alt">SLA</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-8">
+      <div class="sec-hdr"><span class="sec-num">08</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Table</th><th>Key Columns</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">JigUnload</span></td><td><span class="dm-pk">PK</span> UnloadID · <span class="dm-fk">FK</span> JigID · <span class="dm-fk">FK</span> LotID · ConfirmedQty · ExpectedQty · ShortReason · OperatorID · R3_TS · ConfirmTS</td><td>언로딩 이벤트. 실수량·사유·확정 시각 기록.</td></tr>
+          <tr><td><span class="dm-col">PartLossLog</span></td><td><span class="dm-pk">PK</span> LossID · <span class="dm-fk">FK</span> LotID · LossQty · ReasonCode · ReasonText · LoggedBy · LoggedTS</td><td>라인내 손실 부품 이력. PNT-08 불량과는 구분.</td></tr>
+          <tr><td><span class="dm-col">MD_Jig</span> <em style="opacity:.6;">(update)</em></td><td>CycleCount · LastUsedTS · Status (COOLING/AVAILABLE) · HealthStatus</td><td>CONFIRMED 시 자동 갱신.</td></tr>
+          <tr><td><span class="dm-col">LotPreIssue</span> <em style="opacity:.6;">(update)</em></td><td>Status → CONFIRMED · ConfirmedQty · ConfirmedTS</td><td>R3 인식 + 수량 확정 시 전이.</td></tr>
+          <tr><td><span class="dm-col">QCQueue</span></td><td><span class="dm-pk">PK</span> QID · <span class="dm-fk">FK</span> LotID · EnqueuedTS · EnhancedFlag · SLA_DueTS</td><td>QC 인계 대기열. PNT-05 강화검사 플래그 상속.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-9">
+      <div class="sec-hdr"><span class="sec-num">09</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">PNT-05</div><div class="lnk-name">Oven (R2)</div><div class="lnk-ko">오븐</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">PNT-06</div><div class="lnk-name">Unloading (R3)</div><div class="lnk-ko">언로딩</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">QC</div><div class="lnk-name">Inspection</div><div class="lnk-ko">품질 검사</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">PNT-07</div><div class="lnk-name">Label &amp; Apply</div><div class="lnk-ko">라벨 부착</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">PNT-JIG</div><div class="lnk-name">Jig Pool</div><div class="lnk-ko">지그 풀</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.7 · PNT-06 · Unloading &amp; Count (R3) · L3 Spec v1.0</div><div class="pf-r">RFID + Jig + Virtual LOT · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
