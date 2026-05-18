@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.3 · WH-06 · Release Schedule · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+
+:root{
+  --gold:#d4a017; --gold-lt:#fdf6e3; --gold-dk:#a07810;
+  --ink:#0d1117; --ink2:#161b22; --ink3:#21262d;
+  --surface:#ffffff; --bg:#f6f8fa; --border:#d0d7de;
+  --text:#24292f; --sub:#656d76;
+  --wh:#0891b2; --pp:#059669; --inj:#2563eb; --img:#7c3aed;
+  --pnt:#ea580c; --qc:#dc2626; --fg:#0db87a; --mnt:#0284c7;
+  --rpt:#6366f1; --sys:#475569; --md:#d97706;
+  --mod-color:var(--wh);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+
+/* NAV */
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
+.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}
+.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;transition:color .12s;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}
+.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+
+/* L3 BREADCRUMB */
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;transition:color .12s;}
+.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}
+.l3-crumb .current{color:var(--gold);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+
+/* LAYOUT */
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(212,160,23,.15) transparent;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:#fff;}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;transition:all .12s;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:32px;flex-shrink:0;color:rgba(34,211,238,.7);}
+.sb-link.on .sl-id{color:var(--gold);}
+.sb-link .sl-en{font-size:10px;font-weight:600;}
+.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);margin-top:1px;}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;border-left:2px solid transparent;margin-left:-2px;transition:all .12s;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+
+.main{flex:1;min-width:0;}
+
+/* SCREEN HEADER */
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#0c1a23 0%,#0f2632 50%,#0d1f2a 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(34,211,238,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(34,211,238,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(34,211,238,.10),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#22d3ee;margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:#22d3ee;border-radius:50%;box-shadow:0 0 8px #22d3ee;}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:14px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:#22d3ee;line-height:.9;text-shadow:0 0 22px rgba(34,211,238,.2);}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:46px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:4px;margin-bottom:14px;}
+
+.scr-meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.web{border-color:rgba(26,111,255,.3);color:#7ab4ff;}
+.meta-chip.pda{border-color:rgba(13,184,122,.3);color:#5dffc4;}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+
+.content{padding:0 48px 60px;}
+
+/* SECTION */
+.sec{margin-top:36px;}
+.sec-hdr{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.sec-num{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--wh);letter-spacing:1px;line-height:1;min-width:42px;}
+.sec-title-wrap{flex:1;}
+.sec-title-en{font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.3px;}
+.sec-title-ko{font-size:11px;color:var(--sub);margin-top:1px;}
+.sec-line{flex:1;height:1px;background:linear-gradient(90deg,var(--wh),transparent);max-width:200px;}
+
+/* OVERVIEW */
+.ov-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;}
+.ov-desc{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--wh);border-radius:0 6px 6px 0;padding:16px 18px;}
+.ov-desc-en{font-size:12px;color:var(--text);line-height:1.85;margin-bottom:10px;}
+.ov-desc-ko{font-size:11px;color:var(--sub);line-height:1.85;padding-top:10px;border-top:1px dashed var(--border);}
+.ov-meta{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.ov-meta-row{display:flex;border-bottom:1px solid var(--border);font-size:11px;}
+.ov-meta-row:last-child{border-bottom:none;}
+.ov-meta-k{flex:0 0 110px;background:#f6f8fa;padding:8px 12px;font-weight:700;color:var(--sub);font-size:10px;letter-spacing:.5px;text-transform:uppercase;border-right:1px solid var(--border);}
+.ov-meta-v{flex:1;padding:8px 12px;color:var(--text);}
+.ov-meta-v .ko{font-size:10px;color:var(--sub);margin-left:6px;}
+.ov-meta-v code{font-family:'JetBrains Mono',monospace;font-size:10px;background:#f0f3f7;padding:1px 6px;border-radius:3px;color:var(--wh);}
+
+/* MOCKUP */
+.mock-wrap{background:#eef1f5;border:1px solid var(--border);border-radius:8px;padding:14px;}
+.mock-lbl{font-size:9px;font-weight:700;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.mock-lbl::before{content:'';width:6px;height:6px;background:var(--wh);border-radius:50%;}
+.mock-win{background:#fff;border:1px solid #c8d0db;border-radius:6px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.08);}
+.mock-tbar{background:var(--text);color:#fff;padding:8px 14px;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;}
+.mock-tbar .bc{margin-left:auto;font-size:9px;color:rgba(255,255,255,.35);font-family:'JetBrains Mono',monospace;}
+.mock-toolbar{background:#f6f8fa;border-bottom:1px solid var(--border);padding:8px 14px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+.mock-toolbar select,.mock-toolbar input{padding:4px 9px;border:1px solid var(--border);border-radius:3px;font-size:11px;background:#fff;}
+.mock-body{padding:14px;}
+
+.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:14px;}
+.kc{flex:1;padding:10px 13px;border-right:1px solid var(--border);background:#fafbfc;}
+.kc:last-child{border-right:none;}
+.kv{font-size:22px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
+.kl-en{font-size:9px;color:var(--sub);margin-top:3px;}
+.kl-ko{font-size:8px;color:rgba(100,116,139,.6);}
+
+.tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.tbl th{background:#f0f3f7;padding:7px 9px;font-weight:700;border:1px solid var(--border);text-align:left;font-size:10px;color:var(--text);}
+.tbl th .th-ko{font-weight:400;color:var(--sub);font-size:9px;display:block;}
+.tbl td{padding:6px 9px;border:1px solid var(--border);vertical-align:middle;}
+.tbl .rh td{background:#f0fdf4;}
+.tbl .rw td{background:#fffbeb;}
+.tbl .rd td{background:#fef2f2;}
+.tbl tr:hover td{background:#f9fafb;}
+.tbl td .ko{color:var(--sub);font-size:10px;}
+
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
+.b-ok{background:#dcfce7;color:#166534;}
+.b-w{background:#fef9c3;color:#92400e;}
+.b-e{background:#fee2e2;color:#991b1b;}
+.b-i{background:#dbeafe;color:#1e40af;}
+.b-n{background:#f3f4f6;color:#4b5563;}
+
+.btn{padding:5px 13px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
+.btn-primary{background:var(--wh);color:#fff;border-color:var(--wh);}
+.btn-secondary{background:#f6f8fa;color:var(--text);border-color:var(--border);}
+.btn-danger{background:#dc2626;color:#fff;}
+.btn-success{background:#22c55e;color:#fff;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+
+/* COMPONENT SPEC TABLE */
+.cs-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.cs-tbl th{background:linear-gradient(180deg,#0d1f2a,#0c1a23);color:#67e8f9;padding:9px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid var(--ink3);}
+.cs-tbl th .th-ko{display:block;color:rgba(103,232,249,.55);font-weight:400;font-size:9px;letter-spacing:0;text-transform:none;margin-top:1px;}
+.cs-tbl td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.cs-tbl tr:last-child td{border-bottom:none;}
+.cs-tbl tr:hover td{background:#f9fafb;}
+.cs-tbl .c-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--wh);}
+.cs-tbl .c-name{font-weight:700;color:var(--text);}
+.cs-tbl .c-name .ko{font-size:10px;font-weight:400;color:var(--sub);display:block;margin-top:1px;}
+.cs-tbl .c-type{font-family:'JetBrains Mono',monospace;font-size:10px;color:#7c3aed;background:#f5f3ff;padding:2px 6px;border-radius:3px;display:inline-block;}
+.cs-tbl .c-req{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;}
+.cs-tbl .c-req.y{color:#dc2626;}
+.cs-tbl .c-req.n{color:var(--sub);}
+.cs-tbl .c-validation{font-size:10px;color:var(--text);line-height:1.6;}
+.cs-tbl .c-validation code{font-family:'JetBrains Mono',monospace;font-size:9px;background:#fff7ed;color:#9a3412;padding:1px 5px;border-radius:2px;}
+.cs-tbl .c-default{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sub);}
+
+/* EVENT FLOW */
+.ef-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px 20px;}
+.ef-flow{position:relative;}
+.ef-step{display:grid;grid-template-columns:46px 1fr;gap:14px;padding:10px 0;position:relative;}
+.ef-step:not(:last-child)::before{content:'';position:absolute;left:23px;top:42px;bottom:-10px;width:2px;background:linear-gradient(180deg,var(--wh),rgba(8,145,178,.15));}
+.ef-num{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--wh),#0e7490);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;box-shadow:0 4px 12px rgba(8,145,178,.25);position:relative;z-index:1;}
+.ef-step.terminal .ef-num{background:linear-gradient(135deg,#059669,#047857);box-shadow:0 4px 12px rgba(5,150,105,.25);}
+.ef-step.error .ef-num{background:linear-gradient(135deg,#dc2626,#991b1b);box-shadow:0 4px 12px rgba(220,38,38,.25);}
+.ef-body{padding-top:2px;}
+.ef-trig{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.ef-trig-tag{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;border-radius:2px;}
+.ef-trig-tag.user{background:#dbeafe;color:#1e40af;}
+.ef-trig-tag.system{background:#f3e8ff;color:#7c3aed;}
+.ef-trig-tag.scheduled{background:#fef3c7;color:#92400e;}
+.ef-trig-tag.pda{background:#d1fae5;color:#065f46;}
+.ef-trig-name{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--text);}
+.ef-action{font-size:12px;color:var(--text);line-height:1.7;margin-bottom:3px;}
+.ef-action-ko{font-size:11px;color:var(--sub);line-height:1.7;}
+.ef-result{margin-top:6px;padding:7px 10px;background:#f6f8fa;border-left:2px solid var(--wh);border-radius:0 3px 3px 0;font-size:10px;color:var(--text);}
+.ef-result .er-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;color:var(--wh);letter-spacing:1px;margin-right:6px;}
+.ef-result code{font-family:'JetBrains Mono',monospace;font-size:10px;background:#fff;padding:1px 5px;border-radius:2px;border:1px solid var(--border);color:#7c3aed;}
+.ef-step.error .ef-result{border-left-color:#dc2626;background:#fef2f2;}
+.ef-step.error .ef-result .er-lbl{color:#dc2626;}
+.ef-step.terminal .ef-result{border-left-color:#059669;background:#f0fdf4;}
+.ef-step.terminal .ef-result .er-lbl{color:#059669;}
+
+/* EXCEPTION */
+.exc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+.exc-card{background:var(--surface);border:1px solid var(--border);border-top:3px solid #dc2626;border-radius:0 0 6px 6px;padding:13px 15px;}
+.exc-card.warn{border-top-color:#f59e0b;}
+.exc-card.info{border-top-color:#0891b2;}
+.exc-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.exc-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#dc2626;background:#fef2f2;padding:2px 8px;border-radius:3px;}
+.exc-card.warn .exc-code{color:#92400e;background:#fef3c7;}
+.exc-card.info .exc-code{color:#1e40af;background:#dbeafe;}
+.exc-name{font-size:12px;font-weight:700;color:var(--text);flex:1;}
+.exc-name .ko{font-size:10px;font-weight:400;color:var(--sub);display:block;}
+.exc-row{display:grid;grid-template-columns:64px 1fr;gap:8px;padding:5px 0;border-top:1px dashed var(--border);font-size:10px;}
+.exc-row:first-of-type{border-top:none;}
+.exc-row .lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;padding-top:2px;}
+.exc-row .val{color:var(--text);line-height:1.6;}
+.exc-row .val code{font-family:'JetBrains Mono',monospace;font-size:9px;background:#f0f3f7;padding:1px 5px;border-radius:2px;color:#7c3aed;}
+.exc-row .val .ko{color:var(--sub);display:block;font-size:9px;margin-top:1px;}
+.exc-msg{margin-top:8px;padding:7px 10px;background:#1a0808;border:1px solid #3a1010;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#ff8a82;text-align:center;}
+.exc-card.warn .exc-msg{background:#1a1408;border-color:#3a2a10;color:#fbbf24;}
+.exc-card.info .exc-msg{background:#08141a;border-color:#102a3a;color:#67e8f9;}
+
+/* LINKAGE */
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px 24px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#f0fdf4;border-color:#22c55e;}
+.lnk-node.cur{background:linear-gradient(135deg,#0c1a23,#0f2632);border-color:#22d3ee;color:#fff;box-shadow:0 4px 16px rgba(34,211,238,.2);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.5px;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#15803d;}
+.lnk-node.cur .lnk-id{color:#22d3ee;}
+.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}
+.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}
+.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.lnk-arr-lbl{font-size:8px;color:var(--sub);font-family:'JetBrains Mono',monospace;letter-spacing:1px;text-transform:uppercase;display:block;text-align:center;margin-top:-6px;}
+
+/* BR MINI */
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid #f3e0b0;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.br-mini tr:last-child td{border-bottom:none;}
+.br-mini .br-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-mini .br-en{font-size:11px;color:var(--text);line-height:1.6;}
+.br-mini .br-ko{font-size:10px;color:var(--sub);line-height:1.6;margin-top:3px;}
+.br-mini .br-act{text-align:center;}
+.br-mini .br-act span{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-mini .br-act .blk{background:#fee2e2;color:#991b1b;}
+.br-mini .br-act .alt{background:#fef9c3;color:#92400e;}
+.br-mini .br-act .aut{background:#dbeafe;color:#1e40af;}
+
+/* ALERTS */
+.alert{display:flex;gap:9px;align-items:flex-start;padding:9px 13px;border-radius:5px;border:1px solid;font-size:11px;line-height:1.65;}
+.alert-i{background:#eff6ff;border-color:#bfdbfe;color:#1e40af;}
+.alert-w{background:#fef9c3;border-color:#fde68a;color:#92400e;}
+
+/* PDA MOCKUP */
+.pda-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.pda-unit{display:flex;flex-direction:column;}
+.pdu-step{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--wh);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;text-align:center;}
+.pda-shell{background:#000;border:6px solid #1a1f2e;border-radius:24px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:240px;margin:0 auto;}
+.pda-scr{background:#0c1a23;border-radius:16px;overflow:hidden;font-family:'JetBrains Mono',monospace;color:#e2e8f0;min-height:380px;display:flex;flex-direction:column;}
+.pda-sbar{background:#000;padding:5px 12px;font-size:9px;display:flex;justify-content:space-between;color:rgba(255,255,255,.7);}
+.pda-sbar .online{color:#22c55e;}
+.pda-tbar{background:linear-gradient(135deg,#060e1c,#091628);padding:10px 14px;border-bottom:1px solid rgba(34,211,238,.2);}
+.pda-title{font-size:13px;font-weight:700;color:#fff;letter-spacing:.5px;font-family:'Noto Sans KR',sans-serif;}
+.pda-sub{font-size:9px;color:rgba(255,255,255,.4);margin-top:2px;}
+.pda-bd{padding:12px;flex:1;display:flex;flex-direction:column;gap:8px;}
+.pda-scan{background:rgba(34,211,238,.05);border:1px dashed rgba(34,211,238,.3);border-radius:8px;padding:18px 10px;text-align:center;}
+.pda-scan-icon{font-size:32px;margin-bottom:6px;}
+.pda-scan-en{font-size:11px;font-weight:700;color:#22d3ee;font-family:'Noto Sans KR',sans-serif;}
+.pda-scan-ko{font-size:9px;color:rgba(34,211,238,.6);margin-top:2px;font-family:'Noto Sans KR',sans-serif;}
+.pda-field{background:rgba(255,255,255,.03);border-left:2px solid rgba(34,211,238,.4);padding:6px 10px;border-radius:0 3px 3px 0;}
+.pda-fl{font-size:8px;color:rgba(255,255,255,.4);letter-spacing:.5px;text-transform:uppercase;margin-bottom:1px;font-family:'Noto Sans KR',sans-serif;}
+.pda-fv{font-size:11px;color:#e2e8f0;font-weight:700;}
+.pda-fv.ok{color:#5dffc4;}
+.pda-fv.er{color:#ff8a82;}
+.pda-disp{background:#000;color:#22d3ee;font-family:'Bebas Neue',sans-serif;font-size:32px;text-align:center;padding:10px;border-radius:5px;letter-spacing:2px;border:1px solid rgba(34,211,238,.2);}
+.pda-numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:6px;}
+.pda-key{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:4px;padding:8px;text-align:center;font-size:14px;color:#e2e8f0;font-family:'Noto Sans KR',sans-serif;}
+.pda-key.k-ok{background:rgba(34,211,238,.2);color:#22d3ee;border-color:rgba(34,211,238,.3);}
+.pda-key.k-del{background:rgba(239,68,68,.15);color:#ff8a82;border-color:rgba(239,68,68,.25);}
+.pda-btn{padding:9px;border-radius:5px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:'Noto Sans KR',sans-serif;margin-top:4px;}
+.pda-pri{background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;}
+.pda-sec{background:rgba(255,255,255,.06);color:#e2e8f0;border:1px solid rgba(255,255,255,.1);}
+.pda-dan{background:linear-gradient(135deg,#dc2626,#991b1b);color:#fff;}
+
+/* LOCATION MAP GRID */
+.loc-grid-wrap{background:#fff;border:1px solid var(--border);border-radius:6px;padding:16px;}
+.loc-grid-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+.loc-legend{display:flex;gap:14px;font-size:9px;color:var(--sub);}
+.loc-legend .lg{display:flex;align-items:center;gap:4px;}
+.loc-legend .lg-sw{width:12px;height:12px;border-radius:2px;border:1px solid rgba(0,0,0,.1);}
+.loc-zone{margin-bottom:14px;}
+.loc-zone-hdr{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--wh);letter-spacing:.5px;margin-bottom:6px;}
+.loc-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;}
+.loc-cell{aspect-ratio:1;border:1px solid #c8d0db;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:8px;font-family:'JetBrains Mono',monospace;font-weight:700;color:#fff;cursor:pointer;transition:transform .1s;}
+.loc-cell:hover{transform:scale(1.1);z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+.loc-cell.empty{background:#e5e7eb;color:#94a3b8;}
+.loc-cell.partial{background:#fbbf24;}
+.loc-cell.full{background:#22c55e;}
+.loc-cell.over{background:#ef4444;}
+
+/* DATA MODEL */
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}
+.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;}
+.dm-pk{color:#f59e0b;}
+.dm-fk{color:#8b5cf6;}
+.dm-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:9px;}
+
+/* FOOTER */
+.page-footer{padding:24px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;align-items:center;font-size:10px;}
+.page-footer .pf-l{font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.page-footer .pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+
+@media (max-width:1100px){
+  .ov-grid{grid-template-columns:1fr;}
+  .exc-grid{grid-template-columns:1fr;}
+  .scr-id-block{flex-direction:column;align-items:flex-start;gap:6px;}
+  .scr-id{font-size:42px;}
+  .scr-title-en{font-size:32px;}
+  .pda-row{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<nav class="ames-nav"><div class="ames-nav-inner">
+  <a class="nav-home" href="INDEX.html">
+    <div><div class="nav-home-logo">A-MES</div><div class="nav-home-sub">Index</div></div>
+  </a>
+  <a href="VOL03_WH_Warehouse.html" class="nav-vol active"><span class="nv-code" style="color:#0891b2;">WH</span><span>Warehouse</span></a>
+  <a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span>Plan</span></a>
+  <a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span>Injection</span></a>
+  <a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span>Wrapping</span></a>
+  <a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span>Painting</span></a>
+  <a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span>Quality</span></a>
+  <a href="VOL09_FG_Finished.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span>Finished Goods</span></a>
+  <a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span>Maintenance</span></a>
+  <a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span>Reports</span></a>
+  <a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span>System</span></a>
+  <a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span>Master Data</span></a>
+</div></nav>
+
+<div class="l3-crumb">
+  <span class="lvl">L1</span><a href="INDEX.html">A-MES Index</a>
+  <span class="arr">▸</span>
+  <span class="lvl">L2</span><a href="VOL03_WH_Warehouse.html">VOL.3 · WH Warehouse</a>
+  <span class="arr">▸</span>
+  <span class="lvl">L3</span><span class="current">WH-06 · Release Schedule</span>
+</div>
+
+<div class="page-wrap">
+
+<nav class="sidebar">
+  <div class="sb-head">
+    <div class="sb-vol">VOL.3 · WH MODULE</div>
+    <div class="sb-mod-en">WAREHOUSE</div>
+    <div class="sb-mod-ko">창고 관리</div>
+  </div>
+  <div class="sb-section">L3 Screens · 화면 상세</div>
+  <a class="sb-link" href="VOL03_WH01_Inbound_Schedule.html"><span class="sl-id">WH-01</span><div><div class="sl-en">Inbound Schedule</div><div class="sl-ko">입고 예정</div></div></a>
+  <a class="sb-link" href="VOL03_WH02_PDA_Inbound.html"><span class="sl-id">WH-02</span><div><div class="sl-en">PDA Inbound</div><div class="sl-ko">PDA 입고 처리</div></div></a>
+  <a class="sb-link" href="VOL03_WH03_Inventory_Status.html"><span class="sl-id">WH-03</span><div><div class="sl-en">Inventory Status</div><div class="sl-ko">재고 현황</div></div></a>
+  <a class="sb-link" href="VOL03_WH04_Location_Map.html"><span class="sl-id">WH-04</span><div><div class="sl-en">Location Map</div><div class="sl-ko">로케이션 맵</div></div></a>
+  <a class="sb-link" href="VOL03_WH05_Inventory_Adjust.html"><span class="sl-id">WH-05</span><div><div class="sl-en">Inventory Adjust</div><div class="sl-ko">재고 조정</div></div></a>
+  <a class="sb-link on" href="VOL03_WH06_Release_Schedule.html"><span class="sl-id">WH-06</span><div><div class="sl-en">Release Schedule</div><div class="sl-ko">출고 예정</div></div></a>
+  <a class="sb-link" href="VOL03_WH07_PDA_Release.html"><span class="sl-id">WH-07</span><div><div class="sl-en">PDA Release</div><div class="sl-ko">PDA 출고 피킹</div></div></a>
+  <a class="sb-link" href="VOL03_WH08_Transaction_History.html"><span class="sl-id">WH-08</span><div><div class="sl-en">Transaction History</div><div class="sl-ko">입출고 이력</div></div></a>
+
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page</div>
+    <a href="#s1"><span class="num">01</span>Overview</a>
+    <a href="#s2"><span class="num">02</span>Screen Mockup</a>
+    <a href="#s3"><span class="num">03</span>UI Components</a>
+    <a href="#s4"><span class="num">04</span>Event &amp; Action Flow</a>
+    <a href="#s5"><span class="num">05</span>Exception Handling</a>
+    <a href="#s6"><span class="num">06</span>Linked Screens</a>
+    <a href="#s7"><span class="num">07</span>Business Rules</a>
+  </div>
+</nav>
+
+<div class="main">
+
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.3 · WH · Warehouse Management · 출고 예정</div>
+      <div class="scr-id-block">
+        <div class="scr-id">WH-06</div>
+        <div>
+          <div class="scr-title-en">Release Schedule</div>
+        </div>
+      </div>
+      <div class="scr-title-ko">출 고 예 정</div>
+      <div class="scr-meta">
+        <div class="meta-chip web"><span class="mc-lbl">Device</span><span class="mc-val">🖥 Web PC</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">1st Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">Warehouse Staff (WH.Release)</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Freq</span><span class="mc-val">Continuous · 상시</span></div>
+        <div class="meta-chip"><span class="mc-lbl">URL</span><span class="mc-val" style="font-family:'JetBrains Mono',monospace;">/wh/release/schedule</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+  <!-- 1. OVERVIEW -->
+  <section class="sec" id="s1">
+    <div class="sec-hdr">
+      <div class="sec-num">01</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Overview</div>
+        <div class="sec-title-ko">화면 개요</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="ov-grid">
+      <div class="ov-desc">
+        <div class="ov-desc-en">
+          Lists upcoming material release demands derived from active Work Orders (WO) in the PP module. For each WO line, the system computes BOM-exploded material needs vs current on-hand and flags shortages. Warehouse staff use this screen to <strong>pre-pick</strong> materials ahead of production start (preparation status), and click <strong>[Start Picking]</strong> to launch WH-07 PDA flow. Filters by line, shift, WO number, and item. ETA is the planned WO start time minus a configurable lead (default: 30 min).
+        </div>
+        <div class="ov-desc-ko">
+          PP 모듈 활성 작업지시(WO) 기반 자재 출고 예정 목록입니다. WO별로 BOM 분해된 자재 소요량을 현재고와 대조하여 부족 자재를 표시합니다. 창고 담당자는 본 화면에서 생산 시작 전 <strong>사전 피킹</strong>을 준비하고(준비 상태), <strong>[Start Picking]</strong> 클릭 시 WH-07 PDA 흐름이 시작됩니다. 라인·교대·WO 번호·품목 필터 지원. ETA는 WO 계획 시작 시각에서 설정된 리드타임(기본 30분)을 차감한 값입니다.
+        </div>
+      </div>
+      <div class="ov-meta">
+        <div class="ov-meta-row"><div class="ov-meta-k">Screen ID</div><div class="ov-meta-v"><code>WH-06</code></div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">Layout</div><div class="ov-meta-v">Filter + KPI + Demand table <span class="ko">필터·KPI·수요표</span></div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">Source</div><div class="ov-meta-v">PP-04 WO + PP-BOM <span class="ko">작업지시·BOM</span></div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">Refresh</div><div class="ov-meta-v">Real-time push + 5 min cron <span class="ko">실시간 + 5분</span></div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">Lead Time</div><div class="ov-meta-v">30 min (config in MD-15) <span class="ko">기본 30분</span></div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">Tables</div><div class="ov-meta-v"><code>wo_header</code>, <code>wo_bom_demand</code>, <code>wh_inventory</code></div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">RBAC</div><div class="ov-meta-v"><code>WH.View</code> · <code>WH.Release</code></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. MOCKUP -->
+  <section class="sec" id="s2">
+    <div class="sec-hdr">
+      <div class="sec-num">02</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Screen Mockup</div>
+        <div class="sec-title-ko">화면 목업</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="mock-wrap">
+      <div class="mock-lbl">WH-06 · Release Schedule · Web PC · 1920×1080</div>
+      <div class="mock-win">
+        <div class="mock-tbar">📦 A-MES · Warehouse · Release Schedule <span class="bc">Warehouse &gt; Release &gt; Schedule</span></div>
+        <div class="mock-toolbar">
+          <select><option>All Lines</option><option>INJ-L1 사출 1호기</option><option>INJ-L2 사출 2호기</option><option>IMG-L1 래핑 1호기</option><option>PNT-L1 도장 1호기</option></select>
+          <select><option>All Shifts</option><option>주간 (Day)</option><option>야간 (Night)</option></select>
+          <select><option>All Status</option><option>Pending · 대기</option><option>Prep · 준비중</option><option>Ready · 피킹 가능</option><option>Released · 출고완료</option></select>
+          <input type="date" style="width:130px;">
+          <input type="text" placeholder="WO No / Item..." style="width:160px;">
+          <button class="btn btn-primary btn-sm">🔍 Search</button>
+          <button class="btn btn-secondary btn-sm" style="margin-left:auto;">📥 Excel</button>
+        </div>
+        <div class="mock-body">
+          <div class="kpi-strip">
+            <div class="kc"><div class="kv" style="color:#0891b2;">23</div><div class="kl-en">Today's WOs</div><div class="kl-ko">금일 WO</div></div>
+            <div class="kc"><div class="kv" style="color:#22c55e;">14</div><div class="kl-en">Ready to Pick</div><div class="kl-ko">피킹 가능</div></div>
+            <div class="kc"><div class="kv" style="color:#f59e0b;">6</div><div class="kl-en">Within 30 min</div><div class="kl-ko">30분 이내 시작</div></div>
+            <div class="kc"><div class="kv" style="color:#dc2626;">2</div><div class="kl-en">⚠ Shortage</div><div class="kl-ko">자재 부족</div></div>
+            <div class="kc"><div class="kv" style="color:#6366f1;">1</div><div class="kl-en">Released</div><div class="kl-ko">출고 완료</div></div>
+          </div>
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>WO No. <span class="th-ko">작업지시</span></th>
+                <th>Line · Shift <span class="th-ko">라인·교대</span></th>
+                <th>Finished Item <span class="th-ko">생산 품목</span></th>
+                <th>WO Qty</th>
+                <th>Material to Release <span class="th-ko">출고 자재</span></th>
+                <th>Required <span class="th-ko">소요량</span></th>
+                <th>On Hand <span class="th-ko">현재고</span></th>
+                <th>Plan Start <span class="th-ko">계획 시작</span></th>
+                <th>ETA Lead</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="rh">
+                <td style="font-family:monospace;font-size:9px;font-weight:700;">WO-2025-0715-001</td>
+                <td>INJ-L1 · 주간</td>
+                <td>TRIM-LH-001<div class="ko">트림 LH</div></td>
+                <td style="text-align:right;">2,030</td>
+                <td style="font-family:monospace;font-size:9px;">RM-PP-NAT-20</td>
+                <td style="text-align:right;">81 kg</td>
+                <td style="text-align:right;color:#22c55e;font-weight:700;">1,250 kg</td>
+                <td>14:00</td>
+                <td style="text-align:center;font-weight:700;color:#22c55e;">13:30</td>
+                <td><span class="b b-ok">Ready</span></td>
+                <td><button class="btn btn-primary btn-sm">▶ Start Picking</button></td>
+              </tr>
+              <tr class="rh">
+                <td style="font-family:monospace;font-size:9px;font-weight:700;">WO-2025-0715-002</td>
+                <td>IMG-L1 · 주간</td>
+                <td>TRIM-LH-001-GY<div class="ko">트림 LH 회색</div></td>
+                <td style="text-align:right;">2,030</td>
+                <td style="font-family:monospace;font-size:9px;">FAB-GY-C03</td>
+                <td style="text-align:right;">12 roll</td>
+                <td style="text-align:right;color:#22c55e;font-weight:700;">42 roll</td>
+                <td>16:00</td>
+                <td style="text-align:center;">15:30</td>
+                <td><span class="b b-ok">Ready</span></td>
+                <td><button class="btn btn-primary btn-sm">▶ Start Picking</button></td>
+              </tr>
+              <tr class="rd">
+                <td style="font-family:monospace;font-size:9px;font-weight:700;color:#dc2626;">WO-2025-0715-003</td>
+                <td>PNT-L1 · 주간</td>
+                <td>CONS-UP-001<div class="ko">콘솔 어퍼</div></td>
+                <td style="text-align:right;">650</td>
+                <td style="font-family:monospace;font-size:9px;color:#dc2626;">PNT-BK-NH578</td>
+                <td style="text-align:right;color:#dc2626;font-weight:700;">320 L</td>
+                <td style="text-align:right;color:#dc2626;font-weight:700;">284 L ⚠</td>
+                <td>18:00</td>
+                <td style="text-align:center;">17:30</td>
+                <td><span class="b b-e">⚠ Shortage</span></td>
+                <td><button class="btn btn-secondary btn-sm" disabled>Insufficient</button></td>
+              </tr>
+              <tr class="rw">
+                <td style="font-family:monospace;font-size:9px;">WO-2025-0715-004</td>
+                <td>INJ-L2 · 야간</td>
+                <td>TRIM-RH-001<div class="ko">트림 RH</div></td>
+                <td style="text-align:right;">2,030</td>
+                <td style="font-family:monospace;font-size:9px;">RM-PP-NAT-20</td>
+                <td style="text-align:right;">81 kg</td>
+                <td style="text-align:right;color:#f59e0b;font-weight:700;">1,169 kg*</td>
+                <td>22:00</td>
+                <td style="text-align:center;">21:30</td>
+                <td><span class="b b-w">Prep</span></td>
+                <td><button class="btn btn-secondary btn-sm">📋 Prepare</button></td>
+              </tr>
+              <tr>
+                <td style="font-family:monospace;font-size:9px;">WO-2025-0716-001</td>
+                <td>IMG-L1 · 주간</td>
+                <td>TRIM-RH-001-GY<div class="ko">트림 RH 회색</div></td>
+                <td style="text-align:right;">2,030</td>
+                <td style="font-family:monospace;font-size:9px;">FAB-GY-C03</td>
+                <td style="text-align:right;">12 roll</td>
+                <td style="text-align:right;">30 roll**</td>
+                <td>2025-07-16<br>10:00</td>
+                <td style="text-align:center;">D-1</td>
+                <td><span class="b b-i">Pending</span></td>
+                <td><button class="btn btn-secondary btn-sm">Detail</button></td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="margin-top:8px;font-size:9px;color:var(--sub);line-height:1.6;">
+            * after WO-2025-0715-001 consumes 81 kg (projected) &nbsp;&nbsp; ** after WO-2025-0715-002 consumes 12 roll (projected)
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="alert alert-i" style="margin-top:14px;"><span>ℹ️</span><div><strong>ETA Lead · 리드타임</strong> — Plan Start - Lead (default 30 min). When ETA &lt; CURRENT_TIME, the row turns red and triggers immediate picking alert. Lead time configurable per line in <code>MD-15</code> Line Master.</div></div>
+  </section>
+
+  <!-- 3. UI COMPONENT SPEC -->
+  <section class="sec" id="s3">
+    <div class="sec-hdr">
+      <div class="sec-num">03</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">UI Component Specification</div>
+        <div class="sec-title-ko">UI 컴포넌트 명세</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <h3 style="font-size:12px;font-weight:700;color:var(--sub);margin:6px 0 8px;letter-spacing:.5px;">3.1 Filter Toolbar <span style="color:var(--sub);font-weight:400;">· 필터</span></h3>
+    <table class="cs-tbl">
+      <thead><tr><th style="width:90px;">ID</th><th style="width:180px;">Component</th><th style="width:120px;">Type</th><th style="width:60px;">Req</th><th>Validation / Behavior</th><th style="width:140px;">Default</th></tr></thead>
+      <tbody>
+        <tr><td class="c-id">CMP-01</td><td class="c-name">Line Filter<span class="ko">라인 필터</span></td><td><span class="c-type">SELECT</span></td><td class="c-req n">N</td><td class="c-validation">From <code>md_line</code> active rows. Selecting line filters all downstream lists.</td><td class="c-default">All Lines</td></tr>
+        <tr><td class="c-id">CMP-02</td><td class="c-name">Shift Filter<span class="ko">교대 필터</span></td><td><span class="c-type">SELECT</span></td><td class="c-req n">N</td><td class="c-validation">주간 (Day 08:00–20:00) / 야간 (Night 20:00–08:00).</td><td class="c-default">All Shifts</td></tr>
+        <tr><td class="c-id">CMP-03</td><td class="c-name">Status Filter<span class="ko">상태 필터</span></td><td><span class="c-type">SELECT</span></td><td class="c-req n">N</td><td class="c-validation">Options: <code>Pending / Prep / Ready / Shortage / Released</code>. KPI cards auto-apply.</td><td class="c-default">All Status</td></tr>
+        <tr><td class="c-id">CMP-04</td><td class="c-name">Date Picker<span class="ko">날짜 선택</span></td><td><span class="c-type">DATE</span></td><td class="c-req n">N</td><td class="c-validation">Filter by WO plan start date. Default today.</td><td class="c-default">Today</td></tr>
+        <tr><td class="c-id">CMP-05</td><td class="c-name">Search Box<span class="ko">검색창</span></td><td><span class="c-type">TEXT</span></td><td class="c-req n">N</td><td class="c-validation">Match WO no., item code or item name. Min 2 chars. 300ms debounce.</td><td class="c-default">(empty)</td></tr>
+        <tr><td class="c-id">CMP-06</td><td class="c-name">Excel Export<span class="ko">엑셀 출력</span></td><td><span class="c-type">BUTTON</span></td><td class="c-req n">N</td><td class="c-validation">Filename: <code>WH06_Release_YYYYMMDD.xlsx</code>. Includes shortage column with red highlighting.</td><td class="c-default">—</td></tr>
+      </tbody>
+    </table>
+
+    <h3 style="font-size:12px;font-weight:700;color:var(--sub);margin:18px 0 8px;letter-spacing:.5px;">3.2 KPI Strip <span style="color:var(--sub);font-weight:400;">· KPI</span></h3>
+    <table class="cs-tbl">
+      <thead><tr><th style="width:90px;">ID</th><th style="width:180px;">Metric</th><th style="width:120px;">Type</th><th>Calculation</th><th style="width:140px;">Refresh</th></tr></thead>
+      <tbody>
+        <tr><td class="c-id">KPI-01</td><td class="c-name">Today's WOs<span class="ko">금일 WO</span></td><td><span class="c-type">COUNT</span></td><td class="c-validation"><code>COUNT(*) FROM wo_header WHERE DATE(plan_start) = TODAY AND status IN ('Released','Active')</code>.</td><td class="c-default">5 min</td></tr>
+        <tr><td class="c-id">KPI-02</td><td class="c-name">Ready to Pick<span class="ko">피킹 가능</span></td><td><span class="c-type">COUNT</span></td><td class="c-validation">WOs with all materials on-hand sufficient. Green.</td><td class="c-default">5 min</td></tr>
+        <tr><td class="c-id">KPI-03</td><td class="c-name">Within 30 min<span class="ko">30분 이내</span></td><td><span class="c-type">COUNT</span></td><td class="c-validation">WOs whose ETA (plan_start - lead) is within next 30 minutes. Yellow urgency.</td><td class="c-default">1 min</td></tr>
+        <tr><td class="c-id">KPI-04</td><td class="c-name">⚠ Shortage<span class="ko">자재 부족</span></td><td><span class="c-type">COUNT</span></td><td class="c-validation">WOs where any required material's on_hand &lt; required (after upstream allocation). Red.</td><td class="c-default">5 min</td></tr>
+        <tr><td class="c-id">KPI-05</td><td class="c-name">Released<span class="ko">출고 완료</span></td><td><span class="c-type">COUNT</span></td><td class="c-validation">WOs with all material release transactions complete today.</td><td class="c-default">5 min</td></tr>
+      </tbody>
+    </table>
+
+    <h3 style="font-size:12px;font-weight:700;color:var(--sub);margin:18px 0 8px;letter-spacing:.5px;">3.3 Data Table Columns <span style="color:var(--sub);font-weight:400;">· 표 컬럼</span></h3>
+    <table class="cs-tbl">
+      <thead><tr><th style="width:90px;">ID</th><th style="width:160px;">Column</th><th style="width:130px;">Source</th><th>Format / Rule</th><th style="width:90px;">Sort</th></tr></thead>
+      <tbody>
+        <tr><td class="c-id">COL-01</td><td class="c-name">WO No.<span class="ko">작업지시</span></td><td><code class="c-type">wo_header.wo_no</code></td><td class="c-validation">Monospace. Click → PP-04 WO detail.</td><td class="c-default">ASC</td></tr>
+        <tr><td class="c-id">COL-02</td><td class="c-name">Line · Shift<span class="ko">라인·교대</span></td><td><code class="c-type">wo_header.line_id</code></td><td class="c-validation">Line code + shift name.</td><td class="c-default">—</td></tr>
+        <tr><td class="c-id">COL-03</td><td class="c-name">Finished Item<span class="ko">생산 품목</span></td><td><code class="c-type">md_item</code></td><td class="c-validation">EN main + KO subtext.</td><td class="c-default">—</td></tr>
+        <tr><td class="c-id">COL-04</td><td class="c-name">WO Qty<span class="ko">WO 수량</span></td><td><code class="c-type">wo_header.plan_qty</code></td><td class="c-validation">Right-align, thousands separator.</td><td class="c-default">—</td></tr>
+        <tr><td class="c-id">COL-05</td><td class="c-name">Material<span class="ko">출고 자재</span></td><td><code class="c-type">wo_bom_demand.item_code</code></td><td class="c-validation">Multiple rows if multiple materials per WO (one row per material). Monospace.</td><td class="c-default">—</td></tr>
+        <tr><td class="c-id">COL-06</td><td class="c-name">Required<span class="ko">소요량</span></td><td><code class="c-type">wo_bom_demand.required_qty</code></td><td class="c-validation">WO qty × BOM unit ratio. Right-align with unit.</td><td class="c-default">—</td></tr>
+        <tr><td class="c-id">COL-07</td><td class="c-name">On Hand (projected)<span class="ko">현재고 (예상)</span></td><td><em>Calculated</em></td><td class="c-validation">Current on_hand minus upstream WO allocations. Red if insufficient. Tooltip shows allocation breakdown.</td><td class="c-default">—</td></tr>
+        <tr><td class="c-id">COL-08</td><td class="c-name">Plan Start<span class="ko">계획 시작</span></td><td><code class="c-type">wo_header.plan_start</code></td><td class="c-validation">Time only if today; full datetime if other day.</td><td class="c-default">ASC ★</td></tr>
+        <tr><td class="c-id">COL-09</td><td class="c-name">ETA Lead<span class="ko">출고 ETA</span></td><td><em>Calculated</em></td><td class="c-validation"><code>plan_start - line.lead_time</code>. Red if past, yellow if within 30min, default else.</td><td class="c-default">—</td></tr>
+        <tr><td class="c-id">COL-10</td><td class="c-name">Status<span class="ko">상태</span></td><td><em>Derived</em></td><td class="c-validation">Pending / Prep / Ready / Shortage / Released. Auto from rules.</td><td class="c-default">—</td></tr>
+        <tr><td class="c-id">COL-11</td><td class="c-name">Action<span class="ko">액션</span></td><td><em>Button</em></td><td class="c-validation"><strong>[Start Picking]</strong> if Ready · <strong>[Prepare]</strong> if Prep · <strong>[Detail]</strong> if Pending · disabled if Shortage.</td><td class="c-default">—</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 4. EVENT FLOW -->
+  <section class="sec" id="s4">
+    <div class="sec-hdr">
+      <div class="sec-num">04</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Event &amp; Action Flow</div>
+        <div class="sec-title-ko">이벤트 · 액션 흐름</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="ef-wrap"><div class="ef-flow">
+
+      <div class="ef-step">
+        <div class="ef-num">1</div>
+        <div class="ef-body">
+          <div class="ef-trig"><span class="ef-trig-tag scheduled">Scheduled</span><span class="ef-trig-name">cron · WO demand refresh @ 5min</span></div>
+          <div class="ef-action">Every 5 minutes, system recalculates material demand for all active WOs by joining <code>wo_header × wo_bom_demand × wh_inventory</code>. Updates shortage flags.</div>
+          <div class="ef-action-ko">5분마다 WO·BOM·재고를 조인하여 자재 소요·부족 플래그 재계산.</div>
+          <div class="ef-result"><span class="er-lbl">EFFECT</span> Materialized view <code>vw_release_schedule</code> refreshed · WebSocket push to clients.</div>
+        </div>
+      </div>
+
+      <div class="ef-step">
+        <div class="ef-num">2</div>
+        <div class="ef-body">
+          <div class="ef-trig"><span class="ef-trig-tag user">User</span><span class="ef-trig-name">page.load · WH-06 진입</span></div>
+          <div class="ef-action">Warehouse staff opens screen. Default filter: today's date + all lines. Loads demand list sorted by ETA ascending.</div>
+          <div class="ef-action-ko">WH-06 진입 시 기본 필터(오늘 + 전체 라인)로 ETA 오름차순 정렬 로딩.</div>
+          <div class="ef-result"><span class="er-lbl">API</span><code>GET /api/wh/release/schedule?date=today</code>.</div>
+        </div>
+      </div>
+
+      <div class="ef-step">
+        <div class="ef-num">3</div>
+        <div class="ef-body">
+          <div class="ef-trig"><span class="ef-trig-tag user">User</span><span class="ef-trig-name">click · [📋 Prepare]</span></div>
+          <div class="ef-action">User marks a WO as "preparing" — soft-reserves materials in inventory (status flag, not yet deducted). Other WOs see projected on-hand updated.</div>
+          <div class="ef-action-ko">[Prepare] 클릭 시 자재를 소프트 예약(상태만 변경, 차감 아님). 다른 WO는 예상 가용량 갱신 확인.</div>
+          <div class="ef-result"><span class="er-lbl">API</span><code>POST /api/wh/release/prepare</code> · <code>wo_header.prep_flag=1</code> · <code>reserved_qty</code> set.</div>
+        </div>
+      </div>
+
+      <div class="ef-step">
+        <div class="ef-num">4</div>
+        <div class="ef-body">
+          <div class="ef-trig"><span class="ef-trig-tag user">User</span><span class="ef-trig-name">click · [▶ Start Picking]</span></div>
+          <div class="ef-action">User initiates picking. System checks RBAC <code>WH.Release</code> and material availability. Creates picking session and launches WH-07 PDA flow.</div>
+          <div class="ef-action-ko">[Start Picking] 클릭 시 권한 + 자재 가용성 확인 후 피킹 세션 생성, WH-07 PDA 흐름 시작.</div>
+          <div class="ef-result"><span class="er-lbl">REDIRECT</span><code>POST /api/wh/release/start</code> → returns <code>picking_id</code> → redirect <code>/wh/pda/release?pid=...</code>.</div>
+        </div>
+      </div>
+
+      <div class="ef-step">
+        <div class="ef-num">5</div>
+        <div class="ef-body">
+          <div class="ef-trig"><span class="ef-trig-tag system">System</span><span class="ef-trig-name">alert · ETA approaching</span></div>
+          <div class="ef-action">When ETA &lt; 15 min and status is still Pending/Prep, system sends alert to warehouse staff and line supervisor.</div>
+          <div class="ef-action-ko">ETA 15분 이내인데 Pending/Prep 상태인 경우 창고 담당·라인 슈퍼바이저에 알림 발송.</div>
+          <div class="ef-result"><span class="er-lbl">SIDE-EFFECT</span> In-app push notification · email · sys_alert row inserted.</div>
+        </div>
+      </div>
+
+      <div class="ef-step error">
+        <div class="ef-num">!</div>
+        <div class="ef-body">
+          <div class="ef-trig"><span class="ef-trig-tag system">System</span><span class="ef-trig-name">detect · shortage</span></div>
+          <div class="ef-action">When required material &gt; projected on_hand, WO turns red. [Start Picking] disabled. Suggestion: trigger MRP rerun or expedite PO from procurement.</div>
+          <div class="ef-action-ko">소요량 &gt; 예상 현재고 시 WO가 빨간색으로 전환되고 [Start Picking] 비활성. MRP 재계산·긴급 발주 권고.</div>
+          <div class="ef-result"><span class="er-lbl">ALERT</span> WO marked shortage · email to procurement + plant mgr · ref to PP-05 MRP.</div>
+        </div>
+      </div>
+
+      <div class="ef-step terminal">
+        <div class="ef-num">✓</div>
+        <div class="ef-body">
+          <div class="ef-trig"><span class="ef-trig-tag system">System</span><span class="ef-trig-name">return · from WH-07 success</span></div>
+          <div class="ef-action">After WH-07 picking completes, WO status = Released. Inventory deducted. Row badge updates. Production line notified that material is staged.</div>
+          <div class="ef-action-ko">WH-07 피킹 완료 시 WO 상태 = Released. 재고 차감. 생산 라인에 자재 준비 완료 알림.</div>
+          <div class="ef-result"><span class="er-lbl">DOWNSTREAM</span> WH-08 logs · WH-03 push update · PP-04 WO ready signal · INJ/IMG/PNT line dashboards.</div>
+        </div>
+      </div>
+
+    </div></div>
+  </section>
+
+  <!-- 5. EXCEPTION -->
+  <section class="sec" id="s5">
+    <div class="sec-hdr">
+      <div class="sec-num">05</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Exception &amp; Error Handling</div>
+        <div class="sec-title-ko">예외 · 에러 처리</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="exc-grid">
+
+      <div class="exc-card">
+        <div class="exc-hdr"><span class="exc-code">E-WH06-001</span><div class="exc-name">Material Shortage<span class="ko">자재 부족</span></div></div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val">Required material qty &gt; projected on-hand. <span class="ko">소요량 &gt; 예상 가용량.</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val">5-minute cron + real-time on WH-02/05/07 commits.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Row red. [Start Picking] disabled. Email procurement + plant mgr. Link to PP-05 MRP rerun.</div></div>
+        <div class="exc-row"><div class="lbl">Recovery</div><div class="val">Expedite PO via WH-01 [Register Schedule] or transfer stock from another location.</div></div>
+        <div class="exc-msg">⛔ SHORTAGE — EXPEDITE PROCUREMENT</div>
+      </div>
+
+      <div class="exc-card warn">
+        <div class="exc-hdr"><span class="exc-code">E-WH06-002</span><div class="exc-name">ETA Already Passed<span class="ko">ETA 경과</span></div></div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val">Current time &gt; ETA but WO not yet picked. <span class="ko">현재 시각이 ETA를 초과했지만 미피킹.</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val">Per-row time check on every render.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Row blinks red. ETA badge "OVERDUE". Auto-escalate notification every 5 min until picked or cancelled.</div></div>
+        <div class="exc-row"><div class="lbl">Recovery</div><div class="val">Start picking immediately, or adjust WO plan_start in PP-04.</div></div>
+        <div class="exc-msg">⚠ OVERDUE — START NOW</div>
+      </div>
+
+      <div class="exc-card">
+        <div class="exc-hdr"><span class="exc-code">E-WH06-003</span><div class="exc-name">Concurrent Picking Lock<span class="ko">중복 피킹 시도</span></div></div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val">Another user has already started picking this WO. <span class="ko">동일 WO를 다른 사용자가 이미 시작.</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val">DB row lock on <code>picking_id</code> already exists.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Block. Show "Picking already in progress by [user] since [time]. View only?"</div></div>
+        <div class="exc-row"><div class="lbl">Recovery</div><div class="val">Wait or coordinate with the other user.</div></div>
+        <div class="exc-msg">⛔ LOCKED — IN PROGRESS</div>
+      </div>
+
+      <div class="exc-card warn">
+        <div class="exc-hdr"><span class="exc-code">E-WH06-004</span><div class="exc-name">WO Cancelled Upstream<span class="ko">WO 상위 취소</span></div></div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val">WO was cancelled in PP-04 after warehouse already prepared. <span class="ko">PP-04에서 WO 취소.</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val">WO status change event from PP module.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Row removed from list with notification: "WO cancelled. Return prepared materials." Soft-reservation released automatically.</div></div>
+        <div class="exc-row"><div class="lbl">Recovery</div><div class="val">Return materials to storage. No inventory deduction needed (was only reserved).</div></div>
+        <div class="exc-msg">⚠ WO CANCELLED — RETURN MATERIALS</div>
+      </div>
+
+      <div class="exc-card warn">
+        <div class="exc-hdr"><span class="exc-code">E-WH06-005</span><div class="exc-name">BOM Not Defined<span class="ko">BOM 미정의</span></div></div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val">WO created for an item with incomplete BOM in PP module. <span class="ko">PP BOM 미정의 품목 WO.</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val">LEFT JOIN <code>wo_bom_demand</code> returns 0 rows.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Material column shows "—". Row marked as "BOM ERROR" with link to MD-03 BOM Master.</div></div>
+        <div class="exc-row"><div class="lbl">Recovery</div><div class="val">Master data team defines/completes BOM, then WH-06 row updates.</div></div>
+        <div class="exc-msg">⚠ NO BOM — SEE MD-03</div>
+      </div>
+
+      <div class="exc-card info">
+        <div class="exc-hdr"><span class="exc-code">E-WH06-006</span><div class="exc-name">No Picker Assigned<span class="ko">피커 미지정</span></div></div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val">No warehouse staff with <code>WH.Release</code> role is online during shift. <span class="ko">교대 중 출고 권한 담당자 없음.</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val">Hourly check during active shifts.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Banner: "No picker available for [shift]." Alert sent to WH manager to assign or escalate.</div></div>
+        <div class="exc-row"><div class="lbl">Recovery</div><div class="val">Manager assigns staff or covers personally.</div></div>
+        <div class="exc-msg">ℹ NO PICKER — ASSIGN STAFF</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 6. LINKED -->
+  <section class="sec" id="s6">
+    <div class="sec-hdr">
+      <div class="sec-num">06</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Linked Screens</div>
+        <div class="sec-title-ko">선행 · 후행 연계 화면</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="lnk-wrap">
+      <div class="lnk-row" style="margin-bottom:18px;">
+        <div class="lnk-node up"><div class="lnk-id">PP-04</div><div class="lnk-name">Work Orders</div><div class="lnk-ko">작업지시</div></div>
+        <div style="text-align:center;"><div class="lnk-arr">→</div><div class="lnk-arr-lbl">WO + qty</div></div>
+        <div class="lnk-node up"><div class="lnk-id">MD-03</div><div class="lnk-name">BOM Master</div><div class="lnk-ko">BOM 기준정보</div></div>
+        <div style="text-align:center;"><div class="lnk-arr">→</div><div class="lnk-arr-lbl">unit ratio</div></div>
+        <div class="lnk-node up"><div class="lnk-id">WH-03</div><div class="lnk-name">Inventory</div><div class="lnk-ko">재고</div></div>
+        <div style="text-align:center;"><div class="lnk-arr">→</div><div class="lnk-arr-lbl">on-hand</div></div>
+        <div class="lnk-node cur"><div class="lnk-id">WH-06</div><div class="lnk-name">Release Schedule</div><div class="lnk-ko">출고 예정 (현재)</div></div>
+      </div>
+
+      <div class="lnk-row">
+        <div class="lnk-node cur"><div class="lnk-id">WH-06</div><div class="lnk-name">Release Schedule</div><div class="lnk-ko">출고 예정 (현재)</div></div>
+        <div style="text-align:center;"><div class="lnk-arr">→</div><div class="lnk-arr-lbl">[Start Picking]</div></div>
+        <div class="lnk-node down"><div class="lnk-id">WH-07</div><div class="lnk-name">PDA Release</div><div class="lnk-ko">PDA 피킹</div></div>
+        <div style="text-align:center;"><div class="lnk-arr">→</div><div class="lnk-arr-lbl">on shortage</div></div>
+        <div class="lnk-node down"><div class="lnk-id">PP-05</div><div class="lnk-name">MRP Rerun</div><div class="lnk-ko">MRP 재계산</div></div>
+        <div style="text-align:center;"><div class="lnk-arr">→</div><div class="lnk-arr-lbl">complete</div></div>
+        <div class="lnk-node down"><div class="lnk-id">WH-08</div><div class="lnk-name">Transaction History</div><div class="lnk-ko">이력</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. BR -->
+  <section class="sec" id="s7">
+    <div class="sec-hdr">
+      <div class="sec-num">07</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Applicable Business Rules</div>
+        <div class="sec-title-ko">적용 업무 규칙</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <table class="br-mini">
+      <thead><tr><th style="width:90px;">Rule ID</th><th>Description</th><th style="width:80px;text-align:center;">Action</th></tr></thead>
+      <tbody>
+        <tr><td class="br-id">BR-WH-04</td><td><div class="br-en">All outbound picking must follow FIFO (First In First Out) based on inbound date. WH-07 auto-suggests the oldest stock location.</div><div class="br-ko">출고 피킹은 입고일 기준 FIFO 자동 적용. WH-07이 최고령 재고 위치 자동 제안.</div></td><td class="br-act"><span class="aut">Auto</span></td></tr>
+        <tr><td class="br-id">BR-WH-13</td><td><div class="br-en">Picking cannot start if projected on-hand &lt; required after upstream WO allocations. [Start Picking] button is disabled until materials are sufficient.</div><div class="br-ko">상위 WO 할당 후 예상 가용량이 소요량 미달이면 피킹 시작 불가. 자재 확보 시까지 버튼 비활성.</div></td><td class="br-act"><span class="blk">Block</span></td></tr>
+        <tr><td class="br-id">BR-WH-14</td><td><div class="br-en">Concurrent picking on the same WO is blocked by row lock. Only one active picking session per WO at any time.</div><div class="br-ko">동일 WO 동시 피킹 차단(행 잠금). 한 WO에 동시에 한 피킹 세션만 활성.</div></td><td class="br-act"><span class="blk">Block</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  </div><!-- /content -->
+
+  <div class="page-footer">
+    <div class="pf-l">A-MES · VOL.3 · WH-06 Release Schedule · L3 Detail Spec v1.0 · Bilingual EN/KO</div>
+    <div class="pf-r">Automotive Parts MES · SAV &amp; GEO Supply · Confidential</div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /page-wrap -->
+
+</body>
+</html>

@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.3 · WH-02 · PDA Inbound Receiving · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+
+:root{
+  --gold:#d4a017; --gold-lt:#fdf6e3; --gold-dk:#a07810;
+  --ink:#0d1117; --ink2:#161b22; --ink3:#21262d;
+  --surface:#ffffff; --bg:#f6f8fa; --border:#d0d7de;
+  --text:#24292f; --sub:#656d76;
+  --wh:#0891b2; --pp:#059669; --inj:#2563eb; --img:#7c3aed;
+  --pnt:#ea580c; --qc:#dc2626; --fg:#0db87a; --mnt:#0284c7;
+  --rpt:#6366f1; --sys:#475569; --md:#d97706;
+  --mod-color:var(--wh);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+
+/* NAV */
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
+.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}
+.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;transition:color .12s;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}
+.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+
+/* L3 BREADCRUMB */
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;transition:color .12s;}
+.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}
+.l3-crumb .current{color:var(--gold);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+
+/* LAYOUT */
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(212,160,23,.15) transparent;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:#fff;}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;transition:all .12s;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:32px;flex-shrink:0;color:rgba(34,211,238,.7);}
+.sb-link.on .sl-id{color:var(--gold);}
+.sb-link .sl-en{font-size:10px;font-weight:600;}
+.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);margin-top:1px;}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;border-left:2px solid transparent;margin-left:-2px;transition:all .12s;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+
+.main{flex:1;min-width:0;}
+
+/* SCREEN HEADER */
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#0c1a23 0%,#0f2632 50%,#0d1f2a 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(34,211,238,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(34,211,238,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(34,211,238,.10),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#22d3ee;margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:#22d3ee;border-radius:50%;box-shadow:0 0 8px #22d3ee;}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:14px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:#22d3ee;line-height:.9;text-shadow:0 0 22px rgba(34,211,238,.2);}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:46px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:4px;margin-bottom:14px;}
+
+.scr-meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.web{border-color:rgba(26,111,255,.3);color:#7ab4ff;}
+.meta-chip.pda{border-color:rgba(13,184,122,.3);color:#5dffc4;}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+
+.content{padding:0 48px 60px;}
+
+/* SECTION */
+.sec{margin-top:36px;}
+.sec-hdr{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.sec-num{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--wh);letter-spacing:1px;line-height:1;min-width:42px;}
+.sec-title-wrap{flex:1;}
+.sec-title-en{font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.3px;}
+.sec-title-ko{font-size:11px;color:var(--sub);margin-top:1px;}
+.sec-line{flex:1;height:1px;background:linear-gradient(90deg,var(--wh),transparent);max-width:200px;}
+
+/* OVERVIEW */
+.ov-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;}
+.ov-desc{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--wh);border-radius:0 6px 6px 0;padding:16px 18px;}
+.ov-desc-en{font-size:12px;color:var(--text);line-height:1.85;margin-bottom:10px;}
+.ov-desc-ko{font-size:11px;color:var(--sub);line-height:1.85;padding-top:10px;border-top:1px dashed var(--border);}
+.ov-meta{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.ov-meta-row{display:flex;border-bottom:1px solid var(--border);font-size:11px;}
+.ov-meta-row:last-child{border-bottom:none;}
+.ov-meta-k{flex:0 0 110px;background:#f6f8fa;padding:8px 12px;font-weight:700;color:var(--sub);font-size:10px;letter-spacing:.5px;text-transform:uppercase;border-right:1px solid var(--border);}
+.ov-meta-v{flex:1;padding:8px 12px;color:var(--text);}
+.ov-meta-v .ko{font-size:10px;color:var(--sub);margin-left:6px;}
+.ov-meta-v code{font-family:'JetBrains Mono',monospace;font-size:10px;background:#f0f3f7;padding:1px 6px;border-radius:3px;color:var(--wh);}
+
+/* MOCKUP */
+.mock-wrap{background:#eef1f5;border:1px solid var(--border);border-radius:8px;padding:14px;}
+.mock-lbl{font-size:9px;font-weight:700;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.mock-lbl::before{content:'';width:6px;height:6px;background:var(--wh);border-radius:50%;}
+.mock-win{background:#fff;border:1px solid #c8d0db;border-radius:6px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.08);}
+.mock-tbar{background:var(--text);color:#fff;padding:8px 14px;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;}
+.mock-tbar .bc{margin-left:auto;font-size:9px;color:rgba(255,255,255,.35);font-family:'JetBrains Mono',monospace;}
+.mock-toolbar{background:#f6f8fa;border-bottom:1px solid var(--border);padding:8px 14px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+.mock-toolbar select,.mock-toolbar input{padding:4px 9px;border:1px solid var(--border);border-radius:3px;font-size:11px;background:#fff;}
+.mock-body{padding:14px;}
+
+.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:14px;}
+.kc{flex:1;padding:10px 13px;border-right:1px solid var(--border);background:#fafbfc;}
+.kc:last-child{border-right:none;}
+.kv{font-size:22px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
+.kl-en{font-size:9px;color:var(--sub);margin-top:3px;}
+.kl-ko{font-size:8px;color:rgba(100,116,139,.6);}
+
+.tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.tbl th{background:#f0f3f7;padding:7px 9px;font-weight:700;border:1px solid var(--border);text-align:left;font-size:10px;color:var(--text);}
+.tbl th .th-ko{font-weight:400;color:var(--sub);font-size:9px;display:block;}
+.tbl td{padding:6px 9px;border:1px solid var(--border);vertical-align:middle;}
+.tbl .rh td{background:#f0fdf4;}
+.tbl .rw td{background:#fffbeb;}
+.tbl .rd td{background:#fef2f2;}
+.tbl tr:hover td{background:#f9fafb;}
+.tbl td .ko{color:var(--sub);font-size:10px;}
+
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
+.b-ok{background:#dcfce7;color:#166534;}
+.b-w{background:#fef9c3;color:#92400e;}
+.b-e{background:#fee2e2;color:#991b1b;}
+.b-i{background:#dbeafe;color:#1e40af;}
+.b-n{background:#f3f4f6;color:#4b5563;}
+
+.btn{padding:5px 13px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
+.btn-primary{background:var(--wh);color:#fff;border-color:var(--wh);}
+.btn-secondary{background:#f6f8fa;color:var(--text);border-color:var(--border);}
+.btn-danger{background:#dc2626;color:#fff;}
+.btn-success{background:#22c55e;color:#fff;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+
+/* COMPONENT SPEC TABLE */
+.cs-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.cs-tbl th{background:linear-gradient(180deg,#0d1f2a,#0c1a23);color:#67e8f9;padding:9px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid var(--ink3);}
+.cs-tbl th .th-ko{display:block;color:rgba(103,232,249,.55);font-weight:400;font-size:9px;letter-spacing:0;text-transform:none;margin-top:1px;}
+.cs-tbl td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.cs-tbl tr:last-child td{border-bottom:none;}
+.cs-tbl tr:hover td{background:#f9fafb;}
+.cs-tbl .c-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--wh);}
+.cs-tbl .c-name{font-weight:700;color:var(--text);}
+.cs-tbl .c-name .ko{font-size:10px;font-weight:400;color:var(--sub);display:block;margin-top:1px;}
+.cs-tbl .c-type{font-family:'JetBrains Mono',monospace;font-size:10px;color:#7c3aed;background:#f5f3ff;padding:2px 6px;border-radius:3px;display:inline-block;}
+.cs-tbl .c-req{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;}
+.cs-tbl .c-req.y{color:#dc2626;}
+.cs-tbl .c-req.n{color:var(--sub);}
+.cs-tbl .c-validation{font-size:10px;color:var(--text);line-height:1.6;}
+.cs-tbl .c-validation code{font-family:'JetBrains Mono',monospace;font-size:9px;background:#fff7ed;color:#9a3412;padding:1px 5px;border-radius:2px;}
+.cs-tbl .c-default{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sub);}
+
+/* EVENT FLOW */
+.ef-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px 20px;}
+.ef-flow{position:relative;}
+.ef-step{display:grid;grid-template-columns:46px 1fr;gap:14px;padding:10px 0;position:relative;}
+.ef-step:not(:last-child)::before{content:'';position:absolute;left:23px;top:42px;bottom:-10px;width:2px;background:linear-gradient(180deg,var(--wh),rgba(8,145,178,.15));}
+.ef-num{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--wh),#0e7490);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;box-shadow:0 4px 12px rgba(8,145,178,.25);position:relative;z-index:1;}
+.ef-step.terminal .ef-num{background:linear-gradient(135deg,#059669,#047857);box-shadow:0 4px 12px rgba(5,150,105,.25);}
+.ef-step.error .ef-num{background:linear-gradient(135deg,#dc2626,#991b1b);box-shadow:0 4px 12px rgba(220,38,38,.25);}
+.ef-body{padding-top:2px;}
+.ef-trig{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.ef-trig-tag{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;border-radius:2px;}
+.ef-trig-tag.user{background:#dbeafe;color:#1e40af;}
+.ef-trig-tag.system{background:#f3e8ff;color:#7c3aed;}
+.ef-trig-tag.scheduled{background:#fef3c7;color:#92400e;}
+.ef-trig-tag.pda{background:#d1fae5;color:#065f46;}
+.ef-trig-name{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--text);}
+.ef-action{font-size:12px;color:var(--text);line-height:1.7;margin-bottom:3px;}
+.ef-action-ko{font-size:11px;color:var(--sub);line-height:1.7;}
+.ef-result{margin-top:6px;padding:7px 10px;background:#f6f8fa;border-left:2px solid var(--wh);border-radius:0 3px 3px 0;font-size:10px;color:var(--text);}
+.ef-result .er-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;color:var(--wh);letter-spacing:1px;margin-right:6px;}
+.ef-result code{font-family:'JetBrains Mono',monospace;font-size:10px;background:#fff;padding:1px 5px;border-radius:2px;border:1px solid var(--border);color:#7c3aed;}
+.ef-step.error .ef-result{border-left-color:#dc2626;background:#fef2f2;}
+.ef-step.error .ef-result .er-lbl{color:#dc2626;}
+.ef-step.terminal .ef-result{border-left-color:#059669;background:#f0fdf4;}
+.ef-step.terminal .ef-result .er-lbl{color:#059669;}
+
+/* EXCEPTION */
+.exc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+.exc-card{background:var(--surface);border:1px solid var(--border);border-top:3px solid #dc2626;border-radius:0 0 6px 6px;padding:13px 15px;}
+.exc-card.warn{border-top-color:#f59e0b;}
+.exc-card.info{border-top-color:#0891b2;}
+.exc-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.exc-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#dc2626;background:#fef2f2;padding:2px 8px;border-radius:3px;}
+.exc-card.warn .exc-code{color:#92400e;background:#fef3c7;}
+.exc-card.info .exc-code{color:#1e40af;background:#dbeafe;}
+.exc-name{font-size:12px;font-weight:700;color:var(--text);flex:1;}
+.exc-name .ko{font-size:10px;font-weight:400;color:var(--sub);display:block;}
+.exc-row{display:grid;grid-template-columns:64px 1fr;gap:8px;padding:5px 0;border-top:1px dashed var(--border);font-size:10px;}
+.exc-row:first-of-type{border-top:none;}
+.exc-row .lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;padding-top:2px;}
+.exc-row .val{color:var(--text);line-height:1.6;}
+.exc-row .val code{font-family:'JetBrains Mono',monospace;font-size:9px;background:#f0f3f7;padding:1px 5px;border-radius:2px;color:#7c3aed;}
+.exc-row .val .ko{color:var(--sub);display:block;font-size:9px;margin-top:1px;}
+.exc-msg{margin-top:8px;padding:7px 10px;background:#1a0808;border:1px solid #3a1010;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#ff8a82;text-align:center;}
+.exc-card.warn .exc-msg{background:#1a1408;border-color:#3a2a10;color:#fbbf24;}
+.exc-card.info .exc-msg{background:#08141a;border-color:#102a3a;color:#67e8f9;}
+
+/* LINKAGE */
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px 24px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#f0fdf4;border-color:#22c55e;}
+.lnk-node.cur{background:linear-gradient(135deg,#0c1a23,#0f2632);border-color:#22d3ee;color:#fff;box-shadow:0 4px 16px rgba(34,211,238,.2);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.5px;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#15803d;}
+.lnk-node.cur .lnk-id{color:#22d3ee;}
+.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}
+.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}
+.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.lnk-arr-lbl{font-size:8px;color:var(--sub);font-family:'JetBrains Mono',monospace;letter-spacing:1px;text-transform:uppercase;display:block;text-align:center;margin-top:-6px;}
+
+/* BR MINI */
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid #f3e0b0;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.br-mini tr:last-child td{border-bottom:none;}
+.br-mini .br-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-mini .br-en{font-size:11px;color:var(--text);line-height:1.6;}
+.br-mini .br-ko{font-size:10px;color:var(--sub);line-height:1.6;margin-top:3px;}
+.br-mini .br-act{text-align:center;}
+.br-mini .br-act span{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-mini .br-act .blk{background:#fee2e2;color:#991b1b;}
+.br-mini .br-act .alt{background:#fef9c3;color:#92400e;}
+.br-mini .br-act .aut{background:#dbeafe;color:#1e40af;}
+
+/* ALERTS */
+.alert{display:flex;gap:9px;align-items:flex-start;padding:9px 13px;border-radius:5px;border:1px solid;font-size:11px;line-height:1.65;}
+.alert-i{background:#eff6ff;border-color:#bfdbfe;color:#1e40af;}
+.alert-w{background:#fef9c3;border-color:#fde68a;color:#92400e;}
+
+/* PDA MOCKUP */
+.pda-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.pda-unit{display:flex;flex-direction:column;}
+.pdu-step{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--wh);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;text-align:center;}
+.pda-shell{background:#000;border:6px solid #1a1f2e;border-radius:24px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:240px;margin:0 auto;}
+.pda-scr{background:#0c1a23;border-radius:16px;overflow:hidden;font-family:'JetBrains Mono',monospace;color:#e2e8f0;min-height:380px;display:flex;flex-direction:column;}
+.pda-sbar{background:#000;padding:5px 12px;font-size:9px;display:flex;justify-content:space-between;color:rgba(255,255,255,.7);}
+.pda-sbar .online{color:#22c55e;}
+.pda-tbar{background:linear-gradient(135deg,#060e1c,#091628);padding:10px 14px;border-bottom:1px solid rgba(34,211,238,.2);}
+.pda-title{font-size:13px;font-weight:700;color:#fff;letter-spacing:.5px;font-family:'Noto Sans KR',sans-serif;}
+.pda-sub{font-size:9px;color:rgba(255,255,255,.4);margin-top:2px;}
+.pda-bd{padding:12px;flex:1;display:flex;flex-direction:column;gap:8px;}
+.pda-scan{background:rgba(34,211,238,.05);border:1px dashed rgba(34,211,238,.3);border-radius:8px;padding:18px 10px;text-align:center;}
+.pda-scan-icon{font-size:32px;margin-bottom:6px;}
+.pda-scan-en{font-size:11px;font-weight:700;color:#22d3ee;font-family:'Noto Sans KR',sans-serif;}
+.pda-scan-ko{font-size:9px;color:rgba(34,211,238,.6);margin-top:2px;font-family:'Noto Sans KR',sans-serif;}
+.pda-field{background:rgba(255,255,255,.03);border-left:2px solid rgba(34,211,238,.4);padding:6px 10px;border-radius:0 3px 3px 0;}
+.pda-fl{font-size:8px;color:rgba(255,255,255,.4);letter-spacing:.5px;text-transform:uppercase;margin-bottom:1px;font-family:'Noto Sans KR',sans-serif;}
+.pda-fv{font-size:11px;color:#e2e8f0;font-weight:700;}
+.pda-fv.ok{color:#5dffc4;}
+.pda-fv.er{color:#ff8a82;}
+.pda-disp{background:#000;color:#22d3ee;font-family:'Bebas Neue',sans-serif;font-size:32px;text-align:center;padding:10px;border-radius:5px;letter-spacing:2px;border:1px solid rgba(34,211,238,.2);}
+.pda-numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:6px;}
+.pda-key{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:4px;padding:8px;text-align:center;font-size:14px;color:#e2e8f0;font-family:'Noto Sans KR',sans-serif;}
+.pda-key.k-ok{background:rgba(34,211,238,.2);color:#22d3ee;border-color:rgba(34,211,238,.3);}
+.pda-key.k-del{background:rgba(239,68,68,.15);color:#ff8a82;border-color:rgba(239,68,68,.25);}
+.pda-btn{padding:9px;border-radius:5px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:'Noto Sans KR',sans-serif;margin-top:4px;}
+.pda-pri{background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;}
+.pda-sec{background:rgba(255,255,255,.06);color:#e2e8f0;border:1px solid rgba(255,255,255,.1);}
+.pda-dan{background:linear-gradient(135deg,#dc2626,#991b1b);color:#fff;}
+
+/* LOCATION MAP GRID */
+.loc-grid-wrap{background:#fff;border:1px solid var(--border);border-radius:6px;padding:16px;}
+.loc-grid-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+.loc-legend{display:flex;gap:14px;font-size:9px;color:var(--sub);}
+.loc-legend .lg{display:flex;align-items:center;gap:4px;}
+.loc-legend .lg-sw{width:12px;height:12px;border-radius:2px;border:1px solid rgba(0,0,0,.1);}
+.loc-zone{margin-bottom:14px;}
+.loc-zone-hdr{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--wh);letter-spacing:.5px;margin-bottom:6px;}
+.loc-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;}
+.loc-cell{aspect-ratio:1;border:1px solid #c8d0db;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:8px;font-family:'JetBrains Mono',monospace;font-weight:700;color:#fff;cursor:pointer;transition:transform .1s;}
+.loc-cell:hover{transform:scale(1.1);z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+.loc-cell.empty{background:#e5e7eb;color:#94a3b8;}
+.loc-cell.partial{background:#fbbf24;}
+.loc-cell.full{background:#22c55e;}
+.loc-cell.over{background:#ef4444;}
+
+/* DATA MODEL */
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}
+.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;}
+.dm-pk{color:#f59e0b;}
+.dm-fk{color:#8b5cf6;}
+.dm-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:9px;}
+
+/* FOOTER */
+.page-footer{padding:24px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;align-items:center;font-size:10px;}
+.page-footer .pf-l{font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.page-footer .pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+
+@media (max-width:1100px){
+  .ov-grid{grid-template-columns:1fr;}
+  .exc-grid{grid-template-columns:1fr;}
+  .scr-id-block{flex-direction:column;align-items:flex-start;gap:6px;}
+  .scr-id{font-size:42px;}
+  .scr-title-en{font-size:32px;}
+  .pda-row{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<nav class="ames-nav"><div class="ames-nav-inner">
+  <a class="nav-home" href="INDEX.html">
+    <div><div class="nav-home-logo">A-MES</div><div class="nav-home-sub">Index</div></div>
+  </a>
+  <a href="VOL03_WH_Warehouse.html" class="nav-vol active"><span class="nv-code" style="color:#0891b2;">WH</span><span>Warehouse</span></a>
+  <a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span>Plan</span></a>
+  <a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span>Injection</span></a>
+  <a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span>Wrapping</span></a>
+  <a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span>Painting</span></a>
+  <a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span>Quality</span></a>
+  <a href="VOL09_FG_Finished.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span>Finished Goods</span></a>
+  <a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span>Maintenance</span></a>
+  <a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span>Reports</span></a>
+  <a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span>System</span></a>
+  <a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span>Master Data</span></a>
+</div></nav>
+
+<div class="l3-crumb">
+  <span class="lvl">L1</span><a href="INDEX.html">A-MES Index</a>
+  <span class="arr">▸</span>
+  <span class="lvl">L2</span><a href="VOL03_WH_Warehouse.html">VOL.3 · WH Warehouse</a>
+  <span class="arr">▸</span>
+  <span class="lvl">L3</span><span class="current">WH-02 · PDA Inbound Receiving</span>
+</div>
+
+<div class="page-wrap">
+
+<nav class="sidebar">
+  <div class="sb-head">
+    <div class="sb-vol">VOL.3 · WH MODULE</div>
+    <div class="sb-mod-en">WAREHOUSE</div>
+    <div class="sb-mod-ko">창고 관리</div>
+  </div>
+  <div class="sb-section">L3 Screens · 화면 상세</div>
+  <a class="sb-link" href="VOL03_WH01_Inbound_Schedule.html"><span class="sl-id">WH-01</span><div><div class="sl-en">Inbound Schedule</div><div class="sl-ko">입고 예정</div></div></a>
+  <a class="sb-link on" href="VOL03_WH02_PDA_Inbound.html"><span class="sl-id">WH-02</span><div><div class="sl-en">PDA Inbound</div><div class="sl-ko">PDA 입고 처리</div></div></a>
+  <a class="sb-link" href="VOL03_WH03_Inventory_Status.html"><span class="sl-id">WH-03</span><div><div class="sl-en">Inventory Status</div><div class="sl-ko">재고 현황</div></div></a>
+  <a class="sb-link" href="VOL03_WH04_Location_Map.html"><span class="sl-id">WH-04</span><div><div class="sl-en">Location Map</div><div class="sl-ko">로케이션 맵</div></div></a>
+  <a class="sb-link" href="VOL03_WH05_Inventory_Adjust.html"><span class="sl-id">WH-05</span><div><div class="sl-en">Inventory Adjust</div><div class="sl-ko">재고 조정</div></div></a>
+  <a class="sb-link" href="VOL03_WH06_Release_Schedule.html"><span class="sl-id">WH-06</span><div><div class="sl-en">Release Schedule</div><div class="sl-ko">출고 예정</div></div></a>
+  <a class="sb-link" href="VOL03_WH07_PDA_Release.html"><span class="sl-id">WH-07</span><div><div class="sl-en">PDA Release</div><div class="sl-ko">PDA 출고 피킹</div></div></a>
+  <a class="sb-link" href="VOL03_WH08_Transaction_History.html"><span class="sl-id">WH-08</span><div><div class="sl-en">Transaction History</div><div class="sl-ko">입출고 이력</div></div></a>
+
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page</div>
+    <a href="#s1"><span class="num">01</span>Overview</a>
+    <a href="#s2"><span class="num">02</span>Screen Mockup</a>
+    <a href="#s3"><span class="num">03</span>UI Components</a>
+    <a href="#s4"><span class="num">04</span>Event &amp; Action Flow</a>
+    <a href="#s5"><span class="num">05</span>Exception Handling</a>
+    <a href="#s6"><span class="num">06</span>Linked Screens</a>
+    <a href="#s7"><span class="num">07</span>Business Rules</a>
+  </div>
+</nav>
+
+<div class="main">
+
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.3 · WH · Warehouse Management · PDA 입고 처리</div>
+      <div class="scr-id-block">
+        <div class="scr-id">WH-02</div>
+        <div>
+          <div class="scr-title-en">PDA Inbound Receiving</div>
+        </div>
+      </div>
+      <div class="scr-title-ko">P D A   입 고</div>
+      <div class="scr-meta">
+        <div class="meta-chip pda"><span class="mc-lbl">Device</span><span class="mc-val">📱 PDA</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">1st Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">Warehouse Staff (WH.Receive)</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Freq</span><span class="mc-val">Per inbound · 입고 시</span></div>
+        <div class="meta-chip"><span class="mc-lbl">URL</span><span class="mc-val" style="font-family:'JetBrains Mono',monospace;">/wh/pda/inbound</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+  <!-- 1. OVERVIEW -->
+  <section class="sec" id="s1">
+    <div class="sec-hdr">
+      <div class="sec-num">01</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Overview</div>
+        <div class="sec-title-ko">화면 개요</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="ov-grid">
+      <div class="ov-desc">
+        <div class="ov-desc-en">
+          PDA-driven receiving workflow consisting of three sequential steps: <strong>(1) Scan item barcode</strong> against the open PO, <strong>(2) Confirm quantity</strong> via numeric keypad, and <strong>(3) Scan shelf QR code</strong> to assign storage location. The system validates each step in real time — barcode mismatches against the PO item are <em>immediately blocked</em>, and the worker cannot proceed until correction. Upon confirmation, inventory is incremented, a location label is printed, and the QC-01 incoming inspection queue is auto-triggered.
+        </div>
+        <div class="ov-desc-ko">
+          PDA 기반 3단계 입고 처리: <strong>(1) 품목 바코드 스캔</strong>으로 PO와 대조, <strong>(2) 숫자패드로 수량 확인</strong>, <strong>(3) 선반 QR 스캔</strong>으로 로케이션 지정. 각 단계에서 실시간 검증되며, PO 품목과 불일치 시 <em>즉시 차단</em>되어 수정 전까지 진행 불가. 확정 시 재고 증가·위치 라벨 출력·QC-01 수입검사 큐 자동 등록이 이루어집니다.
+        </div>
+      </div>
+      <div class="ov-meta">
+        <div class="ov-meta-row"><div class="ov-meta-k">Screen ID</div><div class="ov-meta-v"><code>WH-02</code></div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">Entry</div><div class="ov-meta-v">From WH-01 [Receive] button <span class="ko">WH-01 입고 클릭</span></div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">Layout</div><div class="ov-meta-v">3-step wizard · full-screen <span class="ko">3단계 위저드</span></div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">Hardware</div><div class="ov-meta-v">Zebra TC22 · 1D/2D scanner</div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">Network</div><div class="ov-meta-v">WiFi · offline buffer 4hr <span class="ko">오프라인 4시간 버퍼</span></div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">Tables</div><div class="ov-meta-v"><code>wh_inbound</code>, <code>wh_inventory</code>, <code>po_header</code></div></div>
+        <div class="ov-meta-row"><div class="ov-meta-k">RBAC</div><div class="ov-meta-v"><code>WH.Receive</code></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. SCREEN MOCKUP -->
+  <section class="sec" id="s2">
+    <div class="sec-hdr">
+      <div class="sec-num">02</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Screen Mockup</div>
+        <div class="sec-title-ko">화면 목업 — PDA 3단계</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="mock-wrap">
+      <div class="mock-lbl">WH-02 · PDA Inbound · 3-Step Wizard</div>
+      <div style="background:#fff;border:1px solid var(--border);border-radius:6px;padding:18px;">
+        <div class="pda-row">
+
+          <div class="pda-unit">
+            <div class="pdu-step">① Scan Item · 품목 스캔</div>
+            <div class="pda-shell"><div class="pda-scr">
+              <div class="pda-sbar"><span>WH-02 · Inbound</span><span class="online">● 09:12</span></div>
+              <div class="pda-tbar"><div class="pda-title">Inbound Receiving</div><div class="pda-sub">입고 처리 · PO-2025-0701-001</div></div>
+              <div class="pda-bd">
+                <div class="pda-scan">
+                  <div class="pda-scan-icon">📷</div>
+                  <div class="pda-scan-en">Scan Item Barcode</div>
+                  <div class="pda-scan-ko">품목 바코드 스캔</div>
+                </div>
+                <div class="pda-field"><div class="pda-fl">PO No.</div><div class="pda-fv">PO-2025-0701-001</div></div>
+                <div class="pda-field"><div class="pda-fl">Expected · 예정 품목</div><div class="pda-fv">FAB-GY-C03</div></div>
+                <div class="pda-field"><div class="pda-fl">Vendor</div><div class="pda-fv">현대원단</div></div>
+              </div>
+            </div></div>
+          </div>
+
+          <div class="pda-unit">
+            <div class="pdu-step">② Confirm Qty · 수량 입력</div>
+            <div class="pda-shell"><div class="pda-scr">
+              <div class="pda-sbar"><span>WH-02 · Inbound</span><span class="online">● 09:13</span></div>
+              <div class="pda-tbar"><div class="pda-title">Confirm Quantity</div><div class="pda-sub">수량 확인 · FAB-GY-C03 ✅</div></div>
+              <div class="pda-bd">
+                <div class="pda-field"><div class="pda-fl">Item Verified ✅</div><div class="pda-fv ok">FAB-GY-C03 · Grey Fabric</div></div>
+                <div class="pda-field"><div class="pda-fl">Expected · 예정 수량</div><div class="pda-fv">20 rolls</div></div>
+                <div class="pda-disp">20</div>
+                <div class="pda-numpad">
+                  <div class="pda-key">1</div><div class="pda-key">2</div><div class="pda-key">3</div>
+                  <div class="pda-key">4</div><div class="pda-key">5</div><div class="pda-key">6</div>
+                  <div class="pda-key">7</div><div class="pda-key">8</div><div class="pda-key">9</div>
+                  <div class="pda-key k-ok">All</div><div class="pda-key">0</div><div class="pda-key k-del">⌫</div>
+                </div>
+              </div>
+            </div></div>
+          </div>
+
+          <div class="pda-unit">
+            <div class="pdu-step">③ Assign Location · 위치 지정</div>
+            <div class="pda-shell"><div class="pda-scr">
+              <div class="pda-sbar"><span>WH-02 · Inbound</span><span class="online">● 09:14</span></div>
+              <div class="pda-tbar"><div class="pda-title">Assign Location</div><div class="pda-sub">로케이션 지정</div></div>
+              <div class="pda-bd">
+                <div class="pda-scan">
+                  <div class="pda-scan-icon">📍</div>
+                  <div class="pda-scan-en">Scan Shelf QR Code</div>
+                  <div class="pda-scan-ko">선반 QR 스캔</div>
+                </div>
+                <div class="pda-field"><div class="pda-fl">Location Assigned</div><div class="pda-fv ok">WH-FAB-D-01-1</div></div>
+                <div class="pda-field"><div class="pda-fl">Qty to Stock · 입고 수량</div><div class="pda-fv ok">20 rolls</div></div>
+                <button class="pda-btn pda-pri">✅ Confirm Inbound</button>
+                <button class="pda-btn pda-sec">🏷 Print Label · 라벨 출력</button>
+              </div>
+            </div></div>
+          </div>
+
+        </div>
+
+        <div style="margin-top:18px;padding:12px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;">
+          <div style="font-size:11px;font-weight:700;color:#991b1b;margin-bottom:8px;">⛔ Error Case · 에러 케이스 — Item Mismatch · 품목 불일치</div>
+          <div style="display:grid;grid-template-columns:240px 1fr;gap:14px;align-items:center;">
+            <div class="pda-shell" style="margin:0;"><div class="pda-scr">
+              <div class="pda-sbar"><span>WH-02 · Inbound</span><span class="online">● 09:15</span></div>
+              <div class="pda-tbar" style="background:#1a0808;border-bottom-color:#3a1010;"><div class="pda-title" style="color:#ff8a82;">⛔ ITEM MISMATCH</div><div class="pda-sub" style="color:#ff8a82;">품목 불일치 — 입고 차단</div></div>
+              <div class="pda-bd">
+                <div class="pda-field"><div class="pda-fl">Scanned · 스캔 품목</div><div class="pda-fv er">FAB-BK-C01 · Black ❌</div></div>
+                <div class="pda-field"><div class="pda-fl">Required · 요구 품목</div><div class="pda-fv">FAB-GY-C03 · Grey</div></div>
+                <div style="background:#1a0808;border:1px solid #3a1010;border-radius:5px;padding:8px;text-align:center;font-size:10px;color:#ff8a82;margin-bottom:7px;">INPUT BLOCKED<br><span style="font-size:8px;opacity:.7;">Re-scan correct item · 올바른 품목 재스캔</span></div>
+                <button class="pda-btn pda-dan">🔄 Re-scan</button>
+              </div>
+            </div></div>
+            <div style="font-size:11px;color:#991b1b;line-height:1.8;">
+              <strong>Trigger · 발생 시점</strong> — Step ① 품목 바코드가 PO 품목과 불일치 시.<br>
+              <strong>Action · 동작</strong> — 입력 즉시 차단 · 빨간 화면 + 진동 + 비프음 알림 · 재스캔 버튼만 활성화.<br>
+              <strong>Recovery · 복구</strong> — 올바른 품목으로 재스캔 시 정상 흐름 복귀. 3회 연속 실패 시 관리자 알림 발송.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. UI COMPONENT SPEC -->
+  <section class="sec" id="s3">
+    <div class="sec-hdr">
+      <div class="sec-num">03</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">UI Component Specification</div>
+        <div class="sec-title-ko">UI 컴포넌트 명세</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <h3 style="font-size:12px;font-weight:700;color:var(--sub);margin:6px 0 8px;letter-spacing:.5px;">3.1 Step ① — Item Scan <span style="color:var(--sub);font-weight:400;">· 품목 스캔</span></h3>
+    <table class="cs-tbl">
+      <thead><tr>
+        <th style="width:90px;">ID</th>
+        <th style="width:180px;">Component <span class="th-ko">컴포넌트</span></th>
+        <th style="width:120px;">Type</th>
+        <th style="width:60px;">Req</th>
+        <th>Validation / Behavior <span class="th-ko">검증·동작</span></th>
+        <th style="width:140px;">On Success</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="c-id">CMP-01</td><td class="c-name">Barcode Scanner<span class="ko">바코드 스캐너</span></td><td><span class="c-type">SCAN</span></td><td class="c-req y">Y</td><td class="c-validation">Reads 1D/2D barcode (Code128, QR). Match against <code>po_header.item_code</code>. Mismatch → block.</td><td class="c-default">→ Step ②</td></tr>
+        <tr><td class="c-id">CMP-02</td><td class="c-name">PO Display<span class="ko">PO 표시</span></td><td><span class="c-type">LABEL</span></td><td class="c-req n">—</td><td class="c-validation">Read-only. Shows <code>po_no</code>, expected item code, vendor name from launch context.</td><td class="c-default">—</td></tr>
+        <tr><td class="c-id">CMP-03</td><td class="c-name">Manual Entry<span class="ko">수동 입력</span></td><td><span class="c-type">BUTTON</span></td><td class="c-req n">N</td><td class="c-validation">Fallback if barcode damaged. Opens keyboard input. Same validation as scanner. Logs <code>manual_entry=true</code> in audit.</td><td class="c-default">→ Step ②</td></tr>
+      </tbody>
+    </table>
+
+    <h3 style="font-size:12px;font-weight:700;color:var(--sub);margin:18px 0 8px;letter-spacing:.5px;">3.2 Step ② — Quantity Confirmation <span style="color:var(--sub);font-weight:400;">· 수량 확인</span></h3>
+    <table class="cs-tbl">
+      <thead><tr>
+        <th style="width:90px;">ID</th>
+        <th style="width:180px;">Component <span class="th-ko">컴포넌트</span></th>
+        <th style="width:120px;">Type</th>
+        <th style="width:60px;">Req</th>
+        <th>Validation / Behavior</th>
+        <th style="width:140px;">On Success</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="c-id">CMP-04</td><td class="c-name">Numeric Keypad<span class="ko">숫자 패드</span></td><td><span class="c-type">NUMPAD</span></td><td class="c-req y">Y</td><td class="c-validation">0–9, decimal point (per unit precision), backspace. Max 6 digits + 3 decimals.</td><td class="c-default">→ Step ③</td></tr>
+        <tr><td class="c-id">CMP-05</td><td class="c-name">[All] Button<span class="ko">전량 버튼</span></td><td><span class="c-type">BUTTON</span></td><td class="c-req n">N</td><td class="c-validation">Auto-fills with full expected quantity from PO. Shortcut for common case.</td><td class="c-default">→ Step ③</td></tr>
+        <tr><td class="c-id">CMP-06</td><td class="c-name">Qty Display<span class="ko">수량 표시</span></td><td><span class="c-type">DISPLAY</span></td><td class="c-req n">—</td><td class="c-validation">Large monospace digits. Color: cyan if within tolerance ±2% of expected, yellow ±10%, red &gt;10%.</td><td class="c-default">—</td></tr>
+        <tr><td class="c-id">CMP-07</td><td class="c-name">Partial Inbound Toggle<span class="ko">부분 입고 토글</span></td><td><span class="c-type">SWITCH</span></td><td class="c-req n">N</td><td class="c-validation">If qty &lt; expected, this auto-enables. PO status becomes <code>Partial</code>, remaining qty stays open.</td><td class="c-default">—</td></tr>
+      </tbody>
+    </table>
+
+    <h3 style="font-size:12px;font-weight:700;color:var(--sub);margin:18px 0 8px;letter-spacing:.5px;">3.3 Step ③ — Location Assignment <span style="color:var(--sub);font-weight:400;">· 위치 지정</span></h3>
+    <table class="cs-tbl">
+      <thead><tr>
+        <th style="width:90px;">ID</th>
+        <th style="width:180px;">Component</th>
+        <th style="width:120px;">Type</th>
+        <th style="width:60px;">Req</th>
+        <th>Validation / Behavior</th>
+        <th style="width:140px;">On Success</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="c-id">CMP-08</td><td class="c-name">Shelf QR Scanner<span class="ko">선반 QR 스캐너</span></td><td><span class="c-type">SCAN</span></td><td class="c-req y">Y</td><td class="c-validation">Reads location QR. Format: <code>[Warehouse]-[Zone]-[Row]-[Col]-[Level]</code>. Check capacity from <code>md_location</code>.</td><td class="c-default">→ Confirm</td></tr>
+        <tr><td class="c-id">CMP-09</td><td class="c-name">Suggested Location<span class="ko">권장 위치</span></td><td><span class="c-type">LABEL</span></td><td class="c-req n">—</td><td class="c-validation">System suggests location based on item type + nearest available cell with capacity. Worker can override.</td><td class="c-default">—</td></tr>
+        <tr><td class="c-id">CMP-10</td><td class="c-name">[Confirm Inbound]<span class="ko">입고 확정</span></td><td><span class="c-type">BUTTON</span></td><td class="c-req y">Y</td><td class="c-validation">Commits transaction. Increments <code>wh_inventory.on_hand_qty</code>. Inserts <code>wh_inbound</code>. Triggers QC-01.</td><td class="c-default">→ Print</td></tr>
+        <tr><td class="c-id">CMP-11</td><td class="c-name">[Print Label]<span class="ko">라벨 출력</span></td><td><span class="c-type">BUTTON</span></td><td class="c-req n">N</td><td class="c-validation">Prints location label via Zebra ZD230 over Bluetooth. Includes item, qty, location, inbound date.</td><td class="c-default">—</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 4. EVENT FLOW -->
+  <section class="sec" id="s4">
+    <div class="sec-hdr">
+      <div class="sec-num">04</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Event &amp; Action Flow</div>
+        <div class="sec-title-ko">이벤트 · 액션 흐름</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="ef-wrap">
+      <div class="ef-flow">
+
+        <div class="ef-step">
+          <div class="ef-num">1</div>
+          <div class="ef-body">
+            <div class="ef-trig"><span class="ef-trig-tag user">User</span><span class="ef-trig-name">launch · from WH-01 [Receive]</span></div>
+            <div class="ef-action">User clicks [Receive] on a PO row in WH-01. PDA launches WH-02 with PO context. Step ① is shown.</div>
+            <div class="ef-action-ko">WH-01에서 [Receive] 클릭 시 WH-02가 PO 정보와 함께 실행되며 Step ① 화면 표시.</div>
+            <div class="ef-result"><span class="er-lbl">CONTEXT</span><code>session_id</code>, <code>po_no</code>, <code>expected_item</code> loaded into PDA local state.</div>
+          </div>
+        </div>
+
+        <div class="ef-step">
+          <div class="ef-num">2</div>
+          <div class="ef-body">
+            <div class="ef-trig"><span class="ef-trig-tag pda">PDA Scan</span><span class="ef-trig-name">trigger · item barcode</span></div>
+            <div class="ef-action">Worker pulls trigger to scan item barcode. System matches against PO expected item.</div>
+            <div class="ef-action-ko">작업자가 트리거를 당겨 품목 바코드 스캔. 시스템이 PO 예정 품목과 대조.</div>
+            <div class="ef-result"><span class="er-lbl">VALIDATE</span><code>scanned_code == po.item_code</code> → success (green) · mismatch → block (E-WH02-001).</div>
+          </div>
+        </div>
+
+        <div class="ef-step">
+          <div class="ef-num">3</div>
+          <div class="ef-body">
+            <div class="ef-trig"><span class="ef-trig-tag user">User</span><span class="ef-trig-name">tap · numpad / [All]</span></div>
+            <div class="ef-action">Worker enters received quantity via numpad or taps [All] to auto-fill expected quantity. Display shows qty with tolerance color coding.</div>
+            <div class="ef-action-ko">숫자패드 입력 또는 [All] 버튼으로 수량 입력. 디스플레이는 허용오차 색상 표시.</div>
+            <div class="ef-result"><span class="er-lbl">DETECT</span> qty &lt; expected → auto-enable Partial Inbound mode. qty &gt; expected → warn (E-WH02-003).</div>
+          </div>
+        </div>
+
+        <div class="ef-step">
+          <div class="ef-num">4</div>
+          <div class="ef-body">
+            <div class="ef-trig"><span class="ef-trig-tag pda">PDA Scan</span><span class="ef-trig-name">trigger · shelf QR</span></div>
+            <div class="ef-action">Worker scans the shelf QR code at the target storage location. System validates capacity vs incoming qty.</div>
+            <div class="ef-action-ko">대상 선반의 QR 코드를 스캔. 시스템이 용량 대비 입고량 검증.</div>
+            <div class="ef-result"><span class="er-lbl">VALIDATE</span><code>location.capacity - location.on_hand &gt;= qty</code> → OK · else block (E-WH02-004).</div>
+          </div>
+        </div>
+
+        <div class="ef-step">
+          <div class="ef-num">5</div>
+          <div class="ef-body">
+            <div class="ef-trig"><span class="ef-trig-tag user">User</span><span class="ef-trig-name">tap · [Confirm Inbound]</span></div>
+            <div class="ef-action">Worker confirms. Backend commits transaction atomically: insert inbound, update inventory, update PO status, queue QC-01.</div>
+            <div class="ef-action-ko">작업자 확정. 백엔드가 트랜잭션을 원자적으로 커밋: 입고 INSERT, 재고 UPDATE, PO 상태 변경, QC-01 큐 등록.</div>
+            <div class="ef-result"><span class="er-lbl">API</span><code>POST /api/wh/inbound/confirm</code> · <code>BEGIN TRAN ... COMMIT</code> · returns inbound_id.</div>
+          </div>
+        </div>
+
+        <div class="ef-step">
+          <div class="ef-num">6</div>
+          <div class="ef-body">
+            <div class="ef-trig"><span class="ef-trig-tag system">System</span><span class="ef-trig-name">print · location label</span></div>
+            <div class="ef-action">Optionally prints a location label via Bluetooth-paired Zebra ZD230 printer. Worker affixes label to the lot.</div>
+            <div class="ef-action-ko">블루투스 페어링된 Zebra ZD230 프린터로 위치 라벨 출력(선택). 작업자가 로트에 부착.</div>
+            <div class="ef-result"><span class="er-lbl">OUTPUT</span> ZPL command via Bluetooth · label contains item, qty, location, date, inbound_id barcode.</div>
+          </div>
+        </div>
+
+        <div class="ef-step terminal">
+          <div class="ef-num">✓</div>
+          <div class="ef-body">
+            <div class="ef-trig"><span class="ef-trig-tag system">System</span><span class="ef-trig-name">complete · return to WH-01</span></div>
+            <div class="ef-action">PDA returns to WH-01. Received PO is no longer in pending list. QC-01 inspector receives notification.</div>
+            <div class="ef-action-ko">PDA가 WH-01로 복귀. 처리된 PO는 미입고 목록에서 제외. QC-01 검사자에게 알림.</div>
+            <div class="ef-result"><span class="er-lbl">DOWNSTREAM</span> QC-01 queue · WH-03 inventory updated · WH-08 transaction log · min-stock check.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. EXCEPTION -->
+  <section class="sec" id="s5">
+    <div class="sec-hdr">
+      <div class="sec-num">05</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Exception &amp; Error Handling</div>
+        <div class="sec-title-ko">예외 · 에러 처리</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="exc-grid">
+
+      <div class="exc-card">
+        <div class="exc-hdr"><span class="exc-code">E-WH02-001</span><div class="exc-name">Item Barcode Mismatch<span class="ko">품목 바코드 불일치</span></div></div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val">Scanned item code ≠ PO expected item. <span class="ko">스캔 품목이 PO 예정 품목과 다름.</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val">Step ① real-time comparison.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Red full-screen warning + vibration + beep. Re-scan button only. 3 consecutive failures → manager alert.</div></div>
+        <div class="exc-row"><div class="lbl">Recovery</div><div class="val">Re-scan correct item to resume.</div></div>
+        <div class="exc-msg">⛔ ITEM MISMATCH — INPUT BLOCKED</div>
+      </div>
+
+      <div class="exc-card">
+        <div class="exc-hdr"><span class="exc-code">E-WH02-002</span><div class="exc-name">PO Not Found / Expired<span class="ko">PO 없음·만료</span></div></div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val">PO context invalid: cancelled, already received, or session timeout. <span class="ko">PO 취소·이미 입고·세션 만료.</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val">Server check on Step ① scan.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Block scan. Modal: "PO no longer valid. Return to WH-01." Auto-redirect after 5 sec.</div></div>
+        <div class="exc-row"><div class="lbl">Recovery</div><div class="val">Re-select PO from WH-01.</div></div>
+        <div class="exc-msg">⛔ PO INVALID — RETURN TO LIST</div>
+      </div>
+
+      <div class="exc-card warn">
+        <div class="exc-hdr"><span class="exc-code">E-WH02-003</span><div class="exc-name">Qty Exceeds PO<span class="ko">발주량 초과</span></div></div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val">Entered qty &gt; expected by &gt;5%. <span class="ko">입력 수량이 발주 수량 5% 초과.</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val">Step ② numeric validation.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Yellow display. Confirmation popup: "Receive QTY (over by N%)? Comment required." Free-text reason input.</div></div>
+        <div class="exc-row"><div class="lbl">Recovery</div><div class="val">User confirms with reason, or corrects qty.</div></div>
+        <div class="exc-msg">⚠ OVER-RECEIPT — REASON REQUIRED</div>
+      </div>
+
+      <div class="exc-card">
+        <div class="exc-hdr"><span class="exc-code">E-WH02-004</span><div class="exc-name">Location Capacity Exceeded<span class="ko">로케이션 용량 초과</span></div></div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val">Target location's free capacity &lt; incoming qty. <span class="ko">대상 위치 잔여 용량 부족.</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val">Step ③ on QR scan.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Block confirmation. Show free capacity. Suggest alternative location.</div></div>
+        <div class="exc-row"><div class="lbl">Recovery</div><div class="val">Scan different location, or split into multiple locations.</div></div>
+        <div class="exc-msg">⛔ LOCATION FULL — SCAN ANOTHER</div>
+      </div>
+
+      <div class="exc-card warn">
+        <div class="exc-hdr"><span class="exc-code">E-WH02-005</span><div class="exc-name">Network Disconnected<span class="ko">네트워크 단절</span></div></div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val">WiFi signal lost or backend unreachable. <span class="ko">WiFi 단절 또는 백엔드 응답 없음.</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val">PDA heartbeat check every 10s.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Switch to offline mode. Queue transactions locally (up to 4hr). Yellow banner. Auto-sync on reconnect.</div></div>
+        <div class="exc-row"><div class="lbl">Recovery</div><div class="val">Reconnect to WiFi → queued transactions sync in FIFO order.</div></div>
+        <div class="exc-msg">⚠ OFFLINE — QUEUE MODE ACTIVE</div>
+      </div>
+
+      <div class="exc-card warn">
+        <div class="exc-hdr"><span class="exc-code">E-WH02-006</span><div class="exc-name">Printer Not Ready<span class="ko">프린터 미응답</span></div></div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val">Bluetooth printer disconnected or out of paper. <span class="ko">블루투스 단절·용지 없음.</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val">Print request timeout 8s.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Inbound transaction NOT rolled back. Show: "Label print failed. Retry?" Inventory commit already complete.</div></div>
+        <div class="exc-row"><div class="lbl">Recovery</div><div class="val">Re-print from WH-08 transaction history.</div></div>
+        <div class="exc-msg">⚠ PRINT FAILED — RETRY FROM WH-08</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 6. LINKED -->
+  <section class="sec" id="s6">
+    <div class="sec-hdr">
+      <div class="sec-num">06</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Linked Screens</div>
+        <div class="sec-title-ko">선행 · 후행 연계 화면</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="lnk-wrap">
+      <div class="lnk-row" style="margin-bottom:18px;">
+        <div class="lnk-node up"><div class="lnk-id">WH-01</div><div class="lnk-name">Inbound Schedule</div><div class="lnk-ko">입고 예정</div></div>
+        <div style="text-align:center;"><div class="lnk-arr">→</div><div class="lnk-arr-lbl">[Receive] launch</div></div>
+        <div class="lnk-node up"><div class="lnk-id">MD-11</div><div class="lnk-name">Location Master</div><div class="lnk-ko">로케이션 마스터</div></div>
+        <div style="text-align:center;"><div class="lnk-arr">→</div><div class="lnk-arr-lbl">capacity check</div></div>
+        <div class="lnk-node cur"><div class="lnk-id">WH-02</div><div class="lnk-name">PDA Inbound</div><div class="lnk-ko">PDA 입고 (현재)</div></div>
+      </div>
+
+      <div class="lnk-row">
+        <div class="lnk-node cur"><div class="lnk-id">WH-02</div><div class="lnk-name">PDA Inbound</div><div class="lnk-ko">PDA 입고 (현재)</div></div>
+        <div style="text-align:center;"><div class="lnk-arr">→</div><div class="lnk-arr-lbl">on confirm</div></div>
+        <div class="lnk-node down"><div class="lnk-id">QC-01</div><div class="lnk-name">Incoming Inspection</div><div class="lnk-ko">수입 검사</div></div>
+        <div style="text-align:center;"><div class="lnk-arr">→</div><div class="lnk-arr-lbl">inventory ++</div></div>
+        <div class="lnk-node down"><div class="lnk-id">WH-03</div><div class="lnk-name">Inventory Status</div><div class="lnk-ko">재고 현황</div></div>
+        <div style="text-align:center;"><div class="lnk-arr">→</div><div class="lnk-arr-lbl">audit log</div></div>
+        <div class="lnk-node down"><div class="lnk-id">WH-08</div><div class="lnk-name">Transaction History</div><div class="lnk-ko">입출고 이력</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. BR -->
+  <section class="sec" id="s7">
+    <div class="sec-hdr">
+      <div class="sec-num">07</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Applicable Business Rules</div>
+        <div class="sec-title-ko">적용 업무 규칙</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <table class="br-mini">
+      <thead><tr><th style="width:90px;">Rule ID</th><th>Description</th><th style="width:80px;text-align:center;">Action</th></tr></thead>
+      <tbody>
+        <tr><td class="br-id">BR-WH-01</td><td><div class="br-en">Items without a valid open PO cannot be received. Barcode scan blocked immediately if no matching PO is found.</div><div class="br-ko">유효한 미입고 PO 없는 품목 입고 불가. 미일치 바코드 즉시 차단.</div></td><td class="br-act"><span class="blk">Block</span></td></tr>
+        <tr><td class="br-id">BR-WH-02</td><td><div class="br-en">All inbound items automatically trigger QC-01 incoming inspection. Inventory updated only after QC pass.</div><div class="br-ko">모든 입고 품목 QC-01 자동 트리거. 검사 합격 후 재고 반영.</div></td><td class="br-act"><span class="aut">Auto</span></td></tr>
+        <tr><td class="br-id">BR-WH-03</td><td><div class="br-en">When on-hand qty falls below minimum stock level (MD-09/10), an alert is sent to manager and procurement.</div><div class="br-ko">최소재고 미달 시 창고관리자·구매팀 알림 발송.</div></td><td class="br-act"><span class="alt">Alert</span></td></tr>
+      </tbody>
+    </table>
+    <div class="alert alert-w" style="margin-top:14px;"><span>📌</span><div><strong>Note · 비고</strong> — WH-02 is the only entry point for inbound transactions. Manual inventory entry must use WH-05 (Adjustment), which requires supervisor approval. WH-02는 입고 거래의 유일한 진입점이며, 수동 입력은 WH-05 (조정)로 처리하고 관리자 승인이 필요합니다.</div></div>
+  </section>
+
+  </div><!-- /content -->
+
+  <div class="page-footer">
+    <div class="pf-l">A-MES · VOL.3 · WH-02 PDA Inbound Receiving · L3 Detail Spec v1.0 · Bilingual EN/KO</div>
+    <div class="pf-r">Automotive Parts MES · SAV &amp; GEO Supply · Confidential</div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /page-wrap -->
+
+</body>
+</html>

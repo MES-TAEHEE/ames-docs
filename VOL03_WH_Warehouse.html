@@ -247,6 +247,15 @@ ul.fi-list li .ko{color:var(--sub);font-size:9px;}
 .sc-id{ color:#0891b2; }
 .sb-mod-en{ color:#0891b2; }
 .sb-link.on{ border-left-color:#0891b2; }
+
+/* L3 LINK STYLES v1.1 */
+.sb-link{position:relative;}
+.sb-l3{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:3px;background:rgba(212,160,23,.1);color:rgba(212,160,23,.7);font-size:9px;text-decoration:none;margin-left:auto;transition:all .15s;flex-shrink:0;border:1px solid rgba(212,160,23,.2);}
+.sb-l3:hover{background:var(--gold);color:#000;border-color:var(--gold);transform:scale(1.15);}
+.sc-l3-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:linear-gradient(135deg,#d4a017,#a07810);color:#000;font-size:10px;font-weight:800;border-radius:4px;text-decoration:none;letter-spacing:.5px;text-transform:uppercase;border:1px solid #a07810;box-shadow:0 2px 6px rgba(212,160,23,.3);transition:all .15s;margin-top:6px;}
+.sc-l3-btn:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(212,160,23,.45);background:linear-gradient(135deg,#fbbf24,#d4a017);}
+.l3-hint{display:inline-block;font-size:9px;color:rgba(212,160,23,.6);font-weight:600;letter-spacing:1px;padding:2px 8px;background:rgba(212,160,23,.08);border:1px dashed rgba(212,160,23,.3);border-radius:3px;}
+
 </style>
 </head>
 <body>
@@ -259,14 +268,14 @@ ul.fi-list li .ko{color:var(--sub);font-size:9px;}
     <div class="sb-mod-ko">창고 관리</div>
   </div>
   <div class="sb-section">Screens · 화면</div>
-  <a class="sb-link on" href="#wh01"><span class="sl-id">WH-01</span><div><div class="sl-en">Inbound Schedule</div><div class="sl-ko">입고 예정</div></div></a>
-  <a class="sb-link" href="#wh02"><span class="sl-id">WH-02</span><div><div class="sl-en">PDA Inbound</div><div class="sl-ko">PDA 입고 처리</div></div></a>
-  <a class="sb-link" href="#wh03"><span class="sl-id">WH-03</span><div><div class="sl-en">Inventory Status</div><div class="sl-ko">재고 현황</div></div></a>
-  <a class="sb-link" href="#wh04"><span class="sl-id">WH-04</span><div><div class="sl-en">Location Map</div><div class="sl-ko">로케이션 맵</div></div></a>
-  <a class="sb-link" href="#wh05"><span class="sl-id">WH-05</span><div><div class="sl-en">Inventory Adjust</div><div class="sl-ko">재고 조정</div></div></a>
-  <a class="sb-link" href="#wh06"><span class="sl-id">WH-06</span><div><div class="sl-en">Release Schedule</div><div class="sl-ko">출고 예정</div></div></a>
-  <a class="sb-link" href="#wh07"><span class="sl-id">WH-07</span><div><div class="sl-en">PDA Release</div><div class="sl-ko">PDA 출고 피킹</div></div></a>
-  <a class="sb-link" href="#wh08"><span class="sl-id">WH-08</span><div><div class="sl-en">Transaction History</div><div class="sl-ko">입출고 이력</div></div></a>
+  <a class="sb-link on" href="#wh01"><span class="sl-id">WH-01</span><div><div class="sl-en">Inbound Schedule</div><div class="sl-ko">입고 예정</div></div><a class="sb-l3" href="VOL03_WH01_Inbound_Schedule.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#wh02"><span class="sl-id">WH-02</span><div><div class="sl-en">PDA Inbound</div><div class="sl-ko">PDA 입고 처리</div></div><a class="sb-l3" href="VOL03_WH02_PDA_Inbound.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#wh03"><span class="sl-id">WH-03</span><div><div class="sl-en">Inventory Status</div><div class="sl-ko">재고 현황</div></div><a class="sb-l3" href="VOL03_WH03_Inventory_Status.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#wh04"><span class="sl-id">WH-04</span><div><div class="sl-en">Location Map</div><div class="sl-ko">로케이션 맵</div></div><a class="sb-l3" href="VOL03_WH04_Location_Map.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#wh05"><span class="sl-id">WH-05</span><div><div class="sl-en">Inventory Adjust</div><div class="sl-ko">재고 조정</div></div><a class="sb-l3" href="VOL03_WH05_Inventory_Adjust.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#wh06"><span class="sl-id">WH-06</span><div><div class="sl-en">Release Schedule</div><div class="sl-ko">출고 예정</div></div><a class="sb-l3" href="VOL03_WH06_Release_Schedule.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#wh07"><span class="sl-id">WH-07</span><div><div class="sl-en">PDA Release</div><div class="sl-ko">PDA 출고 피킹</div></div><a class="sb-l3" href="VOL03_WH07_PDA_Release.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#wh08"><span class="sl-id">WH-08</span><div><div class="sl-en">Transaction History</div><div class="sl-ko">입출고 이력</div></div><a class="sb-l3" href="VOL03_WH08_Transaction_History.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
   <div class="sb-sep"></div>
   <a class="sb-link" href="#br-wh"><span class="sl-id">BR</span><div><div class="sl-en">Business Rules</div><div class="sl-ko">업무 규칙</div></div></a>
 </nav><div class="main">
@@ -280,15 +289,16 @@ ul.fi-list li .ko{color:var(--sub);font-size:9px;}
         <div class="mdb-en">Manages all inbound receiving (PDA barcode scan), real-time inventory by location, stock adjustments, and outbound picking (FIFO). Interfaces with PP module for SCM-sourced PO schedules and with FG module for finished goods stocking.</div>
         <div class="mdb-ko">PDA 바코드 스캔 기반 입고, 로케이션별 실시간 재고, 재고 조정, FIFO 출고 피킹 관리. PP 모듈 SCM 발주 연계, FG 완제품 적재 연동.</div>
       </div>
+      <div style="margin-bottom:8px;"><span class="l3-hint">📋 Click any screen card / pill / sidebar link to view L3 detail spec · 클릭 시 L3 상세 설계서</span></div>
       <div class="screen-pills">
-        <span class="sp"><span class="sp-id">WH-01</span> Inbound Schedule</span>
-        <span class="sp"><span class="sp-id">WH-02</span> PDA Inbound</span>
-        <span class="sp"><span class="sp-id">WH-03</span> Inventory Status</span>
-        <span class="sp"><span class="sp-id">WH-04</span> Location Map</span>
-        <span class="sp"><span class="sp-id">WH-05</span> Inventory Adjust</span>
-        <span class="sp"><span class="sp-id">WH-06</span> Release Schedule</span>
-        <span class="sp"><span class="sp-id">WH-07</span> PDA Release</span>
-        <span class="sp"><span class="sp-id">WH-08</span> Transaction History</span>
+        <a class="sp" href="VOL03_WH01_Inbound_Schedule.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · WH-01"><span class="sp-id">WH-01</span> Inbound Schedule <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL03_WH02_PDA_Inbound.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · WH-02"><span class="sp-id">WH-02</span> PDA Inbound <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL03_WH03_Inventory_Status.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · WH-03"><span class="sp-id">WH-03</span> Inventory Status <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL03_WH04_Location_Map.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · WH-04"><span class="sp-id">WH-04</span> Location Map <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL03_WH05_Inventory_Adjust.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · WH-05"><span class="sp-id">WH-05</span> Inventory Adjust <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL03_WH06_Release_Schedule.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · WH-06"><span class="sp-id">WH-06</span> Release Schedule <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL03_WH07_PDA_Release.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · WH-07"><span class="sp-id">WH-07</span> PDA Release <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL03_WH08_Transaction_History.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · WH-08"><span class="sp-id">WH-08</span> Transaction History <span style="opacity:.5;font-size:8px;">📋</span></a>
       </div>
     </div>
   </div>
@@ -307,6 +317,7 @@ ul.fi-list li .ko{color:var(--sub);font-size:9px;}
         <span class="tag t-web">🖥 Web PC</span>
         <span class="tag t-1st">Phase 0 + 1st Dev</span>
       </div>
+      <a class="sc-l3-btn" href="VOL03_WH01_Inbound_Schedule.html" title="View L3 detailed spec">📋 L3 Detail →</a>
     </div>
     <div class="sc-body">
       <div class="desc-bi" style="border-left-color:#0891b2;">
@@ -317,112 +328,6 @@ ul.fi-list li .ko{color:var(--sub);font-size:9px;}
         <div>
           <div class="db-lbl">KO · 설명</div>
           <div class="db-ko">SCM 포탈 수신 발주 기반 입고 예정 등록 화면. 입고 ETA D-Day 자동 계산, 지연 건 빨간색 강조. [Receive] 클릭 시 WH-02 PDA 입고 흐름으로 연계.</div>
-        </div>
-      </div>
-      <div class="mock-wrap">
-        <div class="mock-lbl">WH-01 · Inbound Schedule · Web PC</div>
-        <div class="mock-win">
-          <div class="mock-tbar">📦 A-MES · Warehouse · Inbound Schedule <span class="bc">Warehouse &gt; Inbound &gt; Schedule</span></div>
-          <div class="mock-toolbar">
-            <select><option>All Status</option><option>Pending</option><option>Arriving Today</option><option>Overdue</option></select>
-            <select><option>All Vendors</option><option>삼성화학</option><option>현대원단</option><option>KCC도료</option></select>
-            <input type="text" placeholder="Search PO No. / Item..." style="width:180px;">
-            <button class="btn btn-primary btn-sm">🔍 Search</button>
-            <button class="btn btn-secondary btn-sm" style="margin-left:auto;">+ Register Schedule</button>
-          </div>
-          <div class="mock-body">
-            <div class="kpi-strip">
-              <div class="kc"><div class="kv" style="color:#0891b2;">12</div><div class="kl-en">Pending PO <span style="font-size:8px;">/</span> Items</div><div class="kl-ko">입고 예정 건</div></div>
-              <div class="kc"><div class="kv" style="color:#22c55e;">3</div><div class="kl-en">Arriving Today</div><div class="kl-ko">금일 입고</div></div>
-              <div class="kc"><div class="kv" style="color:#ef4444;">1</div><div class="kl-en">Overdue</div><div class="kl-ko">지연</div></div>
-              <div class="kc"><div class="kv" style="color:#f59e0b;">5</div><div class="kl-en">This Week</div><div class="kl-ko">이번 주</div></div>
-              <div class="kc"><div class="kv" style="color:#6366f1;">3</div><div class="kl-en">Next Week</div><div class="kl-ko">다음 주</div></div>
-            </div>
-            <table class="tbl">
-              <thead>
-                <tr>
-                  <th>PO No. <span class="th-ko">발주번호</span></th>
-                  <th>Vendor <span class="th-ko">공급사</span></th>
-                  <th>Item Code <span class="th-ko">품목코드</span></th>
-                  <th>Item Name <span class="th-ko">품목명</span></th>
-                  <th>Order Qty <span class="th-ko">발주 수량</span></th>
-                  <th>Unit <span class="th-ko">단위</span></th>
-                  <th>ETA <span class="th-ko">입고 예정일</span></th>
-                  <th>D-Day</th>
-                  <th>Status <span class="th-ko">상태</span></th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr class="rd">
-                  <td style="font-family:monospace;font-size:9px;font-weight:700;color:#dc2626;">PO-2025-0628-003</td>
-                  <td>삼성화학</td>
-                  <td style="font-family:monospace;font-size:9px;">RM-PP-NAT-20</td>
-                  <td>PP Pellet Natural 20MFI<div class="ko">PP 펠렛 나튜럴</div></td>
-                  <td style="text-align:right;">500</td><td>kg</td>
-                  <td>2025-06-28</td>
-                  <td style="text-align:center;font-weight:700;color:#dc2626;">D+3</td>
-                  <td><span class="b b-e">Overdue · 지연</span></td>
-                  <td><button class="btn btn-primary btn-sm" style="background:#0891b2;">📥 Receive</button></td>
-                </tr>
-                <tr class="rh">
-                  <td style="font-family:monospace;font-size:9px;font-weight:700;">PO-2025-0701-001</td>
-                  <td>현대원단</td>
-                  <td style="font-family:monospace;font-size:9px;">FAB-GY-C03</td>
-                  <td>Fabric Roll Grey GY-C03<div class="ko">원단 롤 회색</div></td>
-                  <td style="text-align:right;">20</td><td>roll</td>
-                  <td>2025-07-01</td>
-                  <td style="text-align:center;font-weight:700;color:#22c55e;">Today</td>
-                  <td><span class="b b-w">Arriving · 도착예정</span></td>
-                  <td><button class="btn btn-primary btn-sm" style="background:#0891b2;">📥 Receive</button></td>
-                </tr>
-                <tr>
-                  <td style="font-family:monospace;font-size:9px;">PO-2025-0705-002</td>
-                  <td>KCC도료</td>
-                  <td style="font-family:monospace;font-size:9px;">PNT-BK-NH578</td>
-                  <td>Black Paint NH578<div class="ko">블랙 도료 NH578</div></td>
-                  <td style="text-align:right;">50</td><td>L</td>
-                  <td>2025-07-05</td>
-                  <td style="text-align:center;">D-4</td>
-                  <td><span class="b b-i">Scheduled · 예정</span></td>
-                  <td><button class="btn btn-secondary btn-sm">Detail · 상세</button></td>
-                </tr>
-                <tr>
-                  <td style="font-family:monospace;font-size:9px;">PO-2025-0708-004</td>
-                  <td>현대원단</td>
-                  <td style="font-family:monospace;font-size:9px;">FAB-BK-C01</td>
-                  <td>Fabric Roll Black BK-C01<div class="ko">원단 롤 블랙</div></td>
-                  <td style="text-align:right;">10</td><td>roll</td>
-                  <td>2025-07-08</td>
-                  <td style="text-align:center;">D-7</td>
-                  <td><span class="b b-i">Scheduled · 예정</span></td>
-                  <td><button class="btn btn-secondary btn-sm">Detail · 상세</button></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-      <div class="feat-grid">
-        <div class="feat-item" style="border-top-color:#0891b2;">
-          <div class="fi-title-en">📋 PO Schedule Management</div>
-          <div class="fi-title-ko">발주 일정 관리</div>
-          <ul class="fi-list">
-            <li>Auto-sync PO from SCM portal every 30 min <span class="ko">SCM 포탈 30분 자동 동기화</span></li>
-            <li>ETA D-Day countdown auto-calculated <span class="ko">입고 D-Day 자동 계산</span></li>
-            <li>Overdue PO highlighted red · alert sent <span class="ko">지연 PO 빨간색 강조 + 알림</span></li>
-            <li>Partial inbound supported <span class="ko">부분 입고 처리 지원</span></li>
-          </ul>
-        </div>
-        <div class="feat-item" style="border-top-color:#22c55e;">
-          <div class="fi-title-en">🔗 Downstream Integration</div>
-          <div class="fi-title-ko">후행 프로세스 연계</div>
-          <ul class="fi-list">
-            <li>[Receive] → launches WH-02 PDA flow <span class="ko">[Receive] → WH-02 PDA 입고 연계</span></li>
-            <li>QC-01 incoming inspection auto-triggered <span class="ko">수입검사 QC-01 자동 트리거</span></li>
-            <li>Min-stock alert on receipt <span class="ko">입고 완료 시 최소재고 체크</span></li>
-            <li>Inbound label print via WH-02 <span class="ko">WH-02에서 입고 라벨 출력</span></li>
-          </ul>
         </div>
       </div>
     </div>
@@ -440,6 +345,7 @@ ul.fi-list li .ko{color:var(--sub);font-size:9px;}
         <span class="tag t-pda">📱 PDA</span>
         <span class="tag t-1st">1st Dev</span>
       </div>
+      <a class="sc-l3-btn" href="VOL03_WH02_PDA_Inbound.html" title="View L3 detailed spec">📋 L3 Detail →</a>
     </div>
     <div class="sc-body">
       <div class="desc-bi" style="border-left-color:#0891b2;">
@@ -450,81 +356,6 @@ ul.fi-list li .ko{color:var(--sub);font-size:9px;}
         <div>
           <div class="db-lbl">KO · 설명</div>
           <div class="db-ko">창고 담당자가 PDA로 품목 바코드 스캔 → 숫자패드로 수량 입력 → 선반 QR 스캔으로 로케이션 지정. 바코드-PO 불일치 즉시 차단. 입고 확정 + 위치 라벨 출력.</div>
-        </div>
-      </div>
-      <div class="pda-row">
-        <div class="pda-unit">
-          <div class="pdu-step">① Scan Item · 품목 스캔</div>
-          <div class="pda-shell">
-            <div class="pda-scr">
-              <div class="pda-sbar"><span>WH-02 · Inbound</span><span class="online">● 09:12</span></div>
-              <div class="pda-tbar" style="background:linear-gradient(135deg,#060e1c,#091628);"><div class="pda-title">Inbound Receiving</div><div class="pda-sub">입고 처리 · PO-2025-0701-001</div></div>
-              <div class="pda-bd">
-                <div class="pda-scan">
-                  <div class="pda-scan-icon">📷</div>
-                  <div class="pda-scan-en">Scan Item Barcode</div>
-                  <div class="pda-scan-ko">품목 바코드 스캔</div>
-                </div>
-                <div class="pda-field"><div class="pda-fl">PO No.</div><div class="pda-fv">PO-2025-0701-001</div></div>
-                <div class="pda-field"><div class="pda-fl">Expected Item</div><div class="pda-fv">FAB-GY-C03</div></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="pda-unit">
-          <div class="pdu-step">② Confirm Qty · 수량 입력</div>
-          <div class="pda-shell">
-            <div class="pda-scr">
-              <div class="pda-sbar"><span>WH-02 · Inbound</span><span class="online">● 09:13</span></div>
-              <div class="pda-tbar" style="background:linear-gradient(135deg,#060e1c,#091628);"><div class="pda-title">Confirm Quantity</div><div class="pda-sub">수량 확인 · FAB-GY-C03 ✅</div></div>
-              <div class="pda-bd">
-                <div class="pda-field"><div class="pda-fl">Item Verified ✅</div><div class="pda-fv ok">FAB-GY-C03 · Grey Fabric</div></div>
-                <div class="pda-field"><div class="pda-fl">Expected Qty · 예정 수량</div><div class="pda-fv">20 rolls</div></div>
-                <div class="pda-disp">20</div>
-                <div class="pda-numpad">
-                  <div class="pda-key">1</div><div class="pda-key">2</div><div class="pda-key">3</div>
-                  <div class="pda-key">4</div><div class="pda-key">5</div><div class="pda-key">6</div>
-                  <div class="pda-key">7</div><div class="pda-key">8</div><div class="pda-key">9</div>
-                  <div class="pda-key k-ok">All</div><div class="pda-key">0</div><div class="pda-key k-del">⌫</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="pda-unit">
-          <div class="pdu-step">③ Assign Location · 위치 지정</div>
-          <div class="pda-shell">
-            <div class="pda-scr">
-              <div class="pda-sbar"><span>WH-02 · Inbound</span><span class="online">● 09:14</span></div>
-              <div class="pda-tbar" style="background:linear-gradient(135deg,#060e1c,#091628);"><div class="pda-title">Assign Location</div><div class="pda-sub">로케이션 지정</div></div>
-              <div class="pda-bd">
-                <div class="pda-scan">
-                  <div class="pda-scan-icon">📍</div>
-                  <div class="pda-scan-en">Scan Shelf QR Code</div>
-                  <div class="pda-scan-ko">선반 QR 스캔</div>
-                </div>
-                <div class="pda-field"><div class="pda-fl">Location Assigned</div><div class="pda-fv ok">WH-FAB-D-01-1</div></div>
-                <div class="pda-field"><div class="pda-fl">Qty to Stock · 입고 수량</div><div class="pda-fv ok">20 rolls</div></div>
-                <button class="pda-btn pda-pri">✅ Confirm Inbound</button>
-                <button class="pda-btn pda-sec">🏷 Print Label · 라벨 출력</button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="pda-unit">
-          <div class="pdu-step">② Error: Mismatch · 불일치 차단</div>
-          <div class="pda-shell">
-            <div class="pda-scr">
-              <div class="pda-sbar"><span>WH-02 · Inbound</span><span class="online">● 09:15</span></div>
-              <div class="pda-tbar" style="background:#1a0808;border-bottom-color:#3a1010;"><div class="pda-title" style="color:#ff8a82;">⛔ ITEM MISMATCH</div><div class="pda-sub" style="color:#ff8a82;">품목 불일치 — 입고 차단</div></div>
-              <div class="pda-bd">
-                <div class="pda-field"><div class="pda-fl">Scanned · 스캔 품목</div><div class="pda-fv er">FAB-BK-C01 · Black ❌</div></div>
-                <div class="pda-field"><div class="pda-fl">Required · 요구 품목</div><div class="pda-fv">FAB-GY-C03 · Grey</div></div>
-                <div style="background:#1a0808;border:1px solid #3a1010;border-radius:5px;padding:8px;text-align:center;font-size:10px;color:#ff8a82;margin-bottom:7px;">INPUT BLOCKED<br><span style="font-size:8px;opacity:.7;">Re-scan correct item · 올바른 품목 재스캔</span></div>
-                <button class="pda-btn pda-dan">🔄 Re-scan</button>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -542,6 +373,7 @@ ul.fi-list li .ko{color:var(--sub);font-size:9px;}
         <span class="tag t-web">🖥 Web PC</span>
         <span class="tag t-1st">1st Dev</span>
       </div>
+      <a class="sc-l3-btn" href="VOL03_WH03_Inventory_Status.html" title="View L3 detailed spec">📋 L3 Detail →</a>
     </div>
     <div class="sc-body">
       <div class="desc-bi" style="border-left-color:#0891b2;">
@@ -554,92 +386,10 @@ ul.fi-list li .ko{color:var(--sub);font-size:9px;}
           <div class="db-ko">품목·유형(원자재/원단/도료)·로케이션별 실시간 재고 현황. 최소재고 미달 항목 빨간색 강조. Excel 출력, 전일 대비 재고 증감 표시.</div>
         </div>
       </div>
-      <div class="mock-wrap">
-        <div class="mock-lbl">WH-03 · Inventory Status · Web PC</div>
-        <div class="mock-win">
-          <div class="mock-tbar">📦 A-MES · Warehouse · Inventory Status <span class="bc">Warehouse &gt; Inventory</span></div>
-          <div class="mock-toolbar">
-            <select><option>All Types</option><option>Raw Material · 원자재</option><option>Fabric · 원단</option><option>Paint · 도료</option></select>
-            <select><option>All Warehouses</option><option>WH-RM</option><option>WH-FAB</option><option>WH-PNT</option></select>
-            <input type="text" placeholder="Item Code / Name..." style="width:160px;">
-            <button class="btn btn-primary btn-sm" style="background:#0891b2;">🔍 Search</button>
-            <button class="btn btn-secondary btn-sm" style="margin-left:auto;">📥 Export Excel</button>
-          </div>
-          <div class="mock-body">
-            <div class="kpi-strip">
-              <div class="kc"><div class="kv" style="color:#0891b2;">124</div><div class="kl-en">Total Items</div><div class="kl-ko">전체 품목 수</div></div>
-              <div class="kc"><div class="kv" style="color:#ef4444;">3</div><div class="kl-en">Below Min Stock</div><div class="kl-ko">최소재고 미달</div></div>
-              <div class="kc"><div class="kv" style="color:#f59e0b;">23</div><div class="kl-en">Low Stock Warning</div><div class="kl-ko">재고 부족 주의</div></div>
-              <div class="kc"><div class="kv" style="color:#22c55e;">98</div><div class="kl-en">Normal</div><div class="kl-ko">정상</div></div>
-            </div>
-            <table class="tbl">
-              <thead>
-                <tr>
-                  <th>Item Code <span class="th-ko">품목코드</span></th>
-                  <th>Item Name <span class="th-ko">품목명</span></th>
-                  <th>Type <span class="th-ko">유형</span></th>
-                  <th>On Hand <span class="th-ko">현재고</span></th>
-                  <th>Unit</th>
-                  <th>Min Stock <span class="th-ko">최소재고</span></th>
-                  <th>Δ vs Yesterday <span class="th-ko">전일 대비</span></th>
-                  <th>Location <span class="th-ko">로케이션</span></th>
-                  <th>Status <span class="th-ko">상태</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr class="rd">
-                  <td style="font-family:monospace;font-size:9px;font-weight:700;color:#dc2626;">RM-PP-NAT-20</td>
-                  <td>PP Pellet Natural 20MFI<div class="ko">PP 펠렛 나튜럴</div></td>
-                  <td><span class="b b-n">Raw Material</span></td>
-                  <td style="text-align:right;font-weight:700;color:#dc2626;">250 kg</td>
-                  <td>kg</td>
-                  <td style="text-align:right;">500 kg</td>
-                  <td style="text-align:right;color:#ef4444;">▼ 50 kg</td>
-                  <td style="font-family:monospace;font-size:9px;">WH-RM-A-01-1</td>
-                  <td><span class="b b-e">⚠ Below Min</span></td>
-                </tr>
-                <tr class="rh">
-                  <td style="font-family:monospace;font-size:9px;">FAB-GY-C03</td>
-                  <td>Fabric Roll Grey GY-C03<div class="ko">원단 롤 회색</div></td>
-                  <td><span class="b b-i">Fabric · 원단</span></td>
-                  <td style="text-align:right;font-weight:700;color:#22c55e;">1,420 m</td>
-                  <td>m</td>
-                  <td style="text-align:right;">200 m</td>
-                  <td style="text-align:right;color:#22c55e;">▲ 500 m</td>
-                  <td style="font-family:monospace;font-size:9px;">WH-FAB-D-01-1</td>
-                  <td><span class="b b-ok">Normal</span></td>
-                </tr>
-                <tr>
-                  <td style="font-family:monospace;font-size:9px;">PNT-BK-NH578</td>
-                  <td>Black Paint NH578<div class="ko">블랙 도료 NH578</div></td>
-                  <td><span class="b" style="background:#fff7ed;color:#9a3412;">Paint · 도료</span></td>
-                  <td style="text-align:right;font-weight:700;color:#22c55e;">284 L</td>
-                  <td>L</td>
-                  <td style="text-align:right;">10 L</td>
-                  <td style="text-align:right;color:#ef4444;">▼ 16 L</td>
-                  <td style="font-family:monospace;font-size:9px;">WH-PNT-E-01-1</td>
-                  <td><span class="b b-ok">Normal</span></td>
-                </tr>
-                <tr class="rd">
-                  <td style="font-family:monospace;font-size:9px;font-weight:700;color:#dc2626;">RM-MB-GY-03</td>
-                  <td>Color Masterbatch Grey<div class="ko">착색 마스터배치 회색</div></td>
-                  <td><span class="b b-n">Raw Material</span></td>
-                  <td style="text-align:right;font-weight:700;color:#dc2626;">0.5 kg</td>
-                  <td>kg</td>
-                  <td style="text-align:right;">2 kg</td>
-                  <td style="text-align:right;color:#ef4444;">▼ 0.3 kg</td>
-                  <td style="font-family:monospace;font-size:9px;">WH-RM-A-02-1</td>
-                  <td><span class="b b-e">⚠ Below Min</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 
-  <!-- WH-04 ~ WH-08 요약 -->
+  <!-- WH-04 -->
   <div class="screen-card" id="wh04">
     <div class="sc-hdr">
       <div>
@@ -648,6 +398,7 @@ ul.fi-list li .ko{color:var(--sub);font-size:9px;}
         <div class="sc-title-ko">로케이션 맵</div>
       </div>
       <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-2nd">2nd Dev</span></div>
+      <a class="sc-l3-btn" href="VOL03_WH04_Location_Map.html" title="View L3 detailed spec">📋 L3 Detail →</a>
     </div>
     <div class="sc-body">
       <div class="desc-bi" style="border-left-color:#0891b2;">
@@ -663,7 +414,8 @@ ul.fi-list li .ko{color:var(--sub);font-size:9px;}
       <div class="sc-hdr">
         <div><div class="sc-id">WH-05</div><div class="sc-title-en">Inventory Adjustment</div><div class="sc-title-ko">재고 조정</div></div>
         <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-1st">1st Dev</span></div>
-      </div>
+      <a class="sc-l3-btn" href="VOL03_WH05_Inventory_Adjust.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+    </div>
       <div class="sc-body">
         <div class="desc-bi" style="border-left-color:#0891b2;">
           <div><div class="db-lbl">EN</div><div class="db-en">Manual inventory correction (physical count vs. system). Requires reason code selection and supervisor approval. All adjustments are logged in WH-08 with before/after values.</div></div>
@@ -675,7 +427,8 @@ ul.fi-list li .ko{color:var(--sub);font-size:9px;}
       <div class="sc-hdr">
         <div><div class="sc-id">WH-06</div><div class="sc-title-en">Release Schedule</div><div class="sc-title-ko">출고 예정</div></div>
         <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-1st">1st Dev</span></div>
-      </div>
+      <a class="sc-l3-btn" href="VOL03_WH06_Release_Schedule.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+    </div>
       <div class="sc-body">
         <div class="desc-bi" style="border-left-color:#0891b2;">
           <div><div class="db-lbl">EN</div><div class="db-en">Shows material release schedule to production lines based on WO demand from PP. Allows warehouse staff to prepare picking ahead of schedule. Triggers WH-07 PDA picking when ready.</div></div>
@@ -690,7 +443,8 @@ ul.fi-list li .ko{color:var(--sub);font-size:9px;}
       <div class="sc-hdr">
         <div><div class="sc-id">WH-07</div><div class="sc-title-en">PDA Release Picking</div><div class="sc-title-ko">PDA 출고 피킹</div></div>
         <div class="sc-tags"><span class="tag t-pda">📱 PDA</span><span class="tag t-1st">1st Dev</span></div>
-      </div>
+      <a class="sc-l3-btn" href="VOL03_WH07_PDA_Release.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+    </div>
       <div class="sc-body">
         <div class="desc-bi" style="border-left-color:#0891b2;">
           <div><div class="db-lbl">EN</div><div class="db-en">PDA-guided FIFO picking for material release to production. System suggests oldest stock location first. Wrong-item barcode scan is immediately blocked with an error alert.</div></div>
@@ -702,7 +456,8 @@ ul.fi-list li .ko{color:var(--sub);font-size:9px;}
       <div class="sc-hdr">
         <div><div class="sc-id">WH-08</div><div class="sc-title-en">Transaction History</div><div class="sc-title-ko">입출고 이력</div></div>
         <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-1st">1st Dev</span></div>
-      </div>
+      <a class="sc-l3-btn" href="VOL03_WH08_Transaction_History.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+    </div>
       <div class="sc-body">
         <div class="desc-bi" style="border-left-color:#0891b2;">
           <div><div class="db-lbl">EN</div><div class="db-en">Full audit trail of all inbound and outbound transactions: timestamp, operator, quantity, location, reason code. Searchable by date range, item, and operator. Excel export for audit purposes.</div></div>
@@ -754,34 +509,6 @@ ul.fi-list li .ko{color:var(--sub);font-size:9px;}
           <td class="br-ko">출고 피킹 입고일 기준 FIFO 자동 적용. 최고령 재고 위치 자동 제안.</td>
           <td><span class="b b-i">Auto</span></td>
         </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Data Model -->
-  <div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">WH Data Model · 주요 데이터 테이블</div><div class="sd-line"></div></div>
-  <div class="g2">
-    <table class="dm-tbl">
-      <thead><tr><th>Table</th><th>Column · 컬럼</th><th>Type</th><th>Note</th></tr></thead>
-      <tbody>
-        <tr><td rowspan="6" style="font-weight:700;font-family:monospace;">wh_inbound</td>
-            <td class="dm-col dm-pk">inbound_id</td><td class="dm-type">VARCHAR(20)</td><td>PK · IN-YYYYMMDD-NNN</td></tr>
-        <tr><td class="dm-col dm-fk">po_id</td><td class="dm-type">VARCHAR(20)</td><td>FK → po_header</td></tr>
-        <tr><td class="dm-col dm-fk">item_code</td><td class="dm-type">VARCHAR(20)</td><td>FK → md_item</td></tr>
-        <tr><td class="dm-col">received_qty</td><td class="dm-type">DECIMAL(10,3)</td><td>수량</td></tr>
-        <tr><td class="dm-col dm-fk">location_id</td><td class="dm-type">VARCHAR(20)</td><td>FK → md_location</td></tr>
-        <tr><td class="dm-col">inbound_date</td><td class="dm-type">DATETIME</td><td>FIFO 기준</td></tr>
-      </tbody>
-    </table>
-    <table class="dm-tbl">
-      <thead><tr><th>Table</th><th>Column · 컬럼</th><th>Type</th><th>Note</th></tr></thead>
-      <tbody>
-        <tr><td rowspan="5" style="font-weight:700;font-family:monospace;">wh_inventory</td>
-            <td class="dm-col dm-pk">inv_id</td><td class="dm-type">BIGINT</td><td>PK</td></tr>
-        <tr><td class="dm-col dm-fk">item_code</td><td class="dm-type">VARCHAR(20)</td><td>FK → md_item</td></tr>
-        <tr><td class="dm-col dm-fk">location_id</td><td class="dm-type">VARCHAR(20)</td><td>FK → md_location</td></tr>
-        <tr><td class="dm-col">on_hand_qty</td><td class="dm-type">DECIMAL(10,3)</td><td>현재고 (실시간)</td></tr>
-        <tr><td class="dm-col">last_updated</td><td class="dm-type">DATETIME</td><td>재고 변동 시각</td></tr>
       </tbody>
     </table>
   </div>
