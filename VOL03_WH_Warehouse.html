@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.3 · WH · Warehouse Management</title>
+<style>
+/* ═══════════════════════════════════════
+   A-MES SHARED STYLESHEET v2.0
+   Bilingual EN/KO · UI Labels English
+═══════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+
+:root{
+  --gold:#d4a017; --gold-lt:#fdf6e3; --gold-dk:#a07810;
+  --ink:#0d1117; --ink2:#161b22; --ink3:#21262d;
+  --surface:#ffffff; --bg:#f6f8fa; --border:#d0d7de;
+  --text:#24292f; --sub:#656d76;
+  /* module colors */
+  --wh:#0891b2; --pp:#059669; --inj:#2563eb; --img:#7c3aed;
+  --pnt:#ea580c; --qc:#dc2626; --fg:#0db87a; --mnt:#0284c7;
+  --rpt:#6366f1; --sys:#475569; --md:#d97706;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+
+/* ── NAV BAR (injected per file) ── */
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
+.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}
+.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;transition:color .12s;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}
+.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+
+/* ── PAGE LAYOUT ── */
+.page-wrap{display:flex;}
+.sidebar{width:230px;min-width:230px;background:var(--ink2);position:sticky;top:40px;height:calc(100vh - 40px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(212,160,23,.15) transparent;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.15);padding:12px 14px 4px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.35);font-size:11px;border-left:2px solid transparent;transition:all .12s;}
+.sb-link:hover{color:rgba(255,255,255,.7);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:32px;flex-shrink:0;}
+.sb-link .sl-en{font-size:10px;font-weight:600;}
+.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.2);margin-top:1px;}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+
+.main{flex:1;min-width:0;}
+
+/* ── MODULE HEADER ── */
+.mod-hdr{padding:36px 48px 24px;position:relative;overflow:hidden;}
+.mod-hdr-inner{position:relative;z-index:1;}
+.mod-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;opacity:.7;}
+.mod-title-en{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:.95;letter-spacing:2px;color:#fff;margin-bottom:4px;}
+.mod-title-ko{font-size:14px;font-weight:300;color:rgba(255,255,255,.35);letter-spacing:4px;margin-bottom:16px;}
+.mod-desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:840px;margin-bottom:18px;}
+.mdb-en{font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;border-left:2px solid rgba(255,255,255,.12);padding-left:12px;}
+.mdb-ko{font-size:11px;color:rgba(255,255,255,.3);line-height:1.8;border-left:2px solid rgba(255,255,255,.06);padding-left:12px;}
+.screen-pills{display:flex;gap:5px;flex-wrap:wrap;}
+.sp{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:9px;color:rgba(255,255,255,.4);}
+.sp-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold);}
+
+/* ── CONTENT AREA ── */
+.content{padding:0 48px 48px;}
+
+/* ── SCREEN CARD ── */
+.screen-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;}
+.sc-hdr{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.sc-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.sc-title-en{font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px;}
+.sc-title-ko{font-size:10px;color:rgba(255,255,255,.35);margin-top:2px;}
+.sc-tags{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+.tag{font-size:9px;font-weight:700;padding:2px 9px;border-radius:3px;}
+.t-web{background:rgba(26,111,255,.2);color:#7ab4ff;border:1px solid rgba(26,111,255,.3);}
+.t-pda{background:rgba(13,184,122,.2);color:#5dffc4;border:1px solid rgba(13,184,122,.3);}
+.t-pop{background:rgba(234,88,12,.2);color:#fdba74;border:1px solid rgba(234,88,12,.3);}
+.t-p0{background:rgba(212,160,23,.15);color:#fbbf24;border:1px solid rgba(212,160,23,.2);}
+.t-1st{background:rgba(26,111,255,.12);color:#93c5fd;border:1px solid rgba(26,111,255,.18);}
+.t-2nd{background:rgba(124,58,237,.12);color:#c4b5fd;border:1px solid rgba(124,58,237,.18);}
+.t-3rd{background:rgba(255,107,0,.12);color:#fdba74;border:1px solid rgba(255,107,0,.18);}
+.sc-body{padding:14px 18px;}
+
+/* ── BILINGUAL DESC ── */
+.desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;background:#f6f8ff;border:1px solid var(--border);border-left:3px solid;border-radius:0 6px 6px 0;padding:11px 14px;}
+.db-lbl{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;opacity:.5;}
+.db-en{font-size:11px;color:#1e40af;line-height:1.75;}
+.db-ko{font-size:11px;color:var(--sub);line-height:1.75;}
+
+/* ── KPI STRIP ── */
+.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:12px;}
+.kc{flex:1;padding:9px 12px;border-right:1px solid var(--border);}
+.kc:last-child{border-right:none;}
+.kv{font-size:20px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
+.kl-en{font-size:9px;color:var(--sub);margin-top:2px;}
+.kl-ko{font-size:8px;color:rgba(100,116,139,.55);}
+
+/* ── MOCK WINDOW ── */
+.mock-wrap{background:#eef1f5;border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;}
+.mock-lbl{font-size:9px;font-weight:700;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;}
+.mock-win{background:#fff;border:1px solid #c8d0db;border-radius:6px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.07);}
+.mock-tbar{background:var(--text);color:#fff;padding:7px 13px;display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;}
+.mock-tbar .bc{margin-left:auto;font-size:9px;color:rgba(255,255,255,.3);font-family:'JetBrains Mono',monospace;}
+.mock-body{padding:12px 13px;}
+.mock-toolbar{background:#f6f8fa;border-bottom:1px solid var(--border);padding:6px 13px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+.mock-toolbar select,.mock-toolbar input{padding:3px 8px;border:1px solid var(--border);border-radius:3px;font-size:11px;background:#fff;}
+
+/* ── TABLE ── */
+.tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.tbl th{background:#f0f3f7;padding:6px 9px;font-weight:700;border:1px solid var(--border);text-align:left;font-size:10px;color:var(--text);}
+.tbl th .th-ko{font-weight:400;color:var(--sub);font-size:9px;}
+.tbl td{padding:5px 9px;border:1px solid var(--border);vertical-align:middle;}
+.tbl .rh td{background:#f0fdf4;}
+.tbl .rw td{background:#fffbeb;}
+.tbl .rd td{background:#fef2f2;}
+.tbl tr:hover td{background:#f9fafb;}
+.tbl td .ko{color:var(--sub);font-size:10px;}
+
+/* ── BADGES ── */
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
+.b-ok{background:#dcfce7;color:#166534;}
+.b-w{background:#fef9c3;color:#92400e;}
+.b-e{background:#fee2e2;color:#991b1b;}
+.b-i{background:#dbeafe;color:#1e40af;}
+.b-n{background:#f3f4f6;color:#4b5563;}
+
+/* ── BUTTONS ── */
+.btn{padding:5px 13px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
+.btn-primary{background:var(--mod-color,#0891b2);color:#fff;border-color:var(--mod-color,#0891b2);}
+.btn-secondary{background:#f6f8fa;color:var(--text);border-color:var(--border);}
+.btn-danger{background:#dc2626;color:#fff;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+
+/* ── FEATURE GRID ── */
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.feat-item{background:#f6f8ff;border:1px solid var(--border);border-radius:6px;padding:11px 13px;border-top:2px solid;}
+.fi-title-en{font-size:11px;font-weight:700;margin-bottom:1px;}
+.fi-title-ko{font-size:10px;color:var(--sub);margin-bottom:6px;}
+ul.fi-list{list-style:none;}
+ul.fi-list li{padding:2px 0 2px 12px;position:relative;font-size:10px;line-height:1.6;}
+ul.fi-list li::before{content:'–';position:absolute;left:0;color:var(--sub);}
+ul.fi-list li .ko{color:var(--sub);font-size:9px;}
+
+/* ── PDA MOCK ── */
+.pda-row{display:flex;gap:14px;flex-wrap:wrap;}
+.pda-unit{text-align:center;}
+.pdu-step{font-size:9px;font-weight:700;color:var(--sub);margin-bottom:5px;}
+.pda-shell{background:#1a1e2e;border-radius:16px;padding:9px;width:172px;border:2px solid #2a3048;box-shadow:0 6px 20px rgba(0,0,0,.3);}
+.pda-scr{background:#0a1628;border-radius:10px;overflow:hidden;border:1px solid #1a3050;}
+.pda-sbar{background:#060e1c;padding:3px 8px;display:flex;justify-content:space-between;}
+.pda-sbar span{font-size:7px;color:#2a4a7a;font-family:'JetBrains Mono',monospace;}
+.pda-sbar .online{color:#00e5a0;}
+.pda-tbar{padding:7px 10px;border-bottom:1px solid #0a3050;}
+.pda-title{font-size:11px;font-weight:700;color:#00e5a0;}
+.pda-sub{font-size:8px;color:rgba(255,255,255,.3);}
+.pda-bd{padding:8px 10px;}
+.pda-scan{background:#060e1c;border:2px dashed rgba(0,229,160,.3);border-radius:6px;padding:12px;text-align:center;margin-bottom:7px;}
+.pda-scan-icon{font-size:22px;margin-bottom:3px;}
+.pda-scan-en{font-size:10px;font-weight:700;color:#00e5a0;}
+.pda-scan-ko{font-size:8px;color:rgba(255,255,255,.3);}
+.pda-field{margin-bottom:5px;}
+.pda-fl{font-size:8px;color:#1a5a4a;margin-bottom:2px;font-weight:600;}
+.pda-fv{background:#040c18;border:1px solid #1a3050;border-radius:4px;padding:4px 8px;font-size:10px;color:#a0c8f0;font-family:'JetBrains Mono',monospace;}
+.pda-fv.ok{border-color:#00e5a0;color:#00e5a0;}
+.pda-fv.er{border-color:#ff8a82;color:#ff8a82;}
+.pda-numpad{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;margin-bottom:6px;}
+.pda-key{background:#0d1e30;border:1px solid #1a3050;border-radius:4px;padding:7px 4px;text-align:center;font-size:13px;font-weight:700;color:#c0e0f0;font-family:'JetBrains Mono',monospace;}
+.pda-key.k-ok{background:#0a2a1a;color:#00e5a0;border-color:#0a5a38;}
+.pda-key.k-del{background:#1a0808;color:#ff8a82;border-color:#3a1010;}
+.pda-disp{background:#040c18;border:1px solid #1a3050;border-radius:4px;padding:5px 9px;font-size:24px;font-weight:900;color:#00e5a0;text-align:right;margin-bottom:6px;font-family:'JetBrains Mono',monospace;}
+.pda-btn{width:100%;padding:7px;border-radius:5px;font-size:10px;font-weight:700;border:none;cursor:pointer;margin-bottom:4px;font-family:'Noto Sans KR',sans-serif;}
+.pda-pri{background:linear-gradient(135deg,#0a9060,#0db87a);color:#fff;}
+.pda-sec{background:#0a1428;color:#4a7aaa;border:1px solid #1a3050;}
+.pda-dan{background:#1a0808;color:#ff8a82;border:1px solid #3a1010;}
+.pda-progress-bar{height:4px;background:#060e1c;border-radius:2px;overflow:hidden;margin:4px 0 8px;}
+.pda-progress-fill{height:100%;background:linear-gradient(90deg,#0a9060,#00e5a0);border-radius:2px;}
+
+/* ── BR TABLE ── */
+.br-wrap{margin-bottom:16px;}
+.br-title{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:7px;display:flex;align-items:center;gap:10px;}
+.br-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.br-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.br-tbl th{background:var(--text);color:#fff;padding:6px 10px;text-align:left;border:1px solid rgba(255,255,255,.08);font-size:9px;}
+.br-tbl td{padding:6px 10px;border:1px solid var(--border);vertical-align:top;line-height:1.6;}
+.br-tbl tr:nth-child(even) td{background:#fafbfd;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-en{color:var(--text);}
+.br-ko{color:var(--sub);font-size:10px;margin-top:2px;}
+
+/* ── SECTION DIV ── */
+.sec-div{display:flex;align-items:center;gap:12px;margin:20px 0 12px;}
+.sd-line{flex:1;height:1px;background:var(--border);}
+.sd-lbl{font-size:10px;font-weight:700;color:var(--sub);white-space:nowrap;}
+
+/* ── ALERTS ── */
+.alert{padding:8px 12px;border-radius:5px;font-size:10px;margin-bottom:9px;display:flex;gap:8px;line-height:1.7;}
+.alert-i{background:#eff6ff;border-left:3px solid #3b82f6;}
+.alert-w{background:#fffbeb;border-left:3px solid #f59e0b;}
+.alert-s{background:#f0fdf4;border-left:3px solid #22c55e;}
+.alert-d{background:#fef2f2;border-left:3px solid #ef4444;}
+
+/* ── ROUTING FLOW ── */
+.rflow{display:flex;align-items:center;gap:0;flex-wrap:nowrap;overflow-x:auto;padding:4px 0;}
+.rs{padding:9px 14px;border-radius:5px;font-size:11px;font-weight:700;text-align:center;flex-shrink:0;text-decoration:none;}
+.rs-en{font-size:12px;font-weight:800;}
+.rs-ko{font-size:9px;font-weight:400;opacity:.7;margin-top:2px;}
+.rarr{color:var(--sub);font-size:14px;padding:0 5px;flex-shrink:0;}
+.rs-inj{background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;}
+.rs-img{background:#f5f3ff;color:#5b21b6;border:1px solid #c4b5fd;}
+.rs-pnt{background:#fff7ed;color:#9a3412;border:1px solid #fdba74;}
+.rs-qc{background:#fef2f2;color:#991b1b;border:1px solid #fca5a5;}
+.rs-fg{background:#f0fdf4;color:#065f46;border:1px solid #6ee7b7;}
+
+/* ── GRID ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+
+/* ── PROGRESS BAR ── */
+.prog-track{height:5px;background:#f0f2f5;border-radius:3px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:3px;}
+
+/* ── DATA MODEL TABLE ── */
+.dm-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.dm-tbl th{background:var(--ink2);color:#fff;padding:6px 10px;text-align:left;border:1px solid var(--ink3);font-size:9px;}
+.dm-tbl td{padding:5px 10px;border:1px solid var(--border);vertical-align:top;}
+.dm-tbl tr:nth-child(even) td{background:#fafbfd;}
+.dm-col{font-family:'JetBrains Mono',monospace;color:#1e40af;font-weight:600;}
+.dm-type{font-family:'JetBrains Mono',monospace;color:var(--sub);font-size:10px;}
+.dm-pk{color:#dc2626;font-weight:700;}
+.dm-fk{color:#7c3aed;}
+
+/* ── PAGE FOOTER ── */
+.page-footer{padding:14px 48px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--ink);margin-top:20px;}
+.pf-l{font-size:10px;color:rgba(255,255,255,.2);}
+.pf-r{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(212,160,23,.4);}
+
+:root{ --mod-color:#0891b2; }
+.mod-hdr{ background:linear-gradient(135deg, color-mix(in srgb,#0891b2 30%,#000) 0%, color-mix(in srgb,#0891b2 15%,#000) 100%); }
+.sc-hdr{ background:linear-gradient(135deg, color-mix(in srgb,#0891b2 25%,#000) 0%, color-mix(in srgb,#0891b2 12%,#000) 100%); }
+.sc-id{ color:#0891b2; }
+.sb-mod-en{ color:#0891b2; }
+.sb-link.on{ border-left-color:#0891b2; }
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol active"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head">
+    <div class="sb-vol">VOL.3 · WH MODULE</div>
+    <div class="sb-mod-en">WAREHOUSE</div>
+    <div class="sb-mod-ko">창고 관리</div>
+  </div>
+  <div class="sb-section">Screens · 화면</div>
+  <a class="sb-link on" href="#wh01"><span class="sl-id">WH-01</span><div><div class="sl-en">Inbound Schedule</div><div class="sl-ko">입고 예정</div></div></a>
+  <a class="sb-link" href="#wh02"><span class="sl-id">WH-02</span><div><div class="sl-en">PDA Inbound</div><div class="sl-ko">PDA 입고 처리</div></div></a>
+  <a class="sb-link" href="#wh03"><span class="sl-id">WH-03</span><div><div class="sl-en">Inventory Status</div><div class="sl-ko">재고 현황</div></div></a>
+  <a class="sb-link" href="#wh04"><span class="sl-id">WH-04</span><div><div class="sl-en">Location Map</div><div class="sl-ko">로케이션 맵</div></div></a>
+  <a class="sb-link" href="#wh05"><span class="sl-id">WH-05</span><div><div class="sl-en">Inventory Adjust</div><div class="sl-ko">재고 조정</div></div></a>
+  <a class="sb-link" href="#wh06"><span class="sl-id">WH-06</span><div><div class="sl-en">Release Schedule</div><div class="sl-ko">출고 예정</div></div></a>
+  <a class="sb-link" href="#wh07"><span class="sl-id">WH-07</span><div><div class="sl-en">PDA Release</div><div class="sl-ko">PDA 출고 피킹</div></div></a>
+  <a class="sb-link" href="#wh08"><span class="sl-id">WH-08</span><div><div class="sl-en">Transaction History</div><div class="sl-ko">입출고 이력</div></div></a>
+  <div class="sb-sep"></div>
+  <a class="sb-link" href="#br-wh"><span class="sl-id">BR</span><div><div class="sl-en">Business Rules</div><div class="sl-ko">업무 규칙</div></div></a>
+</nav><div class="main">
+  <!-- MODULE HEADER -->
+  <div class="mod-hdr">
+    <div class="mod-hdr-inner">
+      <div class="mod-eyebrow" style="color:#22d3ee;">VOL.3 · WH · Warehouse Management · 창고 관리</div>
+      <div class="mod-title-en" style="color:#22d3ee;">WAREHOUSE<br>MANAGEMENT</div>
+      <div class="mod-title-ko">창고 관리</div>
+      <div class="mod-desc-bi">
+        <div class="mdb-en">Manages all inbound receiving (PDA barcode scan), real-time inventory by location, stock adjustments, and outbound picking (FIFO). Interfaces with PP module for SCM-sourced PO schedules and with FG module for finished goods stocking.</div>
+        <div class="mdb-ko">PDA 바코드 스캔 기반 입고, 로케이션별 실시간 재고, 재고 조정, FIFO 출고 피킹 관리. PP 모듈 SCM 발주 연계, FG 완제품 적재 연동.</div>
+      </div>
+      <div class="screen-pills">
+        <span class="sp"><span class="sp-id">WH-01</span> Inbound Schedule</span>
+        <span class="sp"><span class="sp-id">WH-02</span> PDA Inbound</span>
+        <span class="sp"><span class="sp-id">WH-03</span> Inventory Status</span>
+        <span class="sp"><span class="sp-id">WH-04</span> Location Map</span>
+        <span class="sp"><span class="sp-id">WH-05</span> Inventory Adjust</span>
+        <span class="sp"><span class="sp-id">WH-06</span> Release Schedule</span>
+        <span class="sp"><span class="sp-id">WH-07</span> PDA Release</span>
+        <span class="sp"><span class="sp-id">WH-08</span> Transaction History</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+  <!-- WH-01 -->
+  <div class="screen-card" id="wh01">
+    <div class="sc-hdr">
+      <div>
+        <div class="sc-id">WH-01</div>
+        <div class="sc-title-en">Inbound Schedule</div>
+        <div class="sc-title-ko">입고 예정</div>
+      </div>
+      <div class="sc-tags">
+        <span class="tag t-web">🖥 Web PC</span>
+        <span class="tag t-1st">Phase 0 + 1st Dev</span>
+      </div>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#0891b2;">
+        <div>
+          <div class="db-lbl">EN · Description</div>
+          <div class="db-en">Displays all open purchase orders received from the SCM portal and allows warehouse staff to register expected inbound schedules. ETA D-Day is auto-calculated; overdue deliveries are highlighted in red. Clicking "Receive" triggers the WH-02 PDA inbound flow.</div>
+        </div>
+        <div>
+          <div class="db-lbl">KO · 설명</div>
+          <div class="db-ko">SCM 포탈 수신 발주 기반 입고 예정 등록 화면. 입고 ETA D-Day 자동 계산, 지연 건 빨간색 강조. [Receive] 클릭 시 WH-02 PDA 입고 흐름으로 연계.</div>
+        </div>
+      </div>
+      <div class="mock-wrap">
+        <div class="mock-lbl">WH-01 · Inbound Schedule · Web PC</div>
+        <div class="mock-win">
+          <div class="mock-tbar">📦 A-MES · Warehouse · Inbound Schedule <span class="bc">Warehouse &gt; Inbound &gt; Schedule</span></div>
+          <div class="mock-toolbar">
+            <select><option>All Status</option><option>Pending</option><option>Arriving Today</option><option>Overdue</option></select>
+            <select><option>All Vendors</option><option>삼성화학</option><option>현대원단</option><option>KCC도료</option></select>
+            <input type="text" placeholder="Search PO No. / Item..." style="width:180px;">
+            <button class="btn btn-primary btn-sm">🔍 Search</button>
+            <button class="btn btn-secondary btn-sm" style="margin-left:auto;">+ Register Schedule</button>
+          </div>
+          <div class="mock-body">
+            <div class="kpi-strip">
+              <div class="kc"><div class="kv" style="color:#0891b2;">12</div><div class="kl-en">Pending PO <span style="font-size:8px;">/</span> Items</div><div class="kl-ko">입고 예정 건</div></div>
+              <div class="kc"><div class="kv" style="color:#22c55e;">3</div><div class="kl-en">Arriving Today</div><div class="kl-ko">금일 입고</div></div>
+              <div class="kc"><div class="kv" style="color:#ef4444;">1</div><div class="kl-en">Overdue</div><div class="kl-ko">지연</div></div>
+              <div class="kc"><div class="kv" style="color:#f59e0b;">5</div><div class="kl-en">This Week</div><div class="kl-ko">이번 주</div></div>
+              <div class="kc"><div class="kv" style="color:#6366f1;">3</div><div class="kl-en">Next Week</div><div class="kl-ko">다음 주</div></div>
+            </div>
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>PO No. <span class="th-ko">발주번호</span></th>
+                  <th>Vendor <span class="th-ko">공급사</span></th>
+                  <th>Item Code <span class="th-ko">품목코드</span></th>
+                  <th>Item Name <span class="th-ko">품목명</span></th>
+                  <th>Order Qty <span class="th-ko">발주 수량</span></th>
+                  <th>Unit <span class="th-ko">단위</span></th>
+                  <th>ETA <span class="th-ko">입고 예정일</span></th>
+                  <th>D-Day</th>
+                  <th>Status <span class="th-ko">상태</span></th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="rd">
+                  <td style="font-family:monospace;font-size:9px;font-weight:700;color:#dc2626;">PO-2025-0628-003</td>
+                  <td>삼성화학</td>
+                  <td style="font-family:monospace;font-size:9px;">RM-PP-NAT-20</td>
+                  <td>PP Pellet Natural 20MFI<div class="ko">PP 펠렛 나튜럴</div></td>
+                  <td style="text-align:right;">500</td><td>kg</td>
+                  <td>2025-06-28</td>
+                  <td style="text-align:center;font-weight:700;color:#dc2626;">D+3</td>
+                  <td><span class="b b-e">Overdue · 지연</span></td>
+                  <td><button class="btn btn-primary btn-sm" style="background:#0891b2;">📥 Receive</button></td>
+                </tr>
+                <tr class="rh">
+                  <td style="font-family:monospace;font-size:9px;font-weight:700;">PO-2025-0701-001</td>
+                  <td>현대원단</td>
+                  <td style="font-family:monospace;font-size:9px;">FAB-GY-C03</td>
+                  <td>Fabric Roll Grey GY-C03<div class="ko">원단 롤 회색</div></td>
+                  <td style="text-align:right;">20</td><td>roll</td>
+                  <td>2025-07-01</td>
+                  <td style="text-align:center;font-weight:700;color:#22c55e;">Today</td>
+                  <td><span class="b b-w">Arriving · 도착예정</span></td>
+                  <td><button class="btn btn-primary btn-sm" style="background:#0891b2;">📥 Receive</button></td>
+                </tr>
+                <tr>
+                  <td style="font-family:monospace;font-size:9px;">PO-2025-0705-002</td>
+                  <td>KCC도료</td>
+                  <td style="font-family:monospace;font-size:9px;">PNT-BK-NH578</td>
+                  <td>Black Paint NH578<div class="ko">블랙 도료 NH578</div></td>
+                  <td style="text-align:right;">50</td><td>L</td>
+                  <td>2025-07-05</td>
+                  <td style="text-align:center;">D-4</td>
+                  <td><span class="b b-i">Scheduled · 예정</span></td>
+                  <td><button class="btn btn-secondary btn-sm">Detail · 상세</button></td>
+                </tr>
+                <tr>
+                  <td style="font-family:monospace;font-size:9px;">PO-2025-0708-004</td>
+                  <td>현대원단</td>
+                  <td style="font-family:monospace;font-size:9px;">FAB-BK-C01</td>
+                  <td>Fabric Roll Black BK-C01<div class="ko">원단 롤 블랙</div></td>
+                  <td style="text-align:right;">10</td><td>roll</td>
+                  <td>2025-07-08</td>
+                  <td style="text-align:center;">D-7</td>
+                  <td><span class="b b-i">Scheduled · 예정</span></td>
+                  <td><button class="btn btn-secondary btn-sm">Detail · 상세</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="feat-grid">
+        <div class="feat-item" style="border-top-color:#0891b2;">
+          <div class="fi-title-en">📋 PO Schedule Management</div>
+          <div class="fi-title-ko">발주 일정 관리</div>
+          <ul class="fi-list">
+            <li>Auto-sync PO from SCM portal every 30 min <span class="ko">SCM 포탈 30분 자동 동기화</span></li>
+            <li>ETA D-Day countdown auto-calculated <span class="ko">입고 D-Day 자동 계산</span></li>
+            <li>Overdue PO highlighted red · alert sent <span class="ko">지연 PO 빨간색 강조 + 알림</span></li>
+            <li>Partial inbound supported <span class="ko">부분 입고 처리 지원</span></li>
+          </ul>
+        </div>
+        <div class="feat-item" style="border-top-color:#22c55e;">
+          <div class="fi-title-en">🔗 Downstream Integration</div>
+          <div class="fi-title-ko">후행 프로세스 연계</div>
+          <ul class="fi-list">
+            <li>[Receive] → launches WH-02 PDA flow <span class="ko">[Receive] → WH-02 PDA 입고 연계</span></li>
+            <li>QC-01 incoming inspection auto-triggered <span class="ko">수입검사 QC-01 자동 트리거</span></li>
+            <li>Min-stock alert on receipt <span class="ko">입고 완료 시 최소재고 체크</span></li>
+            <li>Inbound label print via WH-02 <span class="ko">WH-02에서 입고 라벨 출력</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WH-02 -->
+  <div class="screen-card" id="wh02">
+    <div class="sc-hdr">
+      <div>
+        <div class="sc-id">WH-02</div>
+        <div class="sc-title-en">PDA Inbound Receiving</div>
+        <div class="sc-title-ko">PDA 입고 처리</div>
+      </div>
+      <div class="sc-tags">
+        <span class="tag t-pda">📱 PDA</span>
+        <span class="tag t-1st">1st Dev</span>
+      </div>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#0891b2;">
+        <div>
+          <div class="db-lbl">EN · Description</div>
+          <div class="db-en">Warehouse staff scans item barcode via PDA, confirms quantity using the numeric keypad, then scans a shelf QR code to assign storage location. System validates barcode against PO. Mismatch is immediately blocked. Confirms stock entry and prints location label.</div>
+        </div>
+        <div>
+          <div class="db-lbl">KO · 설명</div>
+          <div class="db-ko">창고 담당자가 PDA로 품목 바코드 스캔 → 숫자패드로 수량 입력 → 선반 QR 스캔으로 로케이션 지정. 바코드-PO 불일치 즉시 차단. 입고 확정 + 위치 라벨 출력.</div>
+        </div>
+      </div>
+      <div class="pda-row">
+        <div class="pda-unit">
+          <div class="pdu-step">① Scan Item · 품목 스캔</div>
+          <div class="pda-shell">
+            <div class="pda-scr">
+              <div class="pda-sbar"><span>WH-02 · Inbound</span><span class="online">● 09:12</span></div>
+              <div class="pda-tbar" style="background:linear-gradient(135deg,#060e1c,#091628);"><div class="pda-title">Inbound Receiving</div><div class="pda-sub">입고 처리 · PO-2025-0701-001</div></div>
+              <div class="pda-bd">
+                <div class="pda-scan">
+                  <div class="pda-scan-icon">📷</div>
+                  <div class="pda-scan-en">Scan Item Barcode</div>
+                  <div class="pda-scan-ko">품목 바코드 스캔</div>
+                </div>
+                <div class="pda-field"><div class="pda-fl">PO No.</div><div class="pda-fv">PO-2025-0701-001</div></div>
+                <div class="pda-field"><div class="pda-fl">Expected Item</div><div class="pda-fv">FAB-GY-C03</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="pda-unit">
+          <div class="pdu-step">② Confirm Qty · 수량 입력</div>
+          <div class="pda-shell">
+            <div class="pda-scr">
+              <div class="pda-sbar"><span>WH-02 · Inbound</span><span class="online">● 09:13</span></div>
+              <div class="pda-tbar" style="background:linear-gradient(135deg,#060e1c,#091628);"><div class="pda-title">Confirm Quantity</div><div class="pda-sub">수량 확인 · FAB-GY-C03 ✅</div></div>
+              <div class="pda-bd">
+                <div class="pda-field"><div class="pda-fl">Item Verified ✅</div><div class="pda-fv ok">FAB-GY-C03 · Grey Fabric</div></div>
+                <div class="pda-field"><div class="pda-fl">Expected Qty · 예정 수량</div><div class="pda-fv">20 rolls</div></div>
+                <div class="pda-disp">20</div>
+                <div class="pda-numpad">
+                  <div class="pda-key">1</div><div class="pda-key">2</div><div class="pda-key">3</div>
+                  <div class="pda-key">4</div><div class="pda-key">5</div><div class="pda-key">6</div>
+                  <div class="pda-key">7</div><div class="pda-key">8</div><div class="pda-key">9</div>
+                  <div class="pda-key k-ok">All</div><div class="pda-key">0</div><div class="pda-key k-del">⌫</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="pda-unit">
+          <div class="pdu-step">③ Assign Location · 위치 지정</div>
+          <div class="pda-shell">
+            <div class="pda-scr">
+              <div class="pda-sbar"><span>WH-02 · Inbound</span><span class="online">● 09:14</span></div>
+              <div class="pda-tbar" style="background:linear-gradient(135deg,#060e1c,#091628);"><div class="pda-title">Assign Location</div><div class="pda-sub">로케이션 지정</div></div>
+              <div class="pda-bd">
+                <div class="pda-scan">
+                  <div class="pda-scan-icon">📍</div>
+                  <div class="pda-scan-en">Scan Shelf QR Code</div>
+                  <div class="pda-scan-ko">선반 QR 스캔</div>
+                </div>
+                <div class="pda-field"><div class="pda-fl">Location Assigned</div><div class="pda-fv ok">WH-FAB-D-01-1</div></div>
+                <div class="pda-field"><div class="pda-fl">Qty to Stock · 입고 수량</div><div class="pda-fv ok">20 rolls</div></div>
+                <button class="pda-btn pda-pri">✅ Confirm Inbound</button>
+                <button class="pda-btn pda-sec">🏷 Print Label · 라벨 출력</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="pda-unit">
+          <div class="pdu-step">② Error: Mismatch · 불일치 차단</div>
+          <div class="pda-shell">
+            <div class="pda-scr">
+              <div class="pda-sbar"><span>WH-02 · Inbound</span><span class="online">● 09:15</span></div>
+              <div class="pda-tbar" style="background:#1a0808;border-bottom-color:#3a1010;"><div class="pda-title" style="color:#ff8a82;">⛔ ITEM MISMATCH</div><div class="pda-sub" style="color:#ff8a82;">품목 불일치 — 입고 차단</div></div>
+              <div class="pda-bd">
+                <div class="pda-field"><div class="pda-fl">Scanned · 스캔 품목</div><div class="pda-fv er">FAB-BK-C01 · Black ❌</div></div>
+                <div class="pda-field"><div class="pda-fl">Required · 요구 품목</div><div class="pda-fv">FAB-GY-C03 · Grey</div></div>
+                <div style="background:#1a0808;border:1px solid #3a1010;border-radius:5px;padding:8px;text-align:center;font-size:10px;color:#ff8a82;margin-bottom:7px;">INPUT BLOCKED<br><span style="font-size:8px;opacity:.7;">Re-scan correct item · 올바른 품목 재스캔</span></div>
+                <button class="pda-btn pda-dan">🔄 Re-scan</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WH-03 -->
+  <div class="screen-card" id="wh03">
+    <div class="sc-hdr">
+      <div>
+        <div class="sc-id">WH-03</div>
+        <div class="sc-title-en">Inventory Status</div>
+        <div class="sc-title-ko">재고 현황</div>
+      </div>
+      <div class="sc-tags">
+        <span class="tag t-web">🖥 Web PC</span>
+        <span class="tag t-1st">1st Dev</span>
+      </div>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#0891b2;">
+        <div>
+          <div class="db-lbl">EN · Description</div>
+          <div class="db-en">Real-time inventory view by item, material type (Raw Material / Fabric / Paint), and location. Items below minimum stock level are highlighted with a red badge. Supports Excel export, and shows daily snapshot delta (vs. previous day).</div>
+        </div>
+        <div>
+          <div class="db-lbl">KO · 설명</div>
+          <div class="db-ko">품목·유형(원자재/원단/도료)·로케이션별 실시간 재고 현황. 최소재고 미달 항목 빨간색 강조. Excel 출력, 전일 대비 재고 증감 표시.</div>
+        </div>
+      </div>
+      <div class="mock-wrap">
+        <div class="mock-lbl">WH-03 · Inventory Status · Web PC</div>
+        <div class="mock-win">
+          <div class="mock-tbar">📦 A-MES · Warehouse · Inventory Status <span class="bc">Warehouse &gt; Inventory</span></div>
+          <div class="mock-toolbar">
+            <select><option>All Types</option><option>Raw Material · 원자재</option><option>Fabric · 원단</option><option>Paint · 도료</option></select>
+            <select><option>All Warehouses</option><option>WH-RM</option><option>WH-FAB</option><option>WH-PNT</option></select>
+            <input type="text" placeholder="Item Code / Name..." style="width:160px;">
+            <button class="btn btn-primary btn-sm" style="background:#0891b2;">🔍 Search</button>
+            <button class="btn btn-secondary btn-sm" style="margin-left:auto;">📥 Export Excel</button>
+          </div>
+          <div class="mock-body">
+            <div class="kpi-strip">
+              <div class="kc"><div class="kv" style="color:#0891b2;">124</div><div class="kl-en">Total Items</div><div class="kl-ko">전체 품목 수</div></div>
+              <div class="kc"><div class="kv" style="color:#ef4444;">3</div><div class="kl-en">Below Min Stock</div><div class="kl-ko">최소재고 미달</div></div>
+              <div class="kc"><div class="kv" style="color:#f59e0b;">23</div><div class="kl-en">Low Stock Warning</div><div class="kl-ko">재고 부족 주의</div></div>
+              <div class="kc"><div class="kv" style="color:#22c55e;">98</div><div class="kl-en">Normal</div><div class="kl-ko">정상</div></div>
+            </div>
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>Item Code <span class="th-ko">품목코드</span></th>
+                  <th>Item Name <span class="th-ko">품목명</span></th>
+                  <th>Type <span class="th-ko">유형</span></th>
+                  <th>On Hand <span class="th-ko">현재고</span></th>
+                  <th>Unit</th>
+                  <th>Min Stock <span class="th-ko">최소재고</span></th>
+                  <th>Δ vs Yesterday <span class="th-ko">전일 대비</span></th>
+                  <th>Location <span class="th-ko">로케이션</span></th>
+                  <th>Status <span class="th-ko">상태</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="rd">
+                  <td style="font-family:monospace;font-size:9px;font-weight:700;color:#dc2626;">RM-PP-NAT-20</td>
+                  <td>PP Pellet Natural 20MFI<div class="ko">PP 펠렛 나튜럴</div></td>
+                  <td><span class="b b-n">Raw Material</span></td>
+                  <td style="text-align:right;font-weight:700;color:#dc2626;">250 kg</td>
+                  <td>kg</td>
+                  <td style="text-align:right;">500 kg</td>
+                  <td style="text-align:right;color:#ef4444;">▼ 50 kg</td>
+                  <td style="font-family:monospace;font-size:9px;">WH-RM-A-01-1</td>
+                  <td><span class="b b-e">⚠ Below Min</span></td>
+                </tr>
+                <tr class="rh">
+                  <td style="font-family:monospace;font-size:9px;">FAB-GY-C03</td>
+                  <td>Fabric Roll Grey GY-C03<div class="ko">원단 롤 회색</div></td>
+                  <td><span class="b b-i">Fabric · 원단</span></td>
+                  <td style="text-align:right;font-weight:700;color:#22c55e;">1,420 m</td>
+                  <td>m</td>
+                  <td style="text-align:right;">200 m</td>
+                  <td style="text-align:right;color:#22c55e;">▲ 500 m</td>
+                  <td style="font-family:monospace;font-size:9px;">WH-FAB-D-01-1</td>
+                  <td><span class="b b-ok">Normal</span></td>
+                </tr>
+                <tr>
+                  <td style="font-family:monospace;font-size:9px;">PNT-BK-NH578</td>
+                  <td>Black Paint NH578<div class="ko">블랙 도료 NH578</div></td>
+                  <td><span class="b" style="background:#fff7ed;color:#9a3412;">Paint · 도료</span></td>
+                  <td style="text-align:right;font-weight:700;color:#22c55e;">284 L</td>
+                  <td>L</td>
+                  <td style="text-align:right;">10 L</td>
+                  <td style="text-align:right;color:#ef4444;">▼ 16 L</td>
+                  <td style="font-family:monospace;font-size:9px;">WH-PNT-E-01-1</td>
+                  <td><span class="b b-ok">Normal</span></td>
+                </tr>
+                <tr class="rd">
+                  <td style="font-family:monospace;font-size:9px;font-weight:700;color:#dc2626;">RM-MB-GY-03</td>
+                  <td>Color Masterbatch Grey<div class="ko">착색 마스터배치 회색</div></td>
+                  <td><span class="b b-n">Raw Material</span></td>
+                  <td style="text-align:right;font-weight:700;color:#dc2626;">0.5 kg</td>
+                  <td>kg</td>
+                  <td style="text-align:right;">2 kg</td>
+                  <td style="text-align:right;color:#ef4444;">▼ 0.3 kg</td>
+                  <td style="font-family:monospace;font-size:9px;">WH-RM-A-02-1</td>
+                  <td><span class="b b-e">⚠ Below Min</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WH-04 ~ WH-08 요약 -->
+  <div class="screen-card" id="wh04">
+    <div class="sc-hdr">
+      <div>
+        <div class="sc-id">WH-04</div>
+        <div class="sc-title-en">Location Map</div>
+        <div class="sc-title-ko">로케이션 맵</div>
+      </div>
+      <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-2nd">2nd Dev</span></div>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#0891b2;">
+        <div><div class="db-lbl">EN</div><div class="db-en">Visual grid map of all warehouse zones and shelf locations. Each cell shows current item, quantity, and fill rate (color-coded: empty grey / partial yellow / full green / over-capacity red). Click cell to view location detail and stock history.</div></div>
+        <div><div class="db-lbl">KO</div><div class="db-ko">창고 구역·선반 로케이션 시각적 그리드 맵. 각 셀에 현재 품목·수량·충전율(빈칸-회색/일부-노란/가득-초록/초과-빨강). 셀 클릭 시 로케이션 상세·재고 이력 조회.</div></div>
+      </div>
+      <div class="alert alert-i"><span>ℹ️</span><div>Location code format: <strong>[Warehouse]-[Zone]-[Row]-[Col]-[Level]</strong> · e.g. <code>WH-FAB-D-01-1</code> · 로케이션 코드 체계: [창고]-[구역]-[행]-[열]-[층]</div></div>
+    </div>
+  </div>
+
+  <div class="g2" style="gap:14px;margin-bottom:20px;">
+    <div class="screen-card" id="wh05" style="margin-bottom:0;">
+      <div class="sc-hdr">
+        <div><div class="sc-id">WH-05</div><div class="sc-title-en">Inventory Adjustment</div><div class="sc-title-ko">재고 조정</div></div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-1st">1st Dev</span></div>
+      </div>
+      <div class="sc-body">
+        <div class="desc-bi" style="border-left-color:#0891b2;">
+          <div><div class="db-lbl">EN</div><div class="db-en">Manual inventory correction (physical count vs. system). Requires reason code selection and supervisor approval. All adjustments are logged in WH-08 with before/after values.</div></div>
+          <div><div class="db-lbl">KO</div><div class="db-ko">실사 결과 기반 재고 수동 조정. 사유 코드 필수 선택 + 담당자 승인. 조정 전/후 값 WH-08에 전량 기록.</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-card" id="wh06" style="margin-bottom:0;">
+      <div class="sc-hdr">
+        <div><div class="sc-id">WH-06</div><div class="sc-title-en">Release Schedule</div><div class="sc-title-ko">출고 예정</div></div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-1st">1st Dev</span></div>
+      </div>
+      <div class="sc-body">
+        <div class="desc-bi" style="border-left-color:#0891b2;">
+          <div><div class="db-lbl">EN</div><div class="db-en">Shows material release schedule to production lines based on WO demand from PP. Allows warehouse staff to prepare picking ahead of schedule. Triggers WH-07 PDA picking when ready.</div></div>
+          <div><div class="db-lbl">KO</div><div class="db-ko">PP WO 수요 기반 생산 라인 출고 예정 표시. 사전 피킹 준비 지원. 준비 완료 시 WH-07 PDA 피킹 연계.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="g2" style="gap:14px;margin-bottom:20px;">
+    <div class="screen-card" id="wh07" style="margin-bottom:0;">
+      <div class="sc-hdr">
+        <div><div class="sc-id">WH-07</div><div class="sc-title-en">PDA Release Picking</div><div class="sc-title-ko">PDA 출고 피킹</div></div>
+        <div class="sc-tags"><span class="tag t-pda">📱 PDA</span><span class="tag t-1st">1st Dev</span></div>
+      </div>
+      <div class="sc-body">
+        <div class="desc-bi" style="border-left-color:#0891b2;">
+          <div><div class="db-lbl">EN</div><div class="db-en">PDA-guided FIFO picking for material release to production. System suggests oldest stock location first. Wrong-item barcode scan is immediately blocked with an error alert.</div></div>
+          <div><div class="db-lbl">KO</div><div class="db-ko">PDA 안내 기반 FIFO 출고 피킹. 입고일 기준 가장 오래된 재고 위치 자동 제안. 오품목 바코드 즉시 차단.</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-card" id="wh08" style="margin-bottom:0;">
+      <div class="sc-hdr">
+        <div><div class="sc-id">WH-08</div><div class="sc-title-en">Transaction History</div><div class="sc-title-ko">입출고 이력</div></div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-1st">1st Dev</span></div>
+      </div>
+      <div class="sc-body">
+        <div class="desc-bi" style="border-left-color:#0891b2;">
+          <div><div class="db-lbl">EN</div><div class="db-en">Full audit trail of all inbound and outbound transactions: timestamp, operator, quantity, location, reason code. Searchable by date range, item, and operator. Excel export for audit purposes.</div></div>
+          <div><div class="db-lbl">KO</div><div class="db-ko">모든 입출고 트랜잭션 감사 기록: 일시·작업자·수량·위치·사유. 날짜/품목/작업자 검색, Excel 출력.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BR -->
+  <div class="br-wrap" id="br-wh">
+    <div class="br-title">Business Rules · 업무 규칙 (WH)</div>
+    <table class="br-tbl">
+      <thead>
+        <tr>
+          <th style="width:80px;">Rule ID</th>
+          <th style="width:120px;">Category <span style="font-weight:300;">유형</span></th>
+          <th>Rule Description (EN)</th>
+          <th>규칙 설명 (KO)</th>
+          <th style="width:80px;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="br-id">BR-WH-01</td>
+          <td>Inbound Gate · 입고 통제</td>
+          <td class="br-en">Items without a valid open PO cannot be received. Barcode scan is blocked immediately if no matching PO is found in the system.</td>
+          <td class="br-ko">PO 없는 품목 입고 불가. 미등록 바코드 스캔 즉시 차단.</td>
+          <td><span class="b b-e">Block</span></td>
+        </tr>
+        <tr>
+          <td class="br-id">BR-WH-02</td>
+          <td>QC Trigger · 검사 트리거</td>
+          <td class="br-en">All inbound items automatically trigger QC-01 incoming inspection. Inventory is updated only after QC pass. QC fail → items quarantined.</td>
+          <td class="br-ko">입고 완료 즉시 QC-01 수입검사 자동 트리거. 합격 후 재고 반영. 불합격 시 격리.</td>
+          <td><span class="b b-i">Auto</span></td>
+        </tr>
+        <tr>
+          <td class="br-id">BR-WH-03</td>
+          <td>Min Stock Alert · 최소재고</td>
+          <td class="br-en">When on-hand quantity falls below the minimum stock level (defined in MD-09/10), an alert is sent to the warehouse manager and procurement team.</td>
+          <td class="br-ko">현재고 &lt; 최소재고(MD-09/10 기준) 시 창고담당·구매팀 즉시 알림.</td>
+          <td><span class="b b-w">Alert</span></td>
+        </tr>
+        <tr>
+          <td class="br-id">BR-WH-04</td>
+          <td>FIFO · 선입선출</td>
+          <td class="br-en">All outbound picking must follow FIFO (First In First Out) based on inbound date. The system auto-suggests the oldest stock location for each item.</td>
+          <td class="br-ko">출고 피킹 입고일 기준 FIFO 자동 적용. 최고령 재고 위치 자동 제안.</td>
+          <td><span class="b b-i">Auto</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Data Model -->
+  <div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">WH Data Model · 주요 데이터 테이블</div><div class="sd-line"></div></div>
+  <div class="g2">
+    <table class="dm-tbl">
+      <thead><tr><th>Table</th><th>Column · 컬럼</th><th>Type</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td rowspan="6" style="font-weight:700;font-family:monospace;">wh_inbound</td>
+            <td class="dm-col dm-pk">inbound_id</td><td class="dm-type">VARCHAR(20)</td><td>PK · IN-YYYYMMDD-NNN</td></tr>
+        <tr><td class="dm-col dm-fk">po_id</td><td class="dm-type">VARCHAR(20)</td><td>FK → po_header</td></tr>
+        <tr><td class="dm-col dm-fk">item_code</td><td class="dm-type">VARCHAR(20)</td><td>FK → md_item</td></tr>
+        <tr><td class="dm-col">received_qty</td><td class="dm-type">DECIMAL(10,3)</td><td>수량</td></tr>
+        <tr><td class="dm-col dm-fk">location_id</td><td class="dm-type">VARCHAR(20)</td><td>FK → md_location</td></tr>
+        <tr><td class="dm-col">inbound_date</td><td class="dm-type">DATETIME</td><td>FIFO 기준</td></tr>
+      </tbody>
+    </table>
+    <table class="dm-tbl">
+      <thead><tr><th>Table</th><th>Column · 컬럼</th><th>Type</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td rowspan="5" style="font-weight:700;font-family:monospace;">wh_inventory</td>
+            <td class="dm-col dm-pk">inv_id</td><td class="dm-type">BIGINT</td><td>PK</td></tr>
+        <tr><td class="dm-col dm-fk">item_code</td><td class="dm-type">VARCHAR(20)</td><td>FK → md_item</td></tr>
+        <tr><td class="dm-col dm-fk">location_id</td><td class="dm-type">VARCHAR(20)</td><td>FK → md_location</td></tr>
+        <tr><td class="dm-col">on_hand_qty</td><td class="dm-type">DECIMAL(10,3)</td><td>현재고 (실시간)</td></tr>
+        <tr><td class="dm-col">last_updated</td><td class="dm-type">DATETIME</td><td>재고 변동 시각</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  </div><!-- /content -->
+
+  <div class="page-footer">
+    <div class="pf-l">A-MES · VOL.3 · WH Warehouse Management · UI Design Spec v1.0 · Bilingual EN/KO</div>
+    <div class="pf-r">8 Screens · Web + PDA · Phase 0 + 1st Dev</div>
+  </div>
+</div><!-- /main -->
+</div>
+</body>
+</html>

@@ -1,0 +1,600 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>A-MES · VOL.9 · FG · Finished Goods & Shipment</title>
+<style>/* ═══════════════════════════════════════
+   A-MES SHARED STYLESHEET v2.0
+   Bilingual EN/KO · UI Labels English
+═══════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+
+:root{
+  --gold:#d4a017; --gold-lt:#fdf6e3; --gold-dk:#a07810;
+  --ink:#0d1117; --ink2:#161b22; --ink3:#21262d;
+  --surface:#ffffff; --bg:#f6f8fa; --border:#d0d7de;
+  --text:#24292f; --sub:#656d76;
+  /* module colors */
+  --wh:#0891b2; --pp:#059669; --inj:#2563eb; --img:#7c3aed;
+  --pnt:#ea580c; --qc:#dc2626; --fg:#0db87a; --mnt:#0284c7;
+  --rpt:#6366f1; --sys:#475569; --md:#d97706;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+
+/* ── NAV BAR (injected per file) ── */
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
+.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}
+.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;transition:color .12s;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}
+.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+
+/* ── PAGE LAYOUT ── */
+.page-wrap{display:flex;}
+.sidebar{width:230px;min-width:230px;background:var(--ink2);position:sticky;top:40px;height:calc(100vh - 40px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(212,160,23,.15) transparent;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.15);padding:12px 14px 4px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.35);font-size:11px;border-left:2px solid transparent;transition:all .12s;}
+.sb-link:hover{color:rgba(255,255,255,.7);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:32px;flex-shrink:0;}
+.sb-link .sl-en{font-size:10px;font-weight:600;}
+.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.2);margin-top:1px;}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+
+.main{flex:1;min-width:0;}
+
+/* ── MODULE HEADER ── */
+.mod-hdr{padding:36px 48px 24px;position:relative;overflow:hidden;}
+.mod-hdr-inner{position:relative;z-index:1;}
+.mod-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;opacity:.7;}
+.mod-title-en{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:.95;letter-spacing:2px;color:#fff;margin-bottom:4px;}
+.mod-title-ko{font-size:14px;font-weight:300;color:rgba(255,255,255,.35);letter-spacing:4px;margin-bottom:16px;}
+.mod-desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:840px;margin-bottom:18px;}
+.mdb-en{font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;border-left:2px solid rgba(255,255,255,.12);padding-left:12px;}
+.mdb-ko{font-size:11px;color:rgba(255,255,255,.3);line-height:1.8;border-left:2px solid rgba(255,255,255,.06);padding-left:12px;}
+.screen-pills{display:flex;gap:5px;flex-wrap:wrap;}
+.sp{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:9px;color:rgba(255,255,255,.4);}
+.sp-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold);}
+
+/* ── CONTENT AREA ── */
+.content{padding:0 48px 48px;}
+
+/* ── SCREEN CARD ── */
+.screen-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;}
+.sc-hdr{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.sc-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.sc-title-en{font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px;}
+.sc-title-ko{font-size:10px;color:rgba(255,255,255,.35);margin-top:2px;}
+.sc-tags{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+.tag{font-size:9px;font-weight:700;padding:2px 9px;border-radius:3px;}
+.t-web{background:rgba(26,111,255,.2);color:#7ab4ff;border:1px solid rgba(26,111,255,.3);}
+.t-pda{background:rgba(13,184,122,.2);color:#5dffc4;border:1px solid rgba(13,184,122,.3);}
+.t-pop{background:rgba(234,88,12,.2);color:#fdba74;border:1px solid rgba(234,88,12,.3);}
+.t-p0{background:rgba(212,160,23,.15);color:#fbbf24;border:1px solid rgba(212,160,23,.2);}
+.t-1st{background:rgba(26,111,255,.12);color:#93c5fd;border:1px solid rgba(26,111,255,.18);}
+.t-2nd{background:rgba(124,58,237,.12);color:#c4b5fd;border:1px solid rgba(124,58,237,.18);}
+.t-3rd{background:rgba(255,107,0,.12);color:#fdba74;border:1px solid rgba(255,107,0,.18);}
+.sc-body{padding:14px 18px;}
+
+/* ── BILINGUAL DESC ── */
+.desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;background:#f6f8ff;border:1px solid var(--border);border-left:3px solid;border-radius:0 6px 6px 0;padding:11px 14px;}
+.db-lbl{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;opacity:.5;}
+.db-en{font-size:11px;color:#1e40af;line-height:1.75;}
+.db-ko{font-size:11px;color:var(--sub);line-height:1.75;}
+
+/* ── KPI STRIP ── */
+.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:12px;}
+.kc{flex:1;padding:9px 12px;border-right:1px solid var(--border);}
+.kc:last-child{border-right:none;}
+.kv{font-size:20px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
+.kl-en{font-size:9px;color:var(--sub);margin-top:2px;}
+.kl-ko{font-size:8px;color:rgba(100,116,139,.55);}
+
+/* ── MOCK WINDOW ── */
+.mock-wrap{background:#eef1f5;border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;}
+.mock-lbl{font-size:9px;font-weight:700;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;}
+.mock-win{background:#fff;border:1px solid #c8d0db;border-radius:6px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.07);}
+.mock-tbar{background:var(--text);color:#fff;padding:7px 13px;display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;}
+.mock-tbar .bc{margin-left:auto;font-size:9px;color:rgba(255,255,255,.3);font-family:'JetBrains Mono',monospace;}
+.mock-body{padding:12px 13px;}
+.mock-toolbar{background:#f6f8fa;border-bottom:1px solid var(--border);padding:6px 13px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+.mock-toolbar select,.mock-toolbar input{padding:3px 8px;border:1px solid var(--border);border-radius:3px;font-size:11px;background:#fff;}
+
+/* ── TABLE ── */
+.tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.tbl th{background:#f0f3f7;padding:6px 9px;font-weight:700;border:1px solid var(--border);text-align:left;font-size:10px;color:var(--text);}
+.tbl th .th-ko{font-weight:400;color:var(--sub);font-size:9px;}
+.tbl td{padding:5px 9px;border:1px solid var(--border);vertical-align:middle;}
+.tbl .rh td{background:#f0fdf4;}
+.tbl .rw td{background:#fffbeb;}
+.tbl .rd td{background:#fef2f2;}
+.tbl tr:hover td{background:#f9fafb;}
+.tbl td .ko{color:var(--sub);font-size:10px;}
+
+/* ── BADGES ── */
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
+.b-ok{background:#dcfce7;color:#166534;}
+.b-w{background:#fef9c3;color:#92400e;}
+.b-e{background:#fee2e2;color:#991b1b;}
+.b-i{background:#dbeafe;color:#1e40af;}
+.b-n{background:#f3f4f6;color:#4b5563;}
+
+/* ── BUTTONS ── */
+.btn{padding:5px 13px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
+.btn-primary{background:var(--mod-color,#0891b2);color:#fff;border-color:var(--mod-color,#0891b2);}
+.btn-secondary{background:#f6f8fa;color:var(--text);border-color:var(--border);}
+.btn-danger{background:#dc2626;color:#fff;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+
+/* ── FEATURE GRID ── */
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.feat-item{background:#f6f8ff;border:1px solid var(--border);border-radius:6px;padding:11px 13px;border-top:2px solid;}
+.fi-title-en{font-size:11px;font-weight:700;margin-bottom:1px;}
+.fi-title-ko{font-size:10px;color:var(--sub);margin-bottom:6px;}
+ul.fi-list{list-style:none;}
+ul.fi-list li{padding:2px 0 2px 12px;position:relative;font-size:10px;line-height:1.6;}
+ul.fi-list li::before{content:'–';position:absolute;left:0;color:var(--sub);}
+ul.fi-list li .ko{color:var(--sub);font-size:9px;}
+
+/* ── PDA MOCK ── */
+.pda-row{display:flex;gap:14px;flex-wrap:wrap;}
+.pda-unit{text-align:center;}
+.pdu-step{font-size:9px;font-weight:700;color:var(--sub);margin-bottom:5px;}
+.pda-shell{background:#1a1e2e;border-radius:16px;padding:9px;width:172px;border:2px solid #2a3048;box-shadow:0 6px 20px rgba(0,0,0,.3);}
+.pda-scr{background:#0a1628;border-radius:10px;overflow:hidden;border:1px solid #1a3050;}
+.pda-sbar{background:#060e1c;padding:3px 8px;display:flex;justify-content:space-between;}
+.pda-sbar span{font-size:7px;color:#2a4a7a;font-family:'JetBrains Mono',monospace;}
+.pda-sbar .online{color:#00e5a0;}
+.pda-tbar{padding:7px 10px;border-bottom:1px solid #0a3050;}
+.pda-title{font-size:11px;font-weight:700;color:#00e5a0;}
+.pda-sub{font-size:8px;color:rgba(255,255,255,.3);}
+.pda-bd{padding:8px 10px;}
+.pda-scan{background:#060e1c;border:2px dashed rgba(0,229,160,.3);border-radius:6px;padding:12px;text-align:center;margin-bottom:7px;}
+.pda-scan-icon{font-size:22px;margin-bottom:3px;}
+.pda-scan-en{font-size:10px;font-weight:700;color:#00e5a0;}
+.pda-scan-ko{font-size:8px;color:rgba(255,255,255,.3);}
+.pda-field{margin-bottom:5px;}
+.pda-fl{font-size:8px;color:#1a5a4a;margin-bottom:2px;font-weight:600;}
+.pda-fv{background:#040c18;border:1px solid #1a3050;border-radius:4px;padding:4px 8px;font-size:10px;color:#a0c8f0;font-family:'JetBrains Mono',monospace;}
+.pda-fv.ok{border-color:#00e5a0;color:#00e5a0;}
+.pda-fv.er{border-color:#ff8a82;color:#ff8a82;}
+.pda-numpad{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;margin-bottom:6px;}
+.pda-key{background:#0d1e30;border:1px solid #1a3050;border-radius:4px;padding:7px 4px;text-align:center;font-size:13px;font-weight:700;color:#c0e0f0;font-family:'JetBrains Mono',monospace;}
+.pda-key.k-ok{background:#0a2a1a;color:#00e5a0;border-color:#0a5a38;}
+.pda-key.k-del{background:#1a0808;color:#ff8a82;border-color:#3a1010;}
+.pda-disp{background:#040c18;border:1px solid #1a3050;border-radius:4px;padding:5px 9px;font-size:24px;font-weight:900;color:#00e5a0;text-align:right;margin-bottom:6px;font-family:'JetBrains Mono',monospace;}
+.pda-btn{width:100%;padding:7px;border-radius:5px;font-size:10px;font-weight:700;border:none;cursor:pointer;margin-bottom:4px;font-family:'Noto Sans KR',sans-serif;}
+.pda-pri{background:linear-gradient(135deg,#0a9060,#0db87a);color:#fff;}
+.pda-sec{background:#0a1428;color:#4a7aaa;border:1px solid #1a3050;}
+.pda-dan{background:#1a0808;color:#ff8a82;border:1px solid #3a1010;}
+.pda-progress-bar{height:4px;background:#060e1c;border-radius:2px;overflow:hidden;margin:4px 0 8px;}
+.pda-progress-fill{height:100%;background:linear-gradient(90deg,#0a9060,#00e5a0);border-radius:2px;}
+
+/* ── BR TABLE ── */
+.br-wrap{margin-bottom:16px;}
+.br-title{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:7px;display:flex;align-items:center;gap:10px;}
+.br-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.br-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.br-tbl th{background:var(--text);color:#fff;padding:6px 10px;text-align:left;border:1px solid rgba(255,255,255,.08);font-size:9px;}
+.br-tbl td{padding:6px 10px;border:1px solid var(--border);vertical-align:top;line-height:1.6;}
+.br-tbl tr:nth-child(even) td{background:#fafbfd;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-en{color:var(--text);}
+.br-ko{color:var(--sub);font-size:10px;margin-top:2px;}
+
+/* ── SECTION DIV ── */
+.sec-div{display:flex;align-items:center;gap:12px;margin:20px 0 12px;}
+.sd-line{flex:1;height:1px;background:var(--border);}
+.sd-lbl{font-size:10px;font-weight:700;color:var(--sub);white-space:nowrap;}
+
+/* ── ALERTS ── */
+.alert{padding:8px 12px;border-radius:5px;font-size:10px;margin-bottom:9px;display:flex;gap:8px;line-height:1.7;}
+.alert-i{background:#eff6ff;border-left:3px solid #3b82f6;}
+.alert-w{background:#fffbeb;border-left:3px solid #f59e0b;}
+.alert-s{background:#f0fdf4;border-left:3px solid #22c55e;}
+.alert-d{background:#fef2f2;border-left:3px solid #ef4444;}
+
+/* ── ROUTING FLOW ── */
+.rflow{display:flex;align-items:center;gap:0;flex-wrap:nowrap;overflow-x:auto;padding:4px 0;}
+.rs{padding:9px 14px;border-radius:5px;font-size:11px;font-weight:700;text-align:center;flex-shrink:0;text-decoration:none;}
+.rs-en{font-size:12px;font-weight:800;}
+.rs-ko{font-size:9px;font-weight:400;opacity:.7;margin-top:2px;}
+.rarr{color:var(--sub);font-size:14px;padding:0 5px;flex-shrink:0;}
+.rs-inj{background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;}
+.rs-img{background:#f5f3ff;color:#5b21b6;border:1px solid #c4b5fd;}
+.rs-pnt{background:#fff7ed;color:#9a3412;border:1px solid #fdba74;}
+.rs-qc{background:#fef2f2;color:#991b1b;border:1px solid #fca5a5;}
+.rs-fg{background:#f0fdf4;color:#065f46;border:1px solid #6ee7b7;}
+
+/* ── GRID ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+
+/* ── PROGRESS BAR ── */
+.prog-track{height:5px;background:#f0f2f5;border-radius:3px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:3px;}
+
+/* ── DATA MODEL TABLE ── */
+.dm-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.dm-tbl th{background:var(--ink2);color:#fff;padding:6px 10px;text-align:left;border:1px solid var(--ink3);font-size:9px;}
+.dm-tbl td{padding:5px 10px;border:1px solid var(--border);vertical-align:top;}
+.dm-tbl tr:nth-child(even) td{background:#fafbfd;}
+.dm-col{font-family:'JetBrains Mono',monospace;color:#1e40af;font-weight:600;}
+.dm-type{font-family:'JetBrains Mono',monospace;color:var(--sub);font-size:10px;}
+.dm-pk{color:#dc2626;font-weight:700;}
+.dm-fk{color:#7c3aed;}
+
+/* ── PAGE FOOTER ── */
+.page-footer{padding:14px 48px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--ink);margin-top:20px;}
+.pf-l{font-size:10px;color:rgba(255,255,255,.2);}
+.pf-r{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(212,160,23,.4);}
+
+:root{--mod-color:#0db87a;}
+.mod-hdr{background:linear-gradient(135deg,color-mix(in srgb,#0db87a 30%,#000),color-mix(in srgb,#0db87a 12%,#000));}
+.sc-hdr{background:linear-gradient(135deg,color-mix(in srgb,#0db87a 22%,#000),color-mix(in srgb,#0db87a 10%,#000));}
+.sc-id{color:#0db87a;} .sb-mod-en{color:#0db87a;} .sb-link.on{border-left-color:#0db87a;}
+</style></head><body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol active"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="page-wrap"><nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.9 · FG MODULE</div><div class="sb-mod-en">FINISHED GOODS</div><div class="sb-mod-ko">완제품 출고</div></div>
+  <div class="sb-section">Screens · 화면</div>
+  <a class="sb-link on" href="#fg01"><span class="sl-id">FG-01</span><div><div class="sl-en">PDA Stocking</div><div class="sl-ko">PDA 완제품 적재</div></div></a>
+  <a class="sb-link" href="#fg02"><span class="sl-id">FG-02</span><div><div class="sl-en">FG Inventory</div><div class="sl-ko">완제품 재고</div></div></a>
+  <a class="sb-link" href="#fg03"><span class="sl-id">FG-03</span><div><div class="sl-en">Shipment Order</div><div class="sl-ko">출하 지시</div></div></a>
+  <a class="sb-link" href="#fg04"><span class="sl-id">FG-04</span><div><div class="sl-en">PDA FIFO Picking</div><div class="sl-ko">PDA FIFO 피킹</div></div></a>
+  <a class="sb-link" href="#fg05"><span class="sl-id">FG-05</span><div><div class="sl-en">Loading Confirmation</div><div class="sl-ko">상차 확인</div></div></a>
+  <a class="sb-link" href="#fg06"><span class="sl-id">FG-06</span><div><div class="sl-en">Delivery Note</div><div class="sl-ko">거래명세서</div></div></a>
+  <a class="sb-link" href="#fg07"><span class="sl-id">FG-07</span><div><div class="sl-en">Day-End Close</div><div class="sl-ko">일 마감</div></div></a>
+  <a class="sb-link" href="#fg08"><span class="sl-id">FG-08</span><div><div class="sl-en">Shipment History</div><div class="sl-ko">출하 이력</div></div></a>
+  <div class="sb-sep"></div>
+  <a class="sb-link" href="#br-fg"><span class="sl-id">BR</span><div><div class="sl-en">Business Rules</div><div class="sl-ko">업무 규칙</div></div></a>
+</nav><div class="main">
+<div class="mod-hdr"><div class="mod-hdr-inner">
+  <div class="mod-eyebrow" style="color:#5dffc4;">VOL.9 · FG · Finished Goods & Shipment · 완제품 출고</div>
+  <div class="mod-title-en" style="color:#5dffc4;">FINISHED GOODS<br>&amp; SHIPMENT</div>
+  <div class="mod-title-ko">완제품 출고</div>
+  <div class="mod-desc-bi">
+    <div class="mdb-en">Manages finished goods from QC-passed stocking through PDA FIFO picking, loading confirmation, delivery note generation (SAV / GEO format), and day-end close lock. Only QC-approved WOs can be stocked. Wrong-item barcode during picking is immediately blocked. Delivery notes auto-generated per client format (SAV / GEO).</div>
+    <div class="mdb-ko">QC 합격 완제품 PDA 적재 → FIFO 피킹 → 상차 확인 → 거래명세서 자동 생성(SAV·GEO 양식) → 일 마감 잠금. QC 합격 WO만 적재 가능. 오피킹 즉시 차단. SAV·GEO 거래선별 거래명세서 자동 생성.</div>
+  </div>
+  <div class="screen-pills">
+    <span class="sp"><span class="sp-id">FG-01</span> PDA Stocking</span>
+    <span class="sp"><span class="sp-id">FG-02</span> FG Inventory</span>
+    <span class="sp"><span class="sp-id">FG-03</span> Shipment Order</span>
+    <span class="sp"><span class="sp-id">FG-04</span> PDA FIFO Picking</span>
+    <span class="sp"><span class="sp-id">FG-05</span> Loading Confirm</span>
+    <span class="sp"><span class="sp-id">FG-06</span> Delivery Note</span>
+    <span class="sp"><span class="sp-id">FG-07</span> Day-End Close</span>
+    <span class="sp"><span class="sp-id">FG-08</span> Shipment History</span>
+  </div>
+</div></div>
+<div class="content">
+
+<!-- Process flow -->
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:20px;">
+  <div style="font-size:11px;font-weight:700;margin-bottom:12px;">FG Process Flow · 완제품 출고 프로세스</div>
+  <div class="rflow">
+    <div style="text-align:center;"><div style="background:#fef2f2;border:2px solid #dc2626;border-radius:6px;padding:8px 12px;font-size:10px;font-weight:800;color:#991b1b;">QC-03 PASS<div style="font-size:8px;font-weight:400;margin-top:1px;">QC 합격</div></div></div>
+    <div class="rarr">→</div>
+    <div style="text-align:center;"><div style="background:#f0fdf4;border:2px solid #0db87a;border-radius:6px;padding:8px 12px;font-size:10px;font-weight:800;color:#065f46;">FG-01 PDA<div style="font-size:8px;font-weight:400;margin-top:1px;">완제품 적재</div></div></div>
+    <div class="rarr">→</div>
+    <div style="text-align:center;"><div style="background:#f0fdf4;border:2px solid #0db87a;border-radius:6px;padding:8px 12px;font-size:10px;font-weight:800;color:#065f46;">FG-02<div style="font-size:8px;font-weight:400;margin-top:1px;">재고 관리</div></div></div>
+    <div class="rarr">→</div>
+    <div style="text-align:center;"><div style="background:#f0fdf4;border:2px solid #0db87a;border-radius:6px;padding:8px 12px;font-size:10px;font-weight:800;color:#065f46;">FG-03<div style="font-size:8px;font-weight:400;margin-top:1px;">출하 지시</div></div></div>
+    <div class="rarr">→</div>
+    <div style="text-align:center;"><div style="background:#f0fdf4;border:2px solid #0db87a;border-radius:6px;padding:8px 12px;font-size:10px;font-weight:800;color:#065f46;">FG-04 PDA<div style="font-size:8px;font-weight:400;margin-top:1px;">FIFO 피킹</div></div></div>
+    <div class="rarr">→</div>
+    <div style="text-align:center;"><div style="background:#f0fdf4;border:2px solid #0db87a;border-radius:6px;padding:8px 12px;font-size:10px;font-weight:800;color:#065f46;">FG-05<div style="font-size:8px;font-weight:400;margin-top:1px;">상차 확인</div></div></div>
+    <div class="rarr">→</div>
+    <div style="text-align:center;"><div style="background:#f0fdf4;border:2px solid #0db87a;border-radius:6px;padding:8px 12px;font-size:10px;font-weight:800;color:#065f46;">FG-06<div style="font-size:8px;font-weight:400;margin-top:1px;">거래명세서</div></div></div>
+    <div class="rarr">→</div>
+    <div style="text-align:center;"><div style="background:#f0fdf4;border:2px solid #0db87a;border-radius:6px;padding:8px 12px;font-size:10px;font-weight:800;color:#065f46;">FG-07<div style="font-size:8px;font-weight:400;margin-top:1px;">일 마감</div></div></div>
+  </div>
+</div>
+
+<!-- FG-01 PDA Stocking -->
+<div class="screen-card" id="fg01">
+  <div class="sc-hdr"><div><div class="sc-id">FG-01</div><div class="sc-title-en">PDA Finished Goods Stocking</div><div class="sc-title-ko">PDA 완제품 적재</div></div>
+    <div class="sc-tags"><span class="tag t-pda">📱 PDA</span><span class="tag t-1st">1st Dev</span></div></div>
+  <div class="sc-body">
+    <div class="desc-bi" style="border-left-color:#0db87a;">
+      <div><div class="db-lbl">EN · Description</div><div class="db-en">After QC-03 final inspection passes, operator scans the WO barcode via PDA to confirm the item and quantity. The system verifies QC pass status before allowing stocking. Operator then scans a FG shelf QR code to assign the storage location. All stocked items are tagged with the production date and time for FIFO picking later. Stocking for a WO that has not passed QC-03 is completely blocked.</div></div>
+      <div><div class="db-lbl">KO · 설명</div><div class="db-ko">QC-03 최종 검사 합격 후 작업자가 PDA로 WO 바코드 스캔 → 품목·수량 확인. 시스템이 QC 합격 상태 검증 후 적재 허용. 이후 FG 선반 QR 스캔으로 위치 지정. 모든 적재 품목에 생산일시 태그 → FIFO 피킹 기준. QC-03 미합격 WO 적재 완전 차단.</div></div>
+    </div>
+    <div class="pda-row">
+      <div class="pda-unit">
+        <div class="pdu-step">① Scan WO · WO 스캔</div>
+        <div class="pda-shell">
+          <div class="pda-scr">
+            <div class="pda-sbar"><span>FG-01 · Stocking</span><span class="online">● READY</span></div>
+            <div class="pda-tbar" style="background:linear-gradient(135deg,#021208,#041e10);">
+              <div class="pda-title">FG Stocking · 완제품 적재</div>
+              <div class="pda-sub">QC Passed WO Only · QC 합격 WO만</div>
+            </div>
+            <div class="pda-bd">
+              <div class="pda-scan"><div class="pda-scan-icon">📷</div><div class="pda-scan-en">Scan WO Barcode</div><div class="pda-scan-ko">WO 바코드 스캔</div></div>
+              <div class="pda-field"><div class="pda-fl">QC Status Required</div><div class="pda-fv">PASS only ✅</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pda-unit">
+        <div class="pdu-step">② QC Verified · QC 확인</div>
+        <div class="pda-shell">
+          <div class="pda-scr">
+            <div class="pda-sbar"><span>FG-01</span><span class="online">● OK</span></div>
+            <div class="pda-tbar" style="background:linear-gradient(135deg,#021208,#041e10);">
+              <div class="pda-title">QC Pass Confirmed ✅</div>
+              <div class="pda-sub">Door Trim LH · 200 EA</div>
+            </div>
+            <div class="pda-bd">
+              <div class="pda-field"><div class="pda-fl">WO No.</div><div class="pda-fv ok">WO-20250701-007</div></div>
+              <div class="pda-field"><div class="pda-fl">Item · 품목</div><div class="pda-fv ok">Door Trim LH</div></div>
+              <div class="pda-field"><div class="pda-fl">QC Result · 판정</div><div class="pda-fv ok">PASS · 합격 ✅</div></div>
+              <div class="pda-field"><div class="pda-fl">Qty to Stock · 적재 수량</div><div class="pda-fv ok">200 EA</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pda-unit">
+        <div class="pdu-step">③ Assign Location · 위치 지정</div>
+        <div class="pda-shell">
+          <div class="pda-scr">
+            <div class="pda-sbar"><span>FG-01</span><span class="online">● 10:22</span></div>
+            <div class="pda-tbar" style="background:linear-gradient(135deg,#021208,#041e10);">
+              <div class="pda-title">Assign FG Location</div>
+              <div class="pda-sub">FG 위치 지정</div>
+            </div>
+            <div class="pda-bd">
+              <div class="pda-scan"><div class="pda-scan-icon">📍</div><div class="pda-scan-en">Scan FG Shelf QR</div><div class="pda-scan-ko">FG 선반 QR 스캔</div></div>
+              <div class="pda-field"><div class="pda-fl">Location · 위치</div><div class="pda-fv ok">FG-A-01-1 ✅</div></div>
+              <div class="pda-field"><div class="pda-fl">Stocked Date · 적재일</div><div class="pda-fv">2025-07-01 10:22</div></div>
+              <button class="pda-btn pda-pri">✅ Confirm Stocking · 적재 확정</button>
+              <button class="pda-btn pda-sec">🏷 Print Label</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pda-unit">
+        <div class="pdu-step">⚠ QC Fail Block · QC 미합격 차단</div>
+        <div class="pda-shell">
+          <div class="pda-scr">
+            <div class="pda-sbar"><span>FG-01</span><span class="online" style="color:#ff8a82;">● BLOCKED</span></div>
+            <div class="pda-tbar" style="background:#1a0808;border-bottom-color:#3a1010;">
+              <div class="pda-title" style="color:#ff8a82;">⛔ QC NOT PASSED</div>
+              <div class="pda-sub" style="color:#ff8a82;">QC 미합격 — 적재 차단</div>
+            </div>
+            <div class="pda-bd">
+              <div class="pda-field"><div class="pda-fl">WO No.</div><div class="pda-fv er">WO-20250701-008</div></div>
+              <div class="pda-field"><div class="pda-fl">QC Status</div><div class="pda-fv er">FAIL / PENDING ❌</div></div>
+              <div style="background:#1a0808;border:1px solid #3a1010;border-radius:5px;padding:8px;text-align:center;font-size:10px;color:#ff8a82;margin-bottom:7px;">STOCKING BLOCKED<br><span style="font-size:8px;opacity:.7;">Complete QC-03 first · QC-03 완료 후 재시도</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FG-03 Shipment Order -->
+<div class="screen-card" id="fg03">
+  <div class="sc-hdr"><div><div class="sc-id">FG-03</div><div class="sc-title-en">Shipment Order</div><div class="sc-title-ko">출하 지시</div></div>
+    <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-1st">1st Dev</span></div></div>
+  <div class="sc-body">
+    <div class="desc-bi" style="border-left-color:#0db87a;">
+      <div><div class="db-lbl">EN</div><div class="db-en">Creates and manages daily shipment orders to SAV (Savannah) and GEO (Georgia) client plants. Each shipment order specifies: item, quantity, delivery destination (SAV/GEO), shipping date, and vehicle/carrier. Once confirmed, triggers FG-04 PDA FIFO picking. Shipment orders link to SCM delivery order references.</div></div>
+      <div><div class="db-lbl">KO</div><div class="db-ko">SAV(사바나)·GEO(조지아) 거래선별 일별 출하 지시 생성·관리. 품목·수량·납품처(SAV/GEO)·출하일·차량 지정. 확정 시 FG-04 PDA FIFO 피킹 트리거. SCM 납품 주문 참조 연계.</div></div>
+    </div>
+    <div class="mock-wrap"><div class="mock-lbl">FG-03 · Shipment Order · Web PC</div><div class="mock-win">
+      <div class="mock-tbar">🚚 A-MES · Finished Goods · Shipment Order <span class="bc">FG &gt; Shipment &gt; Order</span></div>
+      <div class="mock-toolbar">
+        <select><option>Client: All</option><option>SAV · Savannah</option><option>GEO · Georgia</option></select>
+        <select><option>Status: All</option><option>Pending</option><option>Picking</option><option>Loaded</option><option>Shipped</option></select>
+        <input type="text" placeholder="Item / Order No..." style="width:160px;">
+        <button class="btn btn-primary btn-sm" style="background:#0db87a;">+ Create Shipment Order</button>
+        <button class="btn btn-secondary btn-sm" style="margin-left:auto;">📥 Export</button>
+      </div>
+      <div class="mock-body">
+        <div class="kpi-strip">
+          <div class="kc"><div class="kv" style="color:#0db87a;">5</div><div class="kl-en">Today's Shipments</div><div class="kl-ko">금일 출하</div></div>
+          <div class="kc"><div class="kv" style="color:#3b82f6;">2</div><div class="kl-en">SAV Orders</div><div class="kl-ko">SAV 건</div></div>
+          <div class="kc"><div class="kv" style="color:#7c3aed;">3</div><div class="kl-en">GEO Orders</div><div class="kl-ko">GEO 건</div></div>
+          <div class="kc"><div class="kv" style="color:#f59e0b;">2</div><div class="kl-en">Picking In Progress</div><div class="kl-ko">피킹 중</div></div>
+          <div class="kc"><div class="kv" style="color:#22c55e;">1</div><div class="kl-en">Loaded · Ready</div><div class="kl-ko">상차 완료</div></div>
+        </div>
+        <table class="tbl">
+          <thead><tr>
+            <th>Shipment No. <span class="th-ko">출하 번호</span></th>
+            <th>Client <span class="th-ko">거래선</span></th>
+            <th>Item <span class="th-ko">품목</span></th>
+            <th>Order Qty <span class="th-ko">지시 수량</span></th>
+            <th>Picked Qty <span class="th-ko">피킹 수량</span></th>
+            <th>Ship Date <span class="th-ko">출하일</span></th>
+            <th>Vehicle <span class="th-ko">차량</span></th>
+            <th>Status <span class="th-ko">상태</span></th>
+            <th>Action</th>
+          </tr></thead>
+          <tbody>
+            <tr class="rh"><td style="font-family:monospace;font-size:9px;font-weight:700;">SO-20250701-001</td>
+              <td><span class="b b-ok">SAV</span></td>
+              <td>Door Trim LH<div class="ko">도어트림 LH</div></td>
+              <td style="text-align:right;">200 EA</td><td style="text-align:right;color:#22c55e;font-weight:700;">200 EA</td>
+              <td>2025-07-01</td><td style="font-family:monospace;font-size:9px;">23나4567</td>
+              <td><span class="b b-ok">Loaded · 상차 완료</span></td>
+              <td><button class="btn btn-primary btn-sm" style="background:#0db87a;">📄 Delivery Note</button></td></tr>
+            <tr><td style="font-family:monospace;font-size:9px;font-weight:700;">SO-20250701-002</td>
+              <td><span class="b b-ok">SAV</span></td>
+              <td>Door Trim RH<div class="ko">도어트림 RH</div></td>
+              <td style="text-align:right;">150 EA</td><td style="text-align:right;color:#f59e0b;font-weight:700;">80 EA</td>
+              <td>2025-07-01</td><td style="font-family:monospace;font-size:9px;">23나4567</td>
+              <td><span class="b b-w">Picking · 피킹 중</span></td>
+              <td><button class="btn btn-secondary btn-sm">📱 PDA Pick</button></td></tr>
+            <tr><td style="font-family:monospace;font-size:9px;">SO-20250701-003</td>
+              <td><span class="b b-i">GEO</span></td>
+              <td>Door Trim LH (GEO)<div class="ko">도어트림 LH GEO</div></td>
+              <td style="text-align:right;">120 EA</td><td style="text-align:right;">0</td>
+              <td>2025-07-01</td><td style="font-family:monospace;font-size:9px;">23다8901</td>
+              <td><span class="b b-n">Pending · 대기</span></td>
+              <td><button class="btn btn-secondary btn-sm">📱 Start Pick</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<!-- FG-04 PDA FIFO Picking -->
+<div class="screen-card" id="fg04">
+  <div class="sc-hdr"><div><div class="sc-id">FG-04</div><div class="sc-title-en">PDA FIFO Picking</div><div class="sc-title-ko">PDA FIFO 피킹</div></div>
+    <div class="sc-tags"><span class="tag t-pda">📱 PDA</span><span class="tag t-1st">1st Dev</span></div></div>
+  <div class="sc-body">
+    <div class="desc-bi" style="border-left-color:#0db87a;">
+      <div><div class="db-lbl">EN</div><div class="db-en">PDA-guided FIFO picking for outbound shipment. System displays the oldest-stocked location first (by FG-01 stocking timestamp). Operator navigates to the suggested location and scans the item barcode to confirm. Wrong item barcode is immediately blocked with a red alert — mis-picks are prevented. Quantity is confirmed via numeric keypad. After picking, location inventory is auto-deducted.</div></div>
+      <div><div class="db-lbl">KO</div><div class="db-ko">PDA 안내 기반 FIFO 피킹. FG-01 적재 타임스탬프 기준 가장 오래된 위치 우선 제시. 해당 위치 이동 후 품목 바코드 스캔 확인. 오품목 바코드 즉시 빨간 알림 차단 → 오피킹 방지. 숫자패드 수량 확정 후 위치 재고 자동 차감.</div></div>
+    </div>
+    <div class="pda-row">
+      <div class="pda-unit">
+        <div class="pdu-step">① FIFO Location Guide · 위치 안내</div>
+        <div class="pda-shell">
+          <div class="pda-scr">
+            <div class="pda-sbar"><span>FG-04 · Picking</span><span class="online">● ACTIVE</span></div>
+            <div class="pda-tbar" style="background:linear-gradient(135deg,#021208,#041e10);">
+              <div class="pda-title">FIFO Pick Guide · 피킹 안내</div>
+              <div class="pda-sub">SO-20250701-001 · SAV</div>
+            </div>
+            <div class="pda-bd">
+              <div style="background:#040c18;border:1px solid #0a5a38;border-radius:6px;padding:8px;margin-bottom:7px;">
+                <div style="font-size:9px;color:#1a5a4a;margin-bottom:3px;">Go to Location · 이동할 위치</div>
+                <div style="font-size:20px;font-weight:900;color:#00e5a0;font-family:monospace;">FG-A-01-1</div>
+                <div style="font-size:9px;color:rgba(255,255,255,.3);margin-top:2px;">Stocked: 2025-07-01 10:22 (oldest)</div>
+              </div>
+              <div class="pda-field"><div class="pda-fl">Item to Pick · 피킹 품목</div><div class="pda-fv">Door Trim LH</div></div>
+              <div class="pda-field"><div class="pda-fl">Required Qty · 요청 수량</div><div class="pda-fv">200 EA</div></div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:9px;color:rgba(255,255,255,.25);margin-bottom:5px;"><span>Progress · 진행</span><div style="flex:1;background:#060e1c;border-radius:2px;height:3px;"><div style="width:40%;height:3px;background:#00e5a0;border-radius:2px;"></div></div><span>80/200</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pda-unit">
+        <div class="pdu-step">② Scan to Confirm · 스캔 확인</div>
+        <div class="pda-shell">
+          <div class="pda-scr">
+            <div class="pda-sbar"><span>FG-04</span><span class="online">● OK</span></div>
+            <div class="pda-tbar" style="background:linear-gradient(135deg,#021208,#041e10);">
+              <div class="pda-title">Item Verified ✅</div>
+              <div class="pda-sub">Door Trim LH · FG-A-01-1</div>
+            </div>
+            <div class="pda-bd">
+              <div class="pda-field"><div class="pda-fl">Scanned Item</div><div class="pda-fv ok">FTL-LH-GY-001 ✅</div></div>
+              <div class="pda-field"><div class="pda-fl">Pick Qty · 피킹 수량</div><div class="pda-fv">EA</div></div>
+              <div class="pda-disp">10</div>
+              <div class="pda-numpad">
+                <div class="pda-key">1</div><div class="pda-key">2</div><div class="pda-key">3</div>
+                <div class="pda-key">4</div><div class="pda-key">5</div><div class="pda-key">6</div>
+                <div class="pda-key">7</div><div class="pda-key">8</div><div class="pda-key">9</div>
+                <div class="pda-key k-ok">ALL</div><div class="pda-key">0</div><div class="pda-key k-del">⌫</div>
+              </div>
+              <button class="pda-btn pda-pri">✅ Confirm Pick · 피킹 확정</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pda-unit">
+        <div class="pdu-step">⚠ Wrong Item Block · 오피킹 차단</div>
+        <div class="pda-shell">
+          <div class="pda-scr">
+            <div class="pda-sbar"><span>FG-04</span><span class="online" style="color:#ff8a82;">● BLOCKED</span></div>
+            <div class="pda-tbar" style="background:#1a0808;border-bottom-color:#3a1010;">
+              <div class="pda-title" style="color:#ff8a82;">⛔ WRONG ITEM</div>
+              <div class="pda-sub" style="color:#ff8a82;">오피킹 차단</div>
+            </div>
+            <div class="pda-bd">
+              <div class="pda-field"><div class="pda-fl">Scanned · 스캔</div><div class="pda-fv er">FTL-RH-GY-001 ❌ (RH)</div></div>
+              <div class="pda-field"><div class="pda-fl">Required · 요청</div><div class="pda-fv">FTL-LH-GY-001 (LH)</div></div>
+              <div style="background:#1a0808;border:1px solid #3a1010;border-radius:5px;padding:8px;text-align:center;font-size:10px;color:#ff8a82;margin:0 0 7px;">PICKING BLOCKED<br><span style="font-size:8px;opacity:.7;">Scan correct item · 올바른 품목 재스캔</span></div>
+              <button class="pda-btn pda-dan">🔄 Re-scan · 재스캔</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FG-06 Delivery Note -->
+<div class="screen-card" id="fg06">
+  <div class="sc-hdr"><div><div class="sc-id">FG-06</div><div class="sc-title-en">Delivery Note (SAV / GEO Format)</div><div class="sc-title-ko">거래명세서 (SAV / GEO 양식)</div></div>
+    <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-1st">1st Dev</span></div></div>
+  <div class="sc-body">
+    <div class="desc-bi" style="border-left-color:#0db87a;">
+      <div><div class="db-lbl">EN</div><div class="db-en">Auto-generates the delivery note in the client-specific format after loading confirmation (FG-05). SAV format and GEO format are configured separately in MD-07 (vendor master). Fields auto-populated from shipment order: item code, description, quantity, unit price, total, delivery address, and vehicle. PDF output + email dispatch to client logistics coordinator.</div></div>
+      <div><div class="db-lbl">KO</div><div class="db-ko">FG-05 상차 확인 후 거래선 전용 양식으로 거래명세서 자동 생성. SAV 양식·GEO 양식 MD-07(거래선 마스터)에 별도 구성. 품목코드·품명·수량·단가·합계·납품지·차량 자동 채움. PDF 출력 + 거래선 물류 담당자 이메일 자동 발송.</div></div>
+    </div>
+    <div class="mock-wrap"><div class="mock-lbl">FG-06 · Delivery Note Preview · SAV Format</div><div class="mock-win">
+      <div class="mock-tbar">📄 A-MES · Delivery Note · SAV-20250701-001 <span class="bc">FG &gt; Delivery Note</span></div>
+      <div class="mock-body" style="font-size:11px;">
+        <div style="border:2px solid #24292f;border-radius:4px;padding:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
+            <div><div style="font-size:18px;font-weight:900;letter-spacing:1px;">DELIVERY NOTE · 거래명세서</div><div style="font-size:11px;color:#64748b;margin-top:3px;">Seoyon E-Hua · SAV Plant — Savannah, Georgia</div></div>
+            <div style="text-align:right;font-size:10px;color:#64748b;"><div><strong>No.</strong> SAV-20250701-001</div><div><strong>Date · 날짜</strong> 2025-07-01</div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;font-size:10px;">
+            <div style="background:#f6f8fa;padding:8px;border-radius:4px;"><div style="font-weight:700;margin-bottom:4px;">Supplier · 공급자</div><div>A-MES Manufacturing Co., Ltd.<br>123 Industrial Ave, Korea<br>Tel: 02-1234-5678</div></div>
+            <div style="background:#f6f8fa;padding:8px;border-radius:4px;"><div style="font-weight:700;margin-bottom:4px;">Deliver To · 납품처</div><div>Seoyon E-Hua (SAV Plant)<br>100 Auto Drive, Savannah, GA 31401<br>Contact: Logistics Dept.</div></div>
+          </div>
+          <table class="tbl">
+            <thead><tr><th>#</th><th>Item Code</th><th>Description <span class="th-ko">품명</span></th><th>Qty <span class="th-ko">수량</span></th><th>Unit</th><th>Unit Price <span class="th-ko">단가</span></th><th>Amount <span class="th-ko">금액</span></th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td style="font-family:monospace;font-size:9px;">FTL-LH-GY-001</td><td>Door Trim LH Grey<div class="ko">도어트림 LH 그레이</div></td><td style="text-align:right;">200</td><td>EA</td><td style="text-align:right;">₩ 8,500</td><td style="text-align:right;font-weight:700;">₩ 1,700,000</td></tr>
+            </tbody>
+            <tfoot><tr><td colspan="5"></td><td style="font-weight:700;background:#f0f3f7;">Total · 합계</td><td style="font-weight:900;font-size:12px;background:#f0f3f7;text-align:right;">₩ 1,700,000</td></tr></tfoot>
+          </table>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+            <button class="btn btn-primary btn-sm" style="background:#0db87a;">📄 Export PDF</button>
+            <button class="btn btn-secondary btn-sm">📧 Email to SAV</button>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<!-- FG-07 Day-End Close -->
+<div class="screen-card" id="fg07">
+  <div class="sc-hdr"><div><div class="sc-id">FG-07</div><div class="sc-title-en">Day-End Close</div><div class="sc-title-ko">일 마감</div></div>
+    <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-1st">1st Dev</span></div></div>
+  <div class="sc-body">
+    <div class="desc-bi" style="border-left-color:#0db87a;">
+      <div><div class="db-lbl">EN</div><div class="db-en">Day-end closing procedure locks all shipment transactions for the day. Checklist must be completed: all PDA picks confirmed, all delivery notes issued, FG inventory snapshot taken. After close, no backdated entries allowed. Closing generates the daily shipment summary report (RPT-03). Requires supervisor approval (digital signature).</div></div>
+      <div><div class="db-lbl">KO</div><div class="db-ko">일 마감으로 당일 출하 거래 전체 잠금. 체크리스트 완료 필수: 전체 PDA 피킹 확정, 전체 거래명세서 발행, FG 재고 스냅샷 생성. 마감 후 소급 입력 불가. RPT-03 일별 출하 요약 보고서 자동 생성. 관리자 전자서명 승인 필요.</div></div>
+    </div>
+    <div class="alert alert-w"><span>⚠️</span><div><strong>Day-End Close is irreversible · 일 마감은 취소 불가</strong> — Once closed, all transactions for the day are locked. No backdated adjustments allowed after close. Supervisor digital approval required. · 마감 후 당일 거래 전체 잠금. 소급 수정 불가. 관리자 전자서명 필수.</div></div>
+  </div>
+</div>
+
+<!-- FG-02, 05, 08 -->
+<div class="g2" style="gap:12px;margin-bottom:12px;">
+  <div class="screen-card" id="fg02" style="margin-bottom:0;"><div class="sc-hdr"><div><div class="sc-id">FG-02</div><div class="sc-title-en">FG Inventory Status</div><div class="sc-title-ko">완제품 재고 현황</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-1st">1st</span></div></div><div class="sc-body"><div class="desc-bi" style="border-left-color:#0db87a;"><div><div class="db-lbl">EN</div><div class="db-en">Real-time FG inventory by item, location, and client (SAV/GEO). Shows available-to-ship quantity (excludes reserved/picking items). Daily snapshot view with delta vs. previous day. Supports Excel export.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">품목·위치·거래선(SAV/GEO)별 완제품 실시간 재고. 출하 가능 수량(예약·피킹 중 제외) 표시. 전일 대비 증감, Excel 출력 지원.</div></div></div></div></div>
+  <div class="screen-card" id="fg05" style="margin-bottom:0;"><div class="sc-hdr"><div><div class="sc-id">FG-05</div><div class="sc-title-en">Loading Confirmation</div><div class="sc-title-ko">상차 확인</div></div><div class="sc-tags"><span class="tag t-pda">📱 PDA</span><span class="tag t-1st">1st</span></div></div><div class="sc-body"><div class="desc-bi" style="border-left-color:#0db87a;"><div><div class="db-lbl">EN</div><div class="db-en">PDA-based loading confirmation: operator scans each carton barcode as it is loaded into the truck. System counts loaded qty vs. pick list qty. When all items are confirmed, one-tap loading complete — triggers FG-06 delivery note auto-generation.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">PDA 상차 확인: 작업자가 박스 바코드 스캔하며 상차. 시스템이 피킹 목록 대비 상차 수량 카운트. 전체 확인 시 원터치 완료 → FG-06 거래명세서 자동 생성 트리거.</div></div></div></div></div>
+</div>
+<div class="screen-card" id="fg08" style="margin-bottom:20px;"><div class="sc-hdr"><div><div class="sc-id">FG-08</div><div class="sc-title-en">Shipment History</div><div class="sc-title-ko">출하 이력</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-1st">1st</span></div></div><div class="sc-body"><div class="desc-bi" style="border-left-color:#0db87a;"><div><div class="db-lbl">EN</div><div class="db-en">Full audit log of all shipments: date, client (SAV/GEO), item, quantity, delivery note number, vehicle, and operator. Searchable by date range, item, and client. Linked to WO and QC records for full traceability.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">전체 출하 이력 감사 로그: 날짜·거래선·품목·수량·명세서 번호·차량·작업자. 날짜/품목/거래선 검색. WO·QC 기록 완전 추적 연계.</div></div></div></div></div>
+
+<!-- BR-FG -->
+<div class="br-wrap" id="br-fg"><div class="br-title">Business Rules · 업무 규칙 (FG)</div>
+<table class="br-tbl"><thead><tr><th>Rule ID</th><th>Category</th><th>Rule (EN)</th><th>규칙 (KO)</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td class="br-id">BR-FG-01</td><td>QC Gate</td><td class="br-en">Only WOs with QC-03 status = PASS can be stocked into FG. PDA blocking if QC status is FAIL or PENDING.</td><td class="br-ko">QC-03 합격 WO만 FG 적재. QC 미합격·미완료 시 PDA 차단.</td><td><span class="b b-e">Block</span></td></tr>
+<tr><td class="br-id">BR-FG-02</td><td>FIFO Picking</td><td class="br-en">FG FIFO picking is enforced by stocking date. System always directs to the oldest-stocked location. Out-of-sequence picking is blocked.</td><td class="br-ko">적재일 기준 FIFO 출고 강제. 시스템이 최고령 위치 우선 안내. 순서 무시 피킹 차단.</td><td><span class="b b-e">Block</span></td></tr>
+<tr><td class="br-id">BR-FG-03</td><td>Wrong-Item Block</td><td class="br-en">During PDA picking, scanning any barcode that does not match the pick list item immediately blocks the operation with an alarm. Operator must re-scan the correct item.</td><td class="br-ko">PDA 피킹 중 피킹 목록 불일치 바코드 스캔 즉시 차단 + 알람. 올바른 품목 재스캔 필수.</td><td><span class="b b-e">Block + Alarm</span></td></tr>
+<tr><td class="br-id">BR-FG-04</td><td>Day-End Lock</td><td class="br-en">After day-end close (FG-07), no backdated transactions are allowed for the closed date. Only supervisor can request emergency unlock (requires audit log entry).</td><td class="br-ko">일 마감(FG-07) 후 마감일 소급 거래 불가. 긴급 해제는 관리자만 가능(감사 로그 기록 필수).</td><td><span class="b b-e">Lock</span></td></tr>
+</tbody></table></div>
+</div>
+<div class="page-footer"><div class="pf-l">A-MES · VOL.9 · FG Finished Goods & Shipment · UI Design Spec v1.0 · Bilingual EN/KO</div><div class="pf-r">8 Screens · Web + PDA · 1st Dev</div></div>
+</div></div>
+</body></html>

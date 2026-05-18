@@ -1,0 +1,355 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>A-MES · VOL.10 · MNT · Equipment Maintenance</title>
+<style>/* ═══════════════════════════════════════
+   A-MES SHARED STYLESHEET v2.0
+   Bilingual EN/KO · UI Labels English
+═══════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+
+:root{
+  --gold:#d4a017; --gold-lt:#fdf6e3; --gold-dk:#a07810;
+  --ink:#0d1117; --ink2:#161b22; --ink3:#21262d;
+  --surface:#ffffff; --bg:#f6f8fa; --border:#d0d7de;
+  --text:#24292f; --sub:#656d76;
+  /* module colors */
+  --wh:#0891b2; --pp:#059669; --inj:#2563eb; --img:#7c3aed;
+  --pnt:#ea580c; --qc:#dc2626; --fg:#0db87a; --mnt:#0284c7;
+  --rpt:#6366f1; --sys:#475569; --md:#d97706;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+
+/* ── NAV BAR (injected per file) ── */
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
+.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}
+.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;transition:color .12s;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}
+.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+
+/* ── PAGE LAYOUT ── */
+.page-wrap{display:flex;}
+.sidebar{width:230px;min-width:230px;background:var(--ink2);position:sticky;top:40px;height:calc(100vh - 40px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(212,160,23,.15) transparent;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.15);padding:12px 14px 4px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.35);font-size:11px;border-left:2px solid transparent;transition:all .12s;}
+.sb-link:hover{color:rgba(255,255,255,.7);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:32px;flex-shrink:0;}
+.sb-link .sl-en{font-size:10px;font-weight:600;}
+.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.2);margin-top:1px;}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+
+.main{flex:1;min-width:0;}
+
+/* ── MODULE HEADER ── */
+.mod-hdr{padding:36px 48px 24px;position:relative;overflow:hidden;}
+.mod-hdr-inner{position:relative;z-index:1;}
+.mod-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;opacity:.7;}
+.mod-title-en{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:.95;letter-spacing:2px;color:#fff;margin-bottom:4px;}
+.mod-title-ko{font-size:14px;font-weight:300;color:rgba(255,255,255,.35);letter-spacing:4px;margin-bottom:16px;}
+.mod-desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:840px;margin-bottom:18px;}
+.mdb-en{font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;border-left:2px solid rgba(255,255,255,.12);padding-left:12px;}
+.mdb-ko{font-size:11px;color:rgba(255,255,255,.3);line-height:1.8;border-left:2px solid rgba(255,255,255,.06);padding-left:12px;}
+.screen-pills{display:flex;gap:5px;flex-wrap:wrap;}
+.sp{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:9px;color:rgba(255,255,255,.4);}
+.sp-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold);}
+
+/* ── CONTENT AREA ── */
+.content{padding:0 48px 48px;}
+
+/* ── SCREEN CARD ── */
+.screen-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;}
+.sc-hdr{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.sc-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.sc-title-en{font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px;}
+.sc-title-ko{font-size:10px;color:rgba(255,255,255,.35);margin-top:2px;}
+.sc-tags{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+.tag{font-size:9px;font-weight:700;padding:2px 9px;border-radius:3px;}
+.t-web{background:rgba(26,111,255,.2);color:#7ab4ff;border:1px solid rgba(26,111,255,.3);}
+.t-pda{background:rgba(13,184,122,.2);color:#5dffc4;border:1px solid rgba(13,184,122,.3);}
+.t-pop{background:rgba(234,88,12,.2);color:#fdba74;border:1px solid rgba(234,88,12,.3);}
+.t-p0{background:rgba(212,160,23,.15);color:#fbbf24;border:1px solid rgba(212,160,23,.2);}
+.t-1st{background:rgba(26,111,255,.12);color:#93c5fd;border:1px solid rgba(26,111,255,.18);}
+.t-2nd{background:rgba(124,58,237,.12);color:#c4b5fd;border:1px solid rgba(124,58,237,.18);}
+.t-3rd{background:rgba(255,107,0,.12);color:#fdba74;border:1px solid rgba(255,107,0,.18);}
+.sc-body{padding:14px 18px;}
+
+/* ── BILINGUAL DESC ── */
+.desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;background:#f6f8ff;border:1px solid var(--border);border-left:3px solid;border-radius:0 6px 6px 0;padding:11px 14px;}
+.db-lbl{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;opacity:.5;}
+.db-en{font-size:11px;color:#1e40af;line-height:1.75;}
+.db-ko{font-size:11px;color:var(--sub);line-height:1.75;}
+
+/* ── KPI STRIP ── */
+.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:12px;}
+.kc{flex:1;padding:9px 12px;border-right:1px solid var(--border);}
+.kc:last-child{border-right:none;}
+.kv{font-size:20px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
+.kl-en{font-size:9px;color:var(--sub);margin-top:2px;}
+.kl-ko{font-size:8px;color:rgba(100,116,139,.55);}
+
+/* ── MOCK WINDOW ── */
+.mock-wrap{background:#eef1f5;border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;}
+.mock-lbl{font-size:9px;font-weight:700;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;}
+.mock-win{background:#fff;border:1px solid #c8d0db;border-radius:6px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.07);}
+.mock-tbar{background:var(--text);color:#fff;padding:7px 13px;display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;}
+.mock-tbar .bc{margin-left:auto;font-size:9px;color:rgba(255,255,255,.3);font-family:'JetBrains Mono',monospace;}
+.mock-body{padding:12px 13px;}
+.mock-toolbar{background:#f6f8fa;border-bottom:1px solid var(--border);padding:6px 13px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+.mock-toolbar select,.mock-toolbar input{padding:3px 8px;border:1px solid var(--border);border-radius:3px;font-size:11px;background:#fff;}
+
+/* ── TABLE ── */
+.tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.tbl th{background:#f0f3f7;padding:6px 9px;font-weight:700;border:1px solid var(--border);text-align:left;font-size:10px;color:var(--text);}
+.tbl th .th-ko{font-weight:400;color:var(--sub);font-size:9px;}
+.tbl td{padding:5px 9px;border:1px solid var(--border);vertical-align:middle;}
+.tbl .rh td{background:#f0fdf4;}
+.tbl .rw td{background:#fffbeb;}
+.tbl .rd td{background:#fef2f2;}
+.tbl tr:hover td{background:#f9fafb;}
+.tbl td .ko{color:var(--sub);font-size:10px;}
+
+/* ── BADGES ── */
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
+.b-ok{background:#dcfce7;color:#166534;}
+.b-w{background:#fef9c3;color:#92400e;}
+.b-e{background:#fee2e2;color:#991b1b;}
+.b-i{background:#dbeafe;color:#1e40af;}
+.b-n{background:#f3f4f6;color:#4b5563;}
+
+/* ── BUTTONS ── */
+.btn{padding:5px 13px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
+.btn-primary{background:var(--mod-color,#0891b2);color:#fff;border-color:var(--mod-color,#0891b2);}
+.btn-secondary{background:#f6f8fa;color:var(--text);border-color:var(--border);}
+.btn-danger{background:#dc2626;color:#fff;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+
+/* ── FEATURE GRID ── */
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.feat-item{background:#f6f8ff;border:1px solid var(--border);border-radius:6px;padding:11px 13px;border-top:2px solid;}
+.fi-title-en{font-size:11px;font-weight:700;margin-bottom:1px;}
+.fi-title-ko{font-size:10px;color:var(--sub);margin-bottom:6px;}
+ul.fi-list{list-style:none;}
+ul.fi-list li{padding:2px 0 2px 12px;position:relative;font-size:10px;line-height:1.6;}
+ul.fi-list li::before{content:'–';position:absolute;left:0;color:var(--sub);}
+ul.fi-list li .ko{color:var(--sub);font-size:9px;}
+
+/* ── PDA MOCK ── */
+.pda-row{display:flex;gap:14px;flex-wrap:wrap;}
+.pda-unit{text-align:center;}
+.pdu-step{font-size:9px;font-weight:700;color:var(--sub);margin-bottom:5px;}
+.pda-shell{background:#1a1e2e;border-radius:16px;padding:9px;width:172px;border:2px solid #2a3048;box-shadow:0 6px 20px rgba(0,0,0,.3);}
+.pda-scr{background:#0a1628;border-radius:10px;overflow:hidden;border:1px solid #1a3050;}
+.pda-sbar{background:#060e1c;padding:3px 8px;display:flex;justify-content:space-between;}
+.pda-sbar span{font-size:7px;color:#2a4a7a;font-family:'JetBrains Mono',monospace;}
+.pda-sbar .online{color:#00e5a0;}
+.pda-tbar{padding:7px 10px;border-bottom:1px solid #0a3050;}
+.pda-title{font-size:11px;font-weight:700;color:#00e5a0;}
+.pda-sub{font-size:8px;color:rgba(255,255,255,.3);}
+.pda-bd{padding:8px 10px;}
+.pda-scan{background:#060e1c;border:2px dashed rgba(0,229,160,.3);border-radius:6px;padding:12px;text-align:center;margin-bottom:7px;}
+.pda-scan-icon{font-size:22px;margin-bottom:3px;}
+.pda-scan-en{font-size:10px;font-weight:700;color:#00e5a0;}
+.pda-scan-ko{font-size:8px;color:rgba(255,255,255,.3);}
+.pda-field{margin-bottom:5px;}
+.pda-fl{font-size:8px;color:#1a5a4a;margin-bottom:2px;font-weight:600;}
+.pda-fv{background:#040c18;border:1px solid #1a3050;border-radius:4px;padding:4px 8px;font-size:10px;color:#a0c8f0;font-family:'JetBrains Mono',monospace;}
+.pda-fv.ok{border-color:#00e5a0;color:#00e5a0;}
+.pda-fv.er{border-color:#ff8a82;color:#ff8a82;}
+.pda-numpad{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;margin-bottom:6px;}
+.pda-key{background:#0d1e30;border:1px solid #1a3050;border-radius:4px;padding:7px 4px;text-align:center;font-size:13px;font-weight:700;color:#c0e0f0;font-family:'JetBrains Mono',monospace;}
+.pda-key.k-ok{background:#0a2a1a;color:#00e5a0;border-color:#0a5a38;}
+.pda-key.k-del{background:#1a0808;color:#ff8a82;border-color:#3a1010;}
+.pda-disp{background:#040c18;border:1px solid #1a3050;border-radius:4px;padding:5px 9px;font-size:24px;font-weight:900;color:#00e5a0;text-align:right;margin-bottom:6px;font-family:'JetBrains Mono',monospace;}
+.pda-btn{width:100%;padding:7px;border-radius:5px;font-size:10px;font-weight:700;border:none;cursor:pointer;margin-bottom:4px;font-family:'Noto Sans KR',sans-serif;}
+.pda-pri{background:linear-gradient(135deg,#0a9060,#0db87a);color:#fff;}
+.pda-sec{background:#0a1428;color:#4a7aaa;border:1px solid #1a3050;}
+.pda-dan{background:#1a0808;color:#ff8a82;border:1px solid #3a1010;}
+.pda-progress-bar{height:4px;background:#060e1c;border-radius:2px;overflow:hidden;margin:4px 0 8px;}
+.pda-progress-fill{height:100%;background:linear-gradient(90deg,#0a9060,#00e5a0);border-radius:2px;}
+
+/* ── BR TABLE ── */
+.br-wrap{margin-bottom:16px;}
+.br-title{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:7px;display:flex;align-items:center;gap:10px;}
+.br-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.br-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.br-tbl th{background:var(--text);color:#fff;padding:6px 10px;text-align:left;border:1px solid rgba(255,255,255,.08);font-size:9px;}
+.br-tbl td{padding:6px 10px;border:1px solid var(--border);vertical-align:top;line-height:1.6;}
+.br-tbl tr:nth-child(even) td{background:#fafbfd;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-en{color:var(--text);}
+.br-ko{color:var(--sub);font-size:10px;margin-top:2px;}
+
+/* ── SECTION DIV ── */
+.sec-div{display:flex;align-items:center;gap:12px;margin:20px 0 12px;}
+.sd-line{flex:1;height:1px;background:var(--border);}
+.sd-lbl{font-size:10px;font-weight:700;color:var(--sub);white-space:nowrap;}
+
+/* ── ALERTS ── */
+.alert{padding:8px 12px;border-radius:5px;font-size:10px;margin-bottom:9px;display:flex;gap:8px;line-height:1.7;}
+.alert-i{background:#eff6ff;border-left:3px solid #3b82f6;}
+.alert-w{background:#fffbeb;border-left:3px solid #f59e0b;}
+.alert-s{background:#f0fdf4;border-left:3px solid #22c55e;}
+.alert-d{background:#fef2f2;border-left:3px solid #ef4444;}
+
+/* ── ROUTING FLOW ── */
+.rflow{display:flex;align-items:center;gap:0;flex-wrap:nowrap;overflow-x:auto;padding:4px 0;}
+.rs{padding:9px 14px;border-radius:5px;font-size:11px;font-weight:700;text-align:center;flex-shrink:0;text-decoration:none;}
+.rs-en{font-size:12px;font-weight:800;}
+.rs-ko{font-size:9px;font-weight:400;opacity:.7;margin-top:2px;}
+.rarr{color:var(--sub);font-size:14px;padding:0 5px;flex-shrink:0;}
+.rs-inj{background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;}
+.rs-img{background:#f5f3ff;color:#5b21b6;border:1px solid #c4b5fd;}
+.rs-pnt{background:#fff7ed;color:#9a3412;border:1px solid #fdba74;}
+.rs-qc{background:#fef2f2;color:#991b1b;border:1px solid #fca5a5;}
+.rs-fg{background:#f0fdf4;color:#065f46;border:1px solid #6ee7b7;}
+
+/* ── GRID ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+
+/* ── PROGRESS BAR ── */
+.prog-track{height:5px;background:#f0f2f5;border-radius:3px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:3px;}
+
+/* ── DATA MODEL TABLE ── */
+.dm-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.dm-tbl th{background:var(--ink2);color:#fff;padding:6px 10px;text-align:left;border:1px solid var(--ink3);font-size:9px;}
+.dm-tbl td{padding:5px 10px;border:1px solid var(--border);vertical-align:top;}
+.dm-tbl tr:nth-child(even) td{background:#fafbfd;}
+.dm-col{font-family:'JetBrains Mono',monospace;color:#1e40af;font-weight:600;}
+.dm-type{font-family:'JetBrains Mono',monospace;color:var(--sub);font-size:10px;}
+.dm-pk{color:#dc2626;font-weight:700;}
+.dm-fk{color:#7c3aed;}
+
+/* ── PAGE FOOTER ── */
+.page-footer{padding:14px 48px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--ink);margin-top:20px;}
+.pf-l{font-size:10px;color:rgba(255,255,255,.2);}
+.pf-r{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(212,160,23,.4);}
+:root{--mod-color:#0284c7;}.mod-hdr{background:linear-gradient(135deg,color-mix(in srgb,#0284c7 30%,#000),color-mix(in srgb,#0284c7 12%,#000));}.sc-hdr{background:linear-gradient(135deg,color-mix(in srgb,#0284c7 22%,#000),color-mix(in srgb,#0284c7 10%,#000));}.sc-id{color:#0284c7;}.sb-mod-en{color:#0284c7;}.sb-link.on{border-left-color:#0284c7;}</style></head><body><nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol active"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav><div class="page-wrap"><nav class="sidebar"><div class="sb-head"><div class="sb-vol">VOL.10 · MNT MODULE</div><div class="sb-mod-en">MAINTENANCE</div><div class="sb-mod-ko">설비 관리</div></div>
+<div class="sb-section">Screens</div>
+<a class="sb-link on" href="#mnt01"><span class="sl-id">MNT-01</span><div><div class="sl-en">Equipment Card View</div><div class="sl-ko">설비 카드뷰</div></div></a>
+<a class="sb-link" href="#mnt02"><span class="sl-id">MNT-02</span><div><div class="sl-en">Failure Register</div><div class="sl-ko">고장 등록</div></div></a>
+<a class="sb-link" href="#mnt03"><span class="sl-id">MNT-03</span><div><div class="sl-en">OEE Analysis</div><div class="sl-ko">OEE 분석</div></div></a>
+<a class="sb-link" href="#mnt04"><span class="sl-id">MNT-04</span><div><div class="sl-en">Mold Management</div><div class="sl-ko">금형 관리</div></div></a>
+<a class="sb-link" href="#mnt05"><span class="sl-id">MNT-05</span><div><div class="sl-en">PM Schedule</div><div class="sl-ko">예방 정비 일정</div></div></a>
+<a class="sb-link" href="#mnt06"><span class="sl-id">MNT-06</span><div><div class="sl-en">Downtime Log</div><div class="sl-ko">비가동 이력</div></div></a>
+<div class="sb-sep"></div>
+<a class="sb-link" href="#br-mnt"><span class="sl-id">BR</span><div><div class="sl-en">Business Rules</div><div class="sl-ko">업무 규칙</div></div></a></nav><div class="main">
+<div class="mod-hdr"><div class="mod-hdr-inner">
+  <div class="mod-eyebrow" style="color:#38bdf8;">VOL.10 · MNT · Equipment Maintenance · 설비 관리</div>
+  <div class="mod-title-en" style="color:#38bdf8;">EQUIPMENT<br>MAINTENANCE</div>
+  <div class="mod-title-ko">설비 관리</div>
+  <div class="mod-desc-bi">
+    <div class="mdb-en">Manages all production equipment lifecycle: real-time status card grid, failure registration, OEE analysis (Availability × Performance × Quality), injection mold shot-count tracking with life alerts, preventive maintenance scheduling, and automatic downtime logging from Andon events. Integrates with INJ-06 mold change, PNT-07 oven deviation, and POP Andon signals.</div>
+    <div class="mdb-ko">전체 생산 설비 라이프사이클: 실시간 상태 카드 그리드, 고장 등록, OEE(가동율×성능율×양품율) 분석, 금형 쇼트수 수명 알림, PM 일정 관리, Andon 연동 자동 비가동 기록. INJ-06 금형 교체·PNT-07 건조로 이탈·POP Andon 연계.</div>
+  </div>
+  <div class="screen-pills">
+    <span class="sp"><span class="sp-id">MNT-01</span> Equipment Card View</span>
+    <span class="sp"><span class="sp-id">MNT-02</span> Failure Register</span>
+    <span class="sp"><span class="sp-id">MNT-03</span> OEE Analysis</span>
+    <span class="sp"><span class="sp-id">MNT-04</span> Mold Management</span>
+    <span class="sp"><span class="sp-id">MNT-05</span> PM Schedule</span>
+    <span class="sp"><span class="sp-id">MNT-06</span> Downtime Log</span>
+  </div>
+</div></div>
+<div class="content">
+
+<div class="screen-card" id="mnt01">
+  <div class="sc-hdr"><div><div class="sc-id">MNT-01</div><div class="sc-title-en">Equipment Card View</div><div class="sc-title-ko">설비 카드뷰</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-1st">1st Dev</span></div></div>
+  <div class="sc-body">
+    <div class="desc-bi" style="border-left-color:#0284c7;"><div><div class="db-lbl">EN</div><div class="db-en">Visual card grid of all production equipment. Each card displays equipment name, code, current status (Running / Stopped / Maintenance / Idle), today's operating hours, OEE gauge, and PM due date. Color border: green=Running, red=Stopped, orange=Maintenance, grey=Idle. Click to drill into detail and history.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">전체 생산 설비 카드 그리드. 각 카드: 설비명·코드·현재 상태(가동/정지/정비/대기)·금일 가동시간·OEE 게이지·PM 예정일. 테두리 색: 초록=가동, 빨강=정지, 주황=정비, 회색=대기. 클릭 시 상세·이력.</div></div></div>
+    <div class="mock-wrap"><div class="mock-lbl">MNT-01 · Equipment Card View</div><div class="mock-win">
+      <div class="mock-tbar">⚙️ Equipment Card View <span class="bc">MNT &gt; Equipment</span></div>
+      <div class="mock-body">
+        <div class="kpi-strip">
+          <div class="kc"><div class="kv" style="color:#22c55e;">12</div><div class="kl-en">Running · 가동</div></div>
+          <div class="kc"><div class="kv" style="color:#ef4444;">2</div><div class="kl-en">Stopped · 정지</div></div>
+          <div class="kc"><div class="kv" style="color:#f59e0b;">1</div><div class="kl-en">Maintenance · 정비</div></div>
+          <div class="kc"><div class="kv" style="color:#6366f1;">78.4%</div><div class="kl-en">Overall OEE</div></div>
+          <div class="kc"><div class="kv" style="color:#f97316;">3</div><div class="kl-en">PM Due ≤ 7d</div></div>
+        </div>
+        <div class="g3" style="gap:10px;">
+          <div style="border:2px solid #22c55e;border-radius:8px;padding:12px;background:#f0fdf4;"><div style="display:flex;justify-content:space-between;"><div><div style="font-family:monospace;font-size:9px;color:#64748b;">EQ-INJ-001</div><div style="font-size:12px;font-weight:800;">INJ Machine #1</div><div style="font-size:9px;color:#64748b;">사출 성형기 1호기 · 650T</div></div><span class="b b-ok">● Running</span></div><div style="margin-top:8px;font-size:9px;color:#64748b;">7h 20m / 8h planned</div><div class="prog-track" style="margin:4px 0;"><div class="prog-fill" style="width:92%;background:#22c55e;"></div></div><div style="display:flex;justify-content:space-between;font-size:9px;"><span>OEE <strong style="color:#22c55e;">91%</strong></span><span>PM 2025-07-15</span></div></div>
+          <div style="border:2px solid #ef4444;border-radius:8px;padding:12px;background:#fef2f2;"><div style="display:flex;justify-content:space-between;"><div><div style="font-family:monospace;font-size:9px;color:#64748b;">EQ-INJ-002</div><div style="font-size:12px;font-weight:800;">INJ Machine #2</div><div style="font-size:9px;color:#64748b;">사출 성형기 2호기 · 850T</div></div><span class="b b-e">● Stopped</span></div><div style="margin-top:8px;font-size:9px;color:#ef4444;">⛔ Hydraulic leak · 유압 누유</div><div class="prog-track" style="margin:4px 0;"><div class="prog-fill" style="width:0%;background:#ef4444;"></div></div><div style="display:flex;justify-content:space-between;font-size:9px;"><span>OEE <strong style="color:#ef4444;">0%</strong></span><span style="color:#ef4444;">Since 08:30</span></div></div>
+          <div style="border:2px solid #f59e0b;border-radius:8px;padding:12px;background:#fffbeb;"><div style="display:flex;justify-content:space-between;"><div><div style="font-family:monospace;font-size:9px;color:#64748b;">EQ-OVN-001</div><div style="font-size:12px;font-weight:800;">Paint Oven #1</div><div style="font-size:9px;color:#64748b;">도장 건조로 1호기</div></div><span class="b b-w">● Maintenance</span></div><div style="margin-top:8px;font-size:9px;color:#f59e0b;">⚠ Temp sensor replacement</div><div class="prog-track" style="margin:4px 0;"><div class="prog-fill" style="width:62%;background:#f59e0b;"></div></div><div style="display:flex;justify-content:space-between;font-size:9px;"><span>OEE <strong style="color:#f59e0b;">62%</strong></span><span>ETA 14:00</span></div></div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<div class="screen-card" id="mnt03">
+  <div class="sc-hdr"><div><div class="sc-id">MNT-03</div><div class="sc-title-en">OEE Analysis</div><div class="sc-title-ko">OEE 종합설비효율 분석</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd</span></div></div>
+  <div class="sc-body">
+    <div class="desc-bi" style="border-left-color:#0284c7;"><div><div class="db-lbl">EN</div><div class="db-en">OEE = Availability × Performance × Quality. Availability = run time ÷ planned time. Performance = actual output ÷ theoretical max. Quality = good qty ÷ total produced. Each factor displayed as SVG gauge. OEE below 75% triggers alert to production manager and maintenance lead.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">OEE = 가동율(A) × 성능율(P) × 양품율(Q). 가동율=실제가동÷계획시간, 성능율=실적÷이론최대, 양품율=양품÷총생산. 요소별 SVG 게이지 표시. OEE 75% 미달 시 생산관리자·정비 담당자 알림.</div></div></div>
+    <div style="background:#f8faff;border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:10px;">
+      <div style="font-size:10px;font-weight:700;margin-bottom:10px;">OEE = Availability × Performance × Quality · OEE = 가동율 × 성능율 × 양품율</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <div style="background:#dcfce7;border:1px solid #86efac;border-radius:5px;padding:8px 12px;text-align:center;"><div style="font-size:12px;font-weight:800;color:#166534;">A · 가동율</div><div style="font-size:9px;color:#22c55e;">Run Time ÷ Planned</div></div>
+        <div style="font-size:16px;color:#64748b;">×</div>
+        <div style="background:#fef9c3;border:1px solid #fde047;border-radius:5px;padding:8px 12px;text-align:center;"><div style="font-size:12px;font-weight:800;color:#713f12;">P · 성능율</div><div style="font-size:9px;color:#ca8a04;">Actual ÷ Theoretical</div></div>
+        <div style="font-size:16px;color:#64748b;">×</div>
+        <div style="background:#fce7f3;border:1px solid #f9a8d4;border-radius:5px;padding:8px 12px;text-align:center;"><div style="font-size:12px;font-weight:800;color:#831843;">Q · 양품율</div><div style="font-size:9px;color:#ec4899;">Good ÷ Total</div></div>
+        <div style="font-size:16px;color:#64748b;">=</div>
+        <div style="background:#dbeafe;border:1px solid #93c5fd;border-radius:5px;padding:8px 14px;text-align:center;"><div style="font-size:18px;font-weight:900;color:#1e40af;">OEE</div><div style="font-size:9px;color:#3b82f6;">종합설비효율</div></div>
+      </div>
+    </div>
+    <div class="g3" style="gap:10px;margin-bottom:10px;">
+      <div style="text-align:center;border:1px solid var(--border);border-radius:6px;padding:12px;"><div style="font-size:11px;font-weight:700;color:#22c55e;margin-bottom:6px;">Availability · 가동율</div><svg width="80" height="80" viewBox="0 0 80 80"><circle cx="40" cy="40" r="32" fill="none" stroke="#f0f3f7" stroke-width="8"/><circle cx="40" cy="40" r="32" fill="none" stroke="#22c55e" stroke-width="8" stroke-dasharray="184 201" stroke-dashoffset="50" stroke-linecap="round"/><text x="40" y="44" text-anchor="middle" font-size="14" font-weight="900" fill="#22c55e">92%</text></svg><div style="font-size:9px;color:#64748b;">7h22m / 8h00m</div></div>
+      <div style="text-align:center;border:1px solid var(--border);border-radius:6px;padding:12px;"><div style="font-size:11px;font-weight:700;color:#f59e0b;margin-bottom:6px;">Performance · 성능율</div><svg width="80" height="80" viewBox="0 0 80 80"><circle cx="40" cy="40" r="32" fill="none" stroke="#f0f3f7" stroke-width="8"/><circle cx="40" cy="40" r="32" fill="none" stroke="#f59e0b" stroke-width="8" stroke-dasharray="176 201" stroke-dashoffset="50" stroke-linecap="round"/><text x="40" y="44" text-anchor="middle" font-size="14" font-weight="900" fill="#f59e0b">88%</text></svg><div style="font-size:9px;color:#64748b;">1,056 / 1,200 EA</div></div>
+      <div style="text-align:center;border:1px solid var(--border);border-radius:6px;padding:12px;"><div style="font-size:11px;font-weight:700;color:#6366f1;margin-bottom:6px;">Quality · 양품율</div><svg width="80" height="80" viewBox="0 0 80 80"><circle cx="40" cy="40" r="32" fill="none" stroke="#f0f3f7" stroke-width="8"/><circle cx="40" cy="40" r="32" fill="none" stroke="#6366f1" stroke-width="8" stroke-dasharray="196 201" stroke-dashoffset="50" stroke-linecap="round"/><text x="40" y="44" text-anchor="middle" font-size="14" font-weight="900" fill="#6366f1">97%</text></svg><div style="font-size:9px;color:#64748b;">1,024 / 1,056 EA</div></div>
+    </div>
+    <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:6px;padding:10px;text-align:center;">
+      <div style="font-size:11px;font-weight:700;color:#166534;">OEE = 92% × 88% × 97% = <span style="font-size:22px;">78.6%</span> ✅ (Target ≥ 75%)</div>
+    </div>
+  </div>
+</div>
+
+<div class="screen-card" id="mnt04">
+  <div class="sc-hdr"><div><div class="sc-id">MNT-04</div><div class="sc-title-en">Mold Shot Count Management</div><div class="sc-title-ko">금형 쇼트수 관리</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd</span></div></div>
+  <div class="sc-body">
+    <div class="desc-bi" style="border-left-color:#0284c7;"><div><div class="db-lbl">EN</div><div class="db-en">Tracks each mold's accumulated shot count vs. rated life (MD-11 mold master). Auto-incremented by INJ-04 production entry. 90% → yellow warning in MNT-01 + INJ-04 POP. 100% → forced change request to MNT team. Full history stored for life analysis.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">각 금형 누적 쇼트수 vs MD-11 정격 수명 비교 관리. INJ-04 실적 입력 시 자동 갱신. 90% → MNT-01·INJ-04 POP 노란 경고. 100% → MNT팀 교체 요청 자동. 전체 쇼트수 이력 저장.</div></div></div>
+    <div class="mock-wrap"><div class="mock-lbl">MNT-04 · Mold Shot Count</div><div class="mock-win"><div class="mock-tbar">⚙️ Mold Shot Count Management <span class="bc">MNT &gt; Mold</span></div><div class="mock-body">
+      <table class="tbl"><thead><tr><th>Mold Code</th><th>Name <span class="th-ko">금형명</span></th><th>Machine <span class="th-ko">장착 설비</span></th><th>Rated Life <span class="th-ko">정격 수명</span></th><th>Accumulated <span class="th-ko">누적</span></th><th>Usage% <span class="th-ko">사용률</span></th><th>Status</th></tr></thead>
+      <tbody>
+        <tr class="rd"><td style="font-family:monospace;font-size:9px;font-weight:700;color:#dc2626;">MD-FTL-LH-001</td><td>Door Trim LH Mold</td><td style="font-family:monospace;font-size:9px;">EQ-INJ-001</td><td style="text-align:right;">500,000</td><td style="text-align:right;font-weight:700;color:#dc2626;">481,250</td><td><div style="display:flex;align-items:center;gap:4px;"><div class="prog-track" style="width:60px;"><div class="prog-fill" style="width:96%;background:#ef4444;"></div></div><span style="color:#dc2626;font-weight:700;">96%</span></div></td><td><span class="b b-e">⚠ Change Soon</span></td></tr>
+        <tr class="rw"><td style="font-family:monospace;font-size:9px;font-weight:700;color:#f59e0b;">MD-FTL-RH-001</td><td>Door Trim RH Mold</td><td style="font-family:monospace;font-size:9px;">EQ-INJ-002</td><td style="text-align:right;">500,000</td><td style="text-align:right;font-weight:700;color:#f59e0b;">452,000</td><td><div style="display:flex;align-items:center;gap:4px;"><div class="prog-track" style="width:60px;"><div class="prog-fill" style="width:90%;background:#f59e0b;"></div></div><span style="color:#f59e0b;font-weight:700;">90%</span></div></td><td><span class="b b-w">⚠ 90% Warning</span></td></tr>
+        <tr class="rh"><td style="font-family:monospace;font-size:9px;">MD-BMP-FR-001</td><td>Bumper Front Mold</td><td style="font-family:monospace;font-size:9px;">EQ-INJ-003</td><td style="text-align:right;">300,000</td><td style="text-align:right;font-weight:700;color:#22c55e;">124,500</td><td><div style="display:flex;align-items:center;gap:4px;"><div class="prog-track" style="width:60px;"><div class="prog-fill" style="width:42%;background:#22c55e;"></div></div><span style="color:#22c55e;font-weight:700;">42%</span></div></td><td><span class="b b-ok">Normal</span></td></tr>
+      </tbody></table>
+    </div></div></div>
+  </div>
+</div>
+
+<div class="screen-card" id="mnt05">
+  <div class="sc-hdr"><div><div class="sc-id">MNT-05</div><div class="sc-title-en">PM Schedule (Preventive Maintenance)</div><div class="sc-title-ko">예방 정비 일정</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd</span></div></div>
+  <div class="sc-body">
+    <div class="desc-bi" style="border-left-color:#0284c7;"><div><div class="db-lbl">EN</div><div class="db-en">Calendar-based PM scheduling per equipment. PM plans defined in MD-12 (interval, task list, required parts). D-3 alert sent automatically to assigned maintenance technician. PM completion recorded with technician, actual date, and parts used. Missed PM escalates to plant manager.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">설비별 PM 일정 캘린더. MD-12 기준(주기·작업목록·필요부품). D-3 담당 정비사 자동 알림. PM 완료 시 담당자·실시일·사용 부품 기록. 미실시 시 공장장 에스컬레이션.</div></div></div>
+    <div class="alert alert-i"><span>📅</span><div>PM alerts sent <strong>D-3 before scheduled date</strong> · PM 예정일 <strong>D-3 전</strong> 자동 알림. Missed PM → plant manager escalation · 미실시 → 공장장 에스컬레이션.</div></div>
+  </div>
+</div>
+
+<div class="g2" style="gap:12px;margin-bottom:20px;">
+  <div class="screen-card" id="mnt02" style="margin-bottom:0;"><div class="sc-hdr"><div><div class="sc-id">MNT-02</div><div class="sc-title-en">Failure Register</div><div class="sc-title-ko">고장 등록</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-pda">📱 PDA</span><span class="tag t-1st">1st</span></div></div><div class="sc-body"><div class="desc-bi" style="border-left-color:#0284c7;"><div><div class="db-lbl">EN</div><div class="db-en">Registers failures with: time (auto from Andon or manual), failure code, symptom, and assigned technician. Downtime auto-calculated on repair complete. Feeds OEE availability and MTBF/MTTR analysis.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">고장 등록: 시각(Andon 자동/수동)·코드·증상·담당자. 수리 완료 시 비가동 자동 계산. OEE 가동율·MTBF/MTTR 분석 연계.</div></div></div></div></div>
+  <div class="screen-card" id="mnt06" style="margin-bottom:0;"><div class="sc-hdr"><div><div class="sc-id">MNT-06</div><div class="sc-title-en">Downtime Log</div><div class="sc-title-ko">비가동 이력</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-1st">1st</span></div></div><div class="sc-body"><div class="desc-bi" style="border-left-color:#0284c7;"><div><div class="db-lbl">EN</div><div class="db-en">Auto + manual downtime log. Categories: Planned Maintenance / Unplanned Failure / Setup / Waiting Material / Other. Primary input for OEE Availability. Top-5 causes chart per equipment per month.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">자동+수동 비가동 이력. 유형: 계획정비/비계획고장/준비/자재대기/기타. OEE 가동율 주요 원천. 설비별 월별 비가동 원인 상위 5 차트.</div></div></div></div></div>
+</div>
+
+<div class="br-wrap" id="br-mnt"><div class="br-title">Business Rules · 업무 규칙 (MNT)</div>
+<table class="br-tbl"><thead><tr><th>Rule ID</th><th>Category</th><th>Rule (EN)</th><th>규칙 (KO)</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td class="br-id">BR-MNT-01</td><td>OEE Threshold</td><td class="br-en">Daily OEE below 75% triggers improvement recommendation alert to production manager and maintenance lead.</td><td class="br-ko">일별 OEE 75% 미달 시 생산관리자·정비 담당 개선 권고 알림.</td><td><span class="b b-w">Alert</span></td></tr>
+<tr><td class="br-id">BR-MNT-02</td><td>Mold Life Alert</td><td class="br-en">90% shot count → yellow warning (MNT-01 + INJ-04 POP). 100% → forced change request to MNT team. Auto-incremented from INJ-04.</td><td class="br-ko">쇼트수 90% → 노란 경고. 100% → MNT팀 교체 요청. INJ-04 실적 자동 갱신.</td><td><span class="b b-w">Alert + Auto</span></td></tr>
+<tr><td class="br-id">BR-MNT-03</td><td>PM Alert + Escalation</td><td class="br-en">PM D-3 alert to assigned technician. Missed PM by due date → escalation to plant manager.</td><td class="br-ko">PM D-3 담당 기술자 알림. 기한 초과 미완료 → 공장장 에스컬레이션.</td><td><span class="b b-w">Alert</span></td></tr>
+<tr><td class="br-id">BR-MNT-04</td><td>Auto Downtime</td><td class="br-en">Andon events from INJ/IMG/PNT POP automatically create a downtime log in MNT-06. No manual entry required for Andon-triggered stops.</td><td class="br-ko">POP Andon 이벤트 → MNT-06 비가동 자동 생성. Andon 유발 비가동 수동 입력 불필요.</td><td><span class="b b-i">Auto</span></td></tr>
+</tbody></table></div>
+</div>
+<div class="page-footer"><div class="pf-l">A-MES · VOL.10 · MNT Equipment Maintenance · UI Design Spec v1.0 · Bilingual EN/KO</div><div class="pf-r">6 Screens · Web + PDA · 1st–2nd Dev</div></div>
+</div></div></body></html>
