@@ -1,331 +1,607 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>A-MES VOL.7 · PNT 5-Stage Painting POP · 도장 생산 UI 설계서</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.7 · PNT · Powder Painting (RFID + Jig + Virtual LOT)</title>
 <style>
-
+/* ═══════════════════════════════════════
+   A-MES SHARED STYLESHEET v2.0
+   Bilingual EN/KO · UI Labels English
+═══════════════════════════════════════ */
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Noto Sans KR',sans-serif;background:#0f1923;color:#e2e8f0;font-size:13px;line-height:1.65;}
+
 :root{
-  --gold:#d4a017;--gold2:rgba(212,160,23,.15);
-  --border:rgba(255,255,255,.07);
-  --card:rgba(255,255,255,.03);
-  --text2:rgba(255,255,255,.45);
-  --text3:rgba(255,255,255,.22);
+  --gold:#d4a017; --gold-lt:#fdf6e3; --gold-dk:#a07810;
+  --ink:#0d1117; --ink2:#161b22; --ink3:#21262d;
+  --surface:#ffffff; --bg:#f6f8fa; --border:#d0d7de;
+  --text:#24292f; --sub:#656d76;
+  --wh:#0891b2; --pp:#059669; --inj:#2563eb; --img:#7c3aed;
+  --pnt:#ea580c; --qc:#dc2626; --fg:#0db87a; --mnt:#0284c7;
+  --rpt:#6366f1; --sys:#475569; --md:#d97706;
 }
-/* ── COVER ── */
-.cover{padding:56px 64px 48px;position:relative;overflow:hidden;}
-.cover::before{content:'';position:absolute;inset:0;
-  background-image:linear-gradient(rgba(212,160,23,.025) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(212,160,23,.025) 1px,transparent 1px);
-  background-size:48px 48px;pointer-events:none;}
-.cover-eyebrow{display:inline-flex;align-items:center;gap:10px;
-  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:3px;
-  color:rgba(212,160,23,.6);text-transform:uppercase;margin-bottom:14px;}
-.cover-eyebrow::before,.cover-eyebrow::after{content:'';display:block;width:28px;height:1px;background:rgba(212,160,23,.3);}
-.cover-title{font-family:'Bebas Neue',sans-serif;font-size:58px;line-height:.95;letter-spacing:2px;margin-bottom:6px;}
-.cover-title span{color:var(--gold);}
-.cover-sub{font-size:15px;font-weight:300;color:var(--text2);letter-spacing:4px;margin-bottom:28px;}
-/* bilingual description box */
-.bi-box{display:flex;gap:0;border:1px solid rgba(212,160,23,.12);border-radius:6px;overflow:hidden;margin-bottom:0;max-width:780px;}
-.bi-en{padding:14px 20px;flex:1;background:rgba(255,255,255,.02);border-right:1px solid rgba(212,160,23,.1);
-  font-size:12px;color:rgba(255,255,255,.5);line-height:1.85;}
-.bi-ko{padding:14px 20px;flex:1;font-size:12px;color:rgba(255,255,255,.28);line-height:1.85;}
-/* screen index chips */
-.screen-index{display:flex;gap:8px;flex-wrap:wrap;margin-top:28px;}
-.si-chip{background:rgba(255,255,255,.04);border:1px solid var(--border);
-  border-radius:5px;padding:8px 14px;display:flex;flex-direction:column;gap:3px;min-width:110px;}
-.si-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;}
-.si-en{font-size:10px;font-weight:700;color:rgba(255,255,255,.8);}
-.si-ko{font-size:9px;color:var(--text3);}
-/* meta strip */
-.meta-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:5px;overflow:hidden;margin-top:20px;max-width:640px;}
-.ms-item{flex:1;padding:10px 14px;border-right:1px solid var(--border);text-align:center;}
-.ms-item:last-child{border-right:none;}
-.ms-l{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;}
-.ms-v{font-size:12px;font-weight:700;margin-top:2px;}
-/* ── LAYOUT ── */
-.wrap{max-width:1100px;margin:0 auto;padding:40px 40px 80px;}
-/* ── SECTION HEADER ── */
-.sec-divider{border-top:1px solid var(--border);margin:40px 0 28px;padding-top:28px;}
-.screen-banner{
-  background:linear-gradient(135deg,rgba(255,255,255,.025),rgba(255,255,255,.01));
-  border:1px solid var(--border);border-radius:8px;
-  padding:22px 28px;margin-bottom:24px;
-}
-.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:2px;
-  color:var(--gold);opacity:.7;margin-bottom:6px;}
-.sb-code{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;line-height:1;}
-.sb-en{font-size:14px;font-weight:700;color:rgba(255,255,255,.85);margin-top:3px;}
-.sb-ko{font-size:12px;color:var(--text2);margin-top:2px;}
-/* ── BI DESCRIPTION ── */
-.desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:0;
-  border:1px solid var(--border);border-radius:6px;overflow:hidden;margin:16px 0;}
-.db-en{padding:14px 18px;background:rgba(255,255,255,.02);border-right:1px solid var(--border);
-  font-size:12px;color:rgba(255,255,255,.5);line-height:1.85;}
-.db-ko{padding:14px 18px;font-size:12px;color:var(--text3);line-height:1.85;}
-.db-label{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:2px;
-  margin-bottom:8px;display:block;}
-.db-label-en{color:rgba(212,160,23,.5);}
-.db-label-ko{color:rgba(255,255,255,.2);}
-/* ── SECTION LABEL ── */
-.str-row{display:flex;align-items:center;gap:12px;margin:20px 0 12px;}
-.str-line{flex:1;height:1px;background:var(--border);}
-.str-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(212,160,23,.5);letter-spacing:2px;white-space:nowrap;}
-/* ── TABLE ── */
-.tbl-wrap{overflow-x:auto;margin:12px 0;}
-table{width:100%;border-collapse:collapse;font-size:12px;}
-th{background:rgba(255,255,255,.05);color:rgba(255,255,255,.55);
-  font-size:10px;font-weight:700;letter-spacing:.5px;
-  padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.1);text-align:left;}
-th .th-ko{display:block;font-size:8px;color:var(--text3);font-weight:400;letter-spacing:0;margin-top:1px;}
-td{padding:8px 12px;border-bottom:1px solid var(--border);color:rgba(255,255,255,.65);vertical-align:top;}
-tr:hover td{background:rgba(255,255,255,.02);}
-/* status badges */
-.badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;}
-.badge-ok{background:rgba(13,184,122,.15);color:#5dffc4;border:1px solid rgba(13,184,122,.3);}
-.badge-warn{background:rgba(234,179,8,.15);color:#fde047;border:1px solid rgba(234,179,8,.3);}
-.badge-err{background:rgba(220,38,38,.15);color:#fca5a5;border:1px solid rgba(220,38,38,.3);}
-.badge-info{background:rgba(37,99,235,.15);color:#93c5fd;border:1px solid rgba(37,99,235,.3);}
-.badge-gray{background:rgba(255,255,255,.05);color:rgba(255,255,255,.4);border:1px solid var(--border);}
-/* ── MOCK WINDOW ── */
-.mock-win{
-  border:1px solid rgba(255,255,255,.12);border-radius:8px;overflow:hidden;
-  background:#1a2332;margin:12px 0;font-size:11px;
-}
-.mock-titlebar{
-  background:#0d1117;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.08);
-  display:flex;align-items:center;gap:8px;
-}
-.mock-dots{display:flex;gap:5px;}
-.mock-dots span{width:9px;height:9px;border-radius:50%;display:block;}
-.mock-title{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(255,255,255,.4);margin-left:6px;}
-.mock-body{padding:14px 16px;}
-.mock-topbar{
-  background:#131c27;border-bottom:1px solid rgba(255,255,255,.06);
-  padding:8px 16px;display:flex;align-items:center;justify-content:space-between;
-  font-size:11px;
-}
-.mock-topbar .tb-logo{font-family:'Bebas Neue',sans-serif;font-size:14px;color:#d4a017;letter-spacing:2px;}
-.mock-topbar .tb-user{font-size:10px;color:rgba(255,255,255,.3);}
-.mock-breadcrumb{font-size:10px;color:rgba(255,255,255,.3);padding:5px 16px;background:#0f1923;border-bottom:1px solid var(--border);}
-/* toolbar */
-.mock-toolbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:8px 16px;background:rgba(0,0,0,.2);border-bottom:1px solid var(--border);}
-.btn{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:'Noto Sans KR',sans-serif;}
-.btn-primary{background:#1a6fff;color:#fff;}
-.btn-secondary{background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);border:1px solid var(--border);}
-.btn-danger{background:rgba(220,38,38,.15);color:#fca5a5;border:1px solid rgba(220,38,38,.3);}
-.btn-success{background:rgba(13,184,122,.15);color:#5dffc4;border:1px solid rgba(13,184,122,.3);}
-.btn-warn{background:rgba(234,179,8,.12);color:#fde047;border:1px solid rgba(234,179,8,.25);}
-.sep{width:1px;height:20px;background:var(--border);}
-/* search bar */
-.search-bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:#131c27;border-bottom:1px solid var(--border);}
-.inp{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:4px;
-  padding:5px 10px;font-size:11px;color:rgba(255,255,255,.7);font-family:'Noto Sans KR',sans-serif;min-width:120px;}
-.inp-label{font-size:10px;color:var(--text2);white-space:nowrap;}
-select.inp{background:rgba(0,0,0,.3);}
-/* PDA mock */
-.pda-wrap{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0;}
-.pda{width:200px;min-width:200px;background:#111827;border:2px solid rgba(255,255,255,.12);
-  border-radius:16px;overflow:hidden;font-size:11px;}
-.pda-head{background:#0d1117;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.08);
-  display:flex;align-items:center;justify-content:space-between;}
-.pda-step{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.7);}
-.pda-body{padding:12px;}
-.pda-btn{display:block;width:100%;padding:10px;border-radius:6px;font-size:12px;font-weight:700;
-  text-align:center;cursor:pointer;margin:6px 0;border:none;font-family:'Noto Sans KR',sans-serif;}
-.pda-btn-primary{background:#1a6fff;color:#fff;}
-.pda-btn-scan{background:rgba(212,160,23,.15);border:1px solid rgba(212,160,23,.3);color:#fbbf24;}
-.pda-btn-ok{background:rgba(13,184,122,.15);border:1px solid rgba(13,184,122,.3);color:#5dffc4;}
-.pda-field{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);
-  border-radius:4px;padding:7px 10px;margin:5px 0;font-size:11px;color:rgba(255,255,255,.6);}
-.pda-field .pf-l{font-size:9px;color:var(--text3);margin-bottom:2px;}
-.pda-field .pf-v{font-size:12px;font-weight:700;color:rgba(255,255,255,.85);}
-/* KPI strip */
-.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin:12px 0;}
-.kpi-item{flex:1;padding:14px 16px;border-right:1px solid var(--border);text-align:center;}
-.kpi-item:last-child{border-right:none;}
-.kpi-v{font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1;}
-.kpi-en{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:3px;}
-.kpi-ko{font-size:8px;color:var(--text3);margin-top:1px;}
-/* feature grid */
-.feat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin:12px 0;}
-.feat-card{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:14px 16px;}
-.fc-icon{font-size:16px;margin-bottom:6px;}
-.fc-en{font-size:12px;font-weight:700;color:rgba(255,255,255,.8);margin-bottom:3px;}
-.fc-ko{font-size:11px;color:var(--text2);margin-bottom:6px;}
-.fc-desc-en{font-size:11px;color:rgba(255,255,255,.4);line-height:1.75;}
-.fc-desc-ko{font-size:10px;color:var(--text3);line-height:1.75;margin-top:4px;}
-/* BR table */
-.br-tbl table td:first-child{font-family:'JetBrains Mono',monospace;font-size:10px;color:#d4a017;font-weight:700;}
-/* flow diagram */
-.rflow{display:flex;align-items:center;gap:0;flex-wrap:wrap;margin:12px 0;}
-.rf-step{display:flex;flex-direction:column;align-items:center;padding:10px 16px;
-  border-radius:6px;font-size:11px;font-weight:700;min-width:90px;text-align:center;}
-.rf-step .rs-en{font-size:13px;font-weight:800;}
-.rf-step .rs-ko{font-size:9px;font-weight:400;opacity:.65;margin-top:2px;}
-.rf-arr{color:rgba(255,255,255,.2);font-size:16px;padding:0 4px;}
-/* footer */
-.page-footer{border-top:1px solid var(--border);padding-top:20px;margin-top:48px;
-  font-size:10px;color:var(--text3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
 
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
+.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}
+.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;transition:color .12s;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}
+.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
 
+.page-wrap{display:flex;}
+.sidebar{width:230px;min-width:230px;background:var(--ink2);position:sticky;top:40px;height:calc(100vh - 40px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(212,160,23,.15) transparent;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.15);padding:12px 14px 4px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.35);font-size:11px;border-left:2px solid transparent;transition:all .12s;}
+.sb-link:hover{color:rgba(255,255,255,.7);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;}
+.sb-link .sl-en{font-size:10px;font-weight:600;}
+.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.2);margin-top:1px;}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+
+.main{flex:1;min-width:0;}
+
+.mod-hdr{padding:36px 48px 24px;position:relative;overflow:hidden;}
+.mod-hdr-inner{position:relative;z-index:1;}
+.mod-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;opacity:.7;}
+.mod-title-en{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:.95;letter-spacing:2px;color:#fff;margin-bottom:4px;}
+.mod-title-ko{font-size:14px;font-weight:300;color:rgba(255,255,255,.35);letter-spacing:4px;margin-bottom:16px;}
+.mod-desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:840px;margin-bottom:14px;}
+.mdb-en{font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;border-left:2px solid rgba(255,255,255,.12);padding-left:12px;}
+.mdb-ko{font-size:11px;color:rgba(255,255,255,.3);line-height:1.8;border-left:2px solid rgba(255,255,255,.06);padding-left:12px;}
+.screen-pills{display:flex;gap:5px;flex-wrap:wrap;}
+.sp{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:9px;color:rgba(255,255,255,.4);}
+.sp-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold);}
+
+.mod-meta-strip{display:flex;gap:0;border:1px solid rgba(255,255,255,.08);border-radius:5px;overflow:hidden;margin:14px 0 16px;max-width:840px;background:rgba(0,0,0,.18);}
+.mms-item{flex:1;padding:9px 14px;border-right:1px solid rgba(255,255,255,.05);}
+.mms-item:last-child{border-right:none;}
+.mms-l{font-size:8px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:1.2px;}
+.mms-v{font-size:11px;font-weight:700;color:#fff;margin-top:2px;}
+
+.content{padding:0 48px 48px;}
+
+.screen-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;}
+.sc-hdr{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.sc-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.sc-title-en{font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px;}
+.sc-title-ko{font-size:10px;color:rgba(255,255,255,.35);margin-top:2px;}
+.sc-tags{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+.tag{font-size:9px;font-weight:700;padding:2px 9px;border-radius:3px;}
+.t-web{background:rgba(26,111,255,.2);color:#7ab4ff;border:1px solid rgba(26,111,255,.3);}
+.t-pda{background:rgba(13,184,122,.2);color:#5dffc4;border:1px solid rgba(13,184,122,.3);}
+.t-pop{background:rgba(234,88,12,.2);color:#fdba74;border:1px solid rgba(234,88,12,.3);}
+.t-p0{background:rgba(212,160,23,.15);color:#fbbf24;border:1px solid rgba(212,160,23,.2);}
+.t-1st{background:rgba(26,111,255,.12);color:#93c5fd;border:1px solid rgba(26,111,255,.18);}
+.t-2nd{background:rgba(124,58,237,.12);color:#c4b5fd;border:1px solid rgba(124,58,237,.18);}
+.t-rfid{background:rgba(234,88,12,.18);color:#fdba74;border:1px solid rgba(234,88,12,.32);}
+.t-dash{background:rgba(99,102,241,.15);color:#a5b4fc;border:1px solid rgba(99,102,241,.25);}
+.sc-body{padding:14px 18px;}
+
+.desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;background:#fff7ed;border:1px solid var(--border);border-left:3px solid;border-radius:0 6px 6px 0;padding:11px 14px;}
+.db-lbl{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;opacity:.5;}
+.db-en{font-size:11px;color:#9a3412;line-height:1.75;}
+.db-ko{font-size:11px;color:var(--sub);line-height:1.75;}
+
+.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:18px;background:var(--surface);}
+.kc{flex:1;padding:12px 14px;border-right:1px solid var(--border);}
+.kc:last-child{border-right:none;}
+.kv{font-size:24px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
+.kl-en{font-size:9px;color:var(--sub);margin-top:3px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;}
+.kl-ko{font-size:9px;color:rgba(100,116,139,.7);margin-top:1px;}
+
+/* Dark flow card */
+.flow-card{background:var(--ink2);border:1px solid var(--ink3);border-radius:8px;padding:20px 22px;margin-bottom:18px;color:rgba(255,255,255,.8);}
+.flow-card-title{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:2px;margin-bottom:14px;color:#fdba74;text-transform:uppercase;}
+
+/* RFID line diagram */
+.rfid-line{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;background:var(--ink2);border:1px solid var(--ink3);border-radius:8px;padding:16px;margin-bottom:18px;overflow-x:auto;}
+.rline-station{flex:1;min-width:130px;padding:12px 14px;border-radius:6px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);text-align:center;position:relative;}
+.rline-station.has-reader{border-color:rgba(234,88,12,.4);background:rgba(234,88,12,.08);}
+.rline-station.has-reader::before{content:'📡';position:absolute;top:-12px;right:8px;font-size:18px;}
+.rline-icon{font-size:24px;margin-bottom:6px;}
+.rline-name-en{font-size:11px;font-weight:700;color:#fff;}
+.rline-name-ko{font-size:9px;color:rgba(255,255,255,.45);margin-top:2px;}
+.rline-detail{font-size:9px;color:rgba(255,255,255,.55);margin-top:6px;line-height:1.5;}
+.rline-reader-tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;color:#fdba74;background:rgba(234,88,12,.18);border:1px solid rgba(234,88,12,.35);border-radius:2px;padding:1px 6px;margin-top:4px;letter-spacing:.5px;}
+.rline-arrow{display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);font-size:18px;padding:0 6px;font-weight:700;flex-shrink:0;}
+
+/* WO/LOT lifecycle */
+.rflow{display:flex;align-items:center;gap:0;flex-wrap:wrap;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:18px;}
+.rs{padding:9px 14px;border-radius:5px;font-size:11px;font-weight:700;text-align:center;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:104px;}
+.rs-en{font-size:12px;font-weight:800;}
+.rs-ko{font-size:9px;font-weight:400;opacity:.75;margin-top:1px;}
+.rarr{color:var(--sub);font-size:14px;padding:0 5px;flex-shrink:0;}
+.rs-pnt{background:#fff7ed;color:#9a3412;border:1px solid #fdba74;}
+
+/* Badges */
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
+.b-ok{background:#dcfce7;color:#166534;}
+.b-w{background:#fef9c3;color:#92400e;}
+.b-e{background:#fee2e2;color:#991b1b;}
+.b-i{background:#dbeafe;color:#1e40af;}
+.b-n{background:#f3f4f6;color:#4b5563;}
+
+/* BR Table */
+.br-wrap{margin-bottom:16px;}
+.br-title{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:7px;display:flex;align-items:center;gap:10px;}
+.br-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.br-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.br-tbl th{background:var(--text);color:#fff;padding:6px 10px;text-align:left;border:1px solid rgba(255,255,255,.08);font-size:9px;}
+.br-tbl td{padding:6px 10px;border:1px solid var(--border);vertical-align:top;line-height:1.6;}
+.br-tbl tr:nth-child(even) td{background:#fafbfd;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-en{color:var(--text);}
+.br-ko{color:var(--sub);font-size:10px;margin-top:2px;}
+
+/* Section dividers */
+.sec-div{display:flex;align-items:center;gap:12px;margin:24px 0 14px;}
+.sd-line{flex:1;height:1px;background:var(--border);}
+.sd-lbl{font-size:10px;font-weight:700;color:var(--sub);white-space:nowrap;letter-spacing:1px;}
+
+/* Alerts */
+.alert{padding:10px 14px;border-radius:5px;font-size:11px;margin-bottom:12px;display:flex;gap:10px;line-height:1.7;border-left:3px solid;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;}
+.alert-w{background:#fffbeb;border-color:#f59e0b;}
+.alert-d{background:#fef2f2;border-color:#ef4444;}
+.alert-h{background:#fff7ed;border-color:#ea580c;}
+.alert-title{font-weight:800;margin-bottom:3px;font-size:11px;}
+
+/* Heat spec table */
+.spec-tbl{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px;background:var(--surface);}
+.spec-tbl th{background:#fff7ed;color:#9a3412;padding:8px 12px;text-align:left;border:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.3px;width:32%;}
+.spec-tbl td{padding:8px 12px;border:1px solid var(--border);vertical-align:top;}
+.spec-tbl td.spec-v{font-weight:700;color:#9a3412;}
+
+/* Data model table */
+.dm-tbl{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:14px;}
+.dm-tbl th{background:var(--ink2);color:#fff;padding:7px 10px;text-align:left;border:1px solid var(--ink3);font-size:9px;}
+.dm-tbl td{padding:6px 10px;border:1px solid var(--border);vertical-align:top;line-height:1.55;}
+.dm-tbl tr:nth-child(even) td{background:#fafbfd;}
+.dm-name{font-family:'JetBrains Mono',monospace;font-weight:700;color:#9a3412;}
+.dm-type{font-family:'JetBrains Mono',monospace;color:var(--sub);font-size:9px;}
+.dm-pk{color:#dc2626;font-weight:700;font-size:8px;}
+.dm-fk{color:#7c3aed;font-weight:700;font-size:8px;}
+
+.page-footer{padding:14px 48px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--ink);margin-top:20px;}
+.pf-l{font-size:10px;color:rgba(255,255,255,.2);}
+.pf-r{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(212,160,23,.4);}
+
+/* PNT theme (orange #ea580c) */
+:root{ --mod-color:#ea580c; }
+.mod-hdr{ background:linear-gradient(135deg, color-mix(in srgb,#ea580c 32%,#000) 0%, color-mix(in srgb,#ea580c 14%,#000) 100%); }
+.sc-hdr{ background:linear-gradient(135deg, color-mix(in srgb,#ea580c 26%,#000) 0%, color-mix(in srgb,#ea580c 12%,#000) 100%); }
+.sc-id{ color:#fdba74; }
+.sb-mod-en{ color:#fdba74; }
+.sb-link.on{ border-left-color:#ea580c; }
+
+/* L3 link styles */
+.sb-link{position:relative;}
+.sb-l3{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:3px;background:rgba(212,160,23,.1);color:rgba(212,160,23,.7);font-size:9px;text-decoration:none;margin-left:auto;transition:all .15s;flex-shrink:0;border:1px solid rgba(212,160,23,.2);}
+.sb-l3:hover{background:var(--gold);color:#000;border-color:var(--gold);transform:scale(1.15);}
+.sc-l3-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:linear-gradient(135deg,#d4a017,#a07810);color:#000;font-size:10px;font-weight:800;border-radius:4px;text-decoration:none;letter-spacing:.5px;text-transform:uppercase;border:1px solid #a07810;box-shadow:0 2px 6px rgba(212,160,23,.3);transition:all .15s;margin-top:6px;}
+.sc-l3-btn:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(212,160,23,.45);background:linear-gradient(135deg,#fbbf24,#d4a017);}
+.l3-hint{display:inline-block;font-size:9px;color:rgba(212,160,23,.6);font-weight:600;letter-spacing:1px;padding:2px 8px;background:rgba(212,160,23,.08);border:1px dashed rgba(212,160,23,.3);border-radius:3px;}
 </style>
 </head>
-<body><nav id="ames-nb" style="
-        position:sticky;top:0;z-index:9999;background:#0d1117;
-        border-bottom:1px solid rgba(212,160,23,.2);
-        display:flex;align-items:center;gap:0;overflow-x:auto;scrollbar-width:none;
-        font-family:'Noto Sans KR',sans-serif;
-    ">
-  <a href="INDEX.html" style="display:flex;align-items:center;gap:6px;padding:8px 16px;
-     background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);
-     text-decoration:none;flex-shrink:0;">
-    <span style="font-family:'Bebas Neue',sans-serif;font-size:15px;color:#d4a017;letter-spacing:2px;">A-MES</span>
-    <span style="font-size:8px;color:rgba(255,255,255,.25);">▲ Index</span>
-  </a>
-  <a href="VOL03_WH_Warehouse.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#0891b2;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">WH</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#059669;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">PP</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Prod Plan</span></a><a href="VOL05_INJ_Injection.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#2563eb;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">INJ</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#7c3aed;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">IMG</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nb-item" style="background:rgba(255,255,255,.1);border-bottom:2px solid #ea580c;"><span style="color:#ea580c;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">PNT</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Painting</span></a><a href="VOL08_QC_Quality.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#dc2626;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">QC</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#0db87a;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">FG</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Fin.Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#0891b2;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">MNT</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#6366f1;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">RPT</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Reports</span></a><a href="VOL12_SYS_System.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#475569;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">SYS</span><span style="font-size:9px;color:rgba(255,255,255,.45);">System</span></a><a href="VOL13_MD_Master_Data.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#d97706;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">MD</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Master Data</span></a>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol active"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head">
+    <div class="sb-vol">VOL.7 · PNT MODULE</div>
+    <div class="sb-mod-en">PAINTING</div>
+    <div class="sb-mod-ko">분체도장 · RFID · 가상LOT</div>
+  </div>
+  <div class="sb-section">Screens · 화면</div>
+  <a class="sb-link on" href="#pnt01"><span class="sl-id">PNT-01</span><div><div class="sl-en">Daily Plan</div><div class="sl-ko">일일 생산계획</div></div></a>
+  <a class="sb-link" href="#pnt02"><span class="sl-id">PNT-02</span><div><div class="sl-en">Lot Pre-Issue</div><div class="sl-ko">가상LOT 발급·지그 바인딩</div></div></a>
+  <a class="sb-link" href="#pnt03"><span class="sl-id">PNT-03</span><div><div class="sl-en">Loading Station</div><div class="sl-ko">로딩 (R1)</div></div></a>
+  <a class="sb-link" href="#pnt04"><span class="sl-id">PNT-04</span><div><div class="sl-en">Line Track Board</div><div class="sl-ko">라인 흐름판</div></div></a>
+  <a class="sb-link" href="#pnt05"><span class="sl-id">PNT-05</span><div><div class="sl-en">Oven Monitor</div><div class="sl-ko">오븐 모니터 (R2)</div></div></a>
+  <a class="sb-link" href="#pnt06"><span class="sl-id">PNT-06</span><div><div class="sl-en">Unloading &amp; Count</div><div class="sl-ko">언로딩 (R3)</div></div></a>
+  <a class="sb-link" href="#pnt07"><span class="sl-id">PNT-07</span><div><div class="sl-en">Lot Label &amp; Apply</div><div class="sl-ko">LOT 라벨 인쇄·부착</div></div></a>
+  <a class="sb-link" href="#pnt08"><span class="sl-id">PNT-08</span><div><div class="sl-en">Defect Register</div><div class="sl-ko">불량 등록</div></div></a>
+  <a class="sb-link" href="#pnt09"><span class="sl-id">PNT-09</span><div><div class="sl-en">Shift / Daily Report</div><div class="sl-ko">교대일지·리포트</div></div></a>
+  <div class="sb-sep"></div>
+  <div class="sb-section">Auxiliary · 보조</div>
+  <a class="sb-link" href="#pnttrc"><span class="sl-id">PNT-TRC</span><div><div class="sl-en">Traceability</div><div class="sl-ko">이력 추적</div></div></a>
+  <a class="sb-link" href="#pntalr"><span class="sl-id">PNT-ALR</span><div><div class="sl-en">Alert Center</div><div class="sl-ko">알림 센터</div></div></a>
+  <a class="sb-link" href="#pntjig"><span class="sl-id">PNT-JIG</span><div><div class="sl-en">Jig / Tag Master</div><div class="sl-ko">지그·태그 마스터</div></div></a>
+  <div class="sb-sep"></div>
+  <a class="sb-link" href="#flow"><span class="sl-id">FLOW</span><div><div class="sl-en">End-to-End Flow</div><div class="sl-ko">전체 흐름</div></div></a>
+  <a class="sb-link" href="#rfid"><span class="sl-id">RFID</span><div><div class="sl-en">Reader Layout</div><div class="sl-ko">RFID 리더 배치</div></div></a>
+  <a class="sb-link" href="#heat"><span class="sl-id">HEAT</span><div><div class="sl-en">Heat-Resistance Spec</div><div class="sl-ko">고온 태그 사양</div></div></a>
+  <a class="sb-link" href="#dm"><span class="sl-id">DM</span><div><div class="sl-en">Data Model</div><div class="sl-ko">데이터 모델</div></div></a>
+  <a class="sb-link" href="#status"><span class="sl-id">LOT</span><div><div class="sl-en">LOT Lifecycle</div><div class="sl-ko">LOT 상태 흐름</div></div></a>
+  <a class="sb-link" href="#defect"><span class="sl-id">DFX</span><div><div class="sl-en">Defect Types</div><div class="sl-ko">불량 유형</div></div></a>
+  <a class="sb-link" href="#br-pnt"><span class="sl-id">BR</span><div><div class="sl-en">Business Rules</div><div class="sl-ko">업무 규칙</div></div></a>
 </nav>
-<style>
-.nb-item{display:flex;flex-direction:column;align-items:center;padding:6px 11px;
-  text-decoration:none;flex-shrink:0;transition:background .1s;white-space:nowrap;gap:1px;}
-.nb-item:hover{background:rgba(255,255,255,.06)!important;}
-</style><div class="cover" style="background:linear-gradient(135deg,#1a0800 0%,#2d1000 60%,#401800 100%);">
-  <div class="cover-eyebrow">A-MES · VOL.7 · 5-Stage Painting POP</div>
-  <div class="cover-title" style="color:#ea580c;">PNT<br><span style="color:#fff;">PAINTING</span></div>
-  <div class="cover-sub">도장 생산 POP · 5-Stage Forced-Sequence Process Control</div>
-  <div class="bi-box">
-    <div class="bi-en">POP system for 5-stage interior painting process. Stages must be completed in strict order: Pre-Treatment → Primer → Top Coat → Oven Cure → Inspection. Oven temperature is monitored continuously (80°C ±5°C, 90 min). Temperature deviation triggers Andon + auto MNT work-order + QC enhanced inspection flag. 7 screens.</div>
-    <div class="bi-ko">내장 도색 사출품 5단계 도장 공정 POP 시스템. 전처리→프라이머→상도→건조로→검사 순서 강제. 건조로 온도 실시간 모니터링(80°C ±5°C, 90분). 이탈 시 Andon + MNT 작업지시 자동 생성 + QC 강화검사 플래그. 7개 화면.</div>
-  </div>
-  <div class="screen-index"><div class="si-chip" style="border-color:rgba(234,88,12,.15);"><div class="si-id" style="color:#ea580c;">PNT-01</div><div class="si-en">WO List</div><div class="si-ko">WO 목록</div></div><div class="si-chip" style="border-color:rgba(234,88,12,.15);"><div class="si-id" style="color:#ea580c;">PNT-02</div><div class="si-en">POP Home</div><div class="si-ko">POP 홈</div></div><div class="si-chip" style="border-color:rgba(234,88,12,.15);"><div class="si-id" style="color:#ea580c;">PNT-03</div><div class="si-en">5-Stage Process</div><div class="si-ko">5단계 공정</div></div><div class="si-chip" style="border-color:rgba(234,88,12,.15);"><div class="si-id" style="color:#ea580c;">PNT-04</div><div class="si-en">Paint Inventory</div><div class="si-ko">도료 재고</div></div><div class="si-chip" style="border-color:rgba(234,88,12,.15);"><div class="si-id" style="color:#ea580c;">PNT-05</div><div class="si-en">Defect Register</div><div class="si-ko">불량 등록</div></div><div class="si-chip" style="border-color:rgba(234,88,12,.15);"><div class="si-id" style="color:#ea580c;">PNT-06</div><div class="si-en">Oven Monitor</div><div class="si-ko">건조로 모니터</div></div><div class="si-chip" style="border-color:rgba(234,88,12,.15);"><div class="si-id" style="color:#ea580c;">PNT-07</div><div class="si-en">Shift Report</div><div class="si-ko">교대 리포트</div></div></div></div><div class="wrap"><div class="sec-divider" id="pnt03">
-  <div class="screen-banner" style="border-color:rgba(234,88,12,.15);">
-    <div class="sb-vol" style="color:#ea580c;">PNT-03 · POP · 1st Phase</div>
-    <div class="sb-code" style="color:#ea580c;">5-STAGE PAINTING PROCESS CONTROL</div>
-    <div class="sb-en">Forced-sequence 5-stage flow — each stage must be confirmed before the next unlocks</div>
-    <div class="sb-ko">5단계 강제 순서 공정 — 각 단계 확인 완료 후 다음 단계 잠금 해제</div>
-  </div>
-  <div class="str-row"><div class="str-line"></div><div class="str-label">🔄 PROCESS FLOW · 공정 흐름</div><div class="str-line"></div></div>
-  <div class="rflow" style="gap:6px;justify-content:center;"><div class="rf-step" style="background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.3);"><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#60a5fa;opacity:.7;">S1</span><div class="rs-en" style="color:#60a5fa;">Pre-Treatment</div><div class="rs-ko">전처리</div></div><div class="rf-arr">→</div><div class="rf-step" style="background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.3);"><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#a78bfa;opacity:.7;">S2</span><div class="rs-en" style="color:#a78bfa;">Primer Coat</div><div class="rs-ko">프라이머</div></div><div class="rf-arr">→</div><div class="rf-step" style="background:rgba(234,88,12,.12);border:1px solid rgba(234,88,12,.3);"><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#fb923c;opacity:.7;">S3</span><div class="rs-en" style="color:#fb923c;">Top Coat</div><div class="rs-ko">상도 도장</div></div><div class="rf-arr">→</div><div class="rf-step" style="background:rgba(234,179,8,.12);border:1px solid rgba(234,179,8,.3);"><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#fbbf24;opacity:.7;">S4</span><div class="rs-en" style="color:#fbbf24;">Oven Cure</div><div class="rs-ko">건조로 (80°C / 90min)</div></div><div class="rf-arr">→</div><div class="rf-step" style="background:rgba(13,184,122,.12);border:1px solid rgba(13,184,122,.3);"><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#5dffc4;opacity:.7;">S5</span><div class="rs-en" style="color:#5dffc4;">Final Inspection</div><div class="rs-ko">최종 검사</div></div></div>
-  <div class="desc-bi">
-    <div class="db-en"><span class="db-label db-label-en">SEQUENCE ENFORCEMENT</span>
-      Each stage is locked by default. After an operator completes and confirms a stage, the next stage unlocks. Skipping or reversing order is technically impossible. If any stage fails QC criteria, the WO is flagged for enhanced inspection (QC module).
-    </div>
-    <div class="db-ko"><span class="db-label db-label-ko">순서 강제</span>
-      각 단계는 기본적으로 잠금 상태. 이전 단계 확인 완료 후 다음 단계 해제. 순서 건너뛰기·역순 기술적 불가. 단계 QC 기준 미충족 시 WO 강화검사 플래그(QC 모듈).
+<div class="main">
+  <!-- MODULE HEADER -->
+  <div class="mod-hdr">
+    <div class="mod-hdr-inner">
+      <div class="mod-eyebrow" style="color:#fdba74;">VOL.7 · PNT · Powder Painting · RFID + Jig + Virtual LOT</div>
+      <div class="mod-title-en" style="color:#fdba74;">POWDER<br>PAINTING</div>
+      <div class="mod-title-ko">분체도장 라인 — RFID 기반 지그 추적 + 가상LOT 사전발급 + 후라벨링</div>
+      <div class="mod-desc-bi">
+        <div class="mdb-en">RFID-driven powder coating line. Parts are mounted on jigs/hangers carrying permanently-bonded high-temperature UHF tags. Virtual LOT numbers are pre-issued at planning (1 jig = 1 LOT), bound to specific jig IDs, and confirmed/completed via 3 RFID readers (Loading → Oven In → Unloading). After QC pass, real LOT labels are printed and applied (post-cure labeling).</div>
+        <div class="mdb-ko">RFID 기반 분체도장 라인. 부품은 영구 부착 고온 UHF 태그를 가진 지그에 거치되어 라인을 통과한다. 가상 LOT 번호는 계획 단계에서 사전 발급되어(1지그=1LOT) 지그ID에 바인딩되며, 3개 리더(로딩 → 오븐입구 → 언로딩) 이벤트로 확정·완료된다. QC 합격 후 실제 LOT 라벨을 인쇄하여 부품에 후부착한다.</div>
+      </div>
+      <div class="mod-meta-strip">
+        <div class="mms-item"><div class="mms-l">Process</div><div class="mms-v">Powder Coat</div></div>
+        <div class="mms-item"><div class="mms-l">RFID Readers</div><div class="mms-v" style="color:#fdba74;">3 (Load/Oven/Unload)</div></div>
+        <div class="mms-item"><div class="mms-l">Tag Type</div><div class="mms-v">UHF Gen2 · 230°C</div></div>
+        <div class="mms-item"><div class="mms-l">Oven</div><div class="mms-v">180°C · 15min</div></div>
+        <div class="mms-item"><div class="mms-l">LOT Unit</div><div class="mms-v">1 Jig = 1 LOT</div></div>
+        <div class="mms-item"><div class="mms-l">Routing</div><div class="mms-v">B (PNT)</div></div>
+      </div>
+      <div style="margin-bottom:8px;"><span class="l3-hint">📋 Click any sidebar link or pill to jump to detail section · 클릭 시 상세 영역으로 이동</span></div>
+      <div class="screen-pills">
+        <a class="sp" href="#pnt01" style="text-decoration:none;color:inherit;"><span class="sp-id">PNT-01</span> Daily Plan</a>
+        <a class="sp" href="#pnt02" style="text-decoration:none;color:inherit;"><span class="sp-id">PNT-02</span> Lot Pre-Issue</a>
+        <a class="sp" href="#pnt03" style="text-decoration:none;color:inherit;"><span class="sp-id">PNT-03</span> Loading (R1)</a>
+        <a class="sp" href="#pnt04" style="text-decoration:none;color:inherit;"><span class="sp-id">PNT-04</span> Line Board</a>
+        <a class="sp" href="#pnt05" style="text-decoration:none;color:inherit;"><span class="sp-id">PNT-05</span> Oven Monitor (R2)</a>
+        <a class="sp" href="#pnt06" style="text-decoration:none;color:inherit;"><span class="sp-id">PNT-06</span> Unloading (R3)</a>
+        <a class="sp" href="#pnt07" style="text-decoration:none;color:inherit;"><span class="sp-id">PNT-07</span> Label &amp; Apply</a>
+        <a class="sp" href="#pnt08" style="text-decoration:none;color:inherit;"><span class="sp-id">PNT-08</span> Defect</a>
+        <a class="sp" href="#pnt09" style="text-decoration:none;color:inherit;"><span class="sp-id">PNT-09</span> Shift Report</a>
+      </div>
     </div>
   </div>
 
-  <div class="str-row"><div class="str-line"></div><div class="str-label">🖥 POP STAGE SCREEN MOCK</div><div class="str-line"></div></div>
-  <div class="mock-win">
-    <div class="mock-titlebar"><div class="mock-dots"><span style="background:#ff5f57;"></span><span style="background:#febc2e;"></span><span style="background:#28c840;"></span></div><div class="mock-title">PNT-03 · 5-Stage Painting · WO-20250702-001 · Interior Painted Part (TBD)</div></div>
-    <div class="mock-topbar"><div class="tb-logo">A-MES</div><div style="font-size:10px;color:rgba(255,255,255,.4);">Painting POP &gt; Process Control</div><div class="tb-user">Op. Jung · PNT Line B</div></div>
-    <div class="mock-body">
-      <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap;"><div style="flex:1;min-width:90px;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.3);border-radius:6px;padding:10px;text-align:center;"><div style="font-size:8px;color:#60a5fa;font-family:'JetBrains Mono',monospace;margin-bottom:3px;">S1</div><div style="font-size:11px;font-weight:700;color:#60a5fa;">Pre-Treatment</div><div style="font-size:9px;color:rgba(255,255,255,.35);">전처리</div><div style="font-size:10px;color:#5dffc4;margin-top:5px;font-weight:700;">✓ Done</div></div><div style="color:rgba(255,255,255,.2);font-size:14px;">→</div><div style="flex:1;min-width:90px;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.3);border-radius:6px;padding:10px;text-align:center;"><div style="font-size:8px;color:#a78bfa;font-family:'JetBrains Mono',monospace;margin-bottom:3px;">S2</div><div style="font-size:11px;font-weight:700;color:#a78bfa;">Primer Coat</div><div style="font-size:9px;color:rgba(255,255,255,.35);">프라이머</div><div style="font-size:10px;color:#5dffc4;margin-top:5px;font-weight:700;">✓ Done</div></div><div style="color:rgba(255,255,255,.2);font-size:14px;">→</div><div style="flex:1;min-width:90px;background:rgba(234,88,12,.12);border:1px solid rgba(234,88,12,.3);border-radius:6px;padding:10px;text-align:center;"><div style="font-size:8px;color:#fb923c;font-family:'JetBrains Mono',monospace;margin-bottom:3px;">S3</div><div style="font-size:11px;font-weight:700;color:#fb923c;">Top Coat</div><div style="font-size:9px;color:rgba(255,255,255,.35);">상도 도장</div><div style="font-size:10px;color:#5dffc4;margin-top:5px;font-weight:700;">✓ Done</div></div><div style="color:rgba(255,255,255,.2);font-size:14px;">→</div><div style="flex:1;min-width:90px;background:rgba(234,179,8,.12);border:1px solid rgba(234,179,8,.3);border-radius:6px;padding:10px;text-align:center;"><div style="font-size:8px;color:#fbbf24;font-family:'JetBrains Mono',monospace;margin-bottom:3px;">S4</div><div style="font-size:11px;font-weight:700;color:#fbbf24;">Oven Cure</div><div style="font-size:9px;color:rgba(255,255,255,.35);">건조로 (80°C / 90min)</div><div style="font-size:10px;color:#fbbf24;margin-top:5px;font-weight:700;">▶ Active</div></div><div style="color:rgba(255,255,255,.2);font-size:14px;">→</div><div style="flex:1;min-width:90px;background:rgba(13,184,122,.12);border:1px solid rgba(13,184,122,.3);border-radius:6px;padding:10px;text-align:center;"><div style="font-size:8px;color:#5dffc4;font-family:'JetBrains Mono',monospace;margin-bottom:3px;">S5</div><div style="font-size:11px;font-weight:700;color:#5dffc4;">Final Inspection</div><div style="font-size:9px;color:rgba(255,255,255,.35);">최종 검사</div><div style="font-size:10px;color:rgba(255,255,255,.2);margin-top:5px;font-weight:700;">🔒 Locked</div></div></div>
-      <div style="background:rgba(234,179,8,.06);border:1px solid rgba(234,179,8,.2);border-radius:8px;padding:16px;">
-        <div style="font-size:9px;color:rgba(234,179,8,.6);letter-spacing:2px;margin-bottom:8px;">S4 — OVEN CURE MONITORING · 건조로 실시간 감시</div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
-          <div style="text-align:center;"><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#fbbf24;">81.2°C</div><div style="font-size:9px;color:rgba(255,255,255,.3);">Current Temp 현재온도</div><div style="font-size:9px;color:#5dffc4;">✓ In Range</div></div>
-          <div style="text-align:center;"><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#fff;">80°C</div><div style="font-size:9px;color:rgba(255,255,255,.3);">Target ±5°C</div></div>
-          <div style="text-align:center;"><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#60a5fa;">00:47</div><div style="font-size:9px;color:rgba(255,255,255,.3);">Elapsed / 경과시간</div></div>
-          <div style="text-align:center;"><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#a78bfa;">00:43</div><div style="font-size:9px;color:rgba(255,255,255,.3);">Remaining / 잔여</div></div>
-        </div>
-        <div style="background:rgba(255,255,255,.05);border-radius:3px;height:8px;margin-top:10px;overflow:hidden;">
-          <div style="width:52%;background:linear-gradient(90deg,#fbbf24,#fb923c);height:100%;border-radius:3px;"></div>
-        </div>
-        <div style="font-size:9px;color:rgba(255,255,255,.3);margin-top:4px;">Cure progress 52% · 90 min total</div>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:12px;">
-        <button class="btn btn-secondary" style="flex:1;">⏸ Pause</button>
-        <button class="btn btn-warn" style="flex:1;">🚨 Andon</button>
-        <button class="btn btn-success" style="flex:2;">✅ Stage Complete / 단계 완료 (S4)</button>
-      </div>
-    </div>
-  </div>
-</div>
+  <div class="content">
 
-<!-- PNT-06 Oven Monitor -->
-<div class="sec-divider" id="pnt06">
-  <div class="screen-banner" style="border-color:rgba(234,179,8,.25);">
-    <div class="sb-vol" style="color:#fbbf24;">PNT-06 · Web PC · 1st Phase</div>
-    <div class="sb-code" style="color:#fbbf24;">OVEN TEMPERATURE MONITOR</div>
-    <div class="sb-en">Real-time oven temperature chart — deviation ±5°C triggers Andon + MNT work order</div>
-    <div class="sb-ko">건조로 온도 실시간 차트 — ±5°C 이탈 시 Andon + MNT 작업지시 자동 생성</div>
-  </div>
-  <div class="desc-bi">
-    <div class="db-en"><span class="db-label db-label-en">ALARM CHAIN</span>
-      If oven temperature deviates beyond 80°C ±5°C for more than 2 consecutive minutes: (1) Andon alarm sounds, (2) MNT maintenance work order created automatically (MNT module), (3) the affected WO is flagged for QC enhanced inspection (QC-02 cannot be bypassed). All deviation events logged with timestamp for traceability.
-    </div>
-    <div class="db-ko"><span class="db-label db-label-ko">경보 체인</span>
-      온도 80°C ±5°C 2분 이상 이탈 시: (1) Andon 경보 발령, (2) MNT 작업지시 자동 생성, (3) 해당 WO QC 강화검사 플래그(QC-02 우회 불가). 모든 이탈 이벤트 타임스탬프 포함 이력 기록.
-    </div>
-  </div>
-  <div class="mock-win">
-    <div class="mock-titlebar"><div class="mock-dots"><span style="background:#ff5f57;"></span><span style="background:#febc2e;"></span><span style="background:#28c840;"></span></div><div class="mock-title">PNT-06 · Oven Monitor · Oven #2</div></div>
-    <div class="mock-body">
-      <div class="kpi-strip">
-        <div class="kpi-item"><div class="kpi-v" style="color:#fbbf24;">81.2°C</div><div class="kpi-en">Current Temp</div><div class="kpi-ko">현재 온도</div></div>
-        <div class="kpi-item"><div class="kpi-v" style="color:#5dffc4;">80°C</div><div class="kpi-en">Target</div><div class="kpi-ko">목표</div></div>
-        <div class="kpi-item"><div class="kpi-v" style="color:#fff;">±5°C</div><div class="kpi-en">Tolerance</div><div class="kpi-ko">허용 범위</div></div>
-        <div class="kpi-item"><div class="kpi-v" style="color:#dc2626;">1</div><div class="kpi-en">Today Alarms</div><div class="kpi-ko">금일 경보</div></div>
-      </div>
-      <div style="background:#111827;border:1px solid #1e2d3d;border-radius:6px;padding:16px;margin-top:12px;">
-        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-bottom:10px;">Temperature Trend (Last 2h) · 온도 추이</div>
-        <svg viewBox="0 0 700 160" style="width:100%;height:auto;">
-          <defs><linearGradient id="ln" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#fb923c"/></linearGradient></defs>
-          <!-- Upper limit line 85°C -->
-          <line x1="0" y1="30" x2="700" y2="30" stroke="rgba(220,38,38,.4)" stroke-width="1" stroke-dasharray="4,4"/>
-          <text x="5" y="28" fill="rgba(220,38,38,.6)" font-size="9">85°C (Max)</text>
-          <!-- Target 80°C -->
-          <line x1="0" y1="80" x2="700" y2="80" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
-          <text x="5" y="78" fill="rgba(255,255,255,.3)" font-size="9">80°C</text>
-          <!-- Lower limit 75°C -->
-          <line x1="0" y1="130" x2="700" y2="130" stroke="rgba(220,38,38,.4)" stroke-width="1" stroke-dasharray="4,4"/>
-          <text x="5" y="143" fill="rgba(220,38,38,.6)" font-size="9">75°C (Min)</text>
-          <!-- Temperature curve (normal range, one deviation spike) -->
-          <polyline fill="none" stroke="url(#ln)" stroke-width="2.5"
-            points="0,82 50,80 100,78 150,75 180,72 200,68 220,40 250,35 270,45 300,72 350,80 400,82 450,79 500,81 550,80 600,78 650,80 700,81"/>
-          <!-- Alarm zone highlight -->
-          <rect x="200" y="30" width="80" height="130" fill="rgba(220,38,38,.08)"/>
-          <text x="210" y="18" fill="#f87171" font-size="9" font-weight="bold">⚠ DEVIATION 11:42–11:54</text>
-        </svg>
-      </div>
+  <!-- END-TO-END FLOW -->
+  <div class="sec-div" id="flow"><div class="sd-line"></div><div class="sd-lbl">END-TO-END FLOW · 전체 업무 흐름</div><div class="sd-line"></div></div>
+  <div class="flow-card">
+    <div class="flow-card-title">Production Plan → Lot Pre-Issue → Loading → Pre-Treat → Spray → Oven → Unload → QC → Label Apply</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.7);line-height:1.9;">
+      <strong style="color:#fdba74;">①</strong> PP 모듈에서 WO 수신 → <strong style="color:#fdba74;">PNT-01</strong>에서 일일 계획 확정 →
+      <strong style="color:#fdba74;">PNT-02</strong>에서 WO 수량 ÷ 지그 캐파만큼 <strong>가상 LOT 일괄 발급</strong> → 각 LOT을 사용 가능 지그 ID에 사전 바인딩 (Status: PRE → BOUND)<br>
+      <strong style="color:#fdba74;">②</strong> 작업자가 지그에 부품 거치 → 컨베이어가 <strong>로딩 부스 입구(R1)</strong> 통과 시 RFID 자동 인식 → 시스템이 바인딩된 LOT·품명·컬러를 표시하고 투입 수량 적립 (Status: BOUND → IN_LOAD)<br>
+      <strong style="color:#fdba74;">③</strong> 지그가 <strong>전처리 부스</strong>(탈지·세정·인산염)를 시간 기반으로 통과 (리더 없음 — 진입/완료 시간만 추적)<br>
+      <strong style="color:#fdba74;">④</strong> <strong>도장 부스</strong> 진입 → 로봇이 RAL 컬러 코드에 따라 분체 분사 (설비 데이터 실시간 수집: 분사압·도료유량·로봇 자세)<br>
+      <strong style="color:#fdba74;">⑤</strong> <strong>오븐 입구(R2)</strong> 통과 시 RFID 재확인 → 오븐 진입 시각·온도 기록, LOT-공정 확정 (Status: IN_LOAD → IN_OVEN). 180°C ±5°C · 15분 경화.<br>
+      <strong style="color:#fdba74;">⑥</strong> 경화 완료 후 <strong>언로딩(R3)</strong> 통과 → 완료 지그 카운팅, 부품 수량 적립 (Status: IN_OVEN → CONFIRMED)<br>
+      <strong style="color:#fdba74;">⑦</strong> <strong>QC 모듈</strong>로 인계 → 외관·도막두께·부착력 검사 → 합격 시 PNT 모듈에 PASS 통지<br>
+      <strong style="color:#fdba74;">⑧</strong> <strong>PNT-07</strong>에서 LOT 라벨 인쇄 → 작업자가 부품에 부착 → PDA 스캔으로 부착 확정 (Status: CONFIRMED → LABELED → SHIPPABLE) → FG 창고 이관
     </div>
   </div>
-</div>
 
-<!-- Defect types -->
-<div class="sec-divider" id="pnt05">
-  <div class="str-row"><div class="str-line"></div><div class="str-label">PAINTING DEFECT TYPES · 도장 불량 유형</div><div class="str-line"></div></div>
-  <div class="tbl-wrap"><table>
-    <thead><tr><th>Code</th><th>Defect Type (EN)</th><th>KO</th><th>Cause (EN)</th><th>KO</th></tr></thead>
+  <!-- RFID READER LAYOUT -->
+  <div class="sec-div" id="rfid"><div class="sd-line"></div><div class="sd-lbl">RFID READER LAYOUT · 리더 배치도</div><div class="sd-line"></div></div>
+  <div class="rfid-line">
+    <div class="rline-station has-reader">
+      <div class="rline-icon">🪝</div>
+      <div class="rline-name-en">Loading Booth Entry</div>
+      <div class="rline-name-ko">로딩 부스 입구</div>
+      <div class="rline-reader-tag">R1 · ANT-LOAD</div>
+      <div class="rline-detail">품명·컬러 자동인식<br>투입수량 적립<br>BOUND → IN_LOAD</div>
+    </div>
+    <div class="rline-arrow">→</div>
+    <div class="rline-station">
+      <div class="rline-icon">🧼</div>
+      <div class="rline-name-en">Pre-Treatment</div>
+      <div class="rline-name-ko">전처리 (탈지·세정)</div>
+      <div class="rline-detail" style="margin-top:14px;">시간 기반 추적<br>(리더 없음)</div>
+    </div>
+    <div class="rline-arrow">→</div>
+    <div class="rline-station">
+      <div class="rline-icon">🤖</div>
+      <div class="rline-name-en">Paint Booth (Robot)</div>
+      <div class="rline-name-ko">도장 부스</div>
+      <div class="rline-detail" style="margin-top:14px;">분사압·도료유량<br>로봇 자세 수집</div>
+    </div>
+    <div class="rline-arrow">→</div>
+    <div class="rline-station has-reader">
+      <div class="rline-icon">🔥</div>
+      <div class="rline-name-en">Oven Entry</div>
+      <div class="rline-name-ko">오븐 입구 · 180°C 15분</div>
+      <div class="rline-reader-tag">R2 · ANT-OVEN</div>
+      <div class="rline-detail">진입시각·온도 기록<br>LOT-공정 확정<br>IN_LOAD → IN_OVEN</div>
+    </div>
+    <div class="rline-arrow">→</div>
+    <div class="rline-station has-reader">
+      <div class="rline-icon">📦</div>
+      <div class="rline-name-en">Unloading</div>
+      <div class="rline-name-ko">언로딩</div>
+      <div class="rline-reader-tag">R3 · ANT-UNLOAD</div>
+      <div class="rline-detail">완료 지그 카운팅<br>부품 수량 적립<br>IN_OVEN → CONFIRMED</div>
+    </div>
+  </div>
+
+  <!-- HEAT RESISTANCE SPEC -->
+  <div class="sec-div" id="heat"><div class="sd-line"></div><div class="sd-lbl">HEAT-RESISTANCE TAG SPEC · 고온 태그 사양</div><div class="sd-line"></div></div>
+  <div class="alert alert-h">
+    <div><div class="alert-title">⚠ Critical Design Constraint · 핵심 설계 제약</div>
+    Powder coating ovens operate at <strong>160–200°C for 10–20 minutes</strong> per cycle. Standard RFID tags fail at ~85°C. The jig carries the tag through the oven on every cycle, so high-temperature, thermal-cycle-rated tags are <strong>mandatory</strong>.<br>
+    분체도장 오븐은 매 사이클 <strong>160–200°C에서 10–20분</strong> 가동된다. 일반 RFID 태그는 약 85°C에서 손상된다. 지그가 매 사이클마다 태그를 달고 오븐을 통과하므로, 고온·열사이클 내구 태그가 <strong>필수</strong>이다.</div>
+  </div>
+  <table class="spec-tbl">
+    <tr><th>항목 · Spec</th><td class="spec-v">권고 사양 · Required Specification</td><td>비고 · Notes</td></tr>
+    <tr><th>Frequency · 주파수</th><td class="spec-v">UHF Gen2 (920–925 MHz 국내)</td><td>다중 태그 동시 인식, 2–6m 인식 거리. 국내 주파수 대역 준수.</td></tr>
+    <tr><th>Continuous Temp · 연속 사용온도</th><td class="spec-v">−40°C ~ +230°C</td><td>피크 250°C 30분 견디는 산업용. 오븐 cure 180°C ±5°C · 15분 + ramp을 충분히 커버.</td></tr>
+    <tr><th>Thermal Cycle · 열 사이클 내구</th><td class="spec-v">≥ 5,000 cycles 보증</td><td>1일 8시간×20지그 가동 시 약 1년치. 1년마다 예방교체 권고.</td></tr>
+    <tr><th>IP Rating · 방수·방진</th><td class="spec-v">IP67 이상</td><td>전처리 부스의 화학약품·세척수·도장 분진 환경 대비.</td></tr>
+    <tr><th>Anti-Metal · 금속 대응</th><td class="spec-v">필수 (On-Metal 설계)</td><td>지그는 금속 프레임. 일반 태그는 금속 표면에서 인식 불가.</td></tr>
+    <tr><th>Mounting · 장착</th><td class="spec-v">볼트 / 리벳 / 고온 에폭시</td><td>접착식 라벨 불가 (오븐에서 박리). 위치는 부품과 멀고 통풍 좋은 지그 저온 영역.</td></tr>
+    <tr><th>Redundancy · 이중화</th><td class="spec-v">지그당 메인 1 + 예비 1</td><td>메인 미인식 시 시스템이 자동으로 예비 태그 인식 (Anti-collision).</td></tr>
+    <tr><th>Reference Products · 참고 제품</th><td class="spec-v">Xerafy XPLORER / Omni-ID Fit 200 / Confidex Pino HT / HID IronTag</td><td>최종 선정은 PoC 후 결정. 단가 vs 수명 trade-off 검토 필요.</td></tr>
+    <tr><th>Replacement Trigger · 교체 트리거</th><td class="spec-v">인식 실패율 ≥ 5% OR 누적 cycle ≥ 80%</td><td>BR-PNT-T01·T02 자동 알림 (PNT-ALR 알림센터).</td></tr>
+  </table>
+
+  <!-- PNT-01 Daily Plan -->
+  <div class="screen-card" id="pnt01">
+    <div class="sc-hdr">
+      <div><div class="sc-id">PNT-01</div><div class="sc-title-en">Daily Production Plan</div><div class="sc-title-ko">일일 생산계획 관리</div></div>
+      <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-1st">1st Dev</span></div>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#ea580c;">
+        <div><div class="db-lbl">EN · Description</div><div class="db-en">Receives released WOs from PP module for Routing B (PNT). PNT supervisor confirms daily production plan: item, color (RAL code), target quantity, time slot, line/oven assignment. Calculates required jig count (= target qty / jig capacity) and pre-issues virtual LOT numbers via PNT-02.</div></div>
+        <div><div class="db-lbl">KO · 설명</div><div class="db-ko">PP 모듈에서 Routing B로 발행된 WO를 수신. PNT 라인장이 일일 계획을 확정한다(품명·RAL 컬러·목표수량·시간·라인/오븐 배정). 필요 지그 수(목표수량÷지그캐파)를 계산하여 PNT-02에서 가상 LOT을 사전 발급한다.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PNT-02 Lot Pre-Issue -->
+  <div class="screen-card" id="pnt02">
+    <div class="sc-hdr">
+      <div><div class="sc-id">PNT-02</div><div class="sc-title-en">Virtual LOT Pre-Issue &amp; Jig Binding</div><div class="sc-title-ko">가상 LOT 사전 발급 · 지그 바인딩</div></div>
+      <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-p0">Phase 0 + 1st</span></div>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#ea580c;">
+        <div><div class="db-lbl">EN · Description</div><div class="db-en">For each daily plan row, generates N virtual LOT numbers where N = target qty ÷ jig capacity (1 jig = 1 LOT). Each LOT is bound to a specific available jig ID (auto-suggested by Jig Master, or manually chosen). LOTs enter PRE state on issue and transition to BOUND once a jig is assigned. Jigs already in-flight are blocked from re-assignment.</div></div>
+        <div><div class="db-lbl">KO · 설명</div><div class="db-ko">일일 계획 행마다 N개 가상 LOT 발급(N = 목표수량÷지그캐파, 1지그=1LOT). 각 LOT은 사용 가능 지그 ID에 바인딩(지그 마스터에서 자동 제안 또는 수동 선택). 발급 시 PRE 상태, 지그 배정 시 BOUND 상태. 진행 중 지그는 재배정 차단.</div></div>
+      </div>
+      <div class="alert alert-i" style="margin-top:8px;">
+        <div><div class="alert-title">💡 Binding Logic · 바인딩 로직</div>
+        Jig Master(PNT-JIG)에서 (1) 마지막 인식 시각 기준 사용중 아님, (2) 누적 cycle 수명 내, (3) 인식 실패율 정상인 지그만 후보로 노출. LOT은 발급 후 24시간 내 사용하지 않으면 만료 처리.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PNT-03 Loading -->
+  <div class="screen-card" id="pnt03">
+    <div class="sc-hdr">
+      <div><div class="sc-id">PNT-03</div><div class="sc-title-en">Loading Station POP (R1)</div><div class="sc-title-ko">로딩 스테이션 POP · 1번 리더</div></div>
+      <div class="sc-tags"><span class="tag t-pop">⚙ POP</span><span class="tag t-rfid">📡 RFID R1</span></div>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#ea580c;">
+        <div><div class="db-lbl">EN · Description</div><div class="db-en">Operator scans jig RFID with handheld at load station → system displays bound LOT, item name, RAL color, target part count, hanger positions. Operator loads parts. As jig enters loading booth, fixed reader R1 auto-detects the tag → marks LOT as IN_LOAD, accumulates input count against daily plan. Mismatch (wrong jig at wrong slot) blocks conveyor.</div></div>
+        <div><div class="db-lbl">KO · 설명</div><div class="db-ko">작업자가 핸드핼드로 지그 RFID 스캔 → 바인딩된 LOT·품명·RAL 컬러·목표 부품 수·행거 위치 표시. 작업자가 부품을 거치한 후, 지그가 로딩 부스 진입 시 고정형 R1 리더가 태그 자동 인식 → LOT을 IN_LOAD로 전환하고 일일계획 대비 투입수량 적립. 잘못된 지그 진입 시 컨베이어 차단.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PNT-04 Line Track Board -->
+  <div class="screen-card" id="pnt04">
+    <div class="sc-hdr">
+      <div><div class="sc-id">PNT-04</div><div class="sc-title-en">Line Tracking Board</div><div class="sc-title-ko">라인 실시간 흐름판</div></div>
+      <div class="sc-tags"><span class="tag t-dash">📊 Dashboard</span><span class="tag t-1st">1st Dev</span></div>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#ea580c;">
+        <div><div class="db-lbl">EN · Description</div><div class="db-en">Real-time wall display of all jigs currently in flight, grouped by station (Load / Pre-Treat / Paint / Oven / Unload). Each jig card shows LOT no., color swatch, elapsed time at current station, and predicted next station ETA. Idle/bottleneck stations highlighted. Auto-refresh every 5 seconds via RFID event stream.</div></div>
+        <div><div class="db-lbl">KO · 설명</div><div class="db-ko">현재 라인에 진행 중인 모든 지그를 스테이션별(로딩/전처리/도장/오븐/언로딩)로 그룹화하여 실시간 표시. 각 지그 카드에 LOT 번호·컬러 스왓치·현재 단계 경과시간·다음 단계 ETA. 정체/유휴 스테이션 강조. RFID 이벤트 스트림 기반 5초마다 자동 갱신.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PNT-05 Oven Monitor -->
+  <div class="screen-card" id="pnt05">
+    <div class="sc-hdr">
+      <div><div class="sc-id">PNT-05</div><div class="sc-title-en">Oven Monitor (R2)</div><div class="sc-title-ko">오븐 모니터 · 2번 리더</div></div>
+      <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-rfid">📡 RFID R2</span></div>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#ea580c;">
+        <div><div class="db-lbl">EN · Description</div><div class="db-en">R2 reader at oven entry confirms jig and timestamps oven-in. Real-time temperature trend chart (180°C ±5°C, 15 min). Per-jig dwell time tracked from entry to expected exit. Deviation &gt; ±5°C for 2+ minutes triggers: (1) Andon, (2) auto MNT work-order, (3) QC enhanced-inspection flag on affected LOTs. All deviation events logged with jig/LOT for traceability.</div></div>
+        <div><div class="db-lbl">KO · 설명</div><div class="db-ko">오븐 입구 R2 리더가 지그 확인 + 진입 시각 기록. 실시간 온도 추이 차트(180°C ±5°C, 15분). 지그별 오븐 체류시간 추적. ±5°C 이탈 2분 이상 시: (1) Andon, (2) MNT 자동 WO, (3) 해당 LOT QC 강화검사 플래그. 모든 이탈 이벤트 지그/LOT 포함 기록.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PNT-06 Unloading -->
+  <div class="screen-card" id="pnt06">
+    <div class="sc-hdr">
+      <div><div class="sc-id">PNT-06</div><div class="sc-title-en">Unloading &amp; Count (R3)</div><div class="sc-title-ko">언로딩 · 3번 리더</div></div>
+      <div class="sc-tags"><span class="tag t-pop">⚙ POP</span><span class="tag t-rfid">📡 RFID R3</span></div>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#ea580c;">
+        <div><div class="db-lbl">EN · Description</div><div class="db-en">R3 reader at unload station confirms jig completion. Operator verifies actual part count (may differ from input if parts dropped or rejected at-line). Difference auto-recorded as in-process loss with reason code. LOT transitions to CONFIRMED and is queued for QC. Jig is released back to Jig Master pool for next cycle.</div></div>
+        <div><div class="db-lbl">KO · 설명</div><div class="db-ko">언로딩 스테이션 R3 리더가 지그 완료 확인. 작업자가 실제 부품 수량 확인(투입 대비 차이 시 라인내 손실로 자동 기록 + 사유 코드). LOT을 CONFIRMED로 전환 후 QC 대기열로 이관. 지그는 다음 사이클을 위해 지그 마스터 풀로 반환.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PNT-07 Label Apply -->
+  <div class="screen-card" id="pnt07">
+    <div class="sc-hdr">
+      <div><div class="sc-id">PNT-07</div><div class="sc-title-en">LOT Label Print &amp; Apply (Post-Cure)</div><div class="sc-title-ko">LOT 라벨 인쇄·후부착</div></div>
+      <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-pda">📱 PDA</span></div>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#ea580c;">
+        <div><div class="db-lbl">EN · Description</div><div class="db-en">Triggered only after QC PASS notification from QC module. Operator clicks "Print Label" → printer issues N adhesive LOT labels (1 per part) carrying real LOT number, item, RAL color, production date, jig ID. Operator applies labels to each part, then scans first &amp; last with PDA to confirm batch is fully labeled. LOT transitions CONFIRMED → LABELED → SHIPPABLE → FG handover.</div></div>
+        <div><div class="db-lbl">KO · 설명</div><div class="db-ko">QC 모듈의 PASS 통지가 있을 때만 활성화. 작업자가 [라벨 인쇄] 클릭 → 부품 수만큼 LOT 라벨 인쇄(실제 LOT번호·품명·RAL·생산일·지그ID). 부품에 부착 후 PDA로 첫·마지막 라벨 스캔하여 전수 부착 확정. LOT 상태 CONFIRMED → LABELED → SHIPPABLE → FG 이관.</div></div>
+      </div>
+      <div class="alert alert-w" style="margin-top:8px;">
+        <div><div class="alert-title">🔒 Block · 차단 규칙</div>
+        QC FAIL 또는 미검사 LOT은 라벨 인쇄 자체가 차단된다(BR-PNT-08). 라벨 미부착 LOT은 FG 출고 불가(BR-PNT-09).</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PNT-08 Defect -->
+  <div class="screen-card" id="pnt08">
+    <div class="sc-hdr">
+      <div><div class="sc-id">PNT-08</div><div class="sc-title-en">Defect Register</div><div class="sc-title-ko">불량 등록</div></div>
+      <div class="sc-tags"><span class="tag t-pda">📱 PDA</span><span class="tag t-web">🖥 Web PC</span></div>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#ea580c;">
+        <div><div class="db-lbl">EN · Description</div><div class="db-en">Per-LOT/per-part defect entry. Defect type from standardized list (PNT-D01–D06 below). Optional defect photo upload via PDA camera. Reason code and corrective action. Auto-links to RFID event chain for that LOT/jig so root cause (e.g., oven deviation 2h ago) is one click away.</div></div>
+        <div><div class="db-lbl">KO · 설명</div><div class="db-ko">LOT/부품별 불량 등록. 표준 불량 유형(PNT-D01–D06) 선택. PDA 카메라로 사진 업로드 옵션. 사유 코드·시정조치 입력. 해당 LOT/지그의 RFID 이벤트 체인과 자동 연결되어 원인(예: 2시간 전 오븐 온도이탈)을 한 클릭으로 추적.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PNT-09 Shift Report -->
+  <div class="screen-card" id="pnt09">
+    <div class="sc-hdr">
+      <div><div class="sc-id">PNT-09</div><div class="sc-title-en">Shift Log / Daily Report</div><div class="sc-title-ko">교대 일지 · 일일 리포트</div></div>
+      <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-2nd">2nd Dev</span></div>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#ea580c;">
+        <div><div class="db-lbl">EN · Description</div><div class="db-en">End-of-shift summary auto-compiled from RFID + manual entries: input qty, completed LOTs, defects by type, oven alarms, jig swaps, manual fallback entries. PDF export. Daily roll-up feeds the RPT module dashboards.</div></div>
+        <div><div class="db-lbl">KO · 설명</div><div class="db-ko">RFID + 수기 입력 데이터를 교대 종료 시 자동 집계: 투입수량·완료 LOT·불량 유형별 건수·오븐 경보·지그 교체·수기 폴백 입력. PDF 출력. 일일 집계는 RPT 모듈 대시보드로 전송.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PNT-TRC -->
+  <div class="screen-card" id="pnttrc">
+    <div class="sc-hdr">
+      <div><div class="sc-id">PNT-TRC</div><div class="sc-title-en">Traceability Search</div><div class="sc-title-ko">이력 추적 (Aux)</div></div>
+      <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-2nd">2nd Dev</span></div>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#ea580c;">
+        <div><div class="db-lbl">EN · Description</div><div class="db-en">Search by LOT, item, jig, date range, or RAL color. Returns full RFID event timeline (R1/R2/R3), oven temperature curve, defect history, label print/apply trail, and downstream FG/shipping linkage. Supports customer recall queries.</div></div>
+        <div><div class="db-lbl">KO · 설명</div><div class="db-ko">LOT·품명·지그·기간·RAL 컬러로 검색. RFID 이벤트 타임라인(R1/R2/R3) + 오븐 온도 곡선 + 불량 이력 + 라벨 인쇄/부착 이력 + 하류 FG/출하 연계 정보 전체 반환. 고객 리콜 대응 용이.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PNT-ALR -->
+  <div class="screen-card" id="pntalr">
+    <div class="sc-hdr">
+      <div><div class="sc-id">PNT-ALR</div><div class="sc-title-en">Alert Center</div><div class="sc-title-ko">알림 센터 (Aux)</div></div>
+      <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-pda">📱 PDA</span></div>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#ea580c;">
+        <div><div class="db-lbl">EN · Description</div><div class="db-en">Aggregates all PNT alerts: jig replacement needed, RFID read failure, oven temp deviation, missing jig (no R3 read within expected window), defect rate breach, tag heat-cycle threshold. Push to PDA + supervisor email.</div></div>
+        <div><div class="db-lbl">KO · 설명</div><div class="db-ko">모든 PNT 알림 집계: 지그 교체 필요·RFID 미인식·오븐 온도 이탈·지그 소실(R3 미인식)·불량률 초과·태그 열사이클 임계 도달. PDA 푸시 + 라인장 이메일.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PNT-JIG -->
+  <div class="screen-card" id="pntjig">
+    <div class="sc-hdr">
+      <div><div class="sc-id">PNT-JIG</div><div class="sc-title-en">Jig / RFID Tag Master</div><div class="sc-title-ko">지그·RFID 태그 마스터 (MD 연계)</div></div>
+      <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-p0">Phase 0</span></div>
+    </div>
+    <div class="sc-body">
+      <div class="desc-bi" style="border-left-color:#ea580c;">
+        <div><div class="db-lbl">EN · Description</div><div class="db-en">Master data for all jigs: jig ID, hanger count (capacity per cycle), compatible items, primary &amp; spare RFID tag IDs, cumulative thermal cycles, read failure rate, last service date. Drives binding logic in PNT-02 and replacement alerts in PNT-ALR. Mirrored to MD module for cross-module reference.</div></div>
+        <div><div class="db-lbl">KO · 설명</div><div class="db-ko">전체 지그 마스터: 지그ID·행거 수(사이클당 거치 가능 부품 수)·호환 품목·메인/예비 RFID 태그ID·누적 열사이클·인식 실패율·최근 점검일. PNT-02 바인딩 로직과 PNT-ALR 교체 알림의 기반. MD 모듈로 미러링되어 타 모듈에서 참조.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DATA MODEL -->
+  <div class="sec-div" id="dm"><div class="sd-line"></div><div class="sd-lbl">DATA MODEL · 신규 테이블</div><div class="sd-line"></div></div>
+  <table class="dm-tbl">
+    <thead><tr><th style="width:22%;">Table / Entity</th><th style="width:18%;">Key Fields</th><th>Purpose · 용도</th></tr></thead>
     <tbody>
-      <tr><td style="font-family:'JetBrains Mono',monospace;color:#fb923c;">PNT-D01</td><td>Runs / Sags</td><td>흘러내림</td><td>Excessive paint thickness or spray angle</td><td>도료 과도 분무·각도 불량</td></tr>
-      <tr><td style="font-family:'JetBrains Mono',monospace;color:#fb923c;">PNT-D02</td><td>Orange Peel</td><td>오렌지필</td><td>Improper atomization or viscosity</td><td>분무 불량·점도 오류</td></tr>
-      <tr><td style="font-family:'JetBrains Mono',monospace;color:#fb923c;">PNT-D03</td><td>Fisheye</td><td>피시아이</td><td>Oil/water contamination on surface</td><td>표면 기름·수분 오염</td></tr>
-      <tr><td style="font-family:'JetBrains Mono',monospace;color:#fb923c;">PNT-D04</td><td>Dirt Inclusion</td><td>이물 혼입</td><td>Dust in paint or environment</td><td>도료·환경 먼지</td></tr>
-      <tr><td style="font-family:'JetBrains Mono',monospace;color:#fb923c;">PNT-D05</td><td>Insufficient Cure</td><td>미경화</td><td>Oven temp below spec or insufficient time</td><td>건조로 온도/시간 미달</td></tr>
-      <tr><td style="font-family:'JetBrains Mono',monospace;color:#fb923c;">PNT-D06</td><td>Color Mismatch</td><td>색상 불일치</td><td>Wrong paint lot, formula deviation</td><td>잘못된 도료 로트·배합 오류</td></tr>
+      <tr><td><span class="dm-name">Jig</span></td><td><span class="dm-type">JigID</span> <span class="dm-pk">PK</span><br>HangerCount, CompatibleItems</td><td>지그 마스터. 행거 수, 호환 품목. PNT-JIG가 이 테이블 관리.</td></tr>
+      <tr><td><span class="dm-name">JigTag</span></td><td><span class="dm-type">TagID</span> <span class="dm-pk">PK</span><br><span class="dm-type">JigID</span> <span class="dm-fk">FK</span>, Role(MAIN/SPARE), CycleCount</td><td>지그별 RFID 태그(메인/예비). 누적 cycle 추적 → 교체 트리거.</td></tr>
+      <tr><td><span class="dm-name">JigLoad</span></td><td><span class="dm-type">LoadID</span> <span class="dm-pk">PK</span><br><span class="dm-type">JigID</span> <span class="dm-fk">FK</span>, <span class="dm-type">LotID</span> <span class="dm-fk">FK</span>, LoadedQty, Operator</td><td>로딩 이벤트. 지그에 거치된 부품 수와 작업자.</td></tr>
+      <tr><td><span class="dm-name">RFIDEvent</span></td><td><span class="dm-type">EventID</span> <span class="dm-pk">PK</span><br><span class="dm-type">TagID</span> <span class="dm-fk">FK</span>, ReaderLoc(R1/R2/R3), Timestamp, RSSI</td><td>모든 RFID 이벤트 로그. 라인 흐름판·이력 추적·디바운싱 기반.</td></tr>
+      <tr><td><span class="dm-name">LotPreIssue</span></td><td><span class="dm-type">LotID</span> <span class="dm-pk">PK</span><br><span class="dm-type">WOID</span> <span class="dm-fk">FK</span>, <span class="dm-type">JigID</span> <span class="dm-fk">FK</span>, ItemNo, RALColor, Status</td><td>가상 LOT 발급 및 상태(PRE/BOUND/IN_LOAD/IN_OVEN/CONFIRMED/LABELED/SHIPPABLE).</td></tr>
+      <tr><td><span class="dm-name">OvenLog</span></td><td><span class="dm-type">LogID</span> <span class="dm-pk">PK</span><br>OvenID, <span class="dm-type">JigID</span> <span class="dm-fk">FK</span>, EntryTS, ExitTS, TempCurve(JSON)</td><td>오븐 진입·진출 시각과 온도 곡선. 이탈 이벤트와 LOT 연결.</td></tr>
+      <tr><td><span class="dm-name">LotLabel</span></td><td><span class="dm-type">LabelID</span> <span class="dm-pk">PK</span><br><span class="dm-type">LotID</span> <span class="dm-fk">FK</span>, PrintTS, AppliedTS, AppliedBy</td><td>실제 LOT 라벨 인쇄·부착 이력. PDA 스캔으로 부착 확정.</td></tr>
+      <tr><td><span class="dm-name">TagFailureLog</span></td><td><span class="dm-type">FailID</span> <span class="dm-pk">PK</span><br><span class="dm-type">TagID</span> <span class="dm-fk">FK</span>, FailTS, ReaderLoc, FallbackAction</td><td>RFID 미인식 이벤트. 누적 실패율 5% 초과 시 자동 교체 알림.</td></tr>
+      <tr><td><span class="dm-name">PaintDefect</span></td><td><span class="dm-type">DefID</span> <span class="dm-pk">PK</span><br><span class="dm-type">LotID</span> <span class="dm-fk">FK</span>, DefectCode(D01-D06), Qty, PhotoURL</td><td>LOT별 불량 등록. 사진 첨부 가능.</td></tr>
     </tbody>
-  </table></div>
-</div>
+  </table>
 
-<div class="sec-divider" id="br">
-  <div class="br-tbl tbl-wrap"><table>
-    <thead><tr><th>Rule ID</th><th>Rule (EN)</th><th>KO</th><th>Action</th></tr></thead>
+  <!-- LOT STATUS FLOW -->
+  <div class="sec-div" id="status"><div class="sd-line"></div><div class="sd-lbl">LOT LIFECYCLE · LOT 상태 흐름</div><div class="sd-line"></div></div>
+  <div class="rflow">
+    <div class="rs rs-pnt"><span class="rs-en">PRE</span><span class="rs-ko">발급</span></div>
+    <span class="rarr">→</span>
+    <div class="rs rs-pnt"><span class="rs-en">BOUND</span><span class="rs-ko">지그 바인딩</span></div>
+    <span class="rarr">→</span>
+    <div class="rs rs-pnt"><span class="rs-en">IN_LOAD</span><span class="rs-ko">로딩 (R1)</span></div>
+    <span class="rarr">→</span>
+    <div class="rs rs-pnt"><span class="rs-en">IN_OVEN</span><span class="rs-ko">오븐 (R2)</span></div>
+    <span class="rarr">→</span>
+    <div class="rs rs-pnt"><span class="rs-en">CONFIRMED</span><span class="rs-ko">언로딩 (R3)</span></div>
+    <span class="rarr">→</span>
+    <div class="rs rs-pnt"><span class="rs-en">LABELED</span><span class="rs-ko">라벨 부착</span></div>
+    <span class="rarr">→</span>
+    <div class="rs rs-pnt"><span class="rs-en">SHIPPABLE</span><span class="rs-ko">출하 가능</span></div>
+  </div>
+
+  <!-- DEFECT TYPES -->
+  <div class="sec-div" id="defect"><div class="sd-line"></div><div class="sd-lbl">PAINTING DEFECT TYPES · 도장 불량 유형</div><div class="sd-line"></div></div>
+  <table class="br-tbl" style="margin-bottom:18px;">
+    <thead><tr><th style="width:90px;">Code</th><th>Defect (EN)</th><th>KO</th><th>Likely Cause (EN)</th><th>원인 (KO)</th></tr></thead>
     <tbody>
-      <tr><td>BR-PNT-01</td><td>5-stage sequence strictly enforced. No stage can be skipped or performed out of order.</td><td>5단계 순서 강제. 건너뛰기·역순 불가.</td><td>Hard block</td></tr>
-      <tr><td>BR-PNT-02</td><td>Oven temp deviation ±5°C → Andon + MNT auto work-order + QC enhanced inspection flag.</td><td>건조로 ±5°C 이탈 → Andon + MNT 자동WO + QC 강화검사 플래그.</td><td>Multi-action</td></tr>
-      <tr><td>BR-PNT-03</td><td>Defect rate ≥5% → Andon. Supervisor acknowledge required to resume line.</td><td>불량율 5% → Andon. 라인장 확인 후 재가동.</td><td>Andon + halt</td></tr>
-      <tr><td>BR-PNT-04</td><td>Paint consumption auto-deducted from PNT-04 paint inventory per BOM.</td><td>BOM 기준 도료 소비량 PNT-04 재고 자동 차감.</td><td>Auto-deduct</td></tr>
+      <tr><td class="br-id">PNT-D01</td><td>Runs / Sags</td><td>흘러내림</td><td>Excessive powder thickness or spray angle</td><td>분체 과도 분사·각도 불량</td></tr>
+      <tr><td class="br-id">PNT-D02</td><td>Orange Peel</td><td>오렌지필</td><td>Improper electrostatic charge or particle size</td><td>정전 전압 부적합·입자 분포 이상</td></tr>
+      <tr><td class="br-id">PNT-D03</td><td>Fisheye</td><td>피시아이</td><td>Oil/water/silicone contamination on surface</td><td>표면 기름·수분·실리콘 오염</td></tr>
+      <tr><td class="br-id">PNT-D04</td><td>Dirt Inclusion</td><td>이물 혼입</td><td>Dust in powder feed or booth environment</td><td>분체 공급·부스 환경 먼지</td></tr>
+      <tr><td class="br-id">PNT-D05</td><td>Insufficient Cure</td><td>미경화</td><td>Oven temp below spec or insufficient dwell time</td><td>오븐 온도/체류시간 미달</td></tr>
+      <tr><td class="br-id">PNT-D06</td><td>Color Mismatch</td><td>색상 불일치</td><td>Wrong powder lot or RAL formula deviation</td><td>잘못된 분체 LOT·RAL 코드 오류</td></tr>
     </tbody>
-  </table></div>
+  </table>
+
+  <!-- BR -->
+  <div class="br-wrap" id="br-pnt">
+    <div class="br-title">Business Rules · 업무 규칙 (PNT) · 17건</div>
+    <table class="br-tbl">
+      <thead><tr><th style="width:96px;">Rule ID</th><th>Rule (EN)</th><th>규칙 (KO)</th><th style="width:170px;">조건 · Condition</th><th style="width:110px;">Action</th></tr></thead>
+      <tbody>
+        <tr><td class="br-id">BR-PNT-01</td><td class="br-en">Sequence strictly enforced (R1→R2→R3, no skip/reverse).</td><td class="br-ko">3개 리더 순서 강제(R1→R2→R3 누락·역순 불가).</td><td>이벤트 순서 위반</td><td><span class="b b-e">Block</span></td></tr>
+        <tr><td class="br-id">BR-PNT-02</td><td class="br-en">LOT must be in PRE state to bind to a jig.</td><td class="br-ko">LOT은 PRE 상태에서만 지그에 바인딩 가능.</td><td>Status ≠ PRE</td><td><span class="b b-e">Block</span></td></tr>
+        <tr><td class="br-id">BR-PNT-03</td><td class="br-en">1 jig = 1 active LOT at any time (no concurrent LOT on same jig).</td><td class="br-ko">동일 시점 지그 1개당 진행 중 LOT 1개만 허용.</td><td>지그에 미완료 LOT 존재</td><td><span class="b b-e">Block</span></td></tr>
+        <tr><td class="br-id">BR-PNT-04</td><td class="br-en">Pre-issued LOT auto-expires if not used within 24h.</td><td class="br-ko">발급 후 24시간 미사용 LOT 자동 만료.</td><td>NOW − IssueTS &gt; 24h</td><td><span class="b b-w">Expire</span></td></tr>
+        <tr><td class="br-id">BR-PNT-05</td><td class="br-en">Oven temp deviation &gt; ±5°C for ≥2 min → Andon + MNT auto-WO + QC enhanced-flag.</td><td class="br-ko">오븐 ±5°C 이탈 2분 이상 → Andon + MNT 자동WO + QC 강화검사 플래그.</td><td>|Temp − 180| &gt; 5 ∧ ≥2 min</td><td><span class="b b-e">Multi</span></td></tr>
+        <tr><td class="br-id">BR-PNT-06</td><td class="br-en">Defect rate ≥ 5% per shift → Andon, supervisor ack required to resume.</td><td class="br-ko">교대 불량률 5% 초과 시 Andon, 라인장 확인 후 재가동.</td><td>Defects/Total ≥ 0.05</td><td><span class="b b-e">Halt</span></td></tr>
+        <tr><td class="br-id">BR-PNT-07</td><td class="br-en">Powder consumption auto-deducted per BOM at LOT confirm.</td><td class="br-ko">LOT 확정 시 분체 소비량 BOM 기준 자동 차감.</td><td>Status → CONFIRMED</td><td><span class="b b-i">Auto</span></td></tr>
+        <tr><td class="br-id">BR-PNT-08</td><td class="br-en">Label print blocked if QC not PASS for LOT.</td><td class="br-ko">QC PASS 미수령 LOT은 라벨 인쇄 차단.</td><td>QCStatus ≠ PASS</td><td><span class="b b-e">Block</span></td></tr>
+        <tr><td class="br-id">BR-PNT-09</td><td class="br-en">FG handover blocked until LOT is LABELED.</td><td class="br-ko">LABELED 상태 아닌 LOT은 FG 이관 불가.</td><td>Status ≠ LABELED</td><td><span class="b b-e">Block</span></td></tr>
+        <tr><td class="br-id">BR-PNT-10</td><td class="br-en">Wrong jig at wrong slot at R1 → conveyor block + alert.</td><td class="br-ko">R1에서 잘못된 지그 진입 시 컨베이어 차단 + 알림.</td><td>JigID ≠ BoundJig</td><td><span class="b b-e">Block</span></td></tr>
+        <tr><td class="br-id">BR-PNT-T01</td><td class="br-en">Jig replacement alert if read failure rate ≥ 5% over last 100 cycles.</td><td class="br-ko">최근 100 cycle 인식 실패율 5% 초과 시 지그 교체 알림.</td><td>FailRate ≥ 0.05</td><td><span class="b b-w">Alert</span></td></tr>
+        <tr><td class="br-id">BR-PNT-T02</td><td class="br-en">Preventive tag replacement at 80% of rated thermal-cycle life.</td><td class="br-ko">태그 정격 열사이클 수명 80% 도달 시 예방 교체.</td><td>CycleCount ≥ 0.8×Rated</td><td><span class="b b-w">Alert</span></td></tr>
+        <tr><td class="br-id">BR-PNT-T03</td><td class="br-en">Missing read at any reader → operator PDA fallback entry + alert.</td><td class="br-ko">리더 미인식 시 작업자 PDA 수기 입력 폴백 + 알림.</td><td>Expected read absent</td><td><span class="b b-w">Fallback</span></td></tr>
+        <tr><td class="br-id">BR-PNT-T04</td><td class="br-en">Duplicate read of same tag at same reader within N seconds is debounced.</td><td class="br-ko">동일 태그가 동일 리더에서 N초 내 중복 인식 시 자동 제거.</td><td>Δt &lt; N sec</td><td><span class="b b-i">Auto</span></td></tr>
+        <tr><td class="br-id">BR-PNT-T05</td><td class="br-en">Missing R3 read &gt; 30 min after R2 → "lost jig" alert.</td><td class="br-ko">R2 통과 후 30분 내 R3 미인식 시 지그 소실 알림.</td><td>NOW − R2TS &gt; 30 min</td><td><span class="b b-e">Alert</span></td></tr>
+        <tr><td class="br-id">BR-PNT-T06</td><td class="br-en">Main tag miss falls back to spare tag automatically (anti-collision).</td><td class="br-ko">메인 태그 미인식 시 예비 태그 자동 인식(안티콜리전).</td><td>Main read absent</td><td><span class="b b-i">Auto</span></td></tr>
+        <tr><td class="br-id">BR-PNT-T07</td><td class="br-en">All RFID events archived ≥ 5 years for traceability/recall.</td><td class="br-ko">RFID 이벤트 5년 이상 보관(이력추적/리콜 대응).</td><td>Event age ≥ 5y</td><td><span class="b b-i">Retain</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  </div><!-- /content -->
+
+  <div class="page-footer">
+    <div class="pf-l">A-MES · VOL.7 · PNT Powder Painting · UI Design Spec v2.0 · RFID + Jig + Virtual LOT · Bilingual EN/KO</div>
+    <div class="pf-r">9 Screens + 3 Aux · 17 BRs · 9 New Tables · Heat-Resistant UHF Gen2</div>
+  </div>
+</div><!-- /main -->
 </div>
-<div class="page-footer wrap" style="padding-top:20px;padding-bottom:40px;">
-  <span>A-MES · VOL.7 PNT · 5-Stage Painting POP · UI Design Specification v1.0 · Bilingual EN/KO</span>
-  <span style="font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.3);">Automotive Parts MES · SAV &amp; GEO Supply · Confidential</span>
-</div>
-</body></html>
+</body>
+</html>
