@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>A-MES ERD</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#07090f;color:#c9d8f0;font-family:'JetBrains Mono',monospace;overflow:hidden;height:100vh;display:flex;flex-direction:column}
+#toolbar{height:44px;background:#0d1117;border-bottom:1px solid #1a2535;display:flex;align-items:center;gap:0;flex-shrink:0;padding:0 12px;user-select:none}
+.tb-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#e2eaf8;margin-right:16px}
+.tb-title span{color:#38bdf8}
+.tb-sep{width:1px;height:24px;background:#1a2535;margin:0 10px}
+.tb-btn{padding:4px 10px;border-radius:4px;font-size:10px;font-family:'JetBrains Mono',monospace;border:1px solid #1e2d40;background:transparent;color:#6a8aaa;cursor:pointer;transition:all .15s}
+.tb-btn:hover,.tb-btn.active{background:#1e3a5f;color:#93c5fd;border-color:#2d5a8e}
+.filter-wrap{display:flex;gap:4px;flex-wrap:nowrap;overflow-x:auto}
+.f-chip{padding:3px 8px;border-radius:3px;font-size:9px;font-weight:700;letter-spacing:.4px;cursor:pointer;border:1px solid transparent;opacity:.5;transition:all .15s}
+.f-chip:hover,.f-chip.on{opacity:1;border-color:currentColor}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:10px;color:#3a5070}
+.legend-item{display:flex;align-items:center;gap:4px}
+.leg-line{width:20px;height:2px}
+#canvas-wrap{flex:1;overflow:hidden;position:relative}
+canvas{cursor:grab;display:block}
+canvas.grabbing{cursor:grabbing}
+#tooltip{position:absolute;background:#0d1117;border:1px solid #1e3a5f;border-radius:6px;padding:8px 12px;font-size:10px;pointer-events:none;display:none;max-width:220px;line-height:1.7;z-index:100}
+#tooltip .tt-tbl{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#e2eaf8;margin-bottom:4px}
+#tooltip .tt-row{display:flex;gap:8px}
+#tooltip .tt-key{color:#f59e0b;width:14px;text-align:center}
+#tooltip .tt-fk{color:#818cf8;width:14px;text-align:center}
+#tooltip .tt-col{color:#c9d8f0}
+#tooltip .tt-type{color:#3a5070;margin-left:auto}
+#minimap{position:absolute;bottom:12px;right:12px;background:#0d1117cc;border:1px solid #1a2535;border-radius:6px;width:160px;height:100px;overflow:hidden}
+#minimap canvas{display:block}
+#zoom-info{position:absolute;bottom:12px;left:12px;font-size:9px;color:#2a4060;background:#0d111780;padding:4px 8px;border-radius:4px}
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <div class="tb-title">A-<span>MES</span> ERD</div>
+  <div class="tb-sep"></div>
+  <div class="filter-wrap" id="filters">
+    <div class="f-chip on" data-mod="ALL" style="color:#94a3b8;background:#1e293b">ALL</div>
+    <div class="f-chip on" data-mod="MD"  style="color:#f59e0b">MD</div>
+    <div class="f-chip on" data-mod="WH"  style="color:#06b6d4">WH</div>
+    <div class="f-chip on" data-mod="PP"  style="color:#10b981">PP</div>
+    <div class="f-chip on" data-mod="INJ" style="color:#3b82f6">INJ</div>
+    <div class="f-chip on" data-mod="IMG" style="color:#8b5cf6">IMG</div>
+    <div class="f-chip on" data-mod="PNT" style="color:#f97316">PNT</div>
+    <div class="f-chip on" data-mod="QC"  style="color:#ef4444">QC</div>
+    <div class="f-chip on" data-mod="FG"  style="color:#22c55e">FG</div>
+    <div class="f-chip on" data-mod="MNT" style="color:#0ea5e9">MNT</div>
+    <div class="f-chip on" data-mod="SYS" style="color:#64748b">SYS</div>
+  </div>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" id="btn-fit">Fit View</button>
+  <button class="tb-btn" id="btn-reset">Reset</button>
+  <div class="tb-right">
+    <div class="legend-item"><div class="leg-line" style="background:#f59e0b"></div>PK</div>
+    <div class="legend-item"><div class="leg-line" style="background:#818cf8;opacity:.7"></div>FK</div>
+    <div style="color:#2a4060">드래그·휠 줌·테이블 클릭</div>
+  </div>
+</div>
+
+<div id="canvas-wrap">
+  <canvas id="erd"></canvas>
+  <div id="tooltip"></div>
+  <div id="minimap"><canvas id="mini"></canvas></div>
+  <div id="zoom-info">zoom: 100%</div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  DATA DEFINITION
+// ─────────────────────────────────────────────
+const MOD_COLOR = {
+  MD:'#f59e0b', WH:'#06b6d4', PP:'#10b981',
+  INJ:'#3b82f6', IMG:'#8b5cf6', PNT:'#f97316',
+  QC:'#ef4444', FG:'#22c55e', MNT:'#0ea5e9', SYS:'#64748b'
+};
+
+// cols: [name, type, flags]  flags: 'pk','fk','idx',''
+const TABLES = [
+// ── MD ──────────────────────────────────────
+{id:'MD_Customer', mod:'MD', x:80, y:60, cols:[
+  ['CustomerID','INT IDENTITY','pk'],
+  ['CustomerCode','VARCHAR(20)','','SAV/GEO'],
+  ['CustomerName','NVARCHAR(100)',''],
+  ['Plant','VARCHAR(10)','','Savannah/Georgia'],
+  ['IsActive','BIT',''],
+]},
+{id:'MD_Item', mod:'MD', x:340, y:60, cols:[
+  ['ItemID','INT IDENTITY','pk'],
+  ['ItemCode','VARCHAR(30)','','UNIQUE'],
+  ['ItemName','NVARCHAR(200)',''],
+  ['ItemType','VARCHAR(20)','','FG/WIP/MAT/TOOL'],
+  ['Unit','VARCHAR(10)',''],
+  ['CustomerID','INT','fk','→ MD_Customer'],
+  ['RoutingType','CHAR(1)','','A/B'],
+  ['Phase0Complete','BIT','','WO 차단 여부'],
+  ['SafetyStock','INT',''],
+  ['LeadTimeDays','TINYINT',''],
+]},
+{id:'MD_BOM', mod:'MD', x:650, y:60, cols:[
+  ['BOMID','INT IDENTITY','pk'],
+  ['ParentItemID','INT','fk','→ MD_Item'],
+  ['ChildItemID','INT','fk','→ MD_Item'],
+  ['Qty','DECIMAL(10,4)',''],
+  ['EffectiveDate','DATE',''],
+  ['ExpireDate','DATE',''],
+]},
+{id:'MD_BOP', mod:'MD', x:340, y:340, cols:[
+  ['BOPID','INT IDENTITY','pk'],
+  ['ItemID','INT','fk','→ MD_Item'],
+  ['StepSeq','TINYINT',''],
+  ['ProcessCode','VARCHAR(10)','','INJ/IMG/PNT/QC'],
+  ['WorkCenterID','INT','fk','→ MD_WorkCenter'],
+  ['StdTime','DECIMAL(8,2)',''],
+  ['IsRequired','BIT',''],
+]},
+{id:'MD_WorkCenter', mod:'MD', x:80, y:340, cols:[
+  ['WorkCenterID','INT IDENTITY','pk'],
+  ['WCCode','VARCHAR(20)','','UNIQUE'],
+  ['WCName','NVARCHAR(100)',''],
+  ['ProcessCode','VARCHAR(10)',''],
+  ['Capacity','INT',''],
+  ['IsActive','BIT',''],
+]},
+{id:'MD_Location', mod:'MD', x:650, y:340, cols:[
+  ['LocationID','INT IDENTITY','pk'],
+  ['LocationCode','VARCHAR(20)',''],
+  ['Zone','VARCHAR(10)','','WH/FG/QC/PROD'],
+  ['Rack','VARCHAR(10)',''],
+  ['MaxQty','INT',''],
+  ['IsActive','BIT',''],
+]},
+{id:'MD_DefectCode', mod:'MD', x:650, y:580, cols:[
+  ['DefectCodeID','INT IDENTITY','pk'],
+  ['Code','VARCHAR(20)','','INJ-D01 등'],
+  ['ProcessCode','VARCHAR(10)',''],
+  ['Description','NVARCHAR(200)',''],
+  ['IsActive','BIT',''],
+]},
+{id:'MD_InspectStd', mod:'MD', x:340, y:580, cols:[
+  ['StdID','INT IDENTITY','pk'],
+  ['ItemID','INT','fk','→ MD_Item'],
+  ['InspectType','VARCHAR(20)','','Visual/Dimension'],
+  ['SpecMin','DECIMAL(10,4)',''],
+  ['SpecMax','DECIMAL(10,4)',''],
+  ['SamplingRate','DECIMAL(5,2)',''],
+]},
+// ── SYS ──────────────────────────────────────
+{id:'SYS_Role', mod:'SYS', x:1720, y:60, cols:[
+  ['RoleID','INT IDENTITY','pk'],
+  ['RoleCode','VARCHAR(10)','','ADMIN/MGR/PLAN…'],
+  ['RoleName','NVARCHAR(50)',''],
+]},
+{id:'SYS_User', mod:'SYS', x:1480, y:60, cols:[
+  ['UserID','INT IDENTITY','pk'],
+  ['LoginID','VARCHAR(50)','','UNIQUE'],
+  ['UserName','NVARCHAR(100)',''],
+  ['PasswordHash','VARCHAR(256)',''],
+  ['RoleID','INT','fk','→ SYS_Role'],
+  ['FailCount','TINYINT',''],
+  ['IsLocked','BIT',''],
+  ['IsActive','BIT',''],
+  ['LastLoginAt','DATETIME',''],
+]},
+{id:'SYS_Menu', mod:'SYS', x:1720, y:280, cols:[
+  ['MenuID','INT IDENTITY','pk'],
+  ['MenuCode','VARCHAR(30)',''],
+  ['MenuName','NVARCHAR(100)',''],
+  ['ParentMenuID','INT','fk','→ SYS_Menu(self)'],
+  ['SortOrder','INT',''],
+  ['URL','VARCHAR(200)',''],
+]},
+{id:'SYS_RoleMenu', mod:'SYS', x:1480, y:280, cols:[
+  ['RoleMenuID','INT IDENTITY','pk'],
+  ['RoleID','INT','fk','→ SYS_Role'],
+  ['MenuID','INT','fk','→ SYS_Menu'],
+  ['CanRead','BIT',''],
+  ['CanWrite','BIT',''],
+  ['CanDelete','BIT',''],
+]},
+{id:'SYS_AuditLog', mod:'SYS', x:1480, y:500, cols:[
+  ['LogID','BIGINT IDENTITY','pk'],
+  ['UserID','INT','fk','→ SYS_User'],
+  ['Action','VARCHAR(50)',''],
+  ['TableName','VARCHAR(50)',''],
+  ['RecordID','INT',''],
+  ['OldValue','NVARCHAR(MAX)','','JSON'],
+  ['NewValue','NVARCHAR(MAX)','','JSON'],
+  ['IPAddress','VARCHAR(45)',''],
+  ['CreatedAt','DATETIME',''],
+]},
+{id:'SYS_CodeGroup', mod:'SYS', x:1720, y:500, cols:[
+  ['GroupID','INT IDENTITY','pk'],
+  ['GroupCode','VARCHAR(30)',''],
+  ['GroupName','NVARCHAR(100)',''],
+]},
+{id:'SYS_Code', mod:'SYS', x:1720, y:680, cols:[
+  ['CodeID','INT IDENTITY','pk'],
+  ['GroupID','INT','fk','→ SYS_CodeGroup'],
+  ['CodeValue','VARCHAR(50)',''],
+  ['CodeName','NVARCHAR(100)',''],
+  ['SortOrder','INT',''],
+  ['IsActive','BIT',''],
+]},
+// ── WH ──────────────────────────────────────
+{id:'WH_PurchaseOrder', mod:'WH', x:80, y:800, cols:[
+  ['POID','INT IDENTITY','pk'],
+  ['PONo','VARCHAR(30)','','SCM PO번호'],
+  ['CustomerID','INT','fk','→ MD_Customer'],
+  ['PODate','DATE',''],
+  ['ExpectedDate','DATE',''],
+  ['Status','VARCHAR(20)','','Pending/Partial/Done'],
+]},
+{id:'WH_PODetail', mod:'WH', x:340, y:800, cols:[
+  ['PODetailID','INT IDENTITY','pk'],
+  ['POID','INT','fk','→ WH_PurchaseOrder'],
+  ['ItemID','INT','fk','→ MD_Item'],
+  ['OrderQty','DECIMAL(10,2)',''],
+  ['ReceivedQty','DECIMAL(10,2)',''],
+]},
+{id:'WH_Receiving', mod:'WH', x:340, y:1020, cols:[
+  ['ReceivingID','INT IDENTITY','pk'],
+  ['PODetailID','INT','fk','→ WH_PODetail'],
+  ['LotNo','VARCHAR(30)',''],
+  ['ReceivedQty','DECIMAL(10,2)',''],
+  ['LocationID','INT','fk','→ MD_Location'],
+  ['ReceivedAt','DATETIME',''],
+  ['UserID','INT','fk','→ SYS_User'],
+]},
+{id:'WH_Inventory', mod:'WH', x:650, y:1020, cols:[
+  ['InventoryID','INT IDENTITY','pk'],
+  ['ItemID','INT','fk','→ MD_Item'],
+  ['LocationID','INT','fk','→ MD_Location'],
+  ['LotNo','VARCHAR(30)',''],
+  ['OnHandQty','DECIMAL(10,2)',''],
+  ['ReservedQty','DECIMAL(10,2)','','WO 예약량'],
+  ['AvailableQty','AS(OnHand-Reserved)','','Computed'],
+  ['UpdatedAt','DATETIME',''],
+]},
+{id:'WH_StockTx', mod:'WH', x:80, y:1020, cols:[
+  ['TxID','BIGINT IDENTITY','pk'],
+  ['ItemID','INT','fk','→ MD_Item'],
+  ['LocationID','INT','fk','→ MD_Location'],
+  ['LotNo','VARCHAR(30)',''],
+  ['TxType','VARCHAR(20)','','IN/OUT/ADJ/MOVE'],
+  ['Qty','DECIMAL(10,2)',''],
+  ['RefTable','VARCHAR(50)',''],
+  ['RefID','INT',''],
+  ['TxAt','DATETIME',''],
+  ['UserID','INT','fk','→ SYS_User'],
+]},
+// ── PP ──────────────────────────────────────
+{id:'PP_CustomerOrder', mod:'PP', x:80, y:1280, cols:[
+  ['OrderID','INT IDENTITY','pk'],
+  ['OrderNo','VARCHAR(30)','','SCM 수주번호'],
+  ['CustomerID','INT','fk','→ MD_Customer'],
+  ['OrderDate','DATE',''],
+  ['DueDate','DATE',''],
+  ['Status','VARCHAR(20)','','Open/InProg/Closed'],
+]},
+{id:'PP_OrderDetail', mod:'PP', x:340, y:1280, cols:[
+  ['OrderDetailID','INT IDENTITY','pk'],
+  ['OrderID','INT','fk','→ PP_CustomerOrder'],
+  ['ItemID','INT','fk','→ MD_Item'],
+  ['OrderQty','INT',''],
+  ['ConfirmedQty','INT',''],
+  ['ShippedQty','INT',''],
+]},
+{id:'PP_WorkOrder', mod:'PP', x:650, y:1280, cols:[
+  ['WOID','INT IDENTITY','pk'],
+  ['WONo','VARCHAR(30)','','UNIQUE'],
+  ['OrderDetailID','INT','fk','→ PP_OrderDetail'],
+  ['ItemID','INT','fk','→ MD_Item'],
+  ['PlanQty','INT',''],
+  ['PlanStartDate','DATE',''],
+  ['PlanEndDate','DATE',''],
+  ['Status','VARCHAR(20)','','Draft/Released/Closed'],
+  ['IsBlocked','BIT','','MRP 차단'],
+  ['BlockReason','NVARCHAR(200)',''],
+  ['ReleasedAt','DATETIME',''],
+  ['ReleasedBy','INT','fk','→ SYS_User'],
+]},
+{id:'PP_WOMaterial', mod:'PP', x:340, y:1500, cols:[
+  ['WOMaterialID','INT IDENTITY','pk'],
+  ['WOID','INT','fk','→ PP_WorkOrder'],
+  ['ItemID','INT','fk','→ MD_Item'],
+  ['RequiredQty','DECIMAL(10,4)',''],
+  ['IssuedQty','DECIMAL(10,4)',''],
+  ['Status','VARCHAR(20)','','Pending/Reserved/Issued'],
+]},
+{id:'PP_MRPLog', mod:'PP', x:650, y:1500, cols:[
+  ['MRPLogID','INT IDENTITY','pk'],
+  ['WOID','INT','fk','→ PP_WorkOrder'],
+  ['ItemID','INT','fk','→ MD_Item'],
+  ['RequiredQty','DECIMAL(10,2)',''],
+  ['StockQty','DECIMAL(10,2)',''],
+  ['ShortageQty','DECIMAL(10,2)',''],
+  ['RunAt','DATETIME',''],
+]},
+// ── Production (공통) ────────────────────────
+{id:'PR_ProductionResult', mod:'INJ', x:950, y:1020, cols:[
+  ['ResultID','INT IDENTITY','pk'],
+  ['WOID','INT','fk','→ PP_WorkOrder'],
+  ['ProcessCode','VARCHAR(10)','','INJ/IMG/PNT'],
+  ['WorkCenterID','INT','fk','→ MD_WorkCenter'],
+  ['LotNo','VARCHAR(30)',''],
+  ['PlanQty','INT',''],
+  ['GoodQty','INT',''],
+  ['DefectQty','INT',''],
+  ['StartTime','DATETIME',''],
+  ['EndTime','DATETIME',''],
+  ['Status','VARCHAR(20)','','Running/Done/Hold'],
+  ['UserID','INT','fk','→ SYS_User'],
+]},
+{id:'PR_DefectDetail', mod:'INJ', x:1200, y:1020, cols:[
+  ['DefectDetailID','INT IDENTITY','pk'],
+  ['ResultID','INT','fk','→ PR_ProductionResult'],
+  ['DefectCodeID','INT','fk','→ MD_DefectCode'],
+  ['DefectQty','INT',''],
+  ['Note','NVARCHAR(500)',''],
+]},
+{id:'PR_MaterialConsume', mod:'INJ', x:950, y:1280, cols:[
+  ['ConsumeID','INT IDENTITY','pk'],
+  ['ResultID','INT','fk','→ PR_ProductionResult'],
+  ['ItemID','INT','fk','→ MD_Item'],
+  ['LotNo','VARCHAR(30)',''],
+  ['ConsumedQty','DECIMAL(10,4)',''],
+  ['ConsumedAt','DATETIME',''],
+]},
+// ── INJ 전용 ─────────────────────────────────
+{id:'INJ_MoldShotLog', mod:'INJ', x:1200, y:1280, cols:[
+  ['ShotLogID','INT IDENTITY','pk'],
+  ['ResultID','INT','fk','→ PR_ProductionResult'],
+  ['EquipmentID','INT','fk','→ MNT_Equipment'],
+  ['ShotCount','INT',''],
+  ['CumShotCount','INT',''],
+  ['LoggedAt','DATETIME',''],
+]},
+// ── IMG 전용 ─────────────────────────────────
+{id:'IMG_FabricRoll', mod:'IMG', x:950, y:800, cols:[
+  ['RollID','INT IDENTITY','pk'],
+  ['RollCode','VARCHAR(30)','','QR 스캔'],
+  ['ItemID','INT','fk','→ MD_Item'],
+  ['ColorCode','VARCHAR(20)',''],
+  ['OriginalQty','DECIMAL(10,2)',''],
+  ['RemainQty','DECIMAL(10,2)',''],
+  ['LocationID','INT','fk','→ MD_Location'],
+  ['Status','VARCHAR(20)',''],
+]},
+{id:'IMG_RollConsume', mod:'IMG', x:1200, y:800, cols:[
+  ['RollConsumeID','INT IDENTITY','pk'],
+  ['ResultID','INT','fk','→ PR_ProductionResult'],
+  ['RollID','INT','fk','→ IMG_FabricRoll'],
+  ['ConsumedQty','DECIMAL(10,2)',''],
+  ['ConsumedAt','DATETIME',''],
+]},
+// ── PNT 전용 ─────────────────────────────────
+{id:'PNT_ProcessStep', mod:'PNT', x:950, y:580, cols:[
+  ['StepLogID','INT IDENTITY','pk'],
+  ['ResultID','INT','fk','→ PR_ProductionResult'],
+  ['StepSeq','TINYINT','','1~5'],
+  ['StepName','VARCHAR(30)',''],
+  ['StartTime','DATETIME',''],
+  ['EndTime','DATETIME',''],
+  ['OvenTempSet','DECIMAL(5,1)',''],
+  ['OvenTempActual','DECIMAL(5,1)',''],
+  ['IsDeviated','BIT','','온도이탈'],
+  ['UserID','INT','fk','→ SYS_User'],
+]},
+{id:'PNT_OvenLog', mod:'PNT', x:1200, y:580, cols:[
+  ['OvenLogID','BIGINT IDENTITY','pk'],
+  ['StepLogID','INT','fk','→ PNT_ProcessStep'],
+  ['LoggedAt','DATETIME',''],
+  ['Temperature','DECIMAL(5,1)',''],
+  ['Humidity','DECIMAL(5,1)',''],
+  ['IsAlarm','BIT',''],
+]},
+// ── QC ──────────────────────────────────────
+{id:'QC_Inspection', mod:'QC', x:1450, y:1020, cols:[
+  ['InspectionID','INT IDENTITY','pk'],
+  ['ResultID','INT','fk','→ PR_ProductionResult'],
+  ['WOID','INT','fk','→ PP_WorkOrder'],
+  ['StdID','INT','fk','→ MD_InspectStd'],
+  ['Gate','TINYINT','','1/2/3'],
+  ['InspectedQty','INT',''],
+  ['PassQty','INT',''],
+  ['FailQty','INT',''],
+  ['Result','VARCHAR(10)','','PASS/FAIL'],
+  ['EnhancedFlag','BIT',''],
+  ['InspectorID','INT','fk','→ SYS_User'],
+  ['InspectedAt','DATETIME',''],
+]},
+{id:'QC_DefectItem', mod:'QC', x:1450, y:1280, cols:[
+  ['QCDefectID','INT IDENTITY','pk'],
+  ['InspectionID','INT','fk','→ QC_Inspection'],
+  ['DefectCodeID','INT','fk','→ MD_DefectCode'],
+  ['Qty','INT',''],
+  ['Note','NVARCHAR(500)',''],
+]},
+{id:'QC_EnhancedRule', mod:'QC', x:1200, y:1500, cols:[
+  ['RuleID','INT IDENTITY','pk'],
+  ['ItemID','INT','fk','→ MD_Item'],
+  ['ConsecFailCount','INT','','연속불량 임계'],
+  ['EnhancedSampleRate','DECIMAL(5,2)',''],
+  ['IsActive','BIT',''],
+]},
+// ── FG ──────────────────────────────────────
+{id:'FG_Stock', mod:'FG', x:1450, y:800, cols:[
+  ['FGStockID','INT IDENTITY','pk'],
+  ['ItemID','INT','fk','→ MD_Item'],
+  ['LocationID','INT','fk','→ MD_Location'],
+  ['LotNo','VARCHAR(30)',''],
+  ['OnHandQty','INT',''],
+  ['InboundDate','DATE','','FIFO 기준'],
+  ['QCInspectionID','INT','fk','→ QC_Inspection'],
+]},
+{id:'FG_Shipment', mod:'FG', x:1700, y:800, cols:[
+  ['ShipmentID','INT IDENTITY','pk'],
+  ['OrderDetailID','INT','fk','→ PP_OrderDetail'],
+  ['ShipDate','DATETIME',''],
+  ['DeliveryNoteNo','VARCHAR(30)',''],
+  ['Status','VARCHAR(20)','','Plan/Done'],
+  ['UserID','INT','fk','→ SYS_User'],
+]},
+{id:'FG_ShipmentDetail', mod:'FG', x:1700, y:1020, cols:[
+  ['ShipDetailID','INT IDENTITY','pk'],
+  ['ShipmentID','INT','fk','→ FG_Shipment'],
+  ['FGStockID','INT','fk','→ FG_Stock'],
+  ['ShipQty','INT',''],
+]},
+// ── MNT ──────────────────────────────────────
+{id:'MNT_Equipment', mod:'MNT', x:80, y:580, cols:[
+  ['EquipmentID','INT IDENTITY','pk'],
+  ['WorkCenterID','INT','fk','→ MD_WorkCenter'],
+  ['EqCode','VARCHAR(20)',''],
+  ['EqName','NVARCHAR(100)',''],
+  ['MoldShotLimit','INT','','금형 한계'],
+  ['CurrentShotCount','INT',''],
+  ['Status','VARCHAR(20)','','Active/PM/Blocked'],
+  ['InstallDate','DATE',''],
+]},
+{id:'MNT_PMSchedule', mod:'MNT', x:80, y:800, cols:[  // will shift
+  ['PMScheduleID','INT IDENTITY','pk'],
+  ['EquipmentID','INT','fk','→ MNT_Equipment'],
+  ['PlannedDate','DATE',''],
+  ['PMType','VARCHAR(20)','','Daily/Weekly/Monthly'],
+  ['Description','NVARCHAR(500)',''],
+  ['Status','VARCHAR(20)','','Plan/Done/Overdue'],
+  ['CompletedAt','DATETIME',''],
+  ['CompletedBy','INT','fk','→ SYS_User'],
+]},
+{id:'MNT_BreakDown', mod:'MNT', x:340, y:600, cols:[
+  ['BDID','INT IDENTITY','pk'],
+  ['EquipmentID','INT','fk','→ MNT_Equipment'],
+  ['OccurredAt','DATETIME',''],
+  ['RestoredAt','DATETIME',''],
+  ['Cause','NVARCHAR(500)',''],
+  ['DowntimeMin','AS(DATEDIFF)','','Computed'],
+  ['UserID','INT','fk','→ SYS_User'],
+]},
+{id:'MNT_OEELog', mod:'MNT', x:340, y:800, cols:[
+  ['OEELogID','INT IDENTITY','pk'],
+  ['EquipmentID','INT','fk','→ MNT_Equipment'],
+  ['LogDate','DATE',''],
+  ['PlannedTime','INT','','분'],
+  ['RunTime','INT','','분'],
+  ['Availability','DECIMAL(5,2)',''],
+  ['Performance','DECIMAL(5,2)',''],
+  ['Quality','DECIMAL(5,2)',''],
+  ['OEE','AS(A*P*Q)','','Computed'],
+]},
+];
+
+// FK relations [fromTable, fromCol, toTable]
+const RELATIONS = [
+  // MD internal
+  ['MD_Item','CustomerID','MD_Customer'],
+  ['MD_BOM','ParentItemID','MD_Item'],
+  ['MD_BOM','ChildItemID','MD_Item'],
+  ['MD_BOP','ItemID','MD_Item'],
+  ['MD_BOP','WorkCenterID','MD_WorkCenter'],
+  ['MD_InspectStd','ItemID','MD_Item'],
+  // SYS
+  ['SYS_User','RoleID','SYS_Role'],
+  ['SYS_RoleMenu','RoleID','SYS_Role'],
+  ['SYS_RoleMenu','MenuID','SYS_Menu'],
+  ['SYS_AuditLog','UserID','SYS_User'],
+  ['SYS_Code','GroupID','SYS_CodeGroup'],
+  // WH
+  ['WH_PurchaseOrder','CustomerID','MD_Customer'],
+  ['WH_PODetail','POID','WH_PurchaseOrder'],
+  ['WH_PODetail','ItemID','MD_Item'],
+  ['WH_Receiving','PODetailID','WH_PODetail'],
+  ['WH_Receiving','LocationID','MD_Location'],
+  ['WH_Receiving','UserID','SYS_User'],
+  ['WH_Inventory','ItemID','MD_Item'],
+  ['WH_Inventory','LocationID','MD_Location'],
+  ['WH_StockTx','ItemID','MD_Item'],
+  ['WH_StockTx','LocationID','MD_Location'],
+  ['WH_StockTx','UserID','SYS_User'],
+  // PP
+  ['PP_CustomerOrder','CustomerID','MD_Customer'],
+  ['PP_OrderDetail','OrderID','PP_CustomerOrder'],
+  ['PP_OrderDetail','ItemID','MD_Item'],
+  ['PP_WorkOrder','OrderDetailID','PP_OrderDetail'],
+  ['PP_WorkOrder','ItemID','MD_Item'],
+  ['PP_WorkOrder','ReleasedBy','SYS_User'],
+  ['PP_WOMaterial','WOID','PP_WorkOrder'],
+  ['PP_WOMaterial','ItemID','MD_Item'],
+  ['PP_MRPLog','WOID','PP_WorkOrder'],
+  ['PP_MRPLog','ItemID','MD_Item'],
+  // Production
+  ['PR_ProductionResult','WOID','PP_WorkOrder'],
+  ['PR_ProductionResult','WorkCenterID','MD_WorkCenter'],
+  ['PR_ProductionResult','UserID','SYS_User'],
+  ['PR_DefectDetail','ResultID','PR_ProductionResult'],
+  ['PR_DefectDetail','DefectCodeID','MD_DefectCode'],
+  ['PR_MaterialConsume','ResultID','PR_ProductionResult'],
+  ['PR_MaterialConsume','ItemID','MD_Item'],
+  // INJ
+  ['INJ_MoldShotLog','ResultID','PR_ProductionResult'],
+  ['INJ_MoldShotLog','EquipmentID','MNT_Equipment'],
+  // IMG
+  ['IMG_FabricRoll','ItemID','MD_Item'],
+  ['IMG_FabricRoll','LocationID','MD_Location'],
+  ['IMG_RollConsume','ResultID','PR_ProductionResult'],
+  ['IMG_RollConsume','RollID','IMG_FabricRoll'],
+  // PNT
+  ['PNT_ProcessStep','ResultID','PR_ProductionResult'],
+  ['PNT_ProcessStep','UserID','SYS_User'],
+  ['PNT_OvenLog','StepLogID','PNT_ProcessStep'],
+  // QC
+  ['QC_Inspection','ResultID','PR_ProductionResult'],
+  ['QC_Inspection','WOID','PP_WorkOrder'],
+  ['QC_Inspection','StdID','MD_InspectStd'],
+  ['QC_Inspection','InspectorID','SYS_User'],
+  ['QC_DefectItem','InspectionID','QC_Inspection'],
+  ['QC_DefectItem','DefectCodeID','MD_DefectCode'],
+  ['QC_EnhancedRule','ItemID','MD_Item'],
+  // FG
+  ['FG_Stock','ItemID','MD_Item'],
+  ['FG_Stock','LocationID','MD_Location'],
+  ['FG_Stock','QCInspectionID','QC_Inspection'],
+  ['FG_Shipment','OrderDetailID','PP_OrderDetail'],
+  ['FG_Shipment','UserID','SYS_User'],
+  ['FG_ShipmentDetail','ShipmentID','FG_Shipment'],
+  ['FG_ShipmentDetail','FGStockID','FG_Stock'],
+  // MNT
+  ['MNT_Equipment','WorkCenterID','MD_WorkCenter'],
+  ['MNT_PMSchedule','EquipmentID','MNT_Equipment'],
+  ['MNT_PMSchedule','CompletedBy','SYS_User'],
+  ['MNT_BreakDown','EquipmentID','MNT_Equipment'],
+  ['MNT_BreakDown','UserID','SYS_User'],
+  ['MNT_OEELog','EquipmentID','MNT_Equipment'],
+];
+
+// ─────────────────────────────────────────────
+//  LAYOUT POSITIONS (manually tuned grid)
+// ─────────────────────────────────────────────
+const LAYOUT = {
+  'MD_Customer':      {x:120,  y:80},
+  'MD_Item':          {x:380,  y:80},
+  'MD_BOM':           {x:680,  y:80},
+  'MD_BOP':           {x:380,  y:380},
+  'MD_WorkCenter':    {x:120,  y:380},
+  'MD_Location':      {x:680,  y:380},
+  'MD_DefectCode':    {x:680,  y:620},
+  'MD_InspectStd':    {x:380,  y:620},
+
+  'SYS_Role':         {x:1820, y:80},
+  'SYS_User':         {x:1580, y:80},
+  'SYS_Menu':         {x:1820, y:320},
+  'SYS_RoleMenu':     {x:1580, y:320},
+  'SYS_AuditLog':     {x:1580, y:540},
+  'SYS_CodeGroup':    {x:1820, y:540},
+  'SYS_Code':         {x:1820, y:720},
+
+  'WH_PurchaseOrder': {x:120,  y:840},
+  'WH_PODetail':      {x:380,  y:840},
+  'WH_Receiving':     {x:380,  y:1060},
+  'WH_Inventory':     {x:680,  y:1060},
+  'WH_StockTx':       {x:120,  y:1060},
+
+  'PP_CustomerOrder': {x:120,  y:1320},
+  'PP_OrderDetail':   {x:380,  y:1320},
+  'PP_WorkOrder':     {x:680,  y:1320},
+  'PP_WOMaterial':    {x:380,  y:1560},
+  'PP_MRPLog':        {x:680,  y:1560},
+
+  'PR_ProductionResult': {x:980,  y:1060},
+  'PR_DefectDetail':     {x:1240, y:1060},
+  'PR_MaterialConsume':  {x:980,  y:1320},
+
+  'INJ_MoldShotLog':  {x:1240, y:1320},
+
+  'IMG_FabricRoll':   {x:980,  y:820},
+  'IMG_RollConsume':  {x:1240, y:820},
+
+  'PNT_ProcessStep':  {x:980,  y:580},
+  'PNT_OvenLog':      {x:1240, y:580},
+
+  'QC_Inspection':    {x:1480, y:1060},
+  'QC_DefectItem':    {x:1480, y:1320},
+  'QC_EnhancedRule':  {x:1240, y:1560},
+
+  'FG_Stock':         {x:1480, y:820},
+  'FG_Shipment':      {x:1720, y:820},
+  'FG_ShipmentDetail':{x:1720, y:1060},
+
+  'MNT_Equipment':    {x:120,  y:600},
+  'MNT_PMSchedule':   {x:120,  y:840},  // same row as WH_PO → adjust
+  'MNT_BreakDown':    {x:380,  y:600},
+  'MNT_OEELog':       {x:380,  y:840},
+};
+
+// Apply layout
+TABLES.forEach(t => {
+  if(LAYOUT[t.id]){t.x=LAYOUT[t.id].x; t.y=LAYOUT[t.id].y}
+});
+
+// ─────────────────────────────────────────────
+//  CANVAS ENGINE
+// ─────────────────────────────────────────────
+const canvas = document.getElementById('erd');
+const ctx = canvas.getContext('2d');
+const mini = document.getElementById('mini');
+const mctx = mini.getContext('2d');
+const wrap = document.getElementById('canvas-wrap');
+
+let W, H;
+let tx=0, ty=0, scale=1;
+let dragging=false, lastX=0, lastY=0;
+let hoveredTable=null, selectedTable=null;
+let activeModules = new Set(['MD','WH','PP','INJ','IMG','PNT','QC','FG','MNT','SYS']);
+
+const ROW_H = 18, HDR_H = 28, PAD = 10, TW = 220;
+
+function resize(){
+  W = wrap.clientWidth; H = wrap.clientHeight;
+  canvas.width=W; canvas.height=H;
+  mini.width=160; mini.height=100;
+  draw();
+}
+
+function tableHeight(t){ return HDR_H + t.cols.length*ROW_H + PAD }
+
+function tableRect(t){
+  return {x:t.x, y:t.y, w:TW, h:tableHeight(t)};
+}
+
+function worldToScreen(wx,wy){ return {x:wx*scale+tx, y:wy*scale+ty} }
+function screenToWorld(sx,sy){ return {x:(sx-tx)/scale, y:(sy-ty)/scale} }
+
+function visibleTables(){
+  return TABLES.filter(t=>{
+    const mods = t.mod.split(' ');
+    return mods.some(m=>activeModules.has(m));
+  });
+}
+
+// Get center-right or center-left port of a table
+function portRight(t){ return {x:t.x+TW, y:t.y+HDR_H/2+4} }
+function portLeft(t){  return {x:t.x,    y:t.y+HDR_H/2+4} }
+function portBottom(t){return {x:t.x+TW/2, y:t.y+tableHeight(t)} }
+function portTop(t){   return {x:t.x+TW/2, y:t.y} }
+
+function getBestPorts(from, to){
+  const fc = {x:from.x+TW/2, y:from.y+tableHeight(from)/2};
+  const tc = {x:to.x+TW/2,   y:to.y+tableHeight(to)/2};
+  const dx = tc.x - fc.x, dy = tc.y - fc.y;
+  if(Math.abs(dx)>Math.abs(dy)){
+    if(dx>0) return [portRight(from), portLeft(to)];
+    return [portLeft(from), portRight(to)];
+  } else {
+    if(dy>0) return [portBottom(from), portTop(to)];
+    return [portTop(from), portBottom(to)];
+  }
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // background grid
+  ctx.save();
+  ctx.strokeStyle='#0d1520';
+  ctx.lineWidth=1;
+  const gs=40*scale, ox=tx%gs, oy=ty%gs;
+  for(let x=ox;x<W;x+=gs){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
+  for(let y=oy;y<H;y+=gs){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(tx,ty);
+  ctx.scale(scale,scale);
+
+  const vtables = visibleTables();
+  const vtableIds = new Set(vtables.map(t=>t.id));
+  const tMap = {};
+  TABLES.forEach(t=>tMap[t.id]=t);
+
+  // Draw relations first (behind tables)
+  const highlightIds = selectedTable ? getConnectedIds(selectedTable) : null;
+
+  RELATIONS.forEach(([ft,fc,tt])=>{
+    if(!vtableIds.has(ft)||!vtableIds.has(tt)) return;
+    const from=tMap[ft], to=tMap[tt];
+    const isHighlight = highlightIds && (highlightIds.has(ft)||highlightIds.has(tt));
+    const isDim = highlightIds && !isHighlight;
+    const [p1,p2] = getBestPorts(from,to);
+
+    ctx.save();
+    ctx.globalAlpha = isDim ? 0.08 : isHighlight ? 1 : 0.35;
+    ctx.strokeStyle = isHighlight ? '#818cf8' : '#334155';
+    ctx.lineWidth = isHighlight ? 1.5/scale : 1/scale;
+    ctx.setLineDash(isHighlight?[]:[3,3]);
+
+    // bezier curve
+    const mx=(p1.x+p2.x)/2;
+    ctx.beginPath();
+    if(Math.abs(p1.x-p2.x)>Math.abs(p1.y-p2.y)*0.5){
+      ctx.moveTo(p1.x,p1.y);
+      ctx.bezierCurveTo(mx,p1.y, mx,p2.y, p2.x,p2.y);
+    } else {
+      const my=(p1.y+p2.y)/2;
+      ctx.moveTo(p1.x,p1.y);
+      ctx.bezierCurveTo(p1.x,my, p2.x,my, p2.x,p2.y);
+    }
+    ctx.stroke();
+
+    // arrow head at p2
+    if(isHighlight || !highlightIds){
+      const dx=p2.x-p1.x, dy=p2.y-p1.y;
+      const len=Math.sqrt(dx*dx+dy*dy)||1;
+      const ux=dx/len, uy=dy/len;
+      const as=6/scale;
+      ctx.setLineDash([]);
+      ctx.fillStyle=ctx.strokeStyle;
+      ctx.beginPath();
+      ctx.moveTo(p2.x, p2.y);
+      ctx.lineTo(p2.x-ux*as+uy*as*0.5, p2.y-uy*as-ux*as*0.5);
+      ctx.lineTo(p2.x-ux*as-uy*as*0.5, p2.y-uy*as+ux*as*0.5);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  });
+
+  // Draw tables
+  vtables.forEach(t=>{
+    const color = MOD_COLOR[t.mod.split(' ')[0]] || '#64748b';
+    const h = tableHeight(t);
+    const isHovered = hoveredTable===t.id;
+    const isSelected = selectedTable===t.id;
+    const isDim = highlightIds && !highlightIds.has(t.id);
+
+    ctx.save();
+    ctx.globalAlpha = isDim ? 0.15 : 1;
+
+    // Shadow
+    if(isSelected||isHovered){
+      ctx.shadowColor=color;
+      ctx.shadowBlur=12;
+    }
+
+    // Body
+    ctx.fillStyle='#0d1520';
+    ctx.strokeStyle = isSelected ? color : isHovered ? color+'88' : '#1a2535';
+    ctx.lineWidth = isSelected ? 1.5/scale : 1/scale;
+    roundRect(ctx, t.x, t.y, TW, h, 6/scale);
+    ctx.fill(); ctx.stroke();
+    ctx.shadowBlur=0;
+
+    // Header
+    ctx.fillStyle=color+'22';
+    roundRectTop(ctx, t.x, t.y, TW, HDR_H, 6/scale);
+    ctx.fill();
+    // Header accent line
+    ctx.fillStyle=color;
+    ctx.fillRect(t.x, t.y, TW, 2/scale);
+
+    // Module badge
+    const mod = t.mod.split(' ')[0];
+    const fs = Math.max(8, 9/scale);
+    ctx.font=`700 ${fs}px JetBrains Mono`;
+    ctx.fillStyle=color;
+    ctx.fillText(mod, t.x+PAD/scale, t.y+HDR_H*0.62);
+
+    // Table name
+    const nfs = Math.max(9, 11/scale);
+    ctx.font=`700 ${nfs}px Syne`;
+    ctx.fillStyle='#e2eaf8';
+    const modW = ctx.measureText(mod).width+6/scale;
+    ctx.fillText(t.id, t.x+PAD/scale+modW, t.y+HDR_H*0.65);
+
+    // Columns
+    t.cols.forEach((col,i)=>{
+      const cy = t.y + HDR_H + i*ROW_H;
+      const [name,type,flag,note] = col;
+      const cfs = Math.max(7,9.5/scale);
+      ctx.font=`${cfs}px JetBrains Mono`;
+
+      // row bg on hover
+      if(isHovered || isSelected){
+        ctx.fillStyle='#ffffff05';
+        ctx.fillRect(t.x, cy, TW, ROW_H);
+      }
+
+      // left accent for pk/fk
+      if(flag==='pk'){
+        ctx.fillStyle='#f59e0b';
+        ctx.fillRect(t.x, cy+2/scale, 2/scale, ROW_H-4/scale);
+        ctx.font=`600 ${cfs}px JetBrains Mono`;
+        ctx.fillStyle='#f59e0b88';
+        ctx.fillText('PK', t.x+4/scale, cy+ROW_H*0.72);
+      } else if(flag==='fk'){
+        ctx.fillStyle='#818cf8';
+        ctx.fillRect(t.x, cy+2/scale, 2/scale, ROW_H-4/scale);
+        ctx.font=`${cfs}px JetBrains Mono`;
+        ctx.fillStyle='#818cf888';
+        ctx.fillText('FK', t.x+4/scale, cy+ROW_H*0.72);
+      }
+
+      // col name
+      const nameX = t.x+26/scale;
+      ctx.font=`${flag==='pk'?'700':'400'} ${cfs}px JetBrains Mono`;
+      ctx.fillStyle = flag==='pk' ? '#fcd34d' : flag==='fk' ? '#a5b4fc' : '#c9d8f0';
+      ctx.fillText(name, nameX, cy+ROW_H*0.72);
+
+      // type (right-aligned)
+      ctx.font=`${cfs}px JetBrains Mono`;
+      ctx.fillStyle='#2a4060';
+      const typeW = ctx.measureText(type).width;
+      ctx.fillText(type, t.x+TW-typeW-PAD/scale, cy+ROW_H*0.72);
+    });
+
+    ctx.restore();
+  });
+
+  ctx.restore();
+
+  drawMinimap(vtables, vtableIds);
+  document.getElementById('zoom-info').textContent=`zoom: ${Math.round(scale*100)}%`;
+}
+
+function getConnectedIds(tid){
+  const ids = new Set([tid]);
+  RELATIONS.forEach(([ft,fc,tt])=>{
+    if(ft===tid) ids.add(tt);
+    if(tt===tid) ids.add(ft);
+  });
+  return ids;
+}
+
+function roundRect(c,x,y,w,h,r){
+  c.beginPath();
+  c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
+  c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
+  c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y);
+  c.closePath();
+}
+function roundRectTop(c,x,y,w,h,r){
+  c.beginPath();
+  c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
+  c.lineTo(x+w,y+h); c.lineTo(x,y+h); c.lineTo(x,y+r);
+  c.quadraticCurveTo(x,y,x+r,y); c.closePath();
+}
+
+// ── Minimap ──
+function drawMinimap(vtables){
+  mctx.clearRect(0,0,160,100);
+  mctx.fillStyle='#07090f';
+  mctx.fillRect(0,0,160,100);
+  // find bounds
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  vtables.forEach(t=>{
+    minX=Math.min(minX,t.x); minY=Math.min(minY,t.y);
+    maxX=Math.max(maxX,t.x+TW); maxY=Math.max(maxY,t.y+tableHeight(t));
+  });
+  const bw=maxX-minX||1, bh=maxY-minY||1;
+  const ms=Math.min(156/bw,96/bh);
+  vtables.forEach(t=>{
+    const color=MOD_COLOR[t.mod.split(' ')[0]]||'#64748b';
+    mctx.fillStyle=color+'55';
+    mctx.fillRect(2+(t.x-minX)*ms, 2+(t.y-minY)*ms, TW*ms, tableHeight(t)*ms);
+  });
+  // viewport rect
+  const vx=(-tx/scale-minX)*ms+2, vy=(-ty/scale-minY)*ms+2;
+  const vw=(W/scale)*ms, vh=(H/scale)*ms;
+  mctx.strokeStyle='#38bdf8';
+  mctx.lineWidth=1;
+  mctx.strokeRect(vx,vy,vw,vh);
+}
+
+// ── Fit view ──
+function fitView(){
+  const vtables=visibleTables();
+  if(!vtables.length) return;
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  vtables.forEach(t=>{
+    minX=Math.min(minX,t.x); minY=Math.min(minY,t.y);
+    maxX=Math.max(maxX,t.x+TW); maxY=Math.max(maxY,t.y+tableHeight(t));
+  });
+  const bw=maxX-minX, bh=maxY-minY;
+  const margin=60;
+  scale=Math.min((W-margin*2)/bw,(H-margin*2)/bh,1.2);
+  tx=(W-(bw*scale))/2-minX*scale;
+  ty=(H-(bh*scale))/2-minY*scale;
+  draw();
+}
+
+// ── Events ──
+canvas.addEventListener('mousedown',e=>{
+  dragging=true; lastX=e.clientX; lastY=e.clientY;
+  canvas.classList.add('grabbing');
+  // check click on table
+  const {x,y}=screenToWorld(e.offsetX,e.offsetY);
+  let hit=null;
+  visibleTables().forEach(t=>{
+    if(x>=t.x&&x<=t.x+TW&&y>=t.y&&y<=t.y+tableHeight(t)) hit=t.id;
+  });
+  if(hit){
+    selectedTable = selectedTable===hit ? null : hit;
+    showTooltip(hit, e.clientX, e.clientY);
+    draw(); return;
+  }
+  selectedTable=null;
+  hideTooltip();
+});
+
+canvas.addEventListener('mousemove',e=>{
+  if(dragging){
+    tx+=e.clientX-lastX; ty+=e.clientY-lastY;
+    lastX=e.clientX; lastY=e.clientY;
+    draw(); return;
+  }
+  const {x,y}=screenToWorld(e.offsetX,e.offsetY);
+  let hit=null;
+  visibleTables().forEach(t=>{
+    if(x>=t.x&&x<=t.x+TW&&y>=t.y&&y<=t.y+tableHeight(t)) hit=t.id;
+  });
+  if(hit!==hoveredTable){ hoveredTable=hit; draw(); }
+});
+
+canvas.addEventListener('mouseup',()=>{ dragging=false; canvas.classList.remove('grabbing'); });
+canvas.addEventListener('mouseleave',()=>{ dragging=false; canvas.classList.remove('grabbing'); });
+
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const {x,y}=screenToWorld(e.offsetX,e.offsetY);
+  const factor = e.deltaY<0?1.12:1/1.12;
+  scale=Math.max(0.1,Math.min(3,scale*factor));
+  tx=e.offsetX-x*scale; ty=e.offsetY-y*scale;
+  draw();
+},{passive:false});
+
+// Touch support
+let lastDist=0;
+canvas.addEventListener('touchstart',e=>{
+  if(e.touches.length===1){ dragging=true; lastX=e.touches[0].clientX; lastY=e.touches[0].clientY; }
+  if(e.touches.length===2){ lastDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); }
+});
+canvas.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  if(e.touches.length===1&&dragging){
+    tx+=e.touches[0].clientX-lastX; ty+=e.touches[0].clientY-lastY;
+    lastX=e.touches[0].clientX; lastY=e.touches[0].clientY; draw();
+  }
+  if(e.touches.length===2){
+    const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    scale=Math.max(0.1,Math.min(3,scale*(d/lastDist))); lastDist=d; draw();
+  }
+},{passive:false});
+canvas.addEventListener('touchend',()=>dragging=false);
+
+// Tooltip
+const tooltip=document.getElementById('tooltip');
+function showTooltip(tid, mx, my){
+  const t=TABLES.find(t=>t.id===tid); if(!t) return;
+  const color=MOD_COLOR[t.mod.split(' ')[0]]||'#64748b';
+  const rels=RELATIONS.filter(([ft,fc,tt])=>ft===tid||tt===tid);
+  let html=`<div class="tt-tbl" style="color:${color}">${t.id}</div>`;
+  html+=`<div style="font-size:9px;color:#2a4060;margin-bottom:6px">${rels.length} relation(s)</div>`;
+  rels.slice(0,6).forEach(([ft,fc,tt])=>{
+    const dir=ft===tid?'→':'←';
+    const other=ft===tid?tt:ft;
+    html+=`<div style="font-size:9px;color:#4a6080">${dir} <span style="color:#818cf8">${other}</span></div>`;
+  });
+  if(rels.length>6) html+=`<div style="font-size:9px;color:#2a4060">+${rels.length-6} more</div>`;
+  tooltip.innerHTML=html;
+  tooltip.style.display='block';
+  const tw=tooltip.offsetWidth, th=tooltip.offsetHeight;
+  let lx=mx+12, ly=my-10;
+  if(lx+tw>window.innerWidth-10) lx=mx-tw-12;
+  if(ly+th>window.innerHeight-10) ly=my-th;
+  tooltip.style.left=lx+'px'; tooltip.style.top=ly+'px';
+}
+function hideTooltip(){ tooltip.style.display='none'; }
+
+// Filters
+document.getElementById('filters').addEventListener('click',e=>{
+  const chip=e.target.closest('.f-chip'); if(!chip) return;
+  const mod=chip.dataset.mod;
+  if(mod==='ALL'){
+    const allOn=[...activeModules].length===Object.keys(MOD_COLOR).length;
+    if(allOn){ activeModules.clear(); document.querySelectorAll('.f-chip:not([data-mod=ALL])').forEach(c=>c.classList.remove('on')); chip.classList.remove('on'); }
+    else{ Object.keys(MOD_COLOR).forEach(m=>activeModules.add(m)); document.querySelectorAll('.f-chip').forEach(c=>c.classList.add('on')); }
+  } else {
+    chip.classList.toggle('on');
+    if(activeModules.has(mod)) activeModules.delete(mod); else activeModules.add(mod);
+  }
+  draw();
+});
+
+document.getElementById('btn-fit').addEventListener('click',fitView);
+document.getElementById('btn-reset').addEventListener('click',()=>{scale=1;tx=0;ty=0;draw();});
+
+window.addEventListener('resize',resize);
+resize();
+setTimeout(fitView,100);
+</script>
+</body>
+</html>

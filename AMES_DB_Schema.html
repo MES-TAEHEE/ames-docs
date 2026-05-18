@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A-MES Database Schema</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#060a10;--surface:#0d1520;--border:#1a2535;--border2:#243048;
+  --text:#c9d8f0;--muted:#4a6080;--dim:#2a3a50;
+  --c-wh:#06b6d4;--c-pp:#10b981;--c-inj:#3b82f6;--c-img:#8b5cf6;
+  --c-pnt:#f97316;--c-qc:#ef4444;--c-fg:#22c55e;--c-mnt:#0ea5e9;
+  --c-rpt:#818cf8;--c-sys:#64748b;--c-md:#f59e0b;--c-common:#94a3b8;
+}
+body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;min-height:100vh;overflow-x:hidden;}
+
+/* ── Header ── */
+header{padding:28px 32px 20px;border-bottom:1px solid var(--border2);display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;}
+.h-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:#e2eaf8;letter-spacing:-0.5px;}
+.h-title span{color:var(--c-wh);}
+.h-sub{font-size:11px;color:var(--muted);margin-left:auto;}
+
+/* ── Legend ── */
+.legend{display:flex;flex-wrap:wrap;gap:8px;padding:14px 32px;border-bottom:1px solid var(--border);}
+.leg{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);cursor:pointer;padding:3px 8px;border-radius:4px;border:1px solid transparent;transition:all .15s;}
+.leg:hover,.leg.active{border-color:var(--lc);color:var(--text);}
+.leg-dot{width:8px;height:8px;border-radius:50%;background:var(--lc);}
+
+/* ── Layout ── */
+.wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1px;background:var(--border);}
+
+/* ── Table Card ── */
+.tbl-card{background:var(--surface);padding:0;}
+.tbl-head{padding:10px 14px 8px;border-bottom:1px solid var(--border2);display:flex;align-items:center;gap:8px;}
+.tbl-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:.5px;opacity:.9;}
+.tbl-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#e2eaf8;}
+.tbl-ko{font-size:10px;color:var(--muted);margin-left:auto;}
+.tbl-body{padding:6px 0;}
+.col-row{display:grid;grid-template-columns:20px 1fr 90px 60px;gap:4px;padding:3px 14px;align-items:center;border-left:2px solid transparent;transition:background .1s;}
+.col-row:hover{background:var(--dim);}
+.col-row.pk{border-left-color:#f59e0b;}
+.col-row.fk{border-left-color:#818cf8;}
+.col-icon{font-size:9px;color:var(--muted);text-align:center;}
+.col-icon.pk{color:#f59e0b;}
+.col-icon.fk{color:#818cf8;}
+.col-name{color:var(--text);font-weight:600;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.col-type{color:var(--muted);font-size:10px;text-align:right;}
+.col-note{font-size:9px;color:#3a5070;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.col-sep{height:1px;background:var(--border);margin:4px 14px;}
+.col-row.idx .col-name{color:var(--muted);}
+
+/* ── Section Headers ── */
+.section-header{grid-column:1/-1;background:var(--bg);border-bottom:2px solid;padding:10px 20px;display:flex;align-items:center;gap:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;text-transform:uppercase;}
+.section-header .s-dot{width:10px;height:10px;border-radius:50%;}
+
+/* ── FK Lines overlay hint ── */
+.fk-hint{display:flex;align-items:center;gap:4px;padding:2px 14px 4px;font-size:9px;color:#2a4060;}
+.fk-hint span{color:#3d5580;}
+
+/* ── Filter active dim ── */
+.tbl-card.dimmed{opacity:.15;pointer-events:none;}
+.tbl-card.highlighted{outline:1px solid var(--hl);}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="h-title">A-<span>MES</span> Database Schema</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:3px">MSSQL · .NET · 자동차 부품 MES · 간략 설계도</div>
+  </div>
+  <div class="h-sub">
+    <span style="color:#f59e0b">■</span> PK &nbsp;
+    <span style="color:#818cf8">■</span> FK &nbsp;
+    클릭: 모듈 필터
+  </div>
+</header>
+
+<div class="legend" id="legend">
+  <div class="leg active" data-mod="ALL" style="--lc:#94a3b8"><div class="leg-dot"></div>ALL</div>
+  <div class="leg" data-mod="MD"  style="--lc:#f59e0b"><div class="leg-dot"></div>MD 기준정보</div>
+  <div class="leg" data-mod="WH"  style="--lc:#06b6d4"><div class="leg-dot"></div>WH 창고</div>
+  <div class="leg" data-mod="PP"  style="--lc:#10b981"><div class="leg-dot"></div>PP 생산계획</div>
+  <div class="leg" data-mod="INJ" style="--lc:#3b82f6"><div class="leg-dot"></div>INJ 사출</div>
+  <div class="leg" data-mod="IMG" style="--lc:#8b5cf6"><div class="leg-dot"></div>IMG 감싸기</div>
+  <div class="leg" data-mod="PNT" style="--lc:#f97316"><div class="leg-dot"></div>PNT 도장</div>
+  <div class="leg" data-mod="QC"  style="--lc:#ef4444"><div class="leg-dot"></div>QC 품질</div>
+  <div class="leg" data-mod="FG"  style="--lc:#22c55e"><div class="leg-dot"></div>FG 완제품</div>
+  <div class="leg" data-mod="MNT" style="--lc:#0ea5e9"><div class="leg-dot"></div>MNT 설비</div>
+  <div class="leg" data-mod="SYS" style="--lc:#64748b"><div class="leg-dot"></div>SYS 시스템</div>
+</div>
+
+<div class="wrap" id="schema">
+
+<!-- ═══════════════════════════════════════════ MD 기준정보 -->
+<div class="section-header" style="border-color:#f59e0b;color:#f59e0b" data-mod="MD">
+  <div class="s-dot" style="background:#f59e0b"></div>MD — Master Data &nbsp;<span style="font-weight:400;color:#78562a;font-size:11px">기준정보</span>
+</div>
+
+<!-- MD_Customer -->
+<div class="tbl-card" data-mod="MD">
+<div class="tbl-head"><span class="tbl-badge" style="background:#78562a;color:#f59e0b">MD</span><span class="tbl-name">MD_Customer</span><span class="tbl-ko">거래선</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">CustomerID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">CustomerCode</div><div class="col-type">VARCHAR(20)</div><div class="col-note">SAV / GEO</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">CustomerName</div><div class="col-type">NVARCHAR(100)</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">Plant</div><div class="col-type">VARCHAR(10)</div><div class="col-note">Savannah/Georgia</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">IsActive</div><div class="col-type">BIT</div><div class="col-note">DEFAULT 1</div></div>
+</div></div>
+
+<!-- MD_Item -->
+<div class="tbl-card" data-mod="MD">
+<div class="tbl-head"><span class="tbl-badge" style="background:#78562a;color:#f59e0b">MD</span><span class="tbl-name">MD_Item</span><span class="tbl-ko">품목</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">ItemID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">ItemCode</div><div class="col-type">VARCHAR(30)</div><div class="col-note">UNIQUE</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">ItemName</div><div class="col-type">NVARCHAR(200)</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">ItemType</div><div class="col-type">VARCHAR(20)</div><div class="col-note">FG/WIP/MAT/TOOL</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">Unit</div><div class="col-type">VARCHAR(10)</div><div class="col-note">EA / KG / M</div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">CustomerID</div><div class="col-type">INT</div><div class="col-note">→ MD_Customer</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">RoutingType</div><div class="col-type">CHAR(1)</div><div class="col-note">A / B</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">Phase0Complete</div><div class="col-type">BIT</div><div class="col-note">DEFAULT 0</div></div>
+</div></div>
+
+<!-- MD_BOM -->
+<div class="tbl-card" data-mod="MD">
+<div class="tbl-head"><span class="tbl-badge" style="background:#78562a;color:#f59e0b">MD</span><span class="tbl-name">MD_BOM</span><span class="tbl-ko">자재명세</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">BOMID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">ParentItemID</div><div class="col-type">INT</div><div class="col-note">→ MD_Item</div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">ChildItemID</div><div class="col-type">INT</div><div class="col-note">→ MD_Item</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">Qty</div><div class="col-type">DECIMAL(10,4)</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">EffectiveDate</div><div class="col-type">DATE</div><div class="col-note"></div></div>
+</div></div>
+
+<!-- MD_BOP -->
+<div class="tbl-card" data-mod="MD">
+<div class="tbl-head"><span class="tbl-badge" style="background:#78562a;color:#f59e0b">MD</span><span class="tbl-name">MD_BOP</span><span class="tbl-ko">공정순서</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">BOPID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">ItemID</div><div class="col-type">INT</div><div class="col-note">→ MD_Item</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">StepSeq</div><div class="col-type">TINYINT</div><div class="col-note">1,2,3…</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">ProcessCode</div><div class="col-type">VARCHAR(10)</div><div class="col-note">INJ/IMG/PNT/QC/FG</div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">WorkCenterID</div><div class="col-type">INT</div><div class="col-note">→ MD_WorkCenter</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">StdTime</div><div class="col-type">DECIMAL(8,2)</div><div class="col-note">분</div></div>
+</div></div>
+
+<!-- MD_WorkCenter -->
+<div class="tbl-card" data-mod="MD">
+<div class="tbl-head"><span class="tbl-badge" style="background:#78562a;color:#f59e0b">MD</span><span class="tbl-name">MD_WorkCenter</span><span class="tbl-ko">설비/작업장</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">WorkCenterID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">WCCode</div><div class="col-type">VARCHAR(20)</div><div class="col-note">UNIQUE</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">WCName</div><div class="col-type">NVARCHAR(100)</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">ProcessCode</div><div class="col-type">VARCHAR(10)</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">Capacity</div><div class="col-type">INT</div><div class="col-note">일생산능력</div></div>
+</div></div>
+
+<!-- MD_Location -->
+<div class="tbl-card" data-mod="MD">
+<div class="tbl-head"><span class="tbl-badge" style="background:#78562a;color:#f59e0b">MD</span><span class="tbl-name">MD_Location</span><span class="tbl-ko">로케이션</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">LocationID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">LocationCode</div><div class="col-type">VARCHAR(20)</div><div class="col-note">A-01-01</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">Zone</div><div class="col-type">VARCHAR(10)</div><div class="col-note">WH / FG / QC</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">MaxQty</div><div class="col-type">INT</div><div class="col-note">최대적재</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">IsActive</div><div class="col-type">BIT</div><div class="col-note"></div></div>
+</div></div>
+
+<!-- ═══════════════════════════════════════════ WH -->
+<div class="section-header" style="border-color:#06b6d4;color:#06b6d4" data-mod="WH">
+  <div class="s-dot" style="background:#06b6d4"></div>WH — Warehouse &nbsp;<span style="font-weight:400;color:#164e63;font-size:11px">창고관리</span>
+</div>
+
+<!-- WH_PurchaseOrder -->
+<div class="tbl-card" data-mod="WH">
+<div class="tbl-head"><span class="tbl-badge" style="background:#164e63;color:#06b6d4">WH</span><span class="tbl-name">WH_PurchaseOrder</span><span class="tbl-ko">발주(SCM)</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">POID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">PONo</div><div class="col-type">VARCHAR(30)</div><div class="col-note">SCM PO번호</div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">CustomerID</div><div class="col-type">INT</div><div class="col-note">→ MD_Customer</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">PODate</div><div class="col-type">DATE</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">Status</div><div class="col-type">VARCHAR(20)</div><div class="col-note">Pending/Received</div></div>
+</div></div>
+
+<!-- WH_Receiving -->
+<div class="tbl-card" data-mod="WH">
+<div class="tbl-head"><span class="tbl-badge" style="background:#164e63;color:#06b6d4">WH</span><span class="tbl-name">WH_Receiving</span><span class="tbl-ko">입고</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">ReceivingID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">POID</div><div class="col-type">INT</div><div class="col-note">→ WH_PurchaseOrder</div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">ItemID</div><div class="col-type">INT</div><div class="col-note">→ MD_Item</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">LotNo</div><div class="col-type">VARCHAR(30)</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">ReceivedQty</div><div class="col-type">DECIMAL(10,2)</div><div class="col-note"></div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">LocationID</div><div class="col-type">INT</div><div class="col-note">→ MD_Location</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">ReceivedAt</div><div class="col-type">DATETIME</div><div class="col-note"></div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">UserID</div><div class="col-type">INT</div><div class="col-note">→ SYS_User</div></div>
+</div></div>
+
+<!-- WH_Inventory -->
+<div class="tbl-card" data-mod="WH">
+<div class="tbl-head"><span class="tbl-badge" style="background:#164e63;color:#06b6d4">WH</span><span class="tbl-name">WH_Inventory</span><span class="tbl-ko">재고 (현재고)</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">InventoryID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">ItemID</div><div class="col-type">INT</div><div class="col-note">→ MD_Item</div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">LocationID</div><div class="col-type">INT</div><div class="col-note">→ MD_Location</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">LotNo</div><div class="col-type">VARCHAR(30)</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">OnHandQty</div><div class="col-type">DECIMAL(10,2)</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">ReservedQty</div><div class="col-type">DECIMAL(10,2)</div><div class="col-note">WO 예약량</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">UpdatedAt</div><div class="col-type">DATETIME</div><div class="col-note"></div></div>
+</div></div>
+
+<!-- ═══════════════════════════════════════════ PP -->
+<div class="section-header" style="border-color:#10b981;color:#10b981" data-mod="PP">
+  <div class="s-dot" style="background:#10b981"></div>PP — Production Plan &nbsp;<span style="font-weight:400;color:#064e3b;font-size:11px">생산계획</span>
+</div>
+
+<!-- PP_CustomerOrder -->
+<div class="tbl-card" data-mod="PP">
+<div class="tbl-head"><span class="tbl-badge" style="background:#064e3b;color:#10b981">PP</span><span class="tbl-name">PP_CustomerOrder</span><span class="tbl-ko">수주</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">OrderID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">OrderNo</div><div class="col-type">VARCHAR(30)</div><div class="col-note">SCM 수주번호</div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">CustomerID</div><div class="col-type">INT</div><div class="col-note">→ MD_Customer</div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">ItemID</div><div class="col-type">INT</div><div class="col-note">→ MD_Item</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">OrderQty</div><div class="col-type">INT</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">DueDate</div><div class="col-type">DATE</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">Status</div><div class="col-type">VARCHAR(20)</div><div class="col-note">Open/Closed</div></div>
+</div></div>
+
+<!-- PP_WorkOrder -->
+<div class="tbl-card" data-mod="PP">
+<div class="tbl-head"><span class="tbl-badge" style="background:#064e3b;color:#10b981">PP</span><span class="tbl-name">PP_WorkOrder</span><span class="tbl-ko">작업지시</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">WOID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">WONo</div><div class="col-type">VARCHAR(30)</div><div class="col-note">UNIQUE</div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">OrderID</div><div class="col-type">INT</div><div class="col-note">→ PP_CustomerOrder</div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">ItemID</div><div class="col-type">INT</div><div class="col-note">→ MD_Item</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">PlanQty</div><div class="col-type">INT</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">PlanStartDate</div><div class="col-type">DATE</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">Status</div><div class="col-type">VARCHAR(20)</div><div class="col-note">Draft/Released/Done</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">IsBlocked</div><div class="col-type">BIT</div><div class="col-note">MRP 차단</div></div>
+</div></div>
+
+<!-- ═══════════════════════════════════════════ Production -->
+<div class="section-header" style="border-color:#3b82f6;color:#3b82f6" data-mod="PROD">
+  <div class="s-dot" style="background:#3b82f6"></div>INJ / IMG / PNT — Production &nbsp;<span style="font-weight:400;color:#1e3a8a;font-size:11px">생산실적 (공통구조)</span>
+</div>
+
+<!-- PR_ProductionResult -->
+<div class="tbl-card" data-mod="INJ IMG PNT">
+<div class="tbl-head"><span class="tbl-badge" style="background:#1e3a8a;color:#93c5fd">PROD</span><span class="tbl-name">PR_ProductionResult</span><span class="tbl-ko">생산실적</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">ResultID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">WOID</div><div class="col-type">INT</div><div class="col-note">→ PP_WorkOrder</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">ProcessCode</div><div class="col-type">VARCHAR(10)</div><div class="col-note">INJ / IMG / PNT</div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">WorkCenterID</div><div class="col-type">INT</div><div class="col-note">→ MD_WorkCenter</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">GoodQty</div><div class="col-type">INT</div><div class="col-note">양품</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">DefectQty</div><div class="col-type">INT</div><div class="col-note">불량</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">StartTime</div><div class="col-type">DATETIME</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">EndTime</div><div class="col-type">DATETIME</div><div class="col-note"></div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">UserID</div><div class="col-type">INT</div><div class="col-note">→ SYS_User</div></div>
+</div></div>
+
+<!-- PR_DefectDetail -->
+<div class="tbl-card" data-mod="INJ IMG PNT">
+<div class="tbl-head"><span class="tbl-badge" style="background:#1e3a8a;color:#93c5fd">PROD</span><span class="tbl-name">PR_DefectDetail</span><span class="tbl-ko">불량 상세</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">DefectID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">ResultID</div><div class="col-type">INT</div><div class="col-note">→ PR_ProductionResult</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">DefectCode</div><div class="col-type">VARCHAR(20)</div><div class="col-note">INJ-D01 등</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">DefectQty</div><div class="col-type">INT</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">Note</div><div class="col-type">NVARCHAR(500)</div><div class="col-note"></div></div>
+</div></div>
+
+<!-- PNT_ProcessStep (도장 전용) -->
+<div class="tbl-card" data-mod="PNT">
+<div class="tbl-head"><span class="tbl-badge" style="background:#7c2d12;color:#fb923c">PNT</span><span class="tbl-name">PNT_ProcessStep</span><span class="tbl-ko">도장 단계 이력</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">StepLogID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">ResultID</div><div class="col-type">INT</div><div class="col-note">→ PR_ProductionResult</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">StepSeq</div><div class="col-type">TINYINT</div><div class="col-note">1~5</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">StepName</div><div class="col-type">VARCHAR(30)</div><div class="col-note">탈지/하도/건조…</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">CompletedAt</div><div class="col-type">DATETIME</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">OvenTemp</div><div class="col-type">DECIMAL(5,1)</div><div class="col-note">건조로 온도(℃)</div></div>
+</div></div>
+
+<!-- ═══════════════════════════════════════════ QC -->
+<div class="section-header" style="border-color:#ef4444;color:#ef4444" data-mod="QC">
+  <div class="s-dot" style="background:#ef4444"></div>QC — Quality Control &nbsp;<span style="font-weight:400;color:#7f1d1d;font-size:11px">품질관리</span>
+</div>
+
+<!-- QC_Inspection -->
+<div class="tbl-card" data-mod="QC">
+<div class="tbl-head"><span class="tbl-badge" style="background:#7f1d1d;color:#ef4444">QC</span><span class="tbl-name">QC_Inspection</span><span class="tbl-ko">검사 헤더</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">InspectionID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">ResultID</div><div class="col-type">INT</div><div class="col-note">→ PR_ProductionResult</div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">WOID</div><div class="col-type">INT</div><div class="col-note">→ PP_WorkOrder</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">Gate</div><div class="col-type">TINYINT</div><div class="col-note">1 / 2 / 3</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">InspectedQty</div><div class="col-type">INT</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">PassQty</div><div class="col-type">INT</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">FailQty</div><div class="col-type">INT</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">Result</div><div class="col-type">VARCHAR(10)</div><div class="col-note">PASS / FAIL</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">EnhancedFlag</div><div class="col-type">BIT</div><div class="col-note">강화검사 여부</div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">InspectorID</div><div class="col-type">INT</div><div class="col-note">→ SYS_User</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">InspectedAt</div><div class="col-type">DATETIME</div><div class="col-note"></div></div>
+</div></div>
+
+<!-- ═══════════════════════════════════════════ FG -->
+<div class="section-header" style="border-color:#22c55e;color:#22c55e" data-mod="FG">
+  <div class="s-dot" style="background:#22c55e"></div>FG — Finished Goods &nbsp;<span style="font-weight:400;color:#14532d;font-size:11px">완제품출고</span>
+</div>
+
+<!-- FG_Stock -->
+<div class="tbl-card" data-mod="FG">
+<div class="tbl-head"><span class="tbl-badge" style="background:#14532d;color:#22c55e">FG</span><span class="tbl-name">FG_Stock</span><span class="tbl-ko">완제품 재고</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">FGStockID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">ItemID</div><div class="col-type">INT</div><div class="col-note">→ MD_Item</div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">LocationID</div><div class="col-type">INT</div><div class="col-note">→ MD_Location</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">LotNo</div><div class="col-type">VARCHAR(30)</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">OnHandQty</div><div class="col-type">INT</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">InboundDate</div><div class="col-type">DATE</div><div class="col-note">FIFO 기준</div></div>
+</div></div>
+
+<!-- FG_Shipment -->
+<div class="tbl-card" data-mod="FG">
+<div class="tbl-head"><span class="tbl-badge" style="background:#14532d;color:#22c55e">FG</span><span class="tbl-name">FG_Shipment</span><span class="tbl-ko">출하</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">ShipmentID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">OrderID</div><div class="col-type">INT</div><div class="col-note">→ PP_CustomerOrder</div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">FGStockID</div><div class="col-type">INT</div><div class="col-note">→ FG_Stock</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">ShipQty</div><div class="col-type">INT</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">ShipDate</div><div class="col-type">DATETIME</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">DeliveryNote</div><div class="col-type">VARCHAR(30)</div><div class="col-note">거래명세서 No.</div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">UserID</div><div class="col-type">INT</div><div class="col-note">→ SYS_User</div></div>
+</div></div>
+
+<!-- ═══════════════════════════════════════════ MNT -->
+<div class="section-header" style="border-color:#0ea5e9;color:#0ea5e9" data-mod="MNT">
+  <div class="s-dot" style="background:#0ea5e9"></div>MNT — Maintenance &nbsp;<span style="font-weight:400;color:#0c4a6e;font-size:11px">설비관리</span>
+</div>
+
+<!-- MNT_Equipment -->
+<div class="tbl-card" data-mod="MNT">
+<div class="tbl-head"><span class="tbl-badge" style="background:#0c4a6e;color:#38bdf8">MNT</span><span class="tbl-name">MNT_Equipment</span><span class="tbl-ko">설비 기준</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">EquipmentID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">WorkCenterID</div><div class="col-type">INT</div><div class="col-note">→ MD_WorkCenter</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">EqCode</div><div class="col-type">VARCHAR(20)</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">MoldShotLimit</div><div class="col-type">INT</div><div class="col-note">금형 한계 쇼트수</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">CurrentShotCount</div><div class="col-type">INT</div><div class="col-note">누적 쇼트수</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">Status</div><div class="col-type">VARCHAR(20)</div><div class="col-note">Active/PM/Blocked</div></div>
+</div></div>
+
+<!-- MNT_PMSchedule -->
+<div class="tbl-card" data-mod="MNT">
+<div class="tbl-head"><span class="tbl-badge" style="background:#0c4a6e;color:#38bdf8">MNT</span><span class="tbl-name">MNT_PMSchedule</span><span class="tbl-ko">PM 계획</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">PMScheduleID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">EquipmentID</div><div class="col-type">INT</div><div class="col-note">→ MNT_Equipment</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">PlannedDate</div><div class="col-type">DATE</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">PMType</div><div class="col-type">VARCHAR(20)</div><div class="col-note">Daily/Weekly/Monthly</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">Status</div><div class="col-type">VARCHAR(20)</div><div class="col-note">Plan/Done/Overdue</div></div>
+</div></div>
+
+<!-- MNT_OEELog -->
+<div class="tbl-card" data-mod="MNT">
+<div class="tbl-head"><span class="tbl-badge" style="background:#0c4a6e;color:#38bdf8">MNT</span><span class="tbl-name">MNT_OEELog</span><span class="tbl-ko">OEE 실적</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">OEELogID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">EquipmentID</div><div class="col-type">INT</div><div class="col-note">→ MNT_Equipment</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">LogDate</div><div class="col-type">DATE</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">Availability</div><div class="col-type">DECIMAL(5,2)</div><div class="col-note">%</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">Performance</div><div class="col-type">DECIMAL(5,2)</div><div class="col-note">%</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">Quality</div><div class="col-type">DECIMAL(5,2)</div><div class="col-note">%</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">OEE</div><div class="col-type">AS (A*P*Q)</div><div class="col-note">Computed</div></div>
+</div></div>
+
+<!-- ═══════════════════════════════════════════ SYS -->
+<div class="section-header" style="border-color:#64748b;color:#94a3b8" data-mod="SYS">
+  <div class="s-dot" style="background:#64748b"></div>SYS — System &nbsp;<span style="font-weight:400;color:#334155;font-size:11px">시스템 / 공통</span>
+</div>
+
+<!-- SYS_User -->
+<div class="tbl-card" data-mod="SYS">
+<div class="tbl-head"><span class="tbl-badge" style="background:#1e293b;color:#94a3b8">SYS</span><span class="tbl-name">SYS_User</span><span class="tbl-ko">사용자</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">UserID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">LoginID</div><div class="col-type">VARCHAR(50)</div><div class="col-note">UNIQUE</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">PasswordHash</div><div class="col-type">VARCHAR(256)</div><div class="col-note">BCrypt</div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">RoleID</div><div class="col-type">INT</div><div class="col-note">→ SYS_Role</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">FailCount</div><div class="col-type">TINYINT</div><div class="col-note">5회 잠금</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">IsLocked</div><div class="col-type">BIT</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">IsActive</div><div class="col-type">BIT</div><div class="col-note"></div></div>
+</div></div>
+
+<!-- SYS_Role -->
+<div class="tbl-card" data-mod="SYS">
+<div class="tbl-head"><span class="tbl-badge" style="background:#1e293b;color:#94a3b8">SYS</span><span class="tbl-name">SYS_Role</span><span class="tbl-ko">역할 (RBAC)</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">RoleID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">RoleCode</div><div class="col-type">VARCHAR(10)</div><div class="col-note">ADMIN/MGR/PLAN…</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">RoleName</div><div class="col-type">NVARCHAR(50)</div><div class="col-note"></div></div>
+</div></div>
+
+<!-- SYS_AuditLog -->
+<div class="tbl-card" data-mod="SYS">
+<div class="tbl-head"><span class="tbl-badge" style="background:#1e293b;color:#94a3b8">SYS</span><span class="tbl-name">SYS_AuditLog</span><span class="tbl-ko">감사로그</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">LogID</div><div class="col-type">BIGINT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">UserID</div><div class="col-type">INT</div><div class="col-note">→ SYS_User</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">Action</div><div class="col-type">VARCHAR(50)</div><div class="col-note">INSERT/UPDATE…</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">TableName</div><div class="col-type">VARCHAR(50)</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">RecordID</div><div class="col-type">INT</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">OldValue</div><div class="col-type">NVARCHAR(MAX)</div><div class="col-note">JSON</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">NewValue</div><div class="col-type">NVARCHAR(MAX)</div><div class="col-note">JSON</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">CreatedAt</div><div class="col-type">DATETIME</div><div class="col-note">5년 보관</div></div>
+</div></div>
+
+</div><!-- end .wrap -->
+
+<!-- Table count footer -->
+<div style="padding:16px 32px;border-top:1px solid var(--border);display:flex;gap:24px;flex-wrap:wrap;color:var(--muted);font-size:10px;margin-top:1px;">
+  <span>총 <strong style="color:var(--text)">24</strong>개 테이블</span>
+  <span>MD: 6 · WH: 3 · PP: 2 · PROD: 3 · QC: 1 · FG: 2 · MNT: 3 · SYS: 3 · PNT: 1</span>
+  <span style="margin-left:auto">MSSQL 2019+ &nbsp;·&nbsp; .NET 8 EF Core</span>
+</div>
+
+<script>
+const legend = document.getElementById('legend');
+const cards  = document.querySelectorAll('.tbl-card');
+const secs   = document.querySelectorAll('.section-header');
+
+legend.addEventListener('click', e => {
+  const btn = e.target.closest('.leg');
+  if (!btn) return;
+  const mod = btn.dataset.mod;
+
+  // toggle active
+  document.querySelectorAll('.leg').forEach(l => l.classList.remove('active'));
+  btn.classList.add('active');
+
+  if (mod === 'ALL') {
+    cards.forEach(c => c.classList.remove('dimmed'));
+    secs.forEach(s => s.style.opacity = '1');
+    return;
+  }
+
+  cards.forEach(c => {
+    const mods = c.dataset.mod || '';
+    c.classList.toggle('dimmed', !mods.includes(mod));
+  });
+  secs.forEach(s => {
+    s.style.opacity = (s.dataset.mod === mod) ? '1' : '0.2';
+  });
+});
+</script>
+</body>
+</html>
