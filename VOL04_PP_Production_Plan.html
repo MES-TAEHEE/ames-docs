@@ -1,8 +1,9 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
 <title>A-MES · VOL.4 PP Production Planning</title>
 <style>
 
@@ -16,7 +17,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0f1923;color:#e2e8f0;font
   --text2:rgba(255,255,255,.45);
   --text3:rgba(255,255,255,.22);
 }
-/* ── COVER ── */
+/* COVER */
 .cover{padding:56px 64px 48px;position:relative;overflow:hidden;}
 .cover::before{content:'';position:absolute;inset:0;
   background-image:linear-gradient(rgba(212,160,23,.025) 1px,transparent 1px),
@@ -29,27 +30,22 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0f1923;color:#e2e8f0;font
 .cover-title{font-family:'Bebas Neue',sans-serif;font-size:58px;line-height:.95;letter-spacing:2px;margin-bottom:6px;}
 .cover-title span{color:var(--gold);}
 .cover-sub{font-size:15px;font-weight:300;color:var(--text2);letter-spacing:4px;margin-bottom:28px;}
-/* bilingual description box */
 .bi-box{display:flex;gap:0;border:1px solid rgba(212,160,23,.12);border-radius:6px;overflow:hidden;margin-bottom:0;max-width:780px;}
 .bi-en{padding:14px 20px;flex:1;background:rgba(255,255,255,.02);border-right:1px solid rgba(212,160,23,.1);
   font-size:12px;color:rgba(255,255,255,.5);line-height:1.85;}
 .bi-ko{padding:14px 20px;flex:1;font-size:12px;color:rgba(255,255,255,.28);line-height:1.85;}
-/* screen index chips */
 .screen-index{display:flex;gap:8px;flex-wrap:wrap;margin-top:28px;}
 .si-chip{background:rgba(255,255,255,.04);border:1px solid var(--border);
   border-radius:5px;padding:8px 14px;display:flex;flex-direction:column;gap:3px;min-width:110px;}
 .si-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;}
 .si-en{font-size:10px;font-weight:700;color:rgba(255,255,255,.8);}
 .si-ko{font-size:9px;color:var(--text3);}
-/* meta strip */
 .meta-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:5px;overflow:hidden;margin-top:20px;max-width:640px;}
 .ms-item{flex:1;padding:10px 14px;border-right:1px solid var(--border);text-align:center;}
 .ms-item:last-child{border-right:none;}
 .ms-l{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;}
 .ms-v{font-size:12px;font-weight:700;margin-top:2px;}
-/* ── LAYOUT ── */
 .wrap{max-width:1100px;margin:0 auto;padding:40px 40px 80px;}
-/* ── SECTION HEADER ── */
 .sec-divider{border-top:1px solid var(--border);margin:40px 0 28px;padding-top:28px;}
 .screen-banner{
   background:linear-gradient(135deg,rgba(255,255,255,.025),rgba(255,255,255,.01));
@@ -61,7 +57,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0f1923;color:#e2e8f0;font
 .sb-code{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;line-height:1;}
 .sb-en{font-size:14px;font-weight:700;color:rgba(255,255,255,.85);margin-top:3px;}
 .sb-ko{font-size:12px;color:var(--text2);margin-top:2px;}
-/* ── BI DESCRIPTION ── */
 .desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:0;
   border:1px solid var(--border);border-radius:6px;overflow:hidden;margin:16px 0;}
 .db-en{padding:14px 18px;background:rgba(255,255,255,.02);border-right:1px solid var(--border);
@@ -71,11 +66,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0f1923;color:#e2e8f0;font
   margin-bottom:8px;display:block;}
 .db-label-en{color:rgba(212,160,23,.5);}
 .db-label-ko{color:rgba(255,255,255,.2);}
-/* ── SECTION LABEL ── */
 .str-row{display:flex;align-items:center;gap:12px;margin:20px 0 12px;}
 .str-line{flex:1;height:1px;background:var(--border);}
 .str-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(212,160,23,.5);letter-spacing:2px;white-space:nowrap;}
-/* ── TABLE ── */
 .tbl-wrap{overflow-x:auto;margin:12px 0;}
 table{width:100%;border-collapse:collapse;font-size:12px;}
 th{background:rgba(255,255,255,.05);color:rgba(255,255,255,.55);
@@ -84,35 +77,17 @@ th{background:rgba(255,255,255,.05);color:rgba(255,255,255,.55);
 th .th-ko{display:block;font-size:8px;color:var(--text3);font-weight:400;letter-spacing:0;margin-top:1px;}
 td{padding:8px 12px;border-bottom:1px solid var(--border);color:rgba(255,255,255,.65);vertical-align:top;}
 tr:hover td{background:rgba(255,255,255,.02);}
-/* status badges */
 .badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;}
 .badge-ok{background:rgba(13,184,122,.15);color:#5dffc4;border:1px solid rgba(13,184,122,.3);}
 .badge-warn{background:rgba(234,179,8,.15);color:#fde047;border:1px solid rgba(234,179,8,.3);}
 .badge-err{background:rgba(220,38,38,.15);color:#fca5a5;border:1px solid rgba(220,38,38,.3);}
 .badge-info{background:rgba(37,99,235,.15);color:#93c5fd;border:1px solid rgba(37,99,235,.3);}
 .badge-gray{background:rgba(255,255,255,.05);color:rgba(255,255,255,.4);border:1px solid var(--border);}
-/* ── MOCK WINDOW ── */
-.mock-win{
-  border:1px solid rgba(255,255,255,.12);border-radius:8px;overflow:hidden;
-  background:#1a2332;margin:12px 0;font-size:11px;
-}
-.mock-titlebar{
-  background:#0d1117;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.08);
-  display:flex;align-items:center;gap:8px;
-}
+.mock-win{border:1px solid rgba(255,255,255,.12);border-radius:8px;overflow:hidden;background:#1a2332;margin:12px 0;font-size:11px;}
+.mock-titlebar{background:#0d1117;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:8px;}
 .mock-dots{display:flex;gap:5px;}
 .mock-dots span{width:9px;height:9px;border-radius:50%;display:block;}
 .mock-title{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(255,255,255,.4);margin-left:6px;}
-.mock-body{padding:14px 16px;}
-.mock-topbar{
-  background:#131c27;border-bottom:1px solid rgba(255,255,255,.06);
-  padding:8px 16px;display:flex;align-items:center;justify-content:space-between;
-  font-size:11px;
-}
-.mock-topbar .tb-logo{font-family:'Bebas Neue',sans-serif;font-size:14px;color:#d4a017;letter-spacing:2px;}
-.mock-topbar .tb-user{font-size:10px;color:rgba(255,255,255,.3);}
-.mock-breadcrumb{font-size:10px;color:rgba(255,255,255,.3);padding:5px 16px;background:#0f1923;border-bottom:1px solid var(--border);}
-/* toolbar */
 .mock-toolbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:8px 16px;background:rgba(0,0,0,.2);border-bottom:1px solid var(--border);}
 .btn{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:'Noto Sans KR',sans-serif;}
 .btn-primary{background:#1a6fff;color:#fff;}
@@ -121,303 +96,241 @@ tr:hover td{background:rgba(255,255,255,.02);}
 .btn-success{background:rgba(13,184,122,.15);color:#5dffc4;border:1px solid rgba(13,184,122,.3);}
 .btn-warn{background:rgba(234,179,8,.12);color:#fde047;border:1px solid rgba(234,179,8,.25);}
 .sep{width:1px;height:20px;background:var(--border);}
-/* search bar */
-.search-bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:#131c27;border-bottom:1px solid var(--border);}
-.inp{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:4px;
-  padding:5px 10px;font-size:11px;color:rgba(255,255,255,.7);font-family:'Noto Sans KR',sans-serif;min-width:120px;}
-.inp-label{font-size:10px;color:var(--text2);white-space:nowrap;}
+.inp{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:4px;padding:5px 10px;font-size:11px;color:rgba(255,255,255,.7);font-family:'Noto Sans KR',sans-serif;min-width:120px;}
 select.inp{background:rgba(0,0,0,.3);}
-/* PDA mock */
-.pda-wrap{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0;}
-.pda{width:200px;min-width:200px;background:#111827;border:2px solid rgba(255,255,255,.12);
-  border-radius:16px;overflow:hidden;font-size:11px;}
-.pda-head{background:#0d1117;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.08);
-  display:flex;align-items:center;justify-content:space-between;}
-.pda-step{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.7);}
-.pda-body{padding:12px;}
-.pda-btn{display:block;width:100%;padding:10px;border-radius:6px;font-size:12px;font-weight:700;
-  text-align:center;cursor:pointer;margin:6px 0;border:none;font-family:'Noto Sans KR',sans-serif;}
-.pda-btn-primary{background:#1a6fff;color:#fff;}
-.pda-btn-scan{background:rgba(212,160,23,.15);border:1px solid rgba(212,160,23,.3);color:#fbbf24;}
-.pda-btn-ok{background:rgba(13,184,122,.15);border:1px solid rgba(13,184,122,.3);color:#5dffc4;}
-.pda-field{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);
-  border-radius:4px;padding:7px 10px;margin:5px 0;font-size:11px;color:rgba(255,255,255,.6);}
-.pda-field .pf-l{font-size:9px;color:var(--text3);margin-bottom:2px;}
-.pda-field .pf-v{font-size:12px;font-weight:700;color:rgba(255,255,255,.85);}
-/* KPI strip */
 .kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin:12px 0;}
 .kpi-item{flex:1;padding:14px 16px;border-right:1px solid var(--border);text-align:center;}
 .kpi-item:last-child{border-right:none;}
 .kpi-v{font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1;}
 .kpi-en{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:3px;}
 .kpi-ko{font-size:8px;color:var(--text3);margin-top:1px;}
-/* feature grid */
-.feat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin:12px 0;}
-.feat-card{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:14px 16px;}
-.fc-icon{font-size:16px;margin-bottom:6px;}
-.fc-en{font-size:12px;font-weight:700;color:rgba(255,255,255,.8);margin-bottom:3px;}
-.fc-ko{font-size:11px;color:var(--text2);margin-bottom:6px;}
-.fc-desc-en{font-size:11px;color:rgba(255,255,255,.4);line-height:1.75;}
-.fc-desc-ko{font-size:10px;color:var(--text3);line-height:1.75;margin-top:4px;}
-/* BR table */
-.br-tbl table td:first-child{font-family:'JetBrains Mono',monospace;font-size:10px;color:#d4a017;font-weight:700;}
-/* flow diagram */
 .rflow{display:flex;align-items:center;gap:0;flex-wrap:wrap;margin:12px 0;}
-.rf-step{display:flex;flex-direction:column;align-items:center;padding:10px 16px;
-  border-radius:6px;font-size:11px;font-weight:700;min-width:90px;text-align:center;}
+.rf-step{display:flex;flex-direction:column;align-items:center;padding:10px 16px;border-radius:6px;font-size:11px;font-weight:700;min-width:90px;text-align:center;}
 .rf-step .rs-en{font-size:13px;font-weight:800;}
 .rf-step .rs-ko{font-size:9px;font-weight:400;opacity:.65;margin-top:2px;}
 .rf-arr{color:rgba(255,255,255,.2);font-size:16px;padding:0 4px;}
-/* footer */
-.page-footer{border-top:1px solid var(--border);padding-top:20px;margin-top:48px;
-  font-size:10px;color:var(--text3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;}
-
-
-.if-card{background:rgba(5,150,105,.04);border:1px solid rgba(5,150,105,.18);
-  border-radius:8px;padding:16px 20px;margin:10px 0;}
-.if-title{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;
-  color:#059669;letter-spacing:2px;margin-bottom:10px;}
-.sap-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(0,112,185,.15);
-  border:1px solid rgba(0,112,185,.35);border-radius:4px;padding:3px 10px;
-  font-size:10px;font-weight:700;color:#60a5fa;font-family:'JetBrains Mono',monospace;}
-.forecast-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(234,179,8,.1);
-  border:1px solid rgba(234,179,8,.3);border-radius:4px;padding:3px 10px;
-  font-size:10px;font-weight:700;color:#fde047;}
-.road-chip{display:inline-block;padding:2px 8px;border-radius:3px;font-size:9px;font-weight:700;
-  font-family:'JetBrains Mono',monospace;}
+.page-footer{border-top:1px solid var(--border);padding-top:20px;margin-top:48px;font-size:10px;color:var(--text3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.if-card{background:rgba(5,150,105,.04);border:1px solid rgba(5,150,105,.18);border-radius:8px;padding:16px 20px;margin:10px 0;}
+.if-title{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;letter-spacing:2px;margin-bottom:10px;}
+.road-chip{display:inline-block;padding:2px 8px;border-radius:3px;font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;}
 .road-current{background:rgba(5,150,105,.2);border:1px solid rgba(5,150,105,.4);color:#6ee7b7;}
 .road-future{background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:#a5b4fc;}
+.br-tbl table td:first-child{font-family:'JetBrains Mono',monospace;font-size:10px;color:#d4a017;font-weight:700;}
 
+
+/* L3 LINK STYLES v1.1 (PP module) */
+.si-chip{position:relative;transition:all .15s;cursor:pointer;}
+.si-chip:hover{background:rgba(5,150,105,.12)!important;border-color:rgba(5,150,105,.5)!important;transform:translateY(-2px);box-shadow:0 4px 14px rgba(5,150,105,.18);}
+.si-chip .si-l3{display:inline-block;font-size:8px;color:rgba(212,160,23,.55);font-weight:700;letter-spacing:1px;margin-top:3px;padding:1px 5px;background:rgba(212,160,23,.07);border:1px solid rgba(212,160,23,.18);border-radius:2px;text-align:center;}
+.si-chip:hover .si-l3{background:rgba(212,160,23,.9);color:#000;border-color:#d4a017;}
+.sb-l3-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:linear-gradient(135deg,#d4a017,#a07810);color:#000;font-size:10px;font-weight:800;border-radius:4px;text-decoration:none;letter-spacing:1px;text-transform:uppercase;border:1px solid #a07810;box-shadow:0 2px 8px rgba(212,160,23,.3);transition:all .15s;margin-top:14px;}
+.sb-l3-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(212,160,23,.5);background:linear-gradient(135deg,#fbbf24,#d4a017);}
+.l3-hint{display:inline-block;font-size:10px;color:rgba(212,160,23,.7);font-weight:600;letter-spacing:1px;padding:5px 12px;background:rgba(212,160,23,.08);border:1px dashed rgba(212,160,23,.35);border-radius:3px;margin-bottom:14px;}
 </style>
 </head>
-<body><nav id="ames-nb" style="
-        position:sticky;top:0;z-index:9999;background:#0d1117;
-        border-bottom:1px solid rgba(212,160,23,.2);
-        display:flex;align-items:center;gap:0;overflow-x:auto;scrollbar-width:none;
-        font-family:'Noto Sans KR',sans-serif;
-    ">
-  <a href="INDEX.html" style="display:flex;align-items:center;gap:6px;padding:8px 16px;
-     background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);
-     text-decoration:none;flex-shrink:0;">
-    <span style="font-family:'Bebas Neue',sans-serif;font-size:15px;color:#d4a017;letter-spacing:2px;">A-MES</span>
-    <span style="font-size:8px;color:rgba(255,255,255,.25);">▲ Index</span>
-  </a>
-  <a href="VOL03_WH_Warehouse.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#0891b2;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">WH</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nb-item" style="background:rgba(255,255,255,.1);border-bottom:2px solid #059669;"><span style="color:#059669;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">PP</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Prod Plan</span></a><a href="VOL05_INJ_Injection.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#2563eb;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">INJ</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#7c3aed;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">IMG</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#ea580c;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">PNT</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Painting</span></a><a href="VOL08_QC_Quality.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#dc2626;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">QC</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#0db87a;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">FG</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Fin.Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#0891b2;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">MNT</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#6366f1;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">RPT</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Reports</span></a><a href="VOL12_SYS_System.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#475569;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">SYS</span><span style="font-size:9px;color:rgba(255,255,255,.45);">System</span></a><a href="VOL13_MD_Master_Data.html" class="nb-item" style="border-bottom:2px solid transparent;"><span style="color:#d97706;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">MD</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Master Data</span></a>
+<body>
+<nav id="ames-nb" style="position:sticky;top:0;z-index:9999;background:#0d1117;border-bottom:1px solid rgba(212,160,23,.2);display:flex;align-items:center;gap:0;overflow-x:auto;scrollbar-width:none;font-family:'Noto Sans KR',sans-serif;">
+<a href="INDEX.html" style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;">
+<span style="font-family:'Bebas Neue',sans-serif;font-size:15px;color:#d4a017;letter-spacing:2px;">A-MES</span>
+<span style="font-size:8px;color:rgba(255,255,255,.25);">▲ Index</span>
+</a>
+<a class="nb-item" href="VOL03_WH_Warehouse.html" style="border-bottom:2px solid transparent;"><span style="color:#0891b2;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">WH</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Warehouse</span></a><a class="nb-item" href="VOL04_PP_Production_Plan.html" style="background:rgba(255,255,255,.1);border-bottom:2px solid #059669;"><span style="color:#059669;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">PP</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Prod Plan</span></a><a class="nb-item" href="VOL05_INJ_Injection.html" style="border-bottom:2px solid transparent;"><span style="color:#2563eb;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">INJ</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Injection</span></a><a class="nb-item" href="VOL06_IMG_Wrapping.html" style="border-bottom:2px solid transparent;"><span style="color:#7c3aed;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">IMG</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Wrapping</span></a><a class="nb-item" href="VOL07_PNT_Painting.html" style="border-bottom:2px solid transparent;"><span style="color:#ea580c;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">PNT</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Painting</span></a><a class="nb-item" href="VOL08_QC_Quality.html" style="border-bottom:2px solid transparent;"><span style="color:#dc2626;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">QC</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Quality</span></a><a class="nb-item" href="VOL09_FG_Finished_Goods.html" style="border-bottom:2px solid transparent;"><span style="color:#0db87a;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">FG</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Fin.Goods</span></a><a class="nb-item" href="VOL10_MNT_Maintenance.html" style="border-bottom:2px solid transparent;"><span style="color:#0891b2;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">MNT</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Maintenance</span></a><a class="nb-item" href="VOL11_RPT_Reports.html" style="border-bottom:2px solid transparent;"><span style="color:#6366f1;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">RPT</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Reports</span></a><a class="nb-item" href="VOL12_SYS_System.html" style="border-bottom:2px solid transparent;"><span style="color:#475569;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">SYS</span><span style="font-size:9px;color:rgba(255,255,255,.45);">System</span></a><a class="nb-item" href="VOL13_MD_Master_Data.html" style="border-bottom:2px solid transparent;"><span style="color:#d97706;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">MD</span><span style="font-size:9px;color:rgba(255,255,255,.45);">Master Data</span></a>
 </nav>
 <style>
-.nb-item{display:flex;flex-direction:column;align-items:center;padding:6px 11px;
-  text-decoration:none;flex-shrink:0;transition:background .1s;white-space:nowrap;gap:1px;}
+.nb-item{display:flex;flex-direction:column;align-items:center;padding:6px 11px;text-decoration:none;flex-shrink:0;transition:background .1s;white-space:nowrap;gap:1px;}
 .nb-item:hover{background:rgba(255,255,255,.06)!important;}
-</style><div class="cover" style="border-bottom:1px solid rgba(5,150,105,.15);">
-  <div class="cover-eyebrow">VOL.4 · PP Module</div>
-  <div class="cover-title">Production <span>Planning</span></div>
-  <div class="cover-sub">생산계획 — Forecast · SAP B1 · MRP · 자재발주</div>
-  <div class="bi-box">
-    <div class="bi-en">Manages the full production planning cycle: from customer Forecast intake and SAP B1 supply plan import, through Work Order creation, MRP material requirements calculation, and Purchase Requisition transmission back to SAP B1.</div>
-    <div class="bi-ko">고객사 Forecast 수신 → SAP B1 공급계획 Import → 생산계획 수립 → WO 생성 → MRP 자재 소요 계획 → 자재발주 요청서(PR) SAP B1 전송까지 생산계획 전 사이클을 관리한다.</div>
-  </div>
-  <div class="screen-index">
-    <div class="si-chip" style="border-color:rgba(5,150,105,.25);">
-      <span class="si-id" style="color:#059669;">PP-01</span>
-      <span class="si-en">Forecast Mgmt</span>
-      <span class="si-ko">Forecast 관리</span>
-    </div><div class="si-chip" style="border-color:rgba(5,150,105,.25);">
-      <span class="si-id" style="color:#059669;">PP-02</span>
-      <span class="si-en">SAP B1 Import</span>
-      <span class="si-ko">공급계획 수신</span>
-    </div><div class="si-chip" style="border-color:rgba(5,150,105,.25);">
-      <span class="si-id" style="color:#059669;">PP-03</span>
-      <span class="si-en">Plan & Confirm</span>
-      <span class="si-ko">생산계획 수립</span>
-    </div><div class="si-chip" style="border-color:rgba(5,150,105,.25);">
-      <span class="si-id" style="color:#059669;">PP-04</span>
-      <span class="si-en">Work Order</span>
-      <span class="si-ko">작업지시 관리</span>
-    </div><div class="si-chip" style="border-color:rgba(5,150,105,.25);">
-      <span class="si-id" style="color:#059669;">PP-05</span>
-      <span class="si-en">MRP</span>
-      <span class="si-ko">자재 소요 계획</span>
-    </div><div class="si-chip" style="border-color:rgba(5,150,105,.25);">
-      <span class="si-id" style="color:#059669;">PP-06</span>
-      <span class="si-en">Purchase Req.</span>
-      <span class="si-ko">자재발주 요청</span>
-    </div><div class="si-chip" style="border-color:rgba(5,150,105,.25);">
-      <span class="si-id" style="color:#059669;">PP-07</span>
-      <span class="si-en">WO Release</span>
-      <span class="si-ko">WO 발행</span>
-    </div><div class="si-chip" style="border-color:rgba(5,150,105,.25);">
-      <span class="si-id" style="color:#059669;">PP-CAL</span>
-      <span class="si-en">Calendar</span>
-      <span class="si-ko">생산 캘린더</span>
-    </div><div class="si-chip" style="border-color:rgba(5,150,105,.25);">
-      <span class="si-id" style="color:#059669;">PP-OTD</span>
-      <span class="si-en">Delivery KPI</span>
-      <span class="si-ko">납기 현황</span>
-    </div>
-  </div>
-  <div class="meta-strip" style="margin-top:24px;">
-    <div class="ms-item"><div class="ms-l">ERP</div><div class="ms-v" style="color:#60a5fa;">SAP B1</div></div>
-    <div class="ms-item"><div class="ms-l">Customer</div><div class="ms-v">SAV / GEO</div></div>
-    <div class="ms-item"><div class="ms-l">MRP</div><div class="ms-v">A-MES + SAP B1</div></div>
-    <div class="ms-item"><div class="ms-l">PR Interface</div><div class="ms-v" style="color:#059669;">Service Layer</div></div>
-    <div class="ms-item"><div class="ms-l">Routing</div><div class="ms-v">A / B</div></div>
-  </div>
-</div><div class="wrap"><div class="str-row"><div class="str-line"></div><div class="str-label">OVERALL PROCESS FLOW · 전체 업무 흐름</div><div class="str-line"></div></div><div style="background:#0d1117;border:1px solid rgba(5,150,105,.2);border-radius:8px;padding:20px 24px;margin:12px 0;">
-  <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;letter-spacing:2px;margin-bottom:16px;">END-TO-END FLOW</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-    <div>
-<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[고객사]</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">Customer Forecast 수신 (SCM 포탈 Excel 다운로드)</div>
-    </div><div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[PP-01]</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">Forecast 등록 & 품번 매핑</div>
-    </div><div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[SAP B1]</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">공급계획 Export (Excel → A-MES Import)</div>
-    </div><div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[PP-02]</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">공급계획 수신 & 확인</div>
-    </div><div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[PP-03]</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">생산계획 수립 (납기·재고·설비 검토)</div>
-    </div><div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[PP-04]</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">작업지시 (WO) 생성</div>
-    </div></div><div><div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[PP-05]</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">MRP 실행 → 자재 소요 계산</div>
-    </div><div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[PP-06]</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">자재발주 요청서 (PR) 생성</div>
-    </div><div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[SAP B1]</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">PR 전송 → PO 변환 → 공급업체 발주</div>
-    </div><div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[WH]</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">자재 입고 (WH 모듈)</div>
-    </div><div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[PP-07]</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">WO 발행 → 생산 착수</div>
-    </div><div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[INJ/IMG/PNT]</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">POP 화면 생산 실적 입력</div>
-    </div></div></div></div><div class="str-row"><div class="str-line"></div><div class="str-label">KPI DASHBOARD · 주요 지표</div><div class="str-line"></div></div><div class="kpi-strip">
-  <div class="kpi-item"><div class="kpi-v" style="color:#059669;">0</div><div class="kpi-en">MRP Blocked WO</div><div class="kpi-ko">MRP 차단 WO</div></div>
-  <div class="kpi-item"><div class="kpi-v" style="color:#fde047;">—</div><div class="kpi-en">Forecast vs Order Gap</div><div class="kpi-ko">Forecast 대비 수주 편차</div></div>
-  <div class="kpi-item"><div class="kpi-v" style="color:#5dffc4;">95%</div><div class="kpi-en">On-Time Delivery</div><div class="kpi-ko">납기 준수율</div></div>
-  <div class="kpi-item"><div class="kpi-v" style="color:#93c5fd;">—</div><div class="kpi-en">Unreleased WO</div><div class="kpi-ko">미발행 WO</div></div>
-  <div class="kpi-item"><div class="kpi-v" style="color:#fca5a5;">—</div><div class="kpi-en">PR Pending (SAP)</div><div class="kpi-ko">발주요청 미전송</div></div>
-</div><div class="sec-divider"></div><div class="screen-banner" style="border-left:3px solid #059669;">
-  <div class="sb-vol" style="color:#059669;">PP — Production Planning</div>
-  <div class="sb-code" style="color:#059669;">PP-01</div>
-  <div class="sb-en">Customer Forecast Management</div>
-  <div class="sb-ko">고객사 Forecast 수신 및 관리</div>
-  <div class="desc-bi" style="margin-top:12px;">
-    <div class="db-en"><span class="db-label db-label-en">OVERVIEW</span>Receives and manages customer demand forecasts (M+1 to M+6) from SAV/GEO SCM Portal. Downloads Forecast Excel from the customer SCM portal and imports it into A-MES. Tracks gaps between forecast and confirmed orders.</div>
-    <div class="db-ko"><span class="db-label db-label-ko">개요</span>고객사(SAV/GEO) SCM 포탈에서 Forecast Excel을 다운로드하여 A-MES에 Import한다. Forecast 대비 확정 수주 편차를 추적한다.</div>
-  </div>
-</div><div class="str-row"><div class="str-line"></div><div class="str-label">INTAKE METHOD · 수신 방식</div><div class="str-line"></div></div><div class="tbl-wrap"><table><thead><tr><th>Method</th><th>Description <span class="th-ko">설명</span></th><th>Status <span class="th-ko">현황</span></th><th>Priority</th></tr></thead><tbody><tr><td>SCM 포탈 다운로드</td><td>고객사 SCM 포탈 로그인 → Forecast 메뉴 → Excel 다운로드 → A-MES Import</td><td><span class="badge badge-ok">현행</span></td><td>1순위</td></tr><tr><td>SCM 포탈 API</td><td>고객사 SCM 포탈 REST API 자동 연동</td><td><span class="badge badge-gray">로드맵</span></td><td>2순위</td></tr></tbody></table></div><div class="str-row"><div class="str-line"></div><div class="str-label">EXCEL UPLOAD FLOW · Excel 업로드 처리 흐름</div><div class="str-line"></div></div><div style="background:#0d1117;border:1px solid rgba(5,150,105,.2);border-left:3px solid #059669;border-radius:6px;padding:14px 16px;margin:12px 0;overflow-x:auto;"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">고객사&nbsp;SCM&nbsp;포탈&nbsp;→&nbsp;Forecast&nbsp;메뉴&nbsp;→&nbsp;Excel&nbsp;다운로드</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">[업로드]&nbsp;파일&nbsp;선택&nbsp;→&nbsp;양식&nbsp;유효성&nbsp;검증&nbsp;(필수&nbsp;컬럼&nbsp;체크)</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓&nbsp;오류&nbsp;행&nbsp;→&nbsp;오류&nbsp;리포트&nbsp;반환</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#fde047;line-height:1.8;">[파싱]&nbsp;고객사&nbsp;품번&nbsp;↔&nbsp;A-MES&nbsp;ItemCode&nbsp;매핑&nbsp;(PP_CustomerItemMap)</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓&nbsp;미매핑&nbsp;품번&nbsp;→&nbsp;경고&nbsp;목록&nbsp;표시&nbsp;(BR-PP-F001)</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#fde047;line-height:1.8;">[저장]&nbsp;PP_Forecast&nbsp;INSERT&nbsp;(월별·품목별&nbsp;수량)</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓&nbsp;동일&nbsp;월·품목&nbsp;재업로드&nbsp;시&nbsp;이력&nbsp;보관&nbsp;후&nbsp;UPDATE&nbsp;(BR-PP-F003)</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#fde047;line-height:1.8;">[확인]&nbsp;Forecast&nbsp;목록&nbsp;화면&nbsp;반영&nbsp;+&nbsp;편차&nbsp;계산&nbsp;(BR-PP-F002)</div></div><div class="str-row"><div class="str-line"></div><div class="str-label">FORECAST TABLE · Forecast 테이블</div><div class="str-line"></div></div><div class="tbl-wrap"><table><thead><tr><th>Customer Item No.<span class="th-ko">고객사 품번</span></th><th>A-MES Code<span class="th-ko">내부 품목코드</span></th><th>Item Name<span class="th-ko">품목명</span></th><th>M+1</th><th>M+2</th><th>M+3</th><th>M+4~6<span class="th-ko">참고</span></th><th>Confirmed<span class="th-ko">확정 수주</span></th><th>Gap<span class="th-ko">편차</span></th><th>Updated</th></tr></thead><tbody><tr><td>SAV-TRIM-LH</td><td>TRIM-LH-001</td><td>도어트림 LH</td><td>2,400</td><td>2,200</td><td>2,000</td><td>참고</td><td>2,350</td><td><span class="badge badge-ok">+50</span></td><td>2025-08-01</td></tr><tr><td>GEO-TRIM-RH</td><td>TRIM-RH-001</td><td>도어트림 RH</td><td>1,600</td><td>1,500</td><td>1,400</td><td>참고</td><td>1,580</td><td><span class="badge badge-ok">-20</span></td><td>2025-08-01</td></tr></tbody></table></div><div class="sec-divider"></div><div class="screen-banner" style="border-left:3px solid #059669;">
-  <div class="sb-vol" style="color:#059669;">PP — Production Planning</div>
-  <div class="sb-code" style="color:#059669;">PP-02</div>
-  <div class="sb-en">SAP B1 Supply Plan Import</div>
-  <div class="sb-ko">SAP B1 공급계획 수신</div>
-  <div class="desc-bi" style="margin-top:12px;">
-    <div class="db-en"><span class="db-label db-label-en">OVERVIEW</span>Receives confirmed supply plans from SAP Business One. Current method: SAP B1 Excel Export → A-MES manual import. Future roadmap: SAP B1 Service Layer REST API auto-polling every 1 hour.</div>
-    <div class="db-ko"><span class="db-label db-label-ko">개요</span>SAP Business One의 확정 공급계획(판매오더)을 A-MES로 수신한다. 현행: SAP B1 Excel Export → 수동 Import. 향후: SAP B1 Service Layer REST API 자동 폴링(1시간)으로 전환 예정.</div>
-  </div>
-</div><div class="str-row"><div class="str-line"></div><div class="str-label">INTERFACE SPEC · SAP B1 연동 인터페이스 명세</div><div class="str-line"></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0;">
-  <div class="if-card">
-    <div class="if-title">CURRENT — Excel Import <span class="road-chip road-current">현행</span></div>
-    <div class="tbl-wrap"><table><thead><tr><th>항목</th><th>내용</th></tr></thead><tbody><tr><td>연동 방식</td><td>SAP B1 리포트 → xlsx Export → A-MES 수동 Import</td></tr><tr><td>인증</td><td>없음 (파일 전달)</td></tr><tr><td>주요 데이터</td><td>DocNum, CardCode, ItemCode, Quantity, ShipDate, LineStatus</td></tr><tr><td>갱신 주기</td><td>담당자 수동 (필요 시)</td></tr><tr><td>오류 처리</td><td>업로드 실패 시 오류 리포트 반환</td></tr></tbody></table></div>
-  </div>
-  <div class="if-card" style="border-color:rgba(99,102,241,.3);">
-    <div class="if-title" style="color:#818cf8;">FUTURE — SAP B1 Service Layer API <span class="road-chip road-future">로드맵</span></div>
-    <div class="tbl-wrap"><table><thead><tr><th>항목</th><th>내용</th></tr></thead><tbody><tr><td>API</td><td>SAP B1 Service Layer REST</td></tr><tr><td>Endpoint</td><td>GET /b1s/v1/Orders?$filter=CardCode eq 'SAV'</td></tr><tr><td>인증</td><td>Session Token (POST /b1s/v1/Login)</td></tr><tr><td>폴링 주기</td><td>1시간 자동</td></tr><tr><td>오류 처리</td><td>재시도 3회 → PLAN 알림</td></tr><tr><td>전환 예정</td><td>SAP B1 API 스펙 확보 후</td></tr></tbody></table></div>
-  </div>
-</div><div class="str-row"><div class="str-line"></div><div class="str-label">EXCEL COLUMN MAPPING · SAP B1 Export → A-MES 컬럼 매핑</div><div class="str-line"></div></div><div class="tbl-wrap"><table><thead><tr><th>SAP B1 컬럼 (Export)</th><th>A-MES 매핑 필드</th><th>설명</th></tr></thead><tbody><tr><td>DocNum</td><td>SupplyPlanNo</td><td>SAP B1 판매오더 번호</td></tr><tr><td>CardCode</td><td>CustomerCode</td><td>SAV / GEO</td></tr><tr><td>ItemCode</td><td>CustomerItemNo</td><td>고객사 품번 (PP_CustomerItemMap으로 매핑)</td></tr><tr><td>Quantity</td><td>OrderQty</td><td>공급 수량</td></tr><tr><td>ShipDate</td><td>DueDate</td><td>납기일</td></tr><tr><td>LineStatus</td><td>Status</td><td>Open / Closed</td></tr></tbody></table></div><div class="str-row"><div class="str-line"></div><div class="str-label">SUPPLY PLAN TABLE · 공급계획 목록</div><div class="str-line"></div></div><div class="tbl-wrap"><table><thead><tr><th>Supply Plan No.<span class="th-ko">SAP DocNum</span></th><th>Customer</th><th>Item Code</th><th>Item Name</th><th>Order Qty</th><th>Due Date</th><th>Status</th><th>WO 연결</th><th>Source</th></tr></thead><tbody><tr><td>SO-2025-08001</td><td><span class="badge badge-info">SAV</span></td><td>TRIM-LH-001</td><td>도어트림 LH</td><td>2,350</td><td>2025-09-15</td><td><span class="badge badge-warn">Open</span></td><td>WO-20250801-001</td><td><span class="badge badge-gray">Excel</span></td></tr><tr><td>SO-2025-07055</td><td><span class="badge badge-info">SAV</span></td><td>TRIM-RH-001</td><td>도어트림 RH</td><td>1,580</td><td>2025-08-31</td><td><span class="badge badge-ok">Confirmed</span></td><td>WO-20250715-003</td><td><span class="badge badge-gray">Excel</span></td></tr></tbody></table></div><div class="sec-divider"></div><div class="screen-banner" style="border-left:3px solid #059669;">
-  <div class="sb-vol" style="color:#059669;">PP — Production Planning</div>
-  <div class="sb-code" style="color:#059669;">PP-03</div>
-  <div class="sb-en">Production Planning & Confirmation</div>
-  <div class="sb-ko">생산계획 수립 및 확인</div>
-  <div class="desc-bi" style="margin-top:12px;">
-    <div class="db-en"><span class="db-label db-label-en">OVERVIEW</span>PLAN manager reviews the received supply plans against current FG inventory, equipment load, and Forecast reference. Confirms feasible items for WO batch creation.</div>
-    <div class="db-ko"><span class="db-label db-label-ko">개요</span>PLAN 담당자가 공급계획을 완제품 재고·설비 부하·Forecast 참고치와 대조하여 생산 가능 여부를 검토하고 WO 일괄 생성 대상을 확정한다.</div>
-  </div>
-</div><div class="str-row"><div class="str-line"></div><div class="str-label">REVIEW TABLE · 생산계획 수립 테이블</div><div class="str-line"></div></div><div class="tbl-wrap"><table><thead><tr><th>Supply Plan No.</th><th>Item Code / Name</th><th>Due Date</th><th>Order Qty<span class="th-ko">공급 수량</span></th><th>FG Stock<span class="th-ko">완제품 재고</span></th><th>Net Req.<span class="th-ko">순생산 필요</span></th><th>Forecast<span class="th-ko">해당월 예측</span></th><th>설비 부하</th><th>확인</th></tr></thead><tbody><tr><td>SO-2025-08001</td><td>TRIM-LH-001 / 도어트림 LH</td><td>2025-09-15</td><td>2,350</td><td>320</td><td><span class="badge badge-warn">2,030</span></td><td>2,400</td><td>72%</td><td>☑</td></tr><tr><td>SO-2025-08003</td><td>CONS-UP-001 / 콘솔어퍼</td><td>2025-09-25</td><td>800</td><td>150</td><td><span class="badge badge-ok">650</span></td><td>900</td><td>45%</td><td>☐</td></tr></tbody></table></div><div style="display:flex;gap:8px;margin:8px 0;"><button class="btn btn-primary">WO 일괄 생성</button><button class="btn btn-secondary">계획 캘린더 보기</button></div><div class="sec-divider"></div><div class="screen-banner" style="border-left:3px solid #059669;">
-  <div class="sb-vol" style="color:#059669;">PP — Production Planning</div>
-  <div class="sb-code" style="color:#059669;">PP-04</div>
-  <div class="sb-en">Work Order Management</div>
-  <div class="sb-ko">작업지시 (WO) 관리</div>
-  <div class="desc-bi" style="margin-top:12px;">
-    <div class="db-en"><span class="db-label db-label-en">OVERVIEW</span>Manages Work Orders from Draft through Released, In Progress, to Closed. Displays routing type badge (A/B), progress bar, DDay indicator, and SAP B1 supply plan link.</div>
-    <div class="db-ko"><span class="db-label db-label-ko">개요</span>WO를 Draft → Released → In Progress → Closed 상태로 관리한다. 라우팅 A/B 배지·진행률·납기 D-Day·SAP B1 공급계획 연결을 표시한다.</div>
-  </div>
-</div><div class="str-row"><div class="str-line"></div><div class="str-label">WO STATUS FLOW · WO 상태 흐름</div><div class="str-line"></div></div><div class="rflow"><div class="rf-step" style="background:rgba(5,150,105,.12);border:1px solid rgba(5,150,105,.25);"><span class="rs-en" style="color:#059669;">Draft</span><span class="rs-ko">초안</span></div><div class="rf-arr">→</div><div class="rf-step" style="background:rgba(5,150,105,.12);border:1px solid rgba(5,150,105,.25);"><span class="rs-en" style="color:#059669;">Released</span><span class="rs-ko">발행</span></div><div class="rf-arr">→</div><div class="rf-step" style="background:rgba(5,150,105,.12);border:1px solid rgba(5,150,105,.25);"><span class="rs-en" style="color:#059669;">In Progress</span><span class="rs-ko">생산중</span></div><div class="rf-arr">→</div><div class="rf-step" style="background:rgba(5,150,105,.12);border:1px solid rgba(5,150,105,.25);"><span class="rs-en" style="color:#059669;">Closed</span><span class="rs-ko">완료</span></div></div><div style="margin-top:8px;font-size:11px;color:rgba(255,255,255,.4);">※ MRP 차단 시 → <span class="badge badge-err">BLOCKED</span> (Released 전환 불가) &nbsp;|&nbsp; 취소 시 → <span class="badge badge-gray">Cancelled</span></div><div class="str-row"><div class="str-line"></div><div class="str-label">WO AUTO PROCESS ON CREATE · WO 생성 시 자동 처리</div><div class="str-line"></div></div><div style="background:#0d1117;border:1px solid rgba(5,150,105,.2);border-left:3px solid #059669;border-radius:6px;padding:14px 16px;margin:12px 0;overflow-x:auto;"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">①&nbsp;Phase0Complete&nbsp;검증&nbsp;→&nbsp;미완료&nbsp;시&nbsp;차단&nbsp;(BR-PP-001)</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">②&nbsp;WO&nbsp;No.&nbsp;자동&nbsp;채번:&nbsp;WO-YYYYMMDD-NNN</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">③&nbsp;BOP&nbsp;기준&nbsp;라우팅&nbsp;배정&nbsp;(Routing&nbsp;A:&nbsp;INJ→IMG→QC→FG&nbsp;/&nbsp;B:&nbsp;INJ→PNT→QC→FG)</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">④&nbsp;PlanEndDate&nbsp;자동&nbsp;계산:&nbsp;PlanStartDate&nbsp;+&nbsp;BOP&nbsp;표준공정시간&nbsp;합계</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">⑤&nbsp;Supply&nbsp;Plan&nbsp;No.&nbsp;(SAP&nbsp;DocNum)&nbsp;연결</div></div><div class="str-row"><div class="str-line"></div><div class="str-label">WO LIST TABLE · WO 목록</div><div class="str-line"></div></div><div class="mock-win">
-  <div class="mock-titlebar"><div class="mock-dots"><span style="background:#ff5f57;"></span><span style="background:#febc2e;"></span><span style="background:#28c840;"></span></div><div class="mock-title">PP-04 · Work Order Management</div></div>
-  <div class="mock-toolbar">
-    <button class="btn btn-primary">+ WO 생성</button>
-    <button class="btn btn-success">Release</button>
-    <button class="btn btn-warn">MRP Run</button>
-    <div class="sep"></div>
-    <button class="btn btn-danger">Cancel</button>
-    <div class="sep"></div>
-    <input class="inp" placeholder="WO No. / Item 검색">
-    <select class="inp"><option>Status: All</option><option>Draft</option><option>Released</option><option>Blocked</option></select>
-  </div>
-  <div class="tbl-wrap"><table><thead><tr><th>WO No.</th><th>Supply Plan No.<span class="th-ko">SAP DocNum</span></th><th>Item</th><th>Routing</th><th>Plan Qty</th><th>Due Date<span class="th-ko">납기</span></th><th>Status</th><th>Blocked</th><th>Progress</th></tr></thead><tbody><tr><td>WO-20250801-001</td><td>SO-2025-08001</td><td>TRIM-LH-001</td><td><span style="color:#0891b2;font-weight:700;">A</span> INJ→IMG→QC→FG</td><td>2,030</td><td>D-45</td><td><span class="badge badge-ok">Released</span></td><td>—</td><td><div style="background:rgba(255,255,255,.08);border-radius:3px;height:6px;width:100px;"><div style="background:#059669;border-radius:3px;height:6px;width:40%;"></div></div></td></tr><tr><td>WO-20250801-003</td><td>SO-2025-08003</td><td>CONS-UP-001</td><td><span style="color:#0891b2;font-weight:700;">A</span> INJ→IMG→QC→FG</td><td>650</td><td>D-56</td><td><span class="badge badge-gray">Draft</span></td><td>—</td><td>—</td></tr></tbody></table></div>
-</div><div class="str-row"><div class="str-line"></div><div class="str-label">WO DETAIL · WO 상세 화면 섹션</div><div class="str-line"></div></div><div class="tbl-wrap"><table><thead><tr><th>섹션</th><th>내용</th></tr></thead><tbody><tr><td>기본 정보</td><td>WO No., ItemCode/Name, Routing, PlanQty, PlanStart/End, DueDate, Status</td></tr><tr><td>공급계획 연결</td><td>Supply Plan No. → SAP B1 DocNum 클릭 시 SAP B1 링크</td></tr><tr><td>Forecast 참고</td><td>해당 월 Forecast 수량 vs 확정 수주 수량 (편차 표시)</td></tr><tr><td>자재 예약 현황</td><td>PP_WOMaterial: ItemCode, RequiredQty, IssuedQty, Status</td></tr><tr><td>MRP 차단 사유</td><td>IsBlocked=1 시 BlockReason 전문 표시</td></tr><tr><td>공정 진행 현황</td><td>BOP StepSeq 기준 단계별 완료율 프로그레스바</td></tr><tr><td>생산실적 연결</td><td>PR_ProductionResult 목록 (공정별 Good/Defect)</td></tr></tbody></table></div><div class="sec-divider"></div><div class="screen-banner" style="border-left:3px solid #059669;">
-  <div class="sb-vol" style="color:#059669;">PP — Production Planning</div>
-  <div class="sb-code" style="color:#059669;">PP-05</div>
-  <div class="sb-en">MRP — Material Requirements Planning</div>
-  <div class="sb-ko">자재 소요 계획</div>
-  <div class="desc-bi" style="margin-top:12px;">
-    <div class="db-en"><span class="db-label db-label-en">OVERVIEW</span>Runs MRP to calculate material shortage quantities. A-MES MRP handles real-time WO blocking. SAP B1 MRP handles mid/long-term procurement planning and PO generation.</div>
-    <div class="db-ko"><span class="db-label db-label-ko">개요</span>A-MES MRP는 실시간 WO 차단·가용 여부 판단. SAP B1 MRP는 중장기 자재 소요·공급업체 발주 담당. 두 MRP를 역할 분리하여 병행 운영한다.</div>
-  </div>
-</div><div class="str-row"><div class="str-line"></div><div class="str-label">MRP ROLE DIVISION · A-MES vs SAP B1 MRP 역할 분리</div><div class="str-line"></div></div><div class="tbl-wrap"><table><thead><tr><th>구분</th><th>실행 주체</th><th>활용 목적</th><th>실행 주기</th></tr></thead><tbody><tr><td>A-MES MRP</td><td>A-MES 자체</td><td>생산 착수 전 자재 가용 여부 실시간 확인, WO IsBlocked 결정</td><td>수동 버튼 / 야간 배치(00:00)</td></tr><tr><td>SAP B1 MRP</td><td>SAP Business One</td><td>중장기 자재 소요 계획, 발주 제안 생성, 공급업체 PO</td><td>SAP B1 MRP 위저드 (월 1~2회)</td></tr></tbody></table></div><div class="str-row"><div class="str-line"></div><div class="str-label">A-MES MRP FLOW · 실행 흐름</div><div class="str-line"></div></div><div style="background:#0d1117;border:1px solid rgba(5,150,105,.2);border-left:3px solid #059669;border-radius:6px;padding:14px 16px;margin:12px 0;overflow-x:auto;"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#fde047;line-height:1.8;">[MRP&nbsp;Run]&nbsp;버튼&nbsp;클릭&nbsp;또는&nbsp;야간&nbsp;배치&nbsp;(매일&nbsp;00:00)</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">Released&nbsp;+&nbsp;Draft&nbsp;상태&nbsp;WO&nbsp;전체&nbsp;대상</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓&nbsp;BOM&nbsp;기준&nbsp;자재별&nbsp;필요&nbsp;수량&nbsp;계산</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">RequiredQty&nbsp;=&nbsp;WO.PlanQty&nbsp;×&nbsp;BOM.ChildQty</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">StockQty&nbsp;=&nbsp;WH_Inventory.AvailableQty&nbsp;(OnHand&nbsp;-&nbsp;Reserved)</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">OnOrderQty&nbsp;=&nbsp;WH_PurchaseOrder&nbsp;미입고&nbsp;잔량</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">ShortageQty&nbsp;=&nbsp;RequiredQty&nbsp;-&nbsp;StockQty&nbsp;-&nbsp;OnOrderQty</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓&nbsp;ShortageQty&nbsp;>&nbsp;0</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">WO.IsBlocked&nbsp;=&nbsp;1&nbsp;/&nbsp;PP_MRPLog&nbsp;INSERT&nbsp;/&nbsp;PLAN&nbsp;알림</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#fde047;line-height:1.8;">[PP-06]&nbsp;자재발주&nbsp;요청서(PR)&nbsp;생성&nbsp;대상&nbsp;목록&nbsp;표시</div></div><div class="str-row"><div class="str-line"></div><div class="str-label">MRP RESULT TABLE · MRP 결과 테이블</div><div class="str-line"></div></div><div class="tbl-wrap"><table><thead><tr><th>Item Code<span class="th-ko">자재 품목</span></th><th>Required Qty<span class="th-ko">필요 수량</span></th><th>Stock Qty<span class="th-ko">가용재고</span></th><th>On Order<span class="th-ko">발주 중</span></th><th>Shortage<span class="th-ko">부족 수량</span></th><th>Lead Time<span class="th-ko">리드타임</span></th><th>Order Due<span class="th-ko">발주 기한</span></th><th>PR 생성</th></tr></thead><tbody><tr><td>MAT-PP-001 / 원자재A</td><td>3,600</td><td>2,100</td><td>500</td><td><span class="badge badge-err">-1,000</span></td><td>7일</td><td>2025-09-08</td><td><button class="btn btn-warn">PR 생성</button></td></tr><tr><td>FAB-BK-001 / 원단(흑)</td><td>1,200</td><td>800</td><td>0</td><td><span class="badge badge-err">-400</span></td><td>14일</td><td>2025-09-01</td><td><button class="btn btn-warn">PR 생성</button></td></tr><tr><td>ADH-001 / 접착제</td><td>650</td><td>980</td><td>0</td><td><span class="badge badge-ok">+330</span></td><td>5일</td><td>—</td><td>—</td></tr><tr><td>MAT-INJ-002 / 수지B</td><td>2,000</td><td>2,000</td><td>0</td><td><span class="badge badge-gray">±0</span></td><td>10일</td><td>—</td><td>—</td></tr></tbody></table></div><div class="sec-divider"></div><div class="screen-banner" style="border-left:3px solid #059669;">
-  <div class="sb-vol" style="color:#059669;">PP — Production Planning</div>
-  <div class="sb-code" style="color:#059669;">PP-06</div>
-  <div class="sb-en">Purchase Requisition → SAP B1</div>
-  <div class="sb-ko">자재발주 요청서 (PR) → SAP B1 전송</div>
-  <div class="desc-bi" style="margin-top:12px;">
-    <div class="db-en"><span class="db-label db-label-en">OVERVIEW</span>Generates Purchase Requisition records from MRP shortage results and transmits them to SAP B1 via Service Layer API (POST /PurchaseRequests). Tracks SAP B1 DocNum after successful transmission.</div>
-    <div class="db-ko"><span class="db-label db-label-ko">개요</span>MRP 부족 자재를 기반으로 발주요청서(PR)를 생성하고, SAP B1 Service Layer API(POST /PurchaseRequests)로 전송한다. 전송 성공 시 SAP B1 DocNum을 수신하여 저장한다.</div>
-  </div>
-</div><div class="str-row"><div class="str-line"></div><div class="str-label">PR → SAP B1 INTERFACE · 전송 인터페이스 명세</div><div class="str-line"></div></div><div class="if-card">
-  <div class="if-title">SAP B1 Service Layer — Purchase Request API</div>
-  <div class="tbl-wrap"><table><thead><tr><th>항목</th><th>내용</th></tr></thead><tbody><tr><td>API</td><td>SAP B1 Service Layer REST</td></tr><tr><td>Endpoint</td><td>POST /b1s/v1/PurchaseRequests</td></tr><tr><td>인증 방식</td><td>Session Token (POST /b1s/v1/Login → SessionId 쿠키)</td></tr><tr><td>전송 데이터</td><td>ItemCode, Quantity, RequiredDate, U_WONo (사용자 정의 필드)</td></tr><tr><td>응답</td><td>DocNum (SAP B1 PR 번호) → PP_PurchaseRequisition.SAPDocNum 저장</td></tr><tr><td>재시도 정책</td><td>전송 실패 시 3회 자동 재시도 → 지속 실패 시 PLAN 알림 + 수동 재전송 버튼 제공</td></tr><tr><td>오류 로그</td><td>PP_PurchaseRequisition.SentAt, ErrorMsg 컬럼에 기록</td></tr></tbody></table></div>
-</div><div class="str-row"><div class="str-line"></div><div class="str-label">PR FLOW · 자재발주 요청 흐름</div><div class="str-line"></div></div><div style="background:#0d1117;border:1px solid rgba(5,150,105,.2);border-left:3px solid #059669;border-radius:6px;padding:14px 16px;margin:12px 0;overflow-x:auto;"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">PP-05&nbsp;MRP&nbsp;결과&nbsp;—&nbsp;부족&nbsp;자재&nbsp;목록&nbsp;확인</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓&nbsp;[&nbsp;PR&nbsp;생성&nbsp;]&nbsp;버튼</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">PP_PurchaseRequisition&nbsp;INSERT&nbsp;(Status=Draft)</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓&nbsp;PLAN&nbsp;담당자&nbsp;수량&nbsp;검토·조정</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#fde047;line-height:1.8;">[&nbsp;SAP&nbsp;B1&nbsp;전송&nbsp;]&nbsp;버튼</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">POST&nbsp;/b1s/v1/Login&nbsp;&nbsp;→&nbsp;SessionId&nbsp;획득</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">POST&nbsp;/b1s/v1/PurchaseRequests&nbsp;&nbsp;→&nbsp;SAP&nbsp;B1&nbsp;PR&nbsp;생성</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓&nbsp;응답:&nbsp;DocNum</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">PP_PurchaseRequisition.SAPDocNum&nbsp;저장,&nbsp;Status=Sent</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">[SAP&nbsp;B1]&nbsp;구매팀&nbsp;PR&nbsp;→&nbsp;PO&nbsp;변환&nbsp;→&nbsp;공급업체&nbsp;발주</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">[WH]&nbsp;입고&nbsp;예정&nbsp;→&nbsp;WH_PurchaseOrder&nbsp;반영</div></div><div class="str-row"><div class="str-line"></div><div class="str-label">PR LIST TABLE · 자재발주 요청 목록</div><div class="str-line"></div></div><div class="tbl-wrap"><table><thead><tr><th>PR No.</th><th>SAP PR No.<span class="th-ko">B1 DocNum</span></th><th>Item Code / Name</th><th>Required Qty</th><th>Required Date<span class="th-ko">필요 입고일</span></th><th>Related WO</th><th>Status</th><th>SAP B1 전송</th></tr></thead><tbody><tr><td>PR-20250801-001</td><td>—</td><td>MAT-PP-001 / 원자재A</td><td>1,000</td><td>2025-09-08</td><td>WO-20250801-001,002</td><td><span class="badge badge-gray">Draft</span></td><td><button class="btn btn-warn">전송</button></td></tr><tr><td>PR-20250801-002</td><td>PR-B1-5542</td><td>FAB-BK-001 / 원단(흑)</td><td>400</td><td>2025-09-01</td><td>WO-20250801-002</td><td><span class="badge badge-ok">Sent</span></td><td>✅ 전송완료</td></tr></tbody></table></div><div class="sec-divider"></div><div class="screen-banner" style="border-left:3px solid #059669;">
-  <div class="sb-vol" style="color:#059669;">PP — Production Planning</div>
-  <div class="sb-code" style="color:#059669;">PP-07</div>
-  <div class="sb-en">Work Order Release</div>
-  <div class="sb-ko">WO 발행 및 생산 착수</div>
-  <div class="desc-bi" style="margin-top:12px;">
-    <div class="db-en"><span class="db-label db-label-en">OVERVIEW</span>Validates all release conditions before transitioning WO to Released status: Phase-0 complete, MRP no shortage, equipment available, delivery lead time sufficient.</div>
-    <div class="db-ko"><span class="db-label db-label-ko">개요</span>WO Released 전환 전 4가지 조건을 순서대로 검증한다: Phase-0 완료, MRP 자재 충족, 설비 가용, 납기 여유. 모두 통과 시 WO 발행 → 자재 자동 예약 → POP 화면 노출.</div>
-  </div>
-</div><div class="str-row"><div class="str-line"></div><div class="str-label">RELEASE VALIDATION · 발행 조건 체크 (순서)</div><div class="str-line"></div></div><div class="tbl-wrap"><table><thead><tr><th>순서</th><th>조건</th><th>통과 기준</th><th>실패 시 조치</th></tr></thead><tbody><tr><td>①</td><td>Phase0Complete 검증</td><td>Phase0Complete = 1</td><td>400 차단 → MD 기준정보 완성 요청</td></tr><tr><td>②</td><td>MRP 자재 충족 확인</td><td>ShortageQty = 0 (IsBlocked=0)</td><td>차단 → PP-06 PR 생성 안내</td></tr><tr><td>③</td><td>설비 가용 상태 확인</td><td>Equipment.Status ≠ Blocked</td><td>경고 팝업 → MNT 확인 권고</td></tr><tr><td>④</td><td>납기 여유 확인</td><td>DueDate - TODAY ≥ 납기 리드타임</td><td>경고 (발행은 가능, PLAN 확인 권고)</td></tr></tbody></table></div><div style="margin:10px 0;">
-  <div style="background:#0d1117;border:1px solid rgba(5,150,105,.2);border-left:3px solid #059669;border-radius:6px;padding:14px 16px;margin:12px 0;overflow-x:auto;"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">모든&nbsp;조건&nbsp;통과</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">WO.Status&nbsp;=&nbsp;Released</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">PP_WOMaterial&nbsp;INSERT&nbsp;(자재&nbsp;자동&nbsp;예약)&nbsp;—&nbsp;BR-PP-003</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">WH_Inventory.ReservedQty&nbsp;증가</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">INJ/IMG/PNT&nbsp;POP&nbsp;화면에&nbsp;해당&nbsp;WO&nbsp;노출</div></div>
-</div><div class="sec-divider"></div><div class="str-row"><div class="str-line"></div><div class="str-label">NEW / EXTENDED DB TABLES · 신규·확장 DB 테이블</div><div class="str-line"></div></div><div class="tbl-wrap"><table><thead><tr><th>테이블명</th><th>역할</th><th>변경 유형</th></tr></thead><tbody><tr><td>PP_Forecast</td><td>고객사 월별·품목별 Forecast 수량 저장</td><td>신규 추가</td></tr><tr><td>PP_ForecastHistory</td><td>Forecast 재업로드 시 이전 버전 이력 보관</td><td>신규 추가</td></tr><tr><td>PP_CustomerItemMap</td><td>고객사 품번 ↔ A-MES 품목코드 매핑 테이블</td><td>신규 추가</td></tr><tr><td>PP_SupplyPlan</td><td>SAP B1 공급계획(판매오더) 수신 및 관리</td><td>기존 PP_CustomerOrder 대체·확장</td></tr><tr><td>PP_WorkOrder</td><td>작업지시 — SAPDocNum, ForecastRef 컬럼 추가</td><td>기존 + 컬럼 확장</td></tr><tr><td>PP_WOMaterial</td><td>WO별 자재 예약</td><td>기존 유지</td></tr><tr><td>PP_MRPLog</td><td>MRP 실행 결과 로그</td><td>기존 유지</td></tr><tr><td>PP_PurchaseRequisition</td><td>자재발주 요청서 — SAP B1 PR 전송 및 DocNum 관리</td><td>신규 추가</td></tr></tbody></table></div><div class="str-row"><div class="str-line"></div><div class="str-label">NEW TABLE DDL · 주요 신규 테이블 컬럼 정의</div><div class="str-line"></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0;">
-  <div class="if-card">
-    <div class="if-title">PP_Forecast</div>
-    <div style="background:#0d1117;border:1px solid rgba(5,150,105,.2);border-left:3px solid #059669;border-radius:6px;padding:14px 16px;margin:12px 0;overflow-x:auto;"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">ForecastID&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;INT&nbsp;IDENTITY&nbsp;PK</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">CustomerID&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;INT&nbsp;FK&nbsp;→&nbsp;MD_Customer</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">ItemID&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;INT&nbsp;FK&nbsp;→&nbsp;MD_Item</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">YearMonth&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CHAR(6)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--&nbsp;202508</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">WeekNo&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TINYINT&nbsp;NULL</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">ForecastQty&nbsp;&nbsp;&nbsp;&nbsp;INT</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">ConfirmedQty&nbsp;&nbsp;&nbsp;INT&nbsp;DEFAULT&nbsp;0</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">UploadBatchID&nbsp;&nbsp;UNIQUEIDENTIFIER</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">CreatedAt&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DATETIME</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">UpdatedAt&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DATETIME</div></div>
-  </div>
-  <div class="if-card">
-    <div class="if-title">PP_PurchaseRequisition</div>
-    <div style="background:#0d1117;border:1px solid rgba(5,150,105,.2);border-left:3px solid #059669;border-radius:6px;padding:14px 16px;margin:12px 0;overflow-x:auto;"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">PRID&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;INT&nbsp;IDENTITY&nbsp;PK</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">PRNo&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;VARCHAR(30)&nbsp;UNIQUE</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">SAPDocNum&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;VARCHAR(30)&nbsp;NULL&nbsp;&nbsp;--&nbsp;B1&nbsp;PR&nbsp;DocNum</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">ItemID&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;INT&nbsp;FK&nbsp;→&nbsp;MD_Item</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">RequiredQty&nbsp;&nbsp;&nbsp;&nbsp;DECIMAL(10,2)</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">RequiredDate&nbsp;&nbsp;&nbsp;DATE</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">RelatedWOID&nbsp;&nbsp;&nbsp;&nbsp;INT&nbsp;FK&nbsp;→&nbsp;PP_WorkOrder</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">Status&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;VARCHAR(20)</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--&nbsp;Draft/Sent/PO&nbsp;Created/Received</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">SentAt&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DATETIME&nbsp;NULL</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">ErrorMsg&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NVARCHAR(500)&nbsp;NULL</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">CreatedAt&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DATETIME</div></div>
-  </div>
-  <div class="if-card">
-    <div class="if-title">PP_CustomerItemMap</div>
-    <div style="background:#0d1117;border:1px solid rgba(5,150,105,.2);border-left:3px solid #059669;border-radius:6px;padding:14px 16px;margin:12px 0;overflow-x:auto;"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">MapID&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;INT&nbsp;IDENTITY&nbsp;PK</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">CustomerID&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;INT&nbsp;FK&nbsp;→&nbsp;MD_Customer</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">CustomerItemNo&nbsp;VARCHAR(50)&nbsp;&nbsp;--&nbsp;고객사&nbsp;품번</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">ItemID&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;INT&nbsp;FK&nbsp;→&nbsp;MD_Item</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">IsActive&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BIT&nbsp;DEFAULT&nbsp;1</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">CreatedAt&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DATETIME</div></div>
-  </div>
-  <div class="if-card">
-    <div class="if-title">PP_SupplyPlan (PP_CustomerOrder 확장)</div>
-    <div style="background:#0d1117;border:1px solid rgba(5,150,105,.2);border-left:3px solid #059669;border-radius:6px;padding:14px 16px;margin:12px 0;overflow-x:auto;"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">SupplyPlanID&nbsp;&nbsp;&nbsp;INT&nbsp;IDENTITY&nbsp;PK</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">SupplyPlanNo&nbsp;&nbsp;&nbsp;VARCHAR(30)&nbsp;&nbsp;--&nbsp;SAP&nbsp;B1&nbsp;DocNum</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(5,150,105,.9);line-height:1.8;">CustomerID&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;INT&nbsp;FK&nbsp;→&nbsp;MD_Customer</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">OrderDate&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DATE</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">DueDate&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DATE</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">Status&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;VARCHAR(20)</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">Source&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;VARCHAR(20)&nbsp;&nbsp;--&nbsp;Excel&nbsp;/&nbsp;SAPB1API</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">ImportedAt&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DATETIME</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">--&nbsp;PP_SupplyPlanDetail&nbsp;(상세):</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;">ItemID,&nbsp;OrderQty,&nbsp;ConfirmedQty,&nbsp;ShippedQty</div></div>
-  </div>
-</div><div class="sec-divider"></div><div class="str-row"><div class="str-line"></div><div class="str-label">BUSINESS RULES · 업무 규칙 전체</div><div class="str-line"></div></div><div class="br-tbl"><div class="tbl-wrap"><table><thead><tr><th>BR ID</th><th>규칙 (EN)</th><th>규칙 (KO)</th><th>조건</th><th>조치</th></tr></thead><tbody><tr><td>BR-PP-F001</td><td>Warn on unmapped customer item no.</td><td>고객사 품번 미매핑 시 경고</td><td>CustomerItemNo 매핑 없음</td><td>경고 표시, 해당 행 제외 후 저장</td></tr><tr><td>BR-PP-F002</td><td>Alert on Forecast vs Order gap > 20%</td><td>Forecast 대비 수주 편차 20% 초과 알림</td><td>Gap > Forecast×0.2</td><td>PLAN/MGR 알림</td></tr><tr><td>BR-PP-F003</td><td>Retain history on Forecast re-upload</td><td>Forecast 재업로드 시 이력 보관 후 UPDATE</td><td>동일 월·품목 중복</td><td>PP_ForecastHistory 이관 후 UPDATE</td></tr><tr><td>BR-PP-001</td><td>Block WO if Phase-0 incomplete</td><td>Phase-0 미완료 WO 생성 차단</td><td>Phase0Complete=0</td><td>400 오류</td></tr><tr><td>BR-PP-002</td><td>Block WO on MRP shortage</td><td>MRP 재고 부족 WO 자동 차단</td><td>ShortageQty>0</td><td>IsBlocked=1, BlockReason 기록</td></tr><tr><td>BR-PP-003</td><td>Auto-reserve material on WO release</td><td>WO 발행 시 자재 자동 예약</td><td>Status=Released</td><td>PP_WOMaterial Reserved</td></tr><tr><td>BR-PP-004</td><td>Release reserved qty on WO cancel</td><td>WO 취소 시 예약 수량 자동 해제</td><td>Status=Cancelled</td><td>ReservedQty 감소</td></tr><tr><td>BR-PP-005</td><td>MRP auto-run nightly at 00:00</td><td>MRP 야간 자동 실행</td><td>매일 00:00 배치</td><td>ShortageQty 전체 재계산</td></tr><tr><td>BR-PP-006</td><td>Retry PR SAP B1 transmission x3</td><td>PR SAP B1 전송 실패 시 3회 재시도</td><td>전송 오류</td><td>3회 재시도 → 실패 지속 시 PLAN 알림</td></tr><tr><td>BR-PP-007</td><td>Warn if equipment blocked on WO release</td><td>WO 발행 전 설비 가용 상태 확인</td><td>Equipment.Status=Blocked</td><td>경고 팝업, 발행 보류 권고</td></tr><tr><td>BR-PP-008</td><td>Alert DDay ≤ 3 WO</td><td>납기 D-3 이내 WO 강조 알림</td><td>DueDate-TODAY≤3</td><td>PLAN/MGR 알림 + 캘린더 빨간 강조</td></tr></tbody></table></div></div><div class="sec-divider"></div><div class="str-row"><div class="str-line"></div><div class="str-label">MODULE INTEGRATION · 모듈 연계 전체</div><div class="str-line"></div></div><div class="tbl-wrap"><table><thead><tr><th>방향</th><th>대상</th><th>데이터 / 이벤트</th><th>방식</th></tr></thead><tbody><tr><td>←</td><td>고객사 (SAV/GEO)</td><td>Forecast (수요 예측 M+1~M+6)</td><td>SCM 포탈 Excel 다운로드 / SCM 포탈 API (향후)</td></tr><tr><td>←</td><td>SAP Business One</td><td>공급계획 (확정 판매오더)</td><td>Excel Import (현행) / Service Layer API (향후)</td></tr><tr><td>→</td><td>SAP Business One</td><td>자재발주 요청 (PR)</td><td>Service Layer POST /PurchaseRequests</td></tr><tr><td>←</td><td>SAP Business One</td><td>PR→PO 생성 결과·입고 예정 동기화</td><td>API 폴링 또는 수동 확인</td></tr><tr><td>←</td><td>WH 창고관리</td><td>가용재고 (AvailableQty)</td><td>실시간 DB 조회</td></tr><tr><td>→</td><td>INJ / IMG / PNT</td><td>WO 발행 → POP 화면 표시</td><td>DB 공유</td></tr><tr><td>→</td><td>MD 기준정보</td><td>Phase0Complete·BOM·BOP 검증</td><td>DB 조회</td></tr><tr><td>←</td><td>MNT 설비관리</td><td>설비 가용 상태 (Equipment.Status)</td><td>DB 조회</td></tr><tr><td>→</td><td>FG 완제품출고</td><td>완제품 출하 → 납기 실적 집계</td><td>DB 공유</td></tr><tr><td>→</td><td>RPT 분석리포트</td><td>생산실적·납기율·Forecast 달성률</td><td>집계 쿼리</td></tr></tbody></table></div></div>
+</style>
+<div class="cover" style="border-bottom:1px solid rgba(5,150,105,.15);">
+<div class="cover-eyebrow">VOL.4 · PP Module</div>
+<div class="cover-title">Production <span>Planning</span></div>
+<div class="cover-sub">생산계획 — Forecast · SAP B1 · MRP · 자재발주</div>
+<div class="bi-box">
+<div class="bi-en">Manages the full production planning cycle: from customer Forecast intake and SAP B1 supply plan import, through Work Order creation, MRP material requirements calculation, and Purchase Requisition transmission back to SAP B1.</div>
+<div class="bi-ko">고객사 Forecast 수신 → SAP B1 공급계획 Import → 생산계획 수립 → WO 생성 → MRP 자재 소요 계획 → 자재발주 요청서(PR) SAP B1 전송까지 생산계획 전 사이클을 관리한다.</div>
+</div>
+<div style="margin-top:24px;margin-bottom:-12px;"><span class="l3-hint">📋 Click any screen chip or [View L3 Detail Spec] button to view detailed UI specifications · L3 상세 설계서 보기</span></div><div class="screen-index">
+<a class="si-chip" href="VOL04_PP01_Forecast.html" style="text-decoration:none;color:inherit;" title="L3 상세 설계서 · PP-01">
+<span class="si-id" style="color:#059669;">PP-01</span>
+<span class="si-en">Forecast Mgmt</span>
+<span class="si-ko">Forecast 관리</span>
+<span class="si-l3">📋 L3</span></a><a class="si-chip" href="VOL04_PP02_SAP_Import.html" style="text-decoration:none;color:inherit;" title="L3 상세 설계서 · PP-02">
+<span class="si-id" style="color:#059669;">PP-02</span>
+<span class="si-en">SAP B1 Import</span>
+<span class="si-ko">공급계획 수신</span>
+<span class="si-l3">📋 L3</span></a><a class="si-chip" href="VOL04_PP03_Plan_Confirm.html" style="text-decoration:none;color:inherit;" title="L3 상세 설계서 · PP-03">
+<span class="si-id" style="color:#059669;">PP-03</span>
+<span class="si-en">Plan &amp; Confirm</span>
+<span class="si-ko">생산계획 수립</span>
+<span class="si-l3">📋 L3</span></a><a class="si-chip" href="VOL04_PP04_Work_Order.html" style="text-decoration:none;color:inherit;" title="L3 상세 설계서 · PP-04">
+<span class="si-id" style="color:#059669;">PP-04</span>
+<span class="si-en">Work Order</span>
+<span class="si-ko">작업지시 관리</span>
+<span class="si-l3">📋 L3</span></a><a class="si-chip" href="VOL04_PP05_MRP.html" style="text-decoration:none;color:inherit;" title="L3 상세 설계서 · PP-05">
+<span class="si-id" style="color:#059669;">PP-05</span>
+<span class="si-en">MRP</span>
+<span class="si-ko">자재 소요 계획</span>
+<span class="si-l3">📋 L3</span></a><a class="si-chip" href="VOL04_PP06_Purchase_Req.html" style="text-decoration:none;color:inherit;" title="L3 상세 설계서 · PP-06">
+<span class="si-id" style="color:#059669;">PP-06</span>
+<span class="si-en">Purchase Req.</span>
+<span class="si-ko">자재발주 요청</span>
+<span class="si-l3">📋 L3</span></a><a class="si-chip" href="VOL04_PP07_WO_Release.html" style="text-decoration:none;color:inherit;" title="L3 상세 설계서 · PP-07">
+<span class="si-id" style="color:#059669;">PP-07</span>
+<span class="si-en">WO Release</span>
+<span class="si-ko">WO 발행</span>
+<span class="si-l3">📋 L3</span></a><a class="si-chip" href="VOL04_PP_CAL_Calendar.html" style="text-decoration:none;color:inherit;" title="L3 상세 설계서 · PP-CAL">
+<span class="si-id" style="color:#059669;">PP-CAL</span>
+<span class="si-en">Calendar</span>
+<span class="si-ko">생산 캘린더</span>
+<span class="si-l3">📋 L3</span></a><a class="si-chip" href="VOL04_PP_OTD_Delivery.html" style="text-decoration:none;color:inherit;" title="L3 상세 설계서 · PP-OTD">
+<span class="si-id" style="color:#059669;">PP-OTD</span>
+<span class="si-en">Delivery KPI</span>
+<span class="si-ko">납기 현황</span>
+<span class="si-l3">📋 L3</span></a>
+</div>
+<div class="meta-strip" style="margin-top:24px;">
+<div class="ms-item"><div class="ms-l">ERP</div><div class="ms-v" style="color:#60a5fa;">SAP B1</div></div>
+<div class="ms-item"><div class="ms-l">Customer</div><div class="ms-v">SAV / GEO</div></div>
+<div class="ms-item"><div class="ms-l">MRP</div><div class="ms-v">A-MES + SAP B1</div></div>
+<div class="ms-item"><div class="ms-l">PR Interface</div><div class="ms-v" style="color:#059669;">Service Layer</div></div>
+<div class="ms-item"><div class="ms-l">Routing</div><div class="ms-v">A / B</div></div>
+</div>
+</div>
+<div class="wrap">
+<div class="str-row"><div class="str-line"></div><div class="str-label">OVERALL PROCESS FLOW · 전체 업무 흐름</div><div class="str-line"></div></div>
+<div style="background:#0d1117;border:1px solid rgba(5,150,105,.2);border-radius:8px;padding:20px 24px;margin:12px 0;">
+<div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;letter-spacing:2px;margin-bottom:16px;">END-TO-END FLOW</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+<div>
+<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[고객사]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">Customer Forecast 수신 (SCM 포탈 Excel 다운로드)</div></div>
+<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[PP-01]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">Forecast 등록 &amp; 품번 매핑</div></div>
+<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[SAP B1]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">공급계획 Export (Excel → A-MES Import)</div></div>
+<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[PP-02]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">공급계획 수신 &amp; 확인</div></div>
+<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[PP-03]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">생산계획 수립 (납기·재고·설비 검토)</div></div>
+<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[PP-04]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">작업지시 (WO) 생성</div></div>
+</div>
+<div>
+<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[PP-05]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">MRP 실행 → 자재 소요 계산</div></div>
+<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[PP-06]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">자재발주 요청서 (PR) 생성</div></div>
+<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[SAP B1]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">PR 전송 → PO 변환 → 공급업체 발주</div></div>
+<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[WH]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">자재 입고 (WH 모듈)</div></div>
+<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[PP-07]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">WO 발행 → 생산 착수</div></div>
+<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#059669;min-width:60px;">[INJ/IMG/PNT]</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6;">POP 화면 생산 실적 입력</div></div>
+</div>
+</div>
+</div>
+<div class="str-row"><div class="str-line"></div><div class="str-label">KPI DASHBOARD · 주요 지표</div><div class="str-line"></div></div>
+<div class="kpi-strip">
+<div class="kpi-item"><div class="kpi-v" style="color:#059669;">0</div><div class="kpi-en">MRP Blocked WO</div><div class="kpi-ko">MRP 차단 WO</div></div>
+<div class="kpi-item"><div class="kpi-v" style="color:#fde047;">—</div><div class="kpi-en">Forecast vs Order Gap</div><div class="kpi-ko">Forecast 대비 수주 편차</div></div>
+<div class="kpi-item"><div class="kpi-v" style="color:#5dffc4;">95%</div><div class="kpi-en">On-Time Delivery</div><div class="kpi-ko">납기 준수율</div></div>
+<div class="kpi-item"><div class="kpi-v" style="color:#93c5fd;">—</div><div class="kpi-en">Unreleased WO</div><div class="kpi-ko">미발행 WO</div></div>
+<div class="kpi-item"><div class="kpi-v" style="color:#fca5a5;">—</div><div class="kpi-en">PR Pending (SAP)</div><div class="kpi-ko">발주요청 미전송</div></div>
+</div>
+<div class="sec-divider"></div>
+<div class="screen-banner" style="border-left:3px solid #059669;">
+<div class="sb-vol" style="color:#059669;">PP — Production Planning</div>
+<div class="sb-code" style="color:#059669;">PP-01</div>
+<div class="sb-en">Customer Forecast Management</div>
+<div class="sb-ko">고객사 Forecast 수신 및 관리</div>
+<div class="desc-bi" style="margin-top:12px;">
+<div class="db-en"><span class="db-label db-label-en">OVERVIEW</span>Receives and manages customer demand forecasts (M+1 to M+6) from SAV/GEO SCM Portal. Downloads Forecast Excel from the customer SCM portal and imports it into A-MES. Tracks gaps between forecast and confirmed orders.</div>
+<div class="db-ko"><span class="db-label db-label-ko">개요</span>고객사(SAV/GEO) SCM 포탈에서 Forecast Excel을 다운로드하여 A-MES에 Import한다. Forecast 대비 확정 수주 편차를 추적한다.</div>
+</div>
+<a class="sb-l3-btn" href="VOL04_PP01_Forecast.html" title="L3 상세 설계서 보기 · PP-01">📋 View L3 Detail Spec →</a></div>
+<div class="sec-divider"></div>
+<div class="screen-banner" style="border-left:3px solid #059669;">
+<div class="sb-vol" style="color:#059669;">PP — Production Planning</div>
+<div class="sb-code" style="color:#059669;">PP-02</div>
+<div class="sb-en">SAP B1 Supply Plan Import</div>
+<div class="sb-ko">SAP B1 공급계획 수신</div>
+<div class="desc-bi" style="margin-top:12px;">
+<div class="db-en"><span class="db-label db-label-en">OVERVIEW</span>Receives confirmed supply plans from SAP Business One. Current method: SAP B1 Excel Export → A-MES manual import. Future roadmap: SAP B1 Service Layer REST API auto-polling every 1 hour.</div>
+<div class="db-ko"><span class="db-label db-label-ko">개요</span>SAP Business One의 확정 공급계획(판매오더)을 A-MES로 수신한다. 현행: SAP B1 Excel Export → 수동 Import. 향후: SAP B1 Service Layer REST API 자동 폴링(1시간)으로 전환 예정.</div>
+</div>
+<a class="sb-l3-btn" href="VOL04_PP02_SAP_Import.html" title="L3 상세 설계서 보기 · PP-02">📋 View L3 Detail Spec →</a></div>
+<div class="sec-divider"></div>
+<div class="screen-banner" style="border-left:3px solid #059669;">
+<div class="sb-vol" style="color:#059669;">PP — Production Planning</div>
+<div class="sb-code" style="color:#059669;">PP-03</div>
+<div class="sb-en">Production Planning &amp; Confirmation</div>
+<div class="sb-ko">생산계획 수립 및 확인</div>
+<div class="desc-bi" style="margin-top:12px;">
+<div class="db-en"><span class="db-label db-label-en">OVERVIEW</span>PLAN manager reviews the received supply plans against current FG inventory, equipment load, and Forecast reference. Confirms feasible items for WO batch creation.</div>
+<div class="db-ko"><span class="db-label db-label-ko">개요</span>PLAN 담당자가 공급계획을 완제품 재고·설비 부하·Forecast 참고치와 대조하여 생산 가능 여부를 검토하고 WO 일괄 생성 대상을 확정한다.</div>
+</div>
+<a class="sb-l3-btn" href="VOL04_PP03_Plan_Confirm.html" title="L3 상세 설계서 보기 · PP-03">📋 View L3 Detail Spec →</a></div>
+<div class="sec-divider"></div>
+<div class="screen-banner" style="border-left:3px solid #059669;">
+<div class="sb-vol" style="color:#059669;">PP — Production Planning</div>
+<div class="sb-code" style="color:#059669;">PP-04</div>
+<div class="sb-en">Work Order Management</div>
+<div class="sb-ko">작업지시 (WO) 관리</div>
+<div class="desc-bi" style="margin-top:12px;">
+<div class="db-en"><span class="db-label db-label-en">OVERVIEW</span>Manages Work Orders from Draft through Released, In Progress, to Closed. Displays routing type badge (A/B), progress bar, DDay indicator, and SAP B1 supply plan link.</div>
+<div class="db-ko"><span class="db-label db-label-ko">개요</span>WO를 Draft → Released → In Progress → Closed 상태로 관리한다. 라우팅 A/B 배지·진행률·납기 D-Day·SAP B1 공급계획 연결을 표시한다.</div>
+</div>
+<a class="sb-l3-btn" href="VOL04_PP04_Work_Order.html" title="L3 상세 설계서 보기 · PP-04">📋 View L3 Detail Spec →</a></div>
+<div class="str-row"><div class="str-line"></div><div class="str-label">WO STATUS FLOW · WO 상태 흐름</div><div class="str-line"></div></div>
+<div class="rflow">
+<div class="rf-step" style="background:rgba(5,150,105,.12);border:1px solid rgba(5,150,105,.25);"><span class="rs-en" style="color:#059669;">Draft</span><span class="rs-ko">초안</span></div>
+<div class="rf-arr">→</div>
+<div class="rf-step" style="background:rgba(5,150,105,.12);border:1px solid rgba(5,150,105,.25);"><span class="rs-en" style="color:#059669;">Released</span><span class="rs-ko">발행</span></div>
+<div class="rf-arr">→</div>
+<div class="rf-step" style="background:rgba(5,150,105,.12);border:1px solid rgba(5,150,105,.25);"><span class="rs-en" style="color:#059669;">In Progress</span><span class="rs-ko">생산중</span></div>
+<div class="rf-arr">→</div>
+<div class="rf-step" style="background:rgba(5,150,105,.12);border:1px solid rgba(5,150,105,.25);"><span class="rs-en" style="color:#059669;">Closed</span><span class="rs-ko">완료</span></div>
+</div>
+<div class="sec-divider"></div>
+<div class="screen-banner" style="border-left:3px solid #059669;">
+<div class="sb-vol" style="color:#059669;">PP — Production Planning</div>
+<div class="sb-code" style="color:#059669;">PP-05</div>
+<div class="sb-en">MRP — Material Requirements Planning</div>
+<div class="sb-ko">자재 소요 계획</div>
+<div class="desc-bi" style="margin-top:12px;">
+<div class="db-en"><span class="db-label db-label-en">OVERVIEW</span>Runs MRP to calculate material shortage quantities. A-MES MRP handles real-time WO blocking. SAP B1 MRP handles mid/long-term procurement planning and PO generation.</div>
+<div class="db-ko"><span class="db-label db-label-ko">개요</span>A-MES MRP는 실시간 WO 차단·가용 여부 판단. SAP B1 MRP는 중장기 자재 소요·공급업체 발주 담당. 두 MRP를 역할 분리하여 병행 운영한다.</div>
+</div>
+<a class="sb-l3-btn" href="VOL04_PP05_MRP.html" title="L3 상세 설계서 보기 · PP-05">📋 View L3 Detail Spec →</a></div>
+<div class="sec-divider"></div>
+<div class="screen-banner" style="border-left:3px solid #059669;">
+<div class="sb-vol" style="color:#059669;">PP — Production Planning</div>
+<div class="sb-code" style="color:#059669;">PP-06</div>
+<div class="sb-en">Purchase Requisition → SAP B1</div>
+<div class="sb-ko">자재발주 요청서 (PR) → SAP B1 전송</div>
+<div class="desc-bi" style="margin-top:12px;">
+<div class="db-en"><span class="db-label db-label-en">OVERVIEW</span>Generates Purchase Requisition records from MRP shortage results and transmits them to SAP B1 via Service Layer API (POST /PurchaseRequests). Tracks SAP B1 DocNum after successful transmission.</div>
+<div class="db-ko"><span class="db-label db-label-ko">개요</span>MRP 부족 자재를 기반으로 발주요청서(PR)를 생성하고, SAP B1 Service Layer API(POST /PurchaseRequests)로 전송한다. 전송 성공 시 SAP B1 DocNum을 수신하여 저장한다.</div>
+</div>
+<a class="sb-l3-btn" href="VOL04_PP06_Purchase_Req.html" title="L3 상세 설계서 보기 · PP-06">📋 View L3 Detail Spec →</a></div>
+<div class="sec-divider"></div>
+<div class="screen-banner" style="border-left:3px solid #059669;">
+<div class="sb-vol" style="color:#059669;">PP — Production Planning</div>
+<div class="sb-code" style="color:#059669;">PP-07</div>
+<div class="sb-en">Work Order Release</div>
+<div class="sb-ko">WO 발행 및 생산 착수</div>
+<div class="desc-bi" style="margin-top:12px;">
+<div class="db-en"><span class="db-label db-label-en">OVERVIEW</span>Validates all release conditions before transitioning WO to Released status: Phase-0 complete, MRP no shortage, equipment available, delivery lead time sufficient.</div>
+<div class="db-ko"><span class="db-label db-label-ko">개요</span>WO Released 전환 전 4가지 조건을 순서대로 검증한다: Phase-0 완료, MRP 자재 충족, 설비 가용, 납기 여유. 모두 통과 시 WO 발행 → 자재 자동 예약 → POP 화면 노출.</div>
+</div>
+<a class="sb-l3-btn" href="VOL04_PP07_WO_Release.html" title="L3 상세 설계서 보기 · PP-07">📋 View L3 Detail Spec →</a></div>
+<div class="sec-divider"></div>
+<div class="str-row"><div class="str-line"></div><div class="str-label">BUSINESS RULES · 업무 규칙 전체</div><div class="str-line"></div></div>
+<div class="br-tbl"><div class="tbl-wrap"><table><thead><tr><th>BR ID</th><th>규칙 (EN)</th><th>규칙 (KO)</th><th>조건</th><th>조치</th></tr></thead><tbody>
+<tr><td>BR-PP-F001</td><td>Warn on unmapped customer item no.</td><td>고객사 품번 미매핑 시 경고</td><td>CustomerItemNo 매핑 없음</td><td>경고 표시, 해당 행 제외 후 저장</td></tr>
+<tr><td>BR-PP-F002</td><td>Alert on Forecast vs Order gap &gt; 20%</td><td>Forecast 대비 수주 편차 20% 초과 알림</td><td>Gap &gt; Forecast×0.2</td><td>PLAN/MGR 알림</td></tr>
+<tr><td>BR-PP-F003</td><td>Retain history on Forecast re-upload</td><td>Forecast 재업로드 시 이력 보관 후 UPDATE</td><td>동일 월·품목 중복</td><td>PP_ForecastHistory 이관 후 UPDATE</td></tr>
+<tr><td>BR-PP-001</td><td>Block WO if Phase-0 incomplete</td><td>Phase-0 미완료 WO 생성 차단</td><td>Phase0Complete=0</td><td>400 오류</td></tr>
+<tr><td>BR-PP-002</td><td>Block WO on MRP shortage</td><td>MRP 재고 부족 WO 자동 차단</td><td>ShortageQty&gt;0</td><td>IsBlocked=1, BlockReason 기록</td></tr>
+<tr><td>BR-PP-003</td><td>Auto-reserve material on WO release</td><td>WO 발행 시 자재 자동 예약</td><td>Status=Released</td><td>PP_WOMaterial Reserved</td></tr>
+<tr><td>BR-PP-004</td><td>Release reserved qty on WO cancel</td><td>WO 취소 시 예약 수량 자동 해제</td><td>Status=Cancelled</td><td>ReservedQty 감소</td></tr>
+<tr><td>BR-PP-005</td><td>MRP auto-run nightly at 00:00</td><td>MRP 야간 자동 실행</td><td>매일 00:00 배치</td><td>ShortageQty 전체 재계산</td></tr>
+<tr><td>BR-PP-006</td><td>Retry PR SAP B1 transmission x3</td><td>PR SAP B1 전송 실패 시 3회 재시도</td><td>전송 오류</td><td>3회 재시도 → 실패 지속 시 PLAN 알림</td></tr>
+<tr><td>BR-PP-007</td><td>Warn if equipment blocked on WO release</td><td>WO 발행 전 설비 가용 상태 확인</td><td>Equipment.Status=Blocked</td><td>경고 팝업, 발행 보류 권고</td></tr>
+<tr><td>BR-PP-008</td><td>Alert DDay ≤ 3 WO</td><td>납기 D-3 이내 WO 강조 알림</td><td>DueDate-TODAY≤3</td><td>PLAN/MGR 알림 + 캘린더 빨간 강조</td></tr>
+</tbody></table></div></div>
+</div>
 <div class="page-footer wrap" style="padding-top:20px;padding-bottom:40px;">
-  <span>A-MES · VOL.4 · PP Production Planning · UI Design Specification v1.0 · Bilingual EN/KO</span>
-  <span style="font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.3);">Automotive Parts MES · SAV &amp; GEO Supply · Confidential</span>
+<span>A-MES · VOL.4 · PP Production Planning · UI Design Specification v1.0 · Bilingual EN/KO</span>
+<span style="font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.3);">Automotive Parts MES · SAV &amp; GEO Supply · Confidential</span>
 </div>
 </body></html>
