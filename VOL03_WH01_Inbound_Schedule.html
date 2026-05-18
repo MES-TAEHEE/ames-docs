@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.3 · WH-01 · Inbound Schedule · 상세 설계서</title>
+<style>
+/* ═══════════════════════════════════════
+   A-MES SHARED STYLESHEET v2.0 (extended for L3)
+   Bilingual EN/KO · Level-3 Screen Spec
+═══════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+
+:root{
+  --gold:#d4a017; --gold-lt:#fdf6e3; --gold-dk:#a07810;
+  --ink:#0d1117; --ink2:#161b22; --ink3:#21262d;
+  --surface:#ffffff; --bg:#f6f8fa; --border:#d0d7de;
+  --text:#24292f; --sub:#656d76;
+  --wh:#0891b2; --pp:#059669; --inj:#2563eb; --img:#7c3aed;
+  --pnt:#ea580c; --qc:#dc2626; --fg:#0db87a; --mnt:#0284c7;
+  --rpt:#6366f1; --sys:#475569; --md:#d97706;
+  --mod-color:var(--wh);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+
+/* ── NAV BAR (global) ── */
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
+.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}
+.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;transition:color .12s;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}
+.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+
+/* ── BREADCRUMB SUB-BAR (L1 → L2 → L3) ── */
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;transition:color .12s;}
+.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}
+.l3-crumb .current{color:var(--gold);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+
+/* ── PAGE LAYOUT ── */
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(212,160,23,.15) transparent;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:#fff;}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;transition:all .12s;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:32px;flex-shrink:0;color:rgba(34,211,238,.7);}
+.sb-link.on .sl-id{color:var(--gold);}
+.sb-link .sl-en{font-size:10px;font-weight:600;}
+.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);margin-top:1px;}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+
+/* L3 TOC inside sidebar */
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;border-left:2px solid transparent;margin-left:-2px;transition:all .12s;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+
+.main{flex:1;min-width:0;}
+
+/* ── SCREEN HEADER (Level-3 distinctive) ── */
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#0c1a23 0%,#0f2632 50%,#0d1f2a 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(34,211,238,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:
+  linear-gradient(rgba(34,211,238,.04) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(34,211,238,.04) 1px,transparent 1px);
+  background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(34,211,238,.10),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#22d3ee;margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:#22d3ee;border-radius:50%;box-shadow:0 0 8px #22d3ee;}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:14px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:#22d3ee;line-height:.9;text-shadow:0 0 22px rgba(34,211,238,.2);}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:46px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:4px;margin-bottom:14px;}
+
+.scr-meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.web{border-color:rgba(26,111,255,.3);color:#7ab4ff;}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+
+/* ── CONTENT ── */
+.content{padding:0 48px 60px;}
+
+/* ── SECTION BLOCK ── */
+.sec{margin-top:36px;}
+.sec-hdr{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.sec-num{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--wh);letter-spacing:1px;line-height:1;min-width:42px;}
+.sec-title-wrap{flex:1;}
+.sec-title-en{font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.3px;}
+.sec-title-ko{font-size:11px;color:var(--sub);margin-top:1px;}
+.sec-line{flex:1;height:1px;background:linear-gradient(90deg,var(--wh),transparent);max-width:200px;}
+
+/* ── OVERVIEW BOX ── */
+.ov-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;}
+.ov-desc{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--wh);border-radius:0 6px 6px 0;padding:16px 18px;}
+.ov-desc-en{font-size:12px;color:var(--text);line-height:1.85;margin-bottom:10px;}
+.ov-desc-ko{font-size:11px;color:var(--sub);line-height:1.85;padding-top:10px;border-top:1px dashed var(--border);}
+.ov-meta{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.ov-meta-row{display:flex;border-bottom:1px solid var(--border);font-size:11px;}
+.ov-meta-row:last-child{border-bottom:none;}
+.ov-meta-k{flex:0 0 110px;background:#f6f8fa;padding:8px 12px;font-weight:700;color:var(--sub);font-size:10px;letter-spacing:.5px;text-transform:uppercase;border-right:1px solid var(--border);}
+.ov-meta-v{flex:1;padding:8px 12px;color:var(--text);}
+.ov-meta-v .ko{font-size:10px;color:var(--sub);margin-left:6px;}
+.ov-meta-v code{font-family:'JetBrains Mono',monospace;font-size:10px;background:#f0f3f7;padding:1px 6px;border-radius:3px;color:var(--wh);}
+
+/* ── MOCKUP (enlarged for L3) ── */
+.mock-wrap{background:#eef1f5;border:1px solid var(--border);border-radius:8px;padding:14px;}
+.mock-lbl{font-size:9px;font-weight:700;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.mock-lbl::before{content:'';width:6px;height:6px;background:var(--wh);border-radius:50%;}
+.mock-win{background:#fff;border:1px solid #c8d0db;border-radius:6px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.08);}
+.mock-tbar{background:var(--text);color:#fff;padding:8px 14px;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;}
+.mock-tbar .bc{margin-left:auto;font-size:9px;color:rgba(255,255,255,.35);font-family:'JetBrains Mono',monospace;}
+.mock-toolbar{background:#f6f8fa;border-bottom:1px solid var(--border);padding:8px 14px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+.mock-toolbar select,.mock-toolbar input{padding:4px 9px;border:1px solid var(--border);border-radius:3px;font-size:11px;background:#fff;}
+.mock-body{padding:14px;}
+
+.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:14px;}
+.kc{flex:1;padding:10px 13px;border-right:1px solid var(--border);background:#fafbfc;}
+.kc:last-child{border-right:none;}
+.kv{font-size:22px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
+.kl-en{font-size:9px;color:var(--sub);margin-top:3px;}
+.kl-ko{font-size:8px;color:rgba(100,116,139,.6);}
+
+.tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.tbl th{background:#f0f3f7;padding:7px 9px;font-weight:700;border:1px solid var(--border);text-align:left;font-size:10px;color:var(--text);}
+.tbl th .th-ko{font-weight:400;color:var(--sub);font-size:9px;display:block;}
+.tbl td{padding:6px 9px;border:1px solid var(--border);vertical-align:middle;}
+.tbl .rh td{background:#f0fdf4;}
+.tbl .rw td{background:#fffbeb;}
+.tbl .rd td{background:#fef2f2;}
+.tbl tr:hover td{background:#f9fafb;}
+.tbl td .ko{color:var(--sub);font-size:10px;}
+
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
+.b-ok{background:#dcfce7;color:#166534;}
+.b-w{background:#fef9c3;color:#92400e;}
+.b-e{background:#fee2e2;color:#991b1b;}
+.b-i{background:#dbeafe;color:#1e40af;}
+.b-n{background:#f3f4f6;color:#4b5563;}
+
+.btn{padding:5px 13px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
+.btn-primary{background:var(--wh);color:#fff;border-color:var(--wh);}
+.btn-secondary{background:#f6f8fa;color:var(--text);border-color:var(--border);}
+.btn-danger{background:#dc2626;color:#fff;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+
+/* ── COMPONENT SPEC TABLE ── */
+.cs-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.cs-tbl th{background:linear-gradient(180deg,#0d1f2a,#0c1a23);color:#67e8f9;padding:9px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid var(--ink3);}
+.cs-tbl th .th-ko{display:block;color:rgba(103,232,249,.55);font-weight:400;font-size:9px;letter-spacing:0;text-transform:none;margin-top:1px;}
+.cs-tbl td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.cs-tbl tr:last-child td{border-bottom:none;}
+.cs-tbl tr:hover td{background:#f9fafb;}
+.cs-tbl .c-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--wh);}
+.cs-tbl .c-name{font-weight:700;color:var(--text);}
+.cs-tbl .c-name .ko{font-size:10px;font-weight:400;color:var(--sub);display:block;margin-top:1px;}
+.cs-tbl .c-type{font-family:'JetBrains Mono',monospace;font-size:10px;color:#7c3aed;background:#f5f3ff;padding:2px 6px;border-radius:3px;display:inline-block;}
+.cs-tbl .c-req{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;}
+.cs-tbl .c-req.y{color:#dc2626;}
+.cs-tbl .c-req.n{color:var(--sub);}
+.cs-tbl .c-validation{font-size:10px;color:var(--text);line-height:1.6;}
+.cs-tbl .c-validation code{font-family:'JetBrains Mono',monospace;font-size:9px;background:#fff7ed;color:#9a3412;padding:1px 5px;border-radius:2px;}
+.cs-tbl .c-default{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sub);}
+
+/* ── EVENT FLOW (numbered swimlane) ── */
+.ef-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px 20px;}
+.ef-flow{position:relative;}
+.ef-step{display:grid;grid-template-columns:46px 1fr;gap:14px;padding:10px 0;position:relative;}
+.ef-step:not(:last-child)::before{content:'';position:absolute;left:23px;top:42px;bottom:-10px;width:2px;background:linear-gradient(180deg,var(--wh),rgba(8,145,178,.15));}
+.ef-num{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--wh),#0e7490);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;box-shadow:0 4px 12px rgba(8,145,178,.25);position:relative;z-index:1;}
+.ef-step.terminal .ef-num{background:linear-gradient(135deg,#059669,#047857);box-shadow:0 4px 12px rgba(5,150,105,.25);}
+.ef-step.error .ef-num{background:linear-gradient(135deg,#dc2626,#991b1b);box-shadow:0 4px 12px rgba(220,38,38,.25);}
+.ef-body{padding-top:2px;}
+.ef-trig{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.ef-trig-tag{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;border-radius:2px;}
+.ef-trig-tag.user{background:#dbeafe;color:#1e40af;}
+.ef-trig-tag.system{background:#f3e8ff;color:#7c3aed;}
+.ef-trig-tag.scheduled{background:#fef3c7;color:#92400e;}
+.ef-trig-name{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--text);}
+.ef-action{font-size:12px;color:var(--text);line-height:1.7;margin-bottom:3px;}
+.ef-action-ko{font-size:11px;color:var(--sub);line-height:1.7;}
+.ef-result{margin-top:6px;padding:7px 10px;background:#f6f8fa;border-left:2px solid var(--wh);border-radius:0 3px 3px 0;font-size:10px;color:var(--text);}
+.ef-result .er-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;color:var(--wh);letter-spacing:1px;margin-right:6px;}
+.ef-result code{font-family:'JetBrains Mono',monospace;font-size:10px;background:#fff;padding:1px 5px;border-radius:2px;border:1px solid var(--border);color:#7c3aed;}
+.ef-step.error .ef-result{border-left-color:#dc2626;background:#fef2f2;}
+.ef-step.error .ef-result .er-lbl{color:#dc2626;}
+.ef-step.terminal .ef-result{border-left-color:#059669;background:#f0fdf4;}
+.ef-step.terminal .ef-result .er-lbl{color:#059669;}
+
+/* ── EXCEPTION CASES ── */
+.exc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+.exc-card{background:var(--surface);border:1px solid var(--border);border-top:3px solid #dc2626;border-radius:0 0 6px 6px;padding:13px 15px;}
+.exc-card.warn{border-top-color:#f59e0b;}
+.exc-card.info{border-top-color:#0891b2;}
+.exc-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.exc-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#dc2626;background:#fef2f2;padding:2px 8px;border-radius:3px;}
+.exc-card.warn .exc-code{color:#92400e;background:#fef3c7;}
+.exc-card.info .exc-code{color:#1e40af;background:#dbeafe;}
+.exc-name{font-size:12px;font-weight:700;color:var(--text);flex:1;}
+.exc-name .ko{font-size:10px;font-weight:400;color:var(--sub);display:block;}
+.exc-row{display:grid;grid-template-columns:64px 1fr;gap:8px;padding:5px 0;border-top:1px dashed var(--border);font-size:10px;}
+.exc-row:first-of-type{border-top:none;}
+.exc-row .lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;padding-top:2px;}
+.exc-row .val{color:var(--text);line-height:1.6;}
+.exc-row .val code{font-family:'JetBrains Mono',monospace;font-size:9px;background:#f0f3f7;padding:1px 5px;border-radius:2px;color:#7c3aed;}
+.exc-row .val .ko{color:var(--sub);display:block;font-size:9px;margin-top:1px;}
+.exc-msg{margin-top:8px;padding:7px 10px;background:#1a0808;border:1px solid #3a1010;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#ff8a82;text-align:center;}
+.exc-card.warn .exc-msg{background:#1a1408;border-color:#3a2a10;color:#fbbf24;}
+.exc-card.info .exc-msg{background:#08141a;border-color:#102a3a;color:#67e8f9;}
+
+/* ── LINKAGE DIAGRAM ── */
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px 24px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#f0fdf4;border-color:#22c55e;}
+.lnk-node.cur{background:linear-gradient(135deg,#0c1a23,#0f2632);border-color:#22d3ee;color:#fff;box-shadow:0 4px 16px rgba(34,211,238,.2);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.5px;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#15803d;}
+.lnk-node.cur .lnk-id{color:#22d3ee;}
+.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}
+.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}
+.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.lnk-arr-lbl{font-size:8px;color:var(--sub);font-family:'JetBrains Mono',monospace;letter-spacing:1px;text-transform:uppercase;display:block;text-align:center;margin-top:-6px;}
+
+/* ── BR MINI TABLE ── */
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid #f3e0b0;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.br-mini tr:last-child td{border-bottom:none;}
+.br-mini .br-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-mini .br-en{font-size:11px;color:var(--text);line-height:1.6;}
+.br-mini .br-ko{font-size:10px;color:var(--sub);line-height:1.6;margin-top:3px;}
+.br-mini .br-act{text-align:center;}
+.br-mini .br-act span{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-mini .br-act .blk{background:#fee2e2;color:#991b1b;}
+.br-mini .br-act .alt{background:#fef9c3;color:#92400e;}
+.br-mini .br-act .aut{background:#dbeafe;color:#1e40af;}
+
+/* ── ALERTS ── */
+.alert{display:flex;gap:9px;align-items:flex-start;padding:9px 13px;border-radius:5px;border:1px solid;font-size:11px;line-height:1.65;}
+.alert-i{background:#eff6ff;border-color:#bfdbfe;color:#1e40af;}
+.alert-w{background:#fef9c3;border-color:#fde68a;color:#92400e;}
+
+/* ── FOOTER ── */
+.page-footer{padding:24px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;align-items:center;font-size:10px;}
+.page-footer .pf-l{font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.page-footer .pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+
+@media (max-width:1100px){
+  .ov-grid{grid-template-columns:1fr;}
+  .exc-grid{grid-template-columns:1fr;}
+  .scr-id-block{flex-direction:column;align-items:flex-start;gap:6px;}
+  .scr-id{font-size:42px;}
+  .scr-title-en{font-size:32px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ GLOBAL NAV (L1) ═══════════════ -->
+<nav class="ames-nav"><div class="ames-nav-inner">
+  <a class="nav-home" href="INDEX.html">
+    <div><div class="nav-home-logo">A-MES</div><div class="nav-home-sub">Index</div></div>
+  </a>
+  <a href="VOL03_WH_Warehouse.html" class="nav-vol active"><span class="nv-code" style="color:#0891b2;">WH</span><span>Warehouse</span></a>
+  <a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span>Plan</span></a>
+  <a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span>Injection</span></a>
+  <a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span>Wrapping</span></a>
+  <a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span>Painting</span></a>
+  <a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span>Quality</span></a>
+  <a href="VOL09_FG_Finished.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span>Finished Goods</span></a>
+  <a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span>Maintenance</span></a>
+  <a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span>Reports</span></a>
+  <a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span>System</span></a>
+  <a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span>Master Data</span></a>
+</div></nav>
+
+<!-- ═══════════════ L3 BREADCRUMB ═══════════════ -->
+<div class="l3-crumb">
+  <span class="lvl">L1</span><a href="INDEX.html">A-MES Index</a>
+  <span class="arr">▸</span>
+  <span class="lvl">L2</span><a href="VOL03_WH_Warehouse.html">VOL.3 · WH Warehouse</a>
+  <span class="arr">▸</span>
+  <span class="lvl">L3</span><span class="current">WH-01 · Inbound Schedule</span>
+</div>
+
+<div class="page-wrap">
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<nav class="sidebar">
+  <div class="sb-head">
+    <div class="sb-vol">VOL.3 · WH MODULE</div>
+    <div class="sb-mod-en">WAREHOUSE</div>
+    <div class="sb-mod-ko">창고 관리</div>
+  </div>
+  <div class="sb-section">L3 Screens · 화면 상세</div>
+  <a class="sb-link on" href="VOL03_WH01_Inbound_Schedule.html"><span class="sl-id">WH-01</span><div><div class="sl-en">Inbound Schedule</div><div class="sl-ko">입고 예정</div></div></a>
+  <a class="sb-link" href="VOL03_WH02_PDA_Inbound.html"><span class="sl-id">WH-02</span><div><div class="sl-en">PDA Inbound</div><div class="sl-ko">PDA 입고 처리</div></div></a>
+  <a class="sb-link" href="VOL03_WH03_Inventory_Status.html"><span class="sl-id">WH-03</span><div><div class="sl-en">Inventory Status</div><div class="sl-ko">재고 현황</div></div></a>
+  <a class="sb-link" href="VOL03_WH04_Location_Map.html"><span class="sl-id">WH-04</span><div><div class="sl-en">Location Map</div><div class="sl-ko">로케이션 맵</div></div></a>
+  <a class="sb-link" href="VOL03_WH05_Inventory_Adjust.html"><span class="sl-id">WH-05</span><div><div class="sl-en">Inventory Adjust</div><div class="sl-ko">재고 조정</div></div></a>
+  <a class="sb-link" href="VOL03_WH06_Release_Schedule.html"><span class="sl-id">WH-06</span><div><div class="sl-en">Release Schedule</div><div class="sl-ko">출고 예정</div></div></a>
+  <a class="sb-link" href="VOL03_WH07_PDA_Release.html"><span class="sl-id">WH-07</span><div><div class="sl-en">PDA Release</div><div class="sl-ko">PDA 출고 피킹</div></div></a>
+  <a class="sb-link" href="VOL03_WH08_Transaction_History.html"><span class="sl-id">WH-08</span><div><div class="sl-en">Transaction History</div><div class="sl-ko">입출고 이력</div></div></a>
+
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page</div>
+    <a href="#s1"><span class="num">01</span>Overview</a>
+    <a href="#s2"><span class="num">02</span>Screen Mockup</a>
+    <a href="#s3"><span class="num">03</span>UI Components</a>
+    <a href="#s4"><span class="num">04</span>Event &amp; Action Flow</a>
+    <a href="#s5"><span class="num">05</span>Exception Handling</a>
+    <a href="#s6"><span class="num">06</span>Linked Screens</a>
+    <a href="#s7"><span class="num">07</span>Business Rules</a>
+  </div>
+</nav>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<div class="main">
+
+  <!-- SCREEN HEADER -->
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.3 · WH · Warehouse Management · 입고 예정</div>
+      <div class="scr-id-block">
+        <div class="scr-id">WH-01</div>
+        <div>
+          <div class="scr-title-en">INBOUND SCHEDULE</div>
+        </div>
+      </div>
+      <div class="scr-title-ko">입 고 예 정</div>
+      <div class="scr-meta">
+        <div class="meta-chip web">
+          <span class="mc-lbl">Device</span><span class="mc-val">🖥 Web PC</span>
+        </div>
+        <div class="meta-chip phase">
+          <span class="mc-lbl">Phase</span><span class="mc-val">Phase 0 + 1st Dev</span>
+        </div>
+        <div class="meta-chip role">
+          <span class="mc-lbl">Role</span><span class="mc-val">Warehouse Staff · Manager</span>
+        </div>
+        <div class="meta-chip">
+          <span class="mc-lbl">Freq</span><span class="mc-val">Daily · 일 1회 이상</span>
+        </div>
+        <div class="meta-chip">
+          <span class="mc-lbl">URL</span><span class="mc-val" style="font-family:'JetBrains Mono',monospace;">/wh/inbound/schedule</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+  <!-- ═══════════ 1. OVERVIEW ═══════════ -->
+  <section class="sec" id="s1">
+    <div class="sec-hdr">
+      <div class="sec-num">01</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Overview</div>
+        <div class="sec-title-ko">화면 개요</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="ov-grid">
+      <div class="ov-desc">
+        <div class="ov-desc-en">
+          Displays all open purchase orders received from the SCM portal and allows warehouse staff to register expected inbound schedules. ETA D-Day is auto-calculated; overdue deliveries are highlighted in red and trigger alerts to the procurement and warehouse manager. The <strong>[Receive]</strong> action launches the <code style="font-family:'JetBrains Mono',monospace;background:#f0f3f7;padding:1px 5px;border-radius:2px;">WH-02 PDA Inbound</code> flow for the selected PO, while QC-01 incoming inspection is auto-queued upon confirmation.
+        </div>
+        <div class="ov-desc-ko">
+          SCM 포탈에서 수신한 모든 미입고 발주(PO)를 표시하고, 창고 담당자가 입고 예정 일정을 등록할 수 있는 화면입니다. ETA D-Day는 자동 계산되며, 지연 발주는 빨간색으로 강조되고 구매팀·창고 관리자에게 알림이 발송됩니다. <strong>[Receive]</strong> 클릭 시 선택한 PO에 대해 <code style="font-family:'JetBrains Mono',monospace;background:#f0f3f7;padding:1px 5px;border-radius:2px;">WH-02 PDA 입고</code> 흐름이 시작되며, 확정 즉시 QC-01 수입검사가 자동 대기열에 등록됩니다.
+        </div>
+      </div>
+      <div class="ov-meta">
+        <div class="ov-meta-row">
+          <div class="ov-meta-k">Screen ID</div>
+          <div class="ov-meta-v"><code>WH-01</code></div>
+        </div>
+        <div class="ov-meta-row">
+          <div class="ov-meta-k">Module</div>
+          <div class="ov-meta-v">VOL.3 · Warehouse <span class="ko">창고 관리</span></div>
+        </div>
+        <div class="ov-meta-row">
+          <div class="ov-meta-k">Layout</div>
+          <div class="ov-meta-v">Toolbar + KPI strip + Data table <span class="ko">툴바·KPI·표</span></div>
+        </div>
+        <div class="ov-meta-row">
+          <div class="ov-meta-k">Refresh</div>
+          <div class="ov-meta-v">Auto every <strong>30 min</strong> + manual <span class="ko">30분 자동 + 수동</span></div>
+        </div>
+        <div class="ov-meta-row">
+          <div class="ov-meta-k">Primary KPI</div>
+          <div class="ov-meta-v">Pending PO, Arriving Today, Overdue</div>
+        </div>
+        <div class="ov-meta-row">
+          <div class="ov-meta-k">Tables</div>
+          <div class="ov-meta-v"><code>wh_inbound</code>, <code>po_header</code>, <code>md_item</code></div>
+        </div>
+        <div class="ov-meta-row">
+          <div class="ov-meta-k">RBAC</div>
+          <div class="ov-meta-v"><code>WH.View</code> · <code>WH.Receive</code></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 2. SCREEN MOCKUP ═══════════ -->
+  <section class="sec" id="s2">
+    <div class="sec-hdr">
+      <div class="sec-num">02</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Screen Mockup</div>
+        <div class="sec-title-ko">화면 목업</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="mock-wrap">
+      <div class="mock-lbl">WH-01 · Inbound Schedule · Web PC · 1920×1080</div>
+      <div class="mock-win">
+        <div class="mock-tbar">📦 A-MES · Warehouse · Inbound Schedule <span class="bc">Warehouse &gt; Inbound &gt; Schedule</span></div>
+        <div class="mock-toolbar">
+          <select><option>All Status</option><option>Pending</option><option>Arriving Today</option><option>Overdue</option></select>
+          <select><option>All Vendors</option><option>삼성화학</option><option>현대원단</option><option>KCC도료</option></select>
+          <input type="text" placeholder="Search PO No. / Item..." style="width:180px;">
+          <input type="date" style="width:130px;">
+          <span style="color:var(--sub);">~</span>
+          <input type="date" style="width:130px;">
+          <button class="btn btn-primary btn-sm">🔍 Search</button>
+          <button class="btn btn-secondary btn-sm" style="margin-left:auto;">+ Register Schedule</button>
+          <button class="btn btn-secondary btn-sm">📥 Excel</button>
+        </div>
+        <div class="mock-body">
+          <div class="kpi-strip">
+            <div class="kc"><div class="kv" style="color:#0891b2;">12</div><div class="kl-en">Pending PO</div><div class="kl-ko">입고 예정 건</div></div>
+            <div class="kc"><div class="kv" style="color:#22c55e;">3</div><div class="kl-en">Arriving Today</div><div class="kl-ko">금일 입고</div></div>
+            <div class="kc"><div class="kv" style="color:#ef4444;">1</div><div class="kl-en">Overdue</div><div class="kl-ko">지연</div></div>
+            <div class="kc"><div class="kv" style="color:#f59e0b;">5</div><div class="kl-en">This Week</div><div class="kl-ko">이번 주</div></div>
+            <div class="kc"><div class="kv" style="color:#6366f1;">3</div><div class="kl-en">Next Week</div><div class="kl-ko">다음 주</div></div>
+          </div>
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>PO No. <span class="th-ko">발주번호</span></th>
+                <th>Vendor <span class="th-ko">공급사</span></th>
+                <th>Item Code <span class="th-ko">품목코드</span></th>
+                <th>Item Name <span class="th-ko">품목명</span></th>
+                <th>Order Qty <span class="th-ko">발주 수량</span></th>
+                <th>Unit <span class="th-ko">단위</span></th>
+                <th>ETA <span class="th-ko">입고 예정일</span></th>
+                <th>D-Day</th>
+                <th>Status <span class="th-ko">상태</span></th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="rd">
+                <td style="font-family:monospace;font-size:9px;font-weight:700;color:#dc2626;">PO-2025-0628-003</td>
+                <td>삼성화학</td>
+                <td style="font-family:monospace;font-size:9px;">RM-PP-NAT-20</td>
+                <td>PP Pellet Natural 20MFI<div class="ko">PP 펠렛 나튜럴</div></td>
+                <td style="text-align:right;">500</td><td>kg</td>
+                <td>2025-06-28</td>
+                <td style="text-align:center;font-weight:700;color:#dc2626;">D+3</td>
+                <td><span class="b b-e">Overdue · 지연</span></td>
+                <td><button class="btn btn-primary btn-sm">📥 Receive</button></td>
+              </tr>
+              <tr class="rh">
+                <td style="font-family:monospace;font-size:9px;font-weight:700;">PO-2025-0701-001</td>
+                <td>현대원단</td>
+                <td style="font-family:monospace;font-size:9px;">FAB-GY-C03</td>
+                <td>Fabric Roll Grey GY-C03<div class="ko">원단 롤 회색</div></td>
+                <td style="text-align:right;">20</td><td>roll</td>
+                <td>2025-07-01</td>
+                <td style="text-align:center;font-weight:700;color:#22c55e;">Today</td>
+                <td><span class="b b-w">Arriving · 도착예정</span></td>
+                <td><button class="btn btn-primary btn-sm">📥 Receive</button></td>
+              </tr>
+              <tr>
+                <td style="font-family:monospace;font-size:9px;">PO-2025-0705-002</td>
+                <td>KCC도료</td>
+                <td style="font-family:monospace;font-size:9px;">PNT-BK-NH578</td>
+                <td>Black Paint NH578<div class="ko">블랙 도료 NH578</div></td>
+                <td style="text-align:right;">50</td><td>L</td>
+                <td>2025-07-05</td>
+                <td style="text-align:center;">D-4</td>
+                <td><span class="b b-i">Scheduled · 예정</span></td>
+                <td><button class="btn btn-secondary btn-sm">Detail · 상세</button></td>
+              </tr>
+              <tr>
+                <td style="font-family:monospace;font-size:9px;">PO-2025-0708-004</td>
+                <td>현대원단</td>
+                <td style="font-family:monospace;font-size:9px;">FAB-BK-C01</td>
+                <td>Fabric Roll Black BK-C01<div class="ko">원단 롤 블랙</div></td>
+                <td style="text-align:right;">10</td><td>roll</td>
+                <td>2025-07-08</td>
+                <td style="text-align:center;">D-7</td>
+                <td><span class="b b-i">Scheduled · 예정</span></td>
+                <td><button class="btn btn-secondary btn-sm">Detail · 상세</button></td>
+              </tr>
+              <tr>
+                <td style="font-family:monospace;font-size:9px;">PO-2025-0710-005</td>
+                <td>삼성화학</td>
+                <td style="font-family:monospace;font-size:9px;">RM-PP-BLK-20</td>
+                <td>PP Pellet Black 20MFI<div class="ko">PP 펠렛 블랙</div></td>
+                <td style="text-align:right;">300</td><td>kg</td>
+                <td>2025-07-10</td>
+                <td style="text-align:center;">D-9</td>
+                <td><span class="b b-i">Scheduled · 예정</span></td>
+                <td><button class="btn btn-secondary btn-sm">Detail · 상세</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="alert alert-i" style="margin-top:14px;"><span>ℹ️</span><div><strong>Row color legend · 행 색상</strong> — Red row: Overdue PO · 지연 / Green row: Arriving today · 금일 도착 / White: Scheduled · 예정. D-Day 색상: <strong style="color:#dc2626;">D+N (red)</strong> · 지연, <strong style="color:#22c55e;">Today (green)</strong> · 금일, <strong>D-N (default)</strong> · 예정.</div></div>
+  </section>
+
+  <!-- ═══════════ 3. UI COMPONENT SPEC ═══════════ -->
+  <section class="sec" id="s3">
+    <div class="sec-hdr">
+      <div class="sec-num">03</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">UI Component Specification</div>
+        <div class="sec-title-ko">UI 컴포넌트 명세</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <h3 style="font-size:12px;font-weight:700;color:var(--sub);margin:6px 0 8px;letter-spacing:.5px;">3.1 Toolbar Components <span style="color:var(--sub);font-weight:400;">· 툴바 컴포넌트</span></h3>
+    <table class="cs-tbl">
+      <thead>
+        <tr>
+          <th style="width:90px;">ID</th>
+          <th style="width:180px;">Component <span class="th-ko">컴포넌트</span></th>
+          <th style="width:120px;">Type <span class="th-ko">타입</span></th>
+          <th style="width:60px;">Req <span class="th-ko">필수</span></th>
+          <th>Validation / Behavior <span class="th-ko">검증·동작</span></th>
+          <th style="width:140px;">Default <span class="th-ko">기본값</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="c-id">CMP-01</td>
+          <td class="c-name">Status Filter<span class="ko">상태 필터</span></td>
+          <td><span class="c-type">SELECT</span></td>
+          <td class="c-req n">N</td>
+          <td class="c-validation">Options: <code>All / Pending / Arriving Today / Overdue / Completed</code>. Changes trigger table reload.</td>
+          <td class="c-default">All Status</td>
+        </tr>
+        <tr>
+          <td class="c-id">CMP-02</td>
+          <td class="c-name">Vendor Filter<span class="ko">공급사 필터</span></td>
+          <td><span class="c-type">SELECT</span></td>
+          <td class="c-req n">N</td>
+          <td class="c-validation">Loaded from <code>md_vendor</code> where <code>is_active=1</code>. Multi-select disabled in v1.</td>
+          <td class="c-default">All Vendors</td>
+        </tr>
+        <tr>
+          <td class="c-id">CMP-03</td>
+          <td class="c-name">Search Box<span class="ko">검색창</span></td>
+          <td><span class="c-type">TEXT</span></td>
+          <td class="c-req n">N</td>
+          <td class="c-validation">Min 2 chars. Searches <code>po_no</code> and <code>item_code/name</code> with <code>LIKE %query%</code>. Debounced 300ms.</td>
+          <td class="c-default">(empty)</td>
+        </tr>
+        <tr>
+          <td class="c-id">CMP-04</td>
+          <td class="c-name">Date Range<span class="ko">기간 선택</span></td>
+          <td><span class="c-type">DATE × 2</span></td>
+          <td class="c-req n">N</td>
+          <td class="c-validation">From ≤ To. Max range 90 days. Filter on <code>eta_date</code>.</td>
+          <td class="c-default">Today ~ +14d</td>
+        </tr>
+        <tr>
+          <td class="c-id">CMP-05</td>
+          <td class="c-name">Search Button<span class="ko">검색 버튼</span></td>
+          <td><span class="c-type">BUTTON</span></td>
+          <td class="c-req n">N</td>
+          <td class="c-validation">Triggers <code>GET /api/wh/inbound/schedule</code> with all filter params. Enter key in any filter also triggers.</td>
+          <td class="c-default">—</td>
+        </tr>
+        <tr>
+          <td class="c-id">CMP-06</td>
+          <td class="c-name">Register Schedule<span class="ko">예정 등록</span></td>
+          <td><span class="c-type">BUTTON</span></td>
+          <td class="c-req n">N</td>
+          <td class="c-validation">Opens modal for manual schedule entry (vendor-driven PO without SCM sync). Requires <code>WH.Manage</code> role.</td>
+          <td class="c-default">—</td>
+        </tr>
+        <tr>
+          <td class="c-id">CMP-07</td>
+          <td class="c-name">Excel Export<span class="ko">엑셀 출력</span></td>
+          <td><span class="c-type">BUTTON</span></td>
+          <td class="c-req n">N</td>
+          <td class="c-validation">Exports current filtered result as <code>.xlsx</code>. Max 10,000 rows. Filename: <code>WH01_Inbound_YYYYMMDD.xlsx</code>.</td>
+          <td class="c-default">—</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 style="font-size:12px;font-weight:700;color:var(--sub);margin:18px 0 8px;letter-spacing:.5px;">3.2 KPI Strip <span style="color:var(--sub);font-weight:400;">· KPI 영역</span></h3>
+    <table class="cs-tbl">
+      <thead>
+        <tr>
+          <th style="width:90px;">ID</th>
+          <th style="width:180px;">Metric <span class="th-ko">지표</span></th>
+          <th style="width:120px;">Type</th>
+          <th>Calculation <span class="th-ko">산출 로직</span></th>
+          <th style="width:140px;">Refresh</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="c-id">KPI-01</td>
+          <td class="c-name">Pending PO<span class="ko">입고 예정 건</span></td>
+          <td><span class="c-type">COUNT</span></td>
+          <td class="c-validation">Count of <code>po_header</code> where <code>status IN ('Scheduled','Arriving','Overdue')</code>.</td>
+          <td class="c-default">30 min</td>
+        </tr>
+        <tr>
+          <td class="c-id">KPI-02</td>
+          <td class="c-name">Arriving Today<span class="ko">금일 입고</span></td>
+          <td><span class="c-type">COUNT</span></td>
+          <td class="c-validation">Count where <code>eta_date = CURRENT_DATE</code>. Color: <code>#22c55e</code>.</td>
+          <td class="c-default">30 min</td>
+        </tr>
+        <tr>
+          <td class="c-id">KPI-03</td>
+          <td class="c-name">Overdue<span class="ko">지연</span></td>
+          <td><span class="c-type">COUNT</span></td>
+          <td class="c-validation">Count where <code>eta_date &lt; CURRENT_DATE AND status != 'Received'</code>. Color: <code>#ef4444</code>.</td>
+          <td class="c-default">30 min</td>
+        </tr>
+        <tr>
+          <td class="c-id">KPI-04</td>
+          <td class="c-name">This Week<span class="ko">이번 주</span></td>
+          <td><span class="c-type">COUNT</span></td>
+          <td class="c-validation">Count where <code>eta_date</code> within current ISO week. Excludes Today.</td>
+          <td class="c-default">30 min</td>
+        </tr>
+        <tr>
+          <td class="c-id">KPI-05</td>
+          <td class="c-name">Next Week<span class="ko">다음 주</span></td>
+          <td><span class="c-type">COUNT</span></td>
+          <td class="c-validation">Count where <code>eta_date</code> within next ISO week.</td>
+          <td class="c-default">30 min</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 style="font-size:12px;font-weight:700;color:var(--sub);margin:18px 0 8px;letter-spacing:.5px;">3.3 Data Table Columns <span style="color:var(--sub);font-weight:400;">· 데이터 표 컬럼</span></h3>
+    <table class="cs-tbl">
+      <thead>
+        <tr>
+          <th style="width:90px;">ID</th>
+          <th style="width:160px;">Column <span class="th-ko">컬럼</span></th>
+          <th style="width:110px;">Source <span class="th-ko">소스</span></th>
+          <th>Format / Rule <span class="th-ko">표시·규칙</span></th>
+          <th style="width:90px;">Sort</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="c-id">COL-01</td>
+          <td class="c-name">PO No.<span class="ko">발주번호</span></td>
+          <td><code class="c-type">po_header.po_no</code></td>
+          <td class="c-validation">Format: <code>PO-YYYY-MMDD-NNN</code>. Overdue: red bold. Click → PO detail popup.</td>
+          <td class="c-default">DESC</td>
+        </tr>
+        <tr>
+          <td class="c-id">COL-02</td>
+          <td class="c-name">Vendor<span class="ko">공급사</span></td>
+          <td><code class="c-type">md_vendor.name</code></td>
+          <td class="c-validation">Display vendor short name. Tooltip = full legal name.</td>
+          <td class="c-default">ASC</td>
+        </tr>
+        <tr>
+          <td class="c-id">COL-03</td>
+          <td class="c-name">Item Code<span class="ko">품목코드</span></td>
+          <td><code class="c-type">md_item.item_code</code></td>
+          <td class="c-validation">Monospace font. Click → item master popup.</td>
+          <td class="c-default">ASC</td>
+        </tr>
+        <tr>
+          <td class="c-id">COL-04</td>
+          <td class="c-name">Item Name<span class="ko">품목명</span></td>
+          <td><code class="c-type">md_item.item_name_en/ko</code></td>
+          <td class="c-validation">EN main + KO subtext (smaller, muted).</td>
+          <td class="c-default">—</td>
+        </tr>
+        <tr>
+          <td class="c-id">COL-05</td>
+          <td class="c-name">Order Qty<span class="ko">발주 수량</span></td>
+          <td><code class="c-type">po_header.order_qty</code></td>
+          <td class="c-validation">Right-align. Thousands separator. Decimal: 0–3 digits per unit.</td>
+          <td class="c-default">—</td>
+        </tr>
+        <tr>
+          <td class="c-id">COL-06</td>
+          <td class="c-name">Unit<span class="ko">단위</span></td>
+          <td><code class="c-type">md_item.unit</code></td>
+          <td class="c-validation">kg / roll / L / EA.</td>
+          <td class="c-default">—</td>
+        </tr>
+        <tr>
+          <td class="c-id">COL-07</td>
+          <td class="c-name">ETA<span class="ko">입고 예정일</span></td>
+          <td><code class="c-type">po_header.eta_date</code></td>
+          <td class="c-validation">Format: <code>YYYY-MM-DD</code>. Editable inline by Manager role.</td>
+          <td class="c-default">ASC ★</td>
+        </tr>
+        <tr>
+          <td class="c-id">COL-08</td>
+          <td class="c-name">D-Day<span class="ko">잔여일</span></td>
+          <td><em>Calculated</em></td>
+          <td class="c-validation"><code>eta_date − CURRENT_DATE</code>. Show <code>D+N</code> (red) / <code>Today</code> (green) / <code>D-N</code>.</td>
+          <td class="c-default">—</td>
+        </tr>
+        <tr>
+          <td class="c-id">COL-09</td>
+          <td class="c-name">Status<span class="ko">상태</span></td>
+          <td><code class="c-type">po_header.status</code></td>
+          <td class="c-validation">Badge: <code>Scheduled</code> (blue) / <code>Arriving</code> (yellow) / <code>Overdue</code> (red) / <code>Received</code> (green).</td>
+          <td class="c-default">—</td>
+        </tr>
+        <tr>
+          <td class="c-id">COL-10</td>
+          <td class="c-name">Action<span class="ko">액션</span></td>
+          <td><em>Button</em></td>
+          <td class="c-validation"><strong>[Receive]</strong> if status in (Arriving / Overdue / Scheduled within 1 day) · else <strong>[Detail]</strong>.</td>
+          <td class="c-default">—</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════ 4. EVENT FLOW ═══════════ -->
+  <section class="sec" id="s4">
+    <div class="sec-hdr">
+      <div class="sec-num">04</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Event &amp; Action Flow</div>
+        <div class="sec-title-ko">이벤트 · 액션 흐름</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="ef-wrap">
+      <div class="ef-flow">
+
+        <div class="ef-step">
+          <div class="ef-num">1</div>
+          <div class="ef-body">
+            <div class="ef-trig">
+              <span class="ef-trig-tag scheduled">Scheduled</span>
+              <span class="ef-trig-name">scm.sync.cron @ */30min</span>
+            </div>
+            <div class="ef-action">System fetches new/updated POs from SCM portal every 30 minutes via SAP B1 SLD adapter.</div>
+            <div class="ef-action-ko">시스템이 SCM 포탈에서 신규/갱신 PO를 30분마다 SAP B1 SLD 어댑터로 수신합니다.</div>
+            <div class="ef-result">
+              <span class="er-lbl">EFFECT</span>
+              UPSERT into <code>po_header</code> · UPDATE <code>last_synced_at</code> · trigger overdue re-evaluation.
+            </div>
+          </div>
+        </div>
+
+        <div class="ef-step">
+          <div class="ef-num">2</div>
+          <div class="ef-body">
+            <div class="ef-trig">
+              <span class="ef-trig-tag user">User</span>
+              <span class="ef-trig-name">page.load · WH-01 진입</span>
+            </div>
+            <div class="ef-action">Warehouse staff opens the screen. System auto-applies default filter (Today ~ +14d, All Status).</div>
+            <div class="ef-action-ko">창고 담당자가 화면에 진입하면 기본 필터(오늘~+14일, 전체 상태)가 자동 적용됩니다.</div>
+            <div class="ef-result">
+              <span class="er-lbl">API</span>
+              <code>GET /api/wh/inbound/schedule?from=...&amp;to=...&amp;status=all</code> → KPI strip + table populated.
+            </div>
+          </div>
+        </div>
+
+        <div class="ef-step">
+          <div class="ef-num">3</div>
+          <div class="ef-body">
+            <div class="ef-trig">
+              <span class="ef-trig-tag user">User</span>
+              <span class="ef-trig-name">click · [🔍 Search]</span>
+            </div>
+            <div class="ef-action">User adjusts filter (status / vendor / date range / search box) and clicks Search. Same effect when pressing Enter in any filter field.</div>
+            <div class="ef-action-ko">필터(상태/공급사/기간/검색) 변경 후 [검색] 클릭 또는 Enter 입력 시 동일 동작.</div>
+            <div class="ef-result">
+              <span class="er-lbl">VALIDATE</span>
+              <code>date_from ≤ date_to</code>, range ≤ 90 days, search ≥ 2 chars → re-query &amp; redraw table.
+            </div>
+          </div>
+        </div>
+
+        <div class="ef-step">
+          <div class="ef-num">4</div>
+          <div class="ef-body">
+            <div class="ef-trig">
+              <span class="ef-trig-tag user">User</span>
+              <span class="ef-trig-name">click · [📥 Receive]</span>
+            </div>
+            <div class="ef-action">User clicks Receive on a row. System checks RBAC <code>WH.Receive</code> and PO status validity, then launches WH-02 PDA flow with PO context.</div>
+            <div class="ef-action-ko">[Receive] 클릭 시 RBAC 권한·PO 상태 검증 후 WH-02 PDA 입고 흐름으로 PO 정보와 함께 전환됩니다.</div>
+            <div class="ef-result">
+              <span class="er-lbl">REDIRECT</span>
+              <code>POST /api/wh/inbound/start</code> → returns <code>session_id</code> → redirect <code>/wh/pda/inbound?po=...&amp;sid=...</code>.
+            </div>
+          </div>
+        </div>
+
+        <div class="ef-step">
+          <div class="ef-num">5</div>
+          <div class="ef-body">
+            <div class="ef-trig">
+              <span class="ef-trig-tag system">System</span>
+              <span class="ef-trig-name">job.overdue.check @ 09:00 daily</span>
+            </div>
+            <div class="ef-action">Daily 09:00 KST job re-evaluates ETA. POs past ETA without receipt become Overdue → alert sent to procurement &amp; WH manager via in-app + email.</div>
+            <div class="ef-action-ko">매일 09:00 KST 배치가 ETA를 재평가하여 미입고 PO를 지연 상태로 전환 + 구매팀·창고관리자에게 알림 발송.</div>
+            <div class="ef-result">
+              <span class="er-lbl">EFFECT</span>
+              <code>UPDATE po_header SET status='Overdue'</code> · INSERT into <code>sys_alert</code> · email via SYS-04.
+            </div>
+          </div>
+        </div>
+
+        <div class="ef-step">
+          <div class="ef-num">6</div>
+          <div class="ef-body">
+            <div class="ef-trig">
+              <span class="ef-trig-tag user">User</span>
+              <span class="ef-trig-name">click · [+ Register Schedule]</span>
+            </div>
+            <div class="ef-action">Manager opens modal to manually register an inbound schedule for non-SCM POs (e.g. local consumables, sample shipments).</div>
+            <div class="ef-action-ko">SCM 외 발주(소모성·샘플 등)에 대해 매니저가 수동으로 입고 예정을 등록할 수 있는 모달을 엽니다.</div>
+            <div class="ef-result">
+              <span class="er-lbl">REQUIRE</span>
+              Role = <code>WH.Manage</code> · fields: Vendor, Item, Qty, ETA, Note → <code>POST /api/wh/inbound/manual</code>.
+            </div>
+          </div>
+        </div>
+
+        <div class="ef-step terminal">
+          <div class="ef-num">✓</div>
+          <div class="ef-body">
+            <div class="ef-trig">
+              <span class="ef-trig-tag system">System</span>
+              <span class="ef-trig-name">return · from WH-02 success</span>
+            </div>
+            <div class="ef-action">After WH-02 PDA inbound completion, user returns to WH-01. Received PO row disappears (or shows <code>Received</code> badge depending on filter).</div>
+            <div class="ef-action-ko">WH-02 PDA 입고 완료 후 WH-01로 복귀하면 입고 완료된 PO 행이 사라지거나 (필터에 따라) [Received] 상태 배지로 표시됩니다.</div>
+            <div class="ef-result">
+              <span class="er-lbl">DOWNSTREAM</span>
+              QC-01 incoming inspection auto-queued · min-stock alert re-evaluated · WH-08 transaction log written.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 5. EXCEPTION HANDLING ═══════════ -->
+  <section class="sec" id="s5">
+    <div class="sec-hdr">
+      <div class="sec-num">05</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Exception &amp; Error Handling</div>
+        <div class="sec-title-ko">예외 · 에러 처리</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="exc-grid">
+
+      <div class="exc-card">
+        <div class="exc-hdr">
+          <span class="exc-code">E-WH01-001</span>
+          <div class="exc-name">SCM Sync Failure<span class="ko">SCM 동기화 실패</span></div>
+        </div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val">SAP B1 SLD endpoint unreachable / timeout &gt; 30s. <span class="ko">SAP B1 SLD 연결 실패·30초 초과.</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val">Last <code>last_synced_at</code> &gt; 60 min ago.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Show yellow banner at top: "Last sync: HH:MM. Connection issue." Retry button available. Cached data still displayed.</div></div>
+        <div class="exc-row"><div class="lbl">Notify</div><div class="val">SYS admin via in-app alert + email after 3 consecutive failures.</div></div>
+        <div class="exc-msg">⚠ SCM SYNC DELAYED — DATA MAY BE STALE</div>
+      </div>
+
+      <div class="exc-card">
+        <div class="exc-hdr">
+          <span class="exc-code">E-WH01-002</span>
+          <div class="exc-name">Receive Without Permission<span class="ko">권한 없는 입고 시도</span></div>
+        </div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val">User clicks [Receive] without <code>WH.Receive</code> role. <span class="ko">권한 없는 사용자가 입고 시도.</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val">Backend RBAC check on <code>POST /api/wh/inbound/start</code>.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Block API call. Return <code>403 Forbidden</code>. Modal: "You don't have permission to receive. Contact your manager."</div></div>
+        <div class="exc-row"><div class="lbl">Log</div><div class="val">Record attempt in <code>sys_audit</code> with user_id, timestamp, attempted_po.</div></div>
+        <div class="exc-msg">⛔ ACCESS DENIED — ROLE WH.RECEIVE REQUIRED</div>
+      </div>
+
+      <div class="exc-card warn">
+        <div class="exc-hdr">
+          <span class="exc-code">E-WH01-003</span>
+          <div class="exc-name">PO Already Received<span class="ko">이미 입고된 PO</span></div>
+        </div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val">Another user already completed WH-02 for this PO (race condition). <span class="ko">동시 작업으로 이미 다른 사용자가 입고 완료.</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val">On [Receive] click: <code>SELECT status FROM po_header</code> → status = 'Received'.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Refuse navigation to WH-02. Show toast: "This PO has been received by [user] at [time]." Refresh table.</div></div>
+        <div class="exc-row"><div class="lbl">Recovery</div><div class="val">User views WH-08 Transaction History for confirmation.</div></div>
+        <div class="exc-msg">⚠ ALREADY RECEIVED — SEE WH-08 HISTORY</div>
+      </div>
+
+      <div class="exc-card warn">
+        <div class="exc-hdr">
+          <span class="exc-code">E-WH01-004</span>
+          <div class="exc-name">Invalid Date Range<span class="ko">잘못된 기간 입력</span></div>
+        </div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val"><code>date_from &gt; date_to</code> or range &gt; 90 days. <span class="ko">시작일 &gt; 종료일 또는 기간 90일 초과.</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val">Client-side validation before API call.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Highlight date inputs with red border. Inline error: "Range must be valid and ≤ 90 days." Search button disabled.</div></div>
+        <div class="exc-row"><div class="lbl">Recovery</div><div class="val">User corrects dates → validation passes → button re-enabled.</div></div>
+        <div class="exc-msg">⚠ INVALID RANGE — MAX 90 DAYS</div>
+      </div>
+
+      <div class="exc-card warn">
+        <div class="exc-hdr">
+          <span class="exc-code">E-WH01-005</span>
+          <div class="exc-name">Excel Export Overflow<span class="ko">엑셀 출력 초과</span></div>
+        </div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val">Filtered result &gt; 10,000 rows. <span class="ko">필터 결과가 1만 행 초과.</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val">Server-side count check before file generation.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Reject export. Modal: "Result exceeds 10,000 rows. Narrow your filter or use Reports module."</div></div>
+        <div class="exc-row"><div class="lbl">Recovery</div><div class="val">User reduces date range or applies vendor filter, then retries.</div></div>
+        <div class="exc-msg">⚠ TOO MANY ROWS — NARROW FILTER</div>
+      </div>
+
+      <div class="exc-card info">
+        <div class="exc-hdr">
+          <span class="exc-code">E-WH01-006</span>
+          <div class="exc-name">Empty Result Set<span class="ko">조회 결과 없음</span></div>
+        </div>
+        <div class="exc-row"><div class="lbl">Cause</div><div class="val">No PO matches current filter. <span class="ko">필터 조건에 맞는 발주 없음.</span></div></div>
+        <div class="exc-row"><div class="lbl">Detect</div><div class="val">API returns empty array.</div></div>
+        <div class="exc-row"><div class="lbl">Action</div><div class="val">Show empty state illustration + message: "No inbound schedules match your filter." KPI strip shows zeros but remains visible.</div></div>
+        <div class="exc-row"><div class="lbl">Recovery</div><div class="val">Reset filter button shown.</div></div>
+        <div class="exc-msg">ℹ NO RESULTS — TRY CLEARING FILTER</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════ 6. LINKED SCREENS ═══════════ -->
+  <section class="sec" id="s6">
+    <div class="sec-hdr">
+      <div class="sec-num">06</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Linked Screens</div>
+        <div class="sec-title-ko">선행 · 후행 연계 화면</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="lnk-wrap">
+      <div class="lnk-row" style="margin-bottom:18px;">
+        <div class="lnk-node up">
+          <div class="lnk-id">PP-EXT</div>
+          <div class="lnk-name">SCM Portal</div>
+          <div class="lnk-ko">SCM 포탈 (SAP B1)</div>
+        </div>
+        <div style="text-align:center;">
+          <div class="lnk-arr">→</div>
+          <div class="lnk-arr-lbl">PO sync 30min</div>
+        </div>
+        <div class="lnk-node up">
+          <div class="lnk-id">MD-02</div>
+          <div class="lnk-name">Vendor Master</div>
+          <div class="lnk-ko">공급사 마스터</div>
+        </div>
+        <div style="text-align:center;">
+          <div class="lnk-arr">→</div>
+          <div class="lnk-arr-lbl">vendor name</div>
+        </div>
+        <div class="lnk-node cur">
+          <div class="lnk-id">WH-01</div>
+          <div class="lnk-name">Inbound Schedule</div>
+          <div class="lnk-ko">입고 예정 (현재)</div>
+        </div>
+      </div>
+
+      <div class="lnk-row">
+        <div class="lnk-node cur">
+          <div class="lnk-id">WH-01</div>
+          <div class="lnk-name">Inbound Schedule</div>
+          <div class="lnk-ko">입고 예정 (현재)</div>
+        </div>
+        <div style="text-align:center;">
+          <div class="lnk-arr">→</div>
+          <div class="lnk-arr-lbl">[Receive]</div>
+        </div>
+        <div class="lnk-node down">
+          <div class="lnk-id">WH-02</div>
+          <div class="lnk-name">PDA Inbound</div>
+          <div class="lnk-ko">PDA 입고 처리</div>
+        </div>
+        <div style="text-align:center;">
+          <div class="lnk-arr">→</div>
+          <div class="lnk-arr-lbl">on complete</div>
+        </div>
+        <div class="lnk-node down">
+          <div class="lnk-id">QC-01</div>
+          <div class="lnk-name">Incoming Inspection</div>
+          <div class="lnk-ko">수입 검사</div>
+        </div>
+        <div style="text-align:center;">
+          <div class="lnk-arr">→</div>
+          <div class="lnk-arr-lbl">audit log</div>
+        </div>
+        <div class="lnk-node down">
+          <div class="lnk-id">WH-08</div>
+          <div class="lnk-name">Transaction History</div>
+          <div class="lnk-ko">입출고 이력</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 7. BUSINESS RULES ═══════════ -->
+  <section class="sec" id="s7">
+    <div class="sec-hdr">
+      <div class="sec-num">07</div>
+      <div class="sec-title-wrap">
+        <div class="sec-title-en">Applicable Business Rules</div>
+        <div class="sec-title-ko">적용 업무 규칙</div>
+      </div>
+      <div class="sec-line"></div>
+    </div>
+
+    <table class="br-mini">
+      <thead>
+        <tr>
+          <th style="width:90px;">Rule ID</th>
+          <th>Description</th>
+          <th style="width:80px;text-align:center;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="br-id">BR-WH-01</td>
+          <td>
+            <div class="br-en">Items without a valid open PO cannot be received. Barcode scan is blocked immediately if no matching PO is found in the system.</div>
+            <div class="br-ko">유효한 미입고 PO가 없는 품목은 입고할 수 없으며, 일치하는 PO가 없는 바코드 스캔은 즉시 차단됩니다.</div>
+          </td>
+          <td class="br-act"><span class="blk">Block</span></td>
+        </tr>
+        <tr>
+          <td class="br-id">BR-WH-02</td>
+          <td>
+            <div class="br-en">All inbound items automatically trigger QC-01 incoming inspection. Inventory is updated only after QC pass.</div>
+            <div class="br-ko">모든 입고 품목은 QC-01 수입검사가 자동 트리거되며, 검사 합격 후에만 재고에 반영됩니다.</div>
+          </td>
+          <td class="br-act"><span class="aut">Auto</span></td>
+        </tr>
+        <tr>
+          <td class="br-id">BR-WH-03</td>
+          <td>
+            <div class="br-en">When on-hand quantity falls below minimum stock level (MD-09/10), an alert is sent to the warehouse manager and procurement team.</div>
+            <div class="br-ko">현재고가 최소재고(MD-09/10) 미만이 되면 창고 관리자·구매팀에 즉시 알림 발송.</div>
+          </td>
+          <td class="br-act"><span class="alt">Alert</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="alert alert-w" style="margin-top:14px;"><span>📌</span><div><strong>Note · 비고</strong> — BR-WH-04 (FIFO) does not apply to inbound flow; it governs outbound picking (WH-07). For full WH business rules, refer to <a href="VOL03_WH_Warehouse.html#br-wh" style="color:#92400e;text-decoration:underline;font-weight:700;">VOL.3 WH module — Business Rules section</a>.</div></div>
+  </section>
+
+  </div><!-- /content -->
+
+  <!-- FOOTER -->
+  <div class="page-footer">
+    <div class="pf-l">A-MES · VOL.3 · WH-01 Inbound Schedule · L3 Detail Spec v1.0 · Bilingual EN/KO</div>
+    <div class="pf-r">Automotive Parts MES · SAV &amp; GEO Supply · Confidential</div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /page-wrap -->
+
+</body>
+</html>
