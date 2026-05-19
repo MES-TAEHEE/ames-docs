@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.9 · FG-04 · PDA FIFO Picking · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--fg:#0db87a;--mod:#0db87a;--mod-lt:#dcfce7;--mod-dk:#065f46;--mod-tint:#6ee7b7;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(110,231,183,.7);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#062a1a 0%,#04241a 50%,#062a1a 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(13,184,122,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(13,184,122,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(13,184,122,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(13,184,122,.14),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(13,184,122,.35);color:var(--mod-tint);background:rgba(13,184,122,.1);}
+.meta-chip.core{border-color:rgba(212,160,23,.45);color:#fbbf24;background:rgba(212,160,23,.15);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod-dk);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-w{background:#fef9c3;border-color:#f59e0b;color:#92400e;}
+.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#dcfce7;border-color:#22c55e;}
+.lnk-node.cur{background:linear-gradient(135deg,#062a1a,#04241a);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(13,184,122,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#15803d;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);}
+.dm-pk{color:#f59e0b;font-size:8px;font-weight:700;}.dm-fk{color:#8b5cf6;font-size:8px;font-weight:700;}
+
+/* PDA - Core picking */
+.pda-wrap{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-bottom:14px;}
+.pda-mock{width:260px;background:#1a1a1a;border:8px solid #1a1a1a;border-radius:18px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.18);}
+.pda-tbar{background:#000;color:#fff;padding:5px 10px;font-size:9px;display:flex;justify-content:space-between;}
+.pda-bd{background:#062a1a;padding:14px;height:420px;overflow:hidden;color:#e2e8f0;}
+.pda-h{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mod-tint);letter-spacing:.5px;margin-bottom:10px;text-transform:uppercase;display:flex;justify-content:space-between;}
+.pda-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:10px;margin-bottom:8px;}
+.pda-row{display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.65);margin-bottom:3px;}
+.pda-row strong{color:#fff;font-size:11px;font-weight:800;}
+.pda-btn{display:block;padding:10px;background:linear-gradient(135deg,var(--mod),var(--mod-dk));color:#fff;border-radius:5px;text-align:center;font-size:11px;font-weight:800;margin-top:8px;border:none;width:100%;}
+.pda-btn.warn{background:linear-gradient(135deg,#f59e0b,#b45309);}
+.pda-btn.danger{background:linear-gradient(135deg,#dc2626,#991b1b);}
+.pda-cap{text-align:center;font-size:10px;color:var(--sub);margin-top:6px;}
+.pda-pick-loc{text-align:center;background:rgba(212,160,23,.15);border:2px dashed rgba(251,191,36,.5);border-radius:6px;padding:14px;margin-bottom:8px;}
+.pda-pick-loc-id{font-family:'Bebas Neue',sans-serif;font-size:34px;color:#fbbf24;letter-spacing:3px;}
+.pda-pick-loc-s{font-size:9px;color:rgba(255,255,255,.55);margin-top:4px;}
+.fifo-flag{display:inline-block;background:rgba(252,165,165,.18);color:#fca5a5;padding:2px 7px;border-radius:3px;font-size:9px;font-weight:700;border:1px solid rgba(252,165,165,.3);font-family:'JetBrains Mono',monospace;}
+
+.web-mock{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.web-tbar{background:#f0f3f7;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);font-size:11px;}
+.web-tbar-l{font-weight:700;color:var(--text);}
+.web-tbar .bc{color:var(--sub);font-size:10px;margin-left:8px;}
+.web-tbar-r{font-size:10px;color:var(--sub);}
+.web-bd{padding:18px;background:#fbfcfd;}
+.web-card{background:#fff;border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:12px;}
+.web-card-h{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;}
+.tbl th{background:#f0f3f7;padding:7px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.tbl td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:top;}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.b-ok{background:#dcfce7;color:#166534;}.b-w{background:#fef9c3;color:#92400e;}.b-e{background:#fee2e2;color:#991b1b;}.b-i{background:#dbeafe;color:#1e40af;}
+.btn{padding:7px 14px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;}
+.btn-primary{background:var(--mod);border-color:var(--mod-dk);color:#fff;}
+
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol active"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL09_FG_Finished_Goods.html">VOL.9 · FG</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">FG-04 · PDA FIFO Picking ⚙ Core</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.9 · FG · L3</div><div class="sb-mod-en">FINISHED GOODS</div><div class="sb-mod-ko">완제품 관리</div></div>
+  <div class="sb-section">Inbound · 적재</div>
+  <a class="sb-link" href="VOL09_FG01_PDA_Stocking.html"><span class="sl-id">FG-01</span><div><div class="sl-en">PDA Stocking</div><div class="sl-ko">완제품 적재</div></div></a>
+  <a class="sb-link" href="VOL09_FG02_Inventory.html"><span class="sl-id">FG-02</span><div><div class="sl-en">Inventory</div><div class="sl-ko">재고 현황</div></div></a>
+  <div class="sb-section">Outbound · 출하</div>
+  <a class="sb-link" href="VOL09_FG03_Shipment_Order.html"><span class="sl-id">FG-03</span><div><div class="sl-en">Ship. Order</div><div class="sl-ko">출하 지시</div></div></a>
+  <a class="sb-link on" href="VOL09_FG04_PDA_FIFO_Picking.html"><span class="sl-id">FG-04</span><div><div class="sl-en">FIFO Pick ⚙</div><div class="sl-ko">피킹</div></div></a>
+  <a class="sb-link" href="VOL09_FG05_Loading.html"><span class="sl-id">FG-05</span><div><div class="sl-en">Loading</div><div class="sl-ko">상차 확인</div></div></a>
+  <a class="sb-link" href="VOL09_FG06_Delivery_Note.html"><span class="sl-id">FG-06</span><div><div class="sl-en">Delivery Note</div><div class="sl-ko">거래명세서</div></div></a>
+  <div class="sb-section">Closing &amp; Audit</div>
+  <a class="sb-link" href="VOL09_FG07_Day_End_Close.html"><span class="sl-id">FG-07</span><div><div class="sl-en">Day-End</div><div class="sl-ko">일 마감</div></div></a>
+  <a class="sb-link" href="VOL09_FG08_Shipment_History.html"><span class="sl-id">FG-08</span><div><div class="sl-en">Ship History</div><div class="sl-ko">출하 이력</div></div></a>
+  <a class="sb-link" href="VOL09_FG09_Dashboard.html"><span class="sl-id">FG-09</span><div><div class="sl-en">Dashboard</div><div class="sl-ko">현황판</div></div></a>
+  <a class="sb-link" href="VOL09_FG_RTN_Return.html"><span class="sl-id">FG-RTN</span><div><div class="sl-en">Return ↩</div><div class="sl-ko">반품 (Aux)</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
+    <a href="#sec-2"><span class="num">02</span>Field Spec</a>
+    <a href="#sec-3"><span class="num">03</span>FIFO Enforcement</a>
+    <a href="#sec-4"><span class="num">04</span>Workflow</a>
+    <a href="#sec-5"><span class="num">05</span>Business Rules</a>
+    <a href="#sec-6"><span class="num">06</span>Data Model</a>
+    <a href="#sec-7"><span class="num">07</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.9 · FG · L3 · Core · Mandatory FIFO Picking</div>
+      <div class="scr-id-block"><div class="scr-id">FG-04</div><div class="scr-title-en">PDA FIFO Picking</div></div>
+      <div class="scr-title-ko">PDA FIFO 피킹 — 강제 FIFO + 최적 동선 + Scan-Verify</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">UI</span><span class="mc-val">📱 PDA</span></div>
+        <div class="meta-chip core"><span class="mc-lbl">Class</span><span class="mc-val">⚙ Core</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">1st Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">FG Picker</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Trigger</span><span class="mc-val">FG-03 Pickslip</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Block</span><span class="mc-val">Wrong LOT/Loc → 차단</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          The core outbound screen. FG Picker receives a Pickslip from FG-03 on PDA, walks the optimized route (Slotting algorithm), scans each location QR + pallet label per allocation. System enforces FIFO: scanning a newer LOT when an older one exists for the same item is blocked at scan time (BR-FG-17). Partial picks allowed (e.g., out-of-stock cell), with auto-reallocation to next FIFO LOT. Pick completion releases Reservation → SHIPPED-ready state; Order Status → PICKED.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          핵심 출고 화면. FG 작업자가 PDA로 FG-03 Pickslip 수령, 최적 동선(Slotting 알고리즘) 따라 이동, 할당별 위치 QR + 팔레트 라벨 스캔. 시스템이 FIFO 강제: 동일 품목에 더 오래된 LOT이 있는데 신규 LOT 스캔 시 즉시 차단 (BR-FG-17). 부분 피킹 가능(빈 셀 등), 자동 다음 FIFO LOT 재할당. 피킹 완료 시 Reservation 해제 → SHIPPED 대기, Order Status PICKED.
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — PDA FIFO Pick</span></div>
+      <div class="pda-wrap">
+        <div>
+          <div class="pda-mock">
+            <div class="pda-tbar"><span>📶 A-MES</span><span>🔋 78% · 09:14</span></div>
+            <div class="pda-bd">
+              <div class="pda-h"><span>FG-04 · PICK</span><span style="color:#fde047;">⚙ Step 1/3</span></div>
+              <div class="pda-card">
+                <div style="font-size:9px;color:var(--mod-tint);letter-spacing:.5px;font-family:'JetBrains Mono',monospace;margin-bottom:6px;">▼ ACTIVE PICKSLIP</div>
+                <div class="pda-row"><span>SO</span><strong>SO-...0519-021</strong></div>
+                <div class="pda-row"><span>Customer</span><strong>SAV · Asan</strong></div>
+                <div class="pda-row"><span>Ship Date</span><strong style="color:#fde047;">D-2 (5/21)</strong></div>
+                <div class="pda-row"><span>Progress</span><strong style="color:#5dffc4;">0 / 800 EA</strong></div>
+              </div>
+              <div class="pda-pick-loc">
+                <div style="font-size:9px;color:rgba(255,255,255,.55);letter-spacing:.5px;font-family:'JetBrains Mono',monospace;">▼ NEXT LOCATION</div>
+                <div class="pda-pick-loc-id">A-04-02</div>
+                <div class="pda-pick-loc-s">Door Trim LH · LOT-...050801<br>200 EA (4 pallets) · <span class="fifo-flag">FIFO · 11d AGE</span></div>
+              </div>
+              <button class="pda-btn">📷 SCAN LOCATION QR</button>
+              <button class="pda-btn warn">⏸ Pause Pickslip</button>
+            </div>
+          </div>
+          <div class="pda-cap">📱 Step 1 — 위치 스캔</div>
+        </div>
+        <div>
+          <div class="pda-mock">
+            <div class="pda-tbar"><span>📶 A-MES</span><span>🔋 78% · 09:18</span></div>
+            <div class="pda-bd">
+              <div class="pda-h"><span>FG-04 · PICK</span><span style="color:#fde047;">⚙ Step 2/3</span></div>
+              <div class="pda-card" style="background:rgba(110,231,183,.1);border-color:rgba(110,231,183,.3);">
+                <div style="text-align:center;font-size:11px;color:#5dffc4;font-weight:700;padding:4px 0;">✅ Location confirmed: A-04-02</div>
+              </div>
+              <div class="pda-card">
+                <div style="font-size:9px;color:var(--mod-tint);letter-spacing:.5px;font-family:'JetBrains Mono',monospace;margin-bottom:6px;">▼ SCAN PALLET 1/4</div>
+                <div class="pda-row"><span>Expected</span><strong>LOT-...050801</strong></div>
+                <div class="pda-row"><span>Qty / Pallet</span><strong>50 EA</strong></div>
+              </div>
+              <div style="text-align:center;padding:18px 0;background:rgba(13,184,122,.1);border:1px dashed rgba(110,231,183,.4);border-radius:6px;margin-bottom:8px;">
+                <div style="font-size:30px;">📷</div>
+                <div style="font-size:11px;color:var(--mod-tint);margin-top:6px;font-family:'JetBrains Mono',monospace;letter-spacing:.5px;">SCAN PALLET LABEL</div>
+              </div>
+              <button class="pda-btn">📷 Scan</button>
+              <button class="pda-btn warn">⚠ Short / Damaged</button>
+            </div>
+          </div>
+          <div class="pda-cap">📱 Step 2 — 팔레트 라벨 스캔 (×4)</div>
+        </div>
+        <div>
+          <div class="pda-mock" style="border-color:#fee2e2;">
+            <div class="pda-tbar"><span>📶 A-MES</span><span>🔋 78% · 09:22</span></div>
+            <div class="pda-bd">
+              <div class="pda-h" style="color:#fca5a5;"><span>⚠ FIFO VIOLATION</span><span>BLOCK</span></div>
+              <div class="pda-card" style="background:rgba(220,38,38,.15);border-color:rgba(252,165,165,.5);">
+                <div style="font-size:11px;color:#fca5a5;font-weight:700;text-align:center;padding:8px 0;">🚫 FIFO Violation Detected</div>
+              </div>
+              <div style="font-size:10px;color:rgba(255,255,255,.7);line-height:1.7;padding:4px 0;">
+                Scanned: <strong style="color:#fff;">LOT-...050901 (10d)</strong><br>
+                Expected: <strong style="color:#5dffc4;">LOT-...050801 (11d)</strong><br><br>
+                ① 더 오래된 LOT이 동일 품목에 존재합니다<br>
+                ② BR-FG-17 자동 차단<br>
+                ③ Override 시 PIN 필수 (FG Manager+)
+              </div>
+              <button class="pda-btn">📍 Go to Correct Location</button>
+              <button class="pda-btn warn">🔓 Override (PIN)</button>
+              <button class="pda-btn danger">❌ Cancel Pick</button>
+            </div>
+          </div>
+          <div class="pda-cap">📱 FIFO 위반 시 즉시 차단</div>
+        </div>
+      </div>
+      <div class="alert alert-w">
+        <div><span class="alert-title">⚠ FIFO Discipline · FIFO 규율</span>
+        ① FIFO 강제는 스캔 시점 (DB-level BR-FG-17): 동일 ItemNo + 동일 CustomerCode에서 더 오래된 LOT 존재 시 신규 LOT 스캔 차단 ② Override는 FG Manager+ PIN + 사유 입력 필수 → 모든 Override 5년 보관 + 월간 audit 보고 ③ 동일 LOT 내 위치는 자유 선택 가능 ④ 부분 피킹 (재고 부족·파손) 시 자동 다음 FIFO LOT 재할당 + Reservation 자동 보정 ⑤ Loading Dock으로 이동 후 FG-05 진행</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Field Specification</span><span class="sec-ko">필드 사양</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:22%;">Field</th><th style="width:14%;">Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">PickID</td><td class="fld-type">VARCHAR(24)</td><td>PK-YYYYMMDD-SEQ.</td></tr>
+          <tr><td class="fld-name">PickslipID</td><td class="fld-type">VARCHAR(24)</td><td>FG-03에서 발행된 Pickslip ID (FK).</td></tr>
+          <tr><td class="fld-name">ShipOrderID</td><td class="fld-type">VARCHAR(24)</td><td>연관 출하 주문 (FK).</td></tr>
+          <tr><td class="fld-name">PickerID</td><td class="fld-type">VARCHAR(20)</td><td>피킹 작업자 ID.</td></tr>
+          <tr><td class="fld-name">StartTS · EndTS</td><td class="fld-type">DATETIME</td><td>시작 / 종료 시각 (Productivity 계산).</td></tr>
+          <tr><td class="fld-name">PicksJSON</td><td class="fld-type">JSON</td><td>[{seq, locID, lotID, qty, palletIDs[], scanTS, fifoCheck, overrideReason}].</td></tr>
+          <tr><td class="fld-name">FIFOViolations</td><td class="fld-type">INT</td><td>FIFO 위반 시도 횟수.</td></tr>
+          <tr><td class="fld-name">OverrideCount</td><td class="fld-type">INT</td><td>Override 사용 횟수 (Manager 승인).</td></tr>
+          <tr><td class="fld-name">PartialPicks</td><td class="fld-type">JSON</td><td>부분 피킹 + 재할당 이력.</td></tr>
+          <tr><td class="fld-name">Status</td><td class="fld-type">ENUM</td><td>IN_PROGRESS / PAUSED / COMPLETE / CANCELED.</td></tr>
+          <tr><td class="fld-name">PickedQty · OrderedQty</td><td class="fld-type">INT</td><td>실제 피킹 / 주문 수량 (Completion%).</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">FIFO Enforcement</span><span class="sec-ko">FIFO 강제 메커니즘</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:24%;">Check Point</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Pickslip Generation</strong></td><td>FG-03 확정 시 FIFO Allocator가 가장 오래된 LOT부터 차례로 할당. Pickslip에는 정확한 LOT/Loc 명시.</td></tr>
+          <tr><td><strong>Scan Time</strong></td><td>PDA가 스캔된 LOT의 StockTS를 조회 → 동일 ItemNo+CustomerCode에 더 오래된 Available LOT 존재 시 BLOCK + alert.</td></tr>
+          <tr><td><strong>Mid-Pick</strong></td><td>새 FG-01 Stocking으로 더 오래된 LOT이 출현하지 않음 (StockTS는 단조 증가). 진행 중 Pickslip은 영향 없음.</td></tr>
+          <tr><td><strong>Partial Pick</strong></td><td>특정 셀 부족·파손 시 시스템이 자동 다음 FIFO LOT을 재할당, Pickslip 자동 업데이트 + Reservation 보정.</td></tr>
+          <tr><td><strong>Manager Override</strong></td><td>FG Manager+ PIN 입력 + 사유 (예: "고객 긴급 요청, 신규 LOT 우선") → 허용. OverrideCount + 사유 기록. 월간 audit 검토 의무.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">Picker opens FG-04 on PDA → sees available Pickslips queue (priority: ship-date proximity).</div><div class="wf-ko">작업자가 PDA로 FG-04 오픈, 사용 가능 Pickslip 큐 표시(우선순위: 출하일 임박).</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Selects Pickslip → optimal route shown (Slotting algorithm minimizes walk distance).</div><div class="wf-ko">Pickslip 선택, 최적 동선 표시 (Slotting 알고리즘이 이동 거리 최소화).</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Walks to first location → scans Location QR → confirmed; then scans each pallet label.</div><div class="wf-ko">첫 위치로 이동, Location QR 스캔 확정, 팔레트 라벨 순차 스캔.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">If scan triggers FIFO violation → PDA blocks + directs to correct location; Override requires Manager PIN.</div><div class="wf-ko">FIFO 위반 시 PDA 차단 + 올바른 위치 안내, Override는 Manager PIN.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Partial pick (short/damaged): tap "Short/Damaged" → system auto-reallocates next FIFO LOT.</div><div class="wf-ko">부분 피킹 시 [Short/Damaged] 터치, 시스템이 자동 다음 FIFO LOT 재할당.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Continues to next location; PDA tracks running total vs ordered qty.</div><div class="wf-ko">다음 위치 이동, PDA가 실시간 누적 / 주문 수량 추적.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">On completion: Status → COMPLETE; Reservation released; SO Status → PICKED; FG-05 enabled.</div><div class="wf-ko">완료 시 Status COMPLETE, Reservation 해제, SO PICKED, FG-05 활성화.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-FG-17</td><td><div>FIFO mandatory: scanning newer LOT when older one exists for same item+customer is blocked at scan time.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">FIFO 필수, 스캔 시 강제. 신규 LOT 스캔 차단.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-FG-18</td><td><div>FIFO override requires FG Manager+ PIN + Reason; all overrides logged for monthly audit.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">Override는 Manager+ PIN + 사유, 월간 audit 의무.</div></td><td><span class="br-act alt">Approve</span></td></tr>
+          <tr><td class="br-id">BR-FG-19</td><td><div>Partial pick auto-reallocates next FIFO LOT; cannot skip allocation manually.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">부분 피킹 시 시스템 자동 재할당, 수동 스킵 불가.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-FG-20</td><td><div>Held stock (QC-05) cannot be picked even if mistakenly in Pickslip; physical scan blocks.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">QC-05 Hold 재고는 Pickslip에 있어도 피킹 불가, 물리 스캔 차단.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-FG-21</td><td><div>Pause &gt; 30 min auto-releases Pickslip lock; another picker can take over.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">30분 이상 일시정지 시 Pickslip 락 해제, 타 작업자 인계 가능.</div></td><td><span class="br-act aut">Release</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Table</th><th>Key Columns</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">FG_Pick</span></td><td><span class="dm-pk">PK</span> PickID · <span class="dm-fk">FK</span> PickslipID · <span class="dm-fk">FK</span> ShipOrderID · PickerID · StartTS · EndTS · PicksJSON · FIFOViolations · OverrideCount · PartialPicks · Status</td><td>피킹 작업 메인.</td></tr>
+          <tr><td><span class="dm-col">FG_PickEvent</span></td><td><span class="dm-pk">PK</span> EvID · <span class="dm-fk">FK</span> PickID · ScanType (LOC/PALLET/OVERRIDE) · ScanValue · TS · FIFOPass</td><td>스캔 이벤트 봉인 로그.</td></tr>
+          <tr><td><span class="dm-col">FG_FIFOOverride</span></td><td><span class="dm-pk">PK</span> OvrID · <span class="dm-fk">FK</span> PickID · ApprovedBy · PIN_Hash · Reason · TS</td><td>Override 봉인 (월간 audit 데이터).</td></tr>
+          <tr><td><span class="dm-col">FG_Reservation</span> <em style="opacity:.6;">(update)</em></td><td>Status: RESERVED → RELEASED · ReleaseTS</td><td>피킹 완료 시 해제.</td></tr>
+          <tr><td><span class="dm-col">FG_Stock</span> <em style="opacity:.6;">(update)</em></td><td>Status: RESERVED → SHIPPED-READY</td><td>피킹 완료 후.</td></tr>
+          <tr><td><span class="dm-col">FG_ShipOrder</span> <em style="opacity:.6;">(update)</em></td><td>Status: PICKING → PICKED · PickerEndTS</td><td>SO 진행도 갱신.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">FG-03</div><div class="lnk-name">Pickslip 발행</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">FG-04 ⚙</div><div class="lnk-name">FIFO Pick</div><div class="lnk-ko">강제 FIFO</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">FG-05</div><div class="lnk-name">Loading</div><div class="lnk-ko">상차 활성화</div></div>
+        </div>
+        <div class="lnk-row" style="margin-top:14px;">
+          <div class="lnk-node cur"><div class="lnk-id">FG-04</div><div class="lnk-name">→ Side Effects</div></div>
+          <div class="lnk-arr">↘</div>
+          <div class="lnk-node down"><div class="lnk-id">FG-02</div><div class="lnk-name">Stock Update</div><div class="lnk-ko">SHIPPED-Ready</div></div>
+          <div class="lnk-node down"><div class="lnk-id">FG-03</div><div class="lnk-name">SO → PICKED</div></div>
+          <div class="lnk-node down"><div class="lnk-id">RPT</div><div class="lnk-name">Productivity Data</div></div>
+          <div class="lnk-node down" style="background:#fef2f2;border-color:#fca5a5;"><div class="lnk-id" style="color:#991b1b;">QC-05</div><div class="lnk-name">Hold Check</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.9 · FG-04 · PDA FIFO Picking · L3 Spec v1.0 · ⚙ Core</div><div class="pf-r">PDA · Phase 1 · Mandatory FIFO · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
