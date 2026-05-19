@@ -54,23 +54,72 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .mod-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;opacity:.85;color:#93c5fd;}
 .mod-title-en{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:.95;letter-spacing:2px;color:#93c5fd;margin-bottom:4px;}
 .mod-title-ko{font-size:14px;font-weight:300;color:rgba(255,255,255,.35);letter-spacing:4px;margin-bottom:16px;}
-.mod-desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:840px;margin-bottom:18px;}
-.mdb-en{font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;border-left:2px solid rgba(255,255,255,.12);padding-left:12px;}
-.mdb-ko{font-size:11px;color:rgba(255,255,255,.3);line-height:1.8;border-left:2px solid rgba(255,255,255,.06);padding-left:12px;}
-.screen-pills{display:flex;gap:5px;flex-wrap:wrap;}
-.sp{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:9px;color:rgba(255,255,255,.55);text-decoration:none;cursor:pointer;transition:all .15s;}
-.sp:hover{background:rgba(37,99,235,.18);border-color:rgba(37,99,235,.45);color:#fff;}
+.mod-desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:880px;margin-bottom:14px;}
+.mdb-en{font-size:11px;color:rgba(255,255,255,.6);line-height:1.85;border-left:2px solid rgba(255,255,255,.14);padding-left:12px;}
+.mdb-ko{font-size:11px;color:rgba(255,255,255,.35);line-height:1.85;border-left:2px solid rgba(255,255,255,.06);padding-left:12px;}
+
+.mod-meta-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:0;border:1px solid rgba(147,197,253,.22);border-radius:6px;overflow:hidden;margin:14px 0 16px;max-width:900px;background:rgba(0,0,0,.22);}
+.mms-item{padding:10px 14px;border-right:1px solid rgba(147,197,253,.14);}
+.mms-item:last-child{border-right:none;}
+.mms-l{font-size:8px;color:rgba(147,197,253,.6);text-transform:uppercase;letter-spacing:1.2px;font-family:'JetBrains Mono',monospace;}
+.mms-v{font-size:13px;font-weight:800;color:#fff;margin-top:3px;letter-spacing:.3px;}
+.mms-v.warn{color:#fde047;}
+.mms-v.alert{color:#fca5a5;}
+
+.screen-pills{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;}
+.sp{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:9px;color:rgba(255,255,255,.6);text-decoration:none;cursor:pointer;transition:all .15s;}
+.sp:hover{background:rgba(37,99,235,.25);border-color:rgba(37,99,235,.55);color:#fff;}
 .sp-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold);}
 
-.l3-hint{display:inline-block;font-size:10px;color:rgba(212,160,23,.7);font-weight:600;letter-spacing:1px;padding:5px 12px;background:rgba(212,160,23,.08);border:1px dashed rgba(212,160,23,.35);border-radius:3px;margin-bottom:14px;}
+.l3-hint{display:inline-block;font-size:10px;color:rgba(212,160,23,.75);font-weight:600;letter-spacing:1px;padding:5px 12px;background:rgba(212,160,23,.08);border:1px dashed rgba(212,160,23,.4);border-radius:3px;margin-bottom:8px;}
 
 .content{padding:0 48px 48px;}
 
-.screen-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;}
-.sc-hdr{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,color-mix(in srgb,#2563eb 26%,#000),color-mix(in srgb,#2563eb 12%,#000));}
-.sc-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;color:#93c5fd;}
-.sc-title-en{font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px;}
-.sc-title-ko{font-size:10px;color:rgba(255,255,255,.45);margin-top:2px;}
+/* ── Section Divider ── */
+.sec-div{display:flex;align-items:center;gap:12px;margin:28px 0 16px;}
+.sd-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--border) 20%,var(--border) 80%,transparent);}
+.sd-lbl{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--inj);letter-spacing:2px;white-space:nowrap;padding:4px 10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:3px;}
+
+/* ── Process Flow ── */
+.flow-card{background:linear-gradient(135deg,#0a1428,#0a1220);color:#e2e8f0;border-radius:10px;padding:20px 22px;margin-bottom:18px;box-shadow:0 4px 20px rgba(37,99,235,.18);}
+.flow-card-h{font-family:'JetBrains Mono',monospace;font-size:10px;color:#93c5fd;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;}
+.flow-track{margin-bottom:14px;}
+.flow-track-lbl{font-size:10px;color:rgba(255,255,255,.6);letter-spacing:1px;font-family:'JetBrains Mono',monospace;margin-bottom:8px;text-transform:uppercase;}
+.flow-row{display:flex;align-items:center;gap:0;flex-wrap:wrap;}
+.flow-node{display:flex;flex-direction:column;align-items:center;gap:3px;background:rgba(37,99,235,.14);border:1px solid rgba(147,197,253,.42);border-radius:8px;padding:10px 12px;min-width:92px;text-align:center;transition:all .15s;text-decoration:none;color:#e2e8f0;}
+.flow-node:hover{background:rgba(37,99,235,.28);border-color:#93c5fd;transform:translateY(-2px);box-shadow:0 6px 16px rgba(37,99,235,.32);}
+.flow-node.pop{background:rgba(37,99,235,.16);border-color:rgba(147,197,253,.5);}
+.flow-node.pop:hover{background:rgba(37,99,235,.3);}
+.flow-node.crit{background:rgba(220,38,38,.18);border-color:rgba(252,165,165,.55);}
+.flow-node.crit:hover{background:rgba(220,38,38,.32);box-shadow:0 6px 16px rgba(220,38,38,.32);}
+.flow-node.external{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.2);border-style:dashed;}
+.fn-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:#93c5fd;letter-spacing:.5px;}
+.flow-node.crit .fn-id{color:#fca5a5;}
+.flow-node.external .fn-id{color:rgba(255,255,255,.5);}
+.fn-name{font-size:11px;font-weight:700;color:#fff;}
+.fn-ko{font-size:9px;color:rgba(255,255,255,.55);}
+.fn-tag{font-size:8px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.5);margin-top:1px;}
+.flow-arr{font-size:18px;color:rgba(147,197,253,.55);padding:0 4px;font-weight:700;}
+
+/* ── Module KPI Strip ── */
+.mod-kpi{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
+.kpi-card{background:#fff;border:1px solid var(--border);border-top:3px solid var(--inj);border-radius:0 0 6px 6px;padding:14px 16px;}
+.kpi-l{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--sub);letter-spacing:1px;text-transform:uppercase;}
+.kpi-v{font-family:'Bebas Neue',sans-serif;font-size:34px;color:var(--text);line-height:1;margin-top:5px;letter-spacing:.5px;}
+.kpi-v.ok{color:#16a34a;}.kpi-v.warn{color:#a16207;}.kpi-v.alert{color:#dc2626;}.kpi-v.inj{color:var(--inj);}
+.kpi-s{font-size:10px;color:var(--sub);margin-top:3px;}
+
+/* ── Screen Card (Enriched) ── */
+.screen-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:18px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.sc-hdr{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,color-mix(in srgb,#2563eb 28%,#000),color-mix(in srgb,#2563eb 12%,#000));}
+.sc-hdr.crit{background:linear-gradient(135deg,color-mix(in srgb,#dc2626 32%,#000),color-mix(in srgb,#dc2626 14%,#000));}
+.sc-hdr-l{display:flex;align-items:center;gap:14px;flex:1;min-width:0;}
+.sc-icon{font-size:42px;line-height:1;flex-shrink:0;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3));}
+.sc-title-wrap{flex:1;min-width:0;}
+.sc-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#93c5fd;letter-spacing:.5px;}
+.sc-hdr.crit .sc-id{color:#fca5a5;}
+.sc-title-en{font-size:16px;font-weight:800;color:#fff;letter-spacing:-.3px;margin-top:2px;}
+.sc-title-ko{font-size:10px;color:rgba(255,255,255,.55);margin-top:2px;}
 .sc-tags{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
 .tag{font-size:9px;font-weight:700;padding:2px 9px;border-radius:3px;white-space:nowrap;}
 .t-web{background:rgba(26,111,255,.2);color:#7ab4ff;border:1px solid rgba(26,111,255,.3);}
@@ -78,27 +127,71 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .t-pda{background:rgba(13,184,122,.2);color:#5dffc4;border:1px solid rgba(13,184,122,.3);}
 .t-1st{background:rgba(26,111,255,.12);color:#93c5fd;border:1px solid rgba(26,111,255,.18);}
 .t-2nd{background:rgba(124,58,237,.12);color:#c4b5fd;border:1px solid rgba(124,58,237,.18);}
-.t-core{background:rgba(212,160,23,.18);color:#fbbf24;border:1px solid rgba(212,160,23,.32);}
-.t-crit{background:rgba(220,38,38,.18);color:#fca5a5;border:1px solid rgba(220,38,38,.35);}
-.sc-l3-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;background:linear-gradient(135deg,#d4a017,#a07810);color:#000;font-size:11px;font-weight:800;border-radius:4px;text-decoration:none;letter-spacing:.5px;text-transform:uppercase;border:1px solid #a07810;box-shadow:0 2px 6px rgba(212,160,23,.3);transition:all .15s;white-space:nowrap;}
+.t-core{background:rgba(212,160,23,.2);color:#fbbf24;border:1px solid rgba(212,160,23,.35);}
+.t-crit{background:rgba(220,38,38,.22);color:#fca5a5;border:1px solid rgba(220,38,38,.4);}
+.sc-l3-btn{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:linear-gradient(135deg,#d4a017,#a07810);color:#000;font-size:11px;font-weight:800;border-radius:5px;text-decoration:none;letter-spacing:.5px;text-transform:uppercase;border:1px solid #a07810;box-shadow:0 2px 6px rgba(212,160,23,.3);transition:all .15s;white-space:nowrap;}
 .sc-l3-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(212,160,23,.5);background:linear-gradient(135deg,#fbbf24,#d4a017);}
-.sc-body{padding:14px 18px;}
+.sc-body{padding:16px 18px;}
 
-.desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;background:#f6f8ff;border:1px solid var(--border);border-left:3px solid var(--inj);border-radius:0 6px 6px 0;padding:11px 14px;}
-.db-lbl{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;opacity:.5;}
+.headline{display:flex;align-items:center;gap:10px;padding:11px 14px;background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1px solid #bfdbfe;border-left:3px solid var(--inj);border-radius:0 5px 5px 0;margin-bottom:14px;}
+.headline.crit{background:linear-gradient(135deg,#fef2f2,#fee2e2);border-color:#fecaca;border-left-color:#dc2626;}
+.headline-ico{font-size:18px;color:var(--inj);}
+.headline.crit .headline-ico{color:#dc2626;}
+.headline-t{font-size:12px;color:#1e3a8a;font-weight:700;line-height:1.55;}
+.headline.crit .headline-t{color:#7f1d1d;}
+.headline-t .ko{display:block;color:var(--inj);font-weight:400;font-size:11px;margin-top:1px;}
+.headline.crit .headline-t .ko{color:#b91c1c;}
+
+.qf-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.qf{background:#fafbfd;border:1px solid var(--border);border-radius:5px;padding:9px 11px;}
+.qf-l{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--sub);letter-spacing:.7px;text-transform:uppercase;}
+.qf-v{font-size:11px;color:var(--text);font-weight:700;margin-top:3px;line-height:1.4;}
+.qf-v.mono{font-family:'JetBrains Mono',monospace;font-size:10px;}
+
+.desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;background:#eff6ff;border:1px solid var(--border);border-left:3px solid var(--inj);border-radius:0 6px 6px 0;padding:11px 14px;}
+.desc-bi.crit{background:#fef2f2;border-left-color:#dc2626;}
+.db-lbl{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;opacity:.55;}
 .db-en{font-size:11px;color:#1e40af;line-height:1.75;}
+.desc-bi.crit .db-en{color:#991b1b;}
 .db-ko{font-size:11px;color:var(--sub);line-height:1.75;}
 
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin-bottom:12px;}
+.feat-item{background:#fff;border:1px solid var(--border);border-top:2px solid var(--inj);border-radius:0 0 5px 5px;padding:10px 12px;}
+.feat-item.crit{border-top-color:#dc2626;}
+.feat-ico{font-size:16px;line-height:1;margin-bottom:5px;}
+.feat-t{font-size:11px;font-weight:800;color:var(--text);margin-bottom:2px;}
+.feat-d{font-size:10px;color:var(--sub);line-height:1.55;}
+.feat-d .ko{color:#94a3b8;font-size:9px;display:block;margin-top:1px;}
+
+.br-chips{display:flex;gap:5px;flex-wrap:wrap;padding-top:10px;border-top:1px dashed var(--border);}
+.br-chip{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;padding:3px 8px;border-radius:3px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;text-decoration:none;letter-spacing:.3px;}
+.br-chip.crit{background:#fee2e2;color:#991b1b;border-color:#fca5a5;}
+.br-chip-lbl{font-size:9px;color:var(--sub);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;margin-right:4px;align-self:center;}
+
+/* Reference tables */
+.ref-tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:18px;}
+.ref-tbl th{background:#f0f3f7;color:var(--text);padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.ref-tbl td{padding:8px 12px;border-bottom:1px solid var(--border);}
+.ref-tbl tr:last-child td{border-bottom:none;}
+.ref-tbl tr:nth-child(even) td{background:#fafbfd;}
+.ref-tbl .code{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--inj);font-size:11px;}
+.ref-tbl .pill{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
+.pill.pill-warn{background:#fef9c3;color:#92400e;}
+.pill.pill-alert{background:#fee2e2;color:#991b1b;}
+.pill.pill-ok{background:#dcfce7;color:#166534;}
+.pill.pill-info{background:#dbeafe;color:#1e40af;}
+
+/* BR table */
 .br-wrap{margin-bottom:16px;}
-.br-title{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:7px;display:flex;align-items:center;gap:10px;}
+.br-title{font-size:11px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
 .br-title::after{content:'';flex:1;height:1px;background:var(--border);}
 .br-tbl{width:100%;border-collapse:collapse;font-size:10px;}
-.br-tbl th{background:var(--text);color:#fff;padding:6px 10px;text-align:left;border:1px solid rgba(255,255,255,.08);font-size:9px;}
-.br-tbl td{padding:6px 10px;border:1px solid var(--border);vertical-align:top;line-height:1.6;}
+.br-tbl th{background:var(--text);color:#fff;padding:7px 10px;text-align:left;border:1px solid rgba(255,255,255,.08);font-size:9px;}
+.br-tbl td{padding:7px 10px;border:1px solid var(--border);vertical-align:top;line-height:1.6;}
 .br-tbl tr:nth-child(even) td{background:#fafbfd;}
-.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
-.br-en{color:var(--text);}
-.br-ko{color:var(--sub);font-size:10px;margin-top:2px;}
+.br-id-c{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-en-c{color:var(--text);}
+.br-ko-c{color:var(--sub);font-size:10px;margin-top:2px;}
 .b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
 .b-ok{background:#dcfce7;color:#166534;}
 .b-w{background:#fef9c3;color:#92400e;}
@@ -120,16 +213,24 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     <div class="sb-mod-en">INJECTION POP</div>
     <div class="sb-mod-ko">사출 생산 POP</div>
   </div>
-  <div class="sb-section">Screens · 화면</div>
+  <div class="sb-section">Overview · 개요</div>
+  <a class="sb-link" href="#flow"><span class="sl-id">FLOW</span><div><div class="sl-en">Process Flow</div><div class="sl-ko">생산 흐름</div></div></a>
+  <a class="sb-link" href="#kpi"><span class="sl-id">KPI</span><div><div class="sl-en">Module KPI</div><div class="sl-ko">핵심 지표</div></div></a>
+  <div class="sb-section">Entry · 진입</div>
   <a class="sb-link on" href="#inj01"><span class="sl-id">INJ-01</span><div><div class="sl-en">POP Login</div><div class="sl-ko">로그인</div></div><a class="sb-l3" href="VOL05_INJ01_POP_Login.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
   <a class="sb-link" href="#inj02"><span class="sl-id">INJ-02</span><div><div class="sl-en">Dashboard</div><div class="sl-ko">현황판</div></div><a class="sb-l3" href="VOL05_INJ02_POP_Dashboard.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <div class="sb-section">Production · 생산</div>
   <a class="sb-link" href="#inj03"><span class="sl-id">INJ-03</span><div><div class="sl-en">WO Confirm</div><div class="sl-ko">작업지시 확인</div></div><a class="sb-l3" href="VOL05_INJ03_WO_Confirm.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
-  <a class="sb-link" href="#inj04"><span class="sl-id">INJ-04</span><div><div class="sl-en">Prod. Entry</div><div class="sl-ko">실적 입력</div></div><a class="sb-l3" href="VOL05_INJ04_Production_Entry.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#inj04"><span class="sl-id">INJ-04</span><div><div class="sl-en">Prod. Entry ⚙</div><div class="sl-ko">실적 입력</div></div><a class="sb-l3" href="VOL05_INJ04_Production_Entry.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
   <a class="sb-link" href="#inj05"><span class="sl-id">INJ-05</span><div><div class="sl-en">Defect</div><div class="sl-ko">불량 등록</div></div><a class="sb-l3" href="VOL05_INJ05_Defect.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <div class="sb-section">Support · 부수</div>
   <a class="sb-link" href="#inj06"><span class="sl-id">INJ-06</span><div><div class="sl-en">Mold Change</div><div class="sl-ko">금형 교체</div></div><a class="sb-l3" href="VOL05_INJ06_Mold_Change.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
   <a class="sb-link" href="#inj07"><span class="sl-id">INJ-07</span><div><div class="sl-en">Prod. Status</div><div class="sl-ko">실적 현황</div></div><a class="sb-l3" href="VOL05_INJ07_Prod_Status.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
-  <a class="sb-link" href="#inj08"><span class="sl-id">INJ-08</span><div><div class="sl-en">Andon</div><div class="sl-ko">비상 신호</div></div><a class="sb-l3" href="VOL05_INJ08_Andon.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#inj08"><span class="sl-id">INJ-08</span><div><div class="sl-en">Andon 🚨</div><div class="sl-ko">비상 신호</div></div><a class="sb-l3" href="VOL05_INJ08_Andon.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
   <div class="sb-sep"></div>
+  <div class="sb-section">Reference · 참조</div>
+  <a class="sb-link" href="#defect-ref"><span class="sl-id">DEF</span><div><div class="sl-en">Defect Types</div><div class="sl-ko">불량 6종</div></div></a>
+  <a class="sb-link" href="#andon-ref"><span class="sl-id">AND</span><div><div class="sl-en">Andon Triggers</div><div class="sl-ko">Andon 트리거</div></div></a>
   <a class="sb-link" href="#br-inj"><span class="sl-id">BR</span><div><div class="sl-en">Business Rules</div><div class="sl-ko">업무 규칙</div></div></a>
 </nav>
 <div class="main">
@@ -137,38 +238,143 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     <div class="mod-hdr-inner">
       <div class="mod-eyebrow">VOL.5 · INJ · Injection Molding POP · 사출 생산 POP</div>
       <div class="mod-title-en">INJECTION<br>MOLDING POP</div>
-      <div class="mod-title-ko">사출 생산 POP — 8 Screens · Dark Mode · Glove-Optimized</div>
+      <div class="mod-title-ko">사출 생산 POP — 8 Screens · Dark Mode · Glove-Optimized · 5m 가독</div>
       <div class="mod-desc-bi">
-        <div class="mdb-en">Shop-floor Point of Production (POP) screens for injection molding lines. Dark-mode UI optimized for factory lighting. Numeric keypad entry for gloved-hand operation. 1-screen-1-action UX principle. All feedback (visual + audio) delivered within 0.3 seconds. Covers login, dashboard, WO confirmation, production entry, defect, mold change, supervisor view, and Andon.</div>
-        <div class="mdb-ko">사출 라인 현장 POP 화면. 공장 조도 대응 다크모드. 장갑 착용 대응 숫자패드 중심. 1화면 1액션 원칙. 0.3초 내 시각+음향 피드백. 로그인·현황판·WO확인·실적입력·불량·금형교체·라인장뷰·Andon 8개 화면.</div>
+        <div class="mdb-en">Shop-floor Point of Production (POP) screens for the injection molding lines. <strong>Key features</strong>: dark-mode UI optimized for factory lighting, 72px numeric keypad for gloved-hand operation, 1-screen-1-action UX, all feedback (visual + audio) within 0.3s, mandatory 5-item pre-start checklist, 6 INJ-specific defect types with automatic Andon at ≥5% defect rate, mold life tracking (90/100/110% tiered alerts), and a Safety-Critical full-screen Andon override.</div>
+        <div class="mdb-ko">사출 라인 현장 POP 화면. <strong>핵심 기능</strong>: 공장 조도 대응 다크모드 UI, 장갑 착용 대응 72px 대형 숫자패드, 1화면 1액션 원칙, 0.3초 내 시각+음향 피드백, 사전 5종 필수 체크리스트, INJ 전용 6종 불량 + 5% 자동 Andon, 금형 누적 쇼트 수명 추적(90/100/110% 3단계 경고), 풀스크린 Safety-Critical Andon 오버라이드.</div>
       </div>
-      <div style="margin-bottom:8px;"><span class="l3-hint">📋 Click any screen card / pill / sidebar link to view L3 detail spec · 클릭 시 L3 상세 설계서</span></div>
+      <div class="mod-meta-strip">
+        <div class="mms-item"><div class="mms-l">Screens</div><div class="mms-v">8</div></div>
+        <div class="mms-item"><div class="mms-l">UI Mode</div><div class="mms-v">POP Dark + Web</div></div>
+        <div class="mms-item"><div class="mms-l">Refresh</div><div class="mms-v">WS 5s · PLC 1s</div></div>
+        <div class="mms-item"><div class="mms-l">Defect Types</div><div class="mms-v">6 (D01~D06)</div></div>
+        <div class="mms-item"><div class="mms-l">Andon</div><div class="mms-v alert">Auto ≥ 5%</div></div>
+        <div class="mms-item"><div class="mms-l">Mold Life</div><div class="mms-v warn">90/100/110%</div></div>
+      </div>
+      <div><span class="l3-hint">📋 Click any screen card / icon / pill for L3 detailed spec · 각 화면 카드 클릭 시 L3 상세 설계서</span></div>
       <div class="screen-pills">
         <a class="sp" href="VOL05_INJ01_POP_Login.html" title="L3 상세 · INJ-01"><span class="sp-id">INJ-01</span> POP Login <span style="opacity:.5;font-size:8px;">📋</span></a>
         <a class="sp" href="VOL05_INJ02_POP_Dashboard.html" title="L3 상세 · INJ-02"><span class="sp-id">INJ-02</span> Dashboard <span style="opacity:.5;font-size:8px;">📋</span></a>
-        <a class="sp" href="VOL05_INJ03_WO_Confirm.html" title="L3 상세 · INJ-03"><span class="sp-id">INJ-03</span> WO Confirmation <span style="opacity:.5;font-size:8px;">📋</span></a>
-        <a class="sp" href="VOL05_INJ04_Production_Entry.html" title="L3 상세 · INJ-04"><span class="sp-id">INJ-04</span> Production Entry <span style="opacity:.5;font-size:8px;">📋</span></a>
-        <a class="sp" href="VOL05_INJ05_Defect.html" title="L3 상세 · INJ-05"><span class="sp-id">INJ-05</span> Defect Register <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL05_INJ03_WO_Confirm.html" title="L3 상세 · INJ-03"><span class="sp-id">INJ-03</span> WO Confirm <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL05_INJ04_Production_Entry.html" title="L3 상세 · INJ-04"><span class="sp-id">INJ-04</span> Prod. Entry ⚙ <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL05_INJ05_Defect.html" title="L3 상세 · INJ-05"><span class="sp-id">INJ-05</span> Defect <span style="opacity:.5;font-size:8px;">📋</span></a>
         <a class="sp" href="VOL05_INJ06_Mold_Change.html" title="L3 상세 · INJ-06"><span class="sp-id">INJ-06</span> Mold Change <span style="opacity:.5;font-size:8px;">📋</span></a>
-        <a class="sp" href="VOL05_INJ07_Prod_Status.html" title="L3 상세 · INJ-07"><span class="sp-id">INJ-07</span> Production Status <span style="opacity:.5;font-size:8px;">📋</span></a>
-        <a class="sp" href="VOL05_INJ08_Andon.html" title="L3 상세 · INJ-08"><span class="sp-id">INJ-08</span> Andon <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL05_INJ07_Prod_Status.html" title="L3 상세 · INJ-07"><span class="sp-id">INJ-07</span> Prod. Status <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL05_INJ08_Andon.html" title="L3 상세 · INJ-08"><span class="sp-id">INJ-08</span> Andon 🚨 <span style="opacity:.5;font-size:8px;">📋</span></a>
       </div>
     </div>
   </div>
 
   <div class="content">
 
+    <!-- ─── PROCESS FLOW ─── -->
+    <div class="sec-div" id="flow"><div class="sd-line"></div><div class="sd-lbl">▼ PROCESS FLOW · 생산 흐름</div><div class="sd-line"></div></div>
+    <div class="flow-card">
+      <div class="flow-card-h">▼ 4-Track Production Flow · 4-트랙 생산 흐름</div>
+
+      <div class="flow-track">
+        <div class="flow-track-lbl">🔐 ① ENTRY · 진입 (Login → Dashboard)</div>
+        <div class="flow-row">
+          <a class="flow-node external"><span class="fn-id">SAP / MD</span><span class="fn-name">Roster</span><span class="fn-ko">근태/캘린더</span><span class="fn-tag">자동 라인·교대</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node pop" href="#inj01"><span class="fn-id">INJ-01</span><span class="fn-name">POP Login</span><span class="fn-ko">사번 배지</span><span class="fn-tag">바코드 · PIN</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node pop" href="#inj02"><span class="fn-id">INJ-02</span><span class="fn-name">Dashboard</span><span class="fn-ko">현황판</span><span class="fn-tag">5m 가독</span></a>
+        </div>
+      </div>
+
+      <div class="flow-track">
+        <div class="flow-track-lbl">✅ ② WO PREP · 작업 준비 (5종 체크 → 락)</div>
+        <div class="flow-row">
+          <a class="flow-node external"><span class="fn-id">PP-04</span><span class="fn-name">WO Released</span><span class="fn-ko">작업지시</span><span class="fn-tag">우선순위·D-Day</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node pop" href="#inj03"><span class="fn-id">INJ-03</span><span class="fn-name">WO Confirm</span><span class="fn-ko">사전 체크 5종</span><span class="fn-tag">金型·자재·조건·安全·MD</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node external"><span class="fn-id">LOCK</span><span class="fn-name">Terminal Lock</span><span class="fn-ko">단말 점유</span><span class="fn-tag">INJ-04 해제</span></a>
+        </div>
+      </div>
+
+      <div class="flow-track">
+        <div class="flow-track-lbl">⚙ ③ PRODUCTION · 생산 사이클 (Core Loop)</div>
+        <div class="flow-row">
+          <a class="flow-node pop" href="#inj04" style="border-color:#fbbf24;background:rgba(212,160,23,.18);"><span class="fn-id" style="color:#fbbf24;">INJ-04 ⚙</span><span class="fn-name">Prod. Entry</span><span class="fn-ko">실적 입력</span><span class="fn-tag">72px 패드</span></a>
+          <span class="flow-arr">⟷</span>
+          <a class="flow-node pop" href="#inj05"><span class="fn-id">INJ-05</span><span class="fn-name">Defect</span><span class="fn-ko">불량 등록</span><span class="fn-tag">6종 + Auto Andon</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node external"><span class="fn-id">OEE / QC-01</span><span class="fn-name">자동 갱신</span><span class="fn-ko">6개 자동</span><span class="fn-tag">Prod·WO·Shot·OEE·QC·Cache</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node external"><span class="fn-id">IMG / WH</span><span class="fn-name">다음 공정</span><span class="fn-ko">합포장 / 자재반환</span><span class="fn-tag">완료 시</span></a>
+        </div>
+      </div>
+
+      <div class="flow-track">
+        <div class="flow-track-lbl">🔧 ④ SUPPORT · 부수 (Mold / Supervisor / Andon)</div>
+        <div class="flow-row">
+          <a class="flow-node pop" href="#inj06"><span class="fn-id">INJ-06</span><span class="fn-name">Mold</span><span class="fn-ko">금형 교체</span><span class="fn-tag">90/100/110%</span></a>
+          <span class="flow-arr">⟷</span>
+          <a class="flow-node external"><span class="fn-id">MNT</span><span class="fn-name">정비 WO</span><span class="fn-ko">100% 자동</span><span class="fn-tag">PIN 우회 가능</span></a>
+          <span class="flow-arr">|</span>
+          <a class="flow-node" href="#inj07"><span class="fn-id">INJ-07</span><span class="fn-name">Status (Web)</span><span class="fn-ko">라인장 화면</span><span class="fn-tag">전 라인 통합</span></a>
+          <span class="flow-arr">|</span>
+          <a class="flow-node crit" href="#inj08"><span class="fn-id">INJ-08 🚨</span><span class="fn-name">Andon</span><span class="fn-ko">비상 신호</span><span class="fn-tag">Safety-Critical</span></a>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:14px;margin-top:14px;font-size:9px;color:rgba(255,255,255,.55);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;flex-wrap:wrap;">
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(37,99,235,.18);border:1px solid #93c5fd;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>🏭 POP Dark 화면</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(212,160,23,.2);border:1px solid #fbbf24;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>⚙ Core (집중 개발)</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(220,38,38,.2);border:1px solid #fca5a5;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>🚨 Safety-Critical</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.3);border-radius:2px;vertical-align:middle;margin-right:4px;"></span>외부 모듈</span>
+      </div>
+    </div>
+
+    <!-- ─── MODULE KPI ─── -->
+    <div class="sec-div" id="kpi"><div class="sd-line"></div><div class="sd-lbl">▼ MODULE KPI · 핵심 지표</div><div class="sd-line"></div></div>
+    <div class="mod-kpi">
+      <div class="kpi-card"><div class="kpi-l">OEE</div><div class="kpi-v ok">≥85<span style="font-size:14px;color:var(--sub);"> %</span></div><div class="kpi-s">목표 · 65% 미만 1h → 공장장</div></div>
+      <div class="kpi-card"><div class="kpi-l">Defect Rate</div><div class="kpi-v alert">5<span style="font-size:14px;color:var(--sub);"> %</span></div><div class="kpi-s">Andon 자동 발동 한계</div></div>
+      <div class="kpi-card"><div class="kpi-l">Mold Life Avg</div><div class="kpi-v warn">90<span style="font-size:14px;color:var(--sub);"> %</span></div><div class="kpi-s">노랑 경고 · 100% MNT WO</div></div>
+      <div class="kpi-card"><div class="kpi-l">Active WO</div><div class="kpi-v inj">—</div><div class="kpi-s">현재 가동 WO 수</div></div>
+      <div class="kpi-card"><div class="kpi-l">Open Andon</div><div class="kpi-v alert">0</div><div class="kpi-s">미해제 비상 신호</div></div>
+    </div>
+
+    <!-- ─── SCREENS ─── -->
+    <div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">▼ 8 SCREENS · 화면 설계</div><div class="sd-line"></div></div>
+
     <!-- INJ-01 -->
     <div class="screen-card" id="inj01">
       <div class="sc-hdr">
-        <div><div class="sc-id">INJ-01</div><div class="sc-title-en">POP Login</div><div class="sc-title-ko">POP 로그인</div></div>
+        <div class="sc-hdr-l">
+          <div class="sc-icon">🔐</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">INJ-01</div>
+            <div class="sc-title-en">POP Login</div>
+            <div class="sc-title-ko">POP 로그인 — 배지 바코드 1.5s + PIN 백업</div>
+          </div>
+        </div>
         <div class="sc-tags"><span class="tag t-pop">🏭 POP Dark</span><span class="tag t-1st">1st Dev</span></div>
         <a class="sc-l3-btn" href="VOL05_INJ01_POP_Login.html" title="View L3 detailed spec">📋 L3 Detail →</a>
       </div>
       <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 사번 배지 바코드 스캔 ~1.5초 인증 + 4자리 PIN 백업 + 라인/교대 자동 설정<span class="ko">3회 실패 시 30초 잠금 + 라인장 PDA 알림, 성공 시 INJ-02 현황판으로 즉시 전환</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">Badge Barcode / PIN</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">Auth + Line·Shift</div></div>
+          <div class="qf"><div class="qf-l">⚠ WATCH</div><div class="qf-v">3 fail → 30s lock</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">POP Dark · Big Buttons</div></div>
+        </div>
         <div class="desc-bi">
-          <div><div class="db-lbl">EN · Description</div><div class="db-en">Entry point to every INJ POP terminal. Operators authenticate via employee badge barcode scan (primary, ~1.5s) or 4-digit PIN (backup). Line and shift are auto-detected from the MD calendar roster. 3 failed attempts → 30s lockout + supervisor alert. After login, transitions to INJ-02 Dashboard.</div></div>
-          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">모든 INJ POP 터미널의 진입점. 사번 배지 바코드 스캔(기본, ~1.5초) 또는 4자리 PIN(백업) 인증. MD 캘린더 로스터로 라인·교대 자동 설정. 3회 실패 시 30초 잠금 + 라인장 알림. 로그인 성공 시 INJ-02 현황판으로 전환.</div></div>
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Entry point for every INJ POP terminal. Operators authenticate via employee badge barcode scan (primary, ~1.5s) or 4-digit PIN (backup). Line and shift are auto-detected from the MD calendar roster. 3 failed attempts trigger a 30s lockout + supervisor alert. After login, transitions to INJ-02 Dashboard.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">모든 INJ POP 터미널 진입점. 사번 배지 바코드 스캔(기본, ~1.5초) 또는 4자리 PIN(백업) 인증. MD 캘린더 로스터로 라인·교대 자동 설정. 3회 실패 시 30초 잠금 + 라인장 알림. 로그인 성공 시 INJ-02 현황판으로 전환.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">📷</div><div class="feat-t">Barcode Primary</div><div class="feat-d">사번 배지 바코드 1.5초 인증.<span class="ko">기본 인증 수단</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔢</div><div class="feat-t">PIN Backup</div><div class="feat-d">4자리 숫자 (대형 패드).<span class="ko">바코드 파손/분실 대응</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📅</div><div class="feat-t">Auto Line/Shift</div><div class="feat-d">MD 캘린더 로스터 자동 매핑.<span class="ko">수동 선택 불요</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔒</div><div class="feat-t">Lockout 30s</div><div class="feat-d">3회 실패 시 30초 잠금 + 라인장 PDA 알림.<span class="ko">보안 강화</span></div></div>
         </div>
       </div>
     </div>
@@ -176,14 +382,37 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     <!-- INJ-02 -->
     <div class="screen-card" id="inj02">
       <div class="sc-hdr">
-        <div><div class="sc-id">INJ-02</div><div class="sc-title-en">POP Dashboard</div><div class="sc-title-ko">현황판 (5m 가독)</div></div>
+        <div class="sc-hdr-l">
+          <div class="sc-icon">📺</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">INJ-02</div>
+            <div class="sc-title-en">POP Dashboard</div>
+            <div class="sc-title-ko">현황판 — 5m 가독 · WebSocket 5s + PLC 1s</div>
+          </div>
+        </div>
         <div class="sc-tags"><span class="tag t-pop">🏭 POP Dark</span><span class="tag t-1st">1st Dev</span></div>
         <a class="sc-l3-btn" href="VOL05_INJ02_POP_Dashboard.html" title="View L3 detailed spec">📋 L3 Detail →</a>
       </div>
       <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: WO 진도바 + 설비 LED + 시간별 생산 차트 + 불량률 게이지 + 금형 잔여수명 (모두 5m 거리 가독 폰트)<span class="ko">타일 터치 시 INJ-03/04/05/06으로 즉시 드릴인, WebSocket 5초 + PLC 1초 갱신</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">WS 5s + PLC 1s</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">5m 가독 시각화</div></div>
+          <div class="qf"><div class="qf-l">⚠ WATCH</div><div class="qf-v">WS 단절 → 자동 재연결</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">5 Tile + Drill-in</div></div>
+        </div>
         <div class="desc-bi">
           <div><div class="db-lbl">EN · Description</div><div class="db-en">Default screen after login. Real-time line dashboard with large fonts readable from 5 meters: WO progress bar, equipment LED status, hourly output bar chart, defect rate gauge, mold remaining life. WebSocket 5s refresh + PLC 1s equipment data. Tap any tile to drill into INJ-03/04/05/06.</div></div>
           <div><div class="db-lbl">KO · 설명</div><div class="db-ko">로그인 후 기본 화면. 5m 거리 가독 대형 폰트 실시간 라인 현황판: WO 진도바·설비 LED·시간별 생산 차트·불량률 게이지·금형 잔여수명. WebSocket 5초 + PLC 1초 갱신. 타일 터치로 INJ-03/04/05/06 진입.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">📊</div><div class="feat-t">WO Progress Bar</div><div class="feat-d">현 WO 진도 + ETA 계산.<span class="ko">색상으로 페이스 표시</span></div></div>
+          <div class="feat-item"><div class="feat-ico">💡</div><div class="feat-t">Equipment LED</div><div class="feat-d">PLC 데이터 1초 갱신 LED 상태.<span class="ko">RUN/IDLE/DOWN</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📈</div><div class="feat-t">Hourly Chart</div><div class="feat-d">시간별 양품/불량 누적 차트.<span class="ko">목표 라인 대비</span></div></div>
+          <div class="feat-item"><div class="feat-ico">⏱</div><div class="feat-t">Mold Life Gauge</div><div class="feat-d">현 금형 쇼트수 / 정격 수명.<span class="ko">90% 노랑 깜빡임</span></div></div>
         </div>
       </div>
     </div>
@@ -191,29 +420,86 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     <!-- INJ-03 -->
     <div class="screen-card" id="inj03">
       <div class="sc-hdr">
-        <div><div class="sc-id">INJ-03</div><div class="sc-title-en">WO Confirmation</div><div class="sc-title-ko">작업 지시 확인 — 5종 사전 체크</div></div>
+        <div class="sc-hdr-l">
+          <div class="sc-icon">✅</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">INJ-03</div>
+            <div class="sc-title-en">WO Confirmation</div>
+            <div class="sc-title-ko">작업 지시 확인 — 5종 사전 체크 + 단말 점유</div>
+          </div>
+        </div>
         <div class="sc-tags"><span class="tag t-pop">🏭 POP Dark</span><span class="tag t-1st">1st Dev</span></div>
         <a class="sc-l3-btn" href="VOL05_INJ03_WO_Confirm.html" title="View L3 detailed spec">📋 L3 Detail →</a>
       </div>
       <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 현 라인 Released WO 카드 목록 + 5종 사전 체크리스트 (금형 장착·자재 투입·사출 조건·안전 가드·Phase-0 마스터)<span class="ko">5종 모두 통과 시 [Accept] 활성화 → 단말 점유 + INJ-04 해제, Released WO 없으면 INJ-04 잠금 (BR-INJ-01)</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">Released WO List</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">Terminal Lock + INJ-04</div></div>
+          <div class="qf"><div class="qf-l">⚠ WATCH</div><div class="qf-v">5종 미통과 시 [Accept] 비활성</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">Card List + Checklist</div></div>
+        </div>
         <div class="desc-bi">
           <div><div class="db-lbl">EN · Description</div><div class="db-en">Lists Released WOs assigned to the current line, sorted by priority + D-Day. Tap a WO card to view details + 5-item pre-start checklist (mold mount, material ready, recipe loaded, safety guard, Phase-0 master). All checks pass → Accept locks WO to terminal, INJ-04 unlocks. Without Released WO, INJ-04 is locked (BR-INJ-01).</div></div>
           <div><div class="db-lbl">KO · 설명</div><div class="db-ko">현 라인 Released WO 목록(우선순위·D-Day 정렬). WO 카드 터치로 상세 + 5종 사전 체크리스트(금형 장착·자재 투입·사출 조건·안전 가드·Phase-0 마스터). 전체 통과 시 Accept로 터미널 잠금, INJ-04 해제. Released WO 없으면 INJ-04 잠금(BR-INJ-01).</div></div>
         </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">📑</div><div class="feat-t">Priority Sort</div><div class="feat-d">우선순위 + D-Day 자동 정렬.<span class="ko">긴급 카드 빨강</span></div></div>
+          <div class="feat-item"><div class="feat-ico">☑</div><div class="feat-t">5-Item Pre-Check</div><div class="feat-d">금형·자재·조건·安全·마스터.<span class="ko">전 항목 통과 필수</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔒</div><div class="feat-t">Terminal Lock</div><div class="feat-d">[Accept] 시 단말이 WO 점유.<span class="ko">중복 가동 차단</span></div></div>
+          <div class="feat-item"><div class="feat-ico">▶</div><div class="feat-t">→ INJ-04 Unlock</div><div class="feat-d">통과 후 실적 입력 진입.<span class="ko">미통과 시 잠금 유지</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-inj">BR-INJ-01</a>
+        </div>
       </div>
     </div>
 
-    <!-- INJ-04 -->
+    <!-- INJ-04 ⚙ CORE -->
     <div class="screen-card" id="inj04">
       <div class="sc-hdr">
-        <div><div class="sc-id">INJ-04</div><div class="sc-title-en">Production Entry</div><div class="sc-title-ko">생산 실적 입력 — Core</div></div>
+        <div class="sc-hdr-l">
+          <div class="sc-icon">⌨️</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">INJ-04 · ⚙ CORE</div>
+            <div class="sc-title-en">Production Entry</div>
+            <div class="sc-title-ko">생산 실적 입력 — 72px 패드 + 6개 자동 갱신</div>
+          </div>
+        </div>
         <div class="sc-tags"><span class="tag t-pop">🏭 POP Dark</span><span class="tag t-core">⚙ Core</span></div>
         <a class="sc-l3-btn" href="VOL05_INJ04_Production_Entry.html" title="View L3 detailed spec">📋 L3 Detail →</a>
       </div>
       <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">⭐</span>
+          <div class="headline-t">What you'll see: 사이클당 양품 수량을 72px 대형 숫자패드로 입력 + [CT] 키로 MD_Recipe 표준 사이클 수량 자동 채움<span class="ko">[Confirm] 시 6개 동시 자동 갱신 (Prod INSERT · WO 진도 · 금형 Shot+1 · OEE · QC 트리거 · 대시보드 캐시), [Defect] 시 INJ-05 분기</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">GoodQty (0~99 정수)</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v mono">6 Auto Updates</div></div>
+          <div class="qf"><div class="qf-l">⚠ WATCH</div><div class="qf-v">CT ±20% 이탈</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">72px Numpad + [CT]</div></div>
+        </div>
         <div class="desc-bi">
-          <div><div class="db-lbl">EN · Description</div><div class="db-en">The core POP screen. After each cycle, operator enters good-quantity via large 72px keypad. [CT] key auto-fills standard cycle qty from MD_Recipe. Confirm triggers 6 auto-updates: INSERT IMG_Production, WO progress, mold shot+1, OEE feed, QC interval trigger, dashboard cache. Defects → INJ-05 branch.</div></div>
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">The core POP screen. After each cycle, operator enters good-quantity via large 72px keypad. [CT] key auto-fills standard cycle qty from MD_Recipe. Confirm triggers 6 auto-updates: INSERT INJ_Production, WO progress, mold shot+1, OEE feed, QC interval trigger, dashboard cache. Defects branch to INJ-05.</div></div>
           <div><div class="db-lbl">KO · 설명</div><div class="db-ko">INJ 모듈의 핵심 POP 화면. 사이클당 양품 수량을 72px 대형 숫자패드로 입력. [CT] 키 = MD_Recipe 표준 사이클 수량 자동. Confirm 시 6개 자동 갱신: INJ_Production INSERT, WO 진도, 금형 쇼트+1, OEE 데이터, QC 주기 트리거, 대시보드 캐시. 불량 시 INJ-05로 분기.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">⌨️</div><div class="feat-t">72px Numpad</div><div class="feat-d">장갑 착용 대응 대형 숫자패드.<span class="ko">오타율 최소화</span></div></div>
+          <div class="feat-item"><div class="feat-ico">⚡</div><div class="feat-t">[CT] Auto-Fill</div><div class="feat-d">MD_Recipe 표준 수량 1터치 입력.<span class="ko">반복 입력 시간 단축</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔄</div><div class="feat-t">6 Auto Updates</div><div class="feat-d">Prod·WO·Shot·OEE·QC·Cache 동시.<span class="ko">트랜잭션 단일 처리</span></div></div>
+          <div class="feat-item"><div class="feat-ico">⚠</div><div class="feat-t">CT Sanity Check</div><div class="feat-d">CT×1.5 초과 시 재확인 팝업.<span class="ko">오입력 방지</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-inj">BR-INJ-01</a>
+          <a class="br-chip" href="#br-inj">BR-INJ-04</a>
+          <a class="br-chip" href="#br-inj">BR-INJ-05</a>
+          <a class="br-chip" href="#br-inj">BR-INJ-06</a>
         </div>
       </div>
     </div>
@@ -221,14 +507,42 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     <!-- INJ-05 -->
     <div class="screen-card" id="inj05">
       <div class="sc-hdr">
-        <div><div class="sc-id">INJ-05</div><div class="sc-title-en">Defect Register</div><div class="sc-title-ko">불량 등록 — 6종 + 5% Andon</div></div>
+        <div class="sc-hdr-l">
+          <div class="sc-icon">⚠️</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">INJ-05</div>
+            <div class="sc-title-en">Defect Register</div>
+            <div class="sc-title-ko">불량 등록 — 6종 + 5% Auto-Andon</div>
+          </div>
+        </div>
         <div class="sc-tags"><span class="tag t-pop">🏭 POP Dark</span><span class="tag t-1st">1st Dev</span></div>
         <a class="sc-l3-btn" href="VOL05_INJ05_Defect.html" title="View L3 detailed spec">📋 L3 Detail →</a>
       </div>
       <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 6종 INJ 불량(SINK_MARK / SHORT_SHOT / FLASH / WELD_LINE / DEFORM / COLOR_DIFF)을 대형 탭 버튼으로 선택 + 수량 패드<span class="ko">불량률 자동 계산 → ≥ 5% 시 INJ-08 Andon 자동 발동 (BR-INJ-03), FLASH + 금형 80% 시 "금형 마모" 원인 자동 연계 (BR-INJ-07)</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">Defect Type + Qty</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">Defect Record + Auto Andon</div></div>
+          <div class="qf"><div class="qf-l">⚠ WATCH</div><div class="qf-v">≥ 5% 자동 Andon</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">6 Tap-Buttons + Numpad</div></div>
+        </div>
         <div class="desc-bi">
-          <div><div class="db-lbl">EN · Description</div><div class="db-en">Entered from INJ-04 [Defect] button. Operator picks 1 of 6 INJ defect types (SINK_MARK / SHORT_SHOT / FLASH / WELD_LINE / DEFORM / COLOR_DIFF) via large tap-buttons + numpad qty. Defect rate auto-calculated; ≥ 5% auto-fires INJ-08 Andon. FLASH + mold 80% auto-links "mold wear" cause.</div></div>
-          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">INJ-04 [Defect] 터치 진입. 6종 INJ 불량(싱크마크/미성형/플래시/웰드라인/변형/색차) 중 1개 + 숫자패드 수량. 불량률 자동 계산, 5% 시 INJ-08 Andon 자동 발동. FLASH + 금형 80% 시 "금형 마모" 원인 자동 연계.</div></div>
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Entered from INJ-04 [Defect] button. Operator picks 1 of 6 INJ defect types via large tap-buttons + numpad qty. Defect rate auto-calculated; ≥ 5% auto-fires INJ-08 Andon. FLASH + mold 80% auto-links "mold wear" cause. 5 consecutive same-type defects → MNT inspection alert.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">INJ-04 [Defect] 터치 진입. 6종 INJ 불량(싱크마크/미성형/플래시/웰드라인/변형/색차) 중 1개 + 숫자패드 수량. 불량률 자동 계산, 5% 시 INJ-08 Andon 자동 발동. FLASH + 금형 80% 시 "금형 마모" 원인 자동 연계. 동일 유형 연속 5회 시 MNT 점검 알림.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">🎯</div><div class="feat-t">6 INJ Defects</div><div class="feat-d">D01~D06 대형 탭 버튼.<span class="ko">색상별 분류</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📊</div><div class="feat-t">Auto Rate Calc</div><div class="feat-d">WO 누적 불량률 실시간.<span class="ko">5% 한계 게이지</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🚨</div><div class="feat-t">5% → Andon</div><div class="feat-d">자동 INJ-08 발동 + 라인 정지.<span class="ko">BR-INJ-03</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔗</div><div class="feat-t">FLASH + Mold</div><div class="feat-d">금형 80% + FLASH = 마모 자동 연계.<span class="ko">BR-INJ-07</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-inj">BR-INJ-03</a>
+          <a class="br-chip" href="#br-inj">BR-INJ-07</a>
         </div>
       </div>
     </div>
@@ -236,14 +550,41 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     <!-- INJ-06 -->
     <div class="screen-card" id="inj06">
       <div class="sc-hdr">
-        <div><div class="sc-id">INJ-06</div><div class="sc-title-en">Mold Change Request</div><div class="sc-title-ko">금형 교체 요청</div></div>
+        <div class="sc-hdr-l">
+          <div class="sc-icon">🔧</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">INJ-06</div>
+            <div class="sc-title-en">Mold Change Request</div>
+            <div class="sc-title-ko">금형 교체 요청 — 90/100/110% 3단계 경고</div>
+          </div>
+        </div>
         <div class="sc-tags"><span class="tag t-pop">🏭 POP Dark</span><span class="tag t-2nd">2nd Dev</span></div>
         <a class="sc-l3-btn" href="VOL05_INJ06_Mold_Change.html" title="View L3 detailed spec">📋 L3 Detail →</a>
       </div>
       <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 금형 누적 쇼트수 vs 정격 수명 게이지 + 3단계 경고 시각화 (90% 노랑 / 100% MNT WO 자동 / 110% 강제정지)<span class="ko">교체 시작 시 비가동 추적 자동 시작, MNT 완료 시 쇼트수 0 리셋 + WO 재개, 100%~110% 구간은 라인장 PIN으로 생산 계속 가능 (BR-INJ-02)</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">Mold Shot Count</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">Warning · MNT WO · Stop</div></div>
+          <div class="qf"><div class="qf-l">⚠ WATCH</div><div class="qf-v">110% → Hard Stop</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">POP Gauge + MNT Link</div></div>
+        </div>
         <div class="desc-bi">
           <div><div class="db-lbl">EN · Description</div><div class="db-en">Monitors mold accumulated shot count vs rated life. 90% → POP yellow warning; 100% → MNT auto-WO + production may continue with supervisor PIN; 110% → hard stop. Mold change start triggers downtime tracking; MNT completes → shot count resets to 0 + WO resume. OEE Availability impact.</div></div>
           <div><div class="db-lbl">KO · 설명</div><div class="db-ko">금형 누적 쇼트수 vs 정격 수명 모니터. 90% POP 노랑 경고, 100% MNT WO 자동 발행(라인장 PIN으로 생산 계속), 110% 강제정지. 교체 시작 시 비가동 추적, MNT 완료 시 쇼트수 0 리셋 + WO 재개. OEE 가동률 영향.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">📊</div><div class="feat-t">Shot Gauge</div><div class="feat-d">누적/정격 실시간 게이지.<span class="ko">금형별 카드 표시</span></div></div>
+          <div class="feat-item"><div class="feat-ico">⚠</div><div class="feat-t">3-Tier Alert</div><div class="feat-d">90 노랑 / 100 MNT WO / 110 강제정지.<span class="ko">BR-INJ-02</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🛠</div><div class="feat-t">MNT Auto-WO</div><div class="feat-d">100% 도달 시 MNT 작업지시 자동.<span class="ko">정비팀 자동 통보</span></div></div>
+          <div class="feat-item"><div class="feat-ico">⏱</div><div class="feat-t">Downtime Track</div><div class="feat-d">교체 시작~완료 비가동 자동 기록.<span class="ko">OEE Availability 차감</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-inj">BR-INJ-02</a>
         </div>
       </div>
     </div>
@@ -251,32 +592,115 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     <!-- INJ-07 -->
     <div class="screen-card" id="inj07">
       <div class="sc-hdr">
-        <div><div class="sc-id">INJ-07</div><div class="sc-title-en">Production Status</div><div class="sc-title-ko">실적 현황 — Web 라인장</div></div>
+        <div class="sc-hdr-l">
+          <div class="sc-icon">🖥</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">INJ-07</div>
+            <div class="sc-title-en">Production Status (Web)</div>
+            <div class="sc-title-ko">실적 현황 — Web 라인장 통합 뷰</div>
+          </div>
+        </div>
         <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-1st">1st Dev</span></div>
         <a class="sc-l3-btn" href="VOL05_INJ07_Prod_Status.html" title="View L3 detailed spec">📋 L3 Detail →</a>
       </div>
       <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 전 INJ 라인 KPI 4타일 (금일 양품/불량 · 평균 OEE · 진행 WO · 정지 설비) + 라인별 테이블 + 시간별 누적 차트<span class="ko">드릴다운 WO 이력 + Excel/PDF 인수인계 출력, 라인장 PC에서 다중 라인 통합 모니터링</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">All INJ Line Realtime</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">KPI + Table + Chart + Export</div></div>
+          <div class="qf"><div class="qf-l">⚠ WATCH</div><div class="qf-v">OEE &lt; 65% 강조</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">Web Supervisor</div></div>
+        </div>
         <div class="desc-bi">
           <div><div class="db-lbl">EN · Description</div><div class="db-en">Web supervisor dashboard summarizing all INJ lines: KPI tiles (Today Good/Defect, Avg OEE, Active WOs, Down Machines), per-line table (status, WO, progress, defect rate, mold, OEE), hourly stacked bar chart. Drill-down to per-WO history. Excel + PDF export for shift handover.</div></div>
           <div><div class="db-lbl">KO · 설명</div><div class="db-ko">모든 INJ 라인 요약 Web 라인장 대시보드: KPI(금일 양품/불량·평균 OEE·진행 WO·정지 설비), 라인별 테이블(상태·WO·진도·불량률·금형·OEE), 시간별 누적 차트. 드릴다운 WO 이력. Excel + PDF 인수인계.</div></div>
         </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">🧩</div><div class="feat-t">4 KPI Tiles</div><div class="feat-d">금일 양품/불량·OEE·WO·정지.<span class="ko">상단 고정</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📋</div><div class="feat-t">Per-Line Table</div><div class="feat-d">라인×상태·WO·진도·금형·OEE.<span class="ko">정렬·필터</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📊</div><div class="feat-t">Hourly Stacked</div><div class="feat-d">시간별 양품/불량 누적 차트.<span class="ko">목표 대비</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📤</div><div class="feat-t">Excel · PDF</div><div class="feat-d">인수인계용 일괄 출력.<span class="ko">교대 종료 시</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-inj">BR-INJ-05</a>
+        </div>
       </div>
     </div>
 
-    <!-- INJ-08 -->
+    <!-- INJ-08 SAFETY-CRITICAL -->
     <div class="screen-card" id="inj08">
-      <div class="sc-hdr">
-        <div><div class="sc-id">INJ-08</div><div class="sc-title-en">Andon Emergency</div><div class="sc-title-ko">비상 신호 — Safety-Critical</div></div>
+      <div class="sc-hdr crit">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">🚨</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">INJ-08 · 🚨 SAFETY-CRITICAL</div>
+            <div class="sc-title-en">Andon Emergency</div>
+            <div class="sc-title-ko">비상 신호 — 풀스크린 오버라이드 + 라인장 PIN</div>
+          </div>
+        </div>
         <div class="sc-tags"><span class="tag t-pop">🏭 POP Dark</span><span class="tag t-crit">🚨 Safety</span></div>
         <a class="sc-l3-btn" href="VOL05_INJ08_Andon.html" title="View L3 detailed spec">📋 L3 Detail →</a>
       </div>
       <div class="sc-body">
-        <div class="desc-bi" style="border-left-color:#dc2626;">
-          <div><div class="db-lbl">EN · Description</div><div class="db-en">Full-screen red emergency alert that overrides all other POP screens. Triggered by defect rate ≥ 5%, mold 110%, or PLC equipment alarm. Simultaneously: full-screen red, stack light blinks red, siren, supervisor PDA push, production halt. Operator cannot dismiss — supervisor PIN required (4-digit + reason + corrective action). 30s safety hold before resume.</div></div>
-          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">모든 POP 화면을 덮는 풀스크린 빨간 비상 알람. 불량률 5%·금형 110%·PLC 설비 알람으로 자동 발동. 동시: 풀스크린 빨강·스택라이트 점멸·사이렌·라인장 PDA 푸시·라인 정지. 작업자 해제 불가, 라인장 PIN(4자리+사유+시정조치) 필수. Ack 후 30초 안전 대기.</div></div>
+        <div class="headline crit">
+          <span class="headline-ico">🚨</span>
+          <div class="headline-t">What you'll see: 모든 POP 화면을 덮는 풀스크린 빨간 비상 알람 + 스택라이트 점멸 + 사이렌 + 라인장 PDA 푸시 + 라인 정지<span class="ko">작업자 해제 불가, 라인장 PIN(4자리)+사유+시정조치 필수, Ack 후 30초 안전 대기, 모든 이벤트 5년 이상 보관 (BR-INJ-08)</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT (Auto)</div><div class="qf-v">Defect ≥5% · Mold 110% · PLC Alarm</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">Full-Screen Red + Halt + Log</div></div>
+          <div class="qf"><div class="qf-l">🔒 DISMISS</div><div class="qf-v">Supervisor+ PIN only</div></div>
+          <div class="qf"><div class="qf-l">⏱ HOLD</div><div class="qf-v">30s Safety before Resume</div></div>
+        </div>
+        <div class="desc-bi crit">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Full-screen red emergency alert that overrides all other POP screens. Triggered automatically by defect rate ≥ 5%, mold 110%, or PLC equipment alarm. Simultaneously: full-screen red, stack light blinks red, siren, supervisor PDA push, production halt. Operator cannot dismiss — supervisor PIN required (4-digit + reason + corrective action). 30s safety hold before resume. All events logged ≥ 5 years.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">모든 POP 화면을 덮는 풀스크린 빨간 비상 알람. 불량률 5%·금형 110%·PLC 설비 알람으로 자동 발동. 동시: 풀스크린 빨강·스택라이트 점멸·사이렌·라인장 PDA 푸시·라인 정지. 작업자 해제 불가, 라인장 PIN(4자리+사유+시정조치) 필수. Ack 후 30초 안전 대기. 5년 이상 보관.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item crit"><div class="feat-ico">🟥</div><div class="feat-t">Full-Screen Red</div><div class="feat-d">모든 POP 화면 강제 오버라이드.<span class="ko">즉각 인지</span></div></div>
+          <div class="feat-item crit"><div class="feat-ico">🔔</div><div class="feat-t">Stack + Siren</div><div class="feat-d">스택라이트 빨강 점멸 + 사이렌.<span class="ko">시각+청각 동시</span></div></div>
+          <div class="feat-item crit"><div class="feat-ico">📲</div><div class="feat-t">Supervisor Push</div><div class="feat-d">라인장 PDA 즉시 푸시.<span class="ko">즉시 출동</span></div></div>
+          <div class="feat-item crit"><div class="feat-ico">🔐</div><div class="feat-t">PIN + Reason</div><div class="feat-d">4자리 PIN + 사유 + 시정조치 필수.<span class="ko">5년 감사 로그</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-inj">BR-INJ-03</a>
+          <a class="br-chip crit" href="#br-inj">BR-INJ-08</a>
         </div>
       </div>
     </div>
+
+    <!-- ─── DEFECT REFERENCE ─── -->
+    <div class="sec-div" id="defect-ref"><div class="sd-line"></div><div class="sd-lbl">▼ INJ DEFECT TYPES · 불량 6종</div><div class="sd-line"></div></div>
+    <table class="ref-tbl">
+      <thead><tr><th style="width:90px;">Code</th><th style="width:140px;">Name (EN)</th><th style="width:120px;">명칭 (KO)</th><th>Typical Cause · 주요 원인</th><th style="width:170px;">Auto Action · 자동 처리</th></tr></thead>
+      <tbody>
+        <tr><td class="code">D01</td><td>SINK_MARK</td><td>싱크마크</td><td>두께 편차, 보압 부족, 냉각 시간 불충분</td><td><span class="pill pill-info">Record</span></td></tr>
+        <tr><td class="code">D02</td><td>SHORT_SHOT</td><td>미성형</td><td>사출 압력 부족, 게이트 막힘, 자재 부족</td><td><span class="pill pill-info">Record</span></td></tr>
+        <tr><td class="code">D03</td><td>FLASH</td><td>플래시(버)</td><td>형체력 부족, 금형 마모, 사출 압력 과다</td><td><span class="pill pill-warn">+ Mold ≥80% → 마모 자동 연계</span></td></tr>
+        <tr><td class="code">D04</td><td>WELD_LINE</td><td>웰드라인</td><td>유동 합류 불량, 금형 온도 낮음</td><td><span class="pill pill-info">Record</span></td></tr>
+        <tr><td class="code">D05</td><td>DEFORM</td><td>변형(휨)</td><td>잔류응력, 냉각 불균일, 이형 불량</td><td><span class="pill pill-info">Record</span></td></tr>
+        <tr><td class="code">D06</td><td>COLOR_DIFF</td><td>색차</td><td>안료 분산 불량, 재료 혼입, 온도 편차</td><td><span class="pill pill-info">Record</span></td></tr>
+        <tr><td colspan="5" style="font-size:10px;color:var(--sub);background:#fef9c3;border-top:2px solid #fcd34d;"><strong style="color:#92400e;">⚠ 공통:</strong> 동일 유형 연속 5회 → MNT 점검 알림 (BR-INJ-07) · WO 누적 불량률 5% 도달 → INJ-08 Andon 자동 (BR-INJ-03)</td></tr>
+      </tbody>
+    </table>
+
+    <!-- ─── ANDON TRIGGER MATRIX ─── -->
+    <div class="sec-div" id="andon-ref"><div class="sd-line"></div><div class="sd-lbl">▼ ANDON TRIGGER MATRIX · 비상 발동 조건</div><div class="sd-line"></div></div>
+    <table class="ref-tbl">
+      <thead><tr><th style="width:90px;">Trigger</th><th>Condition · 발동 조건</th><th style="width:110px;">Source · 발원</th><th style="width:130px;">Severity · 심각도</th><th style="width:160px;">Resume Requirement · 재가동 조건</th></tr></thead>
+      <tbody>
+        <tr><td class="code">T-01</td><td>WO 누적 불량률 ≥ 5%</td><td>INJ-05</td><td><span class="pill pill-alert">Critical</span></td><td>PIN + 사유 + 시정조치 + 30s</td></tr>
+        <tr><td class="code">T-02</td><td>금형 누적 쇼트 ≥ 110% (강제정지)</td><td>INJ-06</td><td><span class="pill pill-alert">Critical</span></td><td>금형 교체 완료 + PIN + 30s</td></tr>
+        <tr><td class="code">T-03</td><td>PLC 설비 알람 (안전회로·과열 등)</td><td>PLC</td><td><span class="pill pill-alert">Critical</span></td><td>PLC Reset + PIN + 사유 + 30s</td></tr>
+        <tr><td class="code">T-M</td><td>라인장/안전 담당자 수동 발동</td><td>Manual</td><td><span class="pill pill-warn">High</span></td><td>발동자 본인 또는 上位 PIN + 30s</td></tr>
+        <tr><td colspan="5" style="font-size:10px;color:var(--sub);background:#fee2e2;border-top:2px solid #fca5a5;"><strong style="color:#991b1b;">🚨 공통:</strong> 모든 발동 즉시 풀스크린 빨강 + 스택라이트 점멸 + 사이렌 + 라인장 PDA 푸시 + 라인 정지. 작업자 해제 불가, Supervisor+ 권한만 가능. 모든 이벤트 ≥ 5년 보관 (BR-INJ-08).</td></tr>
+      </tbody>
+    </table>
 
     <!-- BR -->
     <div class="br-wrap" id="br-inj">
@@ -284,14 +708,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       <table class="br-tbl">
         <thead><tr><th style="width:90px;">Rule ID</th><th style="width:140px;">Category</th><th>Rule (EN)</th><th>규칙 (KO)</th><th style="width:90px;">Action</th></tr></thead>
         <tbody>
-          <tr><td class="br-id">BR-INJ-01</td><td>WO Pre-check</td><td class="br-en">Production cannot start without a Released WO assigned to this line. POP only displays Released WOs.</td><td class="br-ko">현 라인 Released WO 없이 생산 불가. POP은 Released만 표시.</td><td><span class="b b-e">Block</span></td></tr>
-          <tr><td class="br-id">BR-INJ-02</td><td>Mold Life Alert</td><td class="br-en">Mold shot count ≥ 90% → POP yellow. ≥ 100% → MNT auto-WO (production may continue with supervisor PIN). ≥ 110% → hard stop.</td><td class="br-ko">쇼트수 90% 노랑, 100% MNT WO 자동(PIN으로 생산 계속), 110% 강제정지.</td><td><span class="b b-m">Multi</span></td></tr>
-          <tr><td class="br-id">BR-INJ-03</td><td>Defect Rate Andon</td><td class="br-en">Defect rate ≥ 5% in a single WO cumulative → INJ-08 Andon auto-fire. Supervisor PIN + reason + corrective action required to resume.</td><td class="br-ko">WO 누적 불량률 5% 시 INJ-08 Andon 자동. 라인장 PIN+사유+시정조치 후 재가동.</td><td><span class="b b-e">Andon</span></td></tr>
-          <tr><td class="br-id">BR-INJ-04</td><td>Production Entry</td><td class="br-en">GoodQty must be 0–99 integer; &gt; CT×1.5 prompts sanity check confirm. Mold shot increments by 1 per cycle (not per qty).</td><td class="br-ko">양품 0~99 정수. CT×1.5 초과 시 재확인. 금형 쇼트수 사이클당 +1.</td><td><span class="b b-i">Validate</span></td></tr>
-          <tr><td class="br-id">BR-INJ-05</td><td>OEE</td><td class="br-en">Confirmed cycles feed OEE Performance Rate. CT deviation &gt; 20% flagged for review. OEE &lt; 65% sustained 1h escalates to plant manager.</td><td class="br-ko">실적 사이클 OEE 성능률 데이터. CT ±20% 이탈 시 검토 플래그. OEE 65% 미만 1시간 지속 시 공장장 에스컬레이션.</td><td><span class="b b-w">Alert</span></td></tr>
-          <tr><td class="br-id">BR-INJ-06</td><td>QC Auto-Trigger</td><td class="br-en">WO cumulative good qty reaches MD_InspStd.SampleInterval → QC-01 in-process inspection auto-issued.</td><td class="br-ko">WO 누적 양품 검사 주기 도달 시 QC-01 공정검사 자동 발행.</td><td><span class="b b-i">Auto</span></td></tr>
-          <tr><td class="br-id">BR-INJ-07</td><td>Defect Detail Types</td><td class="br-en">6 INJ-specific defects (D01–D06). FLASH + mold ≥ 80% auto-suggests "mold wear" cause. 5 consecutive same-type defects → MNT inspection alert.</td><td class="br-ko">INJ 전용 6종 불량(D01~D06). FLASH + 금형 80% 시 "금형 마모" 자동 연계. 동일 유형 연속 5회 시 MNT 점검 알림.</td><td><span class="b b-w">Alert</span></td></tr>
-          <tr><td class="br-id">BR-INJ-08</td><td>Andon Ack &amp; Resume</td><td class="br-en">Only Supervisor+ roles can acknowledge Andon. PIN + reason + corrective action required. 30s safety hold before Resume. All events logged ≥ 5 years.</td><td class="br-ko">라인장 이상만 Andon Ack 가능. PIN+사유+시정조치 필수. Resume 전 30초 안전 대기. 5년 보관.</td><td><span class="b b-e">Lock</span></td></tr>
+          <tr><td class="br-id-c">BR-INJ-01</td><td>WO Pre-check</td><td class="br-en-c">Production cannot start without a Released WO assigned to this line. POP only displays Released WOs.</td><td class="br-ko-c">현 라인 Released WO 없이 생산 불가. POP은 Released만 표시.</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-INJ-02</td><td>Mold Life Alert</td><td class="br-en-c">Mold shot count ≥ 90% → POP yellow. ≥ 100% → MNT auto-WO (production may continue with supervisor PIN). ≥ 110% → hard stop.</td><td class="br-ko-c">쇼트수 90% 노랑, 100% MNT WO 자동(PIN으로 생산 계속), 110% 강제정지.</td><td><span class="b b-m">Multi</span></td></tr>
+          <tr><td class="br-id-c">BR-INJ-03</td><td>Defect Rate Andon</td><td class="br-en-c">Defect rate ≥ 5% in a single WO cumulative → INJ-08 Andon auto-fire. Supervisor PIN + reason + corrective action required to resume.</td><td class="br-ko-c">WO 누적 불량률 5% 시 INJ-08 Andon 자동. 라인장 PIN+사유+시정조치 후 재가동.</td><td><span class="b b-e">Andon</span></td></tr>
+          <tr><td class="br-id-c">BR-INJ-04</td><td>Production Entry</td><td class="br-en-c">GoodQty must be 0–99 integer; &gt; CT×1.5 prompts sanity check confirm. Mold shot increments by 1 per cycle (not per qty).</td><td class="br-ko-c">양품 0~99 정수. CT×1.5 초과 시 재확인. 금형 쇼트수 사이클당 +1.</td><td><span class="b b-i">Validate</span></td></tr>
+          <tr><td class="br-id-c">BR-INJ-05</td><td>OEE</td><td class="br-en-c">Confirmed cycles feed OEE Performance Rate. CT deviation &gt; 20% flagged for review. OEE &lt; 65% sustained 1h escalates to plant manager.</td><td class="br-ko-c">실적 사이클 OEE 성능률 데이터. CT ±20% 이탈 시 검토 플래그. OEE 65% 미만 1시간 지속 시 공장장 에스컬레이션.</td><td><span class="b b-w">Alert</span></td></tr>
+          <tr><td class="br-id-c">BR-INJ-06</td><td>QC Auto-Trigger</td><td class="br-en-c">WO cumulative good qty reaches MD_InspStd.SampleInterval → QC-01 in-process inspection auto-issued.</td><td class="br-ko-c">WO 누적 양품 검사 주기 도달 시 QC-01 공정검사 자동 발행.</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-INJ-07</td><td>Defect Detail Types</td><td class="br-en-c">6 INJ-specific defects (D01–D06). FLASH + mold ≥ 80% auto-suggests "mold wear" cause. 5 consecutive same-type defects → MNT inspection alert.</td><td class="br-ko-c">INJ 전용 6종 불량(D01~D06). FLASH + 금형 80% 시 "금형 마모" 자동 연계. 동일 유형 연속 5회 시 MNT 점검 알림.</td><td><span class="b b-w">Alert</span></td></tr>
+          <tr><td class="br-id-c">BR-INJ-08</td><td>Andon Ack &amp; Resume</td><td class="br-en-c">Only Supervisor+ roles can acknowledge Andon. PIN + reason + corrective action required. 30s safety hold before Resume. All events logged ≥ 5 years.</td><td class="br-ko-c">라인장 이상만 Andon Ack 가능. PIN+사유+시정조치 필수. Resume 전 30초 안전 대기. 5년 이상 보관.</td><td><span class="b b-e">Lock</span></td></tr>
         </tbody>
       </table>
     </div>
@@ -299,7 +723,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   </div>
 
   <div class="page-footer">
-    <div class="pf-l">A-MES · VOL.5 · INJ Injection Molding POP · UI Design Spec v2.0 · 8 Screens + 8 BRs</div>
+    <div class="pf-l">A-MES · VOL.5 · INJ Injection Molding POP · UI Design Spec v2.1 (Enriched) · 8 Screens + 6 Defects + 4 Andon Triggers + 8 BRs</div>
     <div class="pf-r">POP Dark + Web · Phase 0–2 · Bilingual EN/KO</div>
   </div>
 </div>
