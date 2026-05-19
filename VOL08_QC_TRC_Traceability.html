@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.8 · QC-TRC · Traceability · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--qc:#dc2626;--mod:#dc2626;--mod-lt:#fee2e2;--mod-dk:#991b1b;--mod-tint:#fca5a5;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(252,165,165,.7);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#1f0a0a 0%,#180808 50%,#1f0a0a 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(220,38,38,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(220,38,38,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(220,38,38,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(220,38,38,.12),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(220,38,38,.3);color:var(--mod-tint);background:rgba(220,38,38,.08);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#eff6ff;border-color:#3b82f6;}
+.lnk-node.cur{background:linear-gradient(135deg,#1f0a0a,#180808);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(220,38,38,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#1d4ed8;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);}
+
+.web-mock{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.web-tbar{background:#f0f3f7;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);font-size:11px;}
+.web-tbar-l{font-weight:700;color:var(--text);}
+.web-tbar .bc{color:var(--sub);font-size:10px;margin-left:8px;}
+.web-tbar-r{font-size:10px;color:var(--sub);}
+.web-bd{padding:18px;background:#fbfcfd;}
+.web-card{background:#fff;border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:12px;}
+.web-card-h{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.btn{padding:7px 14px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;}
+.btn-primary{background:var(--mod);border-color:var(--mod-dk);color:#fff;}
+
+/* Search bar */
+.search-bar{display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:8px;margin-bottom:10px;}
+.search-bar input,.search-bar select{padding:8px 10px;border:1px solid var(--border);border-radius:4px;font-size:11px;width:100%;}
+.search-bar label{font-size:9px;color:var(--sub);letter-spacing:.5px;display:block;margin-bottom:3px;font-family:'JetBrains Mono',monospace;}
+
+/* Timeline */
+.tl-wrap{position:relative;padding-left:32px;}
+.tl-wrap::before{content:'';position:absolute;left:11px;top:8px;bottom:8px;width:2px;background:linear-gradient(180deg,#3b82f6,#dc2626,#22c55e);border-radius:1px;}
+.tl-event{position:relative;padding:10px 14px;background:#fff;border:1px solid var(--border);border-radius:5px;margin-bottom:10px;}
+.tl-event::before{content:'';position:absolute;left:-26px;top:14px;width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid #3b82f6;box-shadow:0 0 0 2px #fff;}
+.tl-event.qc::before{border-color:var(--mod);}
+.tl-event.ship::before{border-color:#22c55e;}
+.tl-event.alert::before{border-color:#f59e0b;background:#fbbf24;}
+.tl-time{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sub);}
+.tl-title{font-size:12px;font-weight:700;color:var(--text);margin-top:2px;}
+.tl-ko{font-size:10px;color:var(--sub);margin-top:1px;}
+.tl-link{font-size:10px;color:var(--mod-dk);text-decoration:underline;}
+
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.b-ok{background:#dcfce7;color:#166534;}.b-w{background:#fef9c3;color:#92400e;}.b-e{background:#fee2e2;color:#991b1b;}.b-i{background:#dbeafe;color:#1e40af;}
+
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol active"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL08_QC_Quality.html">VOL.8 · QC</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">QC-TRC · Traceability (Aux)</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.8 · QC · L3</div><div class="sb-mod-en">QUALITY CONTROL</div><div class="sb-mod-ko">품질 관리</div></div>
+  <div class="sb-section">Inspection · 검사</div>
+  <a class="sb-link" href="VOL08_QC01_Incoming_Inspection.html"><span class="sl-id">QC-01</span><div><div class="sl-en">Incoming</div><div class="sl-ko">수입검사</div></div></a>
+  <a class="sb-link" href="VOL08_QC02_InProcess_Inspection.html"><span class="sl-id">QC-02</span><div><div class="sl-en">In-Process</div><div class="sl-ko">공정검사</div></div></a>
+  <a class="sb-link" href="VOL08_QC03_Final_Inspection.html"><span class="sl-id">QC-03</span><div><div class="sl-en">Final ⚙</div><div class="sl-ko">최종검사</div></div></a>
+  <div class="sb-section">Defect &amp; CAPA · 부적합</div>
+  <a class="sb-link" href="VOL08_QC04_NCR_Register.html"><span class="sl-id">QC-04</span><div><div class="sl-en">NCR Register</div><div class="sl-ko">부적합 등록</div></div></a>
+  <a class="sb-link" href="VOL08_QC05_Hold_Quarantine.html"><span class="sl-id">QC-05</span><div><div class="sl-en">Hold 🚫</div><div class="sl-ko">격리</div></div></a>
+  <a class="sb-link" href="VOL08_QC06_CAPA.html"><span class="sl-id">QC-06</span><div><div class="sl-en">CAPA</div><div class="sl-ko">시정조치</div></div></a>
+  <div class="sb-section">Monitor &amp; Reference</div>
+  <a class="sb-link" href="VOL08_QC07_Dashboard.html"><span class="sl-id">QC-07</span><div><div class="sl-en">Dashboard</div><div class="sl-ko">현황판</div></div></a>
+  <a class="sb-link" href="VOL08_QC08_Inspection_Std.html"><span class="sl-id">QC-08</span><div><div class="sl-en">Insp. Standard</div><div class="sl-ko">검사기준서</div></div></a>
+  <a class="sb-link on" href="VOL08_QC_TRC_Traceability.html"><span class="sl-id">QC-TRC</span><div><div class="sl-en">Traceability</div><div class="sl-ko">이력 추적</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
+    <a href="#sec-2"><span class="num">02</span>Search Spec</a>
+    <a href="#sec-3"><span class="num">03</span>Trace Direction</a>
+    <a href="#sec-4"><span class="num">04</span>Workflow</a>
+    <a href="#sec-5"><span class="num">05</span>Business Rules</a>
+    <a href="#sec-6"><span class="num">06</span>Data Model</a>
+    <a href="#sec-7"><span class="num">07</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.8 · QC · L3 · Aux · Forward &amp; Backward Traceability</div>
+      <div class="scr-id-block"><div class="scr-id">QC-TRC</div><div class="scr-title-en">Traceability</div></div>
+      <div class="scr-title-ko">이력 추적 — 정/역 양방향 + 5년 봉인 + 고객 리콜 대응</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">UI</span><span class="mc-val">🖥 Web PC</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">2nd Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">QC · Sales (Read-only) · Auditor (Read)</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Key Use</span><span class="mc-val">고객 리콜 · 감사 · CAPA 근본원인</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Retention</span><span class="mc-val">≥ 5 years</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          Forward and backward traceability across the full A-MES — from raw-material LOT in WH, through production WOs (INJ/IMG/PNT), inspections (QC-01/02/03), NCRs, Holds, CAPAs, and downstream FG/shipment events. Search by any handle (LOT/WO/Customer/Item/Date/Defect), then drill back from a customer claim to the originating raw material, or forward from a suspect raw LOT to every shipped unit affected. Read-only views available to Sales and external Auditors. All trace data is sealed for ≥ 5 years. Used heavily for IATF 16949 audits and customer recall analysis.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          A-MES 전체에 걸친 정방향/역방향 이력 추적 — WH 원자재 LOT부터 생산 WO(INJ/IMG/PNT), 검사(QC-01/02/03), NCR, Hold, CAPA, 그리고 하류 FG/출하 이벤트까지. 다양한 핸들(LOT/WO/고객/품목/기간/불량)로 검색, 고객 클레임으로부터 원천 원자재까지 역추적 또는 의심 원자재 LOT으로부터 영향 받은 모든 출하분으로 정추적. Sales·외부 감사관은 읽기 전용 뷰. 모든 추적 데이터 5년 이상 봉인 보관. IATF 16949 감사·고객 리콜 분석에 핵심 사용.
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — Search + Timeline</span></div>
+
+      <div class="web-mock">
+        <div class="web-tbar">
+          <div class="web-tbar-l">🔍 A-MES · Quality · Traceability<span class="bc">QC › Trace · Customer Claim Analysis</span></div>
+          <div class="web-tbar-r">QC.Han · QC Manager · 11:42</div>
+        </div>
+        <div class="web-bd">
+          <!-- Search bar -->
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ TRACE SEARCH · 추적 검색</span><span style="color:var(--sub);">최소 1개 핸들 필수</span></div>
+            <div class="search-bar">
+              <div><label>LOT / WO / NCR / Hold ID</label><input type="text" placeholder="LOT-SY-2026051901"></div>
+              <div><label>Item Code</label><input type="text" placeholder="DR-LH-001"></div>
+              <div><label>Customer</label><select><option>SAV · 현대 SAV</option><option>GEO</option></select></div>
+              <div><label>Date Range</label><input type="text" placeholder="2026-01-01 ~ 2026-05-19"></div>
+              <div style="align-self:end;"><button class="btn btn-primary" style="width:100%;padding:8px 14px;">🔍 Search</button></div>
+            </div>
+            <div style="margin-top:6px;font-size:10px;color:var(--sub);">예시: 고객(SAV) 클레임을 받은 차량 VIN에서 부품 LOT으로 역추적 → 원자재 LOT으로 추적 → 동일 자재 사용 다른 WO·출하 검색.</div>
+          </div>
+
+          <!-- Search result summary -->
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ TRACE TARGET · 추적 대상</span><span style="color:var(--mod-dk);font-weight:700;">⚠ Backward Trace (역추적)</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:11px;">
+              <div style="background:#fff7ed;border-left:3px solid #ea580c;padding:8px 12px;border-radius:0 4px 4px 0;">
+                <div style="font-size:9px;color:var(--sub);">📞 Source Event</div>
+                <div style="font-weight:700;">SAV Customer Claim CLM-2026-0517-003</div>
+                <div style="font-size:10px;color:var(--sub);">Door Trim LH 미경화 — 차량 5대 (VIN 5개)</div>
+              </div>
+              <div style="background:#eff6ff;border-left:3px solid #3b82f6;padding:8px 12px;border-radius:0 4px 4px 0;">
+                <div style="font-size:9px;color:var(--sub);">📦 Affected Shipments</div>
+                <div style="font-weight:700;">3 shipments · 1,200 EA</div>
+                <div style="font-size:10px;color:var(--sub);">2026-04-28, 2026-05-02, 2026-05-08</div>
+              </div>
+              <div style="background:#fef2f2;border-left:3px solid #dc2626;padding:8px 12px;border-radius:0 4px 4px 0;">
+                <div style="font-size:9px;color:var(--sub);">⚠ Suspect Root</div>
+                <div style="font-weight:700;color:var(--mod-dk);">PNT-Oven-A regulator drift</div>
+                <div style="font-size:10px;color:var(--sub);">Confirmed via PNT-05 logs (3 incidents)</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Timeline -->
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ EVENT TIMELINE · 이벤트 타임라인 (역방향)</span><span style="color:var(--sub);">22 events · Customer → Raw Material</span></div>
+            <div class="tl-wrap">
+              <div class="tl-event">
+                <div class="tl-time">2026-05-17 14:22 · Customer SAV</div>
+                <div class="tl-title">📞 Customer Claim filed — 5 VINs reporting coating peel</div>
+                <div class="tl-ko">SAV로부터 5개 VIN 도장 박리 클레임 접수.</div>
+                <div style="margin-top:4px;"><span class="b b-e">CLM-2026-0517-003</span></div>
+              </div>
+              <div class="tl-event ship">
+                <div class="tl-time">2026-05-08 09:14 · FG-04 Shipment</div>
+                <div class="tl-title">📤 Shipped 400 EA · WO-2026-0505-014 → SAV Asan plant</div>
+                <div class="tl-ko">차량 부품 400EA SAV 아산 공장 출하.</div>
+                <div style="margin-top:4px;"><a href="#" class="tl-link">View FG Stock + Pickslip</a></div>
+              </div>
+              <div class="tl-event qc">
+                <div class="tl-time">2026-05-08 06:45 · QC-03 Final PASS</div>
+                <div class="tl-title">✅ INS-2026-0508-027 Verdict: PASS</div>
+                <div class="tl-ko">QC 최종검사 합격 (ΔE=0.8, MEK rub OK). <strong style="color:#92400e;">⚠ Enhanced flag NOT triggered</strong></div>
+                <div style="margin-top:4px;"><a href="VOL08_QC03_Final_Inspection.html" class="tl-link">View Inspection Detail</a></div>
+              </div>
+              <div class="tl-event alert">
+                <div class="tl-time">2026-05-08 03:12 · PNT-05 Oven Event</div>
+                <div class="tl-title">⚠ Oven Temp Deviation — 174°C for 3min 50s</div>
+                <div class="tl-ko">오븐 온도 174°C에서 3분 50초 — 임계(±5°C/2min) 직전 (Flag 미트리거 — 4분 미만)</div>
+                <div style="margin-top:4px;"><a href="#" class="tl-link">View Oven Curve · Trigger Threshold Analysis</a></div>
+              </div>
+              <div class="tl-event">
+                <div class="tl-time">2026-05-08 02:48 · PNT-03 Loading R1</div>
+                <div class="tl-title">📡 Jig JIG-PNT-014 (LOT-PNT-2026050807) loaded</div>
+                <div class="tl-ko">지그 LOT-PNT-2026050807 R1 로딩 완료, IN_LOAD 전환.</div>
+              </div>
+              <div class="tl-event">
+                <div class="tl-time">2026-05-08 01:20 · INJ-04 Production</div>
+                <div class="tl-title">⌨ WO-2026-0505-014 · Cycle 200/200 complete</div>
+                <div class="tl-ko">사출 WO 200 EA 완료, mold MLD-DR-LH-005 (현 shot 8,750/10,000).</div>
+              </div>
+              <div class="tl-event">
+                <div class="tl-time">2026-05-07 16:08 · WH-07 PDA Release</div>
+                <div class="tl-title">📤 PP Resin LOT-SY-2026051901 issued to INJ-L1</div>
+                <div class="tl-ko">PP 원자재 LOT 5kg INJ-L1로 출고 (BOM 자동 차감).</div>
+              </div>
+              <div class="tl-event qc">
+                <div class="tl-time">2026-05-19 14:48 · QC-01 Incoming PASS</div>
+                <div class="tl-title">✅ LOT-SY-2026051901 PASS (5/5 PASS, 1 marginal ΔE)</div>
+                <div class="tl-ko">원자재 수입검사 합격 (5개 모두 PASS, 색차 1건 marginal). 정상 재고 이관.</div>
+                <div style="margin-top:4px;"><a href="VOL08_QC01_Incoming_Inspection.html" class="tl-link">View Incoming Detail</a></div>
+              </div>
+              <div class="tl-event">
+                <div class="tl-time">2026-05-19 10:32 · WH-02 PDA Inbound</div>
+                <div class="tl-title">📥 PP Resin Black · Supplier: SEYANG Tech</div>
+                <div class="tl-ko">PP 분체 200BG 입고, 격리구역 Q-A-12.</div>
+              </div>
+            </div>
+            <div style="margin-top:10px;font-size:11px;color:var(--sub);text-align:center;">
+              💡 <strong style="color:var(--mod-dk);">Insight:</strong> Oven deviation at 03:12 was 3:50, just below the 4-min auto-flag threshold → no enhanced inspection triggered. Recommend tightening threshold (CAPA candidate).
+            </div>
+          </div>
+
+          <!-- Related affected items -->
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ ALL AFFECTED ITEMS · 동일 원인 영향 범위</span><span style="color:var(--mod-dk);">정방향 추적 결과</span></div>
+            <table class="fld-tbl">
+              <thead><tr><th>WO ID</th><th>Item</th><th>Qty</th><th>Final Inspection</th><th>Shipped</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr><td>WO-2026-0428-009</td><td>Door Trim LH</td><td>400 EA</td><td><span class="b b-ok">PASS 2026-04-28</span></td><td>SAV (returned 2개)</td><td><button class="btn" style="padding:3px 8px;font-size:10px;">🔍 Detail</button></td></tr>
+                <tr><td>WO-2026-0502-011</td><td>Door Trim LH</td><td>400 EA</td><td><span class="b b-ok">PASS 2026-05-02</span></td><td>SAV (returned 3개)</td><td><button class="btn" style="padding:3px 8px;font-size:10px;">🔍 Detail</button></td></tr>
+                <tr><td>WO-2026-0505-014</td><td>Door Trim LH</td><td>400 EA</td><td><span class="b b-ok">PASS 2026-05-08</span></td><td>SAV (이번 클레임)</td><td><button class="btn" style="padding:3px 8px;font-size:10px;">🔍 Detail</button></td></tr>
+              </tbody>
+            </table>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+              <button class="btn">📋 Export Recall Report (PDF)</button>
+              <button class="btn">📞 Notify Customer (SAV)</button>
+              <button class="btn btn-primary">📝 Create CAPA (Recommended)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 Trace Power · 추적 강점</span>
+        ① 어떤 입력으로 시작해도 (LOT/WO/Customer/Item/VIN) 양방향 추적 가능 ② 최대 3-hop drill (예: Claim → WO → 원자재 → 공급사) ③ 사진·측정값·PLC 로그·RFID 이벤트가 모두 timeline 통합 ④ Read-only 권한 분리 — Sales/Auditor는 자기 권한 범위만 ⑤ 1건 검색에 300ms 내 응답 (Elasticsearch 인덱싱) ⑥ 출력: PDF 리콜 보고서 / Excel 영향 범위 / JSON API (외부 시스템 연동)</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Search Specification</span><span class="sec-ko">검색 사양</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:22%;">Handle</th><th style="width:14%;">Index Type</th><th>Description · Examples</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">LOT ID</td><td class="fld-type">Exact</td><td>원자재 LOT (LOT-SY-...) · WIP LOT (LOT-INJ-...) · PNT 가상 LOT.</td></tr>
+          <tr><td class="fld-name">WO ID</td><td class="fld-type">Exact</td><td>작업지시 ID (WO-2026-...).</td></tr>
+          <tr><td class="fld-name">NCR / Hold / CAPA ID</td><td class="fld-type">Exact</td><td>품질 이벤트 ID.</td></tr>
+          <tr><td class="fld-name">Customer Code</td><td class="fld-type">Filter</td><td>SAV / GEO 등 고객 코드.</td></tr>
+          <tr><td class="fld-name">Customer Claim No</td><td class="fld-type">Exact</td><td>고객 클레임 번호 (CLM-...).</td></tr>
+          <tr><td class="fld-name">Item Code</td><td class="fld-type">Exact / Fuzzy</td><td>품목 코드 + 품명 검색.</td></tr>
+          <tr><td class="fld-name">Date Range</td><td class="fld-type">Range</td><td>이벤트 발생 일자 범위.</td></tr>
+          <tr><td class="fld-name">Defect Code</td><td class="fld-type">Filter</td><td>D01~D06 등 불량 코드 (전 모듈 통합).</td></tr>
+          <tr><td class="fld-name">Supplier Code</td><td class="fld-type">Filter</td><td>원자재 공급사로 역추적.</td></tr>
+          <tr><td class="fld-name">VIN (고객 차대번호)</td><td class="fld-type">Exact</td><td>SAV/GEO 차량 VIN → 해당 부품 LOT 역추적.</td></tr>
+          <tr><td class="fld-name">Shipment / Pickslip No</td><td class="fld-type">Exact</td><td>출하 단위 추적.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Trace Directions</span><span class="sec-ko">추적 방향</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:24%;">Direction</th><th>Use Case · 활용 사례</th></tr></thead>
+        <tbody>
+          <tr><td><strong>← Backward (역방향)</strong></td><td>고객 클레임 / Shipped Unit / VIN으로 시작 → 부품 LOT → WO → 공정 이벤트 → 원자재 LOT → 공급사. 리콜 시 표준 방향.</td></tr>
+          <tr><td><strong>→ Forward (정방향)</strong></td><td>의심 원자재 LOT / 공급사로 시작 → 사용된 모든 WO → 검사 결과 → 출하된 모든 단위 → 고객. 결함 자재 발견 시 영향 범위 파악.</td></tr>
+          <tr><td><strong>↔ Lateral (수평)</strong></td><td>동일 시점 동일 라인의 다른 WO, 동일 금형 사용 WO 등. CAPA 근본원인 분석 시 활용.</td></tr>
+          <tr><td><strong>⊕ Multi-hop</strong></td><td>3-hop까지 확장 (예: 고객 → 부품 → 원자재 → 공급사의 다른 LOT). 시스템 응답 ≤ 500ms 보장.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">User enters one or more search handles (LOT/WO/Customer/VIN, etc.); system identifies trace target.</div><div class="wf-ko">사용자가 1개 이상 검색 핸들 입력, 시스템이 추적 대상 식별.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">System auto-determines direction: Customer/VIN input → Backward; LOT/Supplier input → Forward.</div><div class="wf-ko">시스템이 방향 자동 결정: 고객/VIN 입력 → 역방향, LOT/공급사 → 정방향.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Renders unified Event Timeline: WH movements + Production + RFID + Inspections + NCR/Hold/CAPA + Shipments.</div><div class="wf-ko">통합 이벤트 타임라인 렌더링: WH 이동 + 생산 + RFID + 검사 + NCR/Hold/CAPA + 출하.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Each event has drill-link to its source screen (Inspection detail, Oven curve, RFID event chain, etc.).</div><div class="wf-ko">각 이벤트는 소스 화면으로 드릴 링크 (검사 상세, 오븐 곡선, RFID 이벤트 체인 등).</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">User can pivot: clicking any event triggers a new trace centered on that event.</div><div class="wf-ko">사용자는 피벗 가능: 이벤트 클릭 시 그 이벤트 중심 신규 추적 시작.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">"Affected Items" panel lists all WOs/LOTs/shipments matching the suspected root cause for impact assessment.</div><div class="wf-ko">"영향 항목" 패널이 의심 근본원인과 일치하는 모든 WO/LOT/출하 표시, 영향 범위 평가.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Export options: PDF Recall Report, Excel impact list, JSON API for external systems.</div><div class="wf-ko">출력 옵션: PDF 리콜 보고서, Excel 영향 목록, JSON API (외부 시스템 연동).</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">All search/view actions logged ≥ 5 years; Sales/Auditor permissions enforce data scope.</div><div class="wf-ko">모든 검색/조회 행위 5년 이상 로그, Sales/Auditor 권한별 데이터 범위 적용.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-QC-33</td><td><div>QC-TRC is Read-only; no data modification possible. Edits must occur in source modules.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">QC-TRC는 읽기 전용, 데이터 변경 불가. 수정은 소스 모듈에서.</div></td><td><span class="br-act blk">Lock</span></td></tr>
+          <tr><td class="br-id">BR-QC-34</td><td><div>Sales role can trace by customer only; cannot see suppliers/internal cost data.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">Sales 권한은 고객 기준만 추적, 공급사·내부 원가 데이터 접근 불가.</div></td><td><span class="br-act blk">Scope</span></td></tr>
+          <tr><td class="br-id">BR-QC-35</td><td><div>External Auditor role gets time-boxed access (visit period only); auto-revoked after.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">외부 감사관은 방문 기간만 접근, 종료 후 자동 회수.</div></td><td><span class="br-act blk">Time-Box</span></td></tr>
+          <tr><td class="br-id">BR-QC-08</td><td><div>All trace data (events, links) retained ≥ 5 years (regulatory + customer audit).</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">전 추적 데이터 5년 이상 보관 (법규 + 고객 감사).</div></td><td><span class="br-act aut">Retain</span></td></tr>
+          <tr><td class="br-id">BR-QC-36</td><td><div>Search response time ≤ 500ms for 95% of queries; multi-hop ≤ 2s.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">검색 응답 시간 95% 쿼리 500ms 이하, 멀티홉 2s 이하.</div></td><td><span class="br-act aut">SLA</span></td></tr>
+          <tr><td class="br-id">BR-QC-37</td><td><div>All search/view actions logged with userID, timestamp, query params for audit accountability.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">모든 검색/조회 행위 사용자ID·시각·쿼리 기록 (감사 책임).</div></td><td><span class="br-act aut">Log</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Component</th><th>Detail</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">QC_TraceIndex</span></td><td>Elasticsearch index: doc_type · doc_id · refs[] (LOT/WO/NCR/Customer/Item/VIN/Date)</td><td>다중 소스를 통합한 검색 인덱스. 야간 batch + real-time 증분.</td></tr>
+          <tr><td><span class="dm-col">QC_TraceLink</span></td><td>SourceType · SourceID · TargetType · TargetID · LinkType · CreateTS</td><td>이벤트 간 명시 링크 (WO→LOT, LOT→Insp 등).</td></tr>
+          <tr><td><span class="dm-col">QC_TraceAuditLog</span></td><td>LogID · UserID · QueryParams · ResultCount · TS · IP</td><td>검색·조회 행위 감사 로그 (BR-QC-37).</td></tr>
+          <tr><td><span class="dm-col">CustomerClaim</span> <em style="opacity:.6;">(read)</em></td><td>ClaimID · CustomerCode · VINs[] · ItemRefs[] · Description</td><td>고객 클레임 입력 소스.</td></tr>
+          <tr><td><span class="dm-col">FG_Shipment</span> <em style="opacity:.6;">(read)</em></td><td>ShipID · WOIDs[] · CustomerCode · ShipDate · Qty</td><td>출하 이벤트.</td></tr>
+          <tr><td><span class="dm-col">All Source Tables</span> <em style="opacity:.6;">(read)</em></td><td>WH_Movement · PP_WO · INJ_Production · IMG_* · PNT_RFIDEvent · QC_Inspection · QC_NCR · QC_Hold · QC_CAPA</td><td>실데이터는 각 모듈 테이블에서 read. TRC는 인덱싱+조합만.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">All Modules</div><div class="lnk-name">Event Stream</div><div class="lnk-ko">WH·PP·INJ·IMG·PNT·QC·FG·MNT</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">QC-TRC</div><div class="lnk-name">Trace Index</div><div class="lnk-ko">통합 이력 추적</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">PDF / Excel / API</div><div class="lnk-name">Report Output</div><div class="lnk-ko">리콜 보고서</div></div>
+        </div>
+        <div class="lnk-row" style="margin-top:14px;">
+          <div class="lnk-node cur"><div class="lnk-id">QC-TRC Trigger</div><div class="lnk-name">Pattern Detected</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">QC-06</div><div class="lnk-name">CAPA Create</div><div class="lnk-ko">시정조치 발의</div></div>
+          <div class="lnk-arr">또는</div>
+          <div class="lnk-node down"><div class="lnk-id">QC-05</div><div class="lnk-name">Mass Hold</div><div class="lnk-ko">대규모 격리</div></div>
+          <div class="lnk-arr">또는</div>
+          <div class="lnk-node down" style="background:#fef2f2;border-color:#fca5a5;"><div class="lnk-id" style="color:#991b1b;">Customer</div><div class="lnk-name">Recall Notify</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.8 · QC-TRC · Traceability · L3 Spec v1.0 · Aux · ≥5y Retention</div><div class="pf-r">Web PC · Phase 2 · IATF 16949 · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
