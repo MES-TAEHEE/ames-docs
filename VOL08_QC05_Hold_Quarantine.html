@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.8 · QC-05 · Hold / Quarantine · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--qc:#dc2626;--mod:#dc2626;--mod-lt:#fee2e2;--mod-dk:#991b1b;--mod-tint:#fca5a5;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(252,165,165,.7);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#1f0a0a 0%,#180808 50%,#1f0a0a 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(220,38,38,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(220,38,38,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(220,38,38,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(220,38,38,.12),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(220,38,38,.3);color:var(--mod-tint);background:rgba(220,38,38,.08);}
+.meta-chip.crit{border-color:rgba(220,38,38,.45);color:#fca5a5;background:rgba(220,38,38,.15);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}.br-act.mlt{background:#fce7f3;color:#9d174d;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-w{background:#fef9c3;border-color:#f59e0b;color:#92400e;}.alert-d{background:#fef2f2;border-color:#ef4444;color:#991b1b;}
+.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#eff6ff;border-color:#3b82f6;}
+.lnk-node.cur{background:linear-gradient(135deg,#1f0a0a,#180808);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(220,38,38,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#1d4ed8;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);}
+.dm-pk{color:#f59e0b;font-size:8px;font-weight:700;}.dm-fk{color:#8b5cf6;font-size:8px;font-weight:700;}
+
+/* Web UI */
+.web-mock{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.web-tbar{background:#f0f3f7;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);font-size:11px;}
+.web-tbar-l{font-weight:700;color:var(--text);}
+.web-tbar .bc{color:var(--sub);font-size:10px;margin-left:8px;}
+.web-tbar-r{font-size:10px;color:var(--sub);}
+.web-bd{padding:18px;background:#fbfcfd;}
+.web-card{background:#fff;border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:12px;}
+.web-card-h{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.po-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;font-size:11px;margin-bottom:6px;}
+.po-l{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;}
+.po-v{font-weight:700;color:var(--text);margin-top:2px;}
+.tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;}
+.tbl th{background:#f0f3f7;padding:7px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.tbl td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:top;}
+.tbl .th-ko{font-size:9px;color:var(--sub);display:block;margin-top:1px;font-weight:400;}
+.tbl .ko{font-size:9px;color:var(--sub);}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.b-ok{background:#dcfce7;color:#166534;}.b-w{background:#fef9c3;color:#92400e;}.b-e{background:#fee2e2;color:#991b1b;}.b-i{background:#dbeafe;color:#1e40af;}.b-locked{background:#fef2f2;color:#7f1d1d;border:1px solid #fca5a5;}
+.btn{padding:7px 14px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;}
+.btn-primary{background:var(--mod);border-color:var(--mod-dk);color:#fff;}
+.btn-success{background:#22c55e;border-color:#16a34a;color:#fff;}
+.btn-danger{background:#fff;border-color:#fca5a5;color:#991b1b;}
+
+/* Hold visualization */
+.hold-banner{background:linear-gradient(135deg,#fef2f2,#fff);border:2px solid var(--mod);border-radius:8px;padding:16px 20px;text-align:center;margin-bottom:14px;position:relative;overflow:hidden;}
+.hold-banner::before{content:'🚫';position:absolute;top:-20px;right:-20px;font-size:120px;opacity:.06;}
+.hold-banner-t{font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--mod-dk);letter-spacing:3px;position:relative;}
+.hold-banner-s{font-size:11px;color:var(--sub);margin-top:4px;position:relative;}
+
+.pin-mock{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-bottom:14px;}
+.pin-panel{background:#0d1117;border:2px solid var(--mod);border-radius:10px;padding:20px;width:320px;color:#fff;}
+.pin-h{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--mod-tint);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px;text-align:center;}
+.pin-display{background:#000;border:1px solid rgba(252,165,165,.3);border-radius:6px;padding:14px;font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:8px;color:#fca5a5;text-align:center;margin-bottom:12px;}
+.pin-keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
+.pkb{padding:18px 0;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:6px;text-align:center;font-size:20px;font-weight:700;color:#e2e8f0;font-family:'JetBrains Mono',monospace;}
+
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol active"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL08_QC_Quality.html">VOL.8 · QC</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">QC-05 · Hold / Quarantine 🚫</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.8 · QC · L3</div><div class="sb-mod-en">QUALITY CONTROL</div><div class="sb-mod-ko">품질 관리</div></div>
+  <div class="sb-section">Inspection · 검사</div>
+  <a class="sb-link" href="VOL08_QC01_Incoming_Inspection.html"><span class="sl-id">QC-01</span><div><div class="sl-en">Incoming</div><div class="sl-ko">수입검사</div></div></a>
+  <a class="sb-link" href="VOL08_QC02_InProcess_Inspection.html"><span class="sl-id">QC-02</span><div><div class="sl-en">In-Process</div><div class="sl-ko">공정검사</div></div></a>
+  <a class="sb-link" href="VOL08_QC03_Final_Inspection.html"><span class="sl-id">QC-03</span><div><div class="sl-en">Final ⚙</div><div class="sl-ko">최종검사</div></div></a>
+  <div class="sb-section">Defect &amp; CAPA · 부적합</div>
+  <a class="sb-link" href="VOL08_QC04_NCR_Register.html"><span class="sl-id">QC-04</span><div><div class="sl-en">NCR Register</div><div class="sl-ko">부적합 등록</div></div></a>
+  <a class="sb-link on" href="VOL08_QC05_Hold_Quarantine.html"><span class="sl-id">QC-05</span><div><div class="sl-en">Hold 🚫</div><div class="sl-ko">격리</div></div></a>
+  <a class="sb-link" href="VOL08_QC06_CAPA.html"><span class="sl-id">QC-06</span><div><div class="sl-en">CAPA</div><div class="sl-ko">시정조치</div></div></a>
+  <div class="sb-section">Monitor &amp; Reference</div>
+  <a class="sb-link" href="VOL08_QC07_Dashboard.html"><span class="sl-id">QC-07</span><div><div class="sl-en">Dashboard</div><div class="sl-ko">현황판</div></div></a>
+  <a class="sb-link" href="VOL08_QC08_Inspection_Std.html"><span class="sl-id">QC-08</span><div><div class="sl-en">Insp. Standard</div><div class="sl-ko">검사기준서</div></div></a>
+  <a class="sb-link" href="VOL08_QC_TRC_Traceability.html"><span class="sl-id">QC-TRC</span><div><div class="sl-en">Traceability</div><div class="sl-ko">이력 추적</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
+    <a href="#sec-2"><span class="num">02</span>Field Spec</a>
+    <a href="#sec-3"><span class="num">03</span>Hold Lifecycle</a>
+    <a href="#sec-4"><span class="num">04</span>Workflow</a>
+    <a href="#sec-5"><span class="num">05</span>Business Rules</a>
+    <a href="#sec-6"><span class="num">06</span>Data Model</a>
+    <a href="#sec-7"><span class="num">07</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.8 · QC · L3 · Physical &amp; System-Level Hold</div>
+      <div class="scr-id-block"><div class="scr-id">QC-05</div><div class="scr-title-en">Hold / Quarantine 🚫</div></div>
+      <div class="scr-title-ko">격리·해제 — 시스템 차단 + 물리 라벨 + PIN 기반 해제</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">UI</span><span class="mc-val">🖥 Web + 📱 PDA (라벨 스캔)</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">1st Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">QC Lead+ (해제 권한)</span></div>
+        <div class="meta-chip crit"><span class="mc-lbl">Block</span><span class="mc-val">모든 출고/이동 차단</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Outputs</span><span class="mc-val">Stock Flag · WH Location Lock · 물리 라벨</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          The physical and system-level isolation gate for non-conforming materials and products. Auto-created by Major+ NCRs (QC-04) or directly by QC Lead. Each Hold (1) flags the affected stock/WO/LOT in DB so no downstream operation can ship/move/use it, (2) prints a red Quarantine label with HoldID barcode applied to the physical location/container, (3) writes the location to WH-04 quarantine map. Release requires QC Lead+ PIN entry plus a Disposition outcome from NCR (or an explicit override with Plant Manager approval). All hold/release events ≥ 5y retention.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          부적합 자재·제품의 물리·시스템 격리 게이트. Major 이상 NCR(QC-04)이 자동 생성하거나 QC Lead가 직접 발의. 각 Hold는 (1) 영향 재고/WO/LOT을 DB에서 플래그하여 하류 출고/이동/사용 차단, (2) HoldID 바코드 빨강 격리 라벨을 물리 위치/용기에 부착, (3) WH-04 격리 맵에 위치 기록. 해제는 QC Lead 이상 PIN + NCR Disposition 결과 필수 (긴급 override 시 공장장 승인). 모든 격리/해제 이벤트 5년 이상 보관.
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — Web (Hold 상세 + 해제 PIN)</span></div>
+
+      <div class="web-mock">
+        <div class="web-tbar">
+          <div class="web-tbar-l">🚫 A-MES · Quality · Hold / Quarantine<span class="bc">QC › Hold › HLD-2026-0519-019</span></div>
+          <div class="web-tbar-r">QC.Choi · QC Lead · 17:08</div>
+        </div>
+        <div class="web-bd">
+          <div class="hold-banner">
+            <div class="hold-banner-t">🚫 ACTIVE HOLD</div>
+            <div class="hold-banner-s"><strong style="color:var(--mod-dk);">HLD-2026-0519-019</strong> — 200 EA Door Trim LH (PNT WO-2026-0519-007) — QC-03 Final FAIL · 미경화<br>Held 16:48 · 0d 20m elapsed · Disposition Pending (NCR-2026-0519-0042)</div>
+          </div>
+
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ HOLD HEADER · 격리 정보</span><span style="color:var(--mod-dk);font-weight:800;">⚠ Auto from NCR-2026-0519-0042</span></div>
+            <div class="po-grid">
+              <div><div class="po-l">Hold ID</div><div class="po-v">HLD-2026-0519-019</div></div>
+              <div><div class="po-l">Source</div><div class="po-v"><a href="VOL08_QC04_NCR_Register.html" style="color:var(--mod-dk);text-decoration:underline;">NCR-2026-0519-0042</a></div></div>
+              <div><div class="po-l">Severity</div><div class="po-v" style="color:var(--mod-dk);">🔴 CRITICAL</div></div>
+              <div><div class="po-l">Status</div><div class="po-v"><span class="b b-locked">🚫 LOCKED</span></div></div>
+              <div><div class="po-l">Affected Type</div><div class="po-v">Finished Batch (WO Output)</div></div>
+              <div><div class="po-l">WO / Item</div><div class="po-v">WO-2026-0519-007 · Door Trim LH</div></div>
+              <div><div class="po-l">Held Qty</div><div class="po-v" style="color:var(--mod-dk);">200 / 200 EA</div></div>
+              <div><div class="po-l">Physical Location</div><div class="po-v">Q-PNT-A03 (QC Hold Zone)</div></div>
+            </div>
+          </div>
+
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ BLOCKED OPERATIONS · 차단된 작업</span><span style="color:var(--sub);">DB-level constraint</span></div>
+            <table class="tbl">
+              <thead><tr><th>Operation<span class="th-ko">작업</span></th><th>Status<span class="th-ko">상태</span></th><th>Affected Module</th><th>Note</th></tr></thead>
+              <tbody>
+                <tr><td>FG Stocking<br><span class="ko">완제품 입고</span></td><td><span class="b b-e">🚫 Blocked</span></td><td>FG-01</td><td>BR-QC-01</td></tr>
+                <tr><td>Customer Shipment<br><span class="ko">고객 출하</span></td><td><span class="b b-e">🚫 Blocked</span></td><td>FG-04</td><td>BR-QC-15</td></tr>
+                <tr><td>WH Movement<br><span class="ko">WH 이동</span></td><td><span class="b b-e">🚫 Blocked</span></td><td>WH-02/07</td><td>PDA 스캔 시 차단</td></tr>
+                <tr><td>Internal Use<br><span class="ko">내부 사용 (Rework)</span></td><td><span class="b b-w">⚠ Conditional</span></td><td>—</td><td>Lead+ PIN로 가능</td></tr>
+                <tr><td>Sampling for Re-test<br><span class="ko">재검 샘플링</span></td><td><span class="b b-ok">✅ Allowed</span></td><td>QC-01/03</td><td>등록된 검사원만</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ PHYSICAL LABEL · 물리 라벨</span><span style="color:var(--sub);">라벨이 컨테이너에 부착되어 있어야 함</span></div>
+            <div style="display:flex;gap:16px;align-items:center;">
+              <div style="background:var(--mod);color:#fff;padding:20px;border-radius:6px;text-align:center;min-width:200px;">
+                <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;">🚫 QC HOLD</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11px;margin-top:4px;">HLD-2026-0519-019</div>
+                <div style="font-size:9px;margin-top:8px;opacity:.9;">DO NOT SHIP · DO NOT USE</div>
+                <div style="font-size:9px;opacity:.9;">사용/출하 금지</div>
+                <div style="background:#fff;color:#000;font-family:'JetBrains Mono',monospace;font-size:11px;padding:4px;border-radius:3px;margin-top:8px;letter-spacing:2px;">▮▮▌▮▮▌▌▮▌▮▮</div>
+              </div>
+              <div style="flex:1;font-size:11px;color:var(--sub);line-height:1.7;">
+                ① 컨테이너/팔레트/래크 외부에 부착 의무<br>
+                ② PDA 스캔 시 시스템이 Hold 상태 확인 → 모든 작업 차단<br>
+                ③ 라벨 훼손/제거 시 자동 알림 (BR-QC-17)<br>
+                ④ 인쇄 옵션: 100×150mm 적색 라벨 (라벨러 자동 발행)<br>
+                ⑤ 다국어 표기 (한/영) — 외주작업자 식별 위해 픽토그램 포함
+              </div>
+              <button class="btn">🖨 Reprint Label</button>
+            </div>
+          </div>
+
+          <div class="web-card" style="border:2px solid var(--mod);background:linear-gradient(135deg,#fef2f2,#fff);">
+            <div class="web-card-h"><span>▼ RELEASE / DISPOSITION · 해제·처분</span><span style="color:var(--mod-dk);font-weight:800;">⚠ QC Lead+ PIN Required</span></div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;">
+              <button class="btn" style="padding:14px;font-size:12px;border:2px solid #22c55e;background:#f0fdf4;color:#15803d;">✅ RELEASE<br><span style="font-size:9px;font-weight:400;color:var(--sub);">정상 해제 (NCR DISPOSED 후)</span></button>
+              <button class="btn" style="padding:14px;font-size:12px;border:2px solid #f59e0b;background:#fef9c3;color:#92400e;">🔧 RELEASE TO REWORK<br><span style="font-size:9px;font-weight:400;">재작업 해제</span></button>
+              <button class="btn" style="padding:14px;font-size:12px;border:2px solid var(--mod);background:#fef2f2;color:#7f1d1d;">🗑 SCRAP MOVE<br><span style="font-size:9px;font-weight:400;">폐기 처분 이관</span></button>
+            </div>
+            <div style="font-size:11px;color:var(--mod-dk);margin-bottom:8px;">
+              <strong>해제 조건:</strong> NCR Status = DISPOSED &amp;&amp; PIN + Reason. CRITICAL 등급은 추가로 Plant Manager 승인 필요 (BR-QC-12).
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <button class="btn">📝 View NCR-2026-0519-0042</button>
+              <button class="btn btn-primary">🔓 Enter PIN to Release</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PIN entry mockup -->
+      <div class="pin-mock">
+        <div class="pin-panel">
+          <div class="pin-h">🔐 Release Authorization · 해제 승인</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.55);text-align:center;margin-bottom:10px;">QC.Choi · QC Lead<br>HLD-2026-0519-019</div>
+          <div class="pin-display">● ● ● ●</div>
+          <div class="pin-keys">
+            <div class="pkb">1</div><div class="pkb">2</div><div class="pkb">3</div>
+            <div class="pkb">4</div><div class="pkb">5</div><div class="pkb">6</div>
+            <div class="pkb">7</div><div class="pkb">8</div><div class="pkb">9</div>
+            <div class="pkb" style="background:rgba(220,38,38,.15);color:#fca5a5;">←</div>
+            <div class="pkb">0</div>
+            <div class="pkb" style="background:rgba(22,163,74,.2);color:#5dffc4;">✓</div>
+          </div>
+          <textarea placeholder="Reason · 사유 (필수)" style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:4px;color:#fff;padding:8px;font-size:11px;font-family:inherit;resize:none;margin-top:6px;" rows="2"></textarea>
+        </div>
+      </div>
+
+      <div class="alert alert-d">
+        <div><span class="alert-title">🚨 Hold Discipline · 격리 규율</span>
+        ① 시스템 Hold는 항상 물리 라벨과 페어 (라벨 없는 Hold = 추적 실패) ② PDA 스캔 시 Hold 상태가 0.3초 내 확인되어 작업 차단 ③ Hold 미해제 7일 경과 시 Plant Manager 자동 에스컬레이션 (BR-QC-16) ④ Hold 라벨 훼손 감지 시 (재스캔 실패 등) 즉시 QC Lead 알림 ⑤ 모든 PIN 입력 + 사유 + 결정자 ID 5년 이상 봉인 보관</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Field Specification</span><span class="sec-ko">필드 사양</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:22%;">Field</th><th style="width:14%;">Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">HoldID</td><td class="fld-type">VARCHAR(24)</td><td>자동 채번. HLD-YYYYMMDD-SEQ. 물리 라벨에 바코드.</td></tr>
+          <tr><td class="fld-name">SourceNCRID</td><td class="fld-type">VARCHAR(24)</td><td>NCR(QC-04) ID (자동 생성 시).</td></tr>
+          <tr><td class="fld-name">Severity</td><td class="fld-type">ENUM</td><td>CRITICAL / MAJOR (NCR로부터 상속).</td></tr>
+          <tr><td class="fld-name">AffectedType</td><td class="fld-type">ENUM</td><td>RAW_LOT / WIP / FINISHED_BATCH / FG_STOCK.</td></tr>
+          <tr><td class="fld-name">LotID · WOID · FGStockID</td><td class="fld-type">VARCHAR(20)</td><td>유형별 대상 ID (해당 하나만).</td></tr>
+          <tr><td class="fld-name">ItemNo</td><td class="fld-type">VARCHAR(20)</td><td>품목 코드.</td></tr>
+          <tr><td class="fld-name">HeldQty</td><td class="fld-type">DECIMAL(12,3)</td><td>격리 수량.</td></tr>
+          <tr><td class="fld-name">PhysicalLocation</td><td class="fld-type">VARCHAR(20)</td><td>Q-{Module}-{Loc} (예: Q-PNT-A03).</td></tr>
+          <tr><td class="fld-name">LabelPrintedTS</td><td class="fld-type">DATETIME</td><td>라벨 인쇄 시각.</td></tr>
+          <tr><td class="fld-name">LabelPrinterID</td><td class="fld-type">VARCHAR(20)</td><td>인쇄 라벨러 ID.</td></tr>
+          <tr><td class="fld-name">HeldBy · HeldTS</td><td class="fld-type">VARCHAR/DATETIME</td><td>격리 발의자 / 시각 (자동 생성 시 SYSTEM).</td></tr>
+          <tr><td class="fld-name">Status</td><td class="fld-type">ENUM</td><td>LOCKED / RELEASED / SCRAPPED / EXPIRED.</td></tr>
+          <tr><td class="fld-name">ReleaseAction</td><td class="fld-type">ENUM</td><td>NULL / RELEASE / REWORK / SCRAP.</td></tr>
+          <tr><td class="fld-name">ReleasedBy · ReleasedTS</td><td class="fld-type">VARCHAR/DATETIME</td><td>해제자 (PIN 입력) / 시각.</td></tr>
+          <tr><td class="fld-name">ReleaseReason</td><td class="fld-type">TEXT</td><td>해제 사유 (필수).</td></tr>
+          <tr><td class="fld-name">PlantMgrApprovalID</td><td class="fld-type">VARCHAR(20)</td><td>CRITICAL 해제 시 공장장 승인 ID.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Hold Lifecycle</span><span class="sec-ko">격리 라이프사이클</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:24%;">Status</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><strong>LOCKED</strong></td><td>활성 격리 상태. 모든 하류 작업 (FG/Ship/Move/Use) DB-level 차단. 물리 라벨 인쇄·부착 필수.</td></tr>
+          <tr><td><strong>RELEASED</strong></td><td>정상 해제 — NCR DISPOSED 결과에 따라 Available로 복귀 (UAI 시) 또는 Rework 발의 (REWORK 시).</td></tr>
+          <tr><td><strong>SCRAPPED</strong></td><td>폐기 결정 — 재고 차감 + 폐기 LOT 이관. 추적용 record 유지.</td></tr>
+          <tr><td><strong>EXPIRED</strong></td><td>30일 이상 LOCKED 상태로 미처분 시 자동 전환. Plant Manager 강제 에스컬레이션.</td></tr>
+        </tbody>
+      </table>
+      <table class="fld-tbl" style="margin-top:10px;">
+        <thead><tr><th style="width:24%;">Event</th><th>Auto Action</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Hold Created</strong></td><td>(1) Affected 재고/WO/LOT Flag ON, (2) WH-04 격리 맵 위치 기록, (3) 라벨러에 인쇄 작업 큐 추가, (4) 5초 내 라벨 인쇄 완료, (5) QC Lead 알림.</td></tr>
+          <tr><td><strong>Operator Scan</strong></td><td>PDA에서 Held 항목 스캔 시 0.3초 내 시각/음향 경고 + 작업 차단 + 라인장에게 경고 알림.</td></tr>
+          <tr><td><strong>Release Attempt</strong></td><td>PIN 검증 → 권한 확인 (Lead+ 또는 CRITICAL이면 Plant Manager) → NCR DISPOSED 확인 → Release 처리.</td></tr>
+          <tr><td><strong>7d No Disposition</strong></td><td>QC Lead 매일 reminder. 7d 경과 시 Plant Manager 자동 에스컬레이션 (BR-QC-16).</td></tr>
+          <tr><td><strong>30d EXPIRED</strong></td><td>강제 EXPIRED 전환 + 공장장 결재 routing.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">Trigger: NCR(QC-04) ≥ Major auto-creates Hold OR QC Lead manually creates Hold for suspect material.</div><div class="wf-ko">트리거: NCR Major 이상 자동 생성 또는 QC Lead가 의심 자재 직접 발의.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">System updates affected stock/WO/LOT flag (DB constraint) → all downstream ops blocked instantly.</div><div class="wf-ko">시스템이 영향 재고/WO/LOT 플래그 갱신 (DB 제약) → 하류 작업 즉시 차단.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Red Quarantine label auto-printed (HoldID barcode + warning); operator affixes to physical container.</div><div class="wf-ko">빨강 격리 라벨 자동 인쇄(HoldID 바코드 + 경고), 작업자가 물리 컨테이너에 부착.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Material moved to Q-zone (WH-04 quarantine map); position recorded; PDA scan confirms placement.</div><div class="wf-ko">자재를 Q-zone(WH-04 격리 맵)으로 이동, 위치 기록, PDA 스캔으로 배치 확인.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">QC Lead reviews linked NCR, awaits Disposition decision (REWORK/SCRAP/UAI/RETURN).</div><div class="wf-ko">QC Lead가 연관 NCR 검토, Disposition 결정 대기 (REWORK/SCRAP/UAI/RETURN).</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">On Disposition decided: Lead enters PIN + Reason + selects Release Action; CRITICAL needs Plant Mgr approval.</div><div class="wf-ko">Disposition 결정 후: Lead가 PIN + 사유 + Release Action 선택, CRITICAL은 공장장 승인 추가.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Downstream cascade: RELEASE → Available stock, REWORK → new WO, SCRAP → inventory write-off + scrap LOT.</div><div class="wf-ko">하류 연계: RELEASE → Available, REWORK → 신규 WO, SCRAP → 재고 차감 + 폐기 LOT.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">All events (Hold/Release/Scrap) sealed for ≥ 5 years; visible in QC-TRC Traceability.</div><div class="wf-ko">모든 이벤트 (Hold/Release/Scrap) 5년 이상 봉인, QC-TRC에서 조회 가능.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-QC-13</td><td><div>≥ Major NCR auto-creates QC-05 Hold within 5 seconds with physical label issued.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">Major+ NCR은 5초 내 Hold 자동 + 라벨 발행.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-QC-15</td><td><div>Locked items cannot move/ship/be consumed. DB constraint at FG, WH-02/07, MRP consumption.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">LOCKED 항목 이동/출하/소비 차단 (FG·WH·MRP DB 제약).</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-QC-12</td><td><div>CRITICAL severity Release requires Plant Manager approval in addition to QC Lead PIN.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">CRITICAL 해제 시 QC Lead PIN + 공장장 승인 필수.</div></td><td><span class="br-act blk">Approve</span></td></tr>
+          <tr><td class="br-id">BR-QC-16</td><td><div>Hold &gt; 7 days without Disposition → daily reminder; &gt; 30 days → EXPIRED + Plant Manager escalation.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">7일 미처분 일일 알림, 30일 시 EXPIRED + 공장장 에스컬레이션.</div></td><td><span class="br-act alt">Escalate</span></td></tr>
+          <tr><td class="br-id">BR-QC-17</td><td><div>Hold label barcode must be intact and re-scannable. Damage/missing scan triggers immediate QC alert.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">Hold 라벨 바코드 무결 + 재스캔 가능 필수. 훼손/실패 시 QC 알림.</div></td><td><span class="br-act alt">Alert</span></td></tr>
+          <tr><td class="br-id">BR-QC-08</td><td><div>Hold/Release events with PIN/Reason/Approver retained ≥ 5 years (immutable audit log).</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">Hold/Release 이벤트 + PIN/사유/승인자 5년 이상 봉인 보관.</div></td><td><span class="br-act aut">Retain</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Table</th><th>Key Columns</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">QC_Hold</span></td><td><span class="dm-pk">PK</span> HoldID · <span class="dm-fk">FK</span> SourceNCRID · Severity · AffectedType · LotID/WOID/FGStockID · HeldQty · PhysicalLocation · LabelPrintedTS · Status · ReleaseAction · ReleasedBy · ReleaseReason · PlantMgrApprovalID</td><td>격리 메인 + 봉인 감사 기록.</td></tr>
+          <tr><td><span class="dm-col">QC_HoldEvent</span></td><td><span class="dm-pk">PK</span> EventID · <span class="dm-fk">FK</span> HoldID · EventType · ActorID · ActorPIN_Hash · EventTS · Note</td><td>전 이벤트 봉인 로그 (Create/Scan/Release/Scrap).</td></tr>
+          <tr><td><span class="dm-col">WH_Stock</span> <em style="opacity:.6;">(update)</em></td><td>HoldFlag · HoldID</td><td>재고 플래그 (DB-level 차단).</td></tr>
+          <tr><td><span class="dm-col">PP_WO</span> <em style="opacity:.6;">(update)</em></td><td>HoldFlag · HoldID</td><td>WO 플래그 (출하 차단).</td></tr>
+          <tr><td><span class="dm-col">FG_Stock</span> <em style="opacity:.6;">(update)</em></td><td>HoldFlag · HoldID · ShipBlock</td><td>완제품 플래그.</td></tr>
+          <tr><td><span class="dm-col">QC_QuarantineMap</span></td><td><span class="dm-pk">PK</span> QLocID · LocationCode · CurrentHoldID · Capacity</td><td>WH-04 격리 맵 미러.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">QC-04</div><div class="lnk-name">NCR Major+</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">QC-05</div><div class="lnk-name">Hold/Quarantine</div><div class="lnk-ko">격리</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">WH-04</div><div class="lnk-name">Quarantine Map</div><div class="lnk-ko">격리 위치</div></div>
+        </div>
+        <div class="lnk-row" style="margin-top:14px;">
+          <div class="lnk-node cur"><div class="lnk-id">QC-05</div><div class="lnk-name">Block → DB</div></div>
+          <div class="lnk-arr">↘</div>
+          <div class="lnk-node down" style="background:#fef2f2;border-color:#fca5a5;"><div class="lnk-id" style="color:#991b1b;">FG-01</div><div class="lnk-name">Block</div></div>
+          <div class="lnk-node down" style="background:#fef2f2;border-color:#fca5a5;"><div class="lnk-id" style="color:#991b1b;">FG-04 Ship</div><div class="lnk-name">Block</div></div>
+          <div class="lnk-node down" style="background:#fef2f2;border-color:#fca5a5;"><div class="lnk-id" style="color:#991b1b;">WH-02/07</div><div class="lnk-name">Move Block</div></div>
+          <div class="lnk-node down" style="background:#fef2f2;border-color:#fca5a5;"><div class="lnk-id" style="color:#991b1b;">PP MRP</div><div class="lnk-name">Consume Block</div></div>
+        </div>
+        <div class="lnk-row" style="margin-top:14px;">
+          <div class="lnk-node cur"><div class="lnk-id">Release</div><div class="lnk-name">PIN + Reason</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down" style="background:#dcfce7;border-color:#22c55e;"><div class="lnk-id" style="color:#15803d;">Available</div><div class="lnk-name">정상 해제</div></div>
+          <div class="lnk-node down"><div class="lnk-id">Rework WO</div><div class="lnk-name">재작업</div></div>
+          <div class="lnk-node down" style="background:#fef2f2;border-color:#fca5a5;"><div class="lnk-id" style="color:#991b1b;">Scrap LOT</div><div class="lnk-name">폐기</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.8 · QC-05 · Hold / Quarantine · L3 Spec v1.0 · Physical + System</div><div class="pf-r">Web + PDA + Label Printer · Phase 1 · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
