@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.9 · FG-07 · Day-End Close · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--fg:#0db87a;--mod:#0db87a;--mod-lt:#dcfce7;--mod-dk:#065f46;--mod-tint:#6ee7b7;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(110,231,183,.7);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#062a1a 0%,#04241a 50%,#062a1a 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(13,184,122,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(13,184,122,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(13,184,122,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(13,184,122,.14),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(13,184,122,.35);color:var(--mod-tint);background:rgba(13,184,122,.1);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod-dk);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-w{background:#fef9c3;border-color:#f59e0b;color:#92400e;}
+.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#dcfce7;border-color:#22c55e;}
+.lnk-node.cur{background:linear-gradient(135deg,#062a1a,#04241a);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(13,184,122,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#15803d;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);}
+.dm-pk{color:#f59e0b;font-size:8px;font-weight:700;}.dm-fk{color:#8b5cf6;font-size:8px;font-weight:700;}
+
+.web-mock{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.web-tbar{background:#f0f3f7;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);font-size:11px;}
+.web-tbar-l{font-weight:700;color:var(--text);}
+.web-tbar .bc{color:var(--sub);font-size:10px;margin-left:8px;}
+.web-tbar-r{font-size:10px;color:var(--sub);}
+.web-bd{padding:18px;background:#fbfcfd;}
+.web-card{background:#fff;border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:12px;}
+.web-card-h{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.kpi6{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:12px;}
+.kpi6-t{background:#fff;border:1px solid var(--border);border-top:3px solid var(--mod);border-radius:0 0 6px 6px;padding:9px 12px;}
+.kpi6-t.warn{border-top-color:#f59e0b;}.kpi6-t.alert{border-top-color:#dc2626;}
+.kpi6-l{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--sub);letter-spacing:.7px;text-transform:uppercase;}
+.kpi6-v{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--text);line-height:1;margin-top:3px;}
+.kpi6-v.ok{color:#16a34a;}.kpi6-v.red{color:#dc2626;}.kpi6-v.yel{color:#a16207;}
+.kpi6-s{font-size:8px;color:var(--sub);margin-top:1px;}
+.tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;}
+.tbl th{background:#f0f3f7;padding:7px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.tbl td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:top;}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.b-ok{background:#dcfce7;color:#166534;}.b-w{background:#fef9c3;color:#92400e;}.b-e{background:#fee2e2;color:#991b1b;}
+.btn{padding:7px 14px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;}
+.btn-primary{background:var(--mod);border-color:var(--mod-dk);color:#fff;font-size:14px;padding:11px 22px;}
+
+/* Checklist */
+.chk-list{background:#fff;border:1px solid var(--border);border-radius:6px;padding:14px 18px;margin-bottom:12px;}
+.chk-row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);align-items:center;}
+.chk-row:last-child{border-bottom:none;}
+.chk-ico{font-size:18px;}
+.chk-en{font-size:12px;color:var(--text);font-weight:600;}.chk-ko{font-size:10px;color:var(--sub);}
+
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol active"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL09_FG_Finished_Goods.html">VOL.9 · FG</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">FG-07 · Day-End Close</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.9 · FG · L3</div><div class="sb-mod-en">FINISHED GOODS</div><div class="sb-mod-ko">완제품 관리</div></div>
+  <div class="sb-section">Inbound · 적재</div>
+  <a class="sb-link" href="VOL09_FG01_PDA_Stocking.html"><span class="sl-id">FG-01</span><div><div class="sl-en">PDA Stocking</div><div class="sl-ko">완제품 적재</div></div></a>
+  <a class="sb-link" href="VOL09_FG02_Inventory.html"><span class="sl-id">FG-02</span><div><div class="sl-en">Inventory</div><div class="sl-ko">재고 현황</div></div></a>
+  <div class="sb-section">Outbound · 출하</div>
+  <a class="sb-link" href="VOL09_FG03_Shipment_Order.html"><span class="sl-id">FG-03</span><div><div class="sl-en">Ship. Order</div><div class="sl-ko">출하 지시</div></div></a>
+  <a class="sb-link" href="VOL09_FG04_PDA_FIFO_Picking.html"><span class="sl-id">FG-04</span><div><div class="sl-en">FIFO Pick ⚙</div><div class="sl-ko">피킹</div></div></a>
+  <a class="sb-link" href="VOL09_FG05_Loading.html"><span class="sl-id">FG-05</span><div><div class="sl-en">Loading</div><div class="sl-ko">상차 확인</div></div></a>
+  <a class="sb-link" href="VOL09_FG06_Delivery_Note.html"><span class="sl-id">FG-06</span><div><div class="sl-en">Delivery Note</div><div class="sl-ko">거래명세서</div></div></a>
+  <div class="sb-section">Closing &amp; Audit</div>
+  <a class="sb-link on" href="VOL09_FG07_Day_End_Close.html"><span class="sl-id">FG-07</span><div><div class="sl-en">Day-End</div><div class="sl-ko">일 마감</div></div></a>
+  <a class="sb-link" href="VOL09_FG08_Shipment_History.html"><span class="sl-id">FG-08</span><div><div class="sl-en">Ship History</div><div class="sl-ko">출하 이력</div></div></a>
+  <a class="sb-link" href="VOL09_FG09_Dashboard.html"><span class="sl-id">FG-09</span><div><div class="sl-en">Dashboard</div><div class="sl-ko">현황판</div></div></a>
+  <a class="sb-link" href="VOL09_FG_RTN_Return.html"><span class="sl-id">FG-RTN</span><div><div class="sl-en">Return ↩</div><div class="sl-ko">반품 (Aux)</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
+    <a href="#sec-2"><span class="num">02</span>Field Spec</a>
+    <a href="#sec-3"><span class="num">03</span>Close Checklist</a>
+    <a href="#sec-4"><span class="num">04</span>Workflow</a>
+    <a href="#sec-5"><span class="num">05</span>Business Rules</a>
+    <a href="#sec-6"><span class="num">06</span>Data Model</a>
+    <a href="#sec-7"><span class="num">07</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.9 · FG · L3 · Daily FG Closing &amp; Snapshot</div>
+      <div class="scr-id-block"><div class="scr-id">FG-07</div><div class="scr-title-en">Day-End Close</div></div>
+      <div class="scr-title-ko">일 마감 — Pending 정리 + KPI 집계 + Snapshot 봉인</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">UI</span><span class="mc-val">🖥 Web PC</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">2nd Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">FG Manager (Daily) · ERP/Accounting</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Schedule</span><span class="mc-val">매일 21:00 자동 + 수동 마감</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Output</span><span class="mc-val">FG_DailyClose record + ERP feed</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          End-of-day FG closing process. Daily at 21:00 (configurable), system auto-collects: total stocked (FG-01), total shipped (FG-05), open orders, unshipped/over-aged stock, OTD count, returns. Manager reviews via 6-tile KPI dashboard + 5-item pre-close checklist. Mandatory items (no unverified shipments, no orphan reservations, all DNs ACK'd) must be resolved before close. On Close, an immutable Daily Snapshot is written for FG-08/FG-09 and ERP receives a settlement feed (shipped qty per customer per item).
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          일일 FG 마감 프로세스. 매일 21:00(설정 가능) 자동 집계: 입고 합계(FG-01), 출하 합계(FG-05), 미출하 주문, 체류 재고, OTD 카운트, 반품. Manager가 6-타일 KPI + 5종 사전 체크리스트로 검토. 필수 항목(검증 미완료 출하 없음·고아 예약 없음·모든 DN ACK 수신)이 해결되어야 마감 가능. 마감 시 immutable Daily Snapshot 기록(FG-08/09 데이터 원천) + ERP에 정산 feed 송신.
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — Web 일일 마감</span></div>
+      <div class="web-mock">
+        <div class="web-tbar">
+          <div class="web-tbar-l">📅 A-MES · FG · Day-End Close<span class="bc">FG › Close · 2026-05-19</span></div>
+          <div class="web-tbar-r">FG.Park · FG Manager · 20:58</div>
+        </div>
+        <div class="web-bd">
+          <div class="kpi6">
+            <div class="kpi6-t"><div class="kpi6-l">Stocked Today</div><div class="kpi6-v ok">4,820 <span style="font-size:9px;">EA</span></div><div class="kpi6-s">FG-01 적재</div></div>
+            <div class="kpi6-t"><div class="kpi6-l">Shipped Today</div><div class="kpi6-v ok">5,640 <span style="font-size:9px;">EA</span></div><div class="kpi6-s">FG-05 SHIPPED</div></div>
+            <div class="kpi6-t warn"><div class="kpi6-l">Open SO</div><div class="kpi6-v yel">8</div><div class="kpi6-s">미출하 주문 (D+1+)</div></div>
+            <div class="kpi6-t"><div class="kpi6-l">OTD %</div><div class="kpi6-v ok">98.2 <span style="font-size:9px;">%</span></div><div class="kpi6-s">19/19 PASS · 1 LATE</div></div>
+            <div class="kpi6-t"><div class="kpi6-l">Returns</div><div class="kpi6-v">2</div><div class="kpi6-s">FG-RTN 처리</div></div>
+            <div class="kpi6-t alert"><div class="kpi6-l">Aged ≥30d</div><div class="kpi6-v red">110 <span style="font-size:9px;">EA</span></div><div class="kpi6-s">조치 필요</div></div>
+          </div>
+
+          <div class="chk-list">
+            <div style="font-size:11px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:10px;text-transform:uppercase;">▼ PRE-CLOSE CHECKLIST · 마감 전 필수 체크 (5/5)</div>
+            <div class="chk-row">
+              <div class="chk-ico">✅</div>
+              <div><div class="chk-en">All FG-05 Loadings confirmed (no PICKING/PICKED stuck)</div><div class="chk-ko">모든 FG-05 상차 확인 완료, PICKING/PICKED 단계 미걸림 0건</div></div>
+              <div><span class="b b-ok">PASS</span></div>
+            </div>
+            <div class="chk-row">
+              <div class="chk-ico">✅</div>
+              <div><div class="chk-en">No orphan Reservations (Reserved but no parent Active SO)</div><div class="chk-ko">고아 예약 없음 (Reserved이지만 부모 Active SO 없는 항목 0건)</div></div>
+              <div><span class="b b-ok">PASS</span></div>
+            </div>
+            <div class="chk-row">
+              <div class="chk-ico">⚠</div>
+              <div><div class="chk-en">All today's DNs (FG-06) sent with EDI ACK</div><div class="chk-ko">금일 모든 거래명세서 EDI ACK 수신 완료</div></div>
+              <div><span class="b b-w">17/19 (2 pending)</span></div>
+            </div>
+            <div class="chk-row">
+              <div class="chk-ico">✅</div>
+              <div><div class="chk-en">FG-Stock - FG-Movement reconciliation balanced</div><div class="chk-ko">FG 재고 - FG 이동 정합성 일치 (오차 0)</div></div>
+              <div><span class="b b-ok">PASS</span></div>
+            </div>
+            <div class="chk-row">
+              <div class="chk-ico">✅</div>
+              <div><div class="chk-en">No Hold(QC-05) items mistakenly shipped</div><div class="chk-ko">격리(QC-05) 재고 실수 출하 0건</div></div>
+              <div><span class="b b-ok">PASS</span></div>
+            </div>
+          </div>
+
+          <div class="alert alert-w">
+            <div><span class="alert-title">⚠ 1 Pending Item · 미완료 항목</span>
+            ① DN-2026-0519-019 (GEO 포털 ACK 미수신) — Carrier API 재시도 진행 중 ETA 21:08<br>
+            ② DN-2026-0519-021 (SAV 인수증 24h SLA 대기) — 정상 (D+1 09:00 expected)<br>
+            <strong>→ ① 5분 대기 권장. ②는 SLA 내 정상.</strong></div>
+          </div>
+
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ TOP CUSTOMERS · 고객별 출하</span><span style="color:var(--sub);">금일 출하분</span></div>
+            <table class="tbl">
+              <thead><tr><th>Customer</th><th>SO Count</th><th>Shipped Qty</th><th>OTD</th><th>Late</th><th>Notes</th></tr></thead>
+              <tbody>
+                <tr><td>SAV · 현대 SAV</td><td>12</td><td>4,200 EA</td><td><span class="b b-ok">12/12 OTD</span></td><td>0</td><td>정상</td></tr>
+                <tr><td>GEO</td><td>7</td><td>1,440 EA</td><td><span class="b b-w">6/7 OTD</span></td><td>1 (지연 18m)</td><td>대명물류 도착 지연</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:12px;">
+            <div style="margin-right:auto;font-size:11px;color:var(--mod-dk);font-weight:700;">✅ 5/5 PASS — Close 가능</div>
+            <button class="btn">📋 View Reconciliation Detail</button>
+            <button class="btn">📤 Export Daily Report (PDF)</button>
+            <button class="btn btn-primary">🔒 CLOSE DAY · 마감 확정</button>
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 Close Discipline · 마감 규율</span>
+        ① 21:00 자동 알림 → Manager 확인 후 21:30까지 확정 (BR-FG-33) ② 5개 체크리스트 중 1개라도 FAIL이면 Close 차단 ③ Close 시 Daily Snapshot S3 immutable 저장, Re-open 불가 (BR-FG-34) ④ ERP feed 송신 실패 시 자동 재시도 5회 후 회계 알림 ⑤ Manager 21:30 미마감 시 다음 영업일 06:00 자동 closing (Auto-Close + 알림)</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Field Specification</span><span class="sec-ko">필드 사양</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:22%;">Field</th><th style="width:14%;">Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">CloseID</td><td class="fld-type">VARCHAR(24)</td><td>FG-CL-YYYYMMDD.</td></tr>
+          <tr><td class="fld-name">CloseDate</td><td class="fld-type">DATE</td><td>마감 대상 영업일.</td></tr>
+          <tr><td class="fld-name">ClosedBy</td><td class="fld-type">VARCHAR(20)</td><td>Manager ID (Auto-Close 시 SYSTEM).</td></tr>
+          <tr><td class="fld-name">ClosedTS</td><td class="fld-type">DATETIME</td><td>마감 확정 시각.</td></tr>
+          <tr><td class="fld-name">CloseMode</td><td class="fld-type">ENUM</td><td>MANUAL / AUTO_CLOSE_T+1.</td></tr>
+          <tr><td class="fld-name">ChecklistJSON</td><td class="fld-type">JSON</td><td>5개 항목별 결과 + 사유.</td></tr>
+          <tr><td class="fld-name">KPIs</td><td class="fld-type">JSON</td><td>{stocked, shipped, openSO, OTDPct, returns, aged30d}.</td></tr>
+          <tr><td class="fld-name">PendingItems</td><td class="fld-type">JSON</td><td>마감 시점 미완료 항목 + 해소 방법.</td></tr>
+          <tr><td class="fld-name">SnapshotURL</td><td class="fld-type">VARCHAR(255)</td><td>Immutable Snapshot PDF URL.</td></tr>
+          <tr><td class="fld-name">ERPFeedTS</td><td class="fld-type">DATETIME</td><td>ERP 정산 feed 송신 시각.</td></tr>
+          <tr><td class="fld-name">ERPFeedStatus</td><td class="fld-type">ENUM</td><td>SENT / FAILED / ACK_OK.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Pre-Close Checklist</span><span class="sec-ko">마감 전 필수 체크</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:24%;">Check Item</th><th>Condition · 조건</th><th style="width:18%;">If FAIL</th></tr></thead>
+        <tbody>
+          <tr><td><strong>1. Loadings Confirmed</strong></td><td>모든 PICKED SO가 FG-05 SHIPPED 또는 익일 미루기 표시 완료</td><td>FG-05 화면으로 routing</td></tr>
+          <tr><td><strong>2. No Orphan Reservations</strong></td><td>Active SO 없이 Reserved 상태인 Stock 0건</td><td>자동 해제 옵션 제공</td></tr>
+          <tr><td><strong>3. DN EDI ACK</strong></td><td>금일 발행된 모든 거래명세서가 ACK 수신 또는 SLA 내</td><td>재시도/Sales 알림</td></tr>
+          <tr><td><strong>4. Stock-Movement Reconciliation</strong></td><td>FG_Stock 변화량 = FG-01 입고 - FG-05 출하 - 반품 + 조정</td><td>차이 표시 + 조정 화면</td></tr>
+          <tr><td><strong>5. No Mis-shipped Hold Items</strong></td><td>QC-05 HOLD 상태였던 Stock이 출하된 사례 0건</td><td>위반 SO 표시 + QC 알림</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">21:00 cron triggers Day-End preparation: collects KPIs, runs 5-item checklist, sends notification to FG Manager.</div><div class="wf-ko">21:00 크론이 마감 준비 시작: KPI 수집, 5종 체크리스트 실행, FG Manager 알림.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Manager opens FG-07 → reviews 6 KPI tiles + 5 checklist items + pending list.</div><div class="wf-ko">Manager가 FG-07 오픈, 6 KPI + 5 체크리스트 + Pending 검토.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">For each FAIL item: drill into source screen, resolve, re-run check.</div><div class="wf-ko">FAIL 항목별: 소스 화면 드릴, 해결, 체크 재실행.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">All checks PASS → Manager clicks Close → Daily Snapshot PDF generated, S3 immutable stored.</div><div class="wf-ko">전 PASS 시 Close 클릭 → Daily Snapshot PDF 생성, S3 immutable 저장.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">ERP settlement feed sent (shipped qty per customer per item); auto-retry 5 times on failure.</div><div class="wf-ko">ERP 정산 feed 송신 (고객×품목별 출하량), 실패 시 5회 재시도.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">FG-08 History updated with closed-day record; FG-09 Dashboard refreshes.</div><div class="wf-ko">FG-08 이력에 마감일 기록 추가, FG-09 Dashboard 갱신.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">If Manager doesn't close by 21:30 → next day 06:00 Auto-Close fires + notification.</div><div class="wf-ko">21:30 미마감 시 익일 06:00 Auto-Close + 알림.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-FG-33</td><td><div>Day-End cron fires at 21:00; Manager must close by 21:30. Auto-Close at next-day 06:00.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">21:00 크론, 21:30까지 마감 의무. 미마감 시 익일 06:00 Auto-Close.</div></td><td><span class="br-act aut">Schedule</span></td></tr>
+          <tr><td class="br-id">BR-FG-34</td><td><div>Daily Snapshot is immutable; once Close confirmed, the day cannot be re-opened.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">Daily Snapshot immutable, 재오픈 불가.</div></td><td><span class="br-act blk">Lock</span></td></tr>
+          <tr><td class="br-id">BR-FG-35</td><td><div>Any FAIL in pre-close checklist blocks Close; Manager must resolve OR add justification.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">체크리스트 1건 FAIL 시 Close 차단, 해결 또는 사유 첨부 필수.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-FG-36</td><td><div>ERP settlement feed retries 5 times with backoff; persistent fail notifies Accounting.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">ERP feed 5회 재시도, 영속 실패 시 회계팀 알림.</div></td><td><span class="br-act alt">Retry</span></td></tr>
+          <tr><td class="br-id">BR-FG-37</td><td><div>Auto-Close (T+1 06:00) carries flag for audit; Manager required to acknowledge missed close.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">Auto-Close 시 audit flag, Manager 사후 확인 의무.</div></td><td><span class="br-act aut">Flag</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Table</th><th>Key Columns</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">FG_DailyClose</span></td><td><span class="dm-pk">PK</span> CloseID · CloseDate · ClosedBy · ClosedTS · CloseMode · ChecklistJSON · KPIs · PendingItems · SnapshotURL · ERPFeedStatus</td><td>마감 메인 (immutable).</td></tr>
+          <tr><td><span class="dm-col">FG_StockSnapshot</span> <em style="opacity:.6;">(write)</em></td><td>SnapDate · ItemNo · AvailableQty · ReservedQty · HoldQty</td><td>마감 시 일괄 INSERT.</td></tr>
+          <tr><td><span class="dm-col">FG_KPISnapshot</span></td><td>SnapDate · KPIName · Value · CustomerCode</td><td>FG-09 Dashboard 데이터 원천.</td></tr>
+          <tr><td><span class="dm-col">ERP_FeedQueue</span></td><td>FeedID · CloseID · MsgType (DAILY_SETTLEMENT) · Status · RetryCount</td><td>ERP 정산 feed 큐.</td></tr>
+          <tr><td><span class="dm-col">S3_Documents</span></td><td>Snapshot PDF · immutable</td><td>일일 보고서 보관.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">FG-01/04/05/06</div><div class="lnk-name">금일 활동</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">FG-07</div><div class="lnk-name">Day-End Close</div><div class="lnk-ko">일 마감</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">FG-08</div><div class="lnk-name">History</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">FG-09</div><div class="lnk-name">Dashboard</div></div>
+        </div>
+        <div class="lnk-row" style="margin-top:14px;">
+          <div class="lnk-node cur"><div class="lnk-id">Close 확정</div><div class="lnk-name">→ Side Effects</div></div>
+          <div class="lnk-arr">↘</div>
+          <div class="lnk-node down"><div class="lnk-id">ERP</div><div class="lnk-name">Settlement Feed</div></div>
+          <div class="lnk-node down"><div class="lnk-id">RPT</div><div class="lnk-name">Daily Roll-up</div></div>
+          <div class="lnk-node down"><div class="lnk-id">S3</div><div class="lnk-name">Immutable PDF</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.9 · FG-07 · Day-End Close · L3 Spec v1.0</div><div class="pf-r">Web PC · Phase 2 · Immutable Snapshot · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
