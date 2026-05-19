@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.9 · FG-05 · Loading Confirmation · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--fg:#0db87a;--mod:#0db87a;--mod-lt:#dcfce7;--mod-dk:#065f46;--mod-tint:#6ee7b7;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(110,231,183,.7);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#062a1a 0%,#04241a 50%,#062a1a 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(13,184,122,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(13,184,122,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(13,184,122,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(13,184,122,.14),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(13,184,122,.35);color:var(--mod-tint);background:rgba(13,184,122,.1);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod-dk);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#dcfce7;border-color:#22c55e;}
+.lnk-node.cur{background:linear-gradient(135deg,#062a1a,#04241a);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(13,184,122,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#15803d;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);}
+.dm-pk{color:#f59e0b;font-size:8px;font-weight:700;}.dm-fk{color:#8b5cf6;font-size:8px;font-weight:700;}
+
+/* Web + PDA */
+.web-mock{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.web-tbar{background:#f0f3f7;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);font-size:11px;}
+.web-tbar-l{font-weight:700;color:var(--text);}
+.web-tbar .bc{color:var(--sub);font-size:10px;margin-left:8px;}
+.web-tbar-r{font-size:10px;color:var(--sub);}
+.web-bd{padding:18px;background:#fbfcfd;}
+.web-card{background:#fff;border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:12px;}
+.web-card-h{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.po-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;font-size:11px;margin-bottom:6px;}
+.po-l{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;}
+.po-v{font-weight:700;color:var(--text);margin-top:2px;}
+.tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;}
+.tbl th{background:#f0f3f7;padding:7px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.tbl td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:top;}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.b-ok{background:#dcfce7;color:#166534;}.b-w{background:#fef9c3;color:#92400e;}.b-e{background:#fee2e2;color:#991b1b;}
+.btn{padding:7px 14px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;}
+.btn-primary{background:var(--mod);border-color:var(--mod-dk);color:#fff;}
+
+.pda-wrap{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-bottom:14px;}
+.pda-mock{width:260px;background:#1a1a1a;border:8px solid #1a1a1a;border-radius:18px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.18);}
+.pda-tbar{background:#000;color:#fff;padding:5px 10px;font-size:9px;display:flex;justify-content:space-between;}
+.pda-bd{background:#062a1a;padding:14px;height:420px;overflow:hidden;color:#e2e8f0;}
+.pda-h{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mod-tint);letter-spacing:.5px;margin-bottom:10px;text-transform:uppercase;display:flex;justify-content:space-between;}
+.pda-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:10px;margin-bottom:8px;}
+.pda-row{display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.65);margin-bottom:3px;}
+.pda-row strong{color:#fff;font-size:11px;font-weight:800;}
+.pda-btn{display:block;padding:10px;background:linear-gradient(135deg,var(--mod),var(--mod-dk));color:#fff;border-radius:5px;text-align:center;font-size:11px;font-weight:800;margin-top:8px;border:none;width:100%;}
+.pda-cap{text-align:center;font-size:10px;color:var(--sub);margin-top:6px;}
+
+.truck-img{display:flex;align-items:center;justify-content:center;padding:18px;background:#fafbfd;border:1px dashed var(--border);border-radius:6px;margin-bottom:12px;font-size:60px;}
+
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol active"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL09_FG_Finished_Goods.html">VOL.9 · FG</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">FG-05 · Loading Confirmation</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.9 · FG · L3</div><div class="sb-mod-en">FINISHED GOODS</div><div class="sb-mod-ko">완제품 관리</div></div>
+  <div class="sb-section">Inbound · 적재</div>
+  <a class="sb-link" href="VOL09_FG01_PDA_Stocking.html"><span class="sl-id">FG-01</span><div><div class="sl-en">PDA Stocking</div><div class="sl-ko">완제품 적재</div></div></a>
+  <a class="sb-link" href="VOL09_FG02_Inventory.html"><span class="sl-id">FG-02</span><div><div class="sl-en">Inventory</div><div class="sl-ko">재고 현황</div></div></a>
+  <div class="sb-section">Outbound · 출하</div>
+  <a class="sb-link" href="VOL09_FG03_Shipment_Order.html"><span class="sl-id">FG-03</span><div><div class="sl-en">Ship. Order</div><div class="sl-ko">출하 지시</div></div></a>
+  <a class="sb-link" href="VOL09_FG04_PDA_FIFO_Picking.html"><span class="sl-id">FG-04</span><div><div class="sl-en">FIFO Pick ⚙</div><div class="sl-ko">피킹</div></div></a>
+  <a class="sb-link on" href="VOL09_FG05_Loading.html"><span class="sl-id">FG-05</span><div><div class="sl-en">Loading</div><div class="sl-ko">상차 확인</div></div></a>
+  <a class="sb-link" href="VOL09_FG06_Delivery_Note.html"><span class="sl-id">FG-06</span><div><div class="sl-en">Delivery Note</div><div class="sl-ko">거래명세서</div></div></a>
+  <div class="sb-section">Closing &amp; Audit</div>
+  <a class="sb-link" href="VOL09_FG07_Day_End_Close.html"><span class="sl-id">FG-07</span><div><div class="sl-en">Day-End</div><div class="sl-ko">일 마감</div></div></a>
+  <a class="sb-link" href="VOL09_FG08_Shipment_History.html"><span class="sl-id">FG-08</span><div><div class="sl-en">Ship History</div><div class="sl-ko">출하 이력</div></div></a>
+  <a class="sb-link" href="VOL09_FG09_Dashboard.html"><span class="sl-id">FG-09</span><div><div class="sl-en">Dashboard</div><div class="sl-ko">현황판</div></div></a>
+  <a class="sb-link" href="VOL09_FG_RTN_Return.html"><span class="sl-id">FG-RTN</span><div><div class="sl-en">Return ↩</div><div class="sl-ko">반품 (Aux)</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
+    <a href="#sec-2"><span class="num">02</span>Field Spec</a>
+    <a href="#sec-3"><span class="num">03</span>OTD Evaluation</a>
+    <a href="#sec-4"><span class="num">04</span>Workflow</a>
+    <a href="#sec-5"><span class="num">05</span>Business Rules</a>
+    <a href="#sec-6"><span class="num">06</span>Data Model</a>
+    <a href="#sec-7"><span class="num">07</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.9 · FG · L3 · Truck Loading + Driver Sign-Off</div>
+      <div class="scr-id-block"><div class="scr-id">FG-05</div><div class="scr-title-en">Loading Confirmation</div></div>
+      <div class="scr-title-ko">상차 확인 — 차량 매칭 + 팔레트 스캔 + 운전자 전자서명</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">UI</span><span class="mc-val">📱 PDA + 🖥 Dock PC</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">1st Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">Loading Operator · Driver</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Trigger</span><span class="mc-val">FG-04 PICKED</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Output</span><span class="mc-val">SHIPPED · OTD 평가</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          The final outbound checkpoint before the truck leaves. Loading Operator verifies the arriving truck (license plate scan or carrier API match), checks driver ID, scans each picked pallet onto the truck (3-side scan: pallet QR → SO match → truck door), captures driver e-signature on PDA, prints/issues Delivery Note (FG-06) and Seal Number. On Confirm: SO → SHIPPED, OTD evaluated against ShipDate, FG-02 stock physically deducted, all events sealed for traceability and chain-of-custody.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          차량 출고 전 마지막 체크포인트. Loading 작업자가 도착 차량 검증(번호판 스캔 또는 운송사 API 매칭), 운전자 ID 확인, 피킹 팔레트를 차량에 적재하며 3-side 스캔(팔레트 QR → SO 매칭 → 차량 도어), 운전자 전자서명 PDA 캡처, FG-06 거래명세서 + Seal Number 발행. Confirm 시 SO → SHIPPED 전환, ShipDate 대비 OTD 평가, FG-02 재고 물리 차감, 모든 이벤트 봉인 (이력 추적 + Chain-of-Custody).
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — Dock Web + Driver PDA</span></div>
+      <div class="web-mock">
+        <div class="web-tbar">
+          <div class="web-tbar-l">🚚 A-MES · FG · Loading Dock<span class="bc">FG › Loading · Dock-7</span></div>
+          <div class="web-tbar-r">FG.Yoon · Loading Operator · 14:24</div>
+        </div>
+        <div class="web-bd">
+          <div class="truck-img">🚚 ➜ 📦📦📦📦</div>
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ TRUCK &amp; DRIVER · 차량/운전자</span><span style="color:var(--mod-dk);font-weight:700;">✅ Match OK</span></div>
+            <div class="po-grid">
+              <div><div class="po-l">License Plate</div><div class="po-v">12가 3456</div></div>
+              <div><div class="po-l">Carrier</div><div class="po-v">대명물류 (Truck-12T)</div></div>
+              <div><div class="po-l">Driver</div><div class="po-v">박○○ (010-2345-6789)</div></div>
+              <div><div class="po-l">Driver ID</div><div class="po-v">DRV-2026-014</div></div>
+              <div><div class="po-l">Dock Assigned</div><div class="po-v">Dock-7 (Bay-B)</div></div>
+              <div><div class="po-l">Arrived</div><div class="po-v">14:18 (ETA 14:00, +18m)</div></div>
+              <div><div class="po-l">SO</div><div class="po-v">SO-2026-0519-021 (PICKED)</div></div>
+              <div><div class="po-l">Seal No</div><div class="po-v" style="color:var(--mod-dk);">SEAL-2026-0519-087</div></div>
+            </div>
+          </div>
+
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ PALLET LOADING · 팔레트 적재 (Scan-Verify)</span><span style="color:var(--sub);">16 / 16 pallets loaded</span></div>
+            <table class="tbl">
+              <thead><tr><th>Seq</th><th>Pallet QR</th><th>Item</th><th>Qty</th><th>SO Match</th><th>Load TS</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td>1</td><td>PLT-0519-001</td><td>Door Trim LH</td><td>50</td><td>SO-...021</td><td>14:20:14</td><td><span class="b b-ok">✅</span></td></tr>
+                <tr><td>2</td><td>PLT-0519-002</td><td>Door Trim LH</td><td>50</td><td>SO-...021</td><td>14:20:42</td><td><span class="b b-ok">✅</span></td></tr>
+                <tr><td>3</td><td>PLT-0519-003</td><td>Door Trim LH</td><td>50</td><td>SO-...021</td><td>14:21:15</td><td><span class="b b-ok">✅</span></td></tr>
+                <tr><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td></tr>
+                <tr><td>16</td><td>PLT-0519-016</td><td>Sun Visor</td><td>100</td><td>SO-...021</td><td>14:23:55</td><td><span class="b b-ok">✅</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="web-card" style="background:linear-gradient(135deg,#dcfce7,#fff);border:2px solid #22c55e;">
+            <div class="web-card-h"><span>▼ DRIVER SIGN-OFF · 운전자 서명</span><span style="color:#15803d;font-weight:700;">e-Signature captured</span></div>
+            <div style="display:flex;gap:14px;align-items:center;">
+              <div style="font-size:60px;">✍️</div>
+              <div style="flex:1;">
+                <div style="font-size:11px;color:var(--sub);">박○○ (010-2345-6789)</div>
+                <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#065f46;letter-spacing:2px;">JONG-HO PARK · 14:24:08</div>
+                <div style="font-size:10px;color:var(--sub);margin-top:2px;">서명 + 사진 (운전석 ID 카드) + GPS 좌표 봉인</div>
+              </div>
+              <button class="btn">📷 View Sig+Photo</button>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+            <button class="btn">📄 Print Delivery Note (FG-06)</button>
+            <button class="btn">🔒 Apply Seal Number</button>
+            <button class="btn">📷 Document Photo</button>
+            <button class="btn btn-primary">✅ Confirm Loading → SHIPPED</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Driver PDA -->
+      <div class="pda-wrap">
+        <div>
+          <div class="pda-mock">
+            <div class="pda-tbar"><span>📶 A-MES</span><span>🔋 64% · 14:24</span></div>
+            <div class="pda-bd">
+              <div class="pda-h"><span>DRIVER · SIGN-OFF</span><span style="color:#5dffc4;">SAV</span></div>
+              <div class="pda-card">
+                <div style="font-size:9px;color:var(--mod-tint);letter-spacing:.5px;font-family:'JetBrains Mono',monospace;margin-bottom:6px;">▼ SHIPMENT SUMMARY</div>
+                <div class="pda-row"><span>SO</span><strong>SO-...0519-021</strong></div>
+                <div class="pda-row"><span>Customer</span><strong>SAV · Asan</strong></div>
+                <div class="pda-row"><span>Total Pallets</span><strong>16</strong></div>
+                <div class="pda-row"><span>Total Qty</span><strong style="color:#5dffc4;">800 EA</strong></div>
+              </div>
+              <div class="pda-card" style="background:rgba(110,231,183,.08);border-color:rgba(110,231,183,.3);">
+                <div style="font-size:10px;color:#5dffc4;font-weight:700;text-align:center;padding:4px 0;">📜 적재량을 확인하였으며,<br>이상 없음을 서명합니다</div>
+              </div>
+              <div style="background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.2);border-radius:6px;padding:18px 0;text-align:center;margin-bottom:8px;">
+                <div style="font-size:9px;color:rgba(255,255,255,.5);font-family:'JetBrains Mono',monospace;">✍ TAP TO SIGN ✍</div>
+              </div>
+              <button class="pda-btn">✍ Sign &amp; Photo ID</button>
+            </div>
+          </div>
+          <div class="pda-cap">📱 운전자 PDA — 서명 캡처</div>
+        </div>
+      </div>
+
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 Loading Discipline · 상차 규율</span>
+        ① 차량 번호판 자동 스캔 (OCR) + 운송사 API 매칭 — 미예약 차량 차단 (BR-FG-22) ② 팔레트 QR 스캔 시 SO 자동 매칭 — 다른 SO의 팔레트 적재 차단 (BR-FG-23) ③ 운전자 e-서명 + ID 카드 사진 + GPS 좌표 같이 봉인 (Chain-of-Custody) ④ Seal Number 부착 후 사진 촬영 의무 ⑤ 모든 적재 이벤트 5년 봉인 (BR-FG-27)</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Field Specification</span><span class="sec-ko">필드 사양</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:22%;">Field</th><th style="width:14%;">Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">LoadingID</td><td class="fld-type">VARCHAR(24)</td><td>LD-YYYYMMDD-SEQ.</td></tr>
+          <tr><td class="fld-name">ShipOrderID</td><td class="fld-type">VARCHAR(24)</td><td>대상 출하 주문 (FK).</td></tr>
+          <tr><td class="fld-name">PickID</td><td class="fld-type">VARCHAR(24)</td><td>FG-04 피킹 ID (FK).</td></tr>
+          <tr><td class="fld-name">LicensePlate</td><td class="fld-type">VARCHAR(20)</td><td>차량 번호판 (OCR 자동).</td></tr>
+          <tr><td class="fld-name">CarrierCode</td><td class="fld-type">VARCHAR(20)</td><td>운송사 코드.</td></tr>
+          <tr><td class="fld-name">DriverID · DriverName · DriverPhone</td><td class="fld-type">VARCHAR</td><td>운전자 정보.</td></tr>
+          <tr><td class="fld-name">DockNo</td><td class="fld-type">VARCHAR(10)</td><td>배정 하역장.</td></tr>
+          <tr><td class="fld-name">ArrivalTS · DepartureTS</td><td class="fld-type">DATETIME</td><td>도착/출발 시각.</td></tr>
+          <tr><td class="fld-name">PalletsLoadedJSON</td><td class="fld-type">JSON</td><td>[{seq, palletQR, itemNo, qty, loadTS}].</td></tr>
+          <tr><td class="fld-name">SealNo</td><td class="fld-type">VARCHAR(20)</td><td>봉인 번호.</td></tr>
+          <tr><td class="fld-name">DriverSigURL</td><td class="fld-type">VARCHAR(255)</td><td>전자서명 이미지 URL.</td></tr>
+          <tr><td class="fld-name">DriverPhotoURL</td><td class="fld-type">VARCHAR(255)</td><td>운전자 ID 카드 사진.</td></tr>
+          <tr><td class="fld-name">GPSCoord</td><td class="fld-type">VARCHAR(30)</td><td>서명 시점 GPS 좌표.</td></tr>
+          <tr><td class="fld-name">OTDStatus</td><td class="fld-type">ENUM</td><td>ON_TIME / LATE.</td></tr>
+          <tr><td class="fld-name">OperatorID · ConfirmTS</td><td class="fld-type">VARCHAR/DATETIME</td><td>Loading 작업자 / 확정 시각.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">OTD Evaluation</span><span class="sec-ko">OTD 평가 메커니즘</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:24%;">Outcome</th><th>Criteria · Action</th></tr></thead>
+        <tbody>
+          <tr><td><strong>ON_TIME</strong></td><td>ConfirmTS ≤ ShipDate 23:59:59 → OTD=ON_TIME. FG-09 Dashboard에 정시 출하 카운트 +1.</td></tr>
+          <tr><td><strong>LATE</strong></td><td>ConfirmTS &gt; ShipDate 23:59:59 → OTD=LATE. SO에 LATE flag 영구 기록. 고객 ACK에 지연 사유 추가, FG-09 OTD% 차감, Sales 알림.</td></tr>
+          <tr><td><strong>3 LATE in Month</strong></td><td>월간 동일 고객 LATE 3회 → CAPA(QC-06) 권고 + FG Manager 에스컬레이션.</td></tr>
+          <tr><td><strong>Customer-A Late</strong></td><td>SAV/GEO 같은 A등급 고객 LATE 발생 시 영업/품질 즉시 알림 + 고객 사과 메일 자동 초안 생성.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">Truck arrives at gate → OCR scans license plate → carrier API match → Dock assigned.</div><div class="wf-ko">차량 게이트 도착 → OCR 번호판 스캔 → 운송사 API 매칭 → 하역장 배정.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Driver shows ID → Loading Operator captures driver photo + verifies against carrier records.</div><div class="wf-ko">운전자 ID 제시 → 작업자가 사진 캡처 + 운송사 기록 대조.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Truck backs into Dock → pallets queued at staging from FG-04 picking complete.</div><div class="wf-ko">차량 하역장 진입, FG-04에서 피킹 완료된 팔레트 staging에서 대기.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Operator scans each pallet QR as loaded → system auto-matches against SO; mismatch blocks.</div><div class="wf-ko">작업자가 팔레트 QR 적재 시 스캔, 시스템 SO 자동 매칭, 불일치 차단.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">All pallets loaded → Driver signs on PDA + ID card photographed + GPS captured.</div><div class="wf-ko">전 팔레트 적재 후 운전자 PDA 서명 + ID 사진 + GPS 캡처.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Seal applied to truck doors → photo of seal captured → Seal No recorded.</div><div class="wf-ko">차량 도어 봉인 부착, 봉인 사진 캡처, Seal No 기록.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Confirm → SO Status SHIPPED, OTD evaluated, FG-02 stock deducted, FG-06 Delivery Note printed.</div><div class="wf-ko">Confirm → SO SHIPPED, OTD 평가, FG-02 재고 차감, FG-06 거래명세서 인쇄.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Truck departs → DepartureTS recorded; carrier API gets ETA to destination.</div><div class="wf-ko">차량 출발 → DepartureTS 기록, 운송사 API로 도착 ETA 전달.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-FG-22</td><td><div>Unregistered truck/driver cannot load. Carrier API mismatch blocks loading at gate.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">미예약 차량/운전자 적재 불가, 운송사 API 불일치 시 게이트 차단.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-FG-23</td><td><div>Pallet must belong to the assigned SO; scanning a wrong-SO pallet blocks the load.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">팔레트가 배정 SO에 속해야 함, 다른 SO 스캔 차단.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-FG-24</td><td><div>Driver e-signature + ID photo + GPS coordinates required to Confirm; missing any blocks.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">서명 + ID 사진 + GPS 모두 필수, 누락 시 Confirm 차단.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-FG-25</td><td><div>Seal Number must be applied and photographed before departure; missing → loading flagged for QC.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">봉인 번호 부착 + 사진 필수, 누락 시 QC 플래그.</div></td><td><span class="br-act alt">Flag</span></td></tr>
+          <tr><td class="br-id">BR-FG-26</td><td><div>OTD evaluated at Confirm: ON_TIME ≤ ShipDate 23:59:59, otherwise LATE; SO carries flag permanently.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">OTD Confirm 시 평가, ShipDate 23:59:59 기준, LATE 영구 기록.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-FG-27</td><td><div>All loading events (scans/signature/photos/seal) retained ≥ 5 years for chain-of-custody audit.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">전 적재 이벤트(스캔·서명·사진·봉인) 5년 봉인.</div></td><td><span class="br-act aut">Retain</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Table</th><th>Key Columns</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">FG_Loading</span></td><td><span class="dm-pk">PK</span> LoadingID · <span class="dm-fk">FK</span> ShipOrderID · <span class="dm-fk">FK</span> PickID · LicensePlate · CarrierCode · DriverID · DockNo · ArrivalTS · DepartureTS · PalletsLoadedJSON · SealNo · DriverSigURL · DriverPhotoURL · GPSCoord · OTDStatus</td><td>적재 메인 (Chain-of-Custody).</td></tr>
+          <tr><td><span class="dm-col">FG_LoadingEvent</span></td><td><span class="dm-pk">PK</span> EvID · <span class="dm-fk">FK</span> LoadingID · EventType · ScanValue · TS · GPS</td><td>스캔/서명 이벤트 봉인 로그.</td></tr>
+          <tr><td><span class="dm-col">FG_ShipOrder</span> <em style="opacity:.6;">(update)</em></td><td>Status: PICKED → SHIPPED · OTDFlag · LoadingID</td><td>SO 최종 상태 + OTD.</td></tr>
+          <tr><td><span class="dm-col">FG_Stock</span> <em style="opacity:.6;">(deduct)</em></td><td>Qty -= LoadedQty · Status: SHIPPED-Ready → SHIPPED</td><td>물리 재고 차감.</td></tr>
+          <tr><td><span class="dm-col">Carrier_API</span> <em style="opacity:.6;">(call)</em></td><td>LicensePlate validation · ETA push</td><td>외부 운송사 시스템.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">FG-04</div><div class="lnk-name">PICKED</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">FG-05</div><div class="lnk-name">Loading</div><div class="lnk-ko">상차 확인</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">FG-06</div><div class="lnk-name">Delivery Note</div><div class="lnk-ko">거래명세서</div></div>
+        </div>
+        <div class="lnk-row" style="margin-top:14px;">
+          <div class="lnk-node cur"><div class="lnk-id">Confirm</div><div class="lnk-name">→ Side Effects</div></div>
+          <div class="lnk-arr">↘</div>
+          <div class="lnk-node down"><div class="lnk-id">FG-02</div><div class="lnk-name">Stock -Qty</div></div>
+          <div class="lnk-node down"><div class="lnk-id">SO → SHIPPED</div><div class="lnk-name">OTD 평가</div></div>
+          <div class="lnk-node down"><div class="lnk-id">FG-09</div><div class="lnk-name">OTD KPI</div></div>
+          <div class="lnk-node up"><div class="lnk-id">Carrier API</div><div class="lnk-name">ETA Push</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.9 · FG-05 · Loading Confirmation · L3 Spec v1.0</div><div class="pf-r">PDA + Dock PC · Phase 1 · Chain-of-Custody · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
