@@ -1,24 +1,24 @@
-<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>A-MES · VOL.6 · IMG · Fabric Wrapping POP</title><style>/* ═══════════════════════════════════════
-   A-MES SHARED STYLESHEET v2.0
-   Bilingual EN/KO · UI Labels English
-═══════════════════════════════════════ */
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.6 · IMG · Fabric Wrapping POP</title>
+<style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
-
 :root{
-  --gold:#d4a017; --gold-lt:#fdf6e3; --gold-dk:#a07810;
-  --ink:#0d1117; --ink2:#161b22; --ink3:#21262d;
-  --surface:#ffffff; --bg:#f6f8fa; --border:#d0d7de;
-  --text:#24292f; --sub:#656d76;
-  /* module colors */
-  --wh:#0891b2; --pp:#059669; --inj:#2563eb; --img:#7c3aed;
-  --pnt:#ea580c; --qc:#dc2626; --fg:#0db87a; --mnt:#0284c7;
-  --rpt:#6366f1; --sys:#475569; --md:#d97706;
+  --gold:#d4a017;--gold-lt:#fdf6e3;--gold-dk:#a07810;
+  --ink:#0d1117;--ink2:#161b22;--ink3:#21262d;
+  --surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;
+  --wh:#0891b2;--pp:#059669;--inj:#2563eb;--img:#7c3aed;
+  --pnt:#ea580c;--qc:#dc2626;--fg:#0db87a;--mnt:#0284c7;
+  --rpt:#6366f1;--sys:#475569;--md:#d97706;
+  --mod-color:#7c3aed;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html{scroll-behavior:smooth;}
 body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
 
-/* ── NAV BAR (injected per file) ── */
 .ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
 .ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
 .ames-nav-inner::-webkit-scrollbar{display:none;}
@@ -30,152 +30,65 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
 .nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
 
-/* ── PAGE LAYOUT ── */
 .page-wrap{display:flex;}
-.sidebar{width:230px;min-width:230px;background:var(--ink2);position:sticky;top:40px;height:calc(100vh - 40px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(212,160,23,.15) transparent;border-right:1px solid var(--ink3);}
+.sidebar{width:230px;min-width:230px;background:var(--ink2);position:sticky;top:40px;height:calc(100vh - 40px);overflow-y:auto;scrollbar-width:thin;border-right:1px solid var(--ink3);}
 .sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
 .sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
-.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:#a78bfa;}
 .sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
 .sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.15);padding:12px 14px 4px;}
-.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.35);font-size:11px;border-left:2px solid transparent;transition:all .12s;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.35);font-size:11px;border-left:2px solid transparent;transition:all .12s;position:relative;}
 .sb-link:hover{color:rgba(255,255,255,.7);background:rgba(255,255,255,.03);}
-.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
-.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:32px;flex-shrink:0;}
+.sb-link.on{color:#fff;border-left-color:var(--img);background:rgba(124,58,237,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:42px;flex-shrink:0;}
 .sb-link .sl-en{font-size:10px;font-weight:600;}
 .sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.2);margin-top:1px;}
+.sb-l3{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:3px;background:rgba(212,160,23,.12);color:rgba(212,160,23,.75);font-size:11px;text-decoration:none;margin-left:auto;transition:all .15s;flex-shrink:0;border:1px solid rgba(212,160,23,.25);}
+.sb-l3:hover{background:var(--gold);color:#000;border-color:var(--gold);transform:scale(1.15);}
 .sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
 
 .main{flex:1;min-width:0;}
 
-/* ── MODULE HEADER ── */
-.mod-hdr{padding:36px 48px 24px;position:relative;overflow:hidden;}
+.mod-hdr{padding:36px 48px 24px;position:relative;overflow:hidden;background:linear-gradient(135deg,color-mix(in srgb,#7c3aed 32%,#000),color-mix(in srgb,#7c3aed 14%,#000));}
 .mod-hdr-inner{position:relative;z-index:1;}
-.mod-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;opacity:.7;}
-.mod-title-en{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:.95;letter-spacing:2px;color:#fff;margin-bottom:4px;}
+.mod-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;opacity:.85;color:#a78bfa;}
+.mod-title-en{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:.95;letter-spacing:2px;color:#a78bfa;margin-bottom:4px;}
 .mod-title-ko{font-size:14px;font-weight:300;color:rgba(255,255,255,.35);letter-spacing:4px;margin-bottom:16px;}
 .mod-desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:840px;margin-bottom:18px;}
 .mdb-en{font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;border-left:2px solid rgba(255,255,255,.12);padding-left:12px;}
 .mdb-ko{font-size:11px;color:rgba(255,255,255,.3);line-height:1.8;border-left:2px solid rgba(255,255,255,.06);padding-left:12px;}
 .screen-pills{display:flex;gap:5px;flex-wrap:wrap;}
-.sp{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:9px;color:rgba(255,255,255,.4);}
+.sp{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:9px;color:rgba(255,255,255,.55);text-decoration:none;cursor:pointer;transition:all .15s;}
+.sp:hover{background:rgba(124,58,237,.18);border-color:rgba(124,58,237,.45);color:#fff;}
 .sp-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold);}
 
-/* ── CONTENT AREA ── */
+.l3-hint{display:inline-block;font-size:10px;color:rgba(212,160,23,.7);font-weight:600;letter-spacing:1px;padding:5px 12px;background:rgba(212,160,23,.08);border:1px dashed rgba(212,160,23,.35);border-radius:3px;margin-bottom:14px;}
+
 .content{padding:0 48px 48px;}
 
-/* ── SCREEN CARD ── */
 .screen-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;}
-.sc-hdr{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
-.sc-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.sc-hdr{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,color-mix(in srgb,#7c3aed 26%,#000),color-mix(in srgb,#7c3aed 12%,#000));}
+.sc-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;color:#a78bfa;}
 .sc-title-en{font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px;}
-.sc-title-ko{font-size:10px;color:rgba(255,255,255,.35);margin-top:2px;}
+.sc-title-ko{font-size:10px;color:rgba(255,255,255,.45);margin-top:2px;}
 .sc-tags{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
-.tag{font-size:9px;font-weight:700;padding:2px 9px;border-radius:3px;}
+.tag{font-size:9px;font-weight:700;padding:2px 9px;border-radius:3px;white-space:nowrap;}
 .t-web{background:rgba(26,111,255,.2);color:#7ab4ff;border:1px solid rgba(26,111,255,.3);}
+.t-pop{background:rgba(124,58,237,.22);color:#c4b5fd;border:1px solid rgba(124,58,237,.4);}
 .t-pda{background:rgba(13,184,122,.2);color:#5dffc4;border:1px solid rgba(13,184,122,.3);}
-.t-pop{background:rgba(234,88,12,.2);color:#fdba74;border:1px solid rgba(234,88,12,.3);}
-.t-p0{background:rgba(212,160,23,.15);color:#fbbf24;border:1px solid rgba(212,160,23,.2);}
 .t-1st{background:rgba(26,111,255,.12);color:#93c5fd;border:1px solid rgba(26,111,255,.18);}
 .t-2nd{background:rgba(124,58,237,.12);color:#c4b5fd;border:1px solid rgba(124,58,237,.18);}
-.t-3rd{background:rgba(255,107,0,.12);color:#fdba74;border:1px solid rgba(255,107,0,.18);}
+.t-core{background:rgba(212,160,23,.18);color:#fbbf24;border:1px solid rgba(212,160,23,.32);}
+.t-sig{background:rgba(220,38,38,.18);color:#fca5a5;border:1px solid rgba(220,38,38,.35);}
+.sc-l3-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;background:linear-gradient(135deg,#d4a017,#a07810);color:#000;font-size:11px;font-weight:800;border-radius:4px;text-decoration:none;letter-spacing:.5px;text-transform:uppercase;border:1px solid #a07810;box-shadow:0 2px 6px rgba(212,160,23,.3);transition:all .15s;white-space:nowrap;}
+.sc-l3-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(212,160,23,.5);background:linear-gradient(135deg,#fbbf24,#d4a017);}
 .sc-body{padding:14px 18px;}
 
-/* ── BILINGUAL DESC ── */
-.desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;background:#f6f8ff;border:1px solid var(--border);border-left:3px solid;border-radius:0 6px 6px 0;padding:11px 14px;}
+.desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;background:#faf7ff;border:1px solid var(--border);border-left:3px solid var(--img);border-radius:0 6px 6px 0;padding:11px 14px;}
 .db-lbl{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;opacity:.5;}
-.db-en{font-size:11px;color:#1e40af;line-height:1.75;}
+.db-en{font-size:11px;color:#5b21b6;line-height:1.75;}
 .db-ko{font-size:11px;color:var(--sub);line-height:1.75;}
 
-/* ── KPI STRIP ── */
-.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:12px;}
-.kc{flex:1;padding:9px 12px;border-right:1px solid var(--border);}
-.kc:last-child{border-right:none;}
-.kv{font-size:20px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
-.kl-en{font-size:9px;color:var(--sub);margin-top:2px;}
-.kl-ko{font-size:8px;color:rgba(100,116,139,.55);}
-
-/* ── MOCK WINDOW ── */
-.mock-wrap{background:#eef1f5;border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;}
-.mock-lbl{font-size:9px;font-weight:700;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;}
-.mock-win{background:#fff;border:1px solid #c8d0db;border-radius:6px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.07);}
-.mock-tbar{background:var(--text);color:#fff;padding:7px 13px;display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;}
-.mock-tbar .bc{margin-left:auto;font-size:9px;color:rgba(255,255,255,.3);font-family:'JetBrains Mono',monospace;}
-.mock-body{padding:12px 13px;}
-.mock-toolbar{background:#f6f8fa;border-bottom:1px solid var(--border);padding:6px 13px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
-.mock-toolbar select,.mock-toolbar input{padding:3px 8px;border:1px solid var(--border);border-radius:3px;font-size:11px;background:#fff;}
-
-/* ── TABLE ── */
-.tbl{width:100%;border-collapse:collapse;font-size:11px;}
-.tbl th{background:#f0f3f7;padding:6px 9px;font-weight:700;border:1px solid var(--border);text-align:left;font-size:10px;color:var(--text);}
-.tbl th .th-ko{font-weight:400;color:var(--sub);font-size:9px;}
-.tbl td{padding:5px 9px;border:1px solid var(--border);vertical-align:middle;}
-.tbl .rh td{background:#f0fdf4;}
-.tbl .rw td{background:#fffbeb;}
-.tbl .rd td{background:#fef2f2;}
-.tbl tr:hover td{background:#f9fafb;}
-.tbl td .ko{color:var(--sub);font-size:10px;}
-
-/* ── BADGES ── */
-.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
-.b-ok{background:#dcfce7;color:#166534;}
-.b-w{background:#fef9c3;color:#92400e;}
-.b-e{background:#fee2e2;color:#991b1b;}
-.b-i{background:#dbeafe;color:#1e40af;}
-.b-n{background:#f3f4f6;color:#4b5563;}
-
-/* ── BUTTONS ── */
-.btn{padding:5px 13px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
-.btn-primary{background:var(--mod-color,#0891b2);color:#fff;border-color:var(--mod-color,#0891b2);}
-.btn-secondary{background:#f6f8fa;color:var(--text);border-color:var(--border);}
-.btn-danger{background:#dc2626;color:#fff;}
-.btn-sm{padding:3px 9px;font-size:10px;}
-
-/* ── FEATURE GRID ── */
-.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
-.feat-item{background:#f6f8ff;border:1px solid var(--border);border-radius:6px;padding:11px 13px;border-top:2px solid;}
-.fi-title-en{font-size:11px;font-weight:700;margin-bottom:1px;}
-.fi-title-ko{font-size:10px;color:var(--sub);margin-bottom:6px;}
-ul.fi-list{list-style:none;}
-ul.fi-list li{padding:2px 0 2px 12px;position:relative;font-size:10px;line-height:1.6;}
-ul.fi-list li::before{content:'–';position:absolute;left:0;color:var(--sub);}
-ul.fi-list li .ko{color:var(--sub);font-size:9px;}
-
-/* ── PDA MOCK ── */
-.pda-row{display:flex;gap:14px;flex-wrap:wrap;}
-.pda-unit{text-align:center;}
-.pdu-step{font-size:9px;font-weight:700;color:var(--sub);margin-bottom:5px;}
-.pda-shell{background:#1a1e2e;border-radius:16px;padding:9px;width:172px;border:2px solid #2a3048;box-shadow:0 6px 20px rgba(0,0,0,.3);}
-.pda-scr{background:#0a1628;border-radius:10px;overflow:hidden;border:1px solid #1a3050;}
-.pda-sbar{background:#060e1c;padding:3px 8px;display:flex;justify-content:space-between;}
-.pda-sbar span{font-size:7px;color:#2a4a7a;font-family:'JetBrains Mono',monospace;}
-.pda-sbar .online{color:#00e5a0;}
-.pda-tbar{padding:7px 10px;border-bottom:1px solid #0a3050;}
-.pda-title{font-size:11px;font-weight:700;color:#00e5a0;}
-.pda-sub{font-size:8px;color:rgba(255,255,255,.3);}
-.pda-bd{padding:8px 10px;}
-.pda-scan{background:#060e1c;border:2px dashed rgba(0,229,160,.3);border-radius:6px;padding:12px;text-align:center;margin-bottom:7px;}
-.pda-scan-icon{font-size:22px;margin-bottom:3px;}
-.pda-scan-en{font-size:10px;font-weight:700;color:#00e5a0;}
-.pda-scan-ko{font-size:8px;color:rgba(255,255,255,.3);}
-.pda-field{margin-bottom:5px;}
-.pda-fl{font-size:8px;color:#1a5a4a;margin-bottom:2px;font-weight:600;}
-.pda-fv{background:#040c18;border:1px solid #1a3050;border-radius:4px;padding:4px 8px;font-size:10px;color:#a0c8f0;font-family:'JetBrains Mono',monospace;}
-.pda-fv.ok{border-color:#00e5a0;color:#00e5a0;}
-.pda-fv.er{border-color:#ff8a82;color:#ff8a82;}
-.pda-numpad{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;margin-bottom:6px;}
-.pda-key{background:#0d1e30;border:1px solid #1a3050;border-radius:4px;padding:7px 4px;text-align:center;font-size:13px;font-weight:700;color:#c0e0f0;font-family:'JetBrains Mono',monospace;}
-.pda-key.k-ok{background:#0a2a1a;color:#00e5a0;border-color:#0a5a38;}
-.pda-key.k-del{background:#1a0808;color:#ff8a82;border-color:#3a1010;}
-.pda-disp{background:#040c18;border:1px solid #1a3050;border-radius:4px;padding:5px 9px;font-size:24px;font-weight:900;color:#00e5a0;text-align:right;margin-bottom:6px;font-family:'JetBrains Mono',monospace;}
-.pda-btn{width:100%;padding:7px;border-radius:5px;font-size:10px;font-weight:700;border:none;cursor:pointer;margin-bottom:4px;font-family:'Noto Sans KR',sans-serif;}
-.pda-pri{background:linear-gradient(135deg,#0a9060,#0db87a);color:#fff;}
-.pda-sec{background:#0a1428;color:#4a7aaa;border:1px solid #1a3050;}
-.pda-dan{background:#1a0808;color:#ff8a82;border:1px solid #3a1010;}
-.pda-progress-bar{height:4px;background:#060e1c;border-radius:2px;overflow:hidden;margin:4px 0 8px;}
-.pda-progress-fill{height:100%;background:linear-gradient(90deg,#0a9060,#00e5a0);border-radius:2px;}
-
-/* ── BR TABLE ── */
 .br-wrap{margin-bottom:16px;}
 .br-title{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:7px;display:flex;align-items:center;gap:10px;}
 .br-title::after{content:'';flex:1;height:1px;background:var(--border);}
@@ -186,83 +99,193 @@ ul.fi-list li .ko{color:var(--sub);font-size:9px;}
 .br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
 .br-en{color:var(--text);}
 .br-ko{color:var(--sub);font-size:10px;margin-top:2px;}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
+.b-ok{background:#dcfce7;color:#166534;}
+.b-w{background:#fef9c3;color:#92400e;}
+.b-e{background:#fee2e2;color:#991b1b;}
+.b-i{background:#dbeafe;color:#1e40af;}
+.b-m{background:#fce7f3;color:#9d174d;}
 
-/* ── SECTION DIV ── */
-.sec-div{display:flex;align-items:center;gap:12px;margin:20px 0 12px;}
-.sd-line{flex:1;height:1px;background:var(--border);}
-.sd-lbl{font-size:10px;font-weight:700;color:var(--sub);white-space:nowrap;}
-
-/* ── ALERTS ── */
-.alert{padding:8px 12px;border-radius:5px;font-size:10px;margin-bottom:9px;display:flex;gap:8px;line-height:1.7;}
-.alert-i{background:#eff6ff;border-left:3px solid #3b82f6;}
-.alert-w{background:#fffbeb;border-left:3px solid #f59e0b;}
-.alert-s{background:#f0fdf4;border-left:3px solid #22c55e;}
-.alert-d{background:#fef2f2;border-left:3px solid #ef4444;}
-
-/* ── ROUTING FLOW ── */
-.rflow{display:flex;align-items:center;gap:0;flex-wrap:nowrap;overflow-x:auto;padding:4px 0;}
-.rs{padding:9px 14px;border-radius:5px;font-size:11px;font-weight:700;text-align:center;flex-shrink:0;text-decoration:none;}
-.rs-en{font-size:12px;font-weight:800;}
-.rs-ko{font-size:9px;font-weight:400;opacity:.7;margin-top:2px;}
-.rarr{color:var(--sub);font-size:14px;padding:0 5px;flex-shrink:0;}
-.rs-inj{background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;}
-.rs-img{background:#f5f3ff;color:#5b21b6;border:1px solid #c4b5fd;}
-.rs-pnt{background:#fff7ed;color:#9a3412;border:1px solid #fdba74;}
-.rs-qc{background:#fef2f2;color:#991b1b;border:1px solid #fca5a5;}
-.rs-fg{background:#f0fdf4;color:#065f46;border:1px solid #6ee7b7;}
-
-/* ── GRID ── */
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
-
-/* ── PROGRESS BAR ── */
-.prog-track{height:5px;background:#f0f2f5;border-radius:3px;overflow:hidden;}
-.prog-fill{height:100%;border-radius:3px;}
-
-/* ── DATA MODEL TABLE ── */
-.dm-tbl{width:100%;border-collapse:collapse;font-size:10px;}
-.dm-tbl th{background:var(--ink2);color:#fff;padding:6px 10px;text-align:left;border:1px solid var(--ink3);font-size:9px;}
-.dm-tbl td{padding:5px 10px;border:1px solid var(--border);vertical-align:top;}
-.dm-tbl tr:nth-child(even) td{background:#fafbfd;}
-.dm-col{font-family:'JetBrains Mono',monospace;color:#1e40af;font-weight:600;}
-.dm-type{font-family:'JetBrains Mono',monospace;color:var(--sub);font-size:10px;}
-.dm-pk{color:#dc2626;font-weight:700;}
-.dm-fk{color:#7c3aed;}
-
-/* ── PAGE FOOTER ── */
 .page-footer{padding:14px 48px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--ink);margin-top:20px;}
 .pf-l{font-size:10px;color:rgba(255,255,255,.2);}
 .pf-r{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(212,160,23,.4);}
-:root{--mod-color:#7c3aed;}.mod-hdr{background:linear-gradient(135deg,color-mix(in srgb,#7c3aed 30%,#000),color-mix(in srgb,#7c3aed 12%,#000));}.sc-hdr{background:linear-gradient(135deg,color-mix(in srgb,#7c3aed 22%,#000),color-mix(in srgb,#7c3aed 10%,#000));}.sc-id{color:#7c3aed;}.sb-mod-en{color:#7c3aed;}.sb-link.on{border-left-color:#7c3aed;}
-/* L3 link styles */
-.sb-link{position:relative;}
-.sb-l3{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:3px;background:rgba(212,160,23,.1);color:rgba(212,160,23,.7);font-size:9px;text-decoration:none;margin-left:auto;transition:all .15s;flex-shrink:0;border:1px solid rgba(212,160,23,.2);}
-.sb-l3:hover{background:var(--gold);color:#000;border-color:var(--gold);transform:scale(1.15);}
-a.sp{cursor:pointer;}
-a.sp:hover{background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.4);}</style></head><body><nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol active"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav><div class="page-wrap"><nav class="sidebar"><div class="sb-head"><div class="sb-vol">VOL.6 · IMG MODULE</div><div class="sb-mod-en">WRAPPING POP</div><div class="sb-mod-ko">감싸기 생산 POP</div></div><div class="sb-section">Screens</div><a class="sb-link" href="#img01"><span class="sl-id">IMG-01</span><div><div class="sl-en">POP Login</div><div class="sl-ko">로그인</div></div><a class="sb-l3" href="VOL06_IMG01_POP_Login.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a><a class="sb-link" href="#img02"><span class="sl-id">IMG-02</span><div><div class="sl-en">Dashboard</div><div class="sl-ko">현황판</div></div><a class="sb-l3" href="VOL06_IMG02_POP_Dashboard.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a><a class="sb-link" href="#img03"><span class="sl-id">IMG-03</span><div><div class="sl-en">Production Entry</div><div class="sl-ko">실적 입력</div></div><a class="sb-l3" href="VOL06_IMG03_Production_Entry.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a><a class="sb-link on" href="#img04"><span class="sl-id">IMG-04</span><div><div class="sl-en">Fabric Input &amp; Verify</div><div class="sl-ko">원단 투입 검증</div></div><a class="sb-l3" href="VOL06_IMG04_Fabric_Input.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a><a class="sb-link" href="#img05"><span class="sl-id">IMG-05</span><div><div class="sl-en">Defect Register</div><div class="sl-ko">불량 등록</div></div><a class="sb-l3" href="VOL06_IMG05_Defect.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a><a class="sb-link" href="#img06"><span class="sl-id">IMG-06</span><div><div class="sl-en">Bond Setup</div><div class="sl-ko">본드 세팅</div></div><a class="sb-l3" href="VOL06_IMG06_Bond_Setup.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a><a class="sb-link" href="#img07"><span class="sl-id">IMG-07</span><div><div class="sl-en">Production Status</div><div class="sl-ko">실적 현황</div></div><a class="sb-l3" href="VOL06_IMG07_Prod_Status.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a><div class="sb-sep"></div><a class="sb-link" href="#br-img"><span class="sl-id">BR</span><div><div class="sl-en">Business Rules</div><div class="sl-ko">업무 규칙</div></div></a></nav><div class="main"><div class="mod-hdr"><div class="mod-hdr-inner"><div class="mod-eyebrow" style="color:#a78bfa;">VOL.6 · IMG · Fabric Wrapping POP · 감싸기 생산 POP</div><div class="mod-title-en" style="color:#a78bfa;">FABRIC<br>WRAPPING POP</div><div class="mod-title-ko">감싸기 생산 POP</div><div class="mod-desc-bi"><div class="mdb-en">POP screens for the IMG (Image / Fabric Wrapping) process — bonding fabric or leather to injection-molded plastic substrates. Key differentiators: mandatory fabric roll QR scan before mounting, automatic color-code verification against WO requirements (wrong color = instant block), BOM-based automatic fabric length deduction per production cycle, and 6 IMG-specific defect types.</div><div class="mdb-ko">사출 기재에 원단/가죽을 접착하는 IMG 감싸기 공정 POP. 핵심: 원단 롤 QR 스캔 필수, WO 요구 색상 자동 검증(불일치 즉시 차단), BOM 기반 원단 잔량 자동 차감, IMG 전용 불량 6종.</div></div><div class="screen-pills"><a class="sp" href="VOL06_IMG01_POP_Login.html" style="text-decoration:none;color:inherit;" title="L3 상세 · IMG-01"><span class="sp-id">IMG-01</span> POP Login <span style="opacity:.5;font-size:8px;">📋</span></a><a class="sp" href="VOL06_IMG02_POP_Dashboard.html" style="text-decoration:none;color:inherit;" title="L3 상세 · IMG-02"><span class="sp-id">IMG-02</span> Dashboard <span style="opacity:.5;font-size:8px;">📋</span></a><a class="sp" href="VOL06_IMG03_Production_Entry.html" style="text-decoration:none;color:inherit;" title="L3 상세 · IMG-03"><span class="sp-id">IMG-03</span> Production Entry <span style="opacity:.5;font-size:8px;">📋</span></a><a class="sp" href="VOL06_IMG04_Fabric_Input.html" style="text-decoration:none;color:inherit;" title="L3 상세 · IMG-04"><span class="sp-id">IMG-04</span> Fabric Input &amp; Verify <span style="opacity:.5;font-size:8px;">📋</span></a><a class="sp" href="VOL06_IMG05_Defect.html" style="text-decoration:none;color:inherit;" title="L3 상세 · IMG-05"><span class="sp-id">IMG-05</span> Defect Register <span style="opacity:.5;font-size:8px;">📋</span></a><a class="sp" href="VOL06_IMG06_Bond_Setup.html" style="text-decoration:none;color:inherit;" title="L3 상세 · IMG-06"><span class="sp-id">IMG-06</span> Bond Setup <span style="opacity:.5;font-size:8px;">📋</span></a><a class="sp" href="VOL06_IMG07_Prod_Status.html" style="text-decoration:none;color:inherit;" title="L3 상세 · IMG-07"><span class="sp-id">IMG-07</span> Production Status <span style="opacity:.5;font-size:8px;">📋</span></a></div></div></div>
-<div class="content">
-<div class="screen-card" id="img04"><div class="sc-hdr"><div><div class="sc-id">IMG-04</div><div class="sc-title-en">Fabric Roll Input & Color Verification</div><div class="sc-title-ko">원단 롤 투입 & 색상 검증</div></div><div class="sc-tags"><span class="tag t-pop">🏭 POP Dark</span><span class="tag t-2nd">2nd Dev</span></div></div>
-<div class="sc-body">
-<div class="desc-bi" style="border-left-color:#7c3aed;"><div><div class="db-lbl">EN · Description</div><div class="db-en">Before mounting a fabric roll onto the wrapping machine, the operator scans the roll's QR code via PDA. The system instantly cross-checks the scanned fabric color code against the WO's required color. If the color matches, the operator can proceed with mounting and confirm the input. If the color does not match, input is immediately blocked — the screen turns red and an alarm sounds — preventing wrong-color defects. After each production cycle, the consumed fabric length is automatically deducted from warehouse inventory based on the BOM unit consumption rate.</div></div><div><div class="db-lbl">KO · 설명</div><div class="db-ko">원단 롤을 감싸기 기계에 장착하기 전, 작업자가 롤의 QR코드를 PDA로 스캔. 시스템이 스캔된 색상코드를 WO 요구 색상과 즉시 대조. 색상 일치 시 투입 확정 진행. 색상 불일치 시 화면 빨간색 전환 + 경고음 즉시 차단 → 원단 오투입 불량 제로화. 생산 사이클마다 BOM 단위 소비량 기준 원단 잔량 WH 재고에서 자동 차감.</div></div></div>
-<div class="pda-row">
-<div class="pda-unit"><div class="pdu-step">① Scan Roll QR · 롤 QR 스캔</div><div class="pda-shell"><div class="pda-scr"><div class="pda-sbar"><span>IMG-L1</span><span class="online">● RUN</span></div><div class="pda-tbar" style="background:linear-gradient(135deg,#0a0818,#120a28);"><div class="pda-title">Fabric Input · 원단 투입</div><div class="pda-sub">WO-0701-007 · Door Trim LH</div></div><div class="pda-bd"><div style="background:#060414;border:1px solid #1a0a40;border-radius:5px;padding:7px;margin-bottom:7px;"><div style="font-size:8px;color:rgba(255,255,255,.3);margin-bottom:3px;">Required Color · 요구 색상</div><div style="display:flex;align-items:center;gap:6px;"><span style="width:14px;height:14px;background:#808080;border-radius:3px;display:inline-block;"></span><span style="color:#a78bfa;font-weight:700;font-family:monospace;font-size:10px;">GY-C03 · Grey</span></div></div><div class="pda-scan"><div class="pda-scan-icon">📷</div><div class="pda-scan-en">Scan Roll QR Code</div><div class="pda-scan-ko">원단 롤 QR 스캔</div></div><div class="pda-field"><div class="pda-fl">Roll ID · 롤 번호</div><div class="pda-fv">—</div></div></div></div></div></div>
-<div class="pda-unit"><div class="pdu-step">② Color Match ✅ · 색상 일치</div><div class="pda-shell"><div class="pda-scr"><div class="pda-sbar"><span>IMG-L1</span><span class="online">● RUN</span></div><div class="pda-tbar" style="background:linear-gradient(135deg,#020e08,#041810);"><div class="pda-title">Color Verified ✅</div><div class="pda-sub">색상 검증 완료</div></div><div class="pda-bd"><div class="pda-field"><div class="pda-fl">Roll ID</div><div class="pda-fv ok">FAB-GY-2507-020</div></div><div class="pda-field"><div class="pda-fl">Color · 색상</div><div class="pda-fv ok">GY-C03 · Grey ✅ Match</div></div><div class="pda-field"><div class="pda-fl">Remaining · 잔량</div><div class="pda-fv ok">48.2 m</div></div><div class="pda-field"><div class="pda-fl">Unit Use / EA</div><div class="pda-fv">0.25 m/EA</div></div><button class="pda-btn pda-pri">✅ Confirm Input · 투입 확정</button></div></div></div></div>
-<div class="pda-unit"><div class="pdu-step">② Color Mismatch ❌ · 불일치 차단</div><div class="pda-shell"><div class="pda-scr"><div class="pda-sbar"><span>IMG-L1</span><span class="online">● HOLD</span></div><div class="pda-tbar" style="background:#1a0808;border-bottom-color:#3a1010;"><div class="pda-title" style="color:#ff8a82;">⛔ COLOR MISMATCH</div><div class="pda-sub" style="color:#ff8a82;">색상 불일치 — 투입 차단</div></div><div class="pda-bd"><div class="pda-field"><div class="pda-fl">Scanned · 스캔 색상</div><div class="pda-fv er">BK-C01 · Black ❌</div></div><div class="pda-field"><div class="pda-fl">Required · 요구 색상</div><div class="pda-fv">GY-C03 · Grey</div></div><div style="background:#1a0808;border:1px solid #3a1010;border-radius:5px;padding:8px;text-align:center;font-size:10px;color:#ff8a82;margin-bottom:7px;">INPUT BLOCKED<br><span style="font-size:8px;opacity:.7;">Scan correct roll · 올바른 롤 재스캔</span></div><button class="pda-btn pda-dan">🔄 Re-scan · 재스캔</button></div></div></div></div>
-<div class="pda-unit"><div class="pdu-step">③ Auto Deduction · 자동 차감</div><div class="pda-shell"><div class="pda-scr"><div class="pda-sbar"><span>IMG-L1</span><span class="online">● 09:44</span></div><div class="pda-tbar" style="background:linear-gradient(135deg,#0a0818,#120a28);"><div class="pda-title">Auto Deduction ✅</div><div class="pda-sub">원단 자동 차감 완료</div></div><div class="pda-bd"><div class="pda-field"><div class="pda-fl">Produced · 생산</div><div class="pda-fv ok">1 EA</div></div><div class="pda-field"><div class="pda-fl">Consumed · 소비</div><div class="pda-fv ok">0.25 m (BOM)</div></div><div class="pda-field"><div class="pda-fl">Remaining · 잔량</div><div class="pda-fv ok">47.95 m</div></div><div style="background:#040c18;border:1px solid #0a5a38;border-radius:5px;padding:6px;font-size:9px;color:#00e5a0;text-align:center;">WH Stock Auto-Updated<br><span style="font-size:8px;opacity:.6;">WH 재고 자동 반영 완료</span></div></div></div></div></div>
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol active"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head">
+    <div class="sb-vol">VOL.6 · IMG MODULE</div>
+    <div class="sb-mod-en">WRAPPING POP</div>
+    <div class="sb-mod-ko">감싸기 생산 POP</div>
+  </div>
+  <div class="sb-section">Screens · 화면</div>
+  <a class="sb-link on" href="#img01"><span class="sl-id">IMG-01</span><div><div class="sl-en">POP Login</div><div class="sl-ko">로그인</div></div><a class="sb-l3" href="VOL06_IMG01_POP_Login.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#img02"><span class="sl-id">IMG-02</span><div><div class="sl-en">Dashboard</div><div class="sl-ko">현황판</div></div><a class="sb-l3" href="VOL06_IMG02_POP_Dashboard.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#img03"><span class="sl-id">IMG-03</span><div><div class="sl-en">Prod. Entry</div><div class="sl-ko">실적 입력</div></div><a class="sb-l3" href="VOL06_IMG03_Production_Entry.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#img04"><span class="sl-id">IMG-04</span><div><div class="sl-en">Fabric Input</div><div class="sl-ko">원단 투입 검증</div></div><a class="sb-l3" href="VOL06_IMG04_Fabric_Input.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#img05"><span class="sl-id">IMG-05</span><div><div class="sl-en">Defect</div><div class="sl-ko">불량 등록</div></div><a class="sb-l3" href="VOL06_IMG05_Defect.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#img06"><span class="sl-id">IMG-06</span><div><div class="sl-en">Bond Setup</div><div class="sl-ko">본드 세팅</div></div><a class="sb-l3" href="VOL06_IMG06_Bond_Setup.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#img07"><span class="sl-id">IMG-07</span><div><div class="sl-en">Prod. Status</div><div class="sl-ko">실적 현황</div></div><a class="sb-l3" href="VOL06_IMG07_Prod_Status.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <div class="sb-sep"></div>
+  <a class="sb-link" href="#br-img"><span class="sl-id">BR</span><div><div class="sl-en">Business Rules</div><div class="sl-ko">업무 규칙</div></div></a>
+</nav>
+<div class="main">
+  <div class="mod-hdr">
+    <div class="mod-hdr-inner">
+      <div class="mod-eyebrow">VOL.6 · IMG · Fabric Wrapping POP · 감싸기 생산 POP</div>
+      <div class="mod-title-en">FABRIC<br>WRAPPING POP</div>
+      <div class="mod-title-ko">감싸기 생산 POP — 7 Screens · Color Verify · Auto Fabric Deduction</div>
+      <div class="mod-desc-bi">
+        <div class="mdb-en">POP screens for the IMG (Fabric Wrapping) process — bonding fabric or leather to injection-molded plastic substrates. Key differentiators: mandatory fabric roll QR scan before mounting, automatic color-code verification against WO requirements (wrong color = instant block + alarm), BOM-based automatic fabric length deduction per production cycle, 6 IMG-specific defect types, and bond machine recipe parameter management.</div>
+        <div class="mdb-ko">사출 기재에 원단/가죽을 접착하는 IMG 감싸기 공정 POP. 핵심: 원단 롤 QR 스캔 필수, WO 요구 색상 자동 검증(불일치 즉시 차단 + 경고음), BOM 기반 원단 잔량 자동 차감, IMG 전용 불량 6종, 본드 기계 레시피 파라미터 관리.</div>
+      </div>
+      <div style="margin-bottom:8px;"><span class="l3-hint">📋 Click any screen card / pill / sidebar link to view L3 detail spec · 클릭 시 L3 상세 설계서</span></div>
+      <div class="screen-pills">
+        <a class="sp" href="VOL06_IMG01_POP_Login.html" title="L3 상세 · IMG-01"><span class="sp-id">IMG-01</span> POP Login <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL06_IMG02_POP_Dashboard.html" title="L3 상세 · IMG-02"><span class="sp-id">IMG-02</span> Dashboard <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL06_IMG03_Production_Entry.html" title="L3 상세 · IMG-03"><span class="sp-id">IMG-03</span> Production Entry <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL06_IMG04_Fabric_Input.html" title="L3 상세 · IMG-04"><span class="sp-id">IMG-04</span> Fabric Input &amp; Verify <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL06_IMG05_Defect.html" title="L3 상세 · IMG-05"><span class="sp-id">IMG-05</span> Defect Register <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL06_IMG06_Bond_Setup.html" title="L3 상세 · IMG-06"><span class="sp-id">IMG-06</span> Bond Setup <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL06_IMG07_Prod_Status.html" title="L3 상세 · IMG-07"><span class="sp-id">IMG-07</span> Production Status <span style="opacity:.5;font-size:8px;">📋</span></a>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- IMG-01 -->
+    <div class="screen-card" id="img01">
+      <div class="sc-hdr">
+        <div><div class="sc-id">IMG-01</div><div class="sc-title-en">POP Login</div><div class="sc-title-ko">POP 로그인</div></div>
+        <div class="sc-tags"><span class="tag t-pop">🏭 POP Dark</span><span class="tag t-1st">1st Dev</span></div>
+        <a class="sc-l3-btn" href="VOL06_IMG01_POP_Login.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Entry point to every IMG POP terminal. Operators authenticate via employee badge barcode scan (primary, ~1.5s) or 4-digit PIN (backup). Line and shift auto-detected from MD calendar roster. Identical UX to INJ-01 with IMG violet theme. 3 failed attempts → 30s lockout + supervisor alert.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">모든 IMG 감싸기 라인 POP 터미널의 진입점. 사번 배지 바코드 스캔(기본, ~1.5초) 또는 4자리 PIN(백업) 인증. MD 캘린더 로스터로 라인·교대 자동 설정. INJ-01과 동일 UX, IMG 보라 테마. 3회 실패 시 30초 잠금 + 라인장 알림.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMG-02 -->
+    <div class="screen-card" id="img02">
+      <div class="sc-hdr">
+        <div><div class="sc-id">IMG-02</div><div class="sc-title-en">POP Dashboard</div><div class="sc-title-ko">현황판 — 5m 가독 + 원단 잔량</div></div>
+        <div class="sc-tags"><span class="tag t-pop">🏭 POP Dark</span><span class="tag t-1st">1st Dev</span></div>
+        <a class="sc-l3-btn" href="VOL06_IMG02_POP_Dashboard.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Default screen after IMG-01 login. Real-time wrapping line dashboard with large fonts (5m readable): WO progress, current fabric roll status (visual color swatch + remaining length), bond machine temperature gauge, defect rate, hourly output. IMG-unique: fabric roll indicator with WO color matching. WS 5s + PLC 1s refresh.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">IMG-01 로그인 후 기본 화면. 5m 가독 대형 폰트 실시간 감싸기 라인 현황판: WO 진도·현재 원단 롤 상태(컬러 스왓치 + 잔량)·본드 온도 게이지·불량률·시간별 생산. IMG 고유: WO 색상과 매칭되는 원단 롤 시각 표시. WS 5초 + PLC 1초 갱신.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMG-03 -->
+    <div class="screen-card" id="img03">
+      <div class="sc-hdr">
+        <div><div class="sc-id">IMG-03</div><div class="sc-title-en">Production Entry</div><div class="sc-title-ko">감싸기 실적 입력 — Core</div></div>
+        <div class="sc-tags"><span class="tag t-pop">🏭 POP Dark</span><span class="tag t-core">⚙ Core</span></div>
+        <a class="sc-l3-btn" href="VOL06_IMG03_Production_Entry.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Core POP screen of the IMG module. After each wrapping cycle, operator enters good qty via 72px numpad. [CT] = standard cycle qty from MD_Recipe. Confirm triggers 6 auto-updates: IMG_Production INSERT, WO progress, <strong>fabric length auto-deducted from current roll</strong> (BOM × qty), OEE feed, QC trigger, dashboard cache. Critical: verified fabric roll required (BR-IMG-01).</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">IMG 모듈의 핵심 POP 화면. 감싸기 사이클 종료 후 양품 수량을 72px 숫자패드로 입력. [CT] = MD_Recipe 표준 사이클 수량. Confirm 시 6개 자동 갱신: IMG_Production 적재, WO 진도, <strong>원단 잔량 자동 차감</strong>(BOM × qty), OEE 데이터, QC 트리거, 대시보드 캐시. 핵심: 검증된 원단 롤 필수(BR-IMG-01).</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMG-04 -->
+    <div class="screen-card" id="img04">
+      <div class="sc-hdr">
+        <div><div class="sc-id">IMG-04</div><div class="sc-title-en">Fabric Input &amp; Color Verify</div><div class="sc-title-ko">원단 롤 투입·색상 검증 — Signature</div></div>
+        <div class="sc-tags"><span class="tag t-pda">📱 PDA</span><span class="tag t-sig">⚙ Signature</span></div>
+        <a class="sc-l3-btn" href="VOL06_IMG04_Fabric_Input.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">The signature differentiator of the IMG module. Operator scans fabric roll QR via PDA before mounting. System cross-checks color code against WO requirement: <strong>Match → proceed; Mismatch → block + red screen + alarm</strong> (BR-IMG-02). After confirmed input, fabric length auto-deducted per IMG-03 production confirm. PDA 4-step flow: Scan → Match/Mismatch → Confirm → Auto-Deduction. Eliminates wrong-color defects.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">IMG 모듈의 시그니처 차별화 화면. 작업자가 원단 롤 장착 전 PDA로 QR 스캔. 시스템이 색상 코드를 WO 요구와 즉시 대조: <strong>일치 → 진행. 불일치 → 차단 + 빨간 화면 + 경고음</strong>(BR-IMG-02). 투입 확정 후 IMG-03 실적 확정마다 원단 잔량 자동 차감. PDA 4단계: 스캔 → 일치/불일치 → 확정 → 자동 차감. 오색 투입 불량 제로화.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMG-05 -->
+    <div class="screen-card" id="img05">
+      <div class="sc-hdr">
+        <div><div class="sc-id">IMG-05</div><div class="sc-title-en">Defect Register</div><div class="sc-title-ko">불량 등록 — 6종 + 5% Andon</div></div>
+        <div class="sc-tags"><span class="tag t-pop">🏭 POP Dark</span><span class="tag t-1st">1st Dev</span></div>
+        <a class="sc-l3-btn" href="VOL06_IMG05_Defect.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Entered from IMG-03 [Defect] button. Operator picks 1 of 6 IMG defect types (LIFTING / WRINKLE / BOND_BLEED / FAB_SOIL / COLOR_DIFF / CUT_DEFECT) via large tap-buttons + numpad qty. Auto rate calculation; ≥ 5% fires Andon. Special auto-links: COLOR_DIFF → FabricInputAttempt history; CUT_DEFECT × 3 → cutter replacement MNT WO.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">IMG-03 [Defect] 버튼에서 진입. 6종 IMG 불량(들뜸/주름/본드번짐/오염/색차/재단) 중 1개 + 숫자패드 수량. 불량률 자동 계산, 5% 시 Andon 자동 발동. 특수 자동 연계: COLOR_DIFF → 원단 투입 시도 이력 자동 표시, CUT_DEFECT 연속 3회 → 커터 교체 MNT WO 권고.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMG-06 -->
+    <div class="screen-card" id="img06">
+      <div class="sc-hdr">
+        <div><div class="sc-id">IMG-06</div><div class="sc-title-en">Bond Setup</div><div class="sc-title-ko">본드 세팅 — Recipe + PLC</div></div>
+        <div class="sc-tags"><span class="tag t-pop">🏭 POP Dark</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL06_IMG06_Bond_Setup.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Bond machine recipe parameter screen. Sets pressure (3.5–5.0 bar) / temperature (85–95°C) / hold time (90–150 sec) setpoints. Auto-loaded from MD_Recipe on WO Accept; operator can adjust within MD-defined tolerance. PLC realtime feedback. Out-of-tolerance changes require supervisor PIN + reason (audit log 7 years). Per-cycle measured values feed QC enhanced inspection.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">본드 기계 레시피 파라미터 화면. 압력(3.5–5.0 bar)·온도(85–95°C)·시간(90–150초) 설정값 관리. WO 수락 시 MD_Recipe 자동 로드, 작업자가 허용오차 내 조정 가능. PLC 실시간 피드백. 허용오차 외 변경 시 라인장 PIN + 사유 필수(감사 7년). 사이클별 실측값은 QC 강화검사에 활용.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMG-07 -->
+    <div class="screen-card" id="img07">
+      <div class="sc-hdr">
+        <div><div class="sc-id">IMG-07</div><div class="sc-title-en">Production Status</div><div class="sc-title-ko">실적 현황 — Web 라인장</div></div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-1st">1st Dev</span></div>
+        <a class="sc-l3-btn" href="VOL06_IMG07_Prod_Status.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Web supervisor dashboard summarizing all IMG lines. IMG-unique columns: visual color swatch per line + fabric remaining bar + bond temperature status. KPI tiles (Today Good/Defect, Avg OEE, Active WOs, Low-Stock Rolls). Drill-down to per-WO history + fabric consumption log. Excel export (3 sheets: raw + summary + fabric).</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">모든 IMG 라인 요약 Web 라인장 대시보드. IMG 고유 컬럼: 라인별 컬러 스왓치 + 원단 잔량 막대 + 본드 온도 상태. KPI 타일(금일 양품/불량·평균 OEE·진행 WO·잔량 부족 롤). 드릴다운 WO 이력 + 원단 소비 로그. Excel 출력 (3시트: raw + 요약 + 원단).</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BR -->
+    <div class="br-wrap" id="br-img">
+      <div class="br-title">Business Rules · 업무 규칙 (IMG)</div>
+      <table class="br-tbl">
+        <thead><tr><th style="width:90px;">Rule ID</th><th style="width:140px;">Category</th><th>Rule (EN)</th><th>규칙 (KO)</th><th style="width:100px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-IMG-01</td><td>Fabric Scan Gate</td><td class="br-en">Fabric roll QR code must be scanned before production start. Unscanned input blocked at IMG-03; operator cannot skip step.</td><td class="br-ko">원단 롤 QR 스캔 없이 IMG-03 생산 불가. 스캔 건너뜀 차단.</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id">BR-IMG-02</td><td>Color Verification</td><td class="br-en">Scanned fabric color code must exactly match WO required color. Mismatch → immediate block + red screen + alarm. Supervisor PIN cannot bypass main color group.</td><td class="br-ko">스캔 색상 = WO 요구 색상 강제 매칭. 불일치 즉시 차단 + 빨간 화면 + 경고음. 라인장 PIN으로도 주 컬러 그룹 우회 불가.</td><td><span class="b b-e">Block + Alarm</span></td></tr>
+          <tr><td class="br-id">BR-IMG-03</td><td>Auto Fabric Deduction</td><td class="br-en">FabricConsumed = BOM unit × GoodQty per cycle. Auto-deducted from WH_FabricStock on every IMG-03 Confirm. Audit log 7 years.</td><td class="br-ko">원단 소비 = BOM 단위 × 사이클 양품. IMG-03 확정마다 WH_FabricStock 자동 차감. 감사 7년.</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id">BR-IMG-04</td><td>Low Stock Alert</td><td class="br-en">Fabric remaining ≤ 10m → yellow warning + IMG-04 reminder. ≤ 5m → red + push to supervisor + Confirm blocked if &lt; next cycle need.</td><td class="br-ko">원단 잔량 10m 이하 노랑 경고 + IMG-04 권고. 5m 이하 빨강 + 라인장 알림 + 차감 부족 시 Confirm 차단.</td><td><span class="b b-w">Multi</span></td></tr>
+          <tr><td class="br-id">BR-IMG-05</td><td>Bond Recipe</td><td class="br-en">Bond setpoint adjustment within ±Tolerance: free. Out of tolerance: supervisor PIN + reason code + 7-year audit log. PLC offline &gt; 30s → IMG-03 production locked.</td><td class="br-ko">본드 설정 ±허용오차 내 자유 조정. 외 변경 시 PIN + 사유 + 7년 감사. PLC 단절 30초 초과 시 IMG-03 잠금.</td><td><span class="b b-w">Audit</span></td></tr>
+          <tr><td class="br-id">BR-IMG-06</td><td>Defect Rate Andon</td><td class="br-en">Defect rate ≥ 5% per WO cumulative → auto-fire Andon (INJ-08 style). Supervisor PIN + reason + corrective action required to resume.</td><td class="br-ko">WO 누적 불량률 5% 시 Andon 자동(INJ-08 스타일). 라인장 PIN+사유+시정조치 후 재가동.</td><td><span class="b b-e">Andon</span></td></tr>
+          <tr><td class="br-id">BR-IMG-07</td><td>Defect Auto-Link</td><td class="br-en">IMG-D05 COLOR_DIFF auto-links recent FabricInputAttempt (24h). IMG-D04 FAB_SOIL ≥ 3/shift → cleanliness alert. IMG-D06 CUT_DEFECT × 3 consecutive → MNT cutter replacement WO.</td><td class="br-ko">COLOR_DIFF는 24h 내 FabricInputAttempt 자동 연계. FAB_SOIL 교대 3건 이상 청결 알림. CUT_DEFECT 연속 3회 MNT 커터 교체.</td><td><span class="b b-w">Alert</span></td></tr>
+          <tr><td class="br-id">BR-IMG-08</td><td>Bond Out-of-Spec</td><td class="br-en">Cycle measured values out of spec → QC enhanced inspection flag for affected LOTs. 5 consecutive → MNT bond machine WO.</td><td class="br-ko">사이클 실측 이탈 시 해당 LOT QC 강화검사 플래그. 연속 5회 시 본드기 MNT WO.</td><td><span class="b b-m">Multi</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <div class="page-footer">
+    <div class="pf-l">A-MES · VOL.6 · IMG Fabric Wrapping POP · UI Design Spec v2.0 · 7 Screens + 8 BRs</div>
+    <div class="pf-r">POP Dark + Web · Phase 0–2 · Color + Fabric · Bilingual EN/KO</div>
+  </div>
 </div>
-<div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">IMG Defect Types · 감싸기 전용 불량 6종</div><div class="sd-line"></div></div>
-<table class="tbl"><thead><tr><th>Code</th><th>Defect Name (EN)</th><th>불량명 (KO)</th><th>Common Cause</th></tr></thead><tbody>
-<tr><td style="font-family:monospace;font-size:9px;">LIFTING</td><td>Fabric Lifting</td><td>들뜸</td><td>Insufficient bonding pressure · 접착 압력 부족</td></tr>
-<tr><td style="font-family:monospace;font-size:9px;">WRINKLE</td><td>Wrinkle</td><td>주름</td><td>Uneven tension during wrapping · 감싸기 장력 불균일</td></tr>
-<tr><td style="font-family:monospace;font-size:9px;">BOND_BLEED</td><td>Bond Bleed</td><td>본드 번짐</td><td>Excess adhesive application · 본드 과다 도포</td></tr>
-<tr><td style="font-family:monospace;font-size:9px;">FAB_SOIL</td><td>Fabric Soiling</td><td>원단 오염</td><td>Dirty substrate / handling contamination · 기재 오염</td></tr>
-<tr><td style="font-family:monospace;font-size:9px;">COLOR_DIFF</td><td>Color Difference</td><td>색상 불일치</td><td>Wrong roll input / lot variation · 오투입 / 로트 편차</td></tr>
-<tr><td style="font-family:monospace;font-size:9px;">CUT_DEFECT</td><td>Cut Defect</td><td>재단 불량</td><td>Cutter blade wear / misalignment · 커터 마모</td></tr>
-</tbody></table>
-</div></div>
-<div class="br-wrap" id="br-img"><div class="br-title">Business Rules · 업무 규칙 (IMG)</div><table class="br-tbl"><thead><tr><th>Rule ID</th><th>Category</th><th>Rule (EN)</th><th>규칙 (KO)</th><th>Action</th></tr></thead><tbody>
-<tr><td class="br-id">BR-IMG-01</td><td>Fabric Scan Gate</td><td class="br-en">Fabric roll QR code must be scanned before production start. Unscanned roll input is blocked — operator cannot skip this step.</td><td class="br-ko">원단 롤 QR 스캔 없이 생산 불가. 스캔 단계 건너뜀 차단.</td><td><span class="b b-e">Block</span></td></tr>
-<tr><td class="br-id">BR-IMG-02</td><td>Color Verification</td><td class="br-en">Scanned fabric color code must exactly match the WO's required color. Any mismatch triggers immediate block + red screen + alarm. Operator must re-scan the correct roll.</td><td class="br-ko">스캔 색상 ≠ WO 요구 색상 → 즉시 차단 + 화면 빨간 + 경고음. 올바른 롤 재스캔 필수.</td><td><span class="b b-e">Block + Alarm</span></td></tr>
-<tr><td class="br-id">BR-IMG-03</td><td>Auto Deduction</td><td class="br-en">Fabric consumption = BOM unit quantity × produced quantity per cycle. Automatically deducted from WH-FAB inventory after each confirmed production entry.</td><td class="br-ko">원단 소비량 = BOM 단위 소요량 × 사이클 생산량. 실적 확정마다 WH-FAB 재고 자동 차감.</td><td><span class="b b-i">Auto</span></td></tr>
-</tbody></table></div>
-</div><div class="page-footer"><div class="pf-l">A-MES · VOL.6 · IMG Fabric Wrapping POP · UI Design Spec v1.0 · Bilingual EN/KO</div><div class="pf-r">7 Screens · POP Dark + Web · 2nd Dev</div></div></div></div></body></html>
+</div>
+</body>
+</html>
