@@ -1,25 +1,24 @@
-<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>A-MES · VOL.9 · FG · Finished Goods & Shipment</title>
-<style>/* ═══════════════════════════════════════
-   A-MES SHARED STYLESHEET v2.0
-   Bilingual EN/KO · UI Labels English
-═══════════════════════════════════════ */
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.9 · FG · Finished Goods</title>
+<style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
-
 :root{
-  --gold:#d4a017; --gold-lt:#fdf6e3; --gold-dk:#a07810;
-  --ink:#0d1117; --ink2:#161b22; --ink3:#21262d;
-  --surface:#ffffff; --bg:#f6f8fa; --border:#d0d7de;
-  --text:#24292f; --sub:#656d76;
-  /* module colors */
-  --wh:#0891b2; --pp:#059669; --inj:#2563eb; --img:#7c3aed;
-  --pnt:#ea580c; --qc:#dc2626; --fg:#0db87a; --mnt:#0284c7;
-  --rpt:#6366f1; --sys:#475569; --md:#d97706;
+  --gold:#d4a017;--gold-lt:#fdf6e3;--gold-dk:#a07810;
+  --ink:#0d1117;--ink2:#161b22;--ink3:#21262d;
+  --surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;
+  --wh:#0891b2;--pp:#059669;--inj:#2563eb;--img:#7c3aed;
+  --pnt:#ea580c;--qc:#dc2626;--fg:#0db87a;--mnt:#0284c7;
+  --rpt:#6366f1;--sys:#475569;--md:#d97706;
+  --mod-color:#0db87a;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html{scroll-behavior:smooth;}
 body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
 
-/* ── NAV BAR (injected per file) ── */
 .ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
 .ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
 .ames-nav-inner::-webkit-scrollbar{display:none;}
@@ -31,570 +30,874 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
 .nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
 
-/* ── PAGE LAYOUT ── */
 .page-wrap{display:flex;}
-.sidebar{width:230px;min-width:230px;background:var(--ink2);position:sticky;top:40px;height:calc(100vh - 40px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(212,160,23,.15) transparent;border-right:1px solid var(--ink3);}
+.sidebar{width:230px;min-width:230px;background:var(--ink2);position:sticky;top:40px;height:calc(100vh - 40px);overflow-y:auto;scrollbar-width:thin;border-right:1px solid var(--ink3);}
 .sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
 .sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
-.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:#6ee7b7;}
 .sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
 .sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.15);padding:12px 14px 4px;}
-.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.35);font-size:11px;border-left:2px solid transparent;transition:all .12s;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.35);font-size:11px;border-left:2px solid transparent;transition:all .12s;position:relative;}
 .sb-link:hover{color:rgba(255,255,255,.7);background:rgba(255,255,255,.03);}
-.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
-.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:32px;flex-shrink:0;}
+.sb-link.on{color:#fff;border-left-color:var(--fg);background:rgba(13,184,122,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;}
 .sb-link .sl-en{font-size:10px;font-weight:600;}
 .sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.2);margin-top:1px;}
+.sb-l3{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:3px;background:rgba(212,160,23,.12);color:rgba(212,160,23,.75);font-size:11px;text-decoration:none;margin-left:auto;transition:all .15s;flex-shrink:0;border:1px solid rgba(212,160,23,.25);}
+.sb-l3:hover{background:var(--gold);color:#000;border-color:var(--gold);transform:scale(1.15);}
 .sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
 
 .main{flex:1;min-width:0;}
 
-/* ── MODULE HEADER ── */
-.mod-hdr{padding:36px 48px 24px;position:relative;overflow:hidden;}
+.mod-hdr{padding:36px 48px 24px;position:relative;overflow:hidden;background:linear-gradient(135deg,color-mix(in srgb,#0db87a 32%,#000),color-mix(in srgb,#0db87a 14%,#000));}
 .mod-hdr-inner{position:relative;z-index:1;}
-.mod-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;opacity:.7;}
-.mod-title-en{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:.95;letter-spacing:2px;color:#fff;margin-bottom:4px;}
+.mod-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;color:#6ee7b7;}
+.mod-title-en{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:.95;letter-spacing:2px;color:#6ee7b7;margin-bottom:4px;}
 .mod-title-ko{font-size:14px;font-weight:300;color:rgba(255,255,255,.35);letter-spacing:4px;margin-bottom:16px;}
-.mod-desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:840px;margin-bottom:18px;}
-.mdb-en{font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;border-left:2px solid rgba(255,255,255,.12);padding-left:12px;}
-.mdb-ko{font-size:11px;color:rgba(255,255,255,.3);line-height:1.8;border-left:2px solid rgba(255,255,255,.06);padding-left:12px;}
-.screen-pills{display:flex;gap:5px;flex-wrap:wrap;}
-.sp{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:9px;color:rgba(255,255,255,.4);}
+.mod-desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:880px;margin-bottom:14px;}
+.mdb-en{font-size:11px;color:rgba(255,255,255,.6);line-height:1.85;border-left:2px solid rgba(255,255,255,.14);padding-left:12px;}
+.mdb-ko{font-size:11px;color:rgba(255,255,255,.35);line-height:1.85;border-left:2px solid rgba(255,255,255,.06);padding-left:12px;}
+
+.mod-meta-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:0;border:1px solid rgba(110,231,183,.22);border-radius:6px;overflow:hidden;margin:14px 0 16px;max-width:900px;background:rgba(0,0,0,.22);}
+.mms-item{padding:10px 14px;border-right:1px solid rgba(110,231,183,.14);}
+.mms-item:last-child{border-right:none;}
+.mms-l{font-size:8px;color:rgba(110,231,183,.6);text-transform:uppercase;letter-spacing:1.2px;font-family:'JetBrains Mono',monospace;}
+.mms-v{font-size:13px;font-weight:800;color:#fff;margin-top:3px;letter-spacing:.3px;}
+.mms-v.warn{color:#fde047;}
+.mms-v.alert{color:#fca5a5;}
+.mms-v.fg{color:#6ee7b7;}
+
+.screen-pills{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;}
+.sp{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:9px;color:rgba(255,255,255,.6);text-decoration:none;cursor:pointer;transition:all .15s;}
+.sp:hover{background:rgba(13,184,122,.25);border-color:rgba(13,184,122,.55);color:#fff;}
 .sp-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold);}
 
-/* ── CONTENT AREA ── */
+.l3-hint{display:inline-block;font-size:10px;color:rgba(212,160,23,.75);font-weight:600;letter-spacing:1px;padding:5px 12px;background:rgba(212,160,23,.08);border:1px dashed rgba(212,160,23,.4);border-radius:3px;margin-bottom:8px;}
+
 .content{padding:0 48px 48px;}
 
-/* ── SCREEN CARD ── */
-.screen-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;}
-.sc-hdr{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
-.sc-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
-.sc-title-en{font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px;}
-.sc-title-ko{font-size:10px;color:rgba(255,255,255,.35);margin-top:2px;}
+.sec-div{display:flex;align-items:center;gap:12px;margin:28px 0 16px;}
+.sd-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--border) 20%,var(--border) 80%,transparent);}
+.sd-lbl{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--fg);letter-spacing:2px;white-space:nowrap;padding:4px 10px;background:#dcfce7;border:1px solid #86efac;border-radius:3px;}
+
+.flow-card{background:linear-gradient(135deg,#062a1a,#04241a);color:#e2e8f0;border-radius:10px;padding:20px 22px;margin-bottom:18px;box-shadow:0 4px 20px rgba(13,184,122,.18);}
+.flow-card-h{font-family:'JetBrains Mono',monospace;font-size:10px;color:#6ee7b7;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;}
+.flow-track{margin-bottom:14px;}
+.flow-track-lbl{font-size:10px;color:rgba(255,255,255,.6);letter-spacing:1px;font-family:'JetBrains Mono',monospace;margin-bottom:8px;text-transform:uppercase;}
+.flow-row{display:flex;align-items:center;gap:0;flex-wrap:wrap;}
+.flow-node{display:flex;flex-direction:column;align-items:center;gap:3px;background:rgba(13,184,122,.14);border:1px solid rgba(110,231,183,.42);border-radius:8px;padding:10px 12px;min-width:96px;text-align:center;transition:all .15s;text-decoration:none;color:#e2e8f0;}
+.flow-node:hover{background:rgba(13,184,122,.28);border-color:#6ee7b7;transform:translateY(-2px);box-shadow:0 6px 16px rgba(13,184,122,.32);}
+.flow-node.core{background:rgba(212,160,23,.2);border-color:#fbbf24;}
+.flow-node.core .fn-id{color:#fbbf24;}
+.flow-node.aux{background:rgba(168,85,247,.15);border-color:rgba(216,180,254,.5);}
+.flow-node.aux .fn-id{color:#d8b4fe;}
+.flow-node.external{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.2);border-style:dashed;}
+.fn-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:#6ee7b7;letter-spacing:.5px;}
+.flow-node.external .fn-id{color:rgba(255,255,255,.5);}
+.fn-name{font-size:11px;font-weight:700;color:#fff;}
+.fn-ko{font-size:9px;color:rgba(255,255,255,.55);}
+.fn-tag{font-size:8px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.5);margin-top:1px;}
+.flow-arr{font-size:18px;color:rgba(110,231,183,.55);padding:0 4px;font-weight:700;}
+
+.mod-kpi{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
+.kpi-card{background:#fff;border:1px solid var(--border);border-top:3px solid var(--fg);border-radius:0 0 6px 6px;padding:14px 16px;}
+.kpi-l{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--sub);letter-spacing:1px;text-transform:uppercase;}
+.kpi-v{font-family:'Bebas Neue',sans-serif;font-size:34px;color:var(--text);line-height:1;margin-top:5px;letter-spacing:.5px;}
+.kpi-v.ok{color:#16a34a;}.kpi-v.warn{color:#a16207;}.kpi-v.alert{color:#dc2626;}.kpi-v.fg{color:#065f46;}
+.kpi-s{font-size:10px;color:var(--sub);margin-top:3px;}
+
+.screen-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:18px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.sc-hdr{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,color-mix(in srgb,#0db87a 28%,#000),color-mix(in srgb,#0db87a 12%,#000));}
+.sc-hdr.core{background:linear-gradient(135deg,color-mix(in srgb,#d4a017 32%,#000),color-mix(in srgb,#0db87a 22%,#000));}
+.sc-hdr.aux{background:linear-gradient(135deg,color-mix(in srgb,#a855f7 28%,#000),color-mix(in srgb,#0db87a 14%,#000));}
+.sc-hdr-l{display:flex;align-items:center;gap:14px;flex:1;min-width:0;}
+.sc-icon{font-size:42px;line-height:1;flex-shrink:0;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3));}
+.sc-title-wrap{flex:1;min-width:0;}
+.sc-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#6ee7b7;letter-spacing:.5px;}
+.sc-hdr.core .sc-id{color:#fbbf24;}
+.sc-hdr.aux .sc-id{color:#d8b4fe;}
+.sc-title-en{font-size:16px;font-weight:800;color:#fff;letter-spacing:-.3px;margin-top:2px;}
+.sc-title-ko{font-size:10px;color:rgba(255,255,255,.55);margin-top:2px;}
 .sc-tags{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
-.tag{font-size:9px;font-weight:700;padding:2px 9px;border-radius:3px;}
+.tag{font-size:9px;font-weight:700;padding:2px 9px;border-radius:3px;white-space:nowrap;}
 .t-web{background:rgba(26,111,255,.2);color:#7ab4ff;border:1px solid rgba(26,111,255,.3);}
 .t-pda{background:rgba(13,184,122,.2);color:#5dffc4;border:1px solid rgba(13,184,122,.3);}
-.t-pop{background:rgba(234,88,12,.2);color:#fdba74;border:1px solid rgba(234,88,12,.3);}
-.t-p0{background:rgba(212,160,23,.15);color:#fbbf24;border:1px solid rgba(212,160,23,.2);}
 .t-1st{background:rgba(26,111,255,.12);color:#93c5fd;border:1px solid rgba(26,111,255,.18);}
 .t-2nd{background:rgba(124,58,237,.12);color:#c4b5fd;border:1px solid rgba(124,58,237,.18);}
-.t-3rd{background:rgba(255,107,0,.12);color:#fdba74;border:1px solid rgba(255,107,0,.18);}
-.sc-body{padding:14px 18px;}
+.t-core{background:rgba(212,160,23,.2);color:#fbbf24;border:1px solid rgba(212,160,23,.35);}
+.t-aux{background:rgba(168,85,247,.18);color:#d8b4fe;border:1px solid rgba(168,85,247,.4);}
+.sc-l3-btn{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:linear-gradient(135deg,#d4a017,#a07810);color:#000;font-size:11px;font-weight:800;border-radius:5px;text-decoration:none;letter-spacing:.5px;text-transform:uppercase;border:1px solid #a07810;box-shadow:0 2px 6px rgba(212,160,23,.3);transition:all .15s;white-space:nowrap;}
+.sc-l3-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(212,160,23,.5);background:linear-gradient(135deg,#fbbf24,#d4a017);}
+.sc-body{padding:16px 18px;}
 
-/* ── BILINGUAL DESC ── */
-.desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;background:#f6f8ff;border:1px solid var(--border);border-left:3px solid;border-radius:0 6px 6px 0;padding:11px 14px;}
-.db-lbl{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;opacity:.5;}
-.db-en{font-size:11px;color:#1e40af;line-height:1.75;}
+.headline{display:flex;align-items:center;gap:10px;padding:11px 14px;background:linear-gradient(135deg,#dcfce7,#bbf7d0);border:1px solid #86efac;border-left:3px solid var(--fg);border-radius:0 5px 5px 0;margin-bottom:14px;}
+.headline.core{background:linear-gradient(135deg,#fef9c3,#fef3c7);border-color:#fcd34d;border-left-color:#d4a017;}
+.headline.aux{background:linear-gradient(135deg,#faf5ff,#f3e8ff);border-color:#d8b4fe;border-left-color:#a855f7;}
+.headline-ico{font-size:18px;color:#065f46;}
+.headline.core .headline-ico{color:#92400e;}
+.headline.aux .headline-ico{color:#6b21a8;}
+.headline-t{font-size:12px;color:#065f46;font-weight:700;line-height:1.55;}
+.headline.core .headline-t{color:#78350f;}
+.headline.aux .headline-t{color:#581c87;}
+.headline-t .ko{display:block;color:var(--fg);font-weight:400;font-size:11px;margin-top:1px;}
+.headline.core .headline-t .ko{color:#92400e;}
+.headline.aux .headline-t .ko{color:#7c3aed;}
+
+.qf-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.qf{background:#fafbfd;border:1px solid var(--border);border-radius:5px;padding:9px 11px;}
+.qf-l{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--sub);letter-spacing:.7px;text-transform:uppercase;}
+.qf-v{font-size:11px;color:var(--text);font-weight:700;margin-top:3px;line-height:1.4;}
+
+.desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;background:#dcfce7;border:1px solid var(--border);border-left:3px solid var(--fg);border-radius:0 6px 6px 0;padding:11px 14px;}
+.db-lbl{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;opacity:.55;}
+.db-en{font-size:11px;color:#065f46;line-height:1.75;}
 .db-ko{font-size:11px;color:var(--sub);line-height:1.75;}
 
-/* ── KPI STRIP ── */
-.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:12px;}
-.kc{flex:1;padding:9px 12px;border-right:1px solid var(--border);}
-.kc:last-child{border-right:none;}
-.kv{font-size:20px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
-.kl-en{font-size:9px;color:var(--sub);margin-top:2px;}
-.kl-ko{font-size:8px;color:rgba(100,116,139,.55);}
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin-bottom:12px;}
+.feat-item{background:#fff;border:1px solid var(--border);border-top:2px solid var(--fg);border-radius:0 0 5px 5px;padding:10px 12px;}
+.feat-item.core{border-top-color:#d4a017;}
+.feat-item.aux{border-top-color:#a855f7;}
+.feat-ico{font-size:16px;line-height:1;margin-bottom:5px;}
+.feat-t{font-size:11px;font-weight:800;color:var(--text);margin-bottom:2px;}
+.feat-d{font-size:10px;color:var(--sub);line-height:1.55;}
+.feat-d .ko{color:#94a3b8;font-size:9px;display:block;margin-top:1px;}
 
-/* ── MOCK WINDOW ── */
-.mock-wrap{background:#eef1f5;border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;}
-.mock-lbl{font-size:9px;font-weight:700;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;}
-.mock-win{background:#fff;border:1px solid #c8d0db;border-radius:6px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.07);}
-.mock-tbar{background:var(--text);color:#fff;padding:7px 13px;display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;}
-.mock-tbar .bc{margin-left:auto;font-size:9px;color:rgba(255,255,255,.3);font-family:'JetBrains Mono',monospace;}
-.mock-body{padding:12px 13px;}
-.mock-toolbar{background:#f6f8fa;border-bottom:1px solid var(--border);padding:6px 13px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
-.mock-toolbar select,.mock-toolbar input{padding:3px 8px;border:1px solid var(--border);border-radius:3px;font-size:11px;background:#fff;}
+.br-chips{display:flex;gap:5px;flex-wrap:wrap;padding-top:10px;border-top:1px dashed var(--border);}
+.br-chip{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;padding:3px 8px;border-radius:3px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;text-decoration:none;letter-spacing:.3px;}
+.br-chip.crit{background:#fee2e2;color:#991b1b;border-color:#fca5a5;}
+.br-chip-lbl{font-size:9px;color:var(--sub);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;margin-right:4px;align-self:center;}
 
-/* ── TABLE ── */
-.tbl{width:100%;border-collapse:collapse;font-size:11px;}
-.tbl th{background:#f0f3f7;padding:6px 9px;font-weight:700;border:1px solid var(--border);text-align:left;font-size:10px;color:var(--text);}
-.tbl th .th-ko{font-weight:400;color:var(--sub);font-size:9px;}
-.tbl td{padding:5px 9px;border:1px solid var(--border);vertical-align:middle;}
-.tbl .rh td{background:#f0fdf4;}
-.tbl .rw td{background:#fffbeb;}
-.tbl .rd td{background:#fef2f2;}
-.tbl tr:hover td{background:#f9fafb;}
-.tbl td .ko{color:var(--sub);font-size:10px;}
+.ref-tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:18px;}
+.ref-tbl th{background:#f0f3f7;color:var(--text);padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.ref-tbl td{padding:8px 12px;border-bottom:1px solid var(--border);}
+.ref-tbl tr:last-child td{border-bottom:none;}
+.ref-tbl tr:nth-child(even) td{background:#fafbfd;}
+.ref-tbl .pill{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
+.pill.pill-avail{background:#dcfce7;color:#166534;}
+.pill.pill-rsv{background:#f3e8ff;color:#6b21a8;}
+.pill.pill-hold{background:#fee2e2;color:#991b1b;}
+.pill.pill-ship{background:#dbeafe;color:#1e40af;}
+.pill.pill-rtn{background:#fef9c3;color:#92400e;}
 
-/* ── BADGES ── */
+.br-wrap{margin-bottom:16px;}
+.br-title{font-size:11px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+.br-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.br-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.br-tbl th{background:var(--text);color:#fff;padding:7px 10px;text-align:left;border:1px solid rgba(255,255,255,.08);font-size:9px;}
+.br-tbl td{padding:7px 10px;border:1px solid var(--border);vertical-align:top;line-height:1.6;}
+.br-tbl tr:nth-child(even) td{background:#fafbfd;}
+.br-id-c{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-en-c{color:var(--text);}
+.br-ko-c{color:var(--sub);font-size:10px;margin-top:2px;}
+.br-tbl tr.cat-row td{background:#f0f3f7;font-weight:700;color:var(--fg);font-size:9px;letter-spacing:1px;text-transform:uppercase;}
 .b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
 .b-ok{background:#dcfce7;color:#166534;}
 .b-w{background:#fef9c3;color:#92400e;}
 .b-e{background:#fee2e2;color:#991b1b;}
 .b-i{background:#dbeafe;color:#1e40af;}
-.b-n{background:#f3f4f6;color:#4b5563;}
+.b-m{background:#fce7f3;color:#9d174d;}
 
-/* ── BUTTONS ── */
-.btn{padding:5px 13px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
-.btn-primary{background:var(--mod-color,#0891b2);color:#fff;border-color:var(--mod-color,#0891b2);}
-.btn-secondary{background:#f6f8fa;color:var(--text);border-color:var(--border);}
-.btn-danger{background:#dc2626;color:#fff;}
-.btn-sm{padding:3px 9px;font-size:10px;}
-
-/* ── FEATURE GRID ── */
-.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
-.feat-item{background:#f6f8ff;border:1px solid var(--border);border-radius:6px;padding:11px 13px;border-top:2px solid;}
-.fi-title-en{font-size:11px;font-weight:700;margin-bottom:1px;}
-.fi-title-ko{font-size:10px;color:var(--sub);margin-bottom:6px;}
-ul.fi-list{list-style:none;}
-ul.fi-list li{padding:2px 0 2px 12px;position:relative;font-size:10px;line-height:1.6;}
-ul.fi-list li::before{content:'–';position:absolute;left:0;color:var(--sub);}
-ul.fi-list li .ko{color:var(--sub);font-size:9px;}
-
-/* ── PDA MOCK ── */
-.pda-row{display:flex;gap:14px;flex-wrap:wrap;}
-.pda-unit{text-align:center;}
-.pdu-step{font-size:9px;font-weight:700;color:var(--sub);margin-bottom:5px;}
-.pda-shell{background:#1a1e2e;border-radius:16px;padding:9px;width:172px;border:2px solid #2a3048;box-shadow:0 6px 20px rgba(0,0,0,.3);}
-.pda-scr{background:#0a1628;border-radius:10px;overflow:hidden;border:1px solid #1a3050;}
-.pda-sbar{background:#060e1c;padding:3px 8px;display:flex;justify-content:space-between;}
-.pda-sbar span{font-size:7px;color:#2a4a7a;font-family:'JetBrains Mono',monospace;}
-.pda-sbar .online{color:#00e5a0;}
-.pda-tbar{padding:7px 10px;border-bottom:1px solid #0a3050;}
-.pda-title{font-size:11px;font-weight:700;color:#00e5a0;}
-.pda-sub{font-size:8px;color:rgba(255,255,255,.3);}
-.pda-bd{padding:8px 10px;}
-.pda-scan{background:#060e1c;border:2px dashed rgba(0,229,160,.3);border-radius:6px;padding:12px;text-align:center;margin-bottom:7px;}
-.pda-scan-icon{font-size:22px;margin-bottom:3px;}
-.pda-scan-en{font-size:10px;font-weight:700;color:#00e5a0;}
-.pda-scan-ko{font-size:8px;color:rgba(255,255,255,.3);}
-.pda-field{margin-bottom:5px;}
-.pda-fl{font-size:8px;color:#1a5a4a;margin-bottom:2px;font-weight:600;}
-.pda-fv{background:#040c18;border:1px solid #1a3050;border-radius:4px;padding:4px 8px;font-size:10px;color:#a0c8f0;font-family:'JetBrains Mono',monospace;}
-.pda-fv.ok{border-color:#00e5a0;color:#00e5a0;}
-.pda-fv.er{border-color:#ff8a82;color:#ff8a82;}
-.pda-numpad{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;margin-bottom:6px;}
-.pda-key{background:#0d1e30;border:1px solid #1a3050;border-radius:4px;padding:7px 4px;text-align:center;font-size:13px;font-weight:700;color:#c0e0f0;font-family:'JetBrains Mono',monospace;}
-.pda-key.k-ok{background:#0a2a1a;color:#00e5a0;border-color:#0a5a38;}
-.pda-key.k-del{background:#1a0808;color:#ff8a82;border-color:#3a1010;}
-.pda-disp{background:#040c18;border:1px solid #1a3050;border-radius:4px;padding:5px 9px;font-size:24px;font-weight:900;color:#00e5a0;text-align:right;margin-bottom:6px;font-family:'JetBrains Mono',monospace;}
-.pda-btn{width:100%;padding:7px;border-radius:5px;font-size:10px;font-weight:700;border:none;cursor:pointer;margin-bottom:4px;font-family:'Noto Sans KR',sans-serif;}
-.pda-pri{background:linear-gradient(135deg,#0a9060,#0db87a);color:#fff;}
-.pda-sec{background:#0a1428;color:#4a7aaa;border:1px solid #1a3050;}
-.pda-dan{background:#1a0808;color:#ff8a82;border:1px solid #3a1010;}
-.pda-progress-bar{height:4px;background:#060e1c;border-radius:2px;overflow:hidden;margin:4px 0 8px;}
-.pda-progress-fill{height:100%;background:linear-gradient(90deg,#0a9060,#00e5a0);border-radius:2px;}
-
-/* ── BR TABLE ── */
-.br-wrap{margin-bottom:16px;}
-.br-title{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:7px;display:flex;align-items:center;gap:10px;}
-.br-title::after{content:'';flex:1;height:1px;background:var(--border);}
-.br-tbl{width:100%;border-collapse:collapse;font-size:10px;}
-.br-tbl th{background:var(--text);color:#fff;padding:6px 10px;text-align:left;border:1px solid rgba(255,255,255,.08);font-size:9px;}
-.br-tbl td{padding:6px 10px;border:1px solid var(--border);vertical-align:top;line-height:1.6;}
-.br-tbl tr:nth-child(even) td{background:#fafbfd;}
-.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
-.br-en{color:var(--text);}
-.br-ko{color:var(--sub);font-size:10px;margin-top:2px;}
-
-/* ── SECTION DIV ── */
-.sec-div{display:flex;align-items:center;gap:12px;margin:20px 0 12px;}
-.sd-line{flex:1;height:1px;background:var(--border);}
-.sd-lbl{font-size:10px;font-weight:700;color:var(--sub);white-space:nowrap;}
-
-/* ── ALERTS ── */
-.alert{padding:8px 12px;border-radius:5px;font-size:10px;margin-bottom:9px;display:flex;gap:8px;line-height:1.7;}
-.alert-i{background:#eff6ff;border-left:3px solid #3b82f6;}
-.alert-w{background:#fffbeb;border-left:3px solid #f59e0b;}
-.alert-s{background:#f0fdf4;border-left:3px solid #22c55e;}
-.alert-d{background:#fef2f2;border-left:3px solid #ef4444;}
-
-/* ── ROUTING FLOW ── */
-.rflow{display:flex;align-items:center;gap:0;flex-wrap:nowrap;overflow-x:auto;padding:4px 0;}
-.rs{padding:9px 14px;border-radius:5px;font-size:11px;font-weight:700;text-align:center;flex-shrink:0;text-decoration:none;}
-.rs-en{font-size:12px;font-weight:800;}
-.rs-ko{font-size:9px;font-weight:400;opacity:.7;margin-top:2px;}
-.rarr{color:var(--sub);font-size:14px;padding:0 5px;flex-shrink:0;}
-.rs-inj{background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;}
-.rs-img{background:#f5f3ff;color:#5b21b6;border:1px solid #c4b5fd;}
-.rs-pnt{background:#fff7ed;color:#9a3412;border:1px solid #fdba74;}
-.rs-qc{background:#fef2f2;color:#991b1b;border:1px solid #fca5a5;}
-.rs-fg{background:#f0fdf4;color:#065f46;border:1px solid #6ee7b7;}
-
-/* ── GRID ── */
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
-
-/* ── PROGRESS BAR ── */
-.prog-track{height:5px;background:#f0f2f5;border-radius:3px;overflow:hidden;}
-.prog-fill{height:100%;border-radius:3px;}
-
-/* ── DATA MODEL TABLE ── */
-.dm-tbl{width:100%;border-collapse:collapse;font-size:10px;}
-.dm-tbl th{background:var(--ink2);color:#fff;padding:6px 10px;text-align:left;border:1px solid var(--ink3);font-size:9px;}
-.dm-tbl td{padding:5px 10px;border:1px solid var(--border);vertical-align:top;}
-.dm-tbl tr:nth-child(even) td{background:#fafbfd;}
-.dm-col{font-family:'JetBrains Mono',monospace;color:#1e40af;font-weight:600;}
-.dm-type{font-family:'JetBrains Mono',monospace;color:var(--sub);font-size:10px;}
-.dm-pk{color:#dc2626;font-weight:700;}
-.dm-fk{color:#7c3aed;}
-
-/* ── PAGE FOOTER ── */
 .page-footer{padding:14px 48px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--ink);margin-top:20px;}
 .pf-l{font-size:10px;color:rgba(255,255,255,.2);}
 .pf-r{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(212,160,23,.4);}
-
-:root{--mod-color:#0db87a;}
-.mod-hdr{background:linear-gradient(135deg,color-mix(in srgb,#0db87a 30%,#000),color-mix(in srgb,#0db87a 12%,#000));}
-.sc-hdr{background:linear-gradient(135deg,color-mix(in srgb,#0db87a 22%,#000),color-mix(in srgb,#0db87a 10%,#000));}
-.sc-id{color:#0db87a;} .sb-mod-en{color:#0db87a;} .sb-link.on{border-left-color:#0db87a;}
-</style></head><body>
+</style>
+</head>
+<body>
 <nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol active"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
-<div class="page-wrap"><nav class="sidebar">
-  <div class="sb-head"><div class="sb-vol">VOL.9 · FG MODULE</div><div class="sb-mod-en">FINISHED GOODS</div><div class="sb-mod-ko">완제품 출고</div></div>
-  <div class="sb-section">Screens · 화면</div>
-  <a class="sb-link on" href="#fg01"><span class="sl-id">FG-01</span><div><div class="sl-en">PDA Stocking</div><div class="sl-ko">PDA 완제품 적재</div></div></a>
-  <a class="sb-link" href="#fg02"><span class="sl-id">FG-02</span><div><div class="sl-en">FG Inventory</div><div class="sl-ko">완제품 재고</div></div></a>
-  <a class="sb-link" href="#fg03"><span class="sl-id">FG-03</span><div><div class="sl-en">Shipment Order</div><div class="sl-ko">출하 지시</div></div></a>
-  <a class="sb-link" href="#fg04"><span class="sl-id">FG-04</span><div><div class="sl-en">PDA FIFO Picking</div><div class="sl-ko">PDA FIFO 피킹</div></div></a>
-  <a class="sb-link" href="#fg05"><span class="sl-id">FG-05</span><div><div class="sl-en">Loading Confirmation</div><div class="sl-ko">상차 확인</div></div></a>
-  <a class="sb-link" href="#fg06"><span class="sl-id">FG-06</span><div><div class="sl-en">Delivery Note</div><div class="sl-ko">거래명세서</div></div></a>
-  <a class="sb-link" href="#fg07"><span class="sl-id">FG-07</span><div><div class="sl-en">Day-End Close</div><div class="sl-ko">일 마감</div></div></a>
-  <a class="sb-link" href="#fg08"><span class="sl-id">FG-08</span><div><div class="sl-en">Shipment History</div><div class="sl-ko">출하 이력</div></div></a>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head">
+    <div class="sb-vol">VOL.9 · FG MODULE</div>
+    <div class="sb-mod-en">FINISHED GOODS</div>
+    <div class="sb-mod-ko">완제품 관리</div>
+  </div>
+  <div class="sb-section">Overview · 개요</div>
+  <a class="sb-link" href="#flow"><span class="sl-id">FLOW</span><div><div class="sl-en">Process Flow</div><div class="sl-ko">출하 흐름</div></div></a>
+  <a class="sb-link" href="#kpi"><span class="sl-id">KPI</span><div><div class="sl-en">Module KPI</div><div class="sl-ko">핵심 지표</div></div></a>
+  <div class="sb-section">Inbound · 적재</div>
+  <a class="sb-link on" href="#fg01"><span class="sl-id">FG-01</span><div><div class="sl-en">PDA Stocking</div><div class="sl-ko">완제품 적재</div></div><a class="sb-l3" href="VOL09_FG01_PDA_Stocking.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#fg02"><span class="sl-id">FG-02</span><div><div class="sl-en">Inventory</div><div class="sl-ko">재고 현황</div></div><a class="sb-l3" href="VOL09_FG02_Inventory.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <div class="sb-section">Outbound · 출하</div>
+  <a class="sb-link" href="#fg03"><span class="sl-id">FG-03</span><div><div class="sl-en">Ship. Order</div><div class="sl-ko">출하 지시</div></div><a class="sb-l3" href="VOL09_FG03_Shipment_Order.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#fg04"><span class="sl-id">FG-04</span><div><div class="sl-en">FIFO Pick ⚙</div><div class="sl-ko">피킹</div></div><a class="sb-l3" href="VOL09_FG04_PDA_FIFO_Picking.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#fg05"><span class="sl-id">FG-05</span><div><div class="sl-en">Loading</div><div class="sl-ko">상차 확인</div></div><a class="sb-l3" href="VOL09_FG05_Loading.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#fg06"><span class="sl-id">FG-06</span><div><div class="sl-en">Delivery Note</div><div class="sl-ko">거래명세서</div></div><a class="sb-l3" href="VOL09_FG06_Delivery_Note.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <div class="sb-section">Closing &amp; Audit</div>
+  <a class="sb-link" href="#fg07"><span class="sl-id">FG-07</span><div><div class="sl-en">Day-End</div><div class="sl-ko">일 마감</div></div><a class="sb-l3" href="VOL09_FG07_Day_End_Close.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#fg08"><span class="sl-id">FG-08</span><div><div class="sl-en">Ship History</div><div class="sl-ko">출하 이력</div></div><a class="sb-l3" href="VOL09_FG08_Shipment_History.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#fg09"><span class="sl-id">FG-09</span><div><div class="sl-en">Dashboard</div><div class="sl-ko">현황판</div></div><a class="sb-l3" href="VOL09_FG09_Dashboard.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#fgrtn"><span class="sl-id">FG-RTN</span><div><div class="sl-en">Return ↩</div><div class="sl-ko">반품 (Aux)</div></div><a class="sb-l3" href="VOL09_FG_RTN_Return.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
   <div class="sb-sep"></div>
-  <a class="sb-link" href="#br-fg"><span class="sl-id">BR</span><div><div class="sl-en">Business Rules</div><div class="sl-ko">업무 규칙</div></div></a>
-</nav><div class="main">
-<div class="mod-hdr"><div class="mod-hdr-inner">
-  <div class="mod-eyebrow" style="color:#5dffc4;">VOL.9 · FG · Finished Goods & Shipment · 완제품 출고</div>
-  <div class="mod-title-en" style="color:#5dffc4;">FINISHED GOODS<br>&amp; SHIPMENT</div>
-  <div class="mod-title-ko">완제품 출고</div>
-  <div class="mod-desc-bi">
-    <div class="mdb-en">Manages finished goods from QC-passed stocking through PDA FIFO picking, loading confirmation, delivery note generation (SAV / GEO format), and day-end close lock. Only QC-approved WOs can be stocked. Wrong-item barcode during picking is immediately blocked. Delivery notes auto-generated per client format (SAV / GEO).</div>
-    <div class="mdb-ko">QC 합격 완제품 PDA 적재 → FIFO 피킹 → 상차 확인 → 거래명세서 자동 생성(SAV·GEO 양식) → 일 마감 잠금. QC 합격 WO만 적재 가능. 오피킹 즉시 차단. SAV·GEO 거래선별 거래명세서 자동 생성.</div>
-  </div>
-  <div class="screen-pills">
-    <span class="sp"><span class="sp-id">FG-01</span> PDA Stocking</span>
-    <span class="sp"><span class="sp-id">FG-02</span> FG Inventory</span>
-    <span class="sp"><span class="sp-id">FG-03</span> Shipment Order</span>
-    <span class="sp"><span class="sp-id">FG-04</span> PDA FIFO Picking</span>
-    <span class="sp"><span class="sp-id">FG-05</span> Loading Confirm</span>
-    <span class="sp"><span class="sp-id">FG-06</span> Delivery Note</span>
-    <span class="sp"><span class="sp-id">FG-07</span> Day-End Close</span>
-    <span class="sp"><span class="sp-id">FG-08</span> Shipment History</span>
-  </div>
-</div></div>
-<div class="content">
-
-<!-- Process flow -->
-<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:20px;">
-  <div style="font-size:11px;font-weight:700;margin-bottom:12px;">FG Process Flow · 완제품 출고 프로세스</div>
-  <div class="rflow">
-    <div style="text-align:center;"><div style="background:#fef2f2;border:2px solid #dc2626;border-radius:6px;padding:8px 12px;font-size:10px;font-weight:800;color:#991b1b;">QC-03 PASS<div style="font-size:8px;font-weight:400;margin-top:1px;">QC 합격</div></div></div>
-    <div class="rarr">→</div>
-    <div style="text-align:center;"><div style="background:#f0fdf4;border:2px solid #0db87a;border-radius:6px;padding:8px 12px;font-size:10px;font-weight:800;color:#065f46;">FG-01 PDA<div style="font-size:8px;font-weight:400;margin-top:1px;">완제품 적재</div></div></div>
-    <div class="rarr">→</div>
-    <div style="text-align:center;"><div style="background:#f0fdf4;border:2px solid #0db87a;border-radius:6px;padding:8px 12px;font-size:10px;font-weight:800;color:#065f46;">FG-02<div style="font-size:8px;font-weight:400;margin-top:1px;">재고 관리</div></div></div>
-    <div class="rarr">→</div>
-    <div style="text-align:center;"><div style="background:#f0fdf4;border:2px solid #0db87a;border-radius:6px;padding:8px 12px;font-size:10px;font-weight:800;color:#065f46;">FG-03<div style="font-size:8px;font-weight:400;margin-top:1px;">출하 지시</div></div></div>
-    <div class="rarr">→</div>
-    <div style="text-align:center;"><div style="background:#f0fdf4;border:2px solid #0db87a;border-radius:6px;padding:8px 12px;font-size:10px;font-weight:800;color:#065f46;">FG-04 PDA<div style="font-size:8px;font-weight:400;margin-top:1px;">FIFO 피킹</div></div></div>
-    <div class="rarr">→</div>
-    <div style="text-align:center;"><div style="background:#f0fdf4;border:2px solid #0db87a;border-radius:6px;padding:8px 12px;font-size:10px;font-weight:800;color:#065f46;">FG-05<div style="font-size:8px;font-weight:400;margin-top:1px;">상차 확인</div></div></div>
-    <div class="rarr">→</div>
-    <div style="text-align:center;"><div style="background:#f0fdf4;border:2px solid #0db87a;border-radius:6px;padding:8px 12px;font-size:10px;font-weight:800;color:#065f46;">FG-06<div style="font-size:8px;font-weight:400;margin-top:1px;">거래명세서</div></div></div>
-    <div class="rarr">→</div>
-    <div style="text-align:center;"><div style="background:#f0fdf4;border:2px solid #0db87a;border-radius:6px;padding:8px 12px;font-size:10px;font-weight:800;color:#065f46;">FG-07<div style="font-size:8px;font-weight:400;margin-top:1px;">일 마감</div></div></div>
-  </div>
-</div>
-
-<!-- FG-01 PDA Stocking -->
-<div class="screen-card" id="fg01">
-  <div class="sc-hdr"><div><div class="sc-id">FG-01</div><div class="sc-title-en">PDA Finished Goods Stocking</div><div class="sc-title-ko">PDA 완제품 적재</div></div>
-    <div class="sc-tags"><span class="tag t-pda">📱 PDA</span><span class="tag t-1st">1st Dev</span></div></div>
-  <div class="sc-body">
-    <div class="desc-bi" style="border-left-color:#0db87a;">
-      <div><div class="db-lbl">EN · Description</div><div class="db-en">After QC-03 final inspection passes, operator scans the WO barcode via PDA to confirm the item and quantity. The system verifies QC pass status before allowing stocking. Operator then scans a FG shelf QR code to assign the storage location. All stocked items are tagged with the production date and time for FIFO picking later. Stocking for a WO that has not passed QC-03 is completely blocked.</div></div>
-      <div><div class="db-lbl">KO · 설명</div><div class="db-ko">QC-03 최종 검사 합격 후 작업자가 PDA로 WO 바코드 스캔 → 품목·수량 확인. 시스템이 QC 합격 상태 검증 후 적재 허용. 이후 FG 선반 QR 스캔으로 위치 지정. 모든 적재 품목에 생산일시 태그 → FIFO 피킹 기준. QC-03 미합격 WO 적재 완전 차단.</div></div>
-    </div>
-    <div class="pda-row">
-      <div class="pda-unit">
-        <div class="pdu-step">① Scan WO · WO 스캔</div>
-        <div class="pda-shell">
-          <div class="pda-scr">
-            <div class="pda-sbar"><span>FG-01 · Stocking</span><span class="online">● READY</span></div>
-            <div class="pda-tbar" style="background:linear-gradient(135deg,#021208,#041e10);">
-              <div class="pda-title">FG Stocking · 완제품 적재</div>
-              <div class="pda-sub">QC Passed WO Only · QC 합격 WO만</div>
-            </div>
-            <div class="pda-bd">
-              <div class="pda-scan"><div class="pda-scan-icon">📷</div><div class="pda-scan-en">Scan WO Barcode</div><div class="pda-scan-ko">WO 바코드 스캔</div></div>
-              <div class="pda-field"><div class="pda-fl">QC Status Required</div><div class="pda-fv">PASS only ✅</div></div>
-            </div>
-          </div>
-        </div>
+  <div class="sb-section">Reference · 참조</div>
+  <a class="sb-link" href="#status"><span class="sl-id">STAT</span><div><div class="sl-en">Stock Status</div><div class="sl-ko">재고 상태</div></div></a>
+  <a class="sb-link" href="#br-fg"><span class="sl-id">BR</span><div><div class="sl-en">Business Rules</div><div class="sl-ko">업무 규칙 54건</div></div></a>
+</nav>
+<div class="main">
+  <div class="mod-hdr">
+    <div class="mod-hdr-inner">
+      <div class="mod-eyebrow">VOL.9 · FG · Finished Goods · 완제품 관리</div>
+      <div class="mod-title-en">FINISHED<br>GOODS</div>
+      <div class="mod-title-ko">완제품 관리 — Stock · FIFO Pick · SAV/GEO 출하 · OTD 추적</div>
+      <div class="mod-desc-bi">
+        <div class="mdb-en">End-to-end finished goods management. <strong>QC-03 PASS-driven stocking</strong> (FG-01) with Slotting algorithm. <strong>5-Status inventory</strong> (Available/Reserved/Hold/Shipped/Returned) with live WebSocket. <strong>EDI/Portal order intake</strong> (FG-03) with FIFO atomic Reservation. <strong>Mandatory FIFO picking</strong> (FG-04) with DB-level enforcement. <strong>Chain-of-Custody loading</strong> (FG-05) with driver e-signature + GPS. <strong>Customer-format delivery notes</strong> (FG-06 SAV/GEO). <strong>Day-End immutable snapshot</strong> (FG-07) feeding ERP. <strong>5y retention audit history</strong> (FG-08). <strong>Real-time KPI dashboard</strong> (FG-09). <strong>RMA-driven return processing</strong> (FG-RTN) with 4-way disposition.</div>
+        <div class="mdb-ko">완제품 전 흐름 관리. <strong>QC-03 PASS 기반 적재</strong>(FG-01) Slotting 알고리즘. <strong>5-Status 재고</strong>(가용/예약/격리/출하/반품) 라이브 WebSocket. <strong>EDI/포털 주문</strong>(FG-03) FIFO 원자 예약. <strong>FIFO 강제 피킹</strong>(FG-04) DB-level. <strong>Chain-of-Custody 상차</strong>(FG-05) 전자서명 + GPS. <strong>고객 양식 거래명세서</strong>(FG-06 SAV/GEO). <strong>일 마감 봉인 스냅샷</strong>(FG-07) → ERP. <strong>5년 봉인 이력</strong>(FG-08). <strong>실시간 KPI 대시보드</strong>(FG-09). <strong>RMA 반품 처리</strong>(FG-RTN) 4-way 처분.</div>
       </div>
-      <div class="pda-unit">
-        <div class="pdu-step">② QC Verified · QC 확인</div>
-        <div class="pda-shell">
-          <div class="pda-scr">
-            <div class="pda-sbar"><span>FG-01</span><span class="online">● OK</span></div>
-            <div class="pda-tbar" style="background:linear-gradient(135deg,#021208,#041e10);">
-              <div class="pda-title">QC Pass Confirmed ✅</div>
-              <div class="pda-sub">Door Trim LH · 200 EA</div>
-            </div>
-            <div class="pda-bd">
-              <div class="pda-field"><div class="pda-fl">WO No.</div><div class="pda-fv ok">WO-20250701-007</div></div>
-              <div class="pda-field"><div class="pda-fl">Item · 품목</div><div class="pda-fv ok">Door Trim LH</div></div>
-              <div class="pda-field"><div class="pda-fl">QC Result · 판정</div><div class="pda-fv ok">PASS · 합격 ✅</div></div>
-              <div class="pda-field"><div class="pda-fl">Qty to Stock · 적재 수량</div><div class="pda-fv ok">200 EA</div></div>
-            </div>
-          </div>
-        </div>
+      <div class="mod-meta-strip">
+        <div class="mms-item"><div class="mms-l">Screens</div><div class="mms-v">9 + 1 Aux</div></div>
+        <div class="mms-item"><div class="mms-l">Stock Status</div><div class="mms-v fg">5-State</div></div>
+        <div class="mms-item"><div class="mms-l">FIFO Rule</div><div class="mms-v alert">Mandatory (DB)</div></div>
+        <div class="mms-item"><div class="mms-l">Customer Fmt</div><div class="mms-v">SAV · GEO</div></div>
+        <div class="mms-item"><div class="mms-l">OTD Target</div><div class="mms-v warn">≥ 98%</div></div>
+        <div class="mms-item"><div class="mms-l">BR Rules</div><div class="mms-v warn">54</div></div>
       </div>
-      <div class="pda-unit">
-        <div class="pdu-step">③ Assign Location · 위치 지정</div>
-        <div class="pda-shell">
-          <div class="pda-scr">
-            <div class="pda-sbar"><span>FG-01</span><span class="online">● 10:22</span></div>
-            <div class="pda-tbar" style="background:linear-gradient(135deg,#021208,#041e10);">
-              <div class="pda-title">Assign FG Location</div>
-              <div class="pda-sub">FG 위치 지정</div>
-            </div>
-            <div class="pda-bd">
-              <div class="pda-scan"><div class="pda-scan-icon">📍</div><div class="pda-scan-en">Scan FG Shelf QR</div><div class="pda-scan-ko">FG 선반 QR 스캔</div></div>
-              <div class="pda-field"><div class="pda-fl">Location · 위치</div><div class="pda-fv ok">FG-A-01-1 ✅</div></div>
-              <div class="pda-field"><div class="pda-fl">Stocked Date · 적재일</div><div class="pda-fv">2025-07-01 10:22</div></div>
-              <button class="pda-btn pda-pri">✅ Confirm Stocking · 적재 확정</button>
-              <button class="pda-btn pda-sec">🏷 Print Label</button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="pda-unit">
-        <div class="pdu-step">⚠ QC Fail Block · QC 미합격 차단</div>
-        <div class="pda-shell">
-          <div class="pda-scr">
-            <div class="pda-sbar"><span>FG-01</span><span class="online" style="color:#ff8a82;">● BLOCKED</span></div>
-            <div class="pda-tbar" style="background:#1a0808;border-bottom-color:#3a1010;">
-              <div class="pda-title" style="color:#ff8a82;">⛔ QC NOT PASSED</div>
-              <div class="pda-sub" style="color:#ff8a82;">QC 미합격 — 적재 차단</div>
-            </div>
-            <div class="pda-bd">
-              <div class="pda-field"><div class="pda-fl">WO No.</div><div class="pda-fv er">WO-20250701-008</div></div>
-              <div class="pda-field"><div class="pda-fl">QC Status</div><div class="pda-fv er">FAIL / PENDING ❌</div></div>
-              <div style="background:#1a0808;border:1px solid #3a1010;border-radius:5px;padding:8px;text-align:center;font-size:10px;color:#ff8a82;margin-bottom:7px;">STOCKING BLOCKED<br><span style="font-size:8px;opacity:.7;">Complete QC-03 first · QC-03 완료 후 재시도</span></div>
-            </div>
-          </div>
-        </div>
+      <div><span class="l3-hint">📋 Click any screen card / icon / pill for L3 detailed spec · 각 화면 카드 클릭 시 L3 상세 설계서</span></div>
+      <div class="screen-pills">
+        <a class="sp" href="VOL09_FG01_PDA_Stocking.html" title="L3 상세 · FG-01"><span class="sp-id">FG-01</span> Stocking 📥 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL09_FG02_Inventory.html" title="L3 상세 · FG-02"><span class="sp-id">FG-02</span> Inventory 📦 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL09_FG03_Shipment_Order.html" title="L3 상세 · FG-03"><span class="sp-id">FG-03</span> Ship Order 📋 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL09_FG04_PDA_FIFO_Picking.html" title="L3 상세 · FG-04"><span class="sp-id">FG-04</span> FIFO Pick ⚙ <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL09_FG05_Loading.html" title="L3 상세 · FG-05"><span class="sp-id">FG-05</span> Loading 🚚 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL09_FG06_Delivery_Note.html" title="L3 상세 · FG-06"><span class="sp-id">FG-06</span> Note 📄 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL09_FG07_Day_End_Close.html" title="L3 상세 · FG-07"><span class="sp-id">FG-07</span> Day-End 🗓 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL09_FG08_Shipment_History.html" title="L3 상세 · FG-08"><span class="sp-id">FG-08</span> History 📜 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL09_FG09_Dashboard.html" title="L3 상세 · FG-09"><span class="sp-id">FG-09</span> Dashboard 📊 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL09_FG_RTN_Return.html" title="L3 상세 · FG-RTN"><span class="sp-id">FG-RTN</span> Return ↩ <span style="opacity:.5;font-size:8px;">📋</span></a>
       </div>
     </div>
   </div>
-</div>
 
-<!-- FG-03 Shipment Order -->
-<div class="screen-card" id="fg03">
-  <div class="sc-hdr"><div><div class="sc-id">FG-03</div><div class="sc-title-en">Shipment Order</div><div class="sc-title-ko">출하 지시</div></div>
-    <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-1st">1st Dev</span></div></div>
-  <div class="sc-body">
-    <div class="desc-bi" style="border-left-color:#0db87a;">
-      <div><div class="db-lbl">EN</div><div class="db-en">Creates and manages daily shipment orders to SAV (Savannah) and GEO (Georgia) client plants. Each shipment order specifies: item, quantity, delivery destination (SAV/GEO), shipping date, and vehicle/carrier. Once confirmed, triggers FG-04 PDA FIFO picking. Shipment orders link to SCM delivery order references.</div></div>
-      <div><div class="db-lbl">KO</div><div class="db-ko">SAV(사바나)·GEO(조지아) 거래선별 일별 출하 지시 생성·관리. 품목·수량·납품처(SAV/GEO)·출하일·차량 지정. 확정 시 FG-04 PDA FIFO 피킹 트리거. SCM 납품 주문 참조 연계.</div></div>
-    </div>
-    <div class="mock-wrap"><div class="mock-lbl">FG-03 · Shipment Order · Web PC</div><div class="mock-win">
-      <div class="mock-tbar">🚚 A-MES · Finished Goods · Shipment Order <span class="bc">FG &gt; Shipment &gt; Order</span></div>
-      <div class="mock-toolbar">
-        <select><option>Client: All</option><option>SAV · Savannah</option><option>GEO · Georgia</option></select>
-        <select><option>Status: All</option><option>Pending</option><option>Picking</option><option>Loaded</option><option>Shipped</option></select>
-        <input type="text" placeholder="Item / Order No..." style="width:160px;">
-        <button class="btn btn-primary btn-sm" style="background:#0db87a;">+ Create Shipment Order</button>
-        <button class="btn btn-secondary btn-sm" style="margin-left:auto;">📥 Export</button>
-      </div>
-      <div class="mock-body">
-        <div class="kpi-strip">
-          <div class="kc"><div class="kv" style="color:#0db87a;">5</div><div class="kl-en">Today's Shipments</div><div class="kl-ko">금일 출하</div></div>
-          <div class="kc"><div class="kv" style="color:#3b82f6;">2</div><div class="kl-en">SAV Orders</div><div class="kl-ko">SAV 건</div></div>
-          <div class="kc"><div class="kv" style="color:#7c3aed;">3</div><div class="kl-en">GEO Orders</div><div class="kl-ko">GEO 건</div></div>
-          <div class="kc"><div class="kv" style="color:#f59e0b;">2</div><div class="kl-en">Picking In Progress</div><div class="kl-ko">피킹 중</div></div>
-          <div class="kc"><div class="kv" style="color:#22c55e;">1</div><div class="kl-en">Loaded · Ready</div><div class="kl-ko">상차 완료</div></div>
+  <div class="content">
+
+    <div class="sec-div" id="flow"><div class="sd-line"></div><div class="sd-lbl">▼ PROCESS FLOW · 출하 흐름</div><div class="sd-line"></div></div>
+    <div class="flow-card">
+      <div class="flow-card-h">▼ 4-Track Finished Goods Flow · 4-트랙 완제품 흐름</div>
+
+      <div class="flow-track">
+        <div class="flow-track-lbl">📥 ① INBOUND · 입고 + 재고 (QC PASS → Available)</div>
+        <div class="flow-row">
+          <a class="flow-node external"><span class="fn-id">QC-03</span><span class="fn-name">PASS</span><span class="fn-ko">최종합격</span><span class="fn-tag">자동 트리거</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node" href="#fg01"><span class="fn-id">FG-01</span><span class="fn-name">PDA Stocking</span><span class="fn-ko">완제품 적재</span><span class="fn-tag">Slotting + Label</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node" href="#fg02"><span class="fn-id">FG-02</span><span class="fn-name">Inventory</span><span class="fn-ko">5-Status 실시간</span><span class="fn-tag">Live WS · Heatmap</span></a>
         </div>
-        <table class="tbl">
-          <thead><tr>
-            <th>Shipment No. <span class="th-ko">출하 번호</span></th>
-            <th>Client <span class="th-ko">거래선</span></th>
-            <th>Item <span class="th-ko">품목</span></th>
-            <th>Order Qty <span class="th-ko">지시 수량</span></th>
-            <th>Picked Qty <span class="th-ko">피킹 수량</span></th>
-            <th>Ship Date <span class="th-ko">출하일</span></th>
-            <th>Vehicle <span class="th-ko">차량</span></th>
-            <th>Status <span class="th-ko">상태</span></th>
-            <th>Action</th>
-          </tr></thead>
-          <tbody>
-            <tr class="rh"><td style="font-family:monospace;font-size:9px;font-weight:700;">SO-20250701-001</td>
-              <td><span class="b b-ok">SAV</span></td>
-              <td>Door Trim LH<div class="ko">도어트림 LH</div></td>
-              <td style="text-align:right;">200 EA</td><td style="text-align:right;color:#22c55e;font-weight:700;">200 EA</td>
-              <td>2025-07-01</td><td style="font-family:monospace;font-size:9px;">23나4567</td>
-              <td><span class="b b-ok">Loaded · 상차 완료</span></td>
-              <td><button class="btn btn-primary btn-sm" style="background:#0db87a;">📄 Delivery Note</button></td></tr>
-            <tr><td style="font-family:monospace;font-size:9px;font-weight:700;">SO-20250701-002</td>
-              <td><span class="b b-ok">SAV</span></td>
-              <td>Door Trim RH<div class="ko">도어트림 RH</div></td>
-              <td style="text-align:right;">150 EA</td><td style="text-align:right;color:#f59e0b;font-weight:700;">80 EA</td>
-              <td>2025-07-01</td><td style="font-family:monospace;font-size:9px;">23나4567</td>
-              <td><span class="b b-w">Picking · 피킹 중</span></td>
-              <td><button class="btn btn-secondary btn-sm">📱 PDA Pick</button></td></tr>
-            <tr><td style="font-family:monospace;font-size:9px;">SO-20250701-003</td>
-              <td><span class="b b-i">GEO</span></td>
-              <td>Door Trim LH (GEO)<div class="ko">도어트림 LH GEO</div></td>
-              <td style="text-align:right;">120 EA</td><td style="text-align:right;">0</td>
-              <td>2025-07-01</td><td style="font-family:monospace;font-size:9px;">23다8901</td>
-              <td><span class="b b-n">Pending · 대기</span></td>
-              <td><button class="btn btn-secondary btn-sm">📱 Start Pick</button></td></tr>
-          </tbody>
-        </table>
       </div>
-    </div></div>
+
+      <div class="flow-track">
+        <div class="flow-track-lbl">📤 ② OUTBOUND · 출하 (Order → Pick → Load → Note)</div>
+        <div class="flow-row">
+          <a class="flow-node external"><span class="fn-id">SAV/GEO</span><span class="fn-name">EDI Order</span><span class="fn-ko">고객 주문</span><span class="fn-tag">자동/포털/수동</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node" href="#fg03"><span class="fn-id">FG-03</span><span class="fn-name">Ship Order</span><span class="fn-ko">예약 + Pickslip</span><span class="fn-tag">FIFO Atomic</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node core" href="#fg04"><span class="fn-id">FG-04 ⚙</span><span class="fn-name">FIFO Pick</span><span class="fn-ko">강제 FIFO</span><span class="fn-tag">DB Block</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node" href="#fg05"><span class="fn-id">FG-05</span><span class="fn-name">Loading</span><span class="fn-ko">상차 + 서명</span><span class="fn-tag">Chain-of-Custody</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node" href="#fg06"><span class="fn-id">FG-06</span><span class="fn-name">Delivery Note</span><span class="fn-ko">거래명세서</span><span class="fn-tag">SAV/GEO + EDI ASN</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node external"><span class="fn-id">Customer</span><span class="fn-name">SHIPPED</span><span class="fn-ko">출하 완료</span><span class="fn-tag">OTD 평가</span></a>
+        </div>
+      </div>
+
+      <div class="flow-track">
+        <div class="flow-track-lbl">🗓 ③ CLOSING · 마감 + Audit + Monitor</div>
+        <div class="flow-row">
+          <a class="flow-node" href="#fg07"><span class="fn-id">FG-07</span><span class="fn-name">Day-End</span><span class="fn-ko">일 마감 (21:00)</span><span class="fn-tag">5-Check + Immutable</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node external"><span class="fn-id">ERP</span><span class="fn-name">Settlement</span><span class="fn-ko">정산 Feed</span><span class="fn-tag">자동</span></a>
+          <span class="flow-arr">|</span>
+          <a class="flow-node" href="#fg08"><span class="fn-id">FG-08</span><span class="fn-name">History</span><span class="fn-ko">출하 이력 (≥5y)</span><span class="fn-tag">Read-only · Audit</span></a>
+          <span class="flow-arr">|</span>
+          <a class="flow-node" href="#fg09"><span class="fn-id">FG-09</span><span class="fn-name">Dashboard</span><span class="fn-ko">실시간 KPI</span><span class="fn-tag">6 KPI · Wall TV</span></a>
+        </div>
+      </div>
+
+      <div class="flow-track">
+        <div class="flow-track-lbl">↩ ④ RETURN · 반품 (RMA → QC → Disposition)</div>
+        <div class="flow-row">
+          <a class="flow-node external"><span class="fn-id">Customer</span><span class="fn-name">Claim → RMA</span><span class="fn-ko">반품 발의</span><span class="fn-tag">Sales 발행</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node aux" href="#fgrtn"><span class="fn-id">FG-RTN</span><span class="fn-name">Return ↩</span><span class="fn-ko">수령·검사 (Aux)</span><span class="fn-tag">RMA · 사진 · NCR</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node external"><span class="fn-id">Disposition</span><span class="fn-name">4-way</span><span class="fn-ko">RESTOCK/REWORK/SCRAP/CLAIM</span><span class="fn-tag">QC Lead+ PIN</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node external"><span class="fn-id">QC-04</span><span class="fn-name">NCR + CAPA</span><span class="fn-ko">자동 NCR</span><span class="fn-tag">3건/30d 시 CAPA</span></a>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:14px;margin-top:14px;font-size:9px;color:rgba(255,255,255,.55);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;flex-wrap:wrap;">
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(13,184,122,.14);border:1px solid #6ee7b7;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>FG 화면</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(212,160,23,.2);border:1px solid #fbbf24;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>⚙ Core (FG-04 FIFO Pick)</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(168,85,247,.15);border:1px solid #d8b4fe;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Aux (FG-RTN)</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.3);border-radius:2px;vertical-align:middle;margin-right:4px;"></span>외부 모듈/이벤트</span>
+      </div>
+    </div>
+
+    <div class="sec-div" id="kpi"><div class="sd-line"></div><div class="sd-lbl">▼ MODULE KPI · 핵심 지표</div><div class="sd-line"></div></div>
+    <div class="mod-kpi">
+      <div class="kpi-card"><div class="kpi-l">OTD %</div><div class="kpi-v ok">≥98<span style="font-size:14px;color:var(--sub);"> %</span></div><div class="kpi-s">정시 출하 · &lt;95% 알림</div></div>
+      <div class="kpi-card"><div class="kpi-l">Today Shipped</div><div class="kpi-v fg">—</div><div class="kpi-s">금일 출하량 (EA)</div></div>
+      <div class="kpi-card"><div class="kpi-l">Inventory Days</div><div class="kpi-v warn">≤7</div><div class="kpi-s">재고 회전 일수 (목표)</div></div>
+      <div class="kpi-card"><div class="kpi-l">FIFO Compliance</div><div class="kpi-v ok">100<span style="font-size:14px;color:var(--sub);"> %</span></div><div class="kpi-s">DB 강제 + Override 카운트</div></div>
+      <div class="kpi-card"><div class="kpi-l">Return Rate (30d)</div><div class="kpi-v alert">≤0.3<span style="font-size:14px;color:var(--sub);"> %</span></div><div class="kpi-s">목표 · &gt;0.5% QC 알림</div></div>
+    </div>
+
+    <div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">▼ 9 + 1 SCREENS · 화면 설계</div><div class="sd-line"></div></div>
+
+    <!-- FG-01 -->
+    <div class="screen-card" id="fg01">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">📥</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">FG-01</div>
+            <div class="sc-title-en">PDA Stocking</div>
+            <div class="sc-title-ko">완제품 적재 — QC-03 PASS 자동 트리거 + Slotting</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-pda">📱 PDA</span><span class="tag t-1st">1st Dev</span></div>
+        <a class="sc-l3-btn" href="VOL09_FG01_PDA_Stocking.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: QC-03 PASS 즉시 자동 push (1초 내), PDA 3-step Scan (WO 바코드 → 추천 위치 QR → 라벨 인쇄+확정)<span class="ko">Slotting 알고리즘 추천 (고객 zone + 임박 ship-date 우선), 팔레트 자동 분할 (PackSpec), 다른 위치 선택 시 사유 자동 기록</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">QC-03 FGTriggerID</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">FG-02 Available 즉시</div></div>
+          <div class="qf"><div class="qf-l">🚧 BLOCK</div><div class="qf-v">PASS 없으면 적재 불가</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">PDA 3-Step Scan</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Entry to FG. Auto-triggered the instant QC-03 issues PASS. PDA 3-step scan flow with Slotting algorithm suggesting optimal location (customer zone + earliest ship-date). Pallet labels auto-printed. FG-02 reflects Available immediately.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">완제품 진입. QC-03 PASS 즉시 자동 트리거. Slotting 알고리즘이 최적 위치 추천(고객 zone + 임박 ship-date). 팔레트 라벨 자동 인쇄. FG-02 Available 즉시 반영.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">⚡</div><div class="feat-t">Auto Trigger</div><div class="feat-d">QC-03 PASS 1초 내 큐 적재.<span class="ko">대기 시간 0</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📡</div><div class="feat-t">Slotting</div><div class="feat-d">고객 zone + 임박 ship-date 우선.<span class="ko">BR-FG-02</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🖨</div><div class="feat-t">Label Auto</div><div class="feat-d">PackSpec 기준 팔레트 자동 분할.<span class="ko">QR + LOT + 고객</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🚧</div><div class="feat-t">PASS Only</div><div class="feat-d">QC-03 PASS 없이 적재 차단.<span class="ko">BR-FG-01 DB 제약</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-fg">BR-FG-01</a>
+          <a class="br-chip" href="#br-fg">BR-FG-02</a>
+          <a class="br-chip" href="#br-fg">BR-FG-03</a>
+          <a class="br-chip" href="#br-fg">BR-FG-04</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- FG-02 -->
+    <div class="screen-card" id="fg02">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">📦</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">FG-02</div>
+            <div class="sc-title-en">FG Inventory</div>
+            <div class="sc-title-ko">완제품 재고 — 5-Status + Zone Heatmap + Live WS</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-1st">1st Dev</span></div>
+        <a class="sc-l3-btn" href="VOL09_FG02_Inventory.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 5-Status 분리 (AVAILABLE/RESERVED/HOLD/SHIPPED/RETURNED) + Zone Heatmap 192 슬롯 + 품목별 체류일수<span class="ko">라이브 갱신 WebSocket (FG-01·FG-04·QC-05 0.5s 반영), Aged 14d 노랑 / 30d 빨강 자동 강조, Sales 권한 고객별 자동 필터</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">FG-01 + Live WS</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">5-Status + Heatmap</div></div>
+          <div class="qf"><div class="qf-l">⚡ RESV</div><div class="qf-v">Atomic Lock (FG-03)</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">Heatmap + Table</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Real-time FG inventory. 5-Status segmentation, zone heatmap, item-level aging. Live WebSocket reflects FG-01/04 + QC-05 events in 0.5s. Optimistic locking for Reservation prevents race conditions.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">실시간 FG 재고. 5-Status 분리, zone 히트맵, 품목 체류. FG-01/04 + QC-05 이벤트 0.5s 라이브. 예약 Atomic Lock 동시성 차단.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">🎯</div><div class="feat-t">5-Status</div><div class="feat-d">Available/Reserved/Hold/Shipped/Returned.<span class="ko">색상 분리</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🗺</div><div class="feat-t">Zone Heatmap</div><div class="feat-d">192 슬롯 점유율 시각화.<span class="ko">빈 슬롯 즉시 식별</span></div></div>
+          <div class="feat-item"><div class="feat-ico">⏱</div><div class="feat-t">Aged</div><div class="feat-d">14d 노랑 / 30d 빨강.<span class="ko">BR-FG-09</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔒</div><div class="feat-t">Sales Scope</div><div class="feat-d">담당 고객만 노출.<span class="ko">BR-FG-08</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-fg">BR-FG-06</a>
+          <a class="br-chip" href="#br-fg">BR-FG-07</a>
+          <a class="br-chip crit" href="#br-fg">BR-FG-08</a>
+          <a class="br-chip" href="#br-fg">BR-FG-09</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- FG-03 -->
+    <div class="screen-card" id="fg03">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">📋</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">FG-03</div>
+            <div class="sc-title-en">Shipment Order</div>
+            <div class="sc-title-ko">출하 지시 — EDI/Portal/Manual + FIFO 원자 예약</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-1st">1st Dev</span></div>
+        <a class="sc-l3-btn" href="VOL09_FG03_Shipment_Order.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 3-Source 수신 (EDI Auto 시간당 polling, Portal Push, Manual) + 6-Status Lifecycle (RECEIVED→CONFIRMED→PICKING→PICKED→SHIPPED/CANCELED)<span class="ko">FIFO Allocator 오래된 LOT 우선 (다중 LOT 분할 지원), Atomic Reservation, Pickslip 자동 생성 + 최적 동선, OTD 자동 평가</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">EDI/Portal/Manual</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">Reserved + Pickslip</div></div>
+          <div class="qf"><div class="qf-l">⚡ FIFO</div><div class="qf-v">오래된 LOT 우선</div></div>
+          <div class="qf"><div class="qf-l">⚠ HOLD</div><div class="qf-v">Customer Credit Hold</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Customer order intake. EDI Auto / Portal / Manual sources. 6-Status lifecycle. FIFO atomic allocation across multiple LOTs. Pickslip with optimal route auto-generated. OTD evaluated at SHIPPED.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">고객 주문 수신. EDI 자동/포털/수동 3-Source. 6-상태 라이프사이클. FIFO 원자 할당 다중 LOT. Pickslip + 최적 동선 자동. SHIPPED 시 OTD 평가.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">📡</div><div class="feat-t">EDI Auto</div><div class="feat-d">시간당 polling + 검증.<span class="ko">90% 자동 통과</span></div></div>
+          <div class="feat-item"><div class="feat-ico">⚡</div><div class="feat-t">FIFO Allocator</div><div class="feat-d">오래된 LOT 우선 + 다중 분할.<span class="ko">BR-FG-12</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🗺</div><div class="feat-t">Optimal Route</div><div class="feat-d">Pickslip 동선 자동 최적화.<span class="ko">이동 거리 최소</span></div></div>
+          <div class="feat-item"><div class="feat-ico">⏰</div><div class="feat-t">OTD Track</div><div class="feat-d">D+0 24:00 미출하 LATE 자동.<span class="ko">BR-FG-14</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-fg">BR-FG-11</a>
+          <a class="br-chip crit" href="#br-fg">BR-FG-12</a>
+          <a class="br-chip crit" href="#br-fg">BR-FG-13</a>
+          <a class="br-chip" href="#br-fg">BR-FG-14</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- FG-04 CORE -->
+    <div class="screen-card" id="fg04">
+      <div class="sc-hdr core">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">🛒</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">FG-04 · ⚙ CORE</div>
+            <div class="sc-title-en">PDA FIFO Picking</div>
+            <div class="sc-title-ko">PDA FIFO 피킹 — 강제 FIFO + 스캔 차단 + Manager Override</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-pda">📱 PDA</span><span class="tag t-core">⚙ Core</span><span class="tag t-1st">1st Dev</span></div>
+        <a class="sc-l3-btn" href="VOL09_FG04_PDA_FIFO_Picking.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline core">
+          <span class="headline-ico">⭐</span>
+          <div class="headline-t">What you'll see: PDA 3-step UI (위치 스캔 → 팔레트 라벨 → FIFO 위반 시 즉시 차단) + 최적 동선 안내<span class="ko">FIFO 강제는 스캔 시점 DB-level (BR-FG-17): 동일 ItemNo + Customer에서 더 오래된 Available LOT 존재 시 신규 LOT 스캔 차단, Override는 FG Manager+ PIN + 사유 (월간 audit 의무), QC-05 Hold 재고 물리 스캔 차단</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">FG-03 Pickslip</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">SO → PICKED</div></div>
+          <div class="qf"><div class="qf-l">🔒 BLOCK</div><div class="qf-v">Wrong LOT/Loc/Hold</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">PDA + 동선 안내</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">The core outbound screen. PDA picker receives Pickslip, walks optimized route, scans each location QR + pallet label. DB-level FIFO enforcement at scan time. Override requires Manager PIN + audit. QC-05 Hold items blocked at physical scan.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">핵심 출고 화면. PDA로 Pickslip 수령, 최적 동선, 위치 QR + 팔레트 스캔. 스캔 시점 DB-level FIFO 강제. Override는 Manager PIN + audit. QC-05 Hold 물리 스캔 차단.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item core"><div class="feat-ico">🔒</div><div class="feat-t">FIFO DB-level</div><div class="feat-d">스캔 시점 차단.<span class="ko">BR-FG-17</span></div></div>
+          <div class="feat-item core"><div class="feat-ico">🗺</div><div class="feat-t">Optimal Route</div><div class="feat-d">동선 안내 + 진도 표시.<span class="ko">최단 경로</span></div></div>
+          <div class="feat-item core"><div class="feat-ico">🔓</div><div class="feat-t">Manager Override</div><div class="feat-d">Manager+ PIN + 사유 + audit.<span class="ko">BR-FG-18</span></div></div>
+          <div class="feat-item core"><div class="feat-ico">🛡</div><div class="feat-t">Hold Block</div><div class="feat-d">QC-05 Hold 물리 스캔 차단.<span class="ko">BR-FG-20</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-fg">BR-FG-17</a>
+          <a class="br-chip crit" href="#br-fg">BR-FG-18</a>
+          <a class="br-chip" href="#br-fg">BR-FG-19</a>
+          <a class="br-chip crit" href="#br-fg">BR-FG-20</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- FG-05 -->
+    <div class="screen-card" id="fg05">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">🚚</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">FG-05</div>
+            <div class="sc-title-en">Loading Confirmation</div>
+            <div class="sc-title-ko">상차 확인 — 차량 매칭 + 운전자 e-서명 + GPS</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-pda">📱 Driver PDA</span><span class="tag t-web">🖥 Dock</span><span class="tag t-1st">1st Dev</span></div>
+        <a class="sc-l3-btn" href="VOL09_FG05_Loading.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 차량 OCR 번호판 + 운송사 API 매칭 + 운전자 ID 확인 + 팔레트 QR 3-side 스캔 + 운전자 e-서명 + 봉인번호<span class="ko">미예약 차량 차단, 다른 SO 팔레트 차단, 서명 + 사진 + GPS 봉인 (Chain-of-Custody), Confirm 시 SO SHIPPED + OTD 평가</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">FG-04 PICKED + Truck</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">SHIPPED + OTD</div></div>
+          <div class="qf"><div class="qf-l">🔒 BLOCK</div><div class="qf-v">미예약 / 잘못된 팔레트</div></div>
+          <div class="qf"><div class="qf-l">📝 SIGN</div><div class="qf-v">e-Sig + GPS + ID Photo</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Final outbound checkpoint. Truck OCR + carrier API match, driver ID check, pallet 3-side scan, driver e-signature + ID photo + GPS captured. Seal applied + photographed. SO → SHIPPED, OTD evaluated.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">마지막 출고 체크포인트. 차량 OCR + API 매칭, 운전자 확인, 팔레트 3-side 스캔, 서명 + ID 사진 + GPS. 봉인 부착 + 사진. SO SHIPPED, OTD 평가.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">📷</div><div class="feat-t">Truck OCR</div><div class="feat-d">번호판 자동 인식 + API 매칭.<span class="ko">미예약 차단</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📡</div><div class="feat-t">3-side Scan</div><div class="feat-d">Pallet QR · SO Match · Truck.<span class="ko">BR-FG-23</span></div></div>
+          <div class="feat-item"><div class="feat-ico">✍</div><div class="feat-t">Driver e-Sig</div><div class="feat-d">서명 + ID 사진 + GPS 봉인.<span class="ko">Chain-of-Custody</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔒</div><div class="feat-t">Seal Number</div><div class="feat-d">봉인 부착 + 사진 의무.<span class="ko">BR-FG-25</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-fg">BR-FG-22</a>
+          <a class="br-chip crit" href="#br-fg">BR-FG-23</a>
+          <a class="br-chip crit" href="#br-fg">BR-FG-24</a>
+          <a class="br-chip" href="#br-fg">BR-FG-26</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- FG-06 -->
+    <div class="screen-card" id="fg06">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">📄</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">FG-06</div>
+            <div class="sc-title-en">Delivery Note</div>
+            <div class="sc-title-ko">거래명세서 — SAV/GEO 양식 자동 + EDI ASN</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-1st">1st Dev</span></div>
+        <a class="sc-l3-btn" href="VOL09_FG06_Delivery_Note.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: SAV 양식 (4-copy NCR + 빨강 스탬프 + ASN-EDI XML) 또는 GEO 양식 (한국 세금계산서 + 팔레트별 바코드 + REST API) 자동 선택<span class="ko">FG-05 SHIPPED 자동 트리거, MD-08 PackSpec.CustomerFormat 기준 자동 선택(수동 변경 불가), S3 immutable 저장, 재발행 시 revision +1, EDI 5회 재시도</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">FG-05 SHIPPED 자동</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">PDF + EDI ASN</div></div>
+          <div class="qf"><div class="qf-l">🔒 FORMAT</div><div class="qf-v">MD-08 자동 (수동 불가)</div></div>
+          <div class="qf"><div class="qf-l">⏱ ACK SLA</div><div class="qf-v">SAV 24h · GEO 12h</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Customer-specific delivery note. SAV (4-copy NCR + stamp + EDI XML) vs GEO (Tax-invoice style + per-pallet barcode + REST API). FG-05 auto-trigger. S3 immutable storage; revisions create new files. EDI 5 retries.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">고객별 거래명세서. SAV(4-copy NCR + 스탬프 + EDI XML) vs GEO(세금계산서 + 팔레트 바코드 + REST API). FG-05 자동. S3 immutable, 재발행 신규 파일. EDI 5회 재시도.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">📋</div><div class="feat-t">2 Formats</div><div class="feat-d">SAV NCR · GEO Tax-Invoice.<span class="ko">자동 선택</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📡</div><div class="feat-t">EDI ASN</div><div class="feat-d">SAV XML · GEO REST API.<span class="ko">즉시 송신</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔒</div><div class="feat-t">S3 Immutable</div><div class="feat-d">원본 PDF 영구 보존.<span class="ko">BR-FG-30</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔄</div><div class="feat-t">Revision +1</div><div class="feat-d">재발행 시 신규 파일.<span class="ko">원본 유지</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-fg">BR-FG-28</a>
+          <a class="br-chip crit" href="#br-fg">BR-FG-29</a>
+          <a class="br-chip" href="#br-fg">BR-FG-30</a>
+          <a class="br-chip" href="#br-fg">BR-FG-32</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- FG-07 -->
+    <div class="screen-card" id="fg07">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">🗓</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">FG-07</div>
+            <div class="sc-title-en">Day-End Close</div>
+            <div class="sc-title-ko">일 마감 — 5-Check + Immutable Snapshot + ERP Feed</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL09_FG07_Day_End_Close.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 21:00 자동 알림, 6 KPI 타일 + 5종 사전 체크리스트 (Loading 완료·Orphan Reservation 없음·DN ACK·정합성·Hold 출하 0건)<span class="ko">1건 FAIL 시 Close 차단, Daily Snapshot S3 immutable 영구 보존, ERP Settlement Feed 5회 재시도, 21:30 미마감 시 익일 06:00 Auto-Close</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">⏱ SCHEDULE</div><div class="qf-v">21:00 cron + 21:30 마감</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">Snapshot + ERP Feed</div></div>
+          <div class="qf"><div class="qf-l">🔒 BLOCK</div><div class="qf-v">5-Check 1건 FAIL 시</div></div>
+          <div class="qf"><div class="qf-l">⚠ AUTO</div><div class="qf-v">T+1 06:00 Auto-Close</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">End-of-day FG closing. 21:00 cron + Manager review. 6 KPI tiles + 5-item pre-close checklist. Daily Snapshot S3 immutable + ERP settlement feed. T+1 06:00 Auto-Close if missed.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">일일 FG 마감. 21:00 크론 + Manager 검토. 6 KPI + 5-Check. Snapshot S3 immutable + ERP feed. 미마감 시 익일 06:00 Auto-Close.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">⏰</div><div class="feat-t">21:00 Cron</div><div class="feat-d">자동 알림 + 21:30 마감 의무.<span class="ko">BR-FG-33</span></div></div>
+          <div class="feat-item"><div class="feat-ico">☑</div><div class="feat-t">5-Check</div><div class="feat-d">필수 체크 1건 FAIL 시 차단.<span class="ko">BR-FG-35</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔒</div><div class="feat-t">Immutable</div><div class="feat-d">S3 영구 봉인, 재오픈 불가.<span class="ko">BR-FG-34</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📡</div><div class="feat-t">ERP Feed</div><div class="feat-d">정산 자동 + 5회 재시도.<span class="ko">BR-FG-36</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-fg">BR-FG-33</a>
+          <a class="br-chip crit" href="#br-fg">BR-FG-34</a>
+          <a class="br-chip crit" href="#br-fg">BR-FG-35</a>
+          <a class="br-chip" href="#br-fg">BR-FG-37</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- FG-08 -->
+    <div class="screen-card" id="fg08">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">📜</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">FG-08</div>
+            <div class="sc-title-en">Shipment History</div>
+            <div class="sc-title-ko">출하 이력 — 10-Handle 검색 + Audit Trail + 5y 봉인</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web Read-only</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL09_FG08_Shipment_History.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 10개 검색 핸들 (Period/Customer/SO/DN/Item/Truck/Driver/Seal/LOT/OTD/Return/VIN) + 클릭 시 전체 audit trail<span class="ko">Read-only · Hot(≤1y) 즉시·Warm(1-3y) ≤3s·Cold(3-5y) 12h retrieval, Sales 고객별 · Auditor 기간 한정, 모든 검색 행위 로그</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">10 Search Handles</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">Timeline + Excel/PDF</div></div>
+          <div class="qf"><div class="qf-l">⚡ SLA</div><div class="qf-v">95% ≤500ms (Hot)</div></div>
+          <div class="qf"><div class="qf-l">⏱ RETENTION</div><div class="qf-v">≥ 5 years</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Historical shipment audit trail. 10-handle search, full event timeline drill-in (FG-03 → 04 → 05 → 06). Read-only with role scoping. 4-tier storage (Hot/Warm/Cold/Final). All actions logged.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">출하 이력 감사 trail. 10-핸들 검색, 이벤트 타임라인 드릴(FG-03→04→05→06). 읽기 전용 + 권한 범위. 4-tier 보관. 모든 행위 로그.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">🔍</div><div class="feat-t">10 Handles</div><div class="feat-d">LOT·VIN·운전자·봉인까지.<span class="ko">감사 강력</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📅</div><div class="feat-t">4-Tier Storage</div><div class="feat-d">Hot/Warm/Cold/Final.<span class="ko">Cold 12h SLA</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔒</div><div class="feat-t">Read-Only</div><div class="feat-d">수정/삭제 불가.<span class="ko">BR-FG-38</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📝</div><div class="feat-t">Action Log</div><div class="feat-d">모든 검색/export 기록.<span class="ko">BR-FG-39</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-fg">BR-FG-38</a>
+          <a class="br-chip" href="#br-fg">BR-FG-39</a>
+          <a class="br-chip" href="#br-fg">BR-FG-40</a>
+          <a class="br-chip" href="#br-fg">BR-FG-41</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- FG-09 -->
+    <div class="screen-card" id="fg09">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">📊</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">FG-09</div>
+            <div class="sc-title-en">FG Dashboard</div>
+            <div class="sc-title-ko">현황판 — KPI 6 · Daily Chart · OTD Trend · Wall TV</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web + TV</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL09_FG09_Dashboard.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 6 KPI 타일 (Today Shipped · OTD% · Inventory Days · FIFO Compliance · Open SO · Return Rate) + Daily Bar Chart 30d + Customer Donut + OTD Trend 90d<span class="ko">갱신 KPI 30s · 차트 5min · OTD Trend 1h · Lists WebSocket, Wall TV 모드 3-view 30s 자동 회전, 임계 이탈 알림(OTD&lt;95%·Return&gt;0.5%)</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">All FG Events</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">6 KPI + Charts + Live</div></div>
+          <div class="qf"><div class="qf-l">🔄 REFRESH</div><div class="qf-v">30s/5min/1h/Live WS</div></div>
+          <div class="qf"><div class="qf-l">📺 WALL TV</div><div class="qf-v">3-view 30s 회전</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Real-time FG dashboard for Manager + Plant Manager. 6 KPI, 30d ship chart (ON_TIME vs LATE), customer mix donut, 90d OTD trend, live Open SO + Late lists. Wall TV mode for office display.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">실시간 FG 대시보드. 6 KPI, 30d 출하 차트(정시 vs LATE), 고객 도넛, 90d OTD 추세, 라이브 Open SO + LATE. Wall TV 모드.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">🎯</div><div class="feat-t">6 KPI Tiles</div><div class="feat-d">Ship·OTD·Days·FIFO·SO·Return.<span class="ko">색상 자동</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📊</div><div class="feat-t">30d Bar Chart</div><div class="feat-d">ON_TIME vs LATE 색상 분리.<span class="ko">정시 추세</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📈</div><div class="feat-t">90d OTD Trend</div><div class="feat-d">목표 95% 라인 대비.<span class="ko">개선 검증</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📺</div><div class="feat-t">Wall TV</div><div class="feat-d">사무실 게시 풀스크린.<span class="ko">읽기 전용 · BR-FG-47</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-fg">BR-FG-43</a>
+          <a class="br-chip" href="#br-fg">BR-FG-44</a>
+          <a class="br-chip" href="#br-fg">BR-FG-45</a>
+          <a class="br-chip" href="#br-fg">BR-FG-47</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- FG-RTN AUX -->
+    <div class="screen-card" id="fgrtn">
+      <div class="sc-hdr aux">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">↩</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">FG-RTN · AUXILIARY</div>
+            <div class="sc-title-en">Customer Return</div>
+            <div class="sc-title-ko">고객 반품 — RMA → 검사 → 4-way Disposition + QC-04 NCR</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-pda">📱 PDA Recv</span><span class="tag t-aux">📚 Aux</span></div>
+        <a class="sc-l3-btn" href="VOL09_FG_RTN_Return.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline aux">
+          <span class="headline-ico">↩</span>
+          <div class="headline-t">What you'll see: Sales RMA 선발행 → 수령 (PDA 스캔 + 팔레트당 사진 ≥2장 + 상태 노트) → QC 검토 → 4-way Disposition (RESTOCK / REWORK / SCRAP / CLAIM)<span class="ko">팔레트별 차등 처분 가능 (Mixed), QC Lead+ PIN 승인, QC-04 NCR 자동 발행 + 30일 3건 시 CAPA 권고, RESTOCK 시 RTN- 접미사 신규 LOT, 30일 미수령 RMA 만료</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">Customer Claim + RMA</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">Disposition + NCR</div></div>
+          <div class="qf"><div class="qf-l">🎯 DISP</div><div class="qf-v">4-way (Mixed OK)</div></div>
+          <div class="qf"><div class="qf-l">⏱ RMA EXP</div><div class="qf-v">30d 미수령 만료</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Customer return processing. RMA-driven receiving with PDA + photos. QC Lead per-pallet disposition (RESTOCK/REWORK/SCRAP/CLAIM). QC-04 NCR auto-issued; CAPA on 3/30d. RESTOCK creates new RTN- LOT.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">고객 반품 처리. RMA 기반 수령(PDA + 사진). QC Lead 팔레트별 처분. NCR 자동 + 3/30d CAPA. RESTOCK 시 RTN- 신규 LOT.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item aux"><div class="feat-ico">📋</div><div class="feat-t">RMA Required</div><div class="feat-d">Sales 선발행, 미발행 차단.<span class="ko">BR-FG-48</span></div></div>
+          <div class="feat-item aux"><div class="feat-ico">📷</div><div class="feat-t">Photo Mandatory</div><div class="feat-d">팔레트당 ≥2장 + 상태 노트.<span class="ko">BR-FG-49</span></div></div>
+          <div class="feat-item aux"><div class="feat-ico">🎯</div><div class="feat-t">4-way Mixed</div><div class="feat-d">팔레트별 차등 처분.<span class="ko">QC Lead+ PIN</span></div></div>
+          <div class="feat-item aux"><div class="feat-ico">🔗</div><div class="feat-t">→ QC-04 NCR</div><div class="feat-d">자동 발행 + 3/30d → CAPA.<span class="ko">BR-FG-52</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-fg">BR-FG-48</a>
+          <a class="br-chip" href="#br-fg">BR-FG-49</a>
+          <a class="br-chip crit" href="#br-fg">BR-FG-50</a>
+          <a class="br-chip" href="#br-fg">BR-FG-52</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- STOCK STATUS -->
+    <div class="sec-div" id="status"><div class="sd-line"></div><div class="sd-lbl">▼ STOCK STATUS · 재고 5-Status</div><div class="sd-line"></div></div>
+    <table class="ref-tbl">
+      <thead><tr><th style="width:110px;">Status</th><th style="width:110px;">Color</th><th>Trigger · 전환 조건</th><th>Downstream · 하류 영향</th></tr></thead>
+      <tbody>
+        <tr><td><strong>AVAILABLE</strong></td><td><span class="pill pill-avail">Green</span></td><td>FG-01 Confirm 시 진입</td><td>FG-03에서 출하 주문에 할당 가능</td></tr>
+        <tr><td><strong>RESERVED</strong></td><td><span class="pill pill-rsv">Purple</span></td><td>FG-03 CONFIRM 시 자동 락 (Atomic)</td><td>해당 SO 외 할당 불가, FG-04에서 Pick → 해제</td></tr>
+        <tr><td><strong>HOLD</strong></td><td><span class="pill pill-hold">Red</span></td><td>QC-05 격리 활성</td><td>출하·이동·소비 차단 (DB constraint)</td></tr>
+        <tr><td><strong>SHIPPED</strong></td><td><span class="pill pill-ship">Blue</span></td><td>FG-05 Loading Confirm</td><td>재고에서 차감, FG-08 이력 보관</td></tr>
+        <tr><td><strong>RETURNED</strong></td><td><span class="pill pill-rtn">Yellow</span></td><td>FG-RTN 수령 시</td><td>QC 검토 후 RESTOCK / SCRAP / REWORK / CLAIM 분기</td></tr>
+      </tbody>
+    </table>
+
+    <!-- BR -->
+    <div class="br-wrap" id="br-fg">
+      <div class="br-title">Business Rules · 업무 규칙 (FG) · 54건 (카테고리별)</div>
+      <table class="br-tbl">
+        <thead><tr><th style="width:96px;">Rule ID</th><th>Rule (EN)</th><th>규칙 (KO)</th><th style="width:120px;">Module</th><th style="width:90px;">Action</th></tr></thead>
+        <tbody>
+          <tr class="cat-row"><td colspan="5">▼ Stocking Rules · 적재 (FG-01)</td></tr>
+          <tr><td class="br-id-c">BR-FG-01</td><td class="br-en-c">Only QC-03 PASS WOs can be stocked (DB-level constraint).</td><td class="br-ko-c">QC-03 합격 WO만 적재 가능 (DB 제약).</td><td>FG-01</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-02</td><td class="br-en-c">Slotting prioritizes customer zone + earliest ship-date.</td><td class="br-ko-c">슬로팅: 고객 zone + 임박 ship-date 우선.</td><td>FG-01</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-03</td><td class="br-en-c">Pallet labels must be printed and re-scanned to confirm.</td><td class="br-ko-c">팔레트 라벨 인쇄·재스캔 필수.</td><td>FG-01</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-04</td><td class="br-en-c">Item-mix rule: different customers cannot share a slot.</td><td class="br-ko-c">동일 슬롯에 다른 고객 품목 혼적 불가.</td><td>FG-01 · MD-08</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-05</td><td class="br-en-c">Stocking records retained ≥ 5 years.</td><td class="br-ko-c">적재 기록 5년 이상 보관.</td><td>FG-01</td><td><span class="b b-i">Retain</span></td></tr>
+
+          <tr class="cat-row"><td colspan="5">▼ Inventory Rules · 재고 (FG-02)</td></tr>
+          <tr><td class="br-id-c">BR-FG-06</td><td class="br-en-c">Atomic Reservation; cannot exceed Available; race conditions blocked.</td><td class="br-ko-c">예약 원자성, Available 초과 불가, 동시성 차단.</td><td>FG-02 · FG-03</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-07</td><td class="br-en-c">HOLD overrides RESERVED: existing reservations auto-released.</td><td class="br-ko-c">HOLD가 RESERVED 우선, 기존 예약 자동 해제.</td><td>FG-02 · QC-05</td><td><span class="b b-w">Force</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-08</td><td class="br-en-c">Sales role limited to assigned customer; SQL-level scope.</td><td class="br-ko-c">Sales는 담당 고객만, SQL 레이어 차단.</td><td>FG-02 · 전체</td><td><span class="b b-e">Scope</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-09</td><td class="br-en-c">Aged ≥14d yellow, ≥30d red; 30d+ auto-notify FG Manager.</td><td class="br-ko-c">14일 노랑, 30일 빨강 + FG Manager 알림.</td><td>FG-02</td><td><span class="b b-w">Alert</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-10</td><td class="br-en-c">Daily stock snapshot stored for FG-08/FG-09.</td><td class="br-ko-c">일일 재고 스냅샷 FG-08/FG-09 데이터.</td><td>FG-02</td><td><span class="b b-i">Auto</span></td></tr>
+
+          <tr class="cat-row"><td colspan="5">▼ Shipment Order Rules · 출하 지시 (FG-03)</td></tr>
+          <tr><td class="br-id-c">BR-FG-11</td><td class="br-en-c">EDI auto-orders pass validation; failures alert Sales.</td><td class="br-ko-c">EDI 자동 주문도 검증, 실패 시 Sales 알림.</td><td>FG-03</td><td><span class="b b-i">Validate</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-12</td><td class="br-en-c">FIFO mandatory; oldest LOT first. Manual override needs PIN.</td><td class="br-ko-c">FIFO 필수, 오래된 LOT 우선. 수동 변경 PIN.</td><td>FG-03</td><td><span class="b b-e">Force</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-13</td><td class="br-en-c">Customer Hold blocks SO creation; Manager+ override only.</td><td class="br-ko-c">고객 Hold 시 SO 생성 차단, Manager 우회.</td><td>FG-03</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-14</td><td class="br-en-c">D+0 24:00 미출하 = OTD LATE; Logistics Lead escalation.</td><td class="br-ko-c">D+0 24:00 미출하 LATE 자동.</td><td>FG-03 · FG-05</td><td><span class="b b-w">Alert</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-15</td><td class="br-en-c">SO edits only RECEIVED/CONFIRMED phases; PICKING 이후 Cancel+신규.</td><td class="br-ko-c">PICKING 이후 수정 불가, 취소+신규.</td><td>FG-03</td><td><span class="b b-e">Lock</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-16</td><td class="br-en-c">Cancellation auto-releases reservations; ERP handles refunds.</td><td class="br-ko-c">취소 시 예약 자동 해제, ERP 환불.</td><td>FG-03</td><td><span class="b b-i">Auto</span></td></tr>
+
+          <tr class="cat-row"><td colspan="5">▼ FIFO Picking Rules · 피킹 (FG-04)</td></tr>
+          <tr><td class="br-id-c">BR-FG-17</td><td class="br-en-c">FIFO enforced at scan time; newer LOT scan blocked when older exists.</td><td class="br-ko-c">FIFO 스캔 시 강제, 신규 LOT 차단.</td><td>FG-04</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-18</td><td class="br-en-c">FIFO Override requires FG Manager+ PIN + Reason + monthly audit.</td><td class="br-ko-c">Override는 Manager+ PIN + 사유 + 월간 audit.</td><td>FG-04</td><td><span class="b b-w">Approve</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-19</td><td class="br-en-c">Partial pick auto-reallocates next FIFO LOT.</td><td class="br-ko-c">부분 피킹 시 시스템 자동 재할당.</td><td>FG-04</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-20</td><td class="br-en-c">QC-05 Hold items cannot be picked; physical scan blocks.</td><td class="br-ko-c">QC-05 Hold 재고 피킹 불가, 물리 스캔 차단.</td><td>FG-04 · QC-05</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-21</td><td class="br-en-c">Pause &gt;30min auto-releases Pickslip lock.</td><td class="br-ko-c">30분 일시정지 시 락 자동 해제.</td><td>FG-04</td><td><span class="b b-i">Release</span></td></tr>
+
+          <tr class="cat-row"><td colspan="5">▼ Loading Rules · 상차 (FG-05)</td></tr>
+          <tr><td class="br-id-c">BR-FG-22</td><td class="br-en-c">Unregistered truck/driver cannot load; carrier API match required.</td><td class="br-ko-c">미예약 차량/운전자 차단, 운송사 API 매칭 필수.</td><td>FG-05</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-23</td><td class="br-en-c">Pallet must belong to assigned SO; mismatch blocks.</td><td class="br-ko-c">팔레트가 배정 SO 소속 필수.</td><td>FG-05</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-24</td><td class="br-en-c">Driver e-sig + ID photo + GPS required to Confirm.</td><td class="br-ko-c">서명 + ID 사진 + GPS 모두 필수.</td><td>FG-05</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-25</td><td class="br-en-c">Seal Number applied + photographed; missing flags QC.</td><td class="br-ko-c">봉인 부착 + 사진 필수, 누락 시 QC 플래그.</td><td>FG-05</td><td><span class="b b-w">Flag</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-26</td><td class="br-en-c">OTD evaluated at Confirm: ON_TIME ≤ ShipDate 23:59:59 else LATE.</td><td class="br-ko-c">OTD Confirm 시 평가, 23:59:59 기준.</td><td>FG-05</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-27</td><td class="br-en-c">All loading events retained ≥5 years (chain-of-custody).</td><td class="br-ko-c">전 적재 이벤트 5년 봉인.</td><td>FG-05</td><td><span class="b b-i">Retain</span></td></tr>
+
+          <tr class="cat-row"><td colspan="5">▼ Delivery Note Rules · 거래명세서 (FG-06)</td></tr>
+          <tr><td class="br-id-c">BR-FG-28</td><td class="br-en-c">DN issuance auto-locked to FG-05 SHIPPED; cannot issue before.</td><td class="br-ko-c">DN은 SHIPPED 이후만 발행 가능.</td><td>FG-06</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-29</td><td class="br-en-c">FormatTemplate determined by MD-08 PackSpec; cannot manual change.</td><td class="br-ko-c">양식은 MD-08 자동, 수동 변경 불가.</td><td>FG-06 · MD-08</td><td><span class="b b-e">Lock</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-30</td><td class="br-en-c">PDF stored in S3 immutable bucket; revisions create new files.</td><td class="br-ko-c">PDF S3 immutable 저장, revision 신규 파일.</td><td>FG-06</td><td><span class="b b-i">Retain</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-31</td><td class="br-en-c">EDI send failure retries 5 times; persistent fail alerts Sales.</td><td class="br-ko-c">EDI 실패 5회 재시도, 영속 실패 Sales 알림.</td><td>FG-06</td><td><span class="b b-w">Retry</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-32</td><td class="br-en-c">Customer ACK SLA: SAV 24h, GEO 12h; over → Sales alert.</td><td class="br-ko-c">ACK SLA SAV 24h · GEO 12h, 초과 알림.</td><td>FG-06</td><td><span class="b b-w">Alert</span></td></tr>
+
+          <tr class="cat-row"><td colspan="5">▼ Day-End Close Rules · 일 마감 (FG-07)</td></tr>
+          <tr><td class="br-id-c">BR-FG-33</td><td class="br-en-c">21:00 cron + 21:30 manual deadline; Auto-Close at T+1 06:00.</td><td class="br-ko-c">21:00 크론, 21:30 마감, T+1 06:00 Auto-Close.</td><td>FG-07</td><td><span class="b b-i">Schedule</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-34</td><td class="br-en-c">Daily Snapshot immutable; cannot re-open closed day.</td><td class="br-ko-c">Snapshot immutable, 재오픈 불가.</td><td>FG-07</td><td><span class="b b-e">Lock</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-35</td><td class="br-en-c">Any FAIL in 5-item checklist blocks Close; justification needed.</td><td class="br-ko-c">5-Check 1건 FAIL 시 차단, 사유 첨부 필수.</td><td>FG-07</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-36</td><td class="br-en-c">ERP settlement retries 5 times; persistent fail notifies Accounting.</td><td class="br-ko-c">ERP feed 5회 재시도, 영속 실패 회계 알림.</td><td>FG-07</td><td><span class="b b-w">Retry</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-37</td><td class="br-en-c">Auto-Close T+1 carries audit flag; Manager acknowledgement required.</td><td class="br-ko-c">Auto-Close audit flag, Manager 사후 확인.</td><td>FG-07</td><td><span class="b b-w">Flag</span></td></tr>
+
+          <tr class="cat-row"><td colspan="5">▼ History Rules · 이력 (FG-08)</td></tr>
+          <tr><td class="br-id-c">BR-FG-38</td><td class="br-en-c">FG-08 Read-only; data cannot be edited or deleted.</td><td class="br-ko-c">FG-08 읽기 전용, 수정/삭제 불가.</td><td>FG-08</td><td><span class="b b-e">Lock</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-39</td><td class="br-en-c">All search/view/export actions logged for audit accountability.</td><td class="br-ko-c">모든 검색/조회/export 행위 로그.</td><td>FG-08</td><td><span class="b b-i">Log</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-40</td><td class="br-en-c">Sales scope-limited to their customers; cross-customer hidden.</td><td class="br-ko-c">Sales는 자기 고객만, 타 고객 비공개.</td><td>FG-08</td><td><span class="b b-e">Scope</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-41</td><td class="br-en-c">Auditor gets time-boxed access; auto-revoked after visit.</td><td class="br-ko-c">감사관 기간 한정, 종료 자동 회수.</td><td>FG-08</td><td><span class="b b-e">Time-Box</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-42</td><td class="br-en-c">Deletion after 5y needs Plant Manager + Sales/Legal approval.</td><td class="br-ko-c">5년 이후 삭제 공장장 + Sales/법무 승인.</td><td>FG-08</td><td><span class="b b-e">Approve</span></td></tr>
+
+          <tr class="cat-row"><td colspan="5">▼ Dashboard Rules · 현황판 (FG-09)</td></tr>
+          <tr><td class="br-id-c">BR-FG-43</td><td class="br-en-c">KPI thresholds centralized in MD-08; cannot edit on dashboard.</td><td class="br-ko-c">KPI 임계 MD-08 중앙 관리.</td><td>FG-09</td><td><span class="b b-e">Lock</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-44</td><td class="br-en-c">OTD &lt; 95% (today) auto-alerts Manager + Plant Mgr + Sales.</td><td class="br-ko-c">금일 OTD 95% 미만 다중 알림.</td><td>FG-09</td><td><span class="b b-w">Alert</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-45</td><td class="br-en-c">Return Rate &gt; 0.5% triggers QC Manager investigation.</td><td class="br-ko-c">반품률 0.5% 초과 QC Manager 조사.</td><td>FG-09 · QC</td><td><span class="b b-w">Alert</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-46</td><td class="br-en-c">Sales scope: own customers only; aggregates hidden.</td><td class="br-ko-c">Sales 자기 고객만, 집계 비공개.</td><td>FG-09</td><td><span class="b b-e">Scope</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-47</td><td class="br-en-c">Wall TV mode read-only with auto-rotation; no drill-down.</td><td class="br-ko-c">Wall TV 읽기 전용, 드릴 불가.</td><td>FG-09</td><td><span class="b b-e">Lock</span></td></tr>
+
+          <tr class="cat-row"><td colspan="5">▼ Return Rules · 반품 (FG-RTN)</td></tr>
+          <tr><td class="br-id-c">BR-FG-48</td><td class="br-en-c">Returns without RMA blocked at dock; Sales must issue RMA first.</td><td class="br-ko-c">RMA 없는 반품 수령 차단.</td><td>FG-RTN</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-49</td><td class="br-en-c">Receiving requires PDA scan + ≥2 photos per pallet.</td><td class="br-ko-c">PDA 스캔 + 팔레트당 사진 ≥2장 필수.</td><td>FG-RTN</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-50</td><td class="br-en-c">Per-pallet disposition allowed; each needs QC Lead+ PIN.</td><td class="br-ko-c">팔레트별 차등 처분, QC Lead+ PIN.</td><td>FG-RTN</td><td><span class="b b-e">Approve</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-51</td><td class="br-en-c">RESTOCK creates new LOT with RTN- suffix; old LOT linked.</td><td class="br-ko-c">RESTOCK 시 RTN- 신규 LOT, 원본 연결.</td><td>FG-RTN</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-52</td><td class="br-en-c">Return + QC-04 NCR linked; 3 returns/30d → CAPA recommended.</td><td class="br-ko-c">반품-NCR 연계, 30일 3건 CAPA 권고.</td><td>FG-RTN · QC-04</td><td><span class="b b-w">Alert</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-53</td><td class="br-en-c">RMA expires after 30 days if not received.</td><td class="br-ko-c">RMA 30일 미수령 자동 만료.</td><td>FG-RTN</td><td><span class="b b-i">Expire</span></td></tr>
+          <tr><td class="br-id-c">BR-FG-54</td><td class="br-en-c">All return records retained ≥5 years.</td><td class="br-ko-c">반품 기록 5년 이상 보관.</td><td>FG-RTN</td><td><span class="b b-i">Retain</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <div class="page-footer">
+    <div class="pf-l">A-MES · VOL.9 · FG Finished Goods · UI Design Spec v2.0 (Enriched) · 9 + 1 Aux · 54 BRs · 5-Status · FIFO Mandatory · ≥5y Retention</div>
+    <div class="pf-r">Web + PDA + EDI + Wall TV · Phase 1–2 · Bilingual EN/KO</div>
   </div>
 </div>
-
-<!-- FG-04 PDA FIFO Picking -->
-<div class="screen-card" id="fg04">
-  <div class="sc-hdr"><div><div class="sc-id">FG-04</div><div class="sc-title-en">PDA FIFO Picking</div><div class="sc-title-ko">PDA FIFO 피킹</div></div>
-    <div class="sc-tags"><span class="tag t-pda">📱 PDA</span><span class="tag t-1st">1st Dev</span></div></div>
-  <div class="sc-body">
-    <div class="desc-bi" style="border-left-color:#0db87a;">
-      <div><div class="db-lbl">EN</div><div class="db-en">PDA-guided FIFO picking for outbound shipment. System displays the oldest-stocked location first (by FG-01 stocking timestamp). Operator navigates to the suggested location and scans the item barcode to confirm. Wrong item barcode is immediately blocked with a red alert — mis-picks are prevented. Quantity is confirmed via numeric keypad. After picking, location inventory is auto-deducted.</div></div>
-      <div><div class="db-lbl">KO</div><div class="db-ko">PDA 안내 기반 FIFO 피킹. FG-01 적재 타임스탬프 기준 가장 오래된 위치 우선 제시. 해당 위치 이동 후 품목 바코드 스캔 확인. 오품목 바코드 즉시 빨간 알림 차단 → 오피킹 방지. 숫자패드 수량 확정 후 위치 재고 자동 차감.</div></div>
-    </div>
-    <div class="pda-row">
-      <div class="pda-unit">
-        <div class="pdu-step">① FIFO Location Guide · 위치 안내</div>
-        <div class="pda-shell">
-          <div class="pda-scr">
-            <div class="pda-sbar"><span>FG-04 · Picking</span><span class="online">● ACTIVE</span></div>
-            <div class="pda-tbar" style="background:linear-gradient(135deg,#021208,#041e10);">
-              <div class="pda-title">FIFO Pick Guide · 피킹 안내</div>
-              <div class="pda-sub">SO-20250701-001 · SAV</div>
-            </div>
-            <div class="pda-bd">
-              <div style="background:#040c18;border:1px solid #0a5a38;border-radius:6px;padding:8px;margin-bottom:7px;">
-                <div style="font-size:9px;color:#1a5a4a;margin-bottom:3px;">Go to Location · 이동할 위치</div>
-                <div style="font-size:20px;font-weight:900;color:#00e5a0;font-family:monospace;">FG-A-01-1</div>
-                <div style="font-size:9px;color:rgba(255,255,255,.3);margin-top:2px;">Stocked: 2025-07-01 10:22 (oldest)</div>
-              </div>
-              <div class="pda-field"><div class="pda-fl">Item to Pick · 피킹 품목</div><div class="pda-fv">Door Trim LH</div></div>
-              <div class="pda-field"><div class="pda-fl">Required Qty · 요청 수량</div><div class="pda-fv">200 EA</div></div>
-              <div style="display:flex;align-items:center;gap:6px;font-size:9px;color:rgba(255,255,255,.25);margin-bottom:5px;"><span>Progress · 진행</span><div style="flex:1;background:#060e1c;border-radius:2px;height:3px;"><div style="width:40%;height:3px;background:#00e5a0;border-radius:2px;"></div></div><span>80/200</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="pda-unit">
-        <div class="pdu-step">② Scan to Confirm · 스캔 확인</div>
-        <div class="pda-shell">
-          <div class="pda-scr">
-            <div class="pda-sbar"><span>FG-04</span><span class="online">● OK</span></div>
-            <div class="pda-tbar" style="background:linear-gradient(135deg,#021208,#041e10);">
-              <div class="pda-title">Item Verified ✅</div>
-              <div class="pda-sub">Door Trim LH · FG-A-01-1</div>
-            </div>
-            <div class="pda-bd">
-              <div class="pda-field"><div class="pda-fl">Scanned Item</div><div class="pda-fv ok">FTL-LH-GY-001 ✅</div></div>
-              <div class="pda-field"><div class="pda-fl">Pick Qty · 피킹 수량</div><div class="pda-fv">EA</div></div>
-              <div class="pda-disp">10</div>
-              <div class="pda-numpad">
-                <div class="pda-key">1</div><div class="pda-key">2</div><div class="pda-key">3</div>
-                <div class="pda-key">4</div><div class="pda-key">5</div><div class="pda-key">6</div>
-                <div class="pda-key">7</div><div class="pda-key">8</div><div class="pda-key">9</div>
-                <div class="pda-key k-ok">ALL</div><div class="pda-key">0</div><div class="pda-key k-del">⌫</div>
-              </div>
-              <button class="pda-btn pda-pri">✅ Confirm Pick · 피킹 확정</button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="pda-unit">
-        <div class="pdu-step">⚠ Wrong Item Block · 오피킹 차단</div>
-        <div class="pda-shell">
-          <div class="pda-scr">
-            <div class="pda-sbar"><span>FG-04</span><span class="online" style="color:#ff8a82;">● BLOCKED</span></div>
-            <div class="pda-tbar" style="background:#1a0808;border-bottom-color:#3a1010;">
-              <div class="pda-title" style="color:#ff8a82;">⛔ WRONG ITEM</div>
-              <div class="pda-sub" style="color:#ff8a82;">오피킹 차단</div>
-            </div>
-            <div class="pda-bd">
-              <div class="pda-field"><div class="pda-fl">Scanned · 스캔</div><div class="pda-fv er">FTL-RH-GY-001 ❌ (RH)</div></div>
-              <div class="pda-field"><div class="pda-fl">Required · 요청</div><div class="pda-fv">FTL-LH-GY-001 (LH)</div></div>
-              <div style="background:#1a0808;border:1px solid #3a1010;border-radius:5px;padding:8px;text-align:center;font-size:10px;color:#ff8a82;margin:0 0 7px;">PICKING BLOCKED<br><span style="font-size:8px;opacity:.7;">Scan correct item · 올바른 품목 재스캔</span></div>
-              <button class="pda-btn pda-dan">🔄 Re-scan · 재스캔</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 </div>
-
-<!-- FG-06 Delivery Note -->
-<div class="screen-card" id="fg06">
-  <div class="sc-hdr"><div><div class="sc-id">FG-06</div><div class="sc-title-en">Delivery Note (SAV / GEO Format)</div><div class="sc-title-ko">거래명세서 (SAV / GEO 양식)</div></div>
-    <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-1st">1st Dev</span></div></div>
-  <div class="sc-body">
-    <div class="desc-bi" style="border-left-color:#0db87a;">
-      <div><div class="db-lbl">EN</div><div class="db-en">Auto-generates the delivery note in the client-specific format after loading confirmation (FG-05). SAV format and GEO format are configured separately in MD-07 (vendor master). Fields auto-populated from shipment order: item code, description, quantity, unit price, total, delivery address, and vehicle. PDF output + email dispatch to client logistics coordinator.</div></div>
-      <div><div class="db-lbl">KO</div><div class="db-ko">FG-05 상차 확인 후 거래선 전용 양식으로 거래명세서 자동 생성. SAV 양식·GEO 양식 MD-07(거래선 마스터)에 별도 구성. 품목코드·품명·수량·단가·합계·납품지·차량 자동 채움. PDF 출력 + 거래선 물류 담당자 이메일 자동 발송.</div></div>
-    </div>
-    <div class="mock-wrap"><div class="mock-lbl">FG-06 · Delivery Note Preview · SAV Format</div><div class="mock-win">
-      <div class="mock-tbar">📄 A-MES · Delivery Note · SAV-20250701-001 <span class="bc">FG &gt; Delivery Note</span></div>
-      <div class="mock-body" style="font-size:11px;">
-        <div style="border:2px solid #24292f;border-radius:4px;padding:16px;">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
-            <div><div style="font-size:18px;font-weight:900;letter-spacing:1px;">DELIVERY NOTE · 거래명세서</div><div style="font-size:11px;color:#64748b;margin-top:3px;">Seoyon E-Hua · SAV Plant — Savannah, Georgia</div></div>
-            <div style="text-align:right;font-size:10px;color:#64748b;"><div><strong>No.</strong> SAV-20250701-001</div><div><strong>Date · 날짜</strong> 2025-07-01</div></div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;font-size:10px;">
-            <div style="background:#f6f8fa;padding:8px;border-radius:4px;"><div style="font-weight:700;margin-bottom:4px;">Supplier · 공급자</div><div>A-MES Manufacturing Co., Ltd.<br>123 Industrial Ave, Korea<br>Tel: 02-1234-5678</div></div>
-            <div style="background:#f6f8fa;padding:8px;border-radius:4px;"><div style="font-weight:700;margin-bottom:4px;">Deliver To · 납품처</div><div>Seoyon E-Hua (SAV Plant)<br>100 Auto Drive, Savannah, GA 31401<br>Contact: Logistics Dept.</div></div>
-          </div>
-          <table class="tbl">
-            <thead><tr><th>#</th><th>Item Code</th><th>Description <span class="th-ko">품명</span></th><th>Qty <span class="th-ko">수량</span></th><th>Unit</th><th>Unit Price <span class="th-ko">단가</span></th><th>Amount <span class="th-ko">금액</span></th></tr></thead>
-            <tbody>
-              <tr><td>1</td><td style="font-family:monospace;font-size:9px;">FTL-LH-GY-001</td><td>Door Trim LH Grey<div class="ko">도어트림 LH 그레이</div></td><td style="text-align:right;">200</td><td>EA</td><td style="text-align:right;">₩ 8,500</td><td style="text-align:right;font-weight:700;">₩ 1,700,000</td></tr>
-            </tbody>
-            <tfoot><tr><td colspan="5"></td><td style="font-weight:700;background:#f0f3f7;">Total · 합계</td><td style="font-weight:900;font-size:12px;background:#f0f3f7;text-align:right;">₩ 1,700,000</td></tr></tfoot>
-          </table>
-          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
-            <button class="btn btn-primary btn-sm" style="background:#0db87a;">📄 Export PDF</button>
-            <button class="btn btn-secondary btn-sm">📧 Email to SAV</button>
-          </div>
-        </div>
-      </div>
-    </div></div>
-  </div>
-</div>
-
-<!-- FG-07 Day-End Close -->
-<div class="screen-card" id="fg07">
-  <div class="sc-hdr"><div><div class="sc-id">FG-07</div><div class="sc-title-en">Day-End Close</div><div class="sc-title-ko">일 마감</div></div>
-    <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-1st">1st Dev</span></div></div>
-  <div class="sc-body">
-    <div class="desc-bi" style="border-left-color:#0db87a;">
-      <div><div class="db-lbl">EN</div><div class="db-en">Day-end closing procedure locks all shipment transactions for the day. Checklist must be completed: all PDA picks confirmed, all delivery notes issued, FG inventory snapshot taken. After close, no backdated entries allowed. Closing generates the daily shipment summary report (RPT-03). Requires supervisor approval (digital signature).</div></div>
-      <div><div class="db-lbl">KO</div><div class="db-ko">일 마감으로 당일 출하 거래 전체 잠금. 체크리스트 완료 필수: 전체 PDA 피킹 확정, 전체 거래명세서 발행, FG 재고 스냅샷 생성. 마감 후 소급 입력 불가. RPT-03 일별 출하 요약 보고서 자동 생성. 관리자 전자서명 승인 필요.</div></div>
-    </div>
-    <div class="alert alert-w"><span>⚠️</span><div><strong>Day-End Close is irreversible · 일 마감은 취소 불가</strong> — Once closed, all transactions for the day are locked. No backdated adjustments allowed after close. Supervisor digital approval required. · 마감 후 당일 거래 전체 잠금. 소급 수정 불가. 관리자 전자서명 필수.</div></div>
-  </div>
-</div>
-
-<!-- FG-02, 05, 08 -->
-<div class="g2" style="gap:12px;margin-bottom:12px;">
-  <div class="screen-card" id="fg02" style="margin-bottom:0;"><div class="sc-hdr"><div><div class="sc-id">FG-02</div><div class="sc-title-en">FG Inventory Status</div><div class="sc-title-ko">완제품 재고 현황</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-1st">1st</span></div></div><div class="sc-body"><div class="desc-bi" style="border-left-color:#0db87a;"><div><div class="db-lbl">EN</div><div class="db-en">Real-time FG inventory by item, location, and client (SAV/GEO). Shows available-to-ship quantity (excludes reserved/picking items). Daily snapshot view with delta vs. previous day. Supports Excel export.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">품목·위치·거래선(SAV/GEO)별 완제품 실시간 재고. 출하 가능 수량(예약·피킹 중 제외) 표시. 전일 대비 증감, Excel 출력 지원.</div></div></div></div></div>
-  <div class="screen-card" id="fg05" style="margin-bottom:0;"><div class="sc-hdr"><div><div class="sc-id">FG-05</div><div class="sc-title-en">Loading Confirmation</div><div class="sc-title-ko">상차 확인</div></div><div class="sc-tags"><span class="tag t-pda">📱 PDA</span><span class="tag t-1st">1st</span></div></div><div class="sc-body"><div class="desc-bi" style="border-left-color:#0db87a;"><div><div class="db-lbl">EN</div><div class="db-en">PDA-based loading confirmation: operator scans each carton barcode as it is loaded into the truck. System counts loaded qty vs. pick list qty. When all items are confirmed, one-tap loading complete — triggers FG-06 delivery note auto-generation.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">PDA 상차 확인: 작업자가 박스 바코드 스캔하며 상차. 시스템이 피킹 목록 대비 상차 수량 카운트. 전체 확인 시 원터치 완료 → FG-06 거래명세서 자동 생성 트리거.</div></div></div></div></div>
-</div>
-<div class="screen-card" id="fg08" style="margin-bottom:20px;"><div class="sc-hdr"><div><div class="sc-id">FG-08</div><div class="sc-title-en">Shipment History</div><div class="sc-title-ko">출하 이력</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-1st">1st</span></div></div><div class="sc-body"><div class="desc-bi" style="border-left-color:#0db87a;"><div><div class="db-lbl">EN</div><div class="db-en">Full audit log of all shipments: date, client (SAV/GEO), item, quantity, delivery note number, vehicle, and operator. Searchable by date range, item, and client. Linked to WO and QC records for full traceability.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">전체 출하 이력 감사 로그: 날짜·거래선·품목·수량·명세서 번호·차량·작업자. 날짜/품목/거래선 검색. WO·QC 기록 완전 추적 연계.</div></div></div></div></div>
-
-<!-- BR-FG -->
-<div class="br-wrap" id="br-fg"><div class="br-title">Business Rules · 업무 규칙 (FG)</div>
-<table class="br-tbl"><thead><tr><th>Rule ID</th><th>Category</th><th>Rule (EN)</th><th>규칙 (KO)</th><th>Action</th></tr></thead>
-<tbody>
-<tr><td class="br-id">BR-FG-01</td><td>QC Gate</td><td class="br-en">Only WOs with QC-03 status = PASS can be stocked into FG. PDA blocking if QC status is FAIL or PENDING.</td><td class="br-ko">QC-03 합격 WO만 FG 적재. QC 미합격·미완료 시 PDA 차단.</td><td><span class="b b-e">Block</span></td></tr>
-<tr><td class="br-id">BR-FG-02</td><td>FIFO Picking</td><td class="br-en">FG FIFO picking is enforced by stocking date. System always directs to the oldest-stocked location. Out-of-sequence picking is blocked.</td><td class="br-ko">적재일 기준 FIFO 출고 강제. 시스템이 최고령 위치 우선 안내. 순서 무시 피킹 차단.</td><td><span class="b b-e">Block</span></td></tr>
-<tr><td class="br-id">BR-FG-03</td><td>Wrong-Item Block</td><td class="br-en">During PDA picking, scanning any barcode that does not match the pick list item immediately blocks the operation with an alarm. Operator must re-scan the correct item.</td><td class="br-ko">PDA 피킹 중 피킹 목록 불일치 바코드 스캔 즉시 차단 + 알람. 올바른 품목 재스캔 필수.</td><td><span class="b b-e">Block + Alarm</span></td></tr>
-<tr><td class="br-id">BR-FG-04</td><td>Day-End Lock</td><td class="br-en">After day-end close (FG-07), no backdated transactions are allowed for the closed date. Only supervisor can request emergency unlock (requires audit log entry).</td><td class="br-ko">일 마감(FG-07) 후 마감일 소급 거래 불가. 긴급 해제는 관리자만 가능(감사 로그 기록 필수).</td><td><span class="b b-e">Lock</span></td></tr>
-</tbody></table></div>
-</div>
-<div class="page-footer"><div class="pf-l">A-MES · VOL.9 · FG Finished Goods & Shipment · UI Design Spec v1.0 · Bilingual EN/KO</div><div class="pf-r">8 Screens · Web + PDA · 1st Dev</div></div>
-</div></div>
-</body></html>
+</body>
+</html>
