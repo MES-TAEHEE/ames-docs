@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.8 · QC-08 · Inspection Standard · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--qc:#dc2626;--mod:#dc2626;--mod-lt:#fee2e2;--mod-dk:#991b1b;--mod-tint:#fca5a5;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(252,165,165,.7);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#1f0a0a 0%,#180808 50%,#1f0a0a 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(220,38,38,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(220,38,38,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(220,38,38,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(220,38,38,.12),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(220,38,38,.3);color:var(--mod-tint);background:rgba(220,38,38,.08);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-w{background:#fef9c3;border-color:#f59e0b;color:#92400e;}
+.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#eff6ff;border-color:#3b82f6;}
+.lnk-node.cur{background:linear-gradient(135deg,#1f0a0a,#180808);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(220,38,38,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#1d4ed8;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);}
+
+.web-mock{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.web-tbar{background:#f0f3f7;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);font-size:11px;}
+.web-tbar-l{font-weight:700;color:var(--text);}
+.web-tbar .bc{color:var(--sub);font-size:10px;margin-left:8px;}
+.web-tbar-r{font-size:10px;color:var(--sub);}
+.web-bd{padding:18px;background:#fbfcfd;}
+.web-card{background:#fff;border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:12px;}
+.web-card-h{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.po-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;font-size:11px;margin-bottom:6px;}
+.po-l{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;}
+.po-v{font-weight:700;color:var(--text);margin-top:2px;}
+.tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;}
+.tbl th{background:#f0f3f7;padding:7px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.tbl td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:top;}
+.tbl .th-ko{font-size:9px;color:var(--sub);display:block;margin-top:1px;font-weight:400;}
+.tbl .ko{font-size:9px;color:var(--sub);}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.b-ok{background:#dcfce7;color:#166534;}.b-w{background:#fef9c3;color:#92400e;}.b-e{background:#fee2e2;color:#991b1b;}.b-i{background:#dbeafe;color:#1e40af;}
+.btn{padding:7px 14px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;}
+.btn-primary{background:var(--mod);border-color:var(--mod-dk);color:#fff;}
+
+/* Tree view */
+.std-tree{background:#fff;border:1px solid var(--border);border-radius:6px;padding:14px;font-size:11px;}
+.std-tree-row{padding:5px 0 5px 0;display:flex;align-items:center;gap:8px;cursor:pointer;border-radius:3px;}
+.std-tree-row:hover{background:#fafbfd;}
+.std-tree-row.l1{font-weight:700;color:var(--text);}
+.std-tree-row.l2{padding-left:24px;color:var(--sub);}
+.std-tree-row.l3{padding-left:48px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:10px;}
+.std-tree-row.sel{background:#fef2f2;color:var(--mod-dk);font-weight:700;}
+
+/* Version tag */
+.v-tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;background:#dbeafe;color:#1e40af;letter-spacing:.3px;}
+.v-tag.cur{background:#16a34a;color:#fff;}
+.v-tag.draft{background:#fef9c3;color:#92400e;}
+
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol active"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL08_QC_Quality.html">VOL.8 · QC</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">QC-08 · Inspection Standard</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.8 · QC · L3</div><div class="sb-mod-en">QUALITY CONTROL</div><div class="sb-mod-ko">품질 관리</div></div>
+  <div class="sb-section">Inspection · 검사</div>
+  <a class="sb-link" href="VOL08_QC01_Incoming_Inspection.html"><span class="sl-id">QC-01</span><div><div class="sl-en">Incoming</div><div class="sl-ko">수입검사</div></div></a>
+  <a class="sb-link" href="VOL08_QC02_InProcess_Inspection.html"><span class="sl-id">QC-02</span><div><div class="sl-en">In-Process</div><div class="sl-ko">공정검사</div></div></a>
+  <a class="sb-link" href="VOL08_QC03_Final_Inspection.html"><span class="sl-id">QC-03</span><div><div class="sl-en">Final ⚙</div><div class="sl-ko">최종검사</div></div></a>
+  <div class="sb-section">Defect &amp; CAPA · 부적합</div>
+  <a class="sb-link" href="VOL08_QC04_NCR_Register.html"><span class="sl-id">QC-04</span><div><div class="sl-en">NCR Register</div><div class="sl-ko">부적합 등록</div></div></a>
+  <a class="sb-link" href="VOL08_QC05_Hold_Quarantine.html"><span class="sl-id">QC-05</span><div><div class="sl-en">Hold 🚫</div><div class="sl-ko">격리</div></div></a>
+  <a class="sb-link" href="VOL08_QC06_CAPA.html"><span class="sl-id">QC-06</span><div><div class="sl-en">CAPA</div><div class="sl-ko">시정조치</div></div></a>
+  <div class="sb-section">Monitor &amp; Reference</div>
+  <a class="sb-link" href="VOL08_QC07_Dashboard.html"><span class="sl-id">QC-07</span><div><div class="sl-en">Dashboard</div><div class="sl-ko">현황판</div></div></a>
+  <a class="sb-link on" href="VOL08_QC08_Inspection_Std.html"><span class="sl-id">QC-08</span><div><div class="sl-en">Insp. Standard</div><div class="sl-ko">검사기준서</div></div></a>
+  <a class="sb-link" href="VOL08_QC_TRC_Traceability.html"><span class="sl-id">QC-TRC</span><div><div class="sl-en">Traceability</div><div class="sl-ko">이력 추적</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
+    <a href="#sec-2"><span class="num">02</span>Field Spec</a>
+    <a href="#sec-3"><span class="num">03</span>Versioning &amp; Approval</a>
+    <a href="#sec-4"><span class="num">04</span>Workflow</a>
+    <a href="#sec-5"><span class="num">05</span>Business Rules</a>
+    <a href="#sec-6"><span class="num">06</span>Data Model</a>
+    <a href="#sec-7"><span class="num">07</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.8 · QC · L3 · Inspection Standard Browser &amp; Editor</div>
+      <div class="scr-id-block"><div class="scr-id">QC-08</div><div class="scr-title-en">Inspection Standard</div></div>
+      <div class="scr-title-ko">검사기준서 조회·관리 — MD-08 미러 + 버전 관리 + 결재</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">UI</span><span class="mc-val">🖥 Web PC (Read by Inspectors, Edit by QC Lead+)</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">2nd Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">Inspector (Read) · QC Lead (Edit) · QC Manager (Approve)</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Source</span><span class="mc-val">MD-08 InspStd · Customer Spec PDF</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          The QC-side browser and editor for inspection standards, mirroring MD-08 master data with QC-specific add-ons (sampling tables, AQL, photo references, customer spec attachments). Inspectors view current effective standards before each inspection (Read-only). QC Lead drafts revisions, QC Manager approves; old versions remain accessible for audit. Each inspection record (QC-01/02/03) links to the exact StdID + VerNo used, ensuring traceability for customer audits and CAPA root-cause analysis.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          MD-08 마스터를 미러링한 QC 측 검사기준서 조회·편집 화면 (QC 전용 추가: 샘플링 표·AQL·사진 참조·고객 사양 첨부). 검사원은 각 검사 전 현재 유효 기준 조회 (Read-only). QC Lead가 개정 초안, QC Manager가 승인. 구 버전은 감사 대응 위해 접근 가능. 각 검사 기록(QC-01/02/03)은 사용된 StdID + VerNo와 정확히 연결되어 고객 감사·CAPA 근본원인 분석 시 추적 가능.
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — Web 브라우저 + 편집기</span></div>
+
+      <div class="web-mock">
+        <div class="web-tbar">
+          <div class="web-tbar-l">📋 A-MES · Quality · Inspection Standard<span class="bc">QC › Standards › INS-FN-DR001 v2.1</span></div>
+          <div class="web-tbar-r">QC.Han · QC Manager · 10:15</div>
+        </div>
+        <div class="web-bd">
+
+          <div style="display:grid;grid-template-columns:280px 1fr;gap:14px;margin-bottom:14px;">
+            <!-- Left: Tree -->
+            <div class="std-tree">
+              <div style="font-size:10px;font-weight:700;color:var(--mod-dk);margin-bottom:8px;letter-spacing:.5px;">▼ INSPECTION STANDARDS · 기준서 트리</div>
+              <input type="text" placeholder="🔍 Search · 검색 (Code/Item)" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:3px;font-size:11px;margin-bottom:8px;">
+              <div class="std-tree-row l1">▼ Incoming (수입) · 28</div>
+              <div class="std-tree-row l2">▼ Raw Material · 18</div>
+              <div class="std-tree-row l3">INS-RM-PP-001 · PP Resin</div>
+              <div class="std-tree-row l3">INS-RM-PP-002 · TPO Resin</div>
+              <div class="std-tree-row l3">INS-RM-FA-001 · Fabric Roll</div>
+              <div class="std-tree-row l2">▶ Subcomponent · 10</div>
+              <div class="std-tree-row l1">▶ In-Process (공정) · 42</div>
+              <div class="std-tree-row l1">▼ Final (최종) · 36</div>
+              <div class="std-tree-row l2">▼ Door Trim · 8</div>
+              <div class="std-tree-row l3 sel">INS-FN-DR001 · LH ⚙</div>
+              <div class="std-tree-row l3">INS-FN-DR001-ENH · LH Enhanced</div>
+              <div class="std-tree-row l3">INS-FN-DR002 · RH</div>
+              <div class="std-tree-row l2">▶ Console · 6</div>
+              <div class="std-tree-row l2">▶ Trunk · 8</div>
+            </div>
+
+            <!-- Right: Detail -->
+            <div>
+              <div class="web-card">
+                <div class="web-card-h"><span>▼ STANDARD HEADER · 기준서 헤더</span><span><span class="v-tag cur">v2.1 (Current)</span> <span class="v-tag">v2.0</span> <span class="v-tag">v1.5</span> <span class="v-tag draft">v2.2 Draft</span></span></div>
+                <div class="po-grid">
+                  <div><div class="po-l">Std ID</div><div class="po-v">INS-FN-DR001</div></div>
+                  <div><div class="po-l">Std Name</div><div class="po-v">Door Trim LH · Final Insp.</div></div>
+                  <div><div class="po-l">Version</div><div class="po-v">2.1 (Effective: 2026-03-01)</div></div>
+                  <div><div class="po-l">Item</div><div class="po-v">Door Trim LH (DR-LH-001)</div></div>
+                  <div><div class="po-l">Customer Code</div><div class="po-v">SAV · 현대 SAV</div></div>
+                  <div><div class="po-l">Inspection Type</div><div class="po-v">FINAL</div></div>
+                  <div><div class="po-l">Mode</div><div class="po-v">STANDARD (AQL 2.5)</div></div>
+                  <div><div class="po-l">Sample Interval</div><div class="po-v">500 EA cumulative</div></div>
+                </div>
+                <div style="margin-top:8px;font-size:11px;color:var(--sub);">
+                  📄 Linked Customer Spec: <a href="#" style="color:var(--mod-dk);text-decoration:underline;">SAV-DR-LH-Spec-v3.pdf (2026-02-15, 4.2MB)</a> ·
+                  Approved By: QC.Han · Effective Date: 2026-03-01 · Last Used in: 1,247 inspections (last 30d)
+                </div>
+              </div>
+
+              <div class="web-card">
+                <div class="web-card-h"><span>▼ INSPECTION ITEMS · 검사 항목 (v2.1)</span><span style="color:var(--sub);">8 items · 6 visual + 2 dimensional</span></div>
+                <table class="tbl">
+                  <thead><tr><th>#</th><th>Item (EN)<span class="th-ko">검사 항목</span></th><th>Standard<span class="th-ko">기준</span></th><th>Method<span class="th-ko">방법</span></th><th>Class<span class="th-ko">등급</span></th><th>Photo</th></tr></thead>
+                  <tbody>
+                    <tr><td>1</td><td>Visual — Surface Defect<div class="ko">외관 (스크래치·오염·버·변색)</div></td><td>No defect</td><td>Visual</td><td><span class="b b-e">Critical</span></td><td>📷</td></tr>
+                    <tr><td>2</td><td>Dimension — Overall Length<div class="ko">치수 (전장)</div></td><td>148 ± 0.5 mm</td><td>Caliper</td><td><span class="b b-w">Major</span></td><td>—</td></tr>
+                    <tr><td>3</td><td>Coating Thickness<div class="ko">도막 두께</div></td><td>60 ± 10 μm</td><td>μ-meter (3 points avg)</td><td><span class="b b-w">Major</span></td><td>—</td></tr>
+                    <tr><td>4</td><td>Adhesion — Cross-Cut<div class="ko">부착력 (크로스컷)</div></td><td>≥ 4B (ASTM D3359)</td><td>Tape test</td><td><span class="b b-w">Major</span></td><td>📷</td></tr>
+                    <tr><td>5</td><td>Color Match (ΔE)<div class="ko">색차</div></td><td>ΔE ≤ 1.0 vs master</td><td>Colorimeter</td><td><span class="b b-w">Major</span></td><td>📷</td></tr>
+                    <tr><td>6</td><td>Cure — Solvent Rub<div class="ko">경화도 (MEK)</div></td><td>≥ 100 rubs</td><td>MEK 50x rub</td><td><span class="b b-e">Critical</span></td><td>—</td></tr>
+                    <tr><td>7</td><td>Assembly — Clip Fit<div class="ko">조립 (클립·보스)</div></td><td>Normal fit</td><td>Visual + touch</td><td><span class="b b-w">Major</span></td><td>📷</td></tr>
+                    <tr><td>8</td><td>Packaging Marking<div class="ko">포장 표기 (LOT·바코드)</div></td><td>Per packaging spec</td><td>Visual + scan</td><td><span class="b b-i">Minor</span></td><td>📷</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="web-card">
+                <div class="web-card-h"><span>▼ KPI TARGETS &amp; CAPA TRIGGER · 임계 설정</span><span style="color:var(--sub);">Dashboard (QC-07) 연동</span></div>
+                <div class="po-grid">
+                  <div><div class="po-l">FPY Target</div><div class="po-v">≥ 99.5 %</div></div>
+                  <div><div class="po-l">Defect Rate Target</div><div class="po-v">≤ 0.5 %</div></div>
+                  <div><div class="po-l">Critical Defect Limit</div><div class="po-v">0 (zero tolerance)</div></div>
+                  <div><div class="po-l">CAPA Trigger</div><div class="po-v">3× same defect / 30d</div></div>
+                </div>
+              </div>
+
+              <div class="web-card">
+                <div class="web-card-h"><span>▼ CHANGE HISTORY · 개정 이력</span><span style="color:var(--sub);">5 revisions · 2024~2026</span></div>
+                <table class="tbl">
+                  <thead><tr><th>Version</th><th>Effective</th><th>Major Changes (EN)</th><th>주요 변경 (KO)</th><th>Approver</th></tr></thead>
+                  <tbody>
+                    <tr><td><span class="v-tag cur">v2.1</span></td><td>2026-03-01</td><td>Added ΔE color match · tightened cure spec</td><td>색차 항목 추가, 경화 기준 강화</td><td>QC.Han</td></tr>
+                    <tr><td><span class="v-tag">v2.0</span></td><td>2025-08-15</td><td>SAV customer spec update reflected</td><td>SAV 고객 사양 변경 반영</td><td>QC.Han</td></tr>
+                    <tr><td><span class="v-tag">v1.5</span></td><td>2025-01-10</td><td>Coating thickness method changed</td><td>도막 두께 측정 방식 변경</td><td>QC.Kim</td></tr>
+                    <tr><td><span class="v-tag">v1.0</span></td><td>2024-06-01</td><td>Initial release</td><td>최초 발행</td><td>QC.Kim</td></tr>
+                    <tr><td><span class="v-tag draft">v2.2</span></td><td>—</td><td>CAPA-2026-0519-008 results pending</td><td>CAPA 결과 반영 대기</td><td>(Draft)</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div style="display:flex;gap:8px;justify-content:flex-end;">
+                <button class="btn">📥 Download PDF (Print)</button>
+                <button class="btn">🔄 Compare Versions</button>
+                <button class="btn">📋 Used In (1,247 ins)</button>
+                <button class="btn">✏ Edit (QC Lead+)</button>
+                <button class="btn btn-primary">📝 Draft New Version</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 Standard Discipline · 기준서 규율</span>
+        ① 검사원은 매번 검사 시작 시 현재 유효 버전 확인 (auto-pinned by QC-01/02/03) ② Draft 상태 기준은 검사에 사용 불가, Approved 상태만 사용 ③ 신규 검사 시작 후 기준 변경되어도 그 검사는 시작 시점 버전을 유지 (락) ④ 구 버전은 감사 대응 위해 ≥ 5년 보관 ⑤ Customer Spec PDF 변경 시 알림 → 기준 개정 검토 routing</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Field Specification</span><span class="sec-ko">필드 사양</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:22%;">Field</th><th style="width:14%;">Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">StdID</td><td class="fld-type">VARCHAR(20)</td><td>식별자. 패턴: INS-{TYPE}-{ITEM}-{SEQ}. 예: INS-FN-DR001.</td></tr>
+          <tr><td class="fld-name">VerNo</td><td class="fld-type">VARCHAR(8)</td><td>Semantic version (예: 2.1). Effective 조합으로 unique.</td></tr>
+          <tr><td class="fld-name">StdName</td><td class="fld-type">VARCHAR(80)</td><td>기준서명 (EN + KO).</td></tr>
+          <tr><td class="fld-name">InsType</td><td class="fld-type">ENUM</td><td>INCOMING / IN_PROCESS / FINAL.</td></tr>
+          <tr><td class="fld-name">ItemNo</td><td class="fld-type">VARCHAR(20)</td><td>대상 품목 코드 (MD-Item 연계).</td></tr>
+          <tr><td class="fld-name">CustomerCode</td><td class="fld-type">VARCHAR(20)</td><td>고객 코드 (NULL=전체 공통).</td></tr>
+          <tr><td class="fld-name">Mode</td><td class="fld-type">ENUM</td><td>STANDARD / ENHANCED.</td></tr>
+          <tr><td class="fld-name">AQLLevel</td><td class="fld-type">DECIMAL(3,2)</td><td>AQL 수준 (예: 1.0, 2.5, 4.0). NULL=100% 전수.</td></tr>
+          <tr><td class="fld-name">SampleInterval</td><td class="fld-type">INT</td><td>공정검사 발행 주기 (누적 양품 EA).</td></tr>
+          <tr><td class="fld-name">InspItemsJSON</td><td class="fld-type">JSON</td><td>{seq,name_en,name_ko,standard,method,class,photo_url} 배열.</td></tr>
+          <tr><td class="fld-name">KPITargetsJSON</td><td class="fld-type">JSON</td><td>FPY/DefectRate/Critical 임계 등.</td></tr>
+          <tr><td class="fld-name">CustomerSpecURL</td><td class="fld-type">VARCHAR(255)</td><td>고객 사양 PDF 링크.</td></tr>
+          <tr><td class="fld-name">Status</td><td class="fld-type">ENUM</td><td>DRAFT / IN_REVIEW / APPROVED / OBSOLETE.</td></tr>
+          <tr><td class="fld-name">EffectiveDate</td><td class="fld-type">DATE</td><td>유효 시작일.</td></tr>
+          <tr><td class="fld-name">EndDate</td><td class="fld-type">DATE</td><td>유효 종료일 (다음 버전 시작일 -1).</td></tr>
+          <tr><td class="fld-name">DraftedBy · ApprovedBy</td><td class="fld-type">VARCHAR(20)</td><td>기안자 / 승인자 (Lead / Manager).</td></tr>
+          <tr><td class="fld-name">CAPALinkID</td><td class="fld-type">VARCHAR(24)</td><td>CAPA 결과로 인한 개정 시 추적 ID.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Versioning &amp; Approval</span><span class="sec-ko">버전 관리 + 결재</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:24%;">Status</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><strong>DRAFT</strong></td><td>QC Lead가 신규 또는 개정 버전 작성 중. 검사에 사용 불가. 자동 저장 (autosave).</td></tr>
+          <tr><td><strong>IN_REVIEW</strong></td><td>QC Manager 결재 대기. 7d 미결재 시 reminder, 14d 시 Plant Manager 에스컬레이션.</td></tr>
+          <tr><td><strong>APPROVED</strong></td><td>유효 버전. Effective Date 이후 검사에 자동 적용. 이전 버전은 OBSOLETE 자동 전환.</td></tr>
+          <tr><td><strong>OBSOLETE</strong></td><td>구 버전. 검사에 사용 불가지만 감사 대응 위해 5년 이상 보관. 신규 검사에 노출되지 않음.</td></tr>
+        </tbody>
+      </table>
+      <table class="fld-tbl" style="margin-top:10px;">
+        <thead><tr><th style="width:24%;">Version Pinning</th><th>Behavior</th></tr></thead>
+        <tbody>
+          <tr><td><strong>At Inspection Start</strong></td><td>QC-01/02/03 발행 시 그 시점 APPROVED 버전 StdID + VerNo를 검사 record에 hardcoded. 검사 중 기준 개정되어도 그 검사는 유지.</td></tr>
+          <tr><td><strong>Customer Spec Change</strong></td><td>CustomerSpecURL 변경 감지 시 QC Lead에게 자동 알림 + DRAFT 신규 버전 자동 생성 (변경 사항 표시).</td></tr>
+          <tr><td><strong>CAPA-Driven Revision</strong></td><td>CAPA-06 ACT 단계에서 SOP/Std 갱신 결정 시 자동 DRAFT 생성, CAPALinkID로 연결.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">Inspector starts QC-01/02/03 → system auto-pulls current APPROVED Std for that item/customer; reads it before measuring.</div><div class="wf-ko">검사원이 QC-01/02/03 시작 → 시스템이 현재 APPROVED 기준 자동 로드, 측정 전 조회.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Revision trigger (4 sources): customer spec change · CAPA-06 ACT · supplier change · routine review (annual).</div><div class="wf-ko">개정 트리거(4종): 고객 사양 변경·CAPA ACT·공급사 변경·정기 검토(연 1회).</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">QC Lead clicks "Draft New Version" → autosave; edits items, KPIs, sampling rules; attaches updated customer PDF.</div><div class="wf-ko">QC Lead가 [신규 버전 초안] 클릭, 항목·KPI·샘플링 편집 + 고객 PDF 첨부.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Submit for Review → Status: DRAFT → IN_REVIEW; QC Manager notified (Slack + email).</div><div class="wf-ko">결재 상신 → DRAFT → IN_REVIEW, QC Manager 알림 (Slack + 이메일).</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">QC Manager reviews "diff vs current" view; approves or sends back with comments.</div><div class="wf-ko">QC Manager가 현 버전 대비 diff 검토, 승인 또는 코멘트와 함께 반려.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Approved → Effective Date set; previous version auto-marked OBSOLETE; inspectors notified.</div><div class="wf-ko">승인 시 Effective Date 설정, 이전 버전 자동 OBSOLETE, 검사원 알림.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">All inspections after Effective Date auto-use new version; in-flight inspections continue with old (pinned).</div><div class="wf-ko">Effective Date 이후 검사는 신규 버전 자동 적용, 진행 중 검사는 기존 버전 유지 (Pinned).</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">All versions retained ≥ 5 years; auditors can browse historical versions and "what was used" for each inspection.</div><div class="wf-ko">전 버전 5년 이상 보관, 감사 시 각 검사가 사용한 버전 추적 가능.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-QC-27</td><td><div>Only APPROVED standards can be applied to inspections; DRAFT/IN_REVIEW blocked.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">APPROVED만 검사에 사용, DRAFT/IN_REVIEW 차단.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-QC-28</td><td><div>Each inspection record pins (StdID, VerNo) at start; revisions during in-flight do not affect.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">검사 시작 시 (StdID, VerNo) 락, 진행 중 개정은 영향 없음.</div></td><td><span class="br-act blk">Lock</span></td></tr>
+          <tr><td class="br-id">BR-QC-29</td><td><div>Approval requires QC Manager role (Lead alone insufficient).</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">승인은 QC Manager 권한 필수, Lead 단독 불가.</div></td><td><span class="br-act blk">Approve</span></td></tr>
+          <tr><td class="br-id">BR-QC-30</td><td><div>IN_REVIEW &gt; 7d → reminder; &gt; 14d → Plant Manager auto-escalation.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">결재 대기 7일 reminder, 14일 시 공장장 에스컬레이션.</div></td><td><span class="br-act alt">Escalate</span></td></tr>
+          <tr><td class="br-id">BR-QC-31</td><td><div>Customer spec PDF change detection auto-creates DRAFT for QC Lead review.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">고객 사양 PDF 변경 감지 시 DRAFT 자동 생성.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-QC-32</td><td><div>OBSOLETE standards retained ≥ 5 years for audit traceability.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">OBSOLETE 기준 5년 이상 보관 (감사 추적).</div></td><td><span class="br-act aut">Retain</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Table</th><th>Key Columns</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">QC_InspStd</span></td><td>StdID + VerNo (composite PK) · StdName · InsType · ItemNo · CustomerCode · Mode · AQLLevel · SampleInterval · InspItemsJSON · KPITargetsJSON · CustomerSpecURL · Status · EffectiveDate · EndDate · DraftedBy · ApprovedBy · CAPALinkID</td><td>QC측 미러 (편집은 QC측, 마스터는 MD-08).</td></tr>
+          <tr><td><span class="dm-col">QC_StdRevision</span></td><td>RevID · StdID · VerNo · ChangeJSON · ReviewerID · ReviewTS · ApproveTS · Comments</td><td>개정 이력 (diff 저장).</td></tr>
+          <tr><td><span class="dm-col">QC_Inspection</span> <em style="opacity:.6;">(read+pin)</em></td><td>InsID · StdID · StdVerNo (pinned at start)</td><td>검사 시작 시 버전 핀.</td></tr>
+          <tr><td><span class="dm-col">MD_InspStd</span> <em style="opacity:.6;">(master)</em></td><td>StdID · BaseSpec</td><td>MD 모듈의 마스터 (QC가 미러).</td></tr>
+          <tr><td><span class="dm-col">CustomerSpec</span> <em style="opacity:.6;">(read)</em></td><td>CustomerCode · ItemNo · SpecURL · SpecVersion · LastModifiedTS</td><td>고객 사양 변경 감지 소스.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">MD-08</div><div class="lnk-name">InspStd Master</div></div>
+          <div class="lnk-node up"><div class="lnk-id">Customer PDF</div><div class="lnk-name">Spec Source</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">QC-08</div><div class="lnk-name">Insp. Standard</div><div class="lnk-ko">조회·관리</div></div>
+        </div>
+        <div class="lnk-row" style="margin-top:14px;">
+          <div class="lnk-node cur"><div class="lnk-id">QC-08</div><div class="lnk-name">→ Apply</div></div>
+          <div class="lnk-arr">↘</div>
+          <div class="lnk-node down"><div class="lnk-id">QC-01</div><div class="lnk-name">Incoming</div></div>
+          <div class="lnk-node down"><div class="lnk-id">QC-02</div><div class="lnk-name">In-Process</div></div>
+          <div class="lnk-node down"><div class="lnk-id">QC-03</div><div class="lnk-name">Final</div></div>
+          <div class="lnk-node down"><div class="lnk-id">QC-07</div><div class="lnk-name">KPI Thresholds</div></div>
+        </div>
+        <div class="lnk-row" style="margin-top:14px;">
+          <div class="lnk-node up"><div class="lnk-id">QC-06</div><div class="lnk-name">CAPA ACT</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">QC-08</div><div class="lnk-name">Auto DRAFT</div><div class="lnk-ko">기준 개정 자동</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.8 · QC-08 · Inspection Standard · L3 Spec v1.0 · Version Control</div><div class="pf-r">Web PC · Phase 2 · IATF 16949 Compliant · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
