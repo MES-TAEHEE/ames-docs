@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.5 · INJ-03 · WO Confirmation · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--inj:#2563eb;--mod:#2563eb;--mod-lt:#dbeafe;--mod-dk:#1e40af;--mod-tint:#93c5fd;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(147,197,253,.7);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#0c1a2e 0%,#0a1628 50%,#0c1a2e 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(37,99,235,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(37,99,235,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(37,99,235,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(37,99,235,.12),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(37,99,235,.3);color:var(--mod-tint);background:rgba(37,99,235,.08);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-w{background:#fef9c3;border-color:#f59e0b;color:#92400e;}
+.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#f0fdf4;border-color:#22c55e;}
+.lnk-node.cur{background:linear-gradient(135deg,#0c1a2e,#0a1628);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(37,99,235,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#15803d;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;}
+.dm-pk{color:#f59e0b;font-size:8px;font-weight:700;}.dm-fk{color:#8b5cf6;font-size:8px;font-weight:700;}
+
+/* POP WO Confirm */
+.pop-mock{background:#000;border:2px solid #1a2840;border-radius:10px;overflow:hidden;margin-bottom:14px;color:#e2e8f0;box-shadow:0 8px 30px rgba(37,99,235,.15);}
+.pop-tbar{background:linear-gradient(135deg,#0a1628,#0c1a2e);padding:14px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(37,99,235,.3);}
+.pop-tbar-logo{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--mod-tint);letter-spacing:3px;}
+.pop-tbar-id{font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(147,197,253,.7);}
+.pop-tbar-r{display:flex;gap:12px;align-items:center;font-size:10px;color:rgba(255,255,255,.5);}
+.pop-tbar-r .stat-on{color:#5dffc4;}
+.pop-bd{padding:24px;background:#000;}
+.wo-list{display:flex;flex-direction:column;gap:10px;}
+.wo-card{background:#0a1628;border:1px solid rgba(37,99,235,.3);border-radius:8px;padding:18px 20px;cursor:pointer;}
+.wo-card.on{border:2px solid var(--mod-tint);background:linear-gradient(135deg,rgba(37,99,235,.15),#0a1628);box-shadow:0 0 20px rgba(37,99,235,.3);}
+.wo-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.wo-card-id{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--mod-tint);}
+.wo-card-prio{font-family:'Bebas Neue',sans-serif;font-size:14px;padding:3px 10px;border-radius:3px;letter-spacing:1px;}
+.wo-card-prio.high{background:rgba(220,38,38,.2);color:#fca5a5;border:1px solid rgba(220,38,38,.4);}
+.wo-card-prio.norm{background:rgba(37,99,235,.2);color:var(--mod-tint);border:1px solid rgba(37,99,235,.4);}
+.wo-card-name{font-size:20px;font-weight:700;color:#fff;margin-bottom:8px;}
+.wo-card-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;font-size:11px;}
+.wo-card-l{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(147,197,253,.6);text-transform:uppercase;letter-spacing:.5px;}
+.wo-card-v{font-size:14px;color:#fff;margin-top:3px;font-weight:700;}
+.wo-card-v.warn{color:#fde047;}.wo-card-v.ok{color:#5dffc4;}
+.confirm-bar{display:flex;gap:10px;margin-top:18px;padding-top:18px;border-top:1px solid rgba(37,99,235,.2);}
+.pop-btn{padding:14px 22px;border-radius:6px;font-size:14px;font-weight:700;border:none;cursor:pointer;flex:1;text-align:center;font-family:'Noto Sans KR',sans-serif;}
+.pop-btn-pri{background:var(--mod);color:#fff;}
+.pop-btn-sec{background:rgba(255,255,255,.08);color:#e2e8f0;border:1px solid rgba(255,255,255,.15);}
+.pop-btn-ok{background:#0db87a;color:#fff;}
+.checklist{background:rgba(13,184,122,.06);border:1px solid rgba(13,184,122,.3);border-radius:6px;padding:12px 16px;margin-top:14px;}
+.checklist-t{font-family:'JetBrains Mono',monospace;font-size:10px;color:#5dffc4;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;}
+.checklist-i{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:11px;color:#e2e8f0;}
+.checklist-i .c-mark{color:#5dffc4;font-size:14px;}
+.checklist-i.fail .c-mark{color:#fca5a5;}
+
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol active"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL05_INJ_Injection.html">VOL.5 · INJ</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">INJ-03 · WO Confirmation</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.5 · INJ · L3</div><div class="sb-mod-en">INJECTION POP</div><div class="sb-mod-ko">사출 생산 POP</div></div>
+  <div class="sb-section">Screens · 화면</div>
+  <a class="sb-link" href="VOL05_INJ01_POP_Login.html"><span class="sl-id">INJ-01</span><div><div class="sl-en">POP Login</div><div class="sl-ko">로그인</div></div></a>
+  <a class="sb-link" href="VOL05_INJ02_POP_Dashboard.html"><span class="sl-id">INJ-02</span><div><div class="sl-en">Dashboard</div><div class="sl-ko">현황판</div></div></a>
+  <a class="sb-link on" href="VOL05_INJ03_WO_Confirm.html"><span class="sl-id">INJ-03</span><div><div class="sl-en">WO Confirm</div><div class="sl-ko">작업지시 확인</div></div></a>
+  <a class="sb-link" href="VOL05_INJ04_Production_Entry.html"><span class="sl-id">INJ-04</span><div><div class="sl-en">Prod. Entry</div><div class="sl-ko">실적 입력</div></div></a>
+  <a class="sb-link" href="VOL05_INJ05_Defect.html"><span class="sl-id">INJ-05</span><div><div class="sl-en">Defect</div><div class="sl-ko">불량 등록</div></div></a>
+  <a class="sb-link" href="VOL05_INJ06_Mold_Change.html"><span class="sl-id">INJ-06</span><div><div class="sl-en">Mold Change</div><div class="sl-ko">금형 교체</div></div></a>
+  <a class="sb-link" href="VOL05_INJ07_Prod_Status.html"><span class="sl-id">INJ-07</span><div><div class="sl-en">Prod. Status</div><div class="sl-ko">실적 현황</div></div></a>
+  <a class="sb-link" href="VOL05_INJ08_Andon.html"><span class="sl-id">INJ-08</span><div><div class="sl-en">Andon</div><div class="sl-ko">비상 신호</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
+    <a href="#sec-2"><span class="num">02</span>Pre-Start Checklist</a>
+    <a href="#sec-3"><span class="num">03</span>Workflow</a>
+    <a href="#sec-4"><span class="num">04</span>Business Rules</a>
+    <a href="#sec-5"><span class="num">05</span>Data Model</a>
+    <a href="#sec-6"><span class="num">06</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.5 · INJ · L3 · WO Acceptance</div>
+      <div class="scr-id-block"><div class="scr-id">INJ-03</div><div class="scr-title-en">WO Confirmation</div></div>
+      <div class="scr-title-ko">작업 지시 확인 — 생산 착수 전 체크리스트</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">UI</span><span class="mc-val">🏭 POP Dark</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">1st Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">INJ Operator</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Inputs</span><span class="mc-val">PP_WO (Released)</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Outputs</span><span class="mc-val">WO Accepted → INJ-04</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          Lists Released WOs assigned to the current line, sorted by priority + D-Day. Operator taps a WO card to view full details (item, mold, material, target qty, customer), runs the pre-start checklist (5 items), and presses Accept to lock the WO to this terminal. Subsequent INJ-04 entry is bound to the accepted WO. Without a Released WO, INJ-04 is locked (BR-INJ-01).
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          현 라인에 배정된 Released WO 목록(우선순위 + D-Day 정렬). 작업자가 카드를 터치하여 상세(품번·금형·자재·목표수량·고객사) 확인, 5가지 사전 체크리스트 실행, Accept로 해당 터미널에 WO 잠금. 이후 INJ-04 실적 입력은 Accept된 WO에 바인딩. Released WO 없으면 INJ-04 잠금(BR-INJ-01).
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — WO 선택 + 체크리스트</span></div>
+      <div class="pop-mock">
+        <div class="pop-tbar">
+          <div style="display:flex;gap:14px;align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">INJ-03 · WO Confirm · LINE INJ-L1</span>
+          </div>
+          <div class="pop-tbar-r">
+            <span class="stat-on">● 3 WO READY</span>
+            <span>J.Kim · DAY</span>
+          </div>
+        </div>
+        <div class="pop-bd">
+          <div class="wo-list">
+            <!-- Selected WO with details -->
+            <div class="wo-card on">
+              <div class="wo-card-top">
+                <div class="wo-card-id">WO-2026-0519-007</div>
+                <div class="wo-card-prio high">🔥 HIGH · D-1</div>
+              </div>
+              <div class="wo-card-name">Door Trim LH · 도어트림 LH (DR-TRM-LH-A1)</div>
+              <div class="wo-card-grid">
+                <div><div class="wo-card-l">Target Qty</div><div class="wo-card-v">200 EA</div></div>
+                <div><div class="wo-card-l">Mold</div><div class="wo-card-v warn">MOLD-DT-A1 (88%)</div></div>
+                <div><div class="wo-card-l">Material</div><div class="wo-card-v ok">PP-Black ✓</div></div>
+                <div><div class="wo-card-l">Customer</div><div class="wo-card-v">SAV</div></div>
+              </div>
+              <div class="checklist">
+                <div class="checklist-t">▼ Pre-Start Checklist · 사전 점검</div>
+                <div class="checklist-i"><span class="c-mark">✓</span>① 금형 장착 확인 (MOLD-DT-A1)</div>
+                <div class="checklist-i"><span class="c-mark">✓</span>② 자재 투입 확인 (PP-Black LOT-2026-0429)</div>
+                <div class="checklist-i"><span class="c-mark">✓</span>③ 사출 조건 로딩 (Recipe-DT-A1)</div>
+                <div class="checklist-i"><span class="c-mark">✓</span>④ 안전 가드 확인</div>
+                <div class="checklist-i"><span class="c-mark">✓</span>⑤ Phase-0 마스터 정합 (BR-MD-04)</div>
+              </div>
+              <div class="confirm-bar">
+                <button class="pop-btn pop-btn-sec">← 뒤로</button>
+                <button class="pop-btn pop-btn-sec">📋 WO 상세</button>
+                <button class="pop-btn pop-btn-ok" style="flex:2;">✓ Accept WO → INJ-04</button>
+              </div>
+            </div>
+
+            <!-- Other WOs in queue -->
+            <div class="wo-card">
+              <div class="wo-card-top">
+                <div class="wo-card-id">WO-2026-0519-012</div>
+                <div class="wo-card-prio norm">▪ NORMAL · D-3</div>
+              </div>
+              <div class="wo-card-name">Door Trim RH · 도어트림 RH (DR-TRM-RH-A1)</div>
+              <div class="wo-card-grid">
+                <div><div class="wo-card-l">Target Qty</div><div class="wo-card-v">100 EA</div></div>
+                <div><div class="wo-card-l">Mold</div><div class="wo-card-v">MOLD-DT-B1 (45%)</div></div>
+                <div><div class="wo-card-l">Material</div><div class="wo-card-v ok">PP-Black ✓</div></div>
+                <div><div class="wo-card-l">Customer</div><div class="wo-card-v">SAV</div></div>
+              </div>
+            </div>
+
+            <div class="wo-card">
+              <div class="wo-card-top">
+                <div class="wo-card-id">WO-2026-0519-019</div>
+                <div class="wo-card-prio norm">▪ NORMAL · D-5</div>
+              </div>
+              <div class="wo-card-name">Console Upper · 콘솔어퍼 (CSL-UP-B2)</div>
+              <div class="wo-card-grid">
+                <div><div class="wo-card-l">Target Qty</div><div class="wo-card-v">64 EA</div></div>
+                <div><div class="wo-card-l">Mold</div><div class="wo-card-v">MOLD-CSL-B2 (12%)</div></div>
+                <div><div class="wo-card-l">Material</div><div class="wo-card-v ok">PP-Red ✓</div></div>
+                <div><div class="wo-card-l">Customer</div><div class="wo-card-v">GEO</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 UI Highlights · 화면 주요 포인트</span>
+        ① 카드 정렬: D-Day &lt; 2일 → HIGH 우선, 같은 우선순위는 발행 시각순 ② 선택 카드만 5종 체크리스트 + Accept 버튼 노출 ③ 금형 쇼트수 ≥ 80% 시 노랑·≥ 90% 빨강(BR-INJ-02 임박 표시) ④ 자재 확인은 WH 재고 + LOT 유효기간 자동 검증 ⑤ Accept 후 다른 터미널에서 동일 WO 진입 차단(라인 잠금).</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Pre-Start Checklist (5)</span><span class="sec-ko">사전 점검 5종</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:18%;">Item</th><th style="width:24%;">Source</th><th>Validation</th></tr></thead>
+        <tbody>
+          <tr><td>① 금형 장착</td><td>PLC + MD_Mold</td><td>PLC가 보고하는 장착 금형 ID = WO 라우팅 지정 금형 ID. 불일치 시 차단.</td></tr>
+          <tr><td>② 자재 투입</td><td>WH 재고 + BOM</td><td>BOM 자재 모두 WH에 가용 + LOT 유효기간 ≥ 오늘. 차감은 INJ-04에서.</td></tr>
+          <tr><td>③ 사출 조건</td><td>MD_Recipe</td><td>WO 품번에 해당하는 Recipe 자동 로드. 압력·온도·시간 PLC 다운로드 확인.</td></tr>
+          <tr><td>④ 안전 가드</td><td>PLC Safety</td><td>설비 안전 가드 닫힘 + 인터록 OK 신호 확인.</td></tr>
+          <tr><td>⑤ Phase-0 마스터</td><td>BR-MD-04</td><td>Item/BOM/BOP/Recipe/InspStd 누락 없음. 누락 시 차단.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">From INJ-02 Dashboard, operator taps "WO Confirm" → INJ-03 opens.</div><div class="wf-ko">INJ-02에서 "WO Confirm" 터치 → INJ-03 진입.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Released WOs assigned to current line displayed, sorted by priority + D-Day.</div><div class="wf-ko">현 라인 Released WO 목록(우선순위·D-Day 정렬) 표시.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Operator taps target WO card → details + 5-item checklist expand.</div><div class="wf-ko">목표 WO 카드 터치 → 상세 + 5종 체크리스트 펼침.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">System auto-runs all 5 checks (PLC + Master + WH). Any fail blocks Accept button.</div><div class="wf-ko">시스템이 5종 자동 점검(PLC·마스터·WH). 1개라도 실패 시 Accept 차단.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">All checks pass → Accept button activates. Operator taps Accept.</div><div class="wf-ko">전부 통과 시 Accept 활성. 작업자 터치.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">WO bound to terminal (line lock). PP_WO.Status → In Progress. INJ-04 auto-opens.</div><div class="wf-ko">WO를 터미널에 바인딩(라인 잠금). PP_WO.Status → In Progress. INJ-04 자동 진입.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-INJ-01</td><td><div>Production cannot start without a Released WO assigned to this line.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">현 라인 Released WO 없으면 생산 불가.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-INJ-W01</td><td><div>Accept blocked if any of 5 pre-start checks fail.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">5종 점검 1개라도 실패 시 Accept 차단.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-INJ-W02</td><td><div>Accepted WO is locked to terminal; other terminals see it as "In Progress" only.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">Accept WO는 터미널 잠금, 타 터미널은 In Progress만 표시.</div></td><td><span class="br-act aut">Lock</span></td></tr>
+          <tr><td class="br-id">BR-INJ-W03</td><td><div>Mold mismatch (PLC ≠ WO) → block + alert MNT.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">PLC 장착 금형 ≠ WO 지정 시 차단 + MNT 알림.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-INJ-W04</td><td><div>Expired material LOT (past expiry) auto-flagged → supervisor PIN required to override.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">유효기간 만료 자재 → 라인장 PIN 필요.</div></td><td><span class="br-act alt">Audit</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Table</th><th>Key Columns</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">WOAcceptance</span></td><td><span class="dm-pk">PK</span> AcceptID · <span class="dm-fk">FK</span> WOID · TerminalID · <span class="dm-fk">FK</span> EmpID · AcceptTS · CheckResults(JSON)</td><td>WO 수락 이력 + 5종 체크 결과.</td></tr>
+          <tr><td><span class="dm-col">PP_WO</span> <em style="opacity:.6;">(update)</em></td><td>Status → In Progress · TerminalLock · AcceptedTS</td><td>Accept 시 상태 전이.</td></tr>
+          <tr><td><span class="dm-col">MD_Recipe</span> <em style="opacity:.6;">(read)</em></td><td><span class="dm-pk">PK</span> RecipeID · ItemNo · Pressure · Temp · CycleTime</td><td>사출 조건 마스터. PLC로 다운로드.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">PP-07</div><div class="lnk-name">WO Release</div><div class="lnk-ko">WO 발행</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node up"><div class="lnk-id">MD/PLC</div><div class="lnk-name">5 Checks</div><div class="lnk-ko">5종 점검</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">INJ-03</div><div class="lnk-name">WO Confirm</div><div class="lnk-ko">WO 확인</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">INJ-04</div><div class="lnk-name">Prod. Entry</div><div class="lnk-ko">실적 입력</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.5 · INJ-03 · WO Confirmation · L3 Spec v1.0</div><div class="pf-r">Pre-Start Checklist · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>

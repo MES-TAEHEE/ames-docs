@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.5 · INJ-06 · Mold Change · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--inj:#2563eb;--mod:#2563eb;--mod-lt:#dbeafe;--mod-dk:#1e40af;--mod-tint:#93c5fd;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(147,197,253,.7);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#0c1a2e 0%,#0a1628 50%,#0c1a2e 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(37,99,235,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(37,99,235,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(37,99,235,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(37,99,235,.12),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(37,99,235,.3);color:var(--mod-tint);background:rgba(37,99,235,.08);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}.br-act.mlt{background:#fce7f3;color:#9d174d;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-w{background:#fef9c3;border-color:#f59e0b;color:#92400e;}
+.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#f0fdf4;border-color:#22c55e;}
+.lnk-node.cur{background:linear-gradient(135deg,#0c1a2e,#0a1628);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(37,99,235,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#15803d;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;}
+.dm-pk{color:#f59e0b;font-size:8px;font-weight:700;}.dm-fk{color:#8b5cf6;font-size:8px;font-weight:700;}
+
+/* POP Mold Change */
+.pop-mock{background:#000;border:2px solid #1a2840;border-radius:10px;overflow:hidden;margin-bottom:14px;color:#e2e8f0;box-shadow:0 8px 30px rgba(37,99,235,.15);}
+.pop-tbar{background:linear-gradient(135deg,#0a1628,#0c1a2e);padding:14px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(37,99,235,.3);}
+.pop-tbar-logo{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--mod-tint);letter-spacing:3px;}
+.pop-tbar-id{font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(147,197,253,.7);}
+.pop-tbar-r{display:flex;gap:12px;align-items:center;font-size:10px;color:rgba(255,255,255,.5);}
+.pop-bd{padding:22px;background:#000;}
+.mold-status{background:linear-gradient(135deg,#1a0808,#0a1628);border:2px solid rgba(220,38,38,.3);border-radius:8px;padding:22px;margin-bottom:16px;}
+.mold-status.warn{background:linear-gradient(135deg,#1a1408,#0a1628);border-color:rgba(234,179,8,.4);}
+.mold-id{font-family:'JetBrains Mono',monospace;font-size:14px;color:rgba(255,255,255,.5);margin-bottom:6px;}
+.mold-name{font-size:24px;font-weight:800;color:#fff;margin-bottom:18px;}
+.mold-gauge{display:flex;align-items:baseline;gap:14px;margin-bottom:10px;}
+.mold-gauge-v{font-family:'Bebas Neue',sans-serif;font-size:84px;color:#fca5a5;line-height:1;letter-spacing:2px;}
+.mold-gauge-pct{font-family:'Bebas Neue',sans-serif;font-size:40px;color:#fca5a5;}
+.mold-gauge-t{font-family:'Bebas Neue',sans-serif;font-size:30px;color:rgba(255,255,255,.4);}
+.mold-bar{height:22px;background:rgba(255,255,255,.06);border-radius:11px;overflow:hidden;margin:10px 0;position:relative;}
+.mold-bar-fill{height:100%;background:linear-gradient(90deg,#fbbf24,#dc2626);border-radius:11px;}
+.mold-bar-tick{position:absolute;top:-3px;bottom:-3px;width:2px;background:rgba(255,255,255,.4);}
+.mold-bar-tick.t90{left:90%;}
+.mold-bar-tick.t100{left:100%;background:#dc2626;}
+.mold-bar-tick-l{position:absolute;top:25px;font-size:8px;color:rgba(255,255,255,.5);font-family:'JetBrains Mono',monospace;transform:translateX(-50%);}
+.mold-info{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:11px;margin-top:18px;}
+.mi-l{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(147,197,253,.6);text-transform:uppercase;letter-spacing:.5px;}
+.mi-v{font-size:14px;color:#fff;margin-top:3px;font-weight:700;}
+.mi-v.warn{color:#fde047;}
+.mc-actions{display:flex;gap:10px;}
+.mc-btn{padding:18px 22px;border-radius:6px;font-size:15px;font-weight:700;border:none;cursor:pointer;flex:1;text-align:center;font-family:'Noto Sans KR',sans-serif;}
+.mc-btn-pri{background:linear-gradient(135deg,#dc2626,#991b1b);color:#fff;}
+.mc-btn-sec{background:rgba(255,255,255,.08);color:#e2e8f0;border:1px solid rgba(255,255,255,.15);}
+.mc-btn-ok{background:linear-gradient(135deg,#0db87a,#0a9060);color:#fff;}
+.mnt-wo-card{background:rgba(2,132,199,.1);border:1px solid rgba(2,132,199,.4);border-radius:6px;padding:14px 18px;margin-bottom:14px;}
+.mnt-wo-h{font-family:'JetBrains Mono',monospace;font-size:10px;color:#67e8f9;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;}
+.mnt-wo-row{display:grid;grid-template-columns:120px 1fr;gap:8px;padding:4px 0;font-size:11px;border-top:1px dashed rgba(255,255,255,.08);}
+.mnt-wo-row:first-of-type{border-top:none;}
+.mnt-wo-row .l{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px;padding-top:2px;}
+.mnt-wo-row .v{color:#fff;font-weight:600;}
+.mnt-wo-row .v.mono{font-family:'JetBrains Mono',monospace;font-size:10px;}
+
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol active"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL05_INJ_Injection.html">VOL.5 · INJ</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">INJ-06 · Mold Change</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.5 · INJ · L3</div><div class="sb-mod-en">INJECTION POP</div><div class="sb-mod-ko">사출 생산 POP</div></div>
+  <div class="sb-section">Screens · 화면</div>
+  <a class="sb-link" href="VOL05_INJ01_POP_Login.html"><span class="sl-id">INJ-01</span><div><div class="sl-en">POP Login</div><div class="sl-ko">로그인</div></div></a>
+  <a class="sb-link" href="VOL05_INJ02_POP_Dashboard.html"><span class="sl-id">INJ-02</span><div><div class="sl-en">Dashboard</div><div class="sl-ko">현황판</div></div></a>
+  <a class="sb-link" href="VOL05_INJ03_WO_Confirm.html"><span class="sl-id">INJ-03</span><div><div class="sl-en">WO Confirm</div><div class="sl-ko">작업지시 확인</div></div></a>
+  <a class="sb-link" href="VOL05_INJ04_Production_Entry.html"><span class="sl-id">INJ-04</span><div><div class="sl-en">Prod. Entry</div><div class="sl-ko">실적 입력</div></div></a>
+  <a class="sb-link" href="VOL05_INJ05_Defect.html"><span class="sl-id">INJ-05</span><div><div class="sl-en">Defect</div><div class="sl-ko">불량 등록</div></div></a>
+  <a class="sb-link on" href="VOL05_INJ06_Mold_Change.html"><span class="sl-id">INJ-06</span><div><div class="sl-en">Mold Change</div><div class="sl-ko">금형 교체</div></div></a>
+  <a class="sb-link" href="VOL05_INJ07_Prod_Status.html"><span class="sl-id">INJ-07</span><div><div class="sl-en">Prod. Status</div><div class="sl-ko">실적 현황</div></div></a>
+  <a class="sb-link" href="VOL05_INJ08_Andon.html"><span class="sl-id">INJ-08</span><div><div class="sl-en">Andon</div><div class="sl-ko">비상 신호</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
+    <a href="#sec-2"><span class="num">02</span>Shot Count Thresholds</a>
+    <a href="#sec-3"><span class="num">03</span>MNT WO Auto-Issue</a>
+    <a href="#sec-4"><span class="num">04</span>Workflow</a>
+    <a href="#sec-5"><span class="num">05</span>Business Rules</a>
+    <a href="#sec-6"><span class="num">06</span>Data Model</a>
+    <a href="#sec-7"><span class="num">07</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.5 · INJ · L3 · Mold Lifecycle</div>
+      <div class="scr-id-block"><div class="scr-id">INJ-06</div><div class="scr-title-en">Mold Change</div></div>
+      <div class="scr-title-ko">금형 교체 요청 — 쇼트수 임계 + MNT 자동 WO</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">UI</span><span class="mc-val">🏭 POP Dark</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">2nd Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">Operator + MNT</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Trigger</span><span class="mc-val">Shot count 90% / 100%</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Outputs</span><span class="mc-val">MNT WO · Downtime log</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          Monitors the currently mounted mold's accumulated shot count vs rated life. At 90% → yellow warning on POP, operator advised to plan a change. At 100% → red + MNT module receives an auto-generated work order (production may still continue under supervisor override). When operator presses "Request Change", a downtime entry starts; after MNT completes the change (signal from MNT), downtime closes and shot count resets to 0 for the new mold.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          현재 장착된 금형의 누적 쇼트수 / 정격 수명을 모니터. 90% → POP 노란 경고, 작업자에게 교체 계획 권고. 100% → 빨강 + MNT 모듈에 작업지시 자동 발행(라인장 PIN으로 생산 계속 가능). 작업자가 [교체 요청] 터치 시 비가동 시간 카운트 시작. MNT 모듈에서 교체 완료 신호 수신 시 비가동 종료 + 새 금형 쇼트수 0 리셋.
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — POP 금형 수명 + MNT WO 발행</span></div>
+      <div class="pop-mock">
+        <div class="pop-tbar">
+          <div style="display:flex;gap:14px;align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">INJ-06 · Mold Change · LINE INJ-L1</span>
+          </div>
+          <div class="pop-tbar-r">
+            <span style="color:#fca5a5;">🚨 MOLD LIFE 100% REACHED</span>
+            <span>J.Kim · DAY</span>
+          </div>
+        </div>
+        <div class="pop-bd">
+          <div class="mold-status">
+            <div class="mold-id">MOLD-DT-A1 · Mounted on 사출기 #1 · 2026-04-15 14:22</div>
+            <div class="mold-name">Door Trim LH Mold · 도어트림 LH 금형 (2-cavity)</div>
+            <div class="mold-gauge">
+              <span class="mold-gauge-v">10,042</span>
+              <span class="mold-gauge-t">/ 10,000</span>
+              <span class="mold-gauge-pct" style="margin-left:auto;">100.4%</span>
+            </div>
+            <div class="mold-bar">
+              <div class="mold-bar-fill" style="width:100%;"></div>
+              <div class="mold-bar-tick t90"></div><div class="mold-bar-tick-l t90" style="left:90%;">90% 경고</div>
+              <div class="mold-bar-tick t100"></div><div class="mold-bar-tick-l t100" style="left:100%;color:#fca5a5;">100% 강제</div>
+            </div>
+            <div class="mold-info">
+              <div><div class="mi-l">Rated Shots</div><div class="mi-v">10,000</div></div>
+              <div><div class="mi-l">Current Shots</div><div class="mi-v" style="color:#fca5a5;">10,042 (+42 over)</div></div>
+              <div><div class="mi-l">Last PM Date</div><div class="mi-v">2026-04-15</div></div>
+              <div><div class="mi-l">Total Defects (Flash)</div><div class="mi-v warn">12 EA · 최근 2일</div></div>
+              <div><div class="mi-l">Replacement Mold</div><div class="mi-v" style="color:#5dffc4;">MOLD-DT-A1-R (Ready)</div></div>
+              <div><div class="mi-l">Est. Change Time</div><div class="mi-v">35 min</div></div>
+            </div>
+          </div>
+
+          <div class="mnt-wo-card">
+            <div class="mnt-wo-h">▼ Auto-Generated MNT Work Order</div>
+            <div class="mnt-wo-row"><span class="l">MNT WO ID</span><span class="v mono" style="color:#67e8f9;">MNT-2026-0519-018</span></div>
+            <div class="mnt-wo-row"><span class="l">Priority</span><span class="v" style="color:#fca5a5;">🚨 URGENT (100% reached)</span></div>
+            <div class="mnt-wo-row"><span class="l">Task</span><span class="v">Mold Change: MOLD-DT-A1 → MOLD-DT-A1-R</span></div>
+            <div class="mnt-wo-row"><span class="l">Assigned</span><span class="v">MNT Team A (auto-notified · PDA push 10:24)</span></div>
+            <div class="mnt-wo-row"><span class="l">ETA</span><span class="v">Today 11:00 (35 min after start)</span></div>
+            <div class="mnt-wo-row"><span class="l">Old Mold Action</span><span class="v">PM inspection + cavity wear check</span></div>
+          </div>
+
+          <div class="mc-actions">
+            <button class="mc-btn mc-btn-sec">⏸ 라인장 PIN으로 계속 생산 (감사)</button>
+            <button class="mc-btn mc-btn-pri" style="flex:2;">🔧 교체 시작 · Downtime 시작</button>
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-w">
+        <div><span class="alert-title">💡 UI Highlights · 화면 주요 포인트</span>
+        ① 게이지 84px Bebas Neue로 5m 가독, 100% 초과 시 +N over 빨간 강조 ② 90%/100% 틱 마크 + 라벨 표시로 임계 즉시 인지 ③ MNT WO는 100% 도달 즉시 자동 생성(BR-INJ-02). 작업자는 PDA push도 받음 ④ "계속 생산" 옵션은 라인장 PIN 필수 (감사 기록) ⑤ 교체 시작 → INJ-04 잠금 + Downtime 카운터 시작.</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Shot Count Thresholds</span><span class="sec-ko">쇼트수 임계</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:14%;">Threshold</th><th style="width:14%;">Color</th><th style="width:24%;">System Action</th><th>Operator Action · 작업자 조치</th></tr></thead>
+        <tbody>
+          <tr><td>80%</td><td>🟦 Blue info</td><td>INJ-02 게이지 색 변경. INJ-06 카드 진입 가능.</td><td>None — 정상 운영.</td></tr>
+          <tr><td>90%</td><td>🟨 Yellow</td><td>POP 노란 경고 + Dashboard 임박 표시. MNT 사전 알림.</td><td>교체 일정 협의 (라인장 + MNT). 미완료 WO 우선순위 검토.</td></tr>
+          <tr><td>100%</td><td>🟥 Red</td><td><strong>MNT WO 자동 발행 · Andon은 발동 안 함</strong>. POP 메인에 INJ-06 진입 권유 모달.</td><td>[교체 시작] OR 라인장 PIN으로 [계속 생산]. 후자는 BR-INJ-G01 감사 기록.</td></tr>
+          <tr><td>110%</td><td>⛔ Hard Stop</td><td>INJ-04 잠금 + 강제 정지 (안전).</td><td>MNT 도착 대기. 라인장 PIN으로도 우회 불가.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">MNT WO Auto-Issue Payload</span><span class="sec-ko">MNT 자동 WO 페이로드</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:24%;">Field</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">MNT_WOID</td><td class="fld-name">MNT-YYYYMMDD-NNN (auto)</td></tr>
+          <tr><td class="fld-name">Type</td><td>MOLD_CHANGE</td></tr>
+          <tr><td class="fld-name">Priority</td><td>URGENT (100% reached) / SCHEDULED (90%)</td></tr>
+          <tr><td class="fld-name">SourceModule</td><td>INJ-06</td></tr>
+          <tr><td class="fld-name">EquipID</td><td>사출기 ID (현재 라인 설비)</td></tr>
+          <tr><td class="fld-name">OldMold / NewMold</td><td>MOLD-DT-A1 / MOLD-DT-A1-R</td></tr>
+          <tr><td class="fld-name">EstDurationMin</td><td>MD_Mold.AvgChangeMinutes (default 35)</td></tr>
+          <tr><td class="fld-name">RequestedTS</td><td>NOW</td></tr>
+          <tr><td class="fld-name">AssignedTeam</td><td>MD_Calendar에서 현 교대 MNT 팀 (Round-robin)</td></tr>
+          <tr><td class="fld-name">PushTargets</td><td>MNT 팀 PDA, 라인장 Email/Slack</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">INJ-04 Confirm 시 Mold.CurrentShots += 1. 임계 평가.</div><div class="wf-ko">실적 확정 시 금형 쇼트수 +1, 임계 평가.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">90% 도달 → POP 노랑 경고 배너. 작업자 INJ-06 진입 가능.</div><div class="wf-ko">90% 시 POP 노랑 배너. INJ-06 진입.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">100% 도달 → MNT WO 자동 INSERT + PDA push + Email. POP에 모달.</div><div class="wf-ko">100% 시 MNT WO 자동 발행 + PDA push + Email. POP 모달.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">작업자 [교체 시작] 터치 → INJ-04 잠금 + MoldDowntime 시작 + WO Status → On Hold.</div><div class="wf-ko">[교체 시작] 시 INJ-04 잠금 + 비가동 시작 + WO 보류.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">MNT 팀이 물리 교체 + MNT 모듈에서 완료 보고 → INJ-06이 신호 수신.</div><div class="wf-ko">MNT가 물리 교체 후 MNT 모듈에서 완료 보고 → INJ-06 신호 수신.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">신규 금형 쇼트수 0 리셋 + Downtime 종료 + WO 재개 → INJ-04 해제.</div><div class="wf-ko">신규 금형 0 리셋 + 비가동 종료 + WO 재개 → INJ-04 잠금 해제.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-INJ-02</td><td><div>Shot count ≥ 90% → POP yellow warning. ≥ 100% → MNT auto-WO. ≥ 110% → hard stop.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">90% 노랑, 100% MNT WO, 110% 강제정지.</div></td><td><span class="br-act mlt">Multi</span></td></tr>
+          <tr><td class="br-id">BR-INJ-G01</td><td><div>Supervisor PIN required to continue production beyond 100% shot count. Audit logged.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">100% 초과 생산 시 라인장 PIN 필요, 감사 기록.</div></td><td><span class="br-act alt">Audit</span></td></tr>
+          <tr><td class="br-id">BR-INJ-G02</td><td><div>Mold change start triggers MoldDowntime row; INJ-04 entry locked.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">교체 시작 시 비가동 시작, INJ-04 잠금.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-INJ-G03</td><td><div>New mold shot count resets to 0 on MNT change-complete signal.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">MNT 완료 신호 수신 시 신규 금형 0 리셋.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-INJ-G04</td><td><div>Downtime &gt; 60 min → escalate to plant manager + OEE Availability hit.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">비가동 60분 초과 시 공장장 에스컬레이션 + OEE 영향.</div></td><td><span class="br-act alt">Alert</span></td></tr>
+          <tr><td class="br-id">BR-INJ-G05</td><td><div>Replacement mold must be in MD_Mold.Available status before change start.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">교체 대상 금형이 가용 상태일 때만 교체 시작 가능.</div></td><td><span class="br-act blk">Block</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Table</th><th>Key Columns</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">MoldDowntime</span></td><td><span class="dm-pk">PK</span> DTID · <span class="dm-fk">FK</span> MoldID · <span class="dm-fk">FK</span> MNTWoID · StartTS · EndTS · DurationMin · Reason</td><td>교체 비가동 헤더. OEE Availability 계산.</td></tr>
+          <tr><td><span class="dm-col">MoldChangeHistory</span></td><td><span class="dm-pk">PK</span> ChangeID · <span class="dm-fk">FK</span> EquipID · OldMold · NewMold · ChangedBy · ChangedTS · FinalShots</td><td>금형 교체 이력. PM 분석.</td></tr>
+          <tr><td><span class="dm-col">MD_Mold</span> <em style="opacity:.6;">(update)</em></td><td>CurrentShots · Status · LastChangeTS · TotalPMCount</td><td>교체 완료 시 신규 금형 0 리셋, 구금형 PM 상태.</td></tr>
+          <tr><td><span class="dm-col">MNT_WO</span></td><td><span class="dm-pk">PK</span> MNTWoID · Type · Priority · SourceModule · EquipID · Status</td><td>MNT 모듈 정비 작업지시.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">INJ-04</div><div class="lnk-name">Shot +1</div><div class="lnk-ko">쇼트 누적</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node up"><div class="lnk-id">MD-09 Mold</div><div class="lnk-name">Threshold</div><div class="lnk-ko">임계 평가</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">INJ-06</div><div class="lnk-name">Change Req</div><div class="lnk-ko">교체 요청</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">MNT</div><div class="lnk-name">Auto WO</div><div class="lnk-ko">정비 WO</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">INJ-04</div><div class="lnk-name">Resume</div><div class="lnk-ko">생산 재개</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.5 · INJ-06 · Mold Change · L3 Spec v1.0</div><div class="pf-r">Shot Count · MNT Auto-WO · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
