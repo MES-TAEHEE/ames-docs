@@ -5,27 +5,20 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>A-MES · VOL.4 · PP · Production Planning</title>
 <style>
-/* ═══════════════════════════════════════
-   A-MES SHARED STYLESHEET v2.0
-   Bilingual EN/KO · UI Labels English
-═══════════════════════════════════════ */
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
-
 :root{
-  --gold:#d4a017; --gold-lt:#fdf6e3; --gold-dk:#a07810;
-  --ink:#0d1117; --ink2:#161b22; --ink3:#21262d;
-  --surface:#ffffff; --bg:#f6f8fa; --border:#d0d7de;
-  --text:#24292f; --sub:#656d76;
-  /* module colors */
-  --wh:#0891b2; --pp:#059669; --inj:#2563eb; --img:#7c3aed;
-  --pnt:#ea580c; --qc:#dc2626; --fg:#0db87a; --mnt:#0284c7;
-  --rpt:#6366f1; --sys:#475569; --md:#d97706;
+  --gold:#d4a017;--gold-lt:#fdf6e3;--gold-dk:#a07810;
+  --ink:#0d1117;--ink2:#161b22;--ink3:#21262d;
+  --surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;
+  --wh:#0891b2;--pp:#059669;--inj:#2563eb;--img:#7c3aed;
+  --pnt:#ea580c;--qc:#dc2626;--fg:#0db87a;--mnt:#0284c7;
+  --rpt:#6366f1;--sys:#475569;--md:#d97706;
+  --mod-color:#059669;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html{scroll-behavior:smooth;}
 body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
 
-/* ── NAV BAR (injected per file) ── */
 .ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
 .ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
 .ames-nav-inner::-webkit-scrollbar{display:none;}
@@ -37,143 +30,163 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
 .nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
 
-/* ── PAGE LAYOUT ── */
 .page-wrap{display:flex;}
-.sidebar{width:230px;min-width:230px;background:var(--ink2);position:sticky;top:40px;height:calc(100vh - 40px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(212,160,23,.15) transparent;border-right:1px solid var(--ink3);}
+.sidebar{width:230px;min-width:230px;background:var(--ink2);position:sticky;top:40px;height:calc(100vh - 40px);overflow-y:auto;scrollbar-width:thin;border-right:1px solid var(--ink3);}
 .sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
 .sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
-.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:#6ee7b7;}
 .sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
 .sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.15);padding:12px 14px 4px;}
-.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.35);font-size:11px;border-left:2px solid transparent;transition:all .12s;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.35);font-size:11px;border-left:2px solid transparent;transition:all .12s;position:relative;}
 .sb-link:hover{color:rgba(255,255,255,.7);background:rgba(255,255,255,.03);}
-.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
-.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:42px;flex-shrink:0;}
+.sb-link.on{color:#fff;border-left-color:var(--pp);background:rgba(5,150,105,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;}
 .sb-link .sl-en{font-size:10px;font-weight:600;}
 .sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.2);margin-top:1px;}
+.sb-l3{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:3px;background:rgba(212,160,23,.12);color:rgba(212,160,23,.75);font-size:11px;text-decoration:none;margin-left:auto;transition:all .15s;flex-shrink:0;border:1px solid rgba(212,160,23,.25);}
+.sb-l3:hover{background:var(--gold);color:#000;border-color:var(--gold);transform:scale(1.15);}
 .sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
 
 .main{flex:1;min-width:0;}
 
-/* ── MODULE HEADER ── */
-.mod-hdr{padding:36px 48px 24px;position:relative;overflow:hidden;}
+/* ── Module Header ── */
+.mod-hdr{padding:36px 48px 24px;position:relative;overflow:hidden;background:linear-gradient(135deg,color-mix(in srgb,#059669 32%,#000),color-mix(in srgb,#059669 14%,#000));}
 .mod-hdr-inner{position:relative;z-index:1;}
-.mod-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;opacity:.7;}
-.mod-title-en{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:.95;letter-spacing:2px;color:#fff;margin-bottom:4px;}
-.mod-title-ko{font-size:14px;font-weight:300;color:rgba(255,255,255,.35);letter-spacing:4px;margin-bottom:16px;}
-.mod-desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:840px;margin-bottom:18px;}
-.mdb-en{font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;border-left:2px solid rgba(255,255,255,.12);padding-left:12px;}
-.mdb-ko{font-size:11px;color:rgba(255,255,255,.3);line-height:1.8;border-left:2px solid rgba(255,255,255,.06);padding-left:12px;}
-.screen-pills{display:flex;gap:5px;flex-wrap:wrap;}
-.sp{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:9px;color:rgba(255,255,255,.4);}
+.mod-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;opacity:.85;color:#6ee7b7;}
+.mod-title-en{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:.95;letter-spacing:2px;color:#6ee7b7;margin-bottom:4px;}
+.mod-title-ko{font-size:14px;font-weight:300;color:rgba(255,255,255,.4);letter-spacing:4px;margin-bottom:16px;}
+.mod-desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:900px;margin-bottom:14px;}
+.mdb-en{font-size:11px;color:rgba(255,255,255,.6);line-height:1.85;border-left:2px solid rgba(255,255,255,.12);padding-left:12px;}
+.mdb-ko{font-size:11px;color:rgba(255,255,255,.35);line-height:1.85;border-left:2px solid rgba(255,255,255,.06);padding-left:12px;}
+
+.mod-meta-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:0;border:1px solid rgba(110,231,183,.18);border-radius:6px;overflow:hidden;margin:14px 0 16px;max-width:900px;background:rgba(0,0,0,.22);}
+.mms-item{padding:10px 14px;border-right:1px solid rgba(110,231,183,.12);}
+.mms-item:last-child{border-right:none;}
+.mms-l{font-size:8px;color:rgba(110,231,183,.55);text-transform:uppercase;letter-spacing:1.2px;font-family:'JetBrains Mono',monospace;}
+.mms-v{font-size:13px;font-weight:800;color:#fff;margin-top:3px;letter-spacing:.3px;}
+.mms-v.warn{color:#fde047;}.mms-v.alert{color:#fca5a5;}.mms-v.info{color:#60a5fa;}
+
+.screen-pills{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;}
+.sp{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:9px;color:rgba(255,255,255,.6);text-decoration:none;cursor:pointer;transition:all .15s;}
+.sp:hover{background:rgba(5,150,105,.22);border-color:rgba(5,150,105,.5);color:#fff;}
 .sp-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold);}
 
-/* ── MOD META STRIP ── */
-.mod-meta-strip{display:flex;gap:0;border:1px solid rgba(255,255,255,.08);border-radius:5px;overflow:hidden;margin:16px 0 18px;max-width:840px;background:rgba(0,0,0,.18);}
-.mms-item{flex:1;padding:9px 14px;border-right:1px solid rgba(255,255,255,.05);}
-.mms-item:last-child{border-right:none;}
-.mms-l{font-size:8px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:1.2px;}
-.mms-v{font-size:11px;font-weight:700;color:#fff;margin-top:2px;}
+.l3-hint{display:inline-block;font-size:10px;color:rgba(212,160,23,.75);font-weight:600;letter-spacing:1px;padding:5px 12px;background:rgba(212,160,23,.08);border:1px dashed rgba(212,160,23,.4);border-radius:3px;margin-bottom:8px;}
 
-/* ── CONTENT AREA ── */
 .content{padding:0 48px 48px;}
 
-/* ── SCREEN CARD ── */
-.screen-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;}
-.sc-hdr{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
-.sc-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
-.sc-title-en{font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px;}
-.sc-title-ko{font-size:10px;color:rgba(255,255,255,.35);margin-top:2px;}
+.sec-div{display:flex;align-items:center;gap:12px;margin:28px 0 16px;}
+.sd-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--border) 20%,var(--border) 80%,transparent);}
+.sd-lbl{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--pp);letter-spacing:2px;white-space:nowrap;padding:4px 10px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:3px;}
+
+/* ── Process Flow ── */
+.flow-card{background:linear-gradient(135deg,#0c1f17,#0a1812);color:#e2e8f0;border-radius:10px;padding:20px 22px;margin-bottom:18px;box-shadow:0 4px 20px rgba(5,150,105,.15);}
+.flow-card-h{font-family:'JetBrains Mono',monospace;font-size:10px;color:#6ee7b7;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;}
+.flow-track{margin-bottom:14px;}
+.flow-track-lbl{font-size:10px;color:rgba(255,255,255,.55);letter-spacing:1px;font-family:'JetBrains Mono',monospace;margin-bottom:8px;text-transform:uppercase;}
+.flow-row{display:flex;align-items:center;gap:0;flex-wrap:wrap;}
+.flow-node{display:flex;flex-direction:column;align-items:center;gap:3px;background:rgba(5,150,105,.14);border:1px solid rgba(110,231,183,.4);border-radius:8px;padding:10px 12px;min-width:96px;text-align:center;transition:all .15s;text-decoration:none;color:#e2e8f0;}
+.flow-node:hover{background:rgba(5,150,105,.25);border-color:#6ee7b7;transform:translateY(-2px);box-shadow:0 6px 16px rgba(5,150,105,.3);}
+.flow-node.external{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.2);border-style:dashed;}
+.flow-node.core{background:rgba(212,160,23,.12);border-color:rgba(251,191,36,.5);}
+.flow-node.core:hover{background:rgba(212,160,23,.22);}
+.fn-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:#6ee7b7;letter-spacing:.5px;}
+.flow-node.external .fn-id{color:rgba(255,255,255,.5);}
+.flow-node.core .fn-id{color:#fbbf24;}
+.fn-name{font-size:11px;font-weight:700;color:#fff;}
+.fn-ko{font-size:9px;color:rgba(255,255,255,.5);}
+.fn-tag{font-size:8px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.5);margin-top:1px;}
+.flow-arr{font-size:18px;color:rgba(110,231,183,.5);padding:0 4px;font-weight:700;}
+
+/* ── Module KPI Strip ── */
+.mod-kpi{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
+.kpi-card{background:#fff;border:1px solid var(--border);border-top:3px solid var(--pp);border-radius:0 0 6px 6px;padding:14px 16px;}
+.kpi-l{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--sub);letter-spacing:1px;text-transform:uppercase;}
+.kpi-v{font-family:'Bebas Neue',sans-serif;font-size:34px;color:var(--text);line-height:1;margin-top:5px;letter-spacing:.5px;}
+.kpi-v.ok{color:#16a34a;}.kpi-v.warn{color:#a16207;}.kpi-v.alert{color:#dc2626;}.kpi-v.pp{color:var(--pp);}.kpi-v.info{color:#1e40af;}
+.kpi-s{font-size:10px;color:var(--sub);margin-top:3px;}
+
+/* ── WO Status Lifecycle ── */
+.status-flow{display:flex;align-items:center;gap:0;flex-wrap:wrap;padding:14px 16px;background:#fff;border:1px solid var(--border);border-radius:6px;margin-bottom:18px;justify-content:center;}
+.sf-step{padding:10px 16px;border-radius:5px;font-size:11px;font-weight:700;text-align:center;background:#ecfdf5;color:#065f46;border:1px solid #6ee7b7;}
+.sf-arr{color:var(--sub);font-size:14px;padding:0 8px;}
+
+/* ── Screen Card (Enriched) ── */
+.screen-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:18px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.sc-hdr{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,color-mix(in srgb,#059669 26%,#000),color-mix(in srgb,#059669 12%,#000));}
+.sc-hdr-l{display:flex;align-items:center;gap:14px;flex:1;min-width:0;}
+.sc-icon{font-size:42px;line-height:1;flex-shrink:0;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3));}
+.sc-title-wrap{flex:1;min-width:0;}
+.sc-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#6ee7b7;letter-spacing:.5px;}
+.sc-title-en{font-size:16px;font-weight:800;color:#fff;letter-spacing:-.3px;margin-top:2px;}
+.sc-title-ko{font-size:10px;color:rgba(255,255,255,.5);margin-top:2px;}
 .sc-tags{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
-.tag{font-size:9px;font-weight:700;padding:2px 9px;border-radius:3px;}
+.tag{font-size:9px;font-weight:700;padding:2px 9px;border-radius:3px;white-space:nowrap;}
 .t-web{background:rgba(26,111,255,.2);color:#7ab4ff;border:1px solid rgba(26,111,255,.3);}
-.t-pda{background:rgba(13,184,122,.2);color:#5dffc4;border:1px solid rgba(13,184,122,.3);}
-.t-pop{background:rgba(234,88,12,.2);color:#fdba74;border:1px solid rgba(234,88,12,.3);}
-.t-p0{background:rgba(212,160,23,.15);color:#fbbf24;border:1px solid rgba(212,160,23,.2);}
 .t-1st{background:rgba(26,111,255,.12);color:#93c5fd;border:1px solid rgba(26,111,255,.18);}
 .t-2nd{background:rgba(124,58,237,.12);color:#c4b5fd;border:1px solid rgba(124,58,237,.18);}
-.t-3rd{background:rgba(255,107,0,.12);color:#fdba74;border:1px solid rgba(255,107,0,.18);}
-.t-sap{background:rgba(96,165,250,.15);color:#93c5fd;border:1px solid rgba(96,165,250,.25);}
-.t-batch{background:rgba(168,85,247,.15);color:#c4b5fd;border:1px solid rgba(168,85,247,.25);}
-.sc-body{padding:14px 18px;}
+.t-sap{background:rgba(96,165,250,.18);color:#93c5fd;border:1px solid rgba(96,165,250,.32);}
+.t-batch{background:rgba(168,85,247,.16);color:#c4b5fd;border:1px solid rgba(168,85,247,.32);}
+.t-p0{background:rgba(212,160,23,.18);color:#fbbf24;border:1px solid rgba(212,160,23,.32);}
+.t-core{background:rgba(212,160,23,.2);color:#fbbf24;border:1px solid rgba(212,160,23,.35);}
+.sc-l3-btn{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:linear-gradient(135deg,#d4a017,#a07810);color:#000;font-size:11px;font-weight:800;border-radius:5px;text-decoration:none;letter-spacing:.5px;text-transform:uppercase;border:1px solid #a07810;box-shadow:0 2px 6px rgba(212,160,23,.3);transition:all .15s;white-space:nowrap;}
+.sc-l3-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(212,160,23,.5);background:linear-gradient(135deg,#fbbf24,#d4a017);}
+.sc-body{padding:16px 18px;}
 
-/* ── BILINGUAL DESC ── */
-.desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;background:#f6f8ff;border:1px solid var(--border);border-left:3px solid;border-radius:0 6px 6px 0;padding:11px 14px;}
-.db-lbl{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;opacity:.5;}
-.db-en{font-size:11px;color:#1e40af;line-height:1.75;}
+.headline{display:flex;align-items:center;gap:10px;padding:11px 14px;background:linear-gradient(135deg,#ecfdf5,#d1fae5);border:1px solid #a7f3d0;border-left:3px solid var(--pp);border-radius:0 5px 5px 0;margin-bottom:14px;}
+.headline-ico{font-size:18px;color:var(--pp);}
+.headline-t{font-size:12px;color:#065f46;font-weight:700;line-height:1.55;}
+.headline-t .ko{display:block;color:var(--pp);font-weight:400;font-size:11px;margin-top:1px;}
+
+.qf-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.qf{background:#fafbfd;border:1px solid var(--border);border-radius:5px;padding:9px 11px;}
+.qf-l{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--sub);letter-spacing:.7px;text-transform:uppercase;}
+.qf-v{font-size:11px;color:var(--text);font-weight:700;margin-top:3px;line-height:1.4;}
+.qf-v.mono{font-family:'JetBrains Mono',monospace;font-size:10px;}
+
+.desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;background:#ecfdf5;border:1px solid var(--border);border-left:3px solid var(--pp);border-radius:0 6px 6px 0;padding:11px 14px;}
+.db-lbl{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;opacity:.55;}
+.db-en{font-size:11px;color:#065f46;line-height:1.75;}
 .db-ko{font-size:11px;color:var(--sub);line-height:1.75;}
 
-/* ── KPI STRIP ── */
-.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:18px;background:var(--surface);}
-.kc{flex:1;padding:12px 14px;border-right:1px solid var(--border);}
-.kc:last-child{border-right:none;}
-.kv{font-size:24px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
-.kl-en{font-size:9px;color:var(--sub);margin-top:3px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;}
-.kl-ko{font-size:9px;color:rgba(100,116,139,.7);margin-top:1px;}
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin-bottom:12px;}
+.feat-item{background:#fff;border:1px solid var(--border);border-top:2px solid var(--pp);border-radius:0 0 5px 5px;padding:10px 12px;}
+.feat-ico{font-size:16px;line-height:1;margin-bottom:5px;}
+.feat-t{font-size:11px;font-weight:800;color:var(--text);margin-bottom:2px;}
+.feat-d{font-size:10px;color:var(--sub);line-height:1.55;}
+.feat-d .ko{color:#94a3b8;font-size:9px;display:block;margin-top:1px;}
 
-/* ── FLOW BOX (custom dark info card) ── */
-.flow-card{background:var(--ink2);border:1px solid var(--ink3);border-radius:8px;padding:20px 22px;margin-bottom:18px;color:rgba(255,255,255,.8);}
-.flow-card-title{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:2px;margin-bottom:14px;color:#34d399;text-transform:uppercase;}
-.flow-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
-.flow-step{display:flex;align-items:flex-start;gap:10px;margin:6px 0;}
-.flow-step .fs-tag{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#34d399;min-width:72px;flex-shrink:0;}
-.flow-step .fs-text{font-size:11px;color:rgba(255,255,255,.65);line-height:1.6;}
+.br-chips{display:flex;gap:5px;flex-wrap:wrap;padding-top:10px;border-top:1px dashed var(--border);}
+.br-chip{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;padding:3px 8px;border-radius:3px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;text-decoration:none;letter-spacing:.3px;}
+.br-chip.crit{background:#fee2e2;color:#991b1b;border-color:#fca5a5;}
+.br-chip-lbl{font-size:9px;color:var(--sub);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;margin-right:4px;align-self:center;}
 
-/* ── BADGES ── */
+.ref-tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:18px;}
+.ref-tbl th{background:#f0f3f7;color:var(--text);padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.ref-tbl td{padding:8px 12px;border-bottom:1px solid var(--border);}
+.ref-tbl tr:last-child td{border-bottom:none;}
+.ref-tbl tr:nth-child(even) td{background:#fafbfd;}
+.ref-tbl .code{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--pp);font-size:11px;}
+
+.br-wrap{margin-bottom:16px;}
+.br-title{font-size:11px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+.br-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.br-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.br-tbl th{background:var(--text);color:#fff;padding:7px 10px;text-align:left;border:1px solid rgba(255,255,255,.08);font-size:9px;}
+.br-tbl td{padding:7px 10px;border:1px solid var(--border);vertical-align:top;line-height:1.6;}
+.br-tbl tr:nth-child(even) td{background:#fafbfd;}
+.br-id-c{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-en-c{color:var(--text);}
+.br-ko-c{color:var(--sub);font-size:10px;margin-top:2px;}
 .b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
 .b-ok{background:#dcfce7;color:#166534;}
 .b-w{background:#fef9c3;color:#92400e;}
 .b-e{background:#fee2e2;color:#991b1b;}
 .b-i{background:#dbeafe;color:#1e40af;}
-.b-n{background:#f3f4f6;color:#4b5563;}
 
-/* ── BR TABLE ── */
-.br-wrap{margin-bottom:16px;}
-.br-title{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:7px;display:flex;align-items:center;gap:10px;}
-.br-title::after{content:'';flex:1;height:1px;background:var(--border);}
-.br-tbl{width:100%;border-collapse:collapse;font-size:10px;}
-.br-tbl th{background:var(--text);color:#fff;padding:6px 10px;text-align:left;border:1px solid rgba(255,255,255,.08);font-size:9px;}
-.br-tbl td{padding:6px 10px;border:1px solid var(--border);vertical-align:top;line-height:1.6;}
-.br-tbl tr:nth-child(even) td{background:#fafbfd;}
-.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
-.br-en{color:var(--text);}
-.br-ko{color:var(--sub);font-size:10px;margin-top:2px;}
-
-/* ── SECTION DIV ── */
-.sec-div{display:flex;align-items:center;gap:12px;margin:20px 0 12px;}
-.sd-line{flex:1;height:1px;background:var(--border);}
-.sd-lbl{font-size:10px;font-weight:700;color:var(--sub);white-space:nowrap;letter-spacing:1px;}
-
-/* ── ROUTING / WO STATUS FLOW ── */
-.rflow{display:flex;align-items:center;gap:0;flex-wrap:wrap;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:18px;}
-.rs{padding:9px 14px;border-radius:5px;font-size:11px;font-weight:700;text-align:center;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:96px;}
-.rs-en{font-size:12px;font-weight:800;}
-.rs-ko{font-size:9px;font-weight:400;opacity:.75;margin-top:1px;}
-.rarr{color:var(--sub);font-size:14px;padding:0 5px;flex-shrink:0;}
-.rs-pp{background:#ecfdf5;color:#065f46;border:1px solid #6ee7b7;}
-
-/* ── PAGE FOOTER ── */
 .page-footer{padding:14px 48px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--ink);margin-top:20px;}
 .pf-l{font-size:10px;color:rgba(255,255,255,.2);}
 .pf-r{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(212,160,23,.4);}
-
-/* ── MODULE COLOR THEME (PP = green #059669) ── */
-:root{ --mod-color:#059669; }
-.mod-hdr{ background:linear-gradient(135deg, color-mix(in srgb,#059669 30%,#000) 0%, color-mix(in srgb,#059669 15%,#000) 100%); }
-.sc-hdr{ background:linear-gradient(135deg, color-mix(in srgb,#059669 25%,#000) 0%, color-mix(in srgb,#059669 12%,#000) 100%); }
-.sc-id{ color:#34d399; }
-.sb-mod-en{ color:#34d399; }
-.sb-link.on{ border-left-color:#059669; }
-.btn-primary{background:#059669;color:#fff;}
-
-/* L3 LINK STYLES v1.1 */
-.sb-link{position:relative;}
-.sb-l3{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:3px;background:rgba(212,160,23,.1);color:rgba(212,160,23,.7);font-size:9px;text-decoration:none;margin-left:auto;transition:all .15s;flex-shrink:0;border:1px solid rgba(212,160,23,.2);}
-.sb-l3:hover{background:var(--gold);color:#000;border-color:var(--gold);transform:scale(1.15);}
-.sc-l3-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:linear-gradient(135deg,#d4a017,#a07810);color:#000;font-size:10px;font-weight:800;border-radius:4px;text-decoration:none;letter-spacing:.5px;text-transform:uppercase;border:1px solid #a07810;box-shadow:0 2px 6px rgba(212,160,23,.3);transition:all .15s;margin-top:6px;}
-.sc-l3-btn:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(212,160,23,.45);background:linear-gradient(135deg,#fbbf24,#d4a017);}
-.l3-hint{display:inline-block;font-size:9px;color:rgba(212,160,23,.6);font-weight:600;letter-spacing:1px;padding:2px 8px;background:rgba(212,160,23,.08);border:1px dashed rgba(212,160,23,.3);border-radius:3px;}
-
 </style>
 </head>
 <body>
@@ -185,457 +198,564 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     <div class="sb-mod-en">PRODUCTION</div>
     <div class="sb-mod-ko">생산계획</div>
   </div>
-  <div class="sb-section">Screens · 화면</div>
-  <a class="sb-link on" href="#pp01"><span class="sl-id">PP-01</span><div><div class="sl-en">Forecast Mgmt</div><div class="sl-ko">Forecast 관리</div></div><a class="sb-l3" href="VOL04_PP01_Forecast.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <div class="sb-section">Overview · 개요</div>
+  <a class="sb-link" href="#flow"><span class="sl-id">FLOW</span><div><div class="sl-en">Process Flow</div><div class="sl-ko">전체 흐름</div></div></a>
+  <a class="sb-link" href="#kpi"><span class="sl-id">KPI</span><div><div class="sl-en">Module KPI</div><div class="sl-ko">핵심 지표</div></div></a>
+  <a class="sb-link" href="#wo-status"><span class="sl-id">WO</span><div><div class="sl-en">WO Status</div><div class="sl-ko">WO 상태 흐름</div></div></a>
+  <div class="sb-section">Demand · 수요</div>
+  <a class="sb-link on" href="#pp01"><span class="sl-id">PP-01</span><div><div class="sl-en">Forecast</div><div class="sl-ko">Forecast 관리</div></div><a class="sb-l3" href="VOL04_PP01_Forecast.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
   <a class="sb-link" href="#pp02"><span class="sl-id">PP-02</span><div><div class="sl-en">SAP B1 Import</div><div class="sl-ko">공급계획 수신</div></div><a class="sb-l3" href="VOL04_PP02_SAP_Import.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <div class="sb-section">Plan · 계획</div>
   <a class="sb-link" href="#pp03"><span class="sl-id">PP-03</span><div><div class="sl-en">Plan &amp; Confirm</div><div class="sl-ko">생산계획 수립</div></div><a class="sb-l3" href="VOL04_PP03_Plan_Confirm.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
-  <a class="sb-link" href="#pp04"><span class="sl-id">PP-04</span><div><div class="sl-en">Work Order</div><div class="sl-ko">작업지시 관리</div></div><a class="sb-l3" href="VOL04_PP04_Work_Order.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#pp04"><span class="sl-id">PP-04</span><div><div class="sl-en">Work Order</div><div class="sl-ko">WO 관리</div></div><a class="sb-l3" href="VOL04_PP04_Work_Order.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <div class="sb-section">Material · 자재</div>
   <a class="sb-link" href="#pp05"><span class="sl-id">PP-05</span><div><div class="sl-en">MRP</div><div class="sl-ko">자재 소요 계획</div></div><a class="sb-l3" href="VOL04_PP05_MRP.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
   <a class="sb-link" href="#pp06"><span class="sl-id">PP-06</span><div><div class="sl-en">Purchase Req.</div><div class="sl-ko">자재발주 요청</div></div><a class="sb-l3" href="VOL04_PP06_Purchase_Req.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <div class="sb-section">Release · 발행</div>
   <a class="sb-link" href="#pp07"><span class="sl-id">PP-07</span><div><div class="sl-en">WO Release</div><div class="sl-ko">WO 발행</div></div><a class="sb-l3" href="VOL04_PP07_WO_Release.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
   <a class="sb-link" href="#ppcal"><span class="sl-id">PP-CAL</span><div><div class="sl-en">Calendar</div><div class="sl-ko">생산 캘린더</div></div><a class="sb-l3" href="VOL04_PP_CAL_Calendar.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
   <a class="sb-link" href="#ppotd"><span class="sl-id">PP-OTD</span><div><div class="sl-en">Delivery KPI</div><div class="sl-ko">납기 현황</div></div><a class="sb-l3" href="VOL04_PP_OTD_Delivery.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
   <div class="sb-sep"></div>
-  <a class="sb-link" href="#flow"><span class="sl-id">FLOW</span><div><div class="sl-en">End-to-End Flow</div><div class="sl-ko">전체 흐름</div></div></a>
-  <a class="sb-link" href="#kpi"><span class="sl-id">KPI</span><div><div class="sl-en">KPI Dashboard</div><div class="sl-ko">주요 지표</div></div></a>
-  <a class="sb-link" href="#wo"><span class="sl-id">WO</span><div><div class="sl-en">WO Status Flow</div><div class="sl-ko">WO 상태 흐름</div></div></a>
   <a class="sb-link" href="#br-pp"><span class="sl-id">BR</span><div><div class="sl-en">Business Rules</div><div class="sl-ko">업무 규칙</div></div></a>
 </nav>
 <div class="main">
-  <!-- MODULE HEADER -->
   <div class="mod-hdr">
     <div class="mod-hdr-inner">
-      <div class="mod-eyebrow" style="color:#34d399;">VOL.4 · PP · Production Planning · 생산계획</div>
-      <div class="mod-title-en" style="color:#34d399;">PRODUCTION<br>PLANNING</div>
-      <div class="mod-title-ko">생산계획 — Forecast · SAP B1 · MRP · 자재발주</div>
+      <div class="mod-eyebrow">VOL.4 · PP · Production Planning · 생산계획</div>
+      <div class="mod-title-en">PRODUCTION<br>PLANNING</div>
+      <div class="mod-title-ko">생산계획 — Forecast · SAP B1 Sync · MRP · Auto Purchase Req · WO Release</div>
       <div class="mod-desc-bi">
-        <div class="mdb-en">Manages the full production planning cycle: from customer Forecast intake and SAP B1 supply plan import, through Work Order creation, MRP material requirements calculation, and Purchase Requisition transmission back to SAP B1.</div>
-        <div class="mdb-ko">고객사 Forecast 수신 → SAP B1 공급계획 Import → 생산계획 수립 → WO 생성 → MRP 자재 소요 계획 → 자재발주 요청서(PR) SAP B1 전송까지 생산계획 전 사이클을 관리한다.</div>
+        <div class="mdb-en">Full production planning cycle from customer demand intake to shop-floor release. <strong>Pipeline</strong>: customer Forecast (SCM portal) → SAP B1 supply plan import → MES production plan → MRP material requirements → Purchase Requisition (SAP B1 Service Layer API) → Work Order release → POP shop-floor (INJ/IMG/PNT). Dual MRP: A-MES for real-time WO blocking, SAP B1 for mid/long-term procurement.</div>
+        <div class="mdb-ko">고객 수요 수신부터 현장 발행까지 생산계획 전 사이클. <strong>파이프라인</strong>: 고객 Forecast (SCM 포탈) → SAP B1 공급계획 Import → MES 생산계획 수립 → MRP 자재 소요 → 자재발주 요청서 (SAP B1 Service Layer API) → WO 발행 → POP 현장 (INJ/IMG/PNT). 이중 MRP: A-MES는 실시간 WO 차단, SAP B1은 중장기 발주 담당.</div>
       </div>
       <div class="mod-meta-strip">
-        <div class="mms-item"><div class="mms-l">ERP</div><div class="mms-v" style="color:#60a5fa;">SAP B1</div></div>
-        <div class="mms-item"><div class="mms-l">Customer</div><div class="mms-v">SAV / GEO</div></div>
-        <div class="mms-item"><div class="mms-l">MRP</div><div class="mms-v">A-MES + SAP B1</div></div>
-        <div class="mms-item"><div class="mms-l">PR Interface</div><div class="mms-v" style="color:#34d399;">Service Layer</div></div>
-        <div class="mms-item"><div class="mms-l">Routing</div><div class="mms-v">A / B</div></div>
+        <div class="mms-item"><div class="mms-l">Screens</div><div class="mms-v">9</div></div>
+        <div class="mms-item"><div class="mms-l">ERP</div><div class="mms-v info">SAP B1</div></div>
+        <div class="mms-item"><div class="mms-l">Customers</div><div class="mms-v">SAV · GEO</div></div>
+        <div class="mms-item"><div class="mms-l">MRP</div><div class="mms-v">Dual (MES+B1)</div></div>
+        <div class="mms-item"><div class="mms-l">PR Interface</div><div class="mms-v">Service Layer API</div></div>
+        <div class="mms-item"><div class="mms-l">Routing</div><div class="mms-v">A · B</div></div>
       </div>
-      <div style="margin-bottom:8px;"><span class="l3-hint">📋 Click any screen card / pill / sidebar link to view L3 detail spec · 클릭 시 L3 상세 설계서</span></div>
+      <div><span class="l3-hint">📋 Click any screen card / icon / pill for L3 detailed spec · 각 화면 카드 클릭 시 L3 상세 설계서</span></div>
       <div class="screen-pills">
-        <a class="sp" href="VOL04_PP01_Forecast.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · PP-01"><span class="sp-id">PP-01</span> Forecast Mgmt <span style="opacity:.5;font-size:8px;">📋</span></a>
-        <a class="sp" href="VOL04_PP02_SAP_Import.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · PP-02"><span class="sp-id">PP-02</span> SAP B1 Import <span style="opacity:.5;font-size:8px;">📋</span></a>
-        <a class="sp" href="VOL04_PP03_Plan_Confirm.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · PP-03"><span class="sp-id">PP-03</span> Plan &amp; Confirm <span style="opacity:.5;font-size:8px;">📋</span></a>
-        <a class="sp" href="VOL04_PP04_Work_Order.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · PP-04"><span class="sp-id">PP-04</span> Work Order <span style="opacity:.5;font-size:8px;">📋</span></a>
-        <a class="sp" href="VOL04_PP05_MRP.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · PP-05"><span class="sp-id">PP-05</span> MRP <span style="opacity:.5;font-size:8px;">📋</span></a>
-        <a class="sp" href="VOL04_PP06_Purchase_Req.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · PP-06"><span class="sp-id">PP-06</span> Purchase Req. <span style="opacity:.5;font-size:8px;">📋</span></a>
-        <a class="sp" href="VOL04_PP07_WO_Release.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · PP-07"><span class="sp-id">PP-07</span> WO Release <span style="opacity:.5;font-size:8px;">📋</span></a>
-        <a class="sp" href="VOL04_PP_CAL_Calendar.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · PP-CAL"><span class="sp-id">PP-CAL</span> Calendar <span style="opacity:.5;font-size:8px;">📋</span></a>
-        <a class="sp" href="VOL04_PP_OTD_Delivery.html" style="text-decoration:none;color:inherit;cursor:pointer;" title="L3 상세 · PP-OTD"><span class="sp-id">PP-OTD</span> Delivery KPI <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL04_PP01_Forecast.html" title="L3 상세 · PP-01"><span class="sp-id">PP-01</span> Forecast <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL04_PP02_SAP_Import.html" title="L3 상세 · PP-02"><span class="sp-id">PP-02</span> SAP B1 Import <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL04_PP03_Plan_Confirm.html" title="L3 상세 · PP-03"><span class="sp-id">PP-03</span> Plan &amp; Confirm <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL04_PP04_Work_Order.html" title="L3 상세 · PP-04"><span class="sp-id">PP-04</span> Work Order <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL04_PP05_MRP.html" title="L3 상세 · PP-05"><span class="sp-id">PP-05</span> MRP <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL04_PP06_Purchase_Req.html" title="L3 상세 · PP-06"><span class="sp-id">PP-06</span> Purchase Req. <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL04_PP07_WO_Release.html" title="L3 상세 · PP-07"><span class="sp-id">PP-07</span> WO Release <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL04_PP_CAL_Calendar.html" title="L3 상세 · PP-CAL"><span class="sp-id">PP-CAL</span> Calendar <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL04_PP_OTD_Delivery.html" title="L3 상세 · PP-OTD"><span class="sp-id">PP-OTD</span> Delivery KPI <span style="opacity:.5;font-size:8px;">📋</span></a>
       </div>
     </div>
   </div>
 
   <div class="content">
 
-  <!-- END-TO-END FLOW -->
-  <div class="sec-div" id="flow"><div class="sd-line"></div><div class="sd-lbl">OVERALL PROCESS FLOW · 전체 업무 흐름</div><div class="sd-line"></div></div>
-  <div class="flow-card">
-    <div class="flow-card-title">End-to-End Flow</div>
-    <div class="flow-grid">
-      <div>
-        <div class="flow-step"><div class="fs-tag">[고객사]</div><div class="fs-text">Customer Forecast 수신 (SCM 포탈 Excel 다운로드)</div></div>
-        <div class="flow-step"><div class="fs-tag">[PP-01]</div><div class="fs-text">Forecast 등록 &amp; 품번 매핑</div></div>
-        <div class="flow-step"><div class="fs-tag">[SAP B1]</div><div class="fs-text">공급계획 Export (Excel → A-MES Import)</div></div>
-        <div class="flow-step"><div class="fs-tag">[PP-02]</div><div class="fs-text">공급계획 수신 &amp; 확인</div></div>
-        <div class="flow-step"><div class="fs-tag">[PP-03]</div><div class="fs-text">생산계획 수립 (납기·재고·설비 검토)</div></div>
-        <div class="flow-step"><div class="fs-tag">[PP-04]</div><div class="fs-text">작업지시 (WO) 생성</div></div>
-      </div>
-      <div>
-        <div class="flow-step"><div class="fs-tag">[PP-05]</div><div class="fs-text">MRP 실행 → 자재 소요 계산</div></div>
-        <div class="flow-step"><div class="fs-tag">[PP-06]</div><div class="fs-text">자재발주 요청서 (PR) 생성</div></div>
-        <div class="flow-step"><div class="fs-tag">[SAP B1]</div><div class="fs-text">PR 전송 → PO 변환 → 공급업체 발주</div></div>
-        <div class="flow-step"><div class="fs-tag">[WH]</div><div class="fs-text">자재 입고 (WH 모듈)</div></div>
-        <div class="flow-step"><div class="fs-tag">[PP-07]</div><div class="fs-text">WO 발행 → 생산 착수</div></div>
-        <div class="flow-step"><div class="fs-tag">[INJ/IMG/PNT]</div><div class="fs-text">POP 화면 생산 실적 입력</div></div>
-      </div>
-    </div>
-  </div>
+    <!-- ─── PROCESS FLOW ─── -->
+    <div class="sec-div" id="flow"><div class="sd-line"></div><div class="sd-lbl">▼ END-TO-END FLOW · 전체 업무 흐름</div><div class="sd-line"></div></div>
+    <div class="flow-card">
+      <div class="flow-card-h">▼ Demand → Plan → Material → Release</div>
 
-  <!-- KPI DASHBOARD -->
-  <div class="sec-div" id="kpi"><div class="sd-line"></div><div class="sd-lbl">KPI DASHBOARD · 주요 지표</div><div class="sd-line"></div></div>
-  <div class="kpi-strip">
-    <div class="kc"><div class="kv" style="color:#059669;">0</div><div class="kl-en">MRP Blocked WO</div><div class="kl-ko">MRP 차단 WO</div></div>
-    <div class="kc"><div class="kv" style="color:#d97706;">—</div><div class="kl-en">Forecast vs Order Gap</div><div class="kl-ko">Forecast 대비 수주 편차</div></div>
-    <div class="kc"><div class="kv" style="color:#0db87a;">95%</div><div class="kl-en">On-Time Delivery</div><div class="kl-ko">납기 준수율</div></div>
-    <div class="kc"><div class="kv" style="color:#1e40af;">—</div><div class="kl-en">Unreleased WO</div><div class="kl-ko">미발행 WO</div></div>
-    <div class="kc"><div class="kv" style="color:#dc2626;">—</div><div class="kl-en">PR Pending (SAP)</div><div class="kl-ko">발주요청 미전송</div></div>
-  </div>
+      <div class="flow-track">
+        <div class="flow-track-lbl">①  DEMAND INTAKE · 수요 수신</div>
+        <div class="flow-row">
+          <a class="flow-node external"><span class="fn-id">SCM 포탈</span><span class="fn-name">Customer</span><span class="fn-ko">SAV/GEO</span><span class="fn-tag">Forecast Excel</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node" href="#pp01"><span class="fn-id">PP-01</span><span class="fn-name">Forecast Mgmt</span><span class="fn-ko">Forecast 관리</span><span class="fn-tag">M+1 ~ M+6</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node external"><span class="fn-id">SAP B1</span><span class="fn-name">Supply Plan</span><span class="fn-ko">공급계획 Export</span><span class="fn-tag">Excel/API</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node" href="#pp02"><span class="fn-id">PP-02</span><span class="fn-name">SAP Import</span><span class="fn-ko">공급계획 수신</span><span class="fn-tag">현행: 수동·향후: API</span></a>
+        </div>
+      </div>
 
-  <!-- PP-01 -->
-  <div class="screen-card" id="pp01">
-    <div class="sc-hdr">
-      <div>
-        <div class="sc-id">PP-01</div>
-        <div class="sc-title-en">Customer Forecast Management</div>
-        <div class="sc-title-ko">고객사 Forecast 수신 및 관리</div>
-      </div>
-      <div class="sc-tags">
-        <span class="tag t-web">🖥 Web PC</span>
-        <span class="tag t-1st">1st Dev</span>
-      </div>
-      <a class="sc-l3-btn" href="VOL04_PP01_Forecast.html" title="View L3 detailed spec">📋 L3 Detail →</a>
-    </div>
-    <div class="sc-body">
-      <div class="desc-bi" style="border-left-color:#059669;">
-        <div>
-          <div class="db-lbl">EN · Description</div>
-          <div class="db-en">Receives and manages customer demand forecasts (M+1 to M+6) from SAV/GEO SCM Portal. Downloads Forecast Excel from the customer SCM portal and imports it into A-MES. Tracks gaps between forecast and confirmed orders.</div>
-        </div>
-        <div>
-          <div class="db-lbl">KO · 설명</div>
-          <div class="db-ko">고객사(SAV/GEO) SCM 포탈에서 Forecast Excel을 다운로드하여 A-MES에 Import한다. Forecast 대비 확정 수주 편차를 추적한다.</div>
+      <div class="flow-track">
+        <div class="flow-track-lbl">② PLAN &amp; WO CREATION · 계획·WO 생성</div>
+        <div class="flow-row">
+          <a class="flow-node" href="#pp03"><span class="fn-id">PP-03</span><span class="fn-name">Plan</span><span class="fn-ko">계획 수립</span><span class="fn-tag">납기·재고·설비 검토</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node core" href="#pp04"><span class="fn-id">PP-04 ⚙</span><span class="fn-name">Work Order</span><span class="fn-ko">WO 생성</span><span class="fn-tag">Draft 생성</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node" href="#pp05"><span class="fn-id">PP-05</span><span class="fn-name">MRP</span><span class="fn-ko">자재 소요</span><span class="fn-tag">실시간 차단</span></a>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- PP-02 -->
-  <div class="screen-card" id="pp02">
-    <div class="sc-hdr">
-      <div>
-        <div class="sc-id">PP-02</div>
-        <div class="sc-title-en">SAP B1 Supply Plan Import</div>
-        <div class="sc-title-ko">SAP B1 공급계획 수신</div>
-      </div>
-      <div class="sc-tags">
-        <span class="tag t-web">🖥 Web PC</span>
-        <span class="tag t-sap">⇄ SAP B1</span>
-      </div>
-      <a class="sc-l3-btn" href="VOL04_PP02_SAP_Import.html" title="View L3 detailed spec">📋 L3 Detail →</a>
-    </div>
-    <div class="sc-body">
-      <div class="desc-bi" style="border-left-color:#059669;">
-        <div>
-          <div class="db-lbl">EN · Description</div>
-          <div class="db-en">Receives confirmed supply plans from SAP Business One. Current method: SAP B1 Excel Export → A-MES manual import. Future roadmap: SAP B1 Service Layer REST API auto-polling every 1 hour.</div>
-        </div>
-        <div>
-          <div class="db-lbl">KO · 설명</div>
-          <div class="db-ko">SAP Business One의 확정 공급계획(판매오더)을 A-MES로 수신한다. 현행: SAP B1 Excel Export → 수동 Import. 향후: SAP B1 Service Layer REST API 자동 폴링(1시간)으로 전환 예정.</div>
+      <div class="flow-track">
+        <div class="flow-track-lbl">③ MATERIAL PROCUREMENT · 자재 발주</div>
+        <div class="flow-row">
+          <a class="flow-node" href="#pp06"><span class="fn-id">PP-06</span><span class="fn-name">PR 생성</span><span class="fn-ko">발주 요청서</span><span class="fn-tag">Shortage 기반</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node external"><span class="fn-id">SAP B1</span><span class="fn-name">PO 변환</span><span class="fn-ko">발주서 발행</span><span class="fn-tag">Service Layer</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node external"><span class="fn-id">Vendor</span><span class="fn-name">납품</span><span class="fn-ko">공급사</span><span class="fn-tag">자재 도착</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node external"><span class="fn-id">WH-02</span><span class="fn-name">PDA 입고</span><span class="fn-ko">창고 모듈</span><span class="fn-tag">QC 트리거</span></a>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- PP-03 -->
-  <div class="screen-card" id="pp03">
-    <div class="sc-hdr">
-      <div>
-        <div class="sc-id">PP-03</div>
-        <div class="sc-title-en">Production Planning &amp; Confirmation</div>
-        <div class="sc-title-ko">생산계획 수립 및 확인</div>
-      </div>
-      <div class="sc-tags">
-        <span class="tag t-web">🖥 Web PC</span>
-        <span class="tag t-1st">1st Dev</span>
-      </div>
-      <a class="sc-l3-btn" href="VOL04_PP03_Plan_Confirm.html" title="View L3 detailed spec">📋 L3 Detail →</a>
-    </div>
-    <div class="sc-body">
-      <div class="desc-bi" style="border-left-color:#059669;">
-        <div>
-          <div class="db-lbl">EN · Description</div>
-          <div class="db-en">PLAN manager reviews the received supply plans against current FG inventory, equipment load, and Forecast reference. Confirms feasible items for WO batch creation.</div>
-        </div>
-        <div>
-          <div class="db-lbl">KO · 설명</div>
-          <div class="db-ko">PLAN 담당자가 공급계획을 완제품 재고·설비 부하·Forecast 참고치와 대조하여 생산 가능 여부를 검토하고 WO 일괄 생성 대상을 확정한다.</div>
+      <div class="flow-track">
+        <div class="flow-track-lbl">④ RELEASE TO SHOP FLOOR · 현장 발행</div>
+        <div class="flow-row">
+          <a class="flow-node core" href="#pp07"><span class="fn-id">PP-07 ⚙</span><span class="fn-name">WO Release</span><span class="fn-ko">발행 게이트</span><span class="fn-tag">4종 검증</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node external"><span class="fn-id">INJ/IMG/PNT</span><span class="fn-name">POP 표시</span><span class="fn-ko">현장 화면</span><span class="fn-tag">생산 착수</span></a>
+          <span class="flow-arr">⇄</span>
+          <a class="flow-node" href="#ppcal"><span class="fn-id">PP-CAL</span><span class="fn-name">Calendar</span><span class="fn-ko">캘린더</span><span class="fn-tag">월/주 일정</span></a>
+          <span class="flow-arr">⇄</span>
+          <a class="flow-node" href="#ppotd"><span class="fn-id">PP-OTD</span><span class="fn-name">OTD KPI</span><span class="fn-ko">납기 현황</span><span class="fn-tag">실시간</span></a>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- PP-04 -->
-  <div class="screen-card" id="pp04">
-    <div class="sc-hdr">
-      <div>
-        <div class="sc-id">PP-04</div>
-        <div class="sc-title-en">Work Order Management</div>
-        <div class="sc-title-ko">작업지시 (WO) 관리</div>
-      </div>
-      <div class="sc-tags">
-        <span class="tag t-web">🖥 Web PC</span>
-        <span class="tag t-1st">1st Dev</span>
-      </div>
-      <a class="sc-l3-btn" href="VOL04_PP04_Work_Order.html" title="View L3 detailed spec">📋 L3 Detail →</a>
-    </div>
-    <div class="sc-body">
-      <div class="desc-bi" style="border-left-color:#059669;">
-        <div>
-          <div class="db-lbl">EN · Description</div>
-          <div class="db-en">Manages Work Orders from Draft through Released, In Progress, to Closed. Displays routing type badge (A/B), progress bar, DDay indicator, and SAP B1 supply plan link.</div>
-        </div>
-        <div>
-          <div class="db-lbl">KO · 설명</div>
-          <div class="db-ko">WO를 Draft → Released → In Progress → Closed 상태로 관리한다. 라우팅 A/B 배지·진행률·납기 D-Day·SAP B1 공급계획 연결을 표시한다.</div>
-        </div>
+      <div style="display:flex;gap:14px;margin-top:14px;font-size:9px;color:rgba(255,255,255,.55);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;">
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(212,160,23,.3);border:1px solid #fbbf24;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>⚙ Core — 핵심 게이트</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(5,150,105,.2);border:1px solid #6ee7b7;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>PP 화면</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.3);border-radius:2px;vertical-align:middle;margin-right:4px;"></span>외부 모듈/시스템</span>
       </div>
     </div>
-  </div>
 
-  <!-- WO STATUS FLOW -->
-  <div class="sec-div" id="wo"><div class="sd-line"></div><div class="sd-lbl">WO STATUS FLOW · WO 상태 흐름</div><div class="sd-line"></div></div>
-  <div class="rflow">
-    <div class="rs rs-pp"><span class="rs-en">Draft</span><span class="rs-ko">초안</span></div>
-    <span class="rarr">→</span>
-    <div class="rs rs-pp"><span class="rs-en">Released</span><span class="rs-ko">발행</span></div>
-    <span class="rarr">→</span>
-    <div class="rs rs-pp"><span class="rs-en">In Progress</span><span class="rs-ko">생산중</span></div>
-    <span class="rarr">→</span>
-    <div class="rs rs-pp"><span class="rs-en">Closed</span><span class="rs-ko">완료</span></div>
-  </div>
+    <!-- ─── MODULE KPI ─── -->
+    <div class="sec-div" id="kpi"><div class="sd-line"></div><div class="sd-lbl">▼ MODULE KPI · 핵심 지표</div><div class="sd-line"></div></div>
+    <div class="mod-kpi">
+      <div class="kpi-card"><div class="kpi-l">MRP Blocked WO</div><div class="kpi-v ok">0</div><div class="kpi-s">자재 부족 차단</div></div>
+      <div class="kpi-card"><div class="kpi-l">Forecast Gap</div><div class="kpi-v warn">—</div><div class="kpi-s">Forecast vs 확정수주</div></div>
+      <div class="kpi-card"><div class="kpi-l">On-Time Delivery</div><div class="kpi-v ok">95<span style="font-size:14px;color:var(--sub);"> %</span></div><div class="kpi-s">목표 (PP-OTD)</div></div>
+      <div class="kpi-card"><div class="kpi-l">Unreleased WO</div><div class="kpi-v info">—</div><div class="kpi-s">발행 대기</div></div>
+      <div class="kpi-card"><div class="kpi-l">PR Pending</div><div class="kpi-v alert">—</div><div class="kpi-s">SAP B1 미전송</div></div>
+    </div>
 
-  <!-- PP-05 -->
-  <div class="screen-card" id="pp05">
-    <div class="sc-hdr">
-      <div>
-        <div class="sc-id">PP-05</div>
-        <div class="sc-title-en">MRP — Material Requirements Planning</div>
-        <div class="sc-title-ko">자재 소요 계획</div>
-      </div>
-      <div class="sc-tags">
-        <span class="tag t-web">🖥 Web PC</span>
-        <span class="tag t-batch">⏱ Batch</span>
-      </div>
-      <a class="sc-l3-btn" href="VOL04_PP05_MRP.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+    <!-- ─── WO STATUS FLOW ─── -->
+    <div class="sec-div" id="wo-status"><div class="sd-line"></div><div class="sd-lbl">▼ WO STATUS FLOW · WO 상태 흐름</div><div class="sd-line"></div></div>
+    <div class="status-flow">
+      <div class="sf-step">📝 Draft<br><span style="font-size:9px;font-weight:400;">초안</span></div>
+      <span class="sf-arr">→</span>
+      <div class="sf-step">🚀 Released<br><span style="font-size:9px;font-weight:400;">발행</span></div>
+      <span class="sf-arr">→</span>
+      <div class="sf-step">⚙ In Progress<br><span style="font-size:9px;font-weight:400;">생산중</span></div>
+      <span class="sf-arr">→</span>
+      <div class="sf-step">✅ Closed<br><span style="font-size:9px;font-weight:400;">완료</span></div>
+      <span class="sf-arr">⤵</span>
+      <div class="sf-step" style="background:#fef2f2;color:#991b1b;border-color:#fca5a5;">❌ Cancelled<br><span style="font-size:9px;font-weight:400;">취소</span></div>
     </div>
-    <div class="sc-body">
-      <div class="desc-bi" style="border-left-color:#059669;">
-        <div>
-          <div class="db-lbl">EN · Description</div>
-          <div class="db-en">Runs MRP to calculate material shortage quantities. A-MES MRP handles real-time WO blocking. SAP B1 MRP handles mid/long-term procurement planning and PO generation.</div>
-        </div>
-        <div>
-          <div class="db-lbl">KO · 설명</div>
-          <div class="db-ko">A-MES MRP는 실시간 WO 차단·가용 여부 판단. SAP B1 MRP는 중장기 자재 소요·공급업체 발주 담당. 두 MRP를 역할 분리하여 병행 운영한다.</div>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- PP-06 -->
-  <div class="screen-card" id="pp06">
-    <div class="sc-hdr">
-      <div>
-        <div class="sc-id">PP-06</div>
-        <div class="sc-title-en">Purchase Requisition → SAP B1</div>
-        <div class="sc-title-ko">자재발주 요청서 (PR) → SAP B1 전송</div>
-      </div>
-      <div class="sc-tags">
-        <span class="tag t-web">🖥 Web PC</span>
-        <span class="tag t-sap">⇄ SAP B1</span>
-      </div>
-      <a class="sc-l3-btn" href="VOL04_PP06_Purchase_Req.html" title="View L3 detailed spec">📋 L3 Detail →</a>
-    </div>
-    <div class="sc-body">
-      <div class="desc-bi" style="border-left-color:#059669;">
-        <div>
-          <div class="db-lbl">EN · Description</div>
-          <div class="db-en">Generates Purchase Requisition records from MRP shortage results and transmits them to SAP B1 via Service Layer API (POST /PurchaseRequests). Tracks SAP B1 DocNum after successful transmission.</div>
-        </div>
-        <div>
-          <div class="db-lbl">KO · 설명</div>
-          <div class="db-ko">MRP 부족 자재를 기반으로 발주요청서(PR)를 생성하고, SAP B1 Service Layer API(POST /PurchaseRequests)로 전송한다. 전송 성공 시 SAP B1 DocNum을 수신하여 저장한다.</div>
-        </div>
-      </div>
-    </div>
-  </div>
+    <!-- ─── SCREENS ─── -->
+    <div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">▼ 9 SCREENS · 화면 설계</div><div class="sd-line"></div></div>
 
-  <!-- PP-07 -->
-  <div class="screen-card" id="pp07">
-    <div class="sc-hdr">
-      <div>
-        <div class="sc-id">PP-07</div>
-        <div class="sc-title-en">Work Order Release</div>
-        <div class="sc-title-ko">WO 발행 및 생산 착수</div>
-      </div>
-      <div class="sc-tags">
-        <span class="tag t-web">🖥 Web PC</span>
-        <span class="tag t-p0">Phase 0 + 1st</span>
-      </div>
-      <a class="sc-l3-btn" href="VOL04_PP07_WO_Release.html" title="View L3 detailed spec">📋 L3 Detail →</a>
-    </div>
-    <div class="sc-body">
-      <div class="desc-bi" style="border-left-color:#059669;">
-        <div>
-          <div class="db-lbl">EN · Description</div>
-          <div class="db-en">Validates all release conditions before transitioning WO to Released status: Phase-0 complete, MRP no shortage, equipment available, delivery lead time sufficient.</div>
+    <!-- PP-01 -->
+    <div class="screen-card" id="pp01">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">📈</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">PP-01</div>
+            <div class="sc-title-en">Customer Forecast Management</div>
+            <div class="sc-title-ko">고객사 Forecast 수신 및 관리</div>
+          </div>
         </div>
-        <div>
-          <div class="db-lbl">KO · 설명</div>
-          <div class="db-ko">WO Released 전환 전 4가지 조건을 순서대로 검증한다: Phase-0 완료, MRP 자재 충족, 설비 가용, 납기 여유. 모두 통과 시 WO 발행 → 자재 자동 예약 → POP 화면 노출.</div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-1st">1st Dev</span></div>
+        <a class="sc-l3-btn" href="VOL04_PP01_Forecast.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 고객 SCM 포탈 Forecast Excel 다운로드 + A-MES Import + 품번 매핑 화면<span class="ko">Forecast 대비 확정 수주 편차 자동 추적 (Gap &gt; 20% 시 PLAN/MGR 알림)</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">SCM Excel (SAV/GEO)</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">Forecast Table + Gap KPI</div></div>
+          <div class="qf"><div class="qf-l">📅 HORIZON</div><div class="qf-v">M+1 ~ M+6</div></div>
+          <div class="qf"><div class="qf-l">⚠ ALERT</div><div class="qf-v">Gap &gt; 20%</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Receives and manages customer demand forecasts (M+1 to M+6) from SAV/GEO SCM Portal. Downloads Forecast Excel and imports into A-MES with item mapping. Tracks gap between forecast and confirmed orders. Forecast re-upload retains history. Unmapped customer item number triggers warning.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">고객사(SAV/GEO) SCM 포탈에서 Forecast Excel을 다운로드하여 A-MES에 Import. 품번 매핑 후 Forecast 대비 확정 수주 편차 추적. Forecast 재업로드 시 이력 보관 후 UPDATE. 고객사 품번 미매핑 시 경고.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">📥</div><div class="feat-t">Manual Import</div><div class="feat-d">고객사 포탈에서 Excel 다운로드 후 업로드.<span class="ko">매월 정기</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔗</div><div class="feat-t">Item Mapping</div><div class="feat-d">고객 품번 ↔ MD-01 자사 품번 매핑.<span class="ko">미매핑 경고 (BR-F001)</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📊</div><div class="feat-t">Gap Tracking</div><div class="feat-d">Forecast vs 확정 수주 편차 자동 계산.<span class="ko">&gt;20% 알림 (BR-F002)</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📜</div><div class="feat-t">History Retention</div><div class="feat-d">재업로드 시 이력 보관 후 UPDATE.<span class="ko">PP_ForecastHistory (BR-F003)</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-pp">BR-PP-F001</a>
+          <a class="br-chip" href="#br-pp">BR-PP-F002</a>
+          <a class="br-chip" href="#br-pp">BR-PP-F003</a>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- PP-CAL -->
-  <div class="screen-card" id="ppcal">
-    <div class="sc-hdr">
-      <div>
-        <div class="sc-id">PP-CAL</div>
-        <div class="sc-title-en">Production Calendar</div>
-        <div class="sc-title-ko">생산 캘린더</div>
-      </div>
-      <div class="sc-tags">
-        <span class="tag t-web">🖥 Web PC</span>
-        <span class="tag t-2nd">2nd Dev</span>
-      </div>
-      <a class="sc-l3-btn" href="VOL04_PP_CAL_Calendar.html" title="View L3 detailed spec">📋 L3 Detail →</a>
-    </div>
-    <div class="sc-body">
-      <div class="desc-bi" style="border-left-color:#059669;">
-        <div>
-          <div class="db-lbl">EN · Description</div>
-          <div class="db-en">Visual monthly/weekly calendar of all Work Orders with due dates. D-3 items are highlighted in red. Drag-to-reschedule supported. Filters by routing, customer, and status.</div>
+    <!-- PP-02 -->
+    <div class="screen-card" id="pp02">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">⇄</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">PP-02</div>
+            <div class="sc-title-en">SAP B1 Supply Plan Import</div>
+            <div class="sc-title-ko">SAP B1 공급계획 수신</div>
+          </div>
         </div>
-        <div>
-          <div class="db-lbl">KO · 설명</div>
-          <div class="db-ko">전체 WO를 월/주 단위 캘린더로 시각화. D-3 이내 항목 빨간색 강조. 드래그 일정 조정 지원. 라우팅·고객사·상태 필터.</div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-sap">⇄ SAP B1</span></div>
+        <a class="sc-l3-btn" href="VOL04_PP02_SAP_Import.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: SAP B1 확정 공급계획(판매오더) Import 화면 — 현행 Excel 수동 / 향후 Service Layer API 자동<span class="ko">PP-03 생산계획 수립의 입력 데이터</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">SAP B1 Excel / API</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">Supply Plan Table → PP-03</div></div>
+          <div class="qf"><div class="qf-l">⏱ CYCLE</div><div class="qf-v">현행 일 1회 · 향후 1h</div></div>
+          <div class="qf"><div class="qf-l">🔄 INTEGRATION</div><div class="qf-v">Service Layer (planned)</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Receives confirmed supply plans (sales orders) from SAP Business One. <strong>Current</strong>: SAP B1 Excel Export → A-MES manual Import. <strong>Future roadmap</strong>: SAP B1 Service Layer REST API auto-polling every 1 hour. Drives PP-03 production planning.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">SAP Business One의 확정 공급계획(판매오더)을 A-MES로 수신. <strong>현행</strong>: SAP B1 Excel Export → A-MES 수동 Import. <strong>향후</strong>: SAP B1 Service Layer REST API 자동 폴링(1시간)으로 전환 예정. PP-03 생산계획 수립 입력.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">📋</div><div class="feat-t">Current: Excel</div><div class="feat-d">SAP B1 Export Excel → 수동 Import.<span class="ko">현 운영 방식</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔌</div><div class="feat-t">Future: API Poll</div><div class="feat-d">Service Layer REST API 자동 폴링.<span class="ko">1시간 간격 예정</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔍</div><div class="feat-t">Diff Detect</div><div class="feat-d">이전 Import 대비 변경 라인 강조.<span class="ko">PLAN 검토 효율</span></div></div>
+          <div class="feat-item"><div class="feat-ico">▶</div><div class="feat-t">→ PP-03</div><div class="feat-d">확정 시 PP-03 생산계획으로 인계.<span class="ko">자동 분기</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <span style="font-size:9px;color:var(--sub);">참조: PP-03 plan rules</span>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- PP-OTD -->
-  <div class="screen-card" id="ppotd">
-    <div class="sc-hdr">
-      <div>
-        <div class="sc-id">PP-OTD</div>
-        <div class="sc-title-en">On-Time Delivery KPI</div>
-        <div class="sc-title-ko">납기 준수율 현황</div>
-      </div>
-      <div class="sc-tags">
-        <span class="tag t-web">🖥 Web PC</span>
-        <span class="tag t-2nd">2nd Dev</span>
-      </div>
-      <a class="sc-l3-btn" href="VOL04_PP_OTD_Delivery.html" title="View L3 detailed spec">📋 L3 Detail →</a>
-    </div>
-    <div class="sc-body">
-      <div class="desc-bi" style="border-left-color:#059669;">
-        <div>
-          <div class="db-lbl">EN · Description</div>
-          <div class="db-en">Real-time OTD KPI dashboard by customer, routing, and time period. Shows on-time vs delayed deliveries with root-cause attribution (material shortage, equipment, quality, etc.).</div>
+    <!-- PP-03 -->
+    <div class="screen-card" id="pp03">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">📅</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">PP-03</div>
+            <div class="sc-title-en">Production Planning &amp; Confirmation</div>
+            <div class="sc-title-ko">생산계획 수립 및 확인</div>
+          </div>
         </div>
-        <div>
-          <div class="db-lbl">KO · 설명</div>
-          <div class="db-ko">고객사·라우팅·기간별 OTD 실시간 대시보드. 정시/지연 비율, 지연 원인(자재·설비·품질 등) 분석 제공.</div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-1st">1st Dev</span></div>
+        <a class="sc-l3-btn" href="VOL04_PP03_Plan_Confirm.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: PP-02 수신 공급계획 + FG 재고 + 설비 부하 + Forecast 비교 화면 — 4 변수 한 번에 검토<span class="ko">PLAN 담당자가 생산 가능 여부 확정 → WO 일괄 생성 대상 마킹</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">PP-02 Plan + FG + Equip</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">Confirmed Plan → PP-04</div></div>
+          <div class="qf"><div class="qf-l">🎯 ROLE</div><div class="qf-v">PLAN Manager</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">4-Variable Compare</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">PLAN manager reviews received supply plans against current FG inventory, equipment load, and Forecast reference. Confirms feasible items for batch WO creation in PP-04. Out-of-capacity items are flagged with overflow indicator for re-scheduling.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">PLAN 담당자가 PP-02 공급계획을 완제품 재고·설비 부하·Forecast 참고치와 대조하여 생산 가능 여부를 검토하고 PP-04 WO 일괄 생성 대상을 확정. 캐파 초과 품목은 overflow 표시로 재배정 권유.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">📦</div><div class="feat-t">FG Stock Check</div><div class="feat-d">현 FG 재고 vs 출하 요구.<span class="ko">잉여 자동 차감</span></div></div>
+          <div class="feat-item"><div class="feat-ico">⚙️</div><div class="feat-t">Capacity Load</div><div class="feat-d">설비/라인 가용 캐파 vs 계획 부하.<span class="ko">초과 빨강 표시</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📊</div><div class="feat-t">Forecast Reference</div><div class="feat-d">PP-01 Forecast 참고 표시.<span class="ko">트렌드 검증</span></div></div>
+          <div class="feat-item"><div class="feat-ico">▶</div><div class="feat-t">→ PP-04 Batch</div><div class="feat-d">확정 행 일괄 WO 생성 트리거.<span class="ko">Ready 토글</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <span style="font-size:9px;color:var(--sub);">참조: PP-04 (WO 생성), PP-05 (MRP)</span>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- BR -->
-  <div class="br-wrap" id="br-pp">
-    <div class="br-title">Business Rules · 업무 규칙 (PP)</div>
-    <table class="br-tbl">
-      <thead>
-        <tr>
-          <th style="width:90px;">Rule ID</th>
-          <th>Rule Description (EN)</th>
-          <th>규칙 설명 (KO)</th>
-          <th style="width:160px;">조건 · Condition</th>
-          <th style="width:120px;">Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td class="br-id">BR-PP-F001</td>
-          <td class="br-en">Warn on unmapped customer item no.</td>
-          <td class="br-ko">고객사 품번 미매핑 시 경고</td>
-          <td>CustomerItemNo 매핑 없음</td>
-          <td><span class="b b-w">Warn</span></td>
-        </tr>
-        <tr>
-          <td class="br-id">BR-PP-F002</td>
-          <td class="br-en">Alert on Forecast vs Order gap &gt; 20%</td>
-          <td class="br-ko">Forecast 대비 수주 편차 20% 초과 알림</td>
-          <td>Gap &gt; Forecast × 0.2</td>
-          <td><span class="b b-w">Alert</span></td>
-        </tr>
-        <tr>
-          <td class="br-id">BR-PP-F003</td>
-          <td class="br-en">Retain history on Forecast re-upload</td>
-          <td class="br-ko">Forecast 재업로드 시 이력 보관 후 UPDATE</td>
-          <td>동일 월·품목 중복</td>
-          <td><span class="b b-i">Auto</span></td>
-        </tr>
-        <tr>
-          <td class="br-id">BR-PP-001</td>
-          <td class="br-en">Block WO if Phase-0 incomplete</td>
-          <td class="br-ko">Phase-0 미완료 WO 생성 차단</td>
-          <td>Phase0Complete = 0</td>
-          <td><span class="b b-e">Block</span></td>
-        </tr>
-        <tr>
-          <td class="br-id">BR-PP-002</td>
-          <td class="br-en">Block WO on MRP shortage</td>
-          <td class="br-ko">MRP 재고 부족 WO 자동 차단</td>
-          <td>ShortageQty &gt; 0</td>
-          <td><span class="b b-e">Block</span></td>
-        </tr>
-        <tr>
-          <td class="br-id">BR-PP-003</td>
-          <td class="br-en">Auto-reserve material on WO release</td>
-          <td class="br-ko">WO 발행 시 자재 자동 예약</td>
-          <td>Status = Released</td>
-          <td><span class="b b-i">Auto</span></td>
-        </tr>
-        <tr>
-          <td class="br-id">BR-PP-004</td>
-          <td class="br-en">Release reserved qty on WO cancel</td>
-          <td class="br-ko">WO 취소 시 예약 수량 자동 해제</td>
-          <td>Status = Cancelled</td>
-          <td><span class="b b-i">Auto</span></td>
-        </tr>
-        <tr>
-          <td class="br-id">BR-PP-005</td>
-          <td class="br-en">MRP auto-run nightly at 00:00</td>
-          <td class="br-ko">MRP 야간 자동 실행</td>
-          <td>매일 00:00 배치</td>
-          <td><span class="b b-i">Auto</span></td>
-        </tr>
-        <tr>
-          <td class="br-id">BR-PP-006</td>
-          <td class="br-en">Retry PR SAP B1 transmission ×3</td>
-          <td class="br-ko">PR SAP B1 전송 실패 시 3회 재시도</td>
-          <td>전송 오류</td>
-          <td><span class="b b-w">Retry</span></td>
-        </tr>
-        <tr>
-          <td class="br-id">BR-PP-007</td>
-          <td class="br-en">Warn if equipment blocked on WO release</td>
-          <td class="br-ko">WO 발행 전 설비 가용 상태 확인</td>
-          <td>Equipment.Status = Blocked</td>
-          <td><span class="b b-w">Warn</span></td>
-        </tr>
-        <tr>
-          <td class="br-id">BR-PP-008</td>
-          <td class="br-en">Alert DDay ≤ 3 WO</td>
-          <td class="br-ko">납기 D-3 이내 WO 강조 알림</td>
-          <td>DueDate − TODAY ≤ 3</td>
-          <td><span class="b b-w">Alert</span></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+    <!-- PP-04 -->
+    <div class="screen-card" id="pp04">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">📋</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">PP-04 · ⚙ CORE</div>
+            <div class="sc-title-en">Work Order Management</div>
+            <div class="sc-title-ko">작업지시 (WO) 관리</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-core">⚙ Core</span></div>
+        <a class="sc-l3-btn" href="VOL04_PP04_Work_Order.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: WO 4-상태 (Draft → Released → In Progress → Closed) 그리드 + 라우팅 A/B 배지 + D-Day + 진행률 + SAP B1 링크<span class="ko">Phase-0 미완료 품목은 자동 차단 (BR-PP-001)</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">PP-03 Confirmed</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">WO Draft → MRP/Release</div></div>
+          <div class="qf"><div class="qf-l">🔢 STATES</div><div class="qf-v">Draft·Released·InProg·Closed</div></div>
+          <div class="qf"><div class="qf-l">🚧 BLOCK</div><div class="qf-v">Phase-0 미완료</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Manages Work Orders from Draft through Released, In Progress, to Closed. Displays routing type badge (A/B), progress bar, D-Day indicator, and SAP B1 supply plan link. Phase-0 incomplete items are blocked (BR-PP-001). Reserved qty auto-released on WO cancel.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">WO를 Draft → Released → In Progress → Closed 상태로 관리. 라우팅 A/B 배지·진행률·납기 D-Day·SAP B1 공급계획 연결 표시. Phase-0 미완료 품목은 자동 차단(BR-PP-001). 취소 시 예약 수량 자동 해제.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">🔀</div><div class="feat-t">Routing A/B Badge</div><div class="feat-d">감싸기(A) / 도색(B) 시각 구분.<span class="ko">MD-04 참조</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📊</div><div class="feat-t">Progress Bar</div><div class="feat-d">실시간 진행률 (POP 입력 연동).<span class="ko">INJ/IMG/PNT</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📅</div><div class="feat-t">D-Day Indicator</div><div class="feat-d">납기 잔여일 + D-3 강조(BR-008).<span class="ko">캘린더 빨강</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🚧</div><div class="feat-t">Phase-0 Gate</div><div class="feat-d">마스터 미완료 차단 (BR-001).<span class="ko">Item/BOM/BOP 필수</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-pp">BR-PP-001</a>
+          <a class="br-chip" href="#br-pp">BR-PP-004</a>
+          <a class="br-chip" href="#br-pp">BR-PP-008</a>
+        </div>
+      </div>
+    </div>
 
-  </div><!-- /content -->
+    <!-- PP-05 -->
+    <div class="screen-card" id="pp05">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">🧮</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">PP-05</div>
+            <div class="sc-title-en">MRP — Material Requirements Planning</div>
+            <div class="sc-title-ko">자재 소요 계획 — 이중 MRP (MES + SAP B1)</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-batch">⏱ Batch</span></div>
+        <a class="sc-l3-btn" href="VOL04_PP05_MRP.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: BOM 기반 자재 소요량 계산 결과 + WO별 부족 자재 리스트 + 자동 차단 표시 + 야간 배치 이력<span class="ko">A-MES MRP: 실시간 WO 차단 / SAP B1 MRP: 중장기 발주 (역할 분리)</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">WO + BOM + WH Stock</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">Shortage Qty → PP-06</div></div>
+          <div class="qf"><div class="qf-l">⏱ SCHEDULE</div><div class="qf-v">매일 00:00 + On-Demand</div></div>
+          <div class="qf"><div class="qf-l">🚧 BLOCK</div><div class="qf-v">Shortage &gt; 0 → WO 차단</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Runs MRP to calculate material shortage quantities. <strong>A-MES MRP</strong>: real-time WO blocking, immediate availability check. <strong>SAP B1 MRP</strong>: mid/long-term procurement planning, PO generation. Dual MRP runs in parallel with clear role separation. Nightly batch at 00:00 recomputes all shortages.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">MRP를 실행하여 자재 부족 수량 계산. <strong>A-MES MRP</strong>: 실시간 WO 차단, 즉시 가용성 확인. <strong>SAP B1 MRP</strong>: 중장기 자재 소요·공급업체 발주 담당. 두 MRP 역할 분리하여 병행 운영. 매일 00:00 배치 전체 재계산.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">⚡</div><div class="feat-t">A-MES Realtime</div><div class="feat-d">WO 생성 즉시 ShortageQty 계산.<span class="ko">BR-PP-002 차단</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📅</div><div class="feat-t">B1 Mid-Term</div><div class="feat-d">SAP B1이 중장기 발주 계획.<span class="ko">PO 생성</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🌙</div><div class="feat-t">Nightly Batch</div><div class="feat-d">매일 00:00 전체 재계산.<span class="ko">BR-PP-005</span></div></div>
+          <div class="feat-item"><div class="feat-ico">▶</div><div class="feat-t">→ PP-06 PR</div><div class="feat-d">Shortage → PR 자동 생성 대상.<span class="ko">자동 분기</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-pp">BR-PP-002</a>
+          <a class="br-chip" href="#br-pp">BR-PP-005</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- PP-06 -->
+    <div class="screen-card" id="pp06">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">🛒</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">PP-06</div>
+            <div class="sc-title-en">Purchase Requisition → SAP B1</div>
+            <div class="sc-title-ko">자재발주 요청서 (PR) → SAP B1 전송</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-sap">⇄ SAP B1</span></div>
+        <a class="sc-l3-btn" href="VOL04_PP06_Purchase_Req.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: MRP 부족 자재 기반 PR 생성 폼 + SAP B1 전송 버튼 + 전송 결과 DocNum 수신 + 실패 시 재시도<span class="ko">Service Layer API (POST /PurchaseRequests) · 실패 시 3회 재시도</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">MRP Shortage</div></div>
+          <div class="qf"><div class="qf-l">📤 TARGET</div><div class="qf-v">SAP B1 PR (DocNum)</div></div>
+          <div class="qf"><div class="qf-l">🔌 API</div><div class="qf-v">Service Layer REST</div></div>
+          <div class="qf"><div class="qf-l">🔁 RETRY</div><div class="qf-v">3회 자동</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Generates Purchase Requisition records from MRP shortage results and transmits them to SAP B1 via Service Layer API (POST /PurchaseRequests). Tracks SAP B1 DocNum after successful transmission. 3 auto-retries on failure; persistent failure escalates to PLAN team.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">MRP 부족 자재를 기반으로 발주요청서(PR)를 생성하고, SAP B1 Service Layer API(POST /PurchaseRequests)로 전송. 전송 성공 시 SAP B1 DocNum 수신·저장. 실패 시 3회 자동 재시도; 지속 실패 시 PLAN 팀 알림.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">📝</div><div class="feat-t">Auto Generate</div><div class="feat-d">MRP Shortage → PR row 자동 생성.<span class="ko">수량·납기 자동</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🚀</div><div class="feat-t">SAP B1 API</div><div class="feat-d">Service Layer POST 전송.<span class="ko">DocNum 수신</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔁</div><div class="feat-t">Retry ×3</div><div class="feat-d">전송 실패 시 자동 재시도.<span class="ko">BR-PP-006</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📢</div><div class="feat-t">Failure Alert</div><div class="feat-d">3회 모두 실패 시 PLAN 팀 알림.<span class="ko">이메일 + Slack</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-pp">BR-PP-006</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- PP-07 -->
+    <div class="screen-card" id="pp07">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">🚀</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">PP-07 · ⚙ CORE</div>
+            <div class="sc-title-en">Work Order Release</div>
+            <div class="sc-title-ko">WO 발행 및 생산 착수 — 4종 검증 게이트</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-p0">Phase 0 + 1st</span></div>
+        <a class="sc-l3-btn" href="VOL04_PP07_WO_Release.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: WO Released 전환 전 4종 조건 검증 화면 (Phase-0·MRP·설비·납기) + 통과 시 자동 자재 예약 + POP 노출<span class="ko">발행 핵심 게이트 — 한 가지라도 실패하면 차단</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">WO Draft</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">WO Released → POP</div></div>
+          <div class="qf"><div class="qf-l">✅ CHECKS</div><div class="qf-v">4 (P0·MRP·Equip·납기)</div></div>
+          <div class="qf"><div class="qf-l">⚡ AUTO</div><div class="qf-v">자재 예약 + 자동 노출</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Validates all release conditions before transitioning WO to Released status: <strong>(1) Phase-0 complete</strong>, <strong>(2) MRP no shortage</strong>, <strong>(3) equipment available</strong>, <strong>(4) delivery lead time sufficient</strong>. All pass → WO release → auto material reservation → POP screen exposure (INJ/IMG/PNT).</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">WO Released 전환 전 4가지 조건 순서대로 검증: <strong>(1) Phase-0 완료</strong>, <strong>(2) MRP 자재 충족</strong>, <strong>(3) 설비 가용</strong>, <strong>(4) 납기 여유</strong>. 모두 통과 시 WO 발행 → 자재 자동 예약 → POP 화면 노출(INJ/IMG/PNT).</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">✅</div><div class="feat-t">4-Check Gate</div><div class="feat-d">순차 검증, 1개라도 실패 시 차단.<span class="ko">P0·MRP·설비·납기</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔒</div><div class="feat-t">Auto Reserve</div><div class="feat-d">발행 시 자재 자동 예약.<span class="ko">BR-PP-003</span></div></div>
+          <div class="feat-item"><div class="feat-ico">⚠️</div><div class="feat-t">Equip Warning</div><div class="feat-d">설비 Blocked 시 경고 + 보류 권고.<span class="ko">BR-PP-007</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📱</div><div class="feat-t">POP Exposure</div><div class="feat-d">발행 즉시 현장 POP 표시.<span class="ko">INJ/IMG/PNT</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-pp">BR-PP-001</a>
+          <a class="br-chip crit" href="#br-pp">BR-PP-002</a>
+          <a class="br-chip" href="#br-pp">BR-PP-003</a>
+          <a class="br-chip" href="#br-pp">BR-PP-007</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- PP-CAL -->
+    <div class="screen-card" id="ppcal">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">📆</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">PP-CAL</div>
+            <div class="sc-title-en">Production Calendar</div>
+            <div class="sc-title-ko">생산 캘린더 — 월/주 시각화</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL04_PP_CAL_Calendar.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 전체 WO를 월/주 캘린더로 시각화 — 색상 = 라우팅·고객사, 빨강 = D-3 임박<span class="ko">드래그로 일정 재배정 (라인장 PIN 필요)</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">All WOs (PP-04)</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">Visual Schedule + Drag</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">Month / Week Toggle</div></div>
+          <div class="qf"><div class="qf-l">⚠ HIGHLIGHT</div><div class="qf-v">D-3 빨강</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Visual monthly/weekly calendar of all Work Orders with due dates. D-3 items are highlighted in red. Drag-to-reschedule supported (supervisor PIN required). Filters by routing (A/B), customer (SAV/GEO), and status. Click event to drill into PP-04 WO detail.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">전체 WO를 월/주 단위 캘린더로 시각화. D-3 이내 항목 빨간색 강조. 드래그 일정 조정 지원(라인장 PIN). 라우팅·고객사·상태 필터. 이벤트 클릭 시 PP-04 WO 상세 진입.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">📅</div><div class="feat-t">Month / Week View</div><div class="feat-d">월/주 단위 토글.<span class="ko">FullCalendar.js</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🎨</div><div class="feat-t">Color Code</div><div class="feat-d">라우팅 A/B + 고객사 SAV/GEO 색상.<span class="ko">시각 분류</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🚨</div><div class="feat-t">D-3 Red</div><div class="feat-d">납기 임박 빨간 강조 (BR-008).<span class="ko">놓침 방지</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🖐️</div><div class="feat-t">Drag Reschedule</div><div class="feat-d">드래그로 일정 변경 (PIN).<span class="ko">감사 기록</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-pp">BR-PP-008</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- PP-OTD -->
+    <div class="screen-card" id="ppotd">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">🎯</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">PP-OTD</div>
+            <div class="sc-title-en">On-Time Delivery KPI</div>
+            <div class="sc-title-ko">납기 준수율 현황 — 실시간 대시보드</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL04_PP_OTD_Delivery.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: OTD 대시보드 — 고객사·라우팅·기간별 정시/지연 비율 + 지연 원인 분석 (자재·설비·품질)<span class="ko">실시간 갱신, 95% 목표 대비 실적 추적</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">FG Shipment + WO</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">KPI Dashboard + Cause</div></div>
+          <div class="qf"><div class="qf-l">🎯 TARGET</div><div class="qf-v">≥ 95%</div></div>
+          <div class="qf"><div class="qf-l">🔍 DRILL</div><div class="qf-v">지연 원인 자동 분류</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Real-time OTD KPI dashboard by customer (SAV/GEO), routing (A/B), and time period (day/week/month). Shows on-time vs delayed deliveries with root-cause attribution (material shortage, equipment downtime, quality rework, etc.). Target ≥ 95%. Drill-down to delayed WO list.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">고객사(SAV/GEO)·라우팅(A/B)·기간(일/주/월)별 OTD 실시간 대시보드. 정시/지연 비율, 지연 원인(자재 부족·설비 정지·품질 재작업 등) 분석 제공. 목표 ≥ 95%. 지연 WO 목록 드릴다운.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">📊</div><div class="feat-t">Multi-Dimension</div><div class="feat-d">고객·라우팅·기간 3축 필터.<span class="ko">조합 분석</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔍</div><div class="feat-t">Root Cause</div><div class="feat-d">지연 원인 자동 분류·집계.<span class="ko">자재/설비/품질</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📉</div><div class="feat-t">Trend Chart</div><div class="feat-d">시계열 OTD 추이.<span class="ko">목표선 95%</span></div></div>
+          <div class="feat-item"><div class="feat-ico">▶</div><div class="feat-t">Delay Drill</div><div class="feat-d">지연 WO 목록 드릴다운.<span class="ko">PP-04 진입</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <span style="font-size:9px;color:var(--sub);">참조: BR-PP-008 (D-3 알림)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── BR ─── -->
+    <div class="br-wrap" id="br-pp">
+      <div class="br-title">▼ BUSINESS RULES · 업무 규칙 (PP · 11건)</div>
+      <table class="br-tbl">
+        <thead><tr><th style="width:96px;">Rule ID</th><th>Rule (EN)</th><th>규칙 (KO)</th><th style="width:170px;">조건 · Condition</th><th style="width:100px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id-c">BR-PP-F001</td><td class="br-en-c">Warn on unmapped customer item no.</td><td class="br-ko-c">고객사 품번 미매핑 시 경고</td><td>CustomerItemNo 매핑 없음</td><td><span class="b b-w">Warn</span></td></tr>
+          <tr><td class="br-id-c">BR-PP-F002</td><td class="br-en-c">Alert on Forecast vs Order gap &gt; 20%</td><td class="br-ko-c">Forecast 대비 수주 편차 20% 초과 알림</td><td>Gap &gt; Forecast × 0.2</td><td><span class="b b-w">Alert</span></td></tr>
+          <tr><td class="br-id-c">BR-PP-F003</td><td class="br-en-c">Retain history on Forecast re-upload</td><td class="br-ko-c">Forecast 재업로드 시 이력 보관 후 UPDATE</td><td>동일 월·품목 중복</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-PP-001</td><td class="br-en-c">Block WO if Phase-0 incomplete</td><td class="br-ko-c">Phase-0 미완료 WO 생성 차단</td><td>Phase0Complete = 0</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-PP-002</td><td class="br-en-c">Block WO on MRP shortage</td><td class="br-ko-c">MRP 재고 부족 WO 자동 차단</td><td>ShortageQty &gt; 0</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-PP-003</td><td class="br-en-c">Auto-reserve material on WO release</td><td class="br-ko-c">WO 발행 시 자재 자동 예약</td><td>Status = Released</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-PP-004</td><td class="br-en-c">Release reserved qty on WO cancel</td><td class="br-ko-c">WO 취소 시 예약 수량 자동 해제</td><td>Status = Cancelled</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-PP-005</td><td class="br-en-c">MRP auto-run nightly at 00:00</td><td class="br-ko-c">MRP 야간 자동 실행</td><td>매일 00:00 배치</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-PP-006</td><td class="br-en-c">Retry PR SAP B1 transmission ×3</td><td class="br-ko-c">PR SAP B1 전송 실패 시 3회 재시도</td><td>전송 오류</td><td><span class="b b-w">Retry</span></td></tr>
+          <tr><td class="br-id-c">BR-PP-007</td><td class="br-en-c">Warn if equipment blocked on WO release</td><td class="br-ko-c">WO 발행 전 설비 가용 상태 확인</td><td>Equipment.Status = Blocked</td><td><span class="b b-w">Warn</span></td></tr>
+          <tr><td class="br-id-c">BR-PP-008</td><td class="br-en-c">Alert DDay ≤ 3 WO</td><td class="br-ko-c">납기 D-3 이내 WO 강조 알림</td><td>DueDate − TODAY ≤ 3</td><td><span class="b b-w">Alert</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
 
   <div class="page-footer">
-    <div class="pf-l">A-MES · VOL.4 · PP Production Planning · UI Design Spec v1.0 · Bilingual EN/KO</div>
-    <div class="pf-r">9 Screens · Web PC · Phase 0 + 1st Dev</div>
+    <div class="pf-l">A-MES · VOL.4 · PP Production Planning · UI Design Spec v3.0 · 9 Screens + 11 BRs · Enriched Visual</div>
+    <div class="pf-r">Forecast → Plan → MRP → PR → Release · Bilingual EN/KO</div>
   </div>
-</div><!-- /main -->
+</div>
 </div>
 </body>
 </html>
