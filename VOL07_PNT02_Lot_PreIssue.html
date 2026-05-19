@@ -131,6 +131,52 @@
 .page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
 .pf-l{font-family:'JetBrains Mono',monospace;}
 .pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+
+/* Web mockup */
+.web-mock{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:12px;}
+.web-tbar{background:linear-gradient(135deg,#1f2937,#111827);color:#fff;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;font-size:11px;}
+.web-tbar-l{display:flex;gap:6px;align-items:center;}
+.web-dot{display:inline-flex;gap:4px;}
+.web-dot span{width:9px;height:9px;border-radius:50%;}
+.web-tit{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.5px;}
+.web-bc{font-size:9px;color:rgba(255,255,255,.4);font-family:'JetBrains Mono',monospace;}
+.web-split{display:grid;grid-template-columns:300px 1fr 220px;border-top:1px solid var(--border);min-height:380px;}
+.web-pane{padding:12px;border-right:1px solid var(--border);overflow:hidden;}
+.web-pane:last-child{border-right:none;}
+.web-pane-title{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--mod-dk);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.wo-card{padding:8px 10px;border:1px solid var(--border);border-radius:5px;margin-bottom:6px;cursor:pointer;font-size:11px;}
+.wo-card.on{background:var(--mod-lt);border-color:var(--mod-tint);border-left:3px solid var(--mod);}
+.wo-card .wo-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--mod-dk);}
+.wo-card .wo-name{font-size:11px;font-weight:600;color:var(--text);margin-top:2px;}
+.wo-card .wo-meta{font-size:9px;color:var(--sub);margin-top:3px;display:flex;justify-content:space-between;}
+.lot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;}
+.lot-card{background:#fff;border:1px solid var(--border);border-left:3px solid var(--mod-tint);border-radius:5px;padding:10px;font-size:11px;}
+.lot-card.bound{border-left-color:#0db87a;background:#f0fdf4;}
+.lot-card.pre{border-left-color:#94a3b8;background:#f8fafc;border-left-style:dashed;}
+.lot-card .lot-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--mod-dk);}
+.lot-card .lot-status{font-size:8px;font-weight:800;padding:1px 5px;border-radius:2px;float:right;}
+.lot-card .lot-status.bound{background:#dcfce7;color:#166534;}
+.lot-card .lot-status.pre{background:#e2e8f0;color:#475569;}
+.lot-card .lot-arrow{margin:6px 0;text-align:center;color:var(--sub);font-size:14px;font-weight:700;}
+.lot-card .jig-id{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--text);text-align:center;background:#fafbfd;padding:4px;border-radius:3px;border:1px dashed var(--border);}
+.lot-card .lot-meta{font-size:9px;color:var(--sub);margin-top:6px;line-height:1.5;}
+.jig-pool{font-size:11px;}
+.jig-row{display:grid;grid-template-columns:1fr 32px 26px;gap:6px;align-items:center;padding:5px 8px;border-bottom:1px dashed var(--border);font-size:10px;}
+.jig-row:last-child{border-bottom:none;}
+.jig-row .j-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text);}
+.jig-row .j-cap{font-size:9px;color:var(--sub);}
+.jig-row .j-health{font-size:8px;font-weight:700;padding:1px 5px;border-radius:2px;text-align:center;}
+.jig-row .h-ok{background:#dcfce7;color:#166534;}
+.jig-row .h-warn{background:#fef9c3;color:#92400e;}
+.jig-row .h-busy{background:#dbeafe;color:#1e40af;}
+.web-btn{padding:4px 12px;border-radius:3px;font-size:10px;font-weight:700;border:1px solid;cursor:pointer;font-family:'Noto Sans KR',sans-serif;}
+.web-btn-pri{background:var(--mod);color:#fff;border-color:var(--mod);}
+.web-btn-sec{background:#fff;color:var(--text);border-color:#ccd0d4;}
+.web-btn-ok{background:#0db87a;color:#fff;border-color:#0a9060;}
+.web-toolbar{padding:8px 14px;background:#fafbfd;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center;font-size:10px;}
+.web-actions{padding:8px 14px;background:#fafbfd;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:10px;}
+.web-summ{color:var(--sub);}
+.web-summ strong{color:var(--mod-dk);}
 </style>
 </head>
 <body>
@@ -152,6 +198,7 @@
   <div class="sb-toc">
     <div class="sb-toc-title">On this page · 목차</div>
     <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
     <a href="#sec-2"><span class="num">02</span>LOT Number Format</a>
     <a href="#sec-3"><span class="num">03</span>Jig Binding Logic</a>
     <a href="#sec-4"><span class="num">04</span>State Machine</a>
@@ -188,6 +235,109 @@
         <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
           PNT_DailyPlan의 Ready 행마다 N개의 가상 LOT을 사전 발급한다(N = LotsRequired). 각 LOT은 정상 가용 지그 풀에서 1개 지그에 바인딩된다. PRE 상태 LOT은 임시 자리표시자이며, 지그 배정 시 BOUND로 전환. PNT-03 로딩 스테이션이 BOUND LOT을 FIFO로 소비. 미사용 LOT은 발급 24시간 후 자동 만료.
         </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — 3-Pane Web Layout</span></div>
+      <div class="web-mock">
+        <div class="web-tbar">
+          <div class="web-tbar-l">
+            <div class="web-dot"><span style="background:#ff5f57;"></span><span style="background:#febc2e;"></span><span style="background:#28c840;"></span></div>
+            <div class="web-tit">PNT-02 · Virtual LOT Pre-Issue · 가상LOT 발급</div>
+          </div>
+          <div class="web-bc">A-MES &gt; PNT &gt; PNT-02</div>
+        </div>
+        <div class="web-toolbar">
+          <span style="font-size:9px;color:var(--sub);font-weight:700;letter-spacing:.5px;">▶ Selected:</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);">WO-2026-0518-001 · 도어트림 LH · RAL 9005 · 192 EA · 6 LOTs</span>
+          <div style="flex:1;"></div>
+          <button class="web-btn web-btn-sec">🔄 자동 재배정</button>
+          <button class="web-btn web-btn-ok">💾 Issue + Bind (6 LOTs)</button>
+        </div>
+        <div class="web-split">
+          <div class="web-pane">
+            <div class="web-pane-title">① WO Queue · WO 대기열</div>
+            <div class="wo-card on">
+              <div class="wo-id">WO-2026-0518-001</div>
+              <div class="wo-name">도어트림 LH (DR-TRM-LH-A1)</div>
+              <div class="wo-meta"><span>RAL 9005 · 192 EA</span><span style="color:var(--mod-dk);font-weight:700;">6 LOTs</span></div>
+            </div>
+            <div class="wo-card">
+              <div class="wo-id">WO-2026-0518-002</div>
+              <div class="wo-name">도어트림 RH (DR-TRM-RH-A1)</div>
+              <div class="wo-meta"><span>RAL 9005 · 96 EA</span><span>3 LOTs</span></div>
+            </div>
+            <div class="wo-card">
+              <div class="wo-id">WO-2026-0518-003</div>
+              <div class="wo-name">콘솔어퍼 (CSL-UP-B2)</div>
+              <div class="wo-meta"><span>RAL 3020 · 64 EA</span><span>2 LOTs</span></div>
+            </div>
+          </div>
+          <div class="web-pane">
+            <div class="web-pane-title">② Generated LOTs · 발급 LOT (6/6)</div>
+            <div class="lot-grid">
+              <div class="lot-card bound">
+                <div class="lot-id">PNT-20260518-L1-0001<span class="lot-status bound">BOUND</span></div>
+                <div class="lot-arrow">▼ binds to</div>
+                <div class="jig-id">🪝 JIG-007</div>
+                <div class="lot-meta">32 hangers · cycle 142/200 · health OK</div>
+              </div>
+              <div class="lot-card bound">
+                <div class="lot-id">PNT-20260518-L1-0002<span class="lot-status bound">BOUND</span></div>
+                <div class="lot-arrow">▼ binds to</div>
+                <div class="jig-id">🪝 JIG-009</div>
+                <div class="lot-meta">32 hangers · cycle 88/200 · health OK</div>
+              </div>
+              <div class="lot-card bound">
+                <div class="lot-id">PNT-20260518-L1-0003<span class="lot-status bound">BOUND</span></div>
+                <div class="lot-arrow">▼ binds to</div>
+                <div class="jig-id">🪝 JIG-012</div>
+                <div class="lot-meta">32 hangers · cycle 35/200 · health OK</div>
+              </div>
+              <div class="lot-card bound">
+                <div class="lot-id">PNT-20260518-L1-0004<span class="lot-status bound">BOUND</span></div>
+                <div class="lot-arrow">▼ binds to</div>
+                <div class="jig-id">🪝 JIG-018</div>
+                <div class="lot-meta">32 hangers · cycle 110/200 · health OK</div>
+              </div>
+              <div class="lot-card pre">
+                <div class="lot-id">PNT-20260518-L1-0005<span class="lot-status pre">PRE</span></div>
+                <div class="lot-arrow">▼ select jig</div>
+                <div class="jig-id" style="color:var(--sub);">— 미배정 —</div>
+                <div class="lot-meta" style="color:#dc2626;">⚠ 가용 지그 풀에서 선택 →</div>
+              </div>
+              <div class="lot-card pre">
+                <div class="lot-id">PNT-20260518-L1-0006<span class="lot-status pre">PRE</span></div>
+                <div class="lot-arrow">▼ select jig</div>
+                <div class="jig-id" style="color:var(--sub);">— 미배정 —</div>
+                <div class="lot-meta" style="color:#dc2626;">⚠ 가용 지그 풀에서 선택 →</div>
+              </div>
+            </div>
+          </div>
+          <div class="web-pane">
+            <div class="web-pane-title">③ Jig Pool · 가용 지그</div>
+            <div class="jig-pool">
+              <div class="jig-row"><div><div class="j-id">JIG-021</div><div class="j-cap">32 hangers</div></div><div class="j-cap">12/200</div><div class="j-health h-ok">OK</div></div>
+              <div class="jig-row"><div><div class="j-id">JIG-024</div><div class="j-cap">32 hangers</div></div><div class="j-cap">68/200</div><div class="j-health h-ok">OK</div></div>
+              <div class="jig-row"><div><div class="j-id">JIG-025</div><div class="j-cap">32 hangers</div></div><div class="j-cap">95/200</div><div class="j-health h-ok">OK</div></div>
+              <div class="jig-row"><div><div class="j-id">JIG-031</div><div class="j-cap">24 hangers</div></div><div class="j-cap">155/200</div><div class="j-health h-warn">!</div></div>
+              <div class="jig-row" style="opacity:.5;"><div><div class="j-id">JIG-005</div><div class="j-cap">32 hangers</div></div><div class="j-cap">82/200</div><div class="j-health h-busy">USE</div></div>
+              <div class="jig-row" style="opacity:.5;"><div><div class="j-id">JIG-007</div><div class="j-cap">32 hangers</div></div><div class="j-cap">142/200</div><div class="j-health h-busy">USE</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="web-actions">
+          <div class="web-summ">Bound: <strong>4 / 6</strong> · Available Jigs: <strong>4</strong> (compatible w/ DR-TRM-LH-A1) · Auto-assign sorts by least-used</div>
+          <div style="display:flex;gap:6px;">
+            <button class="web-btn web-btn-sec">↩ Unbind All (PRE 복귀)</button>
+            <button class="web-btn web-btn-pri">🚀 Confirm &amp; Proceed → PNT-03</button>
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 UI Highlights · 화면 주요 포인트</span>
+        ① 3-pane: WO 선택(좌) → LOT 카드 그리드(중) → 가용 지그 풀(우) ② BOUND(녹색) vs PRE(회색 점선) 시각 구분 ③ 우측 풀에서 PRE 카드로 드래그&드롭으로 수동 바인딩 ④ Cycle 80% 초과 지그는 노란 ! 표시(BR-PNT-L02) ⑤ 사용 중(USE) 지그는 흐리게 표시되어 선택 불가.</div>
       </div>
     </div>
 

@@ -106,6 +106,41 @@
 .code-card .calc-lbl{color:var(--mod-tint);font-weight:700;display:block;margin-bottom:6px;font-size:10px;letter-spacing:1px;text-transform:uppercase;}
 .code-card .k{color:#fb923c;}.code-card .s{color:#5dffc4;}.code-card .n{color:#fbbf24;}.code-card .c{color:rgba(255,255,255,.35);font-style:italic;}
 .label-mock{background:#fff;border:2px dashed var(--mod);border-radius:6px;padding:18px 22px;margin:0 auto 14px;max-width:340px;font-family:'JetBrains Mono',monospace;color:#000;}
+.label-flow{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.printer-panel{background:#fff;border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.pp-title{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mod-dk);letter-spacing:1px;font-weight:700;text-transform:uppercase;margin-bottom:10px;}
+.pp-row{display:grid;grid-template-columns:90px 1fr;gap:8px;padding:6px 0;font-size:11px;border-bottom:1px dashed var(--border);}
+.pp-row:last-child{border-bottom:none;}
+.pp-row .l{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--sub);font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding-top:2px;}
+.pp-row .v{color:var(--text);font-weight:600;}
+.pp-row .v.ok{color:#15803d;}
+.pp-row .v.warn{color:#92400e;}
+.pp-row .v.mono{font-family:'JetBrains Mono',monospace;font-size:10px;}
+.pp-progress{height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden;margin-top:6px;}
+.pp-progress-fill{height:100%;background:linear-gradient(90deg,var(--mod),#fb923c);border-radius:4px;}
+.pda-scan-pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.pda-unit{text-align:center;}
+.pda-step-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--mod-dk);margin-bottom:6px;letter-spacing:.5px;text-transform:uppercase;}
+.pda-shell{width:220px;background:#000;border-radius:24px;padding:7px;box-shadow:0 6px 18px rgba(0,0,0,.25);margin:0 auto;}
+.pda-scr{background:#0c1a23;border-radius:18px;overflow:hidden;min-height:360px;display:flex;flex-direction:column;color:#e2e8f0;}
+.pda-statbar{background:#000;padding:4px 12px;font-size:8px;display:flex;justify-content:space-between;color:rgba(255,255,255,.5);font-family:'JetBrains Mono',monospace;}
+.pda-statbar .online{color:#22c55e;}
+.pda-tbar{background:linear-gradient(135deg,#1a0800,#2d1000);padding:10px 13px;border-bottom:1px solid rgba(234,88,12,.3);}
+.pda-tbar-t{font-size:12px;font-weight:700;color:#fff;font-family:'Noto Sans KR',sans-serif;}
+.pda-tbar-s{font-size:9px;color:rgba(253,186,116,.7);margin-top:2px;font-family:'Noto Sans KR',sans-serif;}
+.pda-bd{padding:10px;flex:1;display:flex;flex-direction:column;gap:7px;font-family:'Noto Sans KR',sans-serif;}
+.pda-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:5px;padding:7px 9px;}
+.pda-card-l{font-size:8px;color:rgba(253,186,116,.7);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;font-family:'JetBrains Mono',monospace;}
+.pda-card-v{font-size:11px;font-weight:700;color:#fff;}
+.pda-card-v.ok{color:#5dffc4;}
+.pda-card-v.mono{font-family:'JetBrains Mono',monospace;font-size:10px;}
+.pda-scan-zone{background:rgba(234,88,12,.06);border:1px dashed rgba(234,88,12,.4);border-radius:6px;padding:14px 8px;text-align:center;}
+.pda-scan-icon{font-size:26px;margin-bottom:4px;}
+.pda-scan-l{font-size:10px;font-weight:700;color:#fdba74;}
+.pda-scan-s{font-size:8px;color:rgba(253,186,116,.5);margin-top:2px;}
+.pda-btn{padding:8px;border-radius:5px;font-size:10px;font-weight:700;text-align:center;cursor:pointer;border:none;font-family:'Noto Sans KR',sans-serif;}
+.pda-btn-pri{background:linear-gradient(135deg,#ea580c,#9a3412);color:#fff;}
+.pda-btn-ok{background:linear-gradient(135deg,#0db87a,#0a9060);color:#fff;}
 .label-line{display:flex;justify-content:space-between;padding:3px 0;font-size:11px;border-bottom:1px dotted #999;}
 .label-line:last-child{border-bottom:none;}
 .label-l{font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.5px;}
@@ -219,6 +254,95 @@
         </tbody>
       </table>
     </div>
+
+      <!-- Label flow: printer status + label sample -->
+      <div class="label-flow">
+        <div class="printer-panel">
+          <div class="pp-title">▼ Printer Status · ZT411-01 (PNT-L1)</div>
+          <div class="pp-row"><span class="l">Status</span><span class="v ok">● ONLINE</span></div>
+          <div class="pp-row"><span class="l">Model</span><span class="v mono">Zebra ZT411 · 203 DPI</span></div>
+          <div class="pp-row"><span class="l">Connection</span><span class="v mono">Ethernet · 10.0.7.21</span></div>
+          <div class="pp-row"><span class="l">Ribbon</span><span class="v">42% <div class="pp-progress"><div class="pp-progress-fill" style="width:42%;"></div></div></span></div>
+          <div class="pp-row"><span class="l">Labels</span><span class="v">68% <div class="pp-progress"><div class="pp-progress-fill" style="width:68%;background:linear-gradient(90deg,#0db87a,#5dffc4);"></div></div></span></div>
+          <div class="pp-row"><span class="l">Current Job</span><span class="v mono" style="color:var(--mod-dk);">JOB-1024 · 24/32 printed</span></div>
+          <div class="pp-row"><span class="l">Throughput</span><span class="v">~ 4 ips · ETA 2초</span></div>
+        </div>
+        <div>
+          <div class="pp-title" style="margin-bottom:8px;color:var(--mod-dk);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;font-weight:700;text-transform:uppercase;">▼ Sample Output · 발행 라벨</div>
+          <div class="label-mock" style="margin:0;max-width:none;"></div>
+        </div>
+      </div>
+
+      <!-- PDA scan pair -->
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mod-dk);letter-spacing:1px;font-weight:700;text-transform:uppercase;margin-bottom:8px;">▼ PDA Scan Confirm · 첫 + 마지막 라벨 스캔으로 부착 전수 확정</div>
+      <div class="pda-scan-pair">
+        <div class="pda-unit">
+          <div class="pda-step-lbl">① First Label · 첫 라벨</div>
+          <div class="pda-shell">
+            <div class="pda-scr">
+              <div class="pda-statbar"><span>15:18</span><span class="online">● PDA-07</span></div>
+              <div class="pda-tbar">
+                <div class="pda-tbar-t">PNT-07 · 부착 확정</div>
+                <div class="pda-tbar-s">LOT PNT-...-0001</div>
+              </div>
+              <div class="pda-bd">
+                <div class="pda-scan-zone" style="background:rgba(13,184,122,.08);border-color:rgba(13,184,122,.4);">
+                  <div class="pda-scan-icon">✅</div>
+                  <div class="pda-scan-l" style="color:#5dffc4;">FIRST SCANNED</div>
+                  <div class="pda-scan-s" style="color:rgba(93,255,196,.6);">SeqNo 01 of 32</div>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">LOT</div>
+                  <div class="pda-card-v mono">PNT-20260518-L1-0001</div>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">Scanned Code</div>
+                  <div class="pda-card-v mono ok">...-0001-01 ✓</div>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">Match</div>
+                  <div class="pda-card-v ok">✓ FIRST OK · 다음 스캔 대기</div>
+                </div>
+                <div style="flex:1;"></div>
+                <button class="pda-btn pda-btn-pri">📡 Scan Last Label</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="pda-unit">
+          <div class="pda-step-lbl">② Last Label · 마지막 라벨 (전수 확정)</div>
+          <div class="pda-shell">
+            <div class="pda-scr">
+              <div class="pda-statbar"><span>15:23</span><span class="online">● PDA-07</span></div>
+              <div class="pda-tbar">
+                <div class="pda-tbar-t">PNT-07 · 부착 완료</div>
+                <div class="pda-tbar-s">LABELED → SHIPPABLE</div>
+              </div>
+              <div class="pda-bd">
+                <div class="pda-scan-zone" style="background:rgba(13,184,122,.12);border-color:rgba(13,184,122,.6);border-style:solid;">
+                  <div class="pda-scan-icon">🎉</div>
+                  <div class="pda-scan-l" style="color:#5dffc4;">RANGE COMPLETE</div>
+                  <div class="pda-scan-s" style="color:rgba(93,255,196,.6);">01 ~ 32 (32 labels)</div>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">First / Last</div>
+                  <div class="pda-card-v mono">01 → 32 ✓</div>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">Validation</div>
+                  <div class="pda-card-v ok">✓ SAME LOT · RANGE OK</div>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">Status Transition</div>
+                  <div class="pda-card-v ok">LABELED → SHIPPABLE</div>
+                </div>
+                <div style="flex:1;"></div>
+                <button class="pda-btn pda-btn-ok">✓ FG 이관 (Handover)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
     <div class="sec" id="sec-4">
       <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Printer Integration</span><span class="sec-ko">프린터 연동</span></div>
