@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.8 · QC-04 · NCR Register · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--qc:#dc2626;--mod:#dc2626;--mod-lt:#fee2e2;--mod-dk:#991b1b;--mod-tint:#fca5a5;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(252,165,165,.7);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#1f0a0a 0%,#180808 50%,#1f0a0a 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(220,38,38,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(220,38,38,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(220,38,38,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(220,38,38,.12),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(220,38,38,.3);color:var(--mod-tint);background:rgba(220,38,38,.08);}
+.meta-chip.crit{border-color:rgba(220,38,38,.45);color:#fca5a5;background:rgba(220,38,38,.15);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}.br-act.mlt{background:#fce7f3;color:#9d174d;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-w{background:#fef9c3;border-color:#f59e0b;color:#92400e;}.alert-d{background:#fef2f2;border-color:#ef4444;color:#991b1b;}
+.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#eff6ff;border-color:#3b82f6;}
+.lnk-node.cur{background:linear-gradient(135deg,#1f0a0a,#180808);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(220,38,38,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#1d4ed8;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);}
+.dm-pk{color:#f59e0b;font-size:8px;font-weight:700;}.dm-fk{color:#8b5cf6;font-size:8px;font-weight:700;}
+
+/* Web UI */
+.web-mock{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.web-tbar{background:#f0f3f7;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);font-size:11px;}
+.web-tbar-l{font-weight:700;color:var(--text);}
+.web-tbar .bc{color:var(--sub);font-size:10px;margin-left:8px;}
+.web-tbar-r{font-size:10px;color:var(--sub);}
+.web-bd{padding:18px;background:#fbfcfd;}
+.web-card{background:#fff;border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:12px;}
+.web-card-h{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.po-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;font-size:11px;margin-bottom:6px;}
+.po-l{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;}
+.po-v{font-weight:700;color:var(--text);margin-top:2px;}
+.tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;}
+.tbl th{background:#f0f3f7;padding:7px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.tbl td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:top;}
+.tbl .th-ko{font-size:9px;color:var(--sub);display:block;margin-top:1px;font-weight:400;}
+.tbl .ko{font-size:9px;color:var(--sub);}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.b-ok{background:#dcfce7;color:#166534;}.b-w{background:#fef9c3;color:#92400e;}.b-e{background:#fee2e2;color:#991b1b;}.b-i{background:#dbeafe;color:#1e40af;}
+.b-sev1{background:#fef2f2;color:#7f1d1d;border:1px solid #fca5a5;}
+.b-sev2{background:#fef9c3;color:#92400e;border:1px solid #fcd34d;}
+.b-sev3{background:#f0f9ff;color:#075985;border:1px solid #7dd3fc;}
+.btn{padding:7px 14px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;}
+.btn-primary{background:var(--mod);border-color:var(--mod-dk);color:#fff;}
+.btn-success{background:#22c55e;border-color:#16a34a;color:#fff;}
+.btn-danger{background:#fff;border-color:#fca5a5;color:#991b1b;}
+
+/* NCR status flow */
+.ncr-flow{display:flex;align-items:center;gap:0;padding:14px 16px;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;margin-bottom:14px;}
+.ns{padding:8px 14px;border-radius:5px;font-size:11px;font-weight:700;text-align:center;flex-shrink:0;background:#fff;border:1px solid var(--border);}
+.ns.cur{background:var(--mod);color:#fff;border-color:var(--mod-dk);}
+.ns-arr{color:var(--sub);font-size:14px;padding:0 5px;}
+
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol active"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL08_QC_Quality.html">VOL.8 · QC</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">QC-04 · NCR Register</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.8 · QC · L3</div><div class="sb-mod-en">QUALITY CONTROL</div><div class="sb-mod-ko">품질 관리</div></div>
+  <div class="sb-section">Inspection · 검사</div>
+  <a class="sb-link" href="VOL08_QC01_Incoming_Inspection.html"><span class="sl-id">QC-01</span><div><div class="sl-en">Incoming</div><div class="sl-ko">수입검사</div></div></a>
+  <a class="sb-link" href="VOL08_QC02_InProcess_Inspection.html"><span class="sl-id">QC-02</span><div><div class="sl-en">In-Process</div><div class="sl-ko">공정검사</div></div></a>
+  <a class="sb-link" href="VOL08_QC03_Final_Inspection.html"><span class="sl-id">QC-03</span><div><div class="sl-en">Final ⚙</div><div class="sl-ko">최종검사</div></div></a>
+  <div class="sb-section">Defect &amp; CAPA · 부적합</div>
+  <a class="sb-link on" href="VOL08_QC04_NCR_Register.html"><span class="sl-id">QC-04</span><div><div class="sl-en">NCR Register</div><div class="sl-ko">부적합 등록</div></div></a>
+  <a class="sb-link" href="VOL08_QC05_Hold_Quarantine.html"><span class="sl-id">QC-05</span><div><div class="sl-en">Hold 🚫</div><div class="sl-ko">격리</div></div></a>
+  <a class="sb-link" href="VOL08_QC06_CAPA.html"><span class="sl-id">QC-06</span><div><div class="sl-en">CAPA</div><div class="sl-ko">시정조치</div></div></a>
+  <div class="sb-section">Monitor &amp; Reference</div>
+  <a class="sb-link" href="VOL08_QC07_Dashboard.html"><span class="sl-id">QC-07</span><div><div class="sl-en">Dashboard</div><div class="sl-ko">현황판</div></div></a>
+  <a class="sb-link" href="VOL08_QC08_Inspection_Std.html"><span class="sl-id">QC-08</span><div><div class="sl-en">Insp. Standard</div><div class="sl-ko">검사기준서</div></div></a>
+  <a class="sb-link" href="VOL08_QC_TRC_Traceability.html"><span class="sl-id">QC-TRC</span><div><div class="sl-en">Traceability</div><div class="sl-ko">이력 추적</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
+    <a href="#sec-2"><span class="num">02</span>Field Spec</a>
+    <a href="#sec-3"><span class="num">03</span>NCR Status Flow</a>
+    <a href="#sec-4"><span class="num">04</span>Workflow</a>
+    <a href="#sec-5"><span class="num">05</span>Business Rules</a>
+    <a href="#sec-6"><span class="num">06</span>Data Model</a>
+    <a href="#sec-7"><span class="num">07</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.8 · QC · L3 · Non-Conformance Report</div>
+      <div class="scr-id-block"><div class="scr-id">QC-04</div><div class="scr-title-en">NCR Register</div></div>
+      <div class="scr-title-ko">부적합품(NCR) 등록 — 전 모듈 defect 통합 + Disposition 결정</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">UI</span><span class="mc-val">🖥 Web + 📱 PDA</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">1st Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">QC Inspector → QC Lead</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Source</span><span class="mc-val">QC-01/02/03 FAIL · INJ-05 · IMG-05 · PNT-08 · Customer Claim</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Outputs</span><span class="mc-val">Hold · Rework · Scrap · UAI · Return</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          Central Non-Conformance Report (NCR) registry that consolidates all defects detected across A-MES — auto-issued from QC-01/02/03 FAILs and from line-side INJ-05/IMG-05/PNT-08, plus manually-entered customer claims. Each NCR carries a 3-tier severity (Critical / Major / Minor), root-cause classification (4M: Man/Machine/Material/Method), evidence (photos, measurements), and a Disposition decision (Rework / Scrap / UAI Use-As-Is / Return-to-Supplier). NCRs ≥ Major auto-link to Hold (QC-05) and feed CAPA evaluation (QC-06).
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          A-MES 전체에서 발견된 부적합품(NCR)을 통합 관리하는 중앙 등록부. QC-01/02/03 FAIL 및 라인사이드 INJ-05/IMG-05/PNT-08 자동 발행, 고객 클레임 수동 등록. 각 NCR은 3등급 심각도(Critical/Major/Minor), 4M 근본원인(Man/Machine/Material/Method) 분류, 증빙(사진·측정값), Disposition 결정(Rework/Scrap/UAI/Return)을 포함. Major 이상은 자동으로 Hold(QC-05) 연계 + CAPA(QC-06) 평가 자동.
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — Web (NCR 상세 + 목록)</span></div>
+
+      <div class="web-mock">
+        <div class="web-tbar">
+          <div class="web-tbar-l">📋 A-MES · Quality · NCR Register<span class="bc">QC › NCR › NCR-2026-0519-0042</span></div>
+          <div class="web-tbar-r">QC.Park · QC Inspector · 16:48</div>
+        </div>
+        <div class="web-bd">
+          <div class="ncr-flow">
+            <div class="ns">DRAFT<br><span style="font-size:9px;color:var(--sub);font-weight:400;">초안</span></div>
+            <div class="ns-arr">→</div>
+            <div class="ns cur">OPEN<br><span style="font-size:9px;color:#fee2e2;font-weight:400;">정식 등록</span></div>
+            <div class="ns-arr">→</div>
+            <div class="ns">DISPOSED<br><span style="font-size:9px;color:var(--sub);font-weight:400;">처분 결정</span></div>
+            <div class="ns-arr">→</div>
+            <div class="ns">CLOSED<br><span style="font-size:9px;color:var(--sub);font-weight:400;">완료</span></div>
+            <div style="margin-left:auto;font-size:10px;color:var(--sub);">현재 상태: <strong style="color:var(--mod-dk);">OPEN</strong> · QC Lead 처분 결정 대기</div>
+          </div>
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ NCR HEADER · 헤더 정보</span><span style="color:var(--mod-dk);font-weight:800;">⚠ Auto from QC-03 FAIL</span></div>
+            <div class="po-grid">
+              <div><div class="po-l">NCR No</div><div class="po-v">NCR-2026-0519-0042</div></div>
+              <div><div class="po-l">Source</div><div class="po-v">QC-03 (Final FAIL)</div></div>
+              <div><div class="po-l">Severity</div><div class="po-v"><span class="b b-sev1">🔴 CRITICAL</span></div></div>
+              <div><div class="po-l">Created</div><div class="po-v">2026-05-19 16:48</div></div>
+              <div><div class="po-l">WO / Item</div><div class="po-v">WO-2026-0519-007 · Door Trim LH</div></div>
+              <div><div class="po-l">Affected Qty</div><div class="po-v" style="color:var(--mod-dk);">200 EA (Full Batch)</div></div>
+              <div><div class="po-l">Customer</div><div class="po-v">SAV (현대 SAV)</div></div>
+              <div><div class="po-l">Reporter</div><div class="po-v">QC.Park</div></div>
+            </div>
+          </div>
+
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ DEFECT DETAIL · 불량 상세</span><span style="color:var(--sub);">2 photos attached</span></div>
+            <table class="tbl">
+              <thead><tr><th style="width:80px;">#</th><th>Defect Code<span class="th-ko">불량 코드</span></th><th>Description<span class="th-ko">상세</span></th><th>4M Cause<span class="th-ko">4M 원인</span></th><th>Linked Event<span class="th-ko">연관 이벤트</span></th></tr></thead>
+              <tbody>
+                <tr><td>1</td><td><strong>PNT-D05</strong><br><span class="ko">미경화</span></td><td>Coating soft, fingernail scratch test fails<br><span class="ko">도막 연질, 손톱 스크래치 테스트 불합격</span></td><td>Machine<br><span class="ko">기계</span></td><td><a href="VOL07_PNT05_Oven_Monitor.html" style="color:var(--mod-dk);text-decoration:underline;">PNT-05 Oven Deviation 16:32 (173°C, 4min)</a></td></tr>
+                <tr><td>2</td><td><strong>PNT-D02</strong><br><span class="ko">오렌지필</span></td><td>Surface texture out of spec (visual)<br><span class="ko">표면 텍스처 기준 이탈 (육안)</span></td><td>Machine<br><span class="ko">기계</span></td><td><a href="#" style="color:var(--mod-dk);text-decoration:underline;">Paint robot velocity log</a></td></tr>
+              </tbody>
+            </table>
+            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+              <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--sub);padding:4px 8px;background:#f0f3f7;border-radius:3px;">📷 photo_001.jpg (1.2MB)</div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--sub);padding:4px 8px;background:#f0f3f7;border-radius:3px;">📷 photo_002.jpg (980KB)</div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--sub);padding:4px 8px;background:#f0f3f7;border-radius:3px;">📄 oven_log_20260519.json</div>
+              <button class="btn" style="margin-left:auto;">+ Attach More</button>
+            </div>
+          </div>
+
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ DISPOSITION DECISION · 처분 결정</span><span style="color:var(--mod-dk);font-weight:700;">⚠ Requires QC Lead+</span></div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;">
+              <button class="btn" style="padding:14px;font-size:12px;border:2px solid var(--border);">🔧 REWORK<br><span style="font-size:9px;color:var(--sub);font-weight:400;">재작업</span></button>
+              <button class="btn" style="padding:14px;font-size:12px;border:2px solid var(--border);background:#fff7ed;color:#9a3412;">🗑 SCRAP<br><span style="font-size:9px;font-weight:400;">폐기</span></button>
+              <button class="btn" style="padding:14px;font-size:12px;border:2px solid var(--border);">✓ UAI<br><span style="font-size:9px;color:var(--sub);font-weight:400;">현상태사용 (고객승인 필요)</span></button>
+              <button class="btn" style="padding:14px;font-size:12px;border:2px solid var(--border);">↩ RETURN<br><span style="font-size:9px;color:var(--sub);font-weight:400;">공급사 반품</span></button>
+            </div>
+            <div style="font-size:11px;color:var(--sub);background:#fef2f2;border-left:3px solid var(--mod);padding:8px 12px;border-radius:0 4px 4px 0;">
+              <strong style="color:var(--mod-dk);">⚠ Critical Severity</strong> — Disposition은 QC Lead 이상 권한자만 가능. UAI 선택 시 고객 (SAV) 별도 승인 첨부 필수 (BR-QC-11).
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+              <button class="btn">📝 CAPA Draft (자동 권고)</button>
+              <button class="btn btn-primary">💾 Save Draft</button>
+              <button class="btn btn-success">✅ Submit to QC Lead</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 NCR Key Behaviors · 핵심 동작</span>
+        ① QC-01/02/03 FAIL 시 NCR 자동 발행, Header가 자동 채워짐 (사람 입력 최소화) ② INJ-05/IMG-05/PNT-08 라인사이드 defect는 ≥ Major일 때만 NCR로 승격 ③ Severity는 자동 평가 기준(고객 영향 × 발생 가능성) 적용 후 검사원이 검토 ④ Disposition은 권한별 차등: Inspector → REWORK 가능, Lead → SCRAP/UAI/RETURN ⑤ 모든 NCR은 5년 이상 보관, 고객 감사 시 조회</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Field Specification</span><span class="sec-ko">필드 사양</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:22%;">Field</th><th style="width:14%;">Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">NCRID</td><td class="fld-type">VARCHAR(24)</td><td>자동 채번. NCR-YYYYMMDD-SEQ.</td></tr>
+          <tr><td class="fld-name">SourceType</td><td class="fld-type">ENUM</td><td>QC_INCOMING / QC_INPROCESS / QC_FINAL / INJ_DEFECT / IMG_DEFECT / PNT_DEFECT / CUSTOMER_CLAIM / MANUAL.</td></tr>
+          <tr><td class="fld-name">SourceID</td><td class="fld-type">VARCHAR(24)</td><td>원천 ID (InsID / DefectID / ClaimID).</td></tr>
+          <tr><td class="fld-name">Severity</td><td class="fld-type">ENUM</td><td>CRITICAL / MAJOR / MINOR (자동 평가 + 검사원 확정).</td></tr>
+          <tr><td class="fld-name">WOID</td><td class="fld-type">VARCHAR(20)</td><td>연관 WO (해당 시).</td></tr>
+          <tr><td class="fld-name">ItemNo</td><td class="fld-type">VARCHAR(20)</td><td>대상 품목.</td></tr>
+          <tr><td class="fld-name">AffectedQty</td><td class="fld-type">INT</td><td>영향 수량.</td></tr>
+          <tr><td class="fld-name">CustomerCode</td><td class="fld-type">VARCHAR(20)</td><td>고객 코드 (해당 시).</td></tr>
+          <tr><td class="fld-name">DefectsJSON</td><td class="fld-type">JSON</td><td>{code, desc, cause4M, linked_event_id, photos[]} 배열.</td></tr>
+          <tr><td class="fld-name">Cause4M</td><td class="fld-type">ENUM</td><td>MAN / MACHINE / MATERIAL / METHOD (Pareto 분석용 - QC-07).</td></tr>
+          <tr><td class="fld-name">Disposition</td><td class="fld-type">ENUM</td><td>NULL / REWORK / SCRAP / UAI / RETURN.</td></tr>
+          <tr><td class="fld-name">DispositionBy</td><td class="fld-type">VARCHAR(20)</td><td>처분 결정자 (Lead 이상).</td></tr>
+          <tr><td class="fld-name">DispositionTS</td><td class="fld-type">DATETIME</td><td>처분 결정 시각.</td></tr>
+          <tr><td class="fld-name">CustomerApprovalURL</td><td class="fld-type">VARCHAR(255)</td><td>UAI 선택 시 고객 승인 첨부 (PDF).</td></tr>
+          <tr><td class="fld-name">HoldID</td><td class="fld-type">VARCHAR(24)</td><td>자동 연계 QC-05 Hold ID (Major+).</td></tr>
+          <tr><td class="fld-name">CAPAID</td><td class="fld-type">VARCHAR(24)</td><td>QC-06 CAPA 생성 시 ID.</td></tr>
+          <tr><td class="fld-name">Status</td><td class="fld-type">ENUM</td><td>DRAFT / OPEN / DISPOSED / CLOSED.</td></tr>
+          <tr><td class="fld-name">ReporterID · ApproverID</td><td class="fld-type">VARCHAR(20)</td><td>등록자 / 승인자.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">NCR Status Flow</span><span class="sec-ko">NCR 상태 흐름</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:24%;">Status</th><th>Description &amp; Transition Rules</th></tr></thead>
+        <tbody>
+          <tr><td><strong>DRAFT</strong></td><td>검사원/오퍼레이터가 초안 작성 중. Severity·증빙·4M 입력 필수. 자동 발행 NCR은 DRAFT 단계 생략 가능.</td></tr>
+          <tr><td><strong>OPEN</strong></td><td>정식 등록. Major+ 시 자동으로 QC-05 Hold 생성 + QC Lead 알림. Disposition 미정 상태.</td></tr>
+          <tr><td><strong>DISPOSED</strong></td><td>Lead 이상이 처분 결정 (REWORK/SCRAP/UAI/RETURN). 후속 작업 자동 발사 (Rework → 신규 WO, Scrap → 재고 차감, UAI → 고객 승인 첨부 필수, Return → 공급사 반품 WO).</td></tr>
+          <tr><td><strong>CLOSED</strong></td><td>모든 후속 작업 완료, CAPA 평가 완료. ≥ 5년 보관. 재오픈 불가 (수정 시 신규 NCR 생성).</td></tr>
+        </tbody>
+      </table>
+      <table class="fld-tbl" style="margin-top:10px;">
+        <thead><tr><th style="width:24%;">Severity</th><th>Auto Cascade</th></tr></thead>
+        <tbody>
+          <tr><td><span class="b b-sev1">🔴 CRITICAL</span></td><td>(1) QC-05 Hold 자동, (2) QC Lead + Plant Manager 즉시 알림, (3) Disposition은 Plant Manager 승인 필수, (4) CAPA 자동 권고, (5) Customer notify 자동 켜짐.</td></tr>
+          <tr><td><span class="b b-sev2">🟡 MAJOR</span></td><td>(1) QC-05 Hold 자동, (2) QC Lead 알림, (3) CAPA 평가 자동 (30일 3회 조건).</td></tr>
+          <tr><td><span class="b b-sev3">🟢 MINOR</span></td><td>(1) Hold 선택 (수량 적은 경우 생략 가능), (2) 추세 모니터링만 (QC-07 Dashboard 반영).</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">Trigger: QC-01/02/03 FAIL, line defect ≥ Major, or customer claim. NCR auto-issued with pre-filled header.</div><div class="wf-ko">트리거: QC 검사 FAIL, 라인 defect Major 이상, 또는 고객 클레임. 헤더 자동 채워진 NCR 발행.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Inspector reviews and adds: defect codes, 4M cause, photos, measurements, linked events.</div><div class="wf-ko">검사원이 검토 후 추가 입력: 불량 코드·4M 원인·사진·측정값·연관 이벤트 링크.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Severity auto-evaluated (Customer impact × Frequency); inspector confirms or escalates.</div><div class="wf-ko">시스템이 Severity 자동 평가(고객영향×발생빈도), 검사원이 확인 또는 상향 조정.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Submit → Status: DRAFT → OPEN. Major+ triggers Hold (QC-05) + Lead alert in &lt; 5s.</div><div class="wf-ko">제출 → DRAFT → OPEN 전환. Major+ 시 5초 내 Hold(QC-05) + QC Lead 알림.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">QC Lead reviews evidence, decides Disposition (REWORK/SCRAP/UAI/RETURN); UAI requires customer approval PDF.</div><div class="wf-ko">QC Lead가 증빙 검토 후 Disposition 결정(REWORK/SCRAP/UAI/RETURN). UAI 선택 시 고객 승인 PDF 첨부 필수.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Downstream actions auto-fire: REWORK → new WO, SCRAP → inventory write-off, UAI → release Hold, RETURN → supplier debit memo.</div><div class="wf-ko">후속 작업 자동: REWORK→신규 WO, SCRAP→재고 폐기, UAI→Hold 해제, RETURN→공급사 차변 발의.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">CAPA evaluation: if 30-day rolling count of same defect ≥ 3 → auto-recommend CAPA (QC-06).</div><div class="wf-ko">CAPA 평가: 30일 이동 동일 불량 카운트 3회 이상 → CAPA 자동 권고(QC-06).</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">All downstream actions completed and CAPA closed (if any) → NCR Status → CLOSED, sealed for ≥ 5 years.</div><div class="wf-ko">모든 후속 + CAPA 완료 → CLOSED 전환, 5년 이상 봉인 보관.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-QC-11</td><td><div>UAI (Use-As-Is) disposition requires customer approval document attached. Without it → blocked.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">UAI 처분 시 고객 승인 문서 첨부 필수, 없으면 차단.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-QC-12</td><td><div>CRITICAL severity Disposition requires Plant Manager approval (Lead alone insufficient).</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">CRITICAL 처분은 공장장 승인 필수, Lead만으로 불가.</div></td><td><span class="br-act blk">Approve</span></td></tr>
+          <tr><td class="br-id">BR-QC-13</td><td><div>≥ Major NCR auto-creates QC-05 Hold for affected qty within 5 seconds.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">Major 이상 NCR은 5초 내 QC-05 Hold 자동 생성.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-QC-03</td><td><div>Same defect code ≥ 3 within 30 days → auto-recommend CAPA (QC-06).</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">30일 내 동일 불량 3회 이상 → CAPA 자동 권고.</div></td><td><span class="br-act alt">Alert</span></td></tr>
+          <tr><td class="br-id">BR-QC-14</td><td><div>NCR CLOSED records are immutable; corrections require new NCR with reference.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">CLOSED NCR 수정 불가, 정정 시 참조 포함 신규 NCR 생성.</div></td><td><span class="br-act blk">Lock</span></td></tr>
+          <tr><td class="br-id">BR-QC-08</td><td><div>All NCR records retained ≥ 5 years (IATF 16949 / customer audit).</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">NCR 5년 이상 보관 (IATF 16949 / 고객 감사).</div></td><td><span class="br-act aut">Retain</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Table</th><th>Key Columns</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">QC_NCR</span></td><td><span class="dm-pk">PK</span> NCRID · SourceType · <span class="dm-fk">FK</span> SourceID · Severity · <span class="dm-fk">FK</span> WOID · ItemNo · AffectedQty · CustomerCode · DefectsJSON · Cause4M · Disposition · DispositionBy · CustomerApprovalURL · <span class="dm-fk">FK</span> HoldID · <span class="dm-fk">FK</span> CAPAID · Status</td><td>NCR 메인 (5년 이상 보관).</td></tr>
+          <tr><td><span class="dm-col">QC_NCR_Action</span></td><td><span class="dm-pk">PK</span> ActID · <span class="dm-fk">FK</span> NCRID · ActionType · ActionRefID · ActionTS</td><td>후속 작업 이력 (Rework WO, Scrap 차감, Return 발의 등).</td></tr>
+          <tr><td><span class="dm-col">QC_Hold</span> <em style="opacity:.6;">(auto-create)</em></td><td><span class="dm-pk">PK</span> HoldID · <span class="dm-fk">FK</span> NCRID · HeldQty</td><td>Major+ 자동 생성.</td></tr>
+          <tr><td><span class="dm-col">QC_CAPA</span> <em style="opacity:.6;">(auto-recommend)</em></td><td><span class="dm-pk">PK</span> CAPAID · TriggerNCRIDs(JSON, 3건)</td><td>30일 3회 자동 권고.</td></tr>
+          <tr><td><span class="dm-col">QC_Defect</span> <em style="opacity:.6;">(read)</em></td><td>DefectCode · ModuleSource · SeverityDefault</td><td>불량 코드 마스터 (전 모듈 통합).</td></tr>
+          <tr><td><span class="dm-col">CustomerClaim</span> <em style="opacity:.6;">(read)</em></td><td>ClaimID · CustomerCode · ClaimDate · Description</td><td>고객 클레임 입력 (SAV/GEO).</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">QC-01/02/03</div><div class="lnk-name">Insp. FAIL</div></div>
+          <div class="lnk-node up"><div class="lnk-id">INJ-05 / IMG-05 / PNT-08</div><div class="lnk-name">Line Defect</div></div>
+          <div class="lnk-node up"><div class="lnk-id">Customer</div><div class="lnk-name">Claim</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">QC-04</div><div class="lnk-name">NCR Register</div><div class="lnk-ko">통합 등록</div></div>
+        </div>
+        <div class="lnk-row" style="margin-top:14px;">
+          <div class="lnk-node cur" style="background:linear-gradient(135deg,#1f0a0a,#180808);"><div class="lnk-id">QC-04</div><div class="lnk-name">→ Cascade</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">QC-05</div><div class="lnk-name">Hold (≥Major)</div><div class="lnk-ko">자동 격리</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">QC-06</div><div class="lnk-name">CAPA (3회/30d)</div><div class="lnk-ko">시정조치 권고</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">QC-07</div><div class="lnk-name">Dashboard</div><div class="lnk-ko">파레토·추세</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.8 · QC-04 · NCR Register · L3 Spec v1.0</div><div class="pf-r">Web + PDA · Phase 1 · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
