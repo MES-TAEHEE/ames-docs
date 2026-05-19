@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.6 · IMG-05 · Defect Register · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--img:#7c3aed;--mod:#7c3aed;--mod-lt:#ede9fe;--mod-dk:#5b21b6;--mod-tint:#a78bfa;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(167,139,250,.7);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#1a0a2e 0%,#160828 50%,#1a0a2e 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(124,58,237,.25);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(124,58,237,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(124,58,237,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(124,58,237,.14),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(124,58,237,.3);color:var(--mod-tint);background:rgba(124,58,237,.08);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-d{background:#fef2f2;border-color:#dc2626;color:#991b1b;}
+.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#f0fdf4;border-color:#22c55e;}
+.lnk-node.cur{background:linear-gradient(135deg,#1a0a2e,#160828);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(124,58,237,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#15803d;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;}
+.dm-pk{color:#f59e0b;font-size:8px;font-weight:700;}.dm-fk{color:#8b5cf6;font-size:8px;font-weight:700;}
+
+/* POP defect mockup */
+.pop-mock{background:#000;border:2px solid #1a1230;border-radius:10px;overflow:hidden;margin-bottom:14px;color:#e2e8f0;box-shadow:0 8px 30px rgba(124,58,237,.18);}
+.pop-tbar{background:linear-gradient(135deg,#160828,#1a0a2e);padding:14px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(124,58,237,.35);}
+.pop-tbar-logo{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--mod-tint);letter-spacing:3px;}
+.pop-tbar-id{font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(167,139,250,.75);}
+.pop-tbar-r{display:flex;gap:12px;align-items:center;font-size:10px;color:rgba(255,255,255,.5);}
+.pop-bd{padding:22px;background:#000;}
+.def-rate{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:#160828;border:1px solid rgba(124,58,237,.35);border-radius:8px;margin-bottom:16px;}
+.def-rate-l{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--mod-tint);letter-spacing:1px;text-transform:uppercase;}
+.def-rate-v{font-family:'Bebas Neue',sans-serif;font-size:40px;line-height:1;letter-spacing:1px;}
+.def-rate-v.ok{color:#5dffc4;}.def-rate-v.warn{color:#fde047;}.def-rate-v.alert{color:#fca5a5;}
+.def-rate-s{font-size:10px;color:rgba(255,255,255,.5);font-family:'JetBrains Mono',monospace;}
+.def-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.def-btn{background:#160828;border:2px solid rgba(124,58,237,.3);border-radius:8px;padding:18px 14px;cursor:pointer;text-align:left;transition:all .1s;}
+.def-btn:hover{border-color:var(--mod-tint);background:rgba(124,58,237,.08);}
+.def-btn.on{border-color:#fca5a5;background:rgba(220,38,38,.15);box-shadow:0 0 18px rgba(220,38,38,.25);}
+.def-btn-code{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(167,139,250,.6);letter-spacing:.5px;margin-bottom:4px;}
+.def-btn.on .def-btn-code{color:#fca5a5;}
+.def-btn-name{font-size:16px;font-weight:800;color:#fff;}
+.def-btn-ko{font-size:11px;color:rgba(255,255,255,.5);margin-top:3px;}
+.def-input{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.def-info-card{background:#160828;border:1px solid rgba(124,58,237,.3);border-radius:8px;padding:14px;font-size:11px;color:rgba(255,255,255,.7);}
+.def-info-h{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mod-tint);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;}
+.def-cause{padding:10px;background:rgba(13,184,122,.08);border:1px solid rgba(13,184,122,.3);border-radius:5px;margin-top:10px;}
+.def-cause-l{font-size:9px;color:#5dffc4;letter-spacing:.5px;font-family:'JetBrains Mono',monospace;}
+.def-cause-v{font-size:11px;color:#fff;margin-top:3px;line-height:1.6;}
+.def-numpad-card{background:#160828;border:1px solid rgba(124,58,237,.3);border-radius:8px;padding:14px;}
+.def-disp{background:#000;color:#fca5a5;font-family:'Bebas Neue',sans-serif;font-size:56px;text-align:center;letter-spacing:4px;padding:12px;border-radius:6px;border:2px solid rgba(220,38,38,.4);margin-bottom:12px;line-height:1;}
+.def-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.kp{padding:16px 0;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:5px;text-align:center;font-size:20px;font-weight:700;color:#e2e8f0;font-family:'JetBrains Mono',monospace;cursor:pointer;}
+.kp.del{background:rgba(220,38,38,.15);color:#fca5a5;border-color:rgba(220,38,38,.3);}
+.kp.ok{background:linear-gradient(135deg,#dc2626,#991b1b);color:#fff;border-color:#991b1b;}
+
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol active"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL06_IMG_Wrapping.html">VOL.6 · IMG</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">IMG-05 · Defect Register</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.6 · IMG · L3</div><div class="sb-mod-en">WRAPPING POP</div><div class="sb-mod-ko">감싸기 생산 POP</div></div>
+  <div class="sb-section">Screens · 화면</div>
+  <a class="sb-link" href="VOL06_IMG01_POP_Login.html"><span class="sl-id">IMG-01</span><div><div class="sl-en">POP Login</div><div class="sl-ko">로그인</div></div></a>
+  <a class="sb-link" href="VOL06_IMG02_POP_Dashboard.html"><span class="sl-id">IMG-02</span><div><div class="sl-en">Dashboard</div><div class="sl-ko">현황판</div></div></a>
+  <a class="sb-link" href="VOL06_IMG03_Production_Entry.html"><span class="sl-id">IMG-03</span><div><div class="sl-en">Prod. Entry</div><div class="sl-ko">실적 입력</div></div></a>
+  <a class="sb-link" href="VOL06_IMG04_Fabric_Input.html"><span class="sl-id">IMG-04</span><div><div class="sl-en">Fabric Input</div><div class="sl-ko">원단 투입</div></div></a>
+  <a class="sb-link on" href="VOL06_IMG05_Defect.html"><span class="sl-id">IMG-05</span><div><div class="sl-en">Defect</div><div class="sl-ko">불량 등록</div></div></a>
+  <a class="sb-link" href="VOL06_IMG06_Bond_Setup.html"><span class="sl-id">IMG-06</span><div><div class="sl-en">Bond Setup</div><div class="sl-ko">본드 세팅</div></div></a>
+  <a class="sb-link" href="VOL06_IMG07_Prod_Status.html"><span class="sl-id">IMG-07</span><div><div class="sl-en">Prod. Status</div><div class="sl-ko">실적 현황</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
+    <a href="#sec-2"><span class="num">02</span>Defect Types (6)</a>
+    <a href="#sec-3"><span class="num">03</span>Workflow</a>
+    <a href="#sec-4"><span class="num">04</span>Business Rules</a>
+    <a href="#sec-5"><span class="num">05</span>Data Model</a>
+    <a href="#sec-6"><span class="num">06</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.6 · IMG · L3 · Defect Entry &amp; Andon</div>
+      <div class="scr-id-block"><div class="scr-id">IMG-05</div><div class="scr-title-en">Defect Register</div></div>
+      <div class="scr-title-ko">불량 등록 — 6종 원터치 + 수량 + 5% Andon</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">UI</span><span class="mc-val">🏭 POP Dark</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">1st Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">IMG Operator</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Trigger</span><span class="mc-val">IMG-03 [Defect]</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Outputs</span><span class="mc-val">IMG_Defect, Rate, Andon</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          Entered from IMG-03 [Defect] button. Operator picks one of 6 IMG-specific defect types (LIFTING / WRINKLE / BOND_BLEED / FAB_SOIL / COLOR_DIFF / CUT_DEFECT) via large tap-buttons, enters quantity. Defect rate auto-calculated; ≥ 5% triggers Andon. Special: COLOR_DIFF defects auto-link to recent FabricInputAttempt for root-cause; FAB_SOIL ≥ 3 within shift triggers handling cleanliness alert.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          IMG-03 [Defect] 버튼에서 진입. 6종 IMG 전용 불량(들뜸/주름/본드번짐/오염/색상/재단) 중 1개를 대형 버튼으로 선택, 수량 입력. 불량률 자동 계산, 5% 이상 시 Andon 발동. 특수 처리: COLOR_DIFF는 최근 FabricInputAttempt와 자동 연계, FAB_SOIL 교대 누적 3건 이상 시 취급 청결도 알림.
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — POP 6종 그리드 + 수량</span></div>
+      <div class="pop-mock">
+        <div class="pop-tbar">
+          <div style="display:flex;gap:14px;align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">IMG-05 · Defect Register · 감싸기 1호기</span>
+          </div>
+          <div class="pop-tbar-r"><span style="color:#fde047;">⚠ DEFECT MODE</span><span>K.Lee · DAY</span></div>
+        </div>
+        <div class="pop-bd">
+          <div class="def-rate">
+            <div>
+              <div class="def-rate-l">▼ Current Defect Rate · 현재 불량률 (WO 누적)</div>
+              <div class="def-rate-s" style="margin-top:3px;">Good 128 · Defect 5 → 3.8% (한계 5%)</div>
+            </div>
+            <div style="text-align:right;">
+              <div class="def-rate-v warn">3.8%</div>
+              <div class="def-rate-s" style="color:#fde047;">⚠ 한계 임박 (Δ 1.2%)</div>
+            </div>
+          </div>
+
+          <div class="def-grid">
+            <div class="def-btn"><div class="def-btn-code">IMG-D01 · LIFTING</div><div class="def-btn-name">Fabric Lifting</div><div class="def-btn-ko">들뜸</div></div>
+            <div class="def-btn on"><div class="def-btn-code">IMG-D02 · WRINKLE ✓</div><div class="def-btn-name">Wrinkle</div><div class="def-btn-ko">주름</div></div>
+            <div class="def-btn"><div class="def-btn-code">IMG-D03 · BOND_BLEED</div><div class="def-btn-name">Bond Bleed</div><div class="def-btn-ko">본드 번짐</div></div>
+            <div class="def-btn"><div class="def-btn-code">IMG-D04 · FAB_SOIL</div><div class="def-btn-name">Fabric Soiling</div><div class="def-btn-ko">원단 오염</div></div>
+            <div class="def-btn"><div class="def-btn-code">IMG-D05 · COLOR_DIFF</div><div class="def-btn-name">Color Difference</div><div class="def-btn-ko">색상 불일치</div></div>
+            <div class="def-btn"><div class="def-btn-code">IMG-D06 · CUT_DEFECT</div><div class="def-btn-name">Cut Defect</div><div class="def-btn-ko">재단 불량</div></div>
+          </div>
+
+          <div class="def-input">
+            <div class="def-info-card">
+              <div class="def-info-h">▼ Selected · IMG-D02 Wrinkle</div>
+              <div>주름 — 감싸기 진행 중 원단 장력 불균일로 발생하는 표면 주름.</div>
+              <div class="def-cause">
+                <div class="def-cause-l">🔗 Likely Cause (MD_DefectMaster)</div>
+                <div class="def-cause-v">Uneven tension during wrapping · 감싸기 장력 불균일<br><span style="font-size:10px;color:rgba(255,255,255,.5);">→ 추천 조치: 텐셔너 압력 점검, 롤 교체 시 장력 재조정</span></div>
+              </div>
+              <div style="margin-top:10px;font-size:10px;color:rgba(255,255,255,.5);font-family:'JetBrains Mono',monospace;">Linked EntryID: IMG-...-0033 · Cycle TS: 09:47:22</div>
+            </div>
+            <div class="def-numpad-card">
+              <div style="font-size:10px;color:rgba(167,139,250,.7);letter-spacing:.5px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;margin-bottom:5px;">Defect Qty · 불량 수량</div>
+              <div class="def-disp">2</div>
+              <div class="def-keypad">
+                <div class="kp">1</div><div class="kp">2</div><div class="kp">3</div>
+                <div class="kp">4</div><div class="kp">5</div><div class="kp">6</div>
+                <div class="kp">7</div><div class="kp">8</div><div class="kp">9</div>
+                <div class="kp del">←</div><div class="kp">0</div><div class="kp ok">✓</div>
+              </div>
+              <div style="margin-top:10px;padding:8px;background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.3);border-radius:4px;font-size:10px;color:#fde047;text-align:center;">⚠ 확정 시 불량률 4.6% — 한계 0.4% 잔여</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-d">
+        <div><span class="alert-title">🚨 Andon Auto-Trigger Scenario</span>
+        불량 수량 확정 시 (defect ÷ total) × 100 ≥ 5% 시 INJ-08 스타일 Andon 풀스크린 전환 + 라인 stack light + 사이렌. 라인장 PIN 후 재가동(BR-IMG-06).</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">IMG Defect Types (6)</span><span class="sec-ko">감싸기 불량 유형 6종</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:14%;">Code</th><th style="width:20%;">Defect (EN)</th><th style="width:14%;">KO</th><th>Likely Cause · 추정 원인</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">IMG-D01 · LIFTING</td><td>Fabric Lifting</td><td>들뜸</td><td>접착 압력 부족 · 본드 도포 부족 · 본드 온도 미달.</td></tr>
+          <tr><td class="fld-name">IMG-D02 · WRINKLE</td><td>Wrinkle</td><td>주름</td><td>감싸기 진행 중 원단 장력 불균일 · 텐셔너 압력 부적합.</td></tr>
+          <tr><td class="fld-name">IMG-D03 · BOND_BLEED</td><td>Bond Bleed</td><td>본드 번짐</td><td>본드 과다 도포 · 압력 과다 · 본드 점도 과저.</td></tr>
+          <tr><td class="fld-name">IMG-D04 · FAB_SOIL</td><td>Fabric Soiling</td><td>원단 오염</td><td>기재 표면 오염 · 작업자 장갑 오염 · 부스 분진.</td></tr>
+          <tr><td class="fld-name">IMG-D05 · COLOR_DIFF</td><td>Color Difference</td><td>색상 불일치</td><td>오투입(BR-IMG-02 누락) · 동일 그룹 내 sub-color 편차.</td></tr>
+          <tr><td class="fld-name">IMG-D06 · CUT_DEFECT</td><td>Cut Defect</td><td>재단 불량</td><td>커터 마모 · 정렬 오류 · 원단 들뜸으로 인한 재단 위치 이탈.</td></tr>
+        </tbody>
+      </table>
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 Special Auto-Link · 특수 자동 연계</span>
+        ① IMG-D05 COLOR_DIFF → 최근 24h 내 FabricInputAttempt 조회 → BR-IMG-02 우회 사례 자동 표시 ② IMG-D04 FAB_SOIL ≥ 3건/교대 → 청결도 점검 알림 ③ IMG-D06 CUT_DEFECT 연속 3회 → 커터 교체 MNT WO 권고 ④ IMG-D01/D03 동시 다발 → 본드 시스템 점검 (IMG-06 진입 권고).</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">IMG-03 [Defect] tapped → IMG-05 opens with cycle EntryID context.</div><div class="wf-ko">IMG-03 [Defect] 터치 → 사이클 컨텍스트 인계.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Operator picks defect type. Likely cause + action suggestion displayed.</div><div class="wf-ko">유형 선택. 추정 원인 + 조치 표시.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Enter qty on numpad. Real-time rate preview shown.</div><div class="wf-ko">수량 입력. 실시간 불량률 미리보기.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Confirm → INSERT IMG_Defect. Auto-link special rules fire (§02 alert).</div><div class="wf-ko">Confirm → IMG_Defect 적재. 특수 자동 연계 동작.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Rate ≥ 5% → fire Andon (BR-IMG-06). Rate &lt; 5% → return to IMG-03.</div><div class="wf-ko">5% 이상 시 Andon 발동. 미만 시 IMG-03 복귀.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-IMG-06</td><td><div>Defect rate ≥ 5% (per WO cumulative) → auto Andon, supervisor PIN to resume.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">불량률 5% 이상 시 Andon 자동, PIN 후 재가동.</div></td><td><span class="br-act blk">Andon</span></td></tr>
+          <tr><td class="br-id">BR-IMG-D01</td><td><div>Defect entry requires DefectCode + Qty + EntryID; missing any blocks Confirm.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">유형·수량·사이클ID 필수.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-IMG-D02</td><td><div>Qty must be 1–99; cannot exceed total cycle output.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">불량 수량 1~99, 사이클 총량 초과 불가.</div></td><td><span class="br-act blk">Validate</span></td></tr>
+          <tr><td class="br-id">BR-IMG-D03</td><td><div>IMG-D05 COLOR_DIFF auto-links FabricInputAttempt (last 24h).</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">색상 불량은 원단 투입 시도 자동 연계.</div></td><td><span class="br-act aut">Auto-Link</span></td></tr>
+          <tr><td class="br-id">BR-IMG-D04</td><td><div>IMG-D04 FAB_SOIL ≥ 3/shift → cleanliness alert (handling/booth check).</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">오염 교대 3건 이상 시 청결도 점검 알림.</div></td><td><span class="br-act alt">Alert</span></td></tr>
+          <tr><td class="br-id">BR-IMG-D05</td><td><div>IMG-D06 CUT_DEFECT × 3 consecutive → MNT cutter replacement WO suggested.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">재단 불량 연속 3회 시 MNT 커터 교체 권고.</div></td><td><span class="br-act alt">MNT WO</span></td></tr>
+          <tr><td class="br-id">BR-IMG-D06</td><td><div>Photos optional, retained ≥ 3 years.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">사진(옵션) 3년 보관.</div></td><td><span class="br-act aut">Retain</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Table</th><th>Key Columns</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">IMG_Defect</span></td><td><span class="dm-pk">PK</span> DefID · <span class="dm-fk">FK</span> EntryID · <span class="dm-fk">FK</span> WOID · DefectCode · Qty · ReasonNote · PhotoURL · <span class="dm-fk">FK</span> EmpID · DefTS</td><td>불량 등록 메인.</td></tr>
+          <tr><td><span class="dm-col">DefectAutoLink</span></td><td><span class="dm-pk">PK</span> LinkID · <span class="dm-fk">FK</span> DefID · LinkType(ColorAttempt/Cleanliness/Cutter/Bond) · RefID</td><td>특수 자동 연계 기록.</td></tr>
+          <tr><td><span class="dm-col">DefectRateCache</span></td><td><span class="dm-pk">PK</span> WOID · TotalDefect · TotalGood · RatePct · UpdatedTS</td><td>5초 TTL 캐시.</td></tr>
+          <tr><td><span class="dm-col">MD_DefectMaster</span> <em style="opacity:.6;">(read)</em></td><td><span class="dm-pk">PK</span> Code · Module · NameEN/KO · LikelyCause · DefaultAction</td><td>MD-12 마스터.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">IMG-03</div><div class="lnk-name">Cycle Ctx</div><div class="lnk-ko">사이클</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node up"><div class="lnk-id">MD-12</div><div class="lnk-name">Defect Master</div><div class="lnk-ko">마스터</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">IMG-05</div><div class="lnk-name">Defect Reg</div><div class="lnk-ko">불량 등록</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">Andon</div><div class="lnk-name">if ≥ 5%</div><div class="lnk-ko">Andon</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">RPT</div><div class="lnk-name">Analysis</div><div class="lnk-ko">분석</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.6 · IMG-05 · Defect Register · L3 Spec v1.0</div><div class="pf-r">6 Defect Types · Auto-Link · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>

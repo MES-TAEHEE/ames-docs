@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.6 · IMG-04 · Fabric Input &amp; Verify · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--img:#7c3aed;--mod:#7c3aed;--mod-lt:#ede9fe;--mod-dk:#5b21b6;--mod-tint:#a78bfa;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(167,139,250,.7);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#1a0a2e 0%,#160828 50%,#1a0a2e 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(124,58,237,.25);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(124,58,237,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(124,58,237,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(124,58,237,.14),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(124,58,237,.3);color:var(--mod-tint);background:rgba(124,58,237,.08);}
+.meta-chip.crit{border-color:rgba(220,38,38,.3);color:#fca5a5;background:rgba(220,38,38,.08);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-d{background:#fef2f2;border-color:#dc2626;color:#991b1b;}.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#f0fdf4;border-color:#22c55e;}
+.lnk-node.cur{background:linear-gradient(135deg,#1a0a2e,#160828);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(124,58,237,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#15803d;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;}
+.dm-pk{color:#f59e0b;font-size:8px;font-weight:700;}.dm-fk{color:#8b5cf6;font-size:8px;font-weight:700;}
+
+/* PDA 4-step flow (signature IMG screen) */
+.pda-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:14px;}
+.pda-unit{text-align:center;}
+.pda-step-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--mod-dk);margin-bottom:6px;letter-spacing:.5px;text-transform:uppercase;}
+.pda-step-lbl.fail{color:#991b1b;}
+.pda-shell{width:210px;background:#000;border-radius:24px;padding:7px;box-shadow:0 6px 18px rgba(0,0,0,.25);margin:0 auto;}
+.pda-shell.alert{box-shadow:0 6px 28px rgba(220,38,38,.45);}
+.pda-scr{background:#0c0820;border-radius:18px;overflow:hidden;min-height:380px;display:flex;flex-direction:column;color:#e2e8f0;}
+.pda-statbar{background:#000;padding:4px 12px;font-size:8px;display:flex;justify-content:space-between;color:rgba(255,255,255,.5);font-family:'JetBrains Mono',monospace;}
+.pda-statbar .online{color:#22c55e;}.pda-statbar .err{color:#fca5a5;}
+.pda-tbar{background:linear-gradient(135deg,#160828,#1a0a2e);padding:10px 13px;border-bottom:1px solid rgba(124,58,237,.35);}
+.pda-tbar.fail{background:linear-gradient(135deg,#2a0808,#3a0c0c);border-bottom-color:rgba(220,38,38,.5);}
+.pda-tbar-t{font-size:12px;font-weight:700;color:#fff;font-family:'Noto Sans KR',sans-serif;}
+.pda-tbar.fail .pda-tbar-t{color:#fca5a5;}
+.pda-tbar-s{font-size:9px;color:rgba(167,139,250,.7);margin-top:2px;font-family:'Noto Sans KR',sans-serif;}
+.pda-tbar.fail .pda-tbar-s{color:rgba(252,165,165,.8);}
+.pda-bd{padding:10px;flex:1;display:flex;flex-direction:column;gap:7px;font-family:'Noto Sans KR',sans-serif;}
+.pda-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:5px;padding:7px 9px;}
+.pda-card-l{font-size:8px;color:rgba(167,139,250,.7);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;font-family:'JetBrains Mono',monospace;}
+.pda-card-v{font-size:11px;font-weight:700;color:#fff;}
+.pda-card-v.ok{color:#5dffc4;}.pda-card-v.warn{color:#fde047;}.pda-card-v.err{color:#fca5a5;}
+.pda-card-v.mono{font-family:'JetBrains Mono',monospace;font-size:10px;}
+.pda-color-row{display:flex;align-items:center;gap:6px;}
+.pda-color-sw{width:14px;height:14px;border-radius:3px;border:1px solid rgba(255,255,255,.3);}
+.pda-scan-zone{background:rgba(124,58,237,.06);border:1px dashed rgba(124,58,237,.4);border-radius:6px;padding:14px 8px;text-align:center;}
+.pda-scan-zone.fail{background:rgba(220,38,38,.1);border-color:rgba(220,38,38,.5);}
+.pda-scan-icon{font-size:26px;margin-bottom:4px;}
+.pda-scan-l{font-size:10px;font-weight:700;color:var(--mod-tint);}
+.pda-scan-zone.fail .pda-scan-l{color:#fca5a5;}
+.pda-scan-s{font-size:8px;color:rgba(167,139,250,.5);margin-top:2px;}
+.pda-btn{padding:8px;border-radius:5px;font-size:10px;font-weight:700;text-align:center;cursor:pointer;border:none;font-family:'Noto Sans KR',sans-serif;}
+.pda-btn-pri{background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;}
+.pda-btn-ok{background:linear-gradient(135deg,#0db87a,#0a9060);color:#fff;}
+.pda-btn-dan{background:linear-gradient(135deg,#dc2626,#991b1b);color:#fff;}
+.pda-block-banner{background:rgba(220,38,38,.15);border:1px solid rgba(220,38,38,.5);border-radius:5px;padding:8px;text-align:center;font-size:10px;color:#fca5a5;font-weight:700;}
+.pda-block-banner .sub{font-size:8px;color:rgba(252,165,165,.7);margin-top:2px;font-weight:400;}
+
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol active"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL06_IMG_Wrapping.html">VOL.6 · IMG</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">IMG-04 · Fabric Input &amp; Verify</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.6 · IMG · L3</div><div class="sb-mod-en">WRAPPING POP</div><div class="sb-mod-ko">감싸기 생산 POP</div></div>
+  <div class="sb-section">Screens · 화면</div>
+  <a class="sb-link" href="VOL06_IMG01_POP_Login.html"><span class="sl-id">IMG-01</span><div><div class="sl-en">POP Login</div><div class="sl-ko">로그인</div></div></a>
+  <a class="sb-link" href="VOL06_IMG02_POP_Dashboard.html"><span class="sl-id">IMG-02</span><div><div class="sl-en">Dashboard</div><div class="sl-ko">현황판</div></div></a>
+  <a class="sb-link" href="VOL06_IMG03_Production_Entry.html"><span class="sl-id">IMG-03</span><div><div class="sl-en">Prod. Entry</div><div class="sl-ko">실적 입력</div></div></a>
+  <a class="sb-link on" href="VOL06_IMG04_Fabric_Input.html"><span class="sl-id">IMG-04</span><div><div class="sl-en">Fabric Input</div><div class="sl-ko">원단 투입</div></div></a>
+  <a class="sb-link" href="VOL06_IMG05_Defect.html"><span class="sl-id">IMG-05</span><div><div class="sl-en">Defect</div><div class="sl-ko">불량 등록</div></div></a>
+  <a class="sb-link" href="VOL06_IMG06_Bond_Setup.html"><span class="sl-id">IMG-06</span><div><div class="sl-en">Bond Setup</div><div class="sl-ko">본드 세팅</div></div></a>
+  <a class="sb-link" href="VOL06_IMG07_Prod_Status.html"><span class="sl-id">IMG-07</span><div><div class="sl-en">Prod. Status</div><div class="sl-ko">실적 현황</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup (4-Step)</a>
+    <a href="#sec-2"><span class="num">02</span>QR Format</a>
+    <a href="#sec-3"><span class="num">03</span>Color Verify Logic</a>
+    <a href="#sec-4"><span class="num">04</span>Auto Deduction</a>
+    <a href="#sec-5"><span class="num">05</span>Workflow</a>
+    <a href="#sec-6"><span class="num">06</span>Business Rules</a>
+    <a href="#sec-7"><span class="num">07</span>Data Model</a>
+    <a href="#sec-8"><span class="num">08</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.6 · IMG · L3 · Signature Differentiator · QR Verify</div>
+      <div class="scr-id-block"><div class="scr-id">IMG-04</div><div class="scr-title-en">Fabric Input &amp; Verify</div></div>
+      <div class="scr-title-ko">원단 롤 투입 &amp; 색상 검증 — PDA 4단계</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">UI</span><span class="mc-val">📱 PDA</span></div>
+        <div class="meta-chip crit"><span class="mc-lbl">Class</span><span class="mc-val">⚙ Signature</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">2nd Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">IMG Operator</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Outputs</span><span class="mc-val">FabricInput, color match/block, deduction</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          The signature screen of the IMG module. Before mounting a fabric roll on the wrapping machine, the operator scans the roll's QR code via PDA. The system instantly cross-checks the scanned color code against the WO's required color. <strong>Match → proceed. Mismatch → input blocked, screen turns red, alarm sounds</strong> (BR-IMG-02). After confirmed input, fabric length is auto-deducted from WH stock per BOM unit on every IMG-03 production confirm. This is the #1 differentiator vs INJ/PNT — eliminates wrong-color defects.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          IMG 모듈의 시그니처 화면. 원단 롤 장착 전 작업자가 PDA로 롤 QR 스캔. 시스템이 스캔된 색상 코드를 WO 요구 색상과 즉시 대조. <strong>일치 → 진행. 불일치 → 투입 차단, 화면 빨간색, 경고음</strong>(BR-IMG-02). 투입 확정 후 IMG-03 실적 확정마다 BOM 단위 기준 원단 길이가 WH 재고에서 자동 차감됨. INJ/PNT 대비 #1 차별화 — 오색 투입 불량 제로화.
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup — PDA 4-Step Flow</span><span class="sec-ko">PDA 4단계 흐름</span></div>
+      <div class="pda-row">
+        <!-- Step 1: Scan QR -->
+        <div class="pda-unit">
+          <div class="pda-step-lbl">① Scan Roll QR · QR 스캔</div>
+          <div class="pda-shell">
+            <div class="pda-scr">
+              <div class="pda-statbar"><span>09:44</span><span class="online">● PDA-IMG-3</span></div>
+              <div class="pda-tbar">
+                <div class="pda-tbar-t">Fabric Input · 원단 투입</div>
+                <div class="pda-tbar-s">WO-2026-0519-007 · Door Trim LH</div>
+              </div>
+              <div class="pda-bd">
+                <div class="pda-card">
+                  <div class="pda-card-l">Required Color · 요구 색상</div>
+                  <div class="pda-card-v">
+                    <div class="pda-color-row"><span class="pda-color-sw" style="background:#808080;"></span><span class="mono" style="font-family:'JetBrains Mono',monospace;">GY-C03 · Grey</span></div>
+                  </div>
+                </div>
+                <div class="pda-scan-zone">
+                  <div class="pda-scan-icon">📷</div>
+                  <div class="pda-scan-l">Scan Roll QR Code</div>
+                  <div class="pda-scan-s">원단 롤 QR 스캔</div>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">Roll ID · 롤 번호</div>
+                  <div class="pda-card-v" style="color:rgba(255,255,255,.3);">—</div>
+                </div>
+                <div style="flex:1;"></div>
+                <button class="pda-btn pda-btn-pri">📷 수기 ID 입력 (Backup)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2A: Match -->
+        <div class="pda-unit">
+          <div class="pda-step-lbl">②A Color Match ✅ · 일치</div>
+          <div class="pda-shell">
+            <div class="pda-scr">
+              <div class="pda-statbar"><span>09:44</span><span class="online">● PDA-IMG-3</span></div>
+              <div class="pda-tbar" style="background:linear-gradient(135deg,#02180c,#041c10);border-bottom-color:rgba(13,184,122,.45);">
+                <div class="pda-tbar-t" style="color:#5dffc4;">✅ COLOR VERIFIED</div>
+                <div class="pda-tbar-s" style="color:rgba(93,255,196,.7);">색상 검증 완료</div>
+              </div>
+              <div class="pda-bd">
+                <div class="pda-card">
+                  <div class="pda-card-l">Roll ID</div>
+                  <div class="pda-card-v ok">FAB-GY-2507-020</div>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">Color · 색상</div>
+                  <div class="pda-card-v ok">
+                    <div class="pda-color-row"><span class="pda-color-sw" style="background:#808080;"></span>GY-C03 · Grey ✅ Match</div>
+                  </div>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">Remaining · 잔량</div>
+                  <div class="pda-card-v ok">48.2 m</div>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">Unit Use / EA</div>
+                  <div class="pda-card-v">0.25 m/EA (BOM)</div>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">Expected Yield</div>
+                  <div class="pda-card-v ok">~192 EA</div>
+                </div>
+                <div style="flex:1;"></div>
+                <button class="pda-btn pda-btn-ok">✅ Confirm Input · 투입 확정</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2B: Mismatch -->
+        <div class="pda-unit">
+          <div class="pda-step-lbl fail">②B Color Mismatch ⛔ · 차단</div>
+          <div class="pda-shell alert">
+            <div class="pda-scr">
+              <div class="pda-statbar"><span>09:44</span><span class="err">● PDA-IMG-3 HOLD</span></div>
+              <div class="pda-tbar fail">
+                <div class="pda-tbar-t">⛔ COLOR MISMATCH</div>
+                <div class="pda-tbar-s">색상 불일치 — 투입 차단</div>
+              </div>
+              <div class="pda-bd">
+                <div class="pda-card">
+                  <div class="pda-card-l">Scanned · 스캔 색상</div>
+                  <div class="pda-card-v err">
+                    <div class="pda-color-row"><span class="pda-color-sw" style="background:#0a0a0a;"></span>BK-C01 · Black ❌</div>
+                  </div>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">Required · 요구 색상</div>
+                  <div class="pda-card-v">
+                    <div class="pda-color-row"><span class="pda-color-sw" style="background:#808080;"></span>GY-C03 · Grey</div>
+                  </div>
+                </div>
+                <div class="pda-block-banner">
+                  ⛔ INPUT BLOCKED<br>
+                  <span class="sub">BR-IMG-02 · 올바른 롤 재스캔</span>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">Audio</div>
+                  <div class="pda-card-v err">🔊 Alarm Active</div>
+                </div>
+                <div style="flex:1;"></div>
+                <button class="pda-btn pda-btn-dan">🔄 Re-scan · 재스캔</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Auto deduction after production -->
+        <div class="pda-unit">
+          <div class="pda-step-lbl">③ Auto Deduction · 자동 차감</div>
+          <div class="pda-shell">
+            <div class="pda-scr">
+              <div class="pda-statbar"><span>09:47</span><span class="online">● RUN</span></div>
+              <div class="pda-tbar" style="background:linear-gradient(135deg,#160828,#1a0a2e);">
+                <div class="pda-tbar-t">Auto Deduction ✅</div>
+                <div class="pda-tbar-s">원단 자동 차감 완료</div>
+              </div>
+              <div class="pda-bd">
+                <div class="pda-card">
+                  <div class="pda-card-l">Cycle</div>
+                  <div class="pda-card-v mono">IMG-...-0033</div>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">Produced · 생산</div>
+                  <div class="pda-card-v ok">4 EA</div>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">Consumed · 소비</div>
+                  <div class="pda-card-v ok">1.00 m (= 4 × 0.25)</div>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">Remaining · 잔량</div>
+                  <div class="pda-card-v ok">47.20 m</div>
+                </div>
+                <div class="pda-card" style="background:rgba(13,184,122,.08);border-color:rgba(13,184,122,.4);">
+                  <div class="pda-card-l" style="color:#5dffc4;">WH Stock</div>
+                  <div class="pda-card-v ok">✓ Auto-Updated</div>
+                </div>
+                <div style="flex:1;"></div>
+                <div style="text-align:center;font-size:9px;color:rgba(167,139,250,.5);font-family:'JetBrains Mono',monospace;">→ Next cycle ready</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert alert-d">
+        <div><span class="alert-title">🚨 Mismatch Scenario · 색상 불일치</span>
+        BR-IMG-02 · 스캔 색상 ≠ WO 요구 색상 시: (1) 화면 빨간 모드 전환, (2) 사이렌 발동, (3) 컨베이어/장착 인터록 (PLC), (4) Confirm 버튼 비활성, (5) FabricInputAttempt 테이블에 시도 기록. 라인장 PIN 없이는 우회 불가. 정확한 롤 스캔 시 자동 복귀.</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">QR Code Format</span><span class="sec-ko">QR 코드 포맷</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:24%;">Field · 필드</th><th>Value / Format</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">Pattern</td><td><span class="fld-type">FAB-{Color}-{YYMM}-{SEQ:3}</span> 예: FAB-GY-2507-020</td></tr>
+          <tr><td class="fld-name">FAB</td><td>고정 prefix (원단 식별자).</td></tr>
+          <tr><td class="fld-name">Color</td><td>2자리 컬러 그룹 코드 (GY=Grey, BK=Black, BR=Brown 등). MD-17/MD-10 마스터 참조.</td></tr>
+          <tr><td class="fld-name">YYMM</td><td>원단 입고 연월(2+2).</td></tr>
+          <tr><td class="fld-name">SEQ</td><td>입고 월 단위 일련번호 (3자리).</td></tr>
+          <tr><td class="fld-name">Encoding</td><td>QR Code (ECC L), 최소 25×25 모듈, 컬러 변색 환경 견디는 PET 라벨.</td></tr>
+          <tr><td class="fld-name">Embedded Color Code</td><td>QR 페이로드에 추가 RGB hex (시각 검증용, 옵션): <span style="font-family:'JetBrains Mono',monospace;">FAB-GY-2507-020;#808080</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Color Verification Logic</span><span class="sec-ko">색상 검증 로직</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:22%;">Step</th><th>Detail</th></tr></thead>
+        <tbody>
+          <tr><td><strong>1. Parse</strong></td><td>스캔된 QR payload를 정규식으로 파싱: <code>^FAB-([A-Z]{2})-(\d{4})-(\d{3})$</code>. 형식 불일치 시 즉시 INVALID.</td></tr>
+          <tr><td><strong>2. Lookup</strong></td><td>WH_FabricStock에서 Roll ID로 잔량·색상 코드 조회. 미등록 롤 → BR-IMG-V01 차단.</td></tr>
+          <tr><td><strong>3. Cross-check</strong></td><td>WH.ColorCode == PP_WO.RequiredColor 확인. 정확 매칭(case-sensitive).</td></tr>
+          <tr><td><strong>4. Expiry</strong></td><td>FabricStock.ExpiryDate ≥ today 확인. 만료 시 라인장 PIN 필요.</td></tr>
+          <tr><td><strong>5. Capacity</strong></td><td>RemainingM ≥ WO.RemainingQty × BOM.UnitUseM 검증. 부족 시 노랑 경고(차단 아님).</td></tr>
+          <tr><td><strong>6. Match Decision</strong></td><td>1~4 모두 통과 → MATCH. 1~3 중 실패 → MISMATCH (BR-IMG-02 발동).</td></tr>
+        </tbody>
+      </table>
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 Color Group Logic · 컬러 그룹 매칭</span>
+        2자리 컬러 그룹(GY/BK 등)이 1차 매칭 키. 같은 그룹 내 미세 색차(GY-A vs GY-B)는 별도 sub-code로 BR-IMG-V02 적용 — 라인장 PIN 우회 가능.</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Auto Fabric Deduction</span><span class="sec-ko">원단 자동 차감</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:24%;">Item</th><th>Formula / Detail</th></tr></thead>
+        <tbody>
+          <tr><td>Trigger</td><td>IMG-03 Production Confirm event.</td></tr>
+          <tr><td>Source Roll</td><td>현재 IMG-04에서 검증된 RollID (라인 세션에 바인딩).</td></tr>
+          <tr><td>Per-cycle Deduction</td><td><code>FabricConsumedM = MD_BOM.UnitUseM × GoodQty</code></td></tr>
+          <tr><td>Example</td><td>BOM 0.25 m/EA × 4 EA = <strong>1.00 m</strong> per cycle.</td></tr>
+          <tr><td>WH Stock Update</td><td><code>WH_FabricStock.RemainingM -= FabricConsumedM</code> · 원자적 트랜잭션.</td></tr>
+          <tr><td>Low Stock Alert</td><td>RemainingM ≤ 10m → 노랑 알림. ≤ 5m → 빨강 + IMG-04 재투입 권고 (BR-IMG-D01).</td></tr>
+          <tr><td>Roll Exhausted</td><td>RemainingM &lt; expected next cycle → Confirm 차단 (BR-IMG-E03), 새 롤 IMG-04 진행 요구.</td></tr>
+          <tr><td>Audit Log</td><td>모든 차감 이벤트 FabricDeductionLog에 기록 (7년 보관, 자재 추적성).</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">From IMG-02 Dashboard or low-stock alert, tap "Fabric Input" → IMG-04 opens with WO context.</div><div class="wf-ko">IMG-02 또는 잔량 알림에서 [Fabric Input] 터치 → IMG-04 진입.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">PDA shows required color (color swatch + code). Operator scans new roll's QR code.</div><div class="wf-ko">PDA에 요구 색상 표시(스왓치 + 코드). 작업자가 신규 롤 QR 스캔.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">System runs 6-step verification (§03). Match → green ✅ confirm screen.</div><div class="wf-ko">시스템이 6단계 검증(§03) 수행. 일치 시 녹색 ✅ 확정 화면.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Mismatch → red screen + alarm + conveyor interlock. Operator must re-scan correct roll.</div><div class="wf-ko">불일치 시 빨간 화면 + 알람 + 컨베이어 인터록. 올바른 롤 재스캔.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">On Match Confirm → INSERT IMG_FabricInput · bind to current session. IMG-03 unlocks.</div><div class="wf-ko">매칭 확정 시 IMG_FabricInput 적재 + 세션 바인딩. IMG-03 잠금 해제.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">From now, every IMG-03 Confirm auto-deducts fabric length from this roll's stock.</div><div class="wf-ko">이후 IMG-03 Confirm 시마다 본 롤 잔량에서 자동 차감.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">When remaining low → push notification + IMG-04 re-entry prompt for new roll.</div><div class="wf-ko">잔량 부족 시 푸시 알림 + IMG-04 재진입 권유.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-IMG-01</td><td><div>Roll QR scan is mandatory before production start. Unscanned input blocked.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">QR 스캔 없이 생산 불가.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-IMG-02</td><td><div>Scanned color ≠ WO color → immediate block + red screen + alarm. Supervisor PIN cannot bypass.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">색상 불일치 시 즉시 차단 + 빨간 + 알람. PIN 우회 불가.</div></td><td><span class="br-act blk">Block+Alarm</span></td></tr>
+          <tr><td class="br-id">BR-IMG-03</td><td><div>Auto deduction = BOM unit × produced qty on every IMG-03 Confirm.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">IMG-03 확정마다 BOM 기준 자동 차감.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-IMG-V01</td><td><div>Roll ID not in WH_FabricStock → block (rogue / counterfeit roll prevention).</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">미등록 롤 차단.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-IMG-V02</td><td><div>Sub-color mismatch within same group → supervisor PIN required (sample comparison).</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">동일 그룹 내 미세 색차 → 라인장 PIN 필요.</div></td><td><span class="br-act alt">Audit</span></td></tr>
+          <tr><td class="br-id">BR-IMG-V03</td><td><div>Expired fabric LOT (ExpiryDate &lt; today) → supervisor PIN + reason.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">유효기간 만료 LOT → PIN + 사유.</div></td><td><span class="br-act alt">Audit</span></td></tr>
+          <tr><td class="br-id">BR-IMG-V04</td><td><div>All FabricInput attempts logged (success + failure) ≥ 5 years.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">모든 시도(성공·실패) 5년 보관.</div></td><td><span class="br-act aut">Retain</span></td></tr>
+          <tr><td class="br-id">BR-IMG-V05</td><td><div>3 consecutive mismatches → escalate to supervisor (possible roll mix-up at WH).</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">연속 3회 불일치 시 라인장 에스컬레이션 (WH 혼동 의심).</div></td><td><span class="br-act alt">Escalate</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Table</th><th>Key Columns</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">IMG_FabricInput</span></td><td><span class="dm-pk">PK</span> InputID · <span class="dm-fk">FK</span> WOID · <span class="dm-fk">FK</span> RollID · ColorCode · VerifiedTS · <span class="dm-fk">FK</span> EmpID · SessionID</td><td>매칭 성공한 투입 헤더.</td></tr>
+          <tr><td><span class="dm-col">FabricInputAttempt</span></td><td><span class="dm-pk">PK</span> AttemptID · WOID · ScannedID · ScannedColor · ExpectedColor · Result(MATCH/MISMATCH/INVALID) · AttemptTS</td><td>모든 시도 감사 기록(5년).</td></tr>
+          <tr><td><span class="dm-col">FabricDeductionLog</span></td><td><span class="dm-pk">PK</span> DeductID · <span class="dm-fk">FK</span> RollID · <span class="dm-fk">FK</span> EntryID · ConsumedM · BeforeM · AfterM · TS</td><td>차감 이벤트 영구 보관(7년).</td></tr>
+          <tr><td><span class="dm-col">WH_FabricStock</span> <em style="opacity:.6;">(update)</em></td><td>RollID · ColorCode · RemainingM · ExpiryDate · Status</td><td>차감 결과 반영.</td></tr>
+          <tr><td><span class="dm-col">MD_BOM</span> <em style="opacity:.6;">(read)</em></td><td>ItemNo · ComponentItem(Fabric) · UnitUseM · ScrapPct</td><td>차감 계산 기준.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-8">
+      <div class="sec-hdr"><span class="sec-num">08</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">WH-FAB</div><div class="lnk-name">Stock + QR</div><div class="lnk-ko">원단 재고</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node up"><div class="lnk-id">PP_WO</div><div class="lnk-name">Color Spec</div><div class="lnk-ko">요구 색상</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">IMG-04</div><div class="lnk-name">Verify</div><div class="lnk-ko">투입 검증</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">IMG-03</div><div class="lnk-name">Unlock</div><div class="lnk-ko">실적 입력 해제</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">WH-FAB</div><div class="lnk-name">Auto -Stock</div><div class="lnk-ko">자동 차감</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.6 · IMG-04 · Fabric Input &amp; Verify · L3 Spec v1.0 · Signature</div><div class="pf-r">PDA 4-Step · QR Match · Auto Deduction · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>

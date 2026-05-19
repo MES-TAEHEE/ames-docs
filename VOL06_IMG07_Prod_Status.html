@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.6 · IMG-07 · Production Status · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--img:#7c3aed;--mod:#7c3aed;--mod-lt:#ede9fe;--mod-dk:#5b21b6;--mod-tint:#a78bfa;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(167,139,250,.7);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#1a0a2e 0%,#160828 50%,#1a0a2e 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(124,58,237,.25);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(124,58,237,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(124,58,237,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(124,58,237,.14),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.web{border-color:rgba(26,111,255,.3);color:#7ab4ff;}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#f0fdf4;border-color:#22c55e;}
+.lnk-node.cur{background:linear-gradient(135deg,#1a0a2e,#160828);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(124,58,237,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#15803d;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;}
+.dm-pk{color:#f59e0b;font-size:8px;font-weight:700;}.dm-fk{color:#8b5cf6;font-size:8px;font-weight:700;}
+
+/* Web supervisor dashboard */
+.web-mock{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:14px;}
+.web-tbar{background:linear-gradient(135deg,#1f2937,#111827);color:#fff;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;font-size:11px;}
+.web-tbar-l{display:flex;gap:6px;align-items:center;}
+.web-dot{display:inline-flex;gap:4px;}.web-dot span{width:9px;height:9px;border-radius:50%;}
+.web-tit{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.5px;}
+.web-bc{font-size:9px;color:rgba(255,255,255,.4);font-family:'JetBrains Mono',monospace;}
+.web-toolbar{padding:10px 14px;background:#fafbfd;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:10px;}
+.web-inp{padding:5px 10px;border:1px solid #ccd0d4;border-radius:3px;font-size:10px;background:#fff;font-family:'Noto Sans KR',sans-serif;}
+.web-btn{padding:5px 12px;border-radius:3px;font-size:10px;font-weight:700;border:1px solid;cursor:pointer;font-family:'Noto Sans KR',sans-serif;}
+.web-btn-pri{background:var(--mod);color:#fff;border-color:var(--mod);}
+.web-btn-sec{background:#fff;color:var(--text);border-color:#ccd0d4;}
+.web-bd{padding:18px;}
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px;}
+.kpi-card{background:#fff;border:1px solid var(--border);border-top:3px solid var(--mod);border-radius:0 0 6px 6px;padding:12px 14px;}
+.kpi-card .l{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;}
+.kpi-card .v{font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--text);line-height:1;margin-top:3px;letter-spacing:.5px;}
+.kpi-card .v.ok{color:#16a34a;}.kpi-card .v.warn{color:#a16207;}.kpi-card .v.alert{color:#dc2626;}
+.kpi-card .s{font-size:10px;color:var(--sub);margin-top:3px;}
+.line-tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.line-tbl th{background:#e9edf2;color:var(--text);padding:8px 10px;text-align:left;font-size:9px;font-weight:700;border-bottom:1px solid #ccd0d4;letter-spacing:.3px;}
+.line-tbl td{padding:9px 10px;border-bottom:1px solid #eef0f3;color:var(--text);vertical-align:middle;}
+.line-tbl tr:hover td{background:#f6f8fa;}
+.line-tbl .mono{font-family:'JetBrains Mono',monospace;font-size:10px;}
+.line-tbl .pill{display:inline-block;padding:2px 8px;border-radius:3px;font-size:9px;font-weight:700;}
+.line-tbl .pill.run{background:#dcfce7;color:#15803d;}
+.line-tbl .pill.stop{background:#fee2e2;color:#991b1b;}
+.line-tbl .pill.idle{background:#fef9c3;color:#92400e;}
+.line-tbl .swatch{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,.15);vertical-align:middle;margin-right:5px;}
+.prog-bar{width:80px;height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:4px;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--mod),var(--mod-dk));border-radius:4px;}
+.fab-bar{width:60px;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:5px;}
+.fab-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:3px;}
+.fab-fill.low{background:linear-gradient(90deg,#dc2626,#f87171);}
+
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol active"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL06_IMG_Wrapping.html">VOL.6 · IMG</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">IMG-07 · Production Status</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.6 · IMG · L3</div><div class="sb-mod-en">WRAPPING POP</div><div class="sb-mod-ko">감싸기 생산 POP</div></div>
+  <div class="sb-section">Screens · 화면</div>
+  <a class="sb-link" href="VOL06_IMG01_POP_Login.html"><span class="sl-id">IMG-01</span><div><div class="sl-en">POP Login</div><div class="sl-ko">로그인</div></div></a>
+  <a class="sb-link" href="VOL06_IMG02_POP_Dashboard.html"><span class="sl-id">IMG-02</span><div><div class="sl-en">Dashboard</div><div class="sl-ko">현황판</div></div></a>
+  <a class="sb-link" href="VOL06_IMG03_Production_Entry.html"><span class="sl-id">IMG-03</span><div><div class="sl-en">Prod. Entry</div><div class="sl-ko">실적 입력</div></div></a>
+  <a class="sb-link" href="VOL06_IMG04_Fabric_Input.html"><span class="sl-id">IMG-04</span><div><div class="sl-en">Fabric Input</div><div class="sl-ko">원단 투입</div></div></a>
+  <a class="sb-link" href="VOL06_IMG05_Defect.html"><span class="sl-id">IMG-05</span><div><div class="sl-en">Defect</div><div class="sl-ko">불량 등록</div></div></a>
+  <a class="sb-link" href="VOL06_IMG06_Bond_Setup.html"><span class="sl-id">IMG-06</span><div><div class="sl-en">Bond Setup</div><div class="sl-ko">본드 세팅</div></div></a>
+  <a class="sb-link on" href="VOL06_IMG07_Prod_Status.html"><span class="sl-id">IMG-07</span><div><div class="sl-en">Prod. Status</div><div class="sl-ko">실적 현황</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
+    <a href="#sec-2"><span class="num">02</span>KPI Definitions</a>
+    <a href="#sec-3"><span class="num">03</span>Business Rules</a>
+    <a href="#sec-4"><span class="num">04</span>Data Model</a>
+    <a href="#sec-5"><span class="num">05</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.6 · IMG · L3 · Supervisor Web Dashboard</div>
+      <div class="scr-id-block"><div class="scr-id">IMG-07</div><div class="scr-title-en">Production Status</div></div>
+      <div class="scr-title-ko">실적 현황 — 라인장/공장장 Web PC 대시보드</div>
+      <div class="scr-meta">
+        <div class="meta-chip web"><span class="mc-lbl">UI</span><span class="mc-val">🖥 Web PC</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">1st Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">Supervisor · Plant Mgr</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Inputs</span><span class="mc-val">IMG_Prod + Defect + Fabric</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Refresh</span><span class="mc-val">WS 10s + on-demand</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          Web-based supervisor dashboard summarizing all IMG lines: KPI tiles (Today Good, Defect, Avg OEE, Active WOs, Low-Stock Rolls), per-line table with fabric roll info + remaining length + bond temperature, hourly output chart. IMG-specific: visual color swatch column + fabric runway bar for each line. Drill-down to per-WO history, fabric consumption log. Excel export for shift handover.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          모든 IMG 라인을 요약하는 Web 라인장 대시보드: KPI 타일(금일 양품·불량·평균 OEE·진행 WO·잔량부족 롤), 라인별 테이블(원단 롤 정보 + 잔량 + 본드 온도), 시간별 생산 차트. IMG 고유: 컬러 스왓치 열 + 원단 잔량 막대. 드릴다운으로 WO 이력·원단 소비 로그. Excel 출력으로 교대 인수인계.
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — Web 라인장 대시보드</span></div>
+      <div class="web-mock">
+        <div class="web-tbar">
+          <div class="web-tbar-l">
+            <div class="web-dot"><span style="background:#ff5f57;"></span><span style="background:#febc2e;"></span><span style="background:#28c840;"></span></div>
+            <div class="web-tit">IMG-07 · Production Status · 실적 현황</div>
+          </div>
+          <div class="web-bc">A-MES &gt; IMG &gt; IMG-07 · Supervisor: T.Jo · WS Live</div>
+        </div>
+        <div class="web-toolbar">
+          <span style="font-size:9px;color:var(--sub);font-weight:700;letter-spacing:.5px;">DATE</span>
+          <input class="web-inp" type="date" value="2026-05-19">
+          <span style="font-size:9px;color:var(--sub);font-weight:700;letter-spacing:.5px;">SHIFT</span>
+          <select class="web-inp"><option selected>DAY (06–18)</option><option>NIGHT (18–06)</option></select>
+          <span style="font-size:9px;color:var(--sub);font-weight:700;letter-spacing:.5px;">LINE</span>
+          <select class="web-inp"><option selected>ALL</option><option>IMG-L1</option><option>IMG-L2</option></select>
+          <button class="web-btn web-btn-sec">🔄 Refresh</button>
+          <div style="flex:1;"></div>
+          <button class="web-btn web-btn-sec">📊 RPT 보기</button>
+          <button class="web-btn web-btn-sec">📋 Excel Export</button>
+          <button class="web-btn web-btn-pri">🖨 Shift Handover</button>
+        </div>
+        <div class="web-bd">
+          <div class="kpi-row">
+            <div class="kpi-card"><div class="l">Today Good</div><div class="v ok">2,168</div><div class="s">EA · 목표 2,400 (90%)</div></div>
+            <div class="kpi-card"><div class="l">Today Defect</div><div class="v warn">52</div><div class="s">2.3% · 한계 5%</div></div>
+            <div class="kpi-card"><div class="l">Avg OEE</div><div class="v ok">89%</div><div class="s">A 94 · P 96 · Q 99</div></div>
+            <div class="kpi-card"><div class="l">Active WOs</div><div class="v">3</div><div class="s">/ 5 today · 2 closed</div></div>
+            <div class="kpi-card"><div class="l">Low Stock Rolls</div><div class="v alert">2</div><div class="s">잔량 ≤ 10m · 교체 필요</div></div>
+          </div>
+
+          <table class="line-tbl">
+            <thead>
+              <tr>
+                <th>Line</th>
+                <th>Status</th>
+                <th>WO</th>
+                <th>Item</th>
+                <th>Color</th>
+                <th>Progress</th>
+                <th style="text-align:right;">Defect</th>
+                <th>Fabric Roll</th>
+                <th>Bond</th>
+                <th>OEE</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>IMG-L1</strong></td>
+                <td><span class="pill run">● RUN</span></td>
+                <td class="mono">WO-...-007</td>
+                <td>도어트림 LH</td>
+                <td><span class="swatch" style="background:#808080;"></span><span class="mono">GY-C03</span></td>
+                <td><span class="prog-bar"><span class="prog-fill" style="width:64%;display:block;"></span></span><span class="mono">128/200</span></td>
+                <td style="text-align:right;color:#16a34a;">1.8% (3)</td>
+                <td><span class="fab-bar"><span class="fab-fill" style="width:67%;display:block;"></span></span><span class="mono">32.4m / 48</span></td>
+                <td class="mono" style="color:#16a34a;">90.4°C ✓</td>
+                <td style="font-weight:700;color:#16a34a;">92%</td>
+              </tr>
+              <tr>
+                <td><strong>IMG-L2</strong></td>
+                <td><span class="pill run">● RUN</span></td>
+                <td class="mono">WO-...-012</td>
+                <td>도어트림 RH</td>
+                <td><span class="swatch" style="background:#808080;"></span><span class="mono">GY-C03</span></td>
+                <td><span class="prog-bar"><span class="prog-fill" style="width:42%;display:block;"></span></span><span class="mono">42/100</span></td>
+                <td style="text-align:right;color:#16a34a;">1.0% (1)</td>
+                <td><span class="fab-bar"><span class="fab-fill" style="width:38%;display:block;"></span></span><span class="mono">18.4m / 48</span></td>
+                <td class="mono" style="color:#16a34a;">89.8°C ✓</td>
+                <td style="font-weight:700;color:#16a34a;">89%</td>
+              </tr>
+              <tr style="background:#fef9c3;">
+                <td><strong>IMG-L3</strong></td>
+                <td><span class="pill idle">⏸ FABRIC LOW</span></td>
+                <td class="mono">WO-...-015</td>
+                <td>콘솔어퍼</td>
+                <td><span class="swatch" style="background:#8b1a1a;"></span><span class="mono">RD-C02</span></td>
+                <td><span class="prog-bar"><span class="prog-fill" style="width:78%;display:block;"></span></span><span class="mono">50/64</span></td>
+                <td style="text-align:right;color:#16a34a;">3.0% (2)</td>
+                <td><span class="fab-bar"><span class="fab-fill low" style="width:9%;display:block;"></span></span><span class="mono" style="color:#dc2626;">3.2m ⚠</span></td>
+                <td class="mono" style="color:#fde047;">94.2°C ⚠</td>
+                <td style="font-weight:700;color:#a16207;">76%</td>
+              </tr>
+              <tr>
+                <td><strong>IMG-L4</strong></td>
+                <td><span class="pill stop">⛔ MOLD CHG</span></td>
+                <td class="mono" style="opacity:.6;">—</td>
+                <td>—</td>
+                <td>—</td>
+                <td>—</td>
+                <td style="text-align:right;">—</td>
+                <td>—</td>
+                <td>—</td>
+                <td style="font-weight:700;color:#a16207;">62%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 UI Highlights · 화면 주요 포인트</span>
+        ① IMG 고유 컬럼: <strong>Color 스왓치</strong>·<strong>원단 잔량 막대</strong>·<strong>Bond Temp</strong> ② 잔량 ≤ 10m 시 막대 빨강 + 행 노란 배경(FABRIC LOW) ③ Bond Temp 색상: OK(녹색)/WARN(노랑)/ALERT(빨강) ④ 라인 행 클릭 시 WO 이력·원단 소비 로그 드로어 ⑤ 다단 헤더로 모든 IMG 핵심 KPI 한 화면.</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">KPI Definitions</span><span class="sec-ko">KPI 정의</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:22%;">KPI</th><th style="width:20%;">Formula</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Today Good</strong></td><td>SUM(IMG_Production.GoodQty) · 교대 시작 이후</td><td>목표 = SUM(PP_WO.OpenQty / 교대 분배).</td></tr>
+          <tr><td><strong>Today Defect</strong></td><td>SUM(IMG_Defect.Qty) · 같은 윈도우</td><td>비율 = Defect / (Good + Defect) × 100.</td></tr>
+          <tr><td><strong>Avg OEE</strong></td><td>(Σ A × P × Q) / N lines</td><td>A=가동률, P=성능률, Q=품질률. 라인 평균.</td></tr>
+          <tr><td><strong>Active WOs</strong></td><td>COUNT(PP_WO WHERE Status='In Progress' AND Routing='A')</td><td>Routing A IMG WO만.</td></tr>
+          <tr><td><strong>Low Stock Rolls</strong></td><td>COUNT(WH_FabricStock WHERE RemainingM ≤ 10 AND Status='IN_USE')</td><td>잔량 10m 이하 사용중 롤 개수.</td></tr>
+          <tr><td><strong>Bond Temp Status</strong></td><td>실시간 PLC 평균 vs Setpoint ±Tolerance</td><td>색상: 정상/임박/이탈.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-IMG-S01</td><td><div>Dashboard refresh = 10s WS push + manual button.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">10초 WS 갱신 + 수동.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-IMG-S02</td><td><div>Yield &lt; 90% 행은 노랑 강조; &lt; 80% 빨강.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">수율 단계별 색상.</div></td><td><span class="br-act alt">Highlight</span></td></tr>
+          <tr><td class="br-id">BR-IMG-S03</td><td><div>Fabric remaining ≤ 5m → row red + push to supervisor.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">잔량 5m 이하 시 빨강 + 알림.</div></td><td><span class="br-act alt">Alert</span></td></tr>
+          <tr><td class="br-id">BR-IMG-S04</td><td><div>Bond temp out of tolerance → flag in dashboard + drill-down quick action.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">본드 온도 이탈 시 대시보드 플래그.</div></td><td><span class="br-act alt">Flag</span></td></tr>
+          <tr><td class="br-id">BR-IMG-S05</td><td><div>Print Shift Handover requires supervisor PIN + roster auto-attach.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">인수인계 출력 시 PIN + 차교대 인원.</div></td><td><span class="br-act alt">Audit</span></td></tr>
+          <tr><td class="br-id">BR-IMG-S06</td><td><div>Drill-down deep links to IMG-03/04/05 read-only history.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">드릴다운은 IMG-03/04/05 읽기전용 이력.</div></td><td><span class="br-act aut">Link</span></td></tr>
+          <tr><td class="br-id">BR-IMG-S07</td><td><div>Excel export: raw + summary + fabric consumption sheets. 7-day retention.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">Excel raw·요약·원단 소비 3시트, 7일 보관.</div></td><td><span class="br-act aut">Retain</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Source</th><th>Used Columns</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">IMG_Production</span> <em style="opacity:.6;">(read)</em></td><td>WOID · GoodQty · FabricConsumedM · BondTempAvg · EntryTS · LineID</td><td>KPI Today Good · 시간 차트.</td></tr>
+          <tr><td><span class="dm-col">IMG_Defect</span> <em style="opacity:.6;">(read)</em></td><td>WOID · Qty · DefectCode · DefTS</td><td>KPI Today Defect.</td></tr>
+          <tr><td><span class="dm-col">WH_FabricStock</span> <em style="opacity:.6;">(read)</em></td><td>RollID · ColorCode · RemainingM · LineID · Status</td><td>Low Stock Rolls 집계.</td></tr>
+          <tr><td><span class="dm-col">BondCycleLog</span> <em style="opacity:.6;">(read)</em></td><td>LineID · TempAvg · WithinSpec · TS</td><td>Bond Temp 상태 표시.</td></tr>
+          <tr><td><span class="dm-col">ShiftHandoverPDF</span></td><td><span class="dm-pk">PK</span> HandoverID · Date · Shift · LineID · PDFUrl · SignedBy</td><td>인수인계 출력본 보관.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">IMG-03/04/05</div><div class="lnk-name">Production</div><div class="lnk-ko">실적·원단·불량</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node up"><div class="lnk-id">IMG-06</div><div class="lnk-name">Bond Cycles</div><div class="lnk-ko">본드 이력</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">IMG-07</div><div class="lnk-name">Prod. Status</div><div class="lnk-ko">실적 현황</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">RPT</div><div class="lnk-name">Reports</div><div class="lnk-ko">분석</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.6 · IMG-07 · Production Status · L3 Spec v1.0</div><div class="pf-r">Web Supervisor · Color + Fabric Tracking · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
