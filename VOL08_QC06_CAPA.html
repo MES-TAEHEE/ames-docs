@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.8 · QC-06 · CAPA Management · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--qc:#dc2626;--mod:#dc2626;--mod-lt:#fee2e2;--mod-dk:#991b1b;--mod-tint:#fca5a5;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(252,165,165,.7);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#1f0a0a 0%,#180808 50%,#1f0a0a 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(220,38,38,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(220,38,38,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(220,38,38,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(220,38,38,.12),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(220,38,38,.3);color:var(--mod-tint);background:rgba(220,38,38,.08);}
+.meta-chip.crit{border-color:rgba(220,38,38,.45);color:#fca5a5;background:rgba(220,38,38,.15);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}.br-act.mlt{background:#fce7f3;color:#9d174d;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-w{background:#fef9c3;border-color:#f59e0b;color:#92400e;}
+.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#eff6ff;border-color:#3b82f6;}
+.lnk-node.cur{background:linear-gradient(135deg,#1f0a0a,#180808);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(220,38,38,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#1d4ed8;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);}
+.dm-pk{color:#f59e0b;font-size:8px;font-weight:700;}.dm-fk{color:#8b5cf6;font-size:8px;font-weight:700;}
+
+.web-mock{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.web-tbar{background:#f0f3f7;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);font-size:11px;}
+.web-tbar-l{font-weight:700;color:var(--text);}
+.web-tbar .bc{color:var(--sub);font-size:10px;margin-left:8px;}
+.web-tbar-r{font-size:10px;color:var(--sub);}
+.web-bd{padding:18px;background:#fbfcfd;}
+.web-card{background:#fff;border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:12px;}
+.web-card-h{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.po-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;font-size:11px;margin-bottom:6px;}
+.po-l{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;}
+.po-v{font-weight:700;color:var(--text);margin-top:2px;}
+.tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;}
+.tbl th{background:#f0f3f7;padding:7px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.tbl td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:top;}
+.tbl .th-ko{font-size:9px;color:var(--sub);display:block;margin-top:1px;font-weight:400;}
+.tbl .ko{font-size:9px;color:var(--sub);}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.b-ok{background:#dcfce7;color:#166534;}.b-w{background:#fef9c3;color:#92400e;}.b-e{background:#fee2e2;color:#991b1b;}.b-i{background:#dbeafe;color:#1e40af;}.b-p{background:#f3f4f6;color:#4b5563;}
+.btn{padding:7px 14px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;}
+.btn-primary{background:var(--mod);border-color:var(--mod-dk);color:#fff;}
+.btn-success{background:#22c55e;border-color:#16a34a;color:#fff;}
+
+/* 5-Why fishbone */
+.why-tree{background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:14px 18px;margin-bottom:14px;}
+.why-row{display:grid;grid-template-columns:80px 24px 1fr;gap:10px;padding:8px 0;border-bottom:1px dashed #fca5a5;align-items:flex-start;}
+.why-row:last-child{border-bottom:none;}
+.why-lbl{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;color:var(--mod-dk);text-align:right;padding-top:2px;}
+.why-arr{color:var(--mod);font-size:18px;font-weight:700;text-align:center;}
+.why-t{font-size:12px;color:var(--text);font-weight:600;}
+.why-ko{font-size:10px;color:var(--sub);margin-top:2px;}
+
+/* PDCA flow */
+.pdca-flow{display:flex;justify-content:center;gap:0;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+.pdca{padding:14px 20px;border-radius:50%;width:90px;height:90px;display:flex;flex-direction:column;justify-content:center;align-items:center;font-family:'Bebas Neue',sans-serif;font-size:32px;color:#fff;}
+.pdca.p{background:linear-gradient(135deg,#2563eb,#1d4ed8);}
+.pdca.d{background:linear-gradient(135deg,#22c55e,#16a34a);}
+.pdca.c{background:linear-gradient(135deg,#f59e0b,#d97706);}
+.pdca.a{background:linear-gradient(135deg,#dc2626,#991b1b);}
+.pdca-sub{font-size:9px;font-family:'Noto Sans KR',sans-serif;letter-spacing:.5px;opacity:.85;}
+.pdca-arr{font-size:24px;color:var(--sub);padding:0 8px;}
+
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol active"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL08_QC_Quality.html">VOL.8 · QC</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">QC-06 · CAPA Management</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.8 · QC · L3</div><div class="sb-mod-en">QUALITY CONTROL</div><div class="sb-mod-ko">품질 관리</div></div>
+  <div class="sb-section">Inspection · 검사</div>
+  <a class="sb-link" href="VOL08_QC01_Incoming_Inspection.html"><span class="sl-id">QC-01</span><div><div class="sl-en">Incoming</div><div class="sl-ko">수입검사</div></div></a>
+  <a class="sb-link" href="VOL08_QC02_InProcess_Inspection.html"><span class="sl-id">QC-02</span><div><div class="sl-en">In-Process</div><div class="sl-ko">공정검사</div></div></a>
+  <a class="sb-link" href="VOL08_QC03_Final_Inspection.html"><span class="sl-id">QC-03</span><div><div class="sl-en">Final ⚙</div><div class="sl-ko">최종검사</div></div></a>
+  <div class="sb-section">Defect &amp; CAPA · 부적합</div>
+  <a class="sb-link" href="VOL08_QC04_NCR_Register.html"><span class="sl-id">QC-04</span><div><div class="sl-en">NCR Register</div><div class="sl-ko">부적합 등록</div></div></a>
+  <a class="sb-link" href="VOL08_QC05_Hold_Quarantine.html"><span class="sl-id">QC-05</span><div><div class="sl-en">Hold 🚫</div><div class="sl-ko">격리</div></div></a>
+  <a class="sb-link on" href="VOL08_QC06_CAPA.html"><span class="sl-id">QC-06</span><div><div class="sl-en">CAPA</div><div class="sl-ko">시정조치</div></div></a>
+  <div class="sb-section">Monitor &amp; Reference</div>
+  <a class="sb-link" href="VOL08_QC07_Dashboard.html"><span class="sl-id">QC-07</span><div><div class="sl-en">Dashboard</div><div class="sl-ko">현황판</div></div></a>
+  <a class="sb-link" href="VOL08_QC08_Inspection_Std.html"><span class="sl-id">QC-08</span><div><div class="sl-en">Insp. Standard</div><div class="sl-ko">검사기준서</div></div></a>
+  <a class="sb-link" href="VOL08_QC_TRC_Traceability.html"><span class="sl-id">QC-TRC</span><div><div class="sl-en">Traceability</div><div class="sl-ko">이력 추적</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
+    <a href="#sec-2"><span class="num">02</span>Field Spec</a>
+    <a href="#sec-3"><span class="num">03</span>PDCA Cycle</a>
+    <a href="#sec-4"><span class="num">04</span>Workflow</a>
+    <a href="#sec-5"><span class="num">05</span>Business Rules</a>
+    <a href="#sec-6"><span class="num">06</span>Data Model</a>
+    <a href="#sec-7"><span class="num">07</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.8 · QC · L3 · Corrective &amp; Preventive Action (CAPA)</div>
+      <div class="scr-id-block"><div class="scr-id">QC-06</div><div class="scr-title-en">CAPA Management</div></div>
+      <div class="scr-title-ko">시정·예방조치 — 5-Why 근본원인 + PDCA + Effectiveness 검증</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">UI</span><span class="mc-val">🖥 Web PC</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">2nd Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">QC Lead · 부서 담당자 · QC Manager</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Auto-Trigger</span><span class="mc-val">30d 동일 불량 3회 이상</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Outputs</span><span class="mc-val">시정조치 + 예방조치 + 효과성 검증</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          Corrective and Preventive Action workflow following the PDCA (Plan-Do-Check-Act) cycle. Auto-recommended by the system when the same defect code recurs ≥ 3 times in a 30-day rolling window, or manually opened by QC Lead for high-severity NCRs. Captures 5-Why root cause analysis, immediate Corrective Action, long-term Preventive Action, responsible party, due date, and Effectiveness Verification at 30/60/90 days post-implementation. Critical for IATF 16949 audit and customer claims.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          PDCA(Plan-Do-Check-Act) 사이클을 따르는 시정·예방조치 워크플로우. 30일 이동 동일 불량 3회 이상 발생 시 시스템 자동 권고, 또는 고심각도 NCR에 대해 QC Lead가 수동 발의. 5-Why 근본원인 분석, 즉시 시정조치, 장기 예방조치, 담당자, 기한, 그리고 실행 후 30/60/90일 시점 효과성 검증 포함. IATF 16949 감사 및 고객 클레임 대응 핵심 산출물.
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — 5-Why + PDCA 워크플로우</span></div>
+
+      <div class="web-mock">
+        <div class="web-tbar">
+          <div class="web-tbar-l">🔧 A-MES · Quality · CAPA<span class="bc">QC › CAPA › CAPA-2026-0519-008</span></div>
+          <div class="web-tbar-r">QC.Han · QC Manager · 09:14</div>
+        </div>
+        <div class="web-bd">
+          <!-- PDCA flow -->
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ PDCA CYCLE · 현재 단계</span><span style="color:#92400e;font-weight:700;">현재: Check (효과성 검증 30일차)</span></div>
+            <div class="pdca-flow">
+              <div class="pdca p" style="opacity:.5;">P<div class="pdca-sub">PLAN</div></div>
+              <div class="pdca-arr">→</div>
+              <div class="pdca d" style="opacity:.5;">D<div class="pdca-sub">DO</div></div>
+              <div class="pdca-arr">→</div>
+              <div class="pdca c" style="box-shadow:0 0 0 4px rgba(245,158,11,.3);">C<div class="pdca-sub">CHECK</div></div>
+              <div class="pdca-arr">→</div>
+              <div class="pdca a" style="opacity:.4;">A<div class="pdca-sub">ACT</div></div>
+            </div>
+          </div>
+
+          <!-- CAPA Header -->
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ CAPA HEADER · 헤더 정보</span><span style="color:var(--mod-dk);font-weight:800;">⚠ Auto-recommended (3 NCRs in 30d)</span></div>
+            <div class="po-grid">
+              <div><div class="po-l">CAPA ID</div><div class="po-v">CAPA-2026-0519-008</div></div>
+              <div><div class="po-l">Type</div><div class="po-v">Corrective + Preventive</div></div>
+              <div><div class="po-l">Triggered By</div><div class="po-v" style="color:var(--mod-dk);">3× NCR (PNT-D05 미경화)</div></div>
+              <div><div class="po-l">Status</div><div class="po-v"><span class="b b-w">🟡 Check Phase</span></div></div>
+              <div><div class="po-l">Affected Item</div><div class="po-v">Door Trim LH (PNT-coated)</div></div>
+              <div><div class="po-l">Customer Impact</div><div class="po-v" style="color:var(--mod-dk);">HIGH (SAV)</div></div>
+              <div><div class="po-l">Owner</div><div class="po-v">PNT Manager · Mr. Lee</div></div>
+              <div><div class="po-l">Due Date</div><div class="po-v">2026-06-18 (30d)</div></div>
+            </div>
+            <div style="margin-top:8px;font-size:11px;color:var(--sub);">📋 Linked NCRs: <a href="VOL08_QC04_NCR_Register.html" style="color:var(--mod-dk);">NCR-2026-0419-0021</a>, <a href="VOL08_QC04_NCR_Register.html" style="color:var(--mod-dk);">NCR-2026-0502-0033</a>, <a href="VOL08_QC04_NCR_Register.html" style="color:var(--mod-dk);">NCR-2026-0519-0042</a></div>
+          </div>
+
+          <!-- 5-Why -->
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ 5-WHY ROOT CAUSE ANALYSIS · 근본 원인 분석</span><span style="color:var(--sub);">Why-Because chain</span></div>
+            <div class="why-tree">
+              <div class="why-row">
+                <div class="why-lbl">PROBLEM</div>
+                <div class="why-arr">!</div>
+                <div><div class="why-t">PNT-D05 미경화 (Insufficient Cure) — 30일 내 동일 불량 3회 발생.</div><div class="why-ko">도장 미경화 불량이 30일 동안 3차례 반복 발생.</div></div>
+              </div>
+              <div class="why-row">
+                <div class="why-lbl">WHY 1</div>
+                <div class="why-arr">→</div>
+                <div><div class="why-t">Oven temperature dropped to 173°C for 4 minutes during cure cycle.</div><div class="why-ko">왜? 오븐 온도가 cure 사이클 중 173°C로 4분간 하락.</div></div>
+              </div>
+              <div class="why-row">
+                <div class="why-lbl">WHY 2</div>
+                <div class="why-arr">→</div>
+                <div><div class="why-t">Burner gas pressure regulator drifted out of spec; PLC compensation lagged.</div><div class="why-ko">왜? 버너 가스 압력 레귤레이터가 사양 이탈, PLC 보정 지연.</div></div>
+              </div>
+              <div class="why-row">
+                <div class="why-lbl">WHY 3</div>
+                <div class="why-arr">→</div>
+                <div><div class="why-t">Regulator inspection interval is 6 months, but field stress halves its true life.</div><div class="why-ko">왜? 레귤레이터 점검 주기 6개월이나 현장 부하로 실 수명이 절반.</div></div>
+              </div>
+              <div class="why-row">
+                <div class="why-lbl">WHY 4</div>
+                <div class="why-arr">→</div>
+                <div><div class="why-t">MNT preventive plan based on supplier spec, not actual field data.</div><div class="why-ko">왜? MNT 예방계획이 공급사 사양 기준, 실제 현장 데이터 미반영.</div></div>
+              </div>
+              <div class="why-row">
+                <div class="why-lbl">ROOT</div>
+                <div class="why-arr">⛏</div>
+                <div><div class="why-t" style="color:var(--mod-dk);font-weight:800;">📌 No data feedback loop between PLC trend logs and MNT preventive plan.</div><div class="why-ko">근본원인: PLC 트렌드 로그와 MNT 예방계획 간 데이터 피드백 루프 부재.</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ CORRECTIVE &amp; PREVENTIVE ACTIONS · 시정 + 예방 조치</span><span style="color:var(--sub);">담당자 + 기한</span></div>
+            <table class="tbl">
+              <thead><tr><th>#</th><th>Type</th><th>Action (EN)<span class="th-ko">조치</span></th><th>Owner<span class="th-ko">담당자</span></th><th>Due<span class="th-ko">기한</span></th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td>1</td><td><span class="b b-e">Corrective</span></td><td>Replace gas pressure regulator on PNT-Oven-A; recalibrate PLC PID gains.<div class="ko">PNT-Oven-A 가스 압력 레귤레이터 교체, PLC PID 게인 재조정.</div></td><td>MNT.Park</td><td>2026-05-22</td><td><span class="b b-ok">✅ Done</span></td></tr>
+                <tr><td>2</td><td><span class="b b-e">Corrective</span></td><td>100% re-inspect all WOs from past 14 days; release only PASS to FG.<div class="ko">14일치 WO 전수 재검사, 합격분만 FG 입고 허용.</div></td><td>QC.Choi</td><td>2026-05-25</td><td><span class="b b-ok">✅ Done</span></td></tr>
+                <tr><td>3</td><td><span class="b b-i">Preventive</span></td><td>Reduce regulator inspection interval from 6 mo → 3 mo for all paint ovens.<div class="ko">전 도장 오븐 레귤레이터 점검 주기 6→3개월 단축.</div></td><td>MNT Manager</td><td>2026-06-01</td><td><span class="b b-ok">✅ Done</span></td></tr>
+                <tr><td>4</td><td><span class="b b-i">Preventive</span></td><td>Build PLC-MNT feedback link: temp deviation auto-flags regulator for early inspection.<div class="ko">PLC↔MNT 피드백 링크 구축: 온도 이탈 시 레귤레이터 조기 점검 자동 플래그.</div></td><td>IT.Kim + MNT</td><td>2026-06-15</td><td><span class="b b-w">⚙ In Progress</span></td></tr>
+                <tr><td>5</td><td><span class="b b-i">Preventive</span></td><td>Update PNT operator SOP: define "deviation watch" procedure with thresholds.<div class="ko">PNT 작업자 SOP 갱신: 임계값 포함 "이탈 감시" 절차 정의.</div></td><td>PNT Manager</td><td>2026-06-10</td><td><span class="b b-w">⚙ In Progress</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Effectiveness -->
+          <div class="web-card" style="border:2px solid #f59e0b;background:linear-gradient(135deg,#fffbeb,#fff);">
+            <div class="web-card-h"><span>▼ EFFECTIVENESS VERIFICATION · 효과성 검증</span><span style="color:#92400e;font-weight:800;">현재: 30일차 점검 (Check)</span></div>
+            <table class="tbl">
+              <thead><tr><th>Check Point</th><th>Metric<span class="th-ko">지표</span></th><th>Target<span class="th-ko">목표</span></th><th>Actual<span class="th-ko">실적</span></th><th>Verdict</th></tr></thead>
+              <tbody>
+                <tr><td>D+30 (현재)</td><td>PNT-D05 발생 건수<br><span class="ko">미경화 불량 건수</span></td><td>0건</td><td style="color:#15803d;font-weight:800;">0건</td><td><span class="b b-ok">✅ Effective</span></td></tr>
+                <tr><td>D+60 (예정)</td><td>오븐 온도 ±5°C 이탈<br><span class="ko">이탈 발생</span></td><td>≤ 1 회/월</td><td>—</td><td><span class="b b-p">⏱ Pending</span></td></tr>
+                <tr><td>D+90 (예정)</td><td>FPY (First Pass Yield)<br><span class="ko">최초 양품률</span></td><td>≥ 99.5%</td><td>—</td><td><span class="b b-p">⏱ Pending</span></td></tr>
+              </tbody>
+            </table>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+              <button class="btn">📎 Attach Trend Chart</button>
+              <button class="btn btn-primary">✅ Confirm D+30 (Effective)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 CAPA Quality Standards · 품질 기준</span>
+        ① 5-Why는 최소 3 Why까지 추궁 — 1-2 Why에서 끝나면 근본원인 미달성으로 반려 ② Corrective(즉시) + Preventive(시스템) 둘 다 필수 — 한 쪽만 있으면 미완성 ③ Effectiveness Verification은 D+30/60/90 모두 통과해야 CLOSED 가능 (BR-QC-19) ④ 동일 근본원인의 반복 CAPA는 "Repeat Offender"로 등급 상향 → 공장장 보고 ⑤ 고객 영향 HIGH인 CAPA는 보고서 PDF 자동 생성 (고객 제출용)</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Field Specification</span><span class="sec-ko">필드 사양</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:22%;">Field</th><th style="width:14%;">Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">CAPAID</td><td class="fld-type">VARCHAR(24)</td><td>자동 채번. CAPA-YYYYMMDD-SEQ.</td></tr>
+          <tr><td class="fld-name">Type</td><td class="fld-type">ENUM</td><td>CORRECTIVE / PREVENTIVE / BOTH (자동 권고 시 항상 BOTH).</td></tr>
+          <tr><td class="fld-name">TriggerType</td><td class="fld-type">ENUM</td><td>AUTO_3_NCR / MANUAL / CUSTOMER_REQUEST / AUDIT_FINDING.</td></tr>
+          <tr><td class="fld-name">LinkedNCRIDs</td><td class="fld-type">JSON</td><td>연관 NCR ID 배열 (자동 시 3건).</td></tr>
+          <tr><td class="fld-name">Phase</td><td class="fld-type">ENUM</td><td>PLAN / DO / CHECK / ACT (PDCA).</td></tr>
+          <tr><td class="fld-name">Status</td><td class="fld-type">ENUM</td><td>DRAFT / OPEN / IN_PROGRESS / EFFECTIVENESS_PENDING / CLOSED / REPEAT.</td></tr>
+          <tr><td class="fld-name">FiveWhyJSON</td><td class="fld-type">JSON</td><td>5-Why 분석 결과. [problem, why1, why2, why3, why4, root_cause].</td></tr>
+          <tr><td class="fld-name">RootCause</td><td class="fld-type">TEXT</td><td>최종 식별된 근본원인 (검색 인덱싱).</td></tr>
+          <tr><td class="fld-name">Cause4M</td><td class="fld-type">ENUM</td><td>MAN / MACHINE / MATERIAL / METHOD.</td></tr>
+          <tr><td class="fld-name">ActionsJSON</td><td class="fld-type">JSON</td><td>조치 배열 [{type:CORRECTIVE/PREVENTIVE, desc, owner, due, status}].</td></tr>
+          <tr><td class="fld-name">EffectivenessJSON</td><td class="fld-type">JSON</td><td>D+30/60/90 검증 결과 [{day, metric, target, actual, verdict}].</td></tr>
+          <tr><td class="fld-name">OwnerID</td><td class="fld-type">VARCHAR(20)</td><td>총괄 담당자 (보통 부서장).</td></tr>
+          <tr><td class="fld-name">QCManagerID</td><td class="fld-type">VARCHAR(20)</td><td>승인자 (QC Manager).</td></tr>
+          <tr><td class="fld-name">CustomerImpact</td><td class="fld-type">ENUM</td><td>NONE / LOW / MEDIUM / HIGH.</td></tr>
+          <tr><td class="fld-name">CustomerNotified</td><td class="fld-type">BIT</td><td>고객 보고 여부 (HIGH 시 자동 1).</td></tr>
+          <tr><td class="fld-name">OpenTS · DueDate · ClosedTS</td><td class="fld-type">DATETIME</td><td>발의 / 기한 / 종료.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">PDCA Cycle Detail</span><span class="sec-ko">PDCA 단계별 상세</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:18%;">Phase</th><th style="width:34%;">Key Deliverables</th><th>Exit Criteria · 단계 완료 조건</th></tr></thead>
+        <tbody>
+          <tr><td><strong style="color:#1d4ed8;">P · PLAN</strong></td><td>5-Why 완료, 근본원인 확정, 조치 계획 수립, 담당자/기한 배정</td><td>QC Manager 승인 + ≥ 1 Corrective + ≥ 1 Preventive (BR-QC-18).</td></tr>
+          <tr><td><strong style="color:#15803d;">D · DO</strong></td><td>모든 조치 실행, 증빙 첨부 (사진/보고서/MNT WO ID 등)</td><td>전 조치 Status = Done. 미실행 항목은 Phase 전환 불가.</td></tr>
+          <tr><td><strong style="color:#92400e;">C · CHECK</strong></td><td>D+30/60/90 효과성 검증 측정, Trend Chart 첨부</td><td>모든 측정 통과 (BR-QC-19). 1건이라도 Fail → 재 PLAN으로 회귀.</td></tr>
+          <tr><td><strong style="color:#991b1b;">A · ACT</strong></td><td>표준 SOP 반영, 횡전개(타 라인/제품), CAPA 종결 결재</td><td>SOP 갱신 ID 첨부 + QC Manager 최종 결재 → CLOSED.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">Trigger: 3 NCRs (same defect, 30-day window) auto-recommend CAPA OR QC Lead opens manually for high-severity.</div><div class="wf-ko">트리거: 30일 내 동일 불량 3건 자동 권고 또는 QC Lead가 고심각도에 수동 발의.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">PLAN: Owner conducts 5-Why analysis (min 3-Why depth), identifies root cause + 4M classification.</div><div class="wf-ko">PLAN: 담당자가 5-Why 분석 (최소 3-Why), 근본원인 + 4M 분류 식별.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Define Corrective (immediate) + Preventive (system) actions with owners and due dates; QC Manager approves.</div><div class="wf-ko">시정(즉시) + 예방(시스템) 조치 정의, 담당자·기한 부여, QC Manager 승인.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">DO: Owners execute, attach evidence (photos, MNT WOIDs, SOP IDs); status auto-tracked.</div><div class="wf-ko">DO: 담당자 실행, 증빙 첨부 (사진/MNT WO/SOP ID), 상태 자동 추적.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">CHECK: At D+30 → measure effectiveness; PASS → continue to D+60 → D+90; FAIL → return to PLAN.</div><div class="wf-ko">CHECK: D+30 효과성 측정, PASS 시 D+60→D+90 계속, FAIL 시 PLAN으로 회귀.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">ACT: Update SOP/Insp Std, deploy laterally (other lines/products), QC Manager final approval.</div><div class="wf-ko">ACT: SOP/검사기준 갱신, 횡전개 (타 라인/제품), QC Manager 최종 결재.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Status → CLOSED, sealed for ≥ 5 years; visible in QC-07 dashboard and QC-TRC traceability.</div><div class="wf-ko">CLOSED 전환, 5년 이상 봉인 보관, QC-07 대시보드 + QC-TRC에서 조회.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">If same root cause recurs in another CAPA within 1 year → Status: REPEAT, escalated to Plant Manager.</div><div class="wf-ko">1년 내 동일 근본원인이 다른 CAPA에서 재발하면 REPEAT 등급 → 공장장 보고.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-QC-03</td><td><div>3 NCRs (same defect code) within 30-day rolling window auto-recommend CAPA.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">30일 동일 불량 3회 → CAPA 자동 권고.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-QC-18</td><td><div>CAPA must include ≥1 Corrective AND ≥1 Preventive action. Cannot proceed PLAN→DO without both.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">시정·예방 각 1개 이상 필수, 미충족 시 DO 단계 진입 불가.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-QC-19</td><td><div>Effectiveness verification at D+30/60/90 all must pass to CLOSE; any FAIL returns CAPA to PLAN.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">D+30/60/90 효과성 모두 통과해야 CLOSED, 1건 FAIL 시 PLAN 회귀.</div></td><td><span class="br-act blk">Verify</span></td></tr>
+          <tr><td class="br-id">BR-QC-20</td><td><div>Same root cause recurring within 1 year → Status: REPEAT, escalated to Plant Manager.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">1년 내 동일 근본원인 재발 시 REPEAT 등급 + 공장장 보고.</div></td><td><span class="br-act alt">Escalate</span></td></tr>
+          <tr><td class="br-id">BR-QC-21</td><td><div>Customer Impact = HIGH → CAPA report PDF auto-generated and routed to sales/customer team.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">고객 영향 HIGH 시 CAPA 보고서 PDF 자동 생성 + 영업/고객팀 라우팅.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-QC-08</td><td><div>Closed CAPA records (with 5-Why, actions, evidence, effectiveness) retained ≥ 5 years.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">CLOSED CAPA 기록 (5-Why·조치·증빙·효과성) 5년 이상 보관.</div></td><td><span class="br-act aut">Retain</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Table</th><th>Key Columns</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">QC_CAPA</span></td><td><span class="dm-pk">PK</span> CAPAID · Type · TriggerType · LinkedNCRIDs(JSON) · Phase · Status · FiveWhyJSON · RootCause · Cause4M · ActionsJSON · EffectivenessJSON · OwnerID · QCManagerID · CustomerImpact · CustomerNotified · OpenTS · DueDate · ClosedTS</td><td>CAPA 메인 + 5-Why + Actions + Effectiveness.</td></tr>
+          <tr><td><span class="dm-col">QC_CAPA_Action</span></td><td><span class="dm-pk">PK</span> ActionID · <span class="dm-fk">FK</span> CAPAID · ActionType · Description · OwnerID · DueDate · CompletedTS · EvidenceURL</td><td>조치 정규화 (ActionsJSON 정규화 옵션).</td></tr>
+          <tr><td><span class="dm-col">QC_CAPA_Effectiveness</span></td><td><span class="dm-pk">PK</span> EffID · <span class="dm-fk">FK</span> CAPAID · CheckDay · Metric · Target · Actual · Verdict · CheckedBy</td><td>D+30/60/90 검증 기록.</td></tr>
+          <tr><td><span class="dm-col">QC_NCR</span> <em style="opacity:.6;">(update)</em></td><td>CAPAID</td><td>CAPA 연계 NCR에 ID 역참조.</td></tr>
+          <tr><td><span class="dm-col">MD_SOP</span> <em style="opacity:.6;">(update)</em></td><td>SOPVersion · CAPALinkID</td><td>SOP 갱신 시 CAPA 추적 링크.</td></tr>
+          <tr><td><span class="dm-col">QC_CAPA_Cluster</span> <em style="opacity:.6;">(read)</em></td><td><span class="dm-pk">PK</span> ClusterID · RootCauseFingerprint · CAPAIDs[]</td><td>유사 근본원인 클러스터링 (REPEAT 검출).</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">QC-04</div><div class="lnk-name">3 NCRs / 30d</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">QC-06</div><div class="lnk-name">CAPA</div><div class="lnk-ko">PDCA 사이클</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">MD-SOP</div><div class="lnk-name">SOP Update</div><div class="lnk-ko">표준 갱신</div></div>
+        </div>
+        <div class="lnk-row" style="margin-top:14px;">
+          <div class="lnk-node cur"><div class="lnk-id">CAPA Actions</div><div class="lnk-name">→ Downstream</div></div>
+          <div class="lnk-arr">↘</div>
+          <div class="lnk-node down"><div class="lnk-id">MNT</div><div class="lnk-name">예방정비 WO</div></div>
+          <div class="lnk-node down"><div class="lnk-id">SYS</div><div class="lnk-name">IT 인프라</div></div>
+          <div class="lnk-node down"><div class="lnk-id">QC-08</div><div class="lnk-name">Insp Std Update</div></div>
+          <div class="lnk-node down"><div class="lnk-id">Customer</div><div class="lnk-name">CAPA 보고서</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.8 · QC-06 · CAPA Management · L3 Spec v1.0 · PDCA + 5-Why</div><div class="pf-r">Web PC · Phase 2 · IATF 16949 Compliant · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
