@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.9 · FG-02 · FG Inventory · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--fg:#0db87a;--mod:#0db87a;--mod-lt:#dcfce7;--mod-dk:#065f46;--mod-tint:#6ee7b7;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(110,231,183,.7);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#062a1a 0%,#04241a 50%,#062a1a 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(13,184,122,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(13,184,122,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(13,184,122,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(13,184,122,.14),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(13,184,122,.35);color:var(--mod-tint);background:rgba(13,184,122,.1);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod-dk);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#dcfce7;border-color:#22c55e;}
+.lnk-node.cur{background:linear-gradient(135deg,#062a1a,#04241a);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(13,184,122,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#15803d;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);}
+.dm-pk{color:#f59e0b;font-size:8px;font-weight:700;}.dm-fk{color:#8b5cf6;font-size:8px;font-weight:700;}
+
+.web-mock{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.web-tbar{background:#f0f3f7;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);font-size:11px;}
+.web-tbar-l{font-weight:700;color:var(--text);}
+.web-tbar .bc{color:var(--sub);font-size:10px;margin-left:8px;}
+.web-tbar-r{font-size:10px;color:var(--sub);}
+.web-bd{padding:18px;background:#fbfcfd;}
+.web-card{background:#fff;border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:12px;}
+.web-card-h{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+
+.kpi4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;}
+.kpi4-tile{background:#fff;border:1px solid var(--border);border-top:3px solid var(--mod);border-radius:0 0 6px 6px;padding:10px 14px;}
+.kpi4-tile.warn{border-top-color:#f59e0b;}.kpi4-tile.alert{border-top-color:#dc2626;}.kpi4-tile.ok{border-top-color:#22c55e;}
+.kpi-l{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--sub);letter-spacing:.7px;text-transform:uppercase;}
+.kpi-v{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--text);line-height:1;margin-top:4px;}
+.kpi-v.green{color:#16a34a;}.kpi-v.yellow{color:#a16207;}.kpi-v.red{color:#dc2626;}
+.kpi-s{font-size:9px;color:var(--sub);margin-top:2px;}
+
+.tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;}
+.tbl th{background:#f0f3f7;padding:7px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.tbl td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:top;}
+.tbl .th-ko{font-size:9px;color:var(--sub);display:block;margin-top:1px;font-weight:400;}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.b-ok{background:#dcfce7;color:#166534;}.b-w{background:#fef9c3;color:#92400e;}.b-e{background:#fee2e2;color:#991b1b;}.b-i{background:#dbeafe;color:#1e40af;}.b-rsv{background:#f3e8ff;color:#6b21a8;}
+.btn{padding:7px 14px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;}
+.btn-primary{background:var(--mod);border-color:var(--mod-dk);color:#fff;}
+
+/* Heatmap */
+.heatmap{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;padding:10px;background:#fff;border:1px solid var(--border);border-radius:6px;margin-bottom:12px;}
+.slot{aspect-ratio:1;border-radius:3px;font-size:8px;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:700;color:#fff;cursor:pointer;}
+.slot.empty{background:#f3f4f6;color:#9ca3af;}
+.slot.s25{background:#bbf7d0;color:#065f46;}
+.slot.s50{background:#86efac;color:#065f46;}
+.slot.s75{background:#22c55e;color:#fff;}
+.slot.s100{background:#16a34a;}
+.slot.rsv{background:#a855f7;}
+.slot.hold{background:#dc2626;}
+
+.legend{display:flex;gap:10px;font-size:9px;color:var(--sub);font-family:'JetBrains Mono',monospace;flex-wrap:wrap;margin-bottom:12px;}
+.legend span{display:flex;align-items:center;gap:4px;}
+.legend .sw{width:12px;height:12px;border-radius:2px;}
+
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol active"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL09_FG_Finished_Goods.html">VOL.9 · FG</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">FG-02 · Inventory</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.9 · FG · L3</div><div class="sb-mod-en">FINISHED GOODS</div><div class="sb-mod-ko">완제품 관리</div></div>
+  <div class="sb-section">Inbound · 적재</div>
+  <a class="sb-link" href="VOL09_FG01_PDA_Stocking.html"><span class="sl-id">FG-01</span><div><div class="sl-en">PDA Stocking</div><div class="sl-ko">완제품 적재</div></div></a>
+  <a class="sb-link on" href="VOL09_FG02_Inventory.html"><span class="sl-id">FG-02</span><div><div class="sl-en">Inventory</div><div class="sl-ko">재고 현황</div></div></a>
+  <div class="sb-section">Outbound · 출하</div>
+  <a class="sb-link" href="VOL09_FG03_Shipment_Order.html"><span class="sl-id">FG-03</span><div><div class="sl-en">Ship. Order</div><div class="sl-ko">출하 지시</div></div></a>
+  <a class="sb-link" href="VOL09_FG04_PDA_FIFO_Picking.html"><span class="sl-id">FG-04</span><div><div class="sl-en">FIFO Pick ⚙</div><div class="sl-ko">피킹</div></div></a>
+  <a class="sb-link" href="VOL09_FG05_Loading.html"><span class="sl-id">FG-05</span><div><div class="sl-en">Loading</div><div class="sl-ko">상차 확인</div></div></a>
+  <a class="sb-link" href="VOL09_FG06_Delivery_Note.html"><span class="sl-id">FG-06</span><div><div class="sl-en">Delivery Note</div><div class="sl-ko">거래명세서</div></div></a>
+  <div class="sb-section">Closing &amp; Audit</div>
+  <a class="sb-link" href="VOL09_FG07_Day_End_Close.html"><span class="sl-id">FG-07</span><div><div class="sl-en">Day-End</div><div class="sl-ko">일 마감</div></div></a>
+  <a class="sb-link" href="VOL09_FG08_Shipment_History.html"><span class="sl-id">FG-08</span><div><div class="sl-en">Ship History</div><div class="sl-ko">출하 이력</div></div></a>
+  <a class="sb-link" href="VOL09_FG09_Dashboard.html"><span class="sl-id">FG-09</span><div><div class="sl-en">Dashboard</div><div class="sl-ko">현황판</div></div></a>
+  <a class="sb-link" href="VOL09_FG_RTN_Return.html"><span class="sl-id">FG-RTN</span><div><div class="sl-en">Return ↩</div><div class="sl-ko">반품 (Aux)</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
+    <a href="#sec-2"><span class="num">02</span>Stock Status</a>
+    <a href="#sec-3"><span class="num">03</span>Refresh &amp; Reservation</a>
+    <a href="#sec-4"><span class="num">04</span>Workflow</a>
+    <a href="#sec-5"><span class="num">05</span>Business Rules</a>
+    <a href="#sec-6"><span class="num">06</span>Data Model</a>
+    <a href="#sec-7"><span class="num">07</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.9 · FG · L3 · Real-Time Finished Goods Inventory</div>
+      <div class="scr-id-block"><div class="scr-id">FG-02</div><div class="scr-title-en">FG Inventory</div></div>
+      <div class="scr-title-ko">완제품 재고 — Available/Reserved/Hold + 위치별 히트맵</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">UI</span><span class="mc-val">🖥 Web PC</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">1st Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">FG Manager · Sales · QC (read)</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Refresh</span><span class="mc-val">Live (WS) + 30s fallback</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          Real-time finished goods inventory view. Stock segmented by Status: <strong>Available</strong> (ready to ship), <strong>Reserved</strong> (linked to open FG-03 Shipment Order), <strong>Hold</strong> (QC-05 quarantine blocked). Visual zone heatmap + item-level table + customer-aged inventory. Reservation auto-locks Available qty when FG-03 confirms; release on FG-04 Picking complete or order cancel. Read-only access for Sales (customer-scoped) and QC (Hold scope).
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          실시간 완제품 재고. Status 분리: <strong>Available</strong>(출하 가능), <strong>Reserved</strong>(FG-03 출하지시 연결), <strong>Hold</strong>(QC-05 격리 차단). 위치 zone 히트맵 + 품목 테이블 + 고객별 체류일수. FG-03 확정 시 Available 자동 Reserved 락, FG-04 피킹 완료 또는 주문 취소 시 해제. Sales(고객 범위)·QC(Hold 범위) 읽기 전용.
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — Web 통합 뷰</span></div>
+      <div class="web-mock">
+        <div class="web-tbar">
+          <div class="web-tbar-l">📦 A-MES · FG · Inventory<span class="bc">FG › Inventory · Live</span></div>
+          <div class="web-tbar-r">🟢 Live · FG.Park · FG Manager · 17:42</div>
+        </div>
+        <div class="web-bd">
+          <!-- KPI -->
+          <div class="kpi4">
+            <div class="kpi4-tile ok"><div class="kpi-l">Available</div><div class="kpi-v green">8,420 <span style="font-size:11px;color:var(--sub);">EA</span></div><div class="kpi-s">출하 가능</div></div>
+            <div class="kpi4-tile warn"><div class="kpi-l">Reserved</div><div class="kpi-v yellow">3,200 <span style="font-size:11px;color:var(--sub);">EA</span></div><div class="kpi-s">예약 (FG-03)</div></div>
+            <div class="kpi4-tile alert"><div class="kpi-l">Hold (QC-05)</div><div class="kpi-v red">1,240 <span style="font-size:11px;color:var(--sub);">EA</span></div><div class="kpi-s">5 holds · 출하 불가</div></div>
+            <div class="kpi4-tile"><div class="kpi-l">Slot Utilization</div><div class="kpi-v">68 <span style="font-size:11px;color:var(--sub);">%</span></div><div class="kpi-s">128/192 슬롯 사용</div></div>
+          </div>
+
+          <!-- Heatmap -->
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ ZONE HEATMAP · 위치별 점유 시각화</span><span style="color:var(--sub);">SAV Zone (Bay A-B) · 192 slots</span></div>
+            <div class="heatmap">
+              <div class="slot s100">A1</div><div class="slot s75">A2</div><div class="slot s50">A3</div><div class="slot s100">A4</div><div class="slot s100">A5</div><div class="slot rsv">A6</div><div class="slot s100">A7</div><div class="slot s75">A8</div><div class="slot s25">A9</div><div class="slot empty">A10</div><div class="slot empty">A11</div><div class="slot empty">A12</div>
+              <div class="slot s100">B1</div><div class="slot s100">B2</div><div class="slot s100">B3</div><div class="slot rsv">B4</div><div class="slot rsv">B5</div><div class="slot s75">B6</div><div class="slot s50">B7</div><div class="slot s25">B8</div><div class="slot empty">B9</div><div class="slot hold">B10</div><div class="slot hold">B11</div><div class="slot empty">B12</div>
+              <div class="slot s100">C1</div><div class="slot s100">C2</div><div class="slot s75">C3</div><div class="slot s75">C4</div><div class="slot s50">C5</div><div class="slot empty">C6</div><div class="slot empty">C7</div><div class="slot empty">C8</div><div class="slot empty">C9</div><div class="slot empty">C10</div><div class="slot empty">C11</div><div class="slot empty">C12</div>
+            </div>
+            <div class="legend">
+              <span><span class="sw" style="background:#f3f4f6;"></span>Empty (0%)</span>
+              <span><span class="sw" style="background:#bbf7d0;"></span>25%</span>
+              <span><span class="sw" style="background:#86efac;"></span>50%</span>
+              <span><span class="sw" style="background:#22c55e;"></span>75%</span>
+              <span><span class="sw" style="background:#16a34a;"></span>Full (100%)</span>
+              <span><span class="sw" style="background:#a855f7;"></span>Reserved</span>
+              <span><span class="sw" style="background:#dc2626;"></span>Hold (QC-05)</span>
+            </div>
+          </div>
+
+          <!-- Stock by Item -->
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ STOCK BY ITEM · 품목별 재고</span><span style="color:var(--sub);">Customer: SAV · Filter active</span></div>
+            <table class="tbl">
+              <thead><tr><th>Item Code</th><th>Item Name<span class="th-ko">품명</span></th><th>Available</th><th>Reserved</th><th>Hold</th><th>Total</th><th>Oldest LOT (Age)</th><th>Next Ship</th></tr></thead>
+              <tbody>
+                <tr><td>DR-LH-001</td><td>Door Trim LH<span class="th-ko">도어 트림 (좌)</span></td><td><span class="b b-ok">2,400</span></td><td><span class="b b-rsv">800</span></td><td><span class="b b-e">200</span></td><td>3,400</td><td>2026-05-08 (11d)</td><td>D+2 (SAV-A)</td></tr>
+                <tr><td>DR-RH-001</td><td>Door Trim RH<span class="th-ko">도어 트림 (우)</span></td><td><span class="b b-ok">1,950</span></td><td><span class="b b-rsv">600</span></td><td>0</td><td>2,550</td><td>2026-05-09 (10d)</td><td>D+2 (SAV-A)</td></tr>
+                <tr><td>CN-CV-002</td><td>Console Cover<span class="th-ko">콘솔 커버</span></td><td><span class="b b-ok">1,200</span></td><td><span class="b b-rsv">400</span></td><td><span class="b b-e">180</span></td><td>1,780</td><td>2026-05-12 (7d)</td><td>D+5 (SAV-B)</td></tr>
+                <tr><td>SV-SR-005</td><td>Sun Visor<span class="th-ko">선바이저</span></td><td><span class="b b-ok">900</span></td><td><span class="b b-rsv">300</span></td><td>0</td><td>1,200</td><td>2026-05-14 (5d)</td><td>D+4 (SAV-A)</td></tr>
+                <tr><td>TK-LH-008</td><td>Trunk Lining<span class="th-ko">트렁크 라이닝</span></td><td><span class="b b-ok">450</span></td><td><span class="b b-rsv">200</span></td><td><span class="b b-e">110</span></td><td>760</td><td>2026-05-11 (8d)</td><td>D+3 (SAV-B)</td></tr>
+                <tr><td>FB-RH-003</td><td>Fender Beam RH<span class="th-ko">펜더 빔 (우)</span></td><td><span class="b b-ok">520</span></td><td><span class="b b-rsv">280</span></td><td><span class="b b-e">250</span></td><td>1,050</td><td>2026-05-05 (14d)</td><td>D+1 (SAV-A)</td></tr>
+              </tbody>
+            </table>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+              <button class="btn">📊 By Customer</button>
+              <button class="btn">📊 By Aged</button>
+              <button class="btn">📤 Export Excel</button>
+              <button class="btn btn-primary">🔍 Drill to Location</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 Inventory Behaviors · 동작 특성</span>
+        ① 라이브 갱신 WebSocket (FG-01 Stocking·FG-04 Pick·QC-05 Hold/Release 즉시 반영) ② Aged 14일+ 노랑·30일+ 빨강 강조 ③ Hold 항목 클릭 시 QC-05 상세로 이동 ④ Slot Utilization 95% 초과 시 알림 (출하 압박) ⑤ Sales 권한은 자신 고객 데이터만 노출 (BR-FG-08)</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Stock Status Definitions</span><span class="sec-ko">재고 상태 정의</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:22%;">Status</th><th style="width:14%;">Display Color</th><th>Definition · Trigger</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">AVAILABLE</td><td><span class="b b-ok">Green</span></td><td>출하 가능 상태. FG-01 Confirm 시 진입. 어떤 고객 주문에도 할당 가능.</td></tr>
+          <tr><td class="fld-name">RESERVED</td><td><span class="b b-rsv">Purple</span></td><td>FG-03 Shipment Order 확정 시 자동 락. 해당 주문 외에 할당 불가. FG-04 Pick 완료 시 해제 (SHIPPED 전환).</td></tr>
+          <tr><td class="fld-name">HOLD</td><td><span class="b b-e">Red</span></td><td>QC-05 격리 활성. 모든 출하/이동 차단 (DB constraint). NCR/Disposition 완료 후 해제.</td></tr>
+          <tr><td class="fld-name">SHIPPED</td><td><span class="b b-i">Blue</span></td><td>FG-05 Loading Confirm 후 출하 처리됨. 재고에서 차감, FG-08 이력 보관.</td></tr>
+          <tr><td class="fld-name">RETURNED</td><td><span class="b b-w">Yellow</span></td><td>FG-RTN 반품 처리. 재 QC 검사 후 RESTOCK / SCRAP / CLAIM 분기.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Refresh &amp; Reservation</span><span class="sec-ko">갱신 + 예약 메커니즘</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:24%;">Event</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td><strong>FG-01 Stocking</strong></td><td>WebSocket: FG_Stock INSERT → 0.5s 내 화면 즉시 반영 (KPI + Heatmap + Item table).</td></tr>
+          <tr><td><strong>FG-03 Order Confirm</strong></td><td>Available Qty → Reserved 자동 락 (Atomic UPDATE). Optimistic locking으로 동시성 충돌 방지.</td></tr>
+          <tr><td><strong>FG-04 Pick Complete</strong></td><td>Reserved Qty → SHIPPED (재고 -). Live broadcast.</td></tr>
+          <tr><td><strong>QC-05 Hold</strong></td><td>Available/Reserved Qty → HOLD 강제 전환 (NCR 발생). Reserved 였다면 해당 FG-03 주문에 alert.</td></tr>
+          <tr><td><strong>Order Cancel</strong></td><td>Reserved Qty → Available 즉시 복구. 30분 무활동 자동 해제도 가능 (옵션).</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">FG Manager opens dashboard; sees KPI tiles + heatmap at-a-glance for full-zone status.</div><div class="wf-ko">FG Manager가 대시보드 오픈, KPI + 히트맵으로 전체 zone 상황 즉시 파악.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Filters by Customer / Item / Aged to narrow focus; aging colors highlight problem stock.</div><div class="wf-ko">고객/품목/체류일수 필터로 좁히기, 체류 색상으로 문제 재고 강조.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Drill-down by clicking slot → location detail page (WO/LOT/Pallet list).</div><div class="wf-ko">슬롯 클릭 → 위치 상세 (WO/LOT/팔레트 목록).</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Sales user accesses customer-scoped view only; cannot see other customers' data.</div><div class="wf-ko">Sales 사용자는 자기 고객 데이터만 접근, 타 고객 비공개.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">QC user reviews Hold items and drills to QC-05 for Disposition planning.</div><div class="wf-ko">QC 사용자는 Hold 항목 검토, QC-05로 드릴해 처분 계획.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Export Excel for monthly reporting; daily snapshot stored for FG-08 history.</div><div class="wf-ko">월간 보고용 Excel 출력, 일일 스냅샷은 FG-08 이력 보관.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-FG-06</td><td><div>Reservation is atomic: cannot reserve qty exceeding Available; race conditions blocked with optimistic locking.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">예약 원자성: Available 초과 예약 불가, 동시성 충돌 차단.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-FG-07</td><td><div>HOLD status overrides RESERVED: existing reservations on held items are alert + auto-released.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">HOLD가 RESERVED 우선, 격리 시 기존 예약 알림 + 자동 해제.</div></td><td><span class="br-act alt">Force</span></td></tr>
+          <tr><td class="br-id">BR-FG-08</td><td><div>Sales role sees only their assigned customer's stock; other customers hidden at SQL layer.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">Sales는 담당 고객 재고만, 타 고객 SQL 레이어에서 차단.</div></td><td><span class="br-act blk">Scope</span></td></tr>
+          <tr><td class="br-id">BR-FG-09</td><td><div>Aged stock ≥14d highlights yellow, ≥30d red. Auto-notify FG Manager on 30d+ items.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">14일 이상 노랑, 30일 이상 빨강 + FG Manager 알림.</div></td><td><span class="br-act alt">Alert</span></td></tr>
+          <tr><td class="br-id">BR-FG-10</td><td><div>Daily snapshot of inventory state stored for FG-08 history and audit.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">일일 재고 스냅샷 FG-08 이력·감사 보관.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Table</th><th>Key Columns</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">FG_Stock</span> <em style="opacity:.6;">(read)</em></td><td>StockID · ItemNo · Qty · Status (AVAILABLE/RESERVED/HOLD/SHIPPED/RETURNED) · Location · CustomerCode · LotID · StockTS · HoldID · ReservationID</td><td>FG-01에서 INSERT, 본 화면에서 read.</td></tr>
+          <tr><td><span class="dm-col">FG_Reservation</span></td><td><span class="dm-pk">PK</span> ResvID · <span class="dm-fk">FK</span> ShipOrderID · <span class="dm-fk">FK</span> StockID · Qty · ResvTS · ReleaseTS · Status</td><td>FG-03 확정 시 INSERT, FG-04 Pick 완료 또는 취소 시 release.</td></tr>
+          <tr><td><span class="dm-col">FG_StockSnapshot</span></td><td><span class="dm-pk">PK</span> SnapID · SnapDate · ItemNo · AvailableQty · ReservedQty · HoldQty</td><td>일일 23:59 자동 스냅샷 (FG-08·FG-09 데이터 원천).</td></tr>
+          <tr><td><span class="dm-col">FG_Location</span> <em style="opacity:.6;">(read)</em></td><td>Location · CurrentQty · CurrentCustomerCode · Capacity · Utilization%</td><td>위치별 점유 (Heatmap).</td></tr>
+          <tr><td><span class="dm-col">QC_Hold</span> <em style="opacity:.6;">(read)</em></td><td>HoldID · Status · HeldQty</td><td>HOLD 상태 동기화.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">FG-01</div><div class="lnk-name">Stocking</div><div class="lnk-ko">+Available</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">FG-02</div><div class="lnk-name">Inventory View</div><div class="lnk-ko">실시간 재고</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">FG-03</div><div class="lnk-name">Reserve</div><div class="lnk-ko">예약 락</div></div>
+        </div>
+        <div class="lnk-row" style="margin-top:14px;">
+          <div class="lnk-node cur"><div class="lnk-id">FG-02</div><div class="lnk-name">→ Status Sync</div></div>
+          <div class="lnk-arr">↔</div>
+          <div class="lnk-node up"><div class="lnk-id">QC-05</div><div class="lnk-name">Hold/Release</div></div>
+          <div class="lnk-arr">↔</div>
+          <div class="lnk-node up"><div class="lnk-id">FG-04</div><div class="lnk-name">Pick → Ship</div></div>
+          <div class="lnk-arr">↔</div>
+          <div class="lnk-node up"><div class="lnk-id">FG-RTN</div><div class="lnk-name">Returned</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.9 · FG-02 · Inventory · L3 Spec v1.0</div><div class="pf-r">Web PC · Live WebSocket · Phase 1 · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
