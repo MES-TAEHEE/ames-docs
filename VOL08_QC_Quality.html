@@ -1,24 +1,24 @@
-<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>A-MES · VOL.8 · QC · Quality Control</title><style>/* ═══════════════════════════════════════
-   A-MES SHARED STYLESHEET v2.0
-   Bilingual EN/KO · UI Labels English
-═══════════════════════════════════════ */
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.8 · QC · Quality Control</title>
+<style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
-
 :root{
-  --gold:#d4a017; --gold-lt:#fdf6e3; --gold-dk:#a07810;
-  --ink:#0d1117; --ink2:#161b22; --ink3:#21262d;
-  --surface:#ffffff; --bg:#f6f8fa; --border:#d0d7de;
-  --text:#24292f; --sub:#656d76;
-  /* module colors */
-  --wh:#0891b2; --pp:#059669; --inj:#2563eb; --img:#7c3aed;
-  --pnt:#ea580c; --qc:#dc2626; --fg:#0db87a; --mnt:#0284c7;
-  --rpt:#6366f1; --sys:#475569; --md:#d97706;
+  --gold:#d4a017;--gold-lt:#fdf6e3;--gold-dk:#a07810;
+  --ink:#0d1117;--ink2:#161b22;--ink3:#21262d;
+  --surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;
+  --wh:#0891b2;--pp:#059669;--inj:#2563eb;--img:#7c3aed;
+  --pnt:#ea580c;--qc:#dc2626;--fg:#0db87a;--mnt:#0284c7;
+  --rpt:#6366f1;--sys:#475569;--md:#d97706;
+  --mod-color:#dc2626;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html{scroll-behavior:smooth;}
 body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
 
-/* ── NAV BAR (injected per file) ── */
 .ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
 .ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
 .ames-nav-inner::-webkit-scrollbar{display:none;}
@@ -30,261 +30,866 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
 .nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
 
-/* ── PAGE LAYOUT ── */
 .page-wrap{display:flex;}
-.sidebar{width:230px;min-width:230px;background:var(--ink2);position:sticky;top:40px;height:calc(100vh - 40px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(212,160,23,.15) transparent;border-right:1px solid var(--ink3);}
+.sidebar{width:230px;min-width:230px;background:var(--ink2);position:sticky;top:40px;height:calc(100vh - 40px);overflow-y:auto;scrollbar-width:thin;border-right:1px solid var(--ink3);}
 .sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
 .sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
-.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:#fca5a5;}
 .sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
 .sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.15);padding:12px 14px 4px;}
-.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.35);font-size:11px;border-left:2px solid transparent;transition:all .12s;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.35);font-size:11px;border-left:2px solid transparent;transition:all .12s;position:relative;}
 .sb-link:hover{color:rgba(255,255,255,.7);background:rgba(255,255,255,.03);}
-.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
-.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:32px;flex-shrink:0;}
+.sb-link.on{color:#fff;border-left-color:var(--qc);background:rgba(220,38,38,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;}
 .sb-link .sl-en{font-size:10px;font-weight:600;}
 .sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.2);margin-top:1px;}
+.sb-l3{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:3px;background:rgba(212,160,23,.12);color:rgba(212,160,23,.75);font-size:11px;text-decoration:none;margin-left:auto;transition:all .15s;flex-shrink:0;border:1px solid rgba(212,160,23,.25);}
+.sb-l3:hover{background:var(--gold);color:#000;border-color:var(--gold);transform:scale(1.15);}
 .sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
 
 .main{flex:1;min-width:0;}
 
-/* ── MODULE HEADER ── */
-.mod-hdr{padding:36px 48px 24px;position:relative;overflow:hidden;}
+.mod-hdr{padding:36px 48px 24px;position:relative;overflow:hidden;background:linear-gradient(135deg,color-mix(in srgb,#dc2626 32%,#000),color-mix(in srgb,#dc2626 14%,#000));}
 .mod-hdr-inner{position:relative;z-index:1;}
-.mod-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;opacity:.7;}
-.mod-title-en{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:.95;letter-spacing:2px;color:#fff;margin-bottom:4px;}
+.mod-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;color:#fca5a5;}
+.mod-title-en{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:.95;letter-spacing:2px;color:#fca5a5;margin-bottom:4px;}
 .mod-title-ko{font-size:14px;font-weight:300;color:rgba(255,255,255,.35);letter-spacing:4px;margin-bottom:16px;}
-.mod-desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:840px;margin-bottom:18px;}
-.mdb-en{font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;border-left:2px solid rgba(255,255,255,.12);padding-left:12px;}
-.mdb-ko{font-size:11px;color:rgba(255,255,255,.3);line-height:1.8;border-left:2px solid rgba(255,255,255,.06);padding-left:12px;}
-.screen-pills{display:flex;gap:5px;flex-wrap:wrap;}
-.sp{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:9px;color:rgba(255,255,255,.4);}
+.mod-desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:880px;margin-bottom:14px;}
+.mdb-en{font-size:11px;color:rgba(255,255,255,.6);line-height:1.85;border-left:2px solid rgba(255,255,255,.14);padding-left:12px;}
+.mdb-ko{font-size:11px;color:rgba(255,255,255,.35);line-height:1.85;border-left:2px solid rgba(255,255,255,.06);padding-left:12px;}
+
+.mod-meta-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:0;border:1px solid rgba(252,165,165,.22);border-radius:6px;overflow:hidden;margin:14px 0 16px;max-width:900px;background:rgba(0,0,0,.22);}
+.mms-item{padding:10px 14px;border-right:1px solid rgba(252,165,165,.14);}
+.mms-item:last-child{border-right:none;}
+.mms-l{font-size:8px;color:rgba(252,165,165,.6);text-transform:uppercase;letter-spacing:1.2px;font-family:'JetBrains Mono',monospace;}
+.mms-v{font-size:13px;font-weight:800;color:#fff;margin-top:3px;letter-spacing:.3px;}
+.mms-v.warn{color:#fde047;}
+.mms-v.alert{color:#fca5a5;}
+.mms-v.qc{color:#fca5a5;}
+
+.screen-pills{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;}
+.sp{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:9px;color:rgba(255,255,255,.6);text-decoration:none;cursor:pointer;transition:all .15s;}
+.sp:hover{background:rgba(220,38,38,.25);border-color:rgba(220,38,38,.55);color:#fff;}
 .sp-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold);}
 
-/* ── CONTENT AREA ── */
+.l3-hint{display:inline-block;font-size:10px;color:rgba(212,160,23,.75);font-weight:600;letter-spacing:1px;padding:5px 12px;background:rgba(212,160,23,.08);border:1px dashed rgba(212,160,23,.4);border-radius:3px;margin-bottom:8px;}
+
 .content{padding:0 48px 48px;}
 
-/* ── SCREEN CARD ── */
-.screen-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;}
-.sc-hdr{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
-.sc-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
-.sc-title-en{font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px;}
-.sc-title-ko{font-size:10px;color:rgba(255,255,255,.35);margin-top:2px;}
+/* ── Section Divider ── */
+.sec-div{display:flex;align-items:center;gap:12px;margin:28px 0 16px;}
+.sd-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--border) 20%,var(--border) 80%,transparent);}
+.sd-lbl{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--qc);letter-spacing:2px;white-space:nowrap;padding:4px 10px;background:#fef2f2;border:1px solid #fecaca;border-radius:3px;}
+
+/* ── Process Flow ── */
+.flow-card{background:linear-gradient(135deg,#1f0a0a,#180808);color:#e2e8f0;border-radius:10px;padding:20px 22px;margin-bottom:18px;box-shadow:0 4px 20px rgba(220,38,38,.18);}
+.flow-card-h{font-family:'JetBrains Mono',monospace;font-size:10px;color:#fca5a5;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;}
+.flow-track{margin-bottom:14px;}
+.flow-track-lbl{font-size:10px;color:rgba(255,255,255,.6);letter-spacing:1px;font-family:'JetBrains Mono',monospace;margin-bottom:8px;text-transform:uppercase;}
+.flow-row{display:flex;align-items:center;gap:0;flex-wrap:wrap;}
+.flow-node{display:flex;flex-direction:column;align-items:center;gap:3px;background:rgba(220,38,38,.14);border:1px solid rgba(252,165,165,.42);border-radius:8px;padding:10px 12px;min-width:96px;text-align:center;transition:all .15s;text-decoration:none;color:#e2e8f0;}
+.flow-node:hover{background:rgba(220,38,38,.28);border-color:#fca5a5;transform:translateY(-2px);box-shadow:0 6px 16px rgba(220,38,38,.32);}
+.flow-node.core{background:rgba(212,160,23,.2);border-color:#fbbf24;box-shadow:inset 0 0 0 1px rgba(251,191,36,.15);}
+.flow-node.core .fn-id{color:#fbbf24;}
+.flow-node.crit{background:rgba(220,38,38,.22);border-color:#fca5a5;}
+.flow-node.aux{background:rgba(99,102,241,.14);border-color:rgba(165,180,252,.42);}
+.flow-node.aux .fn-id{color:#a5b4fc;}
+.flow-node.external{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.2);border-style:dashed;}
+.fn-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:#fca5a5;letter-spacing:.5px;}
+.flow-node.external .fn-id{color:rgba(255,255,255,.5);}
+.fn-name{font-size:11px;font-weight:700;color:#fff;}
+.fn-ko{font-size:9px;color:rgba(255,255,255,.55);}
+.fn-tag{font-size:8px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.5);margin-top:1px;}
+.flow-arr{font-size:18px;color:rgba(252,165,165,.55);padding:0 4px;font-weight:700;}
+
+/* ── Module KPI ── */
+.mod-kpi{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
+.kpi-card{background:#fff;border:1px solid var(--border);border-top:3px solid var(--qc);border-radius:0 0 6px 6px;padding:14px 16px;}
+.kpi-l{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--sub);letter-spacing:1px;text-transform:uppercase;}
+.kpi-v{font-family:'Bebas Neue',sans-serif;font-size:34px;color:var(--text);line-height:1;margin-top:5px;letter-spacing:.5px;}
+.kpi-v.ok{color:#16a34a;}.kpi-v.warn{color:#a16207;}.kpi-v.alert{color:#dc2626;}.kpi-v.qc{color:var(--qc);}
+.kpi-s{font-size:10px;color:var(--sub);margin-top:3px;}
+
+/* ── Screen Card ── */
+.screen-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:18px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.sc-hdr{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,color-mix(in srgb,#dc2626 28%,#000),color-mix(in srgb,#dc2626 12%,#000));}
+.sc-hdr.core{background:linear-gradient(135deg,color-mix(in srgb,#d4a017 32%,#000),color-mix(in srgb,#dc2626 22%,#000));}
+.sc-hdr.aux{background:linear-gradient(135deg,color-mix(in srgb,#6366f1 26%,#000),color-mix(in srgb,#dc2626 14%,#000));}
+.sc-hdr-l{display:flex;align-items:center;gap:14px;flex:1;min-width:0;}
+.sc-icon{font-size:42px;line-height:1;flex-shrink:0;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3));}
+.sc-title-wrap{flex:1;min-width:0;}
+.sc-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#fca5a5;letter-spacing:.5px;}
+.sc-hdr.core .sc-id{color:#fbbf24;}
+.sc-hdr.aux .sc-id{color:#a5b4fc;}
+.sc-title-en{font-size:16px;font-weight:800;color:#fff;letter-spacing:-.3px;margin-top:2px;}
+.sc-title-ko{font-size:10px;color:rgba(255,255,255,.55);margin-top:2px;}
 .sc-tags{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
-.tag{font-size:9px;font-weight:700;padding:2px 9px;border-radius:3px;}
+.tag{font-size:9px;font-weight:700;padding:2px 9px;border-radius:3px;white-space:nowrap;}
 .t-web{background:rgba(26,111,255,.2);color:#7ab4ff;border:1px solid rgba(26,111,255,.3);}
 .t-pda{background:rgba(13,184,122,.2);color:#5dffc4;border:1px solid rgba(13,184,122,.3);}
-.t-pop{background:rgba(234,88,12,.2);color:#fdba74;border:1px solid rgba(234,88,12,.3);}
-.t-p0{background:rgba(212,160,23,.15);color:#fbbf24;border:1px solid rgba(212,160,23,.2);}
 .t-1st{background:rgba(26,111,255,.12);color:#93c5fd;border:1px solid rgba(26,111,255,.18);}
 .t-2nd{background:rgba(124,58,237,.12);color:#c4b5fd;border:1px solid rgba(124,58,237,.18);}
-.t-3rd{background:rgba(255,107,0,.12);color:#fdba74;border:1px solid rgba(255,107,0,.18);}
-.sc-body{padding:14px 18px;}
+.t-core{background:rgba(212,160,23,.2);color:#fbbf24;border:1px solid rgba(212,160,23,.35);}
+.t-gate{background:rgba(220,38,38,.22);color:#fca5a5;border:1px solid rgba(220,38,38,.4);}
+.t-aux{background:rgba(99,102,241,.15);color:#a5b4fc;border:1px solid rgba(99,102,241,.25);}
+.sc-l3-btn{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:linear-gradient(135deg,#d4a017,#a07810);color:#000;font-size:11px;font-weight:800;border-radius:5px;text-decoration:none;letter-spacing:.5px;text-transform:uppercase;border:1px solid #a07810;box-shadow:0 2px 6px rgba(212,160,23,.3);transition:all .15s;white-space:nowrap;}
+.sc-l3-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(212,160,23,.5);background:linear-gradient(135deg,#fbbf24,#d4a017);}
+.sc-body{padding:16px 18px;}
 
-/* ── BILINGUAL DESC ── */
-.desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;background:#f6f8ff;border:1px solid var(--border);border-left:3px solid;border-radius:0 6px 6px 0;padding:11px 14px;}
-.db-lbl{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;opacity:.5;}
-.db-en{font-size:11px;color:#1e40af;line-height:1.75;}
+.headline{display:flex;align-items:center;gap:10px;padding:11px 14px;background:linear-gradient(135deg,#fef2f2,#fee2e2);border:1px solid #fecaca;border-left:3px solid var(--qc);border-radius:0 5px 5px 0;margin-bottom:14px;}
+.headline.core{background:linear-gradient(135deg,#fef9c3,#fef3c7);border-color:#fcd34d;border-left-color:#d4a017;}
+.headline-ico{font-size:18px;color:var(--qc);}
+.headline.core .headline-ico{color:#92400e;}
+.headline-t{font-size:12px;color:#7f1d1d;font-weight:700;line-height:1.55;}
+.headline.core .headline-t{color:#78350f;}
+.headline-t .ko{display:block;color:var(--qc);font-weight:400;font-size:11px;margin-top:1px;}
+.headline.core .headline-t .ko{color:#92400e;}
+
+.qf-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.qf{background:#fafbfd;border:1px solid var(--border);border-radius:5px;padding:9px 11px;}
+.qf-l{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--sub);letter-spacing:.7px;text-transform:uppercase;}
+.qf-v{font-size:11px;color:var(--text);font-weight:700;margin-top:3px;line-height:1.4;}
+.qf-v.mono{font-family:'JetBrains Mono',monospace;font-size:10px;}
+
+.desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;background:#fef2f2;border:1px solid var(--border);border-left:3px solid var(--qc);border-radius:0 6px 6px 0;padding:11px 14px;}
+.db-lbl{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;opacity:.55;}
+.db-en{font-size:11px;color:#991b1b;line-height:1.75;}
 .db-ko{font-size:11px;color:var(--sub);line-height:1.75;}
 
-/* ── KPI STRIP ── */
-.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:12px;}
-.kc{flex:1;padding:9px 12px;border-right:1px solid var(--border);}
-.kc:last-child{border-right:none;}
-.kv{font-size:20px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
-.kl-en{font-size:9px;color:var(--sub);margin-top:2px;}
-.kl-ko{font-size:8px;color:rgba(100,116,139,.55);}
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin-bottom:12px;}
+.feat-item{background:#fff;border:1px solid var(--border);border-top:2px solid var(--qc);border-radius:0 0 5px 5px;padding:10px 12px;}
+.feat-item.core{border-top-color:#d4a017;}
+.feat-ico{font-size:16px;line-height:1;margin-bottom:5px;}
+.feat-t{font-size:11px;font-weight:800;color:var(--text);margin-bottom:2px;}
+.feat-d{font-size:10px;color:var(--sub);line-height:1.55;}
+.feat-d .ko{color:#94a3b8;font-size:9px;display:block;margin-top:1px;}
 
-/* ── MOCK WINDOW ── */
-.mock-wrap{background:#eef1f5;border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;}
-.mock-lbl{font-size:9px;font-weight:700;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;}
-.mock-win{background:#fff;border:1px solid #c8d0db;border-radius:6px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.07);}
-.mock-tbar{background:var(--text);color:#fff;padding:7px 13px;display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;}
-.mock-tbar .bc{margin-left:auto;font-size:9px;color:rgba(255,255,255,.3);font-family:'JetBrains Mono',monospace;}
-.mock-body{padding:12px 13px;}
-.mock-toolbar{background:#f6f8fa;border-bottom:1px solid var(--border);padding:6px 13px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
-.mock-toolbar select,.mock-toolbar input{padding:3px 8px;border:1px solid var(--border);border-radius:3px;font-size:11px;background:#fff;}
+.br-chips{display:flex;gap:5px;flex-wrap:wrap;padding-top:10px;border-top:1px dashed var(--border);}
+.br-chip{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;padding:3px 8px;border-radius:3px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;text-decoration:none;letter-spacing:.3px;}
+.br-chip.crit{background:#fee2e2;color:#991b1b;border-color:#fca5a5;}
+.br-chip-lbl{font-size:9px;color:var(--sub);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;margin-right:4px;align-self:center;}
 
-/* ── TABLE ── */
-.tbl{width:100%;border-collapse:collapse;font-size:11px;}
-.tbl th{background:#f0f3f7;padding:6px 9px;font-weight:700;border:1px solid var(--border);text-align:left;font-size:10px;color:var(--text);}
-.tbl th .th-ko{font-weight:400;color:var(--sub);font-size:9px;}
-.tbl td{padding:5px 9px;border:1px solid var(--border);vertical-align:middle;}
-.tbl .rh td{background:#f0fdf4;}
-.tbl .rw td{background:#fffbeb;}
-.tbl .rd td{background:#fef2f2;}
-.tbl tr:hover td{background:#f9fafb;}
-.tbl td .ko{color:var(--sub);font-size:10px;}
+/* Reference tables */
+.ref-tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:18px;}
+.ref-tbl th{background:#f0f3f7;color:var(--text);padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.ref-tbl td{padding:8px 12px;border-bottom:1px solid var(--border);}
+.ref-tbl tr:last-child td{border-bottom:none;}
+.ref-tbl tr:nth-child(even) td{background:#fafbfd;}
+.ref-tbl .code{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--qc);font-size:11px;}
+.ref-tbl .pill{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
+.pill.pill-crit{background:#fef2f2;color:#7f1d1d;border:1px solid #fca5a5;}
+.pill.pill-major{background:#fef9c3;color:#92400e;border:1px solid #fcd34d;}
+.pill.pill-minor{background:#f0f9ff;color:#075985;border:1px solid #7dd3fc;}
+.pill.pill-ok{background:#dcfce7;color:#166534;}
 
-/* ── BADGES ── */
+/* 3-Gate visual */
+.gate-flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;gap:8px;align-items:center;padding:14px 16px;background:#fff;border:1px solid var(--border);border-radius:8px;margin-bottom:14px;}
+.gate-box{padding:12px 14px;border-radius:6px;text-align:center;border:2px solid;}
+.gate-box.g1{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}
+.gate-box.g2{background:#fef9c3;border-color:#d97706;color:#92400e;}
+.gate-box.g3{background:#fef2f2;border-color:#dc2626;color:#7f1d1d;}
+.gate-box.pass{background:#f0fdf4;border-color:#22c55e;color:#065f46;}
+.gate-box.fail{background:#fef2f2;border-color:#dc2626;color:#991b1b;border-style:dashed;}
+.gate-id{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;}
+.gate-en{font-size:11px;font-weight:700;margin-top:3px;}
+.gate-ko{font-size:9px;opacity:.85;margin-top:1px;}
+.gate-arr{font-size:20px;color:var(--sub);font-weight:700;text-align:center;}
+.gate-arr.fail{color:#dc2626;}
+
+/* BR table */
+.br-wrap{margin-bottom:16px;}
+.br-title{font-size:11px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+.br-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.br-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.br-tbl th{background:var(--text);color:#fff;padding:7px 10px;text-align:left;border:1px solid rgba(255,255,255,.08);font-size:9px;}
+.br-tbl td{padding:7px 10px;border:1px solid var(--border);vertical-align:top;line-height:1.6;}
+.br-tbl tr:nth-child(even) td{background:#fafbfd;}
+.br-id-c{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-en-c{color:var(--text);}
+.br-ko-c{color:var(--sub);font-size:10px;margin-top:2px;}
+.br-tbl tr.cat-row td{background:#f0f3f7;font-weight:700;color:var(--qc);font-size:9px;letter-spacing:1px;text-transform:uppercase;}
 .b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
 .b-ok{background:#dcfce7;color:#166534;}
 .b-w{background:#fef9c3;color:#92400e;}
 .b-e{background:#fee2e2;color:#991b1b;}
 .b-i{background:#dbeafe;color:#1e40af;}
-.b-n{background:#f3f4f6;color:#4b5563;}
+.b-m{background:#fce7f3;color:#9d174d;}
 
-/* ── BUTTONS ── */
-.btn{padding:5px 13px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
-.btn-primary{background:var(--mod-color,#0891b2);color:#fff;border-color:var(--mod-color,#0891b2);}
-.btn-secondary{background:#f6f8fa;color:var(--text);border-color:var(--border);}
-.btn-danger{background:#dc2626;color:#fff;}
-.btn-sm{padding:3px 9px;font-size:10px;}
-
-/* ── FEATURE GRID ── */
-.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
-.feat-item{background:#f6f8ff;border:1px solid var(--border);border-radius:6px;padding:11px 13px;border-top:2px solid;}
-.fi-title-en{font-size:11px;font-weight:700;margin-bottom:1px;}
-.fi-title-ko{font-size:10px;color:var(--sub);margin-bottom:6px;}
-ul.fi-list{list-style:none;}
-ul.fi-list li{padding:2px 0 2px 12px;position:relative;font-size:10px;line-height:1.6;}
-ul.fi-list li::before{content:'–';position:absolute;left:0;color:var(--sub);}
-ul.fi-list li .ko{color:var(--sub);font-size:9px;}
-
-/* ── PDA MOCK ── */
-.pda-row{display:flex;gap:14px;flex-wrap:wrap;}
-.pda-unit{text-align:center;}
-.pdu-step{font-size:9px;font-weight:700;color:var(--sub);margin-bottom:5px;}
-.pda-shell{background:#1a1e2e;border-radius:16px;padding:9px;width:172px;border:2px solid #2a3048;box-shadow:0 6px 20px rgba(0,0,0,.3);}
-.pda-scr{background:#0a1628;border-radius:10px;overflow:hidden;border:1px solid #1a3050;}
-.pda-sbar{background:#060e1c;padding:3px 8px;display:flex;justify-content:space-between;}
-.pda-sbar span{font-size:7px;color:#2a4a7a;font-family:'JetBrains Mono',monospace;}
-.pda-sbar .online{color:#00e5a0;}
-.pda-tbar{padding:7px 10px;border-bottom:1px solid #0a3050;}
-.pda-title{font-size:11px;font-weight:700;color:#00e5a0;}
-.pda-sub{font-size:8px;color:rgba(255,255,255,.3);}
-.pda-bd{padding:8px 10px;}
-.pda-scan{background:#060e1c;border:2px dashed rgba(0,229,160,.3);border-radius:6px;padding:12px;text-align:center;margin-bottom:7px;}
-.pda-scan-icon{font-size:22px;margin-bottom:3px;}
-.pda-scan-en{font-size:10px;font-weight:700;color:#00e5a0;}
-.pda-scan-ko{font-size:8px;color:rgba(255,255,255,.3);}
-.pda-field{margin-bottom:5px;}
-.pda-fl{font-size:8px;color:#1a5a4a;margin-bottom:2px;font-weight:600;}
-.pda-fv{background:#040c18;border:1px solid #1a3050;border-radius:4px;padding:4px 8px;font-size:10px;color:#a0c8f0;font-family:'JetBrains Mono',monospace;}
-.pda-fv.ok{border-color:#00e5a0;color:#00e5a0;}
-.pda-fv.er{border-color:#ff8a82;color:#ff8a82;}
-.pda-numpad{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;margin-bottom:6px;}
-.pda-key{background:#0d1e30;border:1px solid #1a3050;border-radius:4px;padding:7px 4px;text-align:center;font-size:13px;font-weight:700;color:#c0e0f0;font-family:'JetBrains Mono',monospace;}
-.pda-key.k-ok{background:#0a2a1a;color:#00e5a0;border-color:#0a5a38;}
-.pda-key.k-del{background:#1a0808;color:#ff8a82;border-color:#3a1010;}
-.pda-disp{background:#040c18;border:1px solid #1a3050;border-radius:4px;padding:5px 9px;font-size:24px;font-weight:900;color:#00e5a0;text-align:right;margin-bottom:6px;font-family:'JetBrains Mono',monospace;}
-.pda-btn{width:100%;padding:7px;border-radius:5px;font-size:10px;font-weight:700;border:none;cursor:pointer;margin-bottom:4px;font-family:'Noto Sans KR',sans-serif;}
-.pda-pri{background:linear-gradient(135deg,#0a9060,#0db87a);color:#fff;}
-.pda-sec{background:#0a1428;color:#4a7aaa;border:1px solid #1a3050;}
-.pda-dan{background:#1a0808;color:#ff8a82;border:1px solid #3a1010;}
-.pda-progress-bar{height:4px;background:#060e1c;border-radius:2px;overflow:hidden;margin:4px 0 8px;}
-.pda-progress-fill{height:100%;background:linear-gradient(90deg,#0a9060,#00e5a0);border-radius:2px;}
-
-/* ── BR TABLE ── */
-.br-wrap{margin-bottom:16px;}
-.br-title{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:7px;display:flex;align-items:center;gap:10px;}
-.br-title::after{content:'';flex:1;height:1px;background:var(--border);}
-.br-tbl{width:100%;border-collapse:collapse;font-size:10px;}
-.br-tbl th{background:var(--text);color:#fff;padding:6px 10px;text-align:left;border:1px solid rgba(255,255,255,.08);font-size:9px;}
-.br-tbl td{padding:6px 10px;border:1px solid var(--border);vertical-align:top;line-height:1.6;}
-.br-tbl tr:nth-child(even) td{background:#fafbfd;}
-.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
-.br-en{color:var(--text);}
-.br-ko{color:var(--sub);font-size:10px;margin-top:2px;}
-
-/* ── SECTION DIV ── */
-.sec-div{display:flex;align-items:center;gap:12px;margin:20px 0 12px;}
-.sd-line{flex:1;height:1px;background:var(--border);}
-.sd-lbl{font-size:10px;font-weight:700;color:var(--sub);white-space:nowrap;}
-
-/* ── ALERTS ── */
-.alert{padding:8px 12px;border-radius:5px;font-size:10px;margin-bottom:9px;display:flex;gap:8px;line-height:1.7;}
-.alert-i{background:#eff6ff;border-left:3px solid #3b82f6;}
-.alert-w{background:#fffbeb;border-left:3px solid #f59e0b;}
-.alert-s{background:#f0fdf4;border-left:3px solid #22c55e;}
-.alert-d{background:#fef2f2;border-left:3px solid #ef4444;}
-
-/* ── ROUTING FLOW ── */
-.rflow{display:flex;align-items:center;gap:0;flex-wrap:nowrap;overflow-x:auto;padding:4px 0;}
-.rs{padding:9px 14px;border-radius:5px;font-size:11px;font-weight:700;text-align:center;flex-shrink:0;text-decoration:none;}
-.rs-en{font-size:12px;font-weight:800;}
-.rs-ko{font-size:9px;font-weight:400;opacity:.7;margin-top:2px;}
-.rarr{color:var(--sub);font-size:14px;padding:0 5px;flex-shrink:0;}
-.rs-inj{background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;}
-.rs-img{background:#f5f3ff;color:#5b21b6;border:1px solid #c4b5fd;}
-.rs-pnt{background:#fff7ed;color:#9a3412;border:1px solid #fdba74;}
-.rs-qc{background:#fef2f2;color:#991b1b;border:1px solid #fca5a5;}
-.rs-fg{background:#f0fdf4;color:#065f46;border:1px solid #6ee7b7;}
-
-/* ── GRID ── */
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
-
-/* ── PROGRESS BAR ── */
-.prog-track{height:5px;background:#f0f2f5;border-radius:3px;overflow:hidden;}
-.prog-fill{height:100%;border-radius:3px;}
-
-/* ── DATA MODEL TABLE ── */
-.dm-tbl{width:100%;border-collapse:collapse;font-size:10px;}
-.dm-tbl th{background:var(--ink2);color:#fff;padding:6px 10px;text-align:left;border:1px solid var(--ink3);font-size:9px;}
-.dm-tbl td{padding:5px 10px;border:1px solid var(--border);vertical-align:top;}
-.dm-tbl tr:nth-child(even) td{background:#fafbfd;}
-.dm-col{font-family:'JetBrains Mono',monospace;color:#1e40af;font-weight:600;}
-.dm-type{font-family:'JetBrains Mono',monospace;color:var(--sub);font-size:10px;}
-.dm-pk{color:#dc2626;font-weight:700;}
-.dm-fk{color:#7c3aed;}
-
-/* ── PAGE FOOTER ── */
 .page-footer{padding:14px 48px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--ink);margin-top:20px;}
 .pf-l{font-size:10px;color:rgba(255,255,255,.2);}
 .pf-r{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(212,160,23,.4);}
-:root{--mod-color:#dc2626;}.mod-hdr{background:linear-gradient(135deg,color-mix(in srgb,#dc2626 30%,#000),color-mix(in srgb,#dc2626 12%,#000));}.sc-hdr{background:linear-gradient(135deg,color-mix(in srgb,#dc2626 22%,#000),color-mix(in srgb,#dc2626 10%,#000));}.sc-id{color:#dc2626;}.sb-mod-en{color:#dc2626;}.sb-link.on{border-left-color:#dc2626;}</style></head><body><nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol active"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav><div class="page-wrap"><nav class="sidebar"><div class="sb-head"><div class="sb-vol">VOL.8 · QC MODULE</div><div class="sb-mod-en">QUALITY CONTROL</div><div class="sb-mod-ko">품질 관리</div></div><div class="sb-section">Screens</div><a class="sb-link on" href="#qc01"><span class="sl-id">QC-01</span><div><div class="sl-en">Incoming Inspection</div><div class="sl-ko">수입 검사</div></div></a><a class="sb-link" href="#qc02"><span class="sl-id">QC-02</span><div><div class="sl-en">In-Process Inspection</div><div class="sl-ko">공정 검사</div></div></a><a class="sb-link" href="#qc03"><span class="sl-id">QC-03</span><div><div class="sl-en">Final Inspection</div><div class="sl-ko">최종 검사</div></div></a><a class="sb-link" href="#qc04"><span class="sl-id">QC-04</span><div><div class="sl-en">Inspection History</div><div class="sl-ko">검사 이력</div></div></a><a class="sb-link" href="#qc05"><span class="sl-id">QC-05</span><div><div class="sl-en">Defect Analysis</div><div class="sl-ko">불량 분석</div></div></a><a class="sb-link" href="#qc06"><span class="sl-id">QC-06</span><div><div class="sl-en">CAPA</div><div class="sl-ko">시정조치</div></div></a><a class="sb-link" href="#qc07"><span class="sl-id">QC-07</span><div><div class="sl-en">Claim Management</div><div class="sl-ko">클레임 관리</div></div></a><div class="sb-sep"></div><a class="sb-link" href="#br-qc"><span class="sl-id">BR</span><div><div class="sl-en">Business Rules</div><div class="sl-ko">업무 규칙</div></div></a></nav><div class="main"><div class="mod-hdr"><div class="mod-hdr-inner"><div class="mod-eyebrow" style="color:#f87171;">VOL.8 · QC · Quality Control · 품질 관리</div><div class="mod-title-en" style="color:#f87171;">QUALITY<br>CONTROL</div><div class="mod-title-ko">품질 관리</div><div class="mod-desc-bi"><div class="mdb-en">Three-gate quality inspection system: Incoming Inspection (auto-triggered from WH inbound) → In-Process Inspection (PDA + Web) → Final Inspection (gate before FG stocking). Includes defect Pareto analysis (QC-05), CAPA (Corrective and Preventive Action) management (QC-06), and client claim management for SAV/GEO (QC-07). Oven-deviation WOs are auto-flagged for enhanced 100% inspection.</div><div class="mdb-ko">3단계 검사 게이트: 수입검사(WH 입고 자동 트리거)→공정검사(PDA+Web)→최종검사(FG 적재 전 게이트). 불량 파레토 분석(QC-05), CAPA 관리(QC-06), SAV·GEO 클레임 관리(QC-07). 건조로 이탈 WO 100% 강화검사 자동 설정.</div></div><div class="screen-pills"><span class="sp"><span class="sp-id">QC-01</span> Incoming Inspection</span><span class="sp"><span class="sp-id">QC-02</span> In-Process</span><span class="sp"><span class="sp-id">QC-03</span> Final Inspection</span><span class="sp"><span class="sp-id">QC-04</span> History</span><span class="sp"><span class="sp-id">QC-05</span> Defect Analysis</span><span class="sp"><span class="sp-id">QC-06</span> CAPA</span><span class="sp"><span class="sp-id">QC-07</span> Claims</span></div></div></div>
-<div class="content">
-<!-- QC Gate Summary -->
-<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:20px;">
-<div style="font-size:11px;font-weight:700;margin-bottom:12px;">QC 3-Gate Flow · 3단계 검사 게이트</div>
-<div class="rflow">
-<div style="text-align:center;flex-shrink:0;"><div style="background:#eff6ff;border:2px solid #2563eb;border-radius:6px;padding:10px 14px;font-size:11px;font-weight:800;color:#1e40af;">QC-01<div style="font-size:9px;font-weight:400;margin-top:2px;">Incoming Inspection<br>수입 검사</div></div><div style="font-size:9px;color:var(--sub);margin-top:4px;">Auto-triggered from WH<br>WH 입고 자동 트리거</div></div>
-<div class="rarr">→</div>
-<div style="text-align:center;flex-shrink:0;"><div style="background:#fef9c3;border:2px solid #d97706;border-radius:6px;padding:10px 14px;font-size:11px;font-weight:800;color:#92400e;">QC-02<div style="font-size:9px;font-weight:400;margin-top:2px;">In-Process Inspection<br>공정 검사</div></div><div style="font-size:9px;color:var(--sub);margin-top:4px;">PDA + Web<br>공정 중 샘플 검사</div></div>
-<div class="rarr">→</div>
-<div style="text-align:center;flex-shrink:0;"><div style="background:#fef2f2;border:2px solid #dc2626;border-radius:6px;padding:10px 14px;font-size:11px;font-weight:800;color:#991b1b;">QC-03<div style="font-size:9px;font-weight:400;margin-top:2px;">Final Inspection<br>최종 검사</div></div><div style="font-size:9px;color:var(--sub);margin-top:4px;">Gate before FG stocking<br>FG 적재 전 최종 게이트</div></div>
-<div class="rarr">→</div>
-<div style="text-align:center;flex-shrink:0;"><div style="background:#f0fdf4;border:2px solid #22c55e;border-radius:6px;padding:10px 14px;font-size:11px;font-weight:800;color:#065f46;">PASS<div style="font-size:9px;font-weight:400;margin-top:2px;">FG Stocking<br>완제품 적재</div></div></div>
-<div class="rarr" style="color:#dc2626;">⤵</div>
-<div style="text-align:center;flex-shrink:0;"><div style="background:#fef2f2;border:2px solid #dc2626;border-radius:6px;padding:10px 14px;font-size:11px;font-weight:800;color:#991b1b;">FAIL<div style="font-size:9px;font-weight:400;margin-top:2px;">Reject + CAPA<br>반품 + 시정조치</div></div></div>
-</div></div>
-<!-- QC-03 Final Inspection -->
-<div class="screen-card" id="qc03"><div class="sc-hdr"><div><div class="sc-id">QC-03</div><div class="sc-title-en">Final Inspection</div><div class="sc-title-ko">최종 검사</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-1st">1st Dev</span></div></div>
-<div class="sc-body"><div class="desc-bi" style="border-left-color:#dc2626;"><div><div class="db-lbl">EN</div><div class="db-en">Final quality gate before finished goods stocking. Inspection checklist is automatically loaded from MD-13 inspection standards for the specific item and inspection type. PASS → auto-triggers FG-01 PDA stocking flow. FAIL → reject quarantine + optional CAPA creation. WOs flagged by PNT-07 oven deviation are auto-switched to Enhanced Inspection mode (100% full inspection).</div></div><div><div class="db-lbl">KO</div><div class="db-ko">완제품 적재 전 최종 검사 게이트. MD-13 기준 품목별 검사 체크리스트 자동 로드. 합격 → FG-01 PDA 적재 자동 트리거. 불합격 → 격리 + 선택적 CAPA 생성. PNT-07 이탈 플래그 WO → 강화검사(100% 전수) 모드 자동 전환.</div></div></div>
-<div class="mock-wrap"><div class="mock-lbl">QC-03 · Final Inspection · Web PC</div><div class="mock-win">
-<div class="mock-tbar">🔍 A-MES · Quality · Final Inspection <span class="bc">QC &gt; Final Inspection</span></div>
-<div class="mock-body">
-<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;">
-<div style="background:#f0f3f7;border:1px solid var(--border);border-radius:5px;padding:8px 12px;flex:1;"><div style="font-size:9px;color:var(--sub);">WO / Item · 작업 지시 / 품목</div><div style="font-size:12px;font-weight:700;">WO-20250701-007 · Door Trim LH · 200 EA</div></div>
-<div class="alert alert-d" style="margin:0;"><span>⚠️</span><div><strong>Enhanced Inspection Mode</strong> — Oven deviation flag (PNT-07). 100% full inspection required. <strong>강화검사 모드 — 건조로 이탈 플래그. 전수 검사 필수.</strong></div></div>
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol active"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head">
+    <div class="sb-vol">VOL.8 · QC MODULE</div>
+    <div class="sb-mod-en">QUALITY CONTROL</div>
+    <div class="sb-mod-ko">품질 관리</div>
+  </div>
+  <div class="sb-section">Overview · 개요</div>
+  <a class="sb-link" href="#flow"><span class="sl-id">FLOW</span><div><div class="sl-en">Process Flow</div><div class="sl-ko">품질 흐름</div></div></a>
+  <a class="sb-link" href="#kpi"><span class="sl-id">KPI</span><div><div class="sl-en">Module KPI</div><div class="sl-ko">핵심 지표</div></div></a>
+  <div class="sb-section">Inspection · 검사</div>
+  <a class="sb-link on" href="#qc01"><span class="sl-id">QC-01</span><div><div class="sl-en">Incoming</div><div class="sl-ko">수입검사</div></div><a class="sb-l3" href="VOL08_QC01_Incoming_Inspection.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#qc02"><span class="sl-id">QC-02</span><div><div class="sl-en">In-Process</div><div class="sl-ko">공정검사</div></div><a class="sb-l3" href="VOL08_QC02_InProcess_Inspection.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#qc03"><span class="sl-id">QC-03</span><div><div class="sl-en">Final ⚙</div><div class="sl-ko">최종검사</div></div><a class="sb-l3" href="VOL08_QC03_Final_Inspection.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <div class="sb-section">Defect &amp; CAPA · 부적합</div>
+  <a class="sb-link" href="#qc04"><span class="sl-id">QC-04</span><div><div class="sl-en">NCR Register</div><div class="sl-ko">부적합 등록</div></div><a class="sb-l3" href="VOL08_QC04_NCR_Register.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#qc05"><span class="sl-id">QC-05</span><div><div class="sl-en">Hold 🚫</div><div class="sl-ko">격리</div></div><a class="sb-l3" href="VOL08_QC05_Hold_Quarantine.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#qc06"><span class="sl-id">QC-06</span><div><div class="sl-en">CAPA</div><div class="sl-ko">시정조치</div></div><a class="sb-l3" href="VOL08_QC06_CAPA.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <div class="sb-section">Monitor &amp; Reference</div>
+  <a class="sb-link" href="#qc07"><span class="sl-id">QC-07</span><div><div class="sl-en">Dashboard</div><div class="sl-ko">현황판</div></div><a class="sb-l3" href="VOL08_QC07_Dashboard.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#qc08"><span class="sl-id">QC-08</span><div><div class="sl-en">Insp. Standard</div><div class="sl-ko">검사기준서</div></div><a class="sb-l3" href="VOL08_QC08_Inspection_Std.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#qctrc"><span class="sl-id">QC-TRC</span><div><div class="sl-en">Traceability</div><div class="sl-ko">이력 추적</div></div><a class="sb-l3" href="VOL08_QC_TRC_Traceability.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <div class="sb-sep"></div>
+  <div class="sb-section">Reference · 참조</div>
+  <a class="sb-link" href="#gates"><span class="sl-id">GATE</span><div><div class="sl-en">3-Gate System</div><div class="sl-ko">3-게이트 체계</div></div></a>
+  <a class="sb-link" href="#defects"><span class="sl-id">DEF</span><div><div class="sl-en">Defect Master</div><div class="sl-ko">불량 코드</div></div></a>
+  <a class="sb-link" href="#severity"><span class="sl-id">SEV</span><div><div class="sl-en">Severity Matrix</div><div class="sl-ko">심각도 매트릭스</div></div></a>
+  <a class="sb-link" href="#br-qc"><span class="sl-id">BR</span><div><div class="sl-en">Business Rules</div><div class="sl-ko">업무 규칙 37건</div></div></a>
+</nav>
+<div class="main">
+  <div class="mod-hdr">
+    <div class="mod-hdr-inner">
+      <div class="mod-eyebrow">VOL.8 · QC · Quality Control · 품질 관리</div>
+      <div class="mod-title-en">QUALITY<br>CONTROL</div>
+      <div class="mod-title-ko">품질 관리 — 3-Gate · NCR · Hold · CAPA · Traceability · IATF 16949</div>
+      <div class="mod-desc-bi">
+        <div class="mdb-en">Comprehensive quality control covering the full A-MES lifecycle. <strong>3-Gate Inspection</strong> (Incoming → In-Process → Final) auto-triggered from WH/INJ/IMG/PNT, with <strong>Enhanced 100% mode</strong> for upstream-flagged WOs. <strong>NCR + Hold + CAPA</strong> workflow with 4M root-cause analysis, PDCA cycle, and D+30/60/90 effectiveness verification. Real-time <strong>Dashboard</strong> with Pareto/Trend, versioned <strong>Inspection Standards</strong>, and bidirectional <strong>Traceability</strong> (LOT ↔ VIN). All records sealed ≥ 5 years for IATF 16949 audits and customer recall response.</div>
+        <div class="mdb-ko">A-MES 전체에 걸친 통합 품질 관리. <strong>3단계 검사 게이트</strong>(수입→공정→최종) WH/INJ/IMG/PNT 자동 트리거, 상류 플래그 WO는 <strong>강화 전수검사</strong> 모드. <strong>NCR + 격리 + CAPA</strong> 워크플로우, 4M 근본원인 분석, PDCA 사이클, D+30/60/90 효과성 검증. 실시간 <strong>대시보드</strong> (파레토/추세), 버전 관리 <strong>검사기준서</strong>, 양방향 <strong>이력 추적</strong>(LOT↔VIN). 모든 기록 5년 이상 봉인 보관 — IATF 16949 감사 및 고객 리콜 대응.</div>
+      </div>
+      <div class="mod-meta-strip">
+        <div class="mms-item"><div class="mms-l">Screens</div><div class="mms-v">8 + 1 Aux</div></div>
+        <div class="mms-item"><div class="mms-l">Inspection Gates</div><div class="mms-v qc">3 (수입·공정·최종)</div></div>
+        <div class="mms-item"><div class="mms-l">Severity</div><div class="mms-v warn">3-tier (CR·MJ·MN)</div></div>
+        <div class="mms-item"><div class="mms-l">Disposition</div><div class="mms-v">4 (Rework·Scrap·UAI·Return)</div></div>
+        <div class="mms-item"><div class="mms-l">Retention</div><div class="mms-v alert">≥ 5 years</div></div>
+        <div class="mms-item"><div class="mms-l">BR Rules</div><div class="mms-v warn">37</div></div>
+      </div>
+      <div><span class="l3-hint">📋 Click any screen card / icon / pill for L3 detailed spec · 각 화면 카드 클릭 시 L3 상세 설계서</span></div>
+      <div class="screen-pills">
+        <a class="sp" href="VOL08_QC01_Incoming_Inspection.html" title="L3 상세 · QC-01"><span class="sp-id">QC-01</span> Incoming 📥 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL08_QC02_InProcess_Inspection.html" title="L3 상세 · QC-02"><span class="sp-id">QC-02</span> In-Process 🔬 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL08_QC03_Final_Inspection.html" title="L3 상세 · QC-03"><span class="sp-id">QC-03</span> Final ⚙ <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL08_QC04_NCR_Register.html" title="L3 상세 · QC-04"><span class="sp-id">QC-04</span> NCR ⚠ <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL08_QC05_Hold_Quarantine.html" title="L3 상세 · QC-05"><span class="sp-id">QC-05</span> Hold 🚫 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL08_QC06_CAPA.html" title="L3 상세 · QC-06"><span class="sp-id">QC-06</span> CAPA 🔧 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL08_QC07_Dashboard.html" title="L3 상세 · QC-07"><span class="sp-id">QC-07</span> Dashboard 📊 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL08_QC08_Inspection_Std.html" title="L3 상세 · QC-08"><span class="sp-id">QC-08</span> Std 📋 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL08_QC_TRC_Traceability.html" title="L3 상세 · QC-TRC"><span class="sp-id">QC-TRC</span> Trace 🔍 <span style="opacity:.5;font-size:8px;">📋</span></a>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ─── PROCESS FLOW ─── -->
+    <div class="sec-div" id="flow"><div class="sd-line"></div><div class="sd-lbl">▼ PROCESS FLOW · 품질 흐름</div><div class="sd-line"></div></div>
+    <div class="flow-card">
+      <div class="flow-card-h">▼ 4-Track Quality Flow · 4-트랙 품질 흐름</div>
+
+      <div class="flow-track">
+        <div class="flow-track-lbl">🚪 ① 3-GATE INSPECTION · 3-단계 검사 게이트</div>
+        <div class="flow-row">
+          <a class="flow-node external"><span class="fn-id">WH-02</span><span class="fn-name">PDA Inbound</span><span class="fn-ko">입고 트리거</span><span class="fn-tag">자동 발행</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node" href="#qc01"><span class="fn-id">QC-01</span><span class="fn-name">Incoming 📥</span><span class="fn-ko">수입검사</span><span class="fn-tag">AQL 샘플링</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node external"><span class="fn-id">INJ/IMG/PNT</span><span class="fn-name">공정 트리거</span><span class="fn-ko">SampleInterval</span><span class="fn-tag">누적 양품</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node" href="#qc02"><span class="fn-id">QC-02</span><span class="fn-name">In-Process 🔬</span><span class="fn-ko">공정검사</span><span class="fn-tag">FAIL→라인정지</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node core" href="#qc03"><span class="fn-id">QC-03 ⚙</span><span class="fn-name">Final ✅</span><span class="fn-ko">최종검사 (Gate)</span><span class="fn-tag">FG-01 차단</span></a>
+        </div>
+      </div>
+
+      <div class="flow-track">
+        <div class="flow-track-lbl">⚠ ② DEFECT &amp; DISPOSITION · 부적합 + 처분 흐름 (FAIL 분기)</div>
+        <div class="flow-row">
+          <a class="flow-node crit"><span class="fn-id">FAIL</span><span class="fn-name">자동 분기</span><span class="fn-ko">검사 + 라인 defect</span><span class="fn-tag">QC-01/02/03 + INJ/IMG/PNT-05/08</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node" href="#qc04"><span class="fn-id">QC-04</span><span class="fn-name">NCR ⚠</span><span class="fn-ko">통합 부적합</span><span class="fn-tag">4M · 3-tier</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node" href="#qc05"><span class="fn-id">QC-05</span><span class="fn-name">Hold 🚫</span><span class="fn-ko">격리 (Major+)</span><span class="fn-tag">DB Block · 라벨</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node external"><span class="fn-id">Disposition</span><span class="fn-name">4종 처분</span><span class="fn-ko">Lead+ PIN</span><span class="fn-tag">Rework·Scrap·UAI·Return</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node" href="#qc06"><span class="fn-id">QC-06</span><span class="fn-name">CAPA 🔧</span><span class="fn-ko">시정조치 (3회/30d)</span><span class="fn-tag">PDCA · 5-Why</span></a>
+        </div>
+      </div>
+
+      <div class="flow-track">
+        <div class="flow-track-lbl">📊 ③ MONITOR &amp; REFERENCE · 모니터 + 참조</div>
+        <div class="flow-row">
+          <a class="flow-node" href="#qc07"><span class="fn-id">QC-07</span><span class="fn-name">Dashboard 📊</span><span class="fn-ko">실시간 KPI</span><span class="fn-tag">Pareto · Trend · Wall TV</span></a>
+          <span class="flow-arr">⟷</span>
+          <a class="flow-node" href="#qc08"><span class="fn-id">QC-08</span><span class="fn-name">Insp. Std 📋</span><span class="fn-ko">검사기준서</span><span class="fn-tag">버전 관리 · MD-08</span></a>
+          <span class="flow-arr">⟷</span>
+          <a class="flow-node aux" href="#qctrc"><span class="fn-id">QC-TRC</span><span class="fn-name">Trace 🔍</span><span class="fn-ko">이력 추적 (Aux)</span><span class="fn-tag">정/역 · 5년 봉인</span></a>
+        </div>
+      </div>
+
+      <div class="flow-track">
+        <div class="flow-track-lbl">🌐 ④ EXTERNAL · 외부 연계</div>
+        <div class="flow-row">
+          <a class="flow-node external"><span class="fn-id">PASS</span><span class="fn-name">FG-01 적재</span><span class="fn-ko">완제품 입고</span><span class="fn-tag">자동 트리거</span></a>
+          <span class="flow-arr">|</span>
+          <a class="flow-node external"><span class="fn-id">FAIL</span><span class="fn-name">WH 격리</span><span class="fn-ko">Q-zone 이관</span><span class="fn-tag">BR-QC-01/15</span></a>
+          <span class="flow-arr">|</span>
+          <a class="flow-node external"><span class="fn-id">CAPA ACT</span><span class="fn-name">SOP/Std Update</span><span class="fn-ko">QC-08 자동 DRAFT</span><span class="fn-tag">MNT · SYS · IT</span></a>
+          <span class="flow-arr">|</span>
+          <a class="flow-node external"><span class="fn-id">Customer</span><span class="fn-name">SAV · GEO</span><span class="fn-ko">Claim · Audit · Recall</span><span class="fn-tag">IATF 16949</span></a>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:14px;margin-top:14px;font-size:9px;color:rgba(255,255,255,.55);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;flex-wrap:wrap;">
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(220,38,38,.14);border:1px solid #fca5a5;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>QC 화면</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(212,160,23,.2);border:1px solid #fbbf24;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>⚙ Core (QC-03 FG Gate)</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(99,102,241,.14);border:1px solid #a5b4fc;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Auxiliary</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.3);border-radius:2px;vertical-align:middle;margin-right:4px;"></span>외부 모듈/이벤트</span>
+      </div>
+    </div>
+
+    <!-- ─── KPI ─── -->
+    <div class="sec-div" id="kpi"><div class="sd-line"></div><div class="sd-lbl">▼ MODULE KPI · 핵심 지표</div><div class="sd-line"></div></div>
+    <div class="mod-kpi">
+      <div class="kpi-card"><div class="kpi-l">FPY (First Pass Yield)</div><div class="kpi-v ok">≥99.5<span style="font-size:14px;color:var(--sub);"> %</span></div><div class="kpi-s">목표 · 주간 1%p 하락 알림</div></div>
+      <div class="kpi-card"><div class="kpi-l">Defect Rate</div><div class="kpi-v alert">≤0.5<span style="font-size:14px;color:var(--sub);"> %</span></div><div class="kpi-s">전 검사 통합 · 5% Andon</div></div>
+      <div class="kpi-card"><div class="kpi-l">Open NCRs</div><div class="kpi-v alert">—</div><div class="kpi-s">7d red · 14d 자동 에스컬레이션</div></div>
+      <div class="kpi-card"><div class="kpi-l">Active Holds</div><div class="kpi-v alert">—</div><div class="kpi-s">DB Block · 7d/30d Aged</div></div>
+      <div class="kpi-card"><div class="kpi-l">Open CAPAs</div><div class="kpi-v warn">—</div><div class="kpi-s">PDCA · D+30/60/90 검증</div></div>
+    </div>
+
+    <!-- ─── 3-GATE VISUAL ─── -->
+    <div class="sec-div" id="gates"><div class="sd-line"></div><div class="sd-lbl">▼ 3-GATE SYSTEM · 3-단계 검사 게이트</div><div class="sd-line"></div></div>
+    <div class="gate-flow">
+      <div class="gate-box g1"><div class="gate-id">QC-01</div><div class="gate-en">Incoming</div><div class="gate-ko">수입검사<br>(WH 자동)</div></div>
+      <div class="gate-arr">→</div>
+      <div class="gate-box g2"><div class="gate-id">QC-02</div><div class="gate-en">In-Process</div><div class="gate-ko">공정검사<br>(INJ/IMG/PNT)</div></div>
+      <div class="gate-arr">→</div>
+      <div class="gate-box g3"><div class="gate-id">QC-03 ⚙</div><div class="gate-en">Final Gate</div><div class="gate-ko">최종 게이트<br>(STANDARD/ENHANCED)</div></div>
+      <div class="gate-arr">→</div>
+      <div class="gate-box pass"><div class="gate-id">PASS</div><div class="gate-en">FG Stocking</div><div class="gate-ko">완제품 적재</div></div>
+    </div>
+    <div style="text-align:center;color:#dc2626;font-size:11px;font-weight:700;margin:-6px 0 12px;">↓ FAIL @ any gate</div>
+    <div class="gate-flow" style="grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;">
+      <div class="gate-box fail"><div class="gate-id">FAIL</div><div class="gate-en">자동 분기</div><div class="gate-ko">⚠</div></div>
+      <div class="gate-arr fail">→</div>
+      <div class="gate-box" style="background:#fee2e2;border-color:#fca5a5;color:#7f1d1d;"><div class="gate-id">QC-04</div><div class="gate-en">NCR</div><div class="gate-ko">부적합 등록</div></div>
+      <div class="gate-arr fail">→</div>
+      <div class="gate-box" style="background:#fee2e2;border-color:#fca5a5;color:#7f1d1d;"><div class="gate-id">QC-05</div><div class="gate-en">Hold 🚫</div><div class="gate-ko">Major+ 격리</div></div>
+      <div class="gate-arr fail">→</div>
+      <div class="gate-box" style="background:#fef9c3;border-color:#d97706;color:#92400e;"><div class="gate-id">QC-06</div><div class="gate-en">CAPA</div><div class="gate-ko">3회/30d 시정조치</div></div>
+    </div>
+
+    <!-- ─── SCREENS ─── -->
+    <div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">▼ 9 SCREENS · 화면 설계</div><div class="sd-line"></div></div>
+
+    <!-- QC-01 -->
+    <div class="screen-card" id="qc01">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">📥</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">QC-01</div>
+            <div class="sc-title-en">Incoming Inspection</div>
+            <div class="sc-title-ko">수입검사 — WH-02 자동 트리거 + AQL 샘플링</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-pda">📱 PDA</span><span class="tag t-1st">1st Dev</span></div>
+        <a class="sc-l3-btn" href="VOL08_QC01_Incoming_Inspection.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: WH-02 PDA 입고 확정 시 자동 발행, MD-08 검사기준 자동 매칭, AQL 샘플 수 자동 계산 (200BG → 20 샘플)<span class="ko">합격 → WH-03 재고 Available 전환, 불합격 → 격리 잔류 + NCR 자동 발행 + 공급사 Hold + 다음 입고 100% 강화검사</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">SCM PO + MD-08 Std</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">Available / Quarantine</div></div>
+          <div class="qf"><div class="qf-l">🚧 FAIL</div><div class="qf-v">NCR + Supplier Hold ON</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">Web + PDA Sample Scan</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">First quality gate. Auto-triggered from WH-02 PDA inbound. MD-08 inspection standard auto-matched. Inspector measures samples (Web) or scans (PDA). PASS → stock Available. FAIL → quarantine + auto-NCR + supplier Hold (next inbound 100% enhanced).</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">첫 품질 게이트. WH-02 PDA 입고 시 자동 발행. MD-08 기준 자동 매칭. Web/PDA로 샘플 측정·스캔. 합격 → 가용재고. 불합격 → 격리 + NCR 자동 + 공급사 Hold (다음 입고 100% 강화).</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">⚡</div><div class="feat-t">Auto Trigger</div><div class="feat-d">WH-02 입고 즉시 발행.<span class="ko">대기 시간 0</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📊</div><div class="feat-t">AQL Sampling</div><div class="feat-d">MD-08 기준 샘플 수 자동.<span class="ko">200→20 자동 계산</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🚫</div><div class="feat-t">Supplier Hold</div><div class="feat-d">FAIL 시 다음 입고 자동 강화.<span class="ko">BR-QC-09</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📷</div><div class="feat-t">Photo + 5y</div><div class="feat-d">증빙 사진 + 5년 보관.<span class="ko">BR-QC-08</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-qc">BR-QC-01</a>
+          <a class="br-chip" href="#br-qc">BR-QC-04</a>
+          <a class="br-chip" href="#br-qc">BR-QC-08</a>
+          <a class="br-chip" href="#br-qc">BR-QC-09</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- QC-02 -->
+    <div class="screen-card" id="qc02">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">🔬</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">QC-02</div>
+            <div class="sc-title-en">In-Process Inspection</div>
+            <div class="sc-title-ko">공정검사 — INJ/IMG/PNT 주기 자동 트리거</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-pda">📱 PDA</span><span class="tag t-web">🖥 Web</span><span class="tag t-1st">1st Dev</span></div>
+        <a class="sc-l3-btn" href="VOL08_QC02_InProcess_Inspection.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 생산 라인 누적 양품 도달 시 PDA 푸시 알림, 라인 사이드 빠른 샘플 판정 (예: 8/200) + Web 상세 측정<span class="ko">FAIL 시 해당 WO만 자동 정지, 라인장 PIN + 시정조치로 재가동, Critical 시 해당 교대 누적 양품 전체 자동 격리</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">INJ/IMG/PNT Trigger</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">WO Continue / Halt</div></div>
+          <div class="qf"><div class="qf-l">🚨 CRITICAL</div><div class="qf-v">교대 전량 자동 격리</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">PDA 우선 + Web 보조</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">In-process sampling auto-triggered when cumulative good qty hits MD-08 SampleInterval. PDA fast judgment line-side, Web detailed measurement. FAIL → WO auto-halt + Supervisor PIN to resume + Critical → entire shift output quarantined.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">누적 양품이 SampleInterval 도달 시 공정 도중 샘플 검사 자동 발행. PDA 빠른 판정, Web 상세 측정. FAIL → WO 자동 정지 + PIN 재가동. Critical → 교대 누적 양품 전체 격리.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">📡</div><div class="feat-t">Auto Push</div><div class="feat-d">검사원 PDA 즉시 알림.<span class="ko">15분 지연 불가</span></div></div>
+          <div class="feat-item"><div class="feat-ico">⛔</div><div class="feat-t">Line Halt</div><div class="feat-d">FAIL 시 WO 자동 정지.<span class="ko">PIN 재가동</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🚨</div><div class="feat-t">Critical → Hold</div><div class="feat-d">치명 시 교대 전량 격리.<span class="ko">BR-QC-07</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔗</div><div class="feat-t">Defect Link</div><div class="feat-d">라인 defect 자동 연계.<span class="ko">INJ/IMG/PNT-05</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-qc">BR-QC-05</a>
+          <a class="br-chip crit" href="#br-qc">BR-QC-06</a>
+          <a class="br-chip crit" href="#br-qc">BR-QC-07</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- QC-03 CORE -->
+    <div class="screen-card" id="qc03">
+      <div class="sc-hdr core">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">✅</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">QC-03 · ⚙ CORE · FG GATE</div>
+            <div class="sc-title-en">Final Inspection</div>
+            <div class="sc-title-ko">최종검사 — FG 적재 전 마지막 방벽 + 강화검사 자동 분기</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-core">⚙ Core</span><span class="tag t-gate">🚪 FG Gate</span></div>
+        <a class="sc-l3-btn" href="VOL08_QC03_Final_Inspection.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline core">
+          <span class="headline-ico">⭐</span>
+          <div class="headline-t">What you'll see: 마지막 공정 완료 시 자동 발행 + 상류 플래그 평가 → Mode 자동 (STANDARD AQL / ENHANCED 100% 전수)<span class="ko">PASS → FG-01 적재 1초 내 자동 트리거, FAIL → QC-05 격리 + NCR + DB-level FG 차단 (BR-QC-01) — 우회 불가, Critical 시 공장장 승인 필수</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">Last process Closed + 상류 플래그</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v mono">FG Trigger / QC-05 Hold</div></div>
+          <div class="qf"><div class="qf-l">⚡ MODE</div><div class="qf-v">STANDARD / ENHANCED 자동</div></div>
+          <div class="qf"><div class="qf-l">🔒 BLOCK</div><div class="qf-v">DB-level FG 차단</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">The core quality gate. WO last-process completion auto-triggers QC-03. Mode auto-decided: STANDARD AQL OR ENHANCED 100% (PNT oven deviation / INJ mold-wear / prior Critical FAIL / customer request). PASS → FG-01 auto-trigger in 1s. FAIL → QC-05 + NCR + FG blocked at DB.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">핵심 품질 게이트. WO 마지막 공정 완료 시 자동 발행, 상류 플래그로 Mode 자동 결정(표준 AQL / 강화 전수). PASS → FG-01 1초 내 자동, FAIL → QC-05 + NCR + DB-level FG 차단.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item core"><div class="feat-ico">🚪</div><div class="feat-t">FG Gate</div><div class="feat-d">PASS 없이 FG 적재 불가.<span class="ko">BR-QC-01 (DB Constraint)</span></div></div>
+          <div class="feat-item core"><div class="feat-ico">⚡</div><div class="feat-t">Auto Mode</div><div class="feat-d">상류 플래그 → 강화 자동.<span class="ko">BR-QC-02 수동 변경 불가</span></div></div>
+          <div class="feat-item core"><div class="feat-ico">📝</div><div class="feat-t">Customer Spec</div><div class="feat-d">MD-08 고객 사양 자동 로드.<span class="ko">SAV/GEO 분리</span></div></div>
+          <div class="feat-item core"><div class="feat-ico">✍</div><div class="feat-t">Digital Sig.</div><div class="feat-d">고객 A등급 Lead+ 결재.<span class="ko">BR-QC-10</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-qc">BR-QC-01</a>
+          <a class="br-chip crit" href="#br-qc">BR-QC-02</a>
+          <a class="br-chip" href="#br-qc">BR-QC-10</a>
+          <a class="br-chip" href="#br-qc">BR-QC-03</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- QC-04 -->
+    <div class="screen-card" id="qc04">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">⚠️</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">QC-04</div>
+            <div class="sc-title-en">NCR Register</div>
+            <div class="sc-title-ko">부적합품(NCR) 통합 등록 — 전 모듈 + 고객 클레임</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-pda">📱 PDA</span><span class="tag t-1st">1st Dev</span></div>
+        <a class="sc-l3-btn" href="VOL08_QC04_NCR_Register.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: QC-01/02/03 FAIL + 라인 defect (INJ-05/IMG-05/PNT-08) + 고객 클레임 통합 등록 + 3등급 Severity + 4M 분류 + 사진<span class="ko">Disposition 4종 (Rework/Scrap/UAI/Return), CRITICAL 처분은 공장장 승인 필수, UAI는 고객 승인 PDF 첨부 필수</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">FAIL + Line Defect + Claim</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">Disposition (4종) → Hold/CAPA</div></div>
+          <div class="qf"><div class="qf-l">🎯 SEVERITY</div><div class="qf-v">CRITICAL · MAJOR · MINOR</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">Web + PDA + Photo Upload</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Central NCR registry consolidating all defects across A-MES. Auto-issued from QC FAILs, line defects, customer claims. 3-tier severity + 4M cause + evidence. Disposition: REWORK/SCRAP/UAI/RETURN. ≥Major auto-creates Hold + feeds CAPA evaluation.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">전 모듈 NCR 통합 등록. QC FAIL·라인 defect·고객 클레임 자동 발행. 3등급 + 4M + 증빙. 처분 4종. Major+ 자동 Hold + CAPA 평가 연동.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">🎫</div><div class="feat-t">Unified Hub</div><div class="feat-d">전 모듈 defect 통합.<span class="ko">검색·드릴 1곳</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔍</div><div class="feat-t">4M Analysis</div><div class="feat-d">Man/Machine/Material/Method.<span class="ko">파레토 데이터 원천</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📷</div><div class="feat-t">Photo + RFID Chain</div><div class="feat-d">사진 + 원인 이벤트 1-click.<span class="ko">PNT-05 등 자동 연계</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🚨</div><div class="feat-t">Auto Cascade</div><div class="feat-d">Major+ → Hold 5초 내.<span class="ko">BR-QC-13</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-qc">BR-QC-11</a>
+          <a class="br-chip crit" href="#br-qc">BR-QC-12</a>
+          <a class="br-chip" href="#br-qc">BR-QC-13</a>
+          <a class="br-chip" href="#br-qc">BR-QC-14</a>
+          <a class="br-chip" href="#br-qc">BR-QC-03</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- QC-05 -->
+    <div class="screen-card" id="qc05">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">🚫</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">QC-05</div>
+            <div class="sc-title-en">Hold / Quarantine</div>
+            <div class="sc-title-ko">격리·해제 — DB-level 차단 + 물리 빨강 라벨 + PIN 해제</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-pda">📱 Label Scan</span><span class="tag t-1st">1st Dev</span></div>
+        <a class="sc-l3-btn" href="VOL08_QC05_Hold_Quarantine.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">🚫</span>
+          <div class="headline-t">What you'll see: Major+ NCR 자동 생성, 영향 재고·WO·LOT DB 플래그 (FG/Ship/WH Move/MRP Consume 모두 차단), 빨강 격리 라벨 자동 인쇄·부착<span class="ko">QC Lead+ PIN + 사유 + 시정조치로 해제, CRITICAL은 공장장 승인 추가, 7일 미처분 일일 알림, 30일 EXPIRED 자동 전환</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">NCR Major+ Auto</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v mono">LOCKED → RELEASED/SCRAPPED</div></div>
+          <div class="qf"><div class="qf-l">🔒 BLOCK</div><div class="qf-v">FG·Ship·WH·MRP 차단</div></div>
+          <div class="qf"><div class="qf-l">🏷 LABEL</div><div class="qf-v">100×150mm 빨강 자동</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Physical + System isolation gate. DB-level constraint blocks FG/Ship/Move/Consume. Red quarantine label with HoldID barcode auto-printed. Release requires QC Lead+ PIN + Reason + NCR Disposition; CRITICAL needs Plant Mgr. 7d aged → daily reminder, 30d → EXPIRED.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">물리·시스템 격리. DB 제약으로 FG/출하/이동/소비 차단. HoldID 바코드 빨강 라벨 자동 인쇄. QC Lead+ PIN+사유 + NCR Disposition 해제. CRITICAL은 공장장 승인. 7d 알림, 30d EXPIRED.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">🛡</div><div class="feat-t">DB Constraint</div><div class="feat-d">애플리케이션이 아닌 DB 차단.<span class="ko">BR-QC-15</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🏷</div><div class="feat-t">Auto Label</div><div class="feat-d">라벨러 자동 인쇄.<span class="ko">바코드 + 다국어</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔐</div><div class="feat-t">PIN Release</div><div class="feat-d">권한별 차등 (Lead/공장장).<span class="ko">BR-QC-12</span></div></div>
+          <div class="feat-item"><div class="feat-ico">⏱</div><div class="feat-t">7d/30d Aged</div><div class="feat-d">자동 에스컬레이션.<span class="ko">BR-QC-16</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-qc">BR-QC-13</a>
+          <a class="br-chip crit" href="#br-qc">BR-QC-15</a>
+          <a class="br-chip" href="#br-qc">BR-QC-16</a>
+          <a class="br-chip" href="#br-qc">BR-QC-17</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- QC-06 -->
+    <div class="screen-card" id="qc06">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">🔧</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">QC-06</div>
+            <div class="sc-title-en">CAPA Management</div>
+            <div class="sc-title-ko">시정·예방조치 — PDCA + 5-Why + 효과성 검증</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL08_QC06_CAPA.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 30일 동일 불량 3회 자동 권고, PDCA 4단계 (PLAN→DO→CHECK→ACT) + 5-Why 근본원인 (최소 3-Why) + Corrective/Preventive 조치<span class="ko">D+30/60/90 효과성 검증 (1건 FAIL 시 PLAN 회귀), 1년 내 동일 근본원인 재발 시 REPEAT 등급 → 공장장 보고, HIGH 영향은 고객 보고서 PDF 자동 생성</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">3 NCRs/30d Auto + 수동</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">SOP/Std Update + Lateral</div></div>
+          <div class="qf"><div class="qf-l">🔄 CYCLE</div><div class="qf-v">PDCA D+30/60/90</div></div>
+          <div class="qf"><div class="qf-l">⚠ REPEAT</div><div class="qf-v">1년 내 재발 시 등급↑</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">PDCA-based CAPA. Auto-recommended on 3 NCRs/30d (same defect). 5-Why root cause (min 3-Why), Corrective + Preventive actions, D+30/60/90 effectiveness verification. 1-yr re-recurrence = REPEAT → Plant Mgr. Customer Impact HIGH → auto-PDF.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">PDCA 기반 CAPA. 30일 3회 자동 권고. 5-Why 근본원인 (최소 3-Why), 시정+예방, D+30/60/90 효과성 검증. 1년 재발 시 REPEAT → 공장장 보고. HIGH 영향 자동 PDF.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">🔄</div><div class="feat-t">PDCA</div><div class="feat-d">Plan-Do-Check-Act 사이클.<span class="ko">표준 워크플로우</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🎯</div><div class="feat-t">5-Why</div><div class="feat-d">근본원인 추궁.<span class="ko">최소 3-Why 의무</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📈</div><div class="feat-t">D+30/60/90</div><div class="feat-d">효과성 시점별 검증.<span class="ko">1건 FAIL → 재 Plan</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔁</div><div class="feat-t">REPEAT Detect</div><div class="feat-d">유사 근본원인 자동 감지.<span class="ko">QC_CAPA_Cluster</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-qc">BR-QC-18</a>
+          <a class="br-chip crit" href="#br-qc">BR-QC-19</a>
+          <a class="br-chip" href="#br-qc">BR-QC-20</a>
+          <a class="br-chip" href="#br-qc">BR-QC-21</a>
+          <a class="br-chip" href="#br-qc">BR-QC-03</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- QC-07 -->
+    <div class="screen-card" id="qc07">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">📊</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">QC-07</div>
+            <div class="sc-title-en">QC Dashboard</div>
+            <div class="sc-title-ko">현황판 — KPI 6 · Pareto · Trend · Wall TV</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL08_QC07_Dashboard.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 6 KPI 타일 (FPY·Defect Rate·Open NCRs·Active Holds·Open CAPAs·Avg LT) + 불량 Pareto + 4M Cause Pie + 90일 Trend Line + 실시간 Open NCR/Hold 리스트<span class="ko">KPI 30s · 차트 5min · 라이브 항목은 WebSocket 즉시 반영, Wall TV 모드 3-view 30초 자동 회전, 임계 이탈 Slack 알림</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">QC_DailyStats + Live WS</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">KPI · Charts · Live · Export</div></div>
+          <div class="qf"><div class="qf-l">🔄 REFRESH</div><div class="qf-v">30s/5min/Live (WS)</div></div>
+          <div class="qf"><div class="qf-l">📺 WALL TV</div><div class="qf-v">3-view 30s 회전</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Real-time consolidated dashboard for QC Manager + Plant Manager. 6 KPI tiles, Pareto + 4M Pie, 90d trend, live Open NCR/Hold lists. KPI 30s · charts 5min · live items WebSocket. Wall TV mode auto-rotates 3 views every 30s.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">QC Manager · 공장장용 실시간 통합 대시보드. 6 KPI 타일 + Pareto·4M·90일 Trend + 실시간 NCR/Hold. KPI 30s, 차트 5min, 라이브 WS. Wall TV 모드 3-view 30s 회전.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">🎯</div><div class="feat-t">6 KPI Tiles</div><div class="feat-d">FPY·Defect·NCR·Hold·CAPA·LT.<span class="ko">목표 대비 색상 자동</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📊</div><div class="feat-t">Pareto + 4M</div><div class="feat-d">상위 불량 + 원인 분포.<span class="ko">드릴-다운</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📈</div><div class="feat-t">90d Trend</div><div class="feat-d">FPY/Defect Rate 추세.<span class="ko">개선 방향 검증</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📺</div><div class="feat-t">Wall TV</div><div class="feat-d">사무실 게시 풀스크린.<span class="ko">읽기 전용 · BR-QC-26</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-qc">BR-QC-22</a>
+          <a class="br-chip" href="#br-qc">BR-QC-23</a>
+          <a class="br-chip" href="#br-qc">BR-QC-24</a>
+          <a class="br-chip" href="#br-qc">BR-QC-26</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- QC-08 -->
+    <div class="screen-card" id="qc08">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">📋</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">QC-08</div>
+            <div class="sc-title-en">Inspection Standard</div>
+            <div class="sc-title-ko">검사기준서 — MD-08 미러 + 버전 관리 + 결재</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL08_QC08_Inspection_Std.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 트리 네비게이션 (수입·공정·최종 분류) + 검사 항목 표 (Class별 Critical/Major/Minor) + KPI 임계 + 5개 버전 개정 이력<span class="ko">버전 4단계 (DRAFT→IN_REVIEW→APPROVED→OBSOLETE), 검사 시작 시 버전 핀 (Pinned) — 진행 중 개정 무영향, 고객 PDF 변경 시 DRAFT 자동 생성</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">MD-08 + Customer Spec PDF</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">→ QC-01/02/03 검사 적용</div></div>
+          <div class="qf"><div class="qf-l">🔒 VERSION</div><div class="qf-v">APPROVED Only · Pin at Start</div></div>
+          <div class="qf"><div class="qf-l">⏱ RETENTION</div><div class="qf-v">OBSOLETE ≥ 5y</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Inspection standard browser+editor. Mirrors MD-08 with QC add-ons (sampling, AQL, photos, customer PDF). Versioned (DRAFT→IN_REVIEW→APPROVED→OBSOLETE). Each inspection pins (StdID, VerNo). Customer spec change auto-creates DRAFT. CAPA ACT triggers auto-draft.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">검사기준서 조회·편집기. MD-08 미러 + QC 추가(샘플링·AQL·사진·고객 PDF). 버전 4단계. 검사 시작 시 (StdID, VerNo) 핀. 고객 사양 변경 시 DRAFT 자동, CAPA ACT 자동 트리거.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">🌳</div><div class="feat-t">Tree Nav</div><div class="feat-d">수입/공정/최종 + 품목.<span class="ko">트리 + 검색</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📌</div><div class="feat-t">Version Pin</div><div class="feat-d">검사 시작 시 버전 락.<span class="ko">BR-QC-28</span></div></div>
+          <div class="feat-item"><div class="feat-ico">✍</div><div class="feat-t">QC Manager 결재</div><div class="feat-d">Lead 단독 승인 불가.<span class="ko">BR-QC-29</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔄</div><div class="feat-t">Auto DRAFT</div><div class="feat-d">고객 PDF 변경 감지.<span class="ko">BR-QC-31</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-qc">BR-QC-27</a>
+          <a class="br-chip crit" href="#br-qc">BR-QC-28</a>
+          <a class="br-chip" href="#br-qc">BR-QC-29</a>
+          <a class="br-chip" href="#br-qc">BR-QC-31</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- QC-TRC Aux -->
+    <div class="screen-card" id="qctrc">
+      <div class="sc-hdr aux">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">🔍</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">QC-TRC · AUXILIARY</div>
+            <div class="sc-title-en">Traceability</div>
+            <div class="sc-title-ko">이력 추적 — 정/역 양방향 + Multi-hop + 5년 봉인</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-aux">📚 Aux</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL08_QC_TRC_Traceability.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 다중 핸들 검색 (LOT/WO/Customer/VIN/Item/Date/Defect/Supplier) → 통합 Event Timeline + 영향 항목 자동 산출<span class="ko">방향 자동 결정 (Customer/VIN→역방향, LOT/Supplier→정방향), Multi-hop 최대 3-hop, Sales/Auditor 권한별 데이터 범위 자동 적용, PDF 리콜 보고서 출력</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">8 Search Handles</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">Timeline + Affected + PDF</div></div>
+          <div class="qf"><div class="qf-l">⚡ SLA</div><div class="qf-v">95% queries ≤ 500ms</div></div>
+          <div class="qf"><div class="qf-l">🔒 ROLE</div><div class="qf-v">QC/Sales/Auditor 차등</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Forward/Backward traceability across all of A-MES. Search by 8 handles (LOT/WO/Customer/VIN/Item/Date/Defect/Supplier). Unified event Timeline + Affected Items. Multi-hop up to 3-hop. Read-only with Sales/Auditor scope limits. 95% queries ≤500ms.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">A-MES 전체 정/역 양방향 이력 추적. 8개 핸들 검색. 통합 Timeline + 영향 항목. Multi-hop 3-hop. Sales/Auditor 권한별 범위. 95% 쿼리 500ms 이하.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">↔</div><div class="feat-t">Bi-Direction</div><div class="feat-d">정/역 양방향 자동 결정.<span class="ko">Customer/VIN → 역방향</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🌐</div><div class="feat-t">Multi-hop</div><div class="feat-d">Claim→부품→원자재→공급사.<span class="ko">3-hop</span></div></div>
+          <div class="feat-item"><div class="feat-ico">⚡</div><div class="feat-t">Elasticsearch</div><div class="feat-d">검색 95% ≤500ms.<span class="ko">BR-QC-36 SLA</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📄</div><div class="feat-t">Recall PDF</div><div class="feat-d">리콜 보고서 자동 생성.<span class="ko">고객 대응 즉시</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-qc">BR-QC-33</a>
+          <a class="br-chip" href="#br-qc">BR-QC-34</a>
+          <a class="br-chip" href="#br-qc">BR-QC-35</a>
+          <a class="br-chip" href="#br-qc">BR-QC-37</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── DEFECT MASTER ─── -->
+    <div class="sec-div" id="defects"><div class="sd-line"></div><div class="sd-lbl">▼ DEFECT MASTER · 불량 코드 통합</div><div class="sd-line"></div></div>
+    <table class="ref-tbl">
+      <thead><tr><th style="width:90px;">Code</th><th style="width:140px;">Name (EN)</th><th style="width:110px;">명칭 (KO)</th><th>Module Source · 모듈</th><th style="width:120px;">Default Severity</th></tr></thead>
+      <tbody>
+        <tr><td class="code">INJ-D01~D06</td><td>SINK/SHORT/FLASH/WELD/DEFORM/COLOR</td><td>싱크·미성형·플래시·웰드·변형·색차</td><td>INJ-05 Defect Register</td><td><span class="pill pill-major">MAJOR</span></td></tr>
+        <tr><td class="code">IMG-D01~D05</td><td>Wrinkle / Bubble / Mis-Bond / Tear / Color</td><td>주름·기포·미접착·터짐·색차</td><td>IMG-05 Defect Register</td><td><span class="pill pill-major">MAJOR</span></td></tr>
+        <tr><td class="code">PNT-D01~D06</td><td>Runs/Orange/Fisheye/Dirt/UnderCure/Color</td><td>흘러내림·오렌지필·피시아이·이물·미경화·색차</td><td>PNT-08 Defect Register</td><td><span class="pill pill-major">MAJOR</span></td></tr>
+        <tr><td class="code">RM-D01~D04</td><td>Out-of-Spec / Contamination / Damage / Quantity</td><td>규격 이탈·오염·손상·수량 부족</td><td>QC-01 Incoming</td><td><span class="pill pill-major">MAJOR</span></td></tr>
+        <tr><td class="code">SAF-D01~D02</td><td>Safety-Critical Crack / Sharp Edge</td><td>안전 부품 균열·날카로운 모서리</td><td>QC-02/03</td><td><span class="pill pill-crit">🔴 CRITICAL</span></td></tr>
+        <tr><td class="code">PKG-D01~D03</td><td>Label Missing / Wrong / Damaged</td><td>라벨 누락·오기·훼손</td><td>QC-03 Final</td><td><span class="pill pill-minor">MINOR</span></td></tr>
+        <tr><td colspan="5" style="font-size:10px;color:var(--sub);background:#fef9c3;border-top:2px solid #fcd34d;"><strong style="color:#92400e;">⚠ 공통:</strong> 모든 defect는 QC-04 NCR로 자동 승격 (Major+). 30일 내 동일 코드 3회 발생 시 CAPA(QC-06) 자동 권고 — BR-QC-03. Severity는 자동 평가(고객영향 × 빈도) 후 검사원이 검토.</td></tr>
+      </tbody>
+    </table>
+
+    <!-- ─── SEVERITY MATRIX ─── -->
+    <div class="sec-div" id="severity"><div class="sd-line"></div><div class="sd-lbl">▼ SEVERITY × DISPOSITION MATRIX · 심각도 × 처분 매트릭스</div><div class="sd-line"></div></div>
+    <table class="ref-tbl">
+      <thead><tr><th style="width:110px;">Severity</th><th style="width:220px;">Auto Cascade</th><th>Allowed Disposition · 가능 처분</th><th style="width:140px;">Approver · 결재자</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill pill-crit">🔴 CRITICAL</span></td><td>NCR + Hold + QC Lead + Plant Mgr 즉시 알림 + Customer Notify 자동 ON</td><td>REWORK(제한적) · SCRAP(권장) · UAI(고객 승인 필수) · RETURN</td><td><strong style="color:#7f1d1d;">Plant Manager</strong> (BR-QC-12)</td></tr>
+        <tr><td><span class="pill pill-major">🟡 MAJOR</span></td><td>NCR + Hold + QC Lead 알림 + CAPA 평가 (30d 3회 조건)</td><td>REWORK · SCRAP · UAI · RETURN</td><td>QC Lead+</td></tr>
+        <tr><td><span class="pill pill-minor">🟢 MINOR</span></td><td>NCR만, Hold 선택. Pareto/Trend 데이터로만 활용 (QC-07)</td><td>REWORK · SCRAP</td><td>QC Inspector</td></tr>
+        <tr><td colspan="4" style="font-size:10px;color:var(--sub);background:#fef2f2;border-top:2px solid #fca5a5;"><strong style="color:#991b1b;">🔒 UAI (Use-As-Is) 공통:</strong> 모든 Severity에서 UAI 선택 시 <strong>고객 승인 PDF 첨부 필수</strong> (BR-QC-11). 미첨부 시 처분 자체 차단.</td></tr>
+      </tbody>
+    </table>
+
+    <!-- ─── BR ─── -->
+    <div class="br-wrap" id="br-qc">
+      <div class="br-title">Business Rules · 업무 규칙 (QC) · 37건 (카테고리별)</div>
+      <table class="br-tbl">
+        <thead><tr><th style="width:96px;">Rule ID</th><th>Rule (EN)</th><th>규칙 (KO)</th><th style="width:130px;">Module · 모듈</th><th style="width:90px;">Action</th></tr></thead>
+        <tbody>
+          <tr class="cat-row"><td colspan="5">▼ Inspection Gate Rules · 검사 게이트 (QC-01/02/03)</td></tr>
+          <tr><td class="br-id-c">BR-QC-01</td><td class="br-en-c">Only QC-03 PASS WOs can proceed to FG-01 (DB-level constraint).</td><td class="br-ko-c">QC-03 합격 WO만 FG 적재 가능 (DB 제약).</td><td>QC-03 · FG-01</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-02</td><td class="br-en-c">ENHANCED mode cannot be manually downgraded to STANDARD.</td><td class="br-ko-c">강화검사 자동 지정 시 표준 샘플링으로 수동 변경 불가.</td><td>QC-03</td><td><span class="b b-e">Forced</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-04</td><td class="br-en-c">MARGINAL must be resolved within 12h (QC-01) / 24h (QC-03); else auto-FAIL.</td><td class="br-ko-c">MARGINAL 12h(QC-01)/24h(QC-03) 미결정 시 FAIL 자동 전환.</td><td>QC-01/03</td><td><span class="b b-w">Escalate</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-05</td><td class="br-en-c">QC-02 mandatory at MD-08 SampleInterval; cannot defer &gt; 15 min.</td><td class="br-ko-c">검사 주기 도달 시 QC-02 필수, 15분 초과 지연 불가.</td><td>QC-02</td><td><span class="b b-e">Force</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-06</td><td class="br-en-c">QC-02 FAIL auto-halts WO; resume requires Supervisor PIN + Action.</td><td class="br-ko-c">QC-02 FAIL 시 WO 자동 정지, PIN + 시정조치 재가동.</td><td>QC-02</td><td><span class="b b-e">Halt</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-07</td><td class="br-en-c">Critical-defect FAIL quarantines entire shift cumulative output.</td><td class="br-ko-c">Critical FAIL 시 교대 누적 양품 전체 자동 격리.</td><td>QC-02/03</td><td><span class="b b-m">Multi</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-09</td><td class="br-en-c">FAIL incoming → Supplier Hold ON, next inbound 100% enhanced.</td><td class="br-ko-c">FAIL 시 공급사 Hold + 다음 입고 자동 100% 강화검사.</td><td>QC-01</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-10</td><td class="br-en-c">Customer-A grade items require QC Lead+ approval for PASS.</td><td class="br-ko-c">고객 A등급 품목 PASS 판정 시 QC Lead 이상 결재 필수.</td><td>QC-03</td><td><span class="b b-e">Approve</span></td></tr>
+
+          <tr class="cat-row"><td colspan="5">▼ NCR · Defect Rules · 부적합 (QC-04)</td></tr>
+          <tr><td class="br-id-c">BR-QC-03</td><td class="br-en-c">3 NCRs (same defect, 30d rolling) → auto-recommend CAPA.</td><td class="br-ko-c">30일 동일 불량 3회 → CAPA 자동 권고.</td><td>QC-04 → QC-06</td><td><span class="b b-w">Alert</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-11</td><td class="br-en-c">UAI disposition requires customer approval document; otherwise blocked.</td><td class="br-ko-c">UAI 처분 시 고객 승인 문서 필수, 미첨부 차단.</td><td>QC-04</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-12</td><td class="br-en-c">CRITICAL Disposition requires Plant Manager approval.</td><td class="br-ko-c">CRITICAL 처분은 공장장 승인 필수.</td><td>QC-04/05</td><td><span class="b b-e">Approve</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-13</td><td class="br-en-c">≥Major NCR auto-creates QC-05 Hold within 5s with physical label.</td><td class="br-ko-c">Major+ NCR은 5초 내 Hold 자동 + 라벨 발행.</td><td>QC-04 → QC-05</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-14</td><td class="br-en-c">CLOSED NCR is immutable; corrections require new NCR with reference.</td><td class="br-ko-c">CLOSED NCR 수정 불가, 정정 시 참조 포함 신규 NCR.</td><td>QC-04</td><td><span class="b b-e">Lock</span></td></tr>
+
+          <tr class="cat-row"><td colspan="5">▼ Hold · Quarantine Rules · 격리 (QC-05)</td></tr>
+          <tr><td class="br-id-c">BR-QC-15</td><td class="br-en-c">Locked items cannot move/ship/be consumed (DB constraint at FG/WH/MRP).</td><td class="br-ko-c">LOCKED 항목 이동/출하/소비 차단 (DB 제약).</td><td>QC-05 → All</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-16</td><td class="br-en-c">Hold &gt;7d → daily reminder; &gt;30d → EXPIRED + Plant Mgr escalation.</td><td class="br-ko-c">7일 미처분 일일 알림, 30일 EXPIRED + 공장장 에스컬레이션.</td><td>QC-05</td><td><span class="b b-w">Escalate</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-17</td><td class="br-en-c">Hold label barcode must be intact; damage/missing scan triggers alert.</td><td class="br-ko-c">Hold 라벨 무결 + 재스캔 가능 필수, 훼손 시 QC 알림.</td><td>QC-05</td><td><span class="b b-w">Alert</span></td></tr>
+
+          <tr class="cat-row"><td colspan="5">▼ CAPA Rules · 시정조치 (QC-06)</td></tr>
+          <tr><td class="br-id-c">BR-QC-18</td><td class="br-en-c">CAPA must include ≥1 Corrective AND ≥1 Preventive; cannot PLAN→DO without both.</td><td class="br-ko-c">시정·예방 각 1개 이상 필수, 미충족 시 DO 진입 불가.</td><td>QC-06</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-19</td><td class="br-en-c">D+30/60/90 effectiveness all must pass; any FAIL returns to PLAN.</td><td class="br-ko-c">D+30/60/90 효과성 모두 통과해야 CLOSED, FAIL시 PLAN 회귀.</td><td>QC-06</td><td><span class="b b-e">Verify</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-20</td><td class="br-en-c">Same root cause within 1y → REPEAT, escalated to Plant Manager.</td><td class="br-ko-c">1년 내 동일 근본원인 재발 시 REPEAT + 공장장 보고.</td><td>QC-06</td><td><span class="b b-w">Escalate</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-21</td><td class="br-en-c">Customer Impact HIGH → CAPA report PDF auto-generated to sales/customer.</td><td class="br-ko-c">HIGH 영향 시 CAPA 보고서 PDF 자동 생성 + 영업/고객팀 라우팅.</td><td>QC-06</td><td><span class="b b-i">Auto</span></td></tr>
+
+          <tr class="cat-row"><td colspan="5">▼ Dashboard Rules · 현황판 (QC-07)</td></tr>
+          <tr><td class="br-id-c">BR-QC-22</td><td class="br-en-c">KPI thresholds centralized in MD-08; cannot be edited on the fly.</td><td class="br-ko-c">KPI 임계는 MD-08에서 중앙 관리, 즉석 편집 불가.</td><td>QC-07</td><td><span class="b b-e">Lock</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-23</td><td class="br-en-c">FPY drop &gt;1% WoW auto-alerts QC Lead + Plant Manager.</td><td class="br-ko-c">FPY 주간 1%p 이상 하락 시 QC Lead + 공장장 자동 알림.</td><td>QC-07</td><td><span class="b b-w">Alert</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-24</td><td class="br-en-c">Open NCR aged ≥7d → red highlight; ≥14d → auto-escalate.</td><td class="br-ko-c">7일 미해결 NCR 빨강 강조, 14일 시 자동 에스컬레이션.</td><td>QC-07</td><td><span class="b b-w">Escalate</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-25</td><td class="br-en-c">Dashboard excludes DRAFT records; OPEN+ only.</td><td class="br-ko-c">DRAFT 상태 제외, OPEN 이상만 노출.</td><td>QC-07</td><td><span class="b b-e">Filter</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-26</td><td class="br-en-c">Wall TV mode is read-only with auto-rotation every 30s.</td><td class="br-ko-c">Wall TV 모드 읽기 전용, 30초 자동 회전.</td><td>QC-07</td><td><span class="b b-e">Lock</span></td></tr>
+
+          <tr class="cat-row"><td colspan="5">▼ Inspection Standard Rules · 검사기준서 (QC-08)</td></tr>
+          <tr><td class="br-id-c">BR-QC-27</td><td class="br-en-c">Only APPROVED standards apply to inspections; DRAFT/IN_REVIEW blocked.</td><td class="br-ko-c">APPROVED만 검사 적용, DRAFT/IN_REVIEW 차단.</td><td>QC-08</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-28</td><td class="br-en-c">Each inspection pins (StdID, VerNo) at start; mid-flight revisions don't affect.</td><td class="br-ko-c">검사 시작 시 (StdID, VerNo) 락, 진행 중 개정 영향 없음.</td><td>QC-08</td><td><span class="b b-e">Lock</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-29</td><td class="br-en-c">Std approval requires QC Manager role; Lead alone insufficient.</td><td class="br-ko-c">기준서 승인은 QC Manager 권한 필수, Lead 단독 불가.</td><td>QC-08</td><td><span class="b b-e">Approve</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-30</td><td class="br-en-c">IN_REVIEW &gt;7d reminder; &gt;14d Plant Manager auto-escalation.</td><td class="br-ko-c">결재 7일 reminder, 14일 시 공장장 에스컬레이션.</td><td>QC-08</td><td><span class="b b-w">Escalate</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-31</td><td class="br-en-c">Customer spec PDF change auto-creates DRAFT for QC Lead review.</td><td class="br-ko-c">고객 사양 PDF 변경 시 DRAFT 자동 생성.</td><td>QC-08</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-32</td><td class="br-en-c">OBSOLETE standards retained ≥5y for audit traceability.</td><td class="br-ko-c">OBSOLETE 기준 5년 이상 보관 (감사 추적).</td><td>QC-08</td><td><span class="b b-i">Retain</span></td></tr>
+
+          <tr class="cat-row"><td colspan="5">▼ Traceability Rules · 이력 추적 (QC-TRC)</td></tr>
+          <tr><td class="br-id-c">BR-QC-33</td><td class="br-en-c">QC-TRC is Read-only; edits must occur in source modules.</td><td class="br-ko-c">QC-TRC 읽기 전용, 수정은 소스 모듈에서.</td><td>QC-TRC</td><td><span class="b b-e">Lock</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-34</td><td class="br-en-c">Sales role traces by customer only; suppliers/cost data hidden.</td><td class="br-ko-c">Sales 권한은 고객 기준만 추적, 공급사·원가 비공개.</td><td>QC-TRC</td><td><span class="b b-e">Scope</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-35</td><td class="br-en-c">External Auditor gets time-boxed access; auto-revoked after visit.</td><td class="br-ko-c">외부 감사관은 방문 기간만, 종료 후 자동 회수.</td><td>QC-TRC</td><td><span class="b b-e">Time-Box</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-36</td><td class="br-en-c">95% queries respond ≤500ms; multi-hop ≤2s.</td><td class="br-ko-c">검색 95% 500ms 이하, 멀티홉 2s 이하.</td><td>QC-TRC</td><td><span class="b b-i">SLA</span></td></tr>
+          <tr><td class="br-id-c">BR-QC-37</td><td class="br-en-c">All search/view actions logged for audit accountability.</td><td class="br-ko-c">모든 검색/조회 행위 사용자ID·시각·쿼리 기록.</td><td>QC-TRC</td><td><span class="b b-i">Log</span></td></tr>
+
+          <tr class="cat-row"><td colspan="5">▼ Cross-cutting Rule · 공통 (전 화면)</td></tr>
+          <tr><td class="br-id-c">BR-QC-08</td><td class="br-en-c">All QC records (inspections, NCR, Hold, CAPA, Std, Trace events) retained ≥5 years.</td><td class="br-ko-c">전 QC 기록 (검사·NCR·Hold·CAPA·기준서·추적) 5년 이상 봉인 보관.</td><td>전 화면</td><td><span class="b b-i">Retain</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <div class="page-footer">
+    <div class="pf-l">A-MES · VOL.8 · QC Quality Control · UI Design Spec v2.0 (Enriched) · 8 Screens + 1 Aux · 37 BRs · IATF 16949 · ≥5y Retention</div>
+    <div class="pf-r">Web + PDA · Phase 1–2 · Bilingual EN/KO</div>
+  </div>
 </div>
-<table class="tbl"><thead><tr><th>#</th><th>Inspection Item (EN) <span class="th-ko">검사 항목</span></th><th>Standard <span class="th-ko">기준</span></th><th>Method <span class="th-ko">방법</span></th><th>Defect Qty <span class="th-ko">불량 수</span></th><th>Result <span class="th-ko">판정</span></th></tr></thead>
-<tbody>
-<tr><td>1</td><td>Visual — Surface Defect <div class="ko">외관 검사 (스크래치·오염·버·변색)</div></td><td>No defects · 이상 없음</td><td>Visual / 육안</td><td style="text-align:center;">0</td><td><span class="b b-ok">✅ Pass</span></td></tr>
-<tr><td>2</td><td>Dimension — Overall Length <div class="ko">치수 (전장)</div></td><td>148 ± 0.5 mm</td><td>Vernier caliper / 캘리퍼</td><td style="text-align:center;">0</td><td><span class="b b-ok">✅ Pass</span></td></tr>
-<tr><td>3</td><td>Fabric Adhesion — Peel Test <div class="ko">원단 부착력 (박리 테스트)</div></td><td>No lifting / 박리 없음</td><td>Manual peel / 손 박리</td><td style="text-align:center;">0</td><td><span class="b b-ok">✅ Pass</span></td></tr>
-<tr class="rw"><td>4</td><td>Color Difference — Colorimeter <div class="ko">원단 색차 (색상계 측정)</div></td><td>ΔE ≤ 1.0</td><td>Colorimeter / 색차계</td><td style="text-align:center;color:#f59e0b;font-weight:700;">2</td><td><span class="b b-w">⚠ Review</span></td></tr>
-<tr><td>5</td><td>Assembly — Clip &amp; Boss Fit <div class="ko">조립 상태 (클립·보스)</div></td><td>Normal / 정상 조립</td><td>Visual + touch / 육안·촉감</td><td style="text-align:center;">0</td><td><span class="b b-ok">✅ Pass</span></td></tr>
-</tbody></table>
-<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
-<div style="font-size:10px;color:var(--sub);align-self:center;">Inspected: 200/200 EA · 검사 완료: 200/200 EA</div>
-<button class="btn btn-primary" style="background:#22c55e;border-color:#22c55e;">✅ PASS · 합격 확정</button>
-<button class="btn btn-danger">❌ FAIL · 불합격</button>
 </div>
-</div></div></div>
-<div class="g2" style="gap:12px;margin-top:12px;">
-<div class="screen-card" id="qc01" style="margin-bottom:0;"><div class="sc-hdr"><div><div class="sc-id">QC-01</div><div class="sc-title-en">Incoming Inspection</div><div class="sc-title-ko">수입 검사</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-pda">📱 PDA</span><span class="tag t-1st">1st</span></div></div><div class="sc-body"><div class="desc-bi" style="border-left-color:#dc2626;"><div><div class="db-lbl">EN</div><div class="db-en">Auto-triggered from WH-01/02 inbound. Inspector selects inspection standard from MD-13 for inbound raw material or fabric. AQL sampling or 100% inspection. Pass → stock update. Fail → WH quarantine zone.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">WH-01/02 입고 시 자동 트리거. MD-13 수입검사 기준 적용. AQL 또는 전수검사. 합격 → 재고 반영. 불합격 → WH 격리 구역 이동.</div></div></div></div></div>
-<div class="screen-card" id="qc05" style="margin-bottom:0;"><div class="sc-hdr"><div><div class="sc-id">QC-05</div><div class="sc-title-en">Defect Pareto Analysis</div><div class="sc-title-ko">불량 파레토 분석</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd</span></div></div><div class="sc-body"><div class="desc-bi" style="border-left-color:#dc2626;"><div><div class="db-lbl">EN</div><div class="db-en">Pareto chart of defect frequency by type, process, line, and item. Drill-down to individual defect records. Trend line shows 30/60/90-day moving averages. Export for CAPA reports.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">불량 유형·공정·라인·품목별 파레토 차트. 개별 불량 기록 드릴다운. 30/60/90일 추이선. CAPA 보고서 출력.</div></div></div></div></div>
-</div>
-<div class="g2" style="gap:12px;margin-top:12px;margin-bottom:20px;">
-<div class="screen-card" id="qc06" style="margin-bottom:0;"><div class="sc-hdr"><div><div class="sc-id">QC-06</div><div class="sc-title-en">CAPA Management</div><div class="sc-title-ko">시정 조치 (CAPA)</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd</span></div></div><div class="sc-body"><div class="desc-bi" style="border-left-color:#dc2626;"><div><div class="db-lbl">EN</div><div class="db-en">Corrective and Preventive Action management. CAPA auto-recommended when same defect type recurs 3+ times within 30 days. Tracks root cause, corrective action, responsible person, due date, and verification status.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">시정·예방 조치 관리. 30일 내 동일 불량 3회↑ 시 CAPA 자동 권고. 근본 원인·조치 내용·담당자·기한·검증 상태 추적.</div></div></div></div></div>
-<div class="screen-card" id="qc07" style="margin-bottom:0;"><div class="sc-hdr"><div><div class="sc-id">QC-07</div><div class="sc-title-en">Client Claim Management</div><div class="sc-title-ko">클레임 관리 (SAV / GEO)</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd</span></div></div><div class="sc-body"><div class="desc-bi" style="border-left-color:#dc2626;"><div><div class="db-lbl">EN</div><div class="db-en">Records and manages quality claims received from SAV and GEO client plants. Links to original WO, batch, and inspection records. Tracks claim resolution status and feeds CAPA. Email notification to QC lead and sales team on new claim.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">SAV·GEO 거래선 클레임 등록·관리. 원래 WO·배치·검사 기록 연계. 처리 상태 추적 + CAPA 연동. 신규 클레임 시 QC 담당·영업팀 이메일 알림.</div></div></div></div></div>
-</div>
-</div></div>
-<div class="br-wrap" id="br-qc"><div class="br-title">Business Rules · 업무 규칙 (QC)</div><table class="br-tbl"><thead><tr><th>Rule ID</th><th>Category</th><th>Rule (EN)</th><th>규칙 (KO)</th><th>Action</th></tr></thead><tbody>
-<tr><td class="br-id">BR-QC-01</td><td>FG Gate</td><td class="br-en">Only QC-03 passed WOs can proceed to FG-01 stocking. Failed items must be quarantined and cannot be shipped.</td><td class="br-ko">QC-03 합격 WO만 FG 적재 가능. 불합격 품목 격리 필수, 출하 불가.</td><td><span class="b b-e">Block</span></td></tr>
-<tr><td class="br-id">BR-QC-02</td><td>Enhanced Inspection</td><td class="br-en">WOs auto-flagged by PNT-07 oven deviation must undergo 100% enhanced final inspection. The mode cannot be manually overridden to standard sampling.</td><td class="br-ko">PNT-07 이탈 플래그 WO 100% 전수 강화검사 필수. 표준 샘플링으로 수동 변경 불가.</td><td><span class="b b-e">Forced</span></td></tr>
-<tr><td class="br-id">BR-QC-03</td><td>CAPA Trigger</td><td class="br-en">When the same defect code recurs 3 or more times within a rolling 30-day window, system auto-generates a CAPA creation recommendation and alerts QC manager.</td><td class="br-ko">30일 이내 동일 불량 코드 3회↑ → CAPA 자동 권고 + QC 관리자 알림.</td><td><span class="b b-w">Alert + Auto</span></td></tr>
-</tbody></table></div>
-<div class="page-footer"><div class="pf-l">A-MES · VOL.8 · QC Quality Control · UI Design Spec v1.0 · Bilingual EN/KO</div><div class="pf-r">7 Screens · Web + PDA · 1st–2nd Dev</div></div></div></div></body></html>
+</body>
+</html>
