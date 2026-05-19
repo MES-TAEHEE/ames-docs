@@ -152,6 +152,36 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
 .pf-l{font-family:'JetBrains Mono',monospace;}
 .pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+
+/* Web mockup */
+.web-mock{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:12px;}
+.web-tbar{background:linear-gradient(135deg,#1f2937,#111827);color:#fff;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;font-size:11px;}
+.web-tbar-l{display:flex;gap:6px;align-items:center;}
+.web-dot{display:inline-flex;gap:4px;}
+.web-dot span{width:9px;height:9px;border-radius:50%;}
+.web-tit{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.5px;}
+.web-bc{font-size:9px;color:rgba(255,255,255,.4);font-family:'JetBrains Mono',monospace;}
+.web-toolbar{padding:9px 14px;background:#fafbfd;border-bottom:1px solid var(--border);display:flex;gap:7px;align-items:center;flex-wrap:wrap;font-size:10px;}
+.web-toolbar label{font-size:9px;color:var(--sub);font-weight:700;letter-spacing:.5px;}
+.web-inp{padding:4px 9px;border:1px solid #ccd0d4;border-radius:3px;font-size:10px;background:#fff;min-width:90px;font-family:'Noto Sans KR',sans-serif;}
+.web-btn{padding:4px 12px;border-radius:3px;font-size:10px;font-weight:700;border:1px solid;cursor:pointer;font-family:'Noto Sans KR',sans-serif;}
+.web-btn-pri{background:var(--mod);color:#fff;border-color:var(--mod);}
+.web-btn-sec{background:#fff;color:var(--text);border-color:#ccd0d4;}
+.web-btn-ok{background:#0db87a;color:#fff;border-color:#0a9060;}
+.web-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.web-tbl th{background:#e9edf2;color:var(--text);padding:7px 9px;text-align:left;font-size:9px;font-weight:700;border-bottom:1px solid #ccd0d4;letter-spacing:.3px;}
+.web-tbl td{padding:7px 9px;border-bottom:1px solid #eef0f3;color:var(--text);vertical-align:middle;}
+.web-tbl tr:hover td{background:#f6f8fa;}
+.web-tbl .mono{font-family:'JetBrains Mono',monospace;font-size:10px;}
+.web-tbl .ral-sw{display:inline-block;width:12px;height:12px;border-radius:2px;border:1px solid #ccc;vertical-align:middle;margin-right:4px;}
+.web-tbl .b-rdy{display:inline-block;font-size:8px;font-weight:700;padding:1px 6px;border-radius:2px;background:#dcfce7;color:#166534;}
+.web-tbl .b-pen{display:inline-block;font-size:8px;font-weight:700;padding:1px 6px;border-radius:2px;background:#fef9c3;color:#92400e;}
+.web-tbl .b-dft{display:inline-block;font-size:8px;font-weight:700;padding:1px 6px;border-radius:2px;background:#e0e7ff;color:#3730a3;}
+.web-tbl .chk{width:14px;height:14px;border:1.5px solid var(--mod);border-radius:2px;display:inline-block;vertical-align:middle;background:var(--mod-lt);position:relative;}
+.web-tbl .chk.on::after{content:'✓';position:absolute;top:-3px;left:1px;color:var(--mod);font-weight:900;font-size:11px;}
+.web-actions{padding:8px 14px;background:#fafbfd;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:10px;}
+.web-summ{color:var(--sub);}
+.web-summ strong{color:var(--mod-dk);}
 </style>
 </head>
 <body>
@@ -178,6 +208,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   <div class="sb-toc">
     <div class="sb-toc-title">On this page · 목차</div>
     <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
     <a href="#sec-2"><span class="num">02</span>Field Specification</a>
     <a href="#sec-3"><span class="num">03</span>Calculation Logic</a>
     <a href="#sec-4"><span class="num">04</span>Workflow</a>
@@ -217,6 +248,115 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
           PNT 라인장이 PP 모듈에서 발행된 Routing B 작업지시(WO)를 검토하여 당일 생산계획을 확정한다. WO 행마다 목표수량·RAL 컬러·라인/오븐 배정·시작시각을 입력하고, 자동 계산된 필요 지그·LOT 수를 검토한다. "Ready" 표시된 행 저장 시 PNT-02 가상LOT 발급으로 자동 연계된다.
         </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — Web PC</span></div>
+      <div class="web-mock">
+        <div class="web-tbar">
+          <div class="web-tbar-l">
+            <div class="web-dot"><span style="background:#ff5f57;"></span><span style="background:#febc2e;"></span><span style="background:#28c840;"></span></div>
+            <div class="web-tit">PNT-01 · Daily Production Plan · 일일 생산계획</div>
+          </div>
+          <div class="web-bc">A-MES &gt; PNT &gt; PNT-01 · Supervisor: T.Jo</div>
+        </div>
+        <div class="web-toolbar">
+          <label>Date</label><input class="web-inp" value="2026-05-18" type="date">
+          <label>Line</label><select class="web-inp"><option>ALL</option><option selected>PNT-L1</option><option>PNT-L2</option></select>
+          <label>WO Status</label><select class="web-inp"><option selected>Released · 미계획</option><option>전체</option></select>
+          <button class="web-btn web-btn-sec">🔍 Filter</button>
+          <div style="flex:1;"></div>
+          <button class="web-btn web-btn-sec">+ 행 추가</button>
+          <button class="web-btn web-btn-ok">💾 저장 + Ready 행 → PNT-02</button>
+        </div>
+        <table class="web-tbl">
+          <thead>
+            <tr>
+              <th style="width:36px;"></th>
+              <th>WO ID</th>
+              <th>Item / 품명</th>
+              <th>RAL</th>
+              <th style="text-align:right;">Target Qty</th>
+              <th>Line</th>
+              <th>Oven</th>
+              <th>Start</th>
+              <th style="text-align:right;">Jigs</th>
+              <th style="text-align:right;">Lots</th>
+              <th>Ready</th>
+              <th>Remark</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="chk on"></span></td>
+              <td class="mono">WO-2026-0518-001</td>
+              <td>도어트림 LH <span style="color:var(--sub);font-size:9px;">DR-TRM-LH-A1</span></td>
+              <td><span class="ral-sw" style="background:#0a0a0a;"></span><span class="mono">9005</span></td>
+              <td style="text-align:right;font-weight:700;">192</td>
+              <td>PNT-L1</td>
+              <td>OVN-01</td>
+              <td class="mono">06:00</td>
+              <td style="text-align:right;font-weight:700;color:var(--mod-dk);">6</td>
+              <td style="text-align:right;font-weight:700;color:var(--mod-dk);">6</td>
+              <td><span class="b-rdy">READY</span></td>
+              <td style="color:var(--sub);font-size:9px;">우선처리 (SAV)</td>
+            </tr>
+            <tr>
+              <td><span class="chk on"></span></td>
+              <td class="mono">WO-2026-0518-002</td>
+              <td>도어트림 RH <span style="color:var(--sub);font-size:9px;">DR-TRM-RH-A1</span></td>
+              <td><span class="ral-sw" style="background:#0a0a0a;"></span><span class="mono">9005</span></td>
+              <td style="text-align:right;font-weight:700;">96</td>
+              <td>PNT-L1</td>
+              <td>OVN-01</td>
+              <td class="mono">10:30</td>
+              <td style="text-align:right;font-weight:700;color:var(--mod-dk);">3</td>
+              <td style="text-align:right;font-weight:700;color:var(--mod-dk);">3</td>
+              <td><span class="b-rdy">READY</span></td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td><span class="chk"></span></td>
+              <td class="mono">WO-2026-0518-003</td>
+              <td>콘솔어퍼 <span style="color:var(--sub);font-size:9px;">CSL-UP-B2</span></td>
+              <td><span class="ral-sw" style="background:#8b1a1a;"></span><span class="mono">3020</span></td>
+              <td style="text-align:right;font-weight:700;">64</td>
+              <td>PNT-L1</td>
+              <td>OVN-01</td>
+              <td class="mono">14:00</td>
+              <td style="text-align:right;font-weight:700;color:var(--mod-dk);">2</td>
+              <td style="text-align:right;font-weight:700;color:var(--mod-dk);">2</td>
+              <td><span class="b-pen">PENDING</span></td>
+              <td style="color:var(--sub);font-size:9px;">컬러 변경 후</td>
+            </tr>
+            <tr style="background:#fef9c3;">
+              <td><span class="chk"></span></td>
+              <td class="mono">WO-2026-0518-004</td>
+              <td>콘솔어퍼 <span style="color:var(--sub);font-size:9px;">CSL-UP-B3</span></td>
+              <td><span class="ral-sw" style="background:#dadada;"></span><span class="mono">9010</span></td>
+              <td style="text-align:right;font-weight:700;">128</td>
+              <td>PNT-L2</td>
+              <td>OVN-02</td>
+              <td class="mono">06:00</td>
+              <td style="text-align:right;font-weight:700;color:#dc2626;">⚠ 4</td>
+              <td style="text-align:right;font-weight:700;color:#dc2626;">⚠ 4</td>
+              <td><span class="b-dft">DRAFT</span></td>
+              <td style="color:#92400e;font-size:9px;">가용 지그 3개만 (BR-PNT-P03)</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="web-actions">
+          <div class="web-summ">Total: <strong>4 WOs</strong> · Planned Qty: <strong>480</strong> · Jigs Required: <strong>15</strong> · Ready: <strong>2</strong> / 4</div>
+          <div style="display:flex;gap:6px;">
+            <button class="web-btn web-btn-sec">📋 Export CSV</button>
+            <button class="web-btn web-btn-pri">📅 캘린더 보기 (PP-CAL)</button>
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 UI Highlights · 화면 주요 포인트</span>
+        ① 체크박스 + Ready 토글: Ready=ON 행만 저장 시 PNT-02 자동 트리거 ② Jigs/Lots 셀은 자동 계산(읽기 전용), 가용 지그 부족 시 ⚠ 노랑 강조(BR-PNT-P03) ③ RAL 컬러 스왓치로 시각 식별 ④ 라인×시간 충돌 시 행 빨간색(오븐 중복 예약).</div>
       </div>
     </div>
 

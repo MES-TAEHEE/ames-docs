@@ -123,6 +123,67 @@
 .hw-row .v{color:var(--text);}
 .page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
 .pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+
+/* PDA mockup */
+.pda-row{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-bottom:14px;}
+.pda-unit{text-align:center;}
+.pda-step-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--mod-dk);margin-bottom:6px;letter-spacing:.5px;text-transform:uppercase;}
+.pda-shell{width:220px;background:#000;border-radius:24px;padding:7px;box-shadow:0 6px 18px rgba(0,0,0,.25);}
+.pda-scr{background:#0c1a23;border-radius:18px;overflow:hidden;min-height:380px;display:flex;flex-direction:column;color:#e2e8f0;}
+.pda-statbar{background:#000;padding:4px 12px;font-size:8px;display:flex;justify-content:space-between;color:rgba(255,255,255,.5);font-family:'JetBrains Mono',monospace;}
+.pda-statbar .online{color:#22c55e;}
+.pda-tbar{background:linear-gradient(135deg,#1a0800,#2d1000);padding:10px 13px;border-bottom:1px solid rgba(234,88,12,.3);}
+.pda-tbar-t{font-size:12px;font-weight:700;color:#fff;font-family:'Noto Sans KR',sans-serif;}
+.pda-tbar-s{font-size:9px;color:rgba(253,186,116,.7);margin-top:2px;font-family:'Noto Sans KR',sans-serif;}
+.pda-bd{padding:10px;flex:1;display:flex;flex-direction:column;gap:7px;font-family:'Noto Sans KR',sans-serif;}
+.pda-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:5px;padding:7px 9px;}
+.pda-card-l{font-size:8px;color:rgba(253,186,116,.7);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;font-family:'JetBrains Mono',monospace;}
+.pda-card-v{font-size:11px;font-weight:700;color:#fff;}
+.pda-card-v.ok{color:#5dffc4;}
+.pda-card-v.warn{color:#fde047;}
+.pda-card-v.err{color:#fca5a5;}
+.pda-card-v.mono{font-family:'JetBrains Mono',monospace;font-size:10px;}
+.pda-scan-zone{background:rgba(234,88,12,.06);border:1px dashed rgba(234,88,12,.4);border-radius:6px;padding:14px 8px;text-align:center;}
+.pda-scan-icon{font-size:26px;margin-bottom:4px;}
+.pda-scan-l{font-size:10px;font-weight:700;color:#fdba74;}
+.pda-scan-s{font-size:8px;color:rgba(253,186,116,.5);margin-top:2px;}
+.pda-btn{padding:8px;border-radius:5px;font-size:10px;font-weight:700;text-align:center;cursor:pointer;border:none;font-family:'Noto Sans KR',sans-serif;}
+.pda-btn-pri{background:linear-gradient(135deg,#ea580c,#9a3412);color:#fff;}
+.pda-btn-ok{background:linear-gradient(135deg,#0db87a,#0a9060);color:#fff;}
+.pda-btn-sec{background:rgba(255,255,255,.06);color:#e2e8f0;border:1px solid rgba(255,255,255,.1);}
+.pda-hangers{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;}
+.pda-hanger{aspect-ratio:1;background:rgba(234,88,12,.18);border:1px solid rgba(234,88,12,.35);border-radius:2px;font-size:6px;font-weight:700;color:#fdba74;display:flex;align-items:center;justify-content:center;}
+.pda-hanger.filled{background:rgba(13,184,122,.25);border-color:rgba(13,184,122,.5);color:#5dffc4;}
+.pda-hanger.empty{background:transparent;border-style:dashed;color:rgba(255,255,255,.25);}
+.pda-progress{height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;}
+.pda-progress-fill{height:100%;background:linear-gradient(90deg,#ea580c,#fbbf24);border-radius:3px;}
+
+/* POP display */
+.pop-mock{background:#0c1a23;border:1px solid #1a3050;border-radius:8px;overflow:hidden;margin-bottom:14px;color:#e2e8f0;}
+.pop-tbar{background:#000;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,.08);}
+.pop-tbar-l{display:flex;gap:18px;align-items:center;}
+.pop-tbar-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod-tint);letter-spacing:2px;}
+.pop-tbar-id{font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.6);}
+.pop-tbar-r{font-size:11px;color:rgba(255,255,255,.5);display:flex;gap:14px;align-items:center;}
+.pop-bd{padding:18px 22px;}
+.pop-info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+.pop-info{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:12px 14px;}
+.pop-info-l{font-size:9px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.5px;font-family:'JetBrains Mono',monospace;}
+.pop-info-v{font-size:18px;font-weight:700;color:#fff;margin-top:4px;}
+.pop-info-v.big{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:1px;color:var(--mod-tint);line-height:1;}
+.pop-info-v.ok{color:#5dffc4;}
+.pop-info-v.warn{color:#fde047;}
+.pop-status{padding:16px;background:rgba(13,184,122,.08);border:1px solid rgba(13,184,122,.3);border-radius:6px;text-align:center;margin-bottom:14px;}
+.pop-status .ps-ico{font-size:36px;line-height:1;margin-bottom:8px;}
+.pop-status .ps-t{font-size:18px;font-weight:800;color:#5dffc4;}
+.pop-status .ps-s{font-size:11px;color:rgba(255,255,255,.5);margin-top:4px;}
+.pop-status.alert{background:rgba(220,38,38,.08);border-color:rgba(220,38,38,.3);}
+.pop-status.alert .ps-t{color:#fca5a5;}
+.pop-actions{display:flex;gap:8px;margin-top:14px;}
+.pop-btn{padding:12px 20px;border-radius:5px;font-size:13px;font-weight:700;border:none;cursor:pointer;flex:1;text-align:center;font-family:'Noto Sans KR',sans-serif;}
+.pop-btn-pri{background:var(--mod);color:#fff;}
+.pop-btn-sec{background:rgba(255,255,255,.08);color:#e2e8f0;border:1px solid rgba(255,255,255,.15);}
+.pop-btn-danger{background:#dc2626;color:#fff;}
 </style>
 </head>
 <body>
@@ -144,6 +205,7 @@
   <div class="sb-toc">
     <div class="sb-toc-title">On this page · 목차</div>
     <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
     <a href="#sec-2"><span class="num">02</span>Hardware Setup</a>
     <a href="#sec-3"><span class="num">03</span>RFID Event Payload</a>
     <a href="#sec-4"><span class="num">04</span>Dual Read Flow</a>
@@ -181,6 +243,164 @@
         <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
           로딩 스테이션은 이전 사이클에서 반환된 빈 지그를 수령한다. 작업자가 핸드핼드 PDA로 지그 사전 스캔 → 화면에 바인딩된 LOT·품명·RAL 컬러·목표 부품 수·행거 위치 표시. 작업자가 행거에 부품을 거치한 후 컨베이어로 송출. 지그가 게이트를 통과할 때 <strong>고정형 R1 리더</strong>가 태그를 자동 재인식하여 로딩 이벤트 확정 + LOT을 BOUND→IN_LOAD로 전이. PDA 사전스캔과 R1 인식 불일치 시 컨베이어 정지.
         </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — PDA 3단계 + POP 디스플레이</span></div>
+
+      <!-- PDA 3-step flow -->
+      <div class="pda-row">
+        <!-- Step 1: Scan -->
+        <div class="pda-unit">
+          <div class="pda-step-lbl">① Pre-Scan · 빈지그 인식</div>
+          <div class="pda-shell">
+            <div class="pda-scr">
+              <div class="pda-statbar"><span>14:02</span><span class="online">● PDA-07 LTE</span></div>
+              <div class="pda-tbar">
+                <div class="pda-tbar-t">PNT-03 · 로딩</div>
+                <div class="pda-tbar-s">Operator: J.Kim · L1</div>
+              </div>
+              <div class="pda-bd">
+                <div class="pda-scan-zone">
+                  <div class="pda-scan-icon">📡</div>
+                  <div class="pda-scan-l">Scan Empty Jig</div>
+                  <div class="pda-scan-s">빈 지그 RFID 스캔</div>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">Last Scan</div>
+                  <div class="pda-card-v mono">JIG-007</div>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">Status</div>
+                  <div class="pda-card-v ok">✓ AVAILABLE</div>
+                </div>
+                <div style="flex:1;"></div>
+                <button class="pda-btn pda-btn-pri">📷 Scan QR (수기)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Display LOT info -->
+        <div class="pda-unit">
+          <div class="pda-step-lbl">② Confirm LOT · 정보 확인</div>
+          <div class="pda-shell">
+            <div class="pda-scr">
+              <div class="pda-statbar"><span>14:02</span><span class="online">● PDA-07 LTE</span></div>
+              <div class="pda-tbar">
+                <div class="pda-tbar-t">JIG-007 · BOUND</div>
+                <div class="pda-tbar-s">PNT-20260518-L1-0001</div>
+              </div>
+              <div class="pda-bd">
+                <div class="pda-card">
+                  <div class="pda-card-l">Item · 품명</div>
+                  <div class="pda-card-v">도어트림 LH</div>
+                  <div style="font-size:9px;color:rgba(255,255,255,.4);margin-top:2px;font-family:'JetBrains Mono',monospace;">DR-TRM-LH-A1</div>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">RAL Color</div>
+                  <div class="pda-card-v"><span style="display:inline-block;width:12px;height:12px;background:#0a0a0a;border:1px solid #fff;border-radius:2px;vertical-align:middle;margin-right:5px;"></span>9005 Jet Black</div>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">Target Hangers</div>
+                  <div class="pda-card-v">32 EA</div>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">Oven Slot</div>
+                  <div class="pda-card-v mono">OVN-01 · 14:21</div>
+                </div>
+                <div style="flex:1;"></div>
+                <button class="pda-btn pda-btn-ok">✓ 거치 시작</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Hanger map -->
+        <div class="pda-unit">
+          <div class="pda-step-lbl">③ Hanger Map · 거치 진행</div>
+          <div class="pda-shell">
+            <div class="pda-scr">
+              <div class="pda-statbar"><span>14:08</span><span class="online">● PDA-07 LTE</span></div>
+              <div class="pda-tbar">
+                <div class="pda-tbar-t">Loading · 거치 중</div>
+                <div class="pda-tbar-s">JIG-007 · 24 / 32</div>
+              </div>
+              <div class="pda-bd">
+                <div class="pda-card">
+                  <div class="pda-card-l">Progress</div>
+                  <div class="pda-card-v ok">24 / 32 EA (75%)</div>
+                  <div class="pda-progress" style="margin-top:5px;"><div class="pda-progress-fill" style="width:75%;"></div></div>
+                </div>
+                <div class="pda-hangers">
+                  <div class="pda-hanger filled">1</div><div class="pda-hanger filled">2</div><div class="pda-hanger filled">3</div><div class="pda-hanger filled">4</div>
+                  <div class="pda-hanger filled">5</div><div class="pda-hanger filled">6</div><div class="pda-hanger filled">7</div><div class="pda-hanger filled">8</div>
+                  <div class="pda-hanger filled">9</div><div class="pda-hanger filled">10</div><div class="pda-hanger filled">11</div><div class="pda-hanger filled">12</div>
+                  <div class="pda-hanger filled">13</div><div class="pda-hanger filled">14</div><div class="pda-hanger filled">15</div><div class="pda-hanger filled">16</div>
+                  <div class="pda-hanger filled">17</div><div class="pda-hanger filled">18</div><div class="pda-hanger filled">19</div><div class="pda-hanger filled">20</div>
+                  <div class="pda-hanger filled">21</div><div class="pda-hanger filled">22</div><div class="pda-hanger filled">23</div><div class="pda-hanger filled">24</div>
+                  <div class="pda-hanger empty">25</div><div class="pda-hanger empty">26</div><div class="pda-hanger empty">27</div><div class="pda-hanger empty">28</div>
+                  <div class="pda-hanger empty">29</div><div class="pda-hanger empty">30</div><div class="pda-hanger empty">31</div><div class="pda-hanger empty">32</div>
+                </div>
+                <div style="flex:1;"></div>
+                <button class="pda-btn pda-btn-sec">⚠ Short qty + 사유</button>
+                <button class="pda-btn pda-btn-ok">✓ 컨베이어 송출</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- POP terminal at gate -->
+      <div class="pop-mock">
+        <div class="pop-tbar">
+          <div class="pop-tbar-l">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">PNT-03 · R1 LOADING GATE · LINE PNT-L1</span>
+          </div>
+          <div class="pop-tbar-r">
+            <span style="font-family:'JetBrains Mono',monospace;color:#5dffc4;">● R1-L1-LOAD CONNECTED · -52 dBm</span>
+            <span>2026-05-18 14:14:22</span>
+          </div>
+        </div>
+        <div class="pop-bd">
+          <div class="pop-info-grid">
+            <div class="pop-info">
+              <div class="pop-info-l">Detected Tag</div>
+              <div class="pop-info-v big">JIG-007</div>
+              <div style="font-size:9px;color:rgba(255,255,255,.4);margin-top:3px;font-family:'JetBrains Mono',monospace;">EPC: E280-1160-...-D4 · MAIN</div>
+            </div>
+            <div class="pop-info">
+              <div class="pop-info-l">LOT ID</div>
+              <div class="pop-info-v" style="font-family:'JetBrains Mono',monospace;font-size:14px;">PNT-20260518<br>-L1-0001</div>
+            </div>
+            <div class="pop-info">
+              <div class="pop-info-l">Item · Color</div>
+              <div class="pop-info-v" style="font-size:14px;">도어트림 LH<br><span style="font-size:12px;color:var(--mod-tint);">RAL 9005</span></div>
+            </div>
+            <div class="pop-info">
+              <div class="pop-info-l">Loaded / Target</div>
+              <div class="pop-info-v big ok">24 / 32</div>
+            </div>
+          </div>
+
+          <div class="pop-status">
+            <div class="ps-ico">✅</div>
+            <div class="ps-t">MATCH OK · IN_LOAD 전이</div>
+            <div class="ps-s">PDA 사전스캔 (14:02) + R1 자동인식 (14:14) 매칭 정상 · 컨베이어 진행</div>
+          </div>
+
+          <div style="background:rgba(255,255,255,.03);border-radius:6px;padding:10px 14px;font-size:11px;color:rgba(255,255,255,.6);line-height:1.7;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mod-tint);margin-bottom:6px;letter-spacing:1px;">▼ NEXT STATIONS</div>
+            🧼 Pre-Treatment (시간 추적) → 🤖 Paint Booth → 📡 R2 Oven Entry (예상 14:21) → 🔥 Cure 180°C 15min → 📡 R3 Unloading (예상 14:38)
+          </div>
+        </div>
+      </div>
+
+      <div class="alert alert-h">
+        <div><span class="alert-title">🚨 Mismatch Scenario · 불일치 시나리오</span>
+        PDA 사전스캔 지그 ≠ R1 인식 지그 → POP 상단이 빨간 ALERT 모드로 전환 (✅ → ⚠), 컨베이어 STOP 신호 + 부저 + 라인장 PDA 푸시. BR-PNT-10 적용. 작업자 지그 회수 후 재시도.</div>
       </div>
     </div>
 

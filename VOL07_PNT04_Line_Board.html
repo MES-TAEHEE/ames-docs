@@ -107,6 +107,34 @@
 .code-card .calc-lbl{color:var(--mod-tint);font-weight:700;display:block;margin-bottom:6px;font-size:10px;letter-spacing:1px;text-transform:uppercase;}
 .code-card .k{color:#fb923c;}.code-card .s{color:#5dffc4;}.code-card .n{color:#fbbf24;}.code-card .c{color:rgba(255,255,255,.35);font-style:italic;}
 .board-mock{background:#0c1a23;border:1px solid #1a3050;border-radius:8px;padding:18px;overflow-x:auto;margin-bottom:14px;}
+.board-tbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.1);}
+.board-tbar-l{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--mod-tint);letter-spacing:1px;}
+.board-tbar-r{display:flex;gap:14px;font-size:10px;color:rgba(255,255,255,.55);}
+.board-tbar-r .stat-on{color:#5dffc4;}
+.board-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;padding:10px 14px;background:rgba(255,255,255,.02);border-radius:5px;font-size:9px;color:rgba(255,255,255,.6);}
+.board-legend .lg{display:flex;align-items:center;gap:5px;}
+.board-legend .lg-box{width:14px;height:14px;border-radius:2px;border-left:3px solid;}
+.board-legend .lg-box.normal{border-left-color:var(--mod-tint);background:rgba(234,88,12,.08);}
+.board-legend .lg-box.warn{border-left-color:#fbbf24;background:rgba(234,179,8,.12);}
+.board-legend .lg-box.alert{border-left-color:#ef4444;background:rgba(220,38,38,.12);}
+.board-legend .lg-box.idle{border-left-color:#94a3b8;background:rgba(148,163,184,.1);}
+.board-detail{background:#fff;border:1px solid var(--border);border-radius:8px;padding:18px 22px;margin-top:12px;}
+.bd-hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:12px;}
+.bd-id{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--mod-dk);}
+.bd-name{font-size:13px;font-weight:700;color:var(--text);margin-top:3px;}
+.bd-close{font-size:12px;color:var(--sub);cursor:pointer;}
+.bd-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+.bd-cell{padding:8px 10px;background:#fafbfd;border:1px solid var(--border);border-radius:4px;}
+.bd-cell-l{font-size:8px;color:var(--sub);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;text-transform:uppercase;}
+.bd-cell-v{font-size:13px;font-weight:700;color:var(--text);margin-top:3px;}
+.bd-cell-v.mono{font-family:'JetBrains Mono',monospace;font-size:11px;}
+.bd-tl{font-size:11px;}
+.bd-tl-title{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mod-dk);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;}
+.bd-tl-row{display:grid;grid-template-columns:80px 1fr;gap:10px;padding:5px 0;border-bottom:1px dashed var(--border);}
+.bd-tl-row:last-child{border-bottom:none;}
+.bd-tl-time{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mod-dk);font-weight:700;}
+.bd-tl-evt{font-size:11px;color:var(--text);}
+.bd-tl-evt.future{color:var(--sub);font-style:italic;}
 .board-cols{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
 .board-col{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:10px;min-height:240px;}
 .bc-hdr{display:flex;align-items:center;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:8px;}
@@ -183,6 +211,15 @@
     <div class="sec" id="sec-2">
       <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Mock Layout</span><span class="sec-ko">화면 목업</span></div>
       <div class="board-mock">
+        <div class="board-tbar">
+          <div class="board-tbar-l">📊 PNT-L1 LINE BOARD · LIVE</div>
+          <div class="board-tbar-r">
+            <span class="stat-on">● WS Connected</span>
+            <span>Refresh: 5s</span>
+            <span>2026-05-18 14:18:42</span>
+            <span>Operator View · TV-55"</span>
+          </div>
+        </div>
         <div class="board-cols">
           <div class="board-col">
             <div class="bc-hdr"><span class="bc-name">R1 LOAD</span><span class="bc-cnt">2</span></div>
@@ -213,9 +250,44 @@
           </div>
         </div>
       </div>
+        <div class="board-legend">
+          <div class="lg"><div class="lg-box normal"></div>Normal · 정상 진행</div>
+          <div class="lg"><div class="lg-box warn"></div>Warning · 체류 100–150%</div>
+          <div class="lg"><div class="lg-box alert"></div>Alert · 체류 &gt; 150% (BR-PNT-T05)</div>
+          <div class="lg"><div class="lg-box idle"></div>Idle · 10분간 카드 0개</div>
+          <div class="lg" style="margin-left:auto;font-style:italic;">▸ 클릭 시 상세 패널 (아래)</div>
+        </div>
+      </div>
+
+      <!-- Detail panel example -->
+      <div class="board-detail">
+        <div class="bd-hdr">
+          <div>
+            <div class="bd-id">PNT-20260518-L1-0004</div>
+            <div class="bd-name">콘솔어퍼 (CSL-UP-B2) · RAL 3020 · JIG-014</div>
+          </div>
+          <div class="bd-close">✕ Close (PNT-TRC 진입)</div>
+        </div>
+        <div class="bd-grid">
+          <div class="bd-cell"><div class="bd-cell-l">Current Stage</div><div class="bd-cell-v" style="color:#dc2626;">⚠ PRE-TREAT</div></div>
+          <div class="bd-cell"><div class="bd-cell-l">Elapsed at Stage</div><div class="bd-cell-v" style="color:#dc2626;">09:42 / ~6:00</div></div>
+          <div class="bd-cell"><div class="bd-cell-l">Predicted Oven Entry</div><div class="bd-cell-v mono">14:35 (지연 4분)</div></div>
+          <div class="bd-cell"><div class="bd-cell-l">Operator</div><div class="bd-cell-v">J.Kim (PDA-07)</div></div>
+        </div>
+        <div class="bd-tl">
+          <div class="bd-tl-title">▼ Event Timeline</div>
+          <div class="bd-tl-row"><div class="bd-tl-time">14:01:55</div><div class="bd-tl-evt">📡 R1 detected · LOT bound to JIG-014 · IN_LOAD 전이</div></div>
+          <div class="bd-tl-row"><div class="bd-tl-time">14:08:23</div><div class="bd-tl-evt">🪝 Loading complete · 24/32 parts mounted (8 short, JIG_FAILURE)</div></div>
+          <div class="bd-tl-row"><div class="bd-tl-time">14:09:00</div><div class="bd-tl-evt">🧼 Entered Pre-Treatment booth</div></div>
+          <div class="bd-tl-row" style="background:#fef2f2;border-radius:3px;padding:6px 8px;"><div class="bd-tl-time" style="color:#dc2626;">14:18:42</div><div class="bd-tl-evt" style="color:#991b1b;font-weight:700;">⚠ 체류시간 161% 초과 — Alert 발동 (BR-PNT-T05)</div></div>
+          <div class="bd-tl-row"><div class="bd-tl-time" style="color:var(--sub);">14:35 (est.)</div><div class="bd-tl-evt future">📡 R2 Oven entry (예상)</div></div>
+          <div class="bd-tl-row"><div class="bd-tl-time" style="color:var(--sub);">14:50 (est.)</div><div class="bd-tl-evt future">📡 R3 Unload (예상)</div></div>
+        </div>
+      </div>
+
       <div class="alert alert-i">
-        <div><span class="alert-title">💡 Card Anatomy</span>
-        LOT 번호(상단) → 컬러 스왓치 + 품명 → 지그ID + 경과시간 / 예상시간. ⚠ 마크는 BR-PNT-T05 (예상 체류시간 초과) 적용.</div>
+        <div><span class="alert-title">💡 Card Anatomy &amp; Interaction</span>
+        ① LOT 번호(상단) → 컬러 스왓치 + 품명 → 지그ID + 경과시간/예상시간 ② ⚠ 마크는 BR-PNT-T05 적용 ③ 카드 클릭 시 상세 패널(위 예시) 또는 PNT-TRC 이력 추적으로 진입 ④ 컬럼 헤더 카운트 ≥ 인접 평균×2 시 노란 강조(병목 BR-PNT-B03).</div>
       </div>
     </div>
 

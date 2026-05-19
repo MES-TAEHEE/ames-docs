@@ -106,6 +106,51 @@
 .code-card .k{color:#fb923c;}.code-card .s{color:#5dffc4;}.code-card .n{color:#fbbf24;}.code-card .c{color:rgba(255,255,255,.35);font-style:italic;}
 .page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
 .pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+
+/* POP terminal */
+.pop-mock{background:#0c1a23;border:1px solid #1a3050;border-radius:8px;overflow:hidden;margin-bottom:14px;color:#e2e8f0;}
+.pop-tbar{background:#000;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,.08);}
+.pop-tbar-l{display:flex;gap:18px;align-items:center;}
+.pop-tbar-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod-tint);letter-spacing:2px;}
+.pop-tbar-id{font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.6);}
+.pop-tbar-r{font-size:11px;color:rgba(255,255,255,.5);display:flex;gap:14px;align-items:center;}
+.pop-bd{padding:20px 24px;}
+.pop-info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+.pop-info{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:12px 14px;}
+.pop-info-l{font-size:9px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.5px;font-family:'JetBrains Mono',monospace;}
+.pop-info-v{font-size:18px;font-weight:700;color:#fff;margin-top:4px;}
+.pop-info-v.big{font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:1px;color:var(--mod-tint);line-height:1;}
+.pop-info-v.ok{color:#5dffc4;}
+.pop-info-v.warn{color:#fde047;}
+.qty-confirm{display:grid;grid-template-columns:1fr 80px 1fr;gap:18px;align-items:center;padding:24px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;margin-bottom:14px;}
+.qty-block{text-align:center;}
+.qty-l{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace;}
+.qty-v{font-family:'Bebas Neue',sans-serif;font-size:72px;color:#fff;line-height:1;letter-spacing:1px;}
+.qty-v.expected{color:var(--mod-tint);}
+.qty-v.actual{color:#fde047;}
+.qty-equals{font-size:32px;color:rgba(255,255,255,.3);font-weight:700;text-align:center;}
+.qty-delta{margin-top:10px;text-align:center;font-size:12px;}
+.qty-delta.short{color:#fca5a5;}
+.qty-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-width:240px;margin:0 auto;}
+.qty-key{padding:14px 0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:4px;text-align:center;font-size:18px;font-weight:700;color:#e2e8f0;font-family:'JetBrains Mono',monospace;cursor:pointer;}
+.qty-key.ok{background:rgba(13,184,122,.2);color:#5dffc4;border-color:rgba(13,184,122,.4);}
+.qty-key.del{background:rgba(220,38,38,.15);color:#fca5a5;border-color:rgba(220,38,38,.3);}
+.loss-modal{background:#fff;border:2px solid #f59e0b;border-radius:8px;padding:20px 24px;margin-bottom:14px;}
+.loss-hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #fcd34d;padding-bottom:10px;margin-bottom:14px;}
+.loss-t{font-size:14px;font-weight:800;color:#92400e;}
+.loss-s{font-size:11px;color:#a07810;margin-top:3px;}
+.loss-codes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.loss-code{padding:10px 12px;border:2px solid var(--border);border-radius:5px;cursor:pointer;}
+.loss-code.on{border-color:var(--mod);background:var(--mod-lt);}
+.loss-code-id{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mod-dk);font-weight:700;}
+.loss-code-n{font-size:12px;font-weight:700;color:var(--text);margin-top:3px;}
+.loss-code-d{font-size:10px;color:var(--sub);margin-top:3px;}
+.pop-actions{display:flex;gap:8px;margin-top:14px;}
+.pop-btn{padding:14px 20px;border-radius:5px;font-size:14px;font-weight:700;border:none;cursor:pointer;flex:1;text-align:center;font-family:'Noto Sans KR',sans-serif;}
+.pop-btn-pri{background:var(--mod);color:#fff;}
+.pop-btn-sec{background:rgba(255,255,255,.08);color:#e2e8f0;border:1px solid rgba(255,255,255,.15);}
+.pop-btn-ok{background:#0db87a;color:#fff;}
+.pop-btn-danger{background:#dc2626;color:#fff;}
 </style>
 </head>
 <body>
@@ -127,6 +172,7 @@
   <div class="sb-toc">
     <div class="sb-toc-title">On this page · 목차</div>
     <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
     <a href="#sec-2"><span class="num">02</span>Hardware Setup</a>
     <a href="#sec-3"><span class="num">03</span>Count Verification</a>
     <a href="#sec-4"><span class="num">04</span>Loss Reason Codes</a>
@@ -163,6 +209,100 @@
         <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
           R3 리더가 오븐을 통과한 지그를 인식한다. 작업자가 실제 부품 수량을 확인(LotPreIssue.TargetQty와 일치해야 하며 차이 발생 시 손실 사유 코드 필수). 확정 시 LOT 상태 IN_OVEN → CONFIRMED, 지그의 CycleCount +1 적용 후 가용 풀로 반환(다음 사이클 바인딩 대상). LOT은 QC 검사 대기열로 진입.
         </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — POP 수량 확인 + 손실 사유 모달</span></div>
+
+      <!-- POP main confirm screen -->
+      <div class="pop-mock">
+        <div class="pop-tbar">
+          <div class="pop-tbar-l">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">PNT-06 · R3 UNLOADING · LINE PNT-L1</span>
+          </div>
+          <div class="pop-tbar-r">
+            <span style="font-family:'JetBrains Mono',monospace;color:#5dffc4;">● R3-L1-UNLOAD · -48 dBm</span>
+            <span>2026-05-18 14:36:55</span>
+          </div>
+        </div>
+        <div class="pop-bd">
+          <div class="pop-info-grid">
+            <div class="pop-info"><div class="pop-info-l">Detected Jig</div><div class="pop-info-v big">JIG-002</div></div>
+            <div class="pop-info"><div class="pop-info-l">LOT</div><div class="pop-info-v" style="font-family:'JetBrains Mono',monospace;font-size:13px;">PNT-20260518<br>-L1-0001</div></div>
+            <div class="pop-info"><div class="pop-info-l">Item · Color</div><div class="pop-info-v" style="font-size:13px;">도어트림 LH<br><span style="font-size:11px;color:var(--mod-tint);">RAL 9005</span></div></div>
+            <div class="pop-info"><div class="pop-info-l">Oven Dwell</div><div class="pop-info-v ok">15:08 ✓</div><div style="font-size:9px;color:#5dffc4;margin-top:2px;">CureSpec OK</div></div>
+          </div>
+
+          <div class="qty-confirm">
+            <div class="qty-block">
+              <div class="qty-l">Expected · 투입</div>
+              <div class="qty-v expected">32</div>
+            </div>
+            <div class="qty-equals">→</div>
+            <div class="qty-block">
+              <div class="qty-l">Actual Count · 실수량 입력</div>
+              <div class="qty-v actual">31<span style="opacity:.3;">|</span></div>
+              <div class="qty-delta short">Δ -1 (3.1% loss) — 사유 코드 필수</div>
+            </div>
+          </div>
+
+          <div class="qty-keypad">
+            <div class="qty-key">7</div><div class="qty-key">8</div><div class="qty-key">9</div>
+            <div class="qty-key">4</div><div class="qty-key">5</div><div class="qty-key">6</div>
+            <div class="qty-key">1</div><div class="qty-key">2</div><div class="qty-key">3</div>
+            <div class="qty-key del">←</div><div class="qty-key">0</div><div class="qty-key ok">✓</div>
+          </div>
+
+          <div class="pop-actions">
+            <button class="pop-btn pop-btn-sec">📷 사진 첨부</button>
+            <button class="pop-btn pop-btn-danger" style="flex:2;">⚠ Short Reason 선택 (필수)</button>
+            <button class="pop-btn pop-btn-ok" style="flex:2;opacity:.5;cursor:not-allowed;">✓ Confirm → QC (사유 입력 후)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loss reason modal -->
+      <div class="loss-modal">
+        <div class="loss-hdr">
+          <div>
+            <div class="loss-t">⚠ Short Quantity Reason · 손실 사유 코드 선택</div>
+            <div class="loss-s">JIG-002 · LOT PNT-20260518-L1-0001 · Δ -1 EA · 1개 손실</div>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#a07810;">BR-PNT-U02</div>
+        </div>
+        <div class="loss-codes">
+          <div class="loss-code">
+            <div class="loss-code-id">DROPPED</div>
+            <div class="loss-code-n">Part dropped during transport</div>
+            <div class="loss-code-d">이송 중 부품 낙하 (전처리/도장부스)</div>
+          </div>
+          <div class="loss-code on">
+            <div class="loss-code-id">REJECTED_AT_LINE ✓</div>
+            <div class="loss-code-n">Operator rejected at-line</div>
+            <div class="loss-code-d">라인내 즉시 폐기 (이물·표면 손상) — PNT-08 자동 등록</div>
+          </div>
+          <div class="loss-code">
+            <div class="loss-code-id">MISSING_AT_LOAD</div>
+            <div class="loss-code-n">Loaded short of target</div>
+            <div class="loss-code-d">R1 시점 거치 부족</div>
+          </div>
+          <div class="loss-code">
+            <div class="loss-code-id">JIG_FAILURE</div>
+            <div class="loss-code-n">Hanger broken / fell off</div>
+            <div class="loss-code-d">지그 점검 알림 자동 발생</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button class="pop-btn pop-btn-sec" style="flex:0 0 auto;">취소</button>
+          <button class="pop-btn pop-btn-ok" style="flex:0 0 auto;">✓ Confirm Reason + Save</button>
+        </div>
+      </div>
+
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 UI Highlights · 화면 주요 포인트</span>
+        ① R3 인식 즉시 LOT 정보 + 오븐 체류 결과(✓/⚠) 자동 표시 ② 산업용 터치 환경: 큰 숫자 표시(72px) + 12-key 키패드 ③ Expected = Actual 시 ✓ 버튼 활성, 차이 발생 시 ⚠ 사유 버튼 강조 ④ 사유 코드 미선택 시 Confirm 비활성(BR-PNT-U02) ⑤ 초과(over-quantity) 시 라인장 PIN 모달 (별도).</div>
       </div>
     </div>
 

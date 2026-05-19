@@ -106,6 +106,26 @@
 .kpi-l-en{font-size:10px;color:var(--text);margin-top:6px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
 .kpi-l-ko{font-size:10px;color:var(--sub);margin-top:2px;}
 .report-mock{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:24px 28px;margin-bottom:14px;font-family:'Noto Sans KR',sans-serif;color:#000;}
+.web-mock{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:14px;}
+.web-tbar{background:linear-gradient(135deg,#1f2937,#111827);color:#fff;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;font-size:11px;}
+.web-tbar-l{display:flex;gap:6px;align-items:center;}
+.web-dot{display:inline-flex;gap:4px;}
+.web-dot span{width:9px;height:9px;border-radius:50%;}
+.web-tit{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.5px;}
+.web-bc{font-size:9px;color:rgba(255,255,255,.4);font-family:'JetBrains Mono',monospace;}
+.web-toolbar{padding:10px 14px;background:#fafbfd;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:10px;}
+.web-inp{padding:5px 10px;border:1px solid #ccd0d4;border-radius:3px;font-size:10px;background:#fff;font-family:'Noto Sans KR',sans-serif;}
+.web-btn{padding:5px 12px;border-radius:3px;font-size:10px;font-weight:700;border:1px solid;cursor:pointer;font-family:'Noto Sans KR',sans-serif;}
+.web-btn-pri{background:var(--mod);color:#fff;border-color:var(--mod);}
+.web-btn-sec{background:#fff;color:var(--text);border-color:#ccd0d4;}
+.web-btn-ok{background:#0db87a;color:#fff;border-color:#0a9060;}
+.signoff-panel{background:linear-gradient(135deg,#fff7ed,#fef3c7);border:1px solid #fbbf24;border-radius:6px;padding:14px 18px;margin-top:14px;display:flex;align-items:center;gap:14px;}
+.signoff-icon{font-size:30px;}
+.signoff-l{flex:1;}
+.signoff-t{font-size:13px;font-weight:800;color:#92400e;}
+.signoff-s{font-size:11px;color:#a07810;margin-top:3px;line-height:1.5;}
+.signoff-pin{display:flex;gap:5px;}
+.signoff-pin input{width:32px;height:36px;text-align:center;border:1px solid #fbbf24;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;background:#fff;}
 .rm-header{border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-end;}
 .rm-title{font-size:18px;font-weight:900;letter-spacing:1px;}
 .rm-sub{font-size:11px;color:#555;margin-top:3px;}
@@ -199,6 +219,31 @@
 
     <div class="sec" id="sec-3">
       <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Report Layout (Mock)</span><span class="sec-ko">리포트 레이아웃</span></div>
+
+      <!-- Web control toolbar -->
+      <div class="web-mock">
+        <div class="web-tbar">
+          <div class="web-tbar-l">
+            <div class="web-dot"><span style="background:#ff5f57;"></span><span style="background:#febc2e;"></span><span style="background:#28c840;"></span></div>
+            <div class="web-tit">PNT-09 · Shift Log Viewer · 교대 일지</div>
+          </div>
+          <div class="web-bc">A-MES &gt; PNT &gt; PNT-09 · Supervisor: T.Jo</div>
+        </div>
+        <div class="web-toolbar">
+          <span style="font-size:9px;color:var(--sub);font-weight:700;letter-spacing:.5px;">DATE</span>
+          <input class="web-inp" type="date" value="2026-05-18">
+          <span style="font-size:9px;color:var(--sub);font-weight:700;letter-spacing:.5px;">SHIFT</span>
+          <select class="web-inp"><option selected>DAY (06–18)</option><option>NIGHT (18–06)</option></select>
+          <span style="font-size:9px;color:var(--sub);font-weight:700;letter-spacing:.5px;">LINE</span>
+          <select class="web-inp"><option selected>PNT-L1</option><option>PNT-L2</option><option>ALL</option></select>
+          <button class="web-btn web-btn-sec">🔄 Recompile</button>
+          <div style="flex:1;"></div>
+          <span style="font-size:9px;color:var(--sub);font-family:'JetBrains Mono',monospace;">Version: v1 · Auto 18:05:32</span>
+          <button class="web-btn web-btn-sec">📄 PDF</button>
+          <button class="web-btn web-btn-sec">📊 RPT 보내기</button>
+        </div>
+      </div>
+
       <div class="report-mock">
         <div class="rm-header">
           <div>
@@ -259,6 +304,27 @@
         </div>
 
         <div style="text-align:right;font-size:10px;color:#666;margin-top:14px;">A-MES VOL.7 · PNT · Auto-generated 2026-05-18 18:05:32</div>
+      </div>
+
+      <!-- Sign-off panel -->
+      <div class="signoff-panel">
+        <div class="signoff-icon">🔒</div>
+        <div class="signoff-l">
+          <div class="signoff-t">Supervisor Sign-off · 라인장 서명</div>
+          <div class="signoff-s">서명 완료 시 데이터 immutable. 이후 정정은 v2 + diff 보관 (BR-PNT-R04). · 4-digit PIN 입력 후 확정.</div>
+        </div>
+        <div class="signoff-pin">
+          <input value="•" readonly>
+          <input value="•" readonly>
+          <input value="" placeholder="_">
+          <input value="" placeholder="_">
+        </div>
+        <button class="web-btn web-btn-ok" style="padding:12px 18px;">✓ Sign &amp; Lock</button>
+      </div>
+
+      <div class="alert alert-i" style="margin-top:14px;">
+        <div><span class="alert-title">💡 UI Highlights · 화면 주요 포인트</span>
+        ① 상단 툴바에서 일자/교대/라인 선택 → 즉시 리포트 재집계 ② PDF/RPT 전송 버튼은 sign-off 완료 시 활성 ③ Yield &lt; 90% 행은 빨간 강조(BR-PNT-R03) → 공장장 자동 에스컬레이션 ④ PIN 기반 sign-off로 immutable lock ⑤ 정정 시 v2 row 추가 + ReportAuditLog 기록.</div>
       </div>
     </div>
 

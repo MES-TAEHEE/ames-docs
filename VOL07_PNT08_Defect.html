@@ -102,6 +102,36 @@
 .dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
 .dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;}.dm-pk{color:#f59e0b;font-size:8px;font-weight:700;}.dm-fk{color:#8b5cf6;font-size:8px;font-weight:700;}
 .timeline{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px;margin-bottom:14px;}
+.pda-row{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-bottom:14px;}
+.pda-unit{text-align:center;}
+.pda-step-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--mod-dk);margin-bottom:6px;letter-spacing:.5px;text-transform:uppercase;}
+.pda-shell{width:220px;background:#000;border-radius:24px;padding:7px;box-shadow:0 6px 18px rgba(0,0,0,.25);margin:0 auto;}
+.pda-scr{background:#0c1a23;border-radius:18px;overflow:hidden;min-height:380px;display:flex;flex-direction:column;color:#e2e8f0;}
+.pda-statbar{background:#000;padding:4px 12px;font-size:8px;display:flex;justify-content:space-between;color:rgba(255,255,255,.5);font-family:'JetBrains Mono',monospace;}
+.pda-statbar .online{color:#22c55e;}
+.pda-tbar{background:linear-gradient(135deg,#1a0800,#2d1000);padding:10px 13px;border-bottom:1px solid rgba(234,88,12,.3);}
+.pda-tbar-t{font-size:12px;font-weight:700;color:#fff;font-family:'Noto Sans KR',sans-serif;}
+.pda-tbar-s{font-size:9px;color:rgba(253,186,116,.7);margin-top:2px;font-family:'Noto Sans KR',sans-serif;}
+.pda-bd{padding:10px;flex:1;display:flex;flex-direction:column;gap:6px;font-family:'Noto Sans KR',sans-serif;}
+.pda-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:5px;padding:7px 9px;}
+.pda-card-l{font-size:8px;color:rgba(253,186,116,.7);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;font-family:'JetBrains Mono',monospace;}
+.pda-card-v{font-size:11px;font-weight:700;color:#fff;}
+.pda-card-v.ok{color:#5dffc4;}
+.pda-card-v.warn{color:#fde047;}
+.pda-card-v.mono{font-family:'JetBrains Mono',monospace;font-size:10px;}
+.pda-defect-pick{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
+.pda-dp-btn{padding:6px;border-radius:4px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);font-size:9px;color:rgba(255,255,255,.7);text-align:center;cursor:pointer;}
+.pda-dp-btn.on{background:rgba(234,88,12,.25);border-color:#ea580c;color:#fdba74;font-weight:700;}
+.pda-dp-id{font-family:'JetBrains Mono',monospace;font-size:8px;display:block;opacity:.7;}
+.pda-photo{background:#000;border:1px dashed rgba(234,88,12,.5);border-radius:5px;height:80px;display:flex;align-items:center;justify-content:center;color:#fdba74;font-size:11px;flex-direction:column;gap:4px;}
+.pda-photo-thumb{background:#1a1a1a;border:1px solid rgba(234,88,12,.3);border-radius:5px;height:80px;display:flex;align-items:center;justify-content:center;font-size:30px;}
+.pda-btn{padding:8px;border-radius:5px;font-size:10px;font-weight:700;text-align:center;cursor:pointer;border:none;font-family:'Noto Sans KR',sans-serif;}
+.pda-btn-pri{background:linear-gradient(135deg,#ea580c,#9a3412);color:#fff;}
+.pda-btn-ok{background:linear-gradient(135deg,#0db87a,#0a9060);color:#fff;}
+.pda-btn-sec{background:rgba(255,255,255,.06);color:#e2e8f0;border:1px solid rgba(255,255,255,.1);}
+.cause-suggest{background:rgba(13,184,122,.12);border:1px solid rgba(13,184,122,.4);border-radius:5px;padding:7px 9px;}
+.cause-suggest .l{font-size:8px;color:#5dffc4;letter-spacing:.5px;text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-bottom:2px;}
+.cause-suggest .v{font-size:10px;color:#fff;line-height:1.4;}
 .timeline-item{display:grid;grid-template-columns:96px 1fr;gap:14px;padding:8px 0;border-bottom:1px dashed var(--border);}
 .timeline-item:last-child{border-bottom:none;}
 .tl-time{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--mod-dk);font-weight:700;}
@@ -131,6 +161,7 @@
   <div class="sb-toc">
     <div class="sb-toc-title">On this page · 목차</div>
     <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
     <a href="#sec-2"><span class="num">02</span>Defect Types</a>
     <a href="#sec-3"><span class="num">03</span>Field Spec</a>
     <a href="#sec-4"><span class="num">04</span>Root Cause Link</a>
@@ -166,6 +197,113 @@
         <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
           작업자(라인내)와 QC 검사자(경화 후)가 LOT/부품별 도장 불량을 등록한다. 불량유형(PNT-D01~D06)·수량·사진·사유·시정조치를 입력. 시스템이 해당 LOT의 RFID 이벤트 체인(R1/R2/R3 시각)과 최근 오븐 이탈을 자동 연계하여 가장 가능성 높은 원인을 한 클릭으로 노출. 동일 LOT 내 동일 불량 다수 부품 일괄 등록 지원.
         </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — PDA 불량 입력 3단계</span></div>
+      <div class="pda-row">
+        <!-- Step 1: Scan LOT + select defect type -->
+        <div class="pda-unit">
+          <div class="pda-step-lbl">① Scan LOT + Type · LOT + 유형</div>
+          <div class="pda-shell">
+            <div class="pda-scr">
+              <div class="pda-statbar"><span>15:14</span><span class="online">● PDA-12</span></div>
+              <div class="pda-tbar">
+                <div class="pda-tbar-t">PNT-08 · 불량 등록</div>
+                <div class="pda-tbar-s">QC: Y.Park · Routing B</div>
+              </div>
+              <div class="pda-bd">
+                <div class="pda-card">
+                  <div class="pda-card-l">Scanned LOT</div>
+                  <div class="pda-card-v mono">PNT-20260518-L1-0004</div>
+                  <div style="font-size:8px;color:rgba(255,255,255,.4);margin-top:2px;">콘솔어퍼 · RAL 3020 · JIG-014 · 24 EA</div>
+                </div>
+                <div style="font-size:9px;color:rgba(253,186,116,.7);text-transform:uppercase;letter-spacing:.5px;font-family:'JetBrains Mono',monospace;margin-top:4px;">Select Defect Code · 불량 유형</div>
+                <div class="pda-defect-pick">
+                  <div class="pda-dp-btn"><span class="pda-dp-id">PNT-D01</span>Runs/Sags</div>
+                  <div class="pda-dp-btn"><span class="pda-dp-id">PNT-D02</span>Orange Peel</div>
+                  <div class="pda-dp-btn"><span class="pda-dp-id">PNT-D03</span>Fisheye</div>
+                  <div class="pda-dp-btn"><span class="pda-dp-id">PNT-D04</span>Dirt Inclusion</div>
+                  <div class="pda-dp-btn on"><span class="pda-dp-id">PNT-D05 ✓</span>Insufficient Cure</div>
+                  <div class="pda-dp-btn"><span class="pda-dp-id">PNT-D06</span>Color Mismatch</div>
+                </div>
+                <div style="flex:1;"></div>
+                <button class="pda-btn pda-btn-pri">▶ 다음 (수량/사진)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Qty + Photo + auto cause -->
+        <div class="pda-unit">
+          <div class="pda-step-lbl">② Qty + Photo · 수량·사진</div>
+          <div class="pda-shell">
+            <div class="pda-scr">
+              <div class="pda-statbar"><span>15:15</span><span class="online">● PDA-12</span></div>
+              <div class="pda-tbar">
+                <div class="pda-tbar-t">D05 · 미경화</div>
+                <div class="pda-tbar-s">LOT ...0004</div>
+              </div>
+              <div class="pda-bd">
+                <div class="pda-card">
+                  <div class="pda-card-l">Defective Qty · 불량 수량</div>
+                  <div class="pda-card-v warn" style="font-size:18px;">6 / 24 EA</div>
+                  <div style="font-size:8px;color:#fde047;margin-top:2px;">⚠ 25.0% — 교대 누적 5% 임박 (BR-PNT-06)</div>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">Affected SeqNo</div>
+                  <div class="pda-card-v mono" style="font-size:9px;">07, 09, 12, 15, 22, 24</div>
+                </div>
+                <div class="pda-photo-thumb">📷</div>
+                <div class="cause-suggest">
+                  <div class="l">🔗 Auto Root Cause</div>
+                  <div class="v">DEV-002 발견 (14:25 OvenDev)<br>ReasonCode = <strong>OVEN_DEV</strong> 자동 채움</div>
+                </div>
+                <div style="flex:1;"></div>
+                <button class="pda-btn pda-btn-sec">📷 사진 재촬영</button>
+                <button class="pda-btn pda-btn-pri">▶ 다음 (처리방안)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Disposition + save -->
+        <div class="pda-unit">
+          <div class="pda-step-lbl">③ Disposition · 처리방안</div>
+          <div class="pda-shell">
+            <div class="pda-scr">
+              <div class="pda-statbar"><span>15:16</span><span class="online">● PDA-12</span></div>
+              <div class="pda-tbar">
+                <div class="pda-tbar-t">처리 방안 결정</div>
+                <div class="pda-tbar-s">DEF-...-0042</div>
+              </div>
+              <div class="pda-bd">
+                <div class="pda-defect-pick" style="grid-template-columns:1fr;gap:4px;">
+                  <div class="pda-dp-btn">🔄 REWORK · 재작업 (재오븐)</div>
+                  <div class="pda-dp-btn on">🗑 SCRAP · 폐기 (선택됨)</div>
+                  <div class="pda-dp-btn">↩ RETURN_TO_INJ · 사출 반환</div>
+                  <div class="pda-dp-btn">⏸ HOLD · 결정 보류</div>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">Corrective Action</div>
+                  <div class="pda-card-v" style="font-size:10px;line-height:1.5;font-weight:400;">DEV-002 원인 폐기. MNT 점검 후 라인 재가동. 분체 LOT 변경 검토.</div>
+                </div>
+                <div class="pda-card">
+                  <div class="pda-card-l">Auto Link</div>
+                  <div class="pda-card-v ok">✓ FG 보류 (BR-PNT-D04)</div>
+                </div>
+                <div style="flex:1;"></div>
+                <button class="pda-btn pda-btn-ok">✓ 저장 + Sign-off</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 UI Highlights · 화면 주요 포인트</span>
+        ① 6종 불량 라디오 그리드(2×3)로 빠른 선택 ② 수량 입력 시 누적 불량률 실시간 표시(BR-PNT-06 임박 경고) ③ <strong>자동 원인 연계</strong>: RFID 체인 분석 결과를 PDA에 푸시 → ReasonCode 자동 채움 + 라인장 확인만 ④ SCRAP 선택 시 BR-PNT-D04 자동 발동(FG 재고 보류) ⑤ 사진은 MinIO/S3 메타데이터 함께 업로드.</div>
       </div>
     </div>
 

@@ -117,6 +117,37 @@
 .hw-row .l{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--sub);font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding-top:2px;}
 .hw-row .v{color:var(--text);}
 .chart-mock{background:#0c1a23;border:1px solid #1a3050;border-radius:8px;padding:18px;margin-bottom:14px;}
+.zone-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+.zone-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:12px;text-align:center;color:#e2e8f0;}
+.zone-card.alert{background:rgba(220,38,38,.1);border-color:rgba(220,38,38,.4);}
+.zone-card.warn{background:rgba(234,179,8,.08);border-color:rgba(234,179,8,.3);}
+.z-id{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(253,186,116,.7);letter-spacing:1px;}
+.z-temp{font-family:'Bebas Neue',sans-serif;font-size:30px;color:#fbbf24;margin:6px 0 2px;letter-spacing:1px;}
+.z-temp.ok{color:#5dffc4;}
+.z-temp.alert{color:#fca5a5;}
+.z-delta{font-size:10px;color:rgba(255,255,255,.5);font-family:'JetBrains Mono',monospace;}
+.jig-in-oven{background:#fff;border:1px solid var(--border);border-radius:6px;padding:14px 18px;margin-bottom:14px;}
+.jio-title{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--mod-dk);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;}
+.jio-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.jio-tbl th{background:#f0f3f7;padding:6px 9px;text-align:left;font-size:9px;font-weight:700;border-bottom:1px solid var(--border);}
+.jio-tbl td{padding:7px 9px;border-bottom:1px solid #eef0f3;}
+.jio-tbl tr:last-child td{border-bottom:none;}
+.jio-tbl .mono{font-family:'JetBrains Mono',monospace;font-size:10px;}
+.jio-tbl .prog-bar{width:100%;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;}
+.jio-tbl .prog-fill{height:100%;background:linear-gradient(90deg,#fbbf24,#fb923c);border-radius:3px;}
+.andon-modal{background:linear-gradient(135deg,#fef2f2,#fee2e2);border:2px solid #dc2626;border-radius:8px;padding:18px 22px;margin-bottom:14px;}
+.andon-hdr{display:flex;align-items:center;gap:14px;margin-bottom:12px;}
+.andon-icon{font-size:42px;animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+.andon-tit{font-size:20px;font-weight:900;color:#7f1d1d;}
+.andon-sub{font-size:11px;color:#991b1b;margin-top:3px;}
+.andon-chain{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;}
+.andon-step{background:#fff;border:1px solid #fca5a5;border-radius:5px;padding:10px;}
+.andon-step-num{font-family:'JetBrains Mono',monospace;font-size:9px;color:#7f1d1d;font-weight:700;}
+.andon-step-l{font-size:11px;font-weight:700;color:#991b1b;margin-top:3px;}
+.andon-step-d{font-size:9px;color:#7f1d1d;margin-top:3px;line-height:1.5;}
+.andon-step.done{background:#dcfce7;border-color:#16a34a;}
+.andon-step.done .andon-step-l{color:#15803d;}
 .chart-title{font-size:11px;font-weight:700;color:rgba(255,255,255,.7);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
 .chart-title .ct-lbl{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--mod-tint);}
 .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;}
@@ -261,6 +292,28 @@
       </div>
     </div>
 
+      <!-- 4-Zone View -->
+      <div class="zone-grid">
+        <div class="zone-card"><div class="z-id">ZONE 1 · 진입부</div><div class="z-temp ok">178.4°C</div><div class="z-delta">Δ -1.6 · OK</div></div>
+        <div class="zone-card"><div class="z-id">ZONE 2 · 중부</div><div class="z-temp">181.2°C</div><div class="z-delta">Δ +1.2 · OK</div></div>
+        <div class="zone-card warn"><div class="z-id">ZONE 3 · 후부</div><div class="z-temp" style="color:#fde047;">183.8°C</div><div class="z-delta">Δ +3.8 · WARN</div></div>
+        <div class="zone-card"><div class="z-id">ZONE 4 · 토출부</div><div class="z-temp ok">180.1°C</div><div class="z-delta">Δ +0.1 · OK</div></div>
+      </div>
+
+      <!-- Jigs currently in oven -->
+      <div class="jig-in-oven">
+        <div class="jio-title">▼ Jigs Currently in OVN-01 · 오븐 내 4개 지그</div>
+        <table class="jio-tbl">
+          <thead><tr><th>Jig</th><th>LOT</th><th>Item</th><th>Entry</th><th style="width:40%;">Cure Progress (15:00)</th><th style="text-align:right;">Δ Temp Max</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">JIG-002</td><td class="mono" style="color:var(--mod-dk);">PNT-...0001</td><td>도어트림 LH</td><td class="mono">14:21</td><td><div class="prog-bar"><div class="prog-fill" style="width:96%;"></div></div><div style="font-size:9px;color:var(--sub);margin-top:2px;">14:22 · 96% · 잔여 0:36</div></td><td style="text-align:right;color:#5dffc4;">+1.4°C</td></tr>
+            <tr><td class="mono">JIG-005</td><td class="mono" style="color:var(--mod-dk);">...0002</td><td>도어트림 RH</td><td class="mono">14:24</td><td><div class="prog-bar"><div class="prog-fill" style="width:68%;"></div></div><div style="font-size:9px;color:var(--sub);margin-top:2px;">10:11 · 68% · 잔여 4:49</div></td><td style="text-align:right;color:#5dffc4;">+1.8°C</td></tr>
+            <tr style="background:#fef9c3;"><td class="mono">JIG-008</td><td class="mono" style="color:var(--mod-dk);">...0003</td><td>콘솔어퍼</td><td class="mono">14:27</td><td><div class="prog-bar"><div class="prog-fill" style="width:50%;"></div></div><div style="font-size:9px;color:var(--sub);margin-top:2px;">07:33 · 50% · 잔여 7:27</div></td><td style="text-align:right;color:#fbbf24;">+4.2°C ⚠</td></tr>
+            <tr><td class="mono">JIG-011</td><td class="mono" style="color:var(--mod-dk);">...0004</td><td>도어트림 LH</td><td class="mono">14:30</td><td><div class="prog-bar"><div class="prog-fill" style="width:32%;"></div></div><div style="font-size:9px;color:var(--sub);margin-top:2px;">04:50 · 32% · 잔여 10:10</div></td><td style="text-align:right;color:#5dffc4;">+0.9°C</td></tr>
+          </tbody>
+        </table>
+      </div>
+
     <div class="sec" id="sec-5">
       <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Deviation Algorithm</span><span class="sec-ko">이탈 감지 알고리즘</span></div>
       <div class="code-card">
@@ -318,6 +371,41 @@
         </div>
       </div>
     </div>
+
+      <!-- Andon active modal mockup -->
+      <div class="andon-modal">
+        <div class="andon-hdr">
+          <div class="andon-icon">🚨</div>
+          <div style="flex:1;">
+            <div class="andon-tit">OVEN DEVIATION ACTIVE · OVN-01 ZONE 3</div>
+            <div class="andon-sub">Temp 173.8°C (Δ −6.2°C) sustained 2m18s · Threshold ±5°C × 2min triggered at 14:25:42</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#7f1d1d;">DEV-002</div>
+            <button class="pop-btn pop-btn-danger" style="margin-top:6px;font-size:11px;padding:6px 12px;">🔕 라인장 확인 PIN</button>
+          </div>
+        </div>
+        <div class="andon-chain">
+          <div class="andon-step done">
+            <div class="andon-step-num">① 14:25:42</div>
+            <div class="andon-step-l">✓ ANDON ON</div>
+            <div class="andon-step-d">Tower light Red + Siren · 라인 전원 인지</div>
+          </div>
+          <div class="andon-step done">
+            <div class="andon-step-num">② 14:25:43</div>
+            <div class="andon-step-l">✓ MNT WO-44 발행</div>
+            <div class="andon-step-d">URGENT · OvenTempDeviation · 정비팀 Push</div>
+          </div>
+          <div class="andon-step done">
+            <div class="andon-step-num">③ 14:25:43</div>
+            <div class="andon-step-l">✓ QC Enhanced Flag (×4 LOTs)</div>
+            <div class="andon-step-d">JIG-002/005/008/011 강화검사 표시</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;font-size:10px;color:#7f1d1d;background:#fff;padding:8px 10px;border-radius:3px;border:1px dashed #fca5a5;">
+          <strong>⚠ Affected LOTs:</strong> PNT-20260518-L1-0001, -0002, -0003, -0004 모두 EnhancedInspection=TRUE 자동 설정 · QC-02 우회 불가 (BR-PNT-05)
+        </div>
+      </div>
 
     <div class="sec" id="sec-7">
       <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
