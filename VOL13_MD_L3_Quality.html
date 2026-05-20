@@ -147,7 +147,7 @@
     <div class="scr-hdr-inner">
       <div class="scr-eyebrow"><span class="dot"></span>VOL.13 · MD · L3 · Category E · Quality &amp; Logistics Masters</div>
       <div class="scr-id-block"><div class="scr-id">MD · E</div><div class="scr-title-en">Quality &amp; Logistics</div></div>
-      <div class="scr-title-ko">품질·물류 마스터 — 검사기준·샘플링·계측기·불량·로케이션·포장·라벨·팔레트·운송</div>
+      <div class="scr-title-ko">품질·물류 마스터 — 검사기준·불량코드·불량원인·고객사·출하처·포장·라벨·사유·공통코드</div>
       <div class="scr-meta">
         <div class="meta-chip pop"><span class="mc-lbl">Entities</span><span class="mc-val">9 · MD-06·21·22·12·11·23·24·25·26</span></div>
         <div class="meta-chip"><span class="mc-lbl">New</span><span class="mc-val">+6 · MD-21~26 (QC·FG)</span></div>
@@ -162,13 +162,13 @@
       <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
       <div class="bi-card">
         <div class="bi-en"><span class="bi-lbl">EN · Description</span>
-          Category E is the largest, holding the masters for the <strong>quality and logistics chain</strong> — from inspection through to shipment. The <strong>quality side</strong>: Inspection Standard (MD-06), the new Sampling Plan (MD-21) AQL tables and Gauge / Instrument (MD-22) calibration catalog, plus Defect Type (MD-12). The <strong>logistics side</strong>: Location (MD-11) plus the new FG masters — Packing Spec (MD-23), Label Template (MD-24), Pallet / Container (MD-25) and Carrier / Vehicle (MD-26). Six of the nine entities were added to support the now-complete QC (9 screens) and FG (10 screens) modules.
+          Category E is the largest, holding the masters for the <strong>quality and logistics chain</strong>. The <strong>quality side</strong>: Inspection Standard (MD-06), Defect Code (MD-21) and Defect Cause (MD-22, 4M1E root-cause catalog). The <strong>customer / logistics side</strong>: Customer (MD-12), Shipment Destination (MD-11), Packaging Spec (MD-23) and Label Template (MD-24). The <strong>common side</strong>: Reason Code (MD-25) and Common Code Group (MD-26) — the shared catalogs every module's enumerations resolve through.
         </div>
         <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
-          카테고리 E는 가장 큰 카테고리로, 검사부터 출하까지 <strong>품질·물류 체인</strong>의 마스터를 보유한다. <strong>품질 측</strong>: 검사 기준(MD-06), 신규 샘플링 계획(MD-21) AQL 테이블·계측기(MD-22) 교정 카탈로그, 불량 유형(MD-12). <strong>물류 측</strong>: 로케이션(MD-11)과 신규 FG 마스터 — 포장 사양(MD-23)·라벨 템플릿(MD-24)·팔레트/컨테이너(MD-25)·운송사/차량(MD-26). 9개 중 6개가 완성된 QC(9 화면)·FG(10 화면) 모듈을 지원하기 위해 추가되었다.
+          카테고리 E는 가장 큰 카테고리로 <strong>품질·물류 체인</strong>의 마스터를 보유한다. <strong>품질 측</strong>: 검사기준(MD-06), 불량코드(MD-21), 불량원인(MD-22, 4M1E 근본원인 카탈로그). <strong>고객·물류 측</strong>: 고객사(MD-12), 출하처(MD-11), 포장사양(MD-23), 라벨 템플릿(MD-24). <strong>공통 측</strong>: 사유코드(MD-25), 공통코드(MD-26) — 전 모듈의 열거형이 해석되는 공용 카탈로그.
         </div>
       </div>
-      <div class="alert alert-i"><div><span class="alert-title">📌 Inspect → Pack → Ship · 검사에서 출하까지</span>이 카테고리는 QC가 합격시킨 제품이 FG에서 포장·라벨·팔레타이즈·상차되어 거래선에 출하되기까지의 전 마스터를 한 곳에 모은다 — 검사 기준 6종 + 물류 4종. · This category gathers every master from QC pass-judgment through FG packing, labeling, palletizing and carrier dispatch.</div></div>
+      <div class="alert alert-i"><div><span class="alert-title">📌 Inspect → Disposition → Ship · 검사에서 출하까지</span>이 카테고리는 QC 검사·불량 판정·시정조치(MD-06·21·22)부터 고객·출하처·포장·라벨(MD-12·11·23·24), 그리고 전 모듈이 공유하는 사유·공통코드(MD-25·26)까지 품질·물류·공통 마스터를 한 곳에 모은다. · From QC inspection and defect disposition through customer shipment, plus the shared reason/code catalogs.</div></div>
     </div>
 
     <div class="sec" id="sec-l3">
@@ -189,211 +189,210 @@
     <div class="sec" id="sec-2">
       <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Entity Field Specifications</span><span class="sec-ko">엔티티 필드 사양</span></div>
 
-      <div class="sub-div">▼ QUALITY SIDE · 품질 마스터 (MD-06 · 21 · 22 · 12)</div>
+      <div class="sub-div">▼ QUALITY · 검사·불량 마스터 (MD-06 · 21 · 22)</div>
 
       <div class="ent">
         <div class="ent-hdr"><span class="ent-id">MD-06</span><span class="ent-name">Inspection Standard</span><span class="ent-ko">검사 기준</span></div>
-        <div class="ent-desc">품목·공정별 검사 항목·측정 방법·허용 공차·AQL 레벨. QC-01~03 체크리스트와 QC-06 SPC 관리한계의 원본이다.</div>
+        <div class="ent-desc">품목·공정 단계별 검사 특성. 중심값·규격 하·상한(LSL/USL)·샘플링 계획·CTQ 플래그를 정의하며 QC-02/03 검사 시트와 합부 판정의 원본이다.</div>
         <table class="fld-tbl">
           <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
           <tbody>
-            <tr><td class="fld-name">InspID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(24)</td><td>검사 기준 ID.</td></tr>
-            <tr><td class="fld-name">ItemNo <span class="k-fk">FK</span> · ProcessCode</td><td class="fld-type">VARCHAR</td><td>대상 품목 → MD-01 / 공정 코드.</td></tr>
-            <tr><td class="fld-name">InspItemName</td><td class="fld-type">VARCHAR(50)</td><td>검사 항목명 (치수·외관·도막두께...).</td></tr>
-            <tr><td class="fld-name">Method · GaugeType</td><td class="fld-type">VARCHAR</td><td>측정 방법 / 사용 계측기 유형 → MD-22.</td></tr>
-            <tr><td class="fld-name">SpecTarget</td><td class="fld-type">DECIMAL</td><td>규격 목표값.</td></tr>
-            <tr><td class="fld-name">ToleranceUpper · Lower</td><td class="fld-type">DECIMAL</td><td>상한 / 하한 허용 공차.</td></tr>
-            <tr><td class="fld-name">AQLLevel</td><td class="fld-type">VARCHAR(8)</td><td>AQL 레벨 → MD-21 샘플링 계획.</td></tr>
-            <tr><td class="fld-name">MandatoryFlag</td><td class="fld-type">BOOLEAN</td><td>필수 검사 항목 여부.</td></tr>
+            <tr><td class="fld-name">InspStdID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>검사 기준 ID.</td></tr>
+            <tr><td class="fld-name">ItemID <span class="k-fk">FK</span> · ProcessCode</td><td class="fld-type">VARCHAR</td><td>대상 품목 → MD-01 / 공정 코드.</td></tr>
+            <tr><td class="fld-name">InspType · CharName</td><td class="fld-type">VARCHAR</td><td>검사 유형(INCOMING·INPROCESS·FINAL) / 검사 특성명.</td></tr>
+            <tr><td class="fld-name">SpecNominal</td><td class="fld-type">DECIMAL(12,4)</td><td>규격 중심값(목표치).</td></tr>
+            <tr><td class="fld-name">SpecLSL · SpecUSL</td><td class="fld-type">DECIMAL(12,4)</td><td>규격 하한 / 상한.</td></tr>
+            <tr><td class="fld-name">SamplingPlan</td><td class="fld-type">VARCHAR(20)</td><td>샘플링 계획 (예: AQL 1.0).</td></tr>
+            <tr><td class="fld-name">IsCTQ</td><td class="fld-type">BOOLEAN</td><td>중요품질특성 여부 (TRUE=전수검사).</td></tr>
+            <tr><td class="fld-name">Status</td><td class="fld-type">ENUM</td><td>ACTIVE / INACTIVE.</td></tr>
           </tbody>
         </table>
-        <div class="ent-note"><strong>USED BY:</strong> QC-01~03 (검사 체크리스트) · QC-06 (SPC 관리한계). 검사 기준 없으면 QC 검사 입력 불가 (BR-MD-03).</div>
+        <div class="ent-note"><strong>USED BY:</strong> QC-02/03 (검사 시트·합부 판정) · RPT-02. 검사 기준 없으면 QC 검사 입력 불가 (BR-MD-03).</div>
       </div>
 
       <div class="ent">
-        <div class="ent-hdr"><span class="ent-id new">MD-21</span><span class="ent-name">Sampling Plan</span><span class="ent-ko">샘플링 검사 계획</span><span class="ent-new">NEW</span></div>
-        <div class="ent-desc">AQL 샘플링 검사 계획 테이블 (ANSI/ISO 2859). 로트 크기 구간별 샘플 수와 합부 판정수를 정의한다.</div>
+        <div class="ent-hdr"><span class="ent-id new">MD-21</span><span class="ent-name">Defect Code</span><span class="ent-ko">불량코드 마스터</span><span class="ent-new">NEW</span></div>
+        <div class="ent-desc">QC 검사에서 발생하는 불량 유형의 표준 카탈로그. 발생 공정·분류·심각도·기본 처리를 보유하며 QC 불량 입력과 RPT-02 파레토에 집계된다.</div>
         <table class="fld-tbl">
           <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
           <tbody>
-            <tr><td class="fld-name">PlanID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>샘플링 계획 ID.</td></tr>
-            <tr><td class="fld-name">AQLLevel</td><td class="fld-type">VARCHAR(8)</td><td>AQL 레벨 (0.65·1.0·2.5...).</td></tr>
-            <tr><td class="fld-name">InspLevel</td><td class="fld-type">ENUM</td><td>검사 수준 (I / II / III).</td></tr>
-            <tr><td class="fld-name">LotSizeFrom · To</td><td class="fld-type">INT</td><td>로트 크기 구간 (하한·상한).</td></tr>
-            <tr><td class="fld-name">SampleSize</td><td class="fld-type">INT</td><td>표본 수.</td></tr>
-            <tr><td class="fld-name">AcceptNo (Ac)</td><td class="fld-type">INT</td><td>합격 판정수 (불량 ≤ Ac → 합격).</td></tr>
-            <tr><td class="fld-name">RejectNo (Re)</td><td class="fld-type">INT</td><td>불합격 판정수 (불량 ≥ Re → 불합격).</td></tr>
+            <tr><td class="fld-name">DefectCode <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(16)</td><td>불량 코드.</td></tr>
+            <tr><td class="fld-name">DefectName · NameEn</td><td class="fld-type">VARCHAR(60)</td><td>불량명 (국문 / 영문).</td></tr>
+            <tr><td class="fld-name">ProcessCode</td><td class="fld-type">VARCHAR(10)</td><td>발생 공정 (INJ·IMG·PNT·ASSY·FINAL).</td></tr>
+            <tr><td class="fld-name">DefectCategory</td><td class="fld-type">ENUM</td><td>DIMENSIONAL / APPEARANCE / FUNCTIONAL / MATERIAL.</td></tr>
+            <tr><td class="fld-name">SeverityLevel</td><td class="fld-type">ENUM</td><td>CRITICAL / MAJOR / MINOR.</td></tr>
+            <tr><td class="fld-name">DispositionDefault</td><td class="fld-type">ENUM</td><td>SCRAP / REWORK / USE_AS_IS.</td></tr>
+            <tr><td class="fld-name">DefaultCauseCode <span class="k-fk">FK</span></td><td class="fld-type">VARCHAR(16)</td><td>기본 원인코드 → MD-22.</td></tr>
+            <tr><td class="fld-name">ParetoFlag · Status</td><td class="fld-type">BOOLEAN · ENUM</td><td>RPT-02 파레토 포함 / ACTIVE·INACTIVE.</td></tr>
           </tbody>
         </table>
-        <div class="ent-note"><strong>USED BY:</strong> QC-01 (수입검사) · QC-03 (최종검사). AQL 레벨은 대응 MD-06 검사 기준과 일치 (BR-MD-13).</div>
+        <div class="ent-note"><strong>USED BY:</strong> QC (불량 입력) · RPT-02 (불량 파레토). CRITICAL 불량 등록 시 LOT 자동 HOLD (BR-MD-13).</div>
       </div>
 
       <div class="ent">
-        <div class="ent-hdr"><span class="ent-id new">MD-22</span><span class="ent-name">Gauge / Instrument</span><span class="ent-ko">계측기 마스터</span><span class="ent-new">NEW</span></div>
-        <div class="ent-desc">교정 계측기 카탈로그. 측정 범위·교정 주기·차기 교정일을 보유 — 교정 만료 계측기는 QC 검사 입력을 차단한다.</div>
+        <div class="ent-hdr"><span class="ent-id new">MD-22</span><span class="ent-name">Defect Cause</span><span class="ent-ko">불량원인 마스터</span><span class="ent-new">NEW</span></div>
+        <div class="ent-desc">QC 시정조치(CAPA) 근본원인 표준 카탈로그. 4M1E 체계로 분류되고 부모-자식 계층을 구성하며 RootCause 말단만 최종 원인으로 선택된다.</div>
         <table class="fld-tbl">
           <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
           <tbody>
-            <tr><td class="fld-name">GaugeID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>계측기 ID.</td></tr>
-            <tr><td class="fld-name">GaugeName · GaugeType</td><td class="fld-type">VARCHAR · ENUM</td><td>명칭 / 유형 (CALIPER·CMM·THICKNESS·COLORMETER).</td></tr>
-            <tr><td class="fld-name">MeasRange · Resolution</td><td class="fld-type">VARCHAR</td><td>측정 범위 / 분해능.</td></tr>
-            <tr><td class="fld-name">CalCycle</td><td class="fld-type">INT</td><td>교정 주기 (개월).</td></tr>
-            <tr><td class="fld-name">LastCalDate · NextCalDate</td><td class="fld-type">DATE</td><td>최근 / 차기 교정일.</td></tr>
-            <tr><td class="fld-name">CalVendor</td><td class="fld-type">VARCHAR(40)</td><td>교정 기관.</td></tr>
-            <tr><td class="fld-name">Status</td><td class="fld-type">ENUM</td><td>VALID / DUE_SOON / INVALID (교정 만료).</td></tr>
+            <tr><td class="fld-name">CauseCode <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(16)</td><td>불량원인 코드.</td></tr>
+            <tr><td class="fld-name">CauseName</td><td class="fld-type">VARCHAR(60)</td><td>원인 명칭.</td></tr>
+            <tr><td class="fld-name">CauseCategory</td><td class="fld-type">ENUM</td><td>4M1E — MAN / MACHINE / MATERIAL / METHOD / ENV.</td></tr>
+            <tr><td class="fld-name">ParentCauseCode <span class="k-fk">FK</span></td><td class="fld-type">VARCHAR(16)</td><td>상위 원인 → self, 계층 구성.</td></tr>
+            <tr><td class="fld-name">RootCauseFlag</td><td class="fld-type">BOOLEAN</td><td>근본원인 말단 여부 (TRUE만 최종 선택).</td></tr>
+            <tr><td class="fld-name">CorrectiveGuide</td><td class="fld-type">VARCHAR(200)</td><td>시정조치 가이드.</td></tr>
+            <tr><td class="fld-name">ResponsibleDept · Status</td><td class="fld-type">VARCHAR · ENUM</td><td>책임 부서 / ACTIVE·INACTIVE.</td></tr>
           </tbody>
         </table>
-        <div class="ent-note"><strong>USED BY:</strong> QC-01/02/03/06. 차기 교정일 경과 시 INVALID — 해당 계측기 사용 검사 입력 차단 (BR-MD-14).</div>
+        <div class="ent-note"><strong>USED BY:</strong> QC (CAPA 시정조치) · RPT-02. CAPA 최종 원인은 RootCause 말단만 선택 (BR-MD-14).</div>
       </div>
 
+      <div class="sub-div">▼ CUSTOMER &amp; LOGISTICS · 고객·물류 마스터 (MD-12 · 11 · 23 · 24)</div>
+
       <div class="ent">
-        <div class="ent-hdr"><span class="ent-id">MD-12</span><span class="ent-name">Defect Type Master</span><span class="ent-ko">불량 유형 마스터</span></div>
-        <div class="ent-desc">모듈별 전체 불량 코드. 심각도·가능 원인·기본 처리방안·CAPA 트리거를 보유하며 RPT-02 파레토에 집계된다.</div>
+        <div class="ent-hdr"><span class="ent-id">MD-12</span><span class="ent-name">Customer Master</span><span class="ent-ko">고객사 마스터</span></div>
+        <div class="ent-desc">완제품을 인수하는 OEM·티어 고객사. 고객 코드·유형·국가·EDI 플래그·통화를 보유하며 FG 출하·수주와 RPT-04 납기준수율의 키가 된다.</div>
         <table class="fld-tbl">
           <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
           <tbody>
-            <tr><td class="fld-name">DefCode <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>불량 코드 (INJ-D01·PNT-D03...).</td></tr>
-            <tr><td class="fld-name">Module</td><td class="fld-type">VARCHAR(10)</td><td>발생 모듈 (INJ·IMG·PNT·QC).</td></tr>
-            <tr><td class="fld-name">DefectNameEN · KO</td><td class="fld-type">VARCHAR(50)</td><td>불량명 (영문 / 국문).</td></tr>
-            <tr><td class="fld-name">Severity</td><td class="fld-type">ENUM</td><td>CRITICAL / MAJOR / MINOR.</td></tr>
-            <tr><td class="fld-name">LikelyCause</td><td class="fld-type">TEXT</td><td>가능 원인.</td></tr>
-            <tr><td class="fld-name">DefaultDispo</td><td class="fld-type">ENUM</td><td>기본 처리 (SCRAP / REWORK / USE_AS_IS).</td></tr>
-            <tr><td class="fld-name">CapaTrigger</td><td class="fld-type">VARCHAR(40)</td><td>CAPA 자동 권고 조건 (30일 ≥3회 등).</td></tr>
-            <tr><td class="fld-name">PhotoRef</td><td class="fld-type">VARCHAR(120)</td><td>불량 사진 레퍼런스.</td></tr>
+            <tr><td class="fld-name">CustomerID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>고객사 관리 ID.</td></tr>
+            <tr><td class="fld-name">CustomerCode <span class="k-fk">UK</span></td><td class="fld-type">VARCHAR(20)</td><td>고객 코드 (대외 식별, 고유).</td></tr>
+            <tr><td class="fld-name">CustomerName · NameEn</td><td class="fld-type">VARCHAR(80)</td><td>고객사명 (국문 / 영문).</td></tr>
+            <tr><td class="fld-name">CustomerType</td><td class="fld-type">ENUM</td><td>OEM / TIER1 / AFTERMARKET.</td></tr>
+            <tr><td class="fld-name">Country · BizRegNo</td><td class="fld-type">CHAR(3) · VARCHAR</td><td>국가 코드 / 사업자등록번호.</td></tr>
+            <tr><td class="fld-name">EDIFlag</td><td class="fld-type">BOOLEAN</td><td>EDI 전자주문 교환 사용 여부.</td></tr>
+            <tr><td class="fld-name">CurrencyCode · Status</td><td class="fld-type">CHAR(3) · ENUM</td><td>기본 거래 통화 / ACTIVE·INACTIVE.</td></tr>
           </tbody>
         </table>
-        <div class="ent-note"><strong>USED BY:</strong> INJ · IMG · PNT-08 · QC · RPT-02 (불량 파레토). PNT-08은 PNT-D01~D06 6종 필수 (BR-MD-11).</div>
+        <div class="ent-note"><strong>USED BY:</strong> FG (출하) · PP (수주) · RPT-04 (납기준수율). INACTIVE 고객사는 신규 수주·출하 배정 불가.</div>
       </div>
 
-      <div class="sub-div">▼ LOGISTICS SIDE · 물류 마스터 (MD-11 · 23 · 24 · 25 · 26)</div>
-
       <div class="ent">
-        <div class="ent-hdr"><span class="ent-id">MD-11</span><span class="ent-name">Location Master</span><span class="ent-ko">로케이션 마스터</span></div>
-        <div class="ent-desc">창고 구역/행/열/층 계층. QR 라벨과 위치별 용량을 보유하며 WH 입고와 FG-03/04 완제품 보관에 쓰인다.</div>
+        <div class="ent-hdr"><span class="ent-id">MD-11</span><span class="ent-name">Shipment Destination</span><span class="ent-ko">출하처 마스터</span></div>
+        <div class="ent-desc">고객사별 실제 납품 지점 — 공장·창고·항만·물류센터. 주소·입고 도크·운송 리드타임·시간창을 보유하며 FG-04 출하 계획과 RPT-04 납기 산정을 구동한다.</div>
         <table class="fld-tbl">
           <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
           <tbody>
-            <tr><td class="fld-name">LocID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(24)</td><td>로케이션 ID.</td></tr>
-            <tr><td class="fld-name">WarehouseID</td><td class="fld-type">VARCHAR(10)</td><td>창고 코드 (RM·FG·SP-WH).</td></tr>
-            <tr><td class="fld-name">Zone · Row · Col · Level</td><td class="fld-type">VARCHAR</td><td>구역 / 행 / 열 / 층 계층.</td></tr>
-            <tr><td class="fld-name">LocType</td><td class="fld-type">ENUM</td><td>RACK / FLOOR / STAGING / QC_HOLD.</td></tr>
-            <tr><td class="fld-name">Capacity</td><td class="fld-type">INT</td><td>위치별 적재 용량.</td></tr>
-            <tr><td class="fld-name">QRCode</td><td class="fld-type">VARCHAR(32)</td><td>QR 라벨 코드.</td></tr>
-            <tr><td class="fld-name">Status</td><td class="fld-type">ENUM</td><td>AVAILABLE / OCCUPIED / BLOCKED.</td></tr>
+            <tr><td class="fld-name">ShipDestID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>출하처 관리 ID.</td></tr>
+            <tr><td class="fld-name">CustomerID <span class="k-fk">FK</span></td><td class="fld-type">VARCHAR(20)</td><td>소속 고객사 → MD-12.</td></tr>
+            <tr><td class="fld-name">DestName · DestType</td><td class="fld-type">VARCHAR · ENUM</td><td>출하처명 / PLANT·WAREHOUSE·PORT·DC.</td></tr>
+            <tr><td class="fld-name">Address · Country</td><td class="fld-type">VARCHAR · CHAR(3)</td><td>전체 주소 / 국가 코드.</td></tr>
+            <tr><td class="fld-name">DeliveryDock</td><td class="fld-type">VARCHAR(20)</td><td>지정 입고 도크·게이트.</td></tr>
+            <tr><td class="fld-name">LeadTimeDays · DefaultCarrier</td><td class="fld-type">INT · VARCHAR</td><td>운송 리드타임(일) / 기본 운송사.</td></tr>
+            <tr><td class="fld-name">DeliveryWindow · Status</td><td class="fld-type">VARCHAR · ENUM</td><td>납품 시간창 / ACTIVE·INACTIVE.</td></tr>
           </tbody>
         </table>
-        <div class="ent-note"><strong>USED BY:</strong> WH (입출고) · FG-03/04 (완제품 입고·재고). QC_HOLD 로케이션은 QC 보류품 격리용.</div>
+        <div class="ent-note"><strong>USED BY:</strong> FG-04 (출하 계획) · RPT-04 (납기준수율). FG-04는 요청 납기일 − 리드타임으로 출고 기준일 역산 (BR-MD-23).</div>
       </div>
 
       <div class="ent">
-        <div class="ent-hdr"><span class="ent-id new">MD-23</span><span class="ent-name">Packing Spec</span><span class="ent-ko">포장 사양 마스터</span><span class="ent-new">NEW</span></div>
-        <div class="ent-desc">품목별 포장 사양. 박스당 수량·팔레트당 박스·포장재·중량·적재 단수를 정의하며 FG-01 포장과 FG-03 입고를 구동한다.</div>
+        <div class="ent-hdr"><span class="ent-id new">MD-23</span><span class="ent-name">Packaging Spec</span><span class="ent-ko">포장 사양 마스터</span><span class="ent-new">NEW</span></div>
+        <div class="ent-desc">완제품 출하 포장 방식. 3단계 포장 계층(내포장·외박스·팔레트)·중량·회수용기 플래그·라벨 템플릿을 정의하며 FG-03 포장·FG-04 출하를 구동한다.</div>
         <table class="fld-tbl">
           <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
           <tbody>
             <tr><td class="fld-name">PackSpecID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>포장 사양 ID.</td></tr>
-            <tr><td class="fld-name">ItemNo <span class="k-fk">FK</span></td><td class="fld-type">VARCHAR(20)</td><td>대상 품목 → MD-01.</td></tr>
-            <tr><td class="fld-name">QtyPerBox</td><td class="fld-type">INT</td><td>내부 박스당 수량.</td></tr>
-            <tr><td class="fld-name">BoxPerPallet</td><td class="fld-type">INT</td><td>팔레트당 박스 수.</td></tr>
-            <tr><td class="fld-name">PackMaterial</td><td class="fld-type">VARCHAR(40)</td><td>포장재 (골판지·완충재 등).</td></tr>
-            <tr><td class="fld-name">NetWeight · GrossWeight</td><td class="fld-type">DECIMAL</td><td>순중량 / 총중량 (kg).</td></tr>
-            <tr><td class="fld-name">BoxDimensions</td><td class="fld-type">VARCHAR(30)</td><td>박스 치수 (L×W×H).</td></tr>
-            <tr><td class="fld-name">StackLimit</td><td class="fld-type">INT</td><td>적재 단수 한도.</td></tr>
+            <tr><td class="fld-name">ItemID <span class="k-fk">FK</span></td><td class="fld-type">VARCHAR(20)</td><td>대상 품목 → MD-01.</td></tr>
+            <tr><td class="fld-name">PackType</td><td class="fld-type">ENUM</td><td>BOX / PALLET / CRATE / RETURNABLE.</td></tr>
+            <tr><td class="fld-name">QtyPerInner</td><td class="fld-type">INT</td><td>내포장당 제품 수량.</td></tr>
+            <tr><td class="fld-name">InnerPerOuter · OuterPerPallet</td><td class="fld-type">INT</td><td>외박스당 내포장 / 팔레트당 외박스.</td></tr>
+            <tr><td class="fld-name">NetWeightKg · GrossWeightKg</td><td class="fld-type">DECIMAL(8,3)</td><td>정미 / 총중량 (kg).</td></tr>
+            <tr><td class="fld-name">LabelTemplateID <span class="k-fk">FK</span></td><td class="fld-type">VARCHAR(20)</td><td>박스 라벨 템플릿 → MD-24.</td></tr>
           </tbody>
         </table>
-        <div class="ent-note"><strong>USED BY:</strong> FG-01 (포장) · FG-03 (입고). 포장 사양 없으면 FG-01 포장 불가 (BR-MD-16).</div>
+        <div class="ent-note"><strong>USED BY:</strong> FG-03 (포장) · FG-04 (출하). 팔레트 수량 = 내포장 × 외박스 × 팔레트 (BR-MD-16).</div>
       </div>
 
       <div class="ent">
         <div class="ent-hdr"><span class="ent-id new">MD-24</span><span class="ent-name">Label Template</span><span class="ent-ko">라벨 템플릿 마스터</span><span class="ent-new">NEW</span></div>
-        <div class="ent-desc">바코드/라벨 레이아웃 템플릿. 제품·박스·팔레트 라벨과 고객사별 양식, 필드 매핑·바코드 유형을 정의하며 FG-02 라벨 발행을 구동한다.</div>
+        <div class="ent-desc">부품·박스·팔레트·출하 라벨 인쇄 디자인. 바코드 유형·ZPL 레이아웃·필드맵 JSON을 정의하며 고객 전용/공용·버전 관리된다.</div>
         <table class="fld-tbl">
           <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
           <tbody>
-            <tr><td class="fld-name">TemplateID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>라벨 템플릿 ID.</td></tr>
-            <tr><td class="fld-name">TemplateName · LabelType</td><td class="fld-type">VARCHAR · ENUM</td><td>명칭 / 유형 (PRODUCT / BOX / PALLET).</td></tr>
-            <tr><td class="fld-name">CustomerCode</td><td class="fld-type">VARCHAR(10)</td><td>고객사 (SAV / GEO / COMMON).</td></tr>
-            <tr><td class="fld-name">BarcodeType</td><td class="fld-type">ENUM</td><td>CODE128 / QR / DATAMATRIX.</td></tr>
-            <tr><td class="fld-name">FieldMapJSON</td><td class="fld-type">JSON</td><td>라벨 필드 ↔ 데이터 매핑.</td></tr>
-            <tr><td class="fld-name">LabelSize</td><td class="fld-type">VARCHAR(20)</td><td>라벨 규격 (mm).</td></tr>
-            <tr><td class="fld-name">PrinterModel</td><td class="fld-type">VARCHAR(30)</td><td>지정 프린터 모델.</td></tr>
+            <tr><td class="fld-name">LabelTemplateID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>라벨 템플릿 ID.</td></tr>
+            <tr><td class="fld-name">TemplateName · LabelType</td><td class="fld-type">VARCHAR · ENUM</td><td>명칭 / PART·BOX·PALLET·SHIPPING.</td></tr>
+            <tr><td class="fld-name">PaperSize · BarcodeType</td><td class="fld-type">VARCHAR · ENUM</td><td>용지 규격 / QR·CODE128·DATAMATRIX·EAN13.</td></tr>
+            <tr><td class="fld-name">LayoutZPL</td><td class="fld-type">TEXT</td><td>ZPL 레이아웃 본문.</td></tr>
+            <tr><td class="fld-name">FieldMapJSON</td><td class="fld-type">JSON</td><td>영역 → A-MES 데이터 필드 매핑.</td></tr>
+            <tr><td class="fld-name">CustomerID <span class="k-fk">FK</span></td><td class="fld-type">VARCHAR(20)</td><td>전용 고객사 → MD-12 (NULL=공용).</td></tr>
+            <tr><td class="fld-name">Version · Status</td><td class="fld-type">INT · ENUM</td><td>템플릿 버전 / ACTIVE·INACTIVE.</td></tr>
           </tbody>
         </table>
-        <div class="ent-note"><strong>USED BY:</strong> FG-02 (라벨 발행). 고객사별 템플릿 배정 후 고객 라벨 발행 가능 (BR-MD-17).</div>
+        <div class="ent-note"><strong>USED BY:</strong> FG (라벨 발행) · MD-23. 고객 전용 템플릿이 공용보다 우선, 최신 ACTIVE 버전 인쇄 (BR-MD-17).</div>
+      </div>
+
+      <div class="sub-div">▼ COMMON · 공통 마스터 (MD-25 · 26)</div>
+
+      <div class="ent">
+        <div class="ent-hdr"><span class="ent-id new">MD-25</span><span class="ent-name">Reason Code</span><span class="ent-ko">사유코드 마스터</span><span class="ent-new">NEW</span></div>
+        <div class="ent-desc">작업자가 예외 행위 수행 시 선택하는 공용 사유 — 비가동·폐기·보류·재고조정·반품. 계획/비계획 플래그가 OEE·라인 비가동 모니터링에 연계된다.</div>
+        <table class="fld-tbl">
+          <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="fld-name">ReasonCode <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(16)</td><td>사유 코드.</td></tr>
+            <tr><td class="fld-name">ReasonName</td><td class="fld-type">VARCHAR(60)</td><td>사유 명칭.</td></tr>
+            <tr><td class="fld-name">ReasonType</td><td class="fld-type">ENUM</td><td>DOWNTIME / SCRAP / HOLD / ADJUSTMENT / RETURN.</td></tr>
+            <tr><td class="fld-name">AppliesToModule</td><td class="fld-type">VARCHAR(10)</td><td>적용 모듈 (NULL=전 모듈).</td></tr>
+            <tr><td class="fld-name">RequiresComment</td><td class="fld-type">BOOLEAN</td><td>선택 시 코멘트 입력 필수 여부.</td></tr>
+            <tr><td class="fld-name">PlannedFlag</td><td class="fld-type">BOOLEAN</td><td>계획/비계획 정지 구분 (DOWNTIME 한정).</td></tr>
+            <tr><td class="fld-name">DisplayOrder · Status</td><td class="fld-type">INT · ENUM</td><td>표시 순서 / ACTIVE·INACTIVE.</td></tr>
+          </tbody>
+        </table>
+        <div class="ent-note"><strong>USED BY:</strong> MNT (비가동) · QC (폐기·보류) · WH (재고조정) · PP-ODM/DTL. PlannedFlag가 OEE 계획/비계획 손실을 구분 (BR-MD-18).</div>
       </div>
 
       <div class="ent">
-        <div class="ent-hdr"><span class="ent-id new">MD-25</span><span class="ent-name">Pallet / Container</span><span class="ent-ko">팔레트·컨테이너 마스터</span><span class="ent-new">NEW</span></div>
-        <div class="ent-desc">재사용 팔레트·운송 컨테이너. 치수·최대 적재중량·자체중량을 보유하며 FG-03 입고와 FG-05 상차에 쓰인다.</div>
+        <div class="ent-hdr"><span class="ent-id new">MD-26</span><span class="ent-name">Common Code Group</span><span class="ent-ko">공통코드 마스터</span><span class="ent-new">NEW</span></div>
+        <div class="ent-desc">A-MES 전 모듈의 드롭다운·열거형을 지탱하는 키-값 사전. 코드 그룹 단위로 관리되며 거의 모든 마스터가 참조하므로 Phase-0 최우선 적재된다.</div>
         <table class="fld-tbl">
           <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
           <tbody>
-            <tr><td class="fld-name">ContainerID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>팔레트·컨테이너 ID.</td></tr>
-            <tr><td class="fld-name">ContainerType</td><td class="fld-type">ENUM</td><td>WOOD / PLASTIC / STEEL_CAGE.</td></tr>
-            <tr><td class="fld-name">Dimensions</td><td class="fld-type">VARCHAR(30)</td><td>치수 (L×W×H).</td></tr>
-            <tr><td class="fld-name">MaxLoadKg</td><td class="fld-type">DECIMAL(8,1)</td><td>최대 적재 중량 (kg).</td></tr>
-            <tr><td class="fld-name">TareKg</td><td class="fld-type">DECIMAL(8,1)</td><td>자체 중량 (kg).</td></tr>
-            <tr><td class="fld-name">OwnerType</td><td class="fld-type">ENUM</td><td>OWN / CUSTOMER / RENTAL.</td></tr>
-            <tr><td class="fld-name">LastInspDate · Status</td><td class="fld-type">DATE · ENUM</td><td>최근 점검일 / AVAILABLE·IN_USE·DAMAGED.</td></tr>
+            <tr><td class="fld-name">CodeID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(24)</td><td>공통코드 관리 ID.</td></tr>
+            <tr><td class="fld-name">GroupCode · CodeValue</td><td class="fld-type">VARCHAR(20)</td><td>코드 그룹 / 그룹 내 코드값.</td></tr>
+            <tr><td class="fld-name">CodeName · NameEn</td><td class="fld-type">VARCHAR(60)</td><td>코드명 (국문 / 영문).</td></tr>
+            <tr><td class="fld-name">ParentCodeID <span class="k-fk">FK</span></td><td class="fld-type">VARCHAR(24)</td><td>상위 코드 → self, 2단계 그룹.</td></tr>
+            <tr><td class="fld-name">SortOrder · Attribute1</td><td class="fld-type">INT · VARCHAR</td><td>표시 순서 / 그룹별 범용 속성.</td></tr>
+            <tr><td class="fld-name">UseFlag</td><td class="fld-type">BOOLEAN</td><td>사용 여부 (FALSE는 드롭다운 제외).</td></tr>
           </tbody>
         </table>
-        <div class="ent-note"><strong>USED BY:</strong> FG-03 (입고) · FG-05 (상차) · WH. 적재 시 MaxLoadKg 초과 불가 (BR-MD-18).</div>
-      </div>
-
-      <div class="ent">
-        <div class="ent-hdr"><span class="ent-id new">MD-26</span><span class="ent-name">Carrier / Vehicle</span><span class="ent-ko">운송사·차량 마스터</span><span class="ent-new">NEW</span></div>
-        <div class="ent-desc">배송 운송사·차량. 적재 능력·기사·배차 노선·등록 유효성을 보유하며 FG-05 상차와 RPT-03 출하를 구동한다.</div>
-        <table class="fld-tbl">
-          <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
-          <tbody>
-            <tr><td class="fld-name">VehicleID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>차량 관리 ID.</td></tr>
-            <tr><td class="fld-name">CarrierName</td><td class="fld-type">VARCHAR(40)</td><td>운송사명.</td></tr>
-            <tr><td class="fld-name">VehicleNo · VehicleType</td><td class="fld-type">VARCHAR</td><td>차량번호 / 유형 (1T·5T·트레일러).</td></tr>
-            <tr><td class="fld-name">CapacityKg</td><td class="fld-type">DECIMAL(8,1)</td><td>적재 능력 (kg).</td></tr>
-            <tr><td class="fld-name">DriverName · DriverPhone</td><td class="fld-type">VARCHAR</td><td>기사 / 연락처.</td></tr>
-            <tr><td class="fld-name">RouteAssign</td><td class="fld-type">VARCHAR(40)</td><td>배차 노선 (SAV·GEO 경로).</td></tr>
-            <tr><td class="fld-name">RegistExpiry</td><td class="fld-type">DATE</td><td>차량 등록·검사 유효기간.</td></tr>
-            <tr><td class="fld-name">Status</td><td class="fld-type">ENUM</td><td>AVAILABLE / DISPATCHED / MAINT.</td></tr>
-          </tbody>
-        </table>
-        <div class="ent-note"><strong>USED BY:</strong> FG-05 (상차·배차) · RPT-03 (일별 출하). 등록 유효 차량만 배차 가능 (BR-MD-19).</div>
+        <div class="ent-note"><strong>USED BY:</strong> All Modules · SYS-07 (시스템 설정). 모든 드롭다운·열거형이 GroupCode 기준으로 로드 (BR-MD-19).</div>
       </div>
     </div>
 
     <div class="sec" id="sec-3">
       <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Quality → Logistics Chain</span><span class="sec-ko">검사 → 물류 마스터 체인</span></div>
       <div class="chain-flow">
-        <div class="cf-step"><div class="cf-id">MD-06·21·22</div>검사기준·샘플링·계측기</div>
+        <div class="cf-step"><div class="cf-id">MD-06·21·22</div>검사기준·불량</div>
         <span class="cf-arr">→</span>
-        <div class="cf-step"><div class="cf-id">QC 합격</div>판정</div>
+        <div class="cf-step"><div class="cf-id">QC 판정</div>합격·불량</div>
+        <span class="cf-arr">→</span>
+        <div class="cf-step"><div class="cf-id">MD-12·11</div>고객·출하처</div>
         <span class="cf-arr">→</span>
         <div class="cf-step"><div class="cf-id">MD-23·24</div>포장·라벨</div>
         <span class="cf-arr">→</span>
-        <div class="cf-step"><div class="cf-id">MD-25·11</div>팔레타이즈·보관</div>
-        <span class="cf-arr">→</span>
-        <div class="cf-step"><div class="cf-id">MD-26</div>운송·출하</div>
+        <div class="cf-step"><div class="cf-id">MD-25·26</div>사유·공통코드</div>
       </div>
       <table class="fld-tbl">
         <thead><tr><th style="width:22%;">Stage</th><th>Master-Driven Logic · 마스터 기반 로직</th></tr></thead>
         <tbody>
-          <tr><td><strong>검사 (QC)</strong></td><td>MD-06 검사 기준이 항목·공차를, MD-21 샘플링 계획이 표본 수·합부 판정수를, MD-22 계측기가 측정 수단을 제공 — 셋이 함께 QC 판정을 성립시킨다.</td></tr>
-          <tr><td><strong>불량 분류</strong></td><td>NG 판정 시 MD-12 불량 유형으로 코드화 → 처리방안·CAPA 트리거 적용, RPT-02 파레토 집계.</td></tr>
-          <tr><td><strong>포장·라벨 (FG)</strong></td><td>합격품은 MD-23 포장 사양대로 박스·팔레트화, MD-24 라벨 템플릿으로 고객사 라벨 발행.</td></tr>
-          <tr><td><strong>보관 (FG·WH)</strong></td><td>MD-25 팔레트에 적재, MD-11 로케이션에 입고 — 용량·적재중량 한도 검증.</td></tr>
-          <tr><td><strong>출하 (FG·RPT)</strong></td><td>MD-26 운송사·차량 배차 → FG-05 상차, RPT-03 일별 출하·RPT-04 납기 이행율 집계.</td></tr>
+          <tr><td><strong>검사 (QC)</strong></td><td>MD-06 검사기준이 검사 특성·규격(LSL/USL)·샘플링 계획·CTQ를 제공 — QC-02/03이 이를 읽어 검사 시트를 구성하고 합부를 판정한다.</td></tr>
+          <tr><td><strong>불량 판정·원인</strong></td><td>NG 판정 시 MD-21 불량코드로 코드화(분류·심각도·처리), MD-22 불량원인(4M1E)으로 CAPA 근본원인 분석 → RPT-02 파레토 집계.</td></tr>
+          <tr><td><strong>고객·출하 (FG)</strong></td><td>MD-12 고객사가 수주·EDI를, MD-11 출하처가 납품 지점·리드타임·시간창을 제공 — FG-04 출하 계획·RPT-04 납기 산정.</td></tr>
+          <tr><td><strong>포장·라벨 (FG)</strong></td><td>합격품은 MD-23 포장사양의 3단계 계층대로 박스·팔레트화, MD-24 라벨 템플릿(고객 전용/공용)으로 라벨 발행.</td></tr>
+          <tr><td><strong>공통 (All)</strong></td><td>MD-25 사유코드가 비가동·폐기·반품 등 예외 사유를, MD-26 공통코드가 전 모듈 드롭다운·열거형을 공급한다.</td></tr>
         </tbody>
       </table>
-      <div class="alert alert-i"><div><span class="alert-title">⚙ One Chain, Nine Masters · 하나의 체인, 9개 마스터</span>검사 합격 → 포장 → 라벨 → 팔레타이즈 → 보관 → 출하 — 이 한 흐름의 각 단계가 카테고리 E의 마스터에 의존한다. 어느 하나라도 누락되면 QC 또는 FG 화면이 차단된다. · Each step of the inspect-to-ship flow depends on a Category E master.</div></div>
+      <div class="alert alert-i"><div><span class="alert-title">⚙ One Chain, Nine Masters · 하나의 체인, 9개 마스터</span>검사 → 불량 판정·원인 → 고객·출하처 → 포장·라벨 → 공통 사유·코드 — 이 한 흐름의 각 단계가 카테고리 E의 마스터에 의존한다. 어느 하나라도 누락되면 QC 또는 FG 화면이 차단된다. · Each step of the inspect-to-ship flow depends on a Category E master.</div></div>
     </div>
 
     <div class="sec" id="sec-4">
       <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Maintenance Workflow</span><span class="sec-ko">마스터 유지보수 흐름</span></div>
       <div class="wf-list">
-        <div class="wf-step"><div><div class="wf-en">Gauges are registered with calibration cycles; Inspection Standards and Sampling Plans are defined per item.</div><div class="wf-ko">계측기를 교정 주기와 함께 등록하고, 품목별 검사 기준·샘플링 계획을 정의한다.</div></div></div>
-        <div class="wf-step"><div><div class="wf-en">Defect Type codes are maintained per module; new defect modes are added as production reveals them.</div><div class="wf-ko">모듈별 불량 유형 코드를 관리 — 생산 중 새 불량 모드 발견 시 추가한다.</div></div></div>
-        <div class="wf-step"><div><div class="wf-en">Packing Specs and Label Templates are set per item / customer before FG go-live.</div><div class="wf-ko">FG 가동 전 품목·고객별 포장 사양·라벨 템플릿을 설정한다.</div></div></div>
-        <div class="wf-step"><div><div class="wf-en">Pallets / Containers and Carriers are registered; registration/calibration expiry is monitored.</div><div class="wf-ko">팔레트·컨테이너·운송사를 등록 — 등록/교정 유효기간을 모니터링한다.</div></div></div>
-        <div class="wf-step"><div><div class="wf-en">A gauge past calibration is auto-set INVALID; the system blocks inspections that use it until re-calibrated.</div><div class="wf-ko">교정 만료 계측기는 자동 INVALID — 재교정 전까지 해당 검사를 차단한다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Inspection Standards (MD-06) are defined per item / process step with spec limits, sampling plan and CTQ flag.</div><div class="wf-ko">품목·공정 단계별 검사기준(MD-06)을 규격 한계·샘플링 계획·CTQ 플래그와 함께 정의한다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Defect Codes (MD-21) and the 4M1E Defect Cause hierarchy (MD-22) are maintained as production reveals new modes.</div><div class="wf-ko">불량코드(MD-21)와 4M1E 불량원인 계층(MD-22)을 관리 — 생산 중 새 불량 모드 발견 시 추가한다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Customers (MD-12) and Shipment Destinations (MD-11) are registered with EDI flags and transit lead-times.</div><div class="wf-ko">고객사(MD-12)·출하처(MD-11)를 EDI 플래그·운송 리드타임과 함께 등록한다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Packaging Specs and Label Templates are set per item / customer before FG go-live; templates are versioned.</div><div class="wf-ko">FG 가동 전 품목·고객별 포장사양·라벨 템플릿을 설정 — 템플릿은 버전 관리된다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Reason Codes and Common Code groups are governed centrally; a code used by transactions is deactivated, never deleted.</div><div class="wf-ko">사유코드·공통코드 그룹은 중앙 관리 — 트랜잭션 참조 코드는 삭제 대신 비활성화한다.</div></div></div>
       </div>
     </div>
 
@@ -403,13 +402,13 @@
         <thead><tr><th style="width:110px;">Rule</th><th>Description</th><th style="width:100px;">Action</th></tr></thead>
         <tbody>
           <tr><td class="br-id">BR-MD-03</td><td><div>Inspection standards (MD-06) must exist before QC screens accept inspection entry.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">MD-06 검사 기준 없으면 QC 검사 입력 불가.</div></td><td><span class="br-act val">Validation</span></td></tr>
-          <tr><td class="br-id">BR-MD-13</td><td><div>MD-21 Sampling Plan AQL level must match the AQL level on the corresponding MD-06 standard.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">샘플링 계획 AQL은 대응 검사 기준 AQL과 일치.</div></td><td><span class="br-act val">FK</span></td></tr>
-          <tr><td class="br-id">BR-MD-14</td><td><div>A gauge (MD-22) past NextCalDate is INVALID — QC blocks inspection entry using it.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">교정 만료 계측기는 INVALID — 해당 검사 입력 차단.</div></td><td><span class="br-act blk">Block</span></td></tr>
-          <tr><td class="br-id">BR-MD-15</td><td><div>A QC inspection recording a measurement must reference a valid in-calibration gauge.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">측정값 기록 QC 검사는 유효 교정 계측기 참조 필수.</div></td><td><span class="br-act val">Required</span></td></tr>
-          <tr><td class="br-id">BR-MD-16</td><td><div>MD-23 Packing Spec must be defined for an item before FG-01 packing.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">포장 사양 없으면 FG-01 포장 불가.</div></td><td><span class="br-act val">Validation</span></td></tr>
-          <tr><td class="br-id">BR-MD-17</td><td><div>MD-24 Label Template must be assigned per customer before FG-02 prints a customer label.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">고객별 라벨 템플릿 배정 후 FG-02 고객 라벨 발행.</div></td><td><span class="br-act val">Validation</span></td></tr>
-          <tr><td class="br-id">BR-MD-18</td><td><div>FG-03 putaway cannot load a pallet beyond the MD-25 Container MaxLoadKg.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">FG-03 입고 시 컨테이너 MaxLoadKg 초과 적재 불가.</div></td><td><span class="br-act blk">Block</span></td></tr>
-          <tr><td class="br-id">BR-MD-19</td><td><div>FG-05 loading can assign only an MD-26 vehicle with a non-expired registration.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">FG-05 상차는 등록 유효 차량만 배차.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-MD-13</td><td><div>Registering a CRITICAL-severity MD-21 Defect Code auto-holds the lot and notifies the quality manager.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">CRITICAL MD-21 불량코드 등록 시 LOT 자동 HOLD + 품질 관리자 통보.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-MD-14</td><td><div>A CAPA final cause must be a RootCause leaf node in the MD-22 4M1E hierarchy.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">CAPA 최종 원인은 MD-22 4M1E 계층의 RootCause 말단이어야 함.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-MD-15</td><td><div>MD-22 Defect Cause is classified by the 4M1E axis; RPT-02 aggregates causes along it.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">MD-22 불량원인은 4M1E 축 분류 — RPT-02가 이 축으로 원인 집계.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-MD-16</td><td><div>MD-23 Packaging Spec three-tier hierarchy must be defined before FG-03 packing.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">MD-23 포장사양 3단계 계층이 있어야 FG-03 포장 가능.</div></td><td><span class="br-act val">Validation</span></td></tr>
+          <tr><td class="br-id">BR-MD-17</td><td><div>A customer-specific MD-24 Label Template overrides the shared one; the highest ACTIVE version prints.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">고객 전용 MD-24 라벨 템플릿이 공용보다 우선 — 최신 ACTIVE 버전 인쇄.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-MD-18</td><td><div>An MD-25 Reason Code with RequiresComment=TRUE blocks the action until a comment is entered.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">코멘트 필수 MD-25 사유코드는 코멘트 입력 전 행위 차단.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-MD-19</td><td><div>Every A-MES dropdown loads from MD-26 Common Code by GroupCode; a code used by transactions cannot be deleted.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">A-MES 드롭다운은 MD-26 공통코드를 GroupCode로 로드 — 참조 코드 삭제 불가.</div></td><td><span class="br-act blk">Block</span></td></tr>
         </tbody>
       </table>
     </div>
@@ -418,15 +417,15 @@
       <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
       <div class="lnk-wrap">
         <div class="lnk-row">
-          <div class="lnk-node cur"><div class="lnk-id">MD · E</div><div class="lnk-name">Quality &amp; Logistics</div><div class="lnk-ko">검사·불량·포장·운송</div></div>
+          <div class="lnk-node cur"><div class="lnk-id">MD · E</div><div class="lnk-name">Quality &amp; Logistics</div><div class="lnk-ko">검사·불량·고객·출하·공통</div></div>
         </div>
         <div class="lnk-row" style="margin-top:14px;">
           <div class="lnk-node cur"><div class="lnk-id">MD · E</div><div class="lnk-name">→ Drives</div></div>
           <div class="lnk-arr">↘</div>
-          <div class="lnk-node down"><div class="lnk-id">QC-01~08</div><div class="lnk-name">검사·샘플링·계측</div></div>
-          <div class="lnk-node down"><div class="lnk-id">FG-01~06</div><div class="lnk-name">포장·라벨·출하</div></div>
-          <div class="lnk-node down"><div class="lnk-id">WH</div><div class="lnk-name">로케이션 보관</div></div>
-          <div class="lnk-node down"><div class="lnk-id">RPT-02/03/04</div><div class="lnk-name">불량·출하 집계</div></div>
+          <div class="lnk-node down"><div class="lnk-id">QC-01~08</div><div class="lnk-name">검사·불량·CAPA</div></div>
+          <div class="lnk-node down"><div class="lnk-id">FG-01~06</div><div class="lnk-name">고객·포장·라벨·출하</div></div>
+          <div class="lnk-node down"><div class="lnk-id">All Modules</div><div class="lnk-name">사유·공통코드</div></div>
+          <div class="lnk-node down"><div class="lnk-id">RPT-02/04</div><div class="lnk-name">불량·납기 집계</div></div>
         </div>
       </div>
     </div>
