@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.12 · SYS-02 · RBAC Permissions · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--sys:#475569;--mod:#475569;--mod-lt:#e2e8f0;--mod-dk:#334155;--mod-tint:#94a3b8;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:#fbbf24;font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(148,163,184,.8);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#2a2410 0%,#1e293b 50%,#2a2410 100%);position:relative;overflow:hidden;border-bottom:2px solid var(--gold);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(212,160,23,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(212,160,23,.05) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(212,160,23,.16),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#fbbf24;margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:#fbbf24;border-radius:50%;box-shadow:0 0 8px #fbbf24;}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:#fbbf24;line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(148,163,184,.35);color:var(--mod-tint);background:rgba(148,163,184,.1);}
+.meta-chip.core{border-color:rgba(212,160,23,.55);color:#fbbf24;background:rgba(212,160,23,.2);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod-dk);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:#fdf6e3;color:#7a5b0a;border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--gold-dk);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.alert-g{background:#fdf6e3;border-color:var(--gold);color:#7a5b0a;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:120px;border:2px solid;}
+.lnk-node.up{background:#eff6ff;border-color:#3b82f6;}
+.lnk-node.cur{background:linear-gradient(135deg,#2a2410,#1e293b);border-color:var(--gold);color:#fff;box-shadow:0 4px 16px rgba(212,160,23,.3);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#1d4ed8;}.lnk-node.cur .lnk-id{color:#fbbf24;}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);}
+.dm-pk{color:#f59e0b;font-size:8px;font-weight:700;}.dm-fk{color:#8b5cf6;font-size:8px;font-weight:700;}
+.web-mock{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.web-tbar{background:#f0f3f7;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);font-size:11px;}
+.web-tbar-l{font-weight:700;color:var(--text);}
+.web-tbar .bc{color:var(--sub);font-size:10px;margin-left:8px;}
+.web-tbar-r{font-size:10px;color:var(--sub);}
+.web-bd{padding:18px;background:#fbfcfd;}
+.web-card{background:#fff;border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:12px;}
+.web-card-h{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px;display:flex;justify-content:space-between;}
+.flt-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid var(--border);border-radius:6px;padding:9px 12px;margin-bottom:12px;}
+.flt{font-size:10px;border:1px solid var(--border);border-radius:4px;padding:4px 9px;background:#f6f8fa;color:var(--text);}
+.flt b{color:var(--mod-dk);}
+.tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;}
+.tbl th{background:#f0f3f7;padding:7px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.tbl td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:none;}
+.pm{display:inline-block;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;}
+.pm-all{background:#dcfce7;color:#166534;}
+.pm-rwa{background:#bbf7d0;color:#14532d;}
+.pm-rw{background:#dbeafe;color:#1e40af;}
+.pm-r{background:#e2e8f0;color:#334155;}
+.pm-no{background:#f3f4f6;color:#9ca3af;}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.b-ok{background:#dcfce7;color:#166534;}.b-w{background:#fef9c3;color:#92400e;}.b-e{background:#fee2e2;color:#991b1b;}.b-i{background:#e2e8f0;color:#334155;}
+.btn{padding:7px 14px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;}
+.btn-primary{background:var(--gold);border-color:var(--gold-dk);color:#fff;}
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol active"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL12_SYS_System.html">VOL.12 · SYS</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">SYS-02 · RBAC Permissions ⚙ Core</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.12 · SYS · L3</div><div class="sb-mod-en">SYSTEM ADMIN</div><div class="sb-mod-ko">시스템 관리</div></div>
+  <div class="sb-section">Access Control · 접근 제어</div>
+  <a class="sb-link" href="VOL12_SYS01_User_Management.html"><span class="sl-id">SYS-01</span><div><div class="sl-en">User Management</div><div class="sl-ko">사용자 관리</div></div></a>
+  <a class="sb-link on" href="VOL12_SYS02_RBAC_Permissions.html"><span class="sl-id">SYS-02</span><div><div class="sl-en">RBAC Permissions ⚙</div><div class="sl-ko">권한 관리</div></div></a>
+  <div class="sb-section">Configuration · 환경 설정</div>
+  <a class="sb-link" href="VOL12_SYS03_Factory_Calendar.html"><span class="sl-id">SYS-03</span><div><div class="sl-en">Factory Calendar</div><div class="sl-ko">공장 캘린더</div></div></a>
+  <a class="sb-link" href="VOL12_SYS07_System_Config.html"><span class="sl-id">SYS-07</span><div><div class="sl-en">System Config</div><div class="sl-ko">시스템 설정</div></div></a>
+  <a class="sb-link" href="VOL12_SYS06_Notification_Settings.html"><span class="sl-id">SYS-06</span><div><div class="sl-en">Notification Settings</div><div class="sl-ko">알림 설정</div></div></a>
+  <div class="sb-section">Monitor & Audit · 모니터·감사</div>
+  <a class="sb-link" href="VOL12_SYS04_Interface_Monitor.html"><span class="sl-id">SYS-04</span><div><div class="sl-en">Interface Monitor</div><div class="sl-ko">인터페이스 모니터</div></div></a>
+  <a class="sb-link" href="VOL12_SYS05_Audit_Log.html"><span class="sl-id">SYS-05</span><div><div class="sl-en">Audit Log</div><div class="sl-ko">감사 로그</div></div></a>
+  <a class="sb-link" href="VOL12_SYS08_System_Health.html"><span class="sl-id">SYS-08</span><div><div class="sl-en">System Health</div><div class="sl-ko">시스템 헬스</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
+    <a href="#sec-2"><span class="num">02</span>Field Spec</a>
+    <a href="#sec-3"><span class="num">03</span>Role Matrix</a>
+    <a href="#sec-4"><span class="num">04</span>Workflow</a>
+    <a href="#sec-5"><span class="num">05</span>Business Rules</a>
+    <a href="#sec-6"><span class="num">06</span>Data Model</a>
+    <a href="#sec-7"><span class="num">07</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.12 · SYS · L3 · Core · RBAC Permission Matrix</div>
+      <div class="scr-id-block"><div class="scr-id">SYS-02</div><div class="scr-title-en">RBAC Permissions</div></div>
+      <div class="scr-title-ko">RBAC 역할 권한 매트릭스 — 7역할 × 전 모듈 접근 제어</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">UI</span><span class="mc-val">🖥 Web PC</span></div>
+        <div class="meta-chip core"><span class="mc-lbl">Class</span><span class="mc-val">⚙ Core</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">1st Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">Admin Only</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Roles</span><span class="mc-val">7 RBAC Roles</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          The core SYS screen — the <strong>Role-Based Access Control (RBAC) permission matrix</strong>. It defines, for each of <strong>7 roles</strong> (Admin, Production Manager, Warehouse Staff, QC Inspector, Maintenance Engineer, POP Operator, Read-Only), the access level to every module and screen: <strong>Read (R) / Write (W) / Approve (A) / All / None</strong>. This single matrix governs what every A-MES user can see and do — every screen in every module checks it on entry. Permission changes take effect <strong>immediately</strong> on save and are written to the SYS-05 audit log. The screen is Admin-only.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          SYS 모듈 핵심 화면 — <strong>역할 기반 접근 제어(RBAC) 권한 매트릭스</strong>. <strong>7개 역할</strong>(Admin·생산관리자·창고담당·QC검사원·정비기술자·POP작업자·읽기전용) 각각에 대해 전 모듈·화면 접근 수준을 정의한다: <strong>읽기(R) / 쓰기(W) / 승인(A) / 전체 / 없음</strong>. 이 단일 매트릭스가 모든 A-MES 사용자가 무엇을 보고 할 수 있는지를 통제한다 — 전 모듈의 모든 화면이 진입 시 이를 확인한다. 권한 변경은 저장 <strong>즉시</strong> 반영되며 SYS-05 감사 로그에 기록된다. 화면은 Admin 전용이다.
+        </div>
+      </div>
+      <div class="alert alert-g"><div><span class="alert-title">⭐ Core Screen · 핵심 화면</span>SYS-02는 A-MES 보안의 단일 통제점이다 — 전 모듈의 모든 화면이 진입 전 이 매트릭스를 조회한다. 매트릭스가 곧 시스템의 접근 정책이다. · SYS-02 is A-MES's single point of access control — every screen in every module consults this matrix before entry.</div></div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — Web RBAC 권한 매트릭스</span></div>
+      <div class="web-mock">
+        <div class="web-tbar">
+          <div class="web-tbar-l">🔐 A-MES · System · RBAC Permissions<span class="bc">SYS › Permissions</span></div>
+          <div class="web-tbar-r">Admin · 09:25</div>
+        </div>
+        <div class="web-bd">
+          <div class="flt-bar">
+            <span class="flt">👤 Role <b>All 7 Roles</b></span>
+            <span class="flt">📦 Module <b>All</b></span>
+            <span style="margin-left:auto;display:flex;gap:6px;">
+              <button class="btn">↺ Revert</button>
+              <button class="btn btn-primary">💾 Save (즉시 반영)</button>
+            </span>
+          </div>
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ PERMISSION MATRIX · 권한 매트릭스 (모듈 × 역할)</span><span style="color:var(--sub);">셀 클릭 → 권한 변경</span></div>
+            <table class="tbl">
+              <thead><tr><th>Module</th><th>Admin</th><th>Prod. Mgr</th><th>WH Staff</th><th>QC Insp.</th><th>MNT Eng.</th><th>POP Op.</th><th>Read-Only</th></tr></thead>
+              <tbody>
+                <tr><td style="font-weight:700;">WH Warehouse</td><td><span class="pm pm-all">All</span></td><td><span class="pm pm-r">R</span></td><td><span class="pm pm-rw">R/W</span></td><td><span class="pm pm-r">R</span></td><td><span class="pm pm-no">—</span></td><td><span class="pm pm-no">—</span></td><td><span class="pm pm-r">R</span></td></tr>
+                <tr><td style="font-weight:700;">PP Production Plan</td><td><span class="pm pm-all">All</span></td><td><span class="pm pm-rwa">R/W/A</span></td><td><span class="pm pm-r">R</span></td><td><span class="pm pm-r">R</span></td><td><span class="pm pm-r">R</span></td><td><span class="pm pm-no">—</span></td><td><span class="pm pm-r">R</span></td></tr>
+                <tr><td style="font-weight:700;">INJ/IMG/PNT POP</td><td><span class="pm pm-all">All</span></td><td><span class="pm pm-r">R</span></td><td><span class="pm pm-no">—</span></td><td><span class="pm pm-r">R</span></td><td><span class="pm pm-r">R</span></td><td><span class="pm pm-rw">R/W</span></td><td><span class="pm pm-r">R</span></td></tr>
+                <tr><td style="font-weight:700;">QC Quality</td><td><span class="pm pm-all">All</span></td><td><span class="pm pm-r">R</span></td><td><span class="pm pm-r">R</span></td><td><span class="pm pm-rwa">R/W/A</span></td><td><span class="pm pm-r">R</span></td><td><span class="pm pm-no">—</span></td><td><span class="pm pm-r">R</span></td></tr>
+                <tr><td style="font-weight:700;">MNT Maintenance</td><td><span class="pm pm-all">All</span></td><td><span class="pm pm-r">R</span></td><td><span class="pm pm-no">—</span></td><td><span class="pm pm-r">R</span></td><td><span class="pm pm-rw">R/W</span></td><td><span class="pm pm-no">—</span></td><td><span class="pm pm-r">R</span></td></tr>
+                <tr><td style="font-weight:700;">RPT Reports</td><td><span class="pm pm-all">All</span></td><td><span class="pm pm-r">R</span></td><td><span class="pm pm-r">R</span></td><td><span class="pm pm-r">R</span></td><td><span class="pm pm-r">R</span></td><td><span class="pm pm-no">—</span></td><td><span class="pm pm-r">R</span></td></tr>
+                <tr><td style="font-weight:700;">SYS / MD Admin</td><td><span class="pm pm-all">All</span></td><td><span class="pm pm-no">—</span></td><td><span class="pm pm-no">—</span></td><td><span class="pm pm-no">—</span></td><td><span class="pm pm-no">—</span></td><td><span class="pm pm-no">—</span></td><td><span class="pm pm-no">—</span></td></tr>
+              </tbody>
+            </table>
+            <div style="font-size:9px;color:var(--sub);margin-top:8px;">R = Read 읽기 · W = Write 쓰기 · A = Approve 승인 · All = 전체 · — = 접근 없음</div>
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 UI Highlights · 화면 주요 포인트</span>
+        ① 모듈(행) × 7역할(열) 매트릭스 ② 셀 클릭 → 권한 수준 변경 (R/W/A/All/—) ③ 저장 시 즉시 반영 — 재로그인 불필요 ④ 변경 전 Revert 가능 ⑤ 전 변경 SYS-05 감사 로그 ⑥ Admin 행은 항상 All 고정 (변경 불가) ⑦ Admin 전용 화면</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Field Specification</span><span class="sec-ko">필드 사양</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:22%;">Field</th><th style="width:14%;">Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">RoleID</td><td class="fld-type">VARCHAR(20)</td><td>역할 코드 (7종 중 1).</td></tr>
+          <tr><td class="fld-name">RoleName</td><td class="fld-type">VARCHAR(40)</td><td>역할 명칭.</td></tr>
+          <tr><td class="fld-name">ModuleCode</td><td class="fld-type">VARCHAR(10)</td><td>대상 모듈 (WH/PP/INJ/QC...).</td></tr>
+          <tr><td class="fld-name">ScreenCode</td><td class="fld-type">VARCHAR(20)</td><td>화면 단위 세분 권한 (선택적).</td></tr>
+          <tr><td class="fld-name">PermissionLevel</td><td class="fld-type">ENUM</td><td>NONE / READ / WRITE / APPROVE / ALL.</td></tr>
+          <tr><td class="fld-name">IsSystemRole</td><td class="fld-type">BOOLEAN</td><td>Admin 등 시스템 역할 — 변경 불가.</td></tr>
+          <tr><td class="fld-name">EffectiveTS</td><td class="fld-type">DATETIME</td><td>변경 적용 시각 (저장 즉시).</td></tr>
+          <tr><td class="fld-name">ModifiedBy</td><td class="fld-type">VARCHAR(20)</td><td>변경 Admin.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Role Matrix</span><span class="sec-ko">7개 RBAC 역할</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:22%;">Role</th><th>Scope · 권한 범위</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Admin · 관리자</strong></td><td>전 모듈 All. SYS/MD 관리 권한. 항상 고정 — 변경 불가.</td></tr>
+          <tr><td><strong>Production Manager · 생산관리자</strong></td><td>PP 생산계획 R/W/A (승인), 생산 모듈 R. 전 모듈 조회.</td></tr>
+          <tr><td><strong>Warehouse Staff · 창고담당</strong></td><td>WH 입출고 R/W. PP·QC 조회. 생산·정비 접근 없음.</td></tr>
+          <tr><td><strong>QC Inspector · QC검사원</strong></td><td>QC 검사·판정 R/W/A. 생산·재고 조회.</td></tr>
+          <tr><td><strong>Maintenance Engineer · 정비기술자</strong></td><td>MNT 정비·WO R/W. 설비 관련 모듈 조회.</td></tr>
+          <tr><td><strong>POP Operator · POP작업자</strong></td><td>배정 라인의 INJ/IMG/PNT POP만 R/W. 그 외 접근 없음.</td></tr>
+          <tr><td><strong>Read-Only · 읽기전용</strong></td><td>전 모듈 R만. 입력·수정·승인 불가 (감사·견학용).</td></tr>
+        </tbody>
+      </table>
+      <div class="alert alert-g"><div><span class="alert-title">⚙ Permission Hierarchy · 권한 위계</span>NONE &lt; READ &lt; WRITE &lt; APPROVE &lt; ALL — 상위 권한은 하위를 포함한다. APPROVE는 WRITE를, ALL은 전 권한을 포괄한다. · Higher levels include lower ones — APPROVE includes WRITE, ALL includes everything.</div></div>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">Admin opens SYS-02; the matrix shows all 7 roles × all modules.</div><div class="wf-ko">Admin이 SYS-02를 연다 — 매트릭스에 7역할 × 전 모듈이 표시된다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Admin clicks a cell and selects the permission level (R / W / A / All / None).</div><div class="wf-ko">Admin이 셀을 클릭하고 권한 수준(R/W/A/All/—)을 선택한다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">On Save, the change takes effect immediately — affected users see the new access without re-login.</div><div class="wf-ko">저장 시 변경 즉시 반영 — 해당 사용자는 재로그인 없이 새 권한이 적용된다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">The change (role, module, before/after level, actor) is written to the SYS-05 audit log.</div><div class="wf-ko">변경 내역(역할·모듈·전후 수준·주체)이 SYS-05 감사 로그에 기록된다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Every module screen consults the matrix on entry; a denied user gets an access-blocked message.</div><div class="wf-ko">전 모듈 화면이 진입 시 매트릭스를 조회 — 권한 없는 사용자는 접근 차단 메시지.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-SYS-08</td><td><div>All module and screen access is governed by the RBAC matrix; every screen checks it on entry.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">전 모듈·화면 접근은 RBAC 매트릭스 기준 — 모든 화면이 진입 시 확인.</div></td><td><span class="br-act blk">Enforce</span></td></tr>
+          <tr><td class="br-id">BR-SYS-09</td><td><div>Permission changes take effect immediately on save — no re-login required.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">권한 변경은 저장 즉시 반영 — 재로그인 불필요.</div></td><td><span class="br-act aut">Immediate</span></td></tr>
+          <tr><td class="br-id">BR-SYS-10</td><td><div>The Admin role is fixed at All for every module and cannot be downgraded.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">Admin 역할은 전 모듈 All 고정 — 하향 불가.</div></td><td><span class="br-act blk">Lock</span></td></tr>
+          <tr><td class="br-id">BR-SYS-11</td><td><div>POP Operators can access only the production lines assigned in their SYS-01 account.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">POP 작업자는 SYS-01 계정에 배정된 라인만 접근 가능.</div></td><td><span class="br-act blk">Restrict</span></td></tr>
+          <tr><td class="br-id">BR-SYS-12</td><td><div>Every permission matrix change is logged in SYS-05 with before/after values and actor.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">전 권한 매트릭스 변경은 전후값·주체와 함께 SYS-05 기록.</div></td><td><span class="br-act aut">Audit</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Table</th><th>Key Columns</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">SYS_Role</span></td><td><span class="dm-pk">PK</span> RoleID · RoleName · IsSystemRole · Description</td><td>7개 RBAC 역할 정의.</td></tr>
+          <tr><td><span class="dm-col">SYS_Permission</span></td><td><span class="dm-pk">PK</span> PermID · <span class="dm-fk">FK</span> RoleID · ModuleCode · ScreenCode · PermissionLevel · EffectiveTS · ModifiedBy</td><td>역할×모듈 권한 매트릭스.</td></tr>
+          <tr><td><span class="dm-col">SYS_User</span> <em style="opacity:.6;">(reference)</em></td><td>UserID · RoleID · AssignedLines</td><td>SYS-01 — 역할 배정 대상.</td></tr>
+          <tr><td><span class="dm-col">SYS_AuditLog</span> <em style="opacity:.6;">(write)</em></td><td>LogID · Actor · Action · BeforeValue · AfterValue · TS</td><td>SYS-05 권한 변경 이력.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">SYS-01</div><div class="lnk-name">사용자·역할 배정</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">SYS-02 ⚙</div><div class="lnk-name">RBAC Permissions</div><div class="lnk-ko">역할 권한 매트릭스</div></div>
+        </div>
+        <div class="lnk-row" style="margin-top:14px;">
+          <div class="lnk-node cur"><div class="lnk-id">SYS-02</div><div class="lnk-name">→ Governs All</div></div>
+          <div class="lnk-arr">↘</div>
+          <div class="lnk-node down"><div class="lnk-id">All Modules</div><div class="lnk-name">화면 진입 권한 검증</div></div>
+          <div class="lnk-node down"><div class="lnk-id">RPT-09</div><div class="lnk-name">보고서 조회 권한</div></div>
+          <div class="lnk-node down"><div class="lnk-id">SYS-05</div><div class="lnk-name">변경 감사 로그</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.12 · SYS-02 · RBAC Permissions · L3 Spec v1.0 · ⚙ Core</div><div class="pf-r">Web · Phase 1 · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
