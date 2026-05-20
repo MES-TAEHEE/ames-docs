@@ -208,6 +208,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   <a class="sb-link" href="#md04"><span class="sl-id">MD-04</span><div><div class="sl-en">BOP Routing</div><div class="sl-ko">공정 경로</div></div><a class="sb-l3" href="VOL13_MD_L3_Production.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
   <a class="sb-link" href="#md05"><span class="sl-id">MD-05</span><div><div class="sl-en">Work Center</div><div class="sl-ko">작업장</div></div></a>
   <a class="sb-link" href="#md20"><span class="sl-id">MD-20</span><div><div class="sl-en">Line Master</div><div class="sl-ko">라인 마스터</div></div></a>
+  <a class="sb-link new" href="#ent-l3"><span class="sl-id">MD-29</span><div><div class="sl-en">Line Time Pattern</div><div class="sl-ko">라인 시간패턴</div></div><a class="sb-l3" href="VOL13_MD29_Line_Time_Pattern.html" title="L3 테이블 설계서" onclick="event.stopPropagation();">📋</a></a>
   <div class="sb-section">C · Resources &amp; Equipment · 자원·설비</div>
   <a class="sb-link" href="#md07"><span class="sl-id">MD-07</span><div><div class="sl-en">Vendor Master</div><div class="sl-ko">거래선</div></div><a class="sb-l3" href="VOL13_MD_L3_Resources.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
   <a class="sb-link" href="#md08"><span class="sl-id">MD-08</span><div><div class="sl-en">Equipment</div><div class="sl-ko">설비</div></div></a>
@@ -239,13 +240,13 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     <div class="mod-hdr-inner">
       <div class="mod-eyebrow">VOL.13 · MD · Master Data Management · 기준정보</div>
       <div class="mod-title-en">MASTER DATA</div>
-      <div class="mod-title-ko">기준정보 관리 — 28 Entities · 5 Categories · Phase-0 Foundation</div>
+      <div class="mod-title-ko">기준정보 관리 — 29 Entities · 5 Categories · Phase-0 Foundation</div>
       <div class="mod-desc-bi">
         <div class="mdb-en">The foundation of the entire A-MES system. <strong>28 master data entities</strong> grouped into <strong>5 categories</strong>, all entered in Phase-0 before any operational screen functions. Started at 14, then +6 for the RFID painting line (MD-15~20), now <strong>+8 for the module expansion</strong> (MD-21~28) — covering QC sampling/gauges, FG packing/label/pallet/carrier, and MNT spare-parts/PM templates that the QC·FG·MNT·RPT·SYS screens now depend on. Each category has a dedicated L3 detail spec.</div>
         <div class="mdb-ko">A-MES 전체 시스템의 기반. <strong>28개 기준정보</strong>를 <strong>5개 카테고리</strong>로 분류, Phase-0에서 입력 완료해야 운영 화면이 동작. 최초 14개 → RFID 도장 라인 +6(MD-15~20) → 이번 <strong>모듈 확장 +8</strong>(MD-21~28) — QC 샘플링·계측기, FG 포장·라벨·팔레트·운송, MNT 정비자재·PM 템플릿 등 QC·FG·MNT·RPT·SYS 화면이 의존하는 신규 마스터 추가. 카테고리별 L3 상세 설계서 제공.</div>
       </div>
       <div class="mod-meta-strip">
-        <div class="mms-item"><div class="mms-l">Total Entities</div><div class="mms-v" style="color:#fbbf24;">28</div></div>
+        <div class="mms-item"><div class="mms-l">Total Entities</div><div class="mms-v" style="color:#fbbf24;">29</div></div>
         <div class="mms-item"><div class="mms-l">Categories</div><div class="mms-v">5</div></div>
         <div class="mms-item"><div class="mms-l">Expansion</div><div class="mms-v" style="color:#fdba74;">14 → 20 → 28</div></div>
         <div class="mms-item"><div class="mms-l">Phase-0</div><div class="mms-v">Mandatory</div></div>
@@ -292,12 +293,74 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       <div class="sec-hdr"><span class="sec-num">MAP</span><span class="sec-title">Master Data Category Map</span><span class="sec-ko">기준정보 5대 카테고리 — 클릭 시 해당 영역으로 이동</span></div>
       <div class="cat-map">
         <a class="cm-card" href="#cat-a"><div class="cm-ico">🧱</div><div class="cm-t">A · Foundation</div><div class="cm-ko">기반 — 품목·BOM·단위·캘린더</div><div class="cm-n">5 entities · MD-01·02·03·13·14</div></a>
-        <a class="cm-card" href="#cat-b"><div class="cm-ico">🔀</div><div class="cm-t">B · Routing &amp; Production</div><div class="cm-ko">라우팅·생산 — 공정·작업장·라인</div><div class="cm-n">3 entities · MD-04·05·20</div></a>
+        <a class="cm-card" href="#cat-b"><div class="cm-ico">🔀</div><div class="cm-t">B · Routing &amp; Production</div><div class="cm-ko">라우팅·생산 — 공정·작업장·라인·시간패턴</div><div class="cm-n">4 entities · MD-04·05·20·29</div></a>
         <a class="cm-card" href="#cat-c"><div class="cm-ico">⚙️</div><div class="cm-t">C · Resources &amp; Equipment</div><div class="cm-ko">자원·설비 — 거래선·설비·금형·자재</div><div class="cm-n">7 entities · MD-07·08·09·18·15·27·28</div></a>
         <a class="cm-card" href="#cat-d"><div class="cm-ico">📡</div><div class="cm-t">D · RFID &amp; Materials</div><div class="cm-ko">RFID·자재 — 태그·리더·도료·컬러</div><div class="cm-n">4 entities · MD-16·19·10·17</div></a>
         <a class="cm-card" href="#cat-e"><div class="cm-ico">🔬</div><div class="cm-t">E · Quality &amp; Logistics</div><div class="cm-ko">품질·물류 — 검사·불량·포장·운송</div><div class="cm-n">9 entities · MD-06·21·22·12·11·23·24·25·26</div></a>
       </div>
       <div class="alert alert-i"><div><span class="alert-title">📌 Why 28 Now · 28개로 늘어난 이유</span>QC(9 화면)·FG(10)·MNT(9)·RPT(10)·SYS(8) 모듈이 완성되면서 이 화면들이 의존하는 기준정보가 늘었다 — QC 샘플링·계측기, FG 포장·라벨·팔레트·운송, MNT 정비자재·PM 템플릿. 운영 화면이 생기면 그것을 받쳐줄 마스터도 함께 정의되어야 한다. · As QC/FG/MNT/RPT/SYS screens were built, the masters they depend on grew — every operational screen needs its supporting master data.</div></div>
+    </div>
+
+    <!-- ENTITY L3 TABLE-DESIGN PAGES -->
+    <style>
+    .mdl3-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(186px,1fr));gap:8px;margin-bottom:4px;}
+    .mdl3-card{display:block;text-decoration:none;background:#fff;border:1px solid #d0d7de;border-left:3px solid #d97706;border-radius:5px;padding:9px 12px;transition:background .1s;}
+    .mdl3-card:hover{background:#fef3c7;}
+    .mdl3-card.s29{border-left-color:#16a34a;}
+    .mdl3-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#92400e;display:block;}
+    .mdl3-card.s29 .mdl3-id{color:#15803d;}
+    .mdl3-nm{font-size:11px;font-weight:700;color:#24292f;display:block;margin-top:2px;}
+    .mdl3-ko{font-size:9px;color:#656d76;display:block;}
+    .mdl3-cat{font-size:10px;font-weight:700;color:#92400e;letter-spacing:1px;margin:14px 0 6px;text-transform:uppercase;}
+    .mdl3-cat:first-of-type{margin-top:2px;}
+    </style>
+    <div class="sec" id="ent-l3">
+      <div class="sec-hdr"><span class="sec-num">L3</span><span class="sec-title">Entity Table-Design Pages</span><span class="sec-ko">29개 엔티티 개별 테이블 설계서 — 클릭 시 DDL·제약·관계 상세</span></div>
+      <div class="mdl3-cat">A · Foundation · 기반 (5)</div>
+      <div class="mdl3-grid">
+        <a class="mdl3-card" href="VOL13_MD01_Item.html"><span class="mdl3-id">MD-01 ↗</span><span class="mdl3-nm">Item Master</span><span class="mdl3-ko">품목 · MD_Item</span></a>
+        <a class="mdl3-card" href="VOL13_MD02_BOM.html"><span class="mdl3-id">MD-02 ↗</span><span class="mdl3-nm">BOM</span><span class="mdl3-ko">자재명세서 · MD_BOM</span></a>
+        <a class="mdl3-card" href="VOL13_MD03_BOM_Version.html"><span class="mdl3-id">MD-03 ↗</span><span class="mdl3-nm">BOM Version</span><span class="mdl3-ko">BOM 버전 · MD_BOMVersion</span></a>
+        <a class="mdl3-card" href="VOL13_MD13_UOM.html"><span class="mdl3-id">MD-13 ↗</span><span class="mdl3-nm">UOM</span><span class="mdl3-ko">단위 · MD_UOM</span></a>
+        <a class="mdl3-card" href="VOL13_MD14_Calendar.html"><span class="mdl3-id">MD-14 ↗</span><span class="mdl3-nm">Calendar</span><span class="mdl3-ko">캘린더 · MD_Calendar</span></a>
+      </div>
+      <div class="mdl3-cat">B · Routing &amp; Production · 라우팅·생산 (4)</div>
+      <div class="mdl3-grid">
+        <a class="mdl3-card" href="VOL13_MD04_BOP.html"><span class="mdl3-id">MD-04 ↗</span><span class="mdl3-nm">BOP Routing</span><span class="mdl3-ko">공정경로 · MD_BOP</span></a>
+        <a class="mdl3-card" href="VOL13_MD05_Work_Center.html"><span class="mdl3-id">MD-05 ↗</span><span class="mdl3-nm">Work Center</span><span class="mdl3-ko">작업장 · MD_WorkCenter</span></a>
+        <a class="mdl3-card" href="VOL13_MD20_Line.html"><span class="mdl3-id">MD-20 ↗</span><span class="mdl3-nm">Line Master</span><span class="mdl3-ko">라인 · MD_Line</span></a>
+        <a class="mdl3-card s29" href="VOL13_MD29_Line_Time_Pattern.html"><span class="mdl3-id">MD-29 ↗ NEW</span><span class="mdl3-nm">Line Time Pattern</span><span class="mdl3-ko">라인 시간패턴 · MD_LineTimePattern</span></a>
+      </div>
+      <div class="mdl3-cat">C · Resources &amp; Equipment · 자원·설비 (7)</div>
+      <div class="mdl3-grid">
+        <a class="mdl3-card" href="VOL13_MD07_Vendor.html"><span class="mdl3-id">MD-07 ↗</span><span class="mdl3-nm">Vendor</span><span class="mdl3-ko">거래선 · MD_Vendor</span></a>
+        <a class="mdl3-card" href="VOL13_MD08_Equipment.html"><span class="mdl3-id">MD-08 ↗</span><span class="mdl3-nm">Equipment</span><span class="mdl3-ko">설비 · MD_Equipment</span></a>
+        <a class="mdl3-card" href="VOL13_MD09_Mold.html"><span class="mdl3-id">MD-09 ↗</span><span class="mdl3-nm">Mold</span><span class="mdl3-ko">금형 · MD_Mold</span></a>
+        <a class="mdl3-card" href="VOL13_MD18_Oven.html"><span class="mdl3-id">MD-18 ↗</span><span class="mdl3-nm">Oven</span><span class="mdl3-ko">오븐 · MD_Oven</span></a>
+        <a class="mdl3-card" href="VOL13_MD15_Jig.html"><span class="mdl3-id">MD-15 ↗</span><span class="mdl3-nm">Jig</span><span class="mdl3-ko">지그 · MD_Jig</span></a>
+        <a class="mdl3-card" href="VOL13_MD27_Spare_Parts.html"><span class="mdl3-id">MD-27 ↗</span><span class="mdl3-nm">Spare Parts</span><span class="mdl3-ko">정비 자재 · MD_SparePart</span></a>
+        <a class="mdl3-card" href="VOL13_MD28_PM_Template.html"><span class="mdl3-id">MD-28 ↗</span><span class="mdl3-nm">PM Template</span><span class="mdl3-ko">PM 템플릿 · MD_PMTemplate</span></a>
+      </div>
+      <div class="mdl3-cat">D · RFID &amp; Materials · RFID·자재 (4)</div>
+      <div class="mdl3-grid">
+        <a class="mdl3-card" href="VOL13_MD16_RFID_Tag.html"><span class="mdl3-id">MD-16 ↗</span><span class="mdl3-nm">RFID Tag</span><span class="mdl3-ko">RFID 태그 · MD_RFIDTag</span></a>
+        <a class="mdl3-card" href="VOL13_MD19_RFID_Reader.html"><span class="mdl3-id">MD-19 ↗</span><span class="mdl3-nm">RFID Reader</span><span class="mdl3-ko">RFID 리더 · MD_RFIDReader</span></a>
+        <a class="mdl3-card" href="VOL13_MD10_Paint_Fabric.html"><span class="mdl3-id">MD-10 ↗</span><span class="mdl3-nm">Paint / Fabric</span><span class="mdl3-ko">도료·원단 · MD_Material</span></a>
+        <a class="mdl3-card" href="VOL13_MD17_RAL_Color.html"><span class="mdl3-id">MD-17 ↗</span><span class="mdl3-nm">RAL Paint Color</span><span class="mdl3-ko">RAL 컬러 · MD_RALColor</span></a>
+      </div>
+      <div class="mdl3-cat">E · Quality &amp; Logistics · 품질·물류 (9)</div>
+      <div class="mdl3-grid">
+        <a class="mdl3-card" href="VOL13_MD06_Inspection_Std.html"><span class="mdl3-id">MD-06 ↗</span><span class="mdl3-nm">Inspection Std</span><span class="mdl3-ko">검사기준 · MD_InspStd</span></a>
+        <a class="mdl3-card" href="VOL13_MD21_Defect_Code.html"><span class="mdl3-id">MD-21 ↗</span><span class="mdl3-nm">Defect Code</span><span class="mdl3-ko">불량코드 · MD_DefectCode</span></a>
+        <a class="mdl3-card" href="VOL13_MD22_Defect_Cause.html"><span class="mdl3-id">MD-22 ↗</span><span class="mdl3-nm">Defect Cause</span><span class="mdl3-ko">불량원인 · MD_DefectCause</span></a>
+        <a class="mdl3-card" href="VOL13_MD12_Customer.html"><span class="mdl3-id">MD-12 ↗</span><span class="mdl3-nm">Customer</span><span class="mdl3-ko">고객사 · MD_Customer</span></a>
+        <a class="mdl3-card" href="VOL13_MD11_Shipment_Dest.html"><span class="mdl3-id">MD-11 ↗</span><span class="mdl3-nm">Shipment Dest</span><span class="mdl3-ko">출하처 · MD_ShipDest</span></a>
+        <a class="mdl3-card" href="VOL13_MD23_Packaging_Spec.html"><span class="mdl3-id">MD-23 ↗</span><span class="mdl3-nm">Packaging Spec</span><span class="mdl3-ko">포장사양 · MD_PackagingSpec</span></a>
+        <a class="mdl3-card" href="VOL13_MD24_Label_Template.html"><span class="mdl3-id">MD-24 ↗</span><span class="mdl3-nm">Label Template</span><span class="mdl3-ko">라벨 템플릿 · MD_LabelTemplate</span></a>
+        <a class="mdl3-card" href="VOL13_MD25_Reason_Code.html"><span class="mdl3-id">MD-25 ↗</span><span class="mdl3-nm">Reason Code</span><span class="mdl3-ko">사유코드 · MD_ReasonCode</span></a>
+        <a class="mdl3-card" href="VOL13_MD26_Code_Group.html"><span class="mdl3-id">MD-26 ↗</span><span class="mdl3-nm">Common Code Group</span><span class="mdl3-ko">공통코드 · MD_CommonCode</span></a>
+      </div>
+      <div class="alert alert-i" style="margin-top:12px;"><div><span class="alert-title">📌 L3 Table Design · 개별 테이블 설계서</span>각 엔티티는 개별 L3 페이지에서 컬럼 정의(DDL)·제약조건/인덱스·샘플 데이터·검증 규칙·테이블 관계·모듈 연계 7개 섹션으로 상세 설계된다. 카테고리 묶음 설명은 위 5개 카테고리 L3 허브 참조. · Each entity has a full DDL-level L3 spec; category hubs give the grouped view.</div></div>
     </div>
 
     <!-- PHASE 0 -->
@@ -334,6 +397,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
           <div class="p0-step new"><div class="p0-num">㉖</div><div class="p0-id">MD-24</div><div class="p0-name">Label</div><div class="p0-ko">라벨</div></div>
           <div class="p0-step new"><div class="p0-num">㉗</div><div class="p0-id">MD-26</div><div class="p0-name">Carrier</div><div class="p0-ko">운송사</div></div>
           <div class="p0-step"><div class="p0-num">㉘</div><div class="p0-id">MD-14</div><div class="p0-name">Calendar</div><div class="p0-ko">캘린더</div></div>
+          <div class="p0-step new"><div class="p0-num">㉙</div><div class="p0-id">MD-29</div><div class="p0-name">Line Pattern</div><div class="p0-ko">라인 시간패턴</div></div>
         </div>
       </div>
       <div class="alert alert-h">
@@ -697,7 +761,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   </div>
 
   <div class="page-footer">
-    <div class="pf-l">A-MES · VOL.13 · MD Master Data · UI Design Spec v3.0 · 28 Entities (14 → 20 → 28) · 5 Categories</div>
+    <div class="pf-l">A-MES · VOL.13 · MD Master Data · UI Design Spec v3.1 · 29 Entities (14 → 20 → 28 → 29) · 5 Categories</div>
     <div class="pf-r">Phase-0 Foundation · Bilingual EN/KO</div>
   </div>
 </div>
