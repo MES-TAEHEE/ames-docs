@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PP-LSB Line Schedule Board · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+.scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
+.sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
+.sh-tt{flex:1;}
+.sh-en{font-size:16px;font-weight:800;color:#fff;}
+.sh-ko{font-size:11px;color:rgba(255,255,255,.5);}
+.sh-tag{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+.sh-live{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.sh-live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.toolbar{background:#fff;border-bottom:1px solid var(--bd);padding:9px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
+.fld{display:flex;flex-direction:column;gap:2px;}
+.fld label{font-size:8px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;}
+select,input[type=number]{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink);}
+.btn{padding:6px 13px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-p{background:var(--pp);color:#fff;}.btn-p:hover{background:var(--pp-dk);}
+.btn-s{background:#f6f8fa;color:var(--ink);border-color:var(--bd);}.btn-s:hover{background:#eef1f5;}
+.btn-w{background:#f59e0b;color:#fff;}.btn-w:hover{background:#d97706;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+.body{flex:1;overflow-y:auto;padding:16px 24px 40px;}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:16px;}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:12px 14px;border-left:3px solid var(--c);}
+.kpi .kv{font-size:23px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;color:var(--c);}
+.kpi .kl{font-size:10px;color:var(--sub);margin-top:4px;}
+.kpi .kt{font-size:8px;color:#9ca3af;font-family:'JetBrains Mono',monospace;}
+.card{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:14px 16px;margin-bottom:14px;}
+.card-t{font-size:12px;font-weight:800;color:var(--pp);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.legend{display:flex;gap:14px;margin-left:auto;font-weight:400;}
+.legend span{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--sub);}
+.legend i{width:11px;height:11px;border-radius:2px;display:inline-block;}
+/* gantt */
+.gantt{border:1px solid var(--bd);border-radius:6px;overflow:hidden;}
+.g-axis{display:flex;background:#f0f3f7;border-bottom:1px solid var(--bd);}
+.g-axis .g-lbl{width:138px;flex-shrink:0;border-right:1px solid var(--bd);}
+.g-axis .g-ticks{flex:1;display:flex;position:relative;height:24px;}
+.g-tick{flex:1;border-right:1px dashed #dde3ea;font-size:8px;color:var(--sub);font-family:'JetBrains Mono',monospace;padding:3px 0 0 3px;}
+.g-row{display:flex;border-bottom:1px solid #eef1f5;}
+.g-row:last-child{border-bottom:none;}
+.g-lbl{width:138px;flex-shrink:0;border-right:1px solid var(--bd);padding:8px 10px;background:#fafbfc;}
+.g-lbl .ln-id{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;}
+.g-lbl .ln-nm{font-size:10px;color:var(--sub);}
+.g-lbl .ln-ut{font-size:8px;font-family:'JetBrains Mono',monospace;margin-top:3px;}
+.g-track{flex:1;position:relative;height:54px;background:repeating-linear-gradient(90deg,transparent,transparent calc(100%/16 - 1px),#eef1f5 calc(100%/16 - 1px),#eef1f5 calc(100%/16));}
+.blk{position:absolute;top:6px;height:42px;border-radius:4px;cursor:pointer;overflow:hidden;padding:4px 6px;color:#fff;transition:filter .12s,box-shadow .12s;border:1px solid rgba(0,0,0,.12);}
+.blk:hover{filter:brightness(1.08);box-shadow:0 3px 9px rgba(0,0,0,.25);z-index:5;}
+.blk.op{background:linear-gradient(160deg,#10b981,#047857);}
+.blk.co{background:linear-gradient(160deg,#a78bfa,#7c3aed);}
+.blk.pd{background:linear-gradient(160deg,#fbbf24,#d97706);}
+.blk.idle{background:repeating-linear-gradient(45deg,#e5e7eb,#e5e7eb 6px,#d1d5db 6px,#d1d5db 12px);color:#6b7280;border-color:#d1d5db;}
+.blk.conf{outline:2px solid #dc2626;outline-offset:-2px;animation:cf 1s infinite;}
+@keyframes cf{50%{outline-color:#fca5a5;}}
+.blk .bt{font-size:9px;font-weight:800;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.blk .bs{font-size:8px;font-family:'JetBrains Mono',monospace;opacity:.85;}
+.now{position:absolute;top:0;bottom:0;width:2px;background:#dc2626;z-index:8;}
+.now::before{content:'NOW';position:absolute;top:-1px;left:3px;font-size:7px;font-weight:800;color:#dc2626;font-family:'JetBrains Mono',monospace;}
+/* modal */
+.ov{position:fixed;inset:0;background:rgba(3,20,14,.55);display:none;align-items:center;justify-content:center;z-index:100;}
+.ov.on{display:flex;}
+.modal{background:#fff;border-radius:10px;width:440px;max-width:94vw;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.4);}
+.modal-h{background:linear-gradient(135deg,#03251a,#052e1f);color:#fff;padding:13px 18px;display:flex;align-items:center;gap:10px;}
+.modal-h .mt{font-size:14px;font-weight:800;flex:1;}
+.modal-h .mx{cursor:pointer;font-size:18px;color:rgba(255,255,255,.6);}
+.modal-h .mx:hover{color:#fff;}
+.modal-b{padding:18px;}
+.drow{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed #eef1f5;font-size:12px;}
+.drow .dk{color:var(--sub);}
+.drow .dv{font-weight:700;}
+.mfld{margin-bottom:12px;}
+.mfld label{display:block;font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:4px;}
+.mfld select,.mfld input{width:100%;}
+.modal-f{padding:12px 18px;background:#f6f8fa;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end;}
+.tag{display:inline-block;font-size:9px;font-weight:700;padding:2px 8px;border-radius:9px;}
+.t-op{background:#d1fae5;color:#065f46;}.t-co{background:#ede9fe;color:#5b21b6;}.t-pd{background:#fef3c7;color:#92400e;}.t-idle{background:#f3f4f6;color:#4b5563;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#fff;border-radius:8px;padding:11px 15px;box-shadow:0 8px 26px rgba(0,0,0,.22);border-left:4px solid var(--pp);font-size:12px;min-width:250px;max-width:380px;animation:ti .25s ease;}
+.toast.err{border-left-color:#dc2626;}.toast.warn{border-left-color:#f59e0b;}.toast.info{border-left-color:#2563eb;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:var(--sub);font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="scr-head">
+  <div class="sh-id">PP-LSB</div>
+  <div class="sh-tt"><div class="sh-en">Line Schedule Board</div><div class="sh-ko">라인 스케줄 보드 — 분 단위 작업·정비 블록 타임라인</div></div>
+  <span class="sh-tag">/pp/lsb</span>
+  <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
+</div>
+<div class="toolbar">
+  <div class="fld"><label>일자 Date</label>
+    <select id="fDate" onchange="apply()"><option>2026-05-20 (수)</option><option>2026-05-21 (목)</option><option>2026-05-22 (금)</option></select></div>
+  <div class="fld"><label>사업장 Plant</label>
+    <select id="fPlant" onchange="apply()"><option>SAV 서산</option></select></div>
+  <div class="fld"><label>라인 Line</label>
+    <select id="fLine" onchange="apply()"><option value="">전체 All</option><option>SAV-INJ-01</option><option>SAV-INJ-02</option><option>SAV-ASSY-01</option><option>SAV-PNT-01</option></select></div>
+  <button class="btn btn-p btn-sm" onclick="apply()">🔍 적용</button>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <button class="btn btn-w" onclick="openPM()">＋ 계획정비(PM) 추가</button>
+    <button class="btn btn-s" onclick="checkConflict()">⚠ 충돌 검사</button>
+    <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
+  </div>
+</div>
+<div class="body">
+  <div class="kpis">
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kOp">0</div><div class="kl">생산 블록 · Run Blocks</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kPd">0</div><div class="kl">계획 다운타임 · PM/교환</div><div class="kt">minutes</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kQty">0</div><div class="kl">계획 수량 · Planned Qty</div></div>
+    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kUt">0%</div><div class="kl">평균 라인 가동률 · Util.</div><div class="kt">target ≥ 80%</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kConf">0</div><div class="kl">스케줄 충돌 · Conflicts</div></div>
+  </div>
+  <div class="card">
+    <div class="card-t">🗓 분 단위 스케줄 타임라인 — 06:00 ~ 22:00 (2교대)
+      <span class="legend">
+        <span><i style="background:linear-gradient(160deg,#10b981,#047857)"></i>생산</span>
+        <span><i style="background:linear-gradient(160deg,#a78bfa,#7c3aed)"></i>금형교환</span>
+        <span><i style="background:linear-gradient(160deg,#fbbf24,#d97706)"></i>계획정비</span>
+        <span><i style="background:repeating-linear-gradient(45deg,#e5e7eb,#e5e7eb 4px,#d1d5db 4px,#d1d5db 8px)"></i>유휴</span>
+      </span>
+    </div>
+    <div class="gantt" id="gantt"></div>
+    <div style="font-size:9px;color:#9ca3af;margin-top:8px;">블록 클릭 = 상세 보기 · 빨간 외곽선 = 시간 충돌 · NOW 라인 = 현재 시각</div>
+  </div>
+</div>
+
+<!-- block detail modal -->
+<div class="ov" id="ovDetail">
+  <div class="modal">
+    <div class="modal-h"><span class="mt" id="dmTitle">블록 상세</span><span class="mx" onclick="closeOv('ovDetail')">✕</span></div>
+    <div class="modal-b" id="dmBody"></div>
+    <div class="modal-f">
+      <button class="btn btn-s" id="dmDel" onclick="delBlock()" style="display:none;">🗑 블록 삭제</button>
+      <button class="btn btn-p" onclick="closeOv('ovDetail')">확인</button>
+    </div>
+  </div>
+</div>
+<!-- PM add modal -->
+<div class="ov" id="ovPM">
+  <div class="modal">
+    <div class="modal-h"><span class="mt">계획정비(PM) 블록 추가</span><span class="mx" onclick="closeOv('ovPM')">✕</span></div>
+    <div class="modal-b">
+      <div class="mfld"><label>대상 라인 Line</label>
+        <select id="pmLine"><option>SAV-INJ-01</option><option>SAV-INJ-02</option><option>SAV-ASSY-01</option><option>SAV-PNT-01</option></select></div>
+      <div class="mfld"><label>정비 내용 Description</label>
+        <select id="pmDesc"><option>금형 점검</option><option>설비 정기 PM</option><option>부스 청소</option><option>윤활·급유</option><option>안전 점검</option></select></div>
+      <div style="display:flex;gap:10px;">
+        <div class="mfld" style="flex:1;"><label>시작 시각 Start (시)</label>
+          <input type="number" id="pmStart" value="14" min="6" max="21" step="1"></div>
+        <div class="mfld" style="flex:1;"><label>소요 시간 Duration (분)</label>
+          <input type="number" id="pmDur" value="60" min="15" max="240" step="15"></div>
+      </div>
+      <div style="font-size:10px;color:var(--sub);background:#fffbeb;border:1px solid #fde68a;border-radius:5px;padding:8px;">
+        ℹ 기존 생산 블록과 시간이 겹치면 충돌로 표시됩니다. 충돌 검사로 확인하세요.</div>
+    </div>
+    <div class="modal-f">
+      <button class="btn btn-s" onclick="closeOv('ovPM')">취소</button>
+      <button class="btn btn-w" onclick="addPM()">＋ 추가</button>
+    </div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+/* timeline: 06:00(0min) ~ 22:00(960min) */
+var T0=6*60, SPAN=16*60;
+function hhmm(min){var m=T0+min;return ('0'+Math.floor(m/60)).slice(-2)+':'+('0'+(m%60)).slice(-2);}
+var TYPE={op:{ko:'생산 실행',cls:'t-op'},co:{ko:'금형 교환',cls:'t-co'},pd:{ko:'계획 정비',cls:'t-pd'},idle:{ko:'유휴',cls:'t-idle'}};
+var LINES=[
+ {id:'SAV-INJ-01',nm:'사출 1호기',blocks:[
+   {ty:'op',s:0,e:240,wo:'WO-2605-101',it:'TRIM-LH-001',nm:'도어트림 LH',qty:480,op:'김성호'},
+   {ty:'co',s:240,e:270,wo:'',it:'',nm:'금형 교환 (LH→RH)',qty:0,op:'정비반'},
+   {ty:'op',s:270,e:540,wo:'WO-2605-115',it:'TRIM-RH-001',nm:'도어트림 RH',qty:520,op:'김성호'},
+   {ty:'pd',s:540,e:600,wo:'',it:'',nm:'설비 정기 PM',qty:0,op:'정비반'},
+   {ty:'op',s:600,e:900,wo:'WO-2605-130',it:'CONS-UP-001',nm:'콘솔어퍼',qty:600,op:'이재민'},
+   {ty:'idle',s:900,e:960,wo:'',it:'',nm:'유휴',qty:0,op:'-'}]},
+ {id:'SAV-INJ-02',nm:'사출 2호기',blocks:[
+   {ty:'op',s:0,e:360,wo:'WO-2605-102',it:'MOLDING-05',nm:'사이드 몰딩 5',qty:720,op:'박junior'},
+   {ty:'co',s:360,e:390,wo:'',it:'',nm:'금형 교환',qty:0,op:'정비반'},
+   {ty:'op',s:390,e:720,wo:'WO-2605-118',it:'GRILLE-02',nm:'라디에이터 그릴',qty:540,op:'박junior'},
+   {ty:'pd',s:720,e:780,wo:'',it:'',nm:'금형 점검',qty:0,op:'정비반'},
+   {ty:'op',s:780,e:960,wo:'WO-2605-132',it:'BUMPER-01',nm:'프론트 범퍼',qty:360,op:'최우진'}]},
+ {id:'SAV-ASSY-01',nm:'조립 1라인',blocks:[
+   {ty:'op',s:0,e:300,wo:'WO-2605-103',it:'DOOR-MOD-01',nm:'도어 모듈 조립',qty:300,op:'한지원'},
+   {ty:'pd',s:300,e:330,wo:'',it:'',nm:'교대 점검',qty:0,op:'반장'},
+   {ty:'op',s:330,e:660,wo:'WO-2605-120',it:'CONS-ASSY-1',nm:'콘솔 조립',qty:420,op:'한지원'},
+   {ty:'co',s:660,e:690,wo:'',it:'',nm:'치공구 교환',qty:0,op:'정비반'},
+   {ty:'op',s:690,e:960,wo:'WO-2605-135',it:'BMP-ASSY-1',nm:'범퍼 조립',qty:380,op:'오세훈'}]},
+ {id:'SAV-PNT-01',nm:'도장 1라인',blocks:[
+   {ty:'pd',s:0,e:60,wo:'',it:'',nm:'라인 예열',qty:0,op:'도장반'},
+   {ty:'op',s:60,e:420,wo:'WO-2605-104',it:'BUMPER-PNT',nm:'범퍼 도장',qty:280,op:'서민재'},
+   {ty:'pd',s:420,e:480,wo:'',it:'',nm:'부스 청소',qty:0,op:'도장반'},
+   {ty:'op',s:480,e:840,wo:'WO-2605-125',it:'GRILLE-PNT',nm:'그릴 도장',qty:320,op:'서민재'},
+   {ty:'co',s:840,e:870,wo:'',it:'',nm:'색상 교환',qty:0,op:'도장반'},
+   {ty:'idle',s:870,e:960,wo:'',it:'',nm:'유휴',qty:0,op:'-'}]}
+];
+var sel={li:-1,bi:-1};
+function visLines(){var f=document.getElementById('fLine').value;return LINES.map(function(L,i){return{L:L,i:i};}).filter(function(x){return !f||x.L.id===f;});}
+function overlap(a,b){return a.s<b.e&&b.s<a.e;}
+function lineConflicts(L){var c=0;for(var i=0;i<L.blocks.length;i++)for(var j=i+1;j<L.blocks.length;j++)if(overlap(L.blocks[i],L.blocks[j]))c++;return c;}
+function apply(){
+  var vis=visLines();
+  var op=0,pd=0,qty=0,utSum=0,conf=0;
+  vis.forEach(function(x){
+    var run=0;
+    x.L.blocks.forEach(function(b){
+      if(b.ty==='op'){op++;qty+=b.qty;run+=b.e-b.s;}
+      if(b.ty==='pd'||b.ty==='co')pd+=b.e-b.s;
+    });
+    utSum+=run/SPAN*100;
+    conf+=lineConflicts(x.L);
+  });
+  document.getElementById('kOp').textContent=op;
+  document.getElementById('kPd').textContent=pd;
+  document.getElementById('kQty').textContent=qty.toLocaleString();
+  var ut=vis.length?Math.round(utSum/vis.length):0;
+  var kut=document.getElementById('kUt');kut.textContent=ut+'%';kut.style.color=ut>=80?'#6366f1':'#dc2626';
+  var kc=document.getElementById('kConf');kc.textContent=conf;kc.style.color=conf?'#dc2626':'#10b981';
+  renderBoard();
+}
+function renderBoard(){
+  var vis=visLines();
+  /* axis */
+  var ax='<div class="g-axis"><div class="g-lbl" style="padding:5px 10px;font-size:9px;color:#656d76;font-weight:700;">라인 / 가동률</div><div class="g-ticks">';
+  for(var h=6;h<22;h++)ax+='<div class="g-tick">'+('0'+h).slice(-2)+':00</div>';
+  ax+='</div></div>';
+  var rows='';
+  vis.forEach(function(x){
+    var L=x.L,run=0;
+    L.blocks.forEach(function(b){if(b.ty==='op')run+=b.e-b.s;});
+    var ut=Math.round(run/SPAN*100);
+    var utc=ut>=80?'#10b981':(ut>=60?'#f59e0b':'#dc2626');
+    rows+='<div class="g-row"><div class="g-lbl"><div class="ln-id">'+L.id+'</div><div class="ln-nm">'+L.nm+'</div>'+
+      '<div class="ln-ut" style="color:'+utc+'">가동 '+ut+'%</div></div><div class="g-track">';
+    L.blocks.forEach(function(b,bi){
+      var conf=L.blocks.some(function(o,oi){return oi!==bi&&overlap(b,o);});
+      var left=b.s/SPAN*100,w=(b.e-b.s)/SPAN*100;
+      var lbl=b.ty==='op'?b.nm:(b.ty==='co'?'교환':b.ty==='pd'?b.nm:'유휴');
+      rows+='<div class="blk '+b.ty+(conf?' conf':'')+'" style="left:'+left+'%;width:'+w+'%;" '+
+        'onclick="blockClick('+x.i+','+bi+')" title="'+L.id+' · '+lbl+' '+hhmm(b.s)+'-'+hhmm(b.e)+'">'+
+        '<div class="bt">'+lbl+'</div><div class="bs">'+hhmm(b.s)+'–'+hhmm(b.e)+(b.qty?' · '+b.qty:'')+'</div></div>';
+    });
+    rows+='</div></div>';
+  });
+  /* NOW line — demo current 14:20 */
+  var nowMin=14*60+20-T0;
+  if(nowMin>=0&&nowMin<=SPAN){
+    var nleft=138, pct=nowMin/SPAN;
+    rows='<div style="position:relative;">'+rows+'</div>';
+  }
+  var g=document.getElementById('gantt');
+  g.innerHTML=ax+rows;
+  /* place NOW marker over tracks */
+  if(nowMin>=0&&nowMin<=SPAN){
+    var tracks=g.querySelectorAll('.g-track');
+    tracks.forEach(function(tr){
+      var n=document.createElement('div');n.className='now';
+      n.style.left=(nowMin/SPAN*100)+'%';tr.appendChild(n);
+    });
+  }
+}
+function blockClick(li,bi){
+  var L=LINES[li],b=L.blocks[bi];sel={li:li,bi:bi};
+  document.getElementById('dmTitle').textContent=L.id+' · '+TYPE[b.ty].ko;
+  var rows=[
+    ['라인',L.id+' '+L.nm],
+    ['구분','<span class="tag '+TYPE[b.ty].cls+'">'+TYPE[b.ty].ko+'</span>'],
+    ['시간',hhmm(b.s)+' ~ '+hhmm(b.e)+' ('+(b.e-b.s)+'분)'],
+    ['내용',b.nm]
+  ];
+  if(b.wo)rows.push(['작업지시',b.wo]);
+  if(b.it)rows.push(['품목',b.it]);
+  if(b.qty)rows.push(['계획 수량',b.qty.toLocaleString()+' EA']);
+  rows.push(['담당',b.op]);
+  var conf=L.blocks.some(function(o,oi){return oi!==bi&&overlap(b,o);});
+  if(conf)rows.push(['상태','<span style="color:#dc2626;font-weight:800;">⚠ 시간 충돌 발생</span>']);
+  document.getElementById('dmBody').innerHTML=rows.map(function(r){
+    return '<div class="drow"><span class="dk">'+r[0]+'</span><span class="dv">'+r[1]+'</span></div>';}).join('');
+  /* only PM/idle blocks deletable in demo */
+  document.getElementById('dmDel').style.display=(b.ty==='pd')?'inline-flex':'none';
+  openOv('ovDetail');
+}
+function delBlock(){
+  if(sel.li<0)return;
+  var L=LINES[sel.li];L.blocks.splice(sel.bi,1);
+  closeOv('ovDetail');apply();
+  toast('','블록 삭제','계획정비 블록을 스케줄에서 제거했습니다.');
+}
+function openPM(){document.getElementById('pmStart').value=14;document.getElementById('pmDur').value=60;openOv('ovPM');}
+function addPM(){
+  var lid=document.getElementById('pmLine').value;
+  var desc=document.getElementById('pmDesc').value;
+  var sh=parseInt(document.getElementById('pmStart').value,10);
+  var dur=parseInt(document.getElementById('pmDur').value,10);
+  if(isNaN(sh)||sh<6||sh>21){toast('err','입력 오류','시작 시각은 6~21시 범위여야 합니다.');return;}
+  if(isNaN(dur)||dur<15){toast('err','입력 오류','소요 시간은 15분 이상이어야 합니다.');return;}
+  var s=sh*60-T0, e=s+dur;
+  if(e>SPAN){toast('err','범위 초과','정비 종료가 22:00를 넘습니다. 시간을 줄여 주세요.');return;}
+  var L=LINES.filter(function(x){return x.id===lid;})[0];
+  var nb={ty:'pd',s:s,e:e,wo:'',it:'',nm:desc,qty:0,op:'정비반'};
+  var clash=L.blocks.some(function(b){return overlap(b,nb);});
+  L.blocks.push(nb);
+  L.blocks.sort(function(a,b){return a.s-b.s;});
+  closeOv('ovPM');apply();
+  if(clash)toast('warn','PM 추가 — 충돌','계획정비 블록을 추가했으나 기존 작업과 시간이 겹칩니다. 재조정이 필요합니다.');
+  else toast('','PM 추가 완료',lid+' '+hhmm(s)+'~'+hhmm(e)+' 「'+desc+'」 블록을 등록했습니다.');
+}
+function checkConflict(){
+  var vis=visLines(),tot=0,detail=[];
+  vis.forEach(function(x){var c=lineConflicts(x.L);if(c){tot+=c;detail.push(x.L.id+' '+c+'건');}});
+  if(tot)toast('warn','충돌 '+tot+'건 발견',detail.join(' · ')+' — 겹친 블록을 조정하세요.');
+  else toast('info','충돌 없음','검사 대상 라인의 스케줄에 시간 충돌이 없습니다. ✓');
+}
+function exportCsv(){
+  var vis=visLines();
+  var csv='Line,LineName,Type,Start,End,DurMin,WorkOrder,Item,ItemName,PlanQty,Owner\n';
+  vis.forEach(function(x){
+    x.L.blocks.forEach(function(b){
+      csv+=[x.L.id,x.L.nm,TYPE[b.ty].ko,hhmm(b.s),hhmm(b.e),b.e-b.s,b.wo||'-',b.it||'-',b.nm,b.qty,b.op].join(',')+'\n';
+    });
+  });
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='PP_LSB_Schedule_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  toast('','Export 완료','스케줄 블록을 CSV로 내보냈습니다.');
+}
+function resetAll(){
+  document.getElementById('fLine').value='';
+  document.getElementById('fDate').selectedIndex=0;
+  apply();toast('info','초기화','전체 라인 기준으로 스케줄 보드를 초기화했습니다.');
+}
+function openOv(id){document.getElementById(id).classList.add('on');}
+function closeOv(id){document.getElementById(id).classList.remove('on');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='warn'?'⚠ ':type==='info'?'ℹ ':'✅ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},4400);
+}
+apply();
+</script>
+</body>
+</html>
