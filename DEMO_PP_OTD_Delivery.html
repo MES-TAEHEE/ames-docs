@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PP-OTD On-Time Delivery KPI · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+.scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
+.sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
+.sh-tt{flex:1;}
+.sh-en{font-size:16px;font-weight:800;color:#fff;}
+.sh-ko{font-size:11px;color:rgba(255,255,255,.5);}
+.sh-tag{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+.sh-live{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.sh-live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.toolbar{background:#fff;border-bottom:1px solid var(--bd);padding:9px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
+.fld{display:flex;flex-direction:column;gap:2px;}
+.fld label{font-size:8px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;}
+select{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink);}
+.btn{padding:6px 13px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-p{background:var(--pp);color:#fff;}.btn-p:hover{background:var(--pp-dk);}
+.btn-s{background:#f6f8fa;color:var(--ink);border-color:var(--bd);}.btn-s:hover{background:#eef1f5;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+.body{flex:1;overflow-y:auto;padding:16px 24px 40px;}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:16px;}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:12px 14px;border-left:3px solid var(--c);}
+.kpi.lit{background:linear-gradient(160deg,#fff,var(--lt));}
+.kpi .kv{font-size:24px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;color:var(--c);}
+.kpi .kl{font-size:10px;color:var(--sub);margin-top:4px;}
+.kpi .kt{font-size:8px;color:#9ca3af;font-family:'JetBrains Mono',monospace;}
+.grid2{display:grid;grid-template-columns:1.55fr 1fr;gap:14px;margin-bottom:16px;}
+.card{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:14px 16px;}
+.card-t{font-size:12px;font-weight:800;color:var(--pp);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.chart{display:flex;align-items:flex-end;gap:5px;height:150px;border-bottom:2px solid var(--bd);padding:0 2px;position:relative;}
+.tgt-line{position:absolute;left:0;right:0;border-top:1px dashed #dc2626;}
+.tgt-lbl{position:absolute;right:0;font-size:8px;color:#dc2626;font-family:'JetBrains Mono',monospace;background:#fff;padding:0 3px;}
+.cbar{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;}
+.cbar .bar{width:100%;border-radius:3px 3px 0 0;transition:opacity .12s;position:relative;}
+.cbar:hover .bar{opacity:.78;}
+.cbar .bv{font-size:7px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--sub);}
+.cbar .bl{font-size:7px;color:var(--sub);}
+.chart-cap{text-align:center;font-size:9px;color:var(--sub);margin-top:8px;}
+.pareto-row{display:flex;align-items:center;gap:8px;padding:7px 0;cursor:pointer;border-bottom:1px dashed #eef1f5;}
+.pareto-row:hover{background:#f0fdf4;}
+.pareto-row.sel{background:#ecfdf5;}
+.pareto-row .pn{font-size:11px;flex-shrink:0;width:128px;}
+.pareto-row .ptrk{flex:1;height:14px;background:#eef1f5;border-radius:3px;overflow:hidden;}
+.pareto-row .ptrk i{display:block;height:100%;border-radius:3px;}
+.pareto-row .pc{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;width:64px;text-align:right;}
+.panel{background:#fff;border:1px solid var(--bd);border-radius:8px;overflow:hidden;}
+.panel-h{padding:9px 14px;background:#f0fdf4;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;font-size:11px;}
+.panel-h .clr{margin-left:auto;}
+table{width:100%;border-collapse:collapse;font-size:11.5px;}
+thead th{background:#f0f3f7;padding:9px 10px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--bd);white-space:nowrap;}
+thead th .k{font-weight:400;color:var(--sub);font-size:8px;display:block;}
+tbody td{padding:8px 10px;border-bottom:1px solid #eef1f5;vertical-align:middle;}
+tbody tr:hover td{background:#f0fdf4;}
+.mono{font-family:'JetBrains Mono',monospace;font-size:10px;}
+.it-nm{font-weight:700;}.it-ko{color:var(--sub);font-size:10px;}
+.dly{font-weight:800;font-family:'JetBrains Mono',monospace;color:#dc2626;}
+.cz{display:inline-block;font-size:9px;font-weight:700;padding:2px 8px;border-radius:9px;}
+.cz1{background:#fee2e2;color:#991b1b;}
+.cz2{background:#fef3c7;color:#92400e;}
+.cz3{background:#ede9fe;color:#5b21b6;}
+.cz4{background:#dbeafe;color:#1e40af;}
+.cz5{background:#f3f4f6;color:#4b5563;}
+.empty{padding:30px;text-align:center;color:#9ca3af;font-size:12px;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#fff;border-radius:8px;padding:11px 15px;box-shadow:0 8px 26px rgba(0,0,0,.22);border-left:4px solid var(--pp);font-size:12px;min-width:250px;max-width:380px;animation:ti .25s ease;}
+.toast.err{border-left-color:#dc2626;}.toast.warn{border-left-color:#f59e0b;}.toast.info{border-left-color:#2563eb;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:var(--sub);font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="scr-head">
+  <div class="sh-id">PP-OTD</div>
+  <div class="sh-tt"><div class="sh-en">On-Time Delivery KPI</div><div class="sh-ko">납기 준수율 — 거래선별 OTD · 추이 · 지연 원인 분석</div></div>
+  <span class="sh-tag">/pp/otd</span>
+  <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
+</div>
+<div class="toolbar">
+  <div class="fld"><label>거래선 Customer</label>
+    <select id="fCust" onchange="apply()"><option value="">전체 All</option><option>SAV</option><option>GEO</option></select></div>
+  <div class="fld"><label>기간 Period</label>
+    <select id="fPeriod" onchange="apply()"><option>최근 12개월</option><option>2025-Q3</option><option>2025-Q2</option><option>YTD 2025</option></select></div>
+  <div class="fld"><label>지연 원인 Cause</label>
+    <select id="fCause" onchange="render()"><option value="">전체 원인</option><option>자재 부족</option><option>설비 고장</option><option>품질 불합격</option><option>물류 지연</option><option>기타</option></select></div>
+  <button class="btn btn-p btn-sm" onclick="apply()">🔍 적용</button>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div style="margin-left:auto;">
+    <button class="btn btn-s" onclick="exportCsv()">📥 지연건 Export</button>
+  </div>
+</div>
+<div class="body">
+  <div class="kpis">
+    <div class="kpi lit" style="--c:#22c55e;--lt:#f0fdf4"><div class="kv" id="kSav">0%</div><div class="kl">SAV 납기준수율</div><div class="kt">target ≥ 98%</div></div>
+    <div class="kpi lit" style="--c:#f59e0b;--lt:#fffbeb"><div class="kv" id="kGeo">0%</div><div class="kl">GEO 납기준수율</div><div class="kt">target ≥ 96%</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">총 출하건 · Shipments</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kDly">0</div><div class="kl">지연건 · Delayed</div></div>
+    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kAvg">0d</div><div class="kl">평균 지연일 · Avg Delay</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-t">📈 <span id="trendTitle">12개월 OTD 추이</span></div>
+      <div class="chart" id="chart"></div>
+      <div class="chart-cap" id="chartCap">2024-09 ~ 2025-08 · 목표선 SAV 98% / GEO 96% · 막대 클릭 시 상세</div>
+    </div>
+    <div class="card">
+      <div class="card-t">📊 지연 원인 Pareto <span style="margin-left:auto;font-size:9px;color:#9ca3af;font-weight:400;">행 클릭 = 필터</span></div>
+      <div id="pareto"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-h"><span>🚚 지연 출하 상세 — <span id="dlySub" style="font-weight:800;color:#dc2626;">0건</span></span>
+      <button class="btn btn-s btn-sm clr" id="clrBtn" onclick="clearCause()" style="display:none;">✕ 원인 필터 해제</button></div>
+    <table>
+      <thead><tr>
+        <th>출하 번호<span class="k">Shipment</span></th>
+        <th>거래선<span class="k">Customer</span></th>
+        <th>품목<span class="k">Item</span></th>
+        <th>납기<span class="k">Due</span></th>
+        <th>실제 출하<span class="k">Actual</span></th>
+        <th style="text-align:center;">지연일<span class="k">Delay</span></th>
+        <th style="text-align:center;">지연 원인<span class="k">Root Cause</span></th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="emptyMsg" style="display:none;">해당 조건의 지연 출하건이 없습니다.</div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+/* 12 months: combined otd, sav, geo, shipments */
+var MONTHS=[
+  {lbl:'24-09',sav:99.0,geo:97.1,ship:68},{lbl:'24-10',sav:98.4,geo:96.5,ship:71},
+  {lbl:'24-11',sav:98.9,geo:97.4,ship:65},{lbl:'24-12',sav:98.1,geo:95.9,ship:74},
+  {lbl:'25-01',sav:99.2,geo:96.8,ship:66},{lbl:'25-02',sav:98.6,geo:96.2,ship:63},
+  {lbl:'25-03',sav:97.9,geo:95.4,ship:72},{lbl:'25-04',sav:98.8,geo:96.9,ship:70},
+  {lbl:'25-05',sav:99.1,geo:97.2,ship:75},{lbl:'25-06',sav:98.3,geo:95.8,ship:69},
+  {lbl:'25-07',sav:98.7,geo:96.4,ship:71},{lbl:'25-08',sav:98.2,geo:95.4,ship:73}
+];
+var CZ={'자재 부족':'cz1','설비 고장':'cz2','품질 불합격':'cz3','물류 지연':'cz4','기타':'cz5'};
+var DELAYED=[
+  {sh:'SH-2508-0142',cust:'GEO',code:'CONS-UP-001',name:'콘솔어퍼',due:'2025-08-05',act:'2025-08-09',days:4,cause:'자재 부족'},
+  {sh:'SH-2508-0150',cust:'SAV',code:'TRIM-LH-001',name:'도어트림 LH',due:'2025-08-07',act:'2025-08-09',days:2,cause:'자재 부족'},
+  {sh:'SH-2508-0163',cust:'GEO',code:'MOLDING-05',name:'사이드 몰딩 5',due:'2025-08-08',act:'2025-08-11',days:3,cause:'설비 고장'},
+  {sh:'SH-2508-0177',cust:'SAV',code:'GRILLE-02',name:'라디에이터 그릴',due:'2025-08-11',act:'2025-08-12',days:1,cause:'품질 불합격'},
+  {sh:'SH-2508-0188',cust:'GEO',code:'BUMPER-01',name:'프론트 범퍼',due:'2025-08-12',act:'2025-08-17',days:5,cause:'자재 부족'},
+  {sh:'SH-2508-0201',cust:'SAV',code:'TRIM-RH-001',name:'도어트림 RH',due:'2025-08-13',act:'2025-08-15',days:2,cause:'설비 고장'},
+  {sh:'SH-2508-0215',cust:'GEO',code:'CONS-UP-001',name:'콘솔어퍼',due:'2025-08-14',act:'2025-08-16',days:2,cause:'자재 부족'},
+  {sh:'SH-2508-0229',cust:'SAV',code:'MOLDING-05',name:'사이드 몰딩 5',due:'2025-08-18',act:'2025-08-19',days:1,cause:'품질 불합격'},
+  {sh:'SH-2508-0240',cust:'GEO',code:'GRILLE-02',name:'라디에이터 그릴',due:'2025-08-19',act:'2025-08-22',days:3,cause:'설비 고장'},
+  {sh:'SH-2508-0251',cust:'SAV',code:'BUMPER-01',name:'프론트 범퍼',due:'2025-08-20',act:'2025-08-22',days:2,cause:'자재 부족'},
+  {sh:'SH-2508-0263',cust:'GEO',code:'TRIM-LH-001',name:'도어트림 LH',due:'2025-08-21',act:'2025-08-24',days:3,cause:'물류 지연'},
+  {sh:'SH-2508-0274',cust:'SAV',code:'CONS-UP-001',name:'콘솔어퍼',due:'2025-08-22',act:'2025-08-23',days:1,cause:'품질 불합격'},
+  {sh:'SH-2508-0285',cust:'GEO',code:'MOLDING-05',name:'사이드 몰딩 5',due:'2025-08-25',act:'2025-08-28',days:3,cause:'자재 부족'},
+  {sh:'SH-2508-0296',cust:'SAV',code:'GRILLE-02',name:'라디에이터 그릴',due:'2025-08-26',act:'2025-08-28',days:2,cause:'설비 고장'},
+  {sh:'SH-2508-0308',cust:'SAV',code:'TRIM-RH-001',name:'도어트림 RH',due:'2025-08-27',act:'2025-08-29',days:2,cause:'자재 부족'},
+  {sh:'SH-2508-0319',cust:'GEO',code:'BUMPER-01',name:'프론트 범퍼',due:'2025-08-28',act:'2025-08-31',days:3,cause:'기타'}
+];
+var SHIPBASE={SAV:512,GEO:335};
+
+function curCust(){return document.getElementById('fCust').value;}
+function avg(arr){return arr.reduce(function(a,b){return a+b;},0)/arr.length;}
+function apply(){
+  var c=curCust();
+  /* KPI */
+  var sav=Math.round(avg(MONTHS.map(function(m){return m.sav;}))*10)/10;
+  var geo=Math.round(avg(MONTHS.map(function(m){return m.geo;}))*10)/10;
+  document.getElementById('kSav').textContent=sav+'%';
+  document.getElementById('kGeo').textContent=geo+'%';
+  document.getElementById('kSav').style.color=sav>=98?'#22c55e':'#dc2626';
+  document.getElementById('kGeo').style.color=geo>=96?'#22c55e':'#f59e0b';
+  var dl=DELAYED.filter(function(d){return !c||d.cust===c;});
+  var tot=c?SHIPBASE[c]:(SHIPBASE.SAV+SHIPBASE.GEO);
+  document.getElementById('kTot').textContent=tot.toLocaleString();
+  document.getElementById('kDly').textContent=dl.length;
+  document.getElementById('kAvg').textContent=(dl.length?(Math.round(avg(dl.map(function(d){return d.days;}))*10)/10):0)+'d';
+  document.getElementById('trendTitle').textContent='12개월 OTD 추이'+(c?' — '+c:' (SAV·GEO)');
+  renderChart();renderPareto();render();
+}
+function renderChart(){
+  var c=curCust(),h='';
+  /* target line: combined ~97 baseline */
+  var vals=MONTHS.map(function(m){return c==='SAV'?m.sav:(c==='GEO'?m.geo:(m.sav+m.geo)/2);});
+  var min=94,max=100;
+  MONTHS.forEach(function(m,i){
+    var v=Math.round(vals[i]*10)/10;
+    var hpct=(v-min)/(max-min)*100;
+    var tgt=c==='GEO'?96:98;
+    var col=v>=tgt?'linear-gradient(180deg,#22c55e,#15803d)':'linear-gradient(180deg,#f59e0b,#b45309)';
+    h+='<div class="cbar" onclick="barClick('+i+')" title="'+m.lbl+' · OTD '+v+'%">'+
+       '<div class="bv">'+v+'</div>'+
+       '<div class="bar" style="height:'+Math.max(hpct,4)+'%;background:'+col+';"></div>'+
+       '<div class="bl">'+m.lbl.slice(3)+'</div></div>';
+  });
+  document.getElementById('chart').innerHTML=h;
+}
+function barClick(i){
+  var m=MONTHS[i],c=curCust();
+  var v=c==='SAV'?m.sav:(c==='GEO'?m.geo:Math.round((m.sav+m.geo)/2*10)/10);
+  toast('info','20'+m.lbl+' OTD 상세','SAV '+m.sav+'% · GEO '+m.geo+'% · 출하 '+m.ship+'건. '+
+    (v>=97?'목표 달성 ✓':'목표 미달 — 지연 원인 검토 필요'));
+}
+function renderPareto(){
+  var c=curCust(),dl=DELAYED.filter(function(d){return !c||d.cust===c;});
+  var cnt={};Object.keys(CZ).forEach(function(k){cnt[k]=0;});
+  dl.forEach(function(d){cnt[d.cause]++;});
+  var arr=Object.keys(cnt).map(function(k){return{k:k,n:cnt[k]};}).sort(function(a,b){return b.n-a.n;});
+  var max=Math.max.apply(null,arr.map(function(x){return x.n;}))||1;
+  var tot=dl.length||1,sel=document.getElementById('fCause').value;
+  var colmap={'자재 부족':'#dc2626','설비 고장':'#f59e0b','품질 불합격':'#8b5cf6','물류 지연':'#2563eb','기타':'#9ca3af'};
+  var h='';
+  arr.forEach(function(x){
+    h+='<div class="pareto-row'+(sel===x.k?' sel':'')+'" onclick="pickCause(\''+x.k+'\')">'+
+       '<span class="pn">'+x.k+'</span>'+
+       '<span class="ptrk"><i style="width:'+(x.n/max*100)+'%;background:'+colmap[x.k]+';"></i></span>'+
+       '<span class="pc">'+x.n+'건 '+Math.round(x.n/tot*100)+'%</span></div>';
+  });
+  document.getElementById('pareto').innerHTML=h;
+}
+function pickCause(k){
+  var f=document.getElementById('fCause');
+  f.value=(f.value===k)?'':k;
+  render();renderPareto();
+}
+function clearCause(){document.getElementById('fCause').value='';render();renderPareto();}
+function render(){
+  var c=curCust(),cz=document.getElementById('fCause').value;
+  var rows=DELAYED.filter(function(d){return (!c||d.cust===c)&&(!cz||d.cause===cz);});
+  var h='';
+  rows.forEach(function(d){
+    h+='<tr><td class="mono" style="font-weight:700;">'+d.sh+'</td>'+
+      '<td>'+d.cust+'</td>'+
+      '<td><div class="it-nm">'+d.code+'</div><div class="it-ko">'+d.name+'</div></td>'+
+      '<td class="mono">'+d.due+'</td>'+
+      '<td class="mono">'+d.act+'</td>'+
+      '<td style="text-align:center;"><span class="dly">+'+d.days+'d</span></td>'+
+      '<td style="text-align:center;"><span class="cz '+CZ[d.cause]+'">'+d.cause+'</span></td></tr>';
+  });
+  document.getElementById('tbody').innerHTML=h;
+  document.getElementById('emptyMsg').style.display=rows.length?'none':'block';
+  document.getElementById('dlySub').textContent=rows.length+'건'+(cz?' · 원인: '+cz:'')+(c?' · '+c:'');
+  document.getElementById('clrBtn').style.display=cz?'inline-flex':'none';
+}
+function resetAll(){
+  document.getElementById('fCust').value='';document.getElementById('fPeriod').selectedIndex=0;
+  document.getElementById('fCause').value='';
+  apply();toast('info','초기화','전체 거래선·최근 12개월 기준으로 초기화했습니다.');
+}
+function exportCsv(){
+  var c=curCust(),cz=document.getElementById('fCause').value;
+  var rows=DELAYED.filter(function(d){return (!c||d.cust===c)&&(!cz||d.cause===cz);});
+  if(!rows.length){toast('err','내보낼 데이터 없음','조건에 맞는 지연건이 없습니다.');return;}
+  var csv='Shipment,Customer,Item,Name,Due,Actual,DelayDays,RootCause\n';
+  rows.forEach(function(d){csv+=[d.sh,d.cust,d.code,d.name,d.due,d.act,d.days,d.cause].join(',')+'\n';});
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='PP_OTD_Delayed_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  toast('','Export 완료','지연 출하 '+rows.length+'건을 CSV로 내보냈습니다.');
+}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='warn'?'⚠ ':type==='info'?'ℹ ':'✅ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},4400);
+}
+apply();
+</script>
+</body>
+</html>
