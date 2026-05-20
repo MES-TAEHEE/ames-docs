@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PP-06 Purchase Requisition · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+.scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
+.sh-id{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:2px;color:#34d399;line-height:.9;}
+.sh-tt{flex:1;}
+.sh-en{font-size:16px;font-weight:800;color:#fff;}
+.sh-ko{font-size:11px;color:rgba(255,255,255,.5);}
+.sh-tag{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+.sh-live{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.sh-live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.toolbar{background:#fff;border-bottom:1px solid var(--bd);padding:9px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
+.fld{display:flex;flex-direction:column;gap:2px;}
+.fld label{font-size:8px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;}
+select,input[type=text],input[type=date]{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink);}
+select:focus,input:focus{outline:2px solid rgba(5,150,105,.3);border-color:var(--pp);}
+.btn{padding:6px 13px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-p{background:var(--pp);color:#fff;}.btn-p:hover{background:var(--pp-dk);}
+.btn-s{background:#f6f8fa;color:var(--ink);border-color:var(--bd);}.btn-s:hover{background:#eef1f5;}
+.btn-go{background:#16a34a;color:#fff;}.btn-go:hover{background:#15803d;}
+.btn-d{background:#fff;color:#dc2626;border-color:#fca5a5;}.btn-d:hover{background:#fef2f2;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+.body{flex:1;overflow-y:auto;padding:16px 24px 40px;}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:13px 16px;border-left:3px solid var(--c);}
+.kpi .kv{font-size:26px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;color:var(--c);}
+.kpi .kl{font-size:10px;color:var(--sub);margin-top:4px;}
+.runbar{display:none;align-items:center;gap:12px;background:#0d2a20;color:#6ee7b7;border-radius:8px;padding:11px 16px;margin-bottom:14px;font-size:12px;}
+.runbar.show{display:flex;}
+.spin{width:16px;height:16px;border:2px solid rgba(110,231,183,.3);border-top-color:#6ee7b7;border-radius:50%;animation:sp .7s linear infinite;flex-shrink:0;}
+@keyframes sp{to{transform:rotate(360deg);}}
+.runbar .ep{font-family:'JetBrains Mono',monospace;color:#34d399;}
+.rprog{flex:1;height:6px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden;}
+.rprog i{display:block;height:100%;background:#34d399;width:0;transition:width .2s;}
+.panel{background:#fff;border:1px solid var(--bd);border-radius:8px;overflow:hidden;}
+.panel-h{padding:9px 14px;background:#f0fdf4;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;font-size:11px;}
+table{width:100%;border-collapse:collapse;font-size:11.5px;}
+thead th{background:#f0f3f7;padding:9px 10px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--bd);white-space:nowrap;}
+thead th .k{font-weight:400;color:var(--sub);font-size:8px;display:block;}
+tbody td{padding:8px 10px;border-bottom:1px solid #eef1f5;vertical-align:middle;}
+tbody tr:hover td{background:#f0fdf4;}
+tbody tr.failed td{background:#fef2f2;}
+tbody tr.failed:hover td{background:#fee2e2;}
+tbody tr.just td{animation:fl 1.8s ease;}
+@keyframes fl{0%,45%{background:#bbf7d0;}100%{background:transparent;}}
+.mono{font-family:'JetBrains Mono',monospace;font-size:10px;}
+.num{text-align:right;font-family:'JetBrains Mono',monospace;}
+.it-nm{font-weight:700;}.it-ko{color:var(--sub);font-size:10px;}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 8px;border-radius:9px;}
+.b-draft{background:#fef3c7;color:#92400e;}
+.b-sent{background:#dbeafe;color:#1e40af;}
+.b-appr{background:#dcfce7;color:#166534;}
+.b-fail{background:#fee2e2;color:#991b1b;}
+.empty{padding:40px;text-align:center;color:#9ca3af;font-size:12px;}
+.ov{position:fixed;inset:0;background:rgba(13,17,23,.6);display:none;align-items:center;justify-content:center;z-index:100;}
+.ov.show{display:flex;}
+.modal{background:#fff;border-radius:12px;width:480px;max-width:92vw;max-height:88vh;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.4);display:flex;flex-direction:column;}
+.modal-h{background:linear-gradient(135deg,#03251a,#052e1f);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:9px;}
+.modal-h .mt{font-size:14px;font-weight:800;flex:1;}
+.modal-h .mx{cursor:pointer;font-size:18px;color:rgba(255,255,255,.6);background:none;border:none;}
+.modal-b{padding:18px 20px;overflow-y:auto;}
+.modal-f{padding:12px 20px;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end;background:#fafbfc;}
+.cf-line{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--bd);font-size:12px;}
+.cf-line:last-child{border-bottom:none;}
+.cf-line .cl{color:var(--sub);}
+.cf-line .cv{font-weight:700;font-family:'JetBrains Mono',monospace;}
+.cf-list{background:#f6f8fa;border:1px solid var(--bd);border-radius:8px;padding:8px 12px;margin-top:10px;max-height:170px;overflow-y:auto;}
+.cf-item{font-size:11px;padding:3px 0;display:flex;justify-content:space-between;}
+.hint{font-size:10px;color:var(--sub);margin-top:9px;line-height:1.6;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#fff;border-radius:8px;padding:11px 15px;box-shadow:0 8px 26px rgba(0,0,0,.22);border-left:4px solid var(--pp);font-size:12px;min-width:260px;max-width:390px;animation:ti .25s ease;}
+.toast.err{border-left-color:#dc2626;}.toast.warn{border-left-color:#f59e0b;}.toast.info{border-left-color:#2563eb;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:var(--sub);font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+.detail-row td{background:#f0fdf4 !important;padding:0;}
+.detail-in{padding:13px 16px;}
+.dgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:8px;}
+.dt .dl{color:var(--sub);font-size:9px;text-transform:uppercase;letter-spacing:.5px;}
+.dt .dv{font-weight:700;font-size:12px;}
+.dsub{font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin:8px 0 5px;}
+.logline{font-size:10px;padding:3px 0;font-family:'JetBrains Mono',monospace;}
+.logline .lg-ok{color:#166534;}.logline .lg-er{color:#dc2626;}.logline .lg-w{color:#92400e;}
+.wochip{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;background:#eef1f5;color:#475569;border:1px solid #d0d7de;padding:2px 8px;border-radius:5px;margin:2px 4px 2px 0;}
+</style>
+</head>
+<body>
+<div class="scr-head">
+  <div class="sh-id">PP-06</div>
+  <div class="sh-tt"><div class="sh-en">Purchase Requisition → SAP B1</div><div class="sh-ko">자재발주 요청 — PR 생성 · SAP B1 Service Layer 전송 · PO 추적</div></div>
+  <span class="sh-tag">/pp/pr</span>
+  <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
+</div>
+<div class="toolbar">
+  <div class="fld"><label>상태 Status</label>
+    <select id="fStatus" onchange="render()"><option value="">전체 All</option><option>Draft</option><option>Sent</option><option>Approved</option><option>Failed</option></select></div>
+  <div class="fld"><label>필요일 From</label><input type="date" id="fDate" onchange="render()"></div>
+  <div class="fld"><label>검색 Search</label>
+    <input type="text" id="fSearch" placeholder="PR·DocNum·자재..." oninput="render()" style="width:170px;"></div>
+  <button class="btn btn-s btn-sm" onclick="resetFilters()">↺ 초기화</button>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
+    <button class="btn btn-go" id="btnBulk" onclick="bulkSend()">📤 SAP B1 일괄 전송</button>
+  </div>
+</div>
+<div class="body">
+  <div class="runbar" id="runbar"><div class="spin"></div><span id="runText">전송 중...</span><span class="ep" id="runEp">POST /PurchaseRequests</span><div class="rprog"><i id="rprog"></i></div></div>
+  <div class="kpis">
+    <div class="kpi" style="--c:#92400e"><div class="kv" id="kDraft">0</div><div class="kl">Draft · 작성중</div></div>
+    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kSent">0</div><div class="kl">Sent · 전송완료</div></div>
+    <div class="kpi" style="--c:#16a34a"><div class="kv" id="kAppr">0</div><div class="kl">Approved · PO 생성</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kFail">0</div><div class="kl">Failed · 전송 실패</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-h"><span>📤 자재발주 요청서 — Draft는 [전송], Failed는 [재시도] · 전송 후 SAP B1 PO 자동 생성</span></div>
+    <table>
+      <thead><tr>
+        <th>PR 번호<span class="k">PR No.</span></th>
+        <th>SAP DocNum</th>
+        <th>자재<span class="k">Item</span></th>
+        <th style="text-align:right;">수량<span class="k">Qty</span></th>
+        <th>필요일<span class="k">Required</span></th>
+        <th>연결 WO<span class="k">Linked WO</span></th>
+        <th style="text-align:center;">상태<span class="k">Status</span></th>
+        <th style="text-align:center;">작업<span class="k">Action</span></th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="emptyMsg" style="display:none;">조건에 맞는 PR이 없습니다.</div>
+  </div>
+</div>
+
+<!-- BULK SEND MODAL -->
+<div class="ov" id="ovBulk">
+  <div class="modal">
+    <div class="modal-h"><span>📤</span><span class="mt">SAP B1 일괄 전송 — 확인</span><button class="mx" onclick="closeModal('ovBulk')">✕</button></div>
+    <div class="modal-b">
+      <div class="cf-line"><span class="cl">전송 대상 (Draft PR)</span><span class="cv" id="bCnt">0 건</span></div>
+      <div class="cf-line"><span class="cl">전송 엔드포인트</span><span class="cv">POST /PurchaseRequests</span></div>
+      <div class="cf-line"><span class="cl">재시도 정책</span><span class="cv">3× exponential backoff</span></div>
+      <div class="cf-list" id="bList"></div>
+      <div class="hint">⚙ Draft 상태 PR을 SAP B1 Service Layer로 일괄 전송합니다. 전송 성공 시 SAP DocNum이 부여되고, SAP B1에서 PO가 생성되면 WH-01 입고예정으로 반영됩니다. 전송 실패 건은 3회 자동 재시도 후 PLAN 관리자에게 에스컬레이션됩니다.</div>
+    </div>
+    <div class="modal-f">
+      <button class="btn btn-s" onclick="closeModal('ovBulk')">취소</button>
+      <button class="btn btn-go" onclick="doBulkSend()">📤 일괄 전송 실행</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+var DOCSEQ=5543;
+var DATA=[
+  {pr:'PR-20250729-002',doc:'PR-B1-5530',code:'ADH-001',nm:'접착제 표준',qty:200,unit:'kg',req:'2025-08-20',wos:['WO-20250730-009'],status:'Approved',po:'PO-B1-8821',retries:0},
+  {pr:'PR-20250801-001',doc:'PR-B1-5542',code:'RM-PP-NAT-20',nm:'PP 펠렛 나튜럴',qty:1000,unit:'kg',req:'2025-09-08',wos:['WO-20250801-001','WO-20250802-006'],status:'Approved',po:'PO-B1-8830',retries:0},
+  {pr:'PR-20250801-002',doc:'PR-B1-5543',code:'FAB-BK-001',nm:'원단 (흑색)',qty:400,unit:'roll',req:'2025-09-01',wos:['WO-20250801-002'],status:'Sent',po:null,retries:0},
+  {pr:'PR-20250802-003',doc:null,code:'PWD-RAL9005',nm:'분체도료 RAL9005',qty:280,unit:'kg',req:'2025-09-05',wos:['WO-20250801-005'],status:'Draft',po:null,retries:0},
+  {pr:'PR-20250802-004',doc:null,code:'RM-PP-BLK-21',nm:'PP 펠렛 흑색',qty:300,unit:'kg',req:'2025-09-10',wos:['WO-20250801-005','WO-20250803-002'],status:'Draft',po:null,retries:0},
+  {pr:'PR-20250730-009',doc:null,code:'PNT-BK-NH578',nm:'블랙 도료 NH578',qty:100,unit:'L',req:'2025-08-25',wos:['WO-20250730-007'],status:'Failed',po:null,retries:3}
+];
+var busy=false;
+function statusBadge(r){
+  if(r.status==='Draft') return '<span class="b b-draft">Draft</span>';
+  if(r.status==='Sent') return '<span class="b b-sent">Sent ⏳</span>';
+  if(r.status==='Approved') return '<span class="b b-appr">Approved · PO</span>';
+  return '<span class="b b-fail">⚠ Failed '+r.retries+'/3</span>';
+}
+function filtered(){
+  var s=document.getElementById('fStatus').value,dt=document.getElementById('fDate').value,
+      q=document.getElementById('fSearch').value.trim().toLowerCase();
+  return DATA.filter(function(r){
+    if(s&&r.status!==s) return false;
+    if(dt&&r.req<dt) return false;
+    if(q&&((r.pr+' '+(r.doc||'')+' '+r.code+' '+r.nm).toLowerCase().indexOf(q)<0)) return false;
+    return true;
+  });
+}
+function render(){
+  var rows=filtered(),h='';
+  rows.forEach(function(r){
+    var idx=DATA.indexOf(r);
+    var act='<button class="btn btn-s btn-sm" onclick="toggleDetail('+idx+',this)">상세</button>';
+    if(r.status==='Draft') act='<button class="btn btn-p btn-sm" onclick="sendOne('+idx+')">📤 전송</button> '+act;
+    else if(r.status==='Failed') act='<button class="btn btn-d btn-sm" onclick="retryOne('+idx+')">🔁 재시도</button> '+act;
+    else if(r.status==='Approved') act='<button class="btn btn-s btn-sm" onclick="viewPo('+idx+')">PO 보기</button> '+act;
+    h+='<tr class="'+(r.status==='Failed'?'failed':'')+(r._just?' just':'')+'">'+
+      '<td class="mono" style="font-weight:700;'+(r.status==='Failed'?'color:#dc2626;':'')+'">'+r.pr+'</td>'+
+      '<td class="mono" style="color:'+(r.doc?'#059669':'#9ca3af')+';">'+(r.doc||'—')+'</td>'+
+      '<td><div class="it-nm">'+r.code+'</div><div class="it-ko">'+r.nm+'</div></td>'+
+      '<td class="num" style="font-weight:700;">'+r.qty.toLocaleString()+' '+r.unit+'</td>'+
+      '<td class="mono">'+r.req+'</td>'+
+      '<td class="mono" style="font-size:9px;">'+r.wos.join('<br>')+'</td>'+
+      '<td style="text-align:center;">'+statusBadge(r)+'</td>'+
+      '<td style="text-align:center;white-space:nowrap;">'+act+'</td>'+
+      '</tr>';
+    r._just=false;
+  });
+  document.getElementById('tbody').innerHTML=h;
+  document.getElementById('emptyMsg').style.display=rows.length?'none':'block';
+  document.getElementById('kDraft').textContent=DATA.filter(function(r){return r.status==='Draft';}).length;
+  document.getElementById('kSent').textContent=DATA.filter(function(r){return r.status==='Sent';}).length;
+  document.getElementById('kAppr').textContent=DATA.filter(function(r){return r.status==='Approved';}).length;
+  document.getElementById('kFail').textContent=DATA.filter(function(r){return r.status==='Failed';}).length;
+  document.getElementById('btnBulk').disabled=DATA.filter(function(r){return r.status==='Draft';}).length===0;
+}
+function toggleDetail(idx,btn){
+  var tr=btn.closest('tr'),nx=tr.nextElementSibling;
+  if(nx&&nx.classList.contains('detail-row')){nx.remove();btn.textContent='상세';return;}
+  btn.textContent='닫기';
+  var r=DATA[idx];
+  var log=[{t:r.pr.slice(3,11),m:'PR 생성 (PP-05 MRP 부족 결과)',c:''}];
+  if(r.status==='Sent'||r.status==='Approved') log.push({t:'',m:'SAP B1 전송 성공 — DocNum '+r.doc,c:'lg-ok'});
+  if(r.status==='Approved') log.push({t:'',m:'SAP B1 PO 생성 '+r.po+' — WH-01 입고예정 반영',c:'lg-ok'});
+  if(r.status==='Failed'){for(var i=1;i<=r.retries;i++) log.push({t:'',m:'전송 재시도 '+i+'/3 — 실패 (SAP B1 응답 없음)',c:'lg-er'});
+    log.push({t:'',m:'PLAN 관리자 에스컬레이션 (BR-PP-006)',c:'lg-w'});}
+  var lh='';log.forEach(function(x){lh+='<div class="logline '+x.c+'">'+(x.t?'<span style="color:#059669;">'+x.t+'</span> · ':'▸ ')+x.m+'</div>';});
+  var d=document.createElement('tr');d.className='detail-row';
+  d.innerHTML='<td colspan="8"><div class="detail-in">'+
+    '<div class="dgrid">'+
+      '<div class="dt"><div class="dl">발주 자재 / 수량</div><div class="dv">'+r.code+' · '+r.qty.toLocaleString()+r.unit+'</div></div>'+
+      '<div class="dt"><div class="dl">필요일</div><div class="dv">'+r.req+'</div></div>'+
+      '<div class="dt"><div class="dl">SAP DocNum / PO</div><div class="dv">'+(r.doc||'—')+(r.po?' / '+r.po:'')+'</div></div>'+
+      '<div class="dt"><div class="dl">전송 상태</div><div class="dv">'+r.status+'</div></div>'+
+    '</div>'+
+    '<div class="dsub">연결 작업지시 (WO)</div>'+r.wos.map(function(w){return '<span class="wochip">'+w+'</span>';}).join('')+
+    '<div class="dsub" style="margin-top:9px;">PR 전송 로그 (PP_PRSendLog)</div>'+lh+
+    '</div></td>';
+  tr.after(d);
+}
+function transmit(text,cb){
+  if(busy) return;
+  busy=true;
+  var rb=document.getElementById('runbar'),pr=document.getElementById('rprog');
+  document.getElementById('runText').textContent=text;
+  rb.classList.add('show');var p=0;
+  var iv=setInterval(function(){
+    p+=12;pr.style.width=Math.min(p,100)+'%';
+    if(p>=100){clearInterval(iv);setTimeout(function(){rb.classList.remove('show');pr.style.width='0';busy=false;cb();},220);}
+  },85);
+}
+function sendOne(idx){
+  transmit('SAP B1 전송 중 — '+DATA[idx].pr,function(){
+    var r=DATA[idx];DOCSEQ++;
+    r.doc='PR-B1-'+DOCSEQ;r.status='Sent';r._just=true;
+    render();
+    toast('','전송 완료 — '+r.pr,'SAP B1 수신 성공. DocNum '+r.doc+' 부여 — PO 생성 대기 중.');
+    autoApprove(idx);
+  });
+}
+function retryOne(idx){
+  var r=DATA[idx];
+  transmit('재전송 시도 — '+r.pr+' (backoff)',function(){
+    DOCSEQ++;r.doc='PR-B1-'+DOCSEQ;r.status='Sent';r.retries=0;r._just=true;
+    render();
+    toast('','재전송 성공 — '+r.pr,'SAP B1 연결 복구. DocNum '+r.doc+' 부여 — 전송 완료.');
+    autoApprove(idx);
+  });
+}
+function autoApprove(idx){
+  setTimeout(function(){
+    var r=DATA[idx];
+    if(r.status!=='Sent') return;
+    r.status='Approved';r.po='PO-B1-'+(8830+idx+1);r._just=true;
+    render();
+    toast('info','SAP B1 PO 생성 — '+r.pr,r.po+' 생성 완료. WH-01 입고예정에 반영되었습니다.');
+  },2600);
+}
+function viewPo(idx){
+  var r=DATA[idx];
+  toast('info','구매오더 '+r.po,r.code+' '+r.qty.toLocaleString()+r.unit+' · 필요일 '+r.req+'. SAP B1에서 PO 발행 완료 — WH-01 입고예정으로 추적됩니다.');
+}
+function bulkSend(){
+  var dr=DATA.filter(function(r){return r.status==='Draft';});
+  if(!dr.length){toast('info','전송 대상 없음','Draft 상태 PR이 없습니다.');return;}
+  document.getElementById('bCnt').textContent=dr.length+' 건';
+  var h='';dr.forEach(function(r){h+='<div class="cf-item"><span><span class="mono">'+r.pr+'</span> · '+r.code+'</span><span class="mono">'+r.qty.toLocaleString()+' '+r.unit+'</span></div>';});
+  document.getElementById('bList').innerHTML=h;
+  document.getElementById('ovBulk').classList.add('show');
+}
+function doBulkSend(){
+  closeModal('ovBulk');
+  var dr=[];DATA.forEach(function(r,i){if(r.status==='Draft')dr.push(i);});
+  transmit('SAP B1 일괄 전송 중 — '+dr.length+'건',function(){
+    dr.forEach(function(i){var r=DATA[i];DOCSEQ++;r.doc='PR-B1-'+DOCSEQ;r.status='Sent';r._just=true;});
+    render();
+    toast('','일괄 전송 완료',dr.length+'개 PR을 SAP B1로 전송했습니다. DocNum 부여 — PO 생성 대기.');
+    dr.forEach(function(i){autoApprove(i);});
+  });
+}
+function resetFilters(){
+  document.getElementById('fStatus').value='';document.getElementById('fDate').value='';document.getElementById('fSearch').value='';
+  render();toast('info','필터 초기화','검색 조건을 초기화했습니다.');
+}
+function exportCsv(){
+  var rows=filtered();
+  if(!rows.length){toast('err','내보낼 데이터 없음','조건에 맞는 PR이 없습니다.');return;}
+  var csv='PR_No,SAP_DocNum,Item,Name,Qty,Unit,Required,Status,PO\n';
+  rows.forEach(function(r){csv+=[r.pr,r.doc||'',r.code,r.nm,r.qty,r.unit,r.req,r.status,r.po||''].join(',')+'\n';});
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='PP06_PurchaseReq_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  toast('','Export 완료','PR 목록 '+rows.length+'행을 CSV로 내보냈습니다.');
+}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='warn'?'⚠ ':type==='info'?'ℹ ':'✅ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},4600);
+}
+document.querySelectorAll('.ov').forEach(function(o){o.addEventListener('click',function(e){if(e.target===o)o.classList.remove('show');});});
+render();
+</script>
+</body>
+</html>
