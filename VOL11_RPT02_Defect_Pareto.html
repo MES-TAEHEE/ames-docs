@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.11 · RPT-02 · Defect Pareto Report · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--rpt:#6366f1;--mod:#6366f1;--mod-lt:#e0e7ff;--mod-dk:#4338ca;--mod-tint:#a5b4fc;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(165,180,252,.7);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#1e1b4b 0%,#181442 50%,#1e1b4b 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(99,102,241,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(99,102,241,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(99,102,241,.05) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(99,102,241,.16),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(99,102,241,.35);color:var(--mod-tint);background:rgba(99,102,241,.1);}
+.meta-chip.core{border-color:rgba(212,160,23,.45);color:#fbbf24;background:rgba(212,160,23,.15);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod-dk);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#eff6ff;border-color:#3b82f6;}
+.lnk-node.cur{background:linear-gradient(135deg,#1e1b4b,#181442);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(99,102,241,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#1d4ed8;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);}
+.dm-pk{color:#f59e0b;font-size:8px;font-weight:700;}.dm-fk{color:#8b5cf6;font-size:8px;font-weight:700;}
+.web-mock{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.web-tbar{background:#f0f3f7;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);font-size:11px;}
+.web-tbar-l{font-weight:700;color:var(--text);}
+.web-tbar .bc{color:var(--sub);font-size:10px;margin-left:8px;}
+.web-tbar-r{font-size:10px;color:var(--sub);}
+.web-bd{padding:18px;background:#fbfcfd;}
+.web-card{background:#fff;border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:12px;}
+.web-card-h{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px;display:flex;justify-content:space-between;}
+.flt-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid var(--border);border-radius:6px;padding:9px 12px;margin-bottom:12px;}
+.flt{font-size:10px;border:1px solid var(--border);border-radius:4px;padding:4px 9px;background:#f6f8fa;color:var(--text);}
+.flt b{color:var(--mod-dk);}
+.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:12px;background:#fff;}
+.kc{flex:1;padding:10px 12px;border-right:1px solid var(--border);}
+.kc:last-child{border-right:none;}
+.kv{font-size:21px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
+.kl-en{font-size:9px;color:var(--sub);margin-top:3px;}.kl-ko{font-size:8px;color:rgba(101,109,118,.7);}
+.tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;}
+.tbl th{background:#f0f3f7;padding:7px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.tbl td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:top;}
+.tbl tr:last-child td{border-bottom:none;}.tbl tfoot td{background:#f0f3f7;font-weight:800;}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.b-ok{background:#dcfce7;color:#166534;}.b-w{background:#fef9c3;color:#92400e;}.b-e{background:#fee2e2;color:#991b1b;}.b-i{background:#e0e7ff;color:#3730a3;}
+.btn{padding:7px 14px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;}
+.btn-primary{background:var(--mod);border-color:var(--mod-dk);color:#fff;}
+.legend{display:flex;gap:14px;font-size:9px;color:var(--sub);margin-top:6px;}
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol active"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL11_RPT_Reports.html">VOL.11 · RPT</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">RPT-02 · Defect Pareto Report</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.11 · RPT · L3</div><div class="sb-mod-en">REPORTS</div><div class="sb-mod-ko">분석 리포트</div></div>
+  <div class="sb-section">Production · 생산</div>
+  <a class="sb-link" href="VOL11_RPT01_Daily_Production.html"><span class="sl-id">RPT-01</span><div><div class="sl-en">Daily Production</div><div class="sl-ko">일별 생산 실적</div></div></a>
+  <a class="sb-link on" href="VOL11_RPT02_Defect_Pareto.html"><span class="sl-id">RPT-02</span><div><div class="sl-en">Defect Pareto</div><div class="sl-ko">불량 파레토</div></div></a>
+  <a class="sb-link" href="VOL11_RPT06_Equipment_OEE.html"><span class="sl-id">RPT-06</span><div><div class="sl-en">Equipment OEE</div><div class="sl-ko">설비 OEE</div></div></a>
+  <a class="sb-link" href="VOL11_RPT08_Schedule_Adherence.html"><span class="sl-id">RPT-08</span><div><div class="sl-en">Schedule Adherence</div><div class="sl-ko">일정 준수율</div></div></a>
+  <div class="sb-section">Delivery & Inventory · 출하·재고</div>
+  <a class="sb-link" href="VOL11_RPT03_Daily_Shipment.html"><span class="sl-id">RPT-03</span><div><div class="sl-en">Daily Shipment</div><div class="sl-ko">일별 출하</div></div></a>
+  <a class="sb-link" href="VOL11_RPT04_OnTime_Delivery.html"><span class="sl-id">RPT-04</span><div><div class="sl-en">On-Time Delivery</div><div class="sl-ko">납기 이행율</div></div></a>
+  <a class="sb-link" href="VOL11_RPT05_Inventory_Status.html"><span class="sl-id">RPT-05</span><div><div class="sl-en">Inventory Status</div><div class="sl-ko">재고 현황</div></div></a>
+  <div class="sb-section">Management & Tools · 경영·도구</div>
+  <a class="sb-link" href="VOL11_RPT07_Monthly_KPI.html"><span class="sl-id">RPT-07</span><div><div class="sl-en">Monthly KPI ⚙</div><div class="sl-ko">월간 KPI 대시보드</div></div></a>
+  <a class="sb-link" href="VOL11_RPT09_Report_Center.html"><span class="sl-id">RPT-09</span><div><div class="sl-en">Report Center</div><div class="sl-ko">리포트 센터</div></div></a>
+  <a class="sb-link" href="VOL11_RPT10_Report_Builder.html"><span class="sl-id">RPT-10</span><div><div class="sl-en">Report Builder</div><div class="sl-ko">리포트 빌더</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
+    <a href="#sec-2"><span class="num">02</span>Field Spec</a>
+    <a href="#sec-3"><span class="num">03</span>Pareto Logic</a>
+    <a href="#sec-4"><span class="num">04</span>Workflow</a>
+    <a href="#sec-5"><span class="num">05</span>Business Rules</a>
+    <a href="#sec-6"><span class="num">06</span>Data Model</a>
+    <a href="#sec-7"><span class="num">07</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.11 · RPT · L3 · Defect Pareto Report</div>
+      <div class="scr-id-block"><div class="scr-id">RPT-02</div><div class="scr-title-en">Defect Pareto Report</div></div>
+      <div class="scr-title-ko">불량 파레토 보고서 — 유형·공정·라인별 집중 분석</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">UI</span><span class="mc-val">🖥 Web PC</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Class</span><span class="mc-val">Analysis Report</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">2nd Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">QC Mgr · Production Mgr</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Source</span><span class="mc-val">QC-02 Inspection · On-demand</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          The Defect Pareto Report ranks defects by frequency for a selected period so improvement effort targets the "vital few" causes. It draws a <strong>Pareto chart</strong> — descending bars of defect count with an overlaid <strong>cumulative percentage line</strong> — plus a backing table. Defects can be grouped by <strong>defect type, process, line, or item</strong>. The top contributor (and the set reaching 80% cumulative) is highlighted. Each defect type links to <strong>QC-05 CAPA</strong> so a corrective action can be initiated directly. The report is run on-demand for any date range.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          불량 파레토 보고서는 선택 기간의 불량을 빈도순으로 정렬해 개선 노력이 '핵심 소수' 원인에 집중되도록 한다. <strong>파레토 차트</strong>(불량 건수 내림차순 막대 + <strong>누적 비율 선</strong> 오버레이)와 백업 테이블을 함께 표시한다. 불량은 <strong>불량 유형·공정·라인·품목</strong> 기준으로 그룹화할 수 있다. 최다 기여 항목(및 누적 80% 도달 집합)이 강조 표시된다. 각 불량 유형은 <strong>QC-05 CAPA</strong>로 연결되어 시정조치를 즉시 개시할 수 있다. 임의 기간에 대해 온디맨드로 실행한다.
+        </div>
+      </div>
+      <div class="alert alert-i"><div><span class="alert-title">📌 80/20 Principle · 파레토 원칙</span>대개 불량 건수의 80%는 불량 유형의 20%에서 발생한다. RPT-02는 그 20%(vital few)를 시각적으로 분리해 CAPA 우선순위를 정한다. · Typically 80% of defects come from 20% of types — RPT-02 isolates that vital few to prioritize CAPA.</div></div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — Web 파레토 분석</span></div>
+      <div class="web-mock">
+        <div class="web-tbar">
+          <div class="web-tbar-l">📊 A-MES · Reports · Defect Pareto<span class="bc">RPT › Defect Pareto › 2026-05</span></div>
+          <div class="web-tbar-r">QC.Mgr · 14:20</div>
+        </div>
+        <div class="web-bd">
+          <div class="flt-bar">
+            <span class="flt">📅 Period <b>2026-05-01 ~ 05-19</b></span>
+            <span class="flt">📐 Group By <b>Defect Type</b></span>
+            <span class="flt">🏭 Process <b>All</b></span>
+            <span class="flt">📦 Item <b>All</b></span>
+            <span style="margin-left:auto;display:flex;gap:6px;">
+              <button class="btn">🔄 Run</button>
+              <button class="btn">📊 Excel</button>
+              <button class="btn btn-primary">📄 PDF</button>
+            </span>
+          </div>
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ PARETO CHART · 불량 파레토 (유형별 건수 + 누적 %)</span><span style="color:var(--sub);">총 1,142건</span></div>
+            <svg width="100%" height="170" viewBox="0 0 480 170">
+              <line x1="44" y1="135" x2="470" y2="135" stroke="#cbd5e1"/>
+              <line x1="44" y1="20" x2="470" y2="20" stroke="#e2e8f0" stroke-dasharray="3,3"/>
+              <text x="40" y="138" text-anchor="end" font-size="8" fill="#64748b">0</text>
+              <text x="40" y="24" text-anchor="end" font-size="8" fill="#64748b">100%</text>
+              <!-- bars -->
+              <rect x="60" y="40" width="40" height="95" fill="#6366f1" rx="2"/>
+              <rect x="118" y="68" width="40" height="67" fill="#818cf8" rx="2"/>
+              <rect x="176" y="92" width="40" height="43" fill="#a5b4fc" rx="2"/>
+              <rect x="234" y="106" width="40" height="29" fill="#c7d2fe" rx="2"/>
+              <rect x="292" y="116" width="40" height="19" fill="#c7d2fe" rx="2"/>
+              <rect x="350" y="122" width="40" height="13" fill="#e0e7ff" rx="2"/>
+              <rect x="408" y="127" width="40" height="8" fill="#e0e7ff" rx="2"/>
+              <!-- cumulative line -->
+              <polyline points="80,92 138,75 196,58 254,46 312,38 370,30 428,22" fill="none" stroke="#f59e0b" stroke-width="2"/>
+              <g fill="#f59e0b"><circle cx="80" cy="92" r="3.5"/><circle cx="138" cy="75" r="3.5"/><circle cx="196" cy="58" r="3.5"/><circle cx="254" cy="46" r="3.5"/><circle cx="312" cy="38" r="3.5"/><circle cx="370" cy="30" r="3.5"/><circle cx="428" cy="22" r="3.5"/></g>
+              <g font-size="8" fill="#92400e" text-anchor="middle"><text x="80" y="86">37%</text><text x="196" y="52">68%</text><text x="312" y="32">92%</text></g>
+              <g font-size="7" fill="#475569" text-anchor="middle"><text x="80" y="148">Scratch</text><text x="138" y="148">Short-shot</text><text x="196" y="148">Color NG</text><text x="254" y="148">Burr</text><text x="312" y="148">Sink</text><text x="370" y="148">Warp</text><text x="428" y="148">Etc</text></g>
+            </svg>
+            <div class="legend"><span style="color:#6366f1;">■ Defect Count · 불량 건수</span><span style="color:#f59e0b;">— Cumulative % · 누적 비율</span></div>
+          </div>
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ DETAIL TABLE · 상세 (행 클릭 → QC-05 CAPA)</span></div>
+            <table class="tbl">
+              <thead><tr><th>Rank</th><th>Defect Type</th><th>Process</th><th style="text-align:right;">Count</th><th style="text-align:right;">Share</th><th style="text-align:right;">Cumulative</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr style="background:#fef9c3;"><td>1</td><td><strong>Scratch · 스크래치</strong></td><td>PNT</td><td style="text-align:right;">423</td><td style="text-align:right;">37.0%</td><td style="text-align:right;">37.0%</td><td><button class="btn" style="padding:3px 8px;font-size:9px;">→ CAPA</button></td></tr>
+                <tr style="background:#fef9c3;"><td>2</td><td><strong>Short-shot · 미성형</strong></td><td>INJ</td><td style="text-align:right;">261</td><td style="text-align:right;">22.9%</td><td style="text-align:right;">59.9%</td><td><button class="btn" style="padding:3px 8px;font-size:9px;">→ CAPA</button></td></tr>
+                <tr style="background:#fef9c3;"><td>3</td><td><strong>Color NG · 색상 불량</strong></td><td>PNT</td><td style="text-align:right;">189</td><td style="text-align:right;">16.5%</td><td style="text-align:right;">76.4%</td><td><button class="btn" style="padding:3px 8px;font-size:9px;">→ CAPA</button></td></tr>
+                <tr><td>4</td><td>Burr · 버</td><td>INJ</td><td style="text-align:right;">112</td><td style="text-align:right;">9.8%</td><td style="text-align:right;">86.2%</td><td><span class="b b-n" style="background:#f3f4f6;color:#4b5563;">vital few 외</span></td></tr>
+                <tr><td>5</td><td>Sink mark · 수축</td><td>INJ</td><td style="text-align:right;">82</td><td style="text-align:right;">7.2%</td><td style="text-align:right;">93.4%</td><td>—</td></tr>
+              </tbody>
+              <tfoot><tr><td colspan="3">TOTAL · 합계</td><td style="text-align:right;">1,142</td><td style="text-align:right;">100%</td><td colspan="2"></td></tr></tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 UI Highlights · 화면 주요 포인트</span>
+        ① 막대(건수 내림차순) + 누적 % 선의 콤보 차트 ② 누적 80% 도달까지의 vital few 행 황색 강조 ③ 그룹화 축 전환: 불량유형/공정/라인/품목 ④ 행 클릭 → QC-05 CAPA 개시 (불량유형·기간 자동 전달) ⑤ 온디맨드 실행 — 임의 기간 선택 ⑥ Excel/PDF 출력</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Field Specification</span><span class="sec-ko">필드 사양</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:22%;">Field</th><th style="width:14%;">Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">ParetoRunID</td><td class="fld-type">VARCHAR(24)</td><td>RPT02-실행 단위 ID.</td></tr>
+          <tr><td class="fld-name">PeriodFrom · PeriodTo</td><td class="fld-type">DATE</td><td>분석 기간 (사용자 선택).</td></tr>
+          <tr><td class="fld-name">GroupByAxis</td><td class="fld-type">ENUM</td><td>DEFECT_TYPE / PROCESS / LINE / ITEM.</td></tr>
+          <tr><td class="fld-name">DefectTypeCode</td><td class="fld-type">VARCHAR(20)</td><td>불량 유형 코드 (MD 불량코드).</td></tr>
+          <tr><td class="fld-name">DefectCount</td><td class="fld-type">INT</td><td>해당 그룹 불량 건수.</td></tr>
+          <tr><td class="fld-name">SharePct</td><td class="fld-type">DECIMAL(5,2)</td><td>점유율 = Count / Total × 100.</td></tr>
+          <tr><td class="fld-name">CumulativePct</td><td class="fld-type">DECIMAL(5,2)</td><td>누적 비율 (내림차순 누계).</td></tr>
+          <tr><td class="fld-name">RankNo</td><td class="fld-type">INT</td><td>건수 내림차순 순위.</td></tr>
+          <tr><td class="fld-name">VitalFewFlag</td><td class="fld-type">BOOLEAN</td><td>누적 80% 이내 → TRUE (강조 대상).</td></tr>
+          <tr><td class="fld-name">CapaRefID</td><td class="fld-type">VARCHAR(24)</td><td>연계 CAPA (QC-05) — 개시 시 기록.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Pareto Logic</span><span class="sec-ko">파레토 산출 로직</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:22%;">Step</th><th>Logic · 산출 로직</th></tr></thead>
+        <tbody>
+          <tr><td><strong>1. Collect</strong></td><td>기간 내 QC-02 검사 판정 NG + 공정 불량 기록을 GroupByAxis 기준으로 수집.</td></tr>
+          <tr><td><strong>2. Aggregate</strong></td><td>그룹별 DefectCount 집계, 전체 합계(Total) 산출.</td></tr>
+          <tr><td><strong>3. Sort</strong></td><td>DefectCount 내림차순 정렬 → RankNo 부여.</td></tr>
+          <tr><td><strong>4. Share</strong></td><td>SharePct = DefectCount / Total × 100.</td></tr>
+          <tr><td><strong>5. Cumulative</strong></td><td>CumulativePct = 순위까지 SharePct 누계.</td></tr>
+          <tr><td><strong>6. Vital Few</strong></td><td>CumulativePct ≤ 80% 도달 행까지 VitalFewFlag=TRUE → 황색 강조.</td></tr>
+          <tr><td><strong>7. Render</strong></td><td>막대(좌축 건수) + 누적선(우축 %) 콤보 차트 + 테이블 동시 렌더.</td></tr>
+        </tbody>
+      </table>
+      <div class="alert alert-i"><div><span class="alert-title">⚙ Long-tail 처리</span>순위 하위 그룹 중 SharePct &lt; 1% 항목들은 "Etc · 기타"로 묶어 차트 가독성을 유지한다. 테이블에서는 펼침으로 개별 확인 가능. · Sub-1% groups are bundled as "Etc" for chart readability; the table expands them individually.</div></div>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">User opens RPT-02, selects period, group-by axis, and optional process/line/item filters.</div><div class="wf-ko">사용자가 RPT-02를 열고 기간·그룹축·공정/라인/품목 필터를 선택한다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">On Run, the engine collects QC-02 NG judgments and aggregates per the Pareto logic.</div><div class="wf-ko">Run 시 엔진이 QC-02 NG 판정을 수집하고 파레토 로직대로 집계한다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Combo chart (bars + cumulative line) and the detail table render; vital-few rows highlighted.</div><div class="wf-ko">콤보 차트(막대+누적선)와 상세 테이블이 렌더되고 vital-few 행이 강조된다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">User reviews the vital few; clicking a row opens QC-05 CAPA pre-filled with defect type &amp; period.</div><div class="wf-ko">사용자가 vital few를 검토 — 행 클릭 시 불량유형·기간이 채워진 QC-05 CAPA가 열린다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Report can be exported (Excel/PDF) or saved as a scheduled report in RPT-09.</div><div class="wf-ko">보고서는 Excel/PDF 출력하거나 RPT-09에 정기 보고서로 등록할 수 있다.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-RPT-08</td><td><div>Pareto bars are always sorted by defect count descending; cumulative % is computed in that order.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">파레토 막대는 항상 건수 내림차순, 누적 %도 그 순서로 산출.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-RPT-09</td><td><div>Rows within cumulative 80% are flagged vital-few and highlighted for CAPA prioritization.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">누적 80% 이내 행은 vital-few 플래그·강조 — CAPA 우선순위.</div></td><td><span class="br-act alt">Flag</span></td></tr>
+          <tr><td class="br-id">BR-RPT-10</td><td><div>Initiating CAPA from a row passes defect type + period to QC-05 and records CapaRefID back on the run.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">행에서 CAPA 개시 시 불량유형·기간을 QC-05에 전달, CapaRefID 역기록.</div></td><td><span class="br-act aut">Link</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Table</th><th>Key Columns</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">RPT_ParetoRun</span></td><td><span class="dm-pk">PK</span> ParetoRunID · PeriodFrom · PeriodTo · GroupByAxis · TotalCount · RunTS · RunBy</td><td>파레토 실행 헤더.</td></tr>
+          <tr><td><span class="dm-col">RPT_ParetoLine</span></td><td><span class="dm-pk">PK</span> LineID · <span class="dm-fk">FK</span> ParetoRunID · DefectTypeCode · DefectCount · SharePct · CumulativePct · RankNo · VitalFewFlag · CapaRefID</td><td>그룹별 집계 라인.</td></tr>
+          <tr><td><span class="dm-col">QC_Inspection</span> <em style="opacity:.6;">(source)</em></td><td>InspID · JudgeResult · DefectTypeCode · ProcessCode · LineID · ItemID</td><td>NG 판정 — 집계 원천.</td></tr>
+          <tr><td><span class="dm-col">QC_CAPA</span> <em style="opacity:.6;">(link)</em></td><td>CapaID · DefectTypeCode · SourceReport=RPT-02</td><td>QC-05 시정조치 연계.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">QC-02</div><div class="lnk-name">검사 판정</div></div>
+          <div class="lnk-node up"><div class="lnk-id">RPT-01</div><div class="lnk-name">일별 불량 연동</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">RPT-02</div><div class="lnk-name">Defect Pareto</div><div class="lnk-ko">불량 파레토</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">QC-05</div><div class="lnk-name">CAPA 시정조치</div></div>
+        </div>
+        <div class="lnk-row" style="margin-top:14px;">
+          <div class="lnk-node cur"><div class="lnk-id">RPT-02</div><div class="lnk-name">→ Feeds</div></div>
+          <div class="lnk-arr">↘</div>
+          <div class="lnk-node down"><div class="lnk-id">RPT-07</div><div class="lnk-name">월간 KPI 불량 추이</div></div>
+          <div class="lnk-node down"><div class="lnk-id">RPT-09</div><div class="lnk-name">정기 보고서 등록</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.11 · RPT-02 · Defect Pareto Report · L3 Spec v1.0</div><div class="pf-r">Web · Phase 2 · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
