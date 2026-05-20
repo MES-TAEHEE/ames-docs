@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.11 · RPT-01 · Daily Production Report · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--rpt:#6366f1;--mod:#6366f1;--mod-lt:#e0e7ff;--mod-dk:#4338ca;--mod-tint:#a5b4fc;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(165,180,252,.7);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#1e1b4b 0%,#181442 50%,#1e1b4b 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(99,102,241,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(99,102,241,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(99,102,241,.05) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(99,102,241,.16),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(99,102,241,.35);color:var(--mod-tint);background:rgba(99,102,241,.1);}
+.meta-chip.core{border-color:rgba(212,160,23,.45);color:#fbbf24;background:rgba(212,160,23,.15);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod-dk);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#eff6ff;border-color:#3b82f6;}
+.lnk-node.cur{background:linear-gradient(135deg,#1e1b4b,#181442);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(99,102,241,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#1d4ed8;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);}
+.dm-pk{color:#f59e0b;font-size:8px;font-weight:700;}.dm-fk{color:#8b5cf6;font-size:8px;font-weight:700;}
+.web-mock{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.web-tbar{background:#f0f3f7;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);font-size:11px;}
+.web-tbar-l{font-weight:700;color:var(--text);}
+.web-tbar .bc{color:var(--sub);font-size:10px;margin-left:8px;}
+.web-tbar-r{font-size:10px;color:var(--sub);}
+.web-bd{padding:18px;background:#fbfcfd;}
+.web-card{background:#fff;border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:12px;}
+.web-card-h{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px;display:flex;justify-content:space-between;}
+.flt-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid var(--border);border-radius:6px;padding:9px 12px;margin-bottom:12px;}
+.flt{font-size:10px;border:1px solid var(--border);border-radius:4px;padding:4px 9px;background:#f6f8fa;color:var(--text);}
+.flt b{color:var(--mod-dk);}
+.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:12px;background:#fff;}
+.kc{flex:1;padding:10px 12px;border-right:1px solid var(--border);}
+.kc:last-child{border-right:none;}
+.kv{font-size:21px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
+.kl-en{font-size:9px;color:var(--sub);margin-top:3px;}.kl-ko{font-size:8px;color:rgba(101,109,118,.7);}
+.tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;}
+.tbl th{background:#f0f3f7;padding:7px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.tbl td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:top;}
+.tbl tr:last-child td{border-bottom:none;}.tbl tfoot td{background:#f0f3f7;font-weight:800;}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.b-ok{background:#dcfce7;color:#166534;}.b-w{background:#fef9c3;color:#92400e;}.b-e{background:#fee2e2;color:#991b1b;}.b-i{background:#e0e7ff;color:#3730a3;}
+.btn{padding:7px 14px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;}
+.btn-primary{background:var(--mod);border-color:var(--mod-dk);color:#fff;}
+.legend{display:flex;gap:14px;font-size:9px;color:var(--sub);margin-top:6px;}
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol active"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL11_RPT_Reports.html">VOL.11 · RPT</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">RPT-01 · Daily Production Report</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.11 · RPT · L3</div><div class="sb-mod-en">REPORTS</div><div class="sb-mod-ko">분석 리포트</div></div>
+  <div class="sb-section">Production · 생산</div>
+  <a class="sb-link on" href="VOL11_RPT01_Daily_Production.html"><span class="sl-id">RPT-01</span><div><div class="sl-en">Daily Production</div><div class="sl-ko">일별 생산 실적</div></div></a>
+  <a class="sb-link" href="VOL11_RPT02_Defect_Pareto.html"><span class="sl-id">RPT-02</span><div><div class="sl-en">Defect Pareto</div><div class="sl-ko">불량 파레토</div></div></a>
+  <a class="sb-link" href="VOL11_RPT06_Equipment_OEE.html"><span class="sl-id">RPT-06</span><div><div class="sl-en">Equipment OEE</div><div class="sl-ko">설비 OEE</div></div></a>
+  <a class="sb-link" href="VOL11_RPT08_Schedule_Adherence.html"><span class="sl-id">RPT-08</span><div><div class="sl-en">Schedule Adherence</div><div class="sl-ko">일정 준수율</div></div></a>
+  <div class="sb-section">Delivery & Inventory · 출하·재고</div>
+  <a class="sb-link" href="VOL11_RPT03_Daily_Shipment.html"><span class="sl-id">RPT-03</span><div><div class="sl-en">Daily Shipment</div><div class="sl-ko">일별 출하</div></div></a>
+  <a class="sb-link" href="VOL11_RPT04_OnTime_Delivery.html"><span class="sl-id">RPT-04</span><div><div class="sl-en">On-Time Delivery</div><div class="sl-ko">납기 이행율</div></div></a>
+  <a class="sb-link" href="VOL11_RPT05_Inventory_Status.html"><span class="sl-id">RPT-05</span><div><div class="sl-en">Inventory Status</div><div class="sl-ko">재고 현황</div></div></a>
+  <div class="sb-section">Management & Tools · 경영·도구</div>
+  <a class="sb-link" href="VOL11_RPT07_Monthly_KPI.html"><span class="sl-id">RPT-07</span><div><div class="sl-en">Monthly KPI ⚙</div><div class="sl-ko">월간 KPI 대시보드</div></div></a>
+  <a class="sb-link" href="VOL11_RPT09_Report_Center.html"><span class="sl-id">RPT-09</span><div><div class="sl-en">Report Center</div><div class="sl-ko">리포트 센터</div></div></a>
+  <a class="sb-link" href="VOL11_RPT10_Report_Builder.html"><span class="sl-id">RPT-10</span><div><div class="sl-en">Report Builder</div><div class="sl-ko">리포트 빌더</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
+    <a href="#sec-2"><span class="num">02</span>Field Spec</a>
+    <a href="#sec-3"><span class="num">03</span>Columns &amp; Drill-down</a>
+    <a href="#sec-4"><span class="num">04</span>Workflow</a>
+    <a href="#sec-5"><span class="num">05</span>Business Rules</a>
+    <a href="#sec-6"><span class="num">06</span>Data Model</a>
+    <a href="#sec-7"><span class="num">07</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.11 · RPT · L3 · Daily Production Report</div>
+      <div class="scr-id-block"><div class="scr-id">RPT-01</div><div class="scr-title-en">Daily Production Report</div></div>
+      <div class="scr-title-ko">일별 생산 실적 보고서 — 라인·품목·WO별 계획 대비 실적</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">UI</span><span class="mc-val">🖥 Web PC</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Class</span><span class="mc-val">Standard Report</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">1st Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">Production Mgr · Plant Mgr</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Trigger</span><span class="mc-val">Auto @ FG-07 Day-End Close</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          The Daily Production Report consolidates the day's manufacturing output across all lines (INJ, PNT) into a single read-only summary. For each line / item / Work Order it shows <strong>planned qty, actual good qty, defect qty, defect rate, and yield</strong>, with a shift breakdown (Day / Night). It is <strong>auto-generated when FG-07 Day-End Close is executed</strong> — no manual trigger. The report is a frozen snapshot; figures cannot be edited unless the day is re-opened by a supervisor. Each row drills down to the source Work Order and shift records. Excel / PDF export and optional email dispatch are supported.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          일별 생산 실적 보고서는 전 라인(INJ·PNT)의 당일 생산을 단일 읽기전용 요약으로 통합한다. 라인·품목·작업지시(WO)별로 <strong>계획 수량, 실적 양품 수량, 불량 수량, 불량율, 수율</strong>을 표시하고 교대(주간/야간) 분해를 포함한다. <strong>FG-07 일 마감 실행 시 자동 생성</strong>되며 수동 트리거가 없다. 보고서는 고정 스냅샷으로, 관리자가 일 마감을 재오픈하지 않는 한 수치를 수정할 수 없다. 각 행은 원천 WO·교대 기록으로 드릴다운된다. Excel/PDF 출력과 이메일 발송을 지원한다.
+        </div>
+      </div>
+      <div class="alert alert-i"><div><span class="alert-title">📌 Report Position · 보고서 위치</span>RPT-01 is one of two daily-auto reports (with RPT-03 Shipment). It feeds the RPT-07 Monthly KPI Dashboard's "Plan Achievement" metric and is the primary daily production review document for the morning meeting. · RPT-01은 일별 자동 보고서 2종 중 하나(RPT-03 출하와 함께)로, RPT-07 월간 KPI의 '계획 달성율' 지표에 집계되며 조회의 핵심 생산 검토 문서이다.</div></div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — Web 일별 생산 보고서</span></div>
+      <div class="web-mock">
+        <div class="web-tbar">
+          <div class="web-tbar-l">📊 A-MES · Reports · Daily Production<span class="bc">RPT › Daily Production › 2026-05-19</span></div>
+          <div class="web-tbar-r">Prod.Mgr · 08:10</div>
+        </div>
+        <div class="web-bd">
+          <div class="flt-bar">
+            <span class="flt">📅 Date <b>2026-05-19</b></span>
+            <span class="flt">🏭 Line <b>All</b></span>
+            <span class="flt">📦 Item <b>All</b></span>
+            <span class="flt">🕐 Shift <b>All</b></span>
+            <span style="margin-left:auto;display:flex;gap:6px;">
+              <button class="btn">📊 Excel</button>
+              <button class="btn">📄 PDF</button>
+              <button class="btn btn-primary">📧 Email</button>
+            </span>
+          </div>
+          <div class="kpi-strip">
+            <div class="kc"><div class="kv" style="color:var(--mod-dk);">12,840</div><div class="kl-en">Planned Qty</div><div class="kl-ko">계획 수량</div></div>
+            <div class="kc"><div class="kv" style="color:#16a34a;">12,610</div><div class="kl-en">Actual Good Qty</div><div class="kl-ko">실적 양품</div></div>
+            <div class="kc"><div class="kv" style="color:#16a34a;">98.2%</div><div class="kl-en">Plan Achievement</div><div class="kl-ko">계획 달성율</div></div>
+            <div class="kc"><div class="kv" style="color:#f59e0b;">1.7%</div><div class="kl-en">Defect Rate</div><div class="kl-ko">불량율</div></div>
+            <div class="kc"><div class="kv" style="color:#16a34a;">98.3%</div><div class="kl-en">Avg Yield</div><div class="kl-ko">평균 수율</div></div>
+          </div>
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ OUTPUT BY LINE · 라인별 생산량 (계획 대비 실적)</span><span style="color:var(--sub);">단위 EA</span></div>
+            <svg width="100%" height="120" viewBox="0 0 460 120">
+              <line x1="40" y1="95" x2="450" y2="95" stroke="#cbd5e1"/>
+              <line x1="40" y1="20" x2="450" y2="20" stroke="#e2e8f0" stroke-dasharray="3,3"/>
+              <g font-size="8" fill="#64748b" text-anchor="end"><text x="36" y="98">0</text><text x="36" y="23">Max</text></g>
+              <!-- INJ-1 -->
+              <rect x="60" y="30" width="26" height="65" fill="#c7d2fe" rx="2"/><rect x="90" y="34" width="26" height="61" fill="#6366f1" rx="2"/>
+              <text x="88" y="110" text-anchor="middle" font-size="8" fill="#475569">INJ-Line1</text>
+              <!-- INJ-2 -->
+              <rect x="150" y="42" width="26" height="53" fill="#c7d2fe" rx="2"/><rect x="180" y="44" width="26" height="51" fill="#6366f1" rx="2"/>
+              <text x="178" y="110" text-anchor="middle" font-size="8" fill="#475569">INJ-Line2</text>
+              <!-- PNT-1 -->
+              <rect x="240" y="38" width="26" height="57" fill="#c7d2fe" rx="2"/><rect x="270" y="46" width="26" height="49" fill="#6366f1" rx="2"/>
+              <text x="268" y="110" text-anchor="middle" font-size="8" fill="#475569">PNT-Line1</text>
+              <!-- PNT-2 -->
+              <rect x="330" y="50" width="26" height="45" fill="#c7d2fe" rx="2"/><rect x="360" y="52" width="26" height="43" fill="#6366f1" rx="2"/>
+              <text x="358" y="110" text-anchor="middle" font-size="8" fill="#475569">PNT-Line2</text>
+            </svg>
+            <div class="legend"><span style="color:#c7d2fe;">■ Plan · 계획</span><span style="color:#6366f1;">■ Actual · 실적</span></div>
+          </div>
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ DETAIL BY ITEM · 품목별 상세</span><span style="color:var(--sub);">행 클릭 → WO 드릴다운</span></div>
+            <table class="tbl">
+              <thead><tr><th>Line</th><th>Item</th><th>WO</th><th style="text-align:right;">Plan</th><th style="text-align:right;">Good</th><th style="text-align:right;">Defect</th><th style="text-align:right;">Defect%</th><th style="text-align:right;">Yield</th></tr></thead>
+              <tbody>
+                <tr><td>INJ-Line1</td><td>Bumper Front A</td><td>WO-2605-0418</td><td style="text-align:right;">3,200</td><td style="text-align:right;">3,168</td><td style="text-align:right;">32</td><td style="text-align:right;">1.0%</td><td style="text-align:right;"><span class="b b-ok">99.0%</span></td></tr>
+                <tr><td>INJ-Line2</td><td>Console Box</td><td>WO-2605-0419</td><td style="text-align:right;">2,800</td><td style="text-align:right;">2,742</td><td style="text-align:right;">58</td><td style="text-align:right;">2.1%</td><td style="text-align:right;"><span class="b b-w">97.9%</span></td></tr>
+                <tr><td>PNT-Line1</td><td>Bumper Front A</td><td>WO-2605-0421</td><td style="text-align:right;">3,100</td><td style="text-align:right;">3,047</td><td style="text-align:right;">53</td><td style="text-align:right;">1.7%</td><td style="text-align:right;"><span class="b b-ok">98.3%</span></td></tr>
+                <tr><td>PNT-Line2</td><td>Garnish Trim</td><td>WO-2605-0423</td><td style="text-align:right;">3,740</td><td style="text-align:right;">3,653</td><td style="text-align:right;">87</td><td style="text-align:right;">2.3%</td><td style="text-align:right;"><span class="b b-w">97.7%</span></td></tr>
+              </tbody>
+              <tfoot><tr><td colspan="3">TOTAL · 합계</td><td style="text-align:right;">12,840</td><td style="text-align:right;">12,610</td><td style="text-align:right;">230</td><td style="text-align:right;">1.7%</td><td style="text-align:right;">98.3%</td></tr></tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 UI Highlights · 화면 주요 포인트</span>
+        ① 보고서는 FG-07 일 마감 시 자동 생성 — 화면은 조회 전용 ② 상단 KPI 5종 (계획·양품·달성율·불량율·수율) ③ 라인별 막대 차트 (계획 대비 실적 페어) ④ 품목 행 클릭 시 원천 WO·교대 기록 드릴다운 ⑤ 필터: 일자·라인·품목·교대 ⑥ Excel/PDF/이메일 출력 ⑦ 일 마감 전에는 "Preliminary(잠정)" 워터마크 표시</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Field Specification</span><span class="sec-ko">필드 사양</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:22%;">Field</th><th style="width:14%;">Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">ReportID</td><td class="fld-type">VARCHAR(24)</td><td>RPT01-YYYYMMDD. 일자당 1건.</td></tr>
+          <tr><td class="fld-name">ReportDate</td><td class="fld-type">DATE</td><td>생산 일자 (마감 대상일).</td></tr>
+          <tr><td class="fld-name">LineID</td><td class="fld-type">VARCHAR(20)</td><td>생산 라인 (집계 단위).</td></tr>
+          <tr><td class="fld-name">ItemID</td><td class="fld-type">VARCHAR(20)</td><td>품목 코드.</td></tr>
+          <tr><td class="fld-name">WOID</td><td class="fld-type">VARCHAR(24)</td><td>원천 작업지시 (드릴다운 키).</td></tr>
+          <tr><td class="fld-name">PlannedQty</td><td class="fld-type">INT</td><td>계획 수량 (PP 생산계획 기준).</td></tr>
+          <tr><td class="fld-name">GoodQty</td><td class="fld-type">INT</td><td>실적 양품 수량.</td></tr>
+          <tr><td class="fld-name">DefectQty</td><td class="fld-type">INT</td><td>불량 수량.</td></tr>
+          <tr><td class="fld-name">DefectRate</td><td class="fld-type">DECIMAL(5,2)</td><td>불량율 = Defect / (Good+Defect) × 100.</td></tr>
+          <tr><td class="fld-name">Yield</td><td class="fld-type">DECIMAL(5,2)</td><td>수율 = Good / (Good+Defect) × 100.</td></tr>
+          <tr><td class="fld-name">ShiftBreakdown</td><td class="fld-type">JSON</td><td>교대별 분해 [{shift, good, defect}].</td></tr>
+          <tr><td class="fld-name">Status</td><td class="fld-type">ENUM</td><td>PRELIMINARY / FINAL (일 마감 후 FINAL).</td></tr>
+          <tr><td class="fld-name">GeneratedTS · GeneratedBy</td><td class="fld-type">DATETIME · VARCHAR</td><td>생성 시각 / 생성 주체 (SYSTEM@FG-07).</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Columns &amp; Drill-down</span><span class="sec-ko">컬럼 + 드릴다운</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:24%;">Column</th><th style="width:36%;">Computation · 산출</th><th>Drill-down Target · 드릴다운 대상</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Planned Qty</strong></td><td>PP 생산계획 → WO 발행 수량 합계.</td><td>PP-02 생산계획 / INJ·PNT WO.</td></tr>
+          <tr><td><strong>Good Qty</strong></td><td>WO 실적 보고 양품 수량 합계.</td><td>INJ-04 / PNT-04 생산 실적.</td></tr>
+          <tr><td><strong>Defect Qty</strong></td><td>QC 판정 불량 + 공정 폐기 합계.</td><td>QC-02 검사 결과 / RPT-02 파레토.</td></tr>
+          <tr><td><strong>Defect Rate · Yield</strong></td><td>계산 컬럼 (위 공식). 불량율 ≥ 3% 행은 황색 강조.</td><td>—</td></tr>
+          <tr><td><strong>Shift</strong></td><td>주간/야간 교대별 양품·불량 분해.</td><td>교대 기록 (SYS 근태 연계).</td></tr>
+          <tr><td><strong>WO</strong></td><td>WO 단위 행 — 행 클릭 시 WO 상세.</td><td>INJ-04 / PNT-04 WO 상세.</td></tr>
+        </tbody>
+      </table>
+      <div class="alert alert-i"><div><span class="alert-title">🔎 Drill-down · 드릴다운</span>품목 행을 클릭하면 해당 WO의 시간대별 생산·불량 추이와 교대 상세가 팝업으로 표시된다. 불량 셀 클릭 시 RPT-02 불량 파레토로 필터 연동 이동한다. · Click a row to open the WO's hourly trend; click a defect cell to jump to RPT-02 filtered.</div></div>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">Throughout the day, INJ/PNT WO results and QC judgments accumulate in transaction tables.</div><div class="wf-ko">하루 동안 INJ/PNT WO 실적과 QC 판정이 트랜잭션 테이블에 누적된다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Before close, users may preview the report — shown with a PRELIMINARY watermark.</div><div class="wf-ko">마감 전 사용자는 보고서를 미리 볼 수 있다 — PRELIMINARY(잠정) 워터마크 표시.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">FG-07 Day-End Close is executed → RPT-01 aggregation job runs automatically.</div><div class="wf-ko">FG-07 일 마감 실행 → RPT-01 집계 작업이 자동 수행된다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Job aggregates by line/item/WO/shift, computes defect rate &amp; yield, writes a frozen snapshot (Status FINAL).</div><div class="wf-ko">라인·품목·WO·교대별 집계, 불량율·수율 산출, 고정 스냅샷 기록 (Status FINAL).</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Report becomes available in RPT-09 Report Center; configured recipients receive auto-email.</div><div class="wf-ko">보고서는 RPT-09 리포트 센터에 등록되고, 설정된 수신자에게 자동 이메일 발송된다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">If the day is re-opened by a supervisor, the report reverts to PRELIMINARY and is re-generated on the next close.</div><div class="wf-ko">관리자가 일 마감을 재오픈하면 보고서는 PRELIMINARY로 되돌아가고 다음 마감 시 재생성된다.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-RPT-04</td><td><div>RPT-01 is auto-generated only by FG-07 Day-End Close — no manual generate button.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">RPT-01은 FG-07 일 마감으로만 자동 생성 — 수동 생성 버튼 없음.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-RPT-05</td><td><div>A FINAL report is read-only; reported figures cannot be edited. Source correction requires day re-open (supervisor).</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">FINAL 보고서는 읽기전용 — 수치 수정 불가, 원천 정정은 일 재오픈(관리자) 필요.</div></td><td><span class="br-act blk">Lock</span></td></tr>
+          <tr><td class="br-id">BR-RPT-06</td><td><div>Item rows with defect rate ≥ 3% are highlighted; total defect rate ≥ 3% raises a flag on RPT-07.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">불량율 ≥ 3% 품목 행 강조, 전체 ≥ 3%는 RPT-07에 플래그.</div></td><td><span class="br-act alt">Flag</span></td></tr>
+          <tr><td class="br-id">BR-RPT-07</td><td><div>Plan, good, and defect totals must reconcile with WO results; a mismatch blocks FINAL and alerts the closing user.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">계획·양품·불량 합계는 WO 실적과 정합 — 불일치 시 FINAL 차단·마감자 경고.</div></td><td><span class="br-act blk">Block</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Table</th><th>Key Columns</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">RPT_DailyProduction</span></td><td><span class="dm-pk">PK</span> ReportID · ReportDate · <span class="dm-fk">FK</span> LineID · <span class="dm-fk">FK</span> ItemID · <span class="dm-fk">FK</span> WOID · PlannedQty · GoodQty · DefectQty · DefectRate · Yield · ShiftBreakdown · Status</td><td>일별 생산 보고서 스냅샷 (행 = 라인×품목×WO).</td></tr>
+          <tr><td><span class="dm-col">RPT_ReportLog</span></td><td><span class="dm-pk">PK</span> LogID · ReportType · ReportDate · GeneratedTS · GeneratedBy · ExportCount · EmailSentTS</td><td>전 보고서 공통 생성·출력 이력.</td></tr>
+          <tr><td><span class="dm-col">PRD_WOResult</span> <em style="opacity:.6;">(source)</em></td><td>WOID · GoodQty · DefectQty · ShiftCode</td><td>INJ/PNT WO 실적 — 집계 원천.</td></tr>
+          <tr><td><span class="dm-col">QC_Inspection</span> <em style="opacity:.6;">(source)</em></td><td>WOID · JudgeResult · DefectQty</td><td>QC 판정 — 불량 수량 원천.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">INJ-04 / PNT-04</div><div class="lnk-name">WO 실적</div></div>
+          <div class="lnk-node up"><div class="lnk-id">QC-02</div><div class="lnk-name">검사 판정</div></div>
+          <div class="lnk-node up"><div class="lnk-id">FG-07</div><div class="lnk-name">일 마감 트리거</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">RPT-01</div><div class="lnk-name">Daily Production</div><div class="lnk-ko">일별 생산 실적</div></div>
+        </div>
+        <div class="lnk-row" style="margin-top:14px;">
+          <div class="lnk-node cur"><div class="lnk-id">RPT-01</div><div class="lnk-name">→ Consumed by</div></div>
+          <div class="lnk-arr">↘</div>
+          <div class="lnk-node down"><div class="lnk-id">RPT-07</div><div class="lnk-name">월간 KPI 집계</div></div>
+          <div class="lnk-node down"><div class="lnk-id">RPT-02</div><div class="lnk-name">불량 파레토 연동</div></div>
+          <div class="lnk-node down"><div class="lnk-id">RPT-09</div><div class="lnk-name">리포트 센터 등록</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.11 · RPT-01 · Daily Production Report · L3 Spec v1.0</div><div class="pf-r">Web · Phase 1 · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
