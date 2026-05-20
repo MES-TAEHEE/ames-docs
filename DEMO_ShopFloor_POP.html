@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES Demo · Shop-Floor POP System · 현장 POP 시스템</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--sc:#ea580c;--bar:#1a1208;--side:#211a10;--side2:#3a2a14;--bg:#0f0c08;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;-webkit-user-select:none;user-select:none;}
+/* TOP BAR */
+.appbar{height:62px;flex-shrink:0;background:var(--bar);display:flex;align-items:center;border-bottom:3px solid var(--sc);}
+.ab-logo{display:flex;align-items:center;gap:9px;padding:0 20px;height:100%;border-right:1px solid rgba(255,255,255,.07);}
+.ab-logo .lg{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#d4a017;letter-spacing:2px;}
+.ab-sys{display:flex;align-items:center;gap:9px;padding:0 18px;}
+.ab-sys .ico{font-size:20px;}
+.ab-sys .nm{font-size:15px;font-weight:700;color:#fff;}
+.ab-sys .ko{font-size:11px;color:rgba(255,255,255,.4);}
+.ab-line{margin-left:14px;display:flex;gap:8px;}
+.ab-pill{display:flex;flex-direction:column;padding:6px 14px;background:rgba(255,255,255,.05);border:1px solid var(--side2);border-radius:7px;}
+.ab-pill .l{font-size:8px;color:rgba(255,255,255,.4);font-family:'JetBrains Mono',monospace;letter-spacing:1px;}
+.ab-pill .v{font-size:13px;font-weight:800;color:#fdba74;}
+.ab-right{margin-left:auto;display:flex;align-items:center;gap:16px;padding:0 22px;}
+.ab-clock{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:#fff;}
+.ab-sw-wrap{display:flex;gap:5px;}
+.ab-sw{font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-decoration:none;padding:7px 12px;border-radius:6px;border:1px solid rgba(255,255,255,.1);}
+.ab-sw.on{background:var(--sc);color:#fff;border-color:var(--sc);}
+.demo-note{background:#2a1c08;border-bottom:1px solid #3a2a14;color:#fdba74;font-size:11px;padding:6px 16px;text-align:center;}
+.demo-note b{color:#fb923c;}
+/* LAYOUT */
+.shell{flex:1;display:flex;min-height:0;}
+.side{width:300px;flex-shrink:0;background:var(--side);overflow-y:auto;border-right:1px solid var(--side2);}
+.side::-webkit-scrollbar{width:9px;}.side::-webkit-scrollbar-thumb{background:#4a3618;border-radius:5px;}
+.grp{border-bottom:1px solid rgba(255,255,255,.05);}
+.grp-h{width:100%;display:flex;align-items:center;gap:12px;padding:16px 18px;background:none;border:none;cursor:pointer;text-align:left;color:#e8e2d8;font-family:inherit;}
+.grp-h:active{background:rgba(234,88,12,.12);}
+.grp-h .gi{font-size:26px;}
+.grp-h .gt{flex:1;}
+.grp-h .gn{font-size:16px;font-weight:800;}
+.grp-h .gd{font-size:10px;color:rgba(255,255,255,.35);}
+.grp-h .gc{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--sc);background:rgba(234,88,12,.14);padding:3px 9px;border-radius:5px;}
+.grp-h .gx{font-size:13px;color:rgba(255,255,255,.4);transition:transform .15s;}
+.grp.open .gx{transform:rotate(90deg);}
+.grp-items{display:none;padding:4px 0 8px;background:rgba(0,0,0,.25);}
+.grp.open .grp-items{display:block;}
+.mi{display:flex;align-items:center;gap:11px;padding:13px 18px 13px 22px;cursor:pointer;border-left:4px solid transparent;}
+.mi:active{background:rgba(234,88,12,.16);}
+.mi.active{background:rgba(234,88,12,.2);border-left-color:var(--sc);}
+.mi .mid{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:#fb923c;width:58px;flex-shrink:0;}
+.mi .mnm{font-size:14px;font-weight:600;color:#cdc4b4;}
+.mi.active .mnm{color:#fff;}
+/* CONTENT */
+.content{flex:1;min-width:0;display:flex;flex-direction:column;background:#fff;}
+.crumbbar{height:42px;flex-shrink:0;background:#1a1208;border-bottom:2px solid var(--sc);display:flex;align-items:center;gap:9px;padding:0 20px;font-size:13px;}
+.crumbbar .cb-home{color:#fb923c;font-weight:800;}
+.crumbbar .cb-sep{color:rgba(255,255,255,.3);}
+.crumbbar #crumb{color:#fff;font-weight:700;}
+.crumbbar .cb-tag{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(255,255,255,.45);}
+.frame-wrap{flex:1;min-height:0;position:relative;}
+#frame{width:100%;height:100%;border:none;display:none;background:#fff;}
+.landing{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0f0c08);}
+.landing .l-ico{font-size:78px;}
+.landing .l-t{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:3px;color:#fff;margin-top:8px;}
+.landing .l-s{font-size:15px;color:#fdba74;}
+.landing .l-d{font-size:13px;color:#a8997f;max-width:560px;line-height:1.85;margin-top:12px;}
+.l-mods{display:flex;gap:12px;margin-top:28px;}
+.l-mod{background:rgba(234,88,12,.1);border:1px solid #3a2a14;border-top:3px solid var(--sc);border-radius:10px;padding:16px 24px;}
+.l-mod .e{font-size:30px;}
+.l-mod .n{font-size:13px;font-weight:800;color:#fff;margin-top:5px;}
+.l-mod .c{font-size:10px;color:#a8997f;}
+.landing .l-hint{margin-top:30px;font-size:13px;color:#a8997f;}
+</style>
+</head>
+<body>
+<div class="appbar">
+  <div class="ab-logo"><span class="lg">A-MES</span></div>
+  <div class="ab-sys"><span class="ico">📟</span><div><div class="nm">Shop-Floor POP</div><div class="ko">현장 작업자 터치 단말 · System 2</div></div></div>
+  <div class="ab-line">
+    <div class="ab-pill"><span class="l">STATION</span><span class="v">POP-INJ-01</span></div>
+    <div class="ab-pill"><span class="l">OPERATOR</span><span class="v">박작업 (A조)</span></div>
+    <div class="ab-pill"><span class="l">SHIFT</span><span class="v">주간 DAY</span></div>
+  </div>
+  <div class="ab-right">
+    <span class="ab-clock" id="clock">09:14</span>
+    <div class="ab-sw-wrap">
+      <a class="ab-sw" href="DEMO_Office_Web.html">🖥️ Web</a>
+      <a class="ab-sw on" href="DEMO_ShopFloor_POP.html">📟 POP</a>
+      <a class="ab-sw" href="DEMO_Logistics_PDA.html">📱 PDA</a>
+      <a class="ab-sw" href="DEMO_Site_Map.html">🗺</a>
+    </div>
+  </div>
+</div>
+<div class="demo-note">▶ <b>DEMO SHELL</b> — 현장 POP 데모 셸: 좌측에서 공정·화면을 터치하면 우측에 표시됩니다. 데모 화면 구현 시 실제 터치 화면으로 대체됩니다.</div>
+<div class="shell">
+  <nav class="side">
+    <div class="grp open">
+      <button class="grp-h" onclick="tg(this)"><span class="gi">🟦</span><span class="gt"><span class="gn">INJ · 사출</span><span class="gd">Injection POP</span></span><span class="gc">8</span><span class="gx">▶</span></button>
+      <div class="grp-items">
+        <div class="mi" onclick="ld(this)" data-src="VOL05_INJ01_POP_Login.html" data-crumb="INJ 사출 · INJ-01 POP Login"><span class="mid">INJ-01</span><span class="mnm">POP 로그인</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL05_INJ02_POP_Dashboard.html" data-crumb="INJ 사출 · INJ-02 POP Dashboard"><span class="mid">INJ-02</span><span class="mnm">POP 대시보드</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL05_INJ03_WO_Confirm.html" data-crumb="INJ 사출 · INJ-03 WO Confirmation"><span class="mid">INJ-03</span><span class="mnm">작업지시 확인</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL05_INJ04_Production_Entry.html" data-crumb="INJ 사출 · INJ-04 Production Entry"><span class="mid">INJ-04</span><span class="mnm">생산 실적 입력</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL05_INJ05_Defect.html" data-crumb="INJ 사출 · INJ-05 Defect Register"><span class="mid">INJ-05</span><span class="mnm">불량 등록</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL05_INJ06_Mold_Change.html" data-crumb="INJ 사출 · INJ-06 Mold Change"><span class="mid">INJ-06</span><span class="mnm">금형 교체</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL05_INJ07_Prod_Status.html" data-crumb="INJ 사출 · INJ-07 Production Status"><span class="mid">INJ-07</span><span class="mnm">생산 현황</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL05_INJ08_Andon.html" data-crumb="INJ 사출 · INJ-08 Andon Emergency"><span class="mid">INJ-08</span><span class="mnm">안돈 호출</span></div>
+      </div>
+    </div>
+    <div class="grp">
+      <button class="grp-h" onclick="tg(this)"><span class="gi">🟪</span><span class="gt"><span class="gn">IMG · 감싸기</span><span class="gd">Wrapping POP</span></span><span class="gc">7</span><span class="gx">▶</span></button>
+      <div class="grp-items">
+        <div class="mi" onclick="ld(this)" data-src="VOL06_IMG01_POP_Login.html" data-crumb="IMG 감싸기 · IMG-01 POP Login"><span class="mid">IMG-01</span><span class="mnm">POP 로그인</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL06_IMG02_POP_Dashboard.html" data-crumb="IMG 감싸기 · IMG-02 POP Dashboard"><span class="mid">IMG-02</span><span class="mnm">POP 대시보드</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL06_IMG03_Production_Entry.html" data-crumb="IMG 감싸기 · IMG-03 Production Entry"><span class="mid">IMG-03</span><span class="mnm">생산 실적 입력</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL06_IMG04_Fabric_Input.html" data-crumb="IMG 감싸기 · IMG-04 Fabric Input"><span class="mid">IMG-04</span><span class="mnm">원단 투입·검증</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL06_IMG05_Defect.html" data-crumb="IMG 감싸기 · IMG-05 Defect Register"><span class="mid">IMG-05</span><span class="mnm">불량 등록</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL06_IMG06_Bond_Setup.html" data-crumb="IMG 감싸기 · IMG-06 Bond Setup"><span class="mid">IMG-06</span><span class="mnm">본드 설정</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL06_IMG07_Prod_Status.html" data-crumb="IMG 감싸기 · IMG-07 Production Status"><span class="mid">IMG-07</span><span class="mnm">생산 현황</span></div>
+      </div>
+    </div>
+    <div class="grp">
+      <button class="grp-h" onclick="tg(this)"><span class="gi">🟧</span><span class="gt"><span class="gn">PNT · 도장</span><span class="gd">Painting POP</span></span><span class="gc">9</span><span class="gx">▶</span></button>
+      <div class="grp-items">
+        <div class="mi" onclick="ld(this)" data-src="VOL07_PNT01_Daily_Plan.html" data-crumb="PNT 도장 · PNT-01 Daily Plan"><span class="mid">PNT-01</span><span class="mnm">일일 생산계획</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL07_PNT02_Lot_PreIssue.html" data-crumb="PNT 도장 · PNT-02 LOT Pre-Issue"><span class="mid">PNT-02</span><span class="mnm">가상 LOT 사전발행</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL07_PNT03_Loading.html" data-crumb="PNT 도장 · PNT-03 Loading (R1)"><span class="mid">PNT-03</span><span class="mnm">로딩 스테이션 (R1)</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL07_PNT04_Line_Board.html" data-crumb="PNT 도장 · PNT-04 Line Board"><span class="mid">PNT-04</span><span class="mnm">라인 추적 보드</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL07_PNT05_Oven_Monitor.html" data-crumb="PNT 도장 · PNT-05 Oven Monitor (R2)"><span class="mid">PNT-05</span><span class="mnm">오븐 모니터 (R2)</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL07_PNT06_Unloading.html" data-crumb="PNT 도장 · PNT-06 Unloading (R3)"><span class="mid">PNT-06</span><span class="mnm">언로딩·집계 (R3)</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL07_PNT07_Label_Apply.html" data-crumb="PNT 도장 · PNT-07 Label Apply"><span class="mid">PNT-07</span><span class="mnm">LOT 라벨 부착</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL07_PNT08_Defect.html" data-crumb="PNT 도장 · PNT-08 Defect Register"><span class="mid">PNT-08</span><span class="mnm">불량 등록</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL07_PNT09_Shift_Report.html" data-crumb="PNT 도장 · PNT-09 Shift Report"><span class="mid">PNT-09</span><span class="mnm">교대 일지·리포트</span></div>
+      </div>
+    </div>
+    <div class="grp">
+      <button class="grp-h" onclick="tg(this)"><span class="gi">🟥</span><span class="gt"><span class="gn">QC · 품질</span><span class="gd">Quality Control</span></span><span class="gc">9</span><span class="gx">▶</span></button>
+      <div class="grp-items">
+        <div class="mi" onclick="ld(this)" data-src="VOL08_QC01_Incoming_Inspection.html" data-crumb="QC 품질 · QC-01 Incoming Inspection"><span class="mid">QC-01</span><span class="mnm">수입 검사</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL08_QC02_InProcess_Inspection.html" data-crumb="QC 품질 · QC-02 In-Process Inspection"><span class="mid">QC-02</span><span class="mnm">공정 검사</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL08_QC03_Final_Inspection.html" data-crumb="QC 품질 · QC-03 Final Inspection"><span class="mid">QC-03</span><span class="mnm">최종 검사</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL08_QC04_NCR_Register.html" data-crumb="QC 품질 · QC-04 NCR Register"><span class="mid">QC-04</span><span class="mnm">부적합 등록</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL08_QC05_Hold_Quarantine.html" data-crumb="QC 품질 · QC-05 Hold / Quarantine"><span class="mid">QC-05</span><span class="mnm">보류·격리</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL08_QC06_CAPA.html" data-crumb="QC 품질 · QC-06 CAPA Management"><span class="mid">QC-06</span><span class="mnm">시정조치 CAPA</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL08_QC07_Dashboard.html" data-crumb="QC 품질 · QC-07 QC Dashboard"><span class="mid">QC-07</span><span class="mnm">QC 대시보드</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL08_QC08_Inspection_Std.html" data-crumb="QC 품질 · QC-08 Inspection Standard"><span class="mid">QC-08</span><span class="mnm">검사 기준</span></div>
+        <div class="mi" onclick="ld(this)" data-src="VOL08_QC_TRC_Traceability.html" data-crumb="QC 품질 · QC-TRC Traceability"><span class="mid">QC-TRC</span><span class="mnm">추적성 조회</span></div>
+      </div>
+    </div>
+  </nav>
+  <div class="content">
+    <div class="crumbbar">
+      <span class="cb-home">📟 Shop-Floor POP</span><span class="cb-sep">›</span><span id="crumb">화면 미선택</span>
+      <span class="cb-tag" id="srctag">데모 셸</span>
+    </div>
+    <div class="frame-wrap">
+      <div class="landing" id="landing">
+        <div class="l-ico">📟</div>
+        <div class="l-t">SHOP-FLOOR POP</div>
+        <div class="l-s">현장 작업자 터치 단말 시스템 데모</div>
+        <div class="l-d">좌측에서 공정을 터치하여 펼치고 화면을 선택하세요. INJ 사출 · IMG 감싸기 · PNT 도장 · QC 품질 — 4개 공정 33개 터치 화면.</div>
+        <div class="l-mods">
+          <div class="l-mod"><div class="e">🟦</div><div class="n">INJ</div><div class="c">8 화면</div></div>
+          <div class="l-mod"><div class="e">🟪</div><div class="n">IMG</div><div class="c">7 화면</div></div>
+          <div class="l-mod"><div class="e">🟧</div><div class="n">PNT</div><div class="c">9 화면</div></div>
+          <div class="l-mod"><div class="e">🟥</div><div class="n">QC</div><div class="c">9 화면</div></div>
+        </div>
+        <div class="l-hint">▸ 좌측 공정을 터치하고 화면을 선택하세요</div>
+      </div>
+      <iframe id="frame" title="screen"></iframe>
+    </div>
+  </div>
+</div>
+<script>
+function tg(b){b.parentElement.classList.toggle('open');}
+function ld(el){
+  document.querySelectorAll('.mi.active').forEach(function(x){x.classList.remove('active');});
+  el.classList.add('active');
+  document.getElementById('landing').style.display='none';
+  var f=document.getElementById('frame');
+  f.style.display='block';
+  f.src=el.dataset.src;
+  document.getElementById('crumb').textContent=el.dataset.crumb;
+  document.getElementById('srctag').textContent='L3 설계서 · '+el.dataset.src;
+}
+(function(){
+  var c=document.getElementById('clock');
+  function tick(){var d=new Date();c.textContent=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+  tick();setInterval(tick,15000);
+})();
+</script>
+</body>
+</html>

@@ -53,6 +53,10 @@ a{text-decoration:none;}
 .sys-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
 .sys-card{background:linear-gradient(160deg,rgba(30,41,59,.9),rgba(15,23,42,.9));border:1px solid #334155;border-top:3px solid var(--sc);border-radius:11px;padding:20px 20px 18px;position:relative;overflow:hidden;}
 .sys-card::after{content:'';position:absolute;top:-30px;right:-30px;width:110px;height:110px;background:radial-gradient(circle,var(--sc),transparent 65%);opacity:.16;}
+a.sys-card,a.gd-card{text-decoration:none;color:inherit;display:block;transition:transform .14s ease,box-shadow .14s ease;}
+a.sys-card:hover,a.gd-card:hover{transform:translateY(-3px);box-shadow:0 12px 26px rgba(0,0,0,.5);}
+.sys-go{position:relative;margin-top:13px;padding-top:11px;border-top:1px solid rgba(71,85,105,.4);font-size:10px;font-weight:700;color:var(--sc);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.gd-go{margin-top:10px;font-size:10px;font-weight:700;color:var(--sc);font-family:'JetBrains Mono',monospace;}
 .sys-ico{font-size:30px;line-height:1;}
 .sys-no{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--sc);letter-spacing:1.5px;margin-top:10px;}
 .sys-en{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:1.5px;color:#f8fafc;line-height:1;margin-top:2px;}
@@ -147,7 +151,7 @@ a{text-decoration:none;}
 
   <div class="sec-t">3-System Architecture &nbsp;3개 시스템 아키텍처</div>
   <div class="sys-grid">
-    <div class="sys-card" style="--sc:#2563eb">
+    <a class="sys-card" href="DEMO_Office_Web.html" style="--sc:#2563eb">
       <div class="sys-ico">🖥️</div>
       <div class="sys-no">SYSTEM 1</div>
       <div class="sys-en">OFFICE WEB</div>
@@ -159,8 +163,9 @@ a{text-decoration:none;}
       <div class="sys-mods">
         <span class="sys-mod-chip">PP</span><span class="sys-mod-chip">MNT</span><span class="sys-mod-chip">RPT</span><span class="sys-mod-chip">SYS</span><span class="sys-mod-chip">MD</span>
       </div>
-    </div>
-    <div class="sys-card" style="--sc:#ea580c">
+      <div class="sys-go">▶ OFFICE WEB 데모 셸 열기</div>
+    </a>
+    <a class="sys-card" href="DEMO_ShopFloor_POP.html" style="--sc:#ea580c">
       <div class="sys-ico">📟</div>
       <div class="sys-no">SYSTEM 2</div>
       <div class="sys-en">SHOP-FLOOR POP</div>
@@ -172,8 +177,9 @@ a{text-decoration:none;}
       <div class="sys-mods">
         <span class="sys-mod-chip">INJ</span><span class="sys-mod-chip">IMG</span><span class="sys-mod-chip">PNT</span><span class="sys-mod-chip">QC</span>
       </div>
-    </div>
-    <div class="sys-card" style="--sc:#0891b2">
+      <div class="sys-go">▶ SHOP-FLOOR POP 데모 셸 열기</div>
+    </a>
+    <a class="sys-card" href="DEMO_Logistics_PDA.html" style="--sc:#0891b2">
       <div class="sys-ico">📱</div>
       <div class="sys-no">SYSTEM 3</div>
       <div class="sys-en">LOGISTICS PDA</div>
@@ -185,7 +191,8 @@ a{text-decoration:none;}
       <div class="sys-mods">
         <span class="sys-mod-chip">WH</span><span class="sys-mod-chip">FG</span>
       </div>
-    </div>
+      <div class="sys-go">▶ LOGISTICS PDA 데모 셸 열기</div>
+    </a>
   </div>
   <div class="note"><span>⚙</span><div><b>편성 기준</b> — 각 모듈은 <b>주력 사용 환경</b>으로 시스템에 배정된다. MNT(설비관리)는 보전 엔지니어가 PC에서 PM계획·OEE분석·작업지시를 다루므로 Office Web에 편성하되, 현장 접근 화면(MNT-01 설비카드·MNT-02 고장등록·MNT-06 비가동로그)은 POP에서도 호출된다. 디바이스 혼용 화면은 아래 화면 인벤토리에 별도 표기.</div></div>
 
@@ -420,24 +427,27 @@ a{text-decoration:none;}
 
   <div class="sec-t">Demo Navigation Guide &nbsp;데모 네비게이션 가이드</div>
   <div class="guide">
-    <div class="gd-card" style="--sc:#2563eb">
+    <a class="gd-card" href="DEMO_Office_Web.html" style="--sc:#2563eb">
       <div class="gd-step">ENTRY 1</div>
       <div class="gd-t">🖥️ Office Web 데모</div>
       <div class="gd-d">데스크톱 브라우저로 진입. 계획자 페르소나로 로그인 → PP 생산계획 수립 → MNT 설비·MD 기준정보 → RPT 리포트 흐름을 시연. 풀 사이즈(1920px) 레이아웃.</div>
       <div class="gd-persona">👤 계획자 · 엔지니어 · 관리자</div>
-    </div>
-    <div class="gd-card" style="--sc:#ea580c">
+      <div class="gd-go">▶ Office Web 셸 열기 →</div>
+    </a>
+    <a class="gd-card" href="DEMO_ShopFloor_POP.html" style="--sc:#ea580c">
       <div class="gd-step">ENTRY 2</div>
       <div class="gd-t">📟 Shop-Floor POP 데모</div>
       <div class="gd-d">POP 터치 단말 해상도로 진입. INJ/IMG/PNT POP 로그인 → 작업지시 확인 → 생산·불량 입력 → QC 검사 흐름을 시연. 대형 터치 버튼 UI.</div>
       <div class="gd-persona">👤 현장 작업자 · 반장 · 검사원</div>
-    </div>
-    <div class="gd-card" style="--sc:#0891b2">
+      <div class="gd-go">▶ Shop-Floor POP 셸 열기 →</div>
+    </a>
+    <a class="gd-card" href="DEMO_Logistics_PDA.html" style="--sc:#0891b2">
       <div class="gd-step">ENTRY 3</div>
       <div class="gd-t">📱 Logistics PDA 데모</div>
       <div class="gd-d">PDA 세로형 화면으로 진입. WH 입고 스캔 → 재고·로케이션 → FG FIFO 피킹 → 상차·출하 흐름을 시연. 좁은 폭 모바일 UI.</div>
       <div class="gd-persona">👤 창고·출하 담당 · 지게차 기사</div>
-    </div>
+      <div class="gd-go">▶ Logistics PDA 셸 열기 →</div>
+    </a>
   </div>
   <div class="note"><span>📐</span><div><b>다음 단계</b> — 본 구조설계 확정 후: ① 3개 시스템별 데모 셸(상단바·좌측 메뉴트리·라우팅) 구현 → ② 디바이스별 반응형 프레임(Web 1920 / POP 터치 / PDA 세로) → ③ 각 시스템 메뉴트리에 화면 연결. 현재 화면 링크는 L3 설계서를 가리키며, 데모 화면 구현 시 실제 인터랙티브 화면으로 대체된다.</div></div>
 
