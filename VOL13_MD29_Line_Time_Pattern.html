@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.13 · MD-29 · Line Time Pattern Master · 테이블 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--md:#d97706;--mod:#d97706;--mod-lt:#fef3c7;--mod-dk:#92400e;--mod-tint:#fbbf24;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:42px;flex-shrink:0;color:rgba(251,191,36,.8);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#451a03 0%,#3a1602 50%,#451a03 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(217,119,6,.25);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(217,119,6,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(217,119,6,.06) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(217,119,6,.18),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(217,119,6,.4);color:var(--mod-tint);background:rgba(217,119,6,.12);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod-dk);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.tbl-name{display:inline-flex;align-items:center;gap:8px;background:#1f2937;color:#fff;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;padding:6px 12px;border-radius:5px;margin-bottom:10px;}
+.tbl-name.t2{margin-top:18px;}
+.tbl-name .tn-tag{font-size:8px;background:var(--mod);color:#fff;padding:1px 6px;border-radius:2px;}
+.tbl-name .tn-tag.det{background:#0891b2;}
+.ddl-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.ddl-tbl th{background:#1f2937;color:#fff;padding:7px 9px;text-align:left;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.ddl-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);vertical-align:top;}
+.ddl-tbl tr:last-child td{border-bottom:none;}.ddl-tbl tr:nth-child(even) td{background:#fafbfd;}
+.ddl-tbl .col{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);font-size:11px;}
+.ddl-tbl .typ{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.ddl-tbl .nn{text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.ddl-tbl .nn-y{color:#16a34a;}.ddl-tbl .nn-n{color:#9ca3af;}
+.kbadge{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;padding:1px 5px;border-radius:2px;}
+.k-pk{background:#fee2e2;color:#991b1b;}.k-fk{background:#ede9fe;color:#5b21b6;}.k-uk{background:#dbeafe;color:#1e40af;}
+.cons-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.cons-tbl th{background:#f0f3f7;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.cons-tbl td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.cons-tbl tr:last-child td{border-bottom:none;}.cons-tbl tr:nth-child(even) td{background:#fafbfd;}
+.cons-tbl .cn{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);font-size:10px;}
+.cons-tbl .cdef{font-family:'JetBrains Mono',monospace;color:#475569;font-size:10px;}
+.ct{display:inline-block;font-size:8px;font-weight:700;padding:1px 6px;border-radius:2px;}
+.ct-pk{background:#fee2e2;color:#991b1b;}.ct-fk{background:#ede9fe;color:#5b21b6;}.ct-uk{background:#dbeafe;color:#1e40af;}.ct-ck{background:#fef9c3;color:#92400e;}.ct-ix{background:#dcfce7;color:#166534;}
+.samp-tbl{width:100%;border-collapse:collapse;font-size:10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.samp-tbl th{background:#f0f3f7;padding:6px 8px;text-align:left;font-size:9px;font-weight:700;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;}
+.samp-tbl td{padding:5px 8px;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:10px;color:#334155;}
+.samp-tbl tr:last-child td{border-bottom:none;}.samp-tbl tr:nth-child(even) td{background:#fafbfd;}
+.tl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:12px;}
+.tl-cap{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;}
+.tl-bar{display:flex;height:34px;border-radius:4px;overflow:hidden;border:1px solid var(--border);}
+.tl-seg{display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;font-family:'JetBrains Mono',monospace;}
+.tl-op{background:#16a34a;}.tl-pd{background:#f59e0b;}.tl-ud{background:#dc2626;}
+.tl-axis{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--sub);margin-top:3px;}
+.tl-legend{display:flex;gap:14px;margin-top:8px;font-size:10px;}
+.tl-legend span{display:flex;align-items:center;gap:5px;}
+.tl-dot{width:10px;height:10px;border-radius:2px;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}.br-act.val{background:#ede9fe;color:#5b21b6;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.rel-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.rel-tbl th{background:#1f2937;color:#fff;padding:7px 10px;font-size:10px;font-weight:700;text-align:left;}
+.rel-tbl td{padding:6px 10px;border-bottom:1px solid var(--border);font-size:10px;}.rel-tbl tr:last-child td{border-bottom:none;}
+.rel-tbl tr:nth-child(even) td{background:#fafbfd;}
+.rel-c{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:118px;border:2px solid;}
+.lnk-node.up{background:#eff6ff;border-color:#3b82f6;}
+.lnk-node.cur{background:linear-gradient(135deg,#451a03,#3a1602);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(217,119,6,.3);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#1d4ed8;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol active"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL13_MD_Master_Data.html">VOL.13 · MD</a><span class="arr">›</span><span class="lvl">L3-B</span><a href="VOL13_MD_L3_Production.html">Routing &amp; Production</a><span class="arr">›</span><span class="lvl">TBL</span><span class="current">MD-29 · Line Time Pattern</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.13 · MD · L3 · TABLE</div><div class="sb-mod-en">MASTER DATA</div><div class="sb-mod-ko">기준정보 · 테이블 설계</div></div>
+  <div class="sb-section">B · Routing &amp; Production (4)</div>
+  <a class="sb-link" href="VOL13_MD04_BOP.html"><span class="sl-id">MD-04</span><div><div class="sl-en">BOP Routing</div><div class="sl-ko">공정경로</div></div></a>
+  <a class="sb-link" href="VOL13_MD05_Work_Center.html"><span class="sl-id">MD-05</span><div><div class="sl-en">Work Center</div><div class="sl-ko">작업장</div></div></a>
+  <a class="sb-link" href="VOL13_MD20_Line.html"><span class="sl-id">MD-20</span><div><div class="sl-en">Line</div><div class="sl-ko">라인</div></div></a>
+  <a class="sb-link on" href="VOL13_MD29_Line_Time_Pattern.html"><span class="sl-id">MD-29</span><div><div class="sl-en">Line Time Pattern</div><div class="sl-ko">라인 시간패턴</div></div></a>
+  <div class="sb-section">Category Hubs · 카테고리</div>
+  <a class="sb-link" href="VOL13_MD_L3_Foundation.html"><span class="sl-id">A</span><div><div class="sl-en">Foundation</div></div></a>
+  <a class="sb-link" href="VOL13_MD_L3_Production.html"><span class="sl-id">B</span><div><div class="sl-en">Routing &amp; Production</div></div></a>
+  <a class="sb-link" href="VOL13_MD_L3_Resources.html"><span class="sl-id">C</span><div><div class="sl-en">Resources &amp; Equipment</div></div></a>
+  <a class="sb-link" href="VOL13_MD_L3_RFID_Color.html"><span class="sl-id">D</span><div><div class="sl-en">RFID &amp; Materials</div></div></a>
+  <a class="sb-link" href="VOL13_MD_L3_Quality.html"><span class="sl-id">E</span><div><div class="sl-en">Quality &amp; Logistics</div></div></a>
+  <div class="sb-section">Line Scheduling · 연계</div>
+  <a class="sb-link" href="VOL04_PP_LSB_Line_Schedule_Board.html"><span class="sl-id">PP-LSB</span><div><div class="sl-en">Schedule Board</div><div class="sl-ko">스케줄 보드</div></div></a>
+  <a class="sb-link" href="VOL04_PP_ODM_Operating_Downtime_Monitor.html"><span class="sl-id">PP-ODM</span><div><div class="sl-en">Downtime Monitor</div><div class="sl-ko">가동·비가동</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-2"><span class="num">02</span>Table Design (DDL)</a>
+    <a href="#sec-3"><span class="num">03</span>Constraints &amp; Index</a>
+    <a href="#sec-4"><span class="num">04</span>Sample Data</a>
+    <a href="#sec-5"><span class="num">05</span>Validation Rules</a>
+    <a href="#sec-6"><span class="num">06</span>Relationships</a>
+    <a href="#sec-7"><span class="num">07</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.13 · MD · L3 · Table Design · Line Scheduling Backbone</div>
+      <div class="scr-id-block"><div class="scr-id">MD-29</div><div class="scr-title-en">Line Time Pattern</div></div>
+      <div class="scr-title-ko">라인 시간패턴 마스터 — 테이블 설계서 (MD_LineTimePattern + MD_LineTimeSegment)</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">Table</span><span class="mc-val">MD_LineTimePattern</span></div>
+        <div class="meta-chip pop"><span class="mc-lbl">Detail</span><span class="mc-val">MD_LineTimeSegment</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Columns</span><span class="mc-val">14 + 11</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">Phase-0 ㉘</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Category</span><span class="mc-val">B · Production</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          <strong>MD_LineTimePattern</strong> gives every production line its <strong>own minute-level time pattern</strong> rather than relying on a single shared factory calendar. A pattern is scoped to a line and a day type, and decomposes a 1,440-minute day into ordered <strong>segments</strong> (MD_LineTimeSegment) — each segment is either <strong>OPERATING</strong> (가동) or <strong>PLANNED_DOWN</strong> (계획 비가동, carrying a reason code for PM, changeover or breaks). The pattern is the baseline against which PP-ODM compares real-time operating state and against which actual / unplanned downtime is measured.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          <strong>MD_LineTimePattern</strong>은 단일 공용 공장 캘린더에 의존하지 않고 각 생산 라인에 <strong>고유한 분단위 시간패턴</strong>을 부여한다. 패턴은 라인·요일유형 단위로 정의되며, 1,440분의 하루를 순서가 있는 <strong>세그먼트</strong>(MD_LineTimeSegment)로 분해한다 — 각 세그먼트는 <strong>OPERATING</strong>(가동) 또는 <strong>PLANNED_DOWN</strong>(계획 비가동 — PM·금형교체·휴게 사유코드 보유) 중 하나다. 이 패턴은 PP-ODM이 실시간 가동 상태를 비교하는 기준선이며, 실제/비계획 비가동을 측정하는 기준이 된다.
+        </div>
+      </div>
+      <div class="tl-wrap">
+        <div class="tl-cap">예시 — LINE-INJ-01 평일 2교대 패턴 (1,440분)</div>
+        <div class="tl-bar">
+          <div class="tl-seg tl-op" style="width:33%;">주간 가동 480m</div>
+          <div class="tl-seg tl-pd" style="width:5%;">PM</div>
+          <div class="tl-seg tl-op" style="width:31%;">야간 가동 450m</div>
+          <div class="tl-seg tl-pd" style="width:6%;">교체</div>
+          <div class="tl-seg tl-pd" style="width:25%;">비조업 휴지</div>
+        </div>
+        <div class="tl-axis"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+        <div class="tl-legend">
+          <span><span class="tl-dot tl-op"></span>OPERATING · 가동</span>
+          <span><span class="tl-dot tl-pd"></span>PLANNED_DOWN · 계획 비가동</span>
+          <span><span class="tl-dot tl-ud"></span>실제 비가동 (PP-ODM 런타임 측정)</span>
+        </div>
+      </div>
+      <div class="tbl-name">🕒 TABLE: MD_LineTimePattern <span class="tn-tag">MASTER</span> <span class="tn-tag" style="background:#475569;">Phase-0 입력순서 ㉘</span></div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Table Design (DDL)</span><span class="sec-ko">테이블 설계 — 컬럼 정의</span></div>
+      <div class="tbl-name">🕒 TABLE 1 — MD_LineTimePattern <span class="tn-tag">HEADER</span> <span class="tn-tag" style="background:#475569;">라인·요일유형별 패턴 헤더</span></div>
+      <table class="ddl-tbl">
+        <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
+        <tbody>
+          <tr><td class="col">PatternID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>시간패턴 관리 ID.</td></tr>
+          <tr><td class="col">LineID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">—</td><td>대상 라인 → MD_Line(LineID).</td></tr>
+          <tr><td class="col">PatternName</td><td class="typ">VARCHAR(50)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>패턴 명칭 (예: 평일 2교대).</td></tr>
+          <tr><td class="col">DayType</td><td class="typ">VARCHAR(10)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">WEEKDAY</td><td>요일유형 — CK: WEEKDAY·SAT·SUN·HOLIDAY·SPECIAL.</td></tr>
+          <tr><td class="col">ShiftModel</td><td class="typ">VARCHAR(12)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">2SHIFT</td><td>교대 모델 — CK: 1SHIFT·2SHIFT·3SHIFT·CUSTOM.</td></tr>
+          <tr><td class="col">EffectiveFrom</td><td class="typ">DATE</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>패턴 적용 시작일.</td></tr>
+          <tr><td class="col">EffectiveTo</td><td class="typ">DATE</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>패턴 적용 종료일 (NULL=무기한).</td></tr>
+          <tr><td class="col">TotalOperatingMin</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">0</td><td>가동 세그먼트 합계 (분, 세그먼트에서 자동 집계).</td></tr>
+          <tr><td class="col">TotalPlannedDownMin</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">0</td><td>계획 비가동 세그먼트 합계 (분, 자동 집계).</td></tr>
+          <tr><td class="col">TimeZone</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">Asia/Seoul</td><td>패턴 기준 시간대.</td></tr>
+          <tr><td class="col">Status</td><td class="typ">VARCHAR(8)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">DRAFT</td><td>상태 — CK: DRAFT·ACTIVE·INACTIVE.</td></tr>
+          <tr><td class="col">CreatedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>생성자.</td></tr>
+          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
+          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
+        </tbody>
+      </table>
+      <div class="tbl-name t2">🧩 TABLE 2 — MD_LineTimeSegment <span class="tn-tag det">DETAIL</span> <span class="tn-tag" style="background:#475569;">분단위 시간 세그먼트</span></div>
+      <table class="ddl-tbl">
+        <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
+        <tbody>
+          <tr><td class="col">SegmentID</td><td class="typ">VARCHAR(24)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>세그먼트 관리 ID.</td></tr>
+          <tr><td class="col">PatternID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">—</td><td>소속 패턴 → MD_LineTimePattern(PatternID).</td></tr>
+          <tr><td class="col">SeqNo</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>패턴 내 세그먼트 순번.</td></tr>
+          <tr><td class="col">StartMin</td><td class="typ">SMALLINT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>시작 분 (자정 기준 0~1439) — 분단위 정밀도.</td></tr>
+          <tr><td class="col">EndMin</td><td class="typ">SMALLINT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>종료 분 (자정 기준 1~1440), StartMin &lt; EndMin.</td></tr>
+          <tr><td class="col">SegmentState</td><td class="typ">VARCHAR(14)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">OPERATING</td><td>세그먼트 상태 — CK: OPERATING·PLANNED_DOWN.</td></tr>
+          <tr><td class="col">ReasonCode</td><td class="typ">VARCHAR(16)</td><td class="nn nn-n">N</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">NULL</td><td>계획 비가동 사유 → MD_ReasonCode (PLANNED_DOWN 한정).</td></tr>
+          <tr><td class="col">ShiftCode</td><td class="typ">VARCHAR(10)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>교대 코드 (DAY·SWING·NIGHT 등).</td></tr>
+          <tr><td class="col">Description</td><td class="typ">VARCHAR(60)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>세그먼트 설명.</td></tr>
+          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
+          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
+        </tbody>
+      </table>
+      <div class="alert alert-i" style="margin-top:12px;"><div><span class="alert-title">⚙ Minute Precision · 분단위 정밀도</span>StartMin·EndMin을 자정 기준 분(0~1440) 정수로 저장하여 라인별로 시(時)가 아닌 분(分) 단위 시간창을 설정할 수 있다. 한 패턴의 세그먼트는 빈틈·중첩 없이 0~1440을 완전히 덮어야 한다(BR-MD-33). · Storing minute-of-day integers gives true minute-level windows; segments must tile the full day.</div></div>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Constraints &amp; Index</span><span class="sec-ko">제약조건 + 인덱스</span></div>
+      <table class="cons-tbl">
+        <thead><tr><th style="width:11%;">Type</th><th style="width:26%;">Name</th><th>Definition · 정의</th></tr></thead>
+        <tbody>
+          <tr><td><span class="ct ct-pk">PK</span></td><td class="cn">PK_MD_LineTimePattern</td><td class="cdef">PRIMARY KEY (PatternID)</td></tr>
+          <tr><td><span class="ct ct-pk">PK</span></td><td class="cn">PK_MD_LineTimeSegment</td><td class="cdef">PRIMARY KEY (SegmentID)</td></tr>
+          <tr><td><span class="ct ct-fk">FK</span></td><td class="cn">FK_Pattern_Line</td><td class="cdef">FOREIGN KEY (LineID) REFERENCES MD_Line(LineID)</td></tr>
+          <tr><td><span class="ct ct-fk">FK</span></td><td class="cn">FK_Segment_Pattern</td><td class="cdef">FOREIGN KEY (PatternID) REFERENCES MD_LineTimePattern(PatternID) ON DELETE CASCADE</td></tr>
+          <tr><td><span class="ct ct-fk">FK</span></td><td class="cn">FK_Segment_Reason</td><td class="cdef">FOREIGN KEY (ReasonCode) REFERENCES MD_ReasonCode(ReasonCode)</td></tr>
+          <tr><td><span class="ct ct-uk">UK</span></td><td class="cn">UK_Pattern_Scope</td><td class="cdef">UNIQUE (LineID, DayType, EffectiveFrom) — 라인·요일·발효일당 1패턴.</td></tr>
+          <tr><td><span class="ct ct-uk">UK</span></td><td class="cn">UK_Segment_Seq</td><td class="cdef">UNIQUE (PatternID, SeqNo) — 패턴 내 순번 고유.</td></tr>
+          <tr><td><span class="ct ct-ck">CK</span></td><td class="cn">CK_Pattern_DayType</td><td class="cdef">CHECK (DayType IN ('WEEKDAY','SAT','SUN','HOLIDAY','SPECIAL'))</td></tr>
+          <tr><td><span class="ct ct-ck">CK</span></td><td class="cn">CK_Pattern_Status</td><td class="cdef">CHECK (Status IN ('DRAFT','ACTIVE','INACTIVE'))</td></tr>
+          <tr><td><span class="ct ct-ck">CK</span></td><td class="cn">CK_Seg_State</td><td class="cdef">CHECK (SegmentState IN ('OPERATING','PLANNED_DOWN'))</td></tr>
+          <tr><td><span class="ct ct-ck">CK</span></td><td class="cn">CK_Seg_Minutes</td><td class="cdef">CHECK (StartMin &gt;= 0 AND EndMin &lt;= 1440 AND StartMin &lt; EndMin)</td></tr>
+          <tr><td><span class="ct ct-ck">CK</span></td><td class="cn">CK_Seg_Reason</td><td class="cdef">CHECK (SegmentState = 'OPERATING' OR ReasonCode IS NOT NULL)</td></tr>
+          <tr><td><span class="ct ct-ix">IX</span></td><td class="cn">IX_Pattern_Line</td><td class="cdef">INDEX (LineID, DayType, Status, EffectiveFrom) — 발효 패턴 해석.</td></tr>
+          <tr><td><span class="ct ct-ix">IX</span></td><td class="cn">IX_Segment_Pattern</td><td class="cdef">INDEX (PatternID, StartMin) — 타임라인 순차 조회.</td></tr>
+        </tbody>
+      </table>
+      <div class="alert alert-i" style="margin-top:10px;"><div><span class="alert-title">⚙ Full-day Tiling · 하루 완전 분할</span>BR-MD-33 — 한 패턴의 세그먼트 집합은 StartMin=0 에서 EndMin=1440 까지 빈틈(gap)·중첩(overlap) 없이 연속해야 한다. 저장 시 트리거가 검증하며, 위반 시 ACTIVE 전환이 차단된다. · A pattern's segments must tile 0–1440 with no gap or overlap.</div></div>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Sample Data</span><span class="sec-ko">샘플 데이터</span></div>
+      <table class="samp-tbl">
+        <thead><tr><th>PatternID</th><th>LineID</th><th>DayType</th><th>ShiftModel</th><th>Op / PD Min</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>LTP-INJ01-WD</td><td>LINE-INJ-01</td><td>WEEKDAY</td><td>2SHIFT</td><td>930 / 150</td><td>ACTIVE</td></tr>
+          <tr><td>LTP-INJ01-SAT</td><td>LINE-INJ-01</td><td>SAT</td><td>1SHIFT</td><td>450 / 60</td><td>ACTIVE</td></tr>
+          <tr><td>LTP-PNT01-WD</td><td>LINE-PNT-01</td><td>WEEKDAY</td><td>3SHIFT</td><td>1320 / 120</td><td>ACTIVE</td></tr>
+          <tr><td>LTP-PNT01-WD2</td><td>LINE-PNT-01</td><td>WEEKDAY</td><td>3SHIFT</td><td>1300 / 140</td><td>DRAFT</td></tr>
+        </tbody>
+      </table>
+      <table class="samp-tbl" style="margin-top:10px;">
+        <thead><tr><th>SegmentID</th><th>PatternID</th><th>Seq</th><th>StartMin</th><th>EndMin</th><th>State</th><th>ReasonCode</th></tr></thead>
+        <tbody>
+          <tr><td>SEG-INJ01WD-1</td><td>LTP-INJ01-WD</td><td>1</td><td>0</td><td>480</td><td>OPERATING</td><td>—</td></tr>
+          <tr><td>SEG-INJ01WD-2</td><td>LTP-INJ01-WD</td><td>2</td><td>480</td><td>510</td><td>PLANNED_DOWN</td><td>RSN-DT-CO</td></tr>
+          <tr><td>SEG-INJ01WD-3</td><td>LTP-INJ01-WD</td><td>3</td><td>510</td><td>990</td><td>OPERATING</td><td>—</td></tr>
+          <tr><td>SEG-INJ01WD-4</td><td>LTP-INJ01-WD</td><td>4</td><td>990</td><td>1080</td><td>PLANNED_DOWN</td><td>RSN-DT-PM</td></tr>
+          <tr><td>SEG-INJ01WD-5</td><td>LTP-INJ01-WD</td><td>5</td><td>1080</td><td>1440</td><td>PLANNED_DOWN</td><td>RSN-DT-IDLE</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Validation &amp; Business Rules</span><span class="sec-ko">검증 + 업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:100px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-MD-33</td><td><div>A pattern's segments must tile 0–1440 minutes with no gap or overlap.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">패턴 세그먼트는 0~1440분을 빈틈·중첩 없이 분할해야 함.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-MD-34</td><td><div>A PLANNED_DOWN segment must carry a ReasonCode of ReasonType=DOWNTIME with PlannedFlag=TRUE.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">PLANNED_DOWN 세그먼트는 DOWNTIME·PlannedFlag=TRUE 사유코드 필수.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-MD-35</td><td><div>Only one ACTIVE pattern may exist per (LineID, DayType) on any given date.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">(라인, 요일유형)당 특정 일자에 ACTIVE 패턴 1건만 허용.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-MD-36</td><td><div>TotalOperatingMin / TotalPlannedDownMin are auto-summed from segments on save.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">가동·계획비가동 합계는 저장 시 세그먼트에서 자동 집계.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-MD-37</td><td><div>An ACTIVE pattern is consumed by PP-LSB capacity planning and PP-ODM as the operating baseline.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">ACTIVE 패턴은 PP-LSB 캐파 계획·PP-ODM 가동 기준선으로 사용.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">VR-LTP-01</td><td><div>Pattern create / activate requires approval workflow + SYS-05 audit log.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">패턴 생성·활성화는 승인 워크플로 + SYS-05 감사 로그.</div></td><td><span class="br-act aut">Audit</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Relationships</span><span class="sec-ko">테이블 관계</span></div>
+      <table class="rel-tbl">
+        <thead><tr><th style="width:28%;">This Table</th><th style="width:10%;">Card.</th><th style="width:26%;">Related Table</th><th>Relationship · 관계</th></tr></thead>
+        <tbody>
+          <tr><td class="rel-c">MD_LineTimePattern.LineID</td><td>N : 1</td><td class="rel-c">MD_Line</td><td>라인 1개에 요일유형별 다수 시간패턴.</td></tr>
+          <tr><td class="rel-c">MD_LineTimeSegment.PatternID</td><td>N : 1</td><td class="rel-c">MD_LineTimePattern</td><td>패턴 1개가 다수 분단위 세그먼트로 구성.</td></tr>
+          <tr><td class="rel-c">MD_LineTimeSegment.ReasonCode</td><td>N : 1</td><td class="rel-c">MD_ReasonCode</td><td>계획 비가동 세그먼트가 사유코드를 참조.</td></tr>
+          <tr><td class="rel-c">MD_LineTimePattern.DayType</td><td>—</td><td class="rel-c">MD_Calendar</td><td>요일유형이 공장 캘린더 일자 분류와 정합.</td></tr>
+          <tr><td class="rel-c">PP_LineDowntimeLog.PatternID</td><td>N : 1</td><td class="rel-c">MD_LineTimePattern</td><td>실제 비가동 로그가 기준 패턴을 참조.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">MD-20 · MD-25</div><div class="lnk-name">라인·사유코드</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">MD-29</div><div class="lnk-name">MD_LineTimePattern</div><div class="lnk-ko">라인 시간패턴 마스터</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">PP-LSB · PP-ODM · PP-OEE</div><div class="lnk-name">스케줄·가동·OEE</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.13 · MD-29 · Line Time Pattern Master · Table Design Spec v1.0</div><div class="pf-r">MD_LineTimePattern 14 + MD_LineTimeSegment 11 Columns · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
