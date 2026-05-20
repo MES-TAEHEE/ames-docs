@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.4 · PP-LSB · Line Schedule Board · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{
+  --gold:#d4a017; --gold-lt:#fdf6e3; --gold-dk:#a07810;
+  --ink:#0d1117; --ink2:#161b22; --ink3:#21262d;
+  --surface:#ffffff; --bg:#f6f8fa; --border:#d0d7de;
+  --text:#24292f; --sub:#656d76;
+  --pp:#059669;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
+.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}
+.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}
+.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}
+.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}
+.l3-crumb .current{color:var(--gold);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:#fff;}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:48px;flex-shrink:0;color:rgba(52,211,153,.7);}
+.sb-link.on .sl-id{color:var(--gold);}
+.sb-link .sl-en{font-size:10px;font-weight:600;}
+.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);margin-top:1px;}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#031712 0%,#052e1f 50%,#03251a 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(52,211,153,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(52,211,153,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(52,211,153,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(52,211,153,.10),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#34d399;margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:#34d399;border-radius:50%;box-shadow:0 0 8px #34d399;}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:14px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:#34d399;line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:46px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:4px;margin-bottom:14px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.web{border-color:rgba(26,111,255,.3);color:#7ab4ff;}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(52,211,153,.3);color:#6ee7b7;}
+.content{padding:0 48px 60px;}
+.sec{margin-top:36px;}
+.sec-hdr{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.sec-num{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--pp);letter-spacing:1px;line-height:1;min-width:42px;}
+.sec-title-wrap{flex:1;}
+.sec-title-en{font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.3px;}
+.sec-title-ko{font-size:11px;color:var(--sub);margin-top:1px;}
+.sec-line{flex:1;height:1px;background:linear-gradient(90deg,var(--pp),transparent);max-width:200px;}
+.ov-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;}
+.ov-desc{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--pp);border-radius:0 6px 6px 0;padding:16px 18px;}
+.ov-desc-en{font-size:12px;color:var(--text);line-height:1.85;margin-bottom:10px;}
+.ov-desc-ko{font-size:11px;color:var(--sub);line-height:1.85;padding-top:10px;border-top:1px dashed var(--border);}
+.ov-meta{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.ov-meta-row{display:flex;border-bottom:1px solid var(--border);font-size:11px;}
+.ov-meta-row:last-child{border-bottom:none;}
+.ov-meta-k{flex:0 0 110px;background:#f6f8fa;padding:8px 12px;font-weight:700;color:var(--sub);font-size:10px;letter-spacing:.5px;text-transform:uppercase;border-right:1px solid var(--border);}
+.ov-meta-v{flex:1;padding:8px 12px;color:var(--text);}
+.ov-meta-v code{font-family:'JetBrains Mono',monospace;font-size:10px;background:#f0f3f7;padding:1px 6px;border-radius:3px;color:var(--pp);}
+.mock-wrap{background:#eef1f5;border:1px solid var(--border);border-radius:8px;padding:14px;}
+.mock-lbl{font-size:9px;font-weight:700;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.mock-lbl::before{content:'';width:6px;height:6px;background:var(--pp);border-radius:50%;}
+.mock-win{background:#fff;border:1px solid #c8d0db;border-radius:6px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.08);}
+.mock-tbar{background:var(--text);color:#fff;padding:8px 14px;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;}
+.mock-tbar .bc{margin-left:auto;font-size:9px;color:rgba(255,255,255,.35);font-family:'JetBrains Mono',monospace;}
+.mock-toolbar{background:#f6f8fa;border-bottom:1px solid var(--border);padding:8px 14px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+.mock-toolbar select,.mock-toolbar input{padding:4px 9px;border:1px solid var(--border);border-radius:3px;font-size:11px;background:#fff;}
+.mock-body{padding:14px;}
+.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:14px;}
+.kc{flex:1;padding:10px 13px;border-right:1px solid var(--border);background:#fafbfc;}
+.kc:last-child{border-right:none;}
+.kv{font-size:22px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
+.kl-en{font-size:9px;color:var(--sub);margin-top:3px;}
+.btn{padding:5px 13px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
+.btn-primary{background:var(--pp);color:#fff;border-color:var(--pp);}
+.btn-secondary{background:#f6f8fa;color:var(--text);border-color:var(--border);}
+.btn-sm{padding:3px 9px;font-size:10px;}
+/* GANTT */
+.gantt{border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.gantt-axis{display:flex;background:#f0f3f7;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--sub);}
+.gantt-axis .ga-lbl{flex:0 0 116px;padding:5px 8px;font-weight:700;border-right:1px solid var(--border);}
+.gantt-axis .ga-h{flex:1;text-align:left;padding:5px 0 5px 2px;border-right:1px solid #e3e8ee;}
+.gantt-row{display:flex;border-bottom:1px solid var(--border);}
+.gantt-row:last-child{border-bottom:none;}
+.gantt-row .gr-lbl{flex:0 0 116px;padding:8px;border-right:1px solid var(--border);background:#fafbfc;}
+.gantt-row .gr-lbl .grl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--pp);}
+.gantt-row .gr-lbl .grl-ko{font-size:9px;color:var(--sub);}
+.gantt-track{flex:1;position:relative;height:46px;background:repeating-linear-gradient(90deg,transparent,transparent calc(8.333% - 1px),#eef1f5 calc(8.333% - 1px),#eef1f5 8.333%);}
+.gtl{position:absolute;top:0;bottom:0;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;font-family:'JetBrains Mono',monospace;}
+.gtl-op{background:rgba(22,163,74,.16);border-top:2px solid #16a34a;}
+.gtl-pd{background:rgba(245,158,11,.22);border-top:2px solid #f59e0b;color:#92400e;}
+.gwo{position:absolute;top:13px;height:20px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2);}
+.gwo-a{background:#2563eb;}.gwo-b{background:#ea580c;}.gwo-over{background:#dc2626;}
+.tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.tbl th{background:#f0f3f7;padding:7px 9px;font-weight:700;border:1px solid var(--border);text-align:left;font-size:10px;}
+.tbl td{padding:6px 9px;border:1px solid var(--border);}
+.tbl .ko{color:var(--sub);font-size:10px;}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
+.b-ok{background:#dcfce7;color:#166534;}.b-w{background:#fef9c3;color:#92400e;}.b-e{background:#fee2e2;color:#991b1b;}.b-i{background:#dbeafe;color:#1e40af;}
+.cs-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.cs-tbl th{background:linear-gradient(180deg,#03251a,#031712);color:#6ee7b7;padding:9px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.cs-tbl th .th-ko{display:block;color:rgba(110,231,183,.55);font-weight:400;font-size:9px;text-transform:none;margin-top:1px;}
+.cs-tbl td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.cs-tbl tr:last-child td{border-bottom:none;}
+.cs-tbl .c-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--pp);}
+.cs-tbl .c-name{font-weight:700;color:var(--text);}
+.cs-tbl .c-name .ko{font-size:10px;font-weight:400;color:var(--sub);display:block;margin-top:1px;}
+.cs-tbl .c-type{font-family:'JetBrains Mono',monospace;font-size:10px;color:#7c3aed;background:#f5f3ff;padding:2px 6px;border-radius:3px;display:inline-block;}
+.cs-tbl .c-req{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;}
+.cs-tbl .c-req.y{color:#dc2626;}.cs-tbl .c-req.n{color:var(--sub);}
+.cs-tbl .c-validation{font-size:10px;color:var(--text);line-height:1.6;}
+.cs-tbl .c-validation code{font-family:'JetBrains Mono',monospace;font-size:9px;background:#fff7ed;color:#9a3412;padding:1px 5px;border-radius:2px;}
+.cs-tbl .c-default{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sub);}
+.ef-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px 20px;}
+.ef-step{display:grid;grid-template-columns:46px 1fr;gap:14px;padding:10px 0;position:relative;}
+.ef-step:not(:last-child)::before{content:'';position:absolute;left:23px;top:42px;bottom:-10px;width:2px;background:linear-gradient(180deg,var(--pp),rgba(5,150,105,.15));}
+.ef-num{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--pp),#047857);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:22px;position:relative;z-index:1;}
+.ef-step.terminal .ef-num{background:linear-gradient(135deg,#0891b2,#0e7490);}
+.ef-step.error .ef-num{background:linear-gradient(135deg,#dc2626,#991b1b);}
+.ef-trig{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.ef-trig-tag{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;border-radius:2px;}
+.ef-trig-tag.user{background:#dbeafe;color:#1e40af;}
+.ef-trig-tag.system{background:#f3e8ff;color:#7c3aed;}
+.ef-trig-tag.scheduled{background:#fef3c7;color:#92400e;}
+.ef-trig-name{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--text);}
+.ef-action{font-size:12px;color:var(--text);line-height:1.7;margin-bottom:3px;}
+.ef-action-ko{font-size:11px;color:var(--sub);line-height:1.7;}
+.ef-result{margin-top:6px;padding:7px 10px;background:#f6f8fa;border-left:2px solid var(--pp);border-radius:0 3px 3px 0;font-size:10px;color:var(--text);}
+.ef-result .er-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;color:var(--pp);letter-spacing:1px;margin-right:6px;}
+.ef-result code{font-family:'JetBrains Mono',monospace;font-size:10px;background:#fff;padding:1px 5px;border-radius:2px;border:1px solid var(--border);color:#7c3aed;}
+.ef-step.terminal .ef-result{border-left-color:#0891b2;background:#ecfeff;}
+.ef-step.terminal .ef-result .er-lbl{color:#0891b2;}
+.exc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+.exc-card{background:var(--surface);border:1px solid var(--border);border-top:3px solid #dc2626;border-radius:0 0 6px 6px;padding:13px 15px;}
+.exc-card.warn{border-top-color:#f59e0b;}
+.exc-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.exc-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#dc2626;background:#fef2f2;padding:2px 8px;border-radius:3px;}
+.exc-card.warn .exc-code{color:#92400e;background:#fef3c7;}
+.exc-name{font-size:12px;font-weight:700;color:var(--text);flex:1;}
+.exc-name .ko{font-size:10px;font-weight:400;color:var(--sub);display:block;}
+.exc-row{display:grid;grid-template-columns:64px 1fr;gap:8px;padding:5px 0;border-top:1px dashed var(--border);font-size:10px;}
+.exc-row:first-of-type{border-top:none;}
+.exc-row .lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;padding-top:2px;}
+.exc-row .val{color:var(--text);line-height:1.6;}
+.exc-msg{margin-top:8px;padding:7px 10px;background:#1a0808;border:1px solid #3a1010;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#ff8a82;text-align:center;}
+.exc-card.warn .exc-msg{background:#1a1408;border-color:#3a2a10;color:#fbbf24;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px 24px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#f0fdf4;border-color:#22c55e;}
+.lnk-node.cur{background:linear-gradient(135deg,#031712,#052e1f);border-color:#34d399;color:#fff;}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#15803d;}
+.lnk-node.cur .lnk-id{color:#34d399;}
+.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}
+.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.br-mini tr:last-child td{border-bottom:none;}
+.br-mini .br-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-mini .br-act{text-align:center;}
+.br-mini .br-act span{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-mini .br-act .blk{background:#fee2e2;color:#991b1b;}
+.br-mini .br-act .alt{background:#fef9c3;color:#92400e;}
+.br-mini .br-act .aut{background:#dbeafe;color:#1e40af;}
+.page-footer{padding:24px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;align-items:center;font-size:10px;}
+.page-footer .pf-l{font-family:'JetBrains Mono',monospace;}
+.page-footer .pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+@media (max-width:1100px){.ov-grid{grid-template-columns:1fr;}.exc-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner">
+  <a class="nav-home" href="INDEX.html"><div><div class="nav-home-logo">A-MES</div><div class="nav-home-sub">Index</div></div></a>
+  <a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span>Warehouse</span></a>
+  <a href="VOL04_PP_Production_Plan.html" class="nav-vol active"><span class="nv-code" style="color:#059669;">PP</span><span>Plan</span></a>
+  <a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span>Injection</span></a>
+  <a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span>Wrapping</span></a>
+  <a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span>Painting</span></a>
+  <a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span>Quality</span></a>
+  <a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span>Finished Goods</span></a>
+  <a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span>Maintenance</span></a>
+  <a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span>Reports</span></a>
+  <a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span>System</span></a>
+  <a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span>Master Data</span></a>
+</div></nav>
+<div class="l3-crumb">
+  <span class="lvl">L1</span><a href="INDEX.html">A-MES Index</a>
+  <span class="arr">▸</span>
+  <span class="lvl">L2</span><a href="VOL04_PP_Production_Plan.html">VOL.4 · PP Production Plan</a>
+  <span class="arr">▸</span>
+  <span class="lvl">L3</span><span class="current">PP-LSB · Line Schedule Board</span>
+</div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head">
+    <div class="sb-vol">VOL.4 · PP MODULE</div>
+    <div class="sb-mod-en">PRODUCTION PLAN</div>
+    <div class="sb-mod-ko">생산계획</div>
+  </div>
+  <div class="sb-section">L3 Screens · 화면 상세</div>
+  <a class="sb-link" href="VOL04_PP01_Forecast.html"><span class="sl-id">PP-01</span><div><div class="sl-en">Forecast Mgmt</div><div class="sl-ko">Forecast 관리</div></div></a>
+  <a class="sb-link" href="VOL04_PP02_SAP_Import.html"><span class="sl-id">PP-02</span><div><div class="sl-en">SAP B1 Import</div><div class="sl-ko">공급계획 수신</div></div></a>
+  <a class="sb-link" href="VOL04_PP03_Plan_Confirm.html"><span class="sl-id">PP-03</span><div><div class="sl-en">Plan &amp; Confirm</div><div class="sl-ko">생산계획 수립</div></div></a>
+  <a class="sb-link" href="VOL04_PP04_Work_Order.html"><span class="sl-id">PP-04</span><div><div class="sl-en">Work Order Mgmt</div><div class="sl-ko">작업지시 관리</div></div></a>
+  <a class="sb-link" href="VOL04_PP05_MRP.html"><span class="sl-id">PP-05</span><div><div class="sl-en">MRP</div><div class="sl-ko">자재 소요 계획</div></div></a>
+  <a class="sb-link" href="VOL04_PP06_Purchase_Req.html"><span class="sl-id">PP-06</span><div><div class="sl-en">Purchase Req.</div><div class="sl-ko">자재발주 요청</div></div></a>
+  <a class="sb-link" href="VOL04_PP07_WO_Release.html"><span class="sl-id">PP-07</span><div><div class="sl-en">WO Release</div><div class="sl-ko">WO 발행</div></div></a>
+  <a class="sb-link" href="VOL04_PP_CAL_Calendar.html"><span class="sl-id">PP-CAL</span><div><div class="sl-en">Production Calendar</div><div class="sl-ko">생산 캘린더</div></div></a>
+  <a class="sb-link" href="VOL04_PP_OTD_Delivery.html"><span class="sl-id">PP-OTD</span><div><div class="sl-en">Delivery KPI</div><div class="sl-ko">납기 현황</div></div></a>
+  <div class="sb-section">Line Scheduling · 라인 스케줄링</div>
+  <a class="sb-link on" href="VOL04_PP_LSB_Line_Schedule_Board.html"><span class="sl-id">PP-LSB</span><div><div class="sl-en">Line Schedule Board</div><div class="sl-ko">라인 스케줄 보드</div></div></a>
+  <a class="sb-link" href="VOL04_PP_ODM_Operating_Downtime_Monitor.html"><span class="sl-id">PP-ODM</span><div><div class="sl-en">Operating/Downtime Monitor</div><div class="sl-ko">가동·비가동 모니터</div></div></a>
+  <a class="sb-link" href="VOL04_PP_OEE_Line_Availability.html"><span class="sl-id">PP-OEE</span><div><div class="sl-en">Line Availability &amp; OEE</div><div class="sl-ko">라인 가용성·OEE</div></div></a>
+  <a class="sb-link" href="VOL04_PP_DTL_Downtime_Log.html"><span class="sl-id">PP-DTL</span><div><div class="sl-en">Downtime Log Entry</div><div class="sl-ko">비가동 로그 입력</div></div></a>
+  <a class="sb-link" href="VOL13_MD29_Line_Time_Pattern.html"><span class="sl-id">MD-29</span><div><div class="sl-en">Line Time Pattern</div><div class="sl-ko">라인 시간패턴</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page</div>
+    <a href="#s1"><span class="num">01</span>Overview</a>
+    <a href="#s2"><span class="num">02</span>Screen Mockup</a>
+    <a href="#s3"><span class="num">03</span>UI Components</a>
+    <a href="#s4"><span class="num">04</span>Event &amp; Action Flow</a>
+    <a href="#s5"><span class="num">05</span>Exception Handling</a>
+    <a href="#s6"><span class="num">06</span>Linked Screens</a>
+    <a href="#s7"><span class="num">07</span>Business Rules</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.4 · PP · Line Scheduling · 라인 스케줄 보드</div>
+      <div class="scr-id-block">
+        <div class="scr-id">PP-LSB</div>
+        <div><div class="scr-title-en">Line Schedule Board</div></div>
+      </div>
+      <div class="scr-title-ko">라 인 별   분 단 위   스 케 줄   보 드</div>
+      <div class="scr-meta">
+        <div class="meta-chip web"><span class="mc-lbl">Device</span><span class="mc-val">🖥 Web PC</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">2nd Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">PLAN Manager</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Freq</span><span class="mc-val">Daily · 일간</span></div>
+        <div class="meta-chip"><span class="mc-lbl">URL</span><span class="mc-val" style="font-family:'JetBrains Mono',monospace;">/pp/line-schedule</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="s1">
+      <div class="sec-hdr"><div class="sec-num">01</div><div class="sec-title-wrap"><div class="sec-title-en">Overview</div><div class="sec-title-ko">화면 개요 · 목적 · 컨텍스트</div></div><div class="sec-line"></div></div>
+      <div class="ov-grid">
+        <div class="ov-desc">
+          <div class="ov-desc-en">A minute-level Gantt board that schedules Work Orders onto each line's <strong>own time pattern</strong> (MD-29). Every line row renders its active <code>MD_LineTimePattern</code> as background bands — green OPERATING windows and amber PLANNED_DOWN windows — and WO blocks (routing A blue / B orange) are dragged onto operating windows only. Available capacity per line = Σ OPERATING minutes; the board blocks any WO that would overflow an operating window or land on planned downtime.</div>
+          <div class="ov-desc-ko">작업지시(WO)를 각 라인의 <strong>고유 시간패턴</strong>(MD-29) 위에 배치하는 분단위 간트 보드. 각 라인 행은 활성 <code>MD_LineTimePattern</code>을 배경 밴드로 렌더링한다 — 녹색 OPERATING 시간창, 호박색 PLANNED_DOWN 시간창 — 그리고 WO 블록(라우팅 A 파랑/B 주황)은 가동 시간창에만 드래그 배치된다. 라인별 가용 캐파 = Σ OPERATING 분; 가동창을 초과하거나 계획 비가동에 걸치는 WO는 차단된다.</div>
+        </div>
+        <div class="ov-meta">
+          <div class="ov-meta-row"><div class="ov-meta-k">Screen ID</div><div class="ov-meta-v"><code>PP-LSB</code></div></div>
+          <div class="ov-meta-row"><div class="ov-meta-k">Granularity</div><div class="ov-meta-v">1-minute slot · 분단위</div></div>
+          <div class="ov-meta-row"><div class="ov-meta-k">Baseline</div><div class="ov-meta-v">MD-29 Line Time Pattern</div></div>
+          <div class="ov-meta-row"><div class="ov-meta-k">Tables</div><div class="ov-meta-v"><code>MD_LineTimePattern</code>, <code>MD_LineTimeSegment</code>, <code>PP_LineSchedule</code>, <code>PP_WO</code></div></div>
+          <div class="ov-meta-row"><div class="ov-meta-k">RBAC</div><div class="ov-meta-v"><code>PP.LineSchedule</code></div></div>
+          <div class="ov-meta-row"><div class="ov-meta-k">Downstream</div><div class="ov-meta-v">PP-ODM · PP-OEE · INJ/PNT POP</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="s2">
+      <div class="sec-hdr"><div class="sec-num">02</div><div class="sec-title-wrap"><div class="sec-title-en">Screen Mockup</div><div class="sec-title-ko">화면 목업 — 분단위 간트 보드</div></div><div class="sec-line"></div></div>
+      <div class="mock-wrap">
+        <div class="mock-lbl">PP-LSB · Line Schedule Board · Web PC</div>
+        <div class="mock-win">
+          <div class="mock-tbar">📊 A-MES · PP · Line Schedule Board <span class="bc">PP &gt; Line Schedule</span></div>
+          <div class="mock-toolbar">
+            <input type="date" value="2026-05-21">
+            <select><option>All Lines</option><option>INJ Lines</option><option>PNT Lines</option></select>
+            <select><option>WEEKDAY pattern</option><option>SAT pattern</option><option>HOLIDAY pattern</option></select>
+            <button class="btn btn-primary btn-sm">🔍 Load</button>
+            <button class="btn btn-secondary btn-sm" style="margin-left:auto;">⚙ Edit Pattern (MD-29)</button>
+            <button class="btn btn-secondary btn-sm">📤 Publish</button>
+          </div>
+          <div class="mock-body">
+            <div class="kpi-strip">
+              <div class="kc"><div class="kv" style="color:#16a34a;">3,540</div><div class="kl-en">Operating min · 가동 가용</div></div>
+              <div class="kc"><div class="kv" style="color:#f59e0b;">420</div><div class="kl-en">Planned down min · 계획비가동</div></div>
+              <div class="kc"><div class="kv" style="color:#2563eb;">87%</div><div class="kl-en">Capacity loaded · 부하율</div></div>
+              <div class="kc"><div class="kv" style="color:#6b7280;">18</div><div class="kl-en">WO scheduled</div></div>
+              <div class="kc"><div class="kv" style="color:#dc2626;">2</div><div class="kl-en">⚠ Overflow</div></div>
+            </div>
+            <div class="gantt">
+              <div class="gantt-axis">
+                <div class="ga-lbl">LINE · 라인</div>
+                <div class="ga-h">00</div><div class="ga-h">03</div><div class="ga-h">06</div><div class="ga-h">09</div><div class="ga-h">12</div><div class="ga-h">15</div><div class="ga-h">18</div><div class="ga-h">21</div>
+              </div>
+              <div class="gantt-row">
+                <div class="gr-lbl"><div class="grl-id">LINE-INJ-01</div><div class="grl-ko">사출 1라인 · 2교대</div></div>
+                <div class="gantt-track">
+                  <div class="gtl gtl-op" style="left:0;width:33.3%;">OP 480m</div>
+                  <div class="gtl gtl-pd" style="left:33.3%;width:2.1%;">CO</div>
+                  <div class="gtl gtl-op" style="left:35.4%;width:33.3%;">OP 480m</div>
+                  <div class="gtl gtl-pd" style="left:68.7%;width:6.3%;">PM</div>
+                  <div class="gtl gtl-pd" style="left:75%;width:25%;">IDLE</div>
+                  <div class="gwo gwo-a" style="left:1%;width:18%;">WO-001 A</div>
+                  <div class="gwo gwo-a" style="left:20%;width:13%;">WO-002 A</div>
+                  <div class="gwo gwo-b" style="left:36%;width:22%;">WO-007 B</div>
+                </div>
+              </div>
+              <div class="gantt-row">
+                <div class="gr-lbl"><div class="grl-id">LINE-PNT-01</div><div class="grl-ko">도장 1라인 · 3교대</div></div>
+                <div class="gantt-track">
+                  <div class="gtl gtl-op" style="left:0;width:62.5%;">OPERATING 900m</div>
+                  <div class="gtl gtl-pd" style="left:62.5%;width:8.3%;">PM 120m</div>
+                  <div class="gtl gtl-op" style="left:70.8%;width:29.2%;">OPERATING 420m</div>
+                  <div class="gwo gwo-b" style="left:1%;width:30%;">WO-011 B</div>
+                  <div class="gwo gwo-b" style="left:32%;width:28%;">WO-014 B</div>
+                  <div class="gwo gwo-over" style="left:61%;width:14%;">⚠ WO-018</div>
+                </div>
+              </div>
+              <div class="gantt-row">
+                <div class="gr-lbl"><div class="grl-id">LINE-INJ-02</div><div class="grl-ko">사출 2라인 · 1교대</div></div>
+                <div class="gantt-track">
+                  <div class="gtl gtl-pd" style="left:0;width:25%;">IDLE</div>
+                  <div class="gtl gtl-op" style="left:25%;width:31.3%;">OPERATING 450m</div>
+                  <div class="gtl gtl-pd" style="left:56.3%;width:43.7%;">IDLE</div>
+                  <div class="gwo gwo-a" style="left:26%;width:20%;">WO-021 A</div>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top:8px;font-size:9px;color:#656d76;display:flex;gap:16px;">
+              <span>🟩 OPERATING 가동창</span><span>🟧 PLANNED_DOWN 계획비가동</span><span>🟦 WO 라우팅 A</span><span>🟧 WO 라우팅 B</span><span>🟥 Overflow 차단</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="s3">
+      <div class="sec-hdr"><div class="sec-num">03</div><div class="sec-title-wrap"><div class="sec-title-en">UI Components Specification</div><div class="sec-title-ko">UI 컴포넌트 명세 · 검증 규칙</div></div><div class="sec-line"></div></div>
+      <table class="cs-tbl">
+        <thead><tr><th style="width:70px;">ID</th><th>Component<span class="th-ko">컴포넌트</span></th><th style="width:90px;">Type</th><th style="width:56px;">Req.<span class="th-ko">필수</span></th><th>Validation / Behavior<span class="th-ko">검증·동작</span></th><th style="width:88px;">Default</th></tr></thead>
+        <tbody>
+          <tr><td class="c-id">CMP-01</td><td class="c-name">Date Picker<span class="ko">대상 일자</span></td><td><span class="c-type">DATE</span></td><td class="c-req y">Y</td><td class="c-validation">Selected date resolves each line's pattern by DayType (WEEKDAY/SAT/HOLIDAY) via MD-14 Calendar.</td><td class="c-default">Today</td></tr>
+          <tr><td class="c-id">CMP-02</td><td class="c-name">Line Filter<span class="ko">라인 필터</span></td><td><span class="c-type">SELECT</span></td><td class="c-req n">N</td><td class="c-validation">All / INJ lines / PNT lines / single line.</td><td class="c-default">All</td></tr>
+          <tr><td class="c-id">CMP-03</td><td class="c-name">Pattern Band<span class="ko">시간패턴 밴드</span></td><td><span class="c-type">AUTO</span></td><td class="c-req n">—</td><td class="c-validation">Renders MD_LineTimeSegment rows: OPERATING green, PLANNED_DOWN amber. Minute-positioned via <code>StartMin/EndMin</code>.</td><td class="c-default">—</td></tr>
+          <tr><td class="c-id">CMP-04</td><td class="c-name">WO Block (drag)<span class="ko">WO 블록</span></td><td><span class="c-type">DRAG</span></td><td class="c-req n">—</td><td class="c-validation">Drag a WO onto an OPERATING window. Snap to 1-min grid. Drop on PLANNED_DOWN or overflow → rejected (E-LSB-001).</td><td class="c-default">—</td></tr>
+          <tr><td class="c-id">CMP-05</td><td class="c-name">Capacity Bar<span class="ko">부하율 바</span></td><td><span class="c-type">AUTO</span></td><td class="c-req n">—</td><td class="c-validation"><code>Load% = Σ WO minutes / Σ OPERATING minutes</code>. Red &gt;100%, amber 85-100%, green &lt;85%.</td><td class="c-default">—</td></tr>
+          <tr><td class="c-id">CMP-06</td><td class="c-name">Edit Pattern<span class="ko">패턴 편집</span></td><td><span class="c-type">NAV</span></td><td class="c-req n">—</td><td class="c-validation">Opens MD-29 pattern editor in modal. On save, board reloads bands. Requires <code>MD.LineTimePattern</code> role.</td><td class="c-default">—</td></tr>
+          <tr><td class="c-id">CMP-07</td><td class="c-name">Publish<span class="ko">발행</span></td><td><span class="c-type">BUTTON</span></td><td class="c-req n">N</td><td class="c-validation">Commits PP_LineSchedule rows; pushes schedule to INJ/PNT POP and PP-ODM baseline. Blocked if any overflow remains.</td><td class="c-default">—</td></tr>
+          <tr><td class="c-id">CMP-08</td><td class="c-name">Auto-Schedule<span class="ko">자동 배치</span></td><td><span class="c-type">BUTTON</span></td><td class="c-req n">N</td><td class="c-validation">Heuristic fill of released WOs into OPERATING windows by D-Day ascending; user reviews before Publish.</td><td class="c-default">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="s4">
+      <div class="sec-hdr"><div class="sec-num">04</div><div class="sec-title-wrap"><div class="sec-title-en">Event &amp; Action Flow</div><div class="sec-title-ko">이벤트 흐름 · 사용자 액션 → 시스템 반응</div></div><div class="sec-line"></div></div>
+      <div class="ef-wrap">
+        <div class="ef-step">
+          <div class="ef-num">1</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag user">USER</span><span class="ef-trig-name">page.load · select date</span></div>
+            <div class="ef-action">Resolves each line's DayType from MD-14 Calendar, loads the matching ACTIVE MD_LineTimePattern and renders minute-level bands.</div>
+            <div class="ef-action-ko">MD-14 캘린더로 라인별 요일유형 판별 → ACTIVE 시간패턴 로드 → 분단위 밴드 렌더링.</div>
+            <div class="ef-result"><span class="er-lbl">API</span><code>GET /api/pp/line-schedule?date=2026-05-21</code></div></div>
+        </div>
+        <div class="ef-step">
+          <div class="ef-num">2</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag user">USER</span><span class="ef-trig-name">drag · WO block → operating window</span></div>
+            <div class="ef-action">User drags a released WO onto an OPERATING segment; system snaps to 1-minute grid and computes end minute from WO standard run time.</div>
+            <div class="ef-action-ko">발행 WO를 OPERATING 세그먼트에 드래그 → 1분 그리드 스냅 → WO 표준시간으로 종료 분 계산.</div>
+            <div class="ef-result"><span class="er-lbl">CALC</span>endMin = startMin + ceil(WO.qty × cycleTime / 60)</div></div>
+        </div>
+        <div class="ef-step">
+          <div class="ef-num">3</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag system">SYSTEM</span><span class="ef-trig-name">validate · window fit</span></div>
+            <div class="ef-action">Checks the WO block stays inside one OPERATING window and does not cross a PLANNED_DOWN segment; overflow flips the block red.</div>
+            <div class="ef-action-ko">WO 블록이 단일 OPERATING 창 내에 있고 PLANNED_DOWN을 가로지르지 않는지 검증 — 초과 시 빨강 표시.</div>
+            <div class="ef-result"><span class="er-lbl">RULE</span>BR-PP-031 · overflow → block + E-LSB-001</div></div>
+        </div>
+        <div class="ef-step">
+          <div class="ef-num">4</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag user">USER</span><span class="ef-trig-name">click · [Auto-Schedule]</span></div>
+            <div class="ef-action">Heuristically fills all unscheduled released WOs into available OPERATING minutes, ordered by D-Day ascending.</div>
+            <div class="ef-action-ko">미배치 발행 WO를 D-Day 오름차순으로 가용 OPERATING 분에 자동 충전.</div>
+            <div class="ef-result"><span class="er-lbl">API</span><code>POST /api/pp/line-schedule/auto-fill</code></div></div>
+        </div>
+        <div class="ef-step terminal">
+          <div class="ef-num">5</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag user">USER</span><span class="ef-trig-name">click · [Publish]</span></div>
+            <div class="ef-action">Commits PP_LineSchedule, pushes the day's schedule to INJ/PNT POP screens and sets the PP-ODM operating baseline.</div>
+            <div class="ef-action-ko">PP_LineSchedule 확정 → INJ/PNT POP에 일정 푸시 → PP-ODM 가동 기준선 설정.</div>
+            <div class="ef-result"><span class="er-lbl">DOWNSTREAM</span>PP-ODM baseline · PP-OEE plan · POP work queue</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="s5">
+      <div class="sec-hdr"><div class="sec-num">05</div><div class="sec-title-wrap"><div class="sec-title-en">Exception Handling</div><div class="sec-title-ko">예외 처리 · 오류 코드</div></div><div class="sec-line"></div></div>
+      <div class="exc-grid">
+        <div class="exc-card">
+          <div class="exc-hdr"><span class="exc-code">E-LSB-001</span><div class="exc-name">Window Overflow<span class="ko">가동창 초과</span></div></div>
+          <div class="exc-row"><span class="lbl">Cause</span><span class="val">WO block exceeds the OPERATING window or crosses a PLANNED_DOWN segment.</span></div>
+          <div class="exc-row"><span class="lbl">Detect</span><span class="val">On drop / auto-fill.</span></div>
+          <div class="exc-row"><span class="lbl">Action</span><span class="val">Block turns red, Publish disabled. Split WO or move to another window.</span></div>
+          <div class="exc-msg">⛔ OVERFLOW · BLOCKED</div>
+        </div>
+        <div class="exc-card">
+          <div class="exc-hdr"><span class="exc-code">E-LSB-002</span><div class="exc-name">No Active Pattern<span class="ko">패턴 미정의</span></div></div>
+          <div class="exc-row"><span class="lbl">Cause</span><span class="val">Line has no ACTIVE MD_LineTimePattern for the resolved DayType.</span></div>
+          <div class="exc-row"><span class="lbl">Detect</span><span class="val">On page load.</span></div>
+          <div class="exc-row"><span class="lbl">Action</span><span class="val">Line row greyed; prompt to define pattern in MD-29.</span></div>
+          <div class="exc-msg">⛔ PATTERN MISSING</div>
+        </div>
+        <div class="exc-card warn">
+          <div class="exc-hdr"><span class="exc-code">E-LSB-003</span><div class="exc-name">Capacity Over 100%<span class="ko">부하율 초과</span></div></div>
+          <div class="exc-row"><span class="lbl">Cause</span><span class="val">Σ WO minutes exceeds Σ OPERATING minutes for a line.</span></div>
+          <div class="exc-row"><span class="lbl">Detect</span><span class="val">On every schedule change.</span></div>
+          <div class="exc-row"><span class="lbl">Action</span><span class="val">Capacity bar red; suggest moving WO to another line / day.</span></div>
+          <div class="exc-msg">⚠ OVER-CAPACITY</div>
+        </div>
+        <div class="exc-card warn">
+          <div class="exc-hdr"><span class="exc-code">E-LSB-004</span><div class="exc-name">Pattern Changed After Publish<span class="ko">발행 후 패턴 변경</span></div></div>
+          <div class="exc-row"><span class="lbl">Cause</span><span class="val">MD-29 pattern edited after the day was published.</span></div>
+          <div class="exc-row"><span class="lbl">Detect</span><span class="val">Pattern version compare.</span></div>
+          <div class="exc-row"><span class="lbl">Action</span><span class="val">Banner: re-validate &amp; re-publish required.</span></div>
+          <div class="exc-msg">⚠ STALE SCHEDULE</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="s6">
+      <div class="sec-hdr"><div class="sec-num">06</div><div class="sec-title-wrap"><div class="sec-title-en">Linked Screens &amp; Data Flow</div><div class="sec-title-ko">연계 화면 · 상·하류 흐름</div></div><div class="sec-line"></div></div>
+      <div class="lnk-wrap">
+        <div style="font-size:10px;color:var(--sub);text-align:center;margin-bottom:10px;text-transform:uppercase;font-weight:700;">▲ UPSTREAM ▲</div>
+        <div class="lnk-row" style="margin-bottom:14px;"><div class="lnk-node up"><div class="lnk-id">MD-29</div><div class="lnk-name">Line Time Pattern</div><div class="lnk-ko">시간패턴</div></div><div class="lnk-node up"><div class="lnk-id">PP-04</div><div class="lnk-name">Work Order</div><div class="lnk-ko">작업지시</div></div><div class="lnk-node up"><div class="lnk-id">MD-14</div><div class="lnk-name">Calendar</div><div class="lnk-ko">캘린더</div></div></div>
+        <div style="text-align:center;color:var(--pp);font-size:24px;">↓</div>
+        <div class="lnk-row" style="margin:14px 0;"><div class="lnk-node cur"><div class="lnk-id">PP-LSB</div><div class="lnk-name">Line Schedule Board</div><div class="lnk-ko">라인 스케줄 보드</div></div></div>
+        <div style="text-align:center;color:var(--pp);font-size:24px;">↓</div>
+        <div class="lnk-row" style="margin-top:14px;"><div class="lnk-node down"><div class="lnk-id">PP-ODM</div><div class="lnk-name">Downtime Monitor</div><div class="lnk-ko">가동·비가동</div></div><div class="lnk-node down"><div class="lnk-id">PP-OEE</div><div class="lnk-name">Availability</div><div class="lnk-ko">가용성</div></div><div class="lnk-node down"><div class="lnk-id">INJ/PNT</div><div class="lnk-name">POP Queue</div><div class="lnk-ko">작업 대기열</div></div></div>
+        <div style="font-size:10px;color:var(--sub);text-align:center;margin-top:10px;text-transform:uppercase;font-weight:700;">▼ DOWNSTREAM ▼</div>
+      </div>
+    </div>
+
+    <div class="sec" id="s7">
+      <div class="sec-hdr"><div class="sec-num">07</div><div class="sec-title-wrap"><div class="sec-title-en">Applicable Business Rules</div><div class="sec-title-ko">적용 업무 규칙</div></div><div class="sec-line"></div></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:96px;">Rule ID</th><th>Rule (EN)</th><th>규칙 (KO)</th><th style="width:70px;text-align:center;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-PP-030</td><td>Each line schedules on its own MD-29 time pattern, not the shared factory calendar.</td><td>각 라인은 공용 캘린더가 아닌 고유 MD-29 시간패턴으로 스케줄링.</td><td class="br-act"><span class="aut">AUT</span></td></tr>
+          <tr><td class="br-id">BR-PP-031</td><td>A WO block must fit entirely within one OPERATING window.</td><td>WO 블록은 단일 OPERATING 창 안에 완전히 들어가야 함.</td><td class="br-act"><span class="blk">BLK</span></td></tr>
+          <tr><td class="br-id">BR-PP-032</td><td>Line capacity = Σ OPERATING minutes; load over 100% blocks Publish.</td><td>라인 캐파 = Σ OPERATING 분; 부하율 100% 초과 시 발행 차단.</td><td class="br-act"><span class="blk">BLK</span></td></tr>
+          <tr><td class="br-id">BR-PP-033</td><td>Publish pushes the schedule to POP and sets the PP-ODM operating baseline.</td><td>발행 시 POP에 일정 푸시 + PP-ODM 가동 기준선 설정.</td><td class="br-act"><span class="aut">AUT</span></td></tr>
+          <tr><td class="br-id">BR-PP-034</td><td>A pattern edited after publish flags the schedule stale for re-validation.</td><td>발행 후 패턴 변경 시 일정을 stale 표기 — 재검증 필요.</td><td class="br-act"><span class="alt">ALT</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="page-footer">
+    <div class="pf-l">A-MES · VOL.4 · PP-LSB Line Schedule Board · L3 Detail Spec v1.0 · Bilingual EN/KO</div>
+    <div class="pf-r">Automotive Parts MES · Line Scheduling · Confidential</div>
+  </div>
+</div>
+</div>
+</body>
+</html>
