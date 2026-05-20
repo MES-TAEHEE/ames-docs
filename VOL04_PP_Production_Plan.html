@@ -129,6 +129,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .t-batch{background:rgba(168,85,247,.16);color:#c4b5fd;border:1px solid rgba(168,85,247,.32);}
 .t-p0{background:rgba(212,160,23,.18);color:#fbbf24;border:1px solid rgba(212,160,23,.32);}
 .t-core{background:rgba(212,160,23,.2);color:#fbbf24;border:1px solid rgba(212,160,23,.35);}
+.t-pda{background:rgba(13,184,122,.16);color:#5dffc4;border:1px solid rgba(13,184,122,.32);}
 .sc-l3-btn{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:linear-gradient(135deg,#d4a017,#a07810);color:#000;font-size:11px;font-weight:800;border-radius:5px;text-decoration:none;letter-spacing:.5px;text-transform:uppercase;border:1px solid #a07810;box-shadow:0 2px 6px rgba(212,160,23,.3);transition:all .15s;white-space:nowrap;}
 .sc-l3-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(212,160,23,.5);background:linear-gradient(135deg,#fbbf24,#d4a017);}
 .sc-body{padding:16px 18px;}
@@ -215,6 +216,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   <a class="sb-link" href="#pp07"><span class="sl-id">PP-07</span><div><div class="sl-en">WO Release</div><div class="sl-ko">WO 발행</div></div><a class="sb-l3" href="VOL04_PP07_WO_Release.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
   <a class="sb-link" href="#ppcal"><span class="sl-id">PP-CAL</span><div><div class="sl-en">Calendar</div><div class="sl-ko">생산 캘린더</div></div><a class="sb-l3" href="VOL04_PP_CAL_Calendar.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
   <a class="sb-link" href="#ppotd"><span class="sl-id">PP-OTD</span><div><div class="sl-en">Delivery KPI</div><div class="sl-ko">납기 현황</div></div><a class="sb-l3" href="VOL04_PP_OTD_Delivery.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <div class="sb-section">Line Scheduling · 라인 스케줄링</div>
+  <a class="sb-link" href="#pplsb"><span class="sl-id">PP-LSB</span><div><div class="sl-en">Line Schedule Board</div><div class="sl-ko">라인 스케줄 보드</div></div><a class="sb-l3" href="VOL04_PP_LSB_Line_Schedule_Board.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#ppodm"><span class="sl-id">PP-ODM</span><div><div class="sl-en">Downtime Monitor</div><div class="sl-ko">가동·비가동</div></div><a class="sb-l3" href="VOL04_PP_ODM_Operating_Downtime_Monitor.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#ppoee"><span class="sl-id">PP-OEE</span><div><div class="sl-en">Line Availability &amp; OEE</div><div class="sl-ko">라인 가용성·OEE</div></div><a class="sb-l3" href="VOL04_PP_OEE_Line_Availability.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#ppdtl"><span class="sl-id">PP-DTL</span><div><div class="sl-en">Downtime Log Entry</div><div class="sl-ko">비가동 로그</div></div><a class="sb-l3" href="VOL04_PP_DTL_Downtime_Log.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
   <div class="sb-sep"></div>
   <a class="sb-link" href="#br-pp"><span class="sl-id">BR</span><div><div class="sl-en">Business Rules</div><div class="sl-ko">업무 규칙</div></div></a>
 </nav>
@@ -229,7 +235,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         <div class="mdb-ko">고객 수요 수신부터 현장 발행까지 생산계획 전 사이클. <strong>파이프라인</strong>: 고객 Forecast (SCM 포탈) → SAP B1 공급계획 Import → MES 생산계획 수립 → MRP 자재 소요 → 자재발주 요청서 (SAP B1 Service Layer API) → WO 발행 → POP 현장 (INJ/IMG/PNT). 이중 MRP: A-MES는 실시간 WO 차단, SAP B1은 중장기 발주 담당.</div>
       </div>
       <div class="mod-meta-strip">
-        <div class="mms-item"><div class="mms-l">Screens</div><div class="mms-v">9</div></div>
+        <div class="mms-item"><div class="mms-l">Screens</div><div class="mms-v">13</div></div>
         <div class="mms-item"><div class="mms-l">ERP</div><div class="mms-v info">SAP B1</div></div>
         <div class="mms-item"><div class="mms-l">Customers</div><div class="mms-v">SAV · GEO</div></div>
         <div class="mms-item"><div class="mms-l">MRP</div><div class="mms-v">Dual (MES+B1)</div></div>
@@ -247,6 +253,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         <a class="sp" href="VOL04_PP07_WO_Release.html" title="L3 상세 · PP-07"><span class="sp-id">PP-07</span> WO Release <span style="opacity:.5;font-size:8px;">📋</span></a>
         <a class="sp" href="VOL04_PP_CAL_Calendar.html" title="L3 상세 · PP-CAL"><span class="sp-id">PP-CAL</span> Calendar <span style="opacity:.5;font-size:8px;">📋</span></a>
         <a class="sp" href="VOL04_PP_OTD_Delivery.html" title="L3 상세 · PP-OTD"><span class="sp-id">PP-OTD</span> Delivery KPI <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL04_PP_LSB_Line_Schedule_Board.html" title="L3 상세 · PP-LSB"><span class="sp-id">PP-LSB</span> Line Schedule Board <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL04_PP_ODM_Operating_Downtime_Monitor.html" title="L3 상세 · PP-ODM"><span class="sp-id">PP-ODM</span> Downtime Monitor <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL04_PP_OEE_Line_Availability.html" title="L3 상세 · PP-OEE"><span class="sp-id">PP-OEE</span> Line OEE <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL04_PP_DTL_Downtime_Log.html" title="L3 상세 · PP-DTL"><span class="sp-id">PP-DTL</span> Downtime Log <span style="opacity:.5;font-size:8px;">📋</span></a>
       </div>
     </div>
   </div>
@@ -728,9 +738,185 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       </div>
     </div>
 
+    <!-- PP-LSB -->
+    <div class="screen-card" id="pplsb">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">📊</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">PP-LSB</div>
+            <div class="sc-title-en">Line Schedule Board</div>
+            <div class="sc-title-ko">라인별 분단위 스케줄 보드</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL04_PP_LSB_Line_Schedule_Board.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: WO를 각 라인의 고유 시간패턴(MD-29) 위에 배치하는 분단위 간트 — 가동/계획비가동 밴드 + 캐파 부하율<span class="ko">가동창 초과·계획비가동 침범 시 배치 차단</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">MD-29 Pattern + WO</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">PP_LineSchedule + POP</div></div>
+          <div class="qf"><div class="qf-l">🎯 GRAIN</div><div class="qf-v">1-minute slot</div></div>
+          <div class="qf"><div class="qf-l">⚡ AUTO</div><div class="qf-v">Auto-fill by D-Day</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Minute-level Gantt board scheduling Work Orders onto each line's own time pattern. Lines render their MD-29 operating / planned-down bands; WO blocks drop only onto operating windows. Capacity = Σ operating minutes; overflow blocks Publish.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">작업지시를 라인별 고유 시간패턴 위에 배치하는 분단위 간트 보드. MD-29 가동·계획비가동 밴드 렌더링, WO 블록은 가동창에만 배치. 캐파 = Σ가동분, 초과 시 발행 차단.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">🕒</div><div class="feat-t">Per-line Pattern</div><div class="feat-d">라인별 MD-29 시간패턴 기준.<span class="ko">공용 캘린더 아님</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🧱</div><div class="feat-t">Window Fit</div><div class="feat-d">WO는 단일 가동창 내 배치.<span class="ko">BR-PP-031</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📈</div><div class="feat-t">Capacity Load</div><div class="feat-d">Σ가동분 대비 부하율.<span class="ko">100% 초과 차단</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📤</div><div class="feat-t">Publish</div><div class="feat-d">POP 푸시 + ODM 기준선.<span class="ko">BR-PP-033</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-pp">BR-PP-030</a>
+          <a class="br-chip crit" href="#br-pp">BR-PP-031</a>
+          <a class="br-chip" href="#br-pp">BR-PP-032</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- PP-ODM -->
+    <div class="screen-card" id="ppodm">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">🚦</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">PP-ODM</div>
+            <div class="sc-title-en">Operating / Downtime Monitor</div>
+            <div class="sc-title-ko">가동·계획비가동·실제비가동 실시간 모니터</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web PC / 현황판</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL04_PP_ODM_Operating_Downtime_Monitor.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 라인별 계획 패턴(MD-29) vs 실제 설비 신호를 실시간 대조 — 매 분(分)을 가동/계획비가동/실제비가동 3상태로 분류<span class="ko">계획상 가동인데 정지 시 UNPLANNED 자동 판정 + 사유 입력 요청</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">MD-29 + 설비 신호</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">PP_LineStateLog</div></div>
+          <div class="qf"><div class="qf-l">🔄 REFRESH</div><div class="qf-v">WebSocket 1-min</div></div>
+          <div class="qf"><div class="qf-l">⚠ ALERT</div><div class="qf-v">비가동 10분 초과</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Real-time wallboard comparing each line's planned MD-29 pattern against actual equipment signal. Each minute resolves to OPERATING / PLANNED_DOWN / UNPLANNED_DOWN; a stop inside an operating window auto-classifies as unplanned and prompts a PP-DTL reason.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">라인별 계획 MD-29 패턴과 실제 설비 신호를 실시간 대조하는 현황판. 매 분을 가동/계획비가동/실제비가동으로 판정, 가동창 내 정지는 실제비가동 자동분류 + PP-DTL 사유 입력 요청.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">🟩</div><div class="feat-t">3-State Classify</div><div class="feat-d">가동·계획비가동·실제비가동.<span class="ko">분단위 판정</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🟥</div><div class="feat-t">Unplanned Detect</div><div class="feat-d">가동창 내 정지 자동분류.<span class="ko">BR-PP-035</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📟</div><div class="feat-t">Reason Prompt</div><div class="feat-d">미입력 비가동 PP-DTL 연계.<span class="ko">사유 강제</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📈</div><div class="feat-t">Operating Rate</div><div class="feat-d">가동률 실시간 집계.<span class="ko">PP-OEE 피드</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-pp">BR-PP-035</a>
+          <a class="br-chip crit" href="#br-pp">BR-PP-036</a>
+          <a class="br-chip" href="#br-pp">BR-PP-037</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- PP-OEE -->
+    <div class="screen-card" id="ppoee">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">📐</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">PP-OEE</div>
+            <div class="sc-title-en">Line Availability &amp; OEE</div>
+            <div class="sc-title-ko">라인 가용성·OEE 롤업</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL04_PP_OEE_Line_Availability.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: PP_LineStateLog를 시간손실 워터폴로 롤업 — 부하시간 → 가동 → OEE = 가용성×성능×품질<span class="ko">계획/실제 비가동을 분리해 라인 고유 패턴을 공정 반영</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">PP_LineStateLog</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">PP_LineOEE snapshot</div></div>
+          <div class="qf"><div class="qf-l">📅 PERIOD</div><div class="qf-v">Day / Week / Month</div></div>
+          <div class="qf"><div class="qf-l">🎯 TARGET</div><div class="qf-v">OEE ≥ 75%</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Rolls up the classified state log into a time-loss model and computes per-line OEE. Loading Time minus planned + unplanned downtime gives Availability; combined with Performance and Quality it yields OEE = A × P × Q, snapshotted per period.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">분류된 상태 로그를 시간손실 모델로 롤업하여 라인별 OEE 산출. 부하시간 − 계획·실제 비가동 → 가용성, 성능·품질과 결합해 OEE = A×P×Q, 기간별 스냅샷 저장.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">💧</div><div class="feat-t">Loss Waterfall</div><div class="feat-d">부하→가동→가치가동 손실 분해.<span class="ko">시각 분석</span></div></div>
+          <div class="feat-item"><div class="feat-ico">⚖️</div><div class="feat-t">Planned Excluded</div><div class="feat-d">가용성은 실제 비가동만 손실.<span class="ko">BR-PP-041</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📸</div><div class="feat-t">Period Snapshot</div><div class="feat-d">기간별 OEE 고정 스냅샷.<span class="ko">감사 추적</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📊</div><div class="feat-t">RPT Feed</div><div class="feat-d">RPT-06/07로 전달.<span class="ko">OEE·KPI</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-pp">BR-PP-042</a>
+          <a class="br-chip" href="#br-pp">BR-PP-041</a>
+          <a class="br-chip" href="#br-pp">BR-PP-044</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- PP-DTL -->
+    <div class="screen-card" id="ppdtl">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">📟</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">PP-DTL</div>
+            <div class="sc-title-en">Downtime Log Entry</div>
+            <div class="sc-title-ko">비가동 로그 입력 — POP 터치패널</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-pda">📟 POP / PDA</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL04_PP_DTL_Downtime_Log.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: PP-ODM이 감지한 실제 비가동 이벤트에 작업자가 사유(MD-25)·4M1E 원인(MD-22)을 터치 입력<span class="ko">사유 기록 후 이벤트 종료 → PP-OEE 가용성 손실 귀속</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">ODM Downtime Event</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">PP_LineDowntimeLog</div></div>
+          <div class="qf"><div class="qf-l">🏷 REASON</div><div class="qf-v">MD-25 · MD-22</div></div>
+          <div class="qf"><div class="qf-l">📱 DEVICE</div><div class="qf-v">POP 15" 터치</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">POP touch-panel screen where the operator records the reason for an unplanned downtime event detected by PP-ODM. Taps a downtime reason (MD-25) and optional 4M1E cause (MD-22); the closed event flows to PP-ODM and PP-OEE.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">PP-ODM이 감지한 실제 비가동 이벤트의 사유를 작업자가 기록하는 POP 터치패널. 비가동 사유(MD-25)·4M1E 원인(MD-22) 터치 선택, 종료된 이벤트는 PP-ODM·PP-OEE로 전달.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">🔘</div><div class="feat-t">Reason Tiles</div><div class="feat-d">MD-25 DOWNTIME 사유 터치.<span class="ko">대형 타일</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔍</div><div class="feat-t">4M1E Cause</div><div class="feat-d">MD-22 원인 분류 선택.<span class="ko">선택 입력</span></div></div>
+          <div class="feat-item"><div class="feat-ico">💬</div><div class="feat-t">Comment Gate</div><div class="feat-d">필수 사유는 코멘트 강제.<span class="ko">BR-PP-046</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔧</div><div class="feat-t">MNT Sync</div><div class="feat-d">고장 사유는 MNT-06 동기화.<span class="ko">BR-PP-048</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-pp">BR-PP-045</a>
+          <a class="br-chip" href="#br-pp">BR-PP-046</a>
+          <a class="br-chip" href="#br-pp">BR-PP-048</a>
+        </div>
+      </div>
+    </div>
+
     <!-- ─── BR ─── -->
     <div class="br-wrap" id="br-pp">
-      <div class="br-title">▼ BUSINESS RULES · 업무 규칙 (PP · 11건)</div>
+      <div class="br-title">▼ BUSINESS RULES · 업무 규칙 (PP · 16건)</div>
       <table class="br-tbl">
         <thead><tr><th style="width:96px;">Rule ID</th><th>Rule (EN)</th><th>규칙 (KO)</th><th style="width:170px;">조건 · Condition</th><th style="width:100px;">Action</th></tr></thead>
         <tbody>
@@ -745,6 +931,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
           <tr><td class="br-id-c">BR-PP-006</td><td class="br-en-c">Retry PR SAP B1 transmission ×3</td><td class="br-ko-c">PR SAP B1 전송 실패 시 3회 재시도</td><td>전송 오류</td><td><span class="b b-w">Retry</span></td></tr>
           <tr><td class="br-id-c">BR-PP-007</td><td class="br-en-c">Warn if equipment blocked on WO release</td><td class="br-ko-c">WO 발행 전 설비 가용 상태 확인</td><td>Equipment.Status = Blocked</td><td><span class="b b-w">Warn</span></td></tr>
           <tr><td class="br-id-c">BR-PP-008</td><td class="br-en-c">Alert DDay ≤ 3 WO</td><td class="br-ko-c">납기 D-3 이내 WO 강조 알림</td><td>DueDate − TODAY ≤ 3</td><td><span class="b b-w">Alert</span></td></tr>
+          <tr><td class="br-id-c">BR-PP-030</td><td class="br-en-c">Each line schedules on its own MD-29 time pattern</td><td class="br-ko-c">각 라인은 고유 MD-29 시간패턴으로 스케줄링</td><td>PP-LSB 일정 수립</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-PP-031</td><td class="br-en-c">WO block must fit one OPERATING window</td><td class="br-ko-c">WO 블록은 단일 가동창 내 완전 배치</td><td>가동창 초과·침범</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-PP-035</td><td class="br-en-c">Stop in operating window → UNPLANNED_DOWN</td><td class="br-ko-c">가동창 내 설비 정지는 실제비가동 자동 분류</td><td>설비 신호 STOP</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-PP-042</td><td class="br-en-c">OEE = Availability × Performance × Quality</td><td class="br-ko-c">OEE = 가용성 × 성능 × 품질, 기간별 스냅샷</td><td>PP-OEE 롤업</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-PP-045</td><td class="br-en-c">Unplanned downtime must close with a reason code</td><td class="br-ko-c">실제 비가동은 사유코드로 종료 필수</td><td>비가동 이벤트 종료</td><td><span class="b b-e">Block</span></td></tr>
         </tbody>
       </table>
     </div>
@@ -752,7 +943,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   </div>
 
   <div class="page-footer">
-    <div class="pf-l">A-MES · VOL.4 · PP Production Planning · UI Design Spec v3.0 · 9 Screens + 11 BRs · Enriched Visual</div>
+    <div class="pf-l">A-MES · VOL.4 · PP Production Planning · UI Design Spec v3.1 · 13 Screens + 16 BRs · Enriched Visual</div>
     <div class="pf-r">Forecast → Plan → MRP → PR → Release · Bilingual EN/KO</div>
   </div>
 </div>
