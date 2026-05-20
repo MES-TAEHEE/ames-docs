@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PP-ODM Operating · Downtime Monitor · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+.scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
+.sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
+.sh-tt{flex:1;}
+.sh-en{font-size:16px;font-weight:800;color:#fff;}
+.sh-ko{font-size:11px;color:rgba(255,255,255,.5);}
+.sh-tag{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+.sh-live{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.sh-live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.toolbar{background:#fff;border-bottom:1px solid var(--bd);padding:9px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
+.fld{display:flex;flex-direction:column;gap:2px;}
+.fld label{font-size:8px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;}
+select{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink);}
+.btn{padding:6px 13px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-p{background:var(--pp);color:#fff;}.btn-p:hover{background:var(--pp-dk);}
+.btn-s{background:#f6f8fa;color:var(--ink);border-color:var(--bd);}.btn-s:hover{background:#eef1f5;}
+.btn-r{background:#dc2626;color:#fff;}.btn-r:hover{background:#b91c1c;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+.swt{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:var(--sub);}
+.swt .tk{width:34px;height:18px;border-radius:9px;background:#cbd5e1;position:relative;cursor:pointer;transition:background .15s;}
+.swt .tk.on{background:var(--pp);}
+.swt .tk i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .15s;}
+.swt .tk.on i{left:18px;}
+.body{flex:1;overflow-y:auto;padding:16px 24px 40px;}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:16px;}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:12px 14px;border-left:3px solid var(--c);}
+.kpi .kv{font-size:23px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;color:var(--c);}
+.kpi .kl{font-size:10px;color:var(--sub);margin-top:4px;}
+.kpi .kt{font-size:8px;color:#9ca3af;font-family:'JetBrains Mono',monospace;}
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:16px;}
+.lc{background:#fff;border:1px solid var(--bd);border-radius:9px;overflow:hidden;border-top:4px solid var(--st);}
+.lc-h{padding:11px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #eef1f5;}
+.lc-id{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:800;}
+.lc-nm{font-size:10px;color:var(--sub);}
+.stbadge{margin-left:auto;font-size:10px;font-weight:800;padding:4px 11px;border-radius:11px;display:flex;align-items:center;gap:5px;}
+.stbadge .dot{width:7px;height:7px;border-radius:50%;}
+.st-run{background:#d1fae5;color:#065f46;}.st-run .dot{background:#10b981;animation:bl 1.2s infinite;}
+.st-pd{background:#fef3c7;color:#92400e;}.st-pd .dot{background:#f59e0b;}
+.st-ad{background:#fee2e2;color:#991b1b;}.st-ad .dot{background:#dc2626;animation:bl .7s infinite;}
+.lc-b{padding:12px 14px;}
+.lc-tmr{display:flex;align-items:baseline;gap:8px;margin-bottom:10px;}
+.lc-tmr .tv{font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:800;color:var(--st);line-height:1;}
+.lc-tmr .tl{font-size:10px;color:var(--sub);}
+.lc-wo{font-size:11px;margin-bottom:10px;}
+.lc-wo .wk{color:var(--sub);}
+.lc-wo b{font-family:'JetBrains Mono',monospace;}
+.splitbar{height:16px;border-radius:4px;overflow:hidden;display:flex;margin-bottom:5px;}
+.splitbar i{display:block;height:100%;}
+.split-lg{display:flex;gap:12px;font-size:8.5px;color:var(--sub);}
+.split-lg span{display:flex;align-items:center;gap:3px;}
+.split-lg i{width:8px;height:8px;border-radius:2px;}
+.lc-f{padding:9px 14px;background:#fafbfc;border-top:1px solid #eef1f5;display:flex;gap:7px;align-items:center;}
+.lc-f .ev{flex:1;font-size:9px;color:var(--sub);}
+.panel{background:#fff;border:1px solid var(--bd);border-radius:8px;overflow:hidden;}
+.panel-h{padding:9px 14px;background:#f0fdf4;border-bottom:1px solid var(--bd);font-size:11px;font-weight:800;color:var(--pp);}
+table{width:100%;border-collapse:collapse;font-size:11.5px;}
+thead th{background:#f0f3f7;padding:9px 10px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--bd);white-space:nowrap;}
+tbody td{padding:8px 10px;border-bottom:1px solid #eef1f5;}
+tbody tr:hover td{background:#f0fdf4;}
+.mono{font-family:'JetBrains Mono',monospace;font-size:10px;}
+.dt-tag{display:inline-block;font-size:9px;font-weight:700;padding:2px 8px;border-radius:9px;}
+.dt-pd{background:#fef3c7;color:#92400e;}.dt-ad{background:#fee2e2;color:#991b1b;}
+.ov{position:fixed;inset:0;background:rgba(3,20,14,.55);display:none;align-items:center;justify-content:center;z-index:100;}
+.ov.on{display:flex;}
+.modal{background:#fff;border-radius:10px;width:420px;max-width:94vw;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.4);}
+.modal-h{background:linear-gradient(135deg,#03251a,#052e1f);color:#fff;padding:13px 18px;display:flex;align-items:center;gap:10px;}
+.modal-h .mt{font-size:14px;font-weight:800;flex:1;}
+.modal-h .mx{cursor:pointer;font-size:18px;color:rgba(255,255,255,.6);}
+.modal-b{padding:18px;}
+.mfld{margin-bottom:12px;}
+.mfld label{display:block;font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:4px;}
+.mfld select{width:100%;}
+.modal-f{padding:12px 18px;background:#f6f8fa;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#fff;border-radius:8px;padding:11px 15px;box-shadow:0 8px 26px rgba(0,0,0,.22);border-left:4px solid var(--pp);font-size:12px;min-width:250px;max-width:380px;animation:ti .25s ease;}
+.toast.err{border-left-color:#dc2626;}.toast.warn{border-left-color:#f59e0b;}.toast.info{border-left-color:#2563eb;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:var(--sub);font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="scr-head">
+  <div class="sh-id">PP-ODM</div>
+  <div class="sh-tt"><div class="sh-en">Operating · Downtime Monitor</div><div class="sh-ko">가동·비가동 모니터 — 라인별 실시간 가동 상태 감시</div></div>
+  <span class="sh-tag">/pp/odm</span>
+  <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
+</div>
+<div class="toolbar">
+  <div class="fld"><label>사업장 Plant</label>
+    <select id="fPlant" onchange="apply()"><option>SAV 서산</option></select></div>
+  <div class="fld"><label>라인 Line</label>
+    <select id="fLine" onchange="apply()"><option value="">전체 All</option><option>SAV-INJ-01</option><option>SAV-INJ-02</option><option>SAV-ASSY-01</option><option>SAV-PNT-01</option></select></div>
+  <div class="fld"><label>상태 Status</label>
+    <select id="fStat" onchange="apply()"><option value="">전체</option><option value="run">가동 중</option><option value="down">비가동</option></select></div>
+  <button class="btn btn-p btn-sm" onclick="apply()">🔍 적용</button>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div class="swt" style="margin-left:auto;"><span>실시간 새로고침</span>
+    <div class="tk on" id="autoTk" onclick="toggleAuto()"><i></i></div></div>
+  <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
+</div>
+<div class="body">
+  <div class="kpis">
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kRun">0</div><div class="kl">가동 라인 · Running</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kDown">0</div><div class="kl">비가동 라인 · Down</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kDt">0</div><div class="kl">금일 비가동 누계 · 분</div></div>
+    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kUt">0%</div><div class="kl">평균 가동률 · Avail.</div><div class="kt">target ≥ 85%</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kEv">0</div><div class="kl">금일 비가동 발생 · Events</div></div>
+  </div>
+  <div class="cards" id="cards"></div>
+  <div class="panel">
+    <div class="panel-h">📋 금일 비가동 이벤트 로그</div>
+    <table>
+      <thead><tr><th>발생 시각</th><th>라인</th><th>구분</th><th>사유</th><th style="text-align:center;">지속(분)</th><th>상태</th></tr></thead>
+      <tbody id="logBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- stop modal -->
+<div class="ov" id="ovStop">
+  <div class="modal">
+    <div class="modal-h"><span class="mt" id="smTitle">라인 정지 처리</span><span class="mx" onclick="closeOv('ovStop')">✕</span></div>
+    <div class="modal-b">
+      <div class="mfld"><label>비가동 구분 Type</label>
+        <select id="smType"><option value="pd">계획 정지 (PM·교환·휴게)</option><option value="ad">비계획 정지 (고장·불량)</option></select></div>
+      <div class="mfld"><label>사유 Reason</label>
+        <select id="smReason">
+          <option>설비 고장</option><option>금형 교환</option><option>자재 결품</option>
+          <option>품질 이상</option><option>정기 PM</option><option>교대 휴게</option><option>기타</option></select></div>
+      <div style="font-size:10px;color:var(--sub);background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;padding:8px;">
+        ⚠ 정지 처리 시 해당 라인 타이머가 비가동 모드로 전환되고 이벤트 로그에 기록됩니다.</div>
+    </div>
+    <div class="modal-f">
+      <button class="btn btn-s" onclick="closeOv('ovStop')">취소</button>
+      <button class="btn btn-r" onclick="confirmStop()">정지 처리</button>
+    </div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+function nowStr(){var d=new Date();return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);}
+var LINES=[
+ {id:'SAV-INJ-01',nm:'사출 1호기',st:'run',elapsed:142,wo:'WO-2605-115',it:'도어트림 RH',op:480,pdt:55,adt:0,reason:''},
+ {id:'SAV-INJ-02',nm:'사출 2호기',st:'ad',elapsed:23,wo:'WO-2605-118',it:'라디에이터 그릴',op:392,pdt:30,adt:23,reason:'설비 고장'},
+ {id:'SAV-ASSY-01',nm:'조립 1라인',st:'run',elapsed:88,wo:'WO-2605-120',it:'콘솔 조립',op:510,pdt:30,adt:0,reason:''},
+ {id:'SAV-PNT-01',nm:'도장 1라인',st:'pd',elapsed:34,wo:'WO-2605-125',it:'그릴 도장',op:360,pdt:120,adt:0,reason:'부스 청소'}
+];
+var LOG=[
+ {t:'08:30',line:'SAV-PNT-01',ty:'pd',reason:'라인 예열',dur:60,stat:'종료'},
+ {t:'10:05',line:'SAV-INJ-02',ty:'pd',reason:'금형 교환',dur:30,stat:'종료'},
+ {t:'11:40',line:'SAV-ASSY-01',ty:'pd',reason:'교대 점검',dur:30,stat:'종료'},
+ {t:'13:46',line:'SAV-PNT-01',ty:'pd',reason:'부스 청소',dur:34,stat:'진행 중'},
+ {t:'13:57',line:'SAV-INJ-02',ty:'ad',reason:'설비 고장',dur:23,stat:'진행 중'}
+];
+var ST={run:{ko:'가동 중',cls:'st-run',col:'#10b981'},pd:{ko:'계획 정지',cls:'st-pd',col:'#f59e0b'},ad:{ko:'비계획 정지',cls:'st-ad',col:'#dc2626'}};
+var auto=true,timer=null,stopIdx=-1;
+function isDown(L){return L.st==='pd'||L.st==='ad';}
+function vis(){
+  var fl=document.getElementById('fLine').value,fs=document.getElementById('fStat').value;
+  return LINES.map(function(L,i){return{L:L,i:i};}).filter(function(x){
+    if(fl&&x.L.id!==fl)return false;
+    if(fs==='run'&&x.L.st!=='run')return false;
+    if(fs==='down'&&x.L.st==='run')return false;
+    return true;});
+}
+function apply(){
+  var v=vis();
+  var run=0,down=0,dt=0,utSum=0;
+  v.forEach(function(x){
+    if(x.L.st==='run')run++;else down++;
+    dt+=x.L.pdt+x.L.adt;
+    var tot=x.L.op+x.L.pdt+x.L.adt;
+    utSum+=tot?x.L.op/tot*100:0;
+  });
+  document.getElementById('kRun').textContent=run;
+  document.getElementById('kDown').textContent=down;
+  document.getElementById('kDt').textContent=dt;
+  var ut=v.length?Math.round(utSum/v.length):0;
+  var kut=document.getElementById('kUt');kut.textContent=ut+'%';kut.style.color=ut>=85?'#6366f1':'#dc2626';
+  document.getElementById('kEv').textContent=LOG.length;
+  renderCards();renderLog();
+}
+function renderCards(){
+  var h='';
+  vis().forEach(function(x){
+    var L=x.L,s=ST[L.st];
+    var tot=L.op+L.pdt+L.adt||1;
+    var opP=L.op/tot*100,pdP=L.pdt/tot*100,adP=L.adt/tot*100;
+    var ut=Math.round(L.op/tot*100);
+    h+='<div class="lc" style="--st:'+s.col+'">'+
+      '<div class="lc-h"><div><div class="lc-id">'+L.id+'</div><div class="lc-nm">'+L.nm+'</div></div>'+
+      '<span class="stbadge '+s.cls+'"><span class="dot"></span>'+s.ko+'</span></div>'+
+      '<div class="lc-b">'+
+      '<div class="lc-tmr"><span class="tv">'+fmt(L.elapsed)+'</span>'+
+      '<span class="tl">'+(L.st==='run'?'현재 작업 경과':'정지 경과 — '+L.reason)+'</span></div>'+
+      '<div class="lc-wo"><span class="wk">작업지시 </span><b>'+L.wo+'</b> · '+L.it+'</div>'+
+      '<div class="splitbar">'+
+        '<i style="width:'+opP+'%;background:#10b981;"></i>'+
+        '<i style="width:'+pdP+'%;background:#f59e0b;"></i>'+
+        '<i style="width:'+adP+'%;background:#dc2626;"></i></div>'+
+      '<div class="split-lg">'+
+        '<span><i style="background:#10b981"></i>가동 '+L.op+'분</span>'+
+        '<span><i style="background:#f59e0b"></i>계획정지 '+L.pdt+'분</span>'+
+        '<span><i style="background:#dc2626"></i>비계획 '+L.adt+'분</span>'+
+        '<span style="margin-left:auto;font-weight:800;color:'+(ut>=85?'#10b981':'#dc2626')+'">가동률 '+ut+'%</span></div>'+
+      '</div>'+
+      '<div class="lc-f"><span class="ev">최근: '+(L.st==='run'?'정상 가동 중':L.reason+' 발생')+'</span>'+
+        (L.st==='run'
+          ?'<button class="btn btn-r btn-sm" onclick="openStop('+x.i+')">■ 정지 처리</button>'
+          :'<button class="btn btn-p btn-sm" onclick="resume('+x.i+')">▶ 재가동</button>')+
+      '</div></div>';
+  });
+  document.getElementById('cards').innerHTML=h||'<div style="grid-column:1/-1;text-align:center;color:#9ca3af;padding:30px;">조건에 맞는 라인이 없습니다.</div>';
+}
+function renderLog(){
+  var fl=document.getElementById('fLine').value;
+  var rows=LOG.filter(function(e){return !fl||e.line===fl;});
+  var h='';
+  rows.slice().reverse().forEach(function(e){
+    h+='<tr><td class="mono">'+e.t+'</td><td class="mono" style="font-weight:700;">'+e.line+'</td>'+
+      '<td><span class="dt-tag '+(e.ty==='ad'?'dt-ad':'dt-pd')+'">'+(e.ty==='ad'?'비계획':'계획')+'</span></td>'+
+      '<td>'+e.reason+'</td><td style="text-align:center;font-family:JetBrains Mono,monospace;font-weight:700;">'+e.dur+'</td>'+
+      '<td>'+(e.stat==='진행 중'?'<span style="color:#dc2626;font-weight:800;">● 진행 중</span>':'<span style="color:#10b981;">✓ 종료</span>')+'</td></tr>';
+  });
+  document.getElementById('logBody').innerHTML=h||'<tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:20px;">이벤트 없음</td></tr>';
+}
+function fmt(min){return ('0'+Math.floor(min/60)).slice(-2)+'h '+('0'+(min%60)).slice(-2)+'m';}
+function openStop(i){
+  stopIdx=i;
+  document.getElementById('smTitle').textContent=LINES[i].id+' 정지 처리';
+  document.getElementById('smType').value='ad';document.getElementById('smReason').value='설비 고장';
+  openOv('ovStop');
+}
+function confirmStop(){
+  if(stopIdx<0)return;
+  var L=LINES[stopIdx];
+  var ty=document.getElementById('smType').value;
+  var rs=document.getElementById('smReason').value;
+  L.st=ty;L.reason=rs;L.elapsed=0;
+  LOG.push({t:nowStr(),line:L.id,ty:ty,reason:rs,dur:0,stat:'진행 중'});
+  closeOv('ovStop');apply();
+  toast(ty==='ad'?'warn':'info',L.id+' 정지','「'+rs+'」 사유로 비가동 처리되었습니다. 타이머 전환 완료.');
+}
+function resume(i){
+  var L=LINES[i],rs=L.reason;
+  /* close matching open log */
+  for(var k=LOG.length-1;k>=0;k--){if(LOG[k].line===L.id&&LOG[k].stat==='진행 중'){LOG[k].stat='종료';LOG[k].dur=L.elapsed;break;}}
+  if(L.st==='ad')L.adt+=L.elapsed;else L.pdt+=L.elapsed;
+  L.st='run';L.reason='';L.elapsed=0;
+  apply();
+  toast('',L.id+' 재가동','라인이 정상 가동 상태로 전환되었습니다. 비가동 '+'시간이 누계에 반영되었습니다.');
+}
+function tick(){
+  LINES.forEach(function(L){L.elapsed++;if(L.st==='run')L.op++;else if(L.st==='ad')L.adt++;else L.pdt++;});
+  LOG.forEach(function(e){if(e.stat==='진행 중')e.dur++;});
+  apply();
+}
+function toggleAuto(){
+  auto=!auto;
+  document.getElementById('autoTk').classList.toggle('on',auto);
+  if(auto){timer=setInterval(tick,2000);toast('info','실시간 새로고침 ON','2초 간격으로 라인 상태가 갱신됩니다.');}
+  else{clearInterval(timer);toast('info','실시간 새로고침 OFF','자동 갱신을 중지했습니다.');}
+}
+function exportCsv(){
+  var csv='Line,Name,Status,Reason,ElapsedMin,OpMin,PlanDtMin,UnplanDtMin,Avail%\n';
+  vis().forEach(function(x){var L=x.L,t=L.op+L.pdt+L.adt||1;
+    csv+=[L.id,L.nm,ST[L.st].ko,L.reason||'-',L.elapsed,L.op,L.pdt,L.adt,Math.round(L.op/t*100)].join(',')+'\n';});
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='PP_ODM_Status_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  toast('','Export 완료','라인 가동 상태를 CSV로 내보냈습니다.');
+}
+function resetAll(){
+  document.getElementById('fLine').value='';document.getElementById('fStat').value='';
+  apply();toast('info','초기화','전체 라인 기준으로 모니터를 초기화했습니다.');
+}
+function openOv(id){document.getElementById(id).classList.add('on');}
+function closeOv(id){document.getElementById(id).classList.remove('on');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='warn'?'⚠ ':type==='info'?'ℹ ':'✅ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},4400);
+}
+apply();
+timer=setInterval(tick,2000);
+</script>
+</body>
+</html>
