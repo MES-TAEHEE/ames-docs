@@ -496,7 +496,215 @@ select.inp{background:rgba(0,0,0,.3);}
   <div class="idx-en">Master Data</div>
   <div class="idx-ko">기준정보</div>
   <div class="idx-feat"><span class="idx-feat-en">29 Entities / 5 Categories / Table Design</span><span class="idx-feat-ko">29개 엔티티·5카테고리·테이블설계</span></div>
-</a></div><div class="sec-title">Business Rule Overview &nbsp;핵심 업무 규칙</div><div class="flow-box">
+</a></div><div class="sec-title">Site Map &nbsp;사이트맵 — 전체 페이지 구조</div>
+<style>
+.sitemap{margin:4px 0 8px;}
+.sm-mod{margin-bottom:12px;border:1px solid #334155;border-radius:9px;overflow:hidden;background:linear-gradient(160deg,rgba(30,41,59,.6),rgba(15,23,42,.6));}
+.sm-mod-hdr{display:flex;align-items:center;gap:10px;padding:10px 15px;border-bottom:1px solid #334155;text-decoration:none;border-left:4px solid var(--mc);}
+.sm-mod-hdr:hover{background:rgba(255,255,255,.03);}
+.sm-badge{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#fff;padding:3px 9px;border-radius:3px;background:var(--mc);white-space:nowrap;}
+.sm-mod-t{font-size:13px;font-weight:700;color:#f1f5f9;}
+.sm-mod-ko{font-size:11px;color:#94a3b8;}
+.sm-cnt{margin-left:auto;font-size:10px;color:#7c8da3;font-family:'JetBrains Mono',monospace;}
+.sm-l3s{display:flex;flex-wrap:wrap;gap:6px;padding:11px 15px;}
+.sm-grp{width:100%;font-size:9px;font-weight:700;letter-spacing:1px;color:#64748b;text-transform:uppercase;margin:2px 0 -2px;}
+.sm-l3{display:flex;flex-direction:column;gap:1px;text-decoration:none;background:rgba(255,255,255,.025);border:1px solid #2b3a4f;border-left:3px solid var(--mc);border-radius:4px;padding:6px 10px;min-width:132px;transition:background .12s;}
+.sm-l3:hover{background:rgba(255,255,255,.08);}
+.sm-l3-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--mc);}
+.sm-l3-nm{font-size:10px;color:#cbd5e1;}
+</style>
+<div class="sitemap">
+  <div class="sm-mod" style="--mc:#0891b2">
+    <a class="sm-mod-hdr" href="VOL03_WH_Warehouse.html"><span class="sm-badge">VOL03 · WH</span><span class="sm-mod-t">Warehouse</span><span class="sm-mod-ko">창고관리</span><span class="sm-cnt">8 screens · L2 →</span></a>
+    <div class="sm-l3s">
+      <a class="sm-l3" href="VOL03_WH01_Inbound_Schedule.html"><span class="sm-l3-id">WH-01</span><span class="sm-l3-nm">Inbound Schedule</span></a>
+      <a class="sm-l3" href="VOL03_WH02_PDA_Inbound.html"><span class="sm-l3-id">WH-02</span><span class="sm-l3-nm">PDA Inbound</span></a>
+      <a class="sm-l3" href="VOL03_WH03_Inventory_Status.html"><span class="sm-l3-id">WH-03</span><span class="sm-l3-nm">Inventory Status</span></a>
+      <a class="sm-l3" href="VOL03_WH04_Location_Map.html"><span class="sm-l3-id">WH-04</span><span class="sm-l3-nm">Location Map</span></a>
+      <a class="sm-l3" href="VOL03_WH05_Inventory_Adjust.html"><span class="sm-l3-id">WH-05</span><span class="sm-l3-nm">Inventory Adjust</span></a>
+      <a class="sm-l3" href="VOL03_WH06_Release_Schedule.html"><span class="sm-l3-id">WH-06</span><span class="sm-l3-nm">Release Schedule</span></a>
+      <a class="sm-l3" href="VOL03_WH07_PDA_Release.html"><span class="sm-l3-id">WH-07</span><span class="sm-l3-nm">PDA Release</span></a>
+      <a class="sm-l3" href="VOL03_WH08_Transaction_History.html"><span class="sm-l3-id">WH-08</span><span class="sm-l3-nm">Transaction History</span></a>
+    </div>
+  </div>
+  <div class="sm-mod" style="--mc:#059669">
+    <a class="sm-mod-hdr" href="VOL04_PP_Production_Plan.html"><span class="sm-badge">VOL04 · PP</span><span class="sm-mod-t">Production Plan</span><span class="sm-mod-ko">생산계획</span><span class="sm-cnt">13 screens · L2 →</span></a>
+    <div class="sm-l3s">
+      <a class="sm-l3" href="VOL04_PP01_Forecast.html"><span class="sm-l3-id">PP-01</span><span class="sm-l3-nm">Forecast Mgmt</span></a>
+      <a class="sm-l3" href="VOL04_PP02_SAP_Import.html"><span class="sm-l3-id">PP-02</span><span class="sm-l3-nm">SAP B1 Import</span></a>
+      <a class="sm-l3" href="VOL04_PP03_Plan_Confirm.html"><span class="sm-l3-id">PP-03</span><span class="sm-l3-nm">Plan &amp; Confirm</span></a>
+      <a class="sm-l3" href="VOL04_PP04_Work_Order.html"><span class="sm-l3-id">PP-04</span><span class="sm-l3-nm">Work Order Mgmt</span></a>
+      <a class="sm-l3" href="VOL04_PP05_MRP.html"><span class="sm-l3-id">PP-05</span><span class="sm-l3-nm">MRP</span></a>
+      <a class="sm-l3" href="VOL04_PP06_Purchase_Req.html"><span class="sm-l3-id">PP-06</span><span class="sm-l3-nm">Purchase Req.</span></a>
+      <a class="sm-l3" href="VOL04_PP07_WO_Release.html"><span class="sm-l3-id">PP-07</span><span class="sm-l3-nm">WO Release</span></a>
+      <a class="sm-l3" href="VOL04_PP_CAL_Calendar.html"><span class="sm-l3-id">PP-CAL</span><span class="sm-l3-nm">Production Calendar</span></a>
+      <a class="sm-l3" href="VOL04_PP_OTD_Delivery.html"><span class="sm-l3-id">PP-OTD</span><span class="sm-l3-nm">On-Time Delivery</span></a>
+      <a class="sm-l3" href="VOL04_PP_LSB_Line_Schedule_Board.html"><span class="sm-l3-id">PP-LSB</span><span class="sm-l3-nm">Line Schedule Board</span></a>
+      <a class="sm-l3" href="VOL04_PP_ODM_Operating_Downtime_Monitor.html"><span class="sm-l3-id">PP-ODM</span><span class="sm-l3-nm">Downtime Monitor</span></a>
+      <a class="sm-l3" href="VOL04_PP_OEE_Line_Availability.html"><span class="sm-l3-id">PP-OEE</span><span class="sm-l3-nm">Line Availability &amp; OEE</span></a>
+      <a class="sm-l3" href="VOL04_PP_DTL_Downtime_Log.html"><span class="sm-l3-id">PP-DTL</span><span class="sm-l3-nm">Downtime Log Entry</span></a>
+    </div>
+  </div>
+  <div class="sm-mod" style="--mc:#2563eb">
+    <a class="sm-mod-hdr" href="VOL05_INJ_Injection.html"><span class="sm-badge">VOL05 · INJ</span><span class="sm-mod-t">Injection</span><span class="sm-mod-ko">사출생산</span><span class="sm-cnt">8 screens · L2 →</span></a>
+    <div class="sm-l3s">
+      <a class="sm-l3" href="VOL05_INJ01_POP_Login.html"><span class="sm-l3-id">INJ-01</span><span class="sm-l3-nm">POP Login</span></a>
+      <a class="sm-l3" href="VOL05_INJ02_POP_Dashboard.html"><span class="sm-l3-id">INJ-02</span><span class="sm-l3-nm">POP Dashboard</span></a>
+      <a class="sm-l3" href="VOL05_INJ03_WO_Confirm.html"><span class="sm-l3-id">INJ-03</span><span class="sm-l3-nm">WO Confirmation</span></a>
+      <a class="sm-l3" href="VOL05_INJ04_Production_Entry.html"><span class="sm-l3-id">INJ-04</span><span class="sm-l3-nm">Production Entry</span></a>
+      <a class="sm-l3" href="VOL05_INJ05_Defect.html"><span class="sm-l3-id">INJ-05</span><span class="sm-l3-nm">Defect Register</span></a>
+      <a class="sm-l3" href="VOL05_INJ06_Mold_Change.html"><span class="sm-l3-id">INJ-06</span><span class="sm-l3-nm">Mold Change</span></a>
+      <a class="sm-l3" href="VOL05_INJ07_Prod_Status.html"><span class="sm-l3-id">INJ-07</span><span class="sm-l3-nm">Production Status</span></a>
+      <a class="sm-l3" href="VOL05_INJ08_Andon.html"><span class="sm-l3-id">INJ-08</span><span class="sm-l3-nm">Andon Emergency</span></a>
+    </div>
+  </div>
+  <div class="sm-mod" style="--mc:#7c3aed">
+    <a class="sm-mod-hdr" href="VOL06_IMG_Wrapping.html"><span class="sm-badge">VOL06 · IMG</span><span class="sm-mod-t">Wrapping</span><span class="sm-mod-ko">감싸기생산</span><span class="sm-cnt">7 screens · L2 →</span></a>
+    <div class="sm-l3s">
+      <a class="sm-l3" href="VOL06_IMG01_POP_Login.html"><span class="sm-l3-id">IMG-01</span><span class="sm-l3-nm">POP Login</span></a>
+      <a class="sm-l3" href="VOL06_IMG02_POP_Dashboard.html"><span class="sm-l3-id">IMG-02</span><span class="sm-l3-nm">POP Dashboard</span></a>
+      <a class="sm-l3" href="VOL06_IMG03_Production_Entry.html"><span class="sm-l3-id">IMG-03</span><span class="sm-l3-nm">Production Entry</span></a>
+      <a class="sm-l3" href="VOL06_IMG04_Fabric_Input.html"><span class="sm-l3-id">IMG-04</span><span class="sm-l3-nm">Fabric Input &amp; Verify</span></a>
+      <a class="sm-l3" href="VOL06_IMG05_Defect.html"><span class="sm-l3-id">IMG-05</span><span class="sm-l3-nm">Defect Register</span></a>
+      <a class="sm-l3" href="VOL06_IMG06_Bond_Setup.html"><span class="sm-l3-id">IMG-06</span><span class="sm-l3-nm">Bond Setup</span></a>
+      <a class="sm-l3" href="VOL06_IMG07_Prod_Status.html"><span class="sm-l3-id">IMG-07</span><span class="sm-l3-nm">Production Status</span></a>
+    </div>
+  </div>
+  <div class="sm-mod" style="--mc:#ea580c">
+    <a class="sm-mod-hdr" href="VOL07_PNT_Painting.html"><span class="sm-badge">VOL07 · PNT</span><span class="sm-mod-t">Painting</span><span class="sm-mod-ko">도장생산</span><span class="sm-cnt">9 screens · L2 →</span></a>
+    <div class="sm-l3s">
+      <a class="sm-l3" href="VOL07_PNT01_Daily_Plan.html"><span class="sm-l3-id">PNT-01</span><span class="sm-l3-nm">Daily Production Plan</span></a>
+      <a class="sm-l3" href="VOL07_PNT02_Lot_PreIssue.html"><span class="sm-l3-id">PNT-02</span><span class="sm-l3-nm">Virtual LOT Pre-Issue</span></a>
+      <a class="sm-l3" href="VOL07_PNT03_Loading.html"><span class="sm-l3-id">PNT-03</span><span class="sm-l3-nm">Loading Station (R1)</span></a>
+      <a class="sm-l3" href="VOL07_PNT04_Line_Board.html"><span class="sm-l3-id">PNT-04</span><span class="sm-l3-nm">Line Tracking Board</span></a>
+      <a class="sm-l3" href="VOL07_PNT05_Oven_Monitor.html"><span class="sm-l3-id">PNT-05</span><span class="sm-l3-nm">Oven Monitor (R2)</span></a>
+      <a class="sm-l3" href="VOL07_PNT06_Unloading.html"><span class="sm-l3-id">PNT-06</span><span class="sm-l3-nm">Unloading &amp; Count (R3)</span></a>
+      <a class="sm-l3" href="VOL07_PNT07_Label_Apply.html"><span class="sm-l3-id">PNT-07</span><span class="sm-l3-nm">LOT Label Apply</span></a>
+      <a class="sm-l3" href="VOL07_PNT08_Defect.html"><span class="sm-l3-id">PNT-08</span><span class="sm-l3-nm">Defect Register</span></a>
+      <a class="sm-l3" href="VOL07_PNT09_Shift_Report.html"><span class="sm-l3-id">PNT-09</span><span class="sm-l3-nm">Shift Log / Report</span></a>
+    </div>
+  </div>
+  <div class="sm-mod" style="--mc:#dc2626">
+    <a class="sm-mod-hdr" href="VOL08_QC_Quality.html"><span class="sm-badge">VOL08 · QC</span><span class="sm-mod-t">Quality Control</span><span class="sm-mod-ko">품질관리</span><span class="sm-cnt">9 screens · L2 →</span></a>
+    <div class="sm-l3s">
+      <a class="sm-l3" href="VOL08_QC01_Incoming_Inspection.html"><span class="sm-l3-id">QC-01</span><span class="sm-l3-nm">Incoming Inspection</span></a>
+      <a class="sm-l3" href="VOL08_QC02_InProcess_Inspection.html"><span class="sm-l3-id">QC-02</span><span class="sm-l3-nm">In-Process Inspection</span></a>
+      <a class="sm-l3" href="VOL08_QC03_Final_Inspection.html"><span class="sm-l3-id">QC-03</span><span class="sm-l3-nm">Final Inspection</span></a>
+      <a class="sm-l3" href="VOL08_QC04_NCR_Register.html"><span class="sm-l3-id">QC-04</span><span class="sm-l3-nm">NCR Register</span></a>
+      <a class="sm-l3" href="VOL08_QC05_Hold_Quarantine.html"><span class="sm-l3-id">QC-05</span><span class="sm-l3-nm">Hold / Quarantine</span></a>
+      <a class="sm-l3" href="VOL08_QC06_CAPA.html"><span class="sm-l3-id">QC-06</span><span class="sm-l3-nm">CAPA Management</span></a>
+      <a class="sm-l3" href="VOL08_QC07_Dashboard.html"><span class="sm-l3-id">QC-07</span><span class="sm-l3-nm">QC Dashboard</span></a>
+      <a class="sm-l3" href="VOL08_QC08_Inspection_Std.html"><span class="sm-l3-id">QC-08</span><span class="sm-l3-nm">Inspection Standard</span></a>
+      <a class="sm-l3" href="VOL08_QC_TRC_Traceability.html"><span class="sm-l3-id">QC-TRC</span><span class="sm-l3-nm">Traceability</span></a>
+    </div>
+  </div>
+  <div class="sm-mod" style="--mc:#0db87a">
+    <a class="sm-mod-hdr" href="VOL09_FG_Finished_Goods.html"><span class="sm-badge">VOL09 · FG</span><span class="sm-mod-t">Finished Goods</span><span class="sm-mod-ko">완제품출고</span><span class="sm-cnt">10 screens · L2 →</span></a>
+    <div class="sm-l3s">
+      <a class="sm-l3" href="VOL09_FG01_PDA_Stocking.html"><span class="sm-l3-id">FG-01</span><span class="sm-l3-nm">PDA Stocking</span></a>
+      <a class="sm-l3" href="VOL09_FG02_Inventory.html"><span class="sm-l3-id">FG-02</span><span class="sm-l3-nm">FG Inventory</span></a>
+      <a class="sm-l3" href="VOL09_FG03_Shipment_Order.html"><span class="sm-l3-id">FG-03</span><span class="sm-l3-nm">Shipment Order</span></a>
+      <a class="sm-l3" href="VOL09_FG04_PDA_FIFO_Picking.html"><span class="sm-l3-id">FG-04</span><span class="sm-l3-nm">PDA FIFO Picking</span></a>
+      <a class="sm-l3" href="VOL09_FG05_Loading.html"><span class="sm-l3-id">FG-05</span><span class="sm-l3-nm">Loading Confirmation</span></a>
+      <a class="sm-l3" href="VOL09_FG06_Delivery_Note.html"><span class="sm-l3-id">FG-06</span><span class="sm-l3-nm">Delivery Note</span></a>
+      <a class="sm-l3" href="VOL09_FG07_Day_End_Close.html"><span class="sm-l3-id">FG-07</span><span class="sm-l3-nm">Day-End Close</span></a>
+      <a class="sm-l3" href="VOL09_FG08_Shipment_History.html"><span class="sm-l3-id">FG-08</span><span class="sm-l3-nm">Shipment History</span></a>
+      <a class="sm-l3" href="VOL09_FG09_Dashboard.html"><span class="sm-l3-id">FG-09</span><span class="sm-l3-nm">FG Dashboard</span></a>
+      <a class="sm-l3" href="VOL09_FG_RTN_Return.html"><span class="sm-l3-id">FG-RTN</span><span class="sm-l3-nm">Customer Return</span></a>
+    </div>
+  </div>
+  <div class="sm-mod" style="--mc:#0284c7">
+    <a class="sm-mod-hdr" href="VOL10_MNT_Maintenance.html"><span class="sm-badge">VOL10 · MNT</span><span class="sm-mod-t">Maintenance</span><span class="sm-mod-ko">설비관리</span><span class="sm-cnt">9 screens · L2 →</span></a>
+    <div class="sm-l3s">
+      <a class="sm-l3" href="VOL10_MNT01_Equipment_Card.html"><span class="sm-l3-id">MNT-01</span><span class="sm-l3-nm">Equipment Card</span></a>
+      <a class="sm-l3" href="VOL10_MNT02_Failure_Register.html"><span class="sm-l3-id">MNT-02</span><span class="sm-l3-nm">Failure Register</span></a>
+      <a class="sm-l3" href="VOL10_MNT03_OEE_Analysis.html"><span class="sm-l3-id">MNT-03</span><span class="sm-l3-nm">OEE Analysis</span></a>
+      <a class="sm-l3" href="VOL10_MNT04_Mold_Management.html"><span class="sm-l3-id">MNT-04</span><span class="sm-l3-nm">Mold Management</span></a>
+      <a class="sm-l3" href="VOL10_MNT05_PM_Schedule.html"><span class="sm-l3-id">MNT-05</span><span class="sm-l3-nm">PM Schedule</span></a>
+      <a class="sm-l3" href="VOL10_MNT06_Downtime_Log.html"><span class="sm-l3-id">MNT-06</span><span class="sm-l3-nm">Downtime Log</span></a>
+      <a class="sm-l3" href="VOL10_MNT07_Work_Order.html"><span class="sm-l3-id">MNT-07</span><span class="sm-l3-nm">Work Order</span></a>
+      <a class="sm-l3" href="VOL10_MNT08_Spare_Parts.html"><span class="sm-l3-id">MNT-08</span><span class="sm-l3-nm">Spare Parts</span></a>
+      <a class="sm-l3" href="VOL10_MNT09_Dashboard.html"><span class="sm-l3-id">MNT-09</span><span class="sm-l3-nm">MNT Dashboard</span></a>
+    </div>
+  </div>
+  <div class="sm-mod" style="--mc:#6366f1">
+    <a class="sm-mod-hdr" href="VOL11_RPT_Reports.html"><span class="sm-badge">VOL11 · RPT</span><span class="sm-mod-t">Reports</span><span class="sm-mod-ko">분석리포트</span><span class="sm-cnt">10 screens · L2 →</span></a>
+    <div class="sm-l3s">
+      <a class="sm-l3" href="VOL11_RPT01_Daily_Production.html"><span class="sm-l3-id">RPT-01</span><span class="sm-l3-nm">Daily Production</span></a>
+      <a class="sm-l3" href="VOL11_RPT02_Defect_Pareto.html"><span class="sm-l3-id">RPT-02</span><span class="sm-l3-nm">Defect Pareto</span></a>
+      <a class="sm-l3" href="VOL11_RPT03_Daily_Shipment.html"><span class="sm-l3-id">RPT-03</span><span class="sm-l3-nm">Daily Shipment</span></a>
+      <a class="sm-l3" href="VOL11_RPT04_OnTime_Delivery.html"><span class="sm-l3-id">RPT-04</span><span class="sm-l3-nm">On-Time Delivery</span></a>
+      <a class="sm-l3" href="VOL11_RPT05_Inventory_Status.html"><span class="sm-l3-id">RPT-05</span><span class="sm-l3-nm">Inventory Status</span></a>
+      <a class="sm-l3" href="VOL11_RPT06_Equipment_OEE.html"><span class="sm-l3-id">RPT-06</span><span class="sm-l3-nm">Equipment OEE</span></a>
+      <a class="sm-l3" href="VOL11_RPT07_Monthly_KPI.html"><span class="sm-l3-id">RPT-07</span><span class="sm-l3-nm">Monthly KPI</span></a>
+      <a class="sm-l3" href="VOL11_RPT08_Schedule_Adherence.html"><span class="sm-l3-id">RPT-08</span><span class="sm-l3-nm">Schedule Adherence</span></a>
+      <a class="sm-l3" href="VOL11_RPT09_Report_Center.html"><span class="sm-l3-id">RPT-09</span><span class="sm-l3-nm">Report Center</span></a>
+      <a class="sm-l3" href="VOL11_RPT10_Report_Builder.html"><span class="sm-l3-id">RPT-10</span><span class="sm-l3-nm">Report Builder</span></a>
+    </div>
+  </div>
+  <div class="sm-mod" style="--mc:#475569">
+    <a class="sm-mod-hdr" href="VOL12_SYS_System.html"><span class="sm-badge">VOL12 · SYS</span><span class="sm-mod-t">System Admin</span><span class="sm-mod-ko">시스템관리</span><span class="sm-cnt">8 screens · L2 →</span></a>
+    <div class="sm-l3s">
+      <a class="sm-l3" href="VOL12_SYS01_User_Management.html"><span class="sm-l3-id">SYS-01</span><span class="sm-l3-nm">User Management</span></a>
+      <a class="sm-l3" href="VOL12_SYS02_RBAC_Permissions.html"><span class="sm-l3-id">SYS-02</span><span class="sm-l3-nm">RBAC Permissions</span></a>
+      <a class="sm-l3" href="VOL12_SYS03_Factory_Calendar.html"><span class="sm-l3-id">SYS-03</span><span class="sm-l3-nm">Factory Calendar</span></a>
+      <a class="sm-l3" href="VOL12_SYS04_Interface_Monitor.html"><span class="sm-l3-id">SYS-04</span><span class="sm-l3-nm">Interface Monitor</span></a>
+      <a class="sm-l3" href="VOL12_SYS05_Audit_Log.html"><span class="sm-l3-id">SYS-05</span><span class="sm-l3-nm">Audit Log</span></a>
+      <a class="sm-l3" href="VOL12_SYS06_Notification_Settings.html"><span class="sm-l3-id">SYS-06</span><span class="sm-l3-nm">Notification Settings</span></a>
+      <a class="sm-l3" href="VOL12_SYS07_System_Config.html"><span class="sm-l3-id">SYS-07</span><span class="sm-l3-nm">System Configuration</span></a>
+      <a class="sm-l3" href="VOL12_SYS08_System_Health.html"><span class="sm-l3-id">SYS-08</span><span class="sm-l3-nm">System Health</span></a>
+    </div>
+  </div>
+  <div class="sm-mod" style="--mc:#d97706">
+    <a class="sm-mod-hdr" href="VOL13_MD_Master_Data.html"><span class="sm-badge">VOL13 · MD</span><span class="sm-mod-t">Master Data</span><span class="sm-mod-ko">기준정보 · 29 엔티티</span><span class="sm-cnt">5 hubs + 29 entities · L2 →</span></a>
+    <div class="sm-l3s">
+      <div class="sm-grp">Category L3 Hubs · 카테고리 허브</div>
+      <a class="sm-l3" href="VOL13_MD_L3_Foundation.html"><span class="sm-l3-id">L3 · A</span><span class="sm-l3-nm">Foundation</span></a>
+      <a class="sm-l3" href="VOL13_MD_L3_Production.html"><span class="sm-l3-id">L3 · B</span><span class="sm-l3-nm">Routing &amp; Production</span></a>
+      <a class="sm-l3" href="VOL13_MD_L3_Resources.html"><span class="sm-l3-id">L3 · C</span><span class="sm-l3-nm">Resources &amp; Equipment</span></a>
+      <a class="sm-l3" href="VOL13_MD_L3_RFID_Color.html"><span class="sm-l3-id">L3 · D</span><span class="sm-l3-nm">RFID &amp; Materials</span></a>
+      <a class="sm-l3" href="VOL13_MD_L3_Quality.html"><span class="sm-l3-id">L3 · E</span><span class="sm-l3-nm">Quality &amp; Logistics</span></a>
+      <div class="sm-grp">Entity Table-Design Pages · 엔티티 테이블 설계서</div>
+      <a class="sm-l3" href="VOL13_MD01_Item.html"><span class="sm-l3-id">MD-01</span><span class="sm-l3-nm">Item Master</span></a>
+      <a class="sm-l3" href="VOL13_MD02_BOM.html"><span class="sm-l3-id">MD-02</span><span class="sm-l3-nm">BOM</span></a>
+      <a class="sm-l3" href="VOL13_MD03_BOM_Version.html"><span class="sm-l3-id">MD-03</span><span class="sm-l3-nm">BOM Version</span></a>
+      <a class="sm-l3" href="VOL13_MD04_BOP.html"><span class="sm-l3-id">MD-04</span><span class="sm-l3-nm">BOP Routing</span></a>
+      <a class="sm-l3" href="VOL13_MD05_Work_Center.html"><span class="sm-l3-id">MD-05</span><span class="sm-l3-nm">Work Center</span></a>
+      <a class="sm-l3" href="VOL13_MD06_Inspection_Std.html"><span class="sm-l3-id">MD-06</span><span class="sm-l3-nm">Inspection Std</span></a>
+      <a class="sm-l3" href="VOL13_MD07_Vendor.html"><span class="sm-l3-id">MD-07</span><span class="sm-l3-nm">Vendor</span></a>
+      <a class="sm-l3" href="VOL13_MD08_Equipment.html"><span class="sm-l3-id">MD-08</span><span class="sm-l3-nm">Equipment</span></a>
+      <a class="sm-l3" href="VOL13_MD09_Mold.html"><span class="sm-l3-id">MD-09</span><span class="sm-l3-nm">Mold</span></a>
+      <a class="sm-l3" href="VOL13_MD10_Paint_Fabric.html"><span class="sm-l3-id">MD-10</span><span class="sm-l3-nm">Paint / Fabric</span></a>
+      <a class="sm-l3" href="VOL13_MD11_Shipment_Dest.html"><span class="sm-l3-id">MD-11</span><span class="sm-l3-nm">Shipment Dest</span></a>
+      <a class="sm-l3" href="VOL13_MD12_Customer.html"><span class="sm-l3-id">MD-12</span><span class="sm-l3-nm">Customer</span></a>
+      <a class="sm-l3" href="VOL13_MD13_UOM.html"><span class="sm-l3-id">MD-13</span><span class="sm-l3-nm">UOM</span></a>
+      <a class="sm-l3" href="VOL13_MD14_Calendar.html"><span class="sm-l3-id">MD-14</span><span class="sm-l3-nm">Calendar</span></a>
+      <a class="sm-l3" href="VOL13_MD15_Jig.html"><span class="sm-l3-id">MD-15</span><span class="sm-l3-nm">Jig</span></a>
+      <a class="sm-l3" href="VOL13_MD16_RFID_Tag.html"><span class="sm-l3-id">MD-16</span><span class="sm-l3-nm">RFID Tag</span></a>
+      <a class="sm-l3" href="VOL13_MD17_RAL_Color.html"><span class="sm-l3-id">MD-17</span><span class="sm-l3-nm">RAL Paint Color</span></a>
+      <a class="sm-l3" href="VOL13_MD18_Oven.html"><span class="sm-l3-id">MD-18</span><span class="sm-l3-nm">Oven</span></a>
+      <a class="sm-l3" href="VOL13_MD19_RFID_Reader.html"><span class="sm-l3-id">MD-19</span><span class="sm-l3-nm">RFID Reader</span></a>
+      <a class="sm-l3" href="VOL13_MD20_Line.html"><span class="sm-l3-id">MD-20</span><span class="sm-l3-nm">Line Master</span></a>
+      <a class="sm-l3" href="VOL13_MD21_Defect_Code.html"><span class="sm-l3-id">MD-21</span><span class="sm-l3-nm">Defect Code</span></a>
+      <a class="sm-l3" href="VOL13_MD22_Defect_Cause.html"><span class="sm-l3-id">MD-22</span><span class="sm-l3-nm">Defect Cause</span></a>
+      <a class="sm-l3" href="VOL13_MD23_Packaging_Spec.html"><span class="sm-l3-id">MD-23</span><span class="sm-l3-nm">Packaging Spec</span></a>
+      <a class="sm-l3" href="VOL13_MD24_Label_Template.html"><span class="sm-l3-id">MD-24</span><span class="sm-l3-nm">Label Template</span></a>
+      <a class="sm-l3" href="VOL13_MD25_Reason_Code.html"><span class="sm-l3-id">MD-25</span><span class="sm-l3-nm">Reason Code</span></a>
+      <a class="sm-l3" href="VOL13_MD26_Code_Group.html"><span class="sm-l3-id">MD-26</span><span class="sm-l3-nm">Common Code Group</span></a>
+      <a class="sm-l3" href="VOL13_MD27_Spare_Parts.html"><span class="sm-l3-id">MD-27</span><span class="sm-l3-nm">Spare Parts</span></a>
+      <a class="sm-l3" href="VOL13_MD28_PM_Template.html"><span class="sm-l3-id">MD-28</span><span class="sm-l3-nm">PM Template</span></a>
+      <a class="sm-l3" href="VOL13_MD29_Line_Time_Pattern.html"><span class="sm-l3-id">MD-29</span><span class="sm-l3-nm">Line Time Pattern</span></a>
+    </div>
+  </div>
+  <div class="sm-mod" style="--mc:#64748b">
+    <a class="sm-mod-hdr" href="AMES_ERD.html"><span class="sm-badge">REF</span><span class="sm-mod-t">Data Model</span><span class="sm-mod-ko">데이터 모델 참조</span><span class="sm-cnt">2 references</span></a>
+    <div class="sm-l3s">
+      <a class="sm-l3" href="AMES_ERD.html"><span class="sm-l3-id">ERD</span><span class="sm-l3-nm">Entity Relationship Diagram</span></a>
+      <a class="sm-l3" href="AMES_DB_Schema.html"><span class="sm-l3-id">DB</span><span class="sm-l3-nm">Database Schema</span></a>
+    </div>
+  </div>
+</div>
+<div class="sec-title">Business Rule Overview &nbsp;핵심 업무 규칙</div><div class="flow-box">
 <table class="br-overview">
 <tr><th>Module</th><th>Rule</th><th>규칙 요약</th><th>Action</th></tr>
 <tr><td>WH</td><td>BR-WH-001</td><td>입고 수량 ±5% 초과 시 SCM 승인 요청</td><td>Block / Alert</td></tr>
