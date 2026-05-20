@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.10 · MNT-02 · Failure Register · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--mnt:#0284c7;--mod:#0284c7;--mod-lt:#e0f2fe;--mod-dk:#075985;--mod-tint:#7dd3fc;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(125,211,252,.7);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#06283d 0%,#04223a 50%,#06283d 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(2,132,199,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(2,132,199,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(2,132,199,.05) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(2,132,199,.14),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(2,132,199,.35);color:var(--mod-tint);background:rgba(2,132,199,.1);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod-dk);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.alert-w{background:#fef9c3;border-color:#f59e0b;color:#92400e;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#eff6ff;border-color:#3b82f6;}
+.lnk-node.cur{background:linear-gradient(135deg,#06283d,#04223a);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(2,132,199,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#1d4ed8;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);}
+.dm-pk{color:#f59e0b;font-size:8px;font-weight:700;}.dm-fk{color:#8b5cf6;font-size:8px;font-weight:700;}
+
+.pda-wrap{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-bottom:14px;}
+.pda-mock{width:260px;background:#1a1a1a;border:8px solid #1a1a1a;border-radius:18px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.18);}
+.pda-tbar{background:#000;color:#fff;padding:5px 10px;font-size:9px;display:flex;justify-content:space-between;}
+.pda-bd{background:#06283d;padding:14px;height:420px;overflow:hidden;color:#e2e8f0;}
+.pda-h{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mod-tint);letter-spacing:.5px;margin-bottom:10px;text-transform:uppercase;display:flex;justify-content:space-between;}
+.pda-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:10px;margin-bottom:8px;}
+.pda-row{display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.65);margin-bottom:3px;}
+.pda-row strong{color:#fff;font-size:11px;font-weight:800;}
+.pda-btn{display:block;padding:10px;background:linear-gradient(135deg,var(--mod),var(--mod-dk));color:#fff;border-radius:5px;text-align:center;font-size:11px;font-weight:800;margin-top:8px;border:none;width:100%;}
+.pda-btn.danger{background:linear-gradient(135deg,#dc2626,#991b1b);}
+.pda-btn.warn{background:linear-gradient(135deg,#f59e0b,#b45309);}
+.pda-cap{text-align:center;font-size:10px;color:var(--sub);margin-top:6px;}
+.pda-grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.pda-tile{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:10px 6px;text-align:center;font-size:10px;color:#e2e8f0;}
+.pda-tile.sel{background:rgba(2,132,199,.25);border-color:var(--mod-tint);}
+
+.web-mock{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.web-tbar{background:#f0f3f7;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);font-size:11px;}
+.web-tbar-l{font-weight:700;color:var(--text);}
+.web-tbar .bc{color:var(--sub);font-size:10px;margin-left:8px;}
+.web-tbar-r{font-size:10px;color:var(--sub);}
+.web-bd{padding:18px;background:#fbfcfd;}
+.tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;}
+.tbl th{background:#f0f3f7;padding:7px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.tbl td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:top;}
+.tbl .th-ko{font-size:9px;color:var(--sub);display:block;margin-top:1px;font-weight:400;}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.b-ok{background:#dcfce7;color:#166534;}.b-w{background:#fef9c3;color:#92400e;}.b-e{background:#fee2e2;color:#991b1b;}.b-i{background:#dbeafe;color:#1e40af;}
+.btn{padding:7px 14px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;}
+.btn-primary{background:var(--mod);border-color:var(--mod-dk);color:#fff;}
+
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol active"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL10_MNT_Maintenance.html">VOL.10 · MNT</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">MNT-02 · Failure Register</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.10 · MNT · L3</div><div class="sb-mod-en">MAINTENANCE</div><div class="sb-mod-ko">설비 보전</div></div>
+  <div class="sb-section">Equipment · 설비</div>
+  <a class="sb-link" href="VOL10_MNT01_Equipment_Card.html"><span class="sl-id">MNT-01</span><div><div class="sl-en">Equipment Card</div><div class="sl-ko">설비 카드뷰</div></div></a>
+  <a class="sb-link" href="VOL10_MNT04_Mold_Management.html"><span class="sl-id">MNT-04</span><div><div class="sl-en">Mold Mgmt</div><div class="sl-ko">금형 관리</div></div></a>
+  <div class="sb-section">Maintenance · 보전</div>
+  <a class="sb-link on" href="VOL10_MNT02_Failure_Register.html"><span class="sl-id">MNT-02</span><div><div class="sl-en">Failure Register</div><div class="sl-ko">고장 등록</div></div></a>
+  <a class="sb-link" href="VOL10_MNT07_Work_Order.html"><span class="sl-id">MNT-07</span><div><div class="sl-en">Work Order ⚙</div><div class="sl-ko">정비 작업지시</div></div></a>
+  <a class="sb-link" href="VOL10_MNT05_PM_Schedule.html"><span class="sl-id">MNT-05</span><div><div class="sl-en">PM Schedule</div><div class="sl-ko">예방정비</div></div></a>
+  <div class="sb-section">Analysis · 분석</div>
+  <a class="sb-link" href="VOL10_MNT03_OEE_Analysis.html"><span class="sl-id">MNT-03</span><div><div class="sl-en">OEE Analysis</div><div class="sl-ko">OEE 분석</div></div></a>
+  <a class="sb-link" href="VOL10_MNT06_Downtime_Log.html"><span class="sl-id">MNT-06</span><div><div class="sl-en">Downtime Log</div><div class="sl-ko">비가동 이력</div></div></a>
+  <a class="sb-link" href="VOL10_MNT08_Spare_Parts.html"><span class="sl-id">MNT-08</span><div><div class="sl-en">Spare Parts</div><div class="sl-ko">정비 자재</div></div></a>
+  <a class="sb-link" href="VOL10_MNT09_Dashboard.html"><span class="sl-id">MNT-09</span><div><div class="sl-en">Dashboard</div><div class="sl-ko">현황판</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
+    <a href="#sec-2"><span class="num">02</span>Field Spec</a>
+    <a href="#sec-3"><span class="num">03</span>Failure Types</a>
+    <a href="#sec-4"><span class="num">04</span>Workflow</a>
+    <a href="#sec-5"><span class="num">05</span>Business Rules</a>
+    <a href="#sec-6"><span class="num">06</span>Data Model</a>
+    <a href="#sec-7"><span class="num">07</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.10 · MNT · L3 · Equipment Breakdown Register</div>
+      <div class="scr-id-block"><div class="scr-id">MNT-02</div><div class="scr-title-en">Failure Register</div></div>
+      <div class="scr-title-ko">고장 등록 — 설비 고장 신고 + 자동 WO 생성 + Andon 연계</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">UI</span><span class="mc-val">📱 PDA + 🖥 Web</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">1st Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">Line Operator · MNT Technician</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Trigger</span><span class="mc-val">Manual · Andon Auto (INJ/IMG/PNT)</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Outputs</span><span class="mc-val">DOWN status + MNT-07 WO 자동</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          Equipment breakdown registration. A line operator (or maintenance technician) reports a failure on PDA: scan equipment QR, pick failure type (6 standard categories), enter symptom, optionally attach photos, set urgency. On submit: equipment status → DOWN, a maintenance Work Order (MNT-07) is auto-created, downtime tracking starts (MNT-06), and the MNT team is push-notified. Andon events from INJ/IMG/PNT POP auto-create a Failure record without manual entry (BR-MNT-04).
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          설비 고장 등록. 라인 작업자(또는 정비 기술자)가 PDA로 고장 신고: 설비 QR 스캔, 고장 유형 선택(6종 표준), 증상 입력, 사진 첨부(옵션), 긴급도 설정. 제출 시: 설비 상태 → DOWN, 정비 작업지시(MNT-07) 자동 생성, 비가동 추적 시작(MNT-06), MNT팀 푸시 알림. INJ/IMG/PNT POP Andon 이벤트는 수동 입력 없이 Failure 기록 자동 생성(BR-MNT-04).
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — PDA 고장 신고</span></div>
+      <div class="pda-wrap">
+        <div>
+          <div class="pda-mock">
+            <div class="pda-tbar"><span>📶 A-MES</span><span>🔋 71% · 09:42</span></div>
+            <div class="pda-bd">
+              <div class="pda-h"><span>MNT-02 · FAILURE</span><span style="color:#fde047;">Step 1/3</span></div>
+              <div class="pda-card">
+                <div style="font-size:9px;color:var(--mod-tint);letter-spacing:.5px;font-family:'JetBrains Mono',monospace;margin-bottom:6px;">▼ SCANNED EQUIPMENT</div>
+                <div class="pda-row"><span>Equipment</span><strong>INJ-M-002</strong></div>
+                <div class="pda-row"><span>Name</span><strong>사출기 #2 (650T)</strong></div>
+                <div class="pda-row"><span>Line</span><strong>INJ-L1</strong></div>
+                <div class="pda-row"><span>Status</span><strong style="color:#5dffc4;">RUN → DOWN</strong></div>
+              </div>
+              <div style="font-size:9px;color:var(--mod-tint);letter-spacing:.5px;margin-bottom:6px;font-family:'JetBrains Mono',monospace;">▼ FAILURE TYPE (1택)</div>
+              <div class="pda-grid2">
+                <div class="pda-tile sel">🛢 유압계통</div>
+                <div class="pda-tile">⚡ 전기계통</div>
+                <div class="pda-tile">🔥 가열/온도</div>
+                <div class="pda-tile">⚙ 기계/구동</div>
+                <div class="pda-tile">🎛 제어/PLC</div>
+                <div class="pda-tile">📦 기타</div>
+              </div>
+              <button class="pda-btn">다음 → 증상 입력</button>
+            </div>
+          </div>
+          <div class="pda-cap">📱 Step 1 — 설비 스캔 + 고장 유형</div>
+        </div>
+        <div>
+          <div class="pda-mock">
+            <div class="pda-tbar"><span>📶 A-MES</span><span>🔋 71% · 09:43</span></div>
+            <div class="pda-bd">
+              <div class="pda-h"><span>MNT-02 · FAILURE</span><span style="color:#fde047;">Step 2/3</span></div>
+              <div class="pda-card">
+                <div style="font-size:9px;color:var(--mod-tint);font-family:'JetBrains Mono',monospace;margin-bottom:4px;">▼ SYMPTOM · 증상</div>
+                <textarea style="width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:4px;color:#fff;padding:8px;font-size:10px;font-family:inherit;resize:none;" rows="3">형체부 하단 유압 호스에서 누유 발견. 압력 저하로 형개폐 불안정.</textarea>
+              </div>
+              <div class="pda-card">
+                <div style="font-size:9px;color:var(--mod-tint);font-family:'JetBrains Mono',monospace;margin-bottom:6px;">▼ URGENCY · 긴급도</div>
+                <div class="pda-grid2" style="grid-template-columns:1fr 1fr 1fr;">
+                  <div class="pda-tile" style="background:rgba(220,38,38,.25);border-color:#fca5a5;">🔴 긴급</div>
+                  <div class="pda-tile">🟡 보통</div>
+                  <div class="pda-tile">🟢 낮음</div>
+                </div>
+              </div>
+              <div style="text-align:center;padding:14px 0;background:rgba(2,132,199,.1);border:1px dashed rgba(125,211,252,.4);border-radius:5px;">
+                <div style="font-size:24px;">📷</div>
+                <div style="font-size:9px;color:var(--mod-tint);margin-top:4px;">사진 첨부 (2/5)</div>
+              </div>
+              <button class="pda-btn">다음 → 확인</button>
+            </div>
+          </div>
+          <div class="pda-cap">📱 Step 2 — 증상 + 긴급도 + 사진</div>
+        </div>
+        <div>
+          <div class="pda-mock">
+            <div class="pda-tbar"><span>📶 A-MES</span><span>🔋 71% · 09:44</span></div>
+            <div class="pda-bd">
+              <div class="pda-h"><span>MNT-02 · CONFIRM</span><span style="color:#5dffc4;">Step 3/3</span></div>
+              <div class="pda-card" style="background:rgba(220,38,38,.12);border-color:rgba(252,165,165,.4);">
+                <div class="pda-row"><span>Equipment</span><strong>INJ-M-002</strong></div>
+                <div class="pda-row"><span>Type</span><strong>유압계통</strong></div>
+                <div class="pda-row"><span>Urgency</span><strong style="color:#fca5a5;">🔴 긴급</strong></div>
+                <div class="pda-row"><span>Photos</span><strong>2장</strong></div>
+              </div>
+              <div style="font-size:10px;color:rgba(255,255,255,.7);line-height:1.7;padding:4px 0;">
+                제출 시 자동 처리:<br>
+                ① 설비 상태 → DOWN<br>
+                ② MNT-07 Work Order 자동 생성<br>
+                ③ MNT-06 비가동 추적 시작<br>
+                ④ MNT팀 긴급 푸시 알림
+              </div>
+              <button class="pda-btn danger">🔴 고장 등록 + WO 생성</button>
+              <button class="pda-btn warn">취소</button>
+            </div>
+          </div>
+          <div class="pda-cap">📱 Step 3 — 확인 + 자동 WO 생성</div>
+        </div>
+      </div>
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 UI Highlights · 화면 주요 포인트</span>
+        ① 설비 QR 스캔으로 대상 자동 식별 — 오등록 방지 ② 6종 표준 고장 유형 (Pareto 분석 기반) ③ 긴급도 3단계 → MNT-07 WO 우선순위 자동 결정 ④ 사진 최대 5장 (정비팀 사전 준비 지원) ⑤ Andon 트리거 시 이 화면 거치지 않고 Failure 자동 생성 (BR-MNT-04) ⑥ 제출 즉시 4개 자동 처리 (DOWN·WO·Downtime·알림)</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Field Specification</span><span class="sec-ko">필드 사양</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:22%;">Field</th><th style="width:14%;">Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">FailureID</td><td class="fld-type">VARCHAR(24)</td><td>자동 채번. FL-YYYYMMDD-SEQ.</td></tr>
+          <tr><td class="fld-name">EquipID</td><td class="fld-type">VARCHAR(20)</td><td>고장 설비 (QR 스캔).</td></tr>
+          <tr><td class="fld-name">FailureType</td><td class="fld-type">ENUM</td><td>HYDRAULIC / ELECTRICAL / THERMAL / MECHANICAL / CONTROL / OTHER.</td></tr>
+          <tr><td class="fld-name">Symptom</td><td class="fld-type">TEXT</td><td>증상 서술.</td></tr>
+          <tr><td class="fld-name">Urgency</td><td class="fld-type">ENUM</td><td>URGENT / NORMAL / LOW → WO 우선순위.</td></tr>
+          <tr><td class="fld-name">PhotoURLs</td><td class="fld-type">JSON</td><td>첨부 사진 URL 배열 (최대 5).</td></tr>
+          <tr><td class="fld-name">Source</td><td class="fld-type">ENUM</td><td>MANUAL / ANDON_AUTO (INJ-08/IMG/PNT Andon).</td></tr>
+          <tr><td class="fld-name">AndonRefID</td><td class="fld-type">VARCHAR(24)</td><td>Andon 자동 생성 시 원본 Andon ID.</td></tr>
+          <tr><td class="fld-name">ReporterID</td><td class="fld-type">VARCHAR(20)</td><td>신고자 (Andon 시 SYSTEM).</td></tr>
+          <tr><td class="fld-name">ReportTS</td><td class="fld-type">DATETIME</td><td>신고 시각 (= DOWN 시작 = MTTR 시작점).</td></tr>
+          <tr><td class="fld-name">WOID</td><td class="fld-type">VARCHAR(24)</td><td>자동 생성된 MNT-07 Work Order ID (FK).</td></tr>
+          <tr><td class="fld-name">DowntimeID</td><td class="fld-type">VARCHAR(24)</td><td>MNT-06 비가동 로그 ID (FK).</td></tr>
+          <tr><td class="fld-name">Status</td><td class="fld-type">ENUM</td><td>REPORTED / WO_ISSUED / RESOLVED (WO 완료 시).</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Failure Type Categories</span><span class="sec-ko">고장 유형 6종</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:24%;">Type</th><th>Examples · 예시</th><th style="width:24%;">Default Spare Parts</th></tr></thead>
+        <tbody>
+          <tr><td><strong>🛢 HYDRAULIC</strong></td><td>유압 누유, 펌프 압력 저하, 호스 파손, 밸브 고착</td><td>호스·실·펌프 (MNT-08)</td></tr>
+          <tr><td><strong>⚡ ELECTRICAL</strong></td><td>모터 소손, 차단기 트립, 센서 단선, 케이블 손상</td><td>모터·차단기·센서</td></tr>
+          <tr><td><strong>🔥 THERMAL</strong></td><td>히터 단선, 온도 편차, 냉각수 누수, 단열 파손</td><td>히터·서모커플·냉각 부품</td></tr>
+          <tr><td><strong>⚙ MECHANICAL</strong></td><td>베어링 마모, 기어 손상, 벨트 절손, 정렬 불량</td><td>베어링·기어·벨트</td></tr>
+          <tr><td><strong>🎛 CONTROL</strong></td><td>PLC 오류, HMI 멈춤, 통신 단절, 프로그램 이상</td><td>PLC 모듈·통신 카드</td></tr>
+          <tr><td><strong>📦 OTHER</strong></td><td>위 분류 외 (안전장치·구조물·유틸리티 등)</td><td>건별 판단</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">Operator notices equipment fault → opens MNT-02 on PDA → scans equipment QR.</div><div class="wf-ko">작업자가 설비 이상 발견 → PDA로 MNT-02 → 설비 QR 스캔.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Picks failure type (1 of 6), enters symptom, sets urgency, attaches photos.</div><div class="wf-ko">고장 유형 선택(6중 1), 증상 입력, 긴급도 설정, 사진 첨부.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Submit → equipment status → DOWN; MTTR clock starts at ReportTS.</div><div class="wf-ko">제출 → 설비 DOWN, ReportTS부터 MTTR 시계 시작.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">MNT-07 Work Order auto-created with urgency-based priority; spare parts pre-suggested.</div><div class="wf-ko">MNT-07 WO 자동 생성(긴급도 기반 우선순위), 정비 자재 사전 제안.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">MNT-06 downtime log started; MNT team push-notified (urgent → immediate).</div><div class="wf-ko">MNT-06 비가동 로그 시작, MNT팀 푸시 알림(긴급 시 즉시).</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Andon path: INJ-08/IMG/PNT Andon auto-creates Failure (Source=ANDON_AUTO), skipping manual UI.</div><div class="wf-ko">Andon 경로: INJ-08/IMG/PNT Andon이 Failure 자동 생성, 수동 UI 생략.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">When MNT-07 WO completes → Failure Status → RESOLVED; MTTR computed.</div><div class="wf-ko">MNT-07 WO 완료 시 Failure RESOLVED, MTTR 산출.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-MNT-04</td><td><div>Andon events from INJ/IMG/PNT POP auto-create a Failure + downtime log; no manual entry.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">POP Andon → Failure + 비가동 자동, 수동 입력 불요.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-MNT-09</td><td><div>Failure submission auto-sets equipment DOWN + creates MNT-07 WO in one transaction.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">고장 등록 시 DOWN 전환 + MNT-07 WO 단일 트랜잭션 생성.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-MNT-10</td><td><div>URGENT failures push-notify MNT team immediately; NORMAL/LOW batched every 10 min.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">긴급 고장 즉시 푸시, 보통/낮음 10분 배치.</div></td><td><span class="br-act alt">Alert</span></td></tr>
+          <tr><td class="br-id">BR-MNT-11</td><td><div>MTTR clock = ReportTS → WO completion TS; feeds MNT-09 dashboard MTTR KPI.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">MTTR = 신고시각 → WO 완료시각, MNT-09 KPI 데이터.</div></td><td><span class="br-act aut">Calc</span></td></tr>
+          <tr><td class="br-id">BR-MNT-12</td><td><div>3+ failures of same type on same equipment within 30 days → reliability alert to MNT Lead.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">30일 내 동일 설비·동일 유형 3회 → 신뢰성 알림.</div></td><td><span class="br-act alt">Alert</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Table</th><th>Key Columns</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">MNT_Failure</span></td><td><span class="dm-pk">PK</span> FailureID · <span class="dm-fk">FK</span> EquipID · FailureType · Symptom · Urgency · PhotoURLs · Source · AndonRefID · ReporterID · ReportTS · <span class="dm-fk">FK</span> WOID · <span class="dm-fk">FK</span> DowntimeID · Status</td><td>고장 등록 메인.</td></tr>
+          <tr><td><span class="dm-col">MNT_WorkOrder</span> <em style="opacity:.6;">(auto-create)</em></td><td>WOID · WOType=BREAKDOWN · Priority</td><td>고장 시 자동 생성 (MNT-07).</td></tr>
+          <tr><td><span class="dm-col">MNT_Downtime</span> <em style="opacity:.6;">(auto-create)</em></td><td>DowntimeID · StartTS · Cause</td><td>비가동 로그 (MNT-06).</td></tr>
+          <tr><td><span class="dm-col">MNT_Equipment</span> <em style="opacity:.6;">(update)</em></td><td>Status: RUN → DOWN</td><td>설비 상태 전환.</td></tr>
+          <tr><td><span class="dm-col">INJ/IMG/PNT_Andon</span> <em style="opacity:.6;">(read)</em></td><td>AndonID · EquipID · Type</td><td>Andon 자동 트리거 소스.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">Operator / Andon</div><div class="lnk-name">고장 발견</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">MNT-02</div><div class="lnk-name">Failure Register</div><div class="lnk-ko">고장 등록</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">MNT-07</div><div class="lnk-name">Work Order 자동</div><div class="lnk-ko">정비 작업지시</div></div>
+        </div>
+        <div class="lnk-row" style="margin-top:14px;">
+          <div class="lnk-node cur"><div class="lnk-id">MNT-02</div><div class="lnk-name">→ Side Effects</div></div>
+          <div class="lnk-arr">↘</div>
+          <div class="lnk-node down"><div class="lnk-id">MNT-01</div><div class="lnk-name">설비 DOWN</div></div>
+          <div class="lnk-node down"><div class="lnk-id">MNT-06</div><div class="lnk-name">비가동 시작</div></div>
+          <div class="lnk-node down"><div class="lnk-id">MNT-09</div><div class="lnk-name">MTBF/MTTR KPI</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.10 · MNT-02 · Failure Register · L3 Spec v1.0</div><div class="pf-r">PDA + Web · Phase 1 · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
