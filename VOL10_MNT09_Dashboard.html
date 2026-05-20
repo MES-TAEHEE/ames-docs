@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.10 · MNT-09 · MNT Dashboard · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--mnt:#0284c7;--mod:#0284c7;--mod-lt:#e0f2fe;--mod-dk:#075985;--mod-tint:#7dd3fc;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(125,211,252,.7);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#06283d 0%,#04223a 50%,#06283d 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(2,132,199,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(2,132,199,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(2,132,199,.05) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(2,132,199,.14),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(2,132,199,.35);color:var(--mod-tint);background:rgba(2,132,199,.1);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod-dk);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#eff6ff;border-color:#3b82f6;}
+.lnk-node.cur{background:linear-gradient(135deg,#06283d,#04223a);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(2,132,199,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#1d4ed8;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);}
+
+.web-mock{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.web-tbar{background:#f0f3f7;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);font-size:11px;}
+.web-tbar-l{font-weight:700;color:var(--text);}
+.web-tbar .bc{color:var(--sub);font-size:10px;margin-left:8px;}
+.web-tbar-r{font-size:10px;color:var(--sub);}
+.web-bd{padding:18px;background:#fbfcfd;}
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px;}
+.kpi-tile{background:#fff;border:1px solid var(--border);border-top:3px solid var(--mod);border-radius:0 0 6px 6px;padding:14px 16px;}
+.kpi-tile.ok{border-top-color:#22c55e;}.kpi-tile.warn{border-top-color:#f59e0b;}.kpi-tile.alert{border-top-color:#dc2626;}
+.kpi-l{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--sub);letter-spacing:1px;text-transform:uppercase;}
+.kpi-v{font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--text);line-height:1;margin-top:5px;}
+.kpi-v.green{color:#16a34a;}.kpi-v.yellow{color:#a16207;}.kpi-v.red{color:#dc2626;}.kpi-v.mnt{color:#075985;}
+.kpi-trend{font-size:9px;color:var(--sub);margin-top:4px;}
+.chart-row{display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-bottom:14px;}
+.chart-card{background:#fff;border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.chart-h{font-size:11px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px;display:flex;justify-content:space-between;}
+.bar-chart{display:flex;align-items:flex-end;gap:8px;height:150px;border-bottom:1px solid var(--border);border-left:1px solid var(--border);padding:0 4px 4px;}
+.bc-bar{flex:1;background:linear-gradient(180deg,#0284c7,#075985);border-radius:3px 3px 0 0;display:flex;align-items:flex-start;justify-content:center;color:#fff;font-size:9px;padding-top:5px;font-weight:700;}
+.bc-bar.bd{background:linear-gradient(180deg,#dc2626,#991b1b);}
+.bc-labels{display:flex;gap:8px;font-size:9px;color:var(--sub);margin-top:6px;font-family:'JetBrains Mono',monospace;}
+.bc-labels span{flex:1;text-align:center;}
+.donut{display:flex;align-items:center;gap:14px;}
+.donut-c{width:120px;height:120px;border-radius:50%;background:conic-gradient(#22c55e 0% 67%,#f59e0b 67% 81%,#dc2626 81% 86%,#0284c7 86% 100%);position:relative;}
+.donut-c::after{content:'';position:absolute;inset:30%;background:#fff;border-radius:50%;}
+.donut-lg{font-size:11px;flex:1;}
+.donut-lg div{display:flex;align-items:center;gap:6px;padding:3px 0;}
+.donut-lg .sw{width:12px;height:12px;border-radius:2px;}
+.tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;}
+.tbl th{background:#f0f3f7;padding:7px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.tbl td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:top;}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.b-ok{background:#dcfce7;color:#166534;}.b-w{background:#fef9c3;color:#92400e;}.b-e{background:#fee2e2;color:#991b1b;}.b-i{background:#e0f2fe;color:#075985;}
+.btn{padding:7px 14px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;}
+.btn-primary{background:var(--mod);border-color:var(--mod-dk);color:#fff;}
+
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol active"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL10_MNT_Maintenance.html">VOL.10 · MNT</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">MNT-09 · MNT Dashboard</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.10 · MNT · L3</div><div class="sb-mod-en">MAINTENANCE</div><div class="sb-mod-ko">설비 보전</div></div>
+  <div class="sb-section">Equipment · 설비</div>
+  <a class="sb-link" href="VOL10_MNT01_Equipment_Card.html"><span class="sl-id">MNT-01</span><div><div class="sl-en">Equipment Card</div><div class="sl-ko">설비 카드뷰</div></div></a>
+  <a class="sb-link" href="VOL10_MNT04_Mold_Management.html"><span class="sl-id">MNT-04</span><div><div class="sl-en">Mold Mgmt</div><div class="sl-ko">금형 관리</div></div></a>
+  <div class="sb-section">Maintenance · 보전</div>
+  <a class="sb-link" href="VOL10_MNT02_Failure_Register.html"><span class="sl-id">MNT-02</span><div><div class="sl-en">Failure Register</div><div class="sl-ko">고장 등록</div></div></a>
+  <a class="sb-link" href="VOL10_MNT07_Work_Order.html"><span class="sl-id">MNT-07</span><div><div class="sl-en">Work Order ⚙</div><div class="sl-ko">정비 작업지시</div></div></a>
+  <a class="sb-link" href="VOL10_MNT05_PM_Schedule.html"><span class="sl-id">MNT-05</span><div><div class="sl-en">PM Schedule</div><div class="sl-ko">예방정비</div></div></a>
+  <div class="sb-section">Analysis · 분석</div>
+  <a class="sb-link" href="VOL10_MNT03_OEE_Analysis.html"><span class="sl-id">MNT-03</span><div><div class="sl-en">OEE Analysis</div><div class="sl-ko">OEE 분석</div></div></a>
+  <a class="sb-link" href="VOL10_MNT06_Downtime_Log.html"><span class="sl-id">MNT-06</span><div><div class="sl-en">Downtime Log</div><div class="sl-ko">비가동 이력</div></div></a>
+  <a class="sb-link" href="VOL10_MNT08_Spare_Parts.html"><span class="sl-id">MNT-08</span><div><div class="sl-en">Spare Parts</div><div class="sl-ko">정비 자재</div></div></a>
+  <a class="sb-link on" href="VOL10_MNT09_Dashboard.html"><span class="sl-id">MNT-09</span><div><div class="sl-en">Dashboard</div><div class="sl-ko">현황판</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
+    <a href="#sec-2"><span class="num">02</span>KPI Spec</a>
+    <a href="#sec-3"><span class="num">03</span>Refresh Strategy</a>
+    <a href="#sec-4"><span class="num">04</span>Workflow</a>
+    <a href="#sec-5"><span class="num">05</span>Business Rules</a>
+    <a href="#sec-6"><span class="num">06</span>Data Sources</a>
+    <a href="#sec-7"><span class="num">07</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.10 · MNT · L3 · Maintenance Real-Time Dashboard</div>
+      <div class="scr-id-block"><div class="scr-id">MNT-09</div><div class="scr-title-en">MNT Dashboard</div></div>
+      <div class="scr-title-ko">현황판 — OEE · MTBF · MTTR · PM 준수율 + Wall TV</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">UI</span><span class="mc-val">🖥 Web PC + 📺 Wall TV</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">2nd Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">MNT Lead · Plant Manager</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Refresh</span><span class="mc-val">KPI 30s · Charts 5min · Live WS</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          Real-time maintenance dashboard for MNT Lead + Plant Manager. 6 KPI tiles (Plant OEE, MTBF, MTTR, PM Compliance, Open Work Orders, Spare Stock Alerts). Equipment status donut (RUN/IDLE/DOWN/PM), 30-day Work Order trend (Breakdown vs PM), live lists of active DOWN equipment and overdue PMs. Wall TV mode rotates 3 views every 30s for the maintenance office. Threshold breaches (OEE &lt; 75%, MTTR rising, PM overdue) raise alerts.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          MNT Lead + 공장장용 실시간 정비 대시보드. 6 KPI 타일 (공장 OEE·MTBF·MTTR·PM 준수율·진행 WO·정비자재 알림). 설비 상태 도넛(RUN/IDLE/DOWN/PM), 30일 작업지시 추세(고장 vs PM), 활성 DOWN 설비 + 기한 초과 PM 라이브 리스트. Wall TV 모드 3-view 30초 회전 (정비 사무실). 임계 이탈(OEE 75% 미만·MTTR 상승·PM 초과) 시 알림.
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — Web + Wall TV</span></div>
+      <div class="web-mock">
+        <div class="web-tbar">
+          <div class="web-tbar-l">📈 A-MES · Maintenance · Dashboard<span class="bc">MNT › Dashboard · Live</span></div>
+          <div class="web-tbar-r">🟢 Live · MNT.Lead · 16:00</div>
+        </div>
+        <div class="web-bd">
+          <div class="kpi-grid">
+            <div class="kpi-tile warn"><div class="kpi-l">Plant OEE</div><div class="kpi-v yellow">82.4 <span style="font-size:11px;color:var(--sub);">%</span></div><div class="kpi-trend">목표 ≥ 85%</div></div>
+            <div class="kpi-tile ok"><div class="kpi-l">MTBF</div><div class="kpi-v green">186 <span style="font-size:11px;color:var(--sub);">h</span></div><div class="kpi-trend">평균 고장 간격 ▲</div></div>
+            <div class="kpi-tile warn"><div class="kpi-l">MTTR</div><div class="kpi-v yellow">1.8 <span style="font-size:11px;color:var(--sub);">h</span></div><div class="kpi-trend">목표 ≤ 1.5h</div></div>
+            <div class="kpi-tile ok"><div class="kpi-l">PM Compliance</div><div class="kpi-v green">96.8 <span style="font-size:11px;color:var(--sub);">%</span></div><div class="kpi-trend">31/32 · 1 초과</div></div>
+            <div class="kpi-tile alert"><div class="kpi-l">Open Work Orders</div><div class="kpi-v red">9</div><div class="kpi-trend">2 긴급 · 3 PM · 4 일반</div></div>
+            <div class="kpi-tile alert"><div class="kpi-l">Spare Alerts</div><div class="kpi-v red">14</div><div class="kpi-trend">최소재고 미달 품목</div></div>
+          </div>
+
+          <div class="chart-row">
+            <div class="chart-card">
+              <div class="chart-h"><span>▼ WORK ORDER TREND (30d) · 작업지시 추세</span><span style="color:var(--sub);">고장 vs PM</span></div>
+              <div class="bar-chart">
+                <div class="bc-bar bd" style="height:40%;">5</div>
+                <div class="bc-bar" style="height:55%;">7</div>
+                <div class="bc-bar bd" style="height:32%;">4</div>
+                <div class="bc-bar" style="height:62%;">8</div>
+                <div class="bc-bar bd" style="height:48%;">6</div>
+                <div class="bc-bar" style="height:55%;">7</div>
+                <div class="bc-bar bd" style="height:24%;">3</div>
+                <div class="bc-bar" style="height:70%;">9</div>
+                <div class="bc-bar bd" style="height:40%;">5</div>
+                <div class="bc-bar" style="height:62%;">8</div>
+                <div class="bc-bar bd" style="height:32%;">4</div>
+                <div class="bc-bar" style="height:48%;">6</div>
+                <div class="bc-bar bd" style="height:24%;">3</div>
+                <div class="bc-bar" style="height:55%;">7</div>
+                <div class="bc-bar bd" style="height:32%;">4</div>
+              </div>
+              <div class="bc-labels"><span>D-30</span><span></span><span></span><span></span><span>D-15</span><span></span><span></span><span></span><span>D-0</span></div>
+              <div style="font-size:10px;color:var(--sub);margin-top:6px;"><span style="color:#dc2626;">●</span> 고장 WO (Breakdown) &nbsp; <span style="color:#075985;">●</span> PM WO &nbsp; — 고장 WO 감소 추세 (개선)</div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-h"><span>▼ EQUIPMENT STATUS · 설비 상태</span><span>42대</span></div>
+              <div class="donut">
+                <div class="donut-c"></div>
+                <div class="donut-lg">
+                  <div><span class="sw" style="background:#22c55e;"></span>RUN · 28대 (67%)</div>
+                  <div><span class="sw" style="background:#f59e0b;"></span>IDLE · 6대 (14%)</div>
+                  <div><span class="sw" style="background:#dc2626;"></span>DOWN · 2대 (5%)</div>
+                  <div><span class="sw" style="background:#0284c7;"></span>PM · 6대 (14%)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="chart-row" style="grid-template-columns:1fr 1fr;">
+            <div class="chart-card">
+              <div class="chart-h"><span>▼ ACTIVE DOWN · 활성 고장 (Live)</span><span style="color:#991b1b;">2대</span></div>
+              <table class="tbl">
+                <thead><tr><th>Equipment</th><th>Failure</th><th>Down</th><th>WO</th></tr></thead>
+                <tbody>
+                  <tr><td>INJ-M-002</td><td>유압 누유</td><td style="color:#dc2626;">6h 18m</td><td><a href="VOL10_MNT07_Work_Order.html" style="color:var(--mod-dk);">WO-...118</a></td></tr>
+                  <tr><td>IMG-M-005</td><td>구동 모터 이상</td><td>52m</td><td><a href="VOL10_MNT07_Work_Order.html" style="color:var(--mod-dk);">WO-...121</a></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="chart-card">
+              <div class="chart-h"><span>▼ OVERDUE PM · 기한 초과 PM</span><span style="color:#991b1b;">1건</span></div>
+              <table class="tbl">
+                <thead><tr><th>Equipment</th><th>PM Type</th><th>Overdue</th><th>Tech</th></tr></thead>
+                <tbody>
+                  <tr><td>INJ-M-008</td><td>분기 정밀점검</td><td style="color:#dc2626;">D+9</td><td>MNT.Kim</td></tr>
+                  <tr><td colspan="4" style="text-align:center;color:var(--sub);">기타 PM은 일정 내 정상</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+            <button class="btn">📺 Wall TV 모드</button>
+            <button class="btn">📅 Custom Range</button>
+            <button class="btn">📤 Export PDF</button>
+            <button class="btn btn-primary">🔔 알림 설정</button>
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 Dashboard Behaviors · 동작 특성</span>
+        ① KPI 색상 자동: OEE ≥85% Green / 75~85% Yellow / &lt;75% Red ② MTBF↑·MTTR↓가 개선 방향 ③ 고장 WO 추세 하락 = 신뢰성 개선 ④ Active DOWN·Overdue PM 클릭 시 MNT-07/MNT-05 드릴 ⑤ Wall TV 모드 3-view (KPI / WO 추세 / Live List) 30초 회전 ⑥ 임계 이탈 시 MNT Lead + 공장장 알림 (BR-MNT-35)</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">KPI Specification</span><span class="sec-ko">KPI 정의</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:22%;">KPI</th><th style="width:28%;">Formula</th><th>Target</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">Plant OEE</td><td class="fld-type">전 설비 OEE 가중평균</td><td>≥ 85%. MNT-03 집계.</td></tr>
+          <tr><td class="fld-name">MTBF</td><td class="fld-type">총 가동시간 / 고장 건수</td><td>평균 고장 간격. 높을수록 양호 (신뢰성).</td></tr>
+          <tr><td class="fld-name">MTTR</td><td class="fld-type">총 수리시간 / 고장 건수</td><td>평균 수리 시간. 목표 ≤ 1.5h.</td></tr>
+          <tr><td class="fld-name">PM Compliance</td><td class="fld-type">정시 완료 PM / 전체 PM</td><td>예방정비 준수율. 목표 ≥ 95%.</td></tr>
+          <tr><td class="fld-name">Open Work Orders</td><td class="fld-type">COUNT(Status≠CLOSED)</td><td>진행 WO 수. 긴급/PM/일반 구분.</td></tr>
+          <tr><td class="fld-name">Spare Alerts</td><td class="fld-type">COUNT(ReorderStatus=LOW)</td><td>최소재고 미달 부품 수. MNT-08.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Refresh Strategy</span><span class="sec-ko">데이터 갱신</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:24%;">Component</th><th style="width:18%;">Refresh</th><th>Mechanism</th></tr></thead>
+        <tbody>
+          <tr><td><strong>KPI Tiles</strong></td><td>30s</td><td>증분 SQL + Redis 캐시.</td></tr>
+          <tr><td><strong>WO Trend Chart</strong></td><td>5min</td><td>일 집계 (MNT_WorkOrder).</td></tr>
+          <tr><td><strong>Equipment Status Donut</strong></td><td>30s</td><td>MNT-01 설비 상태 집계.</td></tr>
+          <tr><td><strong>Active DOWN / Overdue PM</strong></td><td>Live (WS)</td><td>고장·PM 상태 변경 즉시 push.</td></tr>
+          <tr><td><strong>Wall TV Mode</strong></td><td>30s rotation</td><td>3 views 자동 순환.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">MNT Lead opens dashboard at shift start; checks 6 KPI tiles for color status.</div><div class="wf-ko">MNT Lead가 교대 시작 시 대시보드 오픈, 6 KPI 색상 확인.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Reviews Active DOWN list; drills into MNT-07 Work Order to expedite urgent repairs.</div><div class="wf-ko">활성 DOWN 검토, MNT-07 WO 드릴해 긴급 수리 신속 처리.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Checks Overdue PM; reassigns technician or escalates via MNT-05.</div><div class="wf-ko">기한 초과 PM 확인, MNT-05에서 기술자 재배정 또는 에스컬레이션.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Monitors WO trend — rising breakdown WOs signals reliability decline.</div><div class="wf-ko">WO 추세 모니터 — 고장 WO 증가는 신뢰성 저하 신호.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Wall TV mode set for maintenance office; team awareness without login.</div><div class="wf-ko">정비 사무실 Wall TV 모드 설정, 팀이 로그인 없이 인지.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">End of shift: Export PDF for shift handover; trend feeds RPT module.</div><div class="wf-ko">교대 종료 시 PDF 인수인계, 추세는 RPT 모듈로 전달.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-MNT-34</td><td><div>KPI thresholds centralized in MD; cannot be edited on the dashboard.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">KPI 임계 MD 중앙 관리, 대시보드 편집 불가.</div></td><td><span class="br-act blk">Lock</span></td></tr>
+          <tr><td class="br-id">BR-MNT-35</td><td><div>Plant OEE &lt; 75% or MTTR rising 3 days straight auto-alerts MNT Lead + Plant Manager.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">공장 OEE 75% 미만 또는 MTTR 3일 연속 상승 시 자동 알림.</div></td><td><span class="br-act alt">Alert</span></td></tr>
+          <tr><td class="br-id">BR-MNT-36</td><td><div>Wall TV mode is read-only with auto-rotation; no drill-down.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">Wall TV 모드 읽기 전용, 드릴 불가.</div></td><td><span class="br-act blk">Lock</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Data Sources</span><span class="sec-ko">데이터 소스</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Source</th><th>Data Used</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">MNT_OEERecord</span></td><td>OEE per equipment</td><td>Plant OEE 가중평균.</td></tr>
+          <tr><td><span class="dm-col">MNT_Failure</span></td><td>고장 건수 · ReportTS</td><td>MTBF 계산.</td></tr>
+          <tr><td><span class="dm-col">MNT_WorkOrder</span></td><td>LaborMinutes · WOType · Status</td><td>MTTR · Open WO · WO 추세.</td></tr>
+          <tr><td><span class="dm-col">MNT_PMPlan</span></td><td>Status (DONE/OVERDUE)</td><td>PM Compliance.</td></tr>
+          <tr><td><span class="dm-col">MNT_Equipment</span></td><td>Status</td><td>설비 상태 도넛.</td></tr>
+          <tr><td><span class="dm-col">MNT_SparePart</span></td><td>ReorderStatus</td><td>Spare Alerts.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">MNT-01~08</div><div class="lnk-name">All MNT Data</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">MNT-09</div><div class="lnk-name">Dashboard</div><div class="lnk-ko">실시간 통합</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">RPT</div><div class="lnk-name">경영 보고</div></div>
+        </div>
+        <div class="lnk-row" style="margin-top:14px;">
+          <div class="lnk-node cur"><div class="lnk-id">Drill-Down</div><div class="lnk-name">→ Source</div></div>
+          <div class="lnk-arr">↘</div>
+          <div class="lnk-node down"><div class="lnk-id">MNT-07</div><div class="lnk-name">Active DOWN WO</div></div>
+          <div class="lnk-node down"><div class="lnk-id">MNT-05</div><div class="lnk-name">Overdue PM</div></div>
+          <div class="lnk-node down"><div class="lnk-id">MNT-03</div><div class="lnk-name">OEE Drill</div></div>
+          <div class="lnk-node down"><div class="lnk-id">MNT-08</div><div class="lnk-name">Spare Alert</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.10 · MNT-09 · MNT Dashboard · L3 Spec v1.0 · Live Monitoring</div><div class="pf-r">Web + Wall TV · Phase 2 · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
