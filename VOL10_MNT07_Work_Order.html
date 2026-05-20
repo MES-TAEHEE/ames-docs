@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.10 · MNT-07 · Work Order · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--mnt:#0284c7;--mod:#0284c7;--mod-lt:#e0f2fe;--mod-dk:#075985;--mod-tint:#7dd3fc;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(125,211,252,.7);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#06283d 0%,#04223a 50%,#06283d 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(2,132,199,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(2,132,199,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(2,132,199,.05) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(2,132,199,.14),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(2,132,199,.35);color:var(--mod-tint);background:rgba(2,132,199,.1);}
+.meta-chip.core{border-color:rgba(212,160,23,.45);color:#fbbf24;background:rgba(212,160,23,.15);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod-dk);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#eff6ff;border-color:#3b82f6;}
+.lnk-node.cur{background:linear-gradient(135deg,#06283d,#04223a);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(2,132,199,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#1d4ed8;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);}
+.dm-pk{color:#f59e0b;font-size:8px;font-weight:700;}.dm-fk{color:#8b5cf6;font-size:8px;font-weight:700;}
+
+.web-mock{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.web-tbar{background:#f0f3f7;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);font-size:11px;}
+.web-tbar-l{font-weight:700;color:var(--text);}
+.web-tbar .bc{color:var(--sub);font-size:10px;margin-left:8px;}
+.web-tbar-r{font-size:10px;color:var(--sub);}
+.web-bd{padding:18px;background:#fbfcfd;}
+.web-card{background:#fff;border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:12px;}
+.web-card-h{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px;display:flex;justify-content:space-between;}
+.po-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;font-size:11px;margin-bottom:6px;}
+.po-l{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;}
+.po-v{font-weight:700;color:var(--text);margin-top:2px;}
+.tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;}
+.tbl th{background:#f0f3f7;padding:7px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.tbl td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:top;}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.b-ok{background:#dcfce7;color:#166534;}.b-w{background:#fef9c3;color:#92400e;}.b-e{background:#fee2e2;color:#991b1b;}.b-i{background:#e0f2fe;color:#075985;}
+.btn{padding:7px 14px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;}
+.btn-primary{background:var(--mod);border-color:var(--mod-dk);color:#fff;}
+
+/* WO status flow */
+.wo-flow{display:flex;align-items:center;gap:0;padding:14px 16px;background:#fafbfd;border:1px solid var(--border);border-radius:8px;margin-bottom:14px;flex-wrap:wrap;}
+.wo-step{padding:9px 14px;border-radius:5px;font-size:11px;font-weight:700;text-align:center;flex-shrink:0;background:#fff;border:1px solid var(--border);}
+.wo-step.cur{background:var(--mod);color:#fff;border-color:var(--mod-dk);box-shadow:0 2px 6px rgba(2,132,199,.3);}
+.wo-arr{color:var(--sub);font-size:14px;padding:0 5px;}
+
+/* WO type cards */
+.wt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
+.wt-card{background:#fff;border:1px solid var(--border);border-top:3px solid;border-radius:0 0 6px 6px;padding:12px 14px;}
+.wt-card.bd{border-top-color:#dc2626;}
+.wt-card.pm{border-top-color:#0284c7;}
+.wt-card.mc{border-top-color:#d4a017;}
+.wt-h{font-size:13px;font-weight:800;margin-bottom:4px;}
+.wt-card.bd .wt-h{color:#991b1b;}.wt-card.pm .wt-h{color:#075985;}.wt-card.mc .wt-h{color:#a07810;}
+.wt-s{font-size:10px;color:var(--sub);line-height:1.6;}
+
+/* PDA */
+.pda-wrap{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-bottom:14px;}
+.pda-mock{width:260px;background:#1a1a1a;border:8px solid #1a1a1a;border-radius:18px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.18);}
+.pda-tbar{background:#000;color:#fff;padding:5px 10px;font-size:9px;display:flex;justify-content:space-between;}
+.pda-bd{background:#06283d;padding:14px;height:420px;overflow:hidden;color:#e2e8f0;}
+.pda-h{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mod-tint);letter-spacing:.5px;margin-bottom:10px;text-transform:uppercase;display:flex;justify-content:space-between;}
+.pda-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:10px;margin-bottom:8px;}
+.pda-row{display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.65);margin-bottom:3px;}
+.pda-row strong{color:#fff;font-size:11px;font-weight:800;}
+.pda-btn{display:block;padding:10px;background:linear-gradient(135deg,var(--mod),var(--mod-dk));color:#fff;border-radius:5px;text-align:center;font-size:11px;font-weight:800;margin-top:8px;border:none;width:100%;}
+.pda-btn.ok{background:linear-gradient(135deg,#16a34a,#15803d);}
+.pda-cap{text-align:center;font-size:10px;color:var(--sub);margin-top:6px;}
+.pda-chk{display:flex;align-items:center;gap:6px;font-size:10px;color:rgba(255,255,255,.75);padding:5px 0;border-bottom:1px dashed rgba(255,255,255,.1);}
+
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol active"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL10_MNT_Maintenance.html">VOL.10 · MNT</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">MNT-07 · Work Order ⚙ Core</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.10 · MNT · L3</div><div class="sb-mod-en">MAINTENANCE</div><div class="sb-mod-ko">설비 보전</div></div>
+  <div class="sb-section">Equipment · 설비</div>
+  <a class="sb-link" href="VOL10_MNT01_Equipment_Card.html"><span class="sl-id">MNT-01</span><div><div class="sl-en">Equipment Card</div><div class="sl-ko">설비 카드뷰</div></div></a>
+  <a class="sb-link" href="VOL10_MNT04_Mold_Management.html"><span class="sl-id">MNT-04</span><div><div class="sl-en">Mold Mgmt</div><div class="sl-ko">금형 관리</div></div></a>
+  <div class="sb-section">Maintenance · 보전</div>
+  <a class="sb-link" href="VOL10_MNT02_Failure_Register.html"><span class="sl-id">MNT-02</span><div><div class="sl-en">Failure Register</div><div class="sl-ko">고장 등록</div></div></a>
+  <a class="sb-link on" href="VOL10_MNT07_Work_Order.html"><span class="sl-id">MNT-07</span><div><div class="sl-en">Work Order ⚙</div><div class="sl-ko">정비 작업지시</div></div></a>
+  <a class="sb-link" href="VOL10_MNT05_PM_Schedule.html"><span class="sl-id">MNT-05</span><div><div class="sl-en">PM Schedule</div><div class="sl-ko">예방정비</div></div></a>
+  <div class="sb-section">Analysis · 분석</div>
+  <a class="sb-link" href="VOL10_MNT03_OEE_Analysis.html"><span class="sl-id">MNT-03</span><div><div class="sl-en">OEE Analysis</div><div class="sl-ko">OEE 분석</div></div></a>
+  <a class="sb-link" href="VOL10_MNT06_Downtime_Log.html"><span class="sl-id">MNT-06</span><div><div class="sl-en">Downtime Log</div><div class="sl-ko">비가동 이력</div></div></a>
+  <a class="sb-link" href="VOL10_MNT08_Spare_Parts.html"><span class="sl-id">MNT-08</span><div><div class="sl-en">Spare Parts</div><div class="sl-ko">정비 자재</div></div></a>
+  <a class="sb-link" href="VOL10_MNT09_Dashboard.html"><span class="sl-id">MNT-09</span><div><div class="sl-en">Dashboard</div><div class="sl-ko">현황판</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
+    <a href="#sec-2"><span class="num">02</span>Field Spec</a>
+    <a href="#sec-3"><span class="num">03</span>WO Type &amp; Lifecycle</a>
+    <a href="#sec-4"><span class="num">04</span>Workflow</a>
+    <a href="#sec-5"><span class="num">05</span>Business Rules</a>
+    <a href="#sec-6"><span class="num">06</span>Data Model</a>
+    <a href="#sec-7"><span class="num">07</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.10 · MNT · L3 · Core · Maintenance Work Order</div>
+      <div class="scr-id-block"><div class="scr-id">MNT-07</div><div class="scr-title-en">Work Order</div></div>
+      <div class="scr-title-ko">정비 작업지시 — 고장·PM·금형교체 통합 + 기술자 PDA 수행</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">UI</span><span class="mc-val">🖥 Web + 📱 PDA</span></div>
+        <div class="meta-chip core"><span class="mc-lbl">Class</span><span class="mc-val">⚙ Core</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">1st Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">MNT Lead · MNT Technician</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Triggers</span><span class="mc-val">MNT-02 · MNT-04 100% · MNT-05 PM</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          The core maintenance screen — a unified Work Order hub for all maintenance work. Three WO types: <strong>BREAKDOWN</strong> (auto-created by MNT-02 Failure), <strong>PM</strong> (auto-created by MNT-05 PM Schedule), and <strong>MOLD_CHANGE</strong> (auto-created at MNT-04 100% threshold). Each WO carries a priority, assigned technician, checklist, required spare parts (consumed from MNT-08), labor time, and a 5-state lifecycle (ISSUED → ASSIGNED → IN_PROGRESS → COMPLETED → CLOSED). Technicians execute WOs on PDA — scan equipment, follow checklist, log parts used and labor hours, attach photos. WO completion drives MTTR, restores equipment status, and ends the linked downtime.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          정비 모듈 핵심 화면 — 모든 정비 작업의 통합 작업지시 허브. 3개 WO 유형: <strong>BREAKDOWN</strong>(MNT-02 고장 자동 생성), <strong>PM</strong>(MNT-05 예방정비 자동 생성), <strong>MOLD_CHANGE</strong>(MNT-04 100% 임계 자동 생성). 각 WO는 우선순위, 담당 기술자, 체크리스트, 소요 정비자재(MNT-08 차감), 작업 시간, 5단계 라이프사이클(ISSUED → ASSIGNED → IN_PROGRESS → COMPLETED → CLOSED) 보유. 기술자는 PDA로 WO 수행 — 설비 스캔, 체크리스트 따라, 사용 자재·작업시간 기록, 사진 첨부. WO 완료가 MTTR 산출, 설비 상태 복구, 연계 비가동 종료를 구동.
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — Web WO 관리 + 기술자 PDA</span></div>
+      <div class="web-mock">
+        <div class="web-tbar">
+          <div class="web-tbar-l">🛠 A-MES · Maintenance · Work Order<span class="bc">MNT › WO › WO-MNT-2026-0519-118</span></div>
+          <div class="web-tbar-r">MNT.Lead · 10:05</div>
+        </div>
+        <div class="web-bd">
+          <div class="wo-flow">
+            <div class="wo-step">ISSUED<br><span style="font-size:9px;color:var(--sub);font-weight:400;">발행</span></div>
+            <div class="wo-arr">→</div>
+            <div class="wo-step cur">ASSIGNED<br><span style="font-size:9px;font-weight:400;">담당 배정</span></div>
+            <div class="wo-arr">→</div>
+            <div class="wo-step">IN_PROGRESS<br><span style="font-size:9px;color:var(--sub);font-weight:400;">작업 중</span></div>
+            <div class="wo-arr">→</div>
+            <div class="wo-step">COMPLETED<br><span style="font-size:9px;color:var(--sub);font-weight:400;">작업 완료</span></div>
+            <div class="wo-arr">→</div>
+            <div class="wo-step">CLOSED<br><span style="font-size:9px;color:var(--sub);font-weight:400;">검수 종결</span></div>
+            <div style="margin-left:auto;font-size:10px;color:var(--sub);">WO 상태: <strong style="color:var(--mod-dk);">ASSIGNED</strong> · 기술자 출동 대기</div>
+          </div>
+
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ WO HEADER · 작업지시 정보</span><span style="color:#991b1b;font-weight:700;">⚠ Auto from MNT-02 Failure · 🔴 긴급</span></div>
+            <div class="po-grid">
+              <div><div class="po-l">WO No</div><div class="po-v">WO-MNT-2026-0519-118</div></div>
+              <div><div class="po-l">WO Type</div><div class="po-v" style="color:#991b1b;">BREAKDOWN</div></div>
+              <div><div class="po-l">Priority</div><div class="po-v" style="color:#991b1b;">🔴 URGENT</div></div>
+              <div><div class="po-l">Equipment</div><div class="po-v">INJ-M-002 사출기#2</div></div>
+              <div><div class="po-l">Source</div><div class="po-v">MNT-02 FL-...0519-009</div></div>
+              <div><div class="po-l">Failure</div><div class="po-v">유압 누유</div></div>
+              <div><div class="po-l">Assigned Tech</div><div class="po-v">MNT.Kim</div></div>
+              <div><div class="po-l">Down since</div><div class="po-v" style="color:#dc2626;">09:42 (23m)</div></div>
+            </div>
+          </div>
+
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ REQUIRED SPARE PARTS · 소요 정비 자재 (MNT-08 연계)</span><span style="color:var(--sub);">예상 자재</span></div>
+            <table class="tbl">
+              <thead><tr><th>Part No</th><th>Part Name</th><th>Qty</th><th>Stock</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td>SP-HYD-0042</td><td>유압 호스 (고압 1/2&quot;)</td><td>2 EA</td><td>8 EA</td><td><span class="b b-ok">✅ 가용</span></td></tr>
+                <tr><td>SP-SEAL-0118</td><td>O-Ring 실 세트</td><td>1 SET</td><td>3 SET</td><td><span class="b b-ok">✅ 가용</span></td></tr>
+                <tr><td>SP-OIL-0007</td><td>유압유 (ISO VG46)</td><td>20 L</td><td>140 L</td><td><span class="b b-ok">✅ 가용</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ CHECKLIST &amp; ACTIONS · 체크리스트 + 작업</span><span style="color:var(--sub);">유압계통 표준</span></div>
+            <table class="tbl">
+              <thead><tr><th>#</th><th>Checklist Item</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td>1</td><td>안전 LOTO (Lock-Out Tag-Out) 적용</td><td><span class="b b-i">대기</span></td></tr>
+                <tr><td>2</td><td>유압 누유 위치 확인 + 사진</td><td><span class="b b-i">대기</span></td></tr>
+                <tr><td>3</td><td>호스/실 교체</td><td><span class="b b-i">대기</span></td></tr>
+                <tr><td>4</td><td>유압유 보충 + 압력 테스트</td><td><span class="b b-i">대기</span></td></tr>
+                <tr><td>5</td><td>시운전 + 형개폐 정상 확인</td><td><span class="b b-i">대기</span></td></tr>
+              </tbody>
+            </table>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+              <button class="btn">👤 담당 재배정</button>
+              <button class="btn">📦 자재 추가</button>
+              <button class="btn">📜 WO 이력</button>
+              <button class="btn btn-primary">📲 기술자 PDA 전송</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Technician PDA -->
+      <div class="pda-wrap">
+        <div>
+          <div class="pda-mock">
+            <div class="pda-tbar"><span>📶 A-MES</span><span>🔋 68% · 10:14</span></div>
+            <div class="pda-bd">
+              <div class="pda-h"><span>MNT-07 · WO 수행</span><span style="color:#fca5a5;">🔴 긴급</span></div>
+              <div class="pda-card">
+                <div class="pda-row"><span>WO</span><strong>WO-...0519-118</strong></div>
+                <div class="pda-row"><span>Equip</span><strong>INJ-M-002</strong></div>
+                <div class="pda-row"><span>Type</span><strong>BREAKDOWN</strong></div>
+                <div class="pda-row"><span>경과</span><strong style="color:#fca5a5;">32m (DOWN)</strong></div>
+              </div>
+              <div style="font-size:9px;color:var(--mod-tint);letter-spacing:.5px;font-family:'JetBrains Mono',monospace;margin-bottom:4px;">▼ CHECKLIST (2/5)</div>
+              <div class="pda-chk">✅ 1. 안전 LOTO 적용</div>
+              <div class="pda-chk">✅ 2. 누유 위치 확인 + 사진</div>
+              <div class="pda-chk">☐ 3. 호스/실 교체</div>
+              <div class="pda-chk">☐ 4. 유압유 보충 + 압력</div>
+              <div class="pda-chk" style="border-bottom:none;">☐ 5. 시운전 + 정상 확인</div>
+              <button class="pda-btn">📦 자재 사용 기록</button>
+              <button class="pda-btn ok">✅ 작업 완료</button>
+            </div>
+          </div>
+          <div class="pda-cap">📱 기술자 PDA — 체크리스트 수행</div>
+        </div>
+        <div>
+          <div class="pda-mock">
+            <div class="pda-tbar"><span>📶 A-MES</span><span>🔋 68% · 11:08</span></div>
+            <div class="pda-bd">
+              <div class="pda-h"><span>WO 완료 보고</span><span style="color:#5dffc4;">5/5 ✓</span></div>
+              <div class="pda-card" style="background:rgba(22,163,74,.12);border-color:rgba(110,231,183,.4);">
+                <div class="pda-row"><span>작업 시간</span><strong style="color:#5dffc4;">1h 26m</strong></div>
+                <div class="pda-row"><span>사용 자재</span><strong>3종 (호스2·실1·유20L)</strong></div>
+                <div class="pda-row"><span>사진</span><strong>4장</strong></div>
+              </div>
+              <div class="pda-card">
+                <div style="font-size:9px;color:var(--mod-tint);font-family:'JetBrains Mono',monospace;margin-bottom:4px;">▼ 조치 내용</div>
+                <div style="font-size:10px;color:rgba(255,255,255,.7);">고압 호스 2개 + O-Ring 교체. 유압유 20L 보충. 압력 테스트 정상 (140 bar). 시운전 형개폐 정상.</div>
+              </div>
+              <div style="font-size:10px;color:rgba(255,255,255,.7);line-height:1.7;">완료 시 자동: ① 설비 DOWN → RUN ② 비가동 종료 ③ MTTR 산출 ④ 자재 재고 차감</div>
+              <button class="pda-btn ok">✅ 완료 보고 + 설비 복구</button>
+            </div>
+          </div>
+          <div class="pda-cap">📱 작업 완료 보고 + 자동 복구</div>
+        </div>
+      </div>
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 UI Highlights · 화면 주요 포인트</span>
+        ① 3개 WO 유형이 모두 자동 생성 (MNT-02 고장·MNT-04 금형 100%·MNT-05 PM 기한) — 수동 발행도 가능 ② 소요 정비 자재는 MNT-08 재고 연계 — 부족 시 경고 ③ 체크리스트는 유형/설비별 템플릿 (MD) ④ 기술자 PDA로 현장 수행 (LOTO·체크·자재·사진) ⑤ 완료 시 4개 자동 (설비 RUN 복구·비가동 종료·MTTR 산출·자재 차감) ⑥ CLOSED는 MNT Lead 검수 후</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Field Specification</span><span class="sec-ko">필드 사양</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:22%;">Field</th><th style="width:14%;">Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">WOID</td><td class="fld-type">VARCHAR(24)</td><td>WO-MNT-YYYYMMDD-SEQ.</td></tr>
+          <tr><td class="fld-name">WOType</td><td class="fld-type">ENUM</td><td>BREAKDOWN / PM / MOLD_CHANGE.</td></tr>
+          <tr><td class="fld-name">EquipID</td><td class="fld-type">VARCHAR(20)</td><td>대상 설비.</td></tr>
+          <tr><td class="fld-name">Priority</td><td class="fld-type">ENUM</td><td>URGENT / HIGH / NORMAL / LOW (Source 긴급도 기반).</td></tr>
+          <tr><td class="fld-name">SourceType · SourceRefID</td><td class="fld-type">VARCHAR</td><td>발생 원천 (FAILURE/MOLD_100/PM_DUE/MANUAL + ID).</td></tr>
+          <tr><td class="fld-name">AssignedTechID</td><td class="fld-type">VARCHAR(20)</td><td>담당 기술자.</td></tr>
+          <tr><td class="fld-name">ChecklistID</td><td class="fld-type">VARCHAR(20)</td><td>작업 체크리스트 템플릿 (MD).</td></tr>
+          <tr><td class="fld-name">ChecklistResults</td><td class="fld-type">JSON</td><td>체크 항목별 결과 + 사진.</td></tr>
+          <tr><td class="fld-name">PartsUsedJSON</td><td class="fld-type">JSON</td><td>사용 자재 [{partNo, qty}] → MNT-08 차감.</td></tr>
+          <tr><td class="fld-name">LaborMinutes</td><td class="fld-type">INT</td><td>작업 소요 시간 (분).</td></tr>
+          <tr><td class="fld-name">ActionDesc</td><td class="fld-type">TEXT</td><td>조치 내용 서술.</td></tr>
+          <tr><td class="fld-name">Status</td><td class="fld-type">ENUM</td><td>ISSUED / ASSIGNED / IN_PROGRESS / COMPLETED / CLOSED / CANCELED.</td></tr>
+          <tr><td class="fld-name">IssuedTS · StartTS · CompletedTS · ClosedTS</td><td class="fld-type">DATETIME</td><td>상태별 타임스탬프.</td></tr>
+          <tr><td class="fld-name">DowntimeID</td><td class="fld-type">VARCHAR(24)</td><td>연계 비가동 로그 (완료 시 종료).</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">WO Type &amp; Lifecycle</span><span class="sec-ko">WO 유형 + 라이프사이클</span></div>
+      <div class="wt-grid">
+        <div class="wt-card bd">
+          <div class="wt-h">🔴 BREAKDOWN</div>
+          <div class="wt-s">고장 정비. MNT-02 Failure 등록 시 자동 생성. 긴급도 상속. 설비 DOWN 상태.</div>
+        </div>
+        <div class="wt-card pm">
+          <div class="wt-h">🔵 PM</div>
+          <div class="wt-s">예방정비. MNT-05 PM 기한일 자동 생성. 체크리스트 첨부. 계획 비가동.</div>
+        </div>
+        <div class="wt-card mc">
+          <div class="wt-h">🟡 MOLD_CHANGE</div>
+          <div class="wt-s">금형 교체. MNT-04 쇼트수 100% 도달 시 자동 생성. INJ-06와 연계 실행.</div>
+        </div>
+      </div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:20%;">Status</th><th>Description &amp; Transition</th></tr></thead>
+        <tbody>
+          <tr><td><strong>ISSUED</strong></td><td>WO 생성 직후 (자동 또는 수동). 담당자 미배정.</td></tr>
+          <tr><td><strong>ASSIGNED</strong></td><td>MNT Lead가 기술자 배정. PDA로 전송됨. (자동 생성 시 우선순위 기반 자동 배정 가능.)</td></tr>
+          <tr><td><strong>IN_PROGRESS</strong></td><td>기술자가 현장 도착, PDA로 작업 시작. StartTS 기록.</td></tr>
+          <tr><td><strong>COMPLETED</strong></td><td>체크리스트 전 항목 완료 + 자재/시간 기록 + 사진. 설비 RUN 복구, 비가동 종료, MTTR 산출.</td></tr>
+          <tr><td><strong>CLOSED</strong></td><td>MNT Lead 검수 완료 → 종결. 5년 보관. 재오픈 불가.</td></tr>
+          <tr><td><strong>CANCELED</strong></td><td>오발행·중복 등으로 취소 (ISSUED/ASSIGNED 단계만, 사유 필수).</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">WO auto-created from MNT-02 (Failure), MNT-04 (mold 100%), or MNT-05 (PM due); or manual.</div><div class="wf-ko">WO가 MNT-02(고장)·MNT-04(금형 100%)·MNT-05(PM 기한)에서 자동 생성, 또는 수동.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">MNT Lead reviews, assigns technician (urgent → auto-assign nearest); WO → ASSIGNED, sent to PDA.</div><div class="wf-ko">MNT Lead가 검토, 기술자 배정(긴급 시 자동), WO ASSIGNED, PDA 전송.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Technician arrives, scans equipment QR, taps Start → WO IN_PROGRESS, StartTS recorded.</div><div class="wf-ko">기술자 도착, 설비 QR 스캔, Start 터치 → IN_PROGRESS, StartTS 기록.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Technician follows checklist (LOTO, repair steps), logs parts used + labor + photos on PDA.</div><div class="wf-ko">기술자가 체크리스트(LOTO·정비) 수행, PDA로 자재·시간·사진 기록.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">All checklist items done → tap Complete → WO COMPLETED.</div><div class="wf-ko">체크리스트 전 항목 완료 → Complete 터치 → COMPLETED.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">On COMPLETED: equipment DOWN→RUN, downtime ends, MTTR computed, MNT-08 stock deducted.</div><div class="wf-ko">COMPLETED 시: 설비 DOWN→RUN, 비가동 종료, MTTR 산출, MNT-08 재고 차감.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">MNT Lead reviews completion → CLOSED; failure record (MNT-02) marked RESOLVED.</div><div class="wf-ko">MNT Lead 검수 → CLOSED, 고장 기록(MNT-02) RESOLVED 처리.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-MNT-25</td><td><div>WO auto-created from 3 sources (Failure / Mold-100% / PM-due) with priority inherited.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">WO 3개 소스 자동 생성, 우선순위 상속.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-MNT-26</td><td><div>WO cannot be COMPLETED until all checklist items are done + parts/labor logged.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">체크리스트 전 항목 + 자재/시간 기록 전 COMPLETED 불가.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-MNT-27</td><td><div>COMPLETED auto-restores equipment RUN, ends downtime, computes MTTR, deducts MNT-08 stock.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">COMPLETED 시 설비 복구·비가동 종료·MTTR·재고 차감 자동.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-MNT-28</td><td><div>CLOSED requires MNT Lead review; closed WO is immutable, retained ≥ 5 years.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">CLOSED는 MNT Lead 검수, 종결 WO 불변·5년 보관.</div></td><td><span class="br-act blk">Lock</span></td></tr>
+          <tr><td class="br-id">BR-MNT-29</td><td><div>URGENT WO unassigned &gt; 15 min → auto-escalate to MNT Lead + plant manager.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">긴급 WO 15분 미배정 시 MNT Lead + 공장장 에스컬레이션.</div></td><td><span class="br-act alt">Escalate</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Table</th><th>Key Columns</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">MNT_WorkOrder</span></td><td><span class="dm-pk">PK</span> WOID · WOType · <span class="dm-fk">FK</span> EquipID · Priority · SourceType · SourceRefID · AssignedTechID · <span class="dm-fk">FK</span> ChecklistID · ChecklistResults · PartsUsedJSON · LaborMinutes · ActionDesc · Status · <span class="dm-fk">FK</span> DowntimeID</td><td>작업지시 메인.</td></tr>
+          <tr><td><span class="dm-col">MNT_WOEvent</span></td><td><span class="dm-pk">PK</span> EvID · <span class="dm-fk">FK</span> WOID · StatusFrom · StatusTo · ActorID · TS</td><td>WO 상태 전이 이력.</td></tr>
+          <tr><td><span class="dm-col">MNT_SparePart</span> <em style="opacity:.6;">(deduct)</em></td><td>PartNo · StockQty -= UsedQty</td><td>MNT-08 재고 차감.</td></tr>
+          <tr><td><span class="dm-col">MNT_Equipment</span> <em style="opacity:.6;">(update)</em></td><td>Status: DOWN/PM → RUN · OpenWOID</td><td>설비 상태 복구.</td></tr>
+          <tr><td><span class="dm-col">MNT_Downtime</span> <em style="opacity:.6;">(update)</em></td><td>EndTS · DurationMin</td><td>완료 시 비가동 종료.</td></tr>
+          <tr><td><span class="dm-col">MNT_Failure / PMPlan</span> <em style="opacity:.6;">(update)</em></td><td>Status → RESOLVED · LastPMDate</td><td>원천 기록 갱신.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">MNT-02</div><div class="lnk-name">Failure</div></div>
+          <div class="lnk-node up"><div class="lnk-id">MNT-04</div><div class="lnk-name">Mold 100%</div></div>
+          <div class="lnk-node up"><div class="lnk-id">MNT-05</div><div class="lnk-name">PM Due</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">MNT-07 ⚙</div><div class="lnk-name">Work Order</div><div class="lnk-ko">정비 작업지시</div></div>
+        </div>
+        <div class="lnk-row" style="margin-top:14px;">
+          <div class="lnk-node cur"><div class="lnk-id">COMPLETED</div><div class="lnk-name">→ Auto Cascade</div></div>
+          <div class="lnk-arr">↘</div>
+          <div class="lnk-node down"><div class="lnk-id">MNT-01</div><div class="lnk-name">설비 RUN 복구</div></div>
+          <div class="lnk-node down"><div class="lnk-id">MNT-06</div><div class="lnk-name">비가동 종료</div></div>
+          <div class="lnk-node down"><div class="lnk-id">MNT-08</div><div class="lnk-name">자재 차감</div></div>
+          <div class="lnk-node down"><div class="lnk-id">MNT-09</div><div class="lnk-name">MTTR KPI</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.10 · MNT-07 · Work Order · L3 Spec v1.0 · ⚙ Core</div><div class="pf-r">Web + PDA · Phase 1 · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
