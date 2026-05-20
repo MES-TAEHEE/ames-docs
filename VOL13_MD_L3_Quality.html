@@ -111,6 +111,12 @@
 .lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
 .page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
 .pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+.ent-l3-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:8px;}
+.ent-l3{display:block;text-decoration:none;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:5px;padding:9px 12px;transition:background .1s;}
+.ent-l3:hover{background:var(--mod-lt);}
+.el3-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--mod-dk);display:block;}
+.el3-nm{font-size:11px;font-weight:700;color:var(--text);display:block;margin-top:2px;}
+.el3-ko{font-size:9px;color:var(--sub);display:block;}
 </style>
 </head>
 <body>
@@ -121,13 +127,14 @@
   <div class="sb-head"><div class="sb-vol">VOL.13 · MD · L3</div><div class="sb-mod-en">MASTER DATA</div><div class="sb-mod-ko">기준정보 · 카테고리 L3</div></div>
   <div class="sb-section">5 Category L3 · 카테고리</div>
   <a class="sb-link" href="VOL13_MD_L3_Foundation.html"><span class="sl-id">A</span><div><div class="sl-en">Foundation</div><div class="sl-ko">기반 · 5</div></div></a>
-  <a class="sb-link" href="VOL13_MD_L3_Production.html"><span class="sl-id">B</span><div><div class="sl-en">Routing &amp; Production</div><div class="sl-ko">라우팅·생산 · 3</div></div></a>
+  <a class="sb-link" href="VOL13_MD_L3_Production.html"><span class="sl-id">B</span><div><div class="sl-en">Routing &amp; Production</div><div class="sl-ko">라우팅·생산 · 4</div></div></a>
   <a class="sb-link" href="VOL13_MD_L3_Resources.html"><span class="sl-id">C</span><div><div class="sl-en">Resources &amp; Equipment</div><div class="sl-ko">자원·설비 · 7</div></div></a>
   <a class="sb-link" href="VOL13_MD_L3_RFID_Color.html"><span class="sl-id">D</span><div><div class="sl-en">RFID &amp; Materials</div><div class="sl-ko">RFID·자재 · 4</div></div></a>
   <a class="sb-link on" href="VOL13_MD_L3_Quality.html"><span class="sl-id">E</span><div><div class="sl-en">Quality &amp; Logistics</div><div class="sl-ko">품질·물류 · 9</div></div></a>
   <div class="sb-toc">
     <div class="sb-toc-title">On this page · 목차</div>
     <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-l3"><span class="num">▤</span>Entity L3 Pages</a>
     <a href="#sec-2"><span class="num">02</span>Entity Field Specs</a>
     <a href="#sec-3"><span class="num">03</span>Quality→Logistics Chain</a>
     <a href="#sec-4"><span class="num">04</span>Maintenance Workflow</a>
@@ -162,6 +169,21 @@
         </div>
       </div>
       <div class="alert alert-i"><div><span class="alert-title">📌 Inspect → Pack → Ship · 검사에서 출하까지</span>이 카테고리는 QC가 합격시킨 제품이 FG에서 포장·라벨·팔레타이즈·상차되어 거래선에 출하되기까지의 전 마스터를 한 곳에 모은다 — 검사 기준 6종 + 물류 4종. · This category gathers every master from QC pass-judgment through FG packing, labeling, palletizing and carrier dispatch.</div></div>
+    </div>
+
+    <div class="sec" id="sec-l3">
+      <div class="sec-hdr"><span class="sec-num">L3</span><span class="sec-title">Entity Table-Design Pages</span><span class="sec-ko">엔티티별 개별 테이블 설계서</span></div>
+      <div class="ent-l3-grid">
+        <a class="ent-l3" href="VOL13_MD06_Inspection_Std.html"><span class="el3-id">MD-06 ↗</span><span class="el3-nm">Inspection Std</span><span class="el3-ko">검사기준 · MD_InspStd</span></a>
+        <a class="ent-l3" href="VOL13_MD21_Defect_Code.html"><span class="el3-id">MD-21 ↗</span><span class="el3-nm">Defect Code</span><span class="el3-ko">불량코드 · MD_DefectCode</span></a>
+        <a class="ent-l3" href="VOL13_MD22_Defect_Cause.html"><span class="el3-id">MD-22 ↗</span><span class="el3-nm">Defect Cause</span><span class="el3-ko">불량원인 · MD_DefectCause</span></a>
+        <a class="ent-l3" href="VOL13_MD12_Customer.html"><span class="el3-id">MD-12 ↗</span><span class="el3-nm">Customer</span><span class="el3-ko">고객사 · MD_Customer</span></a>
+        <a class="ent-l3" href="VOL13_MD11_Shipment_Dest.html"><span class="el3-id">MD-11 ↗</span><span class="el3-nm">Shipment Dest</span><span class="el3-ko">출하처 · MD_ShipDest</span></a>
+        <a class="ent-l3" href="VOL13_MD23_Packaging_Spec.html"><span class="el3-id">MD-23 ↗</span><span class="el3-nm">Packaging Spec</span><span class="el3-ko">포장사양 · MD_PackagingSpec</span></a>
+        <a class="ent-l3" href="VOL13_MD24_Label_Template.html"><span class="el3-id">MD-24 ↗</span><span class="el3-nm">Label Template</span><span class="el3-ko">라벨 템플릿 · MD_LabelTemplate</span></a>
+        <a class="ent-l3" href="VOL13_MD25_Reason_Code.html"><span class="el3-id">MD-25 ↗</span><span class="el3-nm">Reason Code</span><span class="el3-ko">사유코드 · MD_ReasonCode</span></a>
+        <a class="ent-l3" href="VOL13_MD26_Code_Group.html"><span class="el3-id">MD-26 ↗</span><span class="el3-nm">Code Group</span><span class="el3-ko">공통코드 · MD_CommonCode</span></a>
+      </div>
     </div>
 
     <div class="sec" id="sec-2">
