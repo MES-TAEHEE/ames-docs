@@ -1,25 +1,24 @@
-<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>A-MES · VOL.12 · SYS · System Administration</title>
-<style>/* ═══════════════════════════════════════
-   A-MES SHARED STYLESHEET v2.0
-   Bilingual EN/KO · UI Labels English
-═══════════════════════════════════════ */
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.12 · SYS · System Administration</title>
+<style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
-
 :root{
-  --gold:#d4a017; --gold-lt:#fdf6e3; --gold-dk:#a07810;
-  --ink:#0d1117; --ink2:#161b22; --ink3:#21262d;
-  --surface:#ffffff; --bg:#f6f8fa; --border:#d0d7de;
-  --text:#24292f; --sub:#656d76;
-  /* module colors */
-  --wh:#0891b2; --pp:#059669; --inj:#2563eb; --img:#7c3aed;
-  --pnt:#ea580c; --qc:#dc2626; --fg:#0db87a; --mnt:#0284c7;
-  --rpt:#6366f1; --sys:#475569; --md:#d97706;
+  --gold:#d4a017;--gold-lt:#fdf6e3;--gold-dk:#a07810;
+  --ink:#0d1117;--ink2:#161b22;--ink3:#21262d;
+  --surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;
+  --wh:#0891b2;--pp:#059669;--inj:#2563eb;--img:#7c3aed;
+  --pnt:#ea580c;--qc:#dc2626;--fg:#0db87a;--mnt:#0284c7;
+  --rpt:#6366f1;--sys:#475569;--md:#d97706;
+  --mod-color:#475569;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html{scroll-behavior:smooth;}
 body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
 
-/* ── NAV BAR (injected per file) ── */
 .ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
 .ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
 .ames-nav-inner::-webkit-scrollbar{display:none;}
@@ -31,317 +30,727 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
 .nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
 
-/* ── PAGE LAYOUT ── */
 .page-wrap{display:flex;}
-.sidebar{width:230px;min-width:230px;background:var(--ink2);position:sticky;top:40px;height:calc(100vh - 40px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(212,160,23,.15) transparent;border-right:1px solid var(--ink3);}
+.sidebar{width:230px;min-width:230px;background:var(--ink2);position:sticky;top:40px;height:calc(100vh - 40px);overflow-y:auto;scrollbar-width:thin;border-right:1px solid var(--ink3);}
 .sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
 .sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
-.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:#94a3b8;}
 .sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
 .sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.15);padding:12px 14px 4px;}
-.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.35);font-size:11px;border-left:2px solid transparent;transition:all .12s;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.35);font-size:11px;border-left:2px solid transparent;transition:all .12s;position:relative;}
 .sb-link:hover{color:rgba(255,255,255,.7);background:rgba(255,255,255,.03);}
-.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
-.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:32px;flex-shrink:0;}
+.sb-link.on{color:#fff;border-left-color:var(--sys);background:rgba(71,85,105,.18);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;}
 .sb-link .sl-en{font-size:10px;font-weight:600;}
 .sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.2);margin-top:1px;}
+.sb-l3{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:3px;background:rgba(212,160,23,.12);color:rgba(212,160,23,.75);font-size:11px;text-decoration:none;margin-left:auto;transition:all .15s;flex-shrink:0;border:1px solid rgba(212,160,23,.25);}
+.sb-l3:hover{background:var(--gold);color:#000;border-color:var(--gold);transform:scale(1.15);}
 .sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
 
 .main{flex:1;min-width:0;}
 
-/* ── MODULE HEADER ── */
-.mod-hdr{padding:36px 48px 24px;position:relative;overflow:hidden;}
+.mod-hdr{padding:36px 48px 24px;position:relative;overflow:hidden;background:linear-gradient(135deg,color-mix(in srgb,#475569 38%,#000),color-mix(in srgb,#475569 16%,#000));}
 .mod-hdr-inner{position:relative;z-index:1;}
-.mod-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;opacity:.7;}
-.mod-title-en{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:.95;letter-spacing:2px;color:#fff;margin-bottom:4px;}
+.mod-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;color:#94a3b8;}
+.mod-title-en{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:.95;letter-spacing:2px;color:#94a3b8;margin-bottom:4px;}
 .mod-title-ko{font-size:14px;font-weight:300;color:rgba(255,255,255,.35);letter-spacing:4px;margin-bottom:16px;}
-.mod-desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:840px;margin-bottom:18px;}
-.mdb-en{font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;border-left:2px solid rgba(255,255,255,.12);padding-left:12px;}
-.mdb-ko{font-size:11px;color:rgba(255,255,255,.3);line-height:1.8;border-left:2px solid rgba(255,255,255,.06);padding-left:12px;}
-.screen-pills{display:flex;gap:5px;flex-wrap:wrap;}
-.sp{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:9px;color:rgba(255,255,255,.4);}
+.mod-desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:880px;margin-bottom:14px;}
+.mdb-en{font-size:11px;color:rgba(255,255,255,.6);line-height:1.85;border-left:2px solid rgba(255,255,255,.14);padding-left:12px;}
+.mdb-ko{font-size:11px;color:rgba(255,255,255,.35);line-height:1.85;border-left:2px solid rgba(255,255,255,.06);padding-left:12px;}
+
+.mod-meta-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:0;border:1px solid rgba(148,163,184,.25);border-radius:6px;overflow:hidden;margin:14px 0 16px;max-width:900px;background:rgba(0,0,0,.22);}
+.mms-item{padding:10px 14px;border-right:1px solid rgba(148,163,184,.16);}
+.mms-item:last-child{border-right:none;}
+.mms-l{font-size:8px;color:rgba(148,163,184,.65);text-transform:uppercase;letter-spacing:1.2px;font-family:'JetBrains Mono',monospace;}
+.mms-v{font-size:13px;font-weight:800;color:#fff;margin-top:3px;letter-spacing:.3px;}
+.mms-v.warn{color:#fde047;}
+.mms-v.alert{color:#fca5a5;}
+.mms-v.sys{color:#cbd5e1;}
+
+.screen-pills{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;}
+.sp{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:9px;color:rgba(255,255,255,.6);text-decoration:none;cursor:pointer;transition:all .15s;}
+.sp:hover{background:rgba(71,85,105,.4);border-color:rgba(148,163,184,.55);color:#fff;}
 .sp-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold);}
 
-/* ── CONTENT AREA ── */
+.l3-hint{display:inline-block;font-size:10px;color:rgba(212,160,23,.75);font-weight:600;letter-spacing:1px;padding:5px 12px;background:rgba(212,160,23,.08);border:1px dashed rgba(212,160,23,.4);border-radius:3px;margin-bottom:8px;}
+
 .content{padding:0 48px 48px;}
 
-/* ── SCREEN CARD ── */
-.screen-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;}
-.sc-hdr{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
-.sc-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
-.sc-title-en{font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px;}
-.sc-title-ko{font-size:10px;color:rgba(255,255,255,.35);margin-top:2px;}
+.sec-div{display:flex;align-items:center;gap:12px;margin:28px 0 16px;}
+.sd-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--border) 20%,var(--border) 80%,transparent);}
+.sd-lbl{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--sys);letter-spacing:2px;white-space:nowrap;padding:4px 10px;background:#e2e8f0;border:1px solid #94a3b8;border-radius:3px;}
+
+.flow-card{background:linear-gradient(135deg,#1e293b,#0f172a);color:#e2e8f0;border-radius:10px;padding:20px 22px;margin-bottom:18px;box-shadow:0 4px 20px rgba(71,85,105,.25);}
+.flow-card-h{font-family:'JetBrains Mono',monospace;font-size:10px;color:#94a3b8;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;}
+.flow-track{margin-bottom:14px;}
+.flow-track-lbl{font-size:10px;color:rgba(255,255,255,.6);letter-spacing:1px;font-family:'JetBrains Mono',monospace;margin-bottom:8px;text-transform:uppercase;}
+.flow-row{display:flex;align-items:center;gap:0;flex-wrap:wrap;}
+.flow-node{display:flex;flex-direction:column;align-items:center;gap:3px;background:rgba(71,85,105,.3);border:1px solid rgba(148,163,184,.42);border-radius:8px;padding:10px 12px;min-width:96px;text-align:center;transition:all .15s;text-decoration:none;color:#e2e8f0;}
+.flow-node:hover{background:rgba(71,85,105,.5);border-color:#94a3b8;transform:translateY(-2px);box-shadow:0 6px 16px rgba(71,85,105,.4);}
+.flow-node.core{background:rgba(212,160,23,.2);border-color:#fbbf24;}
+.flow-node.core .fn-id{color:#fbbf24;}
+.flow-node.external{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.2);border-style:dashed;}
+.fn-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:#94a3b8;letter-spacing:.5px;}
+.flow-node.external .fn-id{color:rgba(255,255,255,.5);}
+.fn-name{font-size:11px;font-weight:700;color:#fff;}
+.fn-ko{font-size:9px;color:rgba(255,255,255,.55);}
+.fn-tag{font-size:8px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.5);margin-top:1px;}
+.flow-arr{font-size:18px;color:rgba(148,163,184,.6);padding:0 4px;font-weight:700;}
+
+.mod-kpi{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
+.kpi-card{background:#fff;border:1px solid var(--border);border-top:3px solid var(--sys);border-radius:0 0 6px 6px;padding:14px 16px;}
+.kpi-l{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--sub);letter-spacing:1px;text-transform:uppercase;}
+.kpi-v{font-family:'Bebas Neue',sans-serif;font-size:34px;color:var(--text);line-height:1;margin-top:5px;letter-spacing:.5px;}
+.kpi-v.ok{color:#16a34a;}.kpi-v.warn{color:#a16207;}.kpi-v.alert{color:#dc2626;}.kpi-v.sys{color:#334155;}
+.kpi-s{font-size:10px;color:var(--sub);margin-top:3px;}
+
+.screen-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:18px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.sc-hdr{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,color-mix(in srgb,#475569 36%,#000),color-mix(in srgb,#475569 16%,#000));}
+.sc-hdr.core{background:linear-gradient(135deg,color-mix(in srgb,#d4a017 32%,#000),color-mix(in srgb,#475569 26%,#000));}
+.sc-hdr-l{display:flex;align-items:center;gap:14px;flex:1;min-width:0;}
+.sc-icon{font-size:42px;line-height:1;flex-shrink:0;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3));}
+.sc-title-wrap{flex:1;min-width:0;}
+.sc-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:.5px;}
+.sc-hdr.core .sc-id{color:#fbbf24;}
+.sc-title-en{font-size:16px;font-weight:800;color:#fff;letter-spacing:-.3px;margin-top:2px;}
+.sc-title-ko{font-size:10px;color:rgba(255,255,255,.55);margin-top:2px;}
 .sc-tags{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
-.tag{font-size:9px;font-weight:700;padding:2px 9px;border-radius:3px;}
+.tag{font-size:9px;font-weight:700;padding:2px 9px;border-radius:3px;white-space:nowrap;}
 .t-web{background:rgba(26,111,255,.2);color:#7ab4ff;border:1px solid rgba(26,111,255,.3);}
-.t-pda{background:rgba(13,184,122,.2);color:#5dffc4;border:1px solid rgba(13,184,122,.3);}
-.t-pop{background:rgba(234,88,12,.2);color:#fdba74;border:1px solid rgba(234,88,12,.3);}
-.t-p0{background:rgba(212,160,23,.15);color:#fbbf24;border:1px solid rgba(212,160,23,.2);}
 .t-1st{background:rgba(26,111,255,.12);color:#93c5fd;border:1px solid rgba(26,111,255,.18);}
 .t-2nd{background:rgba(124,58,237,.12);color:#c4b5fd;border:1px solid rgba(124,58,237,.18);}
-.t-3rd{background:rgba(255,107,0,.12);color:#fdba74;border:1px solid rgba(255,107,0,.18);}
-.sc-body{padding:14px 18px;}
+.t-p0{background:rgba(212,160,23,.15);color:#fbbf24;border:1px solid rgba(212,160,23,.2);}
+.t-core{background:rgba(212,160,23,.2);color:#fbbf24;border:1px solid rgba(212,160,23,.35);}
+.sc-l3-btn{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:linear-gradient(135deg,#d4a017,#a07810);color:#000;font-size:11px;font-weight:800;border-radius:5px;text-decoration:none;letter-spacing:.5px;text-transform:uppercase;border:1px solid #a07810;box-shadow:0 2px 6px rgba(212,160,23,.3);transition:all .15s;white-space:nowrap;}
+.sc-l3-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(212,160,23,.5);background:linear-gradient(135deg,#fbbf24,#d4a017);}
+.sc-body{padding:16px 18px;}
 
-/* ── BILINGUAL DESC ── */
-.desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;background:#f6f8ff;border:1px solid var(--border);border-left:3px solid;border-radius:0 6px 6px 0;padding:11px 14px;}
-.db-lbl{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;opacity:.5;}
-.db-en{font-size:11px;color:#1e40af;line-height:1.75;}
+.headline{display:flex;align-items:center;gap:10px;padding:11px 14px;background:linear-gradient(135deg,#e2e8f0,#cbd5e1);border:1px solid #94a3b8;border-left:3px solid var(--sys);border-radius:0 5px 5px 0;margin-bottom:14px;}
+.headline.core{background:linear-gradient(135deg,#fef9c3,#fef3c7);border-color:#fcd34d;border-left-color:#d4a017;}
+.headline-ico{font-size:18px;color:#334155;}
+.headline.core .headline-ico{color:#92400e;}
+.headline-t{font-size:12px;color:#334155;font-weight:700;line-height:1.55;}
+.headline.core .headline-t{color:#78350f;}
+.headline-t .ko{display:block;color:var(--sys);font-weight:400;font-size:11px;margin-top:1px;}
+.headline.core .headline-t .ko{color:#92400e;}
+
+.qf-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.qf{background:#fafbfd;border:1px solid var(--border);border-radius:5px;padding:9px 11px;}
+.qf-l{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--sub);letter-spacing:.7px;text-transform:uppercase;}
+.qf-v{font-size:11px;color:var(--text);font-weight:700;margin-top:3px;line-height:1.4;}
+
+.desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;background:#e2e8f0;border:1px solid var(--border);border-left:3px solid var(--sys);border-radius:0 6px 6px 0;padding:11px 14px;}
+.db-lbl{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;opacity:.55;}
+.db-en{font-size:11px;color:#334155;line-height:1.75;}
 .db-ko{font-size:11px;color:var(--sub);line-height:1.75;}
 
-/* ── KPI STRIP ── */
-.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:12px;}
-.kc{flex:1;padding:9px 12px;border-right:1px solid var(--border);}
-.kc:last-child{border-right:none;}
-.kv{font-size:20px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
-.kl-en{font-size:9px;color:var(--sub);margin-top:2px;}
-.kl-ko{font-size:8px;color:rgba(100,116,139,.55);}
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin-bottom:12px;}
+.feat-item{background:#fff;border:1px solid var(--border);border-top:2px solid var(--sys);border-radius:0 0 5px 5px;padding:10px 12px;}
+.feat-item.core{border-top-color:#d4a017;}
+.feat-ico{font-size:16px;line-height:1;margin-bottom:5px;}
+.feat-t{font-size:11px;font-weight:800;color:var(--text);margin-bottom:2px;}
+.feat-d{font-size:10px;color:var(--sub);line-height:1.55;}
+.feat-d .ko{color:#94a3b8;font-size:9px;display:block;margin-top:1px;}
 
-/* ── MOCK WINDOW ── */
-.mock-wrap{background:#eef1f5;border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;}
-.mock-lbl{font-size:9px;font-weight:700;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;}
-.mock-win{background:#fff;border:1px solid #c8d0db;border-radius:6px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.07);}
-.mock-tbar{background:var(--text);color:#fff;padding:7px 13px;display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;}
-.mock-tbar .bc{margin-left:auto;font-size:9px;color:rgba(255,255,255,.3);font-family:'JetBrains Mono',monospace;}
-.mock-body{padding:12px 13px;}
-.mock-toolbar{background:#f6f8fa;border-bottom:1px solid var(--border);padding:6px 13px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
-.mock-toolbar select,.mock-toolbar input{padding:3px 8px;border:1px solid var(--border);border-radius:3px;font-size:11px;background:#fff;}
+.br-chips{display:flex;gap:5px;flex-wrap:wrap;padding-top:10px;border-top:1px dashed var(--border);}
+.br-chip{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;padding:3px 8px;border-radius:3px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;text-decoration:none;letter-spacing:.3px;}
+.br-chip.crit{background:#fee2e2;color:#991b1b;border-color:#fca5a5;}
+.br-chip-lbl{font-size:9px;color:var(--sub);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;margin-right:4px;align-self:center;}
 
-/* ── TABLE ── */
-.tbl{width:100%;border-collapse:collapse;font-size:11px;}
-.tbl th{background:#f0f3f7;padding:6px 9px;font-weight:700;border:1px solid var(--border);text-align:left;font-size:10px;color:var(--text);}
-.tbl th .th-ko{font-weight:400;color:var(--sub);font-size:9px;}
-.tbl td{padding:5px 9px;border:1px solid var(--border);vertical-align:middle;}
-.tbl .rh td{background:#f0fdf4;}
-.tbl .rw td{background:#fffbeb;}
-.tbl .rd td{background:#fef2f2;}
-.tbl tr:hover td{background:#f9fafb;}
-.tbl td .ko{color:var(--sub);font-size:10px;}
+.ref-tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:18px;}
+.ref-tbl th{background:#f0f3f7;color:var(--text);padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.ref-tbl td{padding:8px 12px;border-bottom:1px solid var(--border);}
+.ref-tbl tr:last-child td{border-bottom:none;}
+.ref-tbl tr:nth-child(even) td{background:#fafbfd;}
+.ref-tbl .code{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--sys);font-size:11px;}
+.ref-tbl .pill{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
+.pill.pill-all{background:#dcfce7;color:#166534;}
+.pill.pill-rwa{background:#bbf7d0;color:#14532d;}
+.pill.pill-rw{background:#dbeafe;color:#1e40af;}
+.pill.pill-r{background:#e2e8f0;color:#334155;}
 
-/* ── BADGES ── */
+.br-wrap{margin-bottom:16px;}
+.br-title{font-size:11px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+.br-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.br-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.br-tbl th{background:var(--text);color:#fff;padding:7px 10px;text-align:left;border:1px solid rgba(255,255,255,.08);font-size:9px;}
+.br-tbl td{padding:7px 10px;border:1px solid var(--border);vertical-align:top;line-height:1.6;}
+.br-tbl tr:nth-child(even) td{background:#fafbfd;}
+.br-id-c{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-en-c{color:var(--text);}
+.br-ko-c{color:var(--sub);font-size:10px;margin-top:2px;}
+.br-tbl tr.cat-row td{background:#f0f3f7;font-weight:700;color:var(--sys);font-size:9px;letter-spacing:1px;text-transform:uppercase;}
 .b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
 .b-ok{background:#dcfce7;color:#166534;}
 .b-w{background:#fef9c3;color:#92400e;}
 .b-e{background:#fee2e2;color:#991b1b;}
 .b-i{background:#dbeafe;color:#1e40af;}
-.b-n{background:#f3f4f6;color:#4b5563;}
+.b-m{background:#fce7f3;color:#9d174d;}
 
-/* ── BUTTONS ── */
-.btn{padding:5px 13px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
-.btn-primary{background:var(--mod-color,#0891b2);color:#fff;border-color:var(--mod-color,#0891b2);}
-.btn-secondary{background:#f6f8fa;color:var(--text);border-color:var(--border);}
-.btn-danger{background:#dc2626;color:#fff;}
-.btn-sm{padding:3px 9px;font-size:10px;}
-
-/* ── FEATURE GRID ── */
-.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
-.feat-item{background:#f6f8ff;border:1px solid var(--border);border-radius:6px;padding:11px 13px;border-top:2px solid;}
-.fi-title-en{font-size:11px;font-weight:700;margin-bottom:1px;}
-.fi-title-ko{font-size:10px;color:var(--sub);margin-bottom:6px;}
-ul.fi-list{list-style:none;}
-ul.fi-list li{padding:2px 0 2px 12px;position:relative;font-size:10px;line-height:1.6;}
-ul.fi-list li::before{content:'–';position:absolute;left:0;color:var(--sub);}
-ul.fi-list li .ko{color:var(--sub);font-size:9px;}
-
-/* ── PDA MOCK ── */
-.pda-row{display:flex;gap:14px;flex-wrap:wrap;}
-.pda-unit{text-align:center;}
-.pdu-step{font-size:9px;font-weight:700;color:var(--sub);margin-bottom:5px;}
-.pda-shell{background:#1a1e2e;border-radius:16px;padding:9px;width:172px;border:2px solid #2a3048;box-shadow:0 6px 20px rgba(0,0,0,.3);}
-.pda-scr{background:#0a1628;border-radius:10px;overflow:hidden;border:1px solid #1a3050;}
-.pda-sbar{background:#060e1c;padding:3px 8px;display:flex;justify-content:space-between;}
-.pda-sbar span{font-size:7px;color:#2a4a7a;font-family:'JetBrains Mono',monospace;}
-.pda-sbar .online{color:#00e5a0;}
-.pda-tbar{padding:7px 10px;border-bottom:1px solid #0a3050;}
-.pda-title{font-size:11px;font-weight:700;color:#00e5a0;}
-.pda-sub{font-size:8px;color:rgba(255,255,255,.3);}
-.pda-bd{padding:8px 10px;}
-.pda-scan{background:#060e1c;border:2px dashed rgba(0,229,160,.3);border-radius:6px;padding:12px;text-align:center;margin-bottom:7px;}
-.pda-scan-icon{font-size:22px;margin-bottom:3px;}
-.pda-scan-en{font-size:10px;font-weight:700;color:#00e5a0;}
-.pda-scan-ko{font-size:8px;color:rgba(255,255,255,.3);}
-.pda-field{margin-bottom:5px;}
-.pda-fl{font-size:8px;color:#1a5a4a;margin-bottom:2px;font-weight:600;}
-.pda-fv{background:#040c18;border:1px solid #1a3050;border-radius:4px;padding:4px 8px;font-size:10px;color:#a0c8f0;font-family:'JetBrains Mono',monospace;}
-.pda-fv.ok{border-color:#00e5a0;color:#00e5a0;}
-.pda-fv.er{border-color:#ff8a82;color:#ff8a82;}
-.pda-numpad{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;margin-bottom:6px;}
-.pda-key{background:#0d1e30;border:1px solid #1a3050;border-radius:4px;padding:7px 4px;text-align:center;font-size:13px;font-weight:700;color:#c0e0f0;font-family:'JetBrains Mono',monospace;}
-.pda-key.k-ok{background:#0a2a1a;color:#00e5a0;border-color:#0a5a38;}
-.pda-key.k-del{background:#1a0808;color:#ff8a82;border-color:#3a1010;}
-.pda-disp{background:#040c18;border:1px solid #1a3050;border-radius:4px;padding:5px 9px;font-size:24px;font-weight:900;color:#00e5a0;text-align:right;margin-bottom:6px;font-family:'JetBrains Mono',monospace;}
-.pda-btn{width:100%;padding:7px;border-radius:5px;font-size:10px;font-weight:700;border:none;cursor:pointer;margin-bottom:4px;font-family:'Noto Sans KR',sans-serif;}
-.pda-pri{background:linear-gradient(135deg,#0a9060,#0db87a);color:#fff;}
-.pda-sec{background:#0a1428;color:#4a7aaa;border:1px solid #1a3050;}
-.pda-dan{background:#1a0808;color:#ff8a82;border:1px solid #3a1010;}
-.pda-progress-bar{height:4px;background:#060e1c;border-radius:2px;overflow:hidden;margin:4px 0 8px;}
-.pda-progress-fill{height:100%;background:linear-gradient(90deg,#0a9060,#00e5a0);border-radius:2px;}
-
-/* ── BR TABLE ── */
-.br-wrap{margin-bottom:16px;}
-.br-title{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:7px;display:flex;align-items:center;gap:10px;}
-.br-title::after{content:'';flex:1;height:1px;background:var(--border);}
-.br-tbl{width:100%;border-collapse:collapse;font-size:10px;}
-.br-tbl th{background:var(--text);color:#fff;padding:6px 10px;text-align:left;border:1px solid rgba(255,255,255,.08);font-size:9px;}
-.br-tbl td{padding:6px 10px;border:1px solid var(--border);vertical-align:top;line-height:1.6;}
-.br-tbl tr:nth-child(even) td{background:#fafbfd;}
-.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
-.br-en{color:var(--text);}
-.br-ko{color:var(--sub);font-size:10px;margin-top:2px;}
-
-/* ── SECTION DIV ── */
-.sec-div{display:flex;align-items:center;gap:12px;margin:20px 0 12px;}
-.sd-line{flex:1;height:1px;background:var(--border);}
-.sd-lbl{font-size:10px;font-weight:700;color:var(--sub);white-space:nowrap;}
-
-/* ── ALERTS ── */
-.alert{padding:8px 12px;border-radius:5px;font-size:10px;margin-bottom:9px;display:flex;gap:8px;line-height:1.7;}
-.alert-i{background:#eff6ff;border-left:3px solid #3b82f6;}
-.alert-w{background:#fffbeb;border-left:3px solid #f59e0b;}
-.alert-s{background:#f0fdf4;border-left:3px solid #22c55e;}
-.alert-d{background:#fef2f2;border-left:3px solid #ef4444;}
-
-/* ── ROUTING FLOW ── */
-.rflow{display:flex;align-items:center;gap:0;flex-wrap:nowrap;overflow-x:auto;padding:4px 0;}
-.rs{padding:9px 14px;border-radius:5px;font-size:11px;font-weight:700;text-align:center;flex-shrink:0;text-decoration:none;}
-.rs-en{font-size:12px;font-weight:800;}
-.rs-ko{font-size:9px;font-weight:400;opacity:.7;margin-top:2px;}
-.rarr{color:var(--sub);font-size:14px;padding:0 5px;flex-shrink:0;}
-.rs-inj{background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;}
-.rs-img{background:#f5f3ff;color:#5b21b6;border:1px solid #c4b5fd;}
-.rs-pnt{background:#fff7ed;color:#9a3412;border:1px solid #fdba74;}
-.rs-qc{background:#fef2f2;color:#991b1b;border:1px solid #fca5a5;}
-.rs-fg{background:#f0fdf4;color:#065f46;border:1px solid #6ee7b7;}
-
-/* ── GRID ── */
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
-
-/* ── PROGRESS BAR ── */
-.prog-track{height:5px;background:#f0f2f5;border-radius:3px;overflow:hidden;}
-.prog-fill{height:100%;border-radius:3px;}
-
-/* ── DATA MODEL TABLE ── */
-.dm-tbl{width:100%;border-collapse:collapse;font-size:10px;}
-.dm-tbl th{background:var(--ink2);color:#fff;padding:6px 10px;text-align:left;border:1px solid var(--ink3);font-size:9px;}
-.dm-tbl td{padding:5px 10px;border:1px solid var(--border);vertical-align:top;}
-.dm-tbl tr:nth-child(even) td{background:#fafbfd;}
-.dm-col{font-family:'JetBrains Mono',monospace;color:#1e40af;font-weight:600;}
-.dm-type{font-family:'JetBrains Mono',monospace;color:var(--sub);font-size:10px;}
-.dm-pk{color:#dc2626;font-weight:700;}
-.dm-fk{color:#7c3aed;}
-
-/* ── PAGE FOOTER ── */
 .page-footer{padding:14px 48px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--ink);margin-top:20px;}
 .pf-l{font-size:10px;color:rgba(255,255,255,.2);}
 .pf-r{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(212,160,23,.4);}
-:root{--mod-color:#475569;}.mod-hdr{background:linear-gradient(135deg,color-mix(in srgb,#475569 30%,#000),color-mix(in srgb,#475569 12%,#000));}.sc-hdr{background:linear-gradient(135deg,color-mix(in srgb,#475569 22%,#000),color-mix(in srgb,#475569 10%,#000));}.sc-id{color:#475569;}.sb-mod-en{color:#475569;}.sb-link.on{border-left-color:#475569;}</style></head><body><nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol active"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav><div class="page-wrap"><nav class="sidebar"><div class="sb-head"><div class="sb-vol">VOL.12 · SYS MODULE</div><div class="sb-mod-en">SYSTEM ADMIN</div><div class="sb-mod-ko">시스템 관리</div></div>
-<div class="sb-section">Screens</div>
-<a class="sb-link on" href="#sys01"><span class="sl-id">SYS-01</span><div><div class="sl-en">User Management</div><div class="sl-ko">사용자 관리</div></div></a>
-<a class="sb-link" href="#sys02"><span class="sl-id">SYS-02</span><div><div class="sl-en">RBAC Permissions</div><div class="sl-ko">권한 관리</div></div></a>
-<a class="sb-link" href="#sys03"><span class="sl-id">SYS-03</span><div><div class="sl-en">Factory Calendar</div><div class="sl-ko">공장 캘린더</div></div></a>
-<a class="sb-link" href="#sys04"><span class="sl-id">SYS-04</span><div><div class="sl-en">Interface Monitor</div><div class="sl-ko">인터페이스 모니터</div></div></a>
-<a class="sb-link" href="#sys05"><span class="sl-id">SYS-05</span><div><div class="sl-en">Audit Log</div><div class="sl-ko">감사 로그</div></div></a>
-<a class="sb-link" href="#sys06"><span class="sl-id">SYS-06</span><div><div class="sl-en">Notification Settings</div><div class="sl-ko">알림 설정</div></div></a>
-<div class="sb-sep"></div>
-<a class="sb-link" href="#br-sys"><span class="sl-id">BR</span><div><div class="sl-en">Business Rules</div></div></a></nav>
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol active"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head">
+    <div class="sb-vol">VOL.12 · SYS MODULE</div>
+    <div class="sb-mod-en">SYSTEM ADMIN</div>
+    <div class="sb-mod-ko">시스템 관리</div>
+  </div>
+  <div class="sb-section">Overview · 개요</div>
+  <a class="sb-link" href="#flow"><span class="sl-id">FLOW</span><div><div class="sl-en">Process Flow</div><div class="sl-ko">시스템 흐름</div></div></a>
+  <a class="sb-link" href="#kpi"><span class="sl-id">KPI</span><div><div class="sl-en">Module KPI</div><div class="sl-ko">핵심 지표</div></div></a>
+  <div class="sb-section">Access Control · 접근 제어</div>
+  <a class="sb-link on" href="#sys01"><span class="sl-id">SYS-01</span><div><div class="sl-en">User Management</div><div class="sl-ko">사용자 관리</div></div><a class="sb-l3" href="VOL12_SYS01_User_Management.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#sys02"><span class="sl-id">SYS-02</span><div><div class="sl-en">RBAC Permissions ⚙</div><div class="sl-ko">권한 관리</div></div><a class="sb-l3" href="VOL12_SYS02_RBAC_Permissions.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <div class="sb-section">Configuration · 환경 설정</div>
+  <a class="sb-link" href="#sys03"><span class="sl-id">SYS-03</span><div><div class="sl-en">Factory Calendar</div><div class="sl-ko">공장 캘린더</div></div><a class="sb-l3" href="VOL12_SYS03_Factory_Calendar.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#sys07"><span class="sl-id">SYS-07</span><div><div class="sl-en">System Config</div><div class="sl-ko">시스템 설정</div></div><a class="sb-l3" href="VOL12_SYS07_System_Config.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#sys06"><span class="sl-id">SYS-06</span><div><div class="sl-en">Notification Settings</div><div class="sl-ko">알림 설정</div></div><a class="sb-l3" href="VOL12_SYS06_Notification_Settings.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <div class="sb-section">Monitor & Audit · 모니터·감사</div>
+  <a class="sb-link" href="#sys04"><span class="sl-id">SYS-04</span><div><div class="sl-en">Interface Monitor</div><div class="sl-ko">인터페이스 모니터</div></div><a class="sb-l3" href="VOL12_SYS04_Interface_Monitor.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#sys05"><span class="sl-id">SYS-05</span><div><div class="sl-en">Audit Log</div><div class="sl-ko">감사 로그</div></div><a class="sb-l3" href="VOL12_SYS05_Audit_Log.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#sys08"><span class="sl-id">SYS-08</span><div><div class="sl-en">System Health</div><div class="sl-ko">시스템 헬스</div></div><a class="sb-l3" href="VOL12_SYS08_System_Health.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <div class="sb-sep"></div>
+  <div class="sb-section">Reference · 참조</div>
+  <a class="sb-link" href="#roles"><span class="sl-id">ROLE</span><div><div class="sl-en">RBAC Roles</div><div class="sl-ko">7개 역할</div></div></a>
+  <a class="sb-link" href="#br-sys"><span class="sl-id">BR</span><div><div class="sl-en">Business Rules</div><div class="sl-ko">업무 규칙 35건</div></div></a>
+</nav>
 <div class="main">
-<div class="mod-hdr"><div class="mod-hdr-inner">
-  <div class="mod-eyebrow" style="color:#94a3b8;">VOL.12 · SYS · System Administration · 시스템 관리</div>
-  <div class="mod-title-en" style="color:#94a3b8;">SYSTEM<br>ADMINISTRATION</div>
-  <div class="mod-title-ko">시스템 관리</div>
-  <div class="mod-desc-bi">
-    <div class="mdb-en">System administration module for A-MES. Covers user account management, RBAC (Role-Based Access Control) with 7 roles, factory calendar configuration, SCM/ERP interface monitoring, 5-year audit log, and configurable notification settings for 8 event types. All screens restricted to Admin and System Manager roles.</div>
-    <div class="mdb-ko">A-MES 시스템 관리 모듈. 사용자 계정 관리, RBAC 7역할 권한 관리, 공장 캘린더 설정, SCM·ERP 인터페이스 모니터링, 5년 감사 로그, 8종 이벤트 알림 설정. 전체 화면 Admin·시스템 관리자 역할 한정.</div>
-  </div>
-  <div class="screen-pills">
-    <span class="sp"><span class="sp-id">SYS-01</span> User Management</span>
-    <span class="sp"><span class="sp-id">SYS-02</span> RBAC Permissions</span>
-    <span class="sp"><span class="sp-id">SYS-03</span> Factory Calendar</span>
-    <span class="sp"><span class="sp-id">SYS-04</span> Interface Monitor</span>
-    <span class="sp"><span class="sp-id">SYS-05</span> Audit Log</span>
-    <span class="sp"><span class="sp-id">SYS-06</span> Notification Settings</span>
-  </div>
-</div></div>
-<div class="content">
-
-<div class="screen-card" id="sys01">
-  <div class="sc-hdr"><div><div class="sc-id">SYS-01</div><div class="sc-title-en">User Account Management</div><div class="sc-title-ko">사용자 계정 관리</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-1st">1st</span></div></div>
-  <div class="sc-body">
-    <div class="desc-bi" style="border-left-color:#475569;"><div><div class="db-lbl">EN</div><div class="db-en">Create, edit, and deactivate user accounts. Each account: employee ID, name, department, role assignment (from 7 RBAC roles), assigned lines (for POP users), and active status. Password reset by Admin only. 5 consecutive login failures → account auto-locked. Locked accounts shown in red. Email notification to user and Admin on lock.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">사용자 계정 생성·수정·비활성화. 각 계정: 사번·이름·부서·역할(7종 RBAC)·담당 라인(POP 사용자)·활성 상태. 비밀번호 초기화는 Admin만 가능. 로그인 5회 연속 실패 → 계정 자동 잠금. 잠금 계정 빨간색 표시. 사용자·Admin 이메일 알림.</div></div></div>
-    <div class="mock-wrap"><div class="mock-lbl">SYS-01 · User Management · Web PC</div><div class="mock-win">
-      <div class="mock-tbar">🔐 A-MES · System · User Management <span class="bc">System &gt; Users</span></div>
-      <div class="mock-toolbar">
-        <input type="text" placeholder="Search name / employee ID..." style="width:200px;">
-        <select><option>All Roles</option><option>Admin</option><option>Production Manager</option><option>Warehouse Staff</option><option>QC Inspector</option></select>
-        <select><option>All Status</option><option>Active</option><option>Locked</option><option>Inactive</option></select>
-        <button class="btn btn-primary btn-sm" style="background:#475569;">+ Add User</button>
+  <div class="mod-hdr">
+    <div class="mod-hdr-inner">
+      <div class="mod-eyebrow">VOL.12 · SYS · System Administration · 시스템 관리</div>
+      <div class="mod-title-en">SYSTEM<br>ADMINISTRATION</div>
+      <div class="mod-title-ko">시스템 관리 — 계정 · 권한 · 설정 · 모니터 · 감사</div>
+      <div class="mod-desc-bi">
+        <div class="mdb-en">The administration backbone of A-MES. <strong>User account management</strong> (SYS-01) with auto-lock security. <strong>RBAC permission matrix</strong> (SYS-02) — the core, governing 7 roles' access to every module. <strong>Factory calendar</strong> (SYS-03) feeding PP capacity. <strong>System configuration</strong> (SYS-07) for global parameters and common codes. <strong>Notification settings</strong> (SYS-06) for 8 event types across 3 channels. <strong>Interface monitor</strong> (SYS-04) watching SCM/ERP/PLC links. <strong>5-year immutable audit log</strong> (SYS-05) capturing every action. <strong>System health dashboard</strong> (SYS-08) monitoring servers, resources, backups, and jobs. All screens are Admin / System Manager only.</div>
+        <div class="mdb-ko">A-MES의 관리 중추. <strong>사용자 계정 관리</strong>(SYS-01) 자동 잠금 보안. <strong>RBAC 권한 매트릭스</strong>(SYS-02) — 핵심, 7역할의 전 모듈 접근 통제. <strong>공장 캘린더</strong>(SYS-03) PP 능력 산정 기반. <strong>시스템 설정</strong>(SYS-07) 전역 파라미터·공통 코드. <strong>알림 설정</strong>(SYS-06) 8종 이벤트 3채널. <strong>인터페이스 모니터</strong>(SYS-04) SCM·ERP·PLC 연동 감시. <strong>5년 위변조 불가 감사 로그</strong>(SYS-05) 전 행위 기록. <strong>시스템 헬스 대시보드</strong>(SYS-08) 서버·자원·백업·잡 감시. 전 화면 Admin·시스템 관리자 전용.</div>
       </div>
-      <div class="mock-body">
-        <table class="tbl">
-          <thead><tr><th>Employee ID <span class="th-ko">사번</span></th><th>Name <span class="th-ko">이름</span></th><th>Department <span class="th-ko">부서</span></th><th>Role <span class="th-ko">역할</span></th><th>Assigned Line <span class="th-ko">담당 라인</span></th><th>Last Login <span class="th-ko">최근 로그인</span></th><th>Status</th><th>Action</th></tr></thead>
-          <tbody>
-            <tr class="rh"><td style="font-family:monospace;">EMP-001</td><td>Kim, Jisoo</td><td>IT/System</td><td><span class="b b-e">Admin</span></td><td>All</td><td>2025-07-01 09:02</td><td><span class="b b-ok">Active</span></td><td><button class="btn btn-secondary btn-sm">Edit</button></td></tr>
-            <tr><td style="font-family:monospace;">EMP-012</td><td>Park, Minjun</td><td>Production</td><td><span class="b b-i">Prod. Manager</span></td><td>All Lines</td><td>2025-07-01 08:45</td><td><span class="b b-ok">Active</span></td><td><button class="btn btn-secondary btn-sm">Edit</button></td></tr>
-            <tr class="rd"><td style="font-family:monospace;">EMP-034</td><td>Lee, Sunho</td><td>Production</td><td><span class="b" style="background:#fce7f3;color:#831843;">POP Operator</span></td><td>INJ-LINE-1</td><td>2025-06-30 17:55</td><td><span class="b b-e">🔒 Locked</span></td><td><button class="btn btn-primary btn-sm" style="background:#475569;">Unlock</button></td></tr>
-            <tr><td style="font-family:monospace;">EMP-045</td><td>Choi, Yuna</td><td>QC</td><td><span class="b" style="background:#fef9c3;color:#713f12;">QC Inspector</span></td><td>QC Lab</td><td>2025-07-01 08:30</td><td><span class="b b-ok">Active</span></td><td><button class="btn btn-secondary btn-sm">Edit</button></td></tr>
-          </tbody>
-        </table>
+      <div class="mod-meta-strip">
+        <div class="mms-item"><div class="mms-l">Screens</div><div class="mms-v">8</div></div>
+        <div class="mms-item"><div class="mms-l">RBAC Roles</div><div class="mms-v sys">7 Roles</div></div>
+        <div class="mms-item"><div class="mms-l">Interfaces</div><div class="mms-v sys">SCM·ERP·PLC 5</div></div>
+        <div class="mms-item"><div class="mms-l">Audit Retention</div><div class="mms-v warn">5 Years</div></div>
+        <div class="mms-item"><div class="mms-l">Notify Events</div><div class="mms-v">8 Types</div></div>
+        <div class="mms-item"><div class="mms-l">BR Rules</div><div class="mms-v warn">35</div></div>
       </div>
-    </div></div>
+      <div><span class="l3-hint">📋 Click any screen card / icon / pill for L3 detailed spec · 각 화면 카드 클릭 시 L3 상세 설계서</span></div>
+      <div class="screen-pills">
+        <a class="sp" href="VOL12_SYS01_User_Management.html" title="L3 상세 · SYS-01"><span class="sp-id">SYS-01</span> User Mgmt 👤 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL12_SYS02_RBAC_Permissions.html" title="L3 상세 · SYS-02"><span class="sp-id">SYS-02</span> RBAC ⚙ <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL12_SYS03_Factory_Calendar.html" title="L3 상세 · SYS-03"><span class="sp-id">SYS-03</span> Calendar 📅 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL12_SYS04_Interface_Monitor.html" title="L3 상세 · SYS-04"><span class="sp-id">SYS-04</span> Interface 🔌 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL12_SYS05_Audit_Log.html" title="L3 상세 · SYS-05"><span class="sp-id">SYS-05</span> Audit Log 📜 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL12_SYS06_Notification_Settings.html" title="L3 상세 · SYS-06"><span class="sp-id">SYS-06</span> Notification 🔔 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL12_SYS07_System_Config.html" title="L3 상세 · SYS-07"><span class="sp-id">SYS-07</span> Config ⚙ <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL12_SYS08_System_Health.html" title="L3 상세 · SYS-08"><span class="sp-id">SYS-08</span> Health 💚 <span style="opacity:.5;font-size:8px;">📋</span></a>
+      </div>
+    </div>
   </div>
-</div>
 
-<div class="screen-card" id="sys02">
-  <div class="sc-hdr"><div><div class="sc-id">SYS-02</div><div class="sc-title-en">RBAC Permission Matrix (7 Roles)</div><div class="sc-title-ko">RBAC 역할 권한 매트릭스 (7역할)</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-1st">1st</span></div></div>
-  <div class="sc-body">
-    <div class="desc-bi" style="border-left-color:#475569;"><div><div class="db-lbl">EN</div><div class="db-en">Role-Based Access Control matrix defining read/write/approve permissions for each module and screen per role. 7 roles: Admin, Production Manager, Warehouse Staff, QC Inspector, Maintenance Engineer, POP Operator, Read-Only. Permission changes are effective immediately and logged in SYS-05 audit log.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">역할별 모듈·화면 읽기/쓰기/승인 권한 매트릭스. 7역할: Admin·생산관리자·창고담당·QC검사원·정비엔지니어·POP작업자·읽기전용. 권한 변경 즉시 반영 + SYS-05 감사 로그 기록.</div></div></div>
-    <div style="overflow-x:auto;"><table class="tbl" style="min-width:600px;">
-      <thead><tr><th>Module</th><th>Admin</th><th>Prod. Manager<div class="ko">생산관리자</div></th><th>WH Staff<div class="ko">창고담당</div></th><th>QC Inspector<div class="ko">QC검사원</div></th><th>MNT Engineer<div class="ko">정비기술자</div></th><th>POP Operator<div class="ko">POP작업자</div></th><th>Read-Only<div class="ko">읽기전용</div></th></tr></thead>
-      <tbody>
-        <tr><td style="font-weight:700;">WH Warehouse</td><td><span class="b b-ok">All</span></td><td><span class="b b-i">R</span></td><td><span class="b" style="background:#dcfce7;color:#166534;">R/W</span></td><td><span class="b b-i">R</span></td><td><span class="b b-n">—</span></td><td><span class="b b-n">—</span></td><td><span class="b b-i">R</span></td></tr>
-        <tr><td style="font-weight:700;">PP Production Plan</td><td><span class="b b-ok">All</span></td><td><span class="b" style="background:#dcfce7;color:#166534;">R/W/A</span></td><td><span class="b b-i">R</span></td><td><span class="b b-i">R</span></td><td><span class="b b-i">R</span></td><td><span class="b b-n">—</span></td><td><span class="b b-i">R</span></td></tr>
-        <tr><td style="font-weight:700;">INJ/IMG/PNT POP</td><td><span class="b b-ok">All</span></td><td><span class="b b-i">R</span></td><td><span class="b b-n">—</span></td><td><span class="b b-i">R</span></td><td><span class="b b-i">R</span></td><td><span class="b" style="background:#dcfce7;color:#166534;">R/W</span></td><td><span class="b b-i">R</span></td></tr>
-        <tr><td style="font-weight:700;">QC Quality</td><td><span class="b b-ok">All</span></td><td><span class="b b-i">R</span></td><td><span class="b b-i">R</span></td><td><span class="b" style="background:#dcfce7;color:#166534;">R/W/A</span></td><td><span class="b b-i">R</span></td><td><span class="b b-n">—</span></td><td><span class="b b-i">R</span></td></tr>
-        <tr><td style="font-weight:700;">MNT Maintenance</td><td><span class="b b-ok">All</span></td><td><span class="b b-i">R</span></td><td><span class="b b-n">—</span></td><td><span class="b b-i">R</span></td><td><span class="b" style="background:#dcfce7;color:#166534;">R/W</span></td><td><span class="b b-n">—</span></td><td><span class="b b-i">R</span></td></tr>
-        <tr><td style="font-weight:700;">SYS / MD Admin</td><td><span class="b b-ok">All</span></td><td><span class="b b-n">—</span></td><td><span class="b b-n">—</span></td><td><span class="b b-n">—</span></td><td><span class="b b-n">—</span></td><td><span class="b b-n">—</span></td><td><span class="b b-n">—</span></td></tr>
-      </tbody>
-    </table></div>
-    <div style="font-size:9px;color:#64748b;margin-top:5px;">R = Read · 읽기 &nbsp;|&nbsp; W = Write · 쓰기 &nbsp;|&nbsp; A = Approve · 승인 &nbsp;|&nbsp; All = Full access &nbsp;|&nbsp; — = No access</div>
-  </div>
-</div>
+  <div class="content">
 
-<div class="screen-card" id="sys06">
-  <div class="sc-hdr"><div><div class="sc-id">SYS-06</div><div class="sc-title-en">Notification Settings (8 Event Types)</div><div class="sc-title-ko">알림 설정 (8종 이벤트)</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd</span></div></div>
-  <div class="sc-body">
-    <div class="desc-bi" style="border-left-color:#475569;"><div><div class="db-lbl">EN</div><div class="db-en">Configures which notification events are enabled, the delivery method (In-App / Email / SMS), and the recipient roles. 8 supported event types. Each event can be toggled independently. Changes take effect immediately.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">알림 이벤트별 활성화 여부, 전달 방법(인앱/이메일/SMS), 수신 역할 설정. 8종 이벤트. 이벤트별 독립 토글. 변경 즉시 반영.</div></div></div>
-    <table class="tbl">
-      <thead><tr><th>#</th><th>Event <span class="th-ko">이벤트</span></th><th>Trigger Condition <span class="th-ko">발생 조건</span></th><th>Method <span class="th-ko">방법</span></th><th>Recipients <span class="th-ko">수신자</span></th><th>Enabled <span class="th-ko">활성</span></th></tr></thead>
+    <div class="sec-div" id="flow"><div class="sd-line"></div><div class="sd-lbl">▼ PROCESS FLOW · 시스템 흐름</div><div class="sd-line"></div></div>
+    <div class="flow-card">
+      <div class="flow-card-h">▼ 4-Track System Administration Flow · 4-트랙 시스템 관리 흐름</div>
+
+      <div class="flow-track">
+        <div class="flow-track-lbl">🔐 ① ACCESS CONTROL · 접근 제어 (계정 → 역할 → 전 모듈)</div>
+        <div class="flow-row">
+          <a class="flow-node" href="#sys01"><span class="fn-id">SYS-01</span><span class="fn-name">User Mgmt 👤</span><span class="fn-ko">사용자 계정</span><span class="fn-tag">5-Fail Lock</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node core" href="#sys02"><span class="fn-id">SYS-02 ⚙</span><span class="fn-name">RBAC</span><span class="fn-ko">권한 매트릭스</span><span class="fn-tag">7 Roles</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node external"><span class="fn-id">All Modules</span><span class="fn-name">화면 진입</span><span class="fn-ko">권한 검증</span><span class="fn-tag">WH~MD</span></a>
+        </div>
+      </div>
+
+      <div class="flow-track">
+        <div class="flow-track-lbl">⚙ ② CONFIGURATION · 환경 설정 (가동 기반 파라미터)</div>
+        <div class="flow-row">
+          <a class="flow-node" href="#sys03"><span class="fn-id">SYS-03</span><span class="fn-name">Calendar 📅</span><span class="fn-ko">공장 캘린더</span><span class="fn-tag">Phase 0</span></a>
+          <span class="flow-arr">+</span>
+          <a class="flow-node" href="#sys07"><span class="fn-id">SYS-07</span><span class="fn-name">Config ⚙</span><span class="fn-ko">파라미터·코드</span><span class="fn-tag">전역 설정</span></a>
+          <span class="flow-arr">+</span>
+          <a class="flow-node" href="#sys06"><span class="fn-id">SYS-06</span><span class="fn-name">Notification 🔔</span><span class="fn-ko">알림 정책</span><span class="fn-tag">8 Events</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node external"><span class="fn-id">PP·전 모듈</span><span class="fn-name">동작 적용</span><span class="fn-ko">즉시 전파</span><span class="fn-tag">—</span></a>
+        </div>
+      </div>
+
+      <div class="flow-track">
+        <div class="flow-track-lbl">🖥 ③ MONITOR · 모니터 (외부 연동 + 자체 인프라)</div>
+        <div class="flow-row">
+          <a class="flow-node external"><span class="fn-id">SCM·ERP·PLC</span><span class="fn-name">외부 시스템</span><span class="fn-ko">연동 데이터</span><span class="fn-tag">5 Interface</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node" href="#sys04"><span class="fn-id">SYS-04</span><span class="fn-name">Interface 🔌</span><span class="fn-ko">연동 모니터</span><span class="fn-tag">Auto 60s</span></a>
+          <span class="flow-arr">+</span>
+          <a class="flow-node" href="#sys08"><span class="fn-id">SYS-08</span><span class="fn-name">Health 💚</span><span class="fn-ko">서버·DB·백업</span><span class="fn-tag">Auto 30s</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node" href="#sys06"><span class="fn-id">SYS-06</span><span class="fn-name">알림 발생</span><span class="fn-ko">오류 통지</span><span class="fn-tag">App·Email·SMS</span></a>
+        </div>
+      </div>
+
+      <div class="flow-track">
+        <div class="flow-track-lbl">📜 ④ AUDIT · 감사 (전 행위 위변조 불가 기록)</div>
+        <div class="flow-row">
+          <a class="flow-node external"><span class="fn-id">All Modules</span><span class="fn-name">CRUD·승인</span><span class="fn-ko">전 행위</span><span class="fn-tag">데이터 계층</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node" href="#sys05"><span class="fn-id">SYS-05</span><span class="fn-name">Audit Log 📜</span><span class="fn-ko">감사 로그</span><span class="fn-tag">5년·불변</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node external"><span class="fn-id">감사자</span><span class="fn-name">컴플라이언스</span><span class="fn-ko">고객 감사 대응</span><span class="fn-tag">Export</span></a>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:14px;margin-top:14px;font-size:9px;color:rgba(255,255,255,.55);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;flex-wrap:wrap;">
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(71,85,105,.3);border:1px solid #94a3b8;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>SYS 화면</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(212,160,23,.2);border:1px solid #fbbf24;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>⚙ Core (SYS-02 RBAC)</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.3);border-radius:2px;vertical-align:middle;margin-right:4px;"></span>외부 모듈/시스템</span>
+      </div>
+    </div>
+
+    <div class="sec-div" id="kpi"><div class="sd-line"></div><div class="sd-lbl">▼ MODULE KPI · 핵심 지표</div><div class="sd-line"></div></div>
+    <div class="mod-kpi">
+      <div class="kpi-card"><div class="kpi-l">System Uptime</div><div class="kpi-v ok">≥99.9<span style="font-size:14px;color:var(--sub);"> %</span></div><div class="kpi-s">목표 가동률 · SYS-08</div></div>
+      <div class="kpi-card"><div class="kpi-l">RBAC Roles</div><div class="kpi-v sys">7</div><div class="kpi-s">역할 기반 접근 제어</div></div>
+      <div class="kpi-card"><div class="kpi-l">Interface Health</div><div class="kpi-v ok">5/5</div><div class="kpi-s">SCM·ERP·PLC 연동 정상</div></div>
+      <div class="kpi-card"><div class="kpi-l">Audit Retention</div><div class="kpi-v warn">5<span style="font-size:14px;color:var(--sub);"> yr</span></div><div class="kpi-s">감사 로그 보존 (불변)</div></div>
+      <div class="kpi-card"><div class="kpi-l">DB Backup</div><div class="kpi-v ok">Daily</div><div class="kpi-s">매일 06:00 자동 백업</div></div>
+    </div>
+
+    <div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">▼ 8 SCREENS · 화면 설계</div><div class="sd-line"></div></div>
+
+    <!-- SYS-01 -->
+    <div class="screen-card" id="sys01">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">👤</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">SYS-01</div>
+            <div class="sc-title-en">User Account Management</div>
+            <div class="sc-title-ko">사용자 계정 관리 — 계정 생성·역할 배정·잠금 관리</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-1st">1st Dev</span></div>
+        <a class="sc-l3-btn" href="VOL12_SYS01_User_Management.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 사용자 계정 목록 (사번·이름·부서·역할·담당라인·상태) + KPI 5종 + 계정 추가/편집<span class="ko">로그인 5회 실패 시 자동 잠금(적색), Admin Unlock으로만 복구. 비밀번호 초기화 Admin 전용, 퇴직자는 INACTIVE 처리 (삭제 없음)</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">사원 정보 + RBAC 역할</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">사용자 계정</div></div>
+          <div class="qf"><div class="qf-l">🔒 SECURITY</div><div class="qf-v">5-Fail Auto-Lock</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">User Table</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Create, edit, deactivate user accounts with employee ID, department, RBAC role, assigned lines. 5 failed logins → auto-lock; Admin-only password reset.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">사번·부서·RBAC 역할·담당 라인으로 계정 생성·수정·비활성화. 5회 실패 → 자동 잠금, 비밀번호 초기화 Admin 전용.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">🔒</div><div class="feat-t">Auto-Lock</div><div class="feat-d">5회 실패 자동 잠금.<span class="ko">BR-SYS-04</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔑</div><div class="feat-t">Admin Reset</div><div class="feat-d">비밀번호 초기화 Admin 전용.<span class="ko">BR-SYS-05</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🗄</div><div class="feat-t">No Hard Delete</div><div class="feat-d">퇴직자 INACTIVE 처리.<span class="ko">BR-SYS-06</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📜</div><div class="feat-t">Audited</div><div class="feat-d">전 계정 행위 로그.<span class="ko">BR-SYS-07</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-sys">BR-SYS-04</a>
+          <a class="br-chip" href="#br-sys">BR-SYS-05</a>
+          <a class="br-chip" href="#br-sys">BR-SYS-06</a>
+          <a class="br-chip" href="#br-sys">BR-SYS-07</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- SYS-02 CORE -->
+    <div class="screen-card" id="sys02">
+      <div class="sc-hdr core">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">🔐</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">SYS-02 · ⚙ CORE</div>
+            <div class="sc-title-en">RBAC Permission Matrix</div>
+            <div class="sc-title-ko">RBAC 역할 권한 매트릭스 — 7역할 × 전 모듈 접근 제어</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-core">⚙ Core</span><span class="tag t-1st">1st Dev</span></div>
+        <a class="sc-l3-btn" href="VOL12_SYS02_RBAC_Permissions.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline core">
+          <span class="headline-ico">⭐</span>
+          <div class="headline-t">What you'll see: 모듈(행) × 7역할(열) 권한 매트릭스 — 셀 클릭으로 R/W/A/All/— 설정<span class="ko">SYS 모듈 핵심 — A-MES 보안의 단일 통제점. 전 모듈의 모든 화면이 진입 시 이 매트릭스를 조회. 변경은 저장 즉시 반영(재로그인 불필요), 전 변경 SYS-05 감사 로그</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">역할별 권한 설정</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">접근 제어 정책</div></div>
+          <div class="qf"><div class="qf-l">⚡ APPLY</div><div class="qf-v">저장 즉시 반영</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">Permission Matrix</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">The core SYS screen — defines R/W/A/All/None access for each of 7 roles to every module. Every screen consults this matrix on entry; changes apply immediately.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">SYS 핵심 화면 — 7역할 각각의 전 모듈 R/W/A/All/— 접근을 정의. 전 화면이 진입 시 조회, 변경 즉시 반영.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item core"><div class="feat-ico">🛡</div><div class="feat-t">Single Control</div><div class="feat-d">전 모듈 진입 권한 검증.<span class="ko">BR-SYS-08</span></div></div>
+          <div class="feat-item core"><div class="feat-ico">⚡</div><div class="feat-t">Immediate</div><div class="feat-d">저장 즉시 반영.<span class="ko">BR-SYS-09</span></div></div>
+          <div class="feat-item core"><div class="feat-ico">👑</div><div class="feat-t">Admin Fixed</div><div class="feat-d">Admin 역할 All 고정.<span class="ko">BR-SYS-10</span></div></div>
+          <div class="feat-item core"><div class="feat-ico">🏭</div><div class="feat-t">Line Scope</div><div class="feat-d">POP 작업자 배정 라인 한정.<span class="ko">BR-SYS-11·12</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-sys">BR-SYS-08</a>
+          <a class="br-chip" href="#br-sys">BR-SYS-09</a>
+          <a class="br-chip" href="#br-sys">BR-SYS-10</a>
+          <a class="br-chip" href="#br-sys">BR-SYS-11</a>
+          <a class="br-chip" href="#br-sys">BR-SYS-12</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- SYS-03 -->
+    <div class="screen-card" id="sys03">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">📅</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">SYS-03</div>
+            <div class="sc-title-en">Factory Calendar</div>
+            <div class="sc-title-ko">공장 캘린더 — 근무일·휴일·교대 일정 정의</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-p0">Phase 0</span></div>
+        <a class="sc-l3-btn" href="VOL12_SYS03_Factory_Calendar.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 월별 캘린더 (근무일·휴일·주말) + 교대 일정 테이블 (최대 3교대)<span class="ko">PP 자동 계획·CRP 능력 산정 기반. 휴일은 능력 0, 가동 전 Phase 0에 최소 1년치 설정 필수</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">근무일·휴일·교대</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">PP 가용 능력 기반</div></div>
+          <div class="qf"><div class="qf-l">🔄 SHIFTS</div><div class="qf-v">최대 3교대</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">Calendar Grid</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Defines working days, holidays, and up-to-3-shift schedules. The time foundation for PP/CRP capacity. Must be set before go-live.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">근무일·휴일·최대 3교대 일정 정의. PP/CRP 능력의 시간 기반. 가동 전 설정 필수.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">📅</div><div class="feat-t">Phase 0</div><div class="feat-d">최소 1년치 사전 설정.<span class="ko">BR-SYS-13</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🚫</div><div class="feat-t">Holiday = 0</div><div class="feat-d">휴일 능력 0 처리.<span class="ko">BR-SYS-14</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔄</div><div class="feat-t">3-Shift</div><div class="feat-d">일별 0~3교대 차등.<span class="ko">DAY/SWING/NIGHT</span></div></div>
+          <div class="feat-item"><div class="feat-ico">⚡</div><div class="feat-t">Capacity Link</div><div class="feat-d">변경 시 PP 능력 재계산.<span class="ko">BR-SYS-15</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-sys">BR-SYS-13</a>
+          <a class="br-chip" href="#br-sys">BR-SYS-14</a>
+          <a class="br-chip" href="#br-sys">BR-SYS-15</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- SYS-04 -->
+    <div class="screen-card" id="sys04">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">🔌</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">SYS-04</div>
+            <div class="sc-title-en">Interface Monitor</div>
+            <div class="sc-title-ko">인터페이스 모니터 — SCM·ERP 연동 상태 실시간 감시</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL12_SYS04_Interface_Monitor.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 인터페이스 상태 카드 (초록/주황/적색) + 최근 동기 시각·레코드수 + 오류 로그<span class="ko">SCM 주문 피드·ERP 원가/마스터·PLC 게이트웨이 5종 감시. 마지막 동기 허용 간격 초과 시 자동 ERROR + 알림, 60초 자동 갱신</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">SCM·ERP·PLC 연동</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">연결 상태·오류 로그</div></div>
+          <div class="qf"><div class="qf-l">🔄 REFRESH</div><div class="qf-v">Auto 60s</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">Status Cards</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Live status of every external interface — SCM order feed, ERP cost/master sync, PLC gateway. Auto-error on sync gap; fires a notification.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">전 외부 인터페이스 실시간 상태 — SCM 주문·ERP 원가/마스터·PLC. 동기 간격 초과 시 자동 ERROR·알림.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">🚦</div><div class="feat-t">Status Light</div><div class="feat-d">동기 간격 초과 자동 ERROR.<span class="ko">BR-SYS-16</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔁</div><div class="feat-t">Auto-Retry</div><div class="feat-d">실패 시 정해진 횟수 재시도.<span class="ko">BR-SYS-17</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔔</div><div class="feat-t">Error Notify</div><div class="feat-d">ERROR 시 Admin 알림.<span class="ko">BR-SYS-18</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔄</div><div class="feat-t">Manual Sync</div><div class="feat-d">Admin 전용 수동 재동기.<span class="ko">BR-SYS-19</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-sys">BR-SYS-16</a>
+          <a class="br-chip" href="#br-sys">BR-SYS-17</a>
+          <a class="br-chip" href="#br-sys">BR-SYS-18</a>
+          <a class="br-chip" href="#br-sys">BR-SYS-19</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- SYS-05 -->
+    <div class="screen-card" id="sys05">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">📜</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">SYS-05</div>
+            <div class="sc-title-en">Audit Log</div>
+            <div class="sc-title-ko">감사 로그 — 전 시스템 행위 5년 추적 기록</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL12_SYS05_Audit_Log.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 감사 추적 테이블 (시각·사용자·모듈·행위·대상·결과) + 필드 단위 변경 전/후 diff<span class="ko">전 모듈 CRUD·승인을 데이터 계층에서 자동 기록 — 우회 불가. 5년 보존, Admin조차 수정·삭제 불가, 컴플라이언스·고객 감사 Export</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">전 모듈 행위</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">감사 추적 로그</div></div>
+          <div class="qf"><div class="qf-l">🗄 RETENTION</div><div class="qf-v">5년 · 불변</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">Audit Trail + Diff</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Tamper-proof record of every action — who, what, where, when, before/after. Append-only, retained 5 years, never editable.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">모든 행위의 위변조 불가 기록 — 누가·무엇을·어디서·언제·전후값. 추가 전용, 5년 보존, 수정 불가.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">📝</div><div class="feat-t">Universal Log</div><div class="feat-d">전 모듈 자동 기록.<span class="ko">BR-SYS-20</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔒</div><div class="feat-t">Immutable</div><div class="feat-d">추가 전용·수정 불가.<span class="ko">BR-SYS-21</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🗄</div><div class="feat-t">5-Year Retention</div><div class="feat-d">경과분 아카이브.<span class="ko">BR-SYS-22</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔍</div><div class="feat-t">Field Diff</div><div class="feat-d">변경 전/후 비교.<span class="ko">BR-SYS-23</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-sys">BR-SYS-20</a>
+          <a class="br-chip crit" href="#br-sys">BR-SYS-21</a>
+          <a class="br-chip" href="#br-sys">BR-SYS-22</a>
+          <a class="br-chip" href="#br-sys">BR-SYS-23</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- SYS-06 -->
+    <div class="screen-card" id="sys06">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">🔔</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">SYS-06</div>
+            <div class="sc-title-en">Notification Settings</div>
+            <div class="sc-title-ko">알림 설정 — 8종 이벤트 알림 전달·수신 구성</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL12_SYS06_Notification_Settings.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 8종 이벤트 행 (발생조건·채널·수신자·토글) — 재고부족·Andon·금형수명·오븐이탈 등<span class="ko">이벤트별 독립 토글, 채널 조합(인앱·이메일·SMS), 수신자 역할 지정. 변경 즉시 반영, 긴급 이벤트는 완전 비활성 불가</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">8종 이벤트 정책</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">알림 발송 정책</div></div>
+          <div class="qf"><div class="qf-l">📡 CHANNEL</div><div class="qf-v">App·Email·SMS</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">Event Toggle Table</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Configures 8 event types — enabled state, delivery channels (App/Email/SMS), recipient roles. Changes apply immediately.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">8종 이벤트 — 활성 여부·전달 채널(앱/이메일/SMS)·수신 역할 구성. 변경 즉시 반영.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">🎚</div><div class="feat-t">Independent Toggle</div><div class="feat-d">이벤트별 독립 켜기/끄기.<span class="ko">BR-SYS-24</span></div></div>
+          <div class="feat-item"><div class="feat-ico">⚡</div><div class="feat-t">Immediate</div><div class="feat-d">변경 즉시 반영.<span class="ko">BR-SYS-25</span></div></div>
+          <div class="feat-item"><div class="feat-ico">👥</div><div class="feat-t">Role Recipients</div><div class="feat-d">수신자 역할 단위 지정.<span class="ko">BR-SYS-26</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🚨</div><div class="feat-t">Critical Lock</div><div class="feat-d">긴급 이벤트 비활성 불가.<span class="ko">BR-SYS-27</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-sys">BR-SYS-24</a>
+          <a class="br-chip" href="#br-sys">BR-SYS-25</a>
+          <a class="br-chip" href="#br-sys">BR-SYS-26</a>
+          <a class="br-chip" href="#br-sys">BR-SYS-27</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- SYS-07 -->
+    <div class="screen-card" id="sys07">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">⚙️</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">SYS-07</div>
+            <div class="sc-title-en">System Configuration</div>
+            <div class="sc-title-ko">시스템 설정 — 전역 파라미터 + 공통 코드 관리</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-1st">1st Dev</span></div>
+        <a class="sc-l3-btn" href="VOL12_SYS07_System_Config.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 설정 카테고리 트리 (파라미터 4종·공통코드 4종) + 파라미터 테이블 + 코드 목록<span class="ko">세션 타임아웃·임계값·채번 규칙·보존 기간 파라미터 + 불량코드·비가동사유·단위 등 공통 코드. 노코드 편집, 변경 시 사용 모듈에 즉시 전파</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">파라미터·공통 코드</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">시스템 동작 설정</div></div>
+          <div class="qf"><div class="qf-l">⚡ APPLY</div><div class="qf-v">즉시 전파</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">Category Tree</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">No-code control of system parameters (timeout, thresholds, numbering) and common codes (defect/downtime/unit codes). Changes propagate immediately.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">시스템 파라미터(타임아웃·임계값·채번)와 공통 코드(불량·비가동·단위) 노코드 통제. 변경 즉시 전파.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">⚡</div><div class="feat-t">Immediate Propagation</div><div class="feat-d">참조 모듈 즉시 전파.<span class="ko">BR-SYS-28</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🚫</div><div class="feat-t">Deactivate Only</div><div class="feat-d">사용 코드 삭제 불가.<span class="ko">BR-SYS-29</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔢</div><div class="feat-t">Numbering Rules</div><div class="feat-d">채번 유일성 검증.<span class="ko">BR-SYS-30</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📜</div><div class="feat-t">Audited</div><div class="feat-d">전 설정 변경 로그.<span class="ko">BR-SYS-31</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-sys">BR-SYS-28</a>
+          <a class="br-chip crit" href="#br-sys">BR-SYS-29</a>
+          <a class="br-chip" href="#br-sys">BR-SYS-30</a>
+          <a class="br-chip" href="#br-sys">BR-SYS-31</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- SYS-08 -->
+    <div class="screen-card" id="sys08">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">💚</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">SYS-08</div>
+            <div class="sc-title-en">System Health Dashboard</div>
+            <div class="sc-title-ko">시스템 헬스 대시보드 — 서버·DB·백업·잡 상태 통합 감시</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL12_SYS08_System_Health.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: KPI 5종 (가동률·앱서버·DB서버·최근백업·잡경고) + 자원 사용률 + 스케줄 잡 상태<span class="ko">A-MES 플랫폼 자체 감시 — CPU·메모리·디스크, DB 백업, 일 마감·KPI·동기 잡. 임계 초과·백업 실패 시 알림, 30초 자동 갱신</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">서버·자원·백업·잡</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">시스템 헬스 현황</div></div>
+          <div class="qf"><div class="qf-l">🔄 REFRESH</div><div class="qf-v">Auto 30s</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">Health Dashboard</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Single operations view of the A-MES platform — server status, CPU/memory/disk, DB backup, scheduled jobs. Threshold breach fires an alert.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">A-MES 플랫폼 단일 운영 뷰 — 서버 상태·CPU/메모리/디스크·DB 백업·스케줄 잡. 임계 초과 시 경보.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">📊</div><div class="feat-t">Threshold Alert</div><div class="feat-d">초과 시 자동 경보.<span class="ko">BR-SYS-32</span></div></div>
+          <div class="feat-item"><div class="feat-ico">💾</div><div class="feat-t">Backup Critical</div><div class="feat-d">24h 무백업 적색·SMS.<span class="ko">BR-SYS-33</span></div></div>
+          <div class="feat-item"><div class="feat-ico">⏱</div><div class="feat-t">Job Monitor</div><div class="feat-d">잡 실패·타임아웃 알림.<span class="ko">BR-SYS-34</span></div></div>
+          <div class="feat-item"><div class="feat-ico">👁</div><div class="feat-t">Read-Only</div><div class="feat-d">감시·경보만, 상태 변경 안 함.<span class="ko">BR-SYS-35</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-sys">BR-SYS-32</a>
+          <a class="br-chip crit" href="#br-sys">BR-SYS-33</a>
+          <a class="br-chip" href="#br-sys">BR-SYS-34</a>
+          <a class="br-chip" href="#br-sys">BR-SYS-35</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-div" id="roles"><div class="sd-line"></div><div class="sd-lbl">▼ RBAC ROLES · 7개 역할 참조</div><div class="sd-line"></div></div>
+    <table class="ref-tbl">
+      <thead><tr><th style="width:20%;">Role</th><th style="width:14%;">Primary Access</th><th>Scope · 권한 범위</th></tr></thead>
       <tbody>
-        <tr class="rh"><td>1</td><td>WH Below Min Stock<div class="ko">재고 최소재고 미달</div></td><td>on_hand &lt; min_stock (MD-09)</td><td><span class="b b-i">Email + App</span></td><td>WH Manager, Procurement</td><td><span class="b b-ok">✅ ON</span></td></tr>
-        <tr><td>2</td><td>Andon Alert — INJ/IMG/PNT<div class="ko">Andon 알람</div></td><td>Defect rate &gt; 5% or mold 100%</td><td><span class="b b-e">App + Email + SMS</span></td><td>Prod. Manager, MNT</td><td><span class="b b-ok">✅ ON</span></td></tr>
-        <tr class="rh"><td>3</td><td>Mold 90% Life Warning<div class="ko">금형 수명 90% 경고</div></td><td>Shot count ≥ 90% rated life</td><td><span class="b b-i">Email + App</span></td><td>MNT Engineer</td><td><span class="b b-ok">✅ ON</span></td></tr>
-        <tr><td>4</td><td>Oven Temp Deviation<div class="ko">건조로 온도 이탈</div></td><td>Temp outside 80±5°C</td><td><span class="b b-e">App + SMS</span></td><td>PNT Supervisor, MNT</td><td><span class="b b-ok">✅ ON</span></td></tr>
-        <tr class="rh"><td>5</td><td>PP Delivery Overdue<div class="ko">납기 초과 주문</div></td><td>SCM order past due date</td><td><span class="b b-i">Email + App</span></td><td>Prod. Manager, Sales</td><td><span class="b b-ok">✅ ON</span></td></tr>
-        <tr><td>6</td><td>Account Locked<div class="ko">계정 잠금</div></td><td>5 consecutive login failures</td><td><span class="b b-i">Email</span></td><td>Admin, User</td><td><span class="b b-ok">✅ ON</span></td></tr>
-        <tr class="rh"><td>7</td><td>PM Due Alert<div class="ko">PM 예정 D-3</div></td><td>PM due date − 3 days</td><td><span class="b b-i">Email + App</span></td><td>MNT Engineer</td><td><span class="b b-ok">✅ ON</span></td></tr>
-        <tr><td>8</td><td>CAPA Auto-Recommend<div class="ko">CAPA 자동 권고</div></td><td>Same defect ≥ 3x in 30 days</td><td><span class="b b-i">Email + App</span></td><td>QC Manager</td><td><span class="b b-ok">✅ ON</span></td></tr>
+        <tr><td class="code">Admin</td><td><span class="pill pill-all">All</span></td><td>관리자 — 전 모듈 All, SYS/MD 관리. 역할 고정 (변경 불가).</td></tr>
+        <tr><td class="code">Production Manager</td><td><span class="pill pill-rwa">R/W/A</span></td><td>생산관리자 — PP 생산계획 승인, 생산 모듈 조회.</td></tr>
+        <tr><td class="code">Warehouse Staff</td><td><span class="pill pill-rw">R/W</span></td><td>창고담당 — WH 입출고 R/W, PP·QC 조회.</td></tr>
+        <tr><td class="code">QC Inspector</td><td><span class="pill pill-rwa">R/W/A</span></td><td>QC검사원 — QC 검사·판정 R/W/A, 생산·재고 조회.</td></tr>
+        <tr><td class="code">Maintenance Engineer</td><td><span class="pill pill-rw">R/W</span></td><td>정비기술자 — MNT 정비·WO R/W, 설비 모듈 조회.</td></tr>
+        <tr><td class="code">POP Operator</td><td><span class="pill pill-rw">R/W</span></td><td>POP작업자 — 배정 라인의 INJ/IMG/PNT POP만 R/W.</td></tr>
+        <tr><td class="code">Read-Only</td><td><span class="pill pill-r">R</span></td><td>읽기전용 — 전 모듈 R만, 입력·승인 불가 (감사·견학용).</td></tr>
       </tbody>
     </table>
+
+    <div class="sec-div" id="br-sys"><div class="sd-line"></div><div class="sd-lbl">▼ BUSINESS RULES · 업무 규칙 (35건)</div><div class="sd-line"></div></div>
+    <div class="br-wrap">
+      <div class="br-title">SYS Module Business Rules · 시스템 관리 모듈 업무 규칙</div>
+      <table class="br-tbl">
+        <thead><tr><th style="width:9%;">Rule ID</th><th style="width:43%;">Rule (EN)</th><th style="width:38%;">규칙 (KO)</th><th style="width:10%;">Action</th></tr></thead>
+        <tbody>
+          <tr class="cat-row"><td colspan="4">① Account &amp; Login Security · 계정 + 로그인 보안</td></tr>
+          <tr><td class="br-id-c">BR-SYS-01</td><td class="br-en-c">5 consecutive login failures auto-lock the account; email to user and Admin; logged in SYS-05.</td><td class="br-ko-c">로그인 5회 연속 실패 → 자동 잠금, 사용자·Admin 이메일, SYS-05 기록.</td><td><span class="b b-e">Auto Lock</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-04</td><td class="br-en-c">A locked account can only be unlocked by an Admin — no self-unlock path exists.</td><td class="br-ko-c">잠긴 계정은 Admin만 해제 — 자가 해제 경로 없음.</td><td><span class="b b-e">Restrict</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-05</td><td class="br-en-c">Password reset is Admin-only; passwords are stored hashed, never in plain text.</td><td class="br-ko-c">비밀번호 초기화 Admin 전용 — 해시 저장, 평문 미저장.</td><td><span class="b b-e">Restrict</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-06</td><td class="br-en-c">Accounts are never hard-deleted; departed users are set INACTIVE to preserve traceability.</td><td class="br-ko-c">계정 물리 삭제 불가 — 퇴직자는 INACTIVE 처리해 추적성 보존.</td><td><span class="b b-e">Lock</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-07</td><td class="br-en-c">Every account create/edit/lock/unlock action is written to the SYS-05 audit log.</td><td class="br-ko-c">전 계정 생성·수정·잠금·해제 행위는 SYS-05 감사 로그 기록.</td><td><span class="b b-i">Audit</span></td></tr>
+          <tr class="cat-row"><td colspan="4">② RBAC &amp; Access Control · 역할 권한 + 접근 제어</td></tr>
+          <tr><td class="br-id-c">BR-SYS-02</td><td class="br-en-c">All module/screen access is governed by the assigned role; no override without an audit entry.</td><td class="br-ko-c">전 모듈·화면 접근은 배정 역할 기준 — 감사 없는 Override 불가.</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-08</td><td class="br-en-c">Every screen consults the RBAC matrix on entry; a denied user is blocked with a message.</td><td class="br-ko-c">전 화면이 진입 시 RBAC 매트릭스 조회 — 권한 없으면 차단.</td><td><span class="b b-e">Enforce</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-09</td><td class="br-en-c">Permission changes take effect immediately on save — no re-login required.</td><td class="br-ko-c">권한 변경은 저장 즉시 반영 — 재로그인 불필요.</td><td><span class="b b-i">Immediate</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-10</td><td class="br-en-c">The Admin role is fixed at All for every module and cannot be downgraded.</td><td class="br-ko-c">Admin 역할은 전 모듈 All 고정 — 하향 불가.</td><td><span class="b b-e">Lock</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-11</td><td class="br-en-c">POP Operators can access only the production lines assigned in their SYS-01 account.</td><td class="br-ko-c">POP 작업자는 SYS-01 계정에 배정된 라인만 접근.</td><td><span class="b b-e">Restrict</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-12</td><td class="br-en-c">Every permission matrix change is logged in SYS-05 with before/after values and actor.</td><td class="br-ko-c">전 권한 매트릭스 변경은 전후값·주체와 함께 SYS-05 기록.</td><td><span class="b b-i">Audit</span></td></tr>
+          <tr class="cat-row"><td colspan="4">③ Configuration &amp; Calendar · 환경 설정 + 캘린더</td></tr>
+          <tr><td class="br-id-c">BR-SYS-13</td><td class="br-en-c">The factory calendar must cover at least one full year before go-live; PP cannot plan without it.</td><td class="br-ko-c">공장 캘린더는 가동 전 최소 1년치 필수 — 없으면 PP 계획 불가.</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-14</td><td class="br-en-c">HOLIDAY and WEEKEND days carry zero production capacity in PP/CRP.</td><td class="br-ko-c">HOLIDAY·WEEKEND는 PP/CRP에서 능력 0 처리.</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-15</td><td class="br-en-c">A calendar change recomputes PP capacity; overloads on existing plans raise a warning.</td><td class="br-ko-c">캘린더 변경 시 PP 능력 재계산 — 기존 계획 초과 시 경고.</td><td><span class="b b-w">Flag</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-28</td><td class="br-en-c">A parameter change propagates immediately to all referencing modules — no restart.</td><td class="br-ko-c">파라미터 변경은 참조 모듈 전체에 즉시 전파 — 재기동 없음.</td><td><span class="b b-i">Immediate</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-29</td><td class="br-en-c">A common code used in any transaction cannot be deleted — only deactivated.</td><td class="br-ko-c">트랜잭션에 사용된 공통 코드는 삭제 불가 — 비활성화만 가능.</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-30</td><td class="br-en-c">Numbering rules are validated for uniqueness; an active sequence cannot be reset.</td><td class="br-ko-c">채번 규칙은 유일성 검증 — 운영 중 시퀀스 초기화 불가.</td><td><span class="b b-e">Validate</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-31</td><td class="br-en-c">Every parameter and code change is audit-logged with before/after values and actor.</td><td class="br-ko-c">전 파라미터·코드 변경은 전후값·주체와 함께 감사 로그 기록.</td><td><span class="b b-i">Audit</span></td></tr>
+          <tr class="cat-row"><td colspan="4">④ Monitoring &amp; Health · 모니터링 + 헬스</td></tr>
+          <tr><td class="br-id-c">BR-SYS-16</td><td class="br-en-c">If an interface's last sync exceeds MaxGapMinutes, the status auto-changes to ERROR.</td><td class="br-ko-c">마지막 동기가 허용 간격 초과 시 상태 자동 ERROR.</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-17</td><td class="br-en-c">A failed sync is auto-retried a fixed number of times before ERROR is confirmed.</td><td class="br-ko-c">실패한 동기는 정해진 횟수 자동 재시도 후 ERROR 확정.</td><td><span class="b b-i">Retry</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-18</td><td class="br-en-c">An interface ERROR fires a notification to Admin and is written to the audit log.</td><td class="br-ko-c">인터페이스 ERROR 시 Admin 알림 + 감사 로그 기록.</td><td><span class="b b-w">Notify</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-19</td><td class="br-en-c">Manual Sync is Admin-only; every manual sync is logged with actor and result.</td><td class="br-ko-c">수동 재동기는 Admin 전용 — 주체·결과 로그 기록.</td><td><span class="b b-e">Restrict</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-32</td><td class="br-en-c">A health metric exceeding its threshold auto-changes to WARNING/ERROR and fires a notification.</td><td class="br-ko-c">임계 초과 헬스 지표는 WARNING/ERROR 자동 전환 + 알림.</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-33</td><td class="br-en-c">No successful DB backup within 24 hours raises a red ERROR and an immediate SMS to Admin.</td><td class="br-ko-c">24시간 내 성공 DB 백업 없으면 적색 ERROR + Admin SMS.</td><td><span class="b b-e">Critical</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-34</td><td class="br-en-c">A failed or timed-out scheduled job is flagged and notified; no silent auto-retry.</td><td class="br-ko-c">실패·타임아웃 스케줄 잡은 플래그·알림 — 조용한 자동 재시도 안 함.</td><td><span class="b b-w">Notify</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-35</td><td class="br-en-c">Health metrics are read-only; SYS-08 monitors and alerts but never alters system state.</td><td class="br-ko-c">헬스 지표는 읽기 전용 — SYS-08은 감시·경보만, 상태 변경 안 함.</td><td><span class="b b-e">Read-Only</span></td></tr>
+          <tr class="cat-row"><td colspan="4">⑤ Audit &amp; Notification · 감사 + 알림</td></tr>
+          <tr><td class="br-id-c">BR-SYS-03</td><td class="br-en-c">All create/update/delete actions across all modules are logged in SYS-05 with before/after values.</td><td class="br-ko-c">전 모듈 생성·수정·삭제 행위는 전후값과 함께 SYS-05 기록.</td><td><span class="b b-i">Always</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-20</td><td class="br-en-c">Every create/update/delete/approve action is auto-logged at the data layer — no module bypasses it.</td><td class="br-ko-c">전 생성·수정·삭제·승인은 데이터 계층에서 자동 기록 — 우회 불가.</td><td><span class="b b-i">Always</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-21</td><td class="br-en-c">Audit log entries are append-only — never editable or deletable, not even by Admin.</td><td class="br-ko-c">감사 로그는 추가 전용 — Admin조차 수정·삭제 불가.</td><td><span class="b b-e">Immutable</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-22</td><td class="br-en-c">Audit logs are retained at least 5 years; aged entries are archived, not purged.</td><td class="br-ko-c">감사 로그는 최소 5년 보존 — 경과분 아카이브, 삭제 안 함.</td><td><span class="b b-e">Retain</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-23</td><td class="br-en-c">Audit log access is Admin/Auditor only; viewing and exporting the log is itself logged.</td><td class="br-ko-c">감사 로그 접근은 Admin/감사자 한정 — 조회·출력도 기록.</td><td><span class="b b-e">Restrict</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-24</td><td class="br-en-c">Each of the 8 notification event types is toggled independently; a disabled event sends nothing.</td><td class="br-ko-c">8종 알림 이벤트는 각각 독립 토글 — 비활성 이벤트는 발송 없음.</td><td><span class="b b-i">Config</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-25</td><td class="br-en-c">Notification policy changes take effect immediately on save — no restart required.</td><td class="br-ko-c">알림 정책 변경은 저장 즉시 반영 — 재기동 불필요.</td><td><span class="b b-i">Immediate</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-26</td><td class="br-en-c">Recipients are specified by role; all users holding that role receive the alert.</td><td class="br-ko-c">수신자는 역할 단위 — 해당 역할 보유 사용자 전원 수신.</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-SYS-27</td><td class="br-en-c">Critical events (Andon, oven deviation) cannot be fully disabled — at minimum In-App stays on.</td><td class="br-ko-c">긴급 이벤트(Andon·오븐)는 완전 비활성 불가 — 최소 인앱 유지.</td><td><span class="b b-e">Mandatory</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
   </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.12 · SYS System Administration · UI Design Spec v2.0 · Bilingual EN/KO</div><div class="pf-r">8 Screens · 35 BR · Web · Admin Only · Phase 0–2nd Dev</div></div>
 </div>
-
-<div class="g2" style="gap:12px;margin-bottom:20px;">
-  <div class="screen-card" id="sys03" style="margin-bottom:0;"><div class="sc-hdr"><div><div class="sc-id">SYS-03</div><div class="sc-title-en">Factory Calendar</div><div class="sc-title-ko">공장 캘린더</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-p0">Phase 0</span></div></div><div class="sc-body"><div class="desc-bi" style="border-left-color:#475569;"><div><div class="db-lbl">EN</div><div class="db-en">Defines working days, holidays, and shift schedules. Used by PP auto-planning and CRP for capacity calculations. Must be configured before go-live (Phase 0). Supports up to 3 shifts per day.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">근무일·휴일·교대 일정 정의. PP 자동 계획·CRP 능력 계산 기준. 가동 전 Phase 0 설정 필수. 1일 최대 3교대 지원.</div></div></div></div></div>
-  <div class="screen-card" id="sys05" style="margin-bottom:0;"><div class="sc-hdr"><div><div class="sc-id">SYS-04/05</div><div class="sc-title-en">Interface Monitor / Audit Log</div><div class="sc-title-ko">인터페이스 모니터 / 감사 로그</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd</span></div></div><div class="sc-body"><div class="desc-bi" style="border-left-color:#475569;"><div><div class="db-lbl">EN</div><div class="db-en">SYS-04: SCM/ERP API connection status monitor (green=OK, red=Error). Last sync time and error log. SYS-05: 5-year audit log of all system actions — user, action, before/after values, timestamp. Non-deletable. Export for compliance audit.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">SYS-04: SCM·ERP API 연결 상태 모니터(초록=정상, 빨강=오류). 마지막 동기 시각·오류 로그. SYS-05: 5년 감사 로그 — 사용자·행위·변경 전후·타임스탬프. 삭제 불가. 감사 출력 지원.</div></div></div></div></div>
 </div>
-
-<div class="br-wrap" id="br-sys"><div class="br-title">Business Rules · 업무 규칙 (SYS)</div>
-<table class="br-tbl"><thead><tr><th>Rule ID</th><th>Category</th><th>Rule (EN)</th><th>규칙 (KO)</th><th>Action</th></tr></thead>
-<tbody>
-<tr><td class="br-id">BR-SYS-01</td><td>Account Lock</td><td class="br-en">5 consecutive login failures → account auto-locked. Email notification to user and Admin. Only Admin can unlock. All lock/unlock events logged in SYS-05.</td><td class="br-ko">로그인 5회 연속 실패 → 계정 자동 잠금. 사용자·Admin 이메일. Admin만 잠금 해제. SYS-05 전체 기록.</td><td><span class="b b-e">Auto Lock</span></td></tr>
-<tr><td class="br-id">BR-SYS-02</td><td>RBAC Enforcement</td><td class="br-en">All module and screen access is governed by the assigned role. Role changes take effect immediately upon save. No temporary override is allowed without audit log entry.</td><td class="br-ko">전체 모듈·화면 접근은 배정 역할 기준. 역할 변경 저장 즉시 반영. 감사 로그 없는 임시 Override 불가.</td><td><span class="b b-e">Block</span></td></tr>
-<tr><td class="br-id">BR-SYS-03</td><td>Audit Log</td><td class="br-en">All create/update/delete actions across all modules are logged in SYS-05 with user ID, timestamp, and before/after values. Audit logs are retained for 5 years and cannot be deleted.</td><td class="br-ko">전체 모듈 생성·수정·삭제 행위 SYS-05에 사용자·타임스탬프·변경 전후 기록. 5년 보존, 삭제 불가.</td><td><span class="b b-i">Always</span></td></tr>
-</tbody></table></div>
-</div>
-<div class="page-footer"><div class="pf-l">A-MES · VOL.12 · SYS System Administration · UI Design Spec v1.0 · Bilingual EN/KO</div><div class="pf-r">6 Screens · Web · Admin Only · 1st–2nd Dev</div></div>
-</div></div></body></html>
+</body>
+</html>
