@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.10 · MNT-03 · OEE Analysis · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--mnt:#0284c7;--mod:#0284c7;--mod-lt:#e0f2fe;--mod-dk:#075985;--mod-tint:#7dd3fc;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(125,211,252,.7);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#06283d 0%,#04223a 50%,#06283d 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(2,132,199,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(2,132,199,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(2,132,199,.05) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(2,132,199,.14),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(2,132,199,.35);color:var(--mod-tint);background:rgba(2,132,199,.1);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod-dk);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#eff6ff;border-color:#3b82f6;}
+.lnk-node.cur{background:linear-gradient(135deg,#06283d,#04223a);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(2,132,199,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#1d4ed8;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);}
+
+.web-mock{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.web-tbar{background:#f0f3f7;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);font-size:11px;}
+.web-tbar-l{font-weight:700;color:var(--text);}
+.web-tbar .bc{color:var(--sub);font-size:10px;margin-left:8px;}
+.web-tbar-r{font-size:10px;color:var(--sub);}
+.web-bd{padding:18px;background:#fbfcfd;}
+.web-card{background:#fff;border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:12px;}
+.web-card-h{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px;display:flex;justify-content:space-between;}
+
+/* OEE formula visual */
+.oee-formula{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding:16px;background:#fff;border:1px solid var(--border);border-radius:6px;margin-bottom:12px;}
+.oee-box{text-align:center;padding:12px 16px;border-radius:6px;border:2px solid;min-width:110px;}
+.oee-box.a{background:#eff6ff;border-color:#3b82f6;}
+.oee-box.p{background:#fef9c3;border-color:#f59e0b;}
+.oee-box.q{background:#dcfce7;border-color:#22c55e;}
+.oee-box.total{background:linear-gradient(135deg,#06283d,#04223a);border-color:var(--mod);color:#fff;}
+.oee-lbl{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;}
+.oee-box.total .oee-lbl{color:var(--mod-tint);}
+.oee-val{font-family:'Bebas Neue',sans-serif;font-size:30px;line-height:1;margin-top:4px;}
+.oee-box.a .oee-val{color:#1d4ed8;}.oee-box.p .oee-val{color:#b45309;}.oee-box.q .oee-val{color:#15803d;}.oee-box.total .oee-val{color:#fff;}
+.oee-op{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--sub);}
+
+/* 6 big losses */
+.loss-bar{display:flex;align-items:flex-end;gap:8px;height:140px;border-bottom:1px solid var(--border);border-left:1px solid var(--border);padding:0 4px 4px;}
+.lb{flex:1;border-radius:3px 3px 0 0;display:flex;align-items:flex-start;justify-content:center;color:#fff;font-size:9px;padding-top:5px;font-weight:700;}
+.lb:nth-child(1){background:#dc2626;}.lb:nth-child(2){background:#ef4444;}.lb:nth-child(3){background:#f59e0b;}
+.lb:nth-child(4){background:#fbbf24;}.lb:nth-child(5){background:#94a3b8;}.lb:nth-child(6){background:#cbd5e1;}
+.loss-labels{display:flex;gap:8px;font-size:8px;color:var(--sub);margin-top:6px;}
+.loss-labels span{flex:1;text-align:center;}
+
+.tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;}
+.tbl th{background:#f0f3f7;padding:7px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.tbl td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:top;}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.b-ok{background:#dcfce7;color:#166534;}.b-w{background:#fef9c3;color:#92400e;}.b-e{background:#fee2e2;color:#991b1b;}
+.btn{padding:7px 14px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;}
+.btn-primary{background:var(--mod);border-color:var(--mod-dk);color:#fff;}
+
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol active"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL10_MNT_Maintenance.html">VOL.10 · MNT</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">MNT-03 · OEE Analysis</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.10 · MNT · L3</div><div class="sb-mod-en">MAINTENANCE</div><div class="sb-mod-ko">설비 보전</div></div>
+  <div class="sb-section">Equipment · 설비</div>
+  <a class="sb-link" href="VOL10_MNT01_Equipment_Card.html"><span class="sl-id">MNT-01</span><div><div class="sl-en">Equipment Card</div><div class="sl-ko">설비 카드뷰</div></div></a>
+  <a class="sb-link" href="VOL10_MNT04_Mold_Management.html"><span class="sl-id">MNT-04</span><div><div class="sl-en">Mold Mgmt</div><div class="sl-ko">금형 관리</div></div></a>
+  <div class="sb-section">Maintenance · 보전</div>
+  <a class="sb-link" href="VOL10_MNT02_Failure_Register.html"><span class="sl-id">MNT-02</span><div><div class="sl-en">Failure Register</div><div class="sl-ko">고장 등록</div></div></a>
+  <a class="sb-link" href="VOL10_MNT07_Work_Order.html"><span class="sl-id">MNT-07</span><div><div class="sl-en">Work Order ⚙</div><div class="sl-ko">정비 작업지시</div></div></a>
+  <a class="sb-link" href="VOL10_MNT05_PM_Schedule.html"><span class="sl-id">MNT-05</span><div><div class="sl-en">PM Schedule</div><div class="sl-ko">예방정비</div></div></a>
+  <div class="sb-section">Analysis · 분석</div>
+  <a class="sb-link on" href="VOL10_MNT03_OEE_Analysis.html"><span class="sl-id">MNT-03</span><div><div class="sl-en">OEE Analysis</div><div class="sl-ko">OEE 분석</div></div></a>
+  <a class="sb-link" href="VOL10_MNT06_Downtime_Log.html"><span class="sl-id">MNT-06</span><div><div class="sl-en">Downtime Log</div><div class="sl-ko">비가동 이력</div></div></a>
+  <a class="sb-link" href="VOL10_MNT08_Spare_Parts.html"><span class="sl-id">MNT-08</span><div><div class="sl-en">Spare Parts</div><div class="sl-ko">정비 자재</div></div></a>
+  <a class="sb-link" href="VOL10_MNT09_Dashboard.html"><span class="sl-id">MNT-09</span><div><div class="sl-en">Dashboard</div><div class="sl-ko">현황판</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
+    <a href="#sec-2"><span class="num">02</span>OEE Formula</a>
+    <a href="#sec-3"><span class="num">03</span>6 Big Losses</a>
+    <a href="#sec-4"><span class="num">04</span>Workflow</a>
+    <a href="#sec-5"><span class="num">05</span>Business Rules</a>
+    <a href="#sec-6"><span class="num">06</span>Data Sources</a>
+    <a href="#sec-7"><span class="num">07</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.10 · MNT · L3 · Overall Equipment Effectiveness</div>
+      <div class="scr-id-block"><div class="scr-id">MNT-03</div><div class="scr-title-en">OEE Analysis</div></div>
+      <div class="scr-title-ko">OEE 분석 — 가동률 × 성능 × 품질 + 6대 로스 분석</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">UI</span><span class="mc-val">🖥 Web PC</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">2nd Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">MNT Lead · Production Manager</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Source</span><span class="mc-val">PLC + INJ/IMG/PNT 실적 + QC</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          OEE (Overall Equipment Effectiveness) analysis = Availability × Performance × Quality. Computes per-equipment, per-line, per-period OEE from three feeds: PLC runtime signals (Availability), INJ/IMG/PNT production cycle data vs theoretical CT (Performance), and QC defect rate (Quality). Visualizes the OEE breakdown, the 6 Big Losses Pareto, and trend lines. Drill from a low-OEE equipment into its loss composition to target improvement. Daily OEE below 75% auto-recommends an improvement action (BR-MNT-01).
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          OEE(종합설비효율) 분석 = 가동률 × 성능 × 품질. 3개 데이터로 설비별·라인별·기간별 OEE 산출: PLC 가동 신호(가동률), INJ/IMG/PNT 생산 사이클 vs 이론 CT(성능), QC 불량률(품질). OEE 분해, 6대 로스 파레토, 추세선 시각화. 저OEE 설비에서 로스 구성으로 드릴해 개선 타깃 도출. 일별 OEE 75% 미달 시 개선 권고 자동 (BR-MNT-01).
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — Web OEE 분석</span></div>
+      <div class="web-mock">
+        <div class="web-tbar">
+          <div class="web-tbar-l">📊 A-MES · Maintenance · OEE<span class="bc">MNT › OEE › INJ-M-001 · 2026-05</span></div>
+          <div class="web-tbar-r">MNT.Lead · 14:08</div>
+        </div>
+        <div class="web-bd">
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ OEE BREAKDOWN · INJ-M-001 (사출기 #1) · 금일</span><span style="color:var(--sub);">목표 ≥ 85%</span></div>
+            <div class="oee-formula">
+              <div class="oee-box a"><div class="oee-lbl">Availability 가동률</div><div class="oee-val">94.2%</div></div>
+              <div class="oee-op">×</div>
+              <div class="oee-box p"><div class="oee-lbl">Performance 성능</div><div class="oee-val">96.8%</div></div>
+              <div class="oee-op">×</div>
+              <div class="oee-box q"><div class="oee-lbl">Quality 품질</div><div class="oee-val">96.7%</div></div>
+              <div class="oee-op">=</div>
+              <div class="oee-box total"><div class="oee-lbl">OEE</div><div class="oee-val">88.2%</div></div>
+            </div>
+            <div style="font-size:10px;color:var(--sub);">
+              가동률 = (계획가동시간 − 비가동) / 계획가동시간 · 성능 = (실적수량 × 이론CT) / 가동시간 · 품질 = 양품 / 전체생산
+            </div>
+          </div>
+
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ 6 BIG LOSSES PARETO · 6대 로스 (월간)</span><span style="color:var(--sub);">총 로스 142h</span></div>
+            <div class="loss-bar">
+              <div class="lb" style="height:90%;">48h</div>
+              <div class="lb" style="height:65%;">35h</div>
+              <div class="lb" style="height:42%;">22h</div>
+              <div class="lb" style="height:30%;">16h</div>
+              <div class="lb" style="height:22%;">12h</div>
+              <div class="lb" style="height:16%;">9h</div>
+            </div>
+            <div class="loss-labels">
+              <span>고장정지<br>Breakdown</span>
+              <span>준비/조정<br>Setup</span>
+              <span>잠깐정지<br>Minor Stop</span>
+              <span>속도저하<br>Speed</span>
+              <span>불량/재작업<br>Defect</span>
+              <span>초기수율<br>Startup</span>
+            </div>
+            <div style="font-size:10px;color:var(--sub);margin-top:8px;">💡 상위 2개 로스(고장정지 + 준비/조정)가 전체 58% — 개선 우선 타깃</div>
+          </div>
+
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ EQUIPMENT OEE RANKING · 설비별 OEE</span><span style="color:var(--sub);">금일 · 라인 평균 82.4%</span></div>
+            <table class="tbl">
+              <thead><tr><th>Equipment</th><th>Availability</th><th>Performance</th><th>Quality</th><th>OEE</th><th>vs 목표</th></tr></thead>
+              <tbody>
+                <tr><td>INJ-M-001 사출기#1</td><td>94.2%</td><td>96.8%</td><td>96.7%</td><td><strong>88.2%</strong></td><td><span class="b b-ok">달성</span></td></tr>
+                <tr><td>INJ-M-005 사출기#5</td><td>91.0%</td><td>92.5%</td><td>97.1%</td><td><strong>81.7%</strong></td><td><span class="b b-w">미달 -3.3</span></td></tr>
+                <tr><td>INJ-M-008 사출기#8</td><td>76.4%</td><td>88.2%</td><td>95.8%</td><td><strong>64.6%</strong></td><td><span class="b b-e">미달 -20.4</span></td></tr>
+                <tr><td>IMG-M-002 합포장#2</td><td>89.8%</td><td>94.1%</td><td>98.0%</td><td><strong>82.8%</strong></td><td><span class="b b-w">미달 -2.2</span></td></tr>
+              </tbody>
+            </table>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+              <button class="btn">📅 기간 변경</button>
+              <button class="btn">📊 라인별 비교</button>
+              <button class="btn">📤 Export</button>
+              <button class="btn btn-primary">🔍 INJ-M-008 드릴 (저OEE)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 UI Highlights · 화면 주요 포인트</span>
+        ① OEE 분해 시각화 — 3요소 곱셈 한눈에 ② 6대 로스 파레토 — 개선 우선순위 명확화 ③ 설비별 랭킹 — 목표(85%) 대비 색상 ④ 저OEE 설비 클릭 → 로스 구성 + 관련 고장 이력 드릴 ⑤ PM 비가동은 가동률 손실에서 제외 (BR-MNT-08) ⑥ 일별 OEE 75% 미달 시 개선 권고 자동 알림 (BR-MNT-01)</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">OEE Formula &amp; Fields</span><span class="sec-ko">OEE 산식 + 필드</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:22%;">Component</th><th style="width:30%;">Formula</th><th>Data Source</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">Availability 가동률</td><td class="fld-type">(PlannedTime − Downtime) / PlannedTime</td><td>PLC 가동 신호 + MNT-06 Downtime (PM 제외).</td></tr>
+          <tr><td class="fld-name">Performance 성능</td><td class="fld-type">(ActualQty × TheoreticalCT) / RunTime</td><td>INJ-04/IMG-03/PNT 실적 + MD_Recipe 이론 CT.</td></tr>
+          <tr><td class="fld-name">Quality 품질</td><td class="fld-type">GoodQty / TotalQty</td><td>INJ/IMG/PNT 실적 + QC 불량 데이터.</td></tr>
+          <tr><td class="fld-name">OEE</td><td class="fld-type">Availability × Performance × Quality</td><td>3요소 곱. 목표 ≥ 85%.</td></tr>
+          <tr><td class="fld-name">OEERecordID</td><td class="fld-type">VARCHAR(24)</td><td>집계 단위 ID. OEE-{EquipID}-{Date}-{Shift}.</td></tr>
+          <tr><td class="fld-name">AggLevel</td><td class="fld-type">ENUM</td><td>SHIFT / DAY / WEEK / MONTH (집계 레벨).</td></tr>
+          <tr><td class="fld-name">LossBreakdown</td><td class="fld-type">JSON</td><td>6대 로스별 손실 시간 [{lossType, hours}].</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">6 Big Losses</span><span class="sec-ko">6대 로스</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:20%;">Loss</th><th style="width:18%;">Affects</th><th>Definition</th></tr></thead>
+        <tbody>
+          <tr><td><strong>① 고장정지 Breakdown</strong></td><td>Availability</td><td>설비 고장으로 인한 정지 (MNT-02 Failure 연계).</td></tr>
+          <tr><td><strong>② 준비/조정 Setup</strong></td><td>Availability</td><td>금형 교체·작업 전환·셋업 시간.</td></tr>
+          <tr><td><strong>③ 잠깐정지 Minor Stop</strong></td><td>Performance</td><td>5분 미만 짧은 정지 (자재 걸림·센서 등).</td></tr>
+          <tr><td><strong>④ 속도저하 Speed Loss</strong></td><td>Performance</td><td>실제 CT가 이론 CT보다 느림.</td></tr>
+          <tr><td><strong>⑤ 불량/재작업 Defect</strong></td><td>Quality</td><td>불량품 + 재작업 손실 (QC 연계).</td></tr>
+          <tr><td><strong>⑥ 초기수율 Startup</strong></td><td>Quality</td><td>가동 초기 안정화까지의 불량.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">Nightly batch aggregates PLC + production + QC data into per-equipment OEE records.</div><div class="wf-ko">야간 배치가 PLC + 생산 + QC 데이터를 설비별 OEE 레코드로 집계.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">MNT Lead opens MNT-03; reviews OEE breakdown + 6 losses Pareto + ranking.</div><div class="wf-ko">MNT Lead가 MNT-03 오픈, OEE 분해 + 6대 로스 + 랭킹 검토.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Identifies low-OEE equipment; drills into loss composition + linked failures.</div><div class="wf-ko">저OEE 설비 식별, 로스 구성 + 연관 고장 드릴.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Top 2 losses targeted; improvement actions planned (PM tuning, parts, training).</div><div class="wf-ko">상위 2개 로스 타깃, 개선 활동 계획 (PM 조정·부품·교육).</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Daily OEE &lt; 75% auto-recommends improvement action to MNT Lead + Production Manager.</div><div class="wf-ko">일별 OEE 75% 미달 시 개선 권고 자동 (MNT Lead + 생산관리자).</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">OEE trend feeds MNT-09 Dashboard + RPT module for management reporting.</div><div class="wf-ko">OEE 추세는 MNT-09 + RPT 모듈로 전달, 경영 보고.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-MNT-01</td><td><div>Daily OEE below 75% auto-recommends improvement action to Production Manager + MNT Lead.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">일별 OEE 75% 미달 시 개선 권고 자동 알림.</div></td><td><span class="br-act alt">Alert</span></td></tr>
+          <tr><td class="br-id">BR-MNT-08</td><td><div>PM downtime excluded from Availability loss (planned vs unplanned separation).</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">PM 비가동은 가동률 손실에서 제외.</div></td><td><span class="br-act aut">Calc</span></td></tr>
+          <tr><td class="br-id">BR-MNT-13</td><td><div>OEE aggregated nightly; intraday view is estimate-only and flagged.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">OEE는 야간 집계, 당일 뷰는 추정치로 표시.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-MNT-14</td><td><div>Theoretical CT sourced from MD_Recipe; OEE recalculates if recipe changes.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">이론 CT는 MD_Recipe 원천, 레시피 변경 시 OEE 재계산.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Data Sources</span><span class="sec-ko">데이터 소스</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Source</th><th>Data Used</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">MNT_OEERecord</span></td><td><span style="font-weight:700;">PK</span> OEERecordID · EquipID · AggLevel · Availability · Performance · Quality · OEE · LossBreakdown</td><td>OEE 집계 메인 (야간 배치).</td></tr>
+          <tr><td><span class="dm-col">MNT_PLCFeed</span></td><td>RunTime · DownTime · CycleSignal</td><td>가동률 + 성능 원천.</td></tr>
+          <tr><td><span class="dm-col">INJ/IMG/PNT_Production</span></td><td>GoodQty · TotalQty · ActualCT</td><td>성능 + 품질 원천.</td></tr>
+          <tr><td><span class="dm-col">MNT_Downtime</span></td><td>Downtime hours · Cause · PMFlag</td><td>비가동 (PM 분리).</td></tr>
+          <tr><td><span class="dm-col">MD_Recipe</span> <em style="opacity:.6;">(read)</em></td><td>TheoreticalCT</td><td>성능 산식 분자.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">PLC · INJ/IMG/PNT · QC</div><div class="lnk-name">3 Feeds</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">MNT-03</div><div class="lnk-name">OEE Analysis</div><div class="lnk-ko">OEE 분석</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">MNT-09</div><div class="lnk-name">Dashboard</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">RPT</div><div class="lnk-name">경영 보고</div></div>
+        </div>
+        <div class="lnk-row" style="margin-top:14px;">
+          <div class="lnk-node cur"><div class="lnk-id">저OEE 드릴</div><div class="lnk-name">→ Root</div></div>
+          <div class="lnk-arr">↘</div>
+          <div class="lnk-node down"><div class="lnk-id">MNT-02</div><div class="lnk-name">고장 (Breakdown)</div></div>
+          <div class="lnk-node down"><div class="lnk-id">MNT-06</div><div class="lnk-name">비가동 상세</div></div>
+          <div class="lnk-node down"><div class="lnk-id">MNT-05</div><div class="lnk-name">PM 조정</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.10 · MNT-03 · OEE Analysis · L3 Spec v1.0</div><div class="pf-r">Web PC · Phase 2 · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
