@@ -1,25 +1,24 @@
-<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>A-MES · VOL.11 · RPT · Analytics & Reports</title>
-<style>/* ═══════════════════════════════════════
-   A-MES SHARED STYLESHEET v2.0
-   Bilingual EN/KO · UI Labels English
-═══════════════════════════════════════ */
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.11 · RPT · Analytics & Reports</title>
+<style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
-
 :root{
-  --gold:#d4a017; --gold-lt:#fdf6e3; --gold-dk:#a07810;
-  --ink:#0d1117; --ink2:#161b22; --ink3:#21262d;
-  --surface:#ffffff; --bg:#f6f8fa; --border:#d0d7de;
-  --text:#24292f; --sub:#656d76;
-  /* module colors */
-  --wh:#0891b2; --pp:#059669; --inj:#2563eb; --img:#7c3aed;
-  --pnt:#ea580c; --qc:#dc2626; --fg:#0db87a; --mnt:#0284c7;
-  --rpt:#6366f1; --sys:#475569; --md:#d97706;
+  --gold:#d4a017;--gold-lt:#fdf6e3;--gold-dk:#a07810;
+  --ink:#0d1117;--ink2:#161b22;--ink3:#21262d;
+  --surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;
+  --wh:#0891b2;--pp:#059669;--inj:#2563eb;--img:#7c3aed;
+  --pnt:#ea580c;--qc:#dc2626;--fg:#0db87a;--mnt:#0284c7;
+  --rpt:#6366f1;--sys:#475569;--md:#d97706;
+  --mod-color:#6366f1;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html{scroll-behavior:smooth;}
 body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
 
-/* ── NAV BAR (injected per file) ── */
 .ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
 .ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
 .ames-nav-inner::-webkit-scrollbar{display:none;}
@@ -31,317 +30,828 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
 .nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
 
-/* ── PAGE LAYOUT ── */
 .page-wrap{display:flex;}
-.sidebar{width:230px;min-width:230px;background:var(--ink2);position:sticky;top:40px;height:calc(100vh - 40px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(212,160,23,.15) transparent;border-right:1px solid var(--ink3);}
+.sidebar{width:230px;min-width:230px;background:var(--ink2);position:sticky;top:40px;height:calc(100vh - 40px);overflow-y:auto;scrollbar-width:thin;border-right:1px solid var(--ink3);}
 .sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
 .sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
-.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:#a5b4fc;}
 .sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
 .sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.15);padding:12px 14px 4px;}
-.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.35);font-size:11px;border-left:2px solid transparent;transition:all .12s;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.35);font-size:11px;border-left:2px solid transparent;transition:all .12s;position:relative;}
 .sb-link:hover{color:rgba(255,255,255,.7);background:rgba(255,255,255,.03);}
-.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
-.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:32px;flex-shrink:0;}
+.sb-link.on{color:#fff;border-left-color:var(--rpt);background:rgba(99,102,241,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;}
 .sb-link .sl-en{font-size:10px;font-weight:600;}
 .sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.2);margin-top:1px;}
+.sb-l3{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:3px;background:rgba(212,160,23,.12);color:rgba(212,160,23,.75);font-size:11px;text-decoration:none;margin-left:auto;transition:all .15s;flex-shrink:0;border:1px solid rgba(212,160,23,.25);}
+.sb-l3:hover{background:var(--gold);color:#000;border-color:var(--gold);transform:scale(1.15);}
 .sb-sep{height:1px;background:var(--ink3);margin:5px 0;}
 
 .main{flex:1;min-width:0;}
 
-/* ── MODULE HEADER ── */
-.mod-hdr{padding:36px 48px 24px;position:relative;overflow:hidden;}
+.mod-hdr{padding:36px 48px 24px;position:relative;overflow:hidden;background:linear-gradient(135deg,color-mix(in srgb,#6366f1 32%,#000),color-mix(in srgb,#6366f1 14%,#000));}
 .mod-hdr-inner{position:relative;z-index:1;}
-.mod-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;opacity:.7;}
-.mod-title-en{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:.95;letter-spacing:2px;color:#fff;margin-bottom:4px;}
+.mod-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;color:#a5b4fc;}
+.mod-title-en{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:.95;letter-spacing:2px;color:#a5b4fc;margin-bottom:4px;}
 .mod-title-ko{font-size:14px;font-weight:300;color:rgba(255,255,255,.35);letter-spacing:4px;margin-bottom:16px;}
-.mod-desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:840px;margin-bottom:18px;}
-.mdb-en{font-size:11px;color:rgba(255,255,255,.55);line-height:1.8;border-left:2px solid rgba(255,255,255,.12);padding-left:12px;}
-.mdb-ko{font-size:11px;color:rgba(255,255,255,.3);line-height:1.8;border-left:2px solid rgba(255,255,255,.06);padding-left:12px;}
-.screen-pills{display:flex;gap:5px;flex-wrap:wrap;}
-.sp{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:9px;color:rgba(255,255,255,.4);}
+.mod-desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:880px;margin-bottom:14px;}
+.mdb-en{font-size:11px;color:rgba(255,255,255,.6);line-height:1.85;border-left:2px solid rgba(255,255,255,.14);padding-left:12px;}
+.mdb-ko{font-size:11px;color:rgba(255,255,255,.35);line-height:1.85;border-left:2px solid rgba(255,255,255,.06);padding-left:12px;}
+
+.mod-meta-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:0;border:1px solid rgba(165,180,252,.22);border-radius:6px;overflow:hidden;margin:14px 0 16px;max-width:900px;background:rgba(0,0,0,.22);}
+.mms-item{padding:10px 14px;border-right:1px solid rgba(165,180,252,.14);}
+.mms-item:last-child{border-right:none;}
+.mms-l{font-size:8px;color:rgba(165,180,252,.6);text-transform:uppercase;letter-spacing:1.2px;font-family:'JetBrains Mono',monospace;}
+.mms-v{font-size:13px;font-weight:800;color:#fff;margin-top:3px;letter-spacing:.3px;}
+.mms-v.warn{color:#fde047;}
+.mms-v.alert{color:#fca5a5;}
+.mms-v.rpt{color:#a5b4fc;}
+
+.screen-pills{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;}
+.sp{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:9px;color:rgba(255,255,255,.6);text-decoration:none;cursor:pointer;transition:all .15s;}
+.sp:hover{background:rgba(99,102,241,.25);border-color:rgba(99,102,241,.55);color:#fff;}
 .sp-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold);}
 
-/* ── CONTENT AREA ── */
+.l3-hint{display:inline-block;font-size:10px;color:rgba(212,160,23,.75);font-weight:600;letter-spacing:1px;padding:5px 12px;background:rgba(212,160,23,.08);border:1px dashed rgba(212,160,23,.4);border-radius:3px;margin-bottom:8px;}
+
 .content{padding:0 48px 48px;}
 
-/* ── SCREEN CARD ── */
-.screen-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;}
-.sc-hdr{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
-.sc-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
-.sc-title-en{font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px;}
-.sc-title-ko{font-size:10px;color:rgba(255,255,255,.35);margin-top:2px;}
+.sec-div{display:flex;align-items:center;gap:12px;margin:28px 0 16px;}
+.sd-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--border) 20%,var(--border) 80%,transparent);}
+.sd-lbl{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--rpt);letter-spacing:2px;white-space:nowrap;padding:4px 10px;background:#e0e7ff;border:1px solid #a5b4fc;border-radius:3px;}
+
+.flow-card{background:linear-gradient(135deg,#1e1b4b,#181442);color:#e2e8f0;border-radius:10px;padding:20px 22px;margin-bottom:18px;box-shadow:0 4px 20px rgba(99,102,241,.18);}
+.flow-card-h{font-family:'JetBrains Mono',monospace;font-size:10px;color:#a5b4fc;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;}
+.flow-track{margin-bottom:14px;}
+.flow-track-lbl{font-size:10px;color:rgba(255,255,255,.6);letter-spacing:1px;font-family:'JetBrains Mono',monospace;margin-bottom:8px;text-transform:uppercase;}
+.flow-row{display:flex;align-items:center;gap:0;flex-wrap:wrap;}
+.flow-node{display:flex;flex-direction:column;align-items:center;gap:3px;background:rgba(99,102,241,.16);border:1px solid rgba(165,180,252,.42);border-radius:8px;padding:10px 12px;min-width:96px;text-align:center;transition:all .15s;text-decoration:none;color:#e2e8f0;}
+.flow-node:hover{background:rgba(99,102,241,.3);border-color:#a5b4fc;transform:translateY(-2px);box-shadow:0 6px 16px rgba(99,102,241,.32);}
+.flow-node.core{background:rgba(212,160,23,.2);border-color:#fbbf24;}
+.flow-node.core .fn-id{color:#fbbf24;}
+.flow-node.external{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.2);border-style:dashed;}
+.fn-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:#a5b4fc;letter-spacing:.5px;}
+.flow-node.external .fn-id{color:rgba(255,255,255,.5);}
+.fn-name{font-size:11px;font-weight:700;color:#fff;}
+.fn-ko{font-size:9px;color:rgba(255,255,255,.55);}
+.fn-tag{font-size:8px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.5);margin-top:1px;}
+.flow-arr{font-size:18px;color:rgba(165,180,252,.55);padding:0 4px;font-weight:700;}
+
+.mod-kpi{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
+.kpi-card{background:#fff;border:1px solid var(--border);border-top:3px solid var(--rpt);border-radius:0 0 6px 6px;padding:14px 16px;}
+.kpi-l{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--sub);letter-spacing:1px;text-transform:uppercase;}
+.kpi-v{font-family:'Bebas Neue',sans-serif;font-size:34px;color:var(--text);line-height:1;margin-top:5px;letter-spacing:.5px;}
+.kpi-v.ok{color:#16a34a;}.kpi-v.warn{color:#a16207;}.kpi-v.alert{color:#dc2626;}.kpi-v.rpt{color:#4338ca;}
+.kpi-s{font-size:10px;color:var(--sub);margin-top:3px;}
+
+.screen-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:18px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.sc-hdr{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,color-mix(in srgb,#6366f1 30%,#000),color-mix(in srgb,#6366f1 13%,#000));}
+.sc-hdr.core{background:linear-gradient(135deg,color-mix(in srgb,#d4a017 32%,#000),color-mix(in srgb,#6366f1 22%,#000));}
+.sc-hdr-l{display:flex;align-items:center;gap:14px;flex:1;min-width:0;}
+.sc-icon{font-size:42px;line-height:1;flex-shrink:0;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3));}
+.sc-title-wrap{flex:1;min-width:0;}
+.sc-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#a5b4fc;letter-spacing:.5px;}
+.sc-hdr.core .sc-id{color:#fbbf24;}
+.sc-title-en{font-size:16px;font-weight:800;color:#fff;letter-spacing:-.3px;margin-top:2px;}
+.sc-title-ko{font-size:10px;color:rgba(255,255,255,.55);margin-top:2px;}
 .sc-tags{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
-.tag{font-size:9px;font-weight:700;padding:2px 9px;border-radius:3px;}
+.tag{font-size:9px;font-weight:700;padding:2px 9px;border-radius:3px;white-space:nowrap;}
 .t-web{background:rgba(26,111,255,.2);color:#7ab4ff;border:1px solid rgba(26,111,255,.3);}
-.t-pda{background:rgba(13,184,122,.2);color:#5dffc4;border:1px solid rgba(13,184,122,.3);}
-.t-pop{background:rgba(234,88,12,.2);color:#fdba74;border:1px solid rgba(234,88,12,.3);}
-.t-p0{background:rgba(212,160,23,.15);color:#fbbf24;border:1px solid rgba(212,160,23,.2);}
 .t-1st{background:rgba(26,111,255,.12);color:#93c5fd;border:1px solid rgba(26,111,255,.18);}
 .t-2nd{background:rgba(124,58,237,.12);color:#c4b5fd;border:1px solid rgba(124,58,237,.18);}
 .t-3rd{background:rgba(255,107,0,.12);color:#fdba74;border:1px solid rgba(255,107,0,.18);}
-.sc-body{padding:14px 18px;}
+.t-core{background:rgba(212,160,23,.2);color:#fbbf24;border:1px solid rgba(212,160,23,.35);}
+.sc-l3-btn{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:linear-gradient(135deg,#d4a017,#a07810);color:#000;font-size:11px;font-weight:800;border-radius:5px;text-decoration:none;letter-spacing:.5px;text-transform:uppercase;border:1px solid #a07810;box-shadow:0 2px 6px rgba(212,160,23,.3);transition:all .15s;white-space:nowrap;}
+.sc-l3-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(212,160,23,.5);background:linear-gradient(135deg,#fbbf24,#d4a017);}
+.sc-body{padding:16px 18px;}
 
-/* ── BILINGUAL DESC ── */
-.desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;background:#f6f8ff;border:1px solid var(--border);border-left:3px solid;border-radius:0 6px 6px 0;padding:11px 14px;}
-.db-lbl{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;opacity:.5;}
-.db-en{font-size:11px;color:#1e40af;line-height:1.75;}
+.headline{display:flex;align-items:center;gap:10px;padding:11px 14px;background:linear-gradient(135deg,#e0e7ff,#c7d2fe);border:1px solid #a5b4fc;border-left:3px solid var(--rpt);border-radius:0 5px 5px 0;margin-bottom:14px;}
+.headline.core{background:linear-gradient(135deg,#fef9c3,#fef3c7);border-color:#fcd34d;border-left-color:#d4a017;}
+.headline-ico{font-size:18px;color:#3730a3;}
+.headline.core .headline-ico{color:#92400e;}
+.headline-t{font-size:12px;color:#3730a3;font-weight:700;line-height:1.55;}
+.headline.core .headline-t{color:#78350f;}
+.headline-t .ko{display:block;color:var(--rpt);font-weight:400;font-size:11px;margin-top:1px;}
+.headline.core .headline-t .ko{color:#92400e;}
+
+.qf-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.qf{background:#fafbfd;border:1px solid var(--border);border-radius:5px;padding:9px 11px;}
+.qf-l{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--sub);letter-spacing:.7px;text-transform:uppercase;}
+.qf-v{font-size:11px;color:var(--text);font-weight:700;margin-top:3px;line-height:1.4;}
+
+.desc-bi{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;background:#e0e7ff;border:1px solid var(--border);border-left:3px solid var(--rpt);border-radius:0 6px 6px 0;padding:11px 14px;}
+.db-lbl{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;opacity:.55;}
+.db-en{font-size:11px;color:#3730a3;line-height:1.75;}
 .db-ko{font-size:11px;color:var(--sub);line-height:1.75;}
 
-/* ── KPI STRIP ── */
-.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:12px;}
-.kc{flex:1;padding:9px 12px;border-right:1px solid var(--border);}
-.kc:last-child{border-right:none;}
-.kv{font-size:20px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
-.kl-en{font-size:9px;color:var(--sub);margin-top:2px;}
-.kl-ko{font-size:8px;color:rgba(100,116,139,.55);}
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin-bottom:12px;}
+.feat-item{background:#fff;border:1px solid var(--border);border-top:2px solid var(--rpt);border-radius:0 0 5px 5px;padding:10px 12px;}
+.feat-item.core{border-top-color:#d4a017;}
+.feat-ico{font-size:16px;line-height:1;margin-bottom:5px;}
+.feat-t{font-size:11px;font-weight:800;color:var(--text);margin-bottom:2px;}
+.feat-d{font-size:10px;color:var(--sub);line-height:1.55;}
+.feat-d .ko{color:#94a3b8;font-size:9px;display:block;margin-top:1px;}
 
-/* ── MOCK WINDOW ── */
-.mock-wrap{background:#eef1f5;border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;}
-.mock-lbl{font-size:9px;font-weight:700;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;}
-.mock-win{background:#fff;border:1px solid #c8d0db;border-radius:6px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.07);}
-.mock-tbar{background:var(--text);color:#fff;padding:7px 13px;display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;}
-.mock-tbar .bc{margin-left:auto;font-size:9px;color:rgba(255,255,255,.3);font-family:'JetBrains Mono',monospace;}
-.mock-body{padding:12px 13px;}
-.mock-toolbar{background:#f6f8fa;border-bottom:1px solid var(--border);padding:6px 13px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
-.mock-toolbar select,.mock-toolbar input{padding:3px 8px;border:1px solid var(--border);border-radius:3px;font-size:11px;background:#fff;}
+.br-chips{display:flex;gap:5px;flex-wrap:wrap;padding-top:10px;border-top:1px dashed var(--border);}
+.br-chip{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;padding:3px 8px;border-radius:3px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;text-decoration:none;letter-spacing:.3px;}
+.br-chip.crit{background:#fee2e2;color:#991b1b;border-color:#fca5a5;}
+.br-chip-lbl{font-size:9px;color:var(--sub);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;margin-right:4px;align-self:center;}
 
-/* ── TABLE ── */
-.tbl{width:100%;border-collapse:collapse;font-size:11px;}
-.tbl th{background:#f0f3f7;padding:6px 9px;font-weight:700;border:1px solid var(--border);text-align:left;font-size:10px;color:var(--text);}
-.tbl th .th-ko{font-weight:400;color:var(--sub);font-size:9px;}
-.tbl td{padding:5px 9px;border:1px solid var(--border);vertical-align:middle;}
-.tbl .rh td{background:#f0fdf4;}
-.tbl .rw td{background:#fffbeb;}
-.tbl .rd td{background:#fef2f2;}
-.tbl tr:hover td{background:#f9fafb;}
-.tbl td .ko{color:var(--sub);font-size:10px;}
+.ref-tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:18px;}
+.ref-tbl th{background:#f0f3f7;color:var(--text);padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.ref-tbl td{padding:8px 12px;border-bottom:1px solid var(--border);}
+.ref-tbl tr:last-child td{border-bottom:none;}
+.ref-tbl tr:nth-child(even) td{background:#fafbfd;}
+.ref-tbl .code{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--rpt);font-size:11px;}
+.ref-tbl .pill{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
+.pill.pill-daily{background:#dbeafe;color:#1e40af;}
+.pill.pill-monthly{background:#e0e7ff;color:#3730a3;}
+.pill.pill-ond{background:#fef9c3;color:#92400e;}
+.pill.pill-tool{background:#f3f4f6;color:#4b5563;}
 
-/* ── BADGES ── */
+.br-wrap{margin-bottom:16px;}
+.br-title{font-size:11px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+.br-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.br-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.br-tbl th{background:var(--text);color:#fff;padding:7px 10px;text-align:left;border:1px solid rgba(255,255,255,.08);font-size:9px;}
+.br-tbl td{padding:7px 10px;border:1px solid var(--border);vertical-align:top;line-height:1.6;}
+.br-tbl tr:nth-child(even) td{background:#fafbfd;}
+.br-id-c{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-en-c{color:var(--text);}
+.br-ko-c{color:var(--sub);font-size:10px;margin-top:2px;}
+.br-tbl tr.cat-row td{background:#f0f3f7;font-weight:700;color:var(--rpt);font-size:9px;letter-spacing:1px;text-transform:uppercase;}
 .b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
 .b-ok{background:#dcfce7;color:#166534;}
 .b-w{background:#fef9c3;color:#92400e;}
 .b-e{background:#fee2e2;color:#991b1b;}
 .b-i{background:#dbeafe;color:#1e40af;}
-.b-n{background:#f3f4f6;color:#4b5563;}
+.b-m{background:#fce7f3;color:#9d174d;}
 
-/* ── BUTTONS ── */
-.btn{padding:5px 13px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
-.btn-primary{background:var(--mod-color,#0891b2);color:#fff;border-color:var(--mod-color,#0891b2);}
-.btn-secondary{background:#f6f8fa;color:var(--text);border-color:var(--border);}
-.btn-danger{background:#dc2626;color:#fff;}
-.btn-sm{padding:3px 9px;font-size:10px;}
-
-/* ── FEATURE GRID ── */
-.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
-.feat-item{background:#f6f8ff;border:1px solid var(--border);border-radius:6px;padding:11px 13px;border-top:2px solid;}
-.fi-title-en{font-size:11px;font-weight:700;margin-bottom:1px;}
-.fi-title-ko{font-size:10px;color:var(--sub);margin-bottom:6px;}
-ul.fi-list{list-style:none;}
-ul.fi-list li{padding:2px 0 2px 12px;position:relative;font-size:10px;line-height:1.6;}
-ul.fi-list li::before{content:'–';position:absolute;left:0;color:var(--sub);}
-ul.fi-list li .ko{color:var(--sub);font-size:9px;}
-
-/* ── PDA MOCK ── */
-.pda-row{display:flex;gap:14px;flex-wrap:wrap;}
-.pda-unit{text-align:center;}
-.pdu-step{font-size:9px;font-weight:700;color:var(--sub);margin-bottom:5px;}
-.pda-shell{background:#1a1e2e;border-radius:16px;padding:9px;width:172px;border:2px solid #2a3048;box-shadow:0 6px 20px rgba(0,0,0,.3);}
-.pda-scr{background:#0a1628;border-radius:10px;overflow:hidden;border:1px solid #1a3050;}
-.pda-sbar{background:#060e1c;padding:3px 8px;display:flex;justify-content:space-between;}
-.pda-sbar span{font-size:7px;color:#2a4a7a;font-family:'JetBrains Mono',monospace;}
-.pda-sbar .online{color:#00e5a0;}
-.pda-tbar{padding:7px 10px;border-bottom:1px solid #0a3050;}
-.pda-title{font-size:11px;font-weight:700;color:#00e5a0;}
-.pda-sub{font-size:8px;color:rgba(255,255,255,.3);}
-.pda-bd{padding:8px 10px;}
-.pda-scan{background:#060e1c;border:2px dashed rgba(0,229,160,.3);border-radius:6px;padding:12px;text-align:center;margin-bottom:7px;}
-.pda-scan-icon{font-size:22px;margin-bottom:3px;}
-.pda-scan-en{font-size:10px;font-weight:700;color:#00e5a0;}
-.pda-scan-ko{font-size:8px;color:rgba(255,255,255,.3);}
-.pda-field{margin-bottom:5px;}
-.pda-fl{font-size:8px;color:#1a5a4a;margin-bottom:2px;font-weight:600;}
-.pda-fv{background:#040c18;border:1px solid #1a3050;border-radius:4px;padding:4px 8px;font-size:10px;color:#a0c8f0;font-family:'JetBrains Mono',monospace;}
-.pda-fv.ok{border-color:#00e5a0;color:#00e5a0;}
-.pda-fv.er{border-color:#ff8a82;color:#ff8a82;}
-.pda-numpad{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;margin-bottom:6px;}
-.pda-key{background:#0d1e30;border:1px solid #1a3050;border-radius:4px;padding:7px 4px;text-align:center;font-size:13px;font-weight:700;color:#c0e0f0;font-family:'JetBrains Mono',monospace;}
-.pda-key.k-ok{background:#0a2a1a;color:#00e5a0;border-color:#0a5a38;}
-.pda-key.k-del{background:#1a0808;color:#ff8a82;border-color:#3a1010;}
-.pda-disp{background:#040c18;border:1px solid #1a3050;border-radius:4px;padding:5px 9px;font-size:24px;font-weight:900;color:#00e5a0;text-align:right;margin-bottom:6px;font-family:'JetBrains Mono',monospace;}
-.pda-btn{width:100%;padding:7px;border-radius:5px;font-size:10px;font-weight:700;border:none;cursor:pointer;margin-bottom:4px;font-family:'Noto Sans KR',sans-serif;}
-.pda-pri{background:linear-gradient(135deg,#0a9060,#0db87a);color:#fff;}
-.pda-sec{background:#0a1428;color:#4a7aaa;border:1px solid #1a3050;}
-.pda-dan{background:#1a0808;color:#ff8a82;border:1px solid #3a1010;}
-.pda-progress-bar{height:4px;background:#060e1c;border-radius:2px;overflow:hidden;margin:4px 0 8px;}
-.pda-progress-fill{height:100%;background:linear-gradient(90deg,#0a9060,#00e5a0);border-radius:2px;}
-
-/* ── BR TABLE ── */
-.br-wrap{margin-bottom:16px;}
-.br-title{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:7px;display:flex;align-items:center;gap:10px;}
-.br-title::after{content:'';flex:1;height:1px;background:var(--border);}
-.br-tbl{width:100%;border-collapse:collapse;font-size:10px;}
-.br-tbl th{background:var(--text);color:#fff;padding:6px 10px;text-align:left;border:1px solid rgba(255,255,255,.08);font-size:9px;}
-.br-tbl td{padding:6px 10px;border:1px solid var(--border);vertical-align:top;line-height:1.6;}
-.br-tbl tr:nth-child(even) td{background:#fafbfd;}
-.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
-.br-en{color:var(--text);}
-.br-ko{color:var(--sub);font-size:10px;margin-top:2px;}
-
-/* ── SECTION DIV ── */
-.sec-div{display:flex;align-items:center;gap:12px;margin:20px 0 12px;}
-.sd-line{flex:1;height:1px;background:var(--border);}
-.sd-lbl{font-size:10px;font-weight:700;color:var(--sub);white-space:nowrap;}
-
-/* ── ALERTS ── */
-.alert{padding:8px 12px;border-radius:5px;font-size:10px;margin-bottom:9px;display:flex;gap:8px;line-height:1.7;}
-.alert-i{background:#eff6ff;border-left:3px solid #3b82f6;}
-.alert-w{background:#fffbeb;border-left:3px solid #f59e0b;}
-.alert-s{background:#f0fdf4;border-left:3px solid #22c55e;}
-.alert-d{background:#fef2f2;border-left:3px solid #ef4444;}
-
-/* ── ROUTING FLOW ── */
-.rflow{display:flex;align-items:center;gap:0;flex-wrap:nowrap;overflow-x:auto;padding:4px 0;}
-.rs{padding:9px 14px;border-radius:5px;font-size:11px;font-weight:700;text-align:center;flex-shrink:0;text-decoration:none;}
-.rs-en{font-size:12px;font-weight:800;}
-.rs-ko{font-size:9px;font-weight:400;opacity:.7;margin-top:2px;}
-.rarr{color:var(--sub);font-size:14px;padding:0 5px;flex-shrink:0;}
-.rs-inj{background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;}
-.rs-img{background:#f5f3ff;color:#5b21b6;border:1px solid #c4b5fd;}
-.rs-pnt{background:#fff7ed;color:#9a3412;border:1px solid #fdba74;}
-.rs-qc{background:#fef2f2;color:#991b1b;border:1px solid #fca5a5;}
-.rs-fg{background:#f0fdf4;color:#065f46;border:1px solid #6ee7b7;}
-
-/* ── GRID ── */
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
-
-/* ── PROGRESS BAR ── */
-.prog-track{height:5px;background:#f0f2f5;border-radius:3px;overflow:hidden;}
-.prog-fill{height:100%;border-radius:3px;}
-
-/* ── DATA MODEL TABLE ── */
-.dm-tbl{width:100%;border-collapse:collapse;font-size:10px;}
-.dm-tbl th{background:var(--ink2);color:#fff;padding:6px 10px;text-align:left;border:1px solid var(--ink3);font-size:9px;}
-.dm-tbl td{padding:5px 10px;border:1px solid var(--border);vertical-align:top;}
-.dm-tbl tr:nth-child(even) td{background:#fafbfd;}
-.dm-col{font-family:'JetBrains Mono',monospace;color:#1e40af;font-weight:600;}
-.dm-type{font-family:'JetBrains Mono',monospace;color:var(--sub);font-size:10px;}
-.dm-pk{color:#dc2626;font-weight:700;}
-.dm-fk{color:#7c3aed;}
-
-/* ── PAGE FOOTER ── */
 .page-footer{padding:14px 48px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--ink);margin-top:20px;}
 .pf-l{font-size:10px;color:rgba(255,255,255,.2);}
 .pf-r{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(212,160,23,.4);}
-:root{--mod-color:#6366f1;}.mod-hdr{background:linear-gradient(135deg,color-mix(in srgb,#6366f1 30%,#000),color-mix(in srgb,#6366f1 12%,#000));}.sc-hdr{background:linear-gradient(135deg,color-mix(in srgb,#6366f1 22%,#000),color-mix(in srgb,#6366f1 10%,#000));}.sc-id{color:#6366f1;}.sb-mod-en{color:#6366f1;}.sb-link.on{border-left-color:#6366f1;}</style></head><body><nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol active"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav><div class="page-wrap"><nav class="sidebar"><div class="sb-head"><div class="sb-vol">VOL.11 · RPT MODULE</div><div class="sb-mod-en">REPORTS</div><div class="sb-mod-ko">분석 리포트</div></div>
-<div class="sb-section">Screens</div>
-<a class="sb-link on" href="#rpt01"><span class="sl-id">RPT-01</span><div><div class="sl-en">Daily Production</div><div class="sl-ko">일별 생산 실적</div></div></a>
-<a class="sb-link" href="#rpt02"><span class="sl-id">RPT-02</span><div><div class="sl-en">Defect Pareto</div><div class="sl-ko">불량 파레토</div></div></a>
-<a class="sb-link" href="#rpt03"><span class="sl-id">RPT-03</span><div><div class="sl-en">Daily Shipment</div><div class="sl-ko">일별 출하</div></div></a>
-<a class="sb-link" href="#rpt04"><span class="sl-id">RPT-04</span><div><div class="sl-en">On-Time Delivery</div><div class="sl-ko">납기 이행율</div></div></a>
-<a class="sb-link" href="#rpt05"><span class="sl-id">RPT-05</span><div><div class="sl-en">Inventory Status</div><div class="sl-ko">재고 현황</div></div></a>
-<a class="sb-link" href="#rpt06"><span class="sl-id">RPT-06</span><div><div class="sl-en">Equipment OEE</div><div class="sl-ko">설비 OEE</div></div></a>
-<a class="sb-link" href="#rpt07"><span class="sl-id">RPT-07</span><div><div class="sl-en">Monthly KPI Dashboard</div><div class="sl-ko">월간 KPI 대시보드</div></div></a>
-<a class="sb-link" href="#rpt08"><span class="sl-id">RPT-08</span><div><div class="sl-en">Schedule Adherence</div><div class="sl-ko">일정 준수율</div></div></a>
-<div class="sb-sep"></div>
-<a class="sb-link" href="#br-rpt"><span class="sl-id">BR</span><div><div class="sl-en">Business Rules</div></div></a></nav>
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol active"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head">
+    <div class="sb-vol">VOL.11 · RPT MODULE</div>
+    <div class="sb-mod-en">REPORTS</div>
+    <div class="sb-mod-ko">분석 리포트</div>
+  </div>
+  <div class="sb-section">Overview · 개요</div>
+  <a class="sb-link" href="#flow"><span class="sl-id">FLOW</span><div><div class="sl-en">Process Flow</div><div class="sl-ko">리포트 흐름</div></div></a>
+  <a class="sb-link" href="#kpi"><span class="sl-id">KPI</span><div><div class="sl-en">Module KPI</div><div class="sl-ko">핵심 지표</div></div></a>
+  <div class="sb-section">Production · 생산</div>
+  <a class="sb-link on" href="#rpt01"><span class="sl-id">RPT-01</span><div><div class="sl-en">Daily Production</div><div class="sl-ko">일별 생산 실적</div></div><a class="sb-l3" href="VOL11_RPT01_Daily_Production.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#rpt02"><span class="sl-id">RPT-02</span><div><div class="sl-en">Defect Pareto</div><div class="sl-ko">불량 파레토</div></div><a class="sb-l3" href="VOL11_RPT02_Defect_Pareto.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#rpt06"><span class="sl-id">RPT-06</span><div><div class="sl-en">Equipment OEE</div><div class="sl-ko">설비 OEE</div></div><a class="sb-l3" href="VOL11_RPT06_Equipment_OEE.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#rpt08"><span class="sl-id">RPT-08</span><div><div class="sl-en">Schedule Adherence</div><div class="sl-ko">일정 준수율</div></div><a class="sb-l3" href="VOL11_RPT08_Schedule_Adherence.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <div class="sb-section">Delivery & Inventory · 출하·재고</div>
+  <a class="sb-link" href="#rpt03"><span class="sl-id">RPT-03</span><div><div class="sl-en">Daily Shipment</div><div class="sl-ko">일별 출하</div></div><a class="sb-l3" href="VOL11_RPT03_Daily_Shipment.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#rpt04"><span class="sl-id">RPT-04</span><div><div class="sl-en">On-Time Delivery</div><div class="sl-ko">납기 이행율</div></div><a class="sb-l3" href="VOL11_RPT04_OnTime_Delivery.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#rpt05"><span class="sl-id">RPT-05</span><div><div class="sl-en">Inventory Status</div><div class="sl-ko">재고 현황</div></div><a class="sb-l3" href="VOL11_RPT05_Inventory_Status.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <div class="sb-section">Management & Tools · 경영·도구</div>
+  <a class="sb-link" href="#rpt07"><span class="sl-id">RPT-07</span><div><div class="sl-en">Monthly KPI ⚙</div><div class="sl-ko">월간 KPI 대시보드</div></div><a class="sb-l3" href="VOL11_RPT07_Monthly_KPI.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#rpt09"><span class="sl-id">RPT-09</span><div><div class="sl-en">Report Center</div><div class="sl-ko">리포트 센터</div></div><a class="sb-l3" href="VOL11_RPT09_Report_Center.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <a class="sb-link" href="#rpt10"><span class="sl-id">RPT-10</span><div><div class="sl-en">Report Builder</div><div class="sl-ko">리포트 빌더</div></div><a class="sb-l3" href="VOL11_RPT10_Report_Builder.html" title="L3 상세 설계서" onclick="event.stopPropagation();">📋</a></a>
+  <div class="sb-sep"></div>
+  <div class="sb-section">Reference · 참조</div>
+  <a class="sb-link" href="#catalog"><span class="sl-id">CAT</span><div><div class="sl-en">Report Catalog</div><div class="sl-ko">보고서 카탈로그</div></div></a>
+  <a class="sb-link" href="#br-rpt"><span class="sl-id">BR</span><div><div class="sl-en">Business Rules</div><div class="sl-ko">업무 규칙 38건</div></div></a>
+</nav>
 <div class="main">
-<div class="mod-hdr"><div class="mod-hdr-inner">
-  <div class="mod-eyebrow" style="color:#a5b4fc;">VOL.11 · RPT · Analytics & Reports · 분석 리포트</div>
-  <div class="mod-title-en" style="color:#a5b4fc;">ANALYTICS<br>&amp; REPORTS</div>
-  <div class="mod-title-ko">분석 리포트</div>
-  <div class="mod-desc-bi">
-    <div class="mdb-en">8 standard reports automatically generated daily and monthly from A-MES transaction data. All reports support Excel/PDF export and optional email dispatch to configured recipients. RPT-07 provides the monthly management KPI dashboard. Reports are read-only — no manual editing allowed after day-end close.</div>
-    <div class="mdb-ko">A-MES 트랜잭션 데이터 기반 8종 표준 보고서 일별·월별 자동 생성. Excel/PDF 출력 + 이메일 자동 발송. RPT-07 월간 경영 KPI 대시보드. 보고서 읽기 전용 — 일 마감 후 수동 수정 불가.</div>
-  </div>
-  <div class="screen-pills">
-    <span class="sp"><span class="sp-id">RPT-01</span> Daily Production</span>
-    <span class="sp"><span class="sp-id">RPT-02</span> Defect Pareto</span>
-    <span class="sp"><span class="sp-id">RPT-03</span> Daily Shipment</span>
-    <span class="sp"><span class="sp-id">RPT-04</span> On-Time Delivery</span>
-    <span class="sp"><span class="sp-id">RPT-05</span> Inventory Status</span>
-    <span class="sp"><span class="sp-id">RPT-06</span> Equipment OEE</span>
-    <span class="sp"><span class="sp-id">RPT-07</span> Monthly KPI</span>
-    <span class="sp"><span class="sp-id">RPT-08</span> Schedule Adherence</span>
-  </div>
-</div></div>
-<div class="content">
-
-<div class="screen-card" id="rpt07">
-  <div class="sc-hdr"><div><div class="sc-id">RPT-07</div><div class="sc-title-en">Monthly KPI Management Dashboard</div><div class="sc-title-ko">월간 KPI 경영 대시보드</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web PC</span><span class="tag t-2nd">2nd Dev</span></div></div>
-  <div class="sc-body">
-    <div class="desc-bi" style="border-left-color:#6366f1;"><div><div class="db-lbl">EN</div><div class="db-en">Monthly management KPI dashboard auto-generated from all A-MES transaction data. Displays: total production output vs. plan, on-time delivery rate to SAV/GEO, overall defect rate, overall OEE, inventory turnover, and top-3 improvement areas. Charts: bar (output), line (defect trend), gauge (OEE). PDF export + auto-email to management on 1st of each month.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">A-MES 전체 트랜잭션 기반 월간 KPI 자동 생성. 총생산 대비 계획, SAV·GEO 납기 이행율, 전체 불량율, 전체 OEE, 재고 회전율, 개선 필요 상위 3항목. 차트: 막대(생산), 선(불량 추이), 게이지(OEE). PDF + 매월 1일 경영진 이메일 자동 발송.</div></div></div>
-    <div class="mock-wrap"><div class="mock-lbl">RPT-07 · Monthly KPI Dashboard · July 2025</div><div class="mock-win">
-      <div class="mock-tbar">📊 A-MES · Reports · Monthly KPI Dashboard · July 2025 <span class="bc">Reports &gt; Monthly KPI</span></div>
-      <div class="mock-toolbar"><button class="btn btn-secondary btn-sm">◀ June</button><span style="font-size:11px;font-weight:700;padding:0 12px;">July 2025</span><button class="btn btn-secondary btn-sm">July ▶</button><button class="btn btn-primary btn-sm" style="background:#6366f1;margin-left:auto;">📄 Export PDF</button><button class="btn btn-secondary btn-sm">📧 Email to Management</button></div>
-      <div class="mock-body">
-        <div class="kpi-strip">
-          <div class="kc"><div class="kv" style="color:#22c55e;">98.2%</div><div class="kl-en">Plan Achievement</div><div class="kl-ko">계획 달성율</div></div>
-          <div class="kc"><div class="kv" style="color:#22c55e;">97.8%</div><div class="kl-en">On-Time Delivery (SAV/GEO)</div><div class="kl-ko">납기 이행율</div></div>
-          <div class="kc"><div class="kv" style="color:#f59e0b;">1.8%</div><div class="kl-en">Overall Defect Rate</div><div class="kl-ko">전체 불량율</div></div>
-          <div class="kc"><div class="kv" style="color:#22c55e;">79.4%</div><div class="kl-en">Overall OEE</div><div class="kl-ko">전체 OEE</div></div>
-          <div class="kc"><div class="kv" style="color:#6366f1;">4.2</div><div class="kl-en">Inventory Turnover</div><div class="kl-ko">재고 회전율</div></div>
-        </div>
-        <div class="g2" style="gap:12px;margin-bottom:10px;">
-          <div style="border:1px solid var(--border);border-radius:6px;padding:12px;">
-            <div style="font-size:10px;font-weight:700;margin-bottom:8px;">📊 Monthly Output vs. Plan · 월별 생산량 대비 계획</div>
-            <svg width="100%" height="90" viewBox="0 0 300 90">
-              <rect x="10" y="10" width="28" height="65" fill="#dbeafe" rx="2"/><rect x="10" y="15" width="28" height="60" fill="#3b82f6" rx="2"/>
-              <rect x="50" y="5" width="28" height="75" fill="#dbeafe" rx="2"/><rect x="50" y="8" width="28" height="72" fill="#3b82f6" rx="2"/>
-              <rect x="90" y="15" width="28" height="58" fill="#dbeafe" rx="2"/><rect x="90" y="12" width="28" height="63" fill="#22c55e" rx="2"/>
-              <rect x="130" y="8" width="28" height="72" fill="#dbeafe" rx="2"/><rect x="130" y="10" width="28" height="70" fill="#22c55e" rx="2"/>
-              <text x="24" y="85" text-anchor="middle" font-size="8" fill="#64748b">Apr</text>
-              <text x="64" y="85" text-anchor="middle" font-size="8" fill="#64748b">May</text>
-              <text x="104" y="85" text-anchor="middle" font-size="8" fill="#64748b">Jun</text>
-              <text x="144" y="85" text-anchor="middle" font-size="8" fill="#64748b">Jul</text>
-              <line x1="5" y1="8" x2="175" y2="8" stroke="#e2e8f0" stroke-dasharray="4,3"/>
-            </svg>
-            <div style="display:flex;gap:12px;font-size:9px;color:#64748b;"><span style="color:#3b82f6;">■ Plan · 계획</span><span style="color:#22c55e;">■ Actual · 실적</span></div>
-          </div>
-          <div style="border:1px solid var(--border);border-radius:6px;padding:12px;">
-            <div style="font-size:10px;font-weight:700;margin-bottom:8px;">📉 Defect Rate Trend · 불량율 추이 (%)</div>
-            <svg width="100%" height="90" viewBox="0 0 300 90">
-              <polyline points="20,30 80,35 140,50 200,42 260,28" fill="none" stroke="#f59e0b" stroke-width="2.5"/>
-              <line x1="5" y1="55" x2="280" y2="55" stroke="#ef4444" stroke-width="1" stroke-dasharray="5,3" opacity=".5"/>
-              <circle cx="20" cy="30" r="4" fill="#f59e0b"/><circle cx="80" cy="35" r="4" fill="#f59e0b"/><circle cx="140" cy="50" r="4" fill="#f59e0b"/><circle cx="200" cy="42" r="4" fill="#f59e0b"/><circle cx="260" cy="28" r="4" fill="#22c55e"/>
-              <text x="20" y="22" text-anchor="middle" font-size="8" fill="#64748b">2.8</text>
-              <text x="80" y="28" text-anchor="middle" font-size="8" fill="#64748b">2.5</text>
-              <text x="140" y="43" text-anchor="middle" font-size="8" fill="#64748b">2.1</text>
-              <text x="200" y="35" text-anchor="middle" font-size="8" fill="#64748b">2.0</text>
-              <text x="260" y="20" text-anchor="middle" font-size="8" fill="#22c55e">1.8%</text>
-              <text x="285" y="52" font-size="8" fill="#ef4444">3%</text>
-              <text x="10" y="85" font-size="8" fill="#64748b">Mar</text><text x="70" y="85" font-size="8" fill="#64748b">Apr</text><text x="130" y="85" font-size="8" fill="#64748b">May</text><text x="190" y="85" font-size="8" fill="#64748b">Jun</text><text x="248" y="85" font-size="8" fill="#64748b">Jul</text>
-            </svg>
-          </div>
-        </div>
-        <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:6px;padding:10px;"><div style="font-size:10px;font-weight:700;color:#166534;margin-bottom:6px;">✅ Key Achievements · 주요 성과</div><div class="g3" style="gap:8px;font-size:10px;"><div>📈 Output: 98.2% vs plan<div style="font-size:9px;color:#64748b;">생산: 계획 대비 98.2%</div></div><div>🚚 OTD: 97.8% SAV+GEO<div style="font-size:9px;color:#64748b;">납기 이행율 97.8%</div></div><div>📉 Defect: 1.8% (↓0.2%p)<div style="font-size:9px;color:#64748b;">불량율 1.8% (0.2%p 개선)</div></div></div></div>
+  <div class="mod-hdr">
+    <div class="mod-hdr-inner">
+      <div class="mod-eyebrow">VOL.11 · RPT · Analytics & Reports · 분석 리포트</div>
+      <div class="mod-title-en">ANALYTICS<br>&amp; REPORTS</div>
+      <div class="mod-title-ko">분석 리포트 — 일별·월별 자동 보고서 + 경영 KPI + 셀프서비스</div>
+      <div class="mod-desc-bi">
+        <div class="mdb-en">The reporting and analytics layer of A-MES. <strong>Daily auto-reports</strong> — Daily Production (RPT-01) and Daily Shipment (RPT-03) generated at FG-07 day-end close. <strong>Analysis reports</strong> — Defect Pareto (RPT-02), On-Time Delivery (RPT-04), Equipment OEE (RPT-06), Schedule Adherence (RPT-08). <strong>Monthly snapshots</strong> — Inventory Status (RPT-05). <strong>Monthly KPI Management Dashboard</strong> (RPT-07) — the core, consolidating every module's headline metric and auto-emailed to management. <strong>Report Center</strong> (RPT-09) catalogs, schedules, and governs all reports; the <strong>Custom Report Builder</strong> (RPT-10) gives power users no-code self-service. All reports are read-only after close, with Excel/PDF export and email dispatch.</div>
+        <div class="mdb-ko">A-MES의 보고·분석 계층. <strong>일별 자동 보고서</strong> — 일별 생산(RPT-01)·일별 출하(RPT-03)는 FG-07 일 마감 시 생성. <strong>분석 보고서</strong> — 불량 파레토(RPT-02)·납기 이행율(RPT-04)·설비 OEE(RPT-06)·일정 준수율(RPT-08). <strong>월간 스냅샷</strong> — 재고 현황(RPT-05). <strong>월간 KPI 경영 대시보드</strong>(RPT-07) — 핵심, 전 모듈 대표 지표를 통합해 경영진에게 자동 이메일. <strong>리포트 센터</strong>(RPT-09)가 전 보고서를 카탈로그·스케줄·통제하며, <strong>커스텀 리포트 빌더</strong>(RPT-10)는 파워 유저에게 노코드 셀프서비스를 제공. 전 보고서는 마감 후 읽기 전용, Excel/PDF 출력·이메일 발송 지원.</div>
       </div>
-    </div></div>
+      <div class="mod-meta-strip">
+        <div class="mms-item"><div class="mms-l">Screens</div><div class="mms-v">10</div></div>
+        <div class="mms-item"><div class="mms-l">Report Types</div><div class="mms-v rpt">Daily·Monthly·On-demand</div></div>
+        <div class="mms-item"><div class="mms-l">Auto Reports</div><div class="mms-v rpt">RPT-01·03·05·07</div></div>
+        <div class="mms-item"><div class="mms-l">Core KPI</div><div class="mms-v warn">5 Tracked</div></div>
+        <div class="mms-item"><div class="mms-l">Output</div><div class="mms-v">Excel·PDF·Email</div></div>
+        <div class="mms-item"><div class="mms-l">BR Rules</div><div class="mms-v warn">38</div></div>
+      </div>
+      <div><span class="l3-hint">📋 Click any screen card / icon / pill for L3 detailed spec · 각 화면 카드 클릭 시 L3 상세 설계서</span></div>
+      <div class="screen-pills">
+        <a class="sp" href="VOL11_RPT01_Daily_Production.html" title="L3 상세 · RPT-01"><span class="sp-id">RPT-01</span> Daily Production 📅 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL11_RPT02_Defect_Pareto.html" title="L3 상세 · RPT-02"><span class="sp-id">RPT-02</span> Defect Pareto 📉 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL11_RPT03_Daily_Shipment.html" title="L3 상세 · RPT-03"><span class="sp-id">RPT-03</span> Daily Shipment 🚚 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL11_RPT04_OnTime_Delivery.html" title="L3 상세 · RPT-04"><span class="sp-id">RPT-04</span> On-Time Delivery ⏱ <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL11_RPT05_Inventory_Status.html" title="L3 상세 · RPT-05"><span class="sp-id">RPT-05</span> Inventory 🏬 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL11_RPT06_Equipment_OEE.html" title="L3 상세 · RPT-06"><span class="sp-id">RPT-06</span> Equipment OEE ⚙ <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL11_RPT07_Monthly_KPI.html" title="L3 상세 · RPT-07"><span class="sp-id">RPT-07</span> Monthly KPI ⭐ <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL11_RPT08_Schedule_Adherence.html" title="L3 상세 · RPT-08"><span class="sp-id">RPT-08</span> Schedule 📋 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL11_RPT09_Report_Center.html" title="L3 상세 · RPT-09"><span class="sp-id">RPT-09</span> Report Center 🗂 <span style="opacity:.5;font-size:8px;">📋</span></a>
+        <a class="sp" href="VOL11_RPT10_Report_Builder.html" title="L3 상세 · RPT-10"><span class="sp-id">RPT-10</span> Report Builder 🛠 <span style="opacity:.5;font-size:8px;">📋</span></a>
+      </div>
+    </div>
   </div>
-</div>
 
-<div class="screen-card" id="rpt01">
-  <div class="sc-hdr"><div><div class="sc-id">RPT-01</div><div class="sc-title-en">Daily Production Report</div><div class="sc-title-ko">일별 생산 실적 보고서</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-1st">1st</span></div></div>
-  <div class="sc-body"><div class="desc-bi" style="border-left-color:#6366f1;"><div><div class="db-lbl">EN</div><div class="db-en">Daily production summary by line, item, and WO: planned qty, actual qty, defect qty, defect rate, and yield. Auto-generated at day-end close (FG-07). Excel/PDF export. Linked to WO and shift records for full drill-down.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">라인·품목·WO별 일별 생산 요약: 계획·실적·불량·불량율·수율. 일 마감(FG-07) 시 자동 생성. Excel/PDF. WO·교대 기록 드릴다운 연계.</div></div></div></div>
-</div>
+  <div class="content">
 
-<div class="g2" style="gap:12px;margin-bottom:12px;">
-  <div class="screen-card" id="rpt02" style="margin-bottom:0;"><div class="sc-hdr"><div><div class="sc-id">RPT-02</div><div class="sc-title-en">Defect Pareto Report</div><div class="sc-title-ko">불량 파레토 보고서</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd</span></div></div><div class="sc-body"><div class="desc-bi" style="border-left-color:#6366f1;"><div><div class="db-lbl">EN</div><div class="db-en">Pareto chart + table of defect counts by type, process, line, and item for selected period. Cumulative % line overlay. Top defect type highlighted. Links to QC-05 for CAPA initiation.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">기간별 불량 유형·공정·라인·품목 파레토 차트+테이블. 누적% 선. 최다 불량 유형 강조. QC-05 CAPA 개시 연계.</div></div></div></div></div>
-  <div class="screen-card" id="rpt03" style="margin-bottom:0;"><div class="sc-hdr"><div><div class="sc-id">RPT-03</div><div class="sc-title-en">Daily Shipment Report</div><div class="sc-title-ko">일별 출하 보고서</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-1st">1st</span></div></div><div class="sc-body"><div class="desc-bi" style="border-left-color:#6366f1;"><div><div class="db-lbl">EN</div><div class="db-en">Daily shipment summary per client (SAV/GEO): item, shipped qty, delivery note number, vehicle, and on-time status. Auto-generated at day-end close. Linked to FG-06 delivery notes.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">거래선(SAV/GEO)별 일별 출하 요약: 품목·출하량·명세서번호·차량·납기 이행. 일 마감 자동 생성. FG-06 거래명세서 연계.</div></div></div></div></div>
-</div>
-<div class="g2" style="gap:12px;margin-bottom:20px;">
-  <div class="screen-card" id="rpt04" style="margin-bottom:0;"><div class="sc-hdr"><div><div class="sc-id">RPT-04</div><div class="sc-title-en">On-Time Delivery Rate</div><div class="sc-title-ko">납기 이행율</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd</span></div></div><div class="sc-body"><div class="desc-bi" style="border-left-color:#6366f1;"><div><div class="db-lbl">EN</div><div class="db-en">Monthly OTD (On-Time Delivery) rate per client (SAV/GEO) and item. Late deliveries listed with reason code. Trend bar chart by month. Target: ≥ 98%.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">거래선(SAV/GEO)·품목별 월별 납기 이행율. 지연 건 사유코드 포함 목록. 월별 추이 막대차트. 목표: ≥ 98%.</div></div></div></div></div>
-  <div class="screen-card" id="rpt06" style="margin-bottom:0;"><div class="sc-hdr"><div><div class="sc-id">RPT-05/06/08</div><div class="sc-title-en">Inventory / OEE / Schedule Adherence Reports</div><div class="sc-title-ko">재고·OEE·일정준수율 보고서</div></div><div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd</span></div></div><div class="sc-body"><div class="desc-bi" style="border-left-color:#6366f1;"><div><div class="db-lbl">EN</div><div class="db-en">RPT-05: Monthly inventory snapshot per item/warehouse. RPT-06: Equipment OEE trend by machine (A×P×Q breakdown). RPT-08: WO schedule adherence rate — planned start vs. actual start, planned end vs. actual end.</div></div><div><div class="db-lbl">KO</div><div class="db-ko">RPT-05: 품목·창고별 월말 재고 스냅샷. RPT-06: 설비별 OEE 추이(A×P×Q 분해). RPT-08: WO 일정 준수율 — 계획 대비 실제 시작·종료.</div></div></div></div></div>
-</div>
+    <div class="sec-div" id="flow"><div class="sd-line"></div><div class="sd-lbl">▼ PROCESS FLOW · 리포트 흐름</div><div class="sd-line"></div></div>
+    <div class="flow-card">
+      <div class="flow-card-h">▼ 4-Track Reporting Flow · 4-트랙 리포트 흐름</div>
 
-<div class="br-wrap" id="br-rpt"><div class="br-title">Business Rules · 업무 규칙 (RPT)</div>
-<table class="br-tbl"><thead><tr><th>Rule ID</th><th>Category</th><th>Rule (EN)</th><th>규칙 (KO)</th><th>Action</th></tr></thead>
-<tbody>
-<tr><td class="br-id">BR-RPT-01</td><td>Auto Generation</td><td class="br-en">All daily reports (RPT-01, RPT-03) are automatically generated when day-end close (FG-07) is executed. No manual trigger required.</td><td class="br-ko">일별 보고서(RPT-01, RPT-03)는 일 마감(FG-07) 실행 시 자동 생성. 수동 트리거 불필요.</td><td><span class="b b-i">Auto</span></td></tr>
-<tr><td class="br-id">BR-RPT-02</td><td>Read-Only Lock</td><td class="br-en">Reports generated after day-end close are read-only. No manual editing of reported figures is allowed. Source data changes require day-end unlock (supervisor only).</td><td class="br-ko">일 마감 후 생성 보고서 읽기 전용. 수치 수동 수정 불가. 원천 데이터 변경 시 관리자 잠금 해제 필요.</td><td><span class="b b-e">Lock</span></td></tr>
-<tr><td class="br-id">BR-RPT-03</td><td>Monthly Email</td><td class="br-en">RPT-07 Monthly KPI Dashboard is auto-emailed to configured management recipients on the 1st of each month at 08:00.</td><td class="br-ko">RPT-07 월간 KPI 대시보드는 매월 1일 08:00 설정된 경영진에게 자동 이메일 발송.</td><td><span class="b b-i">Auto</span></td></tr>
-</tbody></table></div>
+      <div class="flow-track">
+        <div class="flow-track-lbl">🗄 ① DATA SOURCE · 데이터 소스 (전 모듈 트랜잭션)</div>
+        <div class="flow-row">
+          <a class="flow-node external"><span class="fn-id">INJ·PNT</span><span class="fn-name">WO 실적</span><span class="fn-ko">생산 데이터</span><span class="fn-tag">생산량·불량</span></a>
+          <span class="flow-arr">+</span>
+          <a class="flow-node external"><span class="fn-id">QC</span><span class="fn-name">검사 판정</span><span class="fn-ko">불량 데이터</span><span class="fn-tag">QC-02</span></a>
+          <span class="flow-arr">+</span>
+          <a class="flow-node external"><span class="fn-id">FG·WH</span><span class="fn-name">출하·재고</span><span class="fn-ko">물류 데이터</span><span class="fn-tag">FG-06</span></a>
+          <span class="flow-arr">+</span>
+          <a class="flow-node external"><span class="fn-id">MNT</span><span class="fn-name">설비·비가동</span><span class="fn-ko">OEE 데이터</span><span class="fn-tag">MNT-03·06</span></a>
+        </div>
+      </div>
+
+      <div class="flow-track">
+        <div class="flow-track-lbl">📅 ② DAILY REPORTS · 일별 보고서 (FG-07 마감 자동)</div>
+        <div class="flow-row">
+          <a class="flow-node external"><span class="fn-id">FG-07</span><span class="fn-name">일 마감</span><span class="fn-ko">자동 트리거</span><span class="fn-tag">Day-End</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node" href="#rpt01"><span class="fn-id">RPT-01</span><span class="fn-name">Daily Production 📅</span><span class="fn-ko">일별 생산</span><span class="fn-tag">자동</span></a>
+          <span class="flow-arr">+</span>
+          <a class="flow-node" href="#rpt03"><span class="fn-id">RPT-03</span><span class="fn-name">Daily Shipment 🚚</span><span class="fn-ko">일별 출하</span><span class="fn-tag">자동</span></a>
+          <span class="flow-arr">|</span>
+          <a class="flow-node" href="#rpt02"><span class="fn-id">RPT-02</span><span class="fn-name">Defect Pareto 📉</span><span class="fn-ko">불량 파레토</span><span class="fn-tag">온디맨드</span></a>
+        </div>
+      </div>
+
+      <div class="flow-track">
+        <div class="flow-track-lbl">📊 ③ MONTHLY REPORTS · 월별 보고서 → 경영 KPI 수렴</div>
+        <div class="flow-row">
+          <a class="flow-node" href="#rpt04"><span class="fn-id">RPT-04</span><span class="fn-name">OTD ⏱</span><span class="fn-ko">납기 이행율</span><span class="fn-tag">월별</span></a>
+          <span class="flow-arr">+</span>
+          <a class="flow-node" href="#rpt05"><span class="fn-id">RPT-05</span><span class="fn-name">Inventory 🏬</span><span class="fn-ko">재고 현황</span><span class="fn-tag">월말 자동</span></a>
+          <span class="flow-arr">+</span>
+          <a class="flow-node" href="#rpt06"><span class="fn-id">RPT-06</span><span class="fn-name">Equipment OEE ⚙</span><span class="fn-ko">설비 OEE</span><span class="fn-tag">월별</span></a>
+          <span class="flow-arr">+</span>
+          <a class="flow-node" href="#rpt08"><span class="fn-id">RPT-08</span><span class="fn-name">Adherence 📋</span><span class="fn-ko">일정 준수율</span><span class="fn-tag">월별</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node core" href="#rpt07"><span class="fn-id">RPT-07 ⚙</span><span class="fn-name">Monthly KPI</span><span class="fn-ko">경영 대시보드</span><span class="fn-tag">자동·이메일</span></a>
+        </div>
+      </div>
+
+      <div class="flow-track">
+        <div class="flow-track-lbl">🗂 ④ CATALOG &amp; TOOLS · 카탈로그 + 셀프서비스</div>
+        <div class="flow-row">
+          <a class="flow-node" href="#rpt09"><span class="fn-id">RPT-09</span><span class="fn-name">Report Center 🗂</span><span class="fn-ko">리포트 센터</span><span class="fn-tag">카탈로그·스케줄</span></a>
+          <span class="flow-arr">⟷</span>
+          <a class="flow-node" href="#rpt10"><span class="fn-id">RPT-10</span><span class="fn-name">Report Builder 🛠</span><span class="fn-ko">커스텀 빌더</span><span class="fn-tag">노코드</span></a>
+          <span class="flow-arr">→</span>
+          <a class="flow-node external"><span class="fn-id">Output</span><span class="fn-name">Excel·PDF</span><span class="fn-ko">이메일 발송</span><span class="fn-tag">경영진</span></a>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:14px;margin-top:14px;font-size:9px;color:rgba(255,255,255,.55);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;flex-wrap:wrap;">
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(99,102,241,.16);border:1px solid #a5b4fc;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>RPT 화면</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(212,160,23,.2);border:1px solid #fbbf24;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>⚙ Core (RPT-07 Monthly KPI)</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.3);border-radius:2px;vertical-align:middle;margin-right:4px;"></span>외부 모듈/데이터</span>
+      </div>
+    </div>
+
+    <div class="sec-div" id="kpi"><div class="sd-line"></div><div class="sd-lbl">▼ MODULE KPI · 핵심 지표</div><div class="sd-line"></div></div>
+    <div class="mod-kpi">
+      <div class="kpi-card"><div class="kpi-l">Plan Achievement</div><div class="kpi-v ok">≥95<span style="font-size:14px;color:var(--sub);"> %</span></div><div class="kpi-s">계획 달성율 · RPT-01</div></div>
+      <div class="kpi-card"><div class="kpi-l">On-Time Delivery</div><div class="kpi-v ok">≥98<span style="font-size:14px;color:var(--sub);"> %</span></div><div class="kpi-s">납기 이행율 · RPT-04</div></div>
+      <div class="kpi-card"><div class="kpi-l">Overall Defect Rate</div><div class="kpi-v warn">≤3<span style="font-size:14px;color:var(--sub);"> %</span></div><div class="kpi-s">전체 불량율 · RPT-02</div></div>
+      <div class="kpi-card"><div class="kpi-l">Overall OEE</div><div class="kpi-v warn">≥85<span style="font-size:14px;color:var(--sub);"> %</span></div><div class="kpi-s">전체 설비 효율 · RPT-06</div></div>
+      <div class="kpi-card"><div class="kpi-l">Inventory Turnover</div><div class="kpi-v rpt">≥4.0</div><div class="kpi-s">재고 회전율 · RPT-05</div></div>
+    </div>
+
+    <div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">▼ 10 SCREENS · 화면 설계</div><div class="sd-line"></div></div>
+
+    <!-- RPT-01 -->
+    <div class="screen-card" id="rpt01">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">📅</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">RPT-01</div>
+            <div class="sc-title-en">Daily Production Report</div>
+            <div class="sc-title-ko">일별 생산 실적 보고서 — 라인·품목·WO별 계획 대비 실적</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-1st">1st Dev</span></div>
+        <a class="sc-l3-btn" href="VOL11_RPT01_Daily_Production.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 라인별 막대차트 (계획 대비 실적) + KPI 5종 (계획·양품·달성율·불량율·수율) + 품목·WO별 상세 테이블<span class="ko">FG-07 일 마감 시 자동 생성, 조회 전용. 행 클릭 시 원천 WO·교대 기록 드릴다운, 불량 셀 클릭 시 RPT-02 연동</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">INJ/PNT WO + QC 판정</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">일별 생산 요약</div></div>
+          <div class="qf"><div class="qf-l">🔄 GEN</div><div class="qf-v">Auto @ 일 마감</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">Bar + Table</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Day's manufacturing output by line/item/WO — planned, good, defect, defect rate, yield with shift breakdown. Auto-generated at FG-07 day-end close, read-only.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">라인·품목·WO별 당일 생산 — 계획·양품·불량·불량율·수율 + 교대 분해. FG-07 일 마감 자동 생성, 읽기 전용.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">⚡</div><div class="feat-t">Auto @ Close</div><div class="feat-d">FG-07 일 마감 자동 생성.<span class="ko">BR-RPT-04</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔒</div><div class="feat-t">Read-Only</div><div class="feat-d">FINAL 후 수치 수정 불가.<span class="ko">BR-RPT-05</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔎</div><div class="feat-t">Drill-down</div><div class="feat-d">행 클릭 → WO·교대 상세.<span class="ko">RPT-02 연동</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📊</div><div class="feat-t">Export</div><div class="feat-d">Excel/PDF + 이메일.<span class="ko">조회 메인 문서</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-rpt">BR-RPT-04</a>
+          <a class="br-chip" href="#br-rpt">BR-RPT-05</a>
+          <a class="br-chip" href="#br-rpt">BR-RPT-06</a>
+          <a class="br-chip crit" href="#br-rpt">BR-RPT-07</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- RPT-02 -->
+    <div class="screen-card" id="rpt02">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">📉</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">RPT-02</div>
+            <div class="sc-title-en">Defect Pareto Report</div>
+            <div class="sc-title-ko">불량 파레토 보고서 — 유형·공정별 집중 분석 + CAPA 연계</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL11_RPT02_Defect_Pareto.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 파레토 콤보 차트 (불량 건수 내림차순 막대 + 누적 % 선) + 상세 테이블<span class="ko">누적 80% 도달까지 vital-few 행 황색 강조. 그룹화 축 전환 (유형·공정·라인·품목), 행 클릭 시 QC-05 CAPA 개시</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">QC-02 NG 판정</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">파레토 차트 + 순위</div></div>
+          <div class="qf"><div class="qf-l">🔄 GEN</div><div class="qf-v">On-demand</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">Pareto Combo</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Ranks defects by frequency for a period — descending bars + cumulative % line. Vital few highlighted; each defect type links to QC-05 CAPA.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">기간별 불량을 빈도순 정렬 — 내림차순 막대 + 누적% 선. 핵심 소수 강조, 각 유형은 QC-05 CAPA로 연결.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">📊</div><div class="feat-t">80/20 Analysis</div><div class="feat-d">건수 내림차순 + 누적%.<span class="ko">BR-RPT-08</span></div></div>
+          <div class="feat-item"><div class="feat-ico">⚑</div><div class="feat-t">Vital Few</div><div class="feat-d">누적 80% 행 강조.<span class="ko">BR-RPT-09</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔗</div><div class="feat-t">CAPA Link</div><div class="feat-d">행 클릭 → QC-05 시정조치.<span class="ko">BR-RPT-10</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📐</div><div class="feat-t">Group Axis</div><div class="feat-d">유형·공정·라인·품목 전환.<span class="ko">온디맨드 임의 기간</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-rpt">BR-RPT-08</a>
+          <a class="br-chip" href="#br-rpt">BR-RPT-09</a>
+          <a class="br-chip" href="#br-rpt">BR-RPT-10</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- RPT-03 -->
+    <div class="screen-card" id="rpt03">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">🚚</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">RPT-03</div>
+            <div class="sc-title-en">Daily Shipment Report</div>
+            <div class="sc-title-ko">일별 출하 보고서 — 거래선별 출하 실적 + 납기 이행</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-1st">1st Dev</span></div>
+        <a class="sc-l3-btn" href="VOL11_RPT03_Daily_Shipment.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 거래선(SAV/GEO)별 출하 상세 — 품목·출하량·거래명세서·차량·출발시각·정시/지연 + KPI 5종<span class="ko">FG-07 일 마감 자동 생성. 지연 행 적색 + 사유코드, 행 클릭 시 FG-06 거래명세서 드릴다운</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">FG-06 거래명세서</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">거래선별 출하 요약</div></div>
+          <div class="qf"><div class="qf-l">🔄 GEN</div><div class="qf-v">Auto @ 일 마감</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">KPI + Table</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Day's outbound deliveries per client (SAV/GEO) — item, qty, delivery note, vehicle, on-time/late. Auto-generated at day-end, linked to FG-06.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">거래선(SAV/GEO)별 당일 출고 — 품목·수량·명세서·차량·정시/지연. 일 마감 자동 생성, FG-06 연계.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">⚡</div><div class="feat-t">Auto @ Close</div><div class="feat-d">FG-07 마감 자동 생성.<span class="ko">BR-RPT-11</span></div></div>
+          <div class="feat-item"><div class="feat-ico">⏱</div><div class="feat-t">On-Time Flag</div><div class="feat-d">요청 납기 대비 정시/지연.<span class="ko">RPT-04 집계 원천</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📝</div><div class="feat-t">Late Reason</div><div class="feat-d">지연 사유코드 필수.<span class="ko">BR-RPT-12</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔎</div><div class="feat-t">DN Drill-down</div><div class="feat-d">행 → FG-06 명세서.<span class="ko">BR-RPT-13</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-rpt">BR-RPT-11</a>
+          <a class="br-chip crit" href="#br-rpt">BR-RPT-12</a>
+          <a class="br-chip" href="#br-rpt">BR-RPT-13</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- RPT-04 -->
+    <div class="screen-card" id="rpt04">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">⏱️</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">RPT-04</div>
+            <div class="sc-title-en">On-Time Delivery Rate</div>
+            <div class="sc-title-ko">납기 이행율 — 거래선별 월간 OTD 추이</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL11_RPT04_OnTime_Delivery.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 거래선(SAV/GEO)별 월간 OTD율 + 12개월 추이 막대 (목표 98% 점선) + 전체 지연 건 목록<span class="ko">RPT-03 일별 정시 플래그를 월간 집계. 목표 미달 월 황색, 2개월 연속 미달 시 RPT-07 적색 플래그</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">RPT-03 정시 플래그</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">월간 OTD율 + 추이</div></div>
+          <div class="qf"><div class="qf-l">🔄 GEN</div><div class="qf-v">Monthly</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">Trend Bar</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Monthly On-Time Delivery rate per client/item vs. requested window. Target ≥ 98%. 12-month trend + full late-delivery list with reason codes.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">거래선·품목별 월간 납기 이행율, 요청 납기 대비. 목표 ≥98%. 12개월 추이 + 지연 건 사유코드 목록.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">🎯</div><div class="feat-t">Target 98%</div><div class="feat-d">건수 기준 OTD율 산출.<span class="ko">BR-RPT-14</span></div></div>
+          <div class="feat-item"><div class="feat-ico">⚑</div><div class="feat-t">Below-Target Flag</div><div class="feat-d">목표 미달 월 강조.<span class="ko">BR-RPT-15</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🚨</div><div class="feat-t">Escalation</div><div class="feat-d">2개월 연속 미달 적색.<span class="ko">BR-RPT-16</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📈</div><div class="feat-t">12-Month Trend</div><div class="feat-d">SAV·GEO 별도 추이.<span class="ko">고객 평가 지표</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-rpt">BR-RPT-14</a>
+          <a class="br-chip" href="#br-rpt">BR-RPT-15</a>
+          <a class="br-chip" href="#br-rpt">BR-RPT-16</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- RPT-05 -->
+    <div class="screen-card" id="rpt05">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">🏬</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">RPT-05</div>
+            <div class="sc-title-en">Inventory Status Report</div>
+            <div class="sc-title-ko">재고 현황 보고서 — 월말 품목·창고별 재고 스냅샷</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL11_RPT05_Inventory_Status.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 품목·창고별 기초→입고→출고→기말 흐름 + 기말 금액·회전율 + KPI 5종<span class="ko">월말 마감 시 자동 스냅샷. 기초 = 전월 기말 (연속성), 안전재고 미달 적색 / 부동 재고(90일↑) 황색</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">WH 입출고 트랜잭션</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">월말 재고 스냅샷</div></div>
+          <div class="qf"><div class="qf-l">🔄 GEN</div><div class="qf-v">Auto @ 월 마감</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">KPI + Table</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Month-end stock snapshot per item/warehouse — opening, receipts, issues, closing, value, turnover. Opening = prior closing; safety/slow-moving flagged.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">품목·창고별 월말 재고 스냅샷 — 기초·입고·출고·기말·금액·회전율. 기초 = 전월 기말, 안전재고·부동 플래그.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">🔗</div><div class="feat-t">Continuity</div><div class="feat-d">기초 = 전월 기말 강제.<span class="ko">BR-RPT-17</span></div></div>
+          <div class="feat-item"><div class="feat-ico">⚖</div><div class="feat-t">Reconciliation</div><div class="feat-d">WH 실시간 재고 대사.<span class="ko">BR-RPT-18</span></div></div>
+          <div class="feat-item"><div class="feat-ico">⚑</div><div class="feat-t">Stock Flags</div><div class="feat-d">안전재고·부동(90일) 표시.<span class="ko">BR-RPT-19</span></div></div>
+          <div class="feat-item"><div class="feat-ico">💰</div><div class="feat-t">Valuation</div><div class="feat-d">기말 금액 + 회전율.<span class="ko">재무 평가용</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-rpt">BR-RPT-17</a>
+          <a class="br-chip crit" href="#br-rpt">BR-RPT-18</a>
+          <a class="br-chip" href="#br-rpt">BR-RPT-19</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- RPT-06 -->
+    <div class="screen-card" id="rpt06">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">⚙️</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">RPT-06</div>
+            <div class="sc-title-en">Equipment OEE Report</div>
+            <div class="sc-title-ko">설비 OEE 보고서 — 가용성×성능×품질 분해 추이</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL11_RPT06_Equipment_OEE.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 설비별 OEE = A×P×Q 3요소 분해 테이블 + 12개월 OEE 추이 + 병목 요인 자동 식별<span class="ko">MNT-03 일별 OEE를 월간 집계. OEE 85% 미달 설비 강조, A/P/Q 최저 요소를 Bottleneck으로 자동 태깅</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">MNT-03 일별 OEE</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">설비별 월간 OEE</div></div>
+          <div class="qf"><div class="qf-l">🔄 GEN</div><div class="qf-v">Monthly</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">Trend + Table</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">OEE per machine with A×P×Q breakdown — 12-month trend, bottleneck factor auto-identified. Consolidates MNT-03 daily figures. Target ≥ 85%.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">설비별 OEE의 A×P×Q 분해 — 12개월 추이, 병목 요인 자동 식별. MNT-03 일별 수치 통합. 목표 ≥85%.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">🔢</div><div class="feat-t">A × P × Q</div><div class="feat-d">3요소 곱 = OEE.<span class="ko">BR-RPT-20</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🎯</div><div class="feat-t">Bottleneck</div><div class="feat-d">A/P/Q 최저 요소 태깅.<span class="ko">BR-RPT-21</span></div></div>
+          <div class="feat-item"><div class="feat-ico">⚑</div><div class="feat-t">Below-Target</div><div class="feat-d">OEE 85% 미달 강조.<span class="ko">BR-RPT-22</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📈</div><div class="feat-t">12-Month Trend</div><div class="feat-d">설비별 OEE 추이.<span class="ko">MNT-03 드릴다운</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-rpt">BR-RPT-20</a>
+          <a class="br-chip" href="#br-rpt">BR-RPT-21</a>
+          <a class="br-chip" href="#br-rpt">BR-RPT-22</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- RPT-07 CORE -->
+    <div class="screen-card" id="rpt07">
+      <div class="sc-hdr core">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">⭐</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">RPT-07 · ⚙ CORE</div>
+            <div class="sc-title-en">Monthly KPI Management Dashboard</div>
+            <div class="sc-title-ko">월간 KPI 경영 대시보드 — 전 모듈 핵심 지표 통합 + 경영진 자동 발송</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-core">⚙ Core</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL11_RPT07_Monthly_KPI.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline core">
+          <span class="headline-ico">⭐</span>
+          <div class="headline-t">What you'll see: KPI 5종 (계획 달성·납기·불량율·OEE·재고회전) 각 전월 대비 증감 + 생산·불량 추이 차트 + 개선 필요 상위 3항목 자동 도출<span class="ko">RPT 모듈 종착점 — RPT-01~06·08 전 보고서가 수렴. 월말 자동 생성, 매월 1일 08:00 경영진 PDF 자동 이메일. 개선 항목 클릭 시 원천 보고서 드릴다운</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">RPT-01·02·04·05·06</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">경영 KPI 대시보드</div></div>
+          <div class="qf"><div class="qf-l">🔄 GEN</div><div class="qf-v">Auto + Email</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">Dashboard + PDF</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">The core RPT screen — consolidates every module's headline KPI into one executive page with MoM deltas, charts, and auto-derived top-3 improvement areas. Auto-emailed as PDF to management on the 1st at 08:00.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">RPT 핵심 화면 — 전 모듈 대표 KPI를 단일 경영 페이지로 통합, 전월 대비 증감·차트·개선 상위 3항목 자동 도출. 매월 1일 08:00 경영진 PDF 자동 이메일.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item core"><div class="feat-ico">📊</div><div class="feat-t">5 Core KPI</div><div class="feat-d">단일 권한 보고서 출처.<span class="ko">BR-RPT-24</span></div></div>
+          <div class="feat-item core"><div class="feat-ico">⚑</div><div class="feat-t">Top-3 Auto</div><div class="feat-d">최대 목표갭 자동 도출.<span class="ko">BR-RPT-25</span></div></div>
+          <div class="feat-item core"><div class="feat-ico">📧</div><div class="feat-t">Auto-Email</div><div class="feat-d">매월 1일 08:00 경영진.<span class="ko">BR-RPT-26</span></div></div>
+          <div class="feat-item core"><div class="feat-ico">🔄</div><div class="feat-t">Source-Locked</div><div class="feat-d">원천 FINAL 전 생성 불가.<span class="ko">BR-RPT-23·27</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip crit" href="#br-rpt">BR-RPT-23</a>
+          <a class="br-chip" href="#br-rpt">BR-RPT-24</a>
+          <a class="br-chip" href="#br-rpt">BR-RPT-25</a>
+          <a class="br-chip" href="#br-rpt">BR-RPT-26</a>
+          <a class="br-chip" href="#br-rpt">BR-RPT-27</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- RPT-08 -->
+    <div class="screen-card" id="rpt08">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">📋</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">RPT-08</div>
+            <div class="sc-title-en">Schedule Adherence Report</div>
+            <div class="sc-title-ko">일정 준수율 보고서 — WO 계획 대비 실제 시작·종료</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL11_RPT08_Schedule_Adherence.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: WO별 계획 vs 실제 시작·종료 비교 + 시작·종료 준수율 + 평균 지연 + 6개월 추이<span class="ko">±30분 허용 윈도우 내 ON_SCHEDULE. 지연 WO 사유코드, 사유 분포로 계획 품질 vs 실행 규율 진단</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">PP 계획 + INJ/PNT WO</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">준수율 + 지연 분석</div></div>
+          <div class="qf"><div class="qf-l">🔄 GEN</div><div class="qf-v">Monthly</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">Trend + Table</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Measures how closely production tracked the plan — planned vs. actual start/end per WO, start/end adherence rate, average delay. Target ≥ 90%.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">생산이 계획을 얼마나 따랐는지 측정 — WO별 계획 vs 실제 시작·종료, 시작·종료 준수율, 평균 지연. 목표 ≥90%.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">⏱</div><div class="feat-t">±30m Tolerance</div><div class="feat-d">허용 윈도우 내 정상.<span class="ko">BR-RPT-28</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📝</div><div class="feat-t">Delay Reason</div><div class="feat-d">지연 WO 사유코드 필수.<span class="ko">BR-RPT-29</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔒</div><div class="feat-t">Immutable TS</div><div class="feat-d">계획·실제 시각 불변.<span class="ko">BR-RPT-30</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔍</div><div class="feat-t">Plan Diagnosis</div><div class="feat-d">사유 분포로 원인 진단.<span class="ko">계획 vs 실행</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-rpt">BR-RPT-28</a>
+          <a class="br-chip crit" href="#br-rpt">BR-RPT-29</a>
+          <a class="br-chip" href="#br-rpt">BR-RPT-30</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- RPT-09 -->
+    <div class="screen-card" id="rpt09">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">🗂️</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">RPT-09</div>
+            <div class="sc-title-en">Report Center</div>
+            <div class="sc-title-ko">리포트 센터 — 전 보고서 허브 + 조회 이력 + 스케줄·권한</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-2nd">2nd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL11_RPT09_Report_Center.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 보고서 카탈로그 카드 (전 표준 + 커스텀) + 실행 이력 + 스케줄·이메일 수신자·역할별 권한 설정<span class="ko">모든 A-MES 보고서의 단일 진입점. 과거 인스턴스 재열람, 정기 생성 cron 설정, 역할별 조회·출력 권한 통제</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">RPT-01~08 + 커스텀</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">카탈로그 + 스케줄</div></div>
+          <div class="qf"><div class="qf-l">🔄 GEN</div><div class="qf-v">Hub Screen</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">Catalog Grid</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">Single entry point to every report — catalog, run history, schedule configuration, email recipients, and role-based view/export permissions.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">전 보고서 단일 진입점 — 카탈로그·실행 이력·스케줄 설정·이메일 수신자·역할별 조회/출력 권한.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">🗂</div><div class="feat-t">Catalog</div><div class="feat-d">표준 8종 시스템 등록.<span class="ko">BR-RPT-31</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔐</div><div class="feat-t">View Permission</div><div class="feat-d">역할별 카탈로그 노출.<span class="ko">BR-RPT-32</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📤</div><div class="feat-t">Export Right</div><div class="feat-d">출력·이메일 별도 권한.<span class="ko">BR-RPT-33</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📜</div><div class="feat-t">Run Audit</div><div class="feat-d">전 실행 이력 불변 기록.<span class="ko">BR-RPT-34</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-rpt">BR-RPT-31</a>
+          <a class="br-chip" href="#br-rpt">BR-RPT-32</a>
+          <a class="br-chip" href="#br-rpt">BR-RPT-33</a>
+          <a class="br-chip" href="#br-rpt">BR-RPT-34</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- RPT-10 -->
+    <div class="screen-card" id="rpt10">
+      <div class="sc-hdr">
+        <div class="sc-hdr-l">
+          <div class="sc-icon">🛠️</div>
+          <div class="sc-title-wrap">
+            <div class="sc-id">RPT-10</div>
+            <div class="sc-title-en">Custom Report Builder</div>
+            <div class="sc-title-ko">사용자 정의 리포트 빌더 — 노코드 보고서 설계 도구</div>
+          </div>
+        </div>
+        <div class="sc-tags"><span class="tag t-web">🖥 Web</span><span class="tag t-3rd">3rd Dev</span></div>
+        <a class="sc-l3-btn" href="VOL11_RPT10_Report_Builder.html" title="View L3 detailed spec">📋 L3 Detail →</a>
+      </div>
+      <div class="sc-body">
+        <div class="headline">
+          <span class="headline-ico">👀</span>
+          <div class="headline-t">What you'll see: 4단계 빌더 (데이터소스 → 컬럼 → 그룹/차트 → 실시간 미리보기) + 게시 패널<span class="ko">파워 유저가 IT 지원 없이 자체 보고서 설계. 사전 승인 데이터셋만 노출, 완성 시 RPT-09 카탈로그에 게시</span></div>
+        </div>
+        <div class="qf-grid">
+          <div class="qf"><div class="qf-l">📥 INPUT</div><div class="qf-v">승인 데이터셋</div></div>
+          <div class="qf"><div class="qf-l">📤 OUTPUT</div><div class="qf-v">커스텀 보고서</div></div>
+          <div class="qf"><div class="qf-l">🔄 GEN</div><div class="qf-v">Builder Tool</div></div>
+          <div class="qf"><div class="qf-l">🎨 UI</div><div class="qf-v">4-Step Builder</div></div>
+        </div>
+        <div class="desc-bi">
+          <div><div class="db-lbl">EN · Description</div><div class="db-en">No-code tool — power users pick a data source, select columns, define filters/grouping, choose a chart, and publish to the RPT-09 catalog. Governed by pre-approved datasets.</div></div>
+          <div><div class="db-lbl">KO · 설명</div><div class="db-ko">노코드 도구 — 파워 유저가 데이터소스·컬럼·필터·그룹·차트를 선택해 RPT-09 카탈로그에 게시. 사전 승인 데이터셋으로 통제.</div></div>
+        </div>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="feat-ico">🗃</div><div class="feat-t">Approved Datasets</div><div class="feat-d">원시 테이블 접근 불가.<span class="ko">BR-RPT-35</span></div></div>
+          <div class="feat-item"><div class="feat-ico">🔐</div><div class="feat-t">Column Scope</div><div class="feat-d">역할별 노출 컬럼 제한.<span class="ko">BR-RPT-36</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📤</div><div class="feat-t">Publish Gate</div><div class="feat-d">게시 후 스케줄·공유.<span class="ko">BR-RPT-37</span></div></div>
+          <div class="feat-item"><div class="feat-ico">📋</div><div class="feat-t">Clone Standard</div><div class="feat-d">표준 보고서 복제 시작.<span class="ko">BR-RPT-38</span></div></div>
+        </div>
+        <div class="br-chips">
+          <span class="br-chip-lbl">관련 BR ▸</span>
+          <a class="br-chip" href="#br-rpt">BR-RPT-35</a>
+          <a class="br-chip" href="#br-rpt">BR-RPT-36</a>
+          <a class="br-chip crit" href="#br-rpt">BR-RPT-37</a>
+          <a class="br-chip" href="#br-rpt">BR-RPT-38</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-div" id="catalog"><div class="sd-line"></div><div class="sd-lbl">▼ REPORT CATALOG · 보고서 카탈로그</div><div class="sd-line"></div></div>
+    <table class="ref-tbl">
+      <thead><tr><th style="width:9%;">ID</th><th style="width:21%;">Report</th><th style="width:13%;">Type</th><th style="width:18%;">Generation</th><th>Source · Consumed By</th></tr></thead>
+      <tbody>
+        <tr><td class="code">RPT-01</td><td>Daily Production · 일별 생산</td><td><span class="pill pill-daily">Daily</span></td><td>Auto @ FG-07 마감</td><td>INJ/PNT WO · QC-02 → RPT-07</td></tr>
+        <tr><td class="code">RPT-02</td><td>Defect Pareto · 불량 파레토</td><td><span class="pill pill-ond">On-demand</span></td><td>사용자 실행</td><td>QC-02 → QC-05 CAPA · RPT-07</td></tr>
+        <tr><td class="code">RPT-03</td><td>Daily Shipment · 일별 출하</td><td><span class="pill pill-daily">Daily</span></td><td>Auto @ FG-07 마감</td><td>FG-06 명세서 → RPT-04 · RPT-07</td></tr>
+        <tr><td class="code">RPT-04</td><td>On-Time Delivery · 납기 이행율</td><td><span class="pill pill-monthly">Monthly</span></td><td>Scheduled (월별)</td><td>RPT-03 플래그 → RPT-07</td></tr>
+        <tr><td class="code">RPT-05</td><td>Inventory Status · 재고 현황</td><td><span class="pill pill-monthly">Monthly</span></td><td>Auto @ 월 마감</td><td>WH 입출고 → RPT-07</td></tr>
+        <tr><td class="code">RPT-06</td><td>Equipment OEE · 설비 OEE</td><td><span class="pill pill-monthly">Monthly</span></td><td>Scheduled (월별)</td><td>MNT-03·06 → RPT-07</td></tr>
+        <tr><td class="code">RPT-07</td><td>Monthly KPI Dashboard ⚙ · 월간 KPI</td><td><span class="pill pill-monthly">Monthly</span></td><td>Auto + Email (1일 08:00)</td><td>RPT-01·02·04·05·06 → 경영진</td></tr>
+        <tr><td class="code">RPT-08</td><td>Schedule Adherence · 일정 준수율</td><td><span class="pill pill-monthly">Monthly</span></td><td>Scheduled (월별)</td><td>PP 계획 · INJ/PNT WO → RPT-07</td></tr>
+        <tr><td class="code">RPT-09</td><td>Report Center · 리포트 센터</td><td><span class="pill pill-tool">Hub</span></td><td>상시 접근</td><td>전 보고서 카탈로그·스케줄·권한</td></tr>
+        <tr><td class="code">RPT-10</td><td>Custom Report Builder · 리포트 빌더</td><td><span class="pill pill-tool">Tool</span></td><td>상시 접근</td><td>승인 데이터셋 → RPT-09 게시</td></tr>
+      </tbody>
+    </table>
+
+    <div class="sec-div" id="br-rpt"><div class="sd-line"></div><div class="sd-lbl">▼ BUSINESS RULES · 업무 규칙 (38건)</div><div class="sd-line"></div></div>
+    <div class="br-wrap">
+      <div class="br-title">RPT Module Business Rules · 분석 리포트 모듈 업무 규칙</div>
+      <table class="br-tbl">
+        <thead><tr><th style="width:9%;">Rule ID</th><th style="width:43%;">Rule (EN)</th><th style="width:38%;">규칙 (KO)</th><th style="width:10%;">Action</th></tr></thead>
+        <tbody>
+          <tr class="cat-row"><td colspan="4">① Auto Generation &amp; Triggers · 자동 생성 + 트리거</td></tr>
+          <tr><td class="br-id-c">BR-RPT-01</td><td class="br-en-c">All daily reports are automatically generated when FG-07 day-end close is executed — no manual trigger.</td><td class="br-ko-c">일별 보고서는 FG-07 일 마감 실행 시 자동 생성 — 수동 트리거 없음.</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-04</td><td class="br-en-c">RPT-01 is auto-generated only by FG-07 day-end close; there is no manual generate button.</td><td class="br-ko-c">RPT-01은 FG-07 일 마감으로만 자동 생성 — 수동 생성 버튼 없음.</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-08</td><td class="br-en-c">Pareto bars are always sorted by defect count descending; cumulative % computed in that order.</td><td class="br-ko-c">파레토 막대는 항상 건수 내림차순, 누적%도 그 순서 산출.</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-11</td><td class="br-en-c">RPT-03 is auto-generated by FG-07 day-end close from FG-06 delivery notes only.</td><td class="br-ko-c">RPT-03은 FG-07 마감 시 FG-06 명세서 기준 자동 생성.</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-14</td><td class="br-en-c">OTD rate is count-based — on-time ÷ total deliveries; computed from RPT-03 flags only.</td><td class="br-ko-c">OTD율은 건수 기준 — RPT-03 플래그로만 산출.</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-20</td><td class="br-en-c">OEE is always computed as A × P × Q; the three factors are sourced from MNT-03 daily figures.</td><td class="br-ko-c">OEE는 항상 A×P×Q — 3요소는 MNT-03 일별 수치 출처.</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-28</td><td class="br-en-c">A WO within the ±30-min tolerance window is ON_SCHEDULE; the window is MD-configurable.</td><td class="br-ko-c">±30분 허용 윈도우 내 WO는 ON_SCHEDULE — 윈도우는 MD 설정.</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr class="cat-row"><td colspan="4">② Read-Only &amp; Locking · 읽기 전용 + 잠금</td></tr>
+          <tr><td class="br-id-c">BR-RPT-02</td><td class="br-en-c">Reports generated after day-end close are read-only; reported figures cannot be manually edited.</td><td class="br-ko-c">일 마감 후 생성 보고서는 읽기 전용 — 수치 수동 수정 불가.</td><td><span class="b b-e">Lock</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-05</td><td class="br-en-c">A FINAL report is read-only; source correction requires supervisor day re-open.</td><td class="br-ko-c">FINAL 보고서는 읽기 전용 — 원천 정정은 관리자 일 재오픈 필요.</td><td><span class="b b-e">Lock</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-17</td><td class="br-en-c">Inventory opening balance must equal the prior month's closing — continuity enforced, not editable.</td><td class="br-ko-c">재고 기초는 전월 기말과 일치 강제 — 수정 불가.</td><td><span class="b b-e">Lock</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-30</td><td class="br-en-c">Planned and actual timestamps are immutable in RPT-08; corrections require WO-level edit.</td><td class="br-ko-c">RPT-08의 계획·실제 시각은 불변 — 정정은 WO 단위 수정.</td><td><span class="b b-e">Lock</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-31</td><td class="br-en-c">The 8 standard reports are system-registered and cannot be deleted from the catalog.</td><td class="br-ko-c">표준 8종은 시스템 등록 — 카탈로그에서 삭제 불가.</td><td><span class="b b-e">Lock</span></td></tr>
+          <tr class="cat-row"><td colspan="4">③ Calculation Integrity · 계산 정합성</td></tr>
+          <tr><td class="br-id-c">BR-RPT-07</td><td class="br-en-c">Plan, good, and defect totals must reconcile with WO results; a mismatch blocks FINAL.</td><td class="br-ko-c">계획·양품·불량 합계는 WO 실적과 정합 — 불일치 시 FINAL 차단.</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-13</td><td class="br-en-c">Shipped qty must equal the sum of FG-06 delivery note quantities; a mismatch raises an alert.</td><td class="br-ko-c">출하 수량은 FG-06 명세서 수량 합계와 일치 — 불일치 시 경고.</td><td><span class="b b-w">Flag</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-18</td><td class="br-en-c">If RPT-05 closing does not reconcile with WH live stock, month-end close is blocked.</td><td class="br-ko-c">RPT-05 기말이 WH 실시간 재고와 불일치 시 월말 마감 차단.</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-21</td><td class="br-en-c">The lowest of A/P/Q is auto-tagged as the bottleneck factor for improvement prioritization.</td><td class="br-ko-c">A/P/Q 최저 요소를 병목으로 자동 태깅 — 개선 우선순위.</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-24</td><td class="br-en-c">Each KPI is sourced from a single authoritative report; RPT-07 never recomputes raw transactions.</td><td class="br-ko-c">각 KPI는 단일 권한 보고서 출처 — RPT-07은 원천 트랜잭션 재계산 안 함.</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-25</td><td class="br-en-c">Top-3 improvement areas are auto-derived from the largest normalized target gaps; not editable.</td><td class="br-ko-c">개선 상위 3항목은 최대 목표갭 자동 도출 — 수동 편집 불가.</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr class="cat-row"><td colspan="4">④ Flags &amp; Escalation · 플래그 + 에스컬레이션</td></tr>
+          <tr><td class="br-id-c">BR-RPT-06</td><td class="br-en-c">Item rows with defect rate ≥ 3% are highlighted; total ≥ 3% raises a flag on RPT-07.</td><td class="br-ko-c">불량율 ≥3% 품목 행 강조, 전체 ≥3%는 RPT-07 플래그.</td><td><span class="b b-w">Flag</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-09</td><td class="br-en-c">Pareto rows within cumulative 80% are flagged vital-few and highlighted for CAPA priority.</td><td class="br-ko-c">누적 80% 이내 행은 vital-few 플래그·강조 — CAPA 우선순위.</td><td><span class="b b-w">Flag</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-15</td><td class="br-en-c">Months with OtdRate below target are flagged; the data itself is never adjusted.</td><td class="br-ko-c">목표 미달 월은 플래그 — 데이터 자체는 보정 안 함.</td><td><span class="b b-w">Flag</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-16</td><td class="br-en-c">Two consecutive below-target OTD months trigger a red flag on RPT-07 for management review.</td><td class="br-ko-c">2개월 연속 OTD 미달 시 RPT-07 적색 플래그 — 경영 검토.</td><td><span class="b b-w">Escalate</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-19</td><td class="br-en-c">Items below safety stock or with no movement &gt; 90 days are auto-flagged for review.</td><td class="br-ko-c">안전재고 미달 또는 90일 무이동 품목 자동 플래그.</td><td><span class="b b-w">Flag</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-22</td><td class="br-en-c">Machines with OEE below the 85% target are highlighted; persistent under-target flags RPT-07.</td><td class="br-ko-c">OEE 85% 미달 설비 강조, 지속 미달 시 RPT-07 플래그.</td><td><span class="b b-w">Flag</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-27</td><td class="br-en-c">If a source report is unlocked/re-generated, RPT-07 reverts to DRAFT and must be re-finalized.</td><td class="br-ko-c">원천 보고서가 잠금 해제·재생성되면 RPT-07은 DRAFT로 되돌아가 재확정 필요.</td><td><span class="b b-w">Revert</span></td></tr>
+          <tr class="cat-row"><td colspan="4">⑤ Email &amp; Dispatch · 이메일 + 발송</td></tr>
+          <tr><td class="br-id-c">BR-RPT-03</td><td class="br-en-c">RPT-07 Monthly KPI Dashboard is auto-emailed to management on the 1st of each month at 08:00.</td><td class="br-ko-c">RPT-07 월간 KPI는 매월 1일 08:00 경영진에게 자동 이메일.</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-26</td><td class="br-en-c">The dashboard PDF is auto-emailed to configured management recipients via the SYS email queue.</td><td class="br-ko-c">대시보드 PDF는 SYS 이메일 큐로 설정 경영진에게 자동 발송.</td><td><span class="b b-i">Auto</span></td></tr>
+          <tr class="cat-row"><td colspan="4">⑥ Validation &amp; Linkage · 검증 + 연계</td></tr>
+          <tr><td class="br-id-c">BR-RPT-10</td><td class="br-en-c">Initiating CAPA from a Pareto row passes defect type + period to QC-05 and records CapaRefID back.</td><td class="br-ko-c">파레토 행에서 CAPA 개시 시 불량유형·기간을 QC-05에 전달, CapaRefID 역기록.</td><td><span class="b b-i">Link</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-12</td><td class="br-en-c">A LATE shipment line without a reason code blocks FINAL close until the code is entered.</td><td class="br-ko-c">사유코드 없는 LATE 출하 라인은 사유 입력 전까지 FINAL 마감 차단.</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-23</td><td class="br-en-c">RPT-07 cannot be generated before all source reports (RPT-01~06, 08) are FINAL.</td><td class="br-ko-c">RPT-07은 원천 보고서(RPT-01~06,08) 전체 FINAL 전 생성 불가.</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-29</td><td class="br-en-c">A LATE WO requires a DelayReasonCode; the adherence report cannot finalize with a missing code.</td><td class="br-ko-c">LATE WO는 지연 사유코드 필수 — 누락 시 준수율 보고서 확정 불가.</td><td><span class="b b-e">Block</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-37</td><td class="br-en-c">A custom report must be published to RPT-09 before it can be scheduled or shared.</td><td class="br-ko-c">커스텀 보고서는 RPT-09 게시 후에만 스케줄·공유 가능.</td><td><span class="b b-e">Block</span></td></tr>
+          <tr class="cat-row"><td colspan="4">⑦ Catalog &amp; Builder Governance · 카탈로그 + 빌더 거버넌스</td></tr>
+          <tr><td class="br-id-c">BR-RPT-32</td><td class="br-en-c">A report is visible in the catalog only if the user's role is in its ViewRoleSet.</td><td class="br-ko-c">사용자 역할이 ViewRoleSet에 있을 때만 카탈로그에 표시.</td><td><span class="b b-e">Restrict</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-33</td><td class="br-en-c">Export / email dispatch requires ExportRoleSet membership, separate from view rights.</td><td class="br-ko-c">출력·이메일 발송은 조회와 별개의 ExportRoleSet 권한 필요.</td><td><span class="b b-e">Restrict</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-34</td><td class="br-en-c">All report runs (auto, scheduled, on-demand) are logged with actor and timestamp; history is immutable.</td><td class="br-ko-c">전 실행(자동·정기·온디맨드)은 주체·시각 기록 — 이력 불변.</td><td><span class="b b-i">Audit</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-35</td><td class="br-en-c">The builder exposes only pre-approved datasets; raw table access is never available.</td><td class="br-ko-c">빌더는 사전 승인 데이터셋만 노출 — 원시 테이블 접근 불가.</td><td><span class="b b-e">Restrict</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-36</td><td class="br-en-c">Columns visible in a dataset are scoped to the user's role; restricted columns are hidden.</td><td class="br-ko-c">데이터셋 노출 컬럼은 사용자 역할 범위 — 제한 컬럼 숨김.</td><td><span class="b b-e">Restrict</span></td></tr>
+          <tr><td class="br-id-c">BR-RPT-38</td><td class="br-en-c">The 8 standard reports cannot be edited in the builder; they may be cloned as a starting point.</td><td class="br-ko-c">표준 8종은 빌더에서 편집 불가 — 복제 후 시작점으로만 사용.</td><td><span class="b b-w">Clone</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.11 · RPT Analytics &amp; Reports · UI Design Spec v2.0 · Bilingual EN/KO</div><div class="pf-r">10 Screens · 38 BR · Web · 1st–3rd Dev</div></div>
 </div>
-<div class="page-footer"><div class="pf-l">A-MES · VOL.11 · RPT Analytics & Reports · UI Design Spec v1.0 · Bilingual EN/KO</div><div class="pf-r">8 Reports · Web · 1st–2nd Dev</div></div>
-</div></div></body></html>
+</div>
+</body>
+</html>
