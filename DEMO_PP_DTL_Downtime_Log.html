@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PP-DTL Downtime Log Entry · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+.scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
+.sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
+.sh-tt{flex:1;}
+.sh-en{font-size:16px;font-weight:800;color:#fff;}
+.sh-ko{font-size:11px;color:rgba(255,255,255,.5);}
+.sh-tag{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+.sh-live{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.sh-live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.toolbar{background:#fff;border-bottom:1px solid var(--bd);padding:9px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
+.fld{display:flex;flex-direction:column;gap:2px;}
+.fld label{font-size:8px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;}
+select,input{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink);}
+.btn{padding:6px 13px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-p{background:var(--pp);color:#fff;}.btn-p:hover{background:var(--pp-dk);}
+.btn-s{background:#f6f8fa;color:var(--ink);border-color:var(--bd);}.btn-s:hover{background:#eef1f5;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+.body{flex:1;overflow-y:auto;padding:16px 24px 40px;}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px;}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:12px 14px;border-left:3px solid var(--c);}
+.kpi .kv{font-size:24px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;color:var(--c);}
+.kpi .kl{font-size:10px;color:var(--sub);margin-top:4px;}
+.grid2{display:grid;grid-template-columns:340px 1fr;gap:14px;}
+.card{background:#fff;border:1px solid var(--bd);border-radius:8px;overflow:hidden;}
+.card-t{font-size:12px;font-weight:800;color:var(--pp);padding:11px 14px;border-bottom:1px solid var(--bd);background:#f0fdf4;display:flex;align-items:center;gap:6px;}
+.form{padding:14px;}
+.ff{margin-bottom:11px;}
+.ff label{display:block;font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:4px;}
+.ff label .req{color:#dc2626;}
+.ff select,.ff input,.ff textarea{width:100%;}
+.ff textarea{padding:6px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:inherit;resize:vertical;min-height:52px;}
+.ff2{display:flex;gap:9px;}
+.ff2>div{flex:1;}
+.seg{display:flex;border:1px solid var(--bd);border-radius:6px;overflow:hidden;}
+.seg button{flex:1;padding:7px;font-size:11px;font-weight:700;border:none;background:#fff;cursor:pointer;font-family:inherit;color:var(--sub);}
+.seg button.on{color:#fff;}
+.seg button.on.pd{background:#f59e0b;}
+.seg button.on.ad{background:#dc2626;}
+.durbox{background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;padding:8px 11px;font-size:11px;display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;}
+.durbox b{font-family:'JetBrains Mono',monospace;font-size:16px;color:var(--pp);}
+table{width:100%;border-collapse:collapse;font-size:11.5px;}
+thead th{background:#f0f3f7;padding:9px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--bd);white-space:nowrap;}
+tbody td{padding:8px 9px;border-bottom:1px solid #eef1f5;vertical-align:middle;}
+tbody tr:hover td{background:#f0fdf4;}
+.mono{font-family:'JetBrains Mono',monospace;font-size:10px;}
+.dt-tag{display:inline-block;font-size:9px;font-weight:700;padding:2px 8px;border-radius:9px;}
+.dt-pd{background:#fef3c7;color:#92400e;}.dt-ad{background:#fee2e2;color:#991b1b;}
+.st-open{color:#dc2626;font-weight:800;}
+.st-done{color:#10b981;font-weight:700;}
+.empty{padding:26px;text-align:center;color:#9ca3af;}
+.ov{position:fixed;inset:0;background:rgba(3,20,14,.55);display:none;align-items:center;justify-content:center;z-index:100;}
+.ov.on{display:flex;}
+.modal{background:#fff;border-radius:10px;width:400px;max-width:94vw;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.4);}
+.modal-h{background:linear-gradient(135deg,#03251a,#052e1f);color:#fff;padding:13px 18px;display:flex;align-items:center;gap:10px;}
+.modal-h .mt{font-size:14px;font-weight:800;flex:1;}
+.modal-h .mx{cursor:pointer;font-size:18px;color:rgba(255,255,255,.6);}
+.modal-b{padding:18px;}
+.modal-f{padding:12px 18px;background:#f6f8fa;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end;}
+.drow{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed #eef1f5;font-size:12px;}
+.drow .dk{color:var(--sub);}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#fff;border-radius:8px;padding:11px 15px;box-shadow:0 8px 26px rgba(0,0,0,.22);border-left:4px solid var(--pp);font-size:12px;min-width:250px;max-width:380px;animation:ti .25s ease;}
+.toast.err{border-left-color:#dc2626;}.toast.warn{border-left-color:#f59e0b;}.toast.info{border-left-color:#2563eb;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:var(--sub);font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="scr-head">
+  <div class="sh-id">PP-DTL</div>
+  <div class="sh-tt"><div class="sh-en">Downtime Log Entry</div><div class="sh-ko">비가동 로그 입력 — 라인 정지 사유·시간 기록 및 조치</div></div>
+  <span class="sh-tag">/pp/dtl</span>
+  <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
+</div>
+<div class="toolbar">
+  <div class="fld"><label>일자 Date</label>
+    <select id="fDate" onchange="render()"><option>2026-05-20 (수)</option><option>2026-05-19 (화)</option></select></div>
+  <div class="fld"><label>라인 Line</label>
+    <select id="fLine" onchange="render()"><option value="">전체 All</option><option>SAV-INJ-01</option><option>SAV-INJ-02</option><option>SAV-ASSY-01</option><option>SAV-PNT-01</option></select></div>
+  <div class="fld"><label>구분 Type</label>
+    <select id="fType" onchange="render()"><option value="">전체</option><option value="pd">계획</option><option value="ad">비계획</option></select></div>
+  <button class="btn btn-s btn-sm" onclick="resetFilter()">↺ 초기화</button>
+  <div style="margin-left:auto;"><button class="btn btn-s" onclick="exportCsv()">📥 Export</button></div>
+</div>
+<div class="body">
+  <div class="kpis">
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kCnt">0</div><div class="kl">금일 등록 건 · Entries</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kMin">0</div><div class="kl">누계 비가동 시간 · 분</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kOpen">0</div><div class="kl">진행 중 · Open</div></div>
+    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kTop">-</div><div class="kl">최다 사유 · Top Cause</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-t">📝 신규 비가동 등록</div>
+      <div class="form">
+        <div class="ff"><label>비가동 구분 <span class="req">*</span></label>
+          <div class="seg" id="segType">
+            <button type="button" class="ad on" data-ty="ad" onclick="pickType('ad')">비계획 정지</button>
+            <button type="button" class="pd" data-ty="pd" onclick="pickType('pd')">계획 정지</button>
+          </div></div>
+        <div class="ff"><label>대상 라인 <span class="req">*</span></label>
+          <select id="eLine"><option>SAV-INJ-01</option><option>SAV-INJ-02</option><option>SAV-ASSY-01</option><option>SAV-PNT-01</option></select></div>
+        <div class="ff"><label>사유 <span class="req">*</span></label>
+          <select id="eReason"></select></div>
+        <div class="ff ff2">
+          <div><label>시작 시각 <span class="req">*</span></label><input type="time" id="eStart" value="13:30" onchange="calcDur()"></div>
+          <div><label>종료 시각</label><input type="time" id="eEnd" value="14:10" onchange="calcDur()"></div>
+        </div>
+        <div class="durbox"><span>지속 시간</span><b id="eDur">40분</b></div>
+        <div class="ff"><label>조치 내용</label>
+          <textarea id="eAction" placeholder="원인·조치 사항을 입력하세요 (예: 히터 교체 후 재가동)"></textarea></div>
+        <div class="ff"><label>작업자</label>
+          <select id="eWorker"><option>김성호</option><option>박주니어</option><option>한지원</option><option>서민재</option><option>정비반</option></select></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-s" style="flex:1;" onclick="clearForm()">지우기</button>
+          <button class="btn btn-p" style="flex:2;" onclick="submitLog()">＋ 비가동 로그 등록</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-t">📋 금일 비가동 로그 — <span id="logSub" style="font-weight:400;color:#656d76;">0건</span></div>
+      <table>
+        <thead><tr>
+          <th>No</th><th>라인</th><th>구분</th><th>사유</th>
+          <th>시작</th><th>종료</th><th style="text-align:center;">지속</th>
+          <th>상태</th><th></th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="empty" id="empty" style="display:none;">조건에 맞는 비가동 로그가 없습니다.</div>
+    </div>
+  </div>
+</div>
+
+<!-- close open entry modal -->
+<div class="ov" id="ovClose">
+  <div class="modal">
+    <div class="modal-h"><span class="mt">비가동 종료 처리</span><span class="mx" onclick="closeOv('ovClose')">✕</span></div>
+    <div class="modal-b">
+      <div id="clInfo" style="margin-bottom:12px;"></div>
+      <div class="ff"><label>종료 시각 <span style="color:#dc2626;">*</span></label>
+        <input type="time" id="clEnd" value="14:30"></div>
+      <div class="ff"><label>조치 내용</label>
+        <textarea id="clAction" placeholder="조치 사항 입력"></textarea></div>
+    </div>
+    <div class="modal-f">
+      <button class="btn btn-s" onclick="closeOv('ovClose')">취소</button>
+      <button class="btn btn-p" onclick="confirmClose()">종료 처리</button>
+    </div>
+  </div>
+</div>
+<!-- detail modal -->
+<div class="ov" id="ovDetail">
+  <div class="modal">
+    <div class="modal-h"><span class="mt">비가동 로그 상세</span><span class="mx" onclick="closeOv('ovDetail')">✕</span></div>
+    <div class="modal-b" id="dtBody"></div>
+    <div class="modal-f"><button class="btn btn-p" onclick="closeOv('ovDetail')">확인</button></div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+var REASONS={
+  ad:['설비 고장','금형 파손','자재 결품','품질 이상','전원 차단','안전 사고','기타'],
+  pd:['금형 교환','정기 PM','부스 청소','윤활·급유','교대 점검','계획 휴무','기타']
+};
+var entryType='ad';
+var LOG=[
+ {id:1,line:'SAV-PNT-01',ty:'pd',reason:'라인 예열',s:'06:00',e:'07:00',action:'설비 예열 정상 완료',worker:'서민재'},
+ {id:2,line:'SAV-INJ-02',ty:'pd',reason:'금형 교환',s:'09:50',e:'10:25',action:'MOLDING-05 금형 → GRILLE-02 교환',worker:'정비반'},
+ {id:3,line:'SAV-ASSY-01',ty:'pd',reason:'교대 점검',s:'11:30',e:'12:00',action:'주야 교대 안전 점검',worker:'한지원'},
+ {id:4,line:'SAV-PNT-01',ty:'pd',reason:'부스 청소',s:'13:00',e:'13:40',action:'도장 부스 분진 제거',worker:'서민재'},
+ {id:5,line:'SAV-INJ-02',ty:'ad',reason:'설비 고장',s:'13:46',e:'',action:'',worker:'정비반'}
+];
+var seq=6;
+function dur(s,e){
+  if(!e)return null;
+  var a=s.split(':'),b=e.split(':');
+  var m=(+b[0]*60+ +b[1])-(+a[0]*60+ +a[1]);
+  return m<0?m+1440:m;
+}
+function pickType(t){
+  entryType=t;
+  document.querySelectorAll('#segType button').forEach(function(b){b.classList.toggle('on',b.dataset.ty===t);});
+  fillReasons();
+}
+function fillReasons(){
+  document.getElementById('eReason').innerHTML=REASONS[entryType].map(function(r){return '<option>'+r+'</option>';}).join('');
+}
+function calcDur(){
+  var d=dur(document.getElementById('eStart').value,document.getElementById('eEnd').value);
+  document.getElementById('eDur').textContent=(d==null)?'진행 중':(d+'분');
+}
+function submitLog(){
+  var line=document.getElementById('eLine').value;
+  var reason=document.getElementById('eReason').value;
+  var s=document.getElementById('eStart').value;
+  var e=document.getElementById('eEnd').value;
+  var action=document.getElementById('eAction').value.trim();
+  var worker=document.getElementById('eWorker').value;
+  if(!s){toast('err','입력 오류','시작 시각은 필수 항목입니다.');return;}
+  if(e&&dur(s,e)<=0){toast('err','시간 오류','종료 시각이 시작 시각보다 빠릅니다.');return;}
+  if(e&&dur(s,e)>720){toast('warn','시간 확인','지속 시간이 12시간을 초과합니다. 입력값을 확인하세요.');}
+  LOG.push({id:seq++,line:line,ty:entryType,reason:reason,s:s,e:e,action:action,worker:worker});
+  render();clearForm();
+  toast('','비가동 로그 등록',line+' 「'+reason+'」 '+s+(e?'~'+e:' (진행 중)')+' 기록을 저장했습니다.');
+}
+function clearForm(){
+  document.getElementById('eStart').value='';document.getElementById('eEnd').value='';
+  document.getElementById('eAction').value='';document.getElementById('eDur').textContent='진행 중';
+}
+function render(){
+  var fl=document.getElementById('fLine').value,ft=document.getElementById('fType').value;
+  var rows=LOG.filter(function(r){return (!fl||r.line===fl)&&(!ft||r.ty===ft);});
+  /* KPI from all today */
+  var totMin=0,open=0,cnt={};
+  LOG.forEach(function(r){
+    var d=dur(r.s,r.e);
+    if(d!=null)totMin+=d;else open++;
+    cnt[r.reason]=(cnt[r.reason]||0)+1;
+  });
+  document.getElementById('kCnt').textContent=LOG.length;
+  document.getElementById('kMin').textContent=totMin;
+  document.getElementById('kOpen').textContent=open;
+  var top='-',mx=0;for(var k in cnt)if(cnt[k]>mx){mx=cnt[k];top=k;}
+  document.getElementById('kTop').textContent=top;
+  document.getElementById('kTop').style.fontSize=top.length>5?'15px':'19px';
+  /* table */
+  var h='';
+  rows.forEach(function(r,i){
+    var d=dur(r.s,r.e);
+    h+='<tr><td class="mono">'+('0'+r.id).slice(-2)+'</td>'+
+      '<td class="mono" style="font-weight:700;">'+r.line+'</td>'+
+      '<td><span class="dt-tag '+(r.ty==='ad'?'dt-ad':'dt-pd')+'">'+(r.ty==='ad'?'비계획':'계획')+'</span></td>'+
+      '<td style="cursor:pointer;" onclick="detail('+r.id+')">'+r.reason+'</td>'+
+      '<td class="mono">'+r.s+'</td>'+
+      '<td class="mono">'+(r.e||'—')+'</td>'+
+      '<td style="text-align:center;font-family:JetBrains Mono,monospace;font-weight:700;">'+(d==null?'—':d+'분')+'</td>'+
+      '<td>'+(d==null?'<span class="st-open">● 진행 중</span>':'<span class="st-done">✓ 종료</span>')+'</td>'+
+      '<td>'+(d==null
+        ?'<button class="btn btn-p btn-sm" onclick="openClose('+r.id+')">종료 처리</button>'
+        :'<button class="btn btn-s btn-sm" onclick="detail('+r.id+')">상세</button>')+'</td></tr>';
+  });
+  document.getElementById('tbody').innerHTML=h;
+  document.getElementById('empty').style.display=rows.length?'none':'block';
+  document.getElementById('logSub').textContent=rows.length+'건'+(open?' · 진행 중 '+open:'');
+}
+function byId(id){return LOG.filter(function(r){return r.id===id;})[0];}
+function openClose(id){
+  var r=byId(id);
+  document.getElementById('clInfo').innerHTML=
+    '<div class="drow"><span class="dk">라인</span><b>'+r.line+'</b></div>'+
+    '<div class="drow"><span class="dk">사유</span><b>'+r.reason+'</b></div>'+
+    '<div class="drow"><span class="dk">시작 시각</span><b>'+r.s+'</b></div>';
+  document.getElementById('ovClose').dataset.id=id;
+  closeOv('ovDetail');openOv('ovClose');
+}
+function confirmClose(){
+  var id=+document.getElementById('ovClose').dataset.id,r=byId(id);
+  var e=document.getElementById('clEnd').value;
+  if(!e){toast('err','입력 오류','종료 시각을 입력하세요.');return;}
+  if(dur(r.s,e)<=0){toast('err','시간 오류','종료 시각이 시작 시각보다 빠릅니다.');return;}
+  r.e=e;r.action=document.getElementById('clAction').value.trim()||r.action;
+  closeOv('ovClose');render();
+  toast('',r.line+' 종료 처리','비가동 '+dur(r.s,e)+'분으로 마감 처리되었습니다.');
+}
+function detail(id){
+  var r=byId(id),d=dur(r.s,r.e);
+  document.getElementById('dtBody').innerHTML=
+    '<div class="drow"><span class="dk">로그 No</span><b>'+('0'+r.id).slice(-2)+'</b></div>'+
+    '<div class="drow"><span class="dk">라인</span><b>'+r.line+'</b></div>'+
+    '<div class="drow"><span class="dk">구분</span><b>'+(r.ty==='ad'?'비계획 정지':'계획 정지')+'</b></div>'+
+    '<div class="drow"><span class="dk">사유</span><b>'+r.reason+'</b></div>'+
+    '<div class="drow"><span class="dk">시간</span><b>'+r.s+' ~ '+(r.e||'진행 중')+'</b></div>'+
+    '<div class="drow"><span class="dk">지속</span><b>'+(d==null?'진행 중':d+'분')+'</b></div>'+
+    '<div class="drow"><span class="dk">작업자</span><b>'+r.worker+'</b></div>'+
+    '<div class="drow" style="border:none;"><span class="dk">조치 내용</span><b style="max-width:230px;text-align:right;">'+(r.action||'—')+'</b></div>';
+  openOv('ovDetail');
+}
+function resetFilter(){
+  document.getElementById('fLine').value='';document.getElementById('fType').value='';
+  render();toast('info','초기화','필터를 초기화했습니다.');
+}
+function exportCsv(){
+  var fl=document.getElementById('fLine').value,ft=document.getElementById('fType').value;
+  var rows=LOG.filter(function(r){return (!fl||r.line===fl)&&(!ft||r.ty===ft);});
+  var csv='No,Line,Type,Reason,Start,End,DurationMin,Status,Worker,Action\n';
+  rows.forEach(function(r){var d=dur(r.s,r.e);
+    csv+=[r.id,r.line,r.ty==='ad'?'비계획':'계획',r.reason,r.s,r.e||'-',d==null?'-':d,
+      d==null?'진행중':'종료',r.worker,'"'+(r.action||'')+'"'].join(',')+'\n';});
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='PP_DTL_DowntimeLog_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  toast('','Export 완료','비가동 로그 '+rows.length+'건을 CSV로 내보냈습니다.');
+}
+function openOv(id){document.getElementById(id).classList.add('on');}
+function closeOv(id){document.getElementById(id).classList.remove('on');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='warn'?'⚠ ':type==='info'?'ℹ ':'✅ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},4400);
+}
+fillReasons();calcDur();render();
+</script>
+</body>
+</html>
