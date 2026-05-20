@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>MNT-01 Equipment Card · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+.scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
+.sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
+.sh-tt{flex:1;}
+.sh-en{font-size:16px;font-weight:800;color:#fff;}
+.sh-ko{font-size:11px;color:rgba(255,255,255,.5);}
+.sh-tag{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+.sh-live{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.sh-live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.toolbar{background:#fff;border-bottom:1px solid var(--bd);padding:9px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
+.fld{display:flex;flex-direction:column;gap:2px;}
+.fld label{font-size:8px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;}
+select,input{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink);}
+.btn{padding:6px 13px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-p{background:var(--pp);color:#fff;}.btn-p:hover{background:var(--pp-dk);}
+.btn-s{background:#f6f8fa;color:var(--ink);border-color:var(--bd);}.btn-s:hover{background:#eef1f5;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+.body{flex:1;overflow-y:auto;padding:16px 24px 40px;}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:16px;}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:12px 14px;border-left:3px solid var(--c);}
+.kpi .kv{font-size:24px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;color:var(--c);}
+.kpi .kl{font-size:10px;color:var(--sub);margin-top:4px;}
+.grid2{display:grid;grid-template-columns:1.25fr 1fr;gap:14px;}
+.card{background:#fff;border:1px solid var(--bd);border-radius:8px;overflow:hidden;}
+.card-t{font-size:12px;font-weight:800;color:var(--pp);padding:11px 14px;border-bottom:1px solid var(--bd);background:#f0fdf4;display:flex;align-items:center;gap:6px;}
+table{width:100%;border-collapse:collapse;font-size:11.5px;}
+thead th{background:#f0f3f7;padding:9px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--bd);white-space:nowrap;}
+tbody td{padding:9px 9px;border-bottom:1px solid #eef1f5;}
+tbody tr{cursor:pointer;}
+tbody tr:hover td{background:#f0fdf4;}
+tbody tr.sel td{background:#ecfdf5;}
+.mono{font-family:'JetBrains Mono',monospace;font-size:10px;}
+.st{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;padding:2px 8px;border-radius:9px;}
+.st .dot{width:6px;height:6px;border-radius:50%;}
+.st-run{background:#d1fae5;color:#065f46;}.st-run .dot{background:#10b981;}
+.st-mnt{background:#dbeafe;color:#1e40af;}.st-mnt .dot{background:#3b82f6;}
+.st-fail{background:#fee2e2;color:#991b1b;}.st-fail .dot{background:#dc2626;}
+.st-idle{background:#f3f4f6;color:#4b5563;}.st-idle .dot{background:#9ca3af;}
+/* detail */
+.eq-head{padding:14px;border-bottom:1px solid #eef1f5;display:flex;align-items:flex-start;gap:12px;}
+.eq-ph{width:56px;height:56px;border-radius:10px;background:linear-gradient(160deg,#10b981,#047857);color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;}
+.eq-nm{font-size:15px;font-weight:800;}
+.eq-id{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--sub);}
+.specs{padding:6px 14px;}
+.srow{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed #eef1f5;font-size:12px;}
+.srow .sk{color:var(--sub);}
+.srow .sv{font-weight:700;}
+.pmbox{margin:10px 14px;background:#f0fdf4;border:1px solid #a7f3d0;border-radius:7px;padding:10px 12px;}
+.pmrow{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;}
+.pmrow b{font-family:'JetBrains Mono',monospace;}
+.hist{padding:4px 14px 14px;}
+.hist-t{font-size:10px;font-weight:800;color:var(--sub);margin:8px 0 4px;text-transform:uppercase;}
+.hi{display:flex;gap:8px;font-size:11px;padding:5px 0;border-bottom:1px dashed #eef1f5;}
+.hi .hd{font-family:'JetBrains Mono',monospace;color:var(--sub);font-size:10px;width:64px;flex-shrink:0;}
+.hi .ht{flex:1;}
+.hi .hc{font-size:8px;padding:1px 6px;border-radius:7px;background:#eef1f5;color:#4b5563;height:fit-content;}
+.empty{padding:40px;text-align:center;color:#9ca3af;}
+.ov{position:fixed;inset:0;background:rgba(3,20,14,.55);display:none;align-items:center;justify-content:center;z-index:100;}
+.ov.on{display:flex;}
+.modal{background:#fff;border-radius:10px;width:440px;max-width:94vw;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.4);}
+.modal-h{background:linear-gradient(135deg,#03251a,#052e1f);color:#fff;padding:13px 18px;display:flex;align-items:center;gap:10px;}
+.modal-h .mt{font-size:14px;font-weight:800;flex:1;}
+.modal-h .mx{cursor:pointer;font-size:18px;color:rgba(255,255,255,.6);}
+.modal-b{padding:18px;}
+.ff{margin-bottom:11px;}
+.ff label{display:block;font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:4px;}
+.ff label .req{color:#dc2626;}
+.ff select,.ff input{width:100%;}
+.ff2{display:flex;gap:9px;}.ff2>div{flex:1;}
+.modal-f{padding:12px 18px;background:#f6f8fa;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#fff;border-radius:8px;padding:11px 15px;box-shadow:0 8px 26px rgba(0,0,0,.22);border-left:4px solid var(--pp);font-size:12px;min-width:250px;max-width:380px;animation:ti .25s ease;}
+.toast.err{border-left-color:#dc2626;}.toast.warn{border-left-color:#f59e0b;}.toast.info{border-left-color:#2563eb;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:var(--sub);font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="scr-head">
+  <div class="sh-id">MNT-01</div>
+  <div class="sh-tt"><div class="sh-en">Equipment Card</div><div class="sh-ko">설비 카드 — 설비 마스터 대장 등록·조회</div></div>
+  <span class="sh-tag">/mnt/equipment</span>
+  <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
+</div>
+<div class="toolbar">
+  <div class="fld"><label>설비 유형 Type</label>
+    <select id="fType" onchange="apply()"><option value="">전체 All</option><option>사출기</option><option>조립설비</option><option>도장설비</option><option>검사기</option><option>유틸리티</option></select></div>
+  <div class="fld"><label>상태 Status</label>
+    <select id="fStat" onchange="apply()"><option value="">전체</option><option value="run">가동</option><option value="mnt">정비 중</option><option value="fail">고장</option><option value="idle">대기</option></select></div>
+  <div class="fld"><label>검색 Search</label>
+    <input id="fKw" placeholder="설비명·코드" oninput="apply()" style="width:150px;"></div>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <button class="btn btn-p" onclick="openNew()">＋ 신규 설비</button>
+    <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
+  </div>
+</div>
+<div class="body">
+  <div class="kpis">
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">총 설비 · Equipment</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kRun">0</div><div class="kl">가동 · Running</div></div>
+    <div class="kpi" style="--c:#3b82f6"><div class="kv" id="kMnt">0</div><div class="kl">정비 중 · Maintenance</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kFail">0</div><div class="kl">고장 · Failure</div></div>
+    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kAge">0y</div><div class="kl">평균 사용 연수 · Age</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-t">🏭 설비 목록 — <span id="listSub" style="font-weight:400;color:#656d76;">0대</span></div>
+      <table>
+        <thead><tr><th>설비 코드</th><th>설비명</th><th>유형</th><th>라인</th><th>상태</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="empty" id="empty" style="display:none;">조건에 맞는 설비가 없습니다.</div>
+    </div>
+    <div class="card" id="detail"><div class="empty">← 좌측 목록에서 설비를 선택하세요.</div></div>
+  </div>
+</div>
+
+<!-- new equipment modal -->
+<div class="ov" id="ovNew">
+  <div class="modal">
+    <div class="modal-h"><span class="mt">신규 설비 등록</span><span class="mx" onclick="closeOv('ovNew')">✕</span></div>
+    <div class="modal-b">
+      <div class="ff"><label>설비명 <span class="req">*</span></label><input id="nNm" placeholder="예: 사출기 3호기"></div>
+      <div class="ff2">
+        <div class="ff"><label>유형 <span class="req">*</span></label>
+          <select id="nType"><option>사출기</option><option>조립설비</option><option>도장설비</option><option>검사기</option><option>유틸리티</option></select></div>
+        <div class="ff"><label>설치 라인</label>
+          <select id="nLine"><option>SAV-INJ-01</option><option>SAV-INJ-02</option><option>SAV-ASSY-01</option><option>SAV-PNT-01</option><option>공통</option></select></div>
+      </div>
+      <div class="ff2">
+        <div class="ff"><label>제조사 Maker</label><input id="nMaker" placeholder="예: LS Mtron"></div>
+        <div class="ff"><label>모델 Model</label><input id="nModel" placeholder="예: LGE-650"></div>
+      </div>
+      <div class="ff2">
+        <div class="ff"><label>설치일 <span class="req">*</span></label><input type="date" id="nDate" value="2026-05-20"></div>
+        <div class="ff"><label>정격 능력 Capacity</label><input id="nCap" placeholder="예: 650 Ton"></div>
+      </div>
+    </div>
+    <div class="modal-f">
+      <button class="btn btn-s" onclick="closeOv('ovNew')">취소</button>
+      <button class="btn btn-p" onclick="addEq()">＋ 등록</button>
+    </div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+var ST={run:{ko:'가동',cls:'st-run'},mnt:{ko:'정비 중',cls:'st-mnt'},fail:{ko:'고장',cls:'st-fail'},idle:{ko:'대기',cls:'st-idle'}};
+var ICON={'사출기':'🏭','조립설비':'🔧','도장설비':'🎨','검사기':'🔬','유틸리티':'⚙️'};
+var EQ=[
+ {id:'EQ-INJ-001',nm:'사출기 1호기',type:'사출기',line:'SAV-INJ-01',maker:'LS Mtron',model:'LGE-650',date:'2019-03-12',cap:'650 Ton',st:'run',
+  lastPM:'2026-04-22',nextPM:'2026-06-22',hist:[['2026-04-22','정기 PM — 유압유 교체','PM'],['2026-02-08','히터밴드 교체','수리'],['2025-11-15','정기 PM','PM']]},
+ {id:'EQ-INJ-002',nm:'사출기 2호기',type:'사출기',line:'SAV-INJ-02',maker:'LS Mtron',model:'LGE-850',date:'2020-07-01',cap:'850 Ton',st:'fail',
+  lastPM:'2026-04-30',nextPM:'2026-06-30',hist:[['2026-05-20','구동모터 과열 고장 발생','고장'],['2026-04-30','정기 PM','PM'],['2026-01-20','형개 실린더 점검','수리']]},
+ {id:'EQ-ASY-001',nm:'조립 1라인 컨베이어',type:'조립설비',line:'SAV-ASSY-01',maker:'한성ENG',model:'CV-2400',date:'2021-02-18',cap:'24 m/min',st:'run',
+  lastPM:'2026-05-02',nextPM:'2026-07-02',hist:[['2026-05-02','정기 PM — 벨트 장력 조정','PM'],['2025-12-11','구동 베어링 교체','수리']]},
+ {id:'EQ-ASY-002',nm:'토크 체결기 #1',type:'조립설비',line:'SAV-ASSY-01',maker:'AtlasCopco',model:'TBP-30',date:'2022-09-05',cap:'30 Nm',st:'mnt',
+  lastPM:'2026-05-15',nextPM:'2026-07-15',hist:[['2026-05-19','토크 캘리브레이션 진행 중','정비'],['2026-05-15','정기 PM','PM']]},
+ {id:'EQ-PNT-001',nm:'도장 부스 1라인',type:'도장설비',line:'SAV-PNT-01',maker:'대원코팅',model:'PB-Line-A',date:'2018-11-30',cap:'18 unit/h',st:'run',
+  lastPM:'2026-04-10',nextPM:'2026-06-10',hist:[['2026-04-10','정기 PM — 필터 교체','PM'],['2026-03-02','분사노즐 교체','수리']]},
+ {id:'EQ-INS-001',nm:'비전 검사기 #1',type:'검사기',line:'SAV-ASSY-01',maker:'코그넥스',model:'VX-700',date:'2023-04-22',cap:'1200 pcs/h',st:'run',
+  lastPM:'2026-05-08',nextPM:'2026-08-08',hist:[['2026-05-08','정기 PM — 렌즈 세정','PM'],['2026-02-14','조명 LED 교체','수리']]},
+ {id:'EQ-UTL-001',nm:'공기압축기 #1',type:'유틸리티',line:'공통',maker:'한신기계',model:'AC-75kW',date:'2017-06-10',cap:'75 kW',st:'idle',
+  lastPM:'2026-03-28',nextPM:'2026-06-28',hist:[['2026-03-28','정기 PM — 오일 교체','PM'],['2025-10-05','드라이어 점검','수리']]},
+ {id:'EQ-UTL-002',nm:'냉각수 칠러 #1',type:'유틸리티',line:'공통',maker:'센추리',model:'CH-40RT',date:'2020-01-15',cap:'40 RT',st:'run',
+  lastPM:'2026-04-18',nextPM:'2026-07-18',hist:[['2026-04-18','정기 PM — 냉매 충전','PM']]}
+];
+var selId=null,seq=3;
+function age(d){var y=2026-(+d.slice(0,4));return y;}
+function vis(){
+  var ft=document.getElementById('fType').value,fs=document.getElementById('fStat').value;
+  var kw=document.getElementById('fKw').value.trim().toLowerCase();
+  return EQ.filter(function(e){
+    if(ft&&e.type!==ft)return false;
+    if(fs&&e.st!==fs)return false;
+    if(kw&&(e.nm.toLowerCase().indexOf(kw)<0&&e.id.toLowerCase().indexOf(kw)<0))return false;
+    return true;});
+}
+function apply(){
+  document.getElementById('kTot').textContent=EQ.length;
+  document.getElementById('kRun').textContent=EQ.filter(function(e){return e.st==='run';}).length;
+  document.getElementById('kMnt').textContent=EQ.filter(function(e){return e.st==='mnt';}).length;
+  document.getElementById('kFail').textContent=EQ.filter(function(e){return e.st==='fail';}).length;
+  var ages=EQ.map(function(e){return age(e.date);});
+  document.getElementById('kAge').textContent=(Math.round(ages.reduce(function(a,b){return a+b;},0)/ages.length*10)/10)+'y';
+  renderList();
+}
+function renderList(){
+  var v=vis(),h='';
+  v.forEach(function(e){
+    h+='<tr class="'+(selId===e.id?'sel':'')+'" onclick="pickEq(\''+e.id+'\')">'+
+      '<td class="mono" style="font-weight:700;">'+e.id+'</td>'+
+      '<td>'+e.nm+'</td><td>'+e.type+'</td><td class="mono">'+e.line+'</td>'+
+      '<td><span class="st '+ST[e.st].cls+'"><span class="dot"></span>'+ST[e.st].ko+'</span></td></tr>';
+  });
+  document.getElementById('tbody').innerHTML=h;
+  document.getElementById('empty').style.display=v.length?'none':'block';
+  document.getElementById('listSub').textContent=v.length+'대';
+}
+function pickEq(id){selId=id;renderList();renderDetail();}
+function renderDetail(){
+  var e=EQ.filter(function(x){return x.id===selId;})[0];
+  if(!e){document.getElementById('detail').innerHTML='<div class="empty">← 좌측 목록에서 설비를 선택하세요.</div>';return;}
+  var overdue=e.nextPM<'2026-05-20';
+  var specs=[
+    ['설비 유형',e.type],['설치 라인',e.line],['제조사',e.maker],['모델',e.model],
+    ['설치일',e.date+' ('+age(e.date)+'년 경과)'],['정격 능력',e.cap]
+  ];
+  var h='<div class="card-t">📇 설비 카드 상세</div>'+
+    '<div class="eq-head"><div class="eq-ph">'+ICON[e.type]+'</div>'+
+      '<div style="flex:1;"><div class="eq-nm">'+e.nm+'</div><div class="eq-id">'+e.id+'</div>'+
+      '<div style="margin-top:6px;"><span class="st '+ST[e.st].cls+'"><span class="dot"></span>'+ST[e.st].ko+'</span></div></div></div>'+
+    '<div class="specs">'+specs.map(function(s){
+      return '<div class="srow"><span class="sk">'+s[0]+'</span><span class="sv">'+s[1]+'</span></div>';}).join('')+'</div>'+
+    '<div class="pmbox"><div class="pmrow"><span>최근 PM</span><b>'+e.lastPM+'</b></div>'+
+      '<div class="pmrow"><span>차기 PM 예정</span><b style="color:'+(overdue?'#dc2626':'#059669')+'">'+e.nextPM+(overdue?' ⚠ 지연':'')+'</b></div></div>'+
+    '<div class="hist"><div class="hist-t">정비 이력 ('+e.hist.length+'건)</div>'+
+      e.hist.map(function(hh){
+        return '<div class="hi"><span class="hd">'+hh[0].slice(5)+'</span><span class="ht">'+hh[1]+'</span><span class="hc">'+hh[2]+'</span></div>';
+      }).join('')+'</div>';
+  document.getElementById('detail').innerHTML=h;
+}
+function openNew(){
+  document.getElementById('nNm').value='';document.getElementById('nMaker').value='';
+  document.getElementById('nModel').value='';document.getElementById('nCap').value='';
+  openOv('ovNew');
+}
+function addEq(){
+  var nm=document.getElementById('nNm').value.trim();
+  if(!nm){toast('err','입력 오류','설비명은 필수 항목입니다.');return;}
+  var date=document.getElementById('nDate').value;
+  if(!date){toast('err','입력 오류','설치일은 필수 항목입니다.');return;}
+  var type=document.getElementById('nType').value;
+  var pfx={'사출기':'INJ','조립설비':'ASY','도장설비':'PNT','검사기':'INS','유틸리티':'UTL'}[type];
+  var id='EQ-'+pfx+'-'+('00'+seq++).slice(-3);
+  EQ.push({id:id,nm:nm,type:type,line:document.getElementById('nLine').value,
+    maker:document.getElementById('nMaker').value||'-',model:document.getElementById('nModel').value||'-',
+    date:date,cap:document.getElementById('nCap').value||'-',st:'idle',
+    lastPM:'-',nextPM:'미정',hist:[[date,'설비 신규 등록','등록']]});
+  closeOv('ovNew');selId=id;apply();renderDetail();
+  toast('','설비 등록 완료',id+' 「'+nm+'」 설비가 대장에 등록되었습니다. (상태: 대기)');
+}
+function exportCsv(){
+  var v=vis();
+  var csv='EquipID,Name,Type,Line,Maker,Model,InstallDate,Capacity,Status,LastPM,NextPM\n';
+  v.forEach(function(e){
+    csv+=[e.id,e.nm,e.type,e.line,e.maker,e.model,e.date,e.cap,ST[e.st].ko,e.lastPM,e.nextPM].join(',')+'\n';});
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='MNT_Equipment_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  toast('','Export 완료','설비 '+v.length+'대를 CSV로 내보냈습니다.');
+}
+function resetAll(){
+  document.getElementById('fType').value='';document.getElementById('fStat').value='';
+  document.getElementById('fKw').value='';apply();
+  toast('info','초기화','설비 목록 필터를 초기화했습니다.');
+}
+function openOv(id){document.getElementById(id).classList.add('on');}
+function closeOv(id){document.getElementById(id).classList.remove('on');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='warn'?'⚠ ':type==='info'?'ℹ ':'✅ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},4400);
+}
+apply();
+</script>
+</body>
+</html>
