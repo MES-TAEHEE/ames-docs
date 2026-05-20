@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.11 · RPT-05 · Inventory Status Report · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--rpt:#6366f1;--mod:#6366f1;--mod-lt:#e0e7ff;--mod-dk:#4338ca;--mod-tint:#a5b4fc;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(165,180,252,.7);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#1e1b4b 0%,#181442 50%,#1e1b4b 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(99,102,241,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(99,102,241,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(99,102,241,.05) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(99,102,241,.16),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(99,102,241,.35);color:var(--mod-tint);background:rgba(99,102,241,.1);}
+.meta-chip.core{border-color:rgba(212,160,23,.45);color:#fbbf24;background:rgba(212,160,23,.15);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod-dk);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#eff6ff;border-color:#3b82f6;}
+.lnk-node.cur{background:linear-gradient(135deg,#1e1b4b,#181442);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(99,102,241,.25);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#1d4ed8;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);}
+.dm-pk{color:#f59e0b;font-size:8px;font-weight:700;}.dm-fk{color:#8b5cf6;font-size:8px;font-weight:700;}
+.web-mock{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.web-tbar{background:#f0f3f7;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);font-size:11px;}
+.web-tbar-l{font-weight:700;color:var(--text);}
+.web-tbar .bc{color:var(--sub);font-size:10px;margin-left:8px;}
+.web-tbar-r{font-size:10px;color:var(--sub);}
+.web-bd{padding:18px;background:#fbfcfd;}
+.web-card{background:#fff;border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:12px;}
+.web-card-h{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px;display:flex;justify-content:space-between;}
+.flt-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid var(--border);border-radius:6px;padding:9px 12px;margin-bottom:12px;}
+.flt{font-size:10px;border:1px solid var(--border);border-radius:4px;padding:4px 9px;background:#f6f8fa;color:var(--text);}
+.flt b{color:var(--mod-dk);}
+.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:12px;background:#fff;}
+.kc{flex:1;padding:10px 12px;border-right:1px solid var(--border);}
+.kc:last-child{border-right:none;}
+.kv{font-size:21px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
+.kl-en{font-size:9px;color:var(--sub);margin-top:3px;}.kl-ko{font-size:8px;color:rgba(101,109,118,.7);}
+.tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;}
+.tbl th{background:#f0f3f7;padding:7px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.tbl td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:top;}
+.tbl tr:last-child td{border-bottom:none;}.tbl tfoot td{background:#f0f3f7;font-weight:800;}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.b-ok{background:#dcfce7;color:#166534;}.b-w{background:#fef9c3;color:#92400e;}.b-e{background:#fee2e2;color:#991b1b;}.b-i{background:#e0e7ff;color:#3730a3;}
+.btn{padding:7px 14px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;}
+.btn-primary{background:var(--mod);border-color:var(--mod-dk);color:#fff;}
+.legend{display:flex;gap:14px;font-size:9px;color:var(--sub);margin-top:6px;}
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol active"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL11_RPT_Reports.html">VOL.11 · RPT</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">RPT-05 · Inventory Status Report</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.11 · RPT · L3</div><div class="sb-mod-en">REPORTS</div><div class="sb-mod-ko">분석 리포트</div></div>
+  <div class="sb-section">Production · 생산</div>
+  <a class="sb-link" href="VOL11_RPT01_Daily_Production.html"><span class="sl-id">RPT-01</span><div><div class="sl-en">Daily Production</div><div class="sl-ko">일별 생산 실적</div></div></a>
+  <a class="sb-link" href="VOL11_RPT02_Defect_Pareto.html"><span class="sl-id">RPT-02</span><div><div class="sl-en">Defect Pareto</div><div class="sl-ko">불량 파레토</div></div></a>
+  <a class="sb-link" href="VOL11_RPT06_Equipment_OEE.html"><span class="sl-id">RPT-06</span><div><div class="sl-en">Equipment OEE</div><div class="sl-ko">설비 OEE</div></div></a>
+  <a class="sb-link" href="VOL11_RPT08_Schedule_Adherence.html"><span class="sl-id">RPT-08</span><div><div class="sl-en">Schedule Adherence</div><div class="sl-ko">일정 준수율</div></div></a>
+  <div class="sb-section">Delivery & Inventory · 출하·재고</div>
+  <a class="sb-link" href="VOL11_RPT03_Daily_Shipment.html"><span class="sl-id">RPT-03</span><div><div class="sl-en">Daily Shipment</div><div class="sl-ko">일별 출하</div></div></a>
+  <a class="sb-link" href="VOL11_RPT04_OnTime_Delivery.html"><span class="sl-id">RPT-04</span><div><div class="sl-en">On-Time Delivery</div><div class="sl-ko">납기 이행율</div></div></a>
+  <a class="sb-link on" href="VOL11_RPT05_Inventory_Status.html"><span class="sl-id">RPT-05</span><div><div class="sl-en">Inventory Status</div><div class="sl-ko">재고 현황</div></div></a>
+  <div class="sb-section">Management & Tools · 경영·도구</div>
+  <a class="sb-link" href="VOL11_RPT07_Monthly_KPI.html"><span class="sl-id">RPT-07</span><div><div class="sl-en">Monthly KPI ⚙</div><div class="sl-ko">월간 KPI 대시보드</div></div></a>
+  <a class="sb-link" href="VOL11_RPT09_Report_Center.html"><span class="sl-id">RPT-09</span><div><div class="sl-en">Report Center</div><div class="sl-ko">리포트 센터</div></div></a>
+  <a class="sb-link" href="VOL11_RPT10_Report_Builder.html"><span class="sl-id">RPT-10</span><div><div class="sl-en">Report Builder</div><div class="sl-ko">리포트 빌더</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
+    <a href="#sec-2"><span class="num">02</span>Field Spec</a>
+    <a href="#sec-3"><span class="num">03</span>Snapshot Logic</a>
+    <a href="#sec-4"><span class="num">04</span>Workflow</a>
+    <a href="#sec-5"><span class="num">05</span>Business Rules</a>
+    <a href="#sec-6"><span class="num">06</span>Data Model</a>
+    <a href="#sec-7"><span class="num">07</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.11 · RPT · L3 · Inventory Status Report</div>
+      <div class="scr-id-block"><div class="scr-id">RPT-05</div><div class="scr-title-en">Inventory Status Report</div></div>
+      <div class="scr-title-ko">재고 현황 보고서 — 월말 품목·창고별 재고 스냅샷</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">UI</span><span class="mc-val">🖥 Web PC</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Class</span><span class="mc-val">Standard Report</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">2nd Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">Warehouse Mgr · Finance</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Trigger</span><span class="mc-val">Auto @ Month-End Close</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          The Inventory Status Report is a <strong>month-end snapshot</strong> of stock per item and warehouse. For each item it shows <strong>opening balance, receipts, issues, closing balance, unit cost, closing value, and inventory turnover</strong>. Opening balance always equals the prior month's closing — providing an audited continuity chain. Items below safety stock and slow-moving items (no movement &gt; 90 days) are flagged. It is auto-generated at month-end close and used by warehouse and finance for valuation and reconciliation. Excel / PDF export supported.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          재고 현황 보고서는 품목·창고별 재고의 <strong>월말 스냅샷</strong>이다. 각 품목에 <strong>기초 재고, 입고, 출고, 기말 재고, 단가, 기말 금액, 재고 회전율</strong>을 표시한다. 기초 재고는 항상 전월 기말과 일치하여 감사 가능한 연속성 체인을 제공한다. 안전재고 미달 품목과 장기 부동 재고(90일 초과 무이동)가 표시된다. 월말 마감 시 자동 생성되며 창고·재무가 평가·대사에 활용한다. Excel/PDF 출력을 지원한다.
+        </div>
+      </div>
+      <div class="alert alert-i"><div><span class="alert-title">📌 Snapshot vs. Live · 스냅샷 vs 실시간</span>RPT-05는 월말 시점의 고정 스냅샷이다. 실시간 재고 조회는 WH 모듈에서 수행하며, RPT-05는 마감·평가·추세 분석용 확정 데이터다. · RPT-05 is a frozen month-end snapshot; live stock lookup is done in the WH module.</div></div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — Web 재고 현황</span></div>
+      <div class="web-mock">
+        <div class="web-tbar">
+          <div class="web-tbar-l">📊 A-MES · Reports · Inventory Status<span class="bc">RPT › Inventory › 2026-04</span></div>
+          <div class="web-tbar-r">WH.Mgr · 10:15</div>
+        </div>
+        <div class="web-bd">
+          <div class="flt-bar">
+            <span class="flt">📅 Month <b>2026-04</b></span>
+            <span class="flt">🏬 Warehouse <b>All</b></span>
+            <span class="flt">📦 Category <b>All</b></span>
+            <span class="flt">⚑ Flag <b>All</b></span>
+            <span style="margin-left:auto;display:flex;gap:6px;">
+              <button class="btn">📊 Excel</button>
+              <button class="btn btn-primary">📄 PDF</button>
+            </span>
+          </div>
+          <div class="kpi-strip">
+            <div class="kc"><div class="kv" style="color:var(--mod-dk);">₩1.84B</div><div class="kl-en">Closing Value</div><div class="kl-ko">기말 재고금액</div></div>
+            <div class="kc"><div class="kv" style="color:#16a34a;">4.2</div><div class="kl-en">Turnover</div><div class="kl-ko">재고 회전율</div></div>
+            <div class="kc"><div class="kv" style="color:#dc2626;">6</div><div class="kl-en">Below Safety</div><div class="kl-ko">안전재고 미달</div></div>
+            <div class="kc"><div class="kv" style="color:#f59e0b;">11</div><div class="kl-en">Slow-Moving</div><div class="kl-ko">부동 재고</div></div>
+            <div class="kc"><div class="kv" style="color:var(--mod-dk);">248</div><div class="kl-en">Item Count</div><div class="kl-ko">품목 수</div></div>
+          </div>
+          <div class="web-card">
+            <div class="web-card-h"><span>▼ INVENTORY DETAIL · 재고 상세 (품목·창고별)</span><span style="color:var(--sub);">기초 = 전월 기말</span></div>
+            <table class="tbl">
+              <thead><tr><th>Item</th><th>Whse</th><th style="text-align:right;">Opening</th><th style="text-align:right;">Receipt</th><th style="text-align:right;">Issue</th><th style="text-align:right;">Closing</th><th style="text-align:right;">Value</th><th>Flag</th></tr></thead>
+              <tbody>
+                <tr><td>Bumper Front A</td><td>FG-WH</td><td style="text-align:right;">820</td><td style="text-align:right;">9,400</td><td style="text-align:right;">9,610</td><td style="text-align:right;">610</td><td style="text-align:right;">₩42.7M</td><td><span class="b b-ok">정상</span></td></tr>
+                <tr><td>Console Box</td><td>FG-WH</td><td style="text-align:right;">540</td><td style="text-align:right;">6,200</td><td style="text-align:right;">6,310</td><td style="text-align:right;">430</td><td style="text-align:right;">₩25.8M</td><td><span class="b b-ok">정상</span></td></tr>
+                <tr style="background:#fef2f2;"><td>Resin PP-Black</td><td>RM-WH</td><td style="text-align:right;">2.1t</td><td style="text-align:right;">8.0t</td><td style="text-align:right;">9.6t</td><td style="text-align:right;">0.5t</td><td style="text-align:right;">₩1.2M</td><td><span class="b b-e">안전재고↓</span></td></tr>
+                <tr style="background:#fffbeb;"><td>Garnish Mold #7</td><td>SP-WH</td><td style="text-align:right;">3</td><td style="text-align:right;">0</td><td style="text-align:right;">0</td><td style="text-align:right;">3</td><td style="text-align:right;">₩8.4M</td><td><span class="b b-w">부동 124일</span></td></tr>
+              </tbody>
+              <tfoot><tr><td colspan="6">TOTAL CLOSING VALUE · 기말 재고금액 합계</td><td style="text-align:right;" colspan="2">₩1.84B</td></tr></tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 UI Highlights · 화면 주요 포인트</span>
+        ① 월말 마감 시 자동 스냅샷 ② KPI 5종 (기말금액·회전율·안전재고미달·부동재고·품목수) ③ 기초→입고→출고→기말 흐름 컬럼 ④ 안전재고 미달 적색 / 부동 재고(90일↑) 황색 강조 ⑤ 창고·카테고리·플래그 필터 ⑥ Excel/PDF</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Field Specification</span><span class="sec-ko">필드 사양</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:22%;">Field</th><th style="width:14%;">Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">InvReportID</td><td class="fld-type">VARCHAR(24)</td><td>RPT05-YYYYMM.</td></tr>
+          <tr><td class="fld-name">ReportMonth</td><td class="fld-type">CHAR(7)</td><td>스냅샷 대상 월.</td></tr>
+          <tr><td class="fld-name">ItemID · WarehouseID</td><td class="fld-type">VARCHAR(20)</td><td>품목 / 창고 (집계 키).</td></tr>
+          <tr><td class="fld-name">OpeningQty</td><td class="fld-type">DECIMAL</td><td>기초 재고 = 전월 ClosingQty.</td></tr>
+          <tr><td class="fld-name">ReceiptQty · IssueQty</td><td class="fld-type">DECIMAL</td><td>당월 입고 / 출고 수량.</td></tr>
+          <tr><td class="fld-name">ClosingQty</td><td class="fld-type">DECIMAL</td><td>기말 = Opening + Receipt − Issue.</td></tr>
+          <tr><td class="fld-name">UnitCost · ClosingValue</td><td class="fld-type">DECIMAL</td><td>단가 / 기말 금액 = Closing × UnitCost.</td></tr>
+          <tr><td class="fld-name">TurnoverRate</td><td class="fld-type">DECIMAL(5,2)</td><td>회전율 = 연환산 출고 ÷ 평균 재고.</td></tr>
+          <tr><td class="fld-name">SafetyStockFlag</td><td class="fld-type">BOOLEAN</td><td>ClosingQty &lt; SafetyStock → TRUE.</td></tr>
+          <tr><td class="fld-name">SlowMovingFlag</td><td class="fld-type">BOOLEAN</td><td>무이동 &gt; 90일 → TRUE + 일수.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Snapshot Logic</span><span class="sec-ko">스냅샷 산출 로직</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:26%;">Element</th><th>Logic · 산출 로직</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Opening</strong></td><td>전월 RPT-05 ClosingQty를 그대로 상속 — 연속성 보장. 첫 월은 초기 실사값.</td></tr>
+          <tr><td><strong>Receipt / Issue</strong></td><td>당월 WH 입출고 트랜잭션 합계 (입고·생산입고·출하·소비).</td></tr>
+          <tr><td><strong>Closing</strong></td><td>Closing = Opening + Receipt − Issue. WH 실시간 재고와 대사 검증.</td></tr>
+          <tr><td><strong>Value</strong></td><td>ClosingValue = ClosingQty × UnitCost (이동평균 단가).</td></tr>
+          <tr><td><strong>Turnover</strong></td><td>회전율 = (당월 출고 × 12) ÷ ((Opening + Closing) ÷ 2).</td></tr>
+          <tr><td><strong>Freeze</strong></td><td>월말 마감 시 스냅샷 동결 — 이후 수정 불가, 다음 달 Opening의 근거.</td></tr>
+        </tbody>
+      </table>
+      <div class="alert alert-i"><div><span class="alert-title">⚙ Reconciliation · 대사 검증</span>마감 시 RPT-05 Closing 합계와 WH 실시간 재고가 일치하지 않으면 마감이 차단된다. 차이 발생 시 WH 재고 실사·조정 후 재마감한다. · A mismatch between RPT-05 closing and WH live stock blocks the close.</div></div>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">During the month, WH receipt/issue transactions accumulate per item and warehouse.</div><div class="wf-ko">한 달 동안 WH 입출고 트랜잭션이 품목·창고별 누적된다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">At month-end close, RPT-05 snapshot job runs: Opening inherited, Receipt/Issue summed, Closing computed.</div><div class="wf-ko">월말 마감 시 RPT-05 스냅샷 작업 수행: 기초 상속, 입출고 합산, 기말 산출.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Closing totals are reconciled against WH live stock; a mismatch blocks the close.</div><div class="wf-ko">기말 합계를 WH 실시간 재고와 대사 — 불일치 시 마감 차단.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Safety-stock and slow-moving flags are evaluated and the snapshot is frozen.</div><div class="wf-ko">안전재고·부동재고 플래그 평가 후 스냅샷 동결.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Report becomes available in RPT-09; finance uses closing value for monthly valuation.</div><div class="wf-ko">보고서가 RPT-09에 등록되고, 재무가 기말 금액으로 월간 평가를 수행한다.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-RPT-17</td><td><div>Opening balance must equal the prior month's closing — continuity is enforced, not editable.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">기초 재고는 전월 기말과 일치 강제 — 수정 불가.</div></td><td><span class="br-act blk">Lock</span></td></tr>
+          <tr><td class="br-id">BR-RPT-18</td><td><div>If RPT-05 closing does not reconcile with WH live stock, month-end close is blocked.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">RPT-05 기말이 WH 실시간 재고와 불일치 시 월말 마감 차단.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-RPT-19</td><td><div>Items below safety stock or with no movement &gt; 90 days are auto-flagged for review.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">안전재고 미달 또는 90일 무이동 품목 자동 플래그.</div></td><td><span class="br-act alt">Flag</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Table</th><th>Key Columns</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">RPT_InventorySnapshot</span></td><td><span class="dm-pk">PK</span> InvReportID · ReportMonth · <span class="dm-fk">FK</span> ItemID · <span class="dm-fk">FK</span> WarehouseID · OpeningQty · ReceiptQty · IssueQty · ClosingQty · UnitCost · ClosingValue · TurnoverRate · SafetyStockFlag · SlowMovingFlag</td><td>월말 재고 스냅샷.</td></tr>
+          <tr><td><span class="dm-col">WH_StockTxn</span> <em style="opacity:.6;">(source)</em></td><td>TxnID · ItemID · WarehouseID · TxnType · Qty · TxnTS</td><td>WH 입출고 트랜잭션 — 집계 원천.</td></tr>
+          <tr><td><span class="dm-col">WH_StockBalance</span> <em style="opacity:.6;">(reconcile)</em></td><td>ItemID · WarehouseID · LiveQty</td><td>실시간 재고 — 대사 대상.</td></tr>
+          <tr><td><span class="dm-col">MD_Item</span> <em style="opacity:.6;">(reference)</em></td><td>ItemID · SafetyStock · UnitCost</td><td>품목 마스터 — 안전재고·단가.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">WH</div><div class="lnk-name">입출고 트랜잭션</div></div>
+          <div class="lnk-node up"><div class="lnk-id">MD</div><div class="lnk-name">품목 안전재고·단가</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">RPT-05</div><div class="lnk-name">Inventory Status</div><div class="lnk-ko">재고 현황</div></div>
+        </div>
+        <div class="lnk-row" style="margin-top:14px;">
+          <div class="lnk-node cur"><div class="lnk-id">RPT-05</div><div class="lnk-name">→ Feeds</div></div>
+          <div class="lnk-arr">↘</div>
+          <div class="lnk-node down"><div class="lnk-id">RPT-07</div><div class="lnk-name">월간 KPI · 재고 회전율</div></div>
+          <div class="lnk-node down"><div class="lnk-id">RPT-09</div><div class="lnk-name">정기 보고서 등록</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.11 · RPT-05 · Inventory Status Report · L3 Spec v1.0</div><div class="pf-r">Web · Phase 2 · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
