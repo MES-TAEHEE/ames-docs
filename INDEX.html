@@ -404,7 +404,7 @@ select.inp{background:rgba(0,0,0,.3);}
   <div class="ch-sub">Manufacturing Execution System</div>
   <div class="ch-sub-ko">자동차 부품 제조실행시스템 UI 설계서</div>
   <div class="ch-meta">
-    <div class="ch-chip"><span class="ch-chip-l">Version</span><span class="ch-chip-v">3.0</span></div>
+    <div class="ch-chip"><span class="ch-chip-l">Version</span><span class="ch-chip-v">3.1</span></div>
     <div class="ch-chip"><span class="ch-chip-l">Client</span><span class="ch-chip-v">서연이화</span></div>
     <div class="ch-chip"><span class="ch-chip-l">Plant</span><span class="ch-chip-v">SAV / GEO</span></div>
     <div class="ch-chip"><span class="ch-chip-l">Volumes</span><span class="ch-chip-v">VOL.03 – VOL.13</span></div>
@@ -413,11 +413,11 @@ select.inp{background:rgba(0,0,0,.3);}
 <div class="stat-bar">
   <div class="stat-item"><div class="stat-num" style="color:#0891b2">11</div><div class="stat-lbl">Modules / 모듈</div></div>
   <div class="stat-item"><div class="stat-num" style="color:#059669">2</div><div class="stat-lbl">BOP Routings</div></div>
-  <div class="stat-item"><div class="stat-num" style="color:#ea580c">5</div><div class="stat-lbl">Process Steps (PNT)</div></div>
   <div class="stat-item"><div class="stat-num" style="color:#dc2626">3</div><div class="stat-lbl">QC Gates</div></div>
-  <div class="stat-item"><div class="stat-num" style="color:#6366f1">8</div><div class="stat-lbl">Report Types</div></div>
-  <div class="stat-item"><div class="stat-num" style="color:#d97706">7</div><div class="stat-lbl">RBAC Roles</div></div>
-  <div class="stat-item"><div class="stat-num" style="color:#7c3aed">48+</div><div class="stat-lbl">Business Rules</div></div>
+  <div class="stat-item"><div class="stat-num" style="color:#6366f1">10</div><div class="stat-lbl">Report Types</div></div>
+  <div class="stat-item"><div class="stat-num" style="color:#d97706">29</div><div class="stat-lbl">Master Data Entities</div></div>
+  <div class="stat-item"><div class="stat-num" style="color:#475569">7</div><div class="stat-lbl">RBAC Roles</div></div>
+  <div class="stat-item"><div class="stat-num" style="color:#7c3aed">150+</div><div class="stat-lbl">Business Rules</div></div>
 </div>
 <div class="sec-title">Overall Process Flow &nbsp;전체 공정 흐름</div><div class="flow-box"><svg viewBox="0 0 760 80" style="width:100%;max-width:760px;display:block;margin:0 auto"><rect x="12" y="10" width="76" height="44" rx="6" fill="#64748b" opacity="0.9"/><text x="50" y="28" text-anchor="middle" fill="white" font-size="10" font-weight="bold">SCM</text><text x="50" y="44" text-anchor="middle" fill="white" font-size="10" font-weight="bold">(ERP)</text><line x1="88" y1="32" x2="112" y2="32" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/><rect x="112" y="10" width="76" height="44" rx="6" fill="#0891b2" opacity="0.9"/><text x="150" y="28" text-anchor="middle" fill="white" font-size="10" font-weight="bold">WH</text><text x="150" y="44" text-anchor="middle" fill="white" font-size="10" font-weight="bold">창고</text><line x1="188" y1="32" x2="217" y2="32" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/><rect x="217" y="10" width="76" height="44" rx="6" fill="#059669" opacity="0.9"/><text x="255" y="28" text-anchor="middle" fill="white" font-size="10" font-weight="bold">PP</text><text x="255" y="44" text-anchor="middle" fill="white" font-size="10" font-weight="bold">생산계획</text><line x1="293" y1="32" x2="352" y2="32" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/><rect x="352" y="10" width="76" height="44" rx="6" fill="#7c3aed" opacity="0.9"/><text x="390" y="28" text-anchor="middle" fill="white" font-size="10" font-weight="bold">INJ/IMG/PNT</text><text x="390" y="44" text-anchor="middle" fill="white" font-size="10" font-weight="bold">생산공정</text><line x1="428" y1="32" x2="472" y2="32" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/><rect x="472" y="10" width="76" height="44" rx="6" fill="#dc2626" opacity="0.9"/><text x="510" y="28" text-anchor="middle" fill="white" font-size="10" font-weight="bold">QC</text><text x="510" y="44" text-anchor="middle" fill="white" font-size="10" font-weight="bold">품질</text><line x1="548" y1="32" x2="572" y2="32" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/><rect x="572" y="10" width="76" height="44" rx="6" fill="#0db87a" opacity="0.9"/><text x="610" y="28" text-anchor="middle" fill="white" font-size="10" font-weight="bold">FG</text><text x="610" y="44" text-anchor="middle" fill="white" font-size="10" font-weight="bold">완제품</text><line x1="648" y1="32" x2="672" y2="32" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/><rect x="672" y="10" width="76" height="44" rx="6" fill="#0891b2" opacity="0.9"/><text x="710" y="28" text-anchor="middle" fill="white" font-size="10" font-weight="bold">출하</text><defs><marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#475569"/></marker></defs></svg></div><div class="sec-title">BOP Product Routing &nbsp;제품 라우팅</div><div class="flow-box"><div class="rflow-wrap"><div class="rflow-row"><div class="rflow-label"><strong>Routing A</strong><br><span style="font-size:11px;color:#94a3b8">도어트림 / 콘솔어퍼</span></div><div class="rflow-steps"><div class="rf-step" style="--rc:#2563eb">INJ</div><div class="rf-arrow">→</div><div class="rf-step" style="--rc:#2563eb">IMG</div><div class="rf-arrow">→</div><div class="rf-step" style="--rc:#2563eb">QC</div><div class="rf-arrow">→</div><div class="rf-step" style="--rc:#2563eb">FG</div></div></div><div class="rflow-row"><div class="rflow-label"><strong>Routing B</strong><br><span style="font-size:11px;color:#94a3b8">내장 도색 사출품 (TBD)</span></div><div class="rflow-steps"><div class="rf-step" style="--rc:#ea580c">INJ</div><div class="rf-arrow">→</div><div class="rf-step" style="--rc:#ea580c">PNT</div><div class="rf-arrow">→</div><div class="rf-step" style="--rc:#ea580c">QC</div><div class="rf-arrow">→</div><div class="rf-step" style="--rc:#ea580c">FG</div></div></div></div></div><div class="sec-title">Module Index &nbsp;모듈 목록</div><div class="idx-grid">
 <a class="idx-card" href="VOL03_WH_Warehouse.html" style="--c:#0891b2">
@@ -432,7 +432,7 @@ select.inp{background:rgba(0,0,0,.3);}
   <div class="idx-code">PP</div>
   <div class="idx-en">Production Plan</div>
   <div class="idx-ko">생산계획</div>
-  <div class="idx-feat"><span class="idx-feat-en">SCM Order / Work Order / MRP</span><span class="idx-feat-ko">SCM수주·작업지시·MRP 계획</span></div>
+  <div class="idx-feat"><span class="idx-feat-en">Work Order / MRP / Line Schedule / OEE</span><span class="idx-feat-ko">작업지시·MRP·라인스케줄·가동/OEE</span></div>
 </a>
 <a class="idx-card" href="VOL05_INJ_Injection.html" style="--c:#2563eb">
   <div class="idx-badge">VOL05</div>
@@ -481,21 +481,21 @@ select.inp{background:rgba(0,0,0,.3);}
   <div class="idx-code">RPT</div>
   <div class="idx-en">Reports</div>
   <div class="idx-ko">분석리포트</div>
-  <div class="idx-feat"><span class="idx-feat-en">8 Report Types / KPI Dashboard</span><span class="idx-feat-ko">8종리포트·KPI 대시보드</span></div>
+  <div class="idx-feat"><span class="idx-feat-en">10 Reports / Report Center / Builder</span><span class="idx-feat-ko">10종리포트·리포트센터·빌더</span></div>
 </a>
 <a class="idx-card" href="VOL12_SYS_System.html" style="--c:#475569">
   <div class="idx-badge">VOL12</div>
   <div class="idx-code">SYS</div>
   <div class="idx-en">System Admin</div>
   <div class="idx-ko">시스템관리</div>
-  <div class="idx-feat"><span class="idx-feat-en">RBAC 7-Role / Audit Log / Security</span><span class="idx-feat-ko">7역할RBAC·감사로그·보안</span></div>
+  <div class="idx-feat"><span class="idx-feat-en">RBAC 7-Role / Config / Health / Audit</span><span class="idx-feat-ko">7역할RBAC·환경설정·헬스·감사로그</span></div>
 </a>
 <a class="idx-card" href="VOL13_MD_Master_Data.html" style="--c:#d97706">
   <div class="idx-badge">VOL13</div>
   <div class="idx-code">MD</div>
   <div class="idx-en">Master Data</div>
   <div class="idx-ko">기준정보</div>
-  <div class="idx-feat"><span class="idx-feat-en">Phase-0 Setup / BOM / BOP / Routing</span><span class="idx-feat-ko">Phase-0설정·BOM·BOP·라우팅</span></div>
+  <div class="idx-feat"><span class="idx-feat-en">29 Entities / 5 Categories / Table Design</span><span class="idx-feat-ko">29개 엔티티·5카테고리·테이블설계</span></div>
 </a></div><div class="sec-title">Business Rule Overview &nbsp;핵심 업무 규칙</div><div class="flow-box">
 <table class="br-overview">
 <tr><th>Module</th><th>Rule</th><th>규칙 요약</th><th>Action</th></tr>
@@ -514,6 +514,10 @@ select.inp{background:rgba(0,0,0,.3);}
 <tr><td>MNT</td><td>BR-MNT-001</td><td>OEE &lt; 65% 시 설비 점검 알림</td><td>Alert</td></tr>
 <tr><td>SYS</td><td>BR-SYS-001</td><td>로그인 5회 실패 시 계정 잠금</td><td>Lock</td></tr>
 <tr><td>MD</td><td>BR-MD-001</td><td>Phase-0 미완료 품목은 WO 생성 차단</td><td>Block</td></tr>
+<tr><td>MD</td><td>BR-MD-33</td><td>라인 시간패턴 세그먼트는 0~1440분을 빈틈·중첩 없이 분할</td><td>Block</td></tr>
+<tr><td>PP</td><td>BR-PP-031</td><td>WO 블록은 단일 OPERATING 가동창 안에 완전히 배치</td><td>Block</td></tr>
+<tr><td>PP</td><td>BR-PP-035</td><td>계획 가동창 내 설비 정지는 실제 비가동(UNPLANNED) 자동 분류</td><td>Auto</td></tr>
+<tr><td>PP</td><td>BR-PP-042</td><td>OEE = 가용성 × 성능 × 품질, 기간별 스냅샷 저장</td><td>Auto</td></tr>
 </table>
 </div><div class="sec-title">Module Integration &nbsp;모듈 연계</div><div class="flow-box">
 <table class="br-overview">
@@ -528,6 +532,8 @@ select.inp{background:rgba(0,0,0,.3);}
 <tr><td>INJ</td><td>MNT</td><td>Mold Shot Count</td><td>금형 쇼트수 → 설비관리 모니터링</td></tr>
 <tr><td>All</td><td>RPT</td><td>Transaction Data</td><td>전 모듈 데이터 → 리포트 집계</td></tr>
 <tr><td>MD</td><td>All</td><td>Master Data</td><td>기준정보 → 전 모듈에 배포</td></tr>
+<tr><td>MD-29</td><td>PP</td><td>Line Time Pattern</td><td>라인별 분단위 시간패턴 → 스케줄·가동 기준</td></tr>
+<tr><td>PP-ODM</td><td>RPT</td><td>Operating State Log</td><td>가동·비가동 상태 → OEE 가용성 집계</td></tr>
 </table>
 </div></div>
 <div class="page-footer wrap" style="padding-top:20px;padding-bottom:40px;">
