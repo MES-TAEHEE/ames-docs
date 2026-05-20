@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.13 · MD L3-C · Resources & Equipment Masters · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--md:#d97706;--mod:#d97706;--mod-lt:#fef3c7;--mod-dk:#92400e;--mod-tint:#fbbf24;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:30px;flex-shrink:0;color:rgba(251,191,36,.8);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#451a03 0%,#3a1602 50%,#451a03 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(217,119,6,.25);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(217,119,6,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(217,119,6,.06) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(217,119,6,.18),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(217,119,6,.4);color:var(--mod-tint);background:rgba(217,119,6,.12);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod-dk);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.ent{margin-bottom:18px;}
+.ent-hdr{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.ent-id{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod-dk);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.ent-id.new{color:#fff;background:#ea580c;}
+.ent-name{font-size:14px;font-weight:800;color:var(--text);}
+.ent-ko{font-size:11px;color:var(--sub);}
+.ent-new{font-size:8px;font-weight:800;background:#ea580c;color:#fff;padding:1px 6px;border-radius:2px;letter-spacing:.5px;}
+.ent-desc{font-size:11px;color:var(--sub);line-height:1.7;margin-bottom:8px;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.k-pk{color:#dc2626;font-weight:700;font-size:8px;}
+.k-fk{color:#7c3aed;font-weight:700;font-size:8px;}
+.ent-note{font-size:10px;color:var(--sub);margin-top:6px;padding:7px 11px;background:#fffbeb;border:1px solid #fde68a;border-radius:5px;}
+.ent-note strong{color:var(--mod-dk);}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}.br-act.val{background:#ede9fe;color:#5b21b6;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.fld-tbl2{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl2 th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl2 td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl2 tr:last-child td{border-bottom:none;}.fld-tbl2 tr:nth-child(even) td{background:#fafbfd;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:112px;border:2px solid;}
+.lnk-node.up{background:#eff6ff;border-color:#3b82f6;}
+.lnk-node.cur{background:linear-gradient(135deg,#451a03,#3a1602);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(217,119,6,.3);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#1d4ed8;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol active"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL13_MD_Master_Data.html">VOL.13 · MD</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">C · Resources &amp; Equipment Masters</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.13 · MD · L3</div><div class="sb-mod-en">MASTER DATA</div><div class="sb-mod-ko">기준정보 · 카테고리 L3</div></div>
+  <div class="sb-section">5 Category L3 · 카테고리</div>
+  <a class="sb-link" href="VOL13_MD_L3_Foundation.html"><span class="sl-id">A</span><div><div class="sl-en">Foundation</div><div class="sl-ko">기반 · 5</div></div></a>
+  <a class="sb-link" href="VOL13_MD_L3_Production.html"><span class="sl-id">B</span><div><div class="sl-en">Routing &amp; Production</div><div class="sl-ko">라우팅·생산 · 3</div></div></a>
+  <a class="sb-link on" href="VOL13_MD_L3_Resources.html"><span class="sl-id">C</span><div><div class="sl-en">Resources &amp; Equipment</div><div class="sl-ko">자원·설비 · 7</div></div></a>
+  <a class="sb-link" href="VOL13_MD_L3_RFID_Color.html"><span class="sl-id">D</span><div><div class="sl-en">RFID &amp; Materials</div><div class="sl-ko">RFID·자재 · 4</div></div></a>
+  <a class="sb-link" href="VOL13_MD_L3_Quality.html"><span class="sl-id">E</span><div><div class="sl-en">Quality &amp; Logistics</div><div class="sl-ko">품질·물류 · 9</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-2"><span class="num">02</span>Entity Field Specs</a>
+    <a href="#sec-3"><span class="num">03</span>Equipment Thresholds</a>
+    <a href="#sec-4"><span class="num">04</span>Maintenance Workflow</a>
+    <a href="#sec-5"><span class="num">05</span>Business Rules</a>
+    <a href="#sec-6"><span class="num">06</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.13 · MD · L3 · Category C · Resources &amp; Equipment Masters</div>
+      <div class="scr-id-block"><div class="scr-id">MD · C</div><div class="scr-title-en">Resources &amp; Equipment</div></div>
+      <div class="scr-title-ko">자원·설비 마스터 — 거래선·설비·금형·오븐·지그·정비자재·PM 템플릿</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">Entities</span><span class="mc-val">7 · MD-07·08·09·18·15·27·28</span></div>
+        <div class="meta-chip"><span class="mc-lbl">New</span><span class="mc-val">+2 · MD-27·28 (MNT)</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">Phase-0 Mandatory</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Used By</span><span class="mc-val">MNT · INJ · PNT</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          Category C registers the <strong>physical resources</strong> production and maintenance act on. <strong>Vendor (MD-07)</strong> covers material suppliers and the SAV/GEO ship-to customers. <strong>Equipment (MD-08)</strong>, <strong>Mold (MD-09)</strong>, <strong>Oven (MD-18)</strong> and <strong>Jig (MD-15)</strong> are the production assets — each carries the thresholds (shot count, cure spec, thermal cycles) that drive MNT alerts. Two new masters support the now-complete MNT module: <strong>Spare Parts (MD-27)</strong> — the parts catalog with reorder points feeding MNT-08 — and <strong>PM Template (MD-28)</strong> — the preventive-maintenance task templates feeding MNT-05 / MNT-07.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          카테고리 C는 생산·정비가 다루는 <strong>물리적 자원</strong>을 등록한다. <strong>거래선(MD-07)</strong>은 자재 공급사와 SAV/GEO 납품 고객을 포함한다. <strong>설비(MD-08)</strong>·<strong>금형(MD-09)</strong>·<strong>오븐(MD-18)</strong>·<strong>지그(MD-15)</strong>는 생산 자산으로, 각각 MNT 경보를 구동하는 임계값(쇼트수·경화 스펙·열사이클)을 보유한다. 완성된 MNT 모듈을 받치는 신규 마스터 2종: <strong>정비 자재(MD-27)</strong> — 재발주점을 가진 부품 카탈로그로 MNT-08에 공급 — 와 <strong>PM 템플릿(MD-28)</strong> — MNT-05/07에 공급되는 예방정비 작업 템플릿.
+        </div>
+      </div>
+      <div class="alert alert-i"><div><span class="alert-title">📌 Masters Carry Thresholds · 마스터가 임계값을 보유한다</span>설비·금형·오븐·지그 마스터는 단순 등록이 아니라 임계값(금형 100% 쇼트, 오븐 경화 범위, 지그 정격 사이클)을 담는다 — 이 값이 MNT·PNT의 자동 경보·차단 로직을 구동한다. · These masters hold the thresholds that drive MNT/PNT auto-alerts, not just identity data.</div></div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Entity Field Specifications</span><span class="sec-ko">엔티티 필드 사양</span></div>
+
+      <div class="ent">
+        <div class="ent-hdr"><span class="ent-id">MD-07</span><span class="ent-name">Vendor Master</span><span class="ent-ko">거래선 마스터</span></div>
+        <div class="ent-desc">자재 공급사와 납품 고객(SAV·GEO)을 단일 등록. EDI/SCM 연동 정보와 거래선별 납기 목표율을 보유한다.</div>
+        <table class="fld-tbl">
+          <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="fld-name">VendorID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>거래선 코드.</td></tr>
+            <tr><td class="fld-name">VendorName</td><td class="fld-type">VARCHAR(80)</td><td>거래선 명칭.</td></tr>
+            <tr><td class="fld-name">VendorType</td><td class="fld-type">ENUM</td><td>SUPPLIER (공급사) / CUSTOMER (SAV·GEO).</td></tr>
+            <tr><td class="fld-name">ContactPerson · Phone</td><td class="fld-type">VARCHAR</td><td>담당자 / 연락처.</td></tr>
+            <tr><td class="fld-name">SCM_URL · EDIFlag</td><td class="fld-type">VARCHAR · BOOLEAN</td><td>SCM 연동 URL / EDI 사용 여부.</td></tr>
+            <tr><td class="fld-name">OtdTargetRate</td><td class="fld-type">DECIMAL(5,2)</td><td>납기 이행율 목표 (RPT-04, 기본 98%).</td></tr>
+            <tr><td class="fld-name">PaymentTerms</td><td class="fld-type">VARCHAR(30)</td><td>결제 조건.</td></tr>
+            <tr><td class="fld-name">ActiveFlag</td><td class="fld-type">BOOLEAN</td><td>거래 활성 여부.</td></tr>
+          </tbody>
+        </table>
+        <div class="ent-note"><strong>USED BY:</strong> PP (발주) · WH (입고) · FG (출하) · RPT-04 (납기 이행율). Phase-0 순서 ① (최초 입력).</div>
+      </div>
+
+      <div class="ent">
+        <div class="ent-hdr"><span class="ent-id">MD-08</span><span class="ent-name">Equipment Master</span><span class="ent-ko">설비 마스터</span></div>
+        <div class="ent-desc">사출기·감싸기 프레스·도장 로봇·도장부스 등 전 설비. 능력·이론 사이클·OEE 목표·PLC 주소를 보유하며 MNT-01 카드뷰의 기준이다.</div>
+        <table class="fld-tbl">
+          <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="fld-name">EquipID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>설비 코드.</td></tr>
+            <tr><td class="fld-name">EquipName · EquipType</td><td class="fld-type">VARCHAR · ENUM</td><td>설비명 / 유형 (INJ_M·WRAP_P·PNT_ROBOT...).</td></tr>
+            <tr><td class="fld-name">LineID <span class="k-fk">FK</span> · WCID <span class="k-fk">FK</span></td><td class="fld-type">VARCHAR(20)</td><td>소속 라인 → MD-20 / 작업장 → MD-05.</td></tr>
+            <tr><td class="fld-name">MakerModel · InstallDate</td><td class="fld-type">VARCHAR · DATE</td><td>제조사·모델 / 설치일.</td></tr>
+            <tr><td class="fld-name">TheoreticalCycle</td><td class="fld-type">DECIMAL(8,2)</td><td>이론 사이클 타임 — OEE 성능 분모.</td></tr>
+            <tr><td class="fld-name">TargetOEE</td><td class="fld-type">DECIMAL(5,2)</td><td>OEE 목표 (기본 85%, RPT-06).</td></tr>
+            <tr><td class="fld-name">MoldCompatJSON</td><td class="fld-type">JSON</td><td>호환 금형 목록 → MD-09.</td></tr>
+            <tr><td class="fld-name">PlcAddress</td><td class="fld-type">VARCHAR(40)</td><td>PLC 신호 주소 (MNT-01 실시간).</td></tr>
+            <tr><td class="fld-name">Status</td><td class="fld-type">ENUM</td><td>RUN / IDLE / DOWN / PM.</td></tr>
+          </tbody>
+        </table>
+        <div class="ent-note"><strong>USED BY:</strong> MNT-01~09 · INJ · IMG · PNT · RPT-06 (설비 OEE).</div>
+      </div>
+
+      <div class="ent">
+        <div class="ent-hdr"><span class="ent-id">MD-09</span><span class="ent-name">Mold Master</span><span class="ent-ko">금형 마스터</span></div>
+        <div class="ent-desc">금형 자산. 정격·누적 쇼트수, 캐비티 수를 보유 — 90% 경고, 100% 강제 차단 임계 로직을 구동한다.</div>
+        <table class="fld-tbl">
+          <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="fld-name">MoldID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>금형 코드.</td></tr>
+            <tr><td class="fld-name">MoldName</td><td class="fld-type">VARCHAR(50)</td><td>금형 명칭.</td></tr>
+            <tr><td class="fld-name">CompatItemsJSON</td><td class="fld-type">JSON</td><td>호환 품목 목록 → MD-01.</td></tr>
+            <tr><td class="fld-name">RatedShots</td><td class="fld-type">INT</td><td>정격 쇼트 수명.</td></tr>
+            <tr><td class="fld-name">CurrentShots</td><td class="fld-type">INT</td><td>누적 쇼트수 (90%·100% 임계 산정).</td></tr>
+            <tr><td class="fld-name">CavityCount</td><td class="fld-type">INT</td><td>캐비티 수.</td></tr>
+            <tr><td class="fld-name">Tonnage</td><td class="fld-type">INT</td><td>필요 형체력 (톤).</td></tr>
+            <tr><td class="fld-name">StorageLoc · LastMaintDate</td><td class="fld-type">VARCHAR · DATE</td><td>보관 위치 / 최근 정비일.</td></tr>
+            <tr><td class="fld-name">Status</td><td class="fld-type">ENUM</td><td>ACTIVE / MAINT / RETIRED.</td></tr>
+          </tbody>
+        </table>
+        <div class="ent-note"><strong>USED BY:</strong> INJ-06 (금형 교체) · MNT-04 (금형 관리). 쇼트수 100% 도달 시 MNT-07 교체 WO 자동 생성.</div>
+      </div>
+
+      <div class="ent">
+        <div class="ent-hdr"><span class="ent-id">MD-18</span><span class="ent-name">Oven Master</span><span class="ent-ko">오븐 마스터</span></div>
+        <div class="ent-desc">분체도장 경화 오븐. zone별 목표 온도·공차·체류시간을 보유하며 PNT-05 온도 모니터링의 기준이다.</div>
+        <table class="fld-tbl">
+          <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="fld-name">OvenID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>오븐 코드.</td></tr>
+            <tr><td class="fld-name">OvenName · LineID <span class="k-fk">FK</span></td><td class="fld-type">VARCHAR(20)</td><td>오븐명 / 소속 라인 → MD-20.</td></tr>
+            <tr><td class="fld-name">ZoneCount</td><td class="fld-type">INT</td><td>온도 zone 수.</td></tr>
+            <tr><td class="fld-name">TargetTemp</td><td class="fld-type">INT</td><td>목표 경화 온도 (°C, 150~200 범위).</td></tr>
+            <tr><td class="fld-name">Tolerance</td><td class="fld-type">INT</td><td>허용 공차 (±°C) — 이탈 시 PNT-05 경보.</td></tr>
+            <tr><td class="fld-name">DwellSec</td><td class="fld-type">INT</td><td>체류 시간 (초, 5~30분 범위).</td></tr>
+            <tr><td class="fld-name">ConveyorSpeed</td><td class="fld-type">DECIMAL(6,2)</td><td>컨베이어 속도 (m/min).</td></tr>
+            <tr><td class="fld-name">Status</td><td class="fld-type">ENUM</td><td>RUN / IDLE / DOWN.</td></tr>
+          </tbody>
+        </table>
+        <div class="ent-note"><strong>USED BY:</strong> PNT-05 (오븐 모니터링) · MNT. 경화 스펙 범위 강제: 150–200°C, 5–30분 (BR-MD-08).</div>
+      </div>
+
+      <div class="ent">
+        <div class="ent-hdr"><span class="ent-id">MD-15</span><span class="ent-name">Jig Master</span><span class="ent-ko">지그 마스터</span></div>
+        <div class="ent-desc">분체도장용 지그. 행거 수, 호환 품목, 누적 열사이클, 인식 실패율을 보유 — PNT-02 바인딩 로직을 구동한다.</div>
+        <table class="fld-tbl">
+          <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="fld-name">JigID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>지그 코드.</td></tr>
+            <tr><td class="fld-name">JigName · HangerCount</td><td class="fld-type">VARCHAR · INT</td><td>지그명 / 행거 수 (사이클당 캐파).</td></tr>
+            <tr><td class="fld-name">CompatItemsJSON</td><td class="fld-type">JSON</td><td>호환 품목 → MD-01.</td></tr>
+            <tr><td class="fld-name">RatedCycle · CycleCount</td><td class="fld-type">INT</td><td>정격 / 누적 열사이클.</td></tr>
+            <tr><td class="fld-name">ReadFailRate</td><td class="fld-type">DECIMAL(5,2)</td><td>RFID 인식 실패율 (%).</td></tr>
+            <tr><td class="fld-name">HealthStatus</td><td class="fld-type">ENUM</td><td>GOOD / WARN / SERVICE.</td></tr>
+            <tr><td class="fld-name">LastServiceDate · LastUsedTS</td><td class="fld-type">DATE · DATETIME</td><td>최근 점검일 / 최근 사용 시각.</td></tr>
+          </tbody>
+        </table>
+        <div class="ent-note"><strong>USED BY:</strong> PNT-01/02/06. 1개 이상 MAIN 태그(MD-16) 등록 후 PNT-02 바인딩 가능 (BR-MD-05).</div>
+      </div>
+
+      <div class="ent">
+        <div class="ent-hdr"><span class="ent-id new">MD-27</span><span class="ent-name">Spare Parts Master</span><span class="ent-ko">정비 자재 마스터</span><span class="ent-new">NEW</span></div>
+        <div class="ent-desc">정비 자재 카탈로그. 호환 설비, 단가, 안전재고, 재발주점을 보유하며 MNT-08 정비자재 재고와 자동 재발주를 구동한다.</div>
+        <table class="fld-tbl">
+          <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="fld-name">PartNo <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>부품 번호 (SP-xxx).</td></tr>
+            <tr><td class="fld-name">PartName · Category</td><td class="fld-type">VARCHAR</td><td>부품명 / 분류 (유압·전장·소모품...).</td></tr>
+            <tr><td class="fld-name">CompatEquipJSON</td><td class="fld-type">JSON</td><td>호환 설비 목록 → MD-08.</td></tr>
+            <tr><td class="fld-name">UnitCost · UOM <span class="k-fk">FK</span></td><td class="fld-type">DECIMAL · VARCHAR</td><td>단가 / 단위 → MD-13.</td></tr>
+            <tr><td class="fld-name">SafetyStock</td><td class="fld-type">INT</td><td>안전 재고 수준.</td></tr>
+            <tr><td class="fld-name">ReorderPoint</td><td class="fld-type">INT</td><td>재발주점 — 미달 시 MNT-08 자동 재발주.</td></tr>
+            <tr><td class="fld-name">LeadTimeDays</td><td class="fld-type">INT</td><td>조달 리드타임 (일).</td></tr>
+            <tr><td class="fld-name">SupplierID <span class="k-fk">FK</span></td><td class="fld-type">VARCHAR(20)</td><td>공급 거래선 → MD-07.</td></tr>
+            <tr><td class="fld-name">StorageLoc</td><td class="fld-type">VARCHAR(20)</td><td>정비 창고 보관 위치.</td></tr>
+          </tbody>
+        </table>
+        <div class="ent-note"><strong>USED BY:</strong> MNT-07 (WO 소요 자재) · MNT-08 (정비자재 재고). 재고 재발주점 미달 시 자동 재발주 요청 (BR-MD-20).</div>
+      </div>
+
+      <div class="ent">
+        <div class="ent-hdr"><span class="ent-id new">MD-28</span><span class="ent-name">PM Template Master</span><span class="ent-ko">예방정비 템플릿 마스터</span><span class="ent-new">NEW</span></div>
+        <div class="ent-desc">설비 유형별 예방정비 작업 템플릿. 체크리스트, 주기 기준, 소요 자재, 표준 시간을 보유하며 MNT-05 PM 일정과 MNT-07 WO를 구동한다.</div>
+        <table class="fld-tbl">
+          <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="fld-name">PMTemplateID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>PM 템플릿 ID.</td></tr>
+            <tr><td class="fld-name">TemplateName · EquipType</td><td class="fld-type">VARCHAR · ENUM</td><td>템플릿명 / 적용 설비 유형 → MD-08.</td></tr>
+            <tr><td class="fld-name">ChecklistJSON</td><td class="fld-type">JSON</td><td>점검 항목 목록 (순서·기준).</td></tr>
+            <tr><td class="fld-name">CycleBasis</td><td class="fld-type">ENUM</td><td>CALENDAR / RUNTIME / COUNTER.</td></tr>
+            <tr><td class="fld-name">Interval</td><td class="fld-type">INT</td><td>주기 간격 (일·시간·카운트).</td></tr>
+            <tr><td class="fld-name">RequiredPartsJSON</td><td class="fld-type">JSON</td><td>소요 정비 자재 [{partNo, qty}] → MD-27.</td></tr>
+            <tr><td class="fld-name">StdDurationMin</td><td class="fld-type">INT</td><td>표준 작업 소요 시간 (분).</td></tr>
+            <tr><td class="fld-name">SafetyLOTOFlag</td><td class="fld-type">BOOLEAN</td><td>LOTO(잠금·표지) 필요 여부.</td></tr>
+          </tbody>
+        </table>
+        <div class="ent-note"><strong>USED BY:</strong> MNT-05 (PM 일정) · MNT-07 (PM WO 체크리스트). 템플릿 없으면 MNT-05 PM 일정 불가 (BR-MD-21).</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Equipment Thresholds</span><span class="sec-ko">설비 자산 임계값</span></div>
+      <table class="fld-tbl2">
+        <thead><tr><th style="width:18%;">Asset</th><th style="width:24%;">Threshold Field</th><th>Trigger Logic · 트리거 로직</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Mold · 금형</strong></td><td>CurrentShots / RatedShots</td><td>90% → MNT 경고 알림 · 100% → INJ 생산 강제 차단 + MNT-07 교체 WO 자동.</td></tr>
+          <tr><td><strong>Oven · 오븐</strong></td><td>TargetTemp ± Tolerance</td><td>실측 온도가 공차 이탈 → PNT-05 경보 + MNT 정비 WO 자동.</td></tr>
+          <tr><td><strong>Jig · 지그</strong></td><td>CycleCount / RatedCycle</td><td>정격 사이클 초과 → HealthStatus SERVICE 전환, PNT-02 바인딩 제한.</td></tr>
+          <tr><td><strong>Equipment · 설비</strong></td><td>TargetOEE</td><td>실적 OEE &lt; 목표 → RPT-06 강조 · 지속 미달 시 RPT-07 플래그.</td></tr>
+          <tr><td><strong>Spare Part · 정비자재</strong></td><td>StockQty / ReorderPoint</td><td>재고 ≤ 재발주점 → MNT-08 자동 재발주 요청 생성.</td></tr>
+          <tr><td><strong>PM Template · PM</strong></td><td>Interval (Cycle Basis)</td><td>주기 도래(캘린더/가동시간/카운터) → MNT-05 PM 일정 자동, MNT-07 PM WO 생성.</td></tr>
+        </tbody>
+      </table>
+      <div class="alert alert-i"><div><span class="alert-title">⚙ Master → Auto Action · 마스터가 자동 동작을 만든다</span>이 카테고리의 마스터 임계값이 곧 MNT·PNT 모듈의 자동 경보·차단·WO 생성 규칙이다 — 마스터를 정확히 입력해야 운영 자동화가 올바로 작동한다. · The thresholds in these masters are exactly the auto-alert / auto-WO rules of MNT and PNT.</div></div>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Maintenance Workflow</span><span class="sec-ko">마스터 유지보수 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">Vendors are registered first; equipment, molds, ovens and jigs are then loaded with their thresholds.</div><div class="wf-ko">거래선을 먼저 등록한 뒤 설비·금형·오븐·지그를 임계값과 함께 입력한다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Spare Parts catalog is built with reorder points; PM Templates are defined per equipment type.</div><div class="wf-ko">정비 자재 카탈로그를 재발주점과 함께 작성하고, 설비 유형별 PM 템플릿을 정의한다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Cumulative counters (mold shots, jig cycles) are auto-updated by production transactions — not edited manually.</div><div class="wf-ko">누적 카운터(금형 쇼트·지그 사이클)는 생산 트랜잭션이 자동 갱신 — 수동 편집 안 함.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Threshold values (rated shots, OEE target) change only via an approval workflow.</div><div class="wf-ko">임계값(정격 쇼트·OEE 목표)은 승인 워크플로로만 변경한다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">A retired asset is set to RETIRED status — never deleted, to preserve history.</div><div class="wf-ko">폐기 자산은 RETIRED 상태로 전환 — 이력 보존을 위해 삭제하지 않는다.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙 (해당 카테고리)</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:110px;">Rule</th><th>Description</th><th style="width:100px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-MD-08</td><td><div>MD-18 Oven CureSpec must satisfy 150°C ≤ TargetTemp ≤ 200°C and 5 ≤ DwellMin ≤ 30.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">오븐 경화 스펙 범위 강제(150–200°C, 5–30분).</div></td><td><span class="br-act val">Range</span></td></tr>
+          <tr><td class="br-id">BR-MD-05</td><td><div>MD-15 Jig must have at least 1 MAIN tag (MD-16) before binding in PNT-02.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">지그는 MAIN 태그 1개 이상 등록 후 PNT-02 바인딩.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-MD-20</td><td><div>MD-27 Spare Part stock below ReorderPoint triggers an MNT-08 auto-reorder request.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">정비 자재 재고 재발주점 미달 시 MNT-08 자동 재발주.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">BR-MD-21</td><td><div>MD-28 PM Template must reference a valid EquipType; MNT-05 cannot schedule a PM without one.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">PM 템플릿 없으면 MNT-05 PM 일정 불가.</div></td><td><span class="br-act val">Validation</span></td></tr>
+          <tr><td class="br-id">BR-MD-23</td><td><div>An asset in active use cannot be deleted — only set to RETIRED status.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">사용 중 자산은 삭제 불가 — RETIRED 상태 전환만.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-MD-24</td><td><div>Threshold changes require approval workflow + 7-year audit log (SYS-05).</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">임계값 변경은 승인 워크플로 + 7년 감사 로그.</div></td><td><span class="br-act aut">Audit</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node cur"><div class="lnk-id">MD · C</div><div class="lnk-name">Resources &amp; Equipment</div><div class="lnk-ko">자원·설비 마스터</div></div>
+        </div>
+        <div class="lnk-row" style="margin-top:14px;">
+          <div class="lnk-node cur"><div class="lnk-id">MD · C</div><div class="lnk-name">→ Drives</div></div>
+          <div class="lnk-arr">↘</div>
+          <div class="lnk-node down"><div class="lnk-id">MNT-01~09</div><div class="lnk-name">설비·금형·PM·자재</div></div>
+          <div class="lnk-node down"><div class="lnk-id">INJ-06</div><div class="lnk-name">금형 쇼트 임계</div></div>
+          <div class="lnk-node down"><div class="lnk-id">PNT-02/05</div><div class="lnk-name">지그·오븐</div></div>
+          <div class="lnk-node down"><div class="lnk-id">PP · FG · RPT</div><div class="lnk-name">거래선·OEE</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.13 · MD L3-C · Resources &amp; Equipment Masters · L3 Spec v1.0</div><div class="pf-r">7 Entities (+2 NEW) · Phase-0 · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
