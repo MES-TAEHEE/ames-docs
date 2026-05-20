@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PP-04 Work Order Management · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+.scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
+.sh-id{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:2px;color:#34d399;line-height:.9;}
+.sh-tt{flex:1;}
+.sh-en{font-size:16px;font-weight:800;color:#fff;}
+.sh-ko{font-size:11px;color:rgba(255,255,255,.5);}
+.sh-tag{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+.sh-live{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.sh-live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.toolbar{background:#fff;border-bottom:1px solid var(--bd);padding:9px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
+.fld{display:flex;flex-direction:column;gap:2px;}
+.fld label{font-size:8px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;}
+select,input[type=text],input[type=date],input[type=number]{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink);}
+select:focus,input:focus{outline:2px solid rgba(5,150,105,.3);border-color:var(--pp);}
+.btn{padding:6px 13px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-p{background:var(--pp);color:#fff;}.btn-p:hover{background:var(--pp-dk);}
+.btn-s{background:#f6f8fa;color:var(--ink);border-color:var(--bd);}.btn-s:hover{background:#eef1f5;}
+.btn-d{background:#fff;color:#dc2626;border-color:#fca5a5;}.btn-d:hover{background:#fef2f2;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+.body{flex:1;overflow-y:auto;padding:16px 24px 40px;}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:16px;}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:12px 15px;border-left:3px solid var(--c);}
+.kpi .kv{font-size:24px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;color:var(--c);}
+.kpi .kl{font-size:10px;color:var(--sub);margin-top:4px;}
+.panel{background:#fff;border:1px solid var(--bd);border-radius:8px;overflow:hidden;}
+.panel-h{padding:9px 14px;background:#f0fdf4;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;font-size:11px;}
+table{width:100%;border-collapse:collapse;font-size:11.5px;}
+thead th{background:#f0f3f7;padding:9px 10px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--bd);white-space:nowrap;}
+thead th .k{font-weight:400;color:var(--sub);font-size:8px;display:block;}
+tbody td{padding:8px 10px;border-bottom:1px solid #eef1f5;vertical-align:middle;}
+tbody tr:hover td{background:#f0fdf4;}
+tbody tr.blocked td{background:#fef2f2;}
+tbody tr.blocked:hover td{background:#fee2e2;}
+tbody tr.cancelled td{opacity:.5;}
+tbody tr.just td{animation:fl 1.8s ease;}
+@keyframes fl{0%,45%{background:#bbf7d0;}100%{background:transparent;}}
+.mono{font-family:'JetBrains Mono',monospace;font-size:10px;}
+.num{text-align:right;font-family:'JetBrains Mono',monospace;}
+.it-nm{font-weight:700;}.it-ko{color:var(--sub);font-size:10px;}
+.rt{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;font-family:'JetBrains Mono',monospace;}
+.rt-a{background:#dbeafe;color:#1e40af;}
+.rt-b{background:#ffedd5;color:#9a3412;}
+.prog{display:flex;align-items:center;gap:6px;}
+.prog .bar{height:6px;width:64px;background:#eef1f5;border-radius:4px;overflow:hidden;}
+.prog .bar i{display:block;height:100%;border-radius:4px;}
+.prog .pv{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.dday{font-weight:800;font-family:'JetBrains Mono',monospace;font-size:11px;}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 8px;border-radius:9px;}
+.b-draft{background:#f3f4f6;color:#4b5563;}
+.b-rel{background:#dbeafe;color:#1e40af;}
+.b-prog{background:#dcfce7;color:#166534;}
+.b-clo{background:#1f2937;color:#fff;}
+.b-blk{background:#fee2e2;color:#991b1b;cursor:pointer;}
+.b-can{background:#f3f4f6;color:#9ca3af;}
+.empty{padding:40px;text-align:center;color:#9ca3af;font-size:12px;}
+.ov{position:fixed;inset:0;background:rgba(13,17,23,.6);display:none;align-items:center;justify-content:center;z-index:100;}
+.ov.show{display:flex;}
+.modal{background:#fff;border-radius:12px;width:460px;max-width:92vw;max-height:88vh;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.4);display:flex;flex-direction:column;}
+.modal-h{background:linear-gradient(135deg,#03251a,#052e1f);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:9px;}
+.modal-h.danger{background:linear-gradient(135deg,#7f1d1d,#991b1b);}
+.modal-h .mt{font-size:14px;font-weight:800;flex:1;}
+.modal-h .mx{cursor:pointer;font-size:18px;color:rgba(255,255,255,.6);background:none;border:none;}
+.modal-b{padding:18px 20px;overflow-y:auto;}
+.modal-f{padding:12px 20px;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end;background:#fafbfc;}
+.mlabel{font-size:11px;font-weight:700;color:var(--sub);margin:11px 0 5px;}
+.mlabel:first-child{margin-top:0;}
+.full{width:100%;}
+.hint{font-size:10px;color:var(--sub);margin-top:9px;line-height:1.6;}
+.warnbox{background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:12px;font-size:12px;color:#991b1b;line-height:1.7;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#fff;border-radius:8px;padding:11px 15px;box-shadow:0 8px 26px rgba(0,0,0,.22);border-left:4px solid var(--pp);font-size:12px;min-width:260px;max-width:390px;animation:ti .25s ease;}
+.toast.err{border-left-color:#dc2626;}.toast.warn{border-left-color:#f59e0b;}.toast.info{border-left-color:#2563eb;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:var(--sub);font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+.detail-row td{background:#f0fdf4 !important;padding:0;}
+.detail-in{padding:13px 16px;}
+.dgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;}
+.dt .dl{color:var(--sub);font-size:9px;text-transform:uppercase;letter-spacing:.5px;}
+.dt .dv{font-weight:700;font-size:12px;}
+.rflow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.rstep{padding:5px 12px;border-radius:5px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.rstep.done{background:#dcfce7;color:#166534;}
+.rstep.cur{background:#059669;color:#fff;}
+.rstep.todo{background:#f3f4f6;color:#9ca3af;}
+.rarr{color:#9ca3af;font-weight:700;}
+.dsub{font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin:8px 0 5px;}
+</style>
+</head>
+<body>
+<div class="scr-head">
+  <div class="sh-id">PP-04</div>
+  <div class="sh-tt"><div class="sh-en">Work Order Management</div><div class="sh-ko">작업지시 관리 — WO 생명주기 Draft → Released → In Progress → Closed</div></div>
+  <span class="sh-tag">/pp/wo</span>
+  <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
+</div>
+<div class="toolbar">
+  <div class="fld"><label>상태 Status</label>
+    <select id="fStatus" onchange="render()"><option value="">전체 All</option><option>Draft</option><option>Released</option><option>In Progress</option><option>Closed</option><option>Blocked</option></select></div>
+  <div class="fld"><label>라우팅 Routing</label>
+    <select id="fRoute" onchange="render()"><option value="">전체 All</option><option value="A">A · INJ→IMG→QC→FG</option><option value="B">B · INJ→PNT→QC→FG</option></select></div>
+  <div class="fld"><label>검색 Search</label>
+    <input type="text" id="fSearch" placeholder="WO·품목·SO..." oninput="render()" style="width:170px;"></div>
+  <button class="btn btn-s btn-sm" onclick="resetFilters()">↺ 초기화</button>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
+    <button class="btn btn-p" onclick="openManual()">+ 수동 WO 생성</button>
+  </div>
+</div>
+<div class="body">
+  <div class="kpis">
+    <div class="kpi" style="--c:#6b7280"><div class="kv" id="kDraft">0</div><div class="kl">Draft · 작성중</div></div>
+    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kRel">0</div><div class="kl">Released · 발행</div></div>
+    <div class="kpi" style="--c:#22c55e"><div class="kv" id="kProg">0</div><div class="kl">In Progress · 진행</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kBlk">0</div><div class="kl">⚠ Blocked · 차단</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kDday">0</div><div class="kl">D-3 임박 · D-Day Alert</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-h"><span>📋 작업지시 목록 — Draft는 [발행], 진행 전 WO는 [취소] 가능 · 빨강 행은 차단 상태</span></div>
+    <table>
+      <thead><tr>
+        <th>WO 번호<span class="k">WO No.</span></th>
+        <th>품목<span class="k">Item</span></th>
+        <th style="text-align:right;">계획수량<span class="k">Plan Qty</span></th>
+        <th style="text-align:center;">라우팅<span class="k">Routing</span></th>
+        <th>진척률<span class="k">Progress</span></th>
+        <th style="text-align:center;">D-Day</th>
+        <th style="text-align:center;">상태<span class="k">Status</span></th>
+        <th>SAP SO</th>
+        <th style="text-align:center;">작업<span class="k">Action</span></th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="emptyMsg" style="display:none;">조건에 맞는 작업지시가 없습니다.</div>
+  </div>
+</div>
+
+<!-- MANUAL WO MODAL -->
+<div class="ov" id="ovManual">
+  <div class="modal">
+    <div class="modal-h"><span>📝</span><span class="mt">수동 작업지시(WO) 생성</span><button class="mx" onclick="closeModal('ovManual')">✕</button></div>
+    <div class="modal-b">
+      <div class="mlabel">품목 선택</div>
+      <select class="full" id="mItem">
+        <option value="">— 품목 선택 —</option>
+        <option value="TRIM-LH-001|도어트림 LH|A">TRIM-LH-001 · 도어트림 LH (Routing A)</option>
+        <option value="TRIM-RH-001|도어트림 RH|A">TRIM-RH-001 · 도어트림 RH (Routing A)</option>
+        <option value="GRILLE-02|라디에이터 그릴|A">GRILLE-02 · 라디에이터 그릴 (Routing A)</option>
+        <option value="CONS-UP-001|콘솔어퍼|B">CONS-UP-001 · 콘솔어퍼 (Routing B)</option>
+        <option value="MOLDING-05|사이드 몰딩 5|A">MOLDING-05 · 사이드 몰딩 5 (Routing A)</option>
+        <option value="BUMPER-01|프론트 범퍼|B">BUMPER-01 · 프론트 범퍼 (Routing B)</option>
+      </select>
+      <div class="mlabel">계획 수량 (EA)</div>
+      <input type="number" class="full" id="mQty" placeholder="예: 1000" min="1">
+      <div class="mlabel">납기일</div>
+      <input type="date" class="full" id="mDue" value="2025-09-30">
+      <div class="hint">⚙ 수동 WO는 SAP 공급계획을 경유하지 않는 임시 작업지시입니다. <b>매니저 권한</b> 및 감사 사유가 필요하며, 생성 시 Draft 상태로 시작합니다. 라우팅은 품목 마스터에서 자동 결정됩니다.</div>
+    </div>
+    <div class="modal-f">
+      <button class="btn btn-s" onclick="closeModal('ovManual')">취소</button>
+      <button class="btn btn-p" onclick="doManual()">WO 생성</button>
+    </div>
+  </div>
+</div>
+
+<!-- CANCEL CONFIRM MODAL -->
+<div class="ov" id="ovCancel">
+  <div class="modal">
+    <div class="modal-h danger"><span>⚠</span><span class="mt">작업지시 취소</span><button class="mx" onclick="closeModal('ovCancel')">✕</button></div>
+    <div class="modal-b">
+      <div class="warnbox" id="cancelMsg"></div>
+      <div class="hint">취소 시 해당 WO에 예약된 자재가 자동 해제되며(BR-PP-004), 상태가 Cancelled로 전환됩니다. 취소된 WO는 복구할 수 없습니다.</div>
+    </div>
+    <div class="modal-f">
+      <button class="btn btn-s" onclick="closeModal('ovCancel')">유지</button>
+      <button class="btn btn-d" onclick="doCancel()">취소 확정</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+var TODAY=new Date('2025-09-12');
+var WOSEQ=20;
+var DATA=[
+  {wo:'WO-20250715-003',code:'TRIM-RH-001',name:'도어트림 RH',qty:1160,routing:'A',progress:100,due:'2025-08-31',status:'Closed',so:'SO-2025-07055',block:null},
+  {wo:'WO-20250730-009',code:'MOLDING-05',name:'사이드 몰딩 5',qty:390,routing:'A',progress:88,due:'2025-10-02',status:'In Progress',so:'SO-2025-08007',block:null},
+  {wo:'WO-20250801-001',code:'TRIM-LH-001',name:'도어트림 LH',qty:2030,routing:'A',progress:62,due:'2025-09-24',status:'In Progress',so:'SO-2025-08001',block:null},
+  {wo:'WO-20250801-002',code:'TRIM-LH-001',name:'도어트림 LH (회색)',qty:2030,routing:'A',progress:18,due:'2025-09-15',status:'Released',so:'SO-2025-08001',block:null},
+  {wo:'WO-20250801-005',code:'CONS-UP-001',name:'콘솔어퍼',qty:650,routing:'B',progress:0,due:'2025-09-17',status:'Blocked',so:'SO-2025-08003',block:'MRP 자재 부족 — 분체도료 PWD-RAL9005 재고 280 EA 부족'},
+  {wo:'WO-20250802-006',code:'GRILLE-02',name:'라디에이터 그릴',qty:1450,routing:'A',progress:0,due:'2025-09-20',status:'Draft',so:'SO-2025-08004',block:null},
+  {wo:'WO-20250803-002',code:'BUMPER-01',name:'프론트 범퍼',qty:905,routing:'B',progress:0,due:'2025-09-28',status:'Draft',so:'SO-2025-08009',block:null},
+  {wo:'WO-20250802-011',code:'MOLDING-05',name:'사이드 몰딩 5',qty:620,routing:'A',progress:0,due:'2025-09-14',status:'Draft',so:'SO-2025-09015',block:null}
+];
+var ROUTES={A:['INJ','IMG','QC','FG'],B:['INJ','PNT','QC','FG']};
+var cancelIdx=-1;
+
+function dday(r){
+  if(r.status==='Closed'||r.status==='Cancelled') return null;
+  return Math.round((new Date(r.due)-TODAY)/86400000);
+}
+function ddColor(d){return d<=3?'#dc2626':(d<=7?'#f59e0b':'#16a34a');}
+function progColor(p){return p>=80?'#16a34a':(p>=40?'#2563eb':'#9ca3af');}
+function statusBadge(r){
+  var m={'Draft':'b-draft','Released':'b-rel','In Progress':'b-prog','Closed':'b-clo','Blocked':'b-blk','Cancelled':'b-can'};
+  if(r.status==='Blocked') return '<span class="b b-blk" onclick="whyBlock('+DATA.indexOf(r)+')">⛔ Blocked</span>';
+  return '<span class="b '+m[r.status]+'">'+r.status+'</span>';
+}
+function filtered(){
+  var s=document.getElementById('fStatus').value,rt=document.getElementById('fRoute').value,
+      q=document.getElementById('fSearch').value.trim().toLowerCase();
+  return DATA.filter(function(r){
+    if(s&&r.status!==s) return false;
+    if(rt&&r.routing!==rt) return false;
+    if(q&&((r.wo+' '+r.code+' '+r.name+' '+r.so).toLowerCase().indexOf(q)<0)) return false;
+    return true;
+  });
+}
+function render(){
+  var rows=filtered(),h='';
+  rows.forEach(function(r){
+    var idx=DATA.indexOf(r),d=dday(r);
+    var act='<button class="btn btn-s btn-sm" onclick="toggleDetail('+idx+',this)">상세</button>';
+    if(r.status==='Draft') act='<button class="btn btn-p btn-sm" onclick="release('+idx+')">▶ 발행</button> '+act+' <button class="btn btn-d btn-sm" onclick="askCancel('+idx+')">취소</button>';
+    else if(r.status==='Released') act=act+' <button class="btn btn-d btn-sm" onclick="askCancel('+idx+')">취소</button>';
+    else if(r.status==='Blocked') act='<button class="btn btn-p btn-sm" disabled title="차단 해제 필요">▶ 발행</button> '+act;
+    h+='<tr class="'+(r.status==='Blocked'?'blocked':'')+(r.status==='Cancelled'?'cancelled':'')+(r._just?' just':'')+'">'+
+      '<td class="mono" style="font-weight:700;">'+r.wo+'</td>'+
+      '<td><div class="it-nm">'+r.code+'</div><div class="it-ko">'+r.name+'</div></td>'+
+      '<td class="num">'+r.qty.toLocaleString()+'</td>'+
+      '<td style="text-align:center;"><span class="rt rt-'+r.routing.toLowerCase()+'">'+r.routing+'</span></td>'+
+      '<td><div class="prog"><div class="bar"><i style="width:'+r.progress+'%;background:'+progColor(r.progress)+';"></i></div><span class="pv">'+r.progress+'%</span></div></td>'+
+      '<td style="text-align:center;">'+(d===null?'<span style="color:#9ca3af;">—</span>':'<span class="dday" style="color:'+ddColor(d)+';">D'+(d>=0?'-'+d:'+'+(-d))+(d<=3?' ⚠':'')+'</span>')+'</td>'+
+      '<td style="text-align:center;">'+statusBadge(r)+'</td>'+
+      '<td class="mono">'+r.so+'</td>'+
+      '<td style="text-align:center;white-space:nowrap;">'+act+'</td>'+
+      '</tr>';
+    r._just=false;
+  });
+  document.getElementById('tbody').innerHTML=h;
+  document.getElementById('emptyMsg').style.display=rows.length?'none':'block';
+  document.getElementById('kDraft').textContent=DATA.filter(function(r){return r.status==='Draft';}).length;
+  document.getElementById('kRel').textContent=DATA.filter(function(r){return r.status==='Released';}).length;
+  document.getElementById('kProg').textContent=DATA.filter(function(r){return r.status==='In Progress';}).length;
+  document.getElementById('kBlk').textContent=DATA.filter(function(r){return r.status==='Blocked';}).length;
+  document.getElementById('kDday').textContent=DATA.filter(function(r){var d=dday(r);return d!==null&&d<=3;}).length;
+}
+function toggleDetail(idx,btn){
+  var tr=btn.closest('tr'),nx=tr.nextElementSibling;
+  if(nx&&nx.classList.contains('detail-row')){nx.remove();btn.textContent='상세';return;}
+  btn.textContent='닫기';
+  var r=DATA[idx],steps=ROUTES[r.routing];
+  var doneN=Math.floor(steps.length*r.progress/100);
+  var rf='';
+  steps.forEach(function(s,i){
+    var cls=i<doneN?'done':(i===doneN&&r.progress>0&&r.progress<100?'cur':(r.progress>=100?'done':'todo'));
+    rf+='<span class="rstep '+cls+'">'+s+'</span>'+(i<steps.length-1?'<span class="rarr">→</span>':'');
+  });
+  var hist=[
+    {t:r.wo.slice(3,11),e:'WO Draft 생성 (PP-03 일괄생성)'},
+    r.status!=='Draft'?{t:'08-05',e:'Released — 자재 자동 예약'}:null,
+    r.status==='In Progress'||r.status==='Closed'?{t:'09-01',e:'생산 착수 (INJ POP)'}:null,
+    r.status==='Closed'?{t:'09-10',e:'전 공정 완료 — WO Closed'}:null,
+    r.status==='Blocked'?{t:'08-20',e:'MRP 자재부족 — 자동 차단'}:null
+  ].filter(Boolean);
+  var hh='';hist.forEach(function(x){hh+='<div style="font-size:10px;padding:2px 0;"><span class="mono" style="color:#059669;">'+x.t+'</span> · '+x.e+'</div>';});
+  var d=document.createElement('tr');d.className='detail-row';
+  d.innerHTML='<td colspan="9"><div class="detail-in">'+
+    '<div class="dgrid">'+
+      '<div class="dt"><div class="dl">계획수량 / 진척</div><div class="dv">'+r.qty.toLocaleString()+' EA · '+r.progress+'%</div></div>'+
+      '<div class="dt"><div class="dl">SAP 공급계획</div><div class="dv">'+r.so+'</div></div>'+
+      '<div class="dt"><div class="dl">납기일</div><div class="dv">'+r.due+'</div></div>'+
+      '<div class="dt"><div class="dl">자재 예약</div><div class="dv">'+(r.status==='Draft'||r.status==='Blocked'?'미예약':r.status==='Cancelled'?'해제됨':'예약 완료')+'</div></div>'+
+    '</div>'+
+    '<div class="dsub">공정 라우팅 '+r.routing+' · 진행 현황</div><div class="rflow">'+rf+'</div>'+
+    '<div class="dsub" style="margin-top:10px;">WO 이력</div>'+hh+
+    (r.block?'<div class="dsub" style="margin-top:10px;color:#dc2626;">차단 사유</div><div style="font-size:11px;color:#991b1b;">'+r.block+'</div>':'')+
+    '</div></td>';
+  tr.after(d);
+}
+function release(idx){
+  var r=DATA[idx];
+  r.status='Released';r.progress=Math.max(r.progress,8);r._just=true;
+  render();
+  toast('','WO 발행 완료 — '+r.wo,r.code+' '+r.qty.toLocaleString()+'EA 발행. 자재 자동 예약(BR-PP-003) 후 현장 POP에 노출됩니다.');
+}
+function whyBlock(idx){
+  var r=DATA[idx];
+  toast('err','차단 — '+r.wo+' (BR-PP-002)',r.block+'. PP-06 자재발주 요청(PR) 진행 또는 입고 후 재검증하면 발행 가능합니다.');
+}
+function askCancel(idx){
+  cancelIdx=idx;var r=DATA[idx];
+  document.getElementById('cancelMsg').innerHTML='<b>'+r.wo+'</b> · '+r.code+' '+r.qty.toLocaleString()+'EA<br>현재 상태: <b>'+r.status+'</b><br><br>이 작업지시를 취소하시겠습니까?';
+  document.getElementById('ovCancel').classList.add('show');
+}
+function doCancel(){
+  var r=DATA[cancelIdx];
+  var hadReserve=(r.status==='Released');
+  r.status='Cancelled';r._just=true;
+  closeModal('ovCancel');render();
+  toast('warn','WO 취소 — '+r.wo,(hadReserve?'예약 자재 자동 해제(BR-PP-004) 완료. ':'')+'작업지시가 Cancelled 상태로 전환되었습니다.');
+}
+function openManual(){
+  document.getElementById('mItem').value='';document.getElementById('mQty').value='';
+  document.getElementById('mDue').value='2025-09-30';
+  document.getElementById('ovManual').classList.add('show');
+}
+function doManual(){
+  var iv=document.getElementById('mItem').value,qv=parseInt(document.getElementById('mQty').value,10),dv=document.getElementById('mDue').value;
+  if(!iv){toast('err','품목 미선택','WO를 생성할 품목을 선택하세요.');return;}
+  if(!qv||qv<1){toast('err','수량 오류','계획 수량을 1 이상 입력하세요.');return;}
+  var p=iv.split('|');
+  WOSEQ++;
+  var today=new Date(),ds=today.getFullYear()+String(today.getMonth()+1).padStart(2,'0')+String(today.getDate()).padStart(2,'0');
+  DATA.unshift({wo:'WO-'+ds+'-'+String(WOSEQ).padStart(3,'0'),code:p[0],name:p[1],qty:qv,routing:p[2],
+    progress:0,due:dv,status:'Draft',so:'(수동)',block:null,_just:true});
+  closeModal('ovManual');
+  document.getElementById('fStatus').value='';document.getElementById('fSearch').value='';
+  render();
+  toast('','수동 WO 생성 완료',p[0]+' '+qv.toLocaleString()+'EA · Draft 작업지시 생성. 감사 로그(SYS-05)에 기록되었습니다.');
+}
+function exportCsv(){
+  var rows=filtered();
+  if(!rows.length){toast('err','내보낼 데이터 없음','조건에 맞는 WO가 없습니다.');return;}
+  var csv='WO_No,Item_Code,Item_Name,Plan_Qty,Routing,Progress,Due,Status,SAP_SO\n';
+  rows.forEach(function(r){csv+=[r.wo,r.code,r.name,r.qty,r.routing,r.progress+'%',r.due,r.status,r.so].join(',')+'\n';});
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='PP04_WorkOrder_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  toast('','Export 완료','현재 조회 '+rows.length+'건을 CSV로 내보냈습니다.');
+}
+function resetFilters(){
+  document.getElementById('fStatus').value='';document.getElementById('fRoute').value='';document.getElementById('fSearch').value='';
+  render();toast('info','필터 초기화','검색 조건을 초기화했습니다.');
+}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='warn'?'⚠ ':type==='info'?'ℹ ':'✅ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},4600);
+}
+document.querySelectorAll('.ov').forEach(function(o){o.addEventListener('click',function(e){if(e.target===o)o.classList.remove('show');});});
+render();
+</script>
+</body>
+</html>
