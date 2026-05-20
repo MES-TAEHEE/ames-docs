@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.13 · MD L3-E · Quality & Logistics Masters · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--md:#d97706;--mod:#d97706;--mod-lt:#fef3c7;--mod-dk:#92400e;--mod-tint:#fbbf24;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:30px;flex-shrink:0;color:rgba(251,191,36,.8);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#451a03 0%,#3a1602 50%,#451a03 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(217,119,6,.25);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(217,119,6,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(217,119,6,.06) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(217,119,6,.18),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(217,119,6,.4);color:var(--mod-tint);background:rgba(217,119,6,.12);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod-dk);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.sub-div{font-size:11px;font-weight:800;color:var(--mod-dk);letter-spacing:.5px;margin:14px 0 8px;padding:5px 10px;background:var(--mod-lt);border-radius:4px;}
+.ent{margin-bottom:18px;}
+.ent-hdr{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.ent-id{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod-dk);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.ent-id.new{color:#fff;background:#ea580c;}
+.ent-name{font-size:14px;font-weight:800;color:var(--text);}
+.ent-ko{font-size:11px;color:var(--sub);}
+.ent-new{font-size:8px;font-weight:800;background:#ea580c;color:#fff;padding:1px 6px;border-radius:2px;letter-spacing:.5px;}
+.ent-desc{font-size:11px;color:var(--sub);line-height:1.7;margin-bottom:8px;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.k-pk{color:#dc2626;font-weight:700;font-size:8px;}
+.k-fk{color:#7c3aed;font-weight:700;font-size:8px;}
+.ent-note{font-size:10px;color:var(--sub);margin-top:6px;padding:7px 11px;background:#fffbeb;border:1px solid #fde68a;border-radius:5px;}
+.ent-note strong{color:var(--mod-dk);}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}.br-act.val{background:#ede9fe;color:#5b21b6;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.chain-flow{display:flex;align-items:center;gap:0;padding:14px 16px;background:#fafbfd;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;flex-wrap:wrap;}
+.cf-step{padding:9px 13px;border-radius:5px;font-size:10px;font-weight:700;text-align:center;background:#fff;border:1px solid var(--border);min-width:108px;}
+.cf-step .cf-id{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mod-dk);}
+.cf-arr{color:var(--sub);font-size:14px;padding:0 5px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:112px;border:2px solid;}
+.lnk-node.cur{background:linear-gradient(135deg,#451a03,#3a1602);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(217,119,6,.3);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol active"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL13_MD_Master_Data.html">VOL.13 · MD</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">E · Quality &amp; Logistics Masters</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.13 · MD · L3</div><div class="sb-mod-en">MASTER DATA</div><div class="sb-mod-ko">기준정보 · 카테고리 L3</div></div>
+  <div class="sb-section">5 Category L3 · 카테고리</div>
+  <a class="sb-link" href="VOL13_MD_L3_Foundation.html"><span class="sl-id">A</span><div><div class="sl-en">Foundation</div><div class="sl-ko">기반 · 5</div></div></a>
+  <a class="sb-link" href="VOL13_MD_L3_Production.html"><span class="sl-id">B</span><div><div class="sl-en">Routing &amp; Production</div><div class="sl-ko">라우팅·생산 · 3</div></div></a>
+  <a class="sb-link" href="VOL13_MD_L3_Resources.html"><span class="sl-id">C</span><div><div class="sl-en">Resources &amp; Equipment</div><div class="sl-ko">자원·설비 · 7</div></div></a>
+  <a class="sb-link" href="VOL13_MD_L3_RFID_Color.html"><span class="sl-id">D</span><div><div class="sl-en">RFID &amp; Materials</div><div class="sl-ko">RFID·자재 · 4</div></div></a>
+  <a class="sb-link on" href="VOL13_MD_L3_Quality.html"><span class="sl-id">E</span><div><div class="sl-en">Quality &amp; Logistics</div><div class="sl-ko">품질·물류 · 9</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-2"><span class="num">02</span>Entity Field Specs</a>
+    <a href="#sec-3"><span class="num">03</span>Quality→Logistics Chain</a>
+    <a href="#sec-4"><span class="num">04</span>Maintenance Workflow</a>
+    <a href="#sec-5"><span class="num">05</span>Business Rules</a>
+    <a href="#sec-6"><span class="num">06</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.13 · MD · L3 · Category E · Quality &amp; Logistics Masters</div>
+      <div class="scr-id-block"><div class="scr-id">MD · E</div><div class="scr-title-en">Quality &amp; Logistics</div></div>
+      <div class="scr-title-ko">품질·물류 마스터 — 검사기준·샘플링·계측기·불량·로케이션·포장·라벨·팔레트·운송</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">Entities</span><span class="mc-val">9 · MD-06·21·22·12·11·23·24·25·26</span></div>
+        <div class="meta-chip"><span class="mc-lbl">New</span><span class="mc-val">+6 · MD-21~26 (QC·FG)</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">Phase-0 Mandatory</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Used By</span><span class="mc-val">QC · FG · WH · RPT</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          Category E is the largest, holding the masters for the <strong>quality and logistics chain</strong> — from inspection through to shipment. The <strong>quality side</strong>: Inspection Standard (MD-06), the new Sampling Plan (MD-21) AQL tables and Gauge / Instrument (MD-22) calibration catalog, plus Defect Type (MD-12). The <strong>logistics side</strong>: Location (MD-11) plus the new FG masters — Packing Spec (MD-23), Label Template (MD-24), Pallet / Container (MD-25) and Carrier / Vehicle (MD-26). Six of the nine entities were added to support the now-complete QC (9 screens) and FG (10 screens) modules.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          카테고리 E는 가장 큰 카테고리로, 검사부터 출하까지 <strong>품질·물류 체인</strong>의 마스터를 보유한다. <strong>품질 측</strong>: 검사 기준(MD-06), 신규 샘플링 계획(MD-21) AQL 테이블·계측기(MD-22) 교정 카탈로그, 불량 유형(MD-12). <strong>물류 측</strong>: 로케이션(MD-11)과 신규 FG 마스터 — 포장 사양(MD-23)·라벨 템플릿(MD-24)·팔레트/컨테이너(MD-25)·운송사/차량(MD-26). 9개 중 6개가 완성된 QC(9 화면)·FG(10 화면) 모듈을 지원하기 위해 추가되었다.
+        </div>
+      </div>
+      <div class="alert alert-i"><div><span class="alert-title">📌 Inspect → Pack → Ship · 검사에서 출하까지</span>이 카테고리는 QC가 합격시킨 제품이 FG에서 포장·라벨·팔레타이즈·상차되어 거래선에 출하되기까지의 전 마스터를 한 곳에 모은다 — 검사 기준 6종 + 물류 4종. · This category gathers every master from QC pass-judgment through FG packing, labeling, palletizing and carrier dispatch.</div></div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Entity Field Specifications</span><span class="sec-ko">엔티티 필드 사양</span></div>
+
+      <div class="sub-div">▼ QUALITY SIDE · 품질 마스터 (MD-06 · 21 · 22 · 12)</div>
+
+      <div class="ent">
+        <div class="ent-hdr"><span class="ent-id">MD-06</span><span class="ent-name">Inspection Standard</span><span class="ent-ko">검사 기준</span></div>
+        <div class="ent-desc">품목·공정별 검사 항목·측정 방법·허용 공차·AQL 레벨. QC-01~03 체크리스트와 QC-06 SPC 관리한계의 원본이다.</div>
+        <table class="fld-tbl">
+          <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="fld-name">InspID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(24)</td><td>검사 기준 ID.</td></tr>
+            <tr><td class="fld-name">ItemNo <span class="k-fk">FK</span> · ProcessCode</td><td class="fld-type">VARCHAR</td><td>대상 품목 → MD-01 / 공정 코드.</td></tr>
+            <tr><td class="fld-name">InspItemName</td><td class="fld-type">VARCHAR(50)</td><td>검사 항목명 (치수·외관·도막두께...).</td></tr>
+            <tr><td class="fld-name">Method · GaugeType</td><td class="fld-type">VARCHAR</td><td>측정 방법 / 사용 계측기 유형 → MD-22.</td></tr>
+            <tr><td class="fld-name">SpecTarget</td><td class="fld-type">DECIMAL</td><td>규격 목표값.</td></tr>
+            <tr><td class="fld-name">ToleranceUpper · Lower</td><td class="fld-type">DECIMAL</td><td>상한 / 하한 허용 공차.</td></tr>
+            <tr><td class="fld-name">AQLLevel</td><td class="fld-type">VARCHAR(8)</td><td>AQL 레벨 → MD-21 샘플링 계획.</td></tr>
+            <tr><td class="fld-name">MandatoryFlag</td><td class="fld-type">BOOLEAN</td><td>필수 검사 항목 여부.</td></tr>
+          </tbody>
+        </table>
+        <div class="ent-note"><strong>USED BY:</strong> QC-01~03 (검사 체크리스트) · QC-06 (SPC 관리한계). 검사 기준 없으면 QC 검사 입력 불가 (BR-MD-03).</div>
+      </div>
+
+      <div class="ent">
+        <div class="ent-hdr"><span class="ent-id new">MD-21</span><span class="ent-name">Sampling Plan</span><span class="ent-ko">샘플링 검사 계획</span><span class="ent-new">NEW</span></div>
+        <div class="ent-desc">AQL 샘플링 검사 계획 테이블 (ANSI/ISO 2859). 로트 크기 구간별 샘플 수와 합부 판정수를 정의한다.</div>
+        <table class="fld-tbl">
+          <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="fld-name">PlanID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>샘플링 계획 ID.</td></tr>
+            <tr><td class="fld-name">AQLLevel</td><td class="fld-type">VARCHAR(8)</td><td>AQL 레벨 (0.65·1.0·2.5...).</td></tr>
+            <tr><td class="fld-name">InspLevel</td><td class="fld-type">ENUM</td><td>검사 수준 (I / II / III).</td></tr>
+            <tr><td class="fld-name">LotSizeFrom · To</td><td class="fld-type">INT</td><td>로트 크기 구간 (하한·상한).</td></tr>
+            <tr><td class="fld-name">SampleSize</td><td class="fld-type">INT</td><td>표본 수.</td></tr>
+            <tr><td class="fld-name">AcceptNo (Ac)</td><td class="fld-type">INT</td><td>합격 판정수 (불량 ≤ Ac → 합격).</td></tr>
+            <tr><td class="fld-name">RejectNo (Re)</td><td class="fld-type">INT</td><td>불합격 판정수 (불량 ≥ Re → 불합격).</td></tr>
+          </tbody>
+        </table>
+        <div class="ent-note"><strong>USED BY:</strong> QC-01 (수입검사) · QC-03 (최종검사). AQL 레벨은 대응 MD-06 검사 기준과 일치 (BR-MD-13).</div>
+      </div>
+
+      <div class="ent">
+        <div class="ent-hdr"><span class="ent-id new">MD-22</span><span class="ent-name">Gauge / Instrument</span><span class="ent-ko">계측기 마스터</span><span class="ent-new">NEW</span></div>
+        <div class="ent-desc">교정 계측기 카탈로그. 측정 범위·교정 주기·차기 교정일을 보유 — 교정 만료 계측기는 QC 검사 입력을 차단한다.</div>
+        <table class="fld-tbl">
+          <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="fld-name">GaugeID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>계측기 ID.</td></tr>
+            <tr><td class="fld-name">GaugeName · GaugeType</td><td class="fld-type">VARCHAR · ENUM</td><td>명칭 / 유형 (CALIPER·CMM·THICKNESS·COLORMETER).</td></tr>
+            <tr><td class="fld-name">MeasRange · Resolution</td><td class="fld-type">VARCHAR</td><td>측정 범위 / 분해능.</td></tr>
+            <tr><td class="fld-name">CalCycle</td><td class="fld-type">INT</td><td>교정 주기 (개월).</td></tr>
+            <tr><td class="fld-name">LastCalDate · NextCalDate</td><td class="fld-type">DATE</td><td>최근 / 차기 교정일.</td></tr>
+            <tr><td class="fld-name">CalVendor</td><td class="fld-type">VARCHAR(40)</td><td>교정 기관.</td></tr>
+            <tr><td class="fld-name">Status</td><td class="fld-type">ENUM</td><td>VALID / DUE_SOON / INVALID (교정 만료).</td></tr>
+          </tbody>
+        </table>
+        <div class="ent-note"><strong>USED BY:</strong> QC-01/02/03/06. 차기 교정일 경과 시 INVALID — 해당 계측기 사용 검사 입력 차단 (BR-MD-14).</div>
+      </div>
+
+      <div class="ent">
+        <div class="ent-hdr"><span class="ent-id">MD-12</span><span class="ent-name">Defect Type Master</span><span class="ent-ko">불량 유형 마스터</span></div>
+        <div class="ent-desc">모듈별 전체 불량 코드. 심각도·가능 원인·기본 처리방안·CAPA 트리거를 보유하며 RPT-02 파레토에 집계된다.</div>
+        <table class="fld-tbl">
+          <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="fld-name">DefCode <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>불량 코드 (INJ-D01·PNT-D03...).</td></tr>
+            <tr><td class="fld-name">Module</td><td class="fld-type">VARCHAR(10)</td><td>발생 모듈 (INJ·IMG·PNT·QC).</td></tr>
+            <tr><td class="fld-name">DefectNameEN · KO</td><td class="fld-type">VARCHAR(50)</td><td>불량명 (영문 / 국문).</td></tr>
+            <tr><td class="fld-name">Severity</td><td class="fld-type">ENUM</td><td>CRITICAL / MAJOR / MINOR.</td></tr>
+            <tr><td class="fld-name">LikelyCause</td><td class="fld-type">TEXT</td><td>가능 원인.</td></tr>
+            <tr><td class="fld-name">DefaultDispo</td><td class="fld-type">ENUM</td><td>기본 처리 (SCRAP / REWORK / USE_AS_IS).</td></tr>
+            <tr><td class="fld-name">CapaTrigger</td><td class="fld-type">VARCHAR(40)</td><td>CAPA 자동 권고 조건 (30일 ≥3회 등).</td></tr>
+            <tr><td class="fld-name">PhotoRef</td><td class="fld-type">VARCHAR(120)</td><td>불량 사진 레퍼런스.</td></tr>
+          </tbody>
+        </table>
+        <div class="ent-note"><strong>USED BY:</strong> INJ · IMG · PNT-08 · QC · RPT-02 (불량 파레토). PNT-08은 PNT-D01~D06 6종 필수 (BR-MD-11).</div>
+      </div>
+
+      <div class="sub-div">▼ LOGISTICS SIDE · 물류 마스터 (MD-11 · 23 · 24 · 25 · 26)</div>
+
+      <div class="ent">
+        <div class="ent-hdr"><span class="ent-id">MD-11</span><span class="ent-name">Location Master</span><span class="ent-ko">로케이션 마스터</span></div>
+        <div class="ent-desc">창고 구역/행/열/층 계층. QR 라벨과 위치별 용량을 보유하며 WH 입고와 FG-03/04 완제품 보관에 쓰인다.</div>
+        <table class="fld-tbl">
+          <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="fld-name">LocID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(24)</td><td>로케이션 ID.</td></tr>
+            <tr><td class="fld-name">WarehouseID</td><td class="fld-type">VARCHAR(10)</td><td>창고 코드 (RM·FG·SP-WH).</td></tr>
+            <tr><td class="fld-name">Zone · Row · Col · Level</td><td class="fld-type">VARCHAR</td><td>구역 / 행 / 열 / 층 계층.</td></tr>
+            <tr><td class="fld-name">LocType</td><td class="fld-type">ENUM</td><td>RACK / FLOOR / STAGING / QC_HOLD.</td></tr>
+            <tr><td class="fld-name">Capacity</td><td class="fld-type">INT</td><td>위치별 적재 용량.</td></tr>
+            <tr><td class="fld-name">QRCode</td><td class="fld-type">VARCHAR(32)</td><td>QR 라벨 코드.</td></tr>
+            <tr><td class="fld-name">Status</td><td class="fld-type">ENUM</td><td>AVAILABLE / OCCUPIED / BLOCKED.</td></tr>
+          </tbody>
+        </table>
+        <div class="ent-note"><strong>USED BY:</strong> WH (입출고) · FG-03/04 (완제품 입고·재고). QC_HOLD 로케이션은 QC 보류품 격리용.</div>
+      </div>
+
+      <div class="ent">
+        <div class="ent-hdr"><span class="ent-id new">MD-23</span><span class="ent-name">Packing Spec</span><span class="ent-ko">포장 사양 마스터</span><span class="ent-new">NEW</span></div>
+        <div class="ent-desc">품목별 포장 사양. 박스당 수량·팔레트당 박스·포장재·중량·적재 단수를 정의하며 FG-01 포장과 FG-03 입고를 구동한다.</div>
+        <table class="fld-tbl">
+          <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="fld-name">PackSpecID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>포장 사양 ID.</td></tr>
+            <tr><td class="fld-name">ItemNo <span class="k-fk">FK</span></td><td class="fld-type">VARCHAR(20)</td><td>대상 품목 → MD-01.</td></tr>
+            <tr><td class="fld-name">QtyPerBox</td><td class="fld-type">INT</td><td>내부 박스당 수량.</td></tr>
+            <tr><td class="fld-name">BoxPerPallet</td><td class="fld-type">INT</td><td>팔레트당 박스 수.</td></tr>
+            <tr><td class="fld-name">PackMaterial</td><td class="fld-type">VARCHAR(40)</td><td>포장재 (골판지·완충재 등).</td></tr>
+            <tr><td class="fld-name">NetWeight · GrossWeight</td><td class="fld-type">DECIMAL</td><td>순중량 / 총중량 (kg).</td></tr>
+            <tr><td class="fld-name">BoxDimensions</td><td class="fld-type">VARCHAR(30)</td><td>박스 치수 (L×W×H).</td></tr>
+            <tr><td class="fld-name">StackLimit</td><td class="fld-type">INT</td><td>적재 단수 한도.</td></tr>
+          </tbody>
+        </table>
+        <div class="ent-note"><strong>USED BY:</strong> FG-01 (포장) · FG-03 (입고). 포장 사양 없으면 FG-01 포장 불가 (BR-MD-16).</div>
+      </div>
+
+      <div class="ent">
+        <div class="ent-hdr"><span class="ent-id new">MD-24</span><span class="ent-name">Label Template</span><span class="ent-ko">라벨 템플릿 마스터</span><span class="ent-new">NEW</span></div>
+        <div class="ent-desc">바코드/라벨 레이아웃 템플릿. 제품·박스·팔레트 라벨과 고객사별 양식, 필드 매핑·바코드 유형을 정의하며 FG-02 라벨 발행을 구동한다.</div>
+        <table class="fld-tbl">
+          <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="fld-name">TemplateID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>라벨 템플릿 ID.</td></tr>
+            <tr><td class="fld-name">TemplateName · LabelType</td><td class="fld-type">VARCHAR · ENUM</td><td>명칭 / 유형 (PRODUCT / BOX / PALLET).</td></tr>
+            <tr><td class="fld-name">CustomerCode</td><td class="fld-type">VARCHAR(10)</td><td>고객사 (SAV / GEO / COMMON).</td></tr>
+            <tr><td class="fld-name">BarcodeType</td><td class="fld-type">ENUM</td><td>CODE128 / QR / DATAMATRIX.</td></tr>
+            <tr><td class="fld-name">FieldMapJSON</td><td class="fld-type">JSON</td><td>라벨 필드 ↔ 데이터 매핑.</td></tr>
+            <tr><td class="fld-name">LabelSize</td><td class="fld-type">VARCHAR(20)</td><td>라벨 규격 (mm).</td></tr>
+            <tr><td class="fld-name">PrinterModel</td><td class="fld-type">VARCHAR(30)</td><td>지정 프린터 모델.</td></tr>
+          </tbody>
+        </table>
+        <div class="ent-note"><strong>USED BY:</strong> FG-02 (라벨 발행). 고객사별 템플릿 배정 후 고객 라벨 발행 가능 (BR-MD-17).</div>
+      </div>
+
+      <div class="ent">
+        <div class="ent-hdr"><span class="ent-id new">MD-25</span><span class="ent-name">Pallet / Container</span><span class="ent-ko">팔레트·컨테이너 마스터</span><span class="ent-new">NEW</span></div>
+        <div class="ent-desc">재사용 팔레트·운송 컨테이너. 치수·최대 적재중량·자체중량을 보유하며 FG-03 입고와 FG-05 상차에 쓰인다.</div>
+        <table class="fld-tbl">
+          <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="fld-name">ContainerID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>팔레트·컨테이너 ID.</td></tr>
+            <tr><td class="fld-name">ContainerType</td><td class="fld-type">ENUM</td><td>WOOD / PLASTIC / STEEL_CAGE.</td></tr>
+            <tr><td class="fld-name">Dimensions</td><td class="fld-type">VARCHAR(30)</td><td>치수 (L×W×H).</td></tr>
+            <tr><td class="fld-name">MaxLoadKg</td><td class="fld-type">DECIMAL(8,1)</td><td>최대 적재 중량 (kg).</td></tr>
+            <tr><td class="fld-name">TareKg</td><td class="fld-type">DECIMAL(8,1)</td><td>자체 중량 (kg).</td></tr>
+            <tr><td class="fld-name">OwnerType</td><td class="fld-type">ENUM</td><td>OWN / CUSTOMER / RENTAL.</td></tr>
+            <tr><td class="fld-name">LastInspDate · Status</td><td class="fld-type">DATE · ENUM</td><td>최근 점검일 / AVAILABLE·IN_USE·DAMAGED.</td></tr>
+          </tbody>
+        </table>
+        <div class="ent-note"><strong>USED BY:</strong> FG-03 (입고) · FG-05 (상차) · WH. 적재 시 MaxLoadKg 초과 불가 (BR-MD-18).</div>
+      </div>
+
+      <div class="ent">
+        <div class="ent-hdr"><span class="ent-id new">MD-26</span><span class="ent-name">Carrier / Vehicle</span><span class="ent-ko">운송사·차량 마스터</span><span class="ent-new">NEW</span></div>
+        <div class="ent-desc">배송 운송사·차량. 적재 능력·기사·배차 노선·등록 유효성을 보유하며 FG-05 상차와 RPT-03 출하를 구동한다.</div>
+        <table class="fld-tbl">
+          <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="fld-name">VehicleID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>차량 관리 ID.</td></tr>
+            <tr><td class="fld-name">CarrierName</td><td class="fld-type">VARCHAR(40)</td><td>운송사명.</td></tr>
+            <tr><td class="fld-name">VehicleNo · VehicleType</td><td class="fld-type">VARCHAR</td><td>차량번호 / 유형 (1T·5T·트레일러).</td></tr>
+            <tr><td class="fld-name">CapacityKg</td><td class="fld-type">DECIMAL(8,1)</td><td>적재 능력 (kg).</td></tr>
+            <tr><td class="fld-name">DriverName · DriverPhone</td><td class="fld-type">VARCHAR</td><td>기사 / 연락처.</td></tr>
+            <tr><td class="fld-name">RouteAssign</td><td class="fld-type">VARCHAR(40)</td><td>배차 노선 (SAV·GEO 경로).</td></tr>
+            <tr><td class="fld-name">RegistExpiry</td><td class="fld-type">DATE</td><td>차량 등록·검사 유효기간.</td></tr>
+            <tr><td class="fld-name">Status</td><td class="fld-type">ENUM</td><td>AVAILABLE / DISPATCHED / MAINT.</td></tr>
+          </tbody>
+        </table>
+        <div class="ent-note"><strong>USED BY:</strong> FG-05 (상차·배차) · RPT-03 (일별 출하). 등록 유효 차량만 배차 가능 (BR-MD-19).</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Quality → Logistics Chain</span><span class="sec-ko">검사 → 물류 마스터 체인</span></div>
+      <div class="chain-flow">
+        <div class="cf-step"><div class="cf-id">MD-06·21·22</div>검사기준·샘플링·계측기</div>
+        <span class="cf-arr">→</span>
+        <div class="cf-step"><div class="cf-id">QC 합격</div>판정</div>
+        <span class="cf-arr">→</span>
+        <div class="cf-step"><div class="cf-id">MD-23·24</div>포장·라벨</div>
+        <span class="cf-arr">→</span>
+        <div class="cf-step"><div class="cf-id">MD-25·11</div>팔레타이즈·보관</div>
+        <span class="cf-arr">→</span>
+        <div class="cf-step"><div class="cf-id">MD-26</div>운송·출하</div>
+      </div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:22%;">Stage</th><th>Master-Driven Logic · 마스터 기반 로직</th></tr></thead>
+        <tbody>
+          <tr><td><strong>검사 (QC)</strong></td><td>MD-06 검사 기준이 항목·공차를, MD-21 샘플링 계획이 표본 수·합부 판정수를, MD-22 계측기가 측정 수단을 제공 — 셋이 함께 QC 판정을 성립시킨다.</td></tr>
+          <tr><td><strong>불량 분류</strong></td><td>NG 판정 시 MD-12 불량 유형으로 코드화 → 처리방안·CAPA 트리거 적용, RPT-02 파레토 집계.</td></tr>
+          <tr><td><strong>포장·라벨 (FG)</strong></td><td>합격품은 MD-23 포장 사양대로 박스·팔레트화, MD-24 라벨 템플릿으로 고객사 라벨 발행.</td></tr>
+          <tr><td><strong>보관 (FG·WH)</strong></td><td>MD-25 팔레트에 적재, MD-11 로케이션에 입고 — 용량·적재중량 한도 검증.</td></tr>
+          <tr><td><strong>출하 (FG·RPT)</strong></td><td>MD-26 운송사·차량 배차 → FG-05 상차, RPT-03 일별 출하·RPT-04 납기 이행율 집계.</td></tr>
+        </tbody>
+      </table>
+      <div class="alert alert-i"><div><span class="alert-title">⚙ One Chain, Nine Masters · 하나의 체인, 9개 마스터</span>검사 합격 → 포장 → 라벨 → 팔레타이즈 → 보관 → 출하 — 이 한 흐름의 각 단계가 카테고리 E의 마스터에 의존한다. 어느 하나라도 누락되면 QC 또는 FG 화면이 차단된다. · Each step of the inspect-to-ship flow depends on a Category E master.</div></div>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Maintenance Workflow</span><span class="sec-ko">마스터 유지보수 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">Gauges are registered with calibration cycles; Inspection Standards and Sampling Plans are defined per item.</div><div class="wf-ko">계측기를 교정 주기와 함께 등록하고, 품목별 검사 기준·샘플링 계획을 정의한다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Defect Type codes are maintained per module; new defect modes are added as production reveals them.</div><div class="wf-ko">모듈별 불량 유형 코드를 관리 — 생산 중 새 불량 모드 발견 시 추가한다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Packing Specs and Label Templates are set per item / customer before FG go-live.</div><div class="wf-ko">FG 가동 전 품목·고객별 포장 사양·라벨 템플릿을 설정한다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Pallets / Containers and Carriers are registered; registration/calibration expiry is monitored.</div><div class="wf-ko">팔레트·컨테이너·운송사를 등록 — 등록/교정 유효기간을 모니터링한다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">A gauge past calibration is auto-set INVALID; the system blocks inspections that use it until re-calibrated.</div><div class="wf-ko">교정 만료 계측기는 자동 INVALID — 재교정 전까지 해당 검사를 차단한다.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙 (해당 카테고리)</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:110px;">Rule</th><th>Description</th><th style="width:100px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-MD-03</td><td><div>Inspection standards (MD-06) must exist before QC screens accept inspection entry.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">MD-06 검사 기준 없으면 QC 검사 입력 불가.</div></td><td><span class="br-act val">Validation</span></td></tr>
+          <tr><td class="br-id">BR-MD-13</td><td><div>MD-21 Sampling Plan AQL level must match the AQL level on the corresponding MD-06 standard.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">샘플링 계획 AQL은 대응 검사 기준 AQL과 일치.</div></td><td><span class="br-act val">FK</span></td></tr>
+          <tr><td class="br-id">BR-MD-14</td><td><div>A gauge (MD-22) past NextCalDate is INVALID — QC blocks inspection entry using it.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">교정 만료 계측기는 INVALID — 해당 검사 입력 차단.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-MD-15</td><td><div>A QC inspection recording a measurement must reference a valid in-calibration gauge.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">측정값 기록 QC 검사는 유효 교정 계측기 참조 필수.</div></td><td><span class="br-act val">Required</span></td></tr>
+          <tr><td class="br-id">BR-MD-16</td><td><div>MD-23 Packing Spec must be defined for an item before FG-01 packing.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">포장 사양 없으면 FG-01 포장 불가.</div></td><td><span class="br-act val">Validation</span></td></tr>
+          <tr><td class="br-id">BR-MD-17</td><td><div>MD-24 Label Template must be assigned per customer before FG-02 prints a customer label.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">고객별 라벨 템플릿 배정 후 FG-02 고객 라벨 발행.</div></td><td><span class="br-act val">Validation</span></td></tr>
+          <tr><td class="br-id">BR-MD-18</td><td><div>FG-03 putaway cannot load a pallet beyond the MD-25 Container MaxLoadKg.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">FG-03 입고 시 컨테이너 MaxLoadKg 초과 적재 불가.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-MD-19</td><td><div>FG-05 loading can assign only an MD-26 vehicle with a non-expired registration.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">FG-05 상차는 등록 유효 차량만 배차.</div></td><td><span class="br-act blk">Block</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node cur"><div class="lnk-id">MD · E</div><div class="lnk-name">Quality &amp; Logistics</div><div class="lnk-ko">검사·불량·포장·운송</div></div>
+        </div>
+        <div class="lnk-row" style="margin-top:14px;">
+          <div class="lnk-node cur"><div class="lnk-id">MD · E</div><div class="lnk-name">→ Drives</div></div>
+          <div class="lnk-arr">↘</div>
+          <div class="lnk-node down"><div class="lnk-id">QC-01~08</div><div class="lnk-name">검사·샘플링·계측</div></div>
+          <div class="lnk-node down"><div class="lnk-id">FG-01~06</div><div class="lnk-name">포장·라벨·출하</div></div>
+          <div class="lnk-node down"><div class="lnk-id">WH</div><div class="lnk-name">로케이션 보관</div></div>
+          <div class="lnk-node down"><div class="lnk-id">RPT-02/03/04</div><div class="lnk-name">불량·출하 집계</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.13 · MD L3-E · Quality &amp; Logistics Masters · L3 Spec v1.0</div><div class="pf-r">9 Entities (+6 NEW) · Phase-0 · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
