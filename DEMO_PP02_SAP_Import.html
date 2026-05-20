@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PP-02 SAP B1 Supply Plan Import · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+.scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
+.sh-id{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:2px;color:#34d399;line-height:.9;}
+.sh-tt{flex:1;}
+.sh-en{font-size:16px;font-weight:800;color:#fff;}
+.sh-ko{font-size:11px;color:rgba(255,255,255,.5);}
+.sh-tag{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+.sh-live{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.sh-live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.toolbar{background:#fff;border-bottom:1px solid var(--bd);padding:9px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
+.fld{display:flex;flex-direction:column;gap:2px;}
+.fld label{font-size:8px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;}
+select,input[type=text]{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink);}
+select:focus,input:focus{outline:2px solid rgba(5,150,105,.3);border-color:var(--pp);}
+.btn{padding:6px 13px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-p{background:var(--pp);color:#fff;}
+.btn-p:hover{background:var(--pp-dk);}
+.btn-s{background:#f6f8fa;color:var(--ink);border-color:var(--bd);}
+.btn-s:hover{background:#eef1f5;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+.body{flex:1;overflow-y:auto;padding:16px 24px 40px;}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:13px 16px;border-left:3px solid var(--c);}
+.kpi .kv{font-size:26px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;color:var(--c);}
+.kpi .kl{font-size:10px;color:var(--sub);margin-top:4px;}
+.srcbar{display:flex;align-items:center;gap:10px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:9px 14px;margin-bottom:14px;font-size:11px;color:#065f46;}
+.srcbar b{font-weight:800;}
+.srcbar .ph2{margin-left:auto;font-size:9px;font-family:'JetBrains Mono',monospace;color:#92400e;background:#fef3c7;border:1px solid #fde68a;padding:2px 8px;border-radius:8px;}
+.panel{background:#fff;border:1px solid var(--bd);border-radius:8px;overflow:hidden;}
+table{width:100%;border-collapse:collapse;font-size:11.5px;}
+thead th{background:#f0f3f7;padding:9px 10px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--bd);white-space:nowrap;}
+thead th .k{font-weight:400;color:var(--sub);font-size:8px;display:block;}
+tbody td{padding:8px 10px;border-bottom:1px solid #eef1f5;}
+tbody tr:hover td{background:#f0fdf4;}
+tbody tr.open td{background:#fffbeb;}
+tbody tr.open:hover td{background:#fef9c3;}
+tbody tr.justnew td{animation:fl 1.6s ease;}
+@keyframes fl{0%,40%{background:#dcfce7;}100%{background:transparent;}}
+.mono{font-family:'JetBrains Mono',monospace;font-size:10px;}
+.num{text-align:right;font-family:'JetBrains Mono',monospace;}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 8px;border-radius:9px;}
+.b-ok{background:#dcfce7;color:#166534;}
+.b-w{background:#fef9c3;color:#92400e;}
+.b-i{background:#dbeafe;color:#1e40af;}
+.b-n{background:#f3f4f6;color:#6b7280;}
+.empty{padding:40px;text-align:center;color:#9ca3af;font-size:12px;}
+.ov{position:fixed;inset:0;background:rgba(13,17,23,.6);display:none;align-items:center;justify-content:center;z-index:100;}
+.ov.show{display:flex;}
+.modal{background:#fff;border-radius:12px;width:540px;max-width:92vw;max-height:88vh;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.4);display:flex;flex-direction:column;}
+.modal-h{background:linear-gradient(135deg,#03251a,#052e1f);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:9px;}
+.modal-h .mt{font-size:14px;font-weight:800;flex:1;}
+.modal-h .mx{cursor:pointer;font-size:18px;color:rgba(255,255,255,.6);background:none;border:none;}
+.modal-h .mx:hover{color:#fff;}
+.modal-b{padding:18px 20px;overflow-y:auto;}
+.modal-f{padding:12px 20px;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end;background:#fafbfc;}
+.mlabel{font-size:11px;font-weight:700;color:var(--sub);margin:10px 0 5px;}
+.mlabel:first-child{margin-top:0;}
+.file-opt{display:flex;align-items:center;gap:10px;padding:11px 13px;border:1px solid var(--bd);border-radius:8px;margin-bottom:7px;cursor:pointer;}
+.file-opt:hover{border-color:var(--pp);background:#f0fdf4;}
+.file-opt.sel{border-color:var(--pp);background:#ecfdf5;box-shadow:0 0 0 2px rgba(5,150,105,.15);}
+.file-opt .fi{font-size:22px;}
+.file-opt .fn{font-size:12px;font-weight:700;}
+.file-opt .fd{font-size:10px;color:var(--sub);}
+.file-opt .fr{margin-left:auto;width:16px;height:16px;border-radius:50%;border:2px solid var(--bd);}
+.file-opt.sel .fr{border-color:var(--pp);background:radial-gradient(circle,var(--pp) 0 4px,transparent 5px);}
+.parse-box{background:#f6f8fa;border:1px solid var(--bd);border-radius:8px;padding:12px;font-size:11px;}
+.parse-row{display:flex;justify-content:space-between;padding:4px 0;}
+.parse-row .pl{color:var(--sub);}
+.parse-row .pv{font-weight:700;font-family:'JetBrains Mono',monospace;}
+.hint{font-size:10px;color:var(--sub);margin-top:6px;line-height:1.6;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#fff;border-radius:8px;padding:11px 15px;box-shadow:0 8px 26px rgba(0,0,0,.22);border-left:4px solid var(--pp);font-size:12px;min-width:260px;max-width:380px;animation:ti .25s ease;}
+.toast.err{border-left-color:#dc2626;}
+.toast.warn{border-left-color:#f59e0b;}
+.toast.info{border-left-color:#2563eb;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:var(--sub);font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+.detail-row td{background:#f0fdf4 !important;padding:0;}
+.detail-in{padding:12px 16px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.dt{font-size:10px;}.dt .dl{color:var(--sub);font-size:9px;text-transform:uppercase;letter-spacing:.5px;}
+.dt .dv{font-weight:700;font-size:12px;}
+</style>
+</head>
+<body>
+<div class="scr-head">
+  <div class="sh-id">PP-02</div>
+  <div class="sh-tt"><div class="sh-en">SAP B1 Supply Plan Import</div><div class="sh-ko">공급계획 수신 — SAP Business One 확정 판매오더 Import</div></div>
+  <span class="sh-tag">/pp/supply-plan/import</span>
+  <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
+</div>
+<div class="toolbar">
+  <div class="fld"><label>수신 방식 Method</label>
+    <select id="fMethod" onchange="methodChange()"><option value="excel">Excel Upload (Phase 1)</option><option value="api">Service Layer API (Phase 2)</option></select></div>
+  <div class="fld"><label>거래선 Customer</label>
+    <select id="fCust" onchange="render()"><option value="">전체 All</option><option>SAV</option><option>GEO</option></select></div>
+  <div class="fld"><label>상태 Status</label>
+    <select id="fStatus" onchange="render()"><option value="">전체 All</option><option>Confirmed</option><option>Open</option></select></div>
+  <div class="fld"><label>검색 Search</label>
+    <input type="text" id="fSearch" placeholder="SO·품목..." oninput="render()" style="width:150px;"></div>
+  <button class="btn btn-s btn-sm" onclick="resetFilters()">↺ 초기화</button>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <button class="btn btn-s" onclick="sampleTemplate()">📋 샘플 양식</button>
+    <button class="btn btn-p" onclick="openImport()">⬆ Excel Import</button>
+  </div>
+</div>
+<div class="body">
+  <div class="kpis">
+    <div class="kpi" style="--c:#059669"><div class="kv" id="kTotal">0</div><div class="kl">금일 수주 · Today's SOs</div></div>
+    <div class="kpi" style="--c:#22c55e"><div class="kv" id="kConf">0</div><div class="kl">확정 · Confirmed</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kOpen">0</div><div class="kl">미확정 · Open</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kSync" style="font-size:20px;">—</div><div class="kl">최근 동기화 · Last Sync</div></div>
+  </div>
+  <div class="srcbar">
+    <span>📂</span><div>수신 소스: <b id="srcName">SAP B1 Excel Export (Phase 1 · 수동)</b> — 매일 07:00 KST 배치 수신 예정</div>
+    <span class="ph2">Phase 2: Service Layer API GET /Orders</span>
+  </div>
+  <div class="panel">
+    <table>
+      <thead><tr>
+        <th>SO 번호<span class="k">SO No.</span></th>
+        <th>거래선<span class="k">Customer</span></th>
+        <th>품목코드<span class="k">Item Code</span></th>
+        <th>품목명<span class="k">Item Name</span></th>
+        <th style="text-align:right;">수주량<span class="k">Order Qty</span></th>
+        <th>납기일<span class="k">Due Date</span></th>
+        <th style="text-align:center;">상태<span class="k">Status</span></th>
+        <th>WO 연결<span class="k">WO Link</span></th>
+        <th style="text-align:center;">작업<span class="k">Action</span></th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="emptyMsg" style="display:none;">조건에 맞는 공급계획(SO)이 없습니다.</div>
+  </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="ov" id="ovImport">
+  <div class="modal">
+    <div class="modal-h"><span>⬆</span><span class="mt">SAP B1 공급계획 Excel Import</span><button class="mx" onclick="closeModal('ovImport')">✕</button></div>
+    <div class="modal-b">
+      <div class="mlabel">① SAP B1에서 Export 한 공급계획 파일 선택</div>
+      <div id="fileList"></div>
+      <div class="mlabel">② 파싱·스키마 검증 결과</div>
+      <div class="parse-box" id="parseBox"><div style="color:#9ca3af;text-align:center;padding:8px;">파일을 선택하면 검증 결과가 표시됩니다</div></div>
+      <div class="hint">⚙ Import 시 SO번호 기준으로 <b>PP_SupplyPlan</b>에 신규 삽입·기존 갱신. 확정(Confirmed) SO는 PP-03 생산계획 수립 대상이 되며, 미확정(Open) SO는 [확정] 처리 후 반영됩니다. Import 이력은 감사 로그에 기록됩니다.</div>
+    </div>
+    <div class="modal-f">
+      <button class="btn btn-s" onclick="closeModal('ovImport')">취소</button>
+      <button class="btn btn-p" id="btnDoImport" onclick="doImport()" disabled style="opacity:.5;">Import 실행</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+var DATA=[
+  {so:'SO-2025-08001',cust:'SAV',code:'TRIM-LH-001',name:'도어트림 LH',qty:2350,due:'2025-09-15',status:'Confirmed',wo:'WO-20250801-001'},
+  {so:'SO-2025-07055',cust:'SAV',code:'TRIM-RH-001',name:'도어트림 RH',qty:1580,due:'2025-08-31',status:'Confirmed',wo:'WO-20250715-003'},
+  {so:'SO-2025-08003',cust:'GEO',code:'CONS-UP-001',name:'콘솔어퍼',qty:800,due:'2025-09-25',status:'Open',wo:null},
+  {so:'SO-2025-08004',cust:'SAV',code:'GRILLE-02',name:'라디에이터 그릴',qty:1530,due:'2025-09-20',status:'Confirmed',wo:'WO-20250802-006'},
+  {so:'SO-2025-08007',cust:'GEO',code:'MOLDING-05',name:'사이드 몰딩 5',qty:590,due:'2025-10-02',status:'Open',wo:null},
+  {so:'SO-2025-08009',cust:'SAV',code:'BUMPER-01',name:'프론트 범퍼',qty:905,due:'2025-09-28',status:'Confirmed',wo:'WO-20250803-002'}
+];
+var lastSync='07:12';
+var FILES=[
+  {id:'f912',name:'SAP_SupplyPlan_2025-09-12.xlsx',desc:'3개 SO · SAV 2 / GEO 1',
+   data:[{so:'SO-2025-09012',cust:'SAV',code:'TRIM-LH-001',name:'도어트림 LH',qty:2500,due:'2025-10-15',status:'Confirmed',wo:null},
+         {so:'SO-2025-09013',cust:'SAV',code:'GRILLE-02',name:'라디에이터 그릴',qty:1400,due:'2025-10-18',status:'Confirmed',wo:null},
+         {so:'SO-2025-09015',cust:'GEO',code:'MOLDING-05',name:'사이드 몰딩 5',qty:620,due:'2025-10-22',status:'Open',wo:null}]},
+  {id:'f913',name:'SAP_SupplyPlan_2025-09-13.xlsx',desc:'2개 SO · GEO 2',
+   data:[{so:'SO-2025-09020',cust:'GEO',code:'CONS-UP-001',name:'콘솔어퍼',qty:880,due:'2025-10-25',status:'Confirmed',wo:null},
+         {so:'SO-2025-09021',cust:'GEO',code:'BUMPER-01',name:'프론트 범퍼',qty:760,due:'2025-10-28',status:'Open',wo:null}]}
+];
+var selFile=null;
+
+function woCell(r){
+  if(r.wo) return '<span class="mono" style="color:#059669;font-weight:700;">'+r.wo+'</span>';
+  if(r.status==='Confirmed') return '<span class="b b-i">PP-03 검토 대기</span>';
+  return '<span style="color:#9ca3af;">—</span>';
+}
+function filtered(){
+  var c=document.getElementById('fCust').value,s=document.getElementById('fStatus').value,
+      q=document.getElementById('fSearch').value.trim().toLowerCase();
+  return DATA.filter(function(r){
+    if(c&&r.cust!==c) return false;
+    if(s&&r.status!==s) return false;
+    if(q&&((r.so+' '+r.code+' '+r.name).toLowerCase().indexOf(q)<0)) return false;
+    return true;
+  });
+}
+function render(){
+  var rows=filtered(),h='';
+  rows.forEach(function(r){
+    var idx=DATA.indexOf(r),op=(r.status==='Open');
+    h+='<tr class="'+(op?'open':'')+(r._new?' justnew':'')+'">'+
+      '<td class="mono" style="font-weight:700;">'+r.so+'</td>'+
+      '<td>'+r.cust+'</td>'+
+      '<td class="mono">'+r.code+'</td>'+
+      '<td>'+r.name+'</td>'+
+      '<td class="num" style="font-weight:700;">'+r.qty.toLocaleString()+'</td>'+
+      '<td class="mono">'+r.due+'</td>'+
+      '<td style="text-align:center;">'+(op?'<span class="b b-w">Open</span>':'<span class="b b-ok">Confirmed</span>')+'</td>'+
+      '<td>'+woCell(r)+'</td>'+
+      '<td style="text-align:center;">'+(op
+        ?'<button class="btn btn-p btn-sm" onclick="confirmSo('+idx+')">✓ 확정</button>'
+        :'<button class="btn btn-s btn-sm" onclick="toggleDetail('+idx+',this)">상세</button>')+'</td>'+
+      '</tr>';
+    r._new=false;
+  });
+  document.getElementById('tbody').innerHTML=h;
+  document.getElementById('emptyMsg').style.display=rows.length?'none':'block';
+  document.getElementById('kTotal').textContent=DATA.length;
+  document.getElementById('kConf').textContent=DATA.filter(function(r){return r.status==='Confirmed';}).length;
+  document.getElementById('kOpen').textContent=DATA.filter(function(r){return r.status==='Open';}).length;
+  document.getElementById('kSync').textContent=lastSync;
+}
+function toggleDetail(idx,btn){
+  var tr=btn.closest('tr'),nx=tr.nextElementSibling;
+  if(nx&&nx.classList.contains('detail-row')){nx.remove();btn.textContent='상세';return;}
+  btn.textContent='닫기';
+  var r=DATA[idx];
+  var due=new Date(r.due),today=new Date('2025-09-12');
+  var dday=Math.round((due-today)/86400000);
+  var d=document.createElement('tr');d.className='detail-row';
+  d.innerHTML='<td colspan="9"><div class="detail-in">'+
+    '<div class="dt"><div class="dl">거래선 / 소스</div><div class="dv">'+r.cust+' · SAP B1</div></div>'+
+    '<div class="dt"><div class="dl">수주량 / 납기</div><div class="dv">'+r.qty.toLocaleString()+' EA · '+r.due+'</div></div>'+
+    '<div class="dt"><div class="dl">D-Day</div><div class="dv" style="color:'+(dday<=14?'#dc2626':'#059669')+';">D'+(dday>=0?'-'+dday:'+'+(-dday))+'</div></div>'+
+    '<div class="dt"><div class="dl">WO 연결 상태</div><div class="dv">'+(r.wo?r.wo:'PP-03 생산계획 검토 대기')+'</div></div>'+
+    '</div></td>';
+  tr.after(d);
+}
+function confirmSo(idx){
+  var r=DATA[idx];
+  r.status='Confirmed';r._new=true;
+  render();
+  toast('','SO 확정 처리 — '+r.so,r.name+' '+r.qty.toLocaleString()+'EA가 확정되어 PP-03 생산계획 수립 대상에 포함됩니다.');
+}
+function methodChange(){
+  var m=document.getElementById('fMethod');
+  if(m.value==='api'){
+    toast('warn','Phase 2 기능','Service Layer API 직접 연동은 Phase 2 예정입니다. 현재는 Excel Upload로 진행하세요.');
+    m.value='excel';
+  }
+}
+function resetFilters(){
+  document.getElementById('fCust').value='';document.getElementById('fStatus').value='';document.getElementById('fSearch').value='';
+  render();toast('info','필터 초기화','검색 조건을 초기화했습니다.');
+}
+function sampleTemplate(){
+  var csv='SO_No,Customer,Item_Code,Item_Name,Order_Qty,Due_Date,Status\n';
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='SAP_SupplyPlan_Template.csv';document.body.appendChild(a);a.click();a.remove();
+  toast('info','샘플 양식 다운로드','SAP B1 공급계획 Import용 빈 양식(필수 컬럼)을 내려받았습니다.');
+}
+function openImport(){
+  selFile=null;
+  var h='';
+  FILES.forEach(function(f){
+    h+='<div class="file-opt" id="fo-'+f.id+'" onclick="pickFile(\''+f.id+'\')">'+
+       '<span class="fi">📊</span><div><div class="fn">'+f.name+'</div><div class="fd">'+f.desc+'</div></div>'+
+       '<span class="fr"></span></div>';
+  });
+  document.getElementById('fileList').innerHTML=h;
+  document.getElementById('parseBox').innerHTML='<div style="color:#9ca3af;text-align:center;padding:8px;">파일을 선택하면 검증 결과가 표시됩니다</div>';
+  var b=document.getElementById('btnDoImport');b.disabled=true;b.style.opacity=.5;
+  document.getElementById('ovImport').classList.add('show');
+}
+function pickFile(id){
+  selFile=FILES.filter(function(f){return f.id===id;})[0];
+  document.querySelectorAll('.file-opt').forEach(function(e){e.classList.remove('sel');});
+  document.getElementById('fo-'+id).classList.add('sel');
+  var nw=0,up=0;
+  selFile.data.forEach(function(nr){ DATA.some(function(r){return r.so===nr.so;})?up++:nw++; });
+  var cf=selFile.data.filter(function(r){return r.status==='Confirmed';}).length;
+  document.getElementById('parseBox').innerHTML=
+    '<div class="parse-row"><span class="pl">총 SO 행</span><span class="pv">'+selFile.data.length+' 행</span></div>'+
+    '<div class="parse-row"><span class="pl">신규 SO</span><span class="pv" style="color:#166534;">'+nw+' 행</span></div>'+
+    '<div class="parse-row"><span class="pl">기존 SO 갱신</span><span class="pv" style="color:#1e40af;">'+up+' 행</span></div>'+
+    '<div class="parse-row"><span class="pl">확정 / 미확정</span><span class="pv">'+cf+' / '+(selFile.data.length-cf)+'</span></div>'+
+    '<div class="parse-row" style="border-top:1px dashed #d0d7de;margin-top:4px;padding-top:6px;"><span class="pl">스키마 검증</span><span class="pv" style="color:#166534;">✓ 정상 (SO·거래선·품목·수량·납기)</span></div>';
+  var b=document.getElementById('btnDoImport');b.disabled=false;b.style.opacity=1;
+}
+function doImport(){
+  if(!selFile) return;
+  var nw=0,up=0;
+  selFile.data.forEach(function(nr){
+    var ex=DATA.filter(function(r){return r.so===nr.so;})[0];
+    if(ex){ex.qty=nr.qty;ex.due=nr.due;ex.status=nr.status;ex._new=true;up++;}
+    else{var c=JSON.parse(JSON.stringify(nr));c._new=true;DATA.push(c);nw++;}
+  });
+  var now=new Date();
+  lastSync=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  closeModal('ovImport');
+  document.getElementById('fStatus').value='';document.getElementById('fCust').value='';
+  render();
+  toast('','Import 완료 — '+selFile.name,'신규 SO '+nw+'건 · 갱신 '+up+'건 수신. PP_SupplyPlan 반영 완료.');
+  var op=selFile.data.filter(function(r){return r.status==='Open';}).length;
+  if(op) setTimeout(function(){toast('warn','미확정 SO '+op+'건','Open 상태 SO는 [확정] 처리 후 PP-03 생산계획 수립 대상이 됩니다.');},600);
+}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='warn'?'⚠ ':type==='info'?'ℹ ':'✅ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},4200);
+}
+document.querySelectorAll('.ov').forEach(function(o){o.addEventListener('click',function(e){if(e.target===o)o.classList.remove('show');});});
+render();
+</script>
+</body>
+</html>
