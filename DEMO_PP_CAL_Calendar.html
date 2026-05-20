@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PP-CAL Production Calendar · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+.scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
+.sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
+.sh-tt{flex:1;}
+.sh-en{font-size:16px;font-weight:800;color:#fff;}
+.sh-ko{font-size:11px;color:rgba(255,255,255,.5);}
+.sh-tag{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+.sh-live{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.sh-live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.toolbar{background:#fff;border-bottom:1px solid var(--bd);padding:9px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
+.fld{display:flex;flex-direction:column;gap:2px;}
+.fld label{font-size:8px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;}
+select{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink);}
+.btn{padding:6px 13px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-p{background:var(--pp);color:#fff;}.btn-p:hover{background:var(--pp-dk);}
+.btn-s{background:#f6f8fa;color:var(--ink);border-color:var(--bd);}.btn-s:hover{background:#eef1f5;}
+.btn-d{background:#fff;color:#dc2626;border-color:#fca5a5;}.btn-d:hover{background:#fef2f2;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+.monthlbl{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;margin:0 6px;min-width:160px;text-align:center;}
+.body{flex:1;overflow-y:auto;padding:16px 24px 40px;}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:12px 15px;border-left:3px solid var(--c);}
+.kpi .kv{font-size:23px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;color:var(--c);}
+.kpi .kl{font-size:10px;color:var(--sub);margin-top:4px;}
+.cal{background:#fff;border:1px solid var(--bd);border-radius:8px;overflow:hidden;}
+.cal-wd{display:grid;grid-template-columns:repeat(7,1fr);background:#1f2937;}
+.cal-wd div{padding:7px;text-align:center;font-size:10px;font-weight:700;color:#fff;}
+.cal-wd div.sun{color:#fca5a5;}.cal-wd div.sat{color:#93c5fd;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);}
+.cell{min-height:96px;border-right:1px solid #eef1f5;border-bottom:1px solid #eef1f5;padding:5px 6px;display:flex;flex-direction:column;gap:3px;}
+.cell.pad{background:#fafbfc;}
+.cell.today{background:#fffbeb;box-shadow:inset 0 0 0 2px #f59e0b;}
+.cell.d3{background:#fef2f2;border-left:3px solid #dc2626;}
+.cell.approach{background:#fffbeb;border-left:3px solid #f59e0b;}
+.cell.normal{border-left:3px solid #22c55e;}
+.cell.dragover{background:#dbeafe !important;box-shadow:inset 0 0 0 2px #2563eb;}
+.cell .dnum{font-size:11px;font-weight:700;color:var(--sub);display:flex;justify-content:space-between;align-items:center;}
+.cell .dnum .tdd{font-size:7px;font-weight:700;color:#dc2626;font-family:'JetBrains Mono',monospace;}
+.cell.today .dnum{color:#92400e;}
+.cell .dsum{font-size:8px;color:var(--sub);font-family:'JetBrains Mono',monospace;}
+.wo-chip{font-size:9px;font-weight:700;border-radius:4px;padding:3px 6px;cursor:grab;color:#fff;display:flex;justify-content:space-between;gap:4px;}
+.wo-chip:active{cursor:grabbing;}
+.wo-chip.r-a{background:#2563eb;}
+.wo-chip.r-b{background:#ea580c;}
+.wo-chip .wq{font-family:'JetBrains Mono',monospace;opacity:.85;}
+.wo-chip.dragging{opacity:.4;}
+.legend{display:flex;gap:16px;margin-top:12px;font-size:10px;color:var(--sub);flex-wrap:wrap;}
+.legend span{display:flex;align-items:center;gap:5px;}
+.lg-box{width:14px;height:14px;border-radius:3px;}
+.daydetail{background:#fff;border:1px solid var(--bd);border-radius:8px;margin-top:14px;overflow:hidden;display:none;}
+.daydetail.show{display:block;}
+.dd-h{background:#f0fdf4;border-bottom:1px solid var(--bd);padding:9px 14px;font-size:12px;font-weight:800;display:flex;align-items:center;gap:8px;}
+.dd-h .x{margin-left:auto;cursor:pointer;color:var(--sub);background:none;border:none;font-size:15px;}
+.dd-b{padding:6px 14px 12px;}
+.dd-wo{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid #eef1f5;}
+.dd-wo:last-child{border-bottom:none;}
+.dd-wo .rt{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:2px 7px;border-radius:4px;}
+.dd-wo .rt.A{background:#dbeafe;color:#1e40af;}.dd-wo .rt.B{background:#ffedd5;color:#9a3412;}
+.dd-wo .mono{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.dd-wo .nm{flex:1;}
+.dd-wo .nm .it{font-size:11px;font-weight:700;}
+.dd-wo .nm .ln{font-size:9px;color:var(--sub);}
+.ov{position:fixed;inset:0;background:rgba(13,17,23,.6);display:none;align-items:center;justify-content:center;z-index:100;}
+.ov.show{display:flex;}
+.modal{background:#fff;border-radius:12px;width:440px;max-width:92vw;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.4);}
+.modal-h{background:linear-gradient(135deg,#7f1d1d,#991b1b);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:9px;}
+.modal-h .mt{font-size:14px;font-weight:800;flex:1;}
+.modal-h .mx{cursor:pointer;font-size:18px;color:rgba(255,255,255,.6);background:none;border:none;}
+.modal-b{padding:18px 20px;}
+.modal-f{padding:12px 20px;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end;background:#fafbfc;}
+.warnbox{background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:12px;font-size:12px;color:#991b1b;line-height:1.7;}
+.hint{font-size:10px;color:var(--sub);margin-top:9px;line-height:1.6;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#fff;border-radius:8px;padding:11px 15px;box-shadow:0 8px 26px rgba(0,0,0,.22);border-left:4px solid var(--pp);font-size:12px;min-width:250px;max-width:380px;animation:ti .25s ease;}
+.toast.err{border-left-color:#dc2626;}.toast.warn{border-left-color:#f59e0b;}.toast.info{border-left-color:#2563eb;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:var(--sub);font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="scr-head">
+  <div class="sh-id">PP-CAL</div>
+  <div class="sh-tt"><div class="sh-en">Production Calendar</div><div class="sh-ko">생산 캘린더 — WO 납기 월간 뷰 · 드래그-드롭 재일정</div></div>
+  <span class="sh-tag">/pp/calendar</span>
+  <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
+</div>
+<div class="toolbar">
+  <button class="btn btn-s btn-sm" onclick="navMonth(-1)">‹ 이전</button>
+  <span class="monthlbl" id="monthLbl">SEP 2025</span>
+  <button class="btn btn-s btn-sm" onclick="navMonth(1)">다음 ›</button>
+  <button class="btn btn-p btn-sm" onclick="goToday()">오늘</button>
+  <div class="fld" style="margin-left:8px;"><label>보기 View</label>
+    <select id="fView" onchange="viewChange()"><option>Month View</option><option>Week View</option><option>Day View</option></select></div>
+  <div class="fld"><label>라인 Line</label>
+    <select id="fLine" onchange="renderCal()"><option value="">전체 All</option><option>INJ-L1</option><option>INJ-L2</option><option>IMG-L1</option><option>PNT-L1</option><option>PNT-L2</option></select></div>
+  <span style="margin-left:auto;font-size:10px;color:var(--sub);">💡 WO 칩을 다른 날짜로 드래그하면 납기가 재조정됩니다</span>
+</div>
+<div class="body">
+  <div class="kpis">
+    <div class="kpi" style="--c:#059669"><div class="kv" id="kWo">0</div><div class="kl">이번달 WO · Month WOs</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kD3">0</div><div class="kl">D-3 임박 · Critical</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kOver">0</div><div class="kl">납기 지연 · Overdue</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kQty" style="font-size:19px;">0</div><div class="kl">총 계획수량 · Plan Qty</div></div>
+  </div>
+  <div class="cal">
+    <div class="cal-wd"><div class="sun">일 SUN</div><div>월 MON</div><div>화 TUE</div><div>수 WED</div><div>목 THU</div><div>금 FRI</div><div class="sat">토 SAT</div></div>
+    <div class="cal-grid" id="grid"></div>
+  </div>
+  <div class="legend">
+    <span><span class="lg-box" style="background:#fef2f2;border-left:3px solid #dc2626;"></span>D-3 임박 Critical</span>
+    <span><span class="lg-box" style="background:#fffbeb;border-left:3px solid #f59e0b;"></span>접근중 Approaching</span>
+    <span><span class="lg-box" style="background:#fff;border-left:3px solid #22c55e;"></span>정상 Normal</span>
+    <span><span class="lg-box" style="background:#fffbeb;box-shadow:inset 0 0 0 2px #f59e0b;"></span>오늘 Today</span>
+    <span><span class="lg-box" style="background:#2563eb;"></span>라우팅 A</span>
+    <span><span class="lg-box" style="background:#ea580c;"></span>라우팅 B</span>
+  </div>
+  <div class="daydetail" id="dayDetail">
+    <div class="dd-h"><span id="ddTitle">날짜</span><span id="ddSum" style="font-size:10px;color:var(--sub);font-weight:400;"></span><button class="x" onclick="closeDayDetail()">✕</button></div>
+    <div class="dd-b" id="ddBody"></div>
+  </div>
+</div>
+
+<!-- APPROVAL MODAL (past-date reschedule) -->
+<div class="ov" id="ovAppr">
+  <div class="modal">
+    <div class="modal-h"><span>⚠</span><span class="mt">과거 일자 재일정 — 매니저 승인</span><button class="mx" onclick="cancelAppr()">✕</button></div>
+    <div class="modal-b">
+      <div class="warnbox" id="apprMsg"></div>
+      <div class="hint">과거 일자(오늘 이전)로의 납기 재조정은 <b>매니저 승인</b>이 필요하며 감사 로그(SYS-05)에 기록됩니다. (BR-PP-008)</div>
+    </div>
+    <div class="modal-f">
+      <button class="btn btn-s" onclick="cancelAppr()">취소</button>
+      <button class="btn btn-d" onclick="approveAppr()">매니저 승인 후 이동</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+var TODAY=new Date(2025,8,12); /* 2025-09-12 */
+var curY=2025,curM=8; /* month 8 = Sep */
+var WO=[
+  {wo:'WO-20250730-009',code:'MOLDING-05',name:'사이드 몰딩 5',qty:390,routing:'A',line:'INJ-L2',due:'2025-09-09'},
+  {wo:'WO-20250801-002',code:'TRIM-LH-001',name:'도어트림 LH (회색)',qty:2030,routing:'A',line:'INJ-L1',due:'2025-09-15'},
+  {wo:'WO-20250715-003',code:'TRIM-RH-001',name:'도어트림 RH',qty:1160,routing:'A',line:'IMG-L1',due:'2025-09-15'},
+  {wo:'WO-20250801-009',code:'GRILLE-02',name:'라디에이터 그릴 (시험)',qty:300,routing:'A',line:'INJ-L1',due:'2025-09-13'},
+  {wo:'WO-20250801-005',code:'CONS-UP-001',name:'콘솔어퍼',qty:650,routing:'B',line:'PNT-L1',due:'2025-09-17'},
+  {wo:'WO-20250802-006',code:'GRILLE-02',name:'라디에이터 그릴',qty:1450,routing:'A',line:'INJ-L1',due:'2025-09-20'},
+  {wo:'WO-20250803-002',code:'BUMPER-01',name:'프론트 범퍼',qty:905,routing:'B',line:'PNT-L2',due:'2025-09-25'},
+  {wo:'WO-20250802-011',code:'CONS-UP-001',name:'콘솔어퍼 (2차)',qty:800,routing:'B',line:'PNT-L1',due:'2025-09-25'},
+  {wo:'WO-20250804-014',code:'TRIM-LH-001',name:'도어트림 LH',qty:1700,routing:'A',line:'INJ-L1',due:'2025-09-29'}
+];
+var MN=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+var pad=function(n){return String(n).padStart(2,'0');};
+var dstr=function(y,m,d){return y+'-'+pad(m+1)+'-'+pad(d);};
+var todayStr=dstr(TODAY.getFullYear(),TODAY.getMonth(),TODAY.getDate());
+var dragWo=-1,apprPending=null,selDate=null;
+
+function lineWos(){
+  var ln=document.getElementById('fLine').value;
+  return WO.filter(function(w){return !ln||w.line===ln;});
+}
+function dayState(ds){
+  if(ds<todayStr) return 'over';
+  var diff=Math.round((new Date(ds)-TODAY)/86400000);
+  if(ds===todayStr) return 'today';
+  if(diff<=3) return 'd3';
+  if(diff<=7) return 'approach';
+  return 'normal';
+}
+function renderCal(){
+  document.getElementById('monthLbl').textContent=MN[curM]+' '+curY;
+  var first=new Date(curY,curM,1).getDay(),dim=new Date(curY,curM+1,0).getDate();
+  var ws=lineWos(),h='';
+  for(var i=0;i<first;i++) h+='<div class="cell pad"></div>';
+  for(var d=1;d<=dim;d++){
+    var ds=dstr(curY,curM,d),dws=ws.filter(function(w){return w.due===ds;});
+    var st=dws.length?dayState(ds):(ds===todayStr?'today':'');
+    var cls='cell'+(st?' '+(st==='over'?'d3':st):'');
+    var diff=Math.round((new Date(ds)-TODAY)/86400000);
+    var tdd=ds===todayStr?'<span class="tdd" style="color:#92400e;">TODAY</span>':(dws.length&&diff>=0&&diff<=3?'<span class="tdd">D-'+diff+'</span>':(dws.length&&ds<todayStr?'<span class="tdd">지연</span>':''));
+    var chips='';
+    dws.forEach(function(w){
+      var gi=WO.indexOf(w);
+      chips+='<div class="wo-chip r-'+w.routing.toLowerCase()+'" draggable="true" data-wi="'+gi+'" '+
+        'ondragstart="dragStart(event,'+gi+')" ondragend="dragEnd(event)" onclick="event.stopPropagation();woClick('+gi+')" title="'+w.wo+' · '+w.name+'">'+
+        '<span>'+w.code+'</span><span class="wq">'+w.qty.toLocaleString()+'</span></div>';
+    });
+    var sum=dws.length?'<div class="dsum">'+dws.length+' WO · '+dws.reduce(function(a,w){return a+w.qty;},0).toLocaleString()+'</div>':'';
+    h+='<div class="'+cls+'" data-date="'+ds+'" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="drop(event,\''+ds+'\')" onclick="openDayDetail(\''+ds+'\')">'+
+       '<div class="dnum"><span>'+d+'</span>'+tdd+'</div>'+chips+sum+'</div>';
+  }
+  document.getElementById('grid').innerHTML=h;
+  /* KPIs (current month) */
+  var mw=ws.filter(function(w){return w.due.slice(0,7)===curY+'-'+pad(curM+1);});
+  document.getElementById('kWo').textContent=mw.length;
+  document.getElementById('kD3').textContent=mw.filter(function(w){var df=Math.round((new Date(w.due)-TODAY)/86400000);return df>=0&&df<=3;}).length;
+  document.getElementById('kOver').textContent=mw.filter(function(w){return w.due<todayStr;}).length;
+  document.getElementById('kQty').textContent=mw.reduce(function(a,w){return a+w.qty;},0).toLocaleString();
+}
+function dragStart(e,wi){dragWo=wi;e.dataTransfer.effectAllowed='move';e.target.classList.add('dragging');}
+function dragEnd(e){e.target.classList.remove('dragging');}
+function dragOver(e){e.preventDefault();e.currentTarget.classList.add('dragover');}
+function dragLeave(e){e.currentTarget.classList.remove('dragover');}
+function drop(e,ds){
+  e.preventDefault();e.currentTarget.classList.remove('dragover');
+  if(dragWo<0) return;
+  var w=WO[dragWo];
+  if(w.due===ds){dragWo=-1;return;}
+  if(ds<todayStr){
+    apprPending={wi:dragWo,to:ds};
+    document.getElementById('apprMsg').innerHTML='<b>'+w.wo+'</b> · '+w.code+'<br>납기 '+w.due+' → <b>'+ds+'</b> (과거 일자)<br><br>오늘 이전 날짜로 이동합니다. 매니저 승인이 필요합니다.';
+    document.getElementById('ovAppr').classList.add('show');
+    dragWo=-1;return;
+  }
+  var from=w.due;w.due=ds;dragWo=-1;
+  renderCal();if(selDate)openDayDetail(selDate);
+  toast('','납기 재조정 — '+w.wo,w.code+' 납기 '+from+' → '+ds+' 로 변경. 감사 로그(SYS-05) 기록.');
+}
+function approveAppr(){
+  if(!apprPending) return;
+  var w=WO[apprPending.wi],from=w.due;w.due=apprPending.to;
+  document.getElementById('ovAppr').classList.remove('show');
+  renderCal();if(selDate)openDayDetail(selDate);
+  toast('warn','과거 일자 재일정 승인 — '+w.wo,'매니저 승인 처리. 납기 '+from+' → '+apprPending.to+'. 감사 로그 기록 완료.');
+  apprPending=null;
+}
+function cancelAppr(){document.getElementById('ovAppr').classList.remove('show');apprPending=null;}
+function woClick(wi){
+  var w=WO[wi];
+  toast('info',w.wo+' · '+w.code,w.name+' · '+w.qty.toLocaleString()+'EA · 라우팅 '+w.routing+' · '+w.line+' · 납기 '+w.due+'. 드래그하여 다른 날짜로 재일정할 수 있습니다.');
+}
+function openDayDetail(ds){
+  selDate=ds;
+  var dws=lineWos().filter(function(w){return w.due===ds;});
+  var dt=new Date(ds),wd=['일','월','화','수','목','금','토'][dt.getDay()];
+  document.getElementById('ddTitle').textContent=ds+' ('+wd+')';
+  document.getElementById('ddSum').textContent=dws.length?(dws.length+'개 WO · '+dws.reduce(function(a,w){return a+w.qty;},0).toLocaleString()+' EA'):'예정 WO 없음';
+  var h='';
+  if(!dws.length) h='<div style="padding:14px;text-align:center;color:#9ca3af;font-size:11px;">이 날짜에 예정된 작업지시가 없습니다. 다른 날의 WO 칩을 드래그해 이동할 수 있습니다.</div>';
+  dws.forEach(function(w){
+    var gi=WO.indexOf(w);
+    h+='<div class="dd-wo"><span class="rt '+w.routing+'">'+w.routing+'</span>'+
+       '<span class="mono">'+w.wo+'</span>'+
+       '<div class="nm"><div class="it">'+w.code+' · '+w.name+'</div><div class="ln">'+w.line+' · '+w.qty.toLocaleString()+' EA</div></div>'+
+       '<button class="btn btn-s btn-sm" onclick="woClick('+gi+')">정보</button></div>';
+  });
+  document.getElementById('ddBody').innerHTML=h;
+  document.getElementById('dayDetail').classList.add('show');
+}
+function closeDayDetail(){document.getElementById('dayDetail').classList.remove('show');selDate=null;}
+function navMonth(d){
+  curM+=d;if(curM<0){curM=11;curY--;}if(curM>11){curM=0;curY++;}
+  closeDayDetail();renderCal();
+}
+function goToday(){curY=TODAY.getFullYear();curM=TODAY.getMonth();closeDayDetail();renderCal();toast('info','오늘로 이동',MN[curM]+' '+curY+' · '+todayStr+' 표시.');}
+function viewChange(){
+  var v=document.getElementById('fView').value;
+  if(v!=='Month View'){toast('info',v+' 데모','본 데모는 Month View가 구현되어 있습니다. Week/Day 뷰는 동일 데이터를 좁은 범위로 표시합니다.');document.getElementById('fView').value='Month View';}
+}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='warn'?'⚠ ':type==='info'?'ℹ ':'✅ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},4600);
+}
+document.querySelectorAll('.ov').forEach(function(o){o.addEventListener('click',function(e){if(e.target===o)cancelAppr();});});
+renderCal();
+</script>
+</body>
+</html>
