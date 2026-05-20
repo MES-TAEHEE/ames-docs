@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.12 · SYS-07 · System Configuration · 상세 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--sys:#475569;--mod:#475569;--mod-lt:#e2e8f0;--mod-dk:#334155;--mod-tint:#94a3b8;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:46px;flex-shrink:0;color:rgba(148,163,184,.8);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#1e293b 0%,#0f172a 50%,#1e293b 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(148,163,184,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(148,163,184,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.05) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(148,163,184,.14),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(148,163,184,.35);color:var(--mod-tint);background:rgba(148,163,184,.1);}
+.meta-chip.core{border-color:rgba(212,160,23,.45);color:#fbbf24;background:rgba(212,160,23,.15);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(34,211,238,.3);color:#67e8f9;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod-dk);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.fld-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.fld-tbl th{background:#f0f3f7;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.fld-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.fld-tbl tr:last-child td{border-bottom:none;}.fld-tbl tr:nth-child(even) td{background:#fafbfd;}
+.fld-name{font-family:'JetBrains Mono',monospace;color:var(--mod-dk);font-weight:700;font-size:11px;}
+.fld-type{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.wf-list{counter-reset:wf;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;}
+.wf-step{counter-increment:wf;display:grid;grid-template-columns:32px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed var(--border);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step::before{content:counter(wf);font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--mod);text-align:center;line-height:1;}
+.wf-en{font-size:12px;color:var(--text);font-weight:600;}.wf-ko{font-size:11px;color:var(--sub);margin-top:3px;line-height:1.6;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:120px;border:2px solid;}
+.lnk-node.up{background:#eff6ff;border-color:#3b82f6;}
+.lnk-node.cur{background:linear-gradient(135deg,#1e293b,#0f172a);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(71,85,105,.3);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#1d4ed8;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.dm-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dm-tbl th{background:#1f2937;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;text-align:left;}
+.dm-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);font-size:10px;}.dm-tbl tr:last-child td{border-bottom:none;}
+.dm-col{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);}
+.dm-pk{color:#f59e0b;font-size:8px;font-weight:700;}.dm-fk{color:#8b5cf6;font-size:8px;font-weight:700;}
+.web-mock{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.web-tbar{background:#f0f3f7;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);font-size:11px;}
+.web-tbar-l{font-weight:700;color:var(--text);}
+.web-tbar .bc{color:var(--sub);font-size:10px;margin-left:8px;}
+.web-tbar-r{font-size:10px;color:var(--sub);}
+.web-bd{padding:18px;background:#fbfcfd;display:grid;grid-template-columns:170px 1fr;gap:12px;}
+.web-card{background:#fff;border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:12px;}
+.web-card-h{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px;display:flex;justify-content:space-between;}
+.cfg-tree{background:#fff;border:1px solid var(--border);border-radius:6px;padding:10px;}
+.cfg-cat{font-size:10px;padding:6px 8px;border-radius:4px;color:var(--text);margin-bottom:2px;cursor:pointer;}
+.cfg-cat.on{background:var(--mod-lt);color:var(--mod-dk);font-weight:700;}
+.cfg-cat .ck{font-size:8px;color:var(--sub);}
+.tbl{width:100%;border-collapse:collapse;font-size:11px;background:#fff;}
+.tbl th{background:#f0f3f7;padding:7px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.tbl td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:none;}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.b-ok{background:#dcfce7;color:#166534;}.b-w{background:#fef9c3;color:#92400e;}.b-e{background:#fee2e2;color:#991b1b;}.b-i{background:#e2e8f0;color:#334155;}
+.btn{padding:7px 14px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;}
+.btn-primary{background:var(--mod);border-color:var(--mod-dk);color:#fff;}
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol active"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL12_SYS_System.html">VOL.12 · SYS</a><span class="arr">›</span><span class="lvl">L3</span><span class="current">SYS-07 · System Configuration</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.12 · SYS · L3</div><div class="sb-mod-en">SYSTEM ADMIN</div><div class="sb-mod-ko">시스템 관리</div></div>
+  <div class="sb-section">Access Control · 접근 제어</div>
+  <a class="sb-link" href="VOL12_SYS01_User_Management.html"><span class="sl-id">SYS-01</span><div><div class="sl-en">User Management</div><div class="sl-ko">사용자 관리</div></div></a>
+  <a class="sb-link" href="VOL12_SYS02_RBAC_Permissions.html"><span class="sl-id">SYS-02</span><div><div class="sl-en">RBAC Permissions ⚙</div><div class="sl-ko">권한 관리</div></div></a>
+  <div class="sb-section">Configuration · 환경 설정</div>
+  <a class="sb-link" href="VOL12_SYS03_Factory_Calendar.html"><span class="sl-id">SYS-03</span><div><div class="sl-en">Factory Calendar</div><div class="sl-ko">공장 캘린더</div></div></a>
+  <a class="sb-link on" href="VOL12_SYS07_System_Config.html"><span class="sl-id">SYS-07</span><div><div class="sl-en">System Config</div><div class="sl-ko">시스템 설정</div></div></a>
+  <a class="sb-link" href="VOL12_SYS06_Notification_Settings.html"><span class="sl-id">SYS-06</span><div><div class="sl-en">Notification Settings</div><div class="sl-ko">알림 설정</div></div></a>
+  <div class="sb-section">Monitor & Audit · 모니터·감사</div>
+  <a class="sb-link" href="VOL12_SYS04_Interface_Monitor.html"><span class="sl-id">SYS-04</span><div><div class="sl-en">Interface Monitor</div><div class="sl-ko">인터페이스 모니터</div></div></a>
+  <a class="sb-link" href="VOL12_SYS05_Audit_Log.html"><span class="sl-id">SYS-05</span><div><div class="sl-en">Audit Log</div><div class="sl-ko">감사 로그</div></div></a>
+  <a class="sb-link" href="VOL12_SYS08_System_Health.html"><span class="sl-id">SYS-08</span><div><div class="sl-en">System Health</div><div class="sl-ko">시스템 헬스</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-ui"><span class="num">UI</span>UI Mockup</a>
+    <a href="#sec-2"><span class="num">02</span>Field Spec</a>
+    <a href="#sec-3"><span class="num">03</span>Config Categories</a>
+    <a href="#sec-4"><span class="num">04</span>Workflow</a>
+    <a href="#sec-5"><span class="num">05</span>Business Rules</a>
+    <a href="#sec-6"><span class="num">06</span>Data Model</a>
+    <a href="#sec-7"><span class="num">07</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.12 · SYS · L3 · System Configuration</div>
+      <div class="scr-id-block"><div class="scr-id">SYS-07</div><div class="scr-title-en">System Configuration</div></div>
+      <div class="scr-title-ko">시스템 설정 — 전역 파라미터 + 공통 코드 관리</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">UI</span><span class="mc-val">🖥 Web PC</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Class</span><span class="mc-val">Config Screen</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">1st Dev</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Role</span><span class="mc-val">Admin · System Manager</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Scope</span><span class="mc-val">Parameters · Common Codes</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          System Configuration is the <strong>no-code control panel for system-wide parameters and common codes</strong>. <strong>Parameters</strong> govern behavior — session timeout, default thresholds (defect-rate alert, OEE target), document numbering rules, retention periods. <strong>Common codes</strong> are the shared dropdown lists used across modules — defect-type codes, downtime reason codes, units of measure, delay reason codes. Admins add, edit, or deactivate these without code changes. A change propagates to every module that reads the code/parameter. All edits are audit-logged.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          시스템 설정은 <strong>시스템 전역 파라미터와 공통 코드의 노코드 통제판</strong>이다. <strong>파라미터</strong>는 동작을 좌우한다 — 세션 타임아웃, 기본 임계값(불량율 경보·OEE 목표), 문서 채번 규칙, 보존 기간. <strong>공통 코드</strong>는 모듈 전반에서 쓰이는 공유 드롭다운 목록이다 — 불량 유형 코드, 비가동 사유코드, 단위, 지연 사유코드. Admin이 코드 변경 없이 이를 추가·수정·비활성화한다. 변경은 해당 코드/파라미터를 읽는 모든 모듈에 전파된다. 전 편집은 감사 로그에 기록된다.
+        </div>
+      </div>
+      <div class="alert alert-i"><div><span class="alert-title">📌 Config vs. Master Data · 설정과 마스터의 경계</span>SYS-07은 시스템 동작 파라미터·공통 코드를, MD(VOL13)는 품목·거래선·BOM 등 업무 마스터를 다룬다. 공통 코드는 SYS, 비즈니스 마스터는 MD. · SYS-07 holds system parameters and shared codes; MD holds business master data (items, clients, BOM).</div></div>
+    </div>
+
+    <div class="sec" id="sec-ui">
+      <div class="sec-hdr"><span class="sec-num">UI</span><span class="sec-title">UI Mockup</span><span class="sec-ko">화면 목업 — Web 시스템 설정</span></div>
+      <div class="web-mock">
+        <div class="web-tbar">
+          <div class="web-tbar-l">🔐 A-MES · System · Configuration<span class="bc">SYS › Config</span></div>
+          <div class="web-tbar-r">Admin · 11:00</div>
+        </div>
+        <div class="web-bd">
+          <div class="cfg-tree">
+            <div style="font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:6px;">Parameters</div>
+            <div class="cfg-cat">🔐 Security <span class="ck">4</span></div>
+            <div class="cfg-cat on">⚙ Thresholds <span class="ck">6</span></div>
+            <div class="cfg-cat">🔢 Numbering <span class="ck">9</span></div>
+            <div class="cfg-cat">🗄 Retention <span class="ck">3</span></div>
+            <div style="font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;margin:8px 0 6px;">Common Codes</div>
+            <div class="cfg-cat">⚠ Defect Codes <span class="ck">24</span></div>
+            <div class="cfg-cat">⏱ Downtime Reasons <span class="ck">12</span></div>
+            <div class="cfg-cat">📏 Units <span class="ck">8</span></div>
+            <div class="cfg-cat">🚚 Delay Reasons <span class="ck">7</span></div>
+          </div>
+          <div>
+            <div class="web-card" style="margin-bottom:12px;">
+              <div class="web-card-h"><span>▼ THRESHOLDS · 임계값 파라미터</span><span style="color:var(--sub);">변경 → 즉시 전파</span></div>
+              <table class="tbl">
+                <thead><tr><th>Parameter</th><th>Value</th><th>Unit</th><th>Used By</th></tr></thead>
+                <tbody>
+                  <tr><td>Defect Rate Alert · 불량율 경보</td><td><strong>5.0</strong></td><td>%</td><td>Andon · SYS-06</td></tr>
+                  <tr><td>OEE Target · OEE 목표</td><td><strong>85.0</strong></td><td>%</td><td>MNT-03 · RPT-06</td></tr>
+                  <tr><td>Schedule Tolerance · 일정 허용</td><td><strong>30</strong></td><td>min</td><td>RPT-08</td></tr>
+                  <tr><td>Slow-Moving Days · 부동재고 기준</td><td><strong>90</strong></td><td>days</td><td>RPT-05</td></tr>
+                  <tr><td>Login Fail Limit · 로그인 실패 한도</td><td><strong>5</strong></td><td>회</td><td>SYS-01</td></tr>
+                  <tr><td>Session Timeout · 세션 만료</td><td><strong>30</strong></td><td>min</td><td>전 모듈</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="web-card" style="margin-bottom:0;">
+              <div class="web-card-h"><span>▼ COMMON CODE EXAMPLE · 공통 코드 (Downtime Reasons)</span></div>
+              <table class="tbl">
+                <thead><tr><th>Code</th><th>Name</th><th>Category</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr><td style="font-family:'JetBrains Mono',monospace;">DT-BD</td><td>고장 정비</td><td>Unplanned</td><td><span class="b b-ok">사용</span></td></tr>
+                  <tr><td style="font-family:'JetBrains Mono',monospace;">DT-PM</td><td>예방 정비</td><td>Planned</td><td><span class="b b-ok">사용</span></td></tr>
+                  <tr><td style="font-family:'JetBrains Mono',monospace;">DT-MC</td><td>금형 교체</td><td>Changeover</td><td><span class="b b-ok">사용</span></td></tr>
+                  <tr><td style="font-family:'JetBrains Mono',monospace;">DT-MAT</td><td>자재 대기</td><td>Logistics</td><td><span class="b b-i">비활성</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-i">
+        <div><span class="alert-title">💡 UI Highlights · 화면 주요 포인트</span>
+        ① 좌측 설정 카테고리 트리 (파라미터 4종 · 공통코드 4종) ② 파라미터 테이블 — 값·단위·사용 모듈 ③ 공통 코드 목록 — 추가/수정/비활성화 ④ 값 변경 시 사용 모듈에 즉시 전파 ⑤ 코드는 삭제 대신 비활성화 (이력 데이터 보존) ⑥ 전 편집 SYS-05 감사 로그 ⑦ Admin 전용</div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Field Specification</span><span class="sec-ko">필드 사양</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:22%;">Field</th><th style="width:14%;">Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="fld-name">ConfigKey</td><td class="fld-type">VARCHAR(40)</td><td>파라미터/코드 키 (PK).</td></tr>
+          <tr><td class="fld-name">ConfigType</td><td class="fld-type">ENUM</td><td>PARAMETER / COMMON_CODE.</td></tr>
+          <tr><td class="fld-name">Category</td><td class="fld-type">VARCHAR(30)</td><td>분류 (Security/Thresholds/DefectCodes...).</td></tr>
+          <tr><td class="fld-name">ConfigValue</td><td class="fld-type">VARCHAR(255)</td><td>설정 값 (파라미터).</td></tr>
+          <tr><td class="fld-name">CodeName</td><td class="fld-type">VARCHAR(50)</td><td>코드 표시명 (공통 코드).</td></tr>
+          <tr><td class="fld-name">Unit</td><td class="fld-type">VARCHAR(10)</td><td>값 단위 (%, min, days...).</td></tr>
+          <tr><td class="fld-name">UsedByModules</td><td class="fld-type">JSON</td><td>해당 설정을 참조하는 모듈.</td></tr>
+          <tr><td class="fld-name">IsActive</td><td class="fld-type">BOOLEAN</td><td>사용 여부 (코드 비활성화).</td></tr>
+          <tr><td class="fld-name">ModifiedBy · ModifiedTS</td><td class="fld-type">VARCHAR · DATETIME</td><td>변경 Admin / 시각.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Config Categories</span><span class="sec-ko">설정 카테고리</span></div>
+      <table class="fld-tbl">
+        <thead><tr><th style="width:24%;">Category</th><th>Contents · 내용</th></tr></thead>
+        <tbody>
+          <tr><td><strong>🔐 Security · 보안</strong></td><td>세션 타임아웃, 로그인 실패 한도, 비밀번호 정책, 비밀번호 만료 주기.</td></tr>
+          <tr><td><strong>⚙ Thresholds · 임계값</strong></td><td>불량율 경보, OEE 목표, 일정 허용, 부동재고 기준, 안전재고 경보 등.</td></tr>
+          <tr><td><strong>🔢 Numbering · 채번 규칙</strong></td><td>WO·거래명세서·보고서 등 문서 번호 형식 (접두어·일자·시퀀스).</td></tr>
+          <tr><td><strong>🗄 Retention · 보존 기간</strong></td><td>감사 로그(5년)·트랜잭션·보고서 보존 기간.</td></tr>
+          <tr><td><strong>⚠ Defect Codes · 불량 코드</strong></td><td>QC·생산 불량 유형 코드 — RPT-02 파레토 그룹 기준.</td></tr>
+          <tr><td><strong>⏱ Downtime Reasons · 비가동 사유</strong></td><td>MNT-06 비가동 사유코드 (계획/비계획/물류 등).</td></tr>
+          <tr><td><strong>📏 Units · 단위</strong></td><td>수량·중량·길이 단위 (EA/kg/m...).</td></tr>
+          <tr><td><strong>🚚 Delay Reasons · 지연 사유</strong></td><td>RPT-03 출하 지연·RPT-08 일정 지연 사유코드.</td></tr>
+        </tbody>
+      </table>
+      <div class="alert alert-i"><div><span class="alert-title">⚙ Deactivate, Don't Delete · 비활성화 원칙</span>이미 트랜잭션에 사용된 공통 코드는 삭제할 수 없다 — 비활성화하면 신규 입력 목록에서만 제외되고 과거 데이터는 그대로 유지된다. · A common code used in past transactions cannot be deleted, only deactivated, preserving historical data.</div></div>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Workflow</span><span class="sec-ko">작업 흐름</span></div>
+      <div class="wf-list">
+        <div class="wf-step"><div><div class="wf-en">Admin opens SYS-07 and selects a category from the left tree.</div><div class="wf-ko">Admin이 SYS-07을 열고 좌측 트리에서 카테고리를 선택한다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Admin edits a parameter value or adds/edits/deactivates a common code.</div><div class="wf-ko">Admin이 파라미터 값을 수정하거나 공통 코드를 추가·수정·비활성화한다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">On Save, the new value propagates immediately to every module that reads it.</div><div class="wf-ko">저장 시 새 값이 이를 읽는 모든 모듈에 즉시 전파된다.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">A code already used in transactions can only be deactivated, never deleted.</div><div class="wf-ko">트랜잭션에 사용된 코드는 비활성화만 가능 — 삭제 불가.</div></div></div>
+        <div class="wf-step"><div><div class="wf-en">Every config change is written to the SYS-05 audit log with before/after values.</div><div class="wf-ko">전 설정 변경은 전후값과 함께 SYS-05 감사 로그에 기록된다.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Business Rules</span><span class="sec-ko">업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:110px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-SYS-28</td><td><div>A parameter change propagates immediately to all modules that reference it — no restart.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">파라미터 변경은 참조 모듈 전체에 즉시 전파 — 재기동 없음.</div></td><td><span class="br-act aut">Immediate</span></td></tr>
+          <tr><td class="br-id">BR-SYS-29</td><td><div>A common code used in any transaction cannot be deleted — only deactivated.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">트랜잭션에 사용된 공통 코드는 삭제 불가 — 비활성화만 가능.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-SYS-30</td><td><div>Numbering rules are validated for uniqueness; a sequence cannot be reset while active.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">채번 규칙은 유일성 검증 — 운영 중 시퀀스 초기화 불가.</div></td><td><span class="br-act blk">Validate</span></td></tr>
+          <tr><td class="br-id">BR-SYS-31</td><td><div>Every parameter and code change is audit-logged with before/after values and actor.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">전 파라미터·코드 변경은 전후값·주체와 함께 감사 로그 기록.</div></td><td><span class="br-act aut">Audit</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Data Model</span><span class="sec-ko">데이터 모델</span></div>
+      <table class="dm-tbl">
+        <thead><tr><th style="width:24%;">Table</th><th>Key Columns</th><th style="width:30%;">Notes</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dm-col">SYS_Config</span></td><td><span class="dm-pk">PK</span> ConfigKey · ConfigType · Category · ConfigValue · Unit · UsedByModules · ModifiedBy</td><td>전역 파라미터.</td></tr>
+          <tr><td><span class="dm-col">SYS_CommonCode</span></td><td><span class="dm-pk">PK</span> CodeID · Category · CodeName · SortOrder · IsActive · ModifiedBy</td><td>공통 코드 목록.</td></tr>
+          <tr><td><span class="dm-col">SYS_AuditLog</span> <em style="opacity:.6;">(write)</em></td><td>LogID · Action=CONFIG · BeforeValue · AfterValue</td><td>SYS-05 설정 변경 이력.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">Admin</div><div class="lnk-name">파라미터·코드 설정</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">SYS-07</div><div class="lnk-name">System Config</div><div class="lnk-ko">시스템 설정</div></div>
+        </div>
+        <div class="lnk-row" style="margin-top:14px;">
+          <div class="lnk-node cur"><div class="lnk-id">SYS-07</div><div class="lnk-name">→ Propagates</div></div>
+          <div class="lnk-arr">↘</div>
+          <div class="lnk-node down"><div class="lnk-id">QC · MNT</div><div class="lnk-name">불량·비가동 코드</div></div>
+          <div class="lnk-node down"><div class="lnk-id">RPT</div><div class="lnk-name">임계값·목표</div></div>
+          <div class="lnk-node down"><div class="lnk-id">All Modules</div><div class="lnk-name">채번·세션·단위</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.12 · SYS-07 · System Configuration · L3 Spec v1.0</div><div class="pf-r">Web · Phase 1 · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
