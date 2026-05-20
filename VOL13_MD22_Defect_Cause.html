@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.13 · MD-22 · Defect Cause Master · 테이블 설계서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--gold:#d4a017;--gold-dk:#a07810;--ink:#0d1117;--ink2:#161b22;--ink3:#21262d;--surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;--md:#d97706;--mod:#d97706;--mod-lt:#fef3c7;--mod-dk:#92400e;--mod-tint:#fbbf24;}
+*{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}.l3-crumb .current{color:var(--mod-tint);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--mod-tint);}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:42px;flex-shrink:0;color:rgba(251,191,36,.8);}
+.sb-link.on .sl-id{color:var(--gold);}.sb-link .sl-en{font-size:10px;font-weight:600;}.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#451a03 0%,#3a1602 50%,#451a03 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(217,119,6,.25);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(217,119,6,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(217,119,6,.06) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(217,119,6,.18),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mod-tint);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:var(--mod-tint);border-radius:50%;box-shadow:0 0 8px var(--mod-tint);}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:8px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:var(--mod-tint);line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-bottom:12px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.pop{border-color:rgba(217,119,6,.4);color:var(--mod-tint);background:rgba(217,119,6,.12);}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.content{padding:28px 48px 60px;}
+.sec{margin-bottom:28px;}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--mod);}
+.sec-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--mod-dk);background:var(--mod-lt);padding:3px 9px;border-radius:3px;letter-spacing:.5px;}
+.sec-title{font-size:16px;font-weight:800;color:var(--text);}
+.sec-ko{font-size:11px;color:var(--sub);margin-left:6px;}
+.bi-card{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:0 6px 6px 0;overflow:hidden;margin-bottom:14px;}
+.bi-en,.bi-ko{padding:14px 18px;font-size:12px;line-height:1.8;}
+.bi-en{background:var(--mod-lt);color:var(--mod-dk);border-right:1px solid var(--border);}
+.bi-ko{color:var(--sub);}
+.bi-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;opacity:.6;}
+.tbl-name{display:inline-flex;align-items:center;gap:8px;background:#1f2937;color:#fff;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;padding:6px 12px;border-radius:5px;margin-bottom:10px;}
+.tbl-name .tn-tag{font-size:8px;background:var(--mod);color:#fff;padding:1px 6px;border-radius:2px;}
+.ddl-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.ddl-tbl th{background:#1f2937;color:#fff;padding:7px 9px;text-align:left;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.ddl-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);vertical-align:top;}
+.ddl-tbl tr:last-child td{border-bottom:none;}.ddl-tbl tr:nth-child(even) td{background:#fafbfd;}
+.ddl-tbl .col{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);font-size:11px;}
+.ddl-tbl .typ{font-family:'JetBrains Mono',monospace;color:#7c3aed;font-size:10px;}
+.ddl-tbl .nn{text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.ddl-tbl .nn-y{color:#16a34a;}.ddl-tbl .nn-n{color:#9ca3af;}
+.kbadge{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;padding:1px 5px;border-radius:2px;}
+.k-pk{background:#fee2e2;color:#991b1b;}.k-fk{background:#ede9fe;color:#5b21b6;}.k-uk{background:#dbeafe;color:#1e40af;}
+.cons-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.cons-tbl th{background:#f0f3f7;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);}
+.cons-tbl td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.cons-tbl tr:last-child td{border-bottom:none;}.cons-tbl tr:nth-child(even) td{background:#fafbfd;}
+.cons-tbl .cn{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);font-size:10px;}
+.cons-tbl .cdef{font-family:'JetBrains Mono',monospace;color:#475569;font-size:10px;}
+.ct{display:inline-block;font-size:8px;font-weight:700;padding:1px 6px;border-radius:2px;}
+.ct-pk{background:#fee2e2;color:#991b1b;}.ct-fk{background:#ede9fe;color:#5b21b6;}.ct-uk{background:#dbeafe;color:#1e40af;}.ct-ck{background:#fef9c3;color:#92400e;}.ct-ix{background:#dcfce7;color:#166534;}
+.samp-tbl{width:100%;border-collapse:collapse;font-size:10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.samp-tbl th{background:#f0f3f7;padding:6px 8px;text-align:left;font-size:9px;font-weight:700;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;}
+.samp-tbl td{padding:5px 8px;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:10px;color:#334155;}
+.samp-tbl tr:last-child td{border-bottom:none;}.samp-tbl tr:nth-child(even) td{background:#fafbfd;}
+.br-mini{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.br-mini th{background:#fdf6e3;color:#a07810;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.br-mini td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}.br-mini tr:last-child td{border-bottom:none;}
+.br-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold-dk);white-space:nowrap;}
+.br-act{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;}
+.br-act.blk{background:#fee2e2;color:#991b1b;}.br-act.alt{background:#fef9c3;color:#92400e;}.br-act.aut{background:#dbeafe;color:#1e40af;}.br-act.val{background:#ede9fe;color:#5b21b6;}
+.alert{display:flex;gap:9px;padding:10px 14px;border-radius:5px;border-left:3px solid;font-size:11px;line-height:1.7;margin-bottom:12px;}
+.alert-i{background:#eff6ff;border-color:#3b82f6;color:#1e40af;}.alert-title{font-weight:800;display:block;font-size:11px;margin-bottom:3px;}
+.rel-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.rel-tbl th{background:#1f2937;color:#fff;padding:7px 10px;font-size:10px;font-weight:700;text-align:left;}
+.rel-tbl td{padding:6px 10px;border-bottom:1px solid var(--border);font-size:10px;}.rel-tbl tr:last-child td{border-bottom:none;}
+.rel-tbl tr:nth-child(even) td{background:#fafbfd;}
+.rel-c{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--mod-dk);}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:118px;border:2px solid;}
+.lnk-node.up{background:#eff6ff;border-color:#3b82f6;}
+.lnk-node.cur{background:linear-gradient(135deg,#451a03,#3a1602);border-color:var(--mod);color:#fff;box-shadow:0 4px 16px rgba(217,119,6,.3);}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#1d4ed8;}.lnk-node.cur .lnk-id{color:var(--mod-tint);}.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
+.page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
+.pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol active"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
+<div class="l3-crumb"><span class="lvl">L1</span><a href="INDEX.html">INDEX</a><span class="arr">›</span><span class="lvl">L2</span><a href="VOL13_MD_Master_Data.html">VOL.13 · MD</a><span class="arr">›</span><span class="lvl">L3-E</span><a href="VOL13_MD_L3_Quality.html">Quality &amp; Logistics</a><span class="arr">›</span><span class="lvl">TBL</span><span class="current">MD-22 · Defect Cause Master</span></div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head"><div class="sb-vol">VOL.13 · MD · L3 · TABLE</div><div class="sb-mod-en">MASTER DATA</div><div class="sb-mod-ko">기준정보 · 테이블 설계</div></div>
+  <div class="sb-section">E · Quality &amp; Logistics (9)</div>
+  <a class="sb-link" href="VOL13_MD06_Inspection_Std.html"><span class="sl-id">MD-06</span><div><div class="sl-en">Inspection Std</div><div class="sl-ko">검사기준</div></div></a>
+  <a class="sb-link" href="VOL13_MD21_Defect_Code.html"><span class="sl-id">MD-21</span><div><div class="sl-en">Defect Code</div><div class="sl-ko">불량코드</div></div></a>
+  <a class="sb-link on" href="VOL13_MD22_Defect_Cause.html"><span class="sl-id">MD-22</span><div><div class="sl-en">Defect Cause</div><div class="sl-ko">불량원인</div></div></a>
+  <a class="sb-link" href="VOL13_MD12_Customer.html"><span class="sl-id">MD-12</span><div><div class="sl-en">Customer</div><div class="sl-ko">고객사</div></div></a>
+  <a class="sb-link" href="VOL13_MD11_Shipment_Dest.html"><span class="sl-id">MD-11</span><div><div class="sl-en">Shipment Dest</div><div class="sl-ko">출하처</div></div></a>
+  <a class="sb-link" href="VOL13_MD23_Packaging_Spec.html"><span class="sl-id">MD-23</span><div><div class="sl-en">Packaging Spec</div><div class="sl-ko">포장사양</div></div></a>
+  <a class="sb-link" href="VOL13_MD24_Label_Template.html"><span class="sl-id">MD-24</span><div><div class="sl-en">Label Template</div><div class="sl-ko">라벨 템플릿</div></div></a>
+  <a class="sb-link" href="VOL13_MD25_Reason_Code.html"><span class="sl-id">MD-25</span><div><div class="sl-en">Reason Code</div><div class="sl-ko">사유코드</div></div></a>
+  <a class="sb-link" href="VOL13_MD26_Code_Group.html"><span class="sl-id">MD-26</span><div><div class="sl-en">Code Group</div><div class="sl-ko">공통코드</div></div></a>
+  <div class="sb-section">Category Hubs · 카테고리</div>
+  <a class="sb-link" href="VOL13_MD_L3_Foundation.html"><span class="sl-id">A</span><div><div class="sl-en">Foundation</div></div></a>
+  <a class="sb-link" href="VOL13_MD_L3_Production.html"><span class="sl-id">B</span><div><div class="sl-en">Routing &amp; Production</div></div></a>
+  <a class="sb-link" href="VOL13_MD_L3_Resources.html"><span class="sl-id">C</span><div><div class="sl-en">Resources &amp; Equipment</div></div></a>
+  <a class="sb-link" href="VOL13_MD_L3_RFID_Color.html"><span class="sl-id">D</span><div><div class="sl-en">RFID &amp; Materials</div></div></a>
+  <a class="sb-link" href="VOL13_MD_L3_Quality.html"><span class="sl-id">E</span><div><div class="sl-en">Quality &amp; Logistics</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page · 목차</div>
+    <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-2"><span class="num">02</span>Table Design (DDL)</a>
+    <a href="#sec-3"><span class="num">03</span>Constraints &amp; Index</a>
+    <a href="#sec-4"><span class="num">04</span>Sample Data</a>
+    <a href="#sec-5"><span class="num">05</span>Validation Rules</a>
+    <a href="#sec-6"><span class="num">06</span>Relationships</a>
+    <a href="#sec-7"><span class="num">07</span>Module Linkage</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.13 · MD · L3 · Table Design · Category E Quality &amp; Logistics</div>
+      <div class="scr-id-block"><div class="scr-id">MD-22</div><div class="scr-title-en">Defect Cause Master</div></div>
+      <div class="scr-title-ko">불량원인 마스터 — 테이블 설계서 (MD_DefectCause)</div>
+      <div class="scr-meta">
+        <div class="meta-chip pop"><span class="mc-lbl">Table</span><span class="mc-val">MD_DefectCause</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Columns</span><span class="mc-val">13</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">Phase-0 ㉑</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Category</span><span class="mc-val">E · Quality</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="sec" id="sec-1">
+      <div class="sec-hdr"><span class="sec-num">01</span><span class="sec-title">Overview</span><span class="sec-ko">개요</span></div>
+      <div class="bi-card">
+        <div class="bi-en"><span class="bi-lbl">EN · Description</span>
+          <strong>MD_DefectCause</strong> is the standardized catalog of root causes used in QC corrective-action analysis. Each cause is classified by the <strong>4M1E</strong> framework (Man / Machine / Material / Method / Environment), optionally scoped to a process, and may form a parent-child hierarchy so a broad cause family resolves to a specific root cause. A corrective-action guide and responsible department drive the CAPA workflow; only RootCause leaves are selectable as a final analysis result.
+        </div>
+        <div class="bi-ko"><span class="bi-lbl">KO · 설명</span>
+          <strong>MD_DefectCause</strong>는 QC 시정조치 분석에 사용되는 근본원인 표준 카탈로그다. 각 원인은 <strong>4M1E</strong> 체계(사람/설비/자재/방법/환경)로 분류되며, 공정 범위를 선택적으로 지정하고, 부모-자식 계층을 구성하여 광의의 원인군이 구체적 근본원인으로 좁혀진다. 시정조치 가이드와 책임부서가 CAPA 워크플로를 구동하며, RootCause 말단만 최종 분석 결과로 선택 가능하다.
+        </div>
+      </div>
+      <div class="tbl-name">🔍 TABLE: MD_DefectCause <span class="tn-tag">MASTER</span> <span class="tn-tag" style="background:#475569;">Phase-0 입력순서 ㉑</span></div>
+    </div>
+
+    <div class="sec" id="sec-2">
+      <div class="sec-hdr"><span class="sec-num">02</span><span class="sec-title">Table Design (DDL)</span><span class="sec-ko">테이블 설계 — 컬럼 정의</span></div>
+      <table class="ddl-tbl">
+        <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
+        <tbody>
+          <tr><td class="col">CauseCode</td><td class="typ">VARCHAR(16)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>불량원인 코드.</td></tr>
+          <tr><td class="col">CauseName</td><td class="typ">VARCHAR(60)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>원인 명칭.</td></tr>
+          <tr><td class="col">CauseCategory</td><td class="typ">VARCHAR(9)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>4M1E 분류 — CK: MAN·MACHINE·MATERIAL·METHOD·ENV.</td></tr>
+          <tr><td class="col">ParentCauseCode</td><td class="typ">VARCHAR(16)</td><td class="nn nn-n">N</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">NULL</td><td>상위 원인 → self(CauseCode), 계층 구성.</td></tr>
+          <tr><td class="col">ProcessCode</td><td class="typ">VARCHAR(10)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>적용 공정 — CK: INJ·IMG·PNT·ASSY·FINAL·ALL.</td></tr>
+          <tr><td class="col">RootCauseFlag</td><td class="typ">BOOLEAN</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">FALSE</td><td>근본원인 말단 여부 (TRUE만 최종 선택 가능).</td></tr>
+          <tr><td class="col">CorrectiveGuide</td><td class="typ">VARCHAR(200)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>시정조치 가이드.</td></tr>
+          <tr><td class="col">ResponsibleDept</td><td class="typ">VARCHAR(30)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>책임 부서.</td></tr>
+          <tr><td class="col">SortOrder</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">0</td><td>화면 표시 순서.</td></tr>
+          <tr><td class="col">Status</td><td class="typ">VARCHAR(8)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">ACTIVE</td><td>상태 — CK: ACTIVE·INACTIVE.</td></tr>
+          <tr><td class="col">CreatedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>생성자.</td></tr>
+          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
+          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-3">
+      <div class="sec-hdr"><span class="sec-num">03</span><span class="sec-title">Constraints &amp; Index</span><span class="sec-ko">제약조건 + 인덱스</span></div>
+      <table class="cons-tbl">
+        <thead><tr><th style="width:11%;">Type</th><th style="width:24%;">Name</th><th>Definition · 정의</th></tr></thead>
+        <tbody>
+          <tr><td><span class="ct ct-pk">PK</span></td><td class="cn">PK_MD_DefectCause</td><td class="cdef">PRIMARY KEY (CauseCode)</td></tr>
+          <tr><td><span class="ct ct-fk">FK</span></td><td class="cn">FK_Cause_Parent</td><td class="cdef">FOREIGN KEY (ParentCauseCode) REFERENCES MD_DefectCause(CauseCode)</td></tr>
+          <tr><td><span class="ct ct-ck">CK</span></td><td class="cn">CK_Cause_Cat</td><td class="cdef">CHECK (CauseCategory IN ('MAN','MACHINE','MATERIAL','METHOD','ENV'))</td></tr>
+          <tr><td><span class="ct ct-ck">CK</span></td><td class="cn">CK_Cause_Status</td><td class="cdef">CHECK (Status IN ('ACTIVE','INACTIVE'))</td></tr>
+          <tr><td><span class="ct ct-ck">CK</span></td><td class="cn">CK_Cause_NoSelf</td><td class="cdef">CHECK (ParentCauseCode IS NULL OR ParentCauseCode &lt;&gt; CauseCode)</td></tr>
+          <tr><td><span class="ct ct-ix">IX</span></td><td class="cn">IX_Cause_Parent</td><td class="cdef">INDEX (ParentCauseCode, SortOrder) — 계층 트리 조회.</td></tr>
+          <tr><td><span class="ct ct-ix">IX</span></td><td class="cn">IX_Cause_Root</td><td class="cdef">INDEX (RootCauseFlag, CauseCategory, Status) — 근본원인 선택목록.</td></tr>
+        </tbody>
+      </table>
+      <div class="alert alert-i" style="margin-top:10px;"><div><span class="alert-title">⚙ 4M1E Analysis · 4M1E 분석</span>BR-MD-19 — QC 시정조치(CAPA)에서 근본원인은 RootCauseFlag=TRUE 말단만 선택 가능하다. 4M1E 분류는 RPT-02 불량 원인 집계의 기준 축이 된다. · Only RootCause leaves are selectable as a final cause; the 4M1E axis drives RPT-02 aggregation.</div></div>
+    </div>
+
+    <div class="sec" id="sec-4">
+      <div class="sec-hdr"><span class="sec-num">04</span><span class="sec-title">Sample Data</span><span class="sec-ko">샘플 데이터</span></div>
+      <table class="samp-tbl">
+        <thead><tr><th>CauseCode</th><th>CauseName</th><th>Category</th><th>ParentCauseCode</th><th>RootCauseFlag</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>CAU-MC-00</td><td>설비 요인</td><td>MACHINE</td><td>NULL</td><td>FALSE</td><td>ACTIVE</td></tr>
+          <tr><td>CAU-MC-04</td><td>금형 마모</td><td>MACHINE</td><td>CAU-MC-00</td><td>TRUE</td><td>ACTIVE</td></tr>
+          <tr><td>CAU-MT-00</td><td>자재 요인</td><td>MATERIAL</td><td>NULL</td><td>FALSE</td><td>ACTIVE</td></tr>
+          <tr><td>CAU-MT-02</td><td>분체 입자 불균일</td><td>MATERIAL</td><td>CAU-MT-00</td><td>TRUE</td><td>ACTIVE</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-5">
+      <div class="sec-hdr"><span class="sec-num">05</span><span class="sec-title">Validation &amp; Business Rules</span><span class="sec-ko">검증 + 업무 규칙</span></div>
+      <table class="br-mini">
+        <thead><tr><th style="width:120px;">Rule</th><th>Description</th><th style="width:100px;">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="br-id">BR-MD-19</td><td><div>A CAPA final cause must be a RootCauseFlag=TRUE leaf node.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">CAPA 최종 원인은 RootCauseFlag=TRUE 말단 노드여야 함.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">BR-MD-20</td><td><div>The 4M1E category is the grouping axis for RPT-02 cause aggregation.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">4M1E 분류가 RPT-02 원인 집계의 그룹 축.</div></td><td><span class="br-act aut">Auto</span></td></tr>
+          <tr><td class="br-id">VR-Cau-01</td><td><div>ParentCauseCode must not equal CauseCode and must not create a cycle.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">상위 원인은 자기 자신·순환 참조 불가.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">VR-Cau-02</td><td><div>An INACTIVE cause cannot be picked on a new corrective action.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">INACTIVE 원인은 신규 시정조치에서 선택 불가.</div></td><td><span class="br-act blk">Block</span></td></tr>
+          <tr><td class="br-id">VR-Cau-03</td><td><div>A node with children cannot be set RootCauseFlag=TRUE.</div><div style="color:var(--sub);font-size:10px;margin-top:2px;">하위 노드 보유 시 RootCauseFlag=TRUE 설정 불가.</div></td><td><span class="br-act blk">Block</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-6">
+      <div class="sec-hdr"><span class="sec-num">06</span><span class="sec-title">Relationships</span><span class="sec-ko">테이블 관계</span></div>
+      <table class="rel-tbl">
+        <thead><tr><th style="width:26%;">This Table</th><th style="width:10%;">Card.</th><th style="width:26%;">Related Table</th><th>Relationship · 관계</th></tr></thead>
+        <tbody>
+          <tr><td class="rel-c">MD_DefectCause.ParentCauseCode</td><td>N : 1</td><td class="rel-c">MD_DefectCause</td><td>자기참조 계층 — 원인군 → 근본원인.</td></tr>
+          <tr><td class="rel-c">MD_DefectCode.DefaultCauseCode</td><td>N : 1</td><td class="rel-c">MD_DefectCause</td><td>불량코드가 기본 원인을 참조.</td></tr>
+          <tr><td class="rel-c">QC_CapaAction.CauseCode</td><td>N : 1</td><td class="rel-c">MD_DefectCause</td><td>시정조치가 근본원인을 참조.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec" id="sec-7">
+      <div class="sec-hdr"><span class="sec-num">07</span><span class="sec-title">Module Linkage</span><span class="sec-ko">모듈 연계</span></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">MD-26</div><div class="lnk-name">공통코드</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node cur"><div class="lnk-id">MD-22</div><div class="lnk-name">MD_DefectCause</div><div class="lnk-ko">불량원인 마스터</div></div>
+          <div class="lnk-arr">→</div>
+          <div class="lnk-node down"><div class="lnk-id">MD-21 · QC · RPT-02</div><div class="lnk-name">불량코드·CAPA·분석</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.13 · MD-22 · Defect Cause Master · Table Design Spec v1.0</div><div class="pf-r">Table MD_DefectCause · 13 Columns · Bilingual EN/KO</div></div>
+</div>
+</div>
+</body>
+</html>
