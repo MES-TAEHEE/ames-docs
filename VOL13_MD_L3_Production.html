@@ -119,6 +119,12 @@
 .lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}.lnk-arr{font-size:20px;color:var(--sub);font-weight:700;}
 .page-footer{padding:18px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;font-size:10px;}
 .pf-l{font-family:'JetBrains Mono',monospace;}.pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+.ent-l3-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:8px;}
+.ent-l3{display:block;text-decoration:none;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--mod);border-radius:5px;padding:9px 12px;transition:background .1s;}
+.ent-l3:hover{background:var(--mod-lt);}
+.el3-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--mod-dk);display:block;}
+.el3-nm{font-size:11px;font-weight:700;color:var(--text);display:block;margin-top:2px;}
+.el3-ko{font-size:9px;color:var(--sub);display:block;}
 </style>
 </head>
 <body>
@@ -129,13 +135,14 @@
   <div class="sb-head"><div class="sb-vol">VOL.13 · MD · L3</div><div class="sb-mod-en">MASTER DATA</div><div class="sb-mod-ko">기준정보 · 카테고리 L3</div></div>
   <div class="sb-section">5 Category L3 · 카테고리</div>
   <a class="sb-link" href="VOL13_MD_L3_Foundation.html"><span class="sl-id">A</span><div><div class="sl-en">Foundation</div><div class="sl-ko">기반 · 5</div></div></a>
-  <a class="sb-link on" href="VOL13_MD_L3_Production.html"><span class="sl-id">B</span><div><div class="sl-en">Routing &amp; Production</div><div class="sl-ko">라우팅·생산 · 3</div></div></a>
+  <a class="sb-link on" href="VOL13_MD_L3_Production.html"><span class="sl-id">B</span><div><div class="sl-en">Routing &amp; Production</div><div class="sl-ko">라우팅·생산 · 4</div></div></a>
   <a class="sb-link" href="VOL13_MD_L3_Resources.html"><span class="sl-id">C</span><div><div class="sl-en">Resources &amp; Equipment</div><div class="sl-ko">자원·설비 · 7</div></div></a>
   <a class="sb-link" href="VOL13_MD_L3_RFID_Color.html"><span class="sl-id">D</span><div><div class="sl-en">RFID &amp; Materials</div><div class="sl-ko">RFID·자재 · 4</div></div></a>
   <a class="sb-link" href="VOL13_MD_L3_Quality.html"><span class="sl-id">E</span><div><div class="sl-en">Quality &amp; Logistics</div><div class="sl-ko">품질·물류 · 9</div></div></a>
   <div class="sb-toc">
     <div class="sb-toc-title">On this page · 목차</div>
     <a href="#sec-1"><span class="num">01</span>Overview</a>
+    <a href="#sec-l3"><span class="num">▤</span>Entity L3 Pages</a>
     <a href="#sec-2"><span class="num">02</span>Entity Field Specs</a>
     <a href="#sec-3"><span class="num">03</span>BOP Routing Logic</a>
     <a href="#sec-4"><span class="num">04</span>Maintenance Workflow</a>
@@ -150,7 +157,7 @@
       <div class="scr-id-block"><div class="scr-id">MD · B</div><div class="scr-title-en">Routing &amp; Production</div></div>
       <div class="scr-title-ko">라우팅·생산 마스터 — BOP 공정경로 · 작업장 · 라인</div>
       <div class="scr-meta">
-        <div class="meta-chip pop"><span class="mc-lbl">Entities</span><span class="mc-val">3 · MD-04·05·20</span></div>
+        <div class="meta-chip pop"><span class="mc-lbl">Entities</span><span class="mc-val">4 · MD-04·05·20·29</span></div>
         <div class="meta-chip"><span class="mc-lbl">Class</span><span class="mc-val">Production Structure</span></div>
         <div class="meta-chip phase"><span class="mc-lbl">Phase</span><span class="mc-val">Phase-0 Mandatory</span></div>
         <div class="meta-chip"><span class="mc-lbl">Routings</span><span class="mc-val">A (Wrap) · B (Paint)</span></div>
@@ -170,6 +177,16 @@
         </div>
       </div>
       <div class="alert alert-i"><div><span class="alert-title">📌 Routing → Work Order · 라우팅이 WO를 만든다</span>품목의 RoutingType(MD-01)이 BOP(MD-04)를 결정하고, BOP의 각 단계가 Work Center(MD-05)에, Work Center가 Line(MD-20)에 매핑된다 — 이 체인이 PP-03 WO 생성의 골격이다. · The routing chain Item→BOP→Work Center→Line is the skeleton of PP-03 Work Order creation.</div></div>
+    </div>
+
+    <div class="sec" id="sec-l3">
+      <div class="sec-hdr"><span class="sec-num">L3</span><span class="sec-title">Entity Table-Design Pages</span><span class="sec-ko">엔티티별 개별 테이블 설계서</span></div>
+      <div class="ent-l3-grid">
+        <a class="ent-l3" href="VOL13_MD04_BOP.html"><span class="el3-id">MD-04 ↗</span><span class="el3-nm">BOP Routing</span><span class="el3-ko">공정경로 · MD_BOP</span></a>
+        <a class="ent-l3" href="VOL13_MD05_Work_Center.html"><span class="el3-id">MD-05 ↗</span><span class="el3-nm">Work Center</span><span class="el3-ko">작업장 · MD_WorkCenter</span></a>
+        <a class="ent-l3" href="VOL13_MD20_Line.html"><span class="el3-id">MD-20 ↗</span><span class="el3-nm">Line Master</span><span class="el3-ko">라인 · MD_Line</span></a>
+        <a class="ent-l3" href="VOL13_MD29_Line_Time_Pattern.html"><span class="el3-id">MD-29 ↗</span><span class="el3-nm">Line Time Pattern</span><span class="el3-ko">라인 시간패턴 · MD_LineTimePattern</span></a>
+      </div>
     </div>
 
     <div class="sec" id="sec-2">
@@ -230,6 +247,25 @@
           </tbody>
         </table>
         <div class="ent-note"><strong>USED BY:</strong> PNT-01/02 (라인 운영) · PP (라인별 계획) · INJ. RFID 적용 라인은 MD-19 리더 3개(R1/R2/R3) 등록 필수 (BR-MD-10).</div>
+      </div>
+
+      <div class="ent">
+        <div class="ent-hdr"><span class="ent-id">MD-29</span><span class="ent-name">Line Time Pattern</span><span class="ent-ko">라인 시간패턴</span></div>
+        <div class="ent-desc">라인별 분단위 시간패턴. 헤더(MD_LineTimePattern) + 분 세그먼트(MD_LineTimeSegment)로 하루를 가동·계획비가동 구간으로 분할하며, PP 라인 스케줄링·가동 모니터링의 기준선이 된다. → 상세: <a href="VOL13_MD29_Line_Time_Pattern.html" style="color:var(--mod-dk);font-weight:700;">MD-29 테이블 설계서</a></div>
+        <table class="fld-tbl">
+          <thead><tr><th style="width:24%;">Field</th><th style="width:18%;">Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="fld-name">PatternID <span class="k-pk">PK</span></td><td class="fld-type">VARCHAR(20)</td><td>시간패턴 ID.</td></tr>
+            <tr><td class="fld-name">LineID <span class="k-fk">FK</span></td><td class="fld-type">VARCHAR(20)</td><td>대상 라인 → MD-20.</td></tr>
+            <tr><td class="fld-name">DayType</td><td class="fld-type">ENUM</td><td>WEEKDAY / SAT / SUN / HOLIDAY / SPECIAL.</td></tr>
+            <tr><td class="fld-name">ShiftModel</td><td class="fld-type">ENUM</td><td>1SHIFT / 2SHIFT / 3SHIFT / CUSTOM.</td></tr>
+            <tr><td class="fld-name">EffectiveFrom</td><td class="fld-type">DATE</td><td>패턴 적용 시작일.</td></tr>
+            <tr><td class="fld-name">TotalOperatingMin</td><td class="fld-type">INT</td><td>가동 세그먼트 합계 (분, 자동 집계).</td></tr>
+            <tr><td class="fld-name">Status</td><td class="fld-type">ENUM</td><td>DRAFT / ACTIVE / INACTIVE.</td></tr>
+            <tr><td class="fld-name">+ Segment[]</td><td class="fld-type">DETAIL</td><td>MD_LineTimeSegment — StartMin·EndMin(0~1440)·SegmentState·ReasonCode.</td></tr>
+          </tbody>
+        </table>
+        <div class="ent-note"><strong>USED BY:</strong> PP-LSB (스케줄 보드) · PP-ODM (가동·비가동 모니터) · PP-OEE (가용성). 세그먼트는 0~1440분을 빈틈·중첩 없이 분할 (BR-MD-33).</div>
       </div>
     </div>
 
@@ -309,7 +345,7 @@
     </div>
 
   </div>
-  <div class="page-footer"><div class="pf-l">A-MES · VOL.13 · MD L3-B · Routing &amp; Production Masters · L3 Spec v1.0</div><div class="pf-r">3 Entities · Phase-0 · Bilingual EN/KO</div></div>
+  <div class="page-footer"><div class="pf-l">A-MES · VOL.13 · MD L3-B · Routing &amp; Production Masters · L3 Spec v1.0</div><div class="pf-r">4 Entities · Phase-0 · Bilingual EN/KO</div></div>
 </div>
 </div>
 </body>
