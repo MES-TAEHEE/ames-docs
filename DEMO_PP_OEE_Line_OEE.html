@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PP-OEE Line Availability · OEE · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+.scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
+.sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
+.sh-tt{flex:1;}
+.sh-en{font-size:16px;font-weight:800;color:#fff;}
+.sh-ko{font-size:11px;color:rgba(255,255,255,.5);}
+.sh-tag{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+.sh-live{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.sh-live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.toolbar{background:#fff;border-bottom:1px solid var(--bd);padding:9px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
+.fld{display:flex;flex-direction:column;gap:2px;}
+.fld label{font-size:8px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;}
+select{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink);}
+.btn{padding:6px 13px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-p{background:var(--pp);color:#fff;}.btn-p:hover{background:var(--pp-dk);}
+.btn-s{background:#f6f8fa;color:var(--ink);border-color:var(--bd);}.btn-s:hover{background:#eef1f5;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+.body{flex:1;overflow-y:auto;padding:16px 24px 40px;}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:16px;}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:12px 14px;border-left:3px solid var(--c);}
+.kpi .kv{font-size:24px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;color:var(--c);}
+.kpi .kl{font-size:10px;color:var(--sub);margin-top:4px;}
+.kpi .kt{font-size:8px;color:#9ca3af;font-family:'JetBrains Mono',monospace;}
+.grid2{display:grid;grid-template-columns:1.35fr 1fr;gap:14px;margin-bottom:16px;}
+.card{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:14px 16px;}
+.card-t{font-size:12px;font-weight:800;color:var(--pp);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+table{width:100%;border-collapse:collapse;font-size:11.5px;}
+thead th{background:#f0f3f7;padding:9px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--bd);white-space:nowrap;}
+thead th.c{text-align:center;}
+tbody td{padding:9px 9px;border-bottom:1px solid #eef1f5;}
+tbody tr{cursor:pointer;}
+tbody tr:hover td{background:#f0fdf4;}
+tbody tr.sel td{background:#ecfdf5;}
+.mono{font-family:'JetBrains Mono',monospace;}
+.apq{display:flex;align-items:center;gap:6px;}
+.apq .trk{flex:1;height:10px;background:#eef1f5;border-radius:5px;overflow:hidden;min-width:46px;}
+.apq .trk i{display:block;height:100%;border-radius:5px;}
+.apq .vv{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;width:42px;text-align:right;}
+.oee-pill{font-size:12px;font-weight:900;font-family:'JetBrains Mono',monospace;padding:3px 10px;border-radius:11px;}
+.oee-wc{background:#d1fae5;color:#065f46;}
+.oee-ok{background:#fef3c7;color:#92400e;}
+.oee-lo{background:#fee2e2;color:#991b1b;}
+/* donut */
+.donut-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.donut{width:150px;height:150px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;}
+.donut .hole{width:104px;height:104px;background:#fff;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.donut .dv{font-size:30px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
+.donut .dl{font-size:9px;color:var(--sub);}
+.apqbar{margin-top:14px;}
+.apqrow{margin-bottom:9px;}
+.apqrow .h{display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;}
+.apqrow .h b{font-family:'JetBrains Mono',monospace;}
+.apqrow .t{height:13px;background:#eef1f5;border-radius:4px;overflow:hidden;}
+.apqrow .t i{display:block;height:100%;border-radius:4px;}
+/* losses */
+.loss-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed #eef1f5;}
+.loss-row .ln{font-size:11px;width:96px;flex-shrink:0;}
+.loss-row .lt{flex:1;height:14px;background:#eef1f5;border-radius:3px;overflow:hidden;}
+.loss-row .lt i{display:block;height:100%;}
+.loss-row .lv{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;width:58px;text-align:right;}
+.loss-cat{font-size:8px;color:#9ca3af;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#fff;border-radius:8px;padding:11px 15px;box-shadow:0 8px 26px rgba(0,0,0,.22);border-left:4px solid var(--pp);font-size:12px;min-width:250px;max-width:380px;animation:ti .25s ease;}
+.toast.err{border-left-color:#dc2626;}.toast.warn{border-left-color:#f59e0b;}.toast.info{border-left-color:#2563eb;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:var(--sub);font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="scr-head">
+  <div class="sh-id">PP-OEE</div>
+  <div class="sh-tt"><div class="sh-en">Line Availability · OEE</div><div class="sh-ko">라인 가용성·OEE — 가용성 × 성능 × 품질 종합 효율</div></div>
+  <span class="sh-tag">/pp/oee</span>
+  <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
+</div>
+<div class="toolbar">
+  <div class="fld"><label>일자 Date</label>
+    <select id="fDate" onchange="apply()"><option>2026-05-19 (월)</option><option>2026-05-18 (일)</option><option>최근 7일 평균</option></select></div>
+  <div class="fld"><label>교대 Shift</label>
+    <select id="fShift" onchange="apply()"><option>전체 (주·야)</option><option>주간 1교대</option><option>야간 2교대</option></select></div>
+  <div class="fld"><label>라인 Line</label>
+    <select id="fLine" onchange="apply()"><option value="">전체 All</option><option>SAV-INJ-01</option><option>SAV-INJ-02</option><option>SAV-ASSY-01</option><option>SAV-PNT-01</option></select></div>
+  <button class="btn btn-p btn-sm" onclick="apply()">🔍 적용</button>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div style="margin-left:auto;"><button class="btn btn-s" onclick="exportCsv()">📥 Export</button></div>
+</div>
+<div class="body">
+  <div class="kpis">
+    <div class="kpi" style="--c:#059669"><div class="kv" id="kOee">0%</div><div class="kl">종합 OEE</div><div class="kt">world-class ≥ 85%</div></div>
+    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kA">0%</div><div class="kl">가용성 · Availability</div></div>
+    <div class="kpi" style="--c:#8b5cf6"><div class="kv" id="kP">0%</div><div class="kl">성능 · Performance</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kQ">0%</div><div class="kl">품질 · Quality</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kLoss">0</div><div class="kl">총 손실 시간 · 분</div></div>
+  </div>
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-t">🏭 라인별 OEE — <span style="font-weight:400;color:#9ca3af;font-size:9px;">행 클릭 시 하단 상세 분석</span></div>
+    <table>
+      <thead><tr>
+        <th>라인</th>
+        <th style="width:150px;">가용성 A</th>
+        <th style="width:150px;">성능 P</th>
+        <th style="width:150px;">품질 Q</th>
+        <th class="c">OEE</th>
+        <th class="c">등급</th>
+        <th class="c">손실(분)</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-t">🔻 Six Big Losses — <span id="lossLine" style="font-weight:800;">전체</span></div>
+      <div id="losses"></div>
+      <div style="font-size:9px;color:#9ca3af;margin-top:8px;">설비 6대 손실 분류 · 막대 길이 = 손실 시간(분)</div>
+    </div>
+    <div class="card">
+      <div class="card-t">🎯 OEE 구성 — <span id="dnLine" style="font-weight:800;">전체</span></div>
+      <div class="donut-wrap">
+        <div class="donut" id="donut"><div class="hole"><div class="dv" id="dnV">0%</div><div class="dl">OEE</div></div></div>
+        <div id="dnGrade" style="font-size:10px;font-weight:800;"></div>
+      </div>
+      <div class="apqbar">
+        <div class="apqrow"><div class="h"><span>가용성 Availability</span><b id="abV">0%</b></div><div class="t"><i id="abI" style="background:#2563eb"></i></div></div>
+        <div class="apqrow"><div class="h"><span>성능 Performance</span><b id="apV">0%</b></div><div class="t"><i id="apI" style="background:#8b5cf6"></i></div></div>
+        <div class="apqrow"><div class="h"><span>품질 Quality</span><b id="aqV">0%</b></div><div class="t"><i id="aqI" style="background:#0891b2"></i></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+/* A,P,Q in %, losses (min) by 6 categories of a 480-min planned shift */
+var LINES=[
+ {id:'SAV-INJ-01',nm:'사출 1호기',A:91,P:94,Q:99.2,
+   loss:{breakdown:18,setup:25,minor:14,speed:20,defect:8,startup:6}},
+ {id:'SAV-INJ-02',nm:'사출 2호기',A:78,P:88,Q:97.5,
+   loss:{breakdown:62,setup:30,minor:24,speed:34,defect:18,startup:10}},
+ {id:'SAV-ASSY-01',nm:'조립 1라인',A:93,P:91,Q:99.5,
+   loss:{breakdown:10,setup:18,minor:20,speed:26,defect:5,startup:4}},
+ {id:'SAV-PNT-01',nm:'도장 1라인',A:86,P:89,Q:98.0,
+   loss:{breakdown:28,setup:22,minor:16,speed:30,defect:13,startup:8}}
+];
+var LOSSDEF=[
+ {k:'breakdown',ko:'고장 정지',cat:'가용성 손실',col:'#dc2626'},
+ {k:'setup',ko:'준비·교체',cat:'가용성 손실',col:'#f97316'},
+ {k:'minor',ko:'일시 정지',cat:'성능 손실',col:'#f59e0b'},
+ {k:'speed',ko:'속도 저하',cat:'성능 손실',col:'#a78bfa'},
+ {k:'defect',ko:'불량·재작업',cat:'품질 손실',col:'#0891b2'},
+ {k:'startup',ko:'초기 수율',cat:'품질 손실',col:'#14b8a6'}
+];
+var selLine=-1;
+function oee(L){return Math.round(L.A*L.P*L.Q/10000*10)/10;}
+function totLoss(L){var s=0;for(var k in L.loss)s+=L.loss[k];return s;}
+function grade(o){return o>=85?{t:'World Class',cls:'oee-wc'}:o>=65?{t:'양호',cls:'oee-ok'}:{t:'개선 필요',cls:'oee-lo'};}
+function vis(){var f=document.getElementById('fLine').value;return LINES.map(function(L,i){return{L:L,i:i};}).filter(function(x){return !f||x.L.id===f;});}
+function apply(){
+  var v=vis();
+  var a=avg(v.map(function(x){return x.L.A;}));
+  var p=avg(v.map(function(x){return x.L.P;}));
+  var q=avg(v.map(function(x){return x.L.Q;}));
+  var o=avg(v.map(function(x){return oee(x.L);}));
+  var loss=v.reduce(function(s,x){return s+totLoss(x.L);},0);
+  document.getElementById('kOee').textContent=r1(o)+'%';
+  document.getElementById('kOee').style.color=o>=85?'#059669':(o>=65?'#d97706':'#dc2626');
+  document.getElementById('kA').textContent=r1(a)+'%';
+  document.getElementById('kP').textContent=r1(p)+'%';
+  document.getElementById('kQ').textContent=r1(q)+'%';
+  document.getElementById('kLoss').textContent=loss;
+  renderTable();
+  /* default detail = filtered line or aggregate */
+  if(selLine>=0&&!vis().some(function(x){return x.i===selLine;}))selLine=-1;
+  renderDetail();
+}
+function avg(a){return a.length?a.reduce(function(x,y){return x+y;},0)/a.length:0;}
+function r1(n){return Math.round(n*10)/10;}
+function renderTable(){
+  var h='';
+  vis().forEach(function(x){
+    var L=x.L,o=oee(L),g=grade(o);
+    h+='<tr class="'+(selLine===x.i?'sel':'')+'" onclick="pickLine('+x.i+')">'+
+      '<td><b class="mono">'+L.id+'</b><div style="font-size:9px;color:#656d76;">'+L.nm+'</div></td>'+
+      apqCell(L.A,'#2563eb')+apqCell(L.P,'#8b5cf6')+apqCell(L.Q,'#0891b2')+
+      '<td style="text-align:center;"><span class="oee-pill '+g.cls+'">'+r1(o)+'%</span></td>'+
+      '<td style="text-align:center;font-size:10px;font-weight:700;">'+g.t+'</td>'+
+      '<td style="text-align:center;font-family:JetBrains Mono,monospace;font-weight:700;color:#dc2626;">'+totLoss(L)+'</td></tr>';
+  });
+  document.getElementById('tbody').innerHTML=h;
+}
+function apqCell(v,col){
+  return '<td><div class="apq"><span class="trk"><i style="width:'+v+'%;background:'+col+';"></i></span>'+
+    '<span class="vv">'+r1(v)+'%</span></div></td>';
+}
+function pickLine(i){selLine=(selLine===i)?-1:i;renderTable();renderDetail();
+  if(selLine>=0)toast('info',LINES[i].id+' 선택','하단에 해당 라인의 손실 분석과 OEE 구성을 표시합니다.');}
+function renderDetail(){
+  var v=vis(),L,name;
+  if(selLine>=0){L=LINES[selLine];name=L.id;}
+  else{
+    /* aggregate pseudo-line */
+    L={A:avg(v.map(function(x){return x.L.A;})),P:avg(v.map(function(x){return x.L.P;})),
+       Q:avg(v.map(function(x){return x.L.Q;})),loss:{}};
+    LOSSDEF.forEach(function(d){L.loss[d.k]=v.reduce(function(s,x){return s+x.L.loss[d.k];},0);});
+    name='전체 평균';
+  }
+  var o=Math.round(L.A*L.P*L.Q/10000*10)/10;
+  document.getElementById('lossLine').textContent=name;
+  document.getElementById('dnLine').textContent=name;
+  /* donut */
+  var col=o>=85?'#059669':(o>=65?'#d97706':'#dc2626');
+  document.getElementById('donut').style.background=
+    'conic-gradient('+col+' 0% '+o+'%,#eef1f5 '+o+'% 100%)';
+  document.getElementById('dnV').textContent=r1(o)+'%';
+  document.getElementById('dnV').style.color=col;
+  var g=grade(o);
+  var gd=document.getElementById('dnGrade');gd.textContent='등급: '+g.t;gd.style.color=col;
+  setBar('ab',L.A,'#2563eb');setBar('ap',L.P,'#8b5cf6');setBar('aq',L.Q,'#0891b2');
+  /* losses */
+  var max=Math.max.apply(null,LOSSDEF.map(function(d){return L.loss[d.k];}))||1;
+  var lh='';
+  LOSSDEF.forEach(function(d){
+    var val=L.loss[d.k];
+    lh+='<div class="loss-row"><span class="ln">'+d.ko+'<div class="loss-cat">'+d.cat+'</div></span>'+
+      '<span class="lt"><i style="width:'+(val/max*100)+'%;background:'+d.col+';"></i></span>'+
+      '<span class="lv">'+val+'분</span></div>';
+  });
+  document.getElementById('losses').innerHTML=lh;
+}
+function setBar(p,v,col){
+  document.getElementById(p+'V').textContent=r1(v)+'%';
+  var i=document.getElementById(p+'I');i.style.width=v+'%';i.style.background=col;
+}
+function exportCsv(){
+  var csv='Line,Name,Availability%,Performance%,Quality%,OEE%,Grade,TotalLossMin,Breakdown,Setup,MinorStop,Speed,Defect,Startup\n';
+  vis().forEach(function(x){var L=x.L;
+    csv+=[L.id,L.nm,L.A,L.P,L.Q,oee(L),grade(oee(L)).t,totLoss(L),
+      L.loss.breakdown,L.loss.setup,L.loss.minor,L.loss.speed,L.loss.defect,L.loss.startup].join(',')+'\n';});
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='PP_OEE_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  toast('','Export 완료','OEE 분석 결과를 CSV로 내보냈습니다.');
+}
+function resetAll(){
+  document.getElementById('fLine').value='';document.getElementById('fDate').selectedIndex=0;
+  document.getElementById('fShift').selectedIndex=0;selLine=-1;
+  apply();toast('info','초기화','전체 라인 기준으로 OEE 분석을 초기화했습니다.');
+}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='warn'?'⚠ ':type==='info'?'ℹ ':'✅ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},4400);
+}
+apply();
+</script>
+</body>
+</html>
