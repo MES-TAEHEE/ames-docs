@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · Demo Site · Structure Design · 데모사이트 구조설계</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans KR',sans-serif;background:#0f1923;color:#e2e8f0;font-size:13px;line-height:1.65;}
+:root{--gold:#d4a017;--border:rgba(255,255,255,.08);--sub:rgba(255,255,255,.45);
+  --web:#2563eb;--pop:#ea580c;--pda:#0891b2;}
+a{text-decoration:none;}
+/* NAV */
+.ames-nav{position:sticky;top:0;z-index:9999;background:#0d1117;border-bottom:1px solid rgba(212,160,23,.2);display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
+.ames-nav::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:6px;padding:8px 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);flex-shrink:0;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:15px;color:var(--gold);letter-spacing:2px;}
+.nav-home-sub{font-size:8px;color:rgba(255,255,255,.25);}
+.nav-demo{display:flex;align-items:center;gap:6px;padding:8px 14px;background:rgba(212,160,23,.16);border-right:1px solid rgba(212,160,23,.2);flex-shrink:0;}
+.nav-demo .nd-i{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#fbbf24;}
+.nav-demo .nd-s{font-size:9px;color:rgba(255,255,255,.6);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.85);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.wrap{max-width:1180px;margin:0 auto;padding:0 36px 80px;}
+/* HERO */
+.hero{position:relative;background:linear-gradient(135deg,#0a1119 0%,#1e293b 50%,#0a1119 100%);border:1px solid rgba(212,160,23,.15);border-radius:14px;padding:46px 44px 40px;margin:32px 0 30px;overflow:hidden;}
+.hero::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(212,160,23,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(212,160,23,.05) 1px,transparent 1px);background-size:44px 44px;-webkit-mask-image:radial-gradient(ellipse at 100% 0%,#000,transparent 65%);mask-image:radial-gradient(ellipse at 100% 0%,#000,transparent 65%);}
+.hero::after{content:'';position:absolute;top:-100px;right:-80px;width:320px;height:320px;background:radial-gradient(circle,rgba(212,160,23,.16),transparent 65%);}
+.hero-eyebrow{position:relative;display:inline-flex;align-items:center;gap:9px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:rgba(212,160,23,.9);letter-spacing:3px;text-transform:uppercase;margin-bottom:18px;padding:6px 13px;border:1px solid rgba(212,160,23,.3);border-radius:20px;background:rgba(212,160,23,.06);}
+.hero-eyebrow .dot{width:6px;height:6px;border-radius:50%;background:#d4a017;box-shadow:0 0 10px rgba(212,160,23,.8);}
+.hero-title{position:relative;font-family:'Bebas Neue',sans-serif;font-size:72px;letter-spacing:5px;line-height:.95;color:#f8fafc;}
+.hero-title span{color:var(--gold);}
+.hero-div{position:relative;display:block;width:96px;height:3px;margin:14px 0 16px;background:linear-gradient(90deg,#d4a017,rgba(212,160,23,.1));border-radius:2px;}
+.hero-sub{position:relative;font-size:15px;color:#cbd5e1;letter-spacing:1px;}
+.hero-sub-ko{position:relative;font-size:12px;color:#94a3b8;margin-top:3px;}
+.hero-meta{position:relative;display:flex;gap:9px;flex-wrap:wrap;margin-top:22px;}
+.hm-chip{display:flex;flex-direction:column;gap:2px;padding:9px 15px;background:rgba(15,23,42,.7);border:1px solid rgba(71,85,105,.6);border-radius:6px;min-width:108px;}
+.hm-l{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:1.3px;color:rgba(212,160,23,.75);text-transform:uppercase;}
+.hm-v{font-size:13px;font-weight:700;color:#f1f5f9;}
+/* SECTION */
+.sec-t{position:relative;display:flex;align-items:center;gap:12px;font-size:11px;font-weight:700;color:#cbd5e1;letter-spacing:2.5px;text-transform:uppercase;margin:42px 0 16px;padding-left:14px;}
+.sec-t::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:4px;height:18px;background:linear-gradient(180deg,#d4a017,rgba(212,160,23,.2));border-radius:2px;}
+.sec-t::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(148,163,184,.25),transparent);}
+.intro{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:8px;}
+.intro-en,.intro-ko{padding:16px 20px;font-size:12px;line-height:1.85;}
+.intro-en{background:rgba(255,255,255,.02);border-right:1px solid var(--border);color:rgba(255,255,255,.55);}
+.intro-ko{color:rgba(255,255,255,.4);}
+.intro b{color:#e2e8f0;}
+/* SYSTEM CARDS */
+.sys-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.sys-card{background:linear-gradient(160deg,rgba(30,41,59,.9),rgba(15,23,42,.9));border:1px solid #334155;border-top:3px solid var(--sc);border-radius:11px;padding:20px 20px 18px;position:relative;overflow:hidden;}
+.sys-card::after{content:'';position:absolute;top:-30px;right:-30px;width:110px;height:110px;background:radial-gradient(circle,var(--sc),transparent 65%);opacity:.16;}
+.sys-ico{font-size:30px;line-height:1;}
+.sys-no{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--sc);letter-spacing:1.5px;margin-top:10px;}
+.sys-en{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:1.5px;color:#f8fafc;line-height:1;margin-top:2px;}
+.sys-ko{font-size:12px;color:#94a3b8;margin-bottom:10px;}
+.sys-row{display:flex;justify-content:space-between;font-size:10px;padding:5px 0;border-top:1px solid rgba(71,85,105,.4);}
+.sys-row .k{color:#64748b;font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.sys-row .v{color:#cbd5e1;font-weight:700;text-align:right;}
+.sys-mods{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px;}
+.sys-mod-chip{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;background:rgba(255,255,255,.06);color:var(--sc);border:1px solid var(--sc);}
+/* MENU TREE */
+.tree{border:1px solid #334155;border-radius:10px;overflow:hidden;background:linear-gradient(160deg,rgba(30,41,59,.5),rgba(15,23,42,.5));margin-bottom:14px;}
+.tree-sys{display:flex;align-items:center;gap:11px;padding:12px 16px;border-bottom:1px solid #334155;border-left:5px solid var(--sc);}
+.tree-sys .ts-ico{font-size:20px;}
+.tree-sys .ts-no{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--sc);}
+.tree-sys .ts-name{font-size:15px;font-weight:800;color:#f1f5f9;}
+.tree-sys .ts-ko{font-size:11px;color:#94a3b8;}
+.tree-sys .ts-dev{margin-left:auto;font-size:9px;font-family:'JetBrains Mono',monospace;color:#94a3b8;background:rgba(255,255,255,.05);border:1px solid var(--border);padding:3px 9px;border-radius:4px;}
+.tree-mod{padding:11px 16px 11px 22px;border-bottom:1px solid rgba(51,65,85,.4);}
+.tree-mod:last-child{border-bottom:none;}
+.tm-hdr{display:flex;align-items:center;gap:9px;margin-bottom:8px;}
+.tm-line{width:14px;height:1px;background:#475569;}
+.tm-id{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--sc);}
+.tm-name{font-size:12px;font-weight:700;color:#e2e8f0;}
+.tm-ko{font-size:10px;color:#64748b;}
+.tm-cnt{margin-left:auto;font-size:9px;font-family:'JetBrains Mono',monospace;color:#64748b;}
+.tm-scrs{display:flex;flex-wrap:wrap;gap:5px;padding-left:23px;}
+.scr{display:flex;flex-direction:column;gap:1px;background:rgba(255,255,255,.025);border:1px solid #2b3a4f;border-left:3px solid var(--sc);border-radius:4px;padding:5px 9px;min-width:124px;}
+.scr:hover{background:rgba(255,255,255,.08);}
+.scr-id{font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:700;color:var(--sc);}
+.scr-nm{font-size:9.5px;color:#cbd5e1;}
+.tm-grp{width:100%;font-size:8px;font-weight:700;letter-spacing:1px;color:#475569;text-transform:uppercase;padding-left:23px;margin:4px 0 -1px;}
+/* INVENTORY TABLE */
+.inv{width:100%;border-collapse:separate;border-spacing:0;font-size:11px;border:1px solid #334155;border-radius:8px;overflow:hidden;}
+.inv th{background:#0f172a;color:#94a3b8;font-weight:700;padding:9px 12px;text-align:left;font-size:9px;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid #334155;}
+.inv td{padding:8px 12px;border-bottom:1px solid rgba(51,65,85,.45);color:#cbd5e1;}
+.inv tr:last-child td{border-bottom:none;}
+.inv tr:hover td{background:rgba(212,160,23,.04);}
+.inv .sysbadge{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;color:#fff;}
+.inv .mono{font-family:'JetBrains Mono',monospace;font-size:10px;}
+.inv tr.tot td{background:#0f172a;font-weight:700;color:#f1f5f9;}
+/* GUIDE */
+.guide{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.gd-card{background:rgba(30,41,59,.55);border:1px solid #334155;border-radius:9px;padding:15px 17px;border-top:3px solid var(--sc);}
+.gd-step{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--sc);letter-spacing:1px;}
+.gd-t{font-size:13px;font-weight:800;color:#f1f5f9;margin:3px 0 6px;}
+.gd-d{font-size:11px;color:#94a3b8;line-height:1.8;}
+.gd-persona{display:inline-block;font-size:9px;font-weight:700;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;padding:2px 9px;color:#cbd5e1;margin-top:8px;}
+.note{display:flex;gap:9px;padding:11px 15px;border-radius:7px;border:1px solid rgba(212,160,23,.25);background:rgba(212,160,23,.06);font-size:11px;line-height:1.75;color:#d4c08a;margin-top:12px;}
+.note b{color:#fbbf24;}
+.foot{border-top:1px solid var(--border);margin-top:46px;padding-top:18px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:10px;color:rgba(255,255,255,.25);font-family:'JetBrains Mono',monospace;}
+@media(max-width:900px){.sys-grid,.guide{grid-template-columns:1fr;}.intro{grid-template-columns:1fr;}.hero-title{font-size:52px;}}
+</style>
+</head>
+<body>
+<nav class="ames-nav">
+  <a href="INDEX.html" class="nav-home"><div><div class="nav-home-logo">A-MES</div><div class="nav-home-sub">◀ Index</div></div></a>
+  <span class="nav-demo"><span class="nd-i">▶ DEMO</span><span class="nd-s">데모사이트</span></span>
+  <a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span>Warehouse</span></a>
+  <a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span>Prod. Plan</span></a>
+  <a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span>Injection</span></a>
+  <a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span>Wrapping</span></a>
+  <a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span>Painting</span></a>
+  <a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span>Quality</span></a>
+  <a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span>Fin. Goods</span></a>
+  <a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span>Maintenance</span></a>
+  <a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span>Reports</span></a>
+  <a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span>System</span></a>
+  <a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span>Master Data</span></a>
+</nav>
+<div class="wrap">
+
+  <div class="hero">
+    <div class="hero-eyebrow"><span class="dot"></span>Demo Site · Structure Design</div>
+    <div class="hero-title">A-<span>MES</span> DEMO SITE</div>
+    <span class="hero-div"></span>
+    <div class="hero-sub">3-System Demo Architecture — Office Web · Shop-Floor POP · Logistics PDA</div>
+    <div class="hero-sub-ko">데모사이트 구조 설계 — 사용 환경 기준 3개 시스템 분리 · 메뉴 트리 3단 계층</div>
+    <div class="hero-meta">
+      <div class="hm-chip"><span class="hm-l">Systems</span><span class="hm-v">3</span></div>
+      <div class="hm-chip"><span class="hm-l">Modules</span><span class="hm-v">11</span></div>
+      <div class="hm-chip"><span class="hm-l">Screens</span><span class="hm-v">125</span></div>
+      <div class="hm-chip"><span class="hm-l">Split By</span><span class="hm-v">사용 환경</span></div>
+      <div class="hm-chip"><span class="hm-l">Status</span><span class="hm-v">구조 설계</span></div>
+    </div>
+  </div>
+
+  <div class="sec-t">Concept &nbsp;데모 사이트 개념</div>
+  <div class="intro">
+    <div class="intro-en">The A-MES demo site reorganizes the 11 design-spec modules into <b>3 demonstrable systems by usage environment</b>, so each can be shown to its real audience on its real device. <b>Office Web</b> runs on desktop browsers for planners and engineers; <b>Shop-Floor POP</b> runs on fixed touch terminals beside the line; <b>Logistics PDA</b> runs on handheld scanners in the warehouse. This page is the structure design — the menu tree, screen inventory and navigation flow — produced before the interactive demo is built.</div>
+    <div class="intro-ko">A-MES 데모사이트는 11개 설계 모듈을 <b>사용 환경 기준 3개 시연 시스템</b>으로 재편하여, 각 시스템을 실제 사용자·실제 디바이스로 시연할 수 있게 한다. <b>Office Web</b>은 계획자·엔지니어의 데스크톱 브라우저, <b>Shop-Floor POP</b>는 라인 옆 고정 터치 단말, <b>Logistics PDA</b>는 창고 핸드헬드 스캐너에서 구동된다. 본 페이지는 인터랙티브 데모 구축 전에 작성하는 구조 설계 — 메뉴 트리·화면 인벤토리·네비게이션 흐름 — 이다.</div>
+  </div>
+
+  <div class="sec-t">3-System Architecture &nbsp;3개 시스템 아키텍처</div>
+  <div class="sys-grid">
+    <div class="sys-card" style="--sc:#2563eb">
+      <div class="sys-ico">🖥️</div>
+      <div class="sys-no">SYSTEM 1</div>
+      <div class="sys-en">OFFICE WEB</div>
+      <div class="sys-ko">사무·엔지니어 Web · 데스크톱 브라우저</div>
+      <div class="sys-row"><span class="k">USERS</span><span class="v">계획자 · 엔지니어 · 관리자</span></div>
+      <div class="sys-row"><span class="k">DEVICE</span><span class="v">Web PC (1920px) · 현황판</span></div>
+      <div class="sys-row"><span class="k">MODULES</span><span class="v">5</span></div>
+      <div class="sys-row"><span class="k">SCREENS</span><span class="v">74</span></div>
+      <div class="sys-mods">
+        <span class="sys-mod-chip">PP</span><span class="sys-mod-chip">MNT</span><span class="sys-mod-chip">RPT</span><span class="sys-mod-chip">SYS</span><span class="sys-mod-chip">MD</span>
+      </div>
+    </div>
+    <div class="sys-card" style="--sc:#ea580c">
+      <div class="sys-ico">📟</div>
+      <div class="sys-no">SYSTEM 2</div>
+      <div class="sys-en">SHOP-FLOOR POP</div>
+      <div class="sys-ko">현장 작업자 · 라인 고정 터치 단말</div>
+      <div class="sys-row"><span class="k">USERS</span><span class="v">현장 작업자 · 반장 · 검사원</span></div>
+      <div class="sys-row"><span class="k">DEVICE</span><span class="v">POP 15" 터치 · 일부 현황판</span></div>
+      <div class="sys-row"><span class="k">MODULES</span><span class="v">4</span></div>
+      <div class="sys-row"><span class="k">SCREENS</span><span class="v">33</span></div>
+      <div class="sys-mods">
+        <span class="sys-mod-chip">INJ</span><span class="sys-mod-chip">IMG</span><span class="sys-mod-chip">PNT</span><span class="sys-mod-chip">QC</span>
+      </div>
+    </div>
+    <div class="sys-card" style="--sc:#0891b2">
+      <div class="sys-ico">📱</div>
+      <div class="sys-no">SYSTEM 3</div>
+      <div class="sys-en">LOGISTICS PDA</div>
+      <div class="sys-ko">물류 담당 · 창고 핸드헬드 스캐너</div>
+      <div class="sys-row"><span class="k">USERS</span><span class="v">창고·출하 담당 · 지게차 기사</span></div>
+      <div class="sys-row"><span class="k">DEVICE</span><span class="v">PDA 핸드헬드 · 일부 Web</span></div>
+      <div class="sys-row"><span class="k">MODULES</span><span class="v">2</span></div>
+      <div class="sys-row"><span class="k">SCREENS</span><span class="v">18</span></div>
+      <div class="sys-mods">
+        <span class="sys-mod-chip">WH</span><span class="sys-mod-chip">FG</span>
+      </div>
+    </div>
+  </div>
+  <div class="note"><span>⚙</span><div><b>편성 기준</b> — 각 모듈은 <b>주력 사용 환경</b>으로 시스템에 배정된다. MNT(설비관리)는 보전 엔지니어가 PC에서 PM계획·OEE분석·작업지시를 다루므로 Office Web에 편성하되, 현장 접근 화면(MNT-01 설비카드·MNT-02 고장등록·MNT-06 비가동로그)은 POP에서도 호출된다. 디바이스 혼용 화면은 아래 화면 인벤토리에 별도 표기.</div></div>
+
+  <div class="sec-t">Menu Tree &nbsp;시스템별 메뉴 트리 (System ▸ Module ▸ Screen)</div>
+
+  <div class="tree">
+    <div class="tree-sys" style="--sc:#2563eb">
+      <span class="ts-ico">🖥️</span><span class="ts-no">SYSTEM 1</span>
+      <span class="ts-name">Office Web</span><span class="ts-ko">사무·엔지니어 Web</span>
+      <span class="ts-dev">Web PC · 5 modules · 74 screens</span>
+    </div>
+    <div class="tree-mod" style="--sc:#2563eb">
+      <div class="tm-hdr"><span class="tm-line"></span><span class="tm-id">PP</span><span class="tm-name">생산계획</span><span class="tm-ko">Production Plan</span><span class="tm-cnt">13 screens</span></div>
+      <div class="tm-scrs">
+        <a class="scr" href="VOL04_PP01_Forecast.html"><span class="scr-id">PP-01</span><span class="scr-nm">Forecast Mgmt</span></a>
+        <a class="scr" href="VOL04_PP02_SAP_Import.html"><span class="scr-id">PP-02</span><span class="scr-nm">SAP B1 Import</span></a>
+        <a class="scr" href="VOL04_PP03_Plan_Confirm.html"><span class="scr-id">PP-03</span><span class="scr-nm">Plan &amp; Confirm</span></a>
+        <a class="scr" href="VOL04_PP04_Work_Order.html"><span class="scr-id">PP-04</span><span class="scr-nm">Work Order</span></a>
+        <a class="scr" href="VOL04_PP05_MRP.html"><span class="scr-id">PP-05</span><span class="scr-nm">MRP</span></a>
+        <a class="scr" href="VOL04_PP06_Purchase_Req.html"><span class="scr-id">PP-06</span><span class="scr-nm">Purchase Req.</span></a>
+        <a class="scr" href="VOL04_PP07_WO_Release.html"><span class="scr-id">PP-07</span><span class="scr-nm">WO Release</span></a>
+        <a class="scr" href="VOL04_PP_CAL_Calendar.html"><span class="scr-id">PP-CAL</span><span class="scr-nm">Calendar</span></a>
+        <a class="scr" href="VOL04_PP_OTD_Delivery.html"><span class="scr-id">PP-OTD</span><span class="scr-nm">Delivery KPI</span></a>
+        <a class="scr" href="VOL04_PP_LSB_Line_Schedule_Board.html"><span class="scr-id">PP-LSB</span><span class="scr-nm">Line Schedule Board</span></a>
+        <a class="scr" href="VOL04_PP_ODM_Operating_Downtime_Monitor.html"><span class="scr-id">PP-ODM</span><span class="scr-nm">Downtime Monitor</span></a>
+        <a class="scr" href="VOL04_PP_OEE_Line_Availability.html"><span class="scr-id">PP-OEE</span><span class="scr-nm">Line OEE</span></a>
+        <a class="scr" href="VOL04_PP_DTL_Downtime_Log.html"><span class="scr-id">PP-DTL</span><span class="scr-nm">Downtime Log · POP</span></a>
+      </div>
+    </div>
+    <div class="tree-mod" style="--sc:#2563eb">
+      <div class="tm-hdr"><span class="tm-line"></span><span class="tm-id">MNT</span><span class="tm-name">설비관리</span><span class="tm-ko">Maintenance</span><span class="tm-cnt">9 screens</span></div>
+      <div class="tm-scrs">
+        <a class="scr" href="VOL10_MNT01_Equipment_Card.html"><span class="scr-id">MNT-01</span><span class="scr-nm">Equipment Card</span></a>
+        <a class="scr" href="VOL10_MNT02_Failure_Register.html"><span class="scr-id">MNT-02</span><span class="scr-nm">Failure Register</span></a>
+        <a class="scr" href="VOL10_MNT03_OEE_Analysis.html"><span class="scr-id">MNT-03</span><span class="scr-nm">OEE Analysis</span></a>
+        <a class="scr" href="VOL10_MNT04_Mold_Management.html"><span class="scr-id">MNT-04</span><span class="scr-nm">Mold Management</span></a>
+        <a class="scr" href="VOL10_MNT05_PM_Schedule.html"><span class="scr-id">MNT-05</span><span class="scr-nm">PM Schedule</span></a>
+        <a class="scr" href="VOL10_MNT06_Downtime_Log.html"><span class="scr-id">MNT-06</span><span class="scr-nm">Downtime Log</span></a>
+        <a class="scr" href="VOL10_MNT07_Work_Order.html"><span class="scr-id">MNT-07</span><span class="scr-nm">Work Order</span></a>
+        <a class="scr" href="VOL10_MNT08_Spare_Parts.html"><span class="scr-id">MNT-08</span><span class="scr-nm">Spare Parts</span></a>
+        <a class="scr" href="VOL10_MNT09_Dashboard.html"><span class="scr-id">MNT-09</span><span class="scr-nm">MNT Dashboard</span></a>
+      </div>
+    </div>
+    <div class="tree-mod" style="--sc:#2563eb">
+      <div class="tm-hdr"><span class="tm-line"></span><span class="tm-id">RPT</span><span class="tm-name">분석 리포트</span><span class="tm-ko">Reports</span><span class="tm-cnt">10 screens</span></div>
+      <div class="tm-scrs">
+        <a class="scr" href="VOL11_RPT01_Daily_Production.html"><span class="scr-id">RPT-01</span><span class="scr-nm">Daily Production</span></a>
+        <a class="scr" href="VOL11_RPT02_Defect_Pareto.html"><span class="scr-id">RPT-02</span><span class="scr-nm">Defect Pareto</span></a>
+        <a class="scr" href="VOL11_RPT03_Daily_Shipment.html"><span class="scr-id">RPT-03</span><span class="scr-nm">Daily Shipment</span></a>
+        <a class="scr" href="VOL11_RPT04_OnTime_Delivery.html"><span class="scr-id">RPT-04</span><span class="scr-nm">On-Time Delivery</span></a>
+        <a class="scr" href="VOL11_RPT05_Inventory_Status.html"><span class="scr-id">RPT-05</span><span class="scr-nm">Inventory Status</span></a>
+        <a class="scr" href="VOL11_RPT06_Equipment_OEE.html"><span class="scr-id">RPT-06</span><span class="scr-nm">Equipment OEE</span></a>
+        <a class="scr" href="VOL11_RPT07_Monthly_KPI.html"><span class="scr-id">RPT-07</span><span class="scr-nm">Monthly KPI</span></a>
+        <a class="scr" href="VOL11_RPT08_Schedule_Adherence.html"><span class="scr-id">RPT-08</span><span class="scr-nm">Schedule Adherence</span></a>
+        <a class="scr" href="VOL11_RPT09_Report_Center.html"><span class="scr-id">RPT-09</span><span class="scr-nm">Report Center</span></a>
+        <a class="scr" href="VOL11_RPT10_Report_Builder.html"><span class="scr-id">RPT-10</span><span class="scr-nm">Report Builder</span></a>
+      </div>
+    </div>
+    <div class="tree-mod" style="--sc:#2563eb">
+      <div class="tm-hdr"><span class="tm-line"></span><span class="tm-id">SYS</span><span class="tm-name">시스템 관리</span><span class="tm-ko">System Admin</span><span class="tm-cnt">8 screens</span></div>
+      <div class="tm-scrs">
+        <a class="scr" href="VOL12_SYS01_User_Management.html"><span class="scr-id">SYS-01</span><span class="scr-nm">User Management</span></a>
+        <a class="scr" href="VOL12_SYS02_RBAC_Permissions.html"><span class="scr-id">SYS-02</span><span class="scr-nm">RBAC Permissions</span></a>
+        <a class="scr" href="VOL12_SYS03_Factory_Calendar.html"><span class="scr-id">SYS-03</span><span class="scr-nm">Factory Calendar</span></a>
+        <a class="scr" href="VOL12_SYS04_Interface_Monitor.html"><span class="scr-id">SYS-04</span><span class="scr-nm">Interface Monitor</span></a>
+        <a class="scr" href="VOL12_SYS05_Audit_Log.html"><span class="scr-id">SYS-05</span><span class="scr-nm">Audit Log</span></a>
+        <a class="scr" href="VOL12_SYS06_Notification_Settings.html"><span class="scr-id">SYS-06</span><span class="scr-nm">Notification</span></a>
+        <a class="scr" href="VOL12_SYS07_System_Config.html"><span class="scr-id">SYS-07</span><span class="scr-nm">System Config</span></a>
+        <a class="scr" href="VOL12_SYS08_System_Health.html"><span class="scr-id">SYS-08</span><span class="scr-nm">System Health</span></a>
+      </div>
+    </div>
+    <div class="tree-mod" style="--sc:#2563eb">
+      <div class="tm-hdr"><span class="tm-line"></span><span class="tm-id">MD</span><span class="tm-name">기준정보</span><span class="tm-ko">Master Data</span><span class="tm-cnt">5 hubs + 29 entities</span></div>
+      <div class="tm-grp">Category L3 Hubs</div>
+      <div class="tm-scrs">
+        <a class="scr" href="VOL13_MD_L3_Foundation.html"><span class="scr-id">L3·A</span><span class="scr-nm">Foundation</span></a>
+        <a class="scr" href="VOL13_MD_L3_Production.html"><span class="scr-id">L3·B</span><span class="scr-nm">Routing &amp; Production</span></a>
+        <a class="scr" href="VOL13_MD_L3_Resources.html"><span class="scr-id">L3·C</span><span class="scr-nm">Resources &amp; Equip.</span></a>
+        <a class="scr" href="VOL13_MD_L3_RFID_Color.html"><span class="scr-id">L3·D</span><span class="scr-nm">RFID &amp; Materials</span></a>
+        <a class="scr" href="VOL13_MD_L3_Quality.html"><span class="scr-id">L3·E</span><span class="scr-nm">Quality &amp; Logistics</span></a>
+      </div>
+      <div class="tm-grp" style="margin-top:7px;">Entity Table-Design Pages (29)</div>
+      <div class="tm-scrs">
+        <a class="scr" href="VOL13_MD01_Item.html"><span class="scr-id">MD-01</span><span class="scr-nm">Item Master</span></a>
+        <a class="scr" href="VOL13_MD02_BOM.html"><span class="scr-id">MD-02</span><span class="scr-nm">BOM</span></a>
+        <a class="scr" href="VOL13_MD03_BOM_Version.html"><span class="scr-id">MD-03</span><span class="scr-nm">BOM Version</span></a>
+        <a class="scr" href="VOL13_MD04_BOP.html"><span class="scr-id">MD-04</span><span class="scr-nm">BOP Routing</span></a>
+        <a class="scr" href="VOL13_MD05_Work_Center.html"><span class="scr-id">MD-05</span><span class="scr-nm">Work Center</span></a>
+        <a class="scr" href="VOL13_MD06_Inspection_Std.html"><span class="scr-id">MD-06</span><span class="scr-nm">Inspection Std</span></a>
+        <a class="scr" href="VOL13_MD07_Vendor.html"><span class="scr-id">MD-07</span><span class="scr-nm">Vendor</span></a>
+        <a class="scr" href="VOL13_MD08_Equipment.html"><span class="scr-id">MD-08</span><span class="scr-nm">Equipment</span></a>
+        <a class="scr" href="VOL13_MD09_Mold.html"><span class="scr-id">MD-09</span><span class="scr-nm">Mold</span></a>
+        <a class="scr" href="VOL13_MD10_Paint_Fabric.html"><span class="scr-id">MD-10</span><span class="scr-nm">Paint / Fabric</span></a>
+        <a class="scr" href="VOL13_MD11_Shipment_Dest.html"><span class="scr-id">MD-11</span><span class="scr-nm">Shipment Dest</span></a>
+        <a class="scr" href="VOL13_MD12_Customer.html"><span class="scr-id">MD-12</span><span class="scr-nm">Customer</span></a>
+        <a class="scr" href="VOL13_MD13_UOM.html"><span class="scr-id">MD-13</span><span class="scr-nm">UOM</span></a>
+        <a class="scr" href="VOL13_MD14_Calendar.html"><span class="scr-id">MD-14</span><span class="scr-nm">Calendar</span></a>
+        <a class="scr" href="VOL13_MD15_Jig.html"><span class="scr-id">MD-15</span><span class="scr-nm">Jig</span></a>
+        <a class="scr" href="VOL13_MD16_RFID_Tag.html"><span class="scr-id">MD-16</span><span class="scr-nm">RFID Tag</span></a>
+        <a class="scr" href="VOL13_MD17_RAL_Color.html"><span class="scr-id">MD-17</span><span class="scr-nm">RAL Paint Color</span></a>
+        <a class="scr" href="VOL13_MD18_Oven.html"><span class="scr-id">MD-18</span><span class="scr-nm">Oven</span></a>
+        <a class="scr" href="VOL13_MD19_RFID_Reader.html"><span class="scr-id">MD-19</span><span class="scr-nm">RFID Reader</span></a>
+        <a class="scr" href="VOL13_MD20_Line.html"><span class="scr-id">MD-20</span><span class="scr-nm">Line Master</span></a>
+        <a class="scr" href="VOL13_MD21_Defect_Code.html"><span class="scr-id">MD-21</span><span class="scr-nm">Defect Code</span></a>
+        <a class="scr" href="VOL13_MD22_Defect_Cause.html"><span class="scr-id">MD-22</span><span class="scr-nm">Defect Cause</span></a>
+        <a class="scr" href="VOL13_MD23_Packaging_Spec.html"><span class="scr-id">MD-23</span><span class="scr-nm">Packaging Spec</span></a>
+        <a class="scr" href="VOL13_MD24_Label_Template.html"><span class="scr-id">MD-24</span><span class="scr-nm">Label Template</span></a>
+        <a class="scr" href="VOL13_MD25_Reason_Code.html"><span class="scr-id">MD-25</span><span class="scr-nm">Reason Code</span></a>
+        <a class="scr" href="VOL13_MD26_Code_Group.html"><span class="scr-id">MD-26</span><span class="scr-nm">Common Code Group</span></a>
+        <a class="scr" href="VOL13_MD27_Spare_Parts.html"><span class="scr-id">MD-27</span><span class="scr-nm">Spare Parts</span></a>
+        <a class="scr" href="VOL13_MD28_PM_Template.html"><span class="scr-id">MD-28</span><span class="scr-nm">PM Template</span></a>
+        <a class="scr" href="VOL13_MD29_Line_Time_Pattern.html"><span class="scr-id">MD-29</span><span class="scr-nm">Line Time Pattern</span></a>
+      </div>
+    </div>
+  </div>
+
+  <div class="tree">
+    <div class="tree-sys" style="--sc:#ea580c">
+      <span class="ts-ico">📟</span><span class="ts-no">SYSTEM 2</span>
+      <span class="ts-name">Shop-Floor POP</span><span class="ts-ko">현장 작업자 터치 단말</span>
+      <span class="ts-dev">POP 터치 · 4 modules · 33 screens</span>
+    </div>
+    <div class="tree-mod" style="--sc:#ea580c">
+      <div class="tm-hdr"><span class="tm-line"></span><span class="tm-id">INJ</span><span class="tm-name">사출</span><span class="tm-ko">Injection</span><span class="tm-cnt">8 screens</span></div>
+      <div class="tm-scrs">
+        <a class="scr" href="VOL05_INJ01_POP_Login.html"><span class="scr-id">INJ-01</span><span class="scr-nm">POP Login</span></a>
+        <a class="scr" href="VOL05_INJ02_POP_Dashboard.html"><span class="scr-id">INJ-02</span><span class="scr-nm">POP Dashboard</span></a>
+        <a class="scr" href="VOL05_INJ03_WO_Confirm.html"><span class="scr-id">INJ-03</span><span class="scr-nm">WO Confirmation</span></a>
+        <a class="scr" href="VOL05_INJ04_Production_Entry.html"><span class="scr-id">INJ-04</span><span class="scr-nm">Production Entry</span></a>
+        <a class="scr" href="VOL05_INJ05_Defect.html"><span class="scr-id">INJ-05</span><span class="scr-nm">Defect Register</span></a>
+        <a class="scr" href="VOL05_INJ06_Mold_Change.html"><span class="scr-id">INJ-06</span><span class="scr-nm">Mold Change</span></a>
+        <a class="scr" href="VOL05_INJ07_Prod_Status.html"><span class="scr-id">INJ-07</span><span class="scr-nm">Production Status</span></a>
+        <a class="scr" href="VOL05_INJ08_Andon.html"><span class="scr-id">INJ-08</span><span class="scr-nm">Andon Emergency</span></a>
+      </div>
+    </div>
+    <div class="tree-mod" style="--sc:#ea580c">
+      <div class="tm-hdr"><span class="tm-line"></span><span class="tm-id">IMG</span><span class="tm-name">감싸기</span><span class="tm-ko">Wrapping</span><span class="tm-cnt">7 screens</span></div>
+      <div class="tm-scrs">
+        <a class="scr" href="VOL06_IMG01_POP_Login.html"><span class="scr-id">IMG-01</span><span class="scr-nm">POP Login</span></a>
+        <a class="scr" href="VOL06_IMG02_POP_Dashboard.html"><span class="scr-id">IMG-02</span><span class="scr-nm">POP Dashboard</span></a>
+        <a class="scr" href="VOL06_IMG03_Production_Entry.html"><span class="scr-id">IMG-03</span><span class="scr-nm">Production Entry</span></a>
+        <a class="scr" href="VOL06_IMG04_Fabric_Input.html"><span class="scr-id">IMG-04</span><span class="scr-nm">Fabric Input</span></a>
+        <a class="scr" href="VOL06_IMG05_Defect.html"><span class="scr-id">IMG-05</span><span class="scr-nm">Defect Register</span></a>
+        <a class="scr" href="VOL06_IMG06_Bond_Setup.html"><span class="scr-id">IMG-06</span><span class="scr-nm">Bond Setup</span></a>
+        <a class="scr" href="VOL06_IMG07_Prod_Status.html"><span class="scr-id">IMG-07</span><span class="scr-nm">Production Status</span></a>
+      </div>
+    </div>
+    <div class="tree-mod" style="--sc:#ea580c">
+      <div class="tm-hdr"><span class="tm-line"></span><span class="tm-id">PNT</span><span class="tm-name">도장</span><span class="tm-ko">Painting</span><span class="tm-cnt">9 screens</span></div>
+      <div class="tm-scrs">
+        <a class="scr" href="VOL07_PNT01_Daily_Plan.html"><span class="scr-id">PNT-01</span><span class="scr-nm">Daily Plan</span></a>
+        <a class="scr" href="VOL07_PNT02_Lot_PreIssue.html"><span class="scr-id">PNT-02</span><span class="scr-nm">LOT Pre-Issue</span></a>
+        <a class="scr" href="VOL07_PNT03_Loading.html"><span class="scr-id">PNT-03</span><span class="scr-nm">Loading (R1)</span></a>
+        <a class="scr" href="VOL07_PNT04_Line_Board.html"><span class="scr-id">PNT-04</span><span class="scr-nm">Line Board</span></a>
+        <a class="scr" href="VOL07_PNT05_Oven_Monitor.html"><span class="scr-id">PNT-05</span><span class="scr-nm">Oven Monitor (R2)</span></a>
+        <a class="scr" href="VOL07_PNT06_Unloading.html"><span class="scr-id">PNT-06</span><span class="scr-nm">Unloading (R3)</span></a>
+        <a class="scr" href="VOL07_PNT07_Label_Apply.html"><span class="scr-id">PNT-07</span><span class="scr-nm">Label Apply</span></a>
+        <a class="scr" href="VOL07_PNT08_Defect.html"><span class="scr-id">PNT-08</span><span class="scr-nm">Defect Register</span></a>
+        <a class="scr" href="VOL07_PNT09_Shift_Report.html"><span class="scr-id">PNT-09</span><span class="scr-nm">Shift Report</span></a>
+      </div>
+    </div>
+    <div class="tree-mod" style="--sc:#ea580c">
+      <div class="tm-hdr"><span class="tm-line"></span><span class="tm-id">QC</span><span class="tm-name">품질</span><span class="tm-ko">Quality Control</span><span class="tm-cnt">9 screens</span></div>
+      <div class="tm-scrs">
+        <a class="scr" href="VOL08_QC01_Incoming_Inspection.html"><span class="scr-id">QC-01</span><span class="scr-nm">Incoming Insp.</span></a>
+        <a class="scr" href="VOL08_QC02_InProcess_Inspection.html"><span class="scr-id">QC-02</span><span class="scr-nm">In-Process Insp.</span></a>
+        <a class="scr" href="VOL08_QC03_Final_Inspection.html"><span class="scr-id">QC-03</span><span class="scr-nm">Final Inspection</span></a>
+        <a class="scr" href="VOL08_QC04_NCR_Register.html"><span class="scr-id">QC-04</span><span class="scr-nm">NCR Register</span></a>
+        <a class="scr" href="VOL08_QC05_Hold_Quarantine.html"><span class="scr-id">QC-05</span><span class="scr-nm">Hold / Quarantine</span></a>
+        <a class="scr" href="VOL08_QC06_CAPA.html"><span class="scr-id">QC-06</span><span class="scr-nm">CAPA Management</span></a>
+        <a class="scr" href="VOL08_QC07_Dashboard.html"><span class="scr-id">QC-07</span><span class="scr-nm">QC Dashboard</span></a>
+        <a class="scr" href="VOL08_QC08_Inspection_Std.html"><span class="scr-id">QC-08</span><span class="scr-nm">Inspection Standard</span></a>
+        <a class="scr" href="VOL08_QC_TRC_Traceability.html"><span class="scr-id">QC-TRC</span><span class="scr-nm">Traceability</span></a>
+      </div>
+    </div>
+  </div>
+
+  <div class="tree">
+    <div class="tree-sys" style="--sc:#0891b2">
+      <span class="ts-ico">📱</span><span class="ts-no">SYSTEM 3</span>
+      <span class="ts-name">Logistics PDA</span><span class="ts-ko">물류 핸드헬드 스캐너</span>
+      <span class="ts-dev">PDA 핸드헬드 · 2 modules · 18 screens</span>
+    </div>
+    <div class="tree-mod" style="--sc:#0891b2">
+      <div class="tm-hdr"><span class="tm-line"></span><span class="tm-id">WH</span><span class="tm-name">창고관리</span><span class="tm-ko">Warehouse</span><span class="tm-cnt">8 screens</span></div>
+      <div class="tm-scrs">
+        <a class="scr" href="VOL03_WH01_Inbound_Schedule.html"><span class="scr-id">WH-01</span><span class="scr-nm">Inbound Schedule</span></a>
+        <a class="scr" href="VOL03_WH02_PDA_Inbound.html"><span class="scr-id">WH-02</span><span class="scr-nm">PDA Inbound</span></a>
+        <a class="scr" href="VOL03_WH03_Inventory_Status.html"><span class="scr-id">WH-03</span><span class="scr-nm">Inventory Status</span></a>
+        <a class="scr" href="VOL03_WH04_Location_Map.html"><span class="scr-id">WH-04</span><span class="scr-nm">Location Map</span></a>
+        <a class="scr" href="VOL03_WH05_Inventory_Adjust.html"><span class="scr-id">WH-05</span><span class="scr-nm">Inventory Adjust</span></a>
+        <a class="scr" href="VOL03_WH06_Release_Schedule.html"><span class="scr-id">WH-06</span><span class="scr-nm">Release Schedule</span></a>
+        <a class="scr" href="VOL03_WH07_PDA_Release.html"><span class="scr-id">WH-07</span><span class="scr-nm">PDA Release</span></a>
+        <a class="scr" href="VOL03_WH08_Transaction_History.html"><span class="scr-id">WH-08</span><span class="scr-nm">Transaction History</span></a>
+      </div>
+    </div>
+    <div class="tree-mod" style="--sc:#0891b2">
+      <div class="tm-hdr"><span class="tm-line"></span><span class="tm-id">FG</span><span class="tm-name">완제품 출고</span><span class="tm-ko">Finished Goods</span><span class="tm-cnt">10 screens</span></div>
+      <div class="tm-scrs">
+        <a class="scr" href="VOL09_FG01_PDA_Stocking.html"><span class="scr-id">FG-01</span><span class="scr-nm">PDA Stocking</span></a>
+        <a class="scr" href="VOL09_FG02_Inventory.html"><span class="scr-id">FG-02</span><span class="scr-nm">FG Inventory</span></a>
+        <a class="scr" href="VOL09_FG03_Shipment_Order.html"><span class="scr-id">FG-03</span><span class="scr-nm">Shipment Order</span></a>
+        <a class="scr" href="VOL09_FG04_PDA_FIFO_Picking.html"><span class="scr-id">FG-04</span><span class="scr-nm">PDA FIFO Picking</span></a>
+        <a class="scr" href="VOL09_FG05_Loading.html"><span class="scr-id">FG-05</span><span class="scr-nm">Loading Confirm</span></a>
+        <a class="scr" href="VOL09_FG06_Delivery_Note.html"><span class="scr-id">FG-06</span><span class="scr-nm">Delivery Note</span></a>
+        <a class="scr" href="VOL09_FG07_Day_End_Close.html"><span class="scr-id">FG-07</span><span class="scr-nm">Day-End Close</span></a>
+        <a class="scr" href="VOL09_FG08_Shipment_History.html"><span class="scr-id">FG-08</span><span class="scr-nm">Shipment History</span></a>
+        <a class="scr" href="VOL09_FG09_Dashboard.html"><span class="scr-id">FG-09</span><span class="scr-nm">FG Dashboard</span></a>
+        <a class="scr" href="VOL09_FG_RTN_Return.html"><span class="scr-id">FG-RTN</span><span class="scr-nm">Customer Return</span></a>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-t">Screen Inventory &amp; Device Mapping &nbsp;화면 인벤토리 · 디바이스 매핑</div>
+  <table class="inv">
+    <thead><tr><th style="width:130px;">System</th><th style="width:80px;">Module</th><th style="width:64px;">Screens</th><th style="width:160px;">Primary Device</th><th>Device Notes · 디바이스 비고</th></tr></thead>
+    <tbody>
+      <tr><td rowspan="5"><span class="sysbadge" style="background:#2563eb;">SYS 1 · OFFICE WEB</span></td><td class="mono">PP</td><td class="mono">13</td><td>🖥️ Web PC</td><td>PP-ODM 가동·비가동 모니터는 현황판 겸용 · <b>PP-DTL</b>은 현장 POP 터치 입력</td></tr>
+      <tr><td class="mono">MNT</td><td class="mono">9</td><td>🖥️ Web PC</td><td>MNT-01 설비카드·MNT-02 고장등록·MNT-06 비가동로그는 현장 POP에서도 호출</td></tr>
+      <tr><td class="mono">RPT</td><td class="mono">10</td><td>🖥️ Web PC</td><td>전 화면 Web · RPT-07 월간 KPI는 대형 현황판 표출 가능</td></tr>
+      <tr><td class="mono">SYS</td><td class="mono">8</td><td>🖥️ Web PC</td><td>관리자 전용 Web · SYS-08 시스템 헬스는 NOC 현황판 겸용</td></tr>
+      <tr><td class="mono">MD</td><td class="mono">34</td><td>🖥️ Web PC</td><td>기준정보 입력·테이블 설계 (허브 5 + 엔티티 29) · 마스터 관리자 Web</td></tr>
+      <tr><td rowspan="4"><span class="sysbadge" style="background:#ea580c;">SYS 2 · SHOP-FLOOR POP</span></td><td class="mono">INJ</td><td class="mono">8</td><td>📟 POP 15" 터치</td><td>라인 고정 단말 · INJ-01 POP 로그인으로 진입</td></tr>
+      <tr><td class="mono">IMG</td><td class="mono">7</td><td>📟 POP 15" 터치</td><td>라인 고정 단말 · IMG-01 POP 로그인으로 진입</td></tr>
+      <tr><td class="mono">PNT</td><td class="mono">9</td><td>📟 POP 터치</td><td>PNT-04 라인보드·PNT-05 오븐 모니터는 라인 현황판 표출</td></tr>
+      <tr><td class="mono">QC</td><td class="mono">9</td><td>📟 POP 터치</td><td>QC-07 대시보드는 Web 겸용 · QC-TRC 추적성은 Web 조회</td></tr>
+      <tr><td rowspan="2"><span class="sysbadge" style="background:#0891b2;">SYS 3 · LOGISTICS PDA</span></td><td class="mono">WH</td><td class="mono">8</td><td>📱 PDA 핸드헬드</td><td>WH-02 입고·WH-07 출고는 PDA 스캔 · WH-01/03/04/08은 Web 조회·관리 겸용</td></tr>
+      <tr><td class="mono">FG</td><td class="mono">10</td><td>📱 PDA 핸드헬드</td><td>FG-01 입고·FG-04 FIFO 피킹은 PDA 스캔 · FG-09 대시보드 등은 Web 겸용</td></tr>
+      <tr class="tot"><td>TOTAL · 3 Systems</td><td class="mono">11</td><td class="mono">125</td><td colspan="2">+ Data Model 참조 2 (ERD · DB Schema) = 전체 127 페이지</td></tr>
+    </tbody>
+  </table>
+
+  <div class="sec-t">Demo Navigation Guide &nbsp;데모 네비게이션 가이드</div>
+  <div class="guide">
+    <div class="gd-card" style="--sc:#2563eb">
+      <div class="gd-step">ENTRY 1</div>
+      <div class="gd-t">🖥️ Office Web 데모</div>
+      <div class="gd-d">데스크톱 브라우저로 진입. 계획자 페르소나로 로그인 → PP 생산계획 수립 → MNT 설비·MD 기준정보 → RPT 리포트 흐름을 시연. 풀 사이즈(1920px) 레이아웃.</div>
+      <div class="gd-persona">👤 계획자 · 엔지니어 · 관리자</div>
+    </div>
+    <div class="gd-card" style="--sc:#ea580c">
+      <div class="gd-step">ENTRY 2</div>
+      <div class="gd-t">📟 Shop-Floor POP 데모</div>
+      <div class="gd-d">POP 터치 단말 해상도로 진입. INJ/IMG/PNT POP 로그인 → 작업지시 확인 → 생산·불량 입력 → QC 검사 흐름을 시연. 대형 터치 버튼 UI.</div>
+      <div class="gd-persona">👤 현장 작업자 · 반장 · 검사원</div>
+    </div>
+    <div class="gd-card" style="--sc:#0891b2">
+      <div class="gd-step">ENTRY 3</div>
+      <div class="gd-t">📱 Logistics PDA 데모</div>
+      <div class="gd-d">PDA 세로형 화면으로 진입. WH 입고 스캔 → 재고·로케이션 → FG FIFO 피킹 → 상차·출하 흐름을 시연. 좁은 폭 모바일 UI.</div>
+      <div class="gd-persona">👤 창고·출하 담당 · 지게차 기사</div>
+    </div>
+  </div>
+  <div class="note"><span>📐</span><div><b>다음 단계</b> — 본 구조설계 확정 후: ① 3개 시스템별 데모 셸(상단바·좌측 메뉴트리·라우팅) 구현 → ② 디바이스별 반응형 프레임(Web 1920 / POP 터치 / PDA 세로) → ③ 각 시스템 메뉴트리에 화면 연결. 현재 화면 링크는 L3 설계서를 가리키며, 데모 화면 구현 시 실제 인터랙티브 화면으로 대체된다.</div></div>
+
+  <div class="foot">
+    <span>A-MES · DEMO SITE · Structure Design v1.0 · 3 Systems / 11 Modules / 125 Screens</span>
+    <span>Bilingual EN/KO · Office Web · Shop-Floor POP · Logistics PDA</span>
+  </div>
+
+</div>
+</body>
+</html>
