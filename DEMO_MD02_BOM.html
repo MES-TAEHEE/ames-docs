@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>MD-02 BOM · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--pp:#d97706;--pp-dk:#b45309;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+.scr-head{background:linear-gradient(135deg,#2b1a02,#3d2606);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
+.sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fbbf24;line-height:.9;}
+.sh-tt{flex:1;}
+.sh-en{font-size:16px;font-weight:800;color:#fff;}
+.sh-ko{font-size:11px;color:rgba(255,255,255,.5);}
+.sh-tag{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:rgba(251,191,36,.16);color:#fcd34d;border:1px solid rgba(251,191,36,.3);}
+.sh-live{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:#d97706;color:#fff;display:flex;align-items:center;gap:5px;}
+.sh-live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.toolbar{background:#fff;border-bottom:1px solid var(--bd);padding:9px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
+.fld{display:flex;flex-direction:column;gap:2px;}
+.fld label{font-size:8px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;}
+select,input{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink);}
+.btn{padding:6px 13px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-p{background:var(--pp);color:#fff;}.btn-p:hover{background:var(--pp-dk);}
+.btn-s{background:#f6f8fa;color:var(--ink);border-color:var(--bd);}.btn-s:hover{background:#eef1f5;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+.body{flex:1;overflow-y:auto;padding:16px 24px 40px;}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px;}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:12px 14px;border-left:3px solid var(--c);}
+.kpi .kv{font-size:24px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;color:var(--c);}
+.kpi .kl{font-size:10px;color:var(--sub);margin-top:4px;}
+.grid2{display:grid;grid-template-columns:300px 1fr;gap:14px;}
+.card{background:#fff;border:1px solid var(--bd);border-radius:8px;overflow:hidden;}
+.card-t{font-size:12px;font-weight:800;color:var(--pp);padding:11px 14px;border-bottom:1px solid var(--bd);background:#fffbeb;display:flex;align-items:center;gap:6px;}
+.pi{padding:10px 14px;border-bottom:1px solid #eef1f5;cursor:pointer;}
+.pi:hover{background:#fffbeb;}
+.pi.on{background:#fef3c7;border-left:3px solid var(--pp);}
+.pi .pi-nm{font-size:12px;font-weight:800;}
+.pi .pi-cd{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sub);}
+.pi .pi-cnt{font-size:9px;color:var(--sub);margin-top:2px;}
+table{width:100%;border-collapse:collapse;font-size:11.5px;}
+thead th{background:#f0f3f7;padding:9px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--bd);white-space:nowrap;}
+thead th.c{text-align:center;}
+tbody td{padding:9px 9px;border-bottom:1px solid #eef1f5;}
+tbody tr:hover td{background:#fffbeb;}
+tfoot td{padding:9px 9px;background:#fffbeb;font-weight:800;border-top:2px solid var(--pp);}
+.mono{font-family:'JetBrains Mono',monospace;font-size:10px;}
+.lv{display:inline-block;font-size:9px;font-weight:700;padding:1px 7px;border-radius:6px;background:#eef1f5;color:#4b5563;}
+.tg{display:inline-block;font-size:9px;font-weight:700;padding:2px 8px;border-radius:9px;}
+.t1{background:#dbeafe;color:#1e40af;}.t2{background:#fef3c7;color:#92400e;}.t3{background:#ede9fe;color:#5b21b6;}
+.del{color:#dc2626;cursor:pointer;font-weight:700;}
+.bom-head{padding:12px 16px;border-bottom:1px solid #eef1f5;display:flex;align-items:center;gap:12px;}
+.bom-nm{font-size:14px;font-weight:800;}
+.bom-cd{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--sub);}
+.empty{padding:40px;text-align:center;color:#9ca3af;}
+.ov{position:fixed;inset:0;background:rgba(40,25,2,.55);display:none;align-items:center;justify-content:center;z-index:100;}
+.ov.on{display:flex;}
+.modal{background:#fff;border-radius:10px;width:410px;max-width:94vw;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.4);}
+.modal-h{background:linear-gradient(135deg,#2b1a02,#3d2606);color:#fff;padding:13px 18px;display:flex;align-items:center;gap:10px;}
+.modal-h .mt{font-size:14px;font-weight:800;flex:1;}
+.modal-h .mx{cursor:pointer;font-size:18px;color:rgba(255,255,255,.6);}
+.modal-b{padding:18px;}
+.ff{margin-bottom:11px;}
+.ff label{display:block;font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:4px;}
+.ff label .req{color:#dc2626;}
+.ff select,.ff input{width:100%;}
+.ff2{display:flex;gap:9px;}.ff2>div{flex:1;}
+.modal-f{padding:12px 18px;background:#f6f8fa;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#fff;border-radius:8px;padding:11px 15px;box-shadow:0 8px 26px rgba(0,0,0,.22);border-left:4px solid var(--pp);font-size:12px;min-width:240px;max-width:380px;animation:ti .25s ease;}
+.toast.err{border-left-color:#dc2626;}.toast.info{border-left-color:#2563eb;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:var(--sub);font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="scr-head">
+  <div class="sh-id">MD-02</div>
+  <div class="sh-tt"><div class="sh-en">Bill of Materials</div><div class="sh-ko">BOM — 제품별 자재 구성 명세</div></div>
+  <span class="sh-tag">/md/bom</span>
+  <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
+</div>
+<div class="toolbar">
+  <div class="fld"><label>검색 Search</label>
+    <input id="fKw" placeholder="제품명·코드" oninput="renderParents()" style="width:170px;"></div>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <button class="btn btn-p" onclick="openAdd()">＋ 구성품 추가</button>
+    <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
+  </div>
+</div>
+<div class="body">
+  <div class="kpis">
+    <div class="kpi" style="--c:#d97706"><div class="kv" id="kProd">0</div><div class="kl">BOM 등록 제품 · Products</div></div>
+    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kComp">0</div><div class="kl">총 구성품 · Components</div></div>
+    <div class="kpi" style="--c:#8b5cf6"><div class="kv" id="kAvg">0</div><div class="kl">제품당 평균 부품 수</div></div>
+    <div class="kpi" style="--c:#16a34a"><div class="kv" id="kCost">0</div><div class="kl">선택 제품 자재비 · 원</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-t">🏷 제품 목록</div>
+      <div id="parents"></div>
+    </div>
+    <div class="card" id="bomCard"><div class="empty">← 좌측에서 제품을 선택하세요.</div></div>
+  </div>
+</div>
+
+<div class="ov" id="ovAdd">
+  <div class="modal">
+    <div class="modal-h"><span class="mt">BOM 구성품 추가</span><span class="mx" onclick="closeOv('ovAdd')">✕</span></div>
+    <div class="modal-b">
+      <div id="addInfo" style="margin-bottom:12px;font-size:12px;"></div>
+      <div class="ff"><label>구성품 <span class="req">*</span></label>
+        <select id="aChild"></select></div>
+      <div class="ff2">
+        <div class="ff"><label>소요량 <span class="req">*</span></label><input type="number" id="aQty" value="1" min="0.01" step="0.01"></div>
+        <div class="ff"><label>단위</label>
+          <select id="aUom"><option>EA</option><option>SET</option><option>KG</option><option>M</option><option>L</option></select></div>
+      </div>
+      <div class="ff2">
+        <div class="ff"><label>로스율 (%)</label><input type="number" id="aLoss" value="2" min="0" step="0.5"></div>
+        <div class="ff"><label>레벨</label>
+          <select id="aLevel"><option>1</option><option>2</option><option>3</option></select></div>
+      </div>
+    </div>
+    <div class="modal-f">
+      <button class="btn btn-s" onclick="closeOv('ovAdd')">취소</button>
+      <button class="btn btn-p" onclick="addComp()">＋ 추가</button>
+    </div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+var COMPS=[
+ {code:'SF-TRIM-CORE',nm:'도어트림 코어',type:2},{code:'RM-PP-BLK',nm:'PP 수지 (블랙)',type:2},
+ {code:'RM-ABS-NAT',nm:'ABS 수지',type:2},{code:'RM-PNT-BC',nm:'베이스코트 도료',type:3},
+ {code:'AM-BOLT-M8',nm:'볼트 M8×20',type:3},{code:'AM-CLIP-01',nm:'고정 클립',type:3},
+ {code:'AM-FELT-01',nm:'흡음 펠트',type:3},{code:'RM-CHROME',nm:'크롬 도금재',type:3}
+];
+var PRICE={'SF-TRIM-CORE':4200,'RM-PP-BLK':2400,'RM-ABS-NAT':3100,'RM-PNT-BC':12000,
+ 'AM-BOLT-M8':50,'AM-CLIP-01':120,'AM-FELT-01':800,'RM-CHROME':5400};
+var BOM=[
+ {code:'TRIM-LH-001',nm:'도어트림 LH',items:[
+   {child:'SF-TRIM-CORE',qty:1,uom:'EA',loss:1,lv:1},
+   {child:'RM-PNT-BC',qty:0.12,uom:'L',loss:3,lv:2},
+   {child:'AM-CLIP-01',qty:8,uom:'EA',loss:2,lv:2},
+   {child:'AM-FELT-01',qty:1,uom:'EA',loss:1,lv:2}]},
+ {code:'TRIM-RH-001',nm:'도어트림 RH',items:[
+   {child:'SF-TRIM-CORE',qty:1,uom:'EA',loss:1,lv:1},
+   {child:'RM-PNT-BC',qty:0.12,uom:'L',loss:3,lv:2},
+   {child:'AM-CLIP-01',qty:8,uom:'EA',loss:2,lv:2}]},
+ {code:'CONS-UP-001',nm:'콘솔어퍼',items:[
+   {child:'RM-ABS-NAT',qty:0.85,uom:'KG',loss:3,lv:1},
+   {child:'RM-PNT-BC',qty:0.08,uom:'L',loss:3,lv:2},
+   {child:'AM-BOLT-M8',qty:4,uom:'EA',loss:2,lv:2}]},
+ {code:'GRILLE-02',nm:'라디에이터 그릴',items:[
+   {child:'RM-ABS-NAT',qty:0.6,uom:'KG',loss:3,lv:1},
+   {child:'RM-CHROME',qty:0.2,uom:'KG',loss:5,lv:2},
+   {child:'AM-CLIP-01',qty:6,uom:'EA',loss:2,lv:2}]},
+ {code:'BUMPER-01',nm:'프론트 범퍼',items:[
+   {child:'RM-PP-BLK',qty:2.4,uom:'KG',loss:3,lv:1},
+   {child:'RM-PNT-BC',qty:0.18,uom:'L',loss:4,lv:2},
+   {child:'AM-BOLT-M8',qty:6,uom:'EA',loss:2,lv:2}]}
+];
+var selCode=null;
+function compNm(c){var x=COMPS.filter(function(o){return o.code===c;})[0];return x?x.nm:c;}
+function compType(c){var x=COMPS.filter(function(o){return o.code===c;})[0];return x?x.type:3;}
+function byCode(c){return BOM.filter(function(b){return b.code===c;})[0];}
+function bomCost(b){return b.items.reduce(function(s,i){return s+(PRICE[i.child]||0)*i.qty*(1+i.loss/100);},0);}
+function apply(){
+  document.getElementById('kProd').textContent=BOM.length;
+  var tc=BOM.reduce(function(s,b){return s+b.items.length;},0);
+  document.getElementById('kComp').textContent=tc;
+  document.getElementById('kAvg').textContent=(Math.round(tc/BOM.length*10)/10);
+  renderParents();
+}
+function renderParents(){
+  var kw=document.getElementById('fKw').value.trim().toLowerCase();
+  var v=BOM.filter(function(b){return !kw||b.nm.toLowerCase().indexOf(kw)<0===false||b.code.toLowerCase().indexOf(kw)>=0;});
+  document.getElementById('parents').innerHTML=v.map(function(b){
+    return '<div class="pi'+(selCode===b.code?' on':'')+'" onclick="pick(\''+b.code+'\')">'+
+      '<div class="pi-nm">'+b.nm+'</div><div class="pi-cd">'+b.code+'</div>'+
+      '<div class="pi-cnt">구성품 '+b.items.length+'종 · 자재비 '+Math.round(bomCost(b)).toLocaleString()+'원</div></div>';
+  }).join('')||'<div class="empty">검색 결과 없음</div>';
+}
+function pick(c){selCode=c;renderParents();renderBom();}
+function renderBom(){
+  var b=byCode(selCode);
+  if(!b){document.getElementById('bomCard').innerHTML='<div class="empty">← 좌측에서 제품을 선택하세요.</div>';return;}
+  document.getElementById('kCost').textContent=Math.round(bomCost(b)).toLocaleString();
+  var h='<div class="card-t">🧬 BOM 구성 — '+b.nm+'</div>'+
+    '<div class="bom-head"><div><div class="bom-nm">'+b.nm+'</div><div class="bom-cd">'+b.code+'</div></div></div>'+
+    '<table><thead><tr><th>Lv</th><th>구성품 코드</th><th>구성품명</th>'+
+    '<th class="c">소요량</th><th class="c">로스</th><th class="c">단가</th><th class="c">소요금액</th><th></th></tr></thead><tbody>';
+  b.items.forEach(function(it,i){
+    var amt=(PRICE[it.child]||0)*it.qty*(1+it.loss/100);
+    h+='<tr><td><span class="lv">L'+it.lv+'</span></td>'+
+      '<td class="mono" style="font-weight:700;">'+it.child+'</td>'+
+      '<td>'+compNm(it.child)+' <span class="tg t'+compType(it.child)+'">'+(compType(it.child)===1?'완제품':compType(it.child)===2?'반제품/원자재':'부자재')+'</span></td>'+
+      '<td class="c mono" style="text-align:center;">'+it.qty+' '+it.uom+'</td>'+
+      '<td class="c mono" style="text-align:center;">'+it.loss+'%</td>'+
+      '<td class="c mono" style="text-align:center;">'+(PRICE[it.child]||0).toLocaleString()+'</td>'+
+      '<td class="c mono" style="text-align:center;font-weight:700;">'+Math.round(amt).toLocaleString()+'</td>'+
+      '<td><span class="del" onclick="delComp('+i+')">✕</span></td></tr>';
+  });
+  h+='</tbody><tfoot><tr><td colspan="6">총 자재비 (Roll-up)</td>'+
+    '<td style="text-align:center;">'+Math.round(bomCost(b)).toLocaleString()+'</td><td></td></tr></tfoot></table>';
+  document.getElementById('bomCard').innerHTML=h;
+}
+function openAdd(){
+  if(!selCode){toast('info','제품 선택 필요','먼저 좌측에서 제품을 선택하세요.');return;}
+  var b=byCode(selCode);
+  document.getElementById('addInfo').innerHTML='대상 제품: <b>'+b.nm+'</b> ('+b.code+')';
+  document.getElementById('aChild').innerHTML=COMPS.map(function(c){
+    return '<option value="'+c.code+'">'+c.code+' · '+c.nm+'</option>';}).join('');
+  document.getElementById('aQty').value=1;document.getElementById('aLoss').value=2;
+  openOv('ovAdd');
+}
+function addComp(){
+  var b=byCode(selCode);
+  var child=document.getElementById('aChild').value;
+  var qty=parseFloat(document.getElementById('aQty').value);
+  if(isNaN(qty)||qty<=0){toast('err','입력 오류','소요량을 확인하세요.');return;}
+  if(b.items.some(function(i){return i.child===child;})){toast('err','중복','이미 등록된 구성품입니다.');return;}
+  b.items.push({child:child,qty:qty,uom:document.getElementById('aUom').value,
+    loss:parseFloat(document.getElementById('aLoss').value)||0,lv:parseInt(document.getElementById('aLevel').value,10)});
+  closeOv('ovAdd');apply();renderBom();
+  toast('','구성품 추가',compNm(child)+' 부품이 BOM에 추가되었습니다.');
+}
+function delComp(i){
+  var b=byCode(selCode);var nm=compNm(b.items[i].child);
+  b.items.splice(i,1);apply();renderBom();
+  toast('info','구성품 삭제',nm+' 부품이 BOM에서 제거되었습니다.');
+}
+function exportCsv(){
+  var csv='Product,ProductName,Level,Component,ComponentName,Qty,UOM,Loss%,UnitPrice,Amount\n';
+  BOM.forEach(function(b){
+    b.items.forEach(function(it){
+      var amt=(PRICE[it.child]||0)*it.qty*(1+it.loss/100);
+      csv+=[b.code,b.nm,'L'+it.lv,it.child,compNm(it.child),it.qty,it.uom,it.loss,PRICE[it.child]||0,Math.round(amt)].join(',')+'\n';
+    });
+  });
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='MD_BOM_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  toast('','Export 완료','전체 BOM 명세를 CSV로 내보냈습니다.');
+}
+function resetAll(){document.getElementById('fKw').value='';renderParents();
+  toast('info','초기화','검색 조건을 초기화했습니다.');}
+function openOv(id){document.getElementById(id).classList.add('on');}
+function closeOv(id){document.getElementById(id).classList.remove('on');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='info'?'ℹ ':'✅ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},4000);
+}
+apply();
+</script>
+</body>
+</html>
