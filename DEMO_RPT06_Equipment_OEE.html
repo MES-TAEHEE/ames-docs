@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>RPT-06 Equipment OEE Report · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+.scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
+.sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
+.sh-tt{flex:1;}
+.sh-en{font-size:16px;font-weight:800;color:#fff;}
+.sh-ko{font-size:11px;color:rgba(255,255,255,.5);}
+.sh-tag{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+.sh-live{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.sh-live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.toolbar{background:#fff;border-bottom:1px solid var(--bd);padding:9px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
+.fld{display:flex;flex-direction:column;gap:2px;}
+.fld label{font-size:8px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;}
+select{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink);}
+.btn{padding:6px 13px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-p{background:var(--pp);color:#fff;}.btn-p:hover{background:var(--pp-dk);}
+.btn-s{background:#f6f8fa;color:var(--ink);border-color:var(--bd);}.btn-s:hover{background:#eef1f5;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+.body{flex:1;overflow-y:auto;padding:16px 24px 40px;}
+.rpt-title{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;}
+.rpt-title h2{font-size:16px;font-weight:900;}
+.rpt-title .sub{font-size:10px;color:var(--sub);font-family:'JetBrains Mono',monospace;}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:16px;}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:12px 14px;border-left:3px solid var(--c);}
+.kpi .kv{font-size:23px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;color:var(--c);}
+.kpi .kl{font-size:10px;color:var(--sub);margin-top:4px;}
+.kpi .kd{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.grid2{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;margin-bottom:14px;}
+.card{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:14px 16px;}
+.card-t{font-size:12px;font-weight:800;color:var(--pp);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.trend{display:flex;align-items:flex-end;gap:10px;height:160px;border-bottom:2px solid var(--bd);padding:0 4px;position:relative;}
+.tgt{position:absolute;left:4px;right:4px;border-top:1px dashed #dc2626;}
+.tgt-l{position:absolute;right:4px;font-size:8px;color:#dc2626;background:#fff;padding:0 3px;font-family:'JetBrains Mono',monospace;}
+.tbar{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
+.tbar .bb{width:62%;border-radius:3px 3px 0 0;transition:opacity .12s;}
+.tbar:hover .bb{opacity:.8;}
+.tbar .tv{font-size:8px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--sub);}
+.tbar .tl{font-size:8px;color:var(--sub);}
+.callout{display:flex;flex-direction:column;gap:10px;}
+.co{border-radius:8px;padding:11px 13px;border:1px solid;}
+.co.best{background:#f0fdf4;border-color:#a7f3d0;}
+.co.worst{background:#fef2f2;border-color:#fecaca;}
+.co .ct{font-size:10px;font-weight:800;}
+.co .cn{font-size:13px;font-weight:800;margin:3px 0;}
+.co .cv{font-size:22px;font-weight:900;font-family:'JetBrains Mono',monospace;}
+.co .cs{font-size:9px;color:var(--sub);}
+.panel{background:#fff;border:1px solid var(--bd);border-radius:8px;overflow:hidden;}
+.panel-h{padding:9px 14px;background:#f0fdf4;border-bottom:1px solid var(--bd);font-size:11px;font-weight:800;color:var(--pp);}
+table{width:100%;border-collapse:collapse;font-size:11.5px;}
+thead th{background:#f0f3f7;padding:9px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--bd);white-space:nowrap;}
+thead th.c{text-align:center;}
+tbody td{padding:9px 9px;border-bottom:1px solid #eef1f5;}
+tbody tr:hover td{background:#f0fdf4;}
+tfoot td{padding:9px 9px;background:#f0fdf4;font-weight:800;border-top:2px solid var(--pp);}
+.mono{font-family:'JetBrains Mono',monospace;}
+.apq{display:inline-flex;align-items:center;gap:5px;}
+.apq .at{width:46px;height:7px;background:#eef1f5;border-radius:4px;overflow:hidden;}
+.apq .at i{display:block;height:100%;}
+.oee-pill{font-size:11px;font-weight:900;font-family:'JetBrains Mono',monospace;padding:3px 9px;border-radius:10px;}
+.delta{font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.up{color:#059669;}.dn{color:#dc2626;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#fff;border-radius:8px;padding:11px 15px;box-shadow:0 8px 26px rgba(0,0,0,.22);border-left:4px solid var(--pp);font-size:12px;min-width:240px;max-width:380px;animation:ti .25s ease;}
+.toast.info{border-left-color:#2563eb;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:var(--sub);font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="scr-head">
+  <div class="sh-id">RPT-06</div>
+  <div class="sh-tt"><div class="sh-en">Equipment OEE Report</div><div class="sh-ko">설비 OEE 리포트 — 월간 종합효율 집계 보고서</div></div>
+  <span class="sh-tag">/rpt/oee</span>
+  <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
+</div>
+<div class="toolbar">
+  <div class="fld"><label>대상 월 Month</label>
+    <select id="fMonth" onchange="apply()"><option>2026년 5월</option><option>2026년 4월</option><option>2026년 3월</option></select></div>
+  <div class="fld"><label>라인 Line</label>
+    <select id="fLine" onchange="apply()"><option value="">전체 All</option><option>SAV-INJ-01</option><option>SAV-INJ-02</option><option>SAV-ASSY-01</option><option>SAV-PNT-01</option></select></div>
+  <button class="btn btn-p btn-sm" onclick="apply()">🔍 적용</button>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <button class="btn btn-s" onclick="printRpt()">🖨 인쇄</button>
+    <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
+  </div>
+</div>
+<div class="body">
+  <div class="rpt-title"><h2>설비 OEE 리포트</h2><span class="sub" id="rSub">2026년 5월 · 전체 라인</span></div>
+  <div class="kpis">
+    <div class="kpi" style="--c:#059669"><div class="kv" id="kOee">0%</div><div class="kl">전사 종합 OEE <span class="kd" id="kOeeD"></span></div></div>
+    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kA">0%</div><div class="kl">가용성 Availability</div></div>
+    <div class="kpi" style="--c:#8b5cf6"><div class="kv" id="kP">0%</div><div class="kl">성능 Performance</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kQ">0%</div><div class="kl">품질 Quality</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kBest">-</div><div class="kl">최우수 라인 · Best</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-t">📈 월별 전사 OEE 추이 <span style="margin-left:auto;font-size:9px;color:#9ca3af;font-weight:400;">막대 클릭=상세</span></div>
+      <div class="trend" id="trend"></div>
+      <div style="text-align:center;font-size:9px;color:#9ca3af;margin-top:8px;">최근 6개월 · 빨간 점선=목표 85%</div>
+    </div>
+    <div class="card">
+      <div class="card-t">🏆 최우수 / 개선필요 라인</div>
+      <div class="callout" id="callout"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-h">🏭 라인별 OEE 상세 (대상 월)</div>
+    <table>
+      <thead><tr>
+        <th>라인</th>
+        <th class="c" style="width:120px;">가용성 A</th>
+        <th class="c" style="width:120px;">성능 P</th>
+        <th class="c" style="width:120px;">품질 Q</th>
+        <th class="c">OEE</th><th class="c">전월 대비</th><th class="c">등급</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+      <tfoot id="tfoot"></tfoot>
+    </table>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+var MON=['25-12','26-01','26-02','26-03','26-04','26-05'];
+/* line: monthly A/P/Q for 6 months */
+function gen(a0,av,p0,pv,q0){
+  return MON.map(function(_,i){
+    var j=(i-2.5)/3;
+    return {a:a0+j*av+(i%2?0.8:-0.6),p:p0+j*pv,q:q0+(i%3?0.2:-0.3)};});}
+var LINES=[
+ {id:'SAV-INJ-01',nm:'사출 1호기',m:gen(90,3,93,2,99.0)},
+ {id:'SAV-INJ-02',nm:'사출 2호기',m:gen(80,-4,87,-2,97.6)},
+ {id:'SAV-ASSY-01',nm:'조립 1라인',m:gen(93,2,91,1,99.4)},
+ {id:'SAV-PNT-01',nm:'도장 1라인',m:gen(86,-1,89,1,98.1)}
+];
+function monIdx(){var s=document.getElementById('fMonth').value;
+  return s.indexOf('5월')>=0?5:(s.indexOf('4월')>=0?4:3);}
+function oee(mm){return mm.a*mm.p*mm.q/10000;}
+function r1(n){return Math.round(n*10)/10;}
+function grade(o){return o>=85?{t:'World Class',c:'#059669'}:o>=65?{t:'양호',c:'#d97706'}:{t:'개선 필요',c:'#dc2626'};}
+function avg(a){return a.reduce(function(x,y){return x+y;},0)/a.length;}
+function visLines(){var f=document.getElementById('fLine').value;return LINES.filter(function(L){return !f||L.id===f;});}
+function apply(){
+  var mi=monIdx(),v=visLines();
+  var a=avg(v.map(function(L){return L.m[mi].a;}));
+  var p=avg(v.map(function(L){return L.m[mi].p;}));
+  var q=avg(v.map(function(L){return L.m[mi].q;}));
+  var o=avg(v.map(function(L){return oee(L.m[mi]);}));
+  var oPrev=avg(v.map(function(L){return oee(L.m[mi-1]);}));
+  document.getElementById('kOee').textContent=r1(o)+'%';
+  document.getElementById('kOee').style.color=grade(o).c;
+  var d=r1(o-oPrev);
+  var kd=document.getElementById('kOeeD');
+  kd.textContent=(d>=0?'▲ +':'▼ ')+d+'%p';kd.className='kd '+(d>=0?'up':'dn');
+  document.getElementById('kA').textContent=r1(a)+'%';
+  document.getElementById('kP').textContent=r1(p)+'%';
+  document.getElementById('kQ').textContent=r1(q)+'%';
+  var ranked=v.map(function(L){return{L:L,o:oee(L.m[mi])};}).sort(function(x,y){return y.o-x.o;});
+  document.getElementById('kBest').textContent=ranked.length?ranked[0].L.id.replace('SAV-',''):'-';
+  document.getElementById('kBest').style.fontSize='15px';
+  document.getElementById('rSub').textContent=document.getElementById('fMonth').value+' · '+
+    (document.getElementById('fLine').value||'전체 라인');
+  renderTrend(v,mi);renderCallout(ranked);renderTable(v,mi);
+}
+function renderTrend(v,mi){
+  var h='<div class="tgt" style="bottom:'+(85/100*130)+'px;"></div><span class="tgt-l" style="bottom:'+(85/100*130)+'px;">85%</span>';
+  MON.forEach(function(m,i){
+    var o=r1(avg(v.map(function(L){return oee(L.m[i]);})));
+    var col=i===mi?(o>=85?'linear-gradient(180deg,#34d399,#059669)':'linear-gradient(180deg,#fbbf24,#d97706)')
+      :'#cbd5e1';
+    h+='<div class="tbar" onclick="barInfo('+i+','+o+')" title="20'+m+' OEE '+o+'%">'+
+      '<div class="tv">'+o+'</div>'+
+      '<div class="bb" style="height:'+(o/100*130)+'px;background:'+col+';"></div>'+
+      '<div class="tl">'+m+'</div></div>';
+  });
+  document.getElementById('trend').innerHTML=h;
+}
+function barInfo(i,o){
+  toast('info','20'+MON[i]+' 전사 OEE','OEE '+o+'% · '+(o>=85?'목표 달성 ✓':'목표(85%) 미달'));
+}
+function renderCallout(ranked){
+  if(!ranked.length){document.getElementById('callout').innerHTML='';return;}
+  var best=ranked[0],worst=ranked[ranked.length-1];
+  document.getElementById('callout').innerHTML=
+    '<div class="co best"><div class="ct" style="color:#059669;">🏆 최우수 라인</div>'+
+      '<div class="cn">'+best.L.id+' '+best.L.nm+'</div>'+
+      '<div class="cv" style="color:#059669;">'+r1(best.o)+'%</div>'+
+      '<div class="cs">'+grade(best.o).t+' 등급 — 목표 대비 우수</div></div>'+
+    '<div class="co worst"><div class="ct" style="color:#dc2626;">⚠ 개선 필요 라인</div>'+
+      '<div class="cn">'+worst.L.id+' '+worst.L.nm+'</div>'+
+      '<div class="cv" style="color:#dc2626;">'+r1(worst.o)+'%</div>'+
+      '<div class="cs">'+grade(worst.o).t+' — 비가동·성능 손실 분석 권장</div></div>';
+}
+function apqCell(v,col){
+  return '<td class="c" style="text-align:center;"><span class="apq"><span class="at"><i style="width:'+v+'%;background:'+col+'"></i></span>'+
+    '<b style="font-family:JetBrains Mono,monospace;">'+r1(v)+'%</b></span></td>';
+}
+function renderTable(v,mi){
+  var h='',tA=0,tP=0,tQ=0,tO=0;
+  v.forEach(function(L){
+    var mm=L.m[mi],o=oee(mm),oPrev=oee(L.m[mi-1]),d=r1(o-oPrev),g=grade(o);
+    tA+=mm.a;tP+=mm.p;tQ+=mm.q;tO+=o;
+    h+='<tr><td><b class="mono">'+L.id+'</b><div style="font-size:9px;color:#656d76;">'+L.nm+'</div></td>'+
+      apqCell(mm.a,'#2563eb')+apqCell(mm.p,'#8b5cf6')+apqCell(mm.q,'#0891b2')+
+      '<td class="c" style="text-align:center;"><span class="oee-pill" style="background:'+g.c+'22;color:'+g.c+';">'+r1(o)+'%</span></td>'+
+      '<td class="c" style="text-align:center;"><span class="delta '+(d>=0?'up':'dn')+'">'+(d>=0?'▲+':'▼')+d+'</span></td>'+
+      '<td class="c" style="text-align:center;font-size:10px;font-weight:700;color:'+g.c+'">'+g.t+'</td></tr>';
+  });
+  document.getElementById('tbody').innerHTML=h;
+  var n=v.length||1;
+  document.getElementById('tfoot').innerHTML='<tr><td>전사 평균</td>'+
+    '<td style="text-align:center;">'+r1(tA/n)+'%</td>'+
+    '<td style="text-align:center;">'+r1(tP/n)+'%</td>'+
+    '<td style="text-align:center;">'+r1(tQ/n)+'%</td>'+
+    '<td style="text-align:center;">'+r1(tO/n)+'%</td><td colspan="2"></td></tr>';
+}
+function exportCsv(){
+  var mi=monIdx(),v=visLines();
+  var csv='Line,Name,Availability%,Performance%,Quality%,OEE%,vsPrevMonth\n';
+  v.forEach(function(L){var mm=L.m[mi],o=oee(mm),d=r1(o-oee(L.m[mi-1]));
+    csv+=[L.id,L.nm,r1(mm.a),r1(mm.p),r1(mm.q),r1(o),(d>=0?'+':'')+d].join(',')+'\n';});
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='RPT_EquipmentOEE_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  toast('','Export 완료','설비 OEE 리포트를 CSV로 내보냈습니다.');
+}
+function printRpt(){toast('info','인쇄 미리보기','설비 OEE 리포트 인쇄를 준비합니다. (데모)');}
+function resetAll(){
+  document.getElementById('fMonth').selectedIndex=0;document.getElementById('fLine').value='';
+  apply();toast('info','초기화','리포트 조건을 초기화했습니다.');
+}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='info'?'ℹ ':'✅ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},4000);
+}
+apply();
+</script>
+</body>
+</html>
