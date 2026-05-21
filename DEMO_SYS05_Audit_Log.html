@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SYS-05 Audit Log · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+.scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
+.sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
+.sh-tt{flex:1;}
+.sh-en{font-size:16px;font-weight:800;color:#fff;}
+.sh-ko{font-size:11px;color:rgba(255,255,255,.5);}
+.sh-tag{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+.sh-live{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.sh-live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.toolbar{background:#fff;border-bottom:1px solid var(--bd);padding:9px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
+.fld{display:flex;flex-direction:column;gap:2px;}
+.fld label{font-size:8px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;}
+select,input{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink);}
+.btn{padding:6px 13px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-p{background:var(--pp);color:#fff;}.btn-p:hover{background:var(--pp-dk);}
+.btn-s{background:#f6f8fa;color:var(--ink);border-color:var(--bd);}.btn-s:hover{background:#eef1f5;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+.body{flex:1;overflow-y:auto;padding:16px 24px 40px;}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:16px;}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:12px 14px;border-left:3px solid var(--c);}
+.kpi .kv{font-size:23px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;color:var(--c);}
+.kpi .kl{font-size:10px;color:var(--sub);margin-top:4px;}
+.panel{background:#fff;border:1px solid var(--bd);border-radius:8px;overflow:hidden;}
+.panel-h{padding:9px 14px;background:#f0fdf4;border-bottom:1px solid var(--bd);font-size:11px;font-weight:800;color:var(--pp);}
+table{width:100%;border-collapse:collapse;font-size:11.5px;}
+thead th{background:#f0f3f7;padding:9px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--bd);white-space:nowrap;}
+tbody td{padding:8px 9px;border-bottom:1px solid #eef1f5;vertical-align:middle;}
+tbody tr{cursor:pointer;}
+tbody tr:hover td{background:#f0fdf4;}
+.mono{font-family:'JetBrains Mono',monospace;font-size:10px;}
+.act{display:inline-block;font-size:9px;font-weight:700;padding:2px 8px;border-radius:9px;}
+.a-login{background:#dbeafe;color:#1e40af;}.a-logout{background:#f3f4f6;color:#4b5563;}
+.a-create{background:#d1fae5;color:#065f46;}.a-update{background:#fef3c7;color:#92400e;}
+.a-delete{background:#fee2e2;color:#991b1b;}.a-approve{background:#ede9fe;color:#5b21b6;}
+.a-perm{background:#fce7f3;color:#9d174d;}.a-config{background:#cffafe;color:#155e75;}
+.a-export{background:#e0e7ff;color:#3730a3;}
+.sec{font-size:8px;font-weight:700;padding:1px 6px;border-radius:6px;background:#fef2f2;color:#dc2626;margin-left:4px;}
+.rs-ok{color:#10b981;font-weight:700;}.rs-fail{color:#dc2626;font-weight:700;}
+.empty{padding:30px;text-align:center;color:#9ca3af;}
+.ov{position:fixed;inset:0;background:rgba(3,20,14,.55);display:none;align-items:center;justify-content:center;z-index:100;}
+.ov.on{display:flex;}
+.modal{background:#fff;border-radius:10px;width:440px;max-width:94vw;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.4);}
+.modal-h{background:linear-gradient(135deg,#03251a,#052e1f);color:#fff;padding:13px 18px;display:flex;align-items:center;gap:10px;}
+.modal-h .mt{font-size:14px;font-weight:800;flex:1;}
+.modal-h .mx{cursor:pointer;font-size:18px;color:rgba(255,255,255,.6);}
+.modal-b{padding:18px;}
+.drow{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed #eef1f5;font-size:12px;gap:14px;}
+.drow .dk{color:var(--sub);white-space:nowrap;}
+.drow .dv{font-weight:700;text-align:right;word-break:break-all;}
+.modal-f{padding:12px 18px;background:#f6f8fa;border-top:1px solid var(--bd);display:flex;justify-content:flex-end;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#fff;border-radius:8px;padding:11px 15px;box-shadow:0 8px 26px rgba(0,0,0,.22);border-left:4px solid var(--pp);font-size:12px;min-width:240px;max-width:380px;animation:ti .25s ease;}
+.toast.info{border-left-color:#2563eb;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:var(--sub);font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="scr-head">
+  <div class="sh-id">SYS-05</div>
+  <div class="sh-tt"><div class="sh-en">Audit Log</div><div class="sh-ko">감사 로그 — 사용자 활동 추적·보안 감사</div></div>
+  <span class="sh-tag">/sys/audit</span>
+  <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
+</div>
+<div class="toolbar">
+  <div class="fld"><label>기간 Period</label>
+    <select id="fPeriod" onchange="render()"><option>최근 7일</option><option>금일</option><option>당월</option></select></div>
+  <div class="fld"><label>사용자 User</label>
+    <select id="fUser" onchange="render()"><option value="">전체 All</option></select></div>
+  <div class="fld"><label>액션 Action</label>
+    <select id="fAct" onchange="render()"><option value="">전체</option>
+      <option value="login">로그인</option><option value="logout">로그아웃</option>
+      <option value="create">등록</option><option value="update">수정</option><option value="delete">삭제</option>
+      <option value="approve">승인</option><option value="perm">권한변경</option>
+      <option value="config">설정변경</option><option value="export">내보내기</option></select></div>
+  <div class="fld"><label>검색 Search</label>
+    <input id="fKw" placeholder="대상·모듈" oninput="render()" style="width:130px;"></div>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div style="margin-left:auto;"><button class="btn btn-s" onclick="exportCsv()">📥 Export</button></div>
+</div>
+<div class="body">
+  <div class="kpis">
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">총 감사 로그 · Events</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kToday">0</div><div class="kl">금일 로그 · Today</div></div>
+    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kLogin">0</div><div class="kl">로그인 · Sign-in</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kChg">0</div><div class="kl">데이터 변경 · CRUD</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kSec">0</div><div class="kl">보안 이벤트 · 권한·실패</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-h">🔍 감사 로그 — <span id="sub" style="font-weight:400;color:#656d76;">0건</span></div>
+    <table>
+      <thead><tr>
+        <th>발생 일시</th><th>사용자</th><th>액션</th><th>모듈</th><th>대상</th><th>IP 주소</th><th>결과</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="empty" style="display:none;">조건에 맞는 감사 로그가 없습니다.</div>
+  </div>
+</div>
+
+<!-- detail modal -->
+<div class="ov" id="ovDt">
+  <div class="modal">
+    <div class="modal-h"><span class="mt">감사 로그 상세</span><span class="mx" onclick="closeOv('ovDt')">✕</span></div>
+    <div class="modal-b" id="dtBody"></div>
+    <div class="modal-f"><button class="btn btn-p" onclick="closeOv('ovDt')">확인</button></div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+var ACT={
+ login:{ko:'로그인',cls:'a-login'},logout:{ko:'로그아웃',cls:'a-logout'},
+ create:{ko:'등록',cls:'a-create'},update:{ko:'수정',cls:'a-update'},delete:{ko:'삭제',cls:'a-delete'},
+ approve:{ko:'승인',cls:'a-approve'},perm:{ko:'권한변경',cls:'a-perm'},
+ config:{ko:'설정변경',cls:'a-config'},export:{ko:'내보내기',cls:'a-export'}
+};
+var LOG=[
+ {dt:'2026-05-21 09:02:14',user:'admin',act:'login',mod:'시스템',tgt:'관리자 콘솔',ip:'10.20.1.5',ok:true,detail:'2단계 인증 성공'},
+ {dt:'2026-05-21 08:48:30',user:'kim.sh',act:'login',mod:'시스템',tgt:'A-MES 포털',ip:'10.20.3.12',ok:true,detail:'정상 로그인'},
+ {dt:'2026-05-21 08:50:11',user:'kim.sh',act:'approve',mod:'PP 생산계획',tgt:'WO-2605-132 작업지시',ip:'10.20.3.12',ok:true,detail:'작업지시 발행 승인'},
+ {dt:'2026-05-21 08:55:42',user:'han.jw',act:'create',mod:'QC 품질',tgt:'검사 성적서 QC-0521-03',ip:'10.20.4.8',ok:true,detail:'신규 검사 결과 등록'},
+ {dt:'2026-05-21 09:05:20',user:'admin',act:'perm',mod:'SYS 시스템',tgt:'역할: 품질관리자',ip:'10.20.1.5',ok:true,detail:'QC 모듈 삭제 권한 부여'},
+ {dt:'2026-05-21 09:10:33',user:'lee.jm',act:'update',mod:'PP 생산계획',tgt:'생산계획 PLN-2605-08',ip:'10.20.3.15',ok:true,detail:'계획 수량 480→520 변경'},
+ {dt:'2026-05-21 09:15:00',user:'unknown',act:'login',mod:'시스템',tgt:'A-MES 포털',ip:'203.0.113.44',ok:false,detail:'비밀번호 5회 오류 — 계정 잠금'},
+ {dt:'2026-05-21 09:20:18',user:'seo.mj',act:'update',mod:'QC 품질',tgt:'불량 코드 DEF-012',ip:'10.20.4.10',ok:true,detail:'불량 분류 수정'},
+ {dt:'2026-05-21 09:28:55',user:'choi.wj',act:'delete',mod:'MNT 설비',tgt:'정비 WO-2605-019',ip:'10.20.5.3',ok:true,detail:'중복 작업지시 삭제'},
+ {dt:'2026-05-21 09:35:12',user:'han.jw',act:'export',mod:'RPT 리포트',tgt:'불량 파레토 리포트',ip:'10.20.4.8',ok:true,detail:'XLSX 다운로드'},
+ {dt:'2026-05-21 09:40:40',user:'admin',act:'config',mod:'SYS 시스템',tgt:'알림 설정 — 임계치',ip:'10.20.1.5',ok:true,detail:'OEE 경고 임계치 80→82 변경'},
+ {dt:'2026-05-20 17:50:09',user:'oh.sh',act:'create',mod:'WH 창고',tgt:'출하 SH-2605-212',ip:'10.20.6.7',ok:true,detail:'신규 출하 등록'},
+ {dt:'2026-05-20 18:02:31',user:'lee.jm',act:'logout',mod:'시스템',tgt:'A-MES 포털',ip:'10.20.3.15',ok:true,detail:'정상 로그아웃'},
+ {dt:'2026-05-20 16:20:44',user:'kim.sh',act:'update',mod:'PP 생산계획',tgt:'작업지시 WO-2605-120',ip:'10.20.3.12',ok:true,detail:'작업 상태 변경'},
+ {dt:'2026-05-20 14:11:08',user:'admin',act:'perm',mod:'SYS 시스템',tgt:'사용자: choi.wj',ip:'10.20.1.5',ok:true,detail:'계정 잠금 해제'},
+ {dt:'2026-05-19 11:30:22',user:'han.jw',act:'approve',mod:'QC 품질',tgt:'특채 신청 SR-0519-02',ip:'10.20.4.8',ok:true,detail:'품질 특채 승인'},
+ {dt:'2026-05-19 10:05:55',user:'park.jn',act:'login',mod:'시스템',tgt:'A-MES 포털',ip:'10.20.3.20',ok:false,detail:'비밀번호 오류 (1회)'},
+ {dt:'2026-05-19 09:40:13',user:'seo.mj',act:'delete',mod:'QC 품질',tgt:'검사 결과 QC-0518-11',ip:'10.20.4.10',ok:true,detail:'오입력 데이터 삭제'},
+ {dt:'2026-05-18 15:22:30',user:'admin',act:'config',mod:'SYS 시스템',tgt:'인터페이스 IF04 설정',ip:'10.20.1.5',ok:true,detail:'바코드 연동 재시도 횟수 변경'},
+ {dt:'2026-05-18 08:45:00',user:'kim.sh',act:'export',mod:'RPT 리포트',tgt:'일일 생산 리포트',ip:'10.20.3.12',ok:true,detail:'PDF 다운로드'}
+];
+function isSec(e){return e.act==='perm'||!e.ok;}
+function initUsers(){
+  var us=[];LOG.forEach(function(e){if(us.indexOf(e.user)<0)us.push(e.user);});
+  document.getElementById('fUser').innerHTML='<option value="">전체 All</option>'+
+    us.map(function(u){return '<option>'+u+'</option>';}).join('');
+}
+function vis(){
+  var fu=document.getElementById('fUser').value,fa=document.getElementById('fAct').value;
+  var kw=document.getElementById('fKw').value.trim().toLowerCase();
+  return LOG.filter(function(e){
+    if(fu&&e.user!==fu)return false;
+    if(fa&&e.act!==fa)return false;
+    if(kw&&e.tgt.toLowerCase().indexOf(kw)<0&&e.mod.toLowerCase().indexOf(kw)<0)return false;
+    return true;});
+}
+function render(){
+  document.getElementById('kTot').textContent=LOG.length;
+  document.getElementById('kToday').textContent=LOG.filter(function(e){return e.dt.indexOf('2026-05-21')===0;}).length;
+  document.getElementById('kLogin').textContent=LOG.filter(function(e){return e.act==='login';}).length;
+  document.getElementById('kChg').textContent=LOG.filter(function(e){return ['create','update','delete'].indexOf(e.act)>=0;}).length;
+  document.getElementById('kSec').textContent=LOG.filter(isSec).length;
+  var v=vis(),h='';
+  v.forEach(function(e,i){
+    var gi=LOG.indexOf(e);
+    h+='<tr onclick="detail('+gi+')"><td class="mono">'+e.dt.slice(5)+'</td>'+
+      '<td><b>'+e.user+'</b></td>'+
+      '<td><span class="act '+ACT[e.act].cls+'">'+ACT[e.act].ko+'</span>'+(e.act==='perm'?'<span class="sec">보안</span>':'')+'</td>'+
+      '<td>'+e.mod+'</td>'+
+      '<td style="max-width:230px;">'+e.tgt+'</td>'+
+      '<td class="mono">'+e.ip+'</td>'+
+      '<td>'+(e.ok?'<span class="rs-ok">✓ 성공</span>':'<span class="rs-fail">⛔ 실패</span>')+'</td></tr>';
+  });
+  document.getElementById('tbody').innerHTML=h;
+  document.getElementById('empty').style.display=v.length?'none':'block';
+  document.getElementById('sub').textContent=v.length+'건';
+}
+function detail(i){
+  var e=LOG[i];
+  var rows=[
+    ['발생 일시',e.dt],['사용자 계정',e.user],
+    ['액션','<span class="act '+ACT[e.act].cls+'">'+ACT[e.act].ko+'</span>'],
+    ['대상 모듈',e.mod],['대상 객체',e.tgt],['IP 주소',e.ip],
+    ['결과',e.ok?'<span class="rs-ok">성공</span>':'<span class="rs-fail">실패</span>'],
+    ['상세 내역',e.detail],['보안 이벤트',isSec(e)?'<span style="color:#dc2626;font-weight:800;">예 — 검토 필요</span>':'아니오']
+  ];
+  document.getElementById('dtBody').innerHTML=rows.map(function(r){
+    return '<div class="drow"><span class="dk">'+r[0]+'</span><span class="dv" style="max-width:280px;">'+r[1]+'</span></div>';}).join('');
+  openOv('ovDt');
+}
+function exportCsv(){
+  var v=vis();
+  var csv='DateTime,User,Action,Module,Target,IP,Result,Detail\n';
+  v.forEach(function(e){
+    csv+=[e.dt,e.user,ACT[e.act].ko,e.mod,'"'+e.tgt+'"',e.ip,e.ok?'성공':'실패','"'+e.detail+'"'].join(',')+'\n';});
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='SYS_AuditLog_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  toast('','Export 완료','감사 로그 '+v.length+'건을 CSV로 내보냈습니다.');
+}
+function resetAll(){
+  document.getElementById('fUser').value='';document.getElementById('fAct').value='';
+  document.getElementById('fKw').value='';document.getElementById('fPeriod').selectedIndex=0;
+  render();toast('info','초기화','감사 로그 필터를 초기화했습니다.');
+}
+function openOv(id){document.getElementById(id).classList.add('on');}
+function closeOv(id){document.getElementById(id).classList.remove('on');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='info'?'ℹ ':'✅ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},4000);
+}
+initUsers();render();
+</script>
+</body>
+</html>
