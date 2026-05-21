@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>RPT-03 Daily Shipment · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+.scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
+.sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
+.sh-tt{flex:1;}
+.sh-en{font-size:16px;font-weight:800;color:#fff;}
+.sh-ko{font-size:11px;color:rgba(255,255,255,.5);}
+.sh-tag{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+.sh-live{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.sh-live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.toolbar{background:#fff;border-bottom:1px solid var(--bd);padding:9px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
+.fld{display:flex;flex-direction:column;gap:2px;}
+.fld label{font-size:8px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;}
+select{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink);}
+.btn{padding:6px 13px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-p{background:var(--pp);color:#fff;}.btn-p:hover{background:var(--pp-dk);}
+.btn-s{background:#f6f8fa;color:var(--ink);border-color:var(--bd);}.btn-s:hover{background:#eef1f5;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+.body{flex:1;overflow-y:auto;padding:16px 24px 40px;}
+.rpt-title{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;}
+.rpt-title h2{font-size:16px;font-weight:900;}
+.rpt-title .sub{font-size:10px;color:var(--sub);font-family:'JetBrains Mono',monospace;}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:16px;}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:12px 14px;border-left:3px solid var(--c);}
+.kpi .kv{font-size:22px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;color:var(--c);}
+.kpi .kl{font-size:10px;color:var(--sub);margin-top:4px;}
+.kpi .kt{font-size:8px;color:#9ca3af;font-family:'JetBrains Mono',monospace;}
+.grid2{display:grid;grid-template-columns:1fr 1.1fr;gap:14px;margin-bottom:14px;}
+.card{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:14px 16px;}
+.card-t{font-size:12px;font-weight:800;color:var(--pp);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.cust{margin-bottom:12px;}
+.cust .ch{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;}
+.cust .ch b{font-family:'JetBrains Mono',monospace;}
+.cust .ct{height:18px;background:#eef1f5;border-radius:5px;overflow:hidden;display:flex;}
+.cust .ct i{display:block;height:100%;}
+.cust .cl{display:flex;gap:12px;font-size:8.5px;color:var(--sub);margin-top:3px;}
+.cust .cl span{display:flex;align-items:center;gap:3px;}
+.cust .cl i{width:8px;height:8px;border-radius:2px;}
+.rounds{display:flex;gap:10px;}
+.rd{flex:1;border:1px solid var(--bd);border-radius:7px;padding:10px;text-align:center;}
+.rd .rn{font-size:10px;font-weight:800;color:var(--sub);}
+.rd .rv{font-size:20px;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--pp);margin:3px 0;}
+.rd .rd-d{font-size:8px;color:var(--sub);}
+.panel{background:#fff;border:1px solid var(--bd);border-radius:8px;overflow:hidden;}
+.panel-h{padding:9px 14px;background:#f0fdf4;border-bottom:1px solid var(--bd);font-size:11px;font-weight:800;color:var(--pp);}
+table{width:100%;border-collapse:collapse;font-size:11.5px;}
+thead th{background:#f0f3f7;padding:9px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--bd);white-space:nowrap;}
+thead th.c{text-align:center;}
+tbody td{padding:8px 9px;border-bottom:1px solid #eef1f5;}
+tbody tr:hover td{background:#f0fdf4;}
+tfoot td{padding:9px 9px;background:#f0fdf4;font-weight:800;border-top:2px solid var(--pp);}
+.mono{font-family:'JetBrains Mono',monospace;}
+.st{display:inline-block;font-size:9px;font-weight:700;padding:2px 8px;border-radius:9px;}
+.st-on{background:#d1fae5;color:#065f46;}.st-late{background:#fee2e2;color:#991b1b;}
+.st-rdy{background:#fef3c7;color:#92400e;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#fff;border-radius:8px;padding:11px 15px;box-shadow:0 8px 26px rgba(0,0,0,.22);border-left:4px solid var(--pp);font-size:12px;min-width:240px;max-width:380px;animation:ti .25s ease;}
+.toast.info{border-left-color:#2563eb;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:var(--sub);font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="scr-head">
+  <div class="sh-id">RPT-03</div>
+  <div class="sh-tt"><div class="sh-en">Daily Shipment Report</div><div class="sh-ko">일일 출하 리포트 — 거래선·차수별 출하 실적</div></div>
+  <span class="sh-tag">/rpt/daily-ship</span>
+  <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
+</div>
+<div class="toolbar">
+  <div class="fld"><label>일자 Date</label>
+    <select id="fDate" onchange="apply()"><option>2026-05-20 (수)</option><option>2026-05-19 (화)</option></select></div>
+  <div class="fld"><label>거래선 Customer</label>
+    <select id="fCust" onchange="apply()"><option value="">전체 All</option><option>SAV</option><option>GEO</option></select></div>
+  <div class="fld"><label>차수 Round</label>
+    <select id="fRound" onchange="apply()"><option value="">전체</option><option>1차</option><option>2차</option><option>3차</option></select></div>
+  <button class="btn btn-p btn-sm" onclick="apply()">🔍 적용</button>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <button class="btn btn-s" onclick="printRpt()">🖨 인쇄</button>
+    <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
+  </div>
+</div>
+<div class="body">
+  <div class="rpt-title"><h2>일일 출하 리포트</h2><span class="sub" id="rSub">2026-05-20 · 전체 거래선</span></div>
+  <div class="kpis">
+    <div class="kpi" style="--c:#059669"><div class="kv" id="kQty">0</div><div class="kl">총 출하량 · Shipped Qty</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kCnt">0</div><div class="kl">출하 건수 · Shipments</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kOnt">0%</div><div class="kl">정시 출하율 · On-Time</div><div class="kt">target ≥ 98%</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kLate">0</div><div class="kl">지연 출하 · Late</div></div>
+    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kAmt">0</div><div class="kl">출하 금액 · 백만원</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-t">🏢 거래선별 출하 실적</div>
+      <div id="custDist"></div>
+    </div>
+    <div class="card">
+      <div class="card-t">🚚 차수별 출하 요약</div>
+      <div class="rounds" id="rounds"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-h">📋 출하 상세 내역 — <span id="sub" style="font-weight:400;color:#656d76;">0건</span></div>
+    <table>
+      <thead><tr>
+        <th>출하 번호</th><th>거래선</th><th>차수</th><th>품목</th>
+        <th class="c">수량</th><th class="c">출하 시각</th><th>차량</th><th class="c">상태</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+      <tfoot id="tfoot"></tfoot>
+    </table>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+var SHIP=[
+ {no:'SH-2605-201',cust:'SAV',round:'1차',item:'도어트림 LH',qty:240,time:'07:30',plan:'07:30',car:'45가1234',amt:7.2},
+ {no:'SH-2605-202',cust:'GEO',round:'1차',item:'콘솔어퍼',qty:180,time:'08:05',plan:'08:00',car:'88나5678',amt:9.0},
+ {no:'SH-2605-203',cust:'SAV',round:'1차',item:'사이드 몰딩 5',qty:320,time:'08:40',plan:'08:30',car:'45가1234',amt:6.4},
+ {no:'SH-2605-204',cust:'GEO',round:'2차',item:'라디에이터 그릴',qty:150,time:'11:20',plan:'11:00',car:'12다9012',amt:8.3},
+ {no:'SH-2605-205',cust:'SAV',round:'2차',item:'도어트림 RH',qty:260,time:'11:50',plan:'12:00',car:'45가1234',amt:7.8},
+ {no:'SH-2605-206',cust:'SAV',round:'2차',item:'프론트 범퍼',qty:120,time:'12:30',plan:'12:30',car:'77라3456',amt:9.6},
+ {no:'SH-2605-207',cust:'GEO',round:'2차',item:'콘솔어퍼',qty:170,time:'13:10',plan:'13:00',car:'88나5678',amt:8.5},
+ {no:'SH-2605-208',cust:'SAV',round:'3차',item:'사이드 몰딩 5',qty:300,time:'15:40',plan:'15:30',car:'77라3456',amt:6.0},
+ {no:'SH-2605-209',cust:'GEO',round:'3차',item:'라디에이터 그릴',qty:140,time:'16:15',plan:'16:00',car:'12다9012',amt:7.7},
+ {no:'SH-2605-210',cust:'SAV',round:'3차',item:'도어트림 LH',qty:220,time:'16:50',plan:'16:30',car:'45가1234',amt:6.6},
+ {no:'SH-2605-211',cust:'GEO',round:'3차',item:'프론트 범퍼',qty:110,time:'17:30',plan:'17:30',car:'77라3456',amt:8.8},
+ {no:'SH-2605-212',cust:'SAV',round:'3차',item:'콘솔 조립',qty:90,time:'-',plan:'18:00',car:'대기',amt:5.4}
+];
+function late(s){
+  if(s.time==='-')return null;
+  var a=s.time.split(':'),b=s.plan.split(':');
+  return (+a[0]*60+ +a[1])>(+b[0]*60+ +b[1]);
+}
+function vis(){
+  var fc=document.getElementById('fCust').value,fr=document.getElementById('fRound').value;
+  return SHIP.filter(function(s){return (!fc||s.cust===fc)&&(!fr||s.round===fr);});
+}
+function apply(){
+  var v=vis();
+  var shipped=v.filter(function(s){return s.time!=='-';});
+  var qty=shipped.reduce(function(s,x){return s+x.qty;},0);
+  var amt=shipped.reduce(function(s,x){return s+x.amt;},0);
+  var lateN=shipped.filter(function(s){return late(s);}).length;
+  var ont=shipped.length?Math.round((shipped.length-lateN)/shipped.length*1000)/10:0;
+  document.getElementById('kQty').textContent=qty.toLocaleString();
+  document.getElementById('kCnt').textContent=v.length;
+  document.getElementById('kOnt').textContent=ont+'%';
+  document.getElementById('kOnt').style.color=ont>=98?'#10b981':'#f59e0b';
+  document.getElementById('kLate').textContent=lateN;
+  document.getElementById('kAmt').textContent=(Math.round(amt*10)/10);
+  document.getElementById('rSub').textContent=document.getElementById('fDate').value.slice(0,10)+
+    ' · '+(document.getElementById('fCust').value||'전체 거래선')+
+    (document.getElementById('fRound').value?' · '+document.getElementById('fRound').value:'');
+  renderCust();renderRounds();renderTable(v,qty,amt);
+}
+function renderCust(){
+  var v=vis();
+  var custs=['SAV','GEO'];
+  var h='';
+  custs.forEach(function(c){
+    var rows=v.filter(function(s){return s.cust===c;});
+    var shipped=rows.filter(function(s){return s.time!=='-';});
+    var onN=shipped.filter(function(s){return !late(s);}).length;
+    var lateN=shipped.length-onN;
+    var pend=rows.length-shipped.length;
+    var qty=shipped.reduce(function(s,x){return s+x.qty;},0);
+    var tot=rows.length||1;
+    h+='<div class="cust"><div class="ch"><span>'+(c==='SAV'?'SAV (서산)':'GEO (경주)')+'</span>'+
+      '<b>'+qty.toLocaleString()+' EA · '+rows.length+'건</b></div>'+
+      '<div class="ct">'+
+        '<i style="width:'+(onN/tot*100)+'%;background:#10b981;"></i>'+
+        '<i style="width:'+(lateN/tot*100)+'%;background:#dc2626;"></i>'+
+        '<i style="width:'+(pend/tot*100)+'%;background:#f59e0b;"></i></div>'+
+      '<div class="cl"><span><i style="background:#10b981"></i>정시 '+onN+'</span>'+
+        '<span><i style="background:#dc2626"></i>지연 '+lateN+'</span>'+
+        '<span><i style="background:#f59e0b"></i>대기 '+pend+'</span></div></div>';
+  });
+  document.getElementById('custDist').innerHTML=h;
+}
+function renderRounds(){
+  var v=vis();
+  var rounds=['1차','2차','3차'];
+  document.getElementById('rounds').innerHTML=rounds.map(function(r){
+    var rows=v.filter(function(s){return s.round===r;});
+    var shipped=rows.filter(function(s){return s.time!=='-';});
+    var qty=shipped.reduce(function(s,x){return s+x.qty;},0);
+    return '<div class="rd"><div class="rn">'+r+'</div>'+
+      '<div class="rv">'+qty.toLocaleString()+'</div>'+
+      '<div class="rd-d">'+shipped.length+'/'+rows.length+'건 출하 · EA</div></div>';
+  }).join('');
+}
+function renderTable(v,qty,amt){
+  var h='';
+  v.forEach(function(s){
+    var l=late(s);
+    var st=s.time==='-'?'<span class="st st-rdy">출하 대기</span>'
+      :(l?'<span class="st st-late">지연</span>':'<span class="st st-on">정시</span>');
+    h+='<tr><td class="mono" style="font-weight:700;">'+s.no+'</td>'+
+      '<td>'+s.cust+'</td><td>'+s.round+'</td><td>'+s.item+'</td>'+
+      '<td class="c mono" style="text-align:center;font-weight:700;">'+s.qty+'</td>'+
+      '<td class="c mono" style="text-align:center;">'+s.time+(s.time!=='-'&&l?' <span style="color:#dc2626;font-size:8px;">(계획 '+s.plan+')</span>':'')+'</td>'+
+      '<td class="mono">'+s.car+'</td>'+
+      '<td class="c" style="text-align:center;">'+st+'</td></tr>';
+  });
+  document.getElementById('tbody').innerHTML=h;
+  document.getElementById('tfoot').innerHTML='<tr><td colspan="4">합계 · TOTAL</td>'+
+    '<td style="text-align:center;">'+qty.toLocaleString()+'</td>'+
+    '<td colspan="2" style="text-align:center;">'+v.filter(function(s){return s.time!=='-';}).length+'건 출하 완료</td>'+
+    '<td style="text-align:center;">'+(Math.round(amt*10)/10)+'백만</td></tr>';
+  document.getElementById('sub').textContent=v.length+'건';
+}
+function exportCsv(){
+  var v=vis();
+  var csv='ShipNo,Customer,Round,Item,Qty,ShipTime,PlanTime,Vehicle,Amount(M),Status\n';
+  v.forEach(function(s){var l=late(s);
+    csv+=[s.no,s.cust,s.round,s.item,s.qty,s.time,s.plan,s.car,s.amt,
+      s.time==='-'?'대기':(l?'지연':'정시')].join(',')+'\n';});
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='RPT_DailyShipment_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  toast('','Export 완료','일일 출하 리포트를 CSV로 내보냈습니다.');
+}
+function printRpt(){toast('info','인쇄 미리보기','일일 출하 리포트 인쇄를 준비합니다. (데모)');}
+function resetAll(){
+  document.getElementById('fCust').value='';document.getElementById('fRound').value='';
+  document.getElementById('fDate').selectedIndex=0;apply();
+  toast('info','초기화','리포트 조건을 초기화했습니다.');
+}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='info'?'ℹ ':'✅ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},4000);
+}
+apply();
+</script>
+</body>
+</html>
