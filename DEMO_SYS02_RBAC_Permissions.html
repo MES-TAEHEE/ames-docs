@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SYS-02 RBAC Permissions · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+.scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
+.sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
+.sh-tt{flex:1;}
+.sh-en{font-size:16px;font-weight:800;color:#fff;}
+.sh-ko{font-size:11px;color:rgba(255,255,255,.5);}
+.sh-tag{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+.sh-live{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.sh-live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.toolbar{background:#fff;border-bottom:1px solid var(--bd);padding:9px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
+.tb-t{font-size:11px;font-weight:700;color:var(--sub);}
+.btn{padding:6px 13px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-p{background:var(--pp);color:#fff;}.btn-p:hover{background:var(--pp-dk);}
+.btn-s{background:#f6f8fa;color:var(--ink);border-color:var(--bd);}.btn-s:hover{background:#eef1f5;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+.body{flex:1;overflow-y:auto;padding:16px 24px 40px;}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px;}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:12px 14px;border-left:3px solid var(--c);}
+.kpi .kv{font-size:24px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;color:var(--c);}
+.kpi .kl{font-size:10px;color:var(--sub);margin-top:4px;}
+.grid2{display:grid;grid-template-columns:270px 1fr;gap:14px;}
+.card{background:#fff;border:1px solid var(--bd);border-radius:8px;overflow:hidden;}
+.card-t{font-size:12px;font-weight:800;color:var(--pp);padding:11px 14px;border-bottom:1px solid var(--bd);background:#f0fdf4;display:flex;align-items:center;gap:6px;}
+.role-i{padding:11px 14px;border-bottom:1px solid #eef1f5;cursor:pointer;display:flex;align-items:center;gap:10px;}
+.role-i:hover{background:#f0fdf4;}
+.role-i.on{background:#ecfdf5;border-left:3px solid var(--pp);}
+.role-i .ri-ic{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;flex-shrink:0;}
+.role-i .ri-nm{font-size:12px;font-weight:800;}
+.role-i .ri-d{font-size:9px;color:var(--sub);}
+.role-i .ri-cnt{margin-left:auto;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--sub);}
+.mtx-wrap{padding:14px;}
+.mtx-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.mtx-head .mh-ic{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;color:#fff;}
+.mtx-head .mh-nm{font-size:14px;font-weight:800;}
+.mtx-head .mh-d{font-size:10px;color:var(--sub);}
+table{width:100%;border-collapse:collapse;font-size:11.5px;}
+thead th{background:#f0f3f7;padding:8px 6px;text-align:center;font-size:10px;font-weight:700;border-bottom:1px solid var(--bd);}
+thead th.modh{text-align:left;padding-left:12px;}
+tbody td{padding:6px;border-bottom:1px solid #eef1f5;text-align:center;}
+tbody td.modn{text-align:left;padding-left:12px;font-weight:700;}
+tbody tr:hover td{background:#f0fdf4;}
+.cellbox{width:22px;height:22px;border:1.5px solid var(--bd);border-radius:5px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#fff;}
+.cellbox.on{background:var(--pp);border-color:var(--pp);}
+.cellbox.lock{background:#fee2e2;border-color:#fca5a5;color:#dc2626;cursor:not-allowed;}
+.rowtog{font-size:9px;color:#2563eb;cursor:pointer;font-weight:700;}
+.coltog{font-size:9px;color:#2563eb;cursor:pointer;font-weight:700;display:block;margin-top:2px;}
+.dirty{display:none;font-size:10px;font-weight:700;color:#d97706;background:#fffbeb;border:1px solid #fde68a;border-radius:5px;padding:3px 9px;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#fff;border-radius:8px;padding:11px 15px;box-shadow:0 8px 26px rgba(0,0,0,.22);border-left:4px solid var(--pp);font-size:12px;min-width:240px;max-width:380px;animation:ti .25s ease;}
+.toast.warn{border-left-color:#f59e0b;}.toast.info{border-left-color:#2563eb;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:var(--sub);font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="scr-head">
+  <div class="sh-id">SYS-02</div>
+  <div class="sh-tt"><div class="sh-en">RBAC Permissions</div><div class="sh-ko">권한 관리 — 역할 기반 접근 권한 매트릭스</div></div>
+  <span class="sh-tag">/sys/rbac</span>
+  <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
+</div>
+<div class="toolbar">
+  <span class="tb-t">🔐 좌측 역할 선택 후 권한 매트릭스의 셀을 클릭하여 권한을 설정하세요</span>
+  <span class="dirty" id="dirty">● 저장되지 않은 변경 사항</span>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
+    <button class="btn btn-p" onclick="save()">💾 권한 저장</button>
+  </div>
+</div>
+<div class="body">
+  <div class="kpis">
+    <div class="kpi" style="--c:#8b5cf6"><div class="kv" id="kRole">0</div><div class="kl">정의된 역할 · Roles</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kMod">0</div><div class="kl">관리 모듈 · Modules</div></div>
+    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kUser">0</div><div class="kl">선택 역할 사용자 · Users</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kGrant">0</div><div class="kl">부여된 권한 · Granted</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-t">👔 역할 목록</div>
+      <div id="roleList"></div>
+    </div>
+    <div class="card">
+      <div class="card-t">🗝 권한 매트릭스</div>
+      <div class="mtx-wrap" id="mtx"></div>
+    </div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+var MODS=[
+ {k:'PP',nm:'PP 생산계획'},{k:'INJ',nm:'INJ 사출/공정'},{k:'QC',nm:'QC 품질관리'},
+ {k:'MNT',nm:'MNT 설비보전'},{k:'WH',nm:'WH 자재/창고'},{k:'RPT',nm:'RPT 리포트'},
+ {k:'SYS',nm:'SYS 시스템관리'}
+];
+var ACTS=['조회','등록','수정','삭제','승인'];
+var ROLES=[
+ {id:'adm',nm:'시스템관리자',d:'전체 권한',ic:'👑',col:'#dc2626',users:1},
+ {id:'pmgr',nm:'생산관리자',d:'생산·리포트 관리',ic:'🏭',col:'#059669',users:3},
+ {id:'qmgr',nm:'품질관리자',d:'품질·검사 관리',ic:'🔬',col:'#8b5cf6',users:2},
+ {id:'emgr',nm:'설비관리자',d:'설비·정비 관리',ic:'⚙️',col:'#f59e0b',users:2},
+ {id:'opr',nm:'작업자',d:'현장 실적 입력',ic:'👷',col:'#2563eb',users:8},
+ {id:'view',nm:'조회전용',d:'데이터 조회만',ic:'👁',col:'#6b7280',users:4}
+];
+/* permission templates per role: PERM[roleId][modKey] = [bool x5] */
+function full(){return [true,true,true,true,true];}
+function ro(){return [true,false,false,false,false];}
+function none(){return [false,false,false,false,false];}
+function rw(){return [true,true,true,false,false];}
+var PERM={
+ adm:{},pmgr:{},qmgr:{},emgr:{},opr:{},view:{}
+};
+MODS.forEach(function(m){
+ PERM.adm[m.k]=full();
+ PERM.view[m.k]=ro();
+ PERM.pmgr[m.k]=(m.k==='PP'||m.k==='RPT')?full():(m.k==='INJ'?rw():ro());
+ PERM.qmgr[m.k]=(m.k==='QC')?full():(m.k==='RPT'?ro():(m.k==='INJ'?rw():ro()));
+ PERM.emgr[m.k]=(m.k==='MNT')?full():(m.k==='RPT'?ro():ro());
+ PERM.opr[m.k]=(m.k==='INJ'||m.k==='QC')?[true,true,false,false,false]:(m.k==='SYS'?none():ro());
+});
+var selRole='pmgr',dirty=false;
+function init(){
+  document.getElementById('kRole').textContent=ROLES.length;
+  document.getElementById('kMod').textContent=MODS.length;
+  renderRoles();renderMtx();
+}
+function renderRoles(){
+  document.getElementById('roleList').innerHTML=ROLES.map(function(r){
+    return '<div class="role-i'+(selRole===r.id?' on':'')+'" onclick="pickRole(\''+r.id+'\')">'+
+      '<div class="ri-ic" style="background:'+r.col+'">'+r.ic+'</div>'+
+      '<div><div class="ri-nm">'+r.nm+'</div><div class="ri-d">'+r.d+'</div></div>'+
+      '<span class="ri-cnt">'+r.users+'명</span></div>';
+  }).join('');
+}
+function pickRole(id){
+  if(dirty&&!confirm('저장되지 않은 변경 사항이 있습니다. 역할을 전환하시겠습니까?'))return;
+  selRole=id;setDirty(false);renderRoles();renderMtx();
+}
+function renderMtx(){
+  var r=ROLES.filter(function(x){return x.id===selRole;})[0];
+  var locked=(selRole==='adm');
+  var h='<div class="mtx-head"><div class="mh-ic" style="background:'+r.col+'">'+r.ic+'</div>'+
+    '<div><div class="mh-nm">'+r.nm+'</div><div class="mh-d">'+r.d+' · '+r.users+'명 적용 중'+
+    (locked?' · 🔒 시스템관리자는 전체 권한 고정':'')+'</div></div></div>';
+  h+='<table><thead><tr><th class="modh">모듈</th>';
+  ACTS.forEach(function(a,ai){
+    h+='<th>'+a+(locked?'':'<span class="coltog" onclick="toggleCol('+ai+')">전체</span>')+'</th>';
+  });
+  h+='</tr></thead><tbody>';
+  MODS.forEach(function(m){
+    h+='<tr><td class="modn">'+m.nm+(locked?'':' <span class="rowtog" onclick="toggleRow(\''+m.k+'\')">[행 전체]</span>')+'</td>';
+    PERM[selRole][m.k].forEach(function(v,ai){
+      if(locked)h+='<td><span class="cellbox lock">✓</span></td>';
+      else h+='<td><span class="cellbox'+(v?' on':'')+'" onclick="toggleP(\''+m.k+'\','+ai+')">'+(v?'✓':'')+'</span></td>';
+    });
+    h+='</tr>';
+  });
+  h+='</tbody></table>';
+  document.getElementById('mtx').innerHTML=h;
+  /* KPI */
+  document.getElementById('kUser').textContent=r.users;
+  var g=0;MODS.forEach(function(m){PERM[selRole][m.k].forEach(function(v){if(v)g++;});});
+  document.getElementById('kGrant').textContent=g+' / '+(MODS.length*ACTS.length);
+}
+function toggleP(modK,ai){
+  PERM[selRole][modK][ai]=!PERM[selRole][modK][ai];
+  setDirty(true);renderMtx();
+}
+function toggleRow(modK){
+  var row=PERM[selRole][modK];
+  var all=row.every(function(v){return v;});
+  for(var i=0;i<row.length;i++)row[i]=!all;
+  setDirty(true);renderMtx();
+}
+function toggleCol(ai){
+  var allOn=MODS.every(function(m){return PERM[selRole][m.k][ai];});
+  MODS.forEach(function(m){PERM[selRole][m.k][ai]=!allOn;});
+  setDirty(true);renderMtx();
+}
+function setDirty(v){dirty=v;document.getElementById('dirty').style.display=v?'inline-block':'none';}
+function save(){
+  if(selRole==='adm'){toast('info','변경 없음','시스템관리자 권한은 고정되어 변경할 수 없습니다.');return;}
+  if(!dirty){toast('info','변경 없음','저장할 변경 사항이 없습니다.');return;}
+  setDirty(false);
+  var r=ROLES.filter(function(x){return x.id===selRole;})[0];
+  toast('','권한 저장 완료','「'+r.nm+'」 역할의 권한 매트릭스가 저장되어 '+r.users+'명에게 적용됩니다.');
+}
+function exportCsv(){
+  var csv='Role,Module,'+ACTS.join(',')+'\n';
+  ROLES.forEach(function(r){
+    MODS.forEach(function(m){
+      csv+=[r.nm,m.nm].concat(PERM[r.id][m.k].map(function(v){return v?'Y':'N';})).join(',')+'\n';
+    });
+  });
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='SYS_RBAC_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  toast('','Export 완료','전체 역할 권한 매트릭스를 CSV로 내보냈습니다.');
+}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='warn'?'⚠ ':type==='info'?'ℹ ':'✅ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},4200);
+}
+init();
+</script>
+</body>
+</html>
