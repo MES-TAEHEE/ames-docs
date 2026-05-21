@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>RPT-05 Inventory Status · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+.scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
+.sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
+.sh-tt{flex:1;}
+.sh-en{font-size:16px;font-weight:800;color:#fff;}
+.sh-ko{font-size:11px;color:rgba(255,255,255,.5);}
+.sh-tag{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+.sh-live{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.sh-live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.toolbar{background:#fff;border-bottom:1px solid var(--bd);padding:9px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
+.fld{display:flex;flex-direction:column;gap:2px;}
+.fld label{font-size:8px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;}
+select{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink);}
+.btn{padding:6px 13px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-p{background:var(--pp);color:#fff;}.btn-p:hover{background:var(--pp-dk);}
+.btn-s{background:#f6f8fa;color:var(--ink);border-color:var(--bd);}.btn-s:hover{background:#eef1f5;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+.body{flex:1;overflow-y:auto;padding:16px 24px 40px;}
+.rpt-title{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;}
+.rpt-title h2{font-size:16px;font-weight:900;}
+.rpt-title .sub{font-size:10px;color:var(--sub);font-family:'JetBrains Mono',monospace;}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:16px;}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:12px 14px;border-left:3px solid var(--c);}
+.kpi .kv{font-size:22px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;color:var(--c);}
+.kpi .kl{font-size:10px;color:var(--sub);margin-top:4px;}
+.kpi .kt{font-size:8px;color:#9ca3af;font-family:'JetBrains Mono',monospace;}
+.grid2{display:grid;grid-template-columns:1.15fr 1fr;gap:14px;margin-bottom:14px;}
+.card{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:14px 16px;}
+.card-t{font-size:12px;font-weight:800;color:var(--pp);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.cat-row{display:flex;align-items:center;gap:8px;padding:7px 0;font-size:11px;}
+.cat-row .cn{width:74px;flex-shrink:0;}
+.cat-row .ct{flex:1;height:15px;background:#eef1f5;border-radius:3px;overflow:hidden;}
+.cat-row .ct i{display:block;height:100%;}
+.cat-row .cv{width:96px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:10px;}
+.wh-c{display:flex;flex-direction:column;gap:9px;}
+.wh{border:1px solid var(--bd);border-radius:7px;padding:9px 11px;display:flex;align-items:center;gap:10px;}
+.wh .wic{width:34px;height:34px;border-radius:8px;background:linear-gradient(160deg,#10b981,#047857);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.wh .wn{flex:1;font-size:11px;font-weight:700;}
+.wh .wn small{display:block;font-weight:400;color:var(--sub);font-size:9px;}
+.wh .wv{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:13px;color:var(--pp);}
+.panel{background:#fff;border:1px solid var(--bd);border-radius:8px;overflow:hidden;}
+.panel-h{padding:9px 14px;background:#f0fdf4;border-bottom:1px solid var(--bd);font-size:11px;font-weight:800;color:var(--pp);}
+table{width:100%;border-collapse:collapse;font-size:11.5px;}
+thead th{background:#f0f3f7;padding:9px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--bd);white-space:nowrap;}
+thead th.c{text-align:center;}
+tbody td{padding:8px 9px;border-bottom:1px solid #eef1f5;}
+tbody tr:hover td{background:#f0fdf4;}
+tfoot td{padding:9px 9px;background:#f0fdf4;font-weight:800;border-top:2px solid var(--pp);}
+.mono{font-family:'JetBrains Mono',monospace;}
+.st{display:inline-block;font-size:9px;font-weight:700;padding:2px 8px;border-radius:9px;}
+.st-ok{background:#d1fae5;color:#065f46;}.st-low{background:#fef3c7;color:#92400e;}
+.st-out{background:#fee2e2;color:#991b1b;}.st-over{background:#e0e7ff;color:#3730a3;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#fff;border-radius:8px;padding:11px 15px;box-shadow:0 8px 26px rgba(0,0,0,.22);border-left:4px solid var(--pp);font-size:12px;min-width:240px;max-width:380px;animation:ti .25s ease;}
+.toast.info{border-left-color:#2563eb;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:var(--sub);font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="scr-head">
+  <div class="sh-id">RPT-05</div>
+  <div class="sh-tt"><div class="sh-en">Inventory Status Report</div><div class="sh-ko">재고 현황 리포트 — 창고·품목군별 재고 집계</div></div>
+  <span class="sh-tag">/rpt/inventory</span>
+  <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
+</div>
+<div class="toolbar">
+  <div class="fld"><label>기준일 As-of</label>
+    <select id="fDate" onchange="apply()"><option>2026-05-20</option><option>2026-05-19</option></select></div>
+  <div class="fld"><label>창고 Warehouse</label>
+    <select id="fWh" onchange="apply()"><option value="">전체 All</option><option>자재창고</option><option>재공창고</option><option>완제품창고</option></select></div>
+  <div class="fld"><label>품목군 Category</label>
+    <select id="fCat" onchange="apply()"><option value="">전체</option><option>원자재</option><option>재공품</option><option>완제품</option><option>부자재</option></select></div>
+  <button class="btn btn-p btn-sm" onclick="apply()">🔍 적용</button>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <button class="btn btn-s" onclick="printRpt()">🖨 인쇄</button>
+    <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
+  </div>
+</div>
+<div class="body">
+  <div class="rpt-title"><h2>재고 현황 리포트</h2><span class="sub" id="rSub">2026-05-20 기준 · 전체 창고</span></div>
+  <div class="kpis">
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kItem">0</div><div class="kl">재고 품목 수 · SKU</div></div>
+    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kVal">0</div><div class="kl">재고 금액 · 백만원</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kLow">0</div><div class="kl">안전재고 미달 · Low</div></div>
+    <div class="kpi" style="--c:#8b5cf6"><div class="kv" id="kOver">0</div><div class="kl">과재고 · Over Stock</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kTurn">0</div><div class="kl">평균 재고회전율 · 회/월</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-t">📦 품목군별 재고 금액 분포</div>
+      <div id="catDist"></div>
+    </div>
+    <div class="card">
+      <div class="card-t">🏬 창고별 재고 현황</div>
+      <div class="wh-c" id="whList"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-h">📋 품목별 재고 상세</div>
+    <table>
+      <thead><tr>
+        <th>품목 코드</th><th>품목명</th><th>품목군</th><th>창고</th>
+        <th class="c">현재고</th><th class="c">안전재고</th>
+        <th class="c">재고 금액</th><th class="c">회전율</th><th class="c">상태</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+      <tfoot id="tfoot"></tfoot>
+    </table>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+var INV=[
+ {code:'RM-PP-001',nm:'PP 수지 (블랙)',cat:'원자재',wh:'자재창고',qty:8200,safe:5000,max:14000,price:2.4,turn:3.1},
+ {code:'RM-PP-002',nm:'PP 수지 (그레이)',cat:'원자재',wh:'자재창고',qty:3100,safe:4000,max:12000,price:2.4,turn:2.6},
+ {code:'RM-ABS-01',nm:'ABS 수지',cat:'원자재',wh:'자재창고',qty:5400,safe:3000,max:10000,price:3.1,turn:2.9},
+ {code:'RM-PNT-01',nm:'도료 (베이스코트)',cat:'부자재',wh:'자재창고',qty:420,safe:300,max:900,price:12.0,turn:4.2},
+ {code:'SF-TRIM-LH',nm:'도어트림 LH 재공',cat:'재공품',wh:'재공창고',qty:680,safe:400,max:1500,price:6.8,turn:5.5},
+ {code:'SF-CONS-01',nm:'콘솔어퍼 재공',cat:'재공품',wh:'재공창고',qty:240,safe:350,max:1200,price:8.2,turn:4.8},
+ {code:'SF-BMP-01',nm:'프론트 범퍼 재공',cat:'재공품',wh:'재공창고',qty:1620,safe:500,max:1400,price:9.4,turn:3.4},
+ {code:'FG-TRIM-LH',nm:'도어트림 LH 완제품',cat:'완제품',wh:'완제품창고',qty:920,safe:600,max:2000,price:9.5,turn:6.1},
+ {code:'FG-TRIM-RH',nm:'도어트림 RH 완제품',cat:'완제품',wh:'완제품창고',qty:540,safe:600,max:2000,price:9.5,turn:5.8},
+ {code:'FG-MOLD-05',nm:'사이드 몰딩 5 완제품',cat:'완제품',wh:'완제품창고',qty:1340,safe:700,max:2200,price:5.6,turn:6.4},
+ {code:'FG-GRILLE-2',nm:'라디에이터 그릴 완제품',cat:'완제품',wh:'완제품창고',qty:0,safe:400,max:1500,price:8.3,turn:5.2},
+ {code:'AM-BOLT-M8',nm:'볼트 M8 (부자재)',cat:'부자재',wh:'자재창고',qty:24000,safe:15000,max:60000,price:0.05,turn:7.0}
+];
+function statOf(p){
+  if(p.qty===0)return 'out';
+  if(p.qty<p.safe)return 'low';
+  if(p.qty>p.max)return 'over';
+  return 'ok';
+}
+var ST={ok:{ko:'정상',cls:'st-ok'},low:{ko:'미달',cls:'st-low'},out:{ko:'품절',cls:'st-out'},over:{ko:'과재고',cls:'st-over'}};
+function vis(){
+  var fw=document.getElementById('fWh').value,fc=document.getElementById('fCat').value;
+  return INV.filter(function(p){return (!fw||p.wh===fw)&&(!fc||p.cat===fc);});
+}
+function val(p){return p.qty*p.price;}/* 천원 단위? price in 천원/EA → val in 천원 */
+function apply(){
+  var v=vis();
+  var totVal=v.reduce(function(s,p){return s+val(p);},0);
+  document.getElementById('kItem').textContent=v.length;
+  document.getElementById('kVal').textContent=Math.round(totVal/1000).toLocaleString();
+  document.getElementById('kLow').textContent=v.filter(function(p){var s=statOf(p);return s==='low'||s==='out';}).length;
+  document.getElementById('kOver').textContent=v.filter(function(p){return statOf(p)==='over';}).length;
+  document.getElementById('kTurn').textContent=v.length?(Math.round(v.reduce(function(s,p){return s+p.turn;},0)/v.length*10)/10):0;
+  document.getElementById('rSub').textContent=document.getElementById('fDate').value+' 기준 · '+
+    (document.getElementById('fWh').value||'전체 창고');
+  renderCat(v);renderWh(v);renderTable(v,totVal);
+}
+function renderCat(v){
+  var cats=['원자재','재공품','완제품','부자재'];
+  var byC={};cats.forEach(function(c){byC[c]=0;});
+  v.forEach(function(p){byC[p.cat]+=val(p);});
+  var arr=cats.map(function(c){return{c:c,v:byC[c]};}).filter(function(x){return x.v>0;}).sort(function(a,b){return b.v-a.v;});
+  var max=arr.length?arr[0].v:1;
+  var col={'원자재':'#0891b2','재공품':'#f59e0b','완제품':'#059669','부자재':'#8b5cf6'};
+  document.getElementById('catDist').innerHTML=arr.map(function(x){
+    return '<div class="cat-row"><span class="cn">'+x.c+'</span>'+
+      '<span class="ct"><i style="width:'+(x.v/max*100)+'%;background:'+col[x.c]+'"></i></span>'+
+      '<span class="cv">'+Math.round(x.v/1000).toLocaleString()+'백만</span></div>';}).join('')||
+    '<div style="color:#9ca3af;text-align:center;padding:14px;">데이터 없음</div>';
+}
+function renderWh(v){
+  var whs=['자재창고','재공창고','완제품창고'];
+  var ic={'자재창고':'📥','재공창고':'🔧','완제품창고':'📦'};
+  document.getElementById('whList').innerHTML=whs.map(function(w){
+    var rows=v.filter(function(p){return p.wh===w;});
+    var wv=rows.reduce(function(s,p){return s+val(p);},0);
+    return '<div class="wh"><div class="wic">'+ic[w]+'</div>'+
+      '<div class="wn">'+w+'<small>'+rows.length+' SKU · 미달 '+
+      rows.filter(function(p){var s=statOf(p);return s==='low'||s==='out';}).length+'</small></div>'+
+      '<div class="wv">'+Math.round(wv/1000).toLocaleString()+'백만</div></div>';}).join('');
+}
+function renderTable(v,totVal){
+  var h='';
+  v.forEach(function(p){
+    var s=statOf(p);
+    h+='<tr><td class="mono" style="font-weight:700;">'+p.code+'</td>'+
+      '<td>'+p.nm+'</td><td>'+p.cat+'</td><td>'+p.wh+'</td>'+
+      '<td class="c mono" style="text-align:center;font-weight:700;">'+p.qty.toLocaleString()+'</td>'+
+      '<td class="c mono" style="text-align:center;color:#9ca3af;">'+p.safe.toLocaleString()+'</td>'+
+      '<td class="c mono" style="text-align:center;">'+Math.round(val(p)/1000*10)/10+'백만</td>'+
+      '<td class="c mono" style="text-align:center;">'+p.turn+'</td>'+
+      '<td class="c" style="text-align:center;"><span class="st '+ST[s].cls+'">'+ST[s].ko+'</span></td></tr>';
+  });
+  document.getElementById('tbody').innerHTML=h;
+  document.getElementById('tfoot').innerHTML='<tr><td colspan="6">합계 · TOTAL ('+v.length+' SKU)</td>'+
+    '<td style="text-align:center;">'+Math.round(totVal/1000).toLocaleString()+'백만</td>'+
+    '<td colspan="2"></td></tr>';
+}
+function exportCsv(){
+  var v=vis();
+  var csv='Code,Name,Category,Warehouse,Qty,SafetyStock,MaxStock,UnitPrice(천원),Value(천원),Turnover,Status\n';
+  v.forEach(function(p){
+    csv+=[p.code,p.nm,p.cat,p.wh,p.qty,p.safe,p.max,p.price,Math.round(val(p)),p.turn,ST[statOf(p)].ko].join(',')+'\n';});
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='RPT_Inventory_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  toast('','Export 완료','재고 현황 리포트를 CSV로 내보냈습니다.');
+}
+function printRpt(){toast('info','인쇄 미리보기','재고 현황 리포트 인쇄를 준비합니다. (데모)');}
+function resetAll(){
+  document.getElementById('fWh').value='';document.getElementById('fCat').value='';
+  document.getElementById('fDate').selectedIndex=0;apply();
+  toast('info','초기화','리포트 조건을 초기화했습니다.');
+}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='info'?'ℹ ':'✅ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},4000);
+}
+apply();
+</script>
+</body>
+</html>
