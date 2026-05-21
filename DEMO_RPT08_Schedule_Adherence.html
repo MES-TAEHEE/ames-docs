@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>RPT-08 Schedule Adherence · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+.scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
+.sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
+.sh-tt{flex:1;}
+.sh-en{font-size:16px;font-weight:800;color:#fff;}
+.sh-ko{font-size:11px;color:rgba(255,255,255,.5);}
+.sh-tag{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+.sh-live{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.sh-live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.toolbar{background:#fff;border-bottom:1px solid var(--bd);padding:9px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
+.fld{display:flex;flex-direction:column;gap:2px;}
+.fld label{font-size:8px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;}
+select{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink);}
+.btn{padding:6px 13px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-p{background:var(--pp);color:#fff;}.btn-p:hover{background:var(--pp-dk);}
+.btn-s{background:#f6f8fa;color:var(--ink);border-color:var(--bd);}.btn-s:hover{background:#eef1f5;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+.body{flex:1;overflow-y:auto;padding:16px 24px 40px;}
+.rpt-title{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;}
+.rpt-title h2{font-size:16px;font-weight:900;}
+.rpt-title .sub{font-size:10px;color:var(--sub);font-family:'JetBrains Mono',monospace;}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:16px;}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:12px 14px;border-left:3px solid var(--c);}
+.kpi .kv{font-size:23px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;color:var(--c);}
+.kpi .kl{font-size:10px;color:var(--sub);margin-top:4px;}
+.kpi .kt{font-size:8px;color:#9ca3af;font-family:'JetBrains Mono',monospace;}
+.grid2{display:grid;grid-template-columns:1.55fr 1fr;gap:14px;margin-bottom:14px;}
+.card{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:14px 16px;}
+.card-t{font-size:12px;font-weight:800;color:var(--pp);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.chart{display:flex;align-items:flex-end;gap:5px;height:150px;border-bottom:2px solid var(--bd);padding:0 2px;position:relative;}
+.tgt{position:absolute;left:2px;right:2px;border-top:1px dashed #dc2626;}
+.cbar{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;}
+.cbar .bb{width:72%;border-radius:3px 3px 0 0;transition:opacity .12s;}
+.cbar:hover .bb{opacity:.8;}
+.cbar .bv{font-size:7px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--sub);}
+.cbar .bl{font-size:7px;color:var(--sub);}
+.ls-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px dashed #eef1f5;font-size:11px;}
+.ls-row:last-child{border:none;}
+.ls-row .ln{width:96px;flex-shrink:0;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:10px;}
+.ls-row .lt{flex:1;height:15px;background:#eef1f5;border-radius:3px;overflow:hidden;}
+.ls-row .lt i{display:block;height:100%;}
+.ls-row .lv{width:46px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:800;}
+.panel{background:#fff;border:1px solid var(--bd);border-radius:8px;overflow:hidden;}
+.panel-h{padding:9px 14px;background:#f0fdf4;border-bottom:1px solid var(--bd);font-size:11px;font-weight:800;color:var(--pp);}
+table{width:100%;border-collapse:collapse;font-size:11.5px;}
+thead th{background:#f0f3f7;padding:9px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--bd);white-space:nowrap;}
+thead th.c{text-align:center;}
+tbody td{padding:8px 9px;border-bottom:1px solid #eef1f5;}
+tbody tr:hover td{background:#f0fdf4;}
+tfoot td{padding:9px 9px;background:#f0fdf4;font-weight:800;border-top:2px solid var(--pp);}
+.mono{font-family:'JetBrains Mono',monospace;}
+.st{display:inline-block;font-size:9px;font-weight:700;padding:2px 8px;border-radius:9px;}
+.st-on{background:#d1fae5;color:#065f46;}.st-late{background:#fef3c7;color:#92400e;}
+.st-no{background:#fee2e2;color:#991b1b;}
+.dv{font-weight:700;font-family:'JetBrains Mono',monospace;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#fff;border-radius:8px;padding:11px 15px;box-shadow:0 8px 26px rgba(0,0,0,.22);border-left:4px solid var(--pp);font-size:12px;min-width:240px;max-width:380px;animation:ti .25s ease;}
+.toast.info{border-left-color:#2563eb;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:var(--sub);font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="scr-head">
+  <div class="sh-id">RPT-08</div>
+  <div class="sh-tt"><div class="sh-en">Schedule Adherence Report</div><div class="sh-ko">계획 준수율 리포트 — 생산 계획 대비 실적 준수도</div></div>
+  <span class="sh-tag">/rpt/adherence</span>
+  <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
+</div>
+<div class="toolbar">
+  <div class="fld"><label>기간 Period</label>
+    <select id="fPeriod" onchange="apply()"><option>최근 10일</option><option>당월</option><option>최근 7일</option></select></div>
+  <div class="fld"><label>라인 Line</label>
+    <select id="fLine" onchange="apply()"><option value="">전체 All</option><option>SAV-INJ-01</option><option>SAV-INJ-02</option><option>SAV-ASSY-01</option><option>SAV-PNT-01</option></select></div>
+  <button class="btn btn-p btn-sm" onclick="apply()">🔍 적용</button>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <button class="btn btn-s" onclick="printRpt()">🖨 인쇄</button>
+    <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
+  </div>
+</div>
+<div class="body">
+  <div class="rpt-title"><h2>계획 준수율 리포트</h2><span class="sub" id="rSub">최근 10일 · 전체 라인</span></div>
+  <div class="kpis">
+    <div class="kpi" style="--c:#059669"><div class="kv" id="kAdh">0%</div><div class="kl">계획 준수율 · Adherence</div><div class="kt">target ≥ 95%</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">계획 작업지시 · Planned WO</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kOn">0</div><div class="kl">정시 완료 · On-Schedule</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kLate">0</div><div class="kl">지연 완료 · Late</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kNo">0</div><div class="kl">미완료 · Incomplete</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-t">📈 일별 계획 준수율 추이 <span style="margin-left:auto;font-size:9px;color:#9ca3af;font-weight:400;">막대 클릭=상세</span></div>
+      <div class="chart" id="chart"></div>
+      <div style="text-align:center;font-size:9px;color:#9ca3af;margin-top:8px;">빨간 점선=목표 95%</div>
+    </div>
+    <div class="card">
+      <div class="card-t">🏭 라인별 준수율</div>
+      <div id="lineSum"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-h">📋 작업지시별 계획 대비 실적</div>
+    <table>
+      <thead><tr>
+        <th>작업지시</th><th>라인</th><th>품목</th>
+        <th class="c">계획수량</th><th class="c">실적수량</th>
+        <th class="c">계획 완료일</th><th class="c">실제 완료일</th>
+        <th class="c">편차(일)</th><th class="c">상태</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+      <tfoot id="tfoot"></tfoot>
+    </table>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+/* daily adherence % over 10 days */
+var DAYS=[
+ {d:'05-11',adh:96.2},{d:'05-12',adh:94.1},{d:'05-13',adh:97.5},{d:'05-14',adh:92.8},
+ {d:'05-15',adh:95.6},{d:'05-16',adh:98.0},{d:'05-18',adh:93.4},{d:'05-19',adh:96.8},
+ {d:'05-20',adh:95.1},{d:'05-21',adh:97.2}
+];
+var WO=[
+ {id:'WO-2605-101',line:'SAV-INJ-01',item:'도어트림 LH',plan:480,act:480,pd:'05-19',ad:'05-19'},
+ {id:'WO-2605-115',line:'SAV-INJ-01',item:'도어트림 RH',plan:520,act:520,pd:'05-20',ad:'05-20'},
+ {id:'WO-2605-102',line:'SAV-INJ-02',item:'사이드 몰딩 5',plan:720,act:705,pd:'05-19',ad:'05-20'},
+ {id:'WO-2605-118',line:'SAV-INJ-02',item:'라디에이터 그릴',plan:540,act:540,pd:'05-20',ad:'05-20'},
+ {id:'WO-2605-132',line:'SAV-INJ-02',item:'프론트 범퍼',plan:360,act:0,pd:'05-21',ad:'-'},
+ {id:'WO-2605-103',line:'SAV-ASSY-01',item:'도어 모듈 조립',plan:300,act:300,pd:'05-19',ad:'05-19'},
+ {id:'WO-2605-120',line:'SAV-ASSY-01',item:'콘솔 조립',plan:420,act:420,pd:'05-20',ad:'05-20'},
+ {id:'WO-2605-135',line:'SAV-ASSY-01',item:'범퍼 조립',plan:380,act:355,pd:'05-20',ad:'05-21'},
+ {id:'WO-2605-104',line:'SAV-PNT-01',item:'범퍼 도장',plan:280,act:280,pd:'05-19',ad:'05-19'},
+ {id:'WO-2605-125',line:'SAV-PNT-01',item:'그릴 도장',plan:320,act:308,pd:'05-20',ad:'05-21'},
+ {id:'WO-2605-140',line:'SAV-PNT-01',item:'몰딩 도장',plan:260,act:0,pd:'05-21',ad:'-'}
+];
+function dev(w){
+  if(w.ad==='-')return null;
+  return (+w.ad.slice(3))-(+w.pd.slice(3));
+}
+function statOf(w){
+  if(w.ad==='-')return 'no';
+  return dev(w)>0?'late':'on';
+}
+var STT={on:{ko:'정시 완료',cls:'st-on'},late:{ko:'지연 완료',cls:'st-late'},no:{ko:'미완료',cls:'st-no'}};
+function visWO(){var f=document.getElementById('fLine').value;return WO.filter(function(w){return !f||w.line===f;});}
+function apply(){
+  var v=visWO();
+  var on=v.filter(function(w){return statOf(w)==='on';}).length;
+  var late=v.filter(function(w){return statOf(w)==='late';}).length;
+  var no=v.filter(function(w){return statOf(w)==='no';}).length;
+  var done=on+late;
+  var adh=v.length?Math.round(on/v.length*1000)/10:0;
+  document.getElementById('kAdh').textContent=adh+'%';
+  document.getElementById('kAdh').style.color=adh>=95?'#059669':(adh>=85?'#d97706':'#dc2626');
+  document.getElementById('kTot').textContent=v.length;
+  document.getElementById('kOn').textContent=on;
+  document.getElementById('kLate').textContent=late;
+  document.getElementById('kNo').textContent=no;
+  document.getElementById('rSub').textContent=document.getElementById('fPeriod').value+' · '+
+    (document.getElementById('fLine').value||'전체 라인');
+  renderChart();renderLineSum();renderTable(v);
+}
+function renderChart(){
+  var h='<div class="tgt" style="bottom:'+((95-88)/(100-88)*120)+'px;"></div>';
+  DAYS.forEach(function(x,i){
+    var hh=(x.adh-88)/(100-88)*120;
+    var col=x.adh>=95?'linear-gradient(180deg,#34d399,#059669)':'linear-gradient(180deg,#fbbf24,#d97706)';
+    h+='<div class="cbar" onclick="dayInfo('+i+')" title="'+x.d+' 준수율 '+x.adh+'%">'+
+      '<div class="bv">'+x.adh+'</div>'+
+      '<div class="bb" style="height:'+Math.max(hh,4)+'px;background:'+col+';"></div>'+
+      '<div class="bl">'+x.d.slice(3)+'</div></div>';
+  });
+  document.getElementById('chart').innerHTML=h;
+}
+function dayInfo(i){
+  var x=DAYS[i];
+  toast('info','05-'+x.d.slice(3)+' 계획 준수율','준수율 '+x.adh+'% — '+(x.adh>=95?'목표 달성 ✓':'목표(95%) 미달'));
+}
+function renderLineSum(){
+  var lines=['SAV-INJ-01','SAV-INJ-02','SAV-ASSY-01','SAV-PNT-01'];
+  var fl=document.getElementById('fLine').value;
+  var h='';
+  lines.filter(function(l){return !fl||l===fl;}).forEach(function(l){
+    var rows=WO.filter(function(w){return w.line===l;});
+    var on=rows.filter(function(w){return statOf(w)==='on';}).length;
+    var adh=rows.length?Math.round(on/rows.length*1000)/10:0;
+    var col=adh>=95?'#059669':(adh>=80?'#f59e0b':'#dc2626');
+    h+='<div class="ls-row"><span class="ln">'+l+'</span>'+
+      '<span class="lt"><i style="width:'+adh+'%;background:'+col+'"></i></span>'+
+      '<span class="lv" style="color:'+col+'">'+adh+'%</span></div>';
+  });
+  document.getElementById('lineSum').innerHTML=h;
+}
+function renderTable(v){
+  var h='',tPlan=0,tAct=0;
+  v.forEach(function(w){
+    var s=statOf(w),d=dev(w);
+    tPlan+=w.plan;tAct+=w.act;
+    h+='<tr><td class="mono" style="font-weight:700;">'+w.id+'</td>'+
+      '<td class="mono">'+w.line+'</td><td>'+w.item+'</td>'+
+      '<td class="c mono" style="text-align:center;">'+w.plan+'</td>'+
+      '<td class="c mono" style="text-align:center;font-weight:700;">'+(w.act||'—')+'</td>'+
+      '<td class="c mono" style="text-align:center;">'+w.pd+'</td>'+
+      '<td class="c mono" style="text-align:center;">'+w.ad+'</td>'+
+      '<td class="c" style="text-align:center;"><span class="dv" style="color:'+(d===null?'#9ca3af':(d>0?'#dc2626':'#059669'))+'">'+
+        (d===null?'—':(d>0?'+'+d:d===0?'0':d))+'</span></td>'+
+      '<td class="c" style="text-align:center;"><span class="st '+STT[s].cls+'">'+STT[s].ko+'</span></td></tr>';
+  });
+  document.getElementById('tbody').innerHTML=h;
+  document.getElementById('tfoot').innerHTML='<tr><td colspan="3">합계 · TOTAL ('+v.length+' WO)</td>'+
+    '<td style="text-align:center;">'+tPlan.toLocaleString()+'</td>'+
+    '<td style="text-align:center;">'+tAct.toLocaleString()+'</td>'+
+    '<td colspan="4" style="text-align:center;">수량 달성률 '+(tPlan?Math.round(tAct/tPlan*1000)/10:0)+'%</td></tr>';
+}
+function exportCsv(){
+  var v=visWO();
+  var csv='WO,Line,Item,PlanQty,ActualQty,PlanDate,ActualDate,DeviationDays,Status\n';
+  v.forEach(function(w){var d=dev(w);
+    csv+=[w.id,w.line,w.item,w.plan,w.act,w.pd,w.ad,d===null?'-':d,STT[statOf(w)].ko].join(',')+'\n';});
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='RPT_ScheduleAdherence_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  toast('','Export 완료','계획 준수율 리포트를 CSV로 내보냈습니다.');
+}
+function printRpt(){toast('info','인쇄 미리보기','계획 준수율 리포트 인쇄를 준비합니다. (데모)');}
+function resetAll(){
+  document.getElementById('fPeriod').selectedIndex=0;document.getElementById('fLine').value='';
+  apply();toast('info','초기화','리포트 조건을 초기화했습니다.');
+}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='info'?'ℹ ':'✅ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},4000);
+}
+apply();
+</script>
+</body>
+</html>
