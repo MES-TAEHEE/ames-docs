@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SYS-06 Notification Settings · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+.scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
+.sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
+.sh-tt{flex:1;}
+.sh-en{font-size:16px;font-weight:800;color:#fff;}
+.sh-ko{font-size:11px;color:rgba(255,255,255,.5);}
+.sh-tag{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+.sh-live{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.sh-live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.toolbar{background:#fff;border-bottom:1px solid var(--bd);padding:9px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
+.fld{display:flex;flex-direction:column;gap:2px;}
+.fld label{font-size:8px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;}
+select{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink);}
+.btn{padding:6px 13px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-p{background:var(--pp);color:#fff;}.btn-p:hover{background:var(--pp-dk);}
+.btn-s{background:#f6f8fa;color:var(--ink);border-color:var(--bd);}.btn-s:hover{background:#eef1f5;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+.body{flex:1;overflow-y:auto;padding:16px 24px 40px;}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:16px;}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:12px 14px;border-left:3px solid var(--c);}
+.kpi .kv{font-size:23px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;color:var(--c);}
+.kpi .kl{font-size:10px;color:var(--sub);margin-top:4px;}
+.panel{background:#fff;border:1px solid var(--bd);border-radius:8px;overflow:hidden;}
+.panel-h{padding:9px 14px;background:#f0fdf4;border-bottom:1px solid var(--bd);font-size:11px;font-weight:800;color:var(--pp);}
+.rule{padding:12px 16px;border-bottom:1px solid #eef1f5;display:flex;align-items:center;gap:14px;}
+.rule:last-child{border:none;}
+.rule.off{opacity:.55;}
+.r-ic{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;color:#fff;}
+.r-main{flex:1;min-width:0;}
+.r-nm{font-size:12.5px;font-weight:800;}
+.r-ds{font-size:10px;color:var(--sub);margin-top:2px;}
+.r-meta{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;}
+.ch{font-size:8.5px;font-weight:700;padding:2px 7px;border-radius:6px;}
+.ch-mail{background:#dbeafe;color:#1e40af;}.ch-sms{background:#d1fae5;color:#065f46;}
+.ch-pop{background:#fef3c7;color:#92400e;}.ch-kakao{background:#fef9c3;color:#854d0e;}
+.r-to{font-size:9px;color:#9ca3af;}
+.r-thr{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;color:#d97706;background:#fffbeb;padding:1px 7px;border-radius:6px;}
+.r-act{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.sevtag{font-size:8px;font-weight:700;padding:2px 7px;border-radius:7px;}
+.sv-c{background:#fee2e2;color:#991b1b;}.sv-w{background:#fef3c7;color:#92400e;}.sv-i{background:#dbeafe;color:#1e40af;}
+.tk{width:38px;height:21px;border-radius:11px;background:#cbd5e1;position:relative;cursor:pointer;transition:background .15s;flex-shrink:0;}
+.tk.on{background:var(--pp);}
+.tk i{position:absolute;top:2.5px;left:2.5px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s;}
+.tk.on i{left:19.5px;}
+.ov{position:fixed;inset:0;background:rgba(3,20,14,.55);display:none;align-items:center;justify-content:center;z-index:100;}
+.ov.on{display:flex;}
+.modal{background:#fff;border-radius:10px;width:420px;max-width:94vw;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.4);}
+.modal-h{background:linear-gradient(135deg,#03251a,#052e1f);color:#fff;padding:13px 18px;display:flex;align-items:center;gap:10px;}
+.modal-h .mt{font-size:14px;font-weight:800;flex:1;}
+.modal-h .mx{cursor:pointer;font-size:18px;color:rgba(255,255,255,.6);}
+.modal-b{padding:18px;}
+.ff{margin-bottom:13px;}
+.ff label{display:block;font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:5px;}
+.ff select,.ff input{width:100%;padding:6px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:inherit;}
+.chkrow{display:flex;gap:7px;flex-wrap:wrap;}
+.chkc{border:1.5px solid var(--bd);border-radius:6px;padding:6px 11px;cursor:pointer;font-size:11px;font-weight:700;}
+.chkc.on{background:#ecfdf5;border-color:var(--pp);color:var(--pp);}
+.modal-f{padding:12px 18px;background:#f6f8fa;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#fff;border-radius:8px;padding:11px 15px;box-shadow:0 8px 26px rgba(0,0,0,.22);border-left:4px solid var(--pp);font-size:12px;min-width:240px;max-width:380px;animation:ti .25s ease;}
+.toast.info{border-left-color:#2563eb;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:var(--sub);font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="scr-head">
+  <div class="sh-id">SYS-06</div>
+  <div class="sh-tt"><div class="sh-en">Notification Settings</div><div class="sh-ko">알림 설정 — 이벤트 알림 규칙·채널 관리</div></div>
+  <span class="sh-tag">/sys/notification</span>
+  <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
+</div>
+<div class="toolbar">
+  <div class="fld"><label>분류 Category</label>
+    <select id="fCat" onchange="render()"><option value="">전체 All</option><option>생산</option><option>품질</option><option>설비</option><option>물류</option><option>시스템</option></select></div>
+  <div class="fld"><label>상태 Status</label>
+    <select id="fStat" onchange="render()"><option value="">전체</option><option value="on">활성</option><option value="off">비활성</option></select></div>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <button class="btn btn-s" onclick="testNoti()">🔔 테스트 발송</button>
+    <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
+  </div>
+</div>
+<div class="body">
+  <div class="kpis">
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">알림 규칙 · Rules</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kOn">0</div><div class="kl">활성 규칙 · Active</div></div>
+    <div class="kpi" style="--c:#9ca3af"><div class="kv" id="kOff">0</div><div class="kl">비활성 · Inactive</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kCrit">0</div><div class="kl">긴급 알림 · Critical</div></div>
+    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kMail">0</div><div class="kl">이메일 채널 사용 · Mail</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-h">🔔 이벤트 알림 규칙 — <span id="sub" style="font-weight:400;color:#656d76;">0건</span></div>
+    <div id="ruleList"></div>
+  </div>
+</div>
+
+<!-- edit modal -->
+<div class="ov" id="ovEdit">
+  <div class="modal">
+    <div class="modal-h"><span class="mt" id="emTitle">알림 규칙 설정</span><span class="mx" onclick="closeOv('ovEdit')">✕</span></div>
+    <div class="modal-b">
+      <div class="ff"><label>발송 채널 (복수 선택)</label>
+        <div class="chkrow" id="emChannels">
+          <div class="chkc" data-c="mail" onclick="tgC(this)">✉️ 이메일</div>
+          <div class="chkc" data-c="sms" onclick="tgC(this)">📱 SMS</div>
+          <div class="chkc" data-c="pop" onclick="tgC(this)">🖥 시스템 팝업</div>
+          <div class="chkc" data-c="kakao" onclick="tgC(this)">💬 카카오 알림톡</div>
+        </div>
+      </div>
+      <div class="ff"><label>수신 대상</label>
+        <select id="emTo"><option>생산팀 (전체)</option><option>품질팀</option><option>설비팀</option><option>물류팀</option><option>관리자</option><option>해당 담당자</option></select></div>
+      <div class="ff" id="emThrFf"><label>발동 임계값 Threshold</label>
+        <input id="emThr" placeholder="예: 80"></div>
+      <div class="ff"><label>심각도</label>
+        <select id="emSev"><option value="c">긴급 (Critical)</option><option value="w">경고 (Warning)</option><option value="i">정보 (Info)</option></select></div>
+    </div>
+    <div class="modal-f">
+      <button class="btn btn-s" onclick="closeOv('ovEdit')">취소</button>
+      <button class="btn btn-p" onclick="saveRule()">💾 저장</button>
+    </div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+var CH={mail:{ko:'이메일',cls:'ch-mail'},sms:{ko:'SMS',cls:'ch-sms'},pop:{ko:'팝업',cls:'ch-pop'},kakao:{ko:'카카오',cls:'ch-kakao'}};
+var SEV={c:{ko:'긴급',cls:'sv-c'},w:{ko:'경고',cls:'sv-w'},i:{ko:'정보',cls:'sv-i'}};
+var RULES=[
+ {id:'N01',cat:'설비',nm:'설비 고장 발생',ds:'설비 비계획 정지(고장) 발생 시 즉시 알림',ic:'🛠',col:'#dc2626',
+  on:true,sev:'c',ch:['mail','sms','pop'],to:'설비팀',thr:''},
+ {id:'N02',cat:'설비',nm:'비가동 시간 임계 초과',ds:'라인 비가동 누계가 임계값 초과 시 알림',ic:'⏱',col:'#f59e0b',
+  on:true,sev:'w',ch:['mail','pop'],to:'설비팀',thr:'120분'},
+ {id:'N03',cat:'설비',nm:'OEE 목표 미달',ds:'라인 OEE가 목표 임계값 미달 시 알림',ic:'⚙️',col:'#f59e0b',
+  on:true,sev:'w',ch:['mail'],to:'관리자',thr:'82%'},
+ {id:'N04',cat:'물류',nm:'재고 부족 경고',ds:'자재 재고가 안전재고 미만으로 떨어질 때 알림',ic:'📦',col:'#0891b2',
+  on:true,sev:'w',ch:['mail','pop'],to:'물류팀',thr:'안전재고'},
+ {id:'N05',cat:'품질',nm:'품질 불량률 초과',ds:'공정 불량률이 관리 한계 초과 시 알림',ic:'🔬',col:'#8b5cf6',
+  on:true,sev:'c',ch:['mail','sms','pop'],to:'품질팀',thr:'2.0%'},
+ {id:'N06',cat:'물류',nm:'납기 지연 위험',ds:'출하 예정 대비 생산 진척 부족 시 사전 알림',ic:'🚚',col:'#dc2626',
+  on:true,sev:'c',ch:['mail','kakao'],to:'관리자',thr:'D-1'},
+ {id:'N07',cat:'생산',nm:'작업지시 발행',ds:'신규 작업지시 발행 시 현장 알림',ic:'📋',col:'#059669',
+  on:true,sev:'i',ch:['pop'],to:'생산팀 (전체)',thr:''},
+ {id:'N08',cat:'설비',nm:'예방정비(PM) 예정 알림',ds:'PM 예정일 1일 전 담당자 알림',ic:'📅',col:'#2563eb',
+  on:false,sev:'i',ch:['mail'],to:'설비팀',thr:'D-1'},
+ {id:'N09',cat:'시스템',nm:'인터페이스 연동 오류',ds:'외부 시스템 연동 실패 시 관리자 알림',ic:'🔌',col:'#dc2626',
+  on:true,sev:'c',ch:['mail','sms'],to:'관리자',thr:''},
+ {id:'N10',cat:'시스템',nm:'로그인 실패·계정 잠금',ds:'비밀번호 5회 오류로 계정 잠금 시 보안 알림',ic:'🔐',col:'#9d174d',
+  on:true,sev:'w',ch:['mail'],to:'관리자',thr:'5회'}
+];
+var editId=null,emCh=[];
+function vis(){
+  var fc=document.getElementById('fCat').value,fs=document.getElementById('fStat').value;
+  return RULES.filter(function(r){
+    if(fc&&r.cat!==fc)return false;
+    if(fs==='on'&&!r.on)return false;
+    if(fs==='off'&&r.on)return false;
+    return true;});
+}
+function render(){
+  document.getElementById('kTot').textContent=RULES.length;
+  document.getElementById('kOn').textContent=RULES.filter(function(r){return r.on;}).length;
+  document.getElementById('kOff').textContent=RULES.filter(function(r){return !r.on;}).length;
+  document.getElementById('kCrit').textContent=RULES.filter(function(r){return r.sev==='c'&&r.on;}).length;
+  document.getElementById('kMail').textContent=RULES.filter(function(r){return r.ch.indexOf('mail')>=0&&r.on;}).length;
+  var v=vis(),h='';
+  v.forEach(function(r){
+    h+='<div class="rule'+(r.on?'':' off')+'">'+
+      '<div class="r-ic" style="background:'+r.col+'">'+r.ic+'</div>'+
+      '<div class="r-main"><div class="r-nm">'+r.nm+' <span class="sevtag '+SEV[r.sev].cls+'">'+SEV[r.sev].ko+'</span></div>'+
+        '<div class="r-ds">'+r.ds+'</div>'+
+        '<div class="r-meta">'+
+          r.ch.map(function(c){return '<span class="ch '+CH[c].cls+'">'+CH[c].ko+'</span>';}).join('')+
+          '<span class="r-to">→ '+r.to+'</span>'+
+          (r.thr?'<span class="r-thr">임계 '+r.thr+'</span>':'')+'</div></div>'+
+      '<div class="r-act">'+
+        '<button class="btn btn-s btn-sm" onclick="openEdit(\''+r.id+'\')">⚙ 설정</button>'+
+        '<div class="tk'+(r.on?' on':'')+'" onclick="toggleRule(\''+r.id+'\')"><i></i></div></div></div>';
+  });
+  document.getElementById('ruleList').innerHTML=h||'<div style="padding:30px;text-align:center;color:#9ca3af;">조건에 맞는 알림 규칙이 없습니다.</div>';
+  document.getElementById('sub').textContent=v.length+'건';
+}
+function byId(id){return RULES.filter(function(r){return r.id===id;})[0];}
+function toggleRule(id){
+  var r=byId(id);r.on=!r.on;render();
+  toast('info',r.nm,'알림 규칙이 '+(r.on?'활성화':'비활성화')+'되었습니다.');
+}
+function openEdit(id){
+  editId=id;var r=byId(id);
+  document.getElementById('emTitle').textContent=r.nm+' 설정';
+  emCh=r.ch.slice();
+  [].slice.call(document.querySelectorAll('#emChannels .chkc')).forEach(function(el){
+    el.classList.toggle('on',emCh.indexOf(el.dataset.c)>=0);});
+  document.getElementById('emTo').value=r.to;
+  document.getElementById('emThr').value=r.thr;
+  document.getElementById('emSev').value=r.sev;
+  document.getElementById('emThrFf').style.display=r.thr?'block':'block';
+  openOv('ovEdit');
+}
+function tgC(el){
+  var c=el.dataset.c,i=emCh.indexOf(c);
+  if(i>=0)emCh.splice(i,1);else emCh.push(c);
+  el.classList.toggle('on');
+}
+function saveRule(){
+  if(!emCh.length){toast('info','채널 선택 필요','발송 채널을 최소 1개 선택하세요.');return;}
+  var r=byId(editId);
+  r.ch=['mail','sms','pop','kakao'].filter(function(c){return emCh.indexOf(c)>=0;});
+  r.to=document.getElementById('emTo').value;
+  r.thr=document.getElementById('emThr').value.trim();
+  r.sev=document.getElementById('emSev').value;
+  closeOv('ovEdit');render();
+  toast('','알림 규칙 저장','「'+r.nm+'」 설정이 저장되었습니다.');
+}
+function testNoti(){
+  var on=RULES.filter(function(r){return r.on;}).length;
+  toast('','테스트 알림 발송','활성 규칙 '+on+'건의 채널로 테스트 알림을 발송했습니다. (데모)');
+}
+function exportCsv(){
+  var v=vis();
+  var csv='ID,Category,Rule,Severity,Channels,Recipient,Threshold,Status\n';
+  v.forEach(function(r){
+    csv+=[r.id,r.cat,r.nm,SEV[r.sev].ko,'"'+r.ch.map(function(c){return CH[c].ko;}).join(';')+'"',
+      r.to,r.thr||'-',r.on?'활성':'비활성'].join(',')+'\n';});
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='SYS_Notification_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  toast('','Export 완료','알림 규칙 설정을 CSV로 내보냈습니다.');
+}
+function resetAll(){
+  document.getElementById('fCat').value='';document.getElementById('fStat').value='';
+  render();toast('info','초기화','알림 규칙 필터를 초기화했습니다.');
+}
+function openOv(id){document.getElementById(id).classList.add('on');}
+function closeOv(id){document.getElementById(id).classList.remove('on');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='info'?'ℹ ':'✅ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},4000);
+}
+render();
+</script>
+</body>
+</html>
