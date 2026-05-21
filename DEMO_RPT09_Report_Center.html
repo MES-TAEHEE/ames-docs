@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>RPT-09 Report Center · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+.scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
+.sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
+.sh-tt{flex:1;}
+.sh-en{font-size:16px;font-weight:800;color:#fff;}
+.sh-ko{font-size:11px;color:rgba(255,255,255,.5);}
+.sh-tag{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+.sh-live{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.sh-live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.toolbar{background:#fff;border-bottom:1px solid var(--bd);padding:9px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
+.fld{display:flex;flex-direction:column;gap:2px;}
+.fld label{font-size:8px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;}
+select,input{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink);}
+.btn{padding:6px 13px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-p{background:var(--pp);color:#fff;}.btn-p:hover{background:var(--pp-dk);}
+.btn-s{background:#f6f8fa;color:var(--ink);border-color:var(--bd);}.btn-s:hover{background:#eef1f5;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+.body{flex:1;overflow-y:auto;padding:16px 24px 40px;}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px;}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:12px 14px;border-left:3px solid var(--c);}
+.kpi .kv{font-size:24px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;color:var(--c);}
+.kpi .kl{font-size:10px;color:var(--sub);margin-top:4px;}
+.grid2{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;}
+.card{background:#fff;border:1px solid var(--bd);border-radius:8px;overflow:hidden;}
+.card-t{font-size:12px;font-weight:800;color:var(--pp);padding:11px 14px;border-bottom:1px solid var(--bd);background:#f0fdf4;display:flex;align-items:center;gap:6px;}
+.catalog{padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.rc{border:1px solid var(--bd);border-radius:8px;padding:11px 12px;display:flex;flex-direction:column;gap:7px;}
+.rc-top{display:flex;align-items:flex-start;gap:9px;}
+.rc-ic{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;color:#fff;}
+.rc-nm{font-size:12px;font-weight:800;line-height:1.25;}
+.rc-ds{font-size:9px;color:var(--sub);line-height:1.4;}
+.rc-fav{margin-left:auto;font-size:15px;cursor:pointer;color:#d1d5db;flex-shrink:0;}
+.rc-fav.on{color:#f59e0b;}
+.rc-meta{display:flex;align-items:center;gap:6px;font-size:8.5px;color:#9ca3af;}
+.rc-cat{font-size:8px;font-weight:700;padding:1px 7px;border-radius:7px;}
+.fmt{font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px;background:#eef1f5;color:#4b5563;}
+.rc-act{display:flex;gap:6px;margin-top:auto;}
+.rc-act .btn{flex:1;justify-content:center;}
+.recent-l{padding:6px 14px 12px;}
+.rl{display:flex;gap:9px;align-items:center;padding:8px 0;border-bottom:1px dashed #eef1f5;}
+.rl:last-child{border:none;}
+.rl-ic{width:28px;height:28px;border-radius:7px;background:#ecfdf5;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.rl-nm{flex:1;font-size:11px;}
+.rl-nm small{display:block;color:#9ca3af;font-size:9px;font-family:'JetBrains Mono',monospace;}
+.rl-dl{font-size:14px;cursor:pointer;color:var(--pp);}
+.sched{padding:6px 14px 12px;}
+.sc{display:flex;gap:9px;align-items:center;padding:8px 0;border-bottom:1px dashed #eef1f5;font-size:11px;}
+.sc:last-child{border:none;}
+.sc-c{width:7px;height:7px;border-radius:50%;background:#10b981;flex-shrink:0;}
+.sc-i{flex:1;}
+.sc-i small{display:block;color:#9ca3af;font-size:9px;}
+.sc-t{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--pp);}
+.empty{padding:24px;text-align:center;color:#9ca3af;font-size:11px;}
+.ov{position:fixed;inset:0;background:rgba(3,20,14,.55);display:none;align-items:center;justify-content:center;z-index:100;}
+.ov.on{display:flex;}
+.modal{background:#fff;border-radius:10px;width:410px;max-width:94vw;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.4);}
+.modal-h{background:linear-gradient(135deg,#03251a,#052e1f);color:#fff;padding:13px 18px;display:flex;align-items:center;gap:10px;}
+.modal-h .mt{font-size:14px;font-weight:800;flex:1;}
+.modal-h .mx{cursor:pointer;font-size:18px;color:rgba(255,255,255,.6);}
+.modal-b{padding:18px;}
+.ff{margin-bottom:11px;}
+.ff label{display:block;font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:4px;}
+.ff select,.ff input{width:100%;}
+.modal-f{padding:12px 18px;background:#f6f8fa;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#fff;border-radius:8px;padding:11px 15px;box-shadow:0 8px 26px rgba(0,0,0,.22);border-left:4px solid var(--pp);font-size:12px;min-width:240px;max-width:380px;animation:ti .25s ease;}
+.toast.info{border-left-color:#2563eb;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:var(--sub);font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="scr-head">
+  <div class="sh-id">RPT-09</div>
+  <div class="sh-tt"><div class="sh-en">Report Center</div><div class="sh-ko">리포트 센터 — 표준 리포트 카탈로그·실행·예약</div></div>
+  <span class="sh-tag">/rpt/center</span>
+  <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
+</div>
+<div class="toolbar">
+  <div class="fld"><label>카테고리 Category</label>
+    <select id="fCat" onchange="render()"><option value="">전체 All</option><option>생산</option><option>품질</option><option>납기</option><option>설비</option><option>재고</option></select></div>
+  <div class="fld"><label>검색 Search</label>
+    <input id="fKw" placeholder="리포트명" oninput="render()" style="width:170px;"></div>
+  <div class="fld"><label>보기 View</label>
+    <select id="fFav" onchange="render()"><option value="">전체</option><option value="fav">즐겨찾기만</option></select></div>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div style="margin-left:auto;"><button class="btn btn-p" onclick="openSched()">⏰ 예약 발송 추가</button></div>
+</div>
+<div class="body">
+  <div class="kpis">
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">표준 리포트 · Templates</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kFav">0</div><div class="kl">즐겨찾기 · Favorites</div></div>
+    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kSched">0</div><div class="kl">예약 발송 · Scheduled</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kGen">0</div><div class="kl">금일 생성 · Generated</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-t">📚 리포트 카탈로그 — <span id="catSub" style="font-weight:400;color:#656d76;">0종</span></div>
+      <div class="catalog" id="catalog"></div>
+      <div class="empty" id="catEmpty" style="display:none;">조건에 맞는 리포트가 없습니다.</div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-t">🕒 최근 생성 리포트</div>
+        <div class="recent-l" id="recent"></div>
+      </div>
+      <div class="card">
+        <div class="card-t">⏰ 예약 발송 목록</div>
+        <div class="sched" id="schedList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- schedule modal -->
+<div class="ov" id="ovSched">
+  <div class="modal">
+    <div class="modal-h"><span class="mt">리포트 예약 발송 설정</span><span class="mx" onclick="closeOv('ovSched')">✕</span></div>
+    <div class="modal-b">
+      <div class="ff"><label>대상 리포트</label><select id="scRpt"></select></div>
+      <div class="ff"><label>발송 주기</label>
+        <select id="scCycle"><option>매일 (영업일)</option><option>매주 월요일</option><option>매월 1일</option></select></div>
+      <div class="ff"><label>발송 시각</label>
+        <select id="scTime"><option>07:00</option><option>08:00</option><option>09:00</option><option>18:00</option></select></div>
+      <div class="ff"><label>수신자</label>
+        <select id="scTo"><option>생산팀 (전체)</option><option>품질팀</option><option>경영진</option><option>공장장</option></select></div>
+    </div>
+    <div class="modal-f">
+      <button class="btn btn-s" onclick="closeOv('ovSched')">취소</button>
+      <button class="btn btn-p" onclick="addSched()">⏰ 예약 등록</button>
+    </div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+var CATCOL={'생산':'#059669','품질':'#8b5cf6','납기':'#2563eb','설비':'#f59e0b','재고':'#0891b2'};
+var REPORTS=[
+ {id:'R01',nm:'일일 생산 리포트',cat:'생산',ic:'🏭',ds:'라인·교대별 생산 실적 집계',fmt:['PDF','XLSX'],last:'05-21 07:02',fav:true},
+ {id:'R02',nm:'불량 파레토 분석',cat:'품질',ic:'📊',ds:'불량 유형별 집중 분석',fmt:['PDF','XLSX'],last:'05-20 18:10',fav:true},
+ {id:'R03',nm:'일일 출하 리포트',cat:'납기',ic:'🚚',ds:'거래선·차수별 출하 실적',fmt:['PDF','XLSX'],last:'05-21 07:05',fav:false},
+ {id:'R04',nm:'납기 준수율 리포트',cat:'납기',ic:'📅',ds:'거래선·월별 OTD 분석',fmt:['PDF'],last:'05-20 09:00',fav:false},
+ {id:'R05',nm:'재고 현황 리포트',cat:'재고',ic:'📦',ds:'창고·품목군별 재고 집계',fmt:['XLSX'],last:'05-21 06:30',fav:true},
+ {id:'R06',nm:'설비 OEE 리포트',cat:'설비',ic:'⚙️',ds:'월간 종합효율 집계 보고서',fmt:['PDF','XLSX'],last:'05-20 17:40',fav:false},
+ {id:'R07',nm:'월간 KPI 스코어카드',cat:'생산',ic:'🎯',ds:'핵심성과지표 종합 평가',fmt:['PDF'],last:'05-19 09:00',fav:true},
+ {id:'R08',nm:'계획 준수율 리포트',cat:'생산',ic:'📈',ds:'생산 계획 대비 실적 준수도',fmt:['PDF','XLSX'],last:'05-20 18:20',fav:false},
+ {id:'R09',nm:'고장·정비 이력 리포트',cat:'설비',ic:'🛠',ds:'설비 고장·정비 작업 이력',fmt:['XLSX'],last:'05-18 16:00',fav:false},
+ {id:'R10',nm:'품질 검사 성적서',cat:'품질',ic:'✓',ds:'로트별 검사 결과 성적서',fmt:['PDF'],last:'05-20 14:30',fav:false}
+];
+var RECENT=[
+ {nm:'일일 생산 리포트',t:'05-21 07:02',fmt:'PDF'},
+ {nm:'재고 현황 리포트',t:'05-21 06:30',fmt:'XLSX'},
+ {nm:'일일 출하 리포트',t:'05-21 07:05',fmt:'PDF'}
+];
+var SCHED=[
+ {nm:'일일 생산 리포트',cycle:'매일 (영업일)',time:'07:00',to:'생산팀'},
+ {nm:'월간 KPI 스코어카드',cycle:'매월 1일',time:'09:00',to:'경영진'},
+ {nm:'재고 현황 리포트',cycle:'매일 (영업일)',time:'06:30',to:'자재팀'}
+];
+var genToday=3;
+function vis(){
+  var fc=document.getElementById('fCat').value,ff=document.getElementById('fFav').value;
+  var kw=document.getElementById('fKw').value.trim().toLowerCase();
+  return REPORTS.filter(function(r){
+    if(fc&&r.cat!==fc)return false;
+    if(ff==='fav'&&!r.fav)return false;
+    if(kw&&r.nm.toLowerCase().indexOf(kw)<0)return false;
+    return true;});
+}
+function render(){
+  document.getElementById('kTot').textContent=REPORTS.length;
+  document.getElementById('kFav').textContent=REPORTS.filter(function(r){return r.fav;}).length;
+  document.getElementById('kSched').textContent=SCHED.length;
+  document.getElementById('kGen').textContent=genToday;
+  var v=vis(),h='';
+  v.forEach(function(r){
+    h+='<div class="rc"><div class="rc-top">'+
+      '<div class="rc-ic" style="background:'+CATCOL[r.cat]+'">'+r.ic+'</div>'+
+      '<div style="flex:1;"><div class="rc-nm">'+r.nm+'</div><div class="rc-ds">'+r.ds+'</div></div>'+
+      '<span class="rc-fav '+(r.fav?'on':'')+'" onclick="toggleFav(\''+r.id+'\')">'+(r.fav?'★':'☆')+'</span></div>'+
+      '<div class="rc-meta"><span class="rc-cat" style="background:'+CATCOL[r.cat]+'22;color:'+CATCOL[r.cat]+'">'+r.cat+'</span>'+
+        r.fmt.map(function(f){return '<span class="fmt">'+f+'</span>';}).join('')+
+        '<span style="margin-left:auto;">최근 '+r.last+'</span></div>'+
+      '<div class="rc-act">'+
+        '<button class="btn btn-p btn-sm" onclick="runReport(\''+r.id+'\')">▶ 실행</button>'+
+        '<button class="btn btn-s btn-sm" onclick="dlReport(\''+r.id+'\')">📥 다운로드</button></div></div>';
+  });
+  document.getElementById('catalog').innerHTML=h;
+  document.getElementById('catEmpty').style.display=v.length?'none':'block';
+  document.getElementById('catSub').textContent=v.length+'종';
+  renderRecent();renderSched();
+}
+function renderRecent(){
+  document.getElementById('recent').innerHTML=RECENT.slice(0,6).map(function(r){
+    return '<div class="rl"><div class="rl-ic">📄</div>'+
+      '<div class="rl-nm">'+r.nm+'<small>'+r.t+' · '+r.fmt+'</small></div>'+
+      '<span class="rl-dl" onclick="toast(\'\',\'다운로드\',\''+r.nm+' 파일을 다운로드했습니다.\')">📥</span></div>';
+  }).join('')||'<div class="empty">생성된 리포트 없음</div>';
+}
+function renderSched(){
+  document.getElementById('schedList').innerHTML=SCHED.map(function(s){
+    return '<div class="sc"><span class="sc-c"></span>'+
+      '<div class="sc-i">'+s.nm+'<small>'+s.cycle+' · '+s.to+'</small></div>'+
+      '<span class="sc-t">'+s.time+'</span></div>';
+  }).join('')||'<div class="empty">예약된 발송 없음</div>';
+}
+function byId(id){return REPORTS.filter(function(r){return r.id===id;})[0];}
+function toggleFav(id){var r=byId(id);r.fav=!r.fav;render();
+  toast('info',r.fav?'즐겨찾기 추가':'즐겨찾기 해제',r.nm);}
+function runReport(id){
+  var r=byId(id);
+  toast('info','리포트 생성 중','「'+r.nm+'」 생성을 시작합니다...');
+  setTimeout(function(){
+    var now=new Date().toTimeString().slice(0,5);
+    RECENT.unshift({nm:r.nm,t:'05-21 '+now,fmt:r.fmt[0]});
+    r.last='05-21 '+now;genToday++;
+    render();
+    toast('','리포트 생성 완료','「'+r.nm+'」 ('+r.fmt[0]+') 생성이 완료되어 최근 목록에 추가되었습니다.');
+  },900);
+}
+function dlReport(id){var r=byId(id);
+  var blob=new Blob(['﻿Report: '+r.nm+'\nGenerated: '+new Date().toISOString()+'\n(데모 파일)'],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=r.id+'_'+r.nm.replace(/ /g,'_')+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  toast('','다운로드 완료','「'+r.nm+'」 파일을 다운로드했습니다.');
+}
+function openSched(){
+  document.getElementById('scRpt').innerHTML=REPORTS.map(function(r){return '<option>'+r.nm+'</option>';}).join('');
+  openOv('ovSched');
+}
+function addSched(){
+  SCHED.unshift({nm:document.getElementById('scRpt').value,
+    cycle:document.getElementById('scCycle').value,
+    time:document.getElementById('scTime').value,
+    to:document.getElementById('scTo').value.replace(/ \(.*/,'')});
+  closeOv('ovSched');render();
+  toast('','예약 발송 등록','리포트 자동 발송 예약이 등록되었습니다.');
+}
+function resetAll(){
+  document.getElementById('fCat').value='';document.getElementById('fFav').value='';
+  document.getElementById('fKw').value='';render();
+  toast('info','초기화','리포트 카탈로그 필터를 초기화했습니다.');
+}
+function openOv(id){document.getElementById(id).classList.add('on');}
+function closeOv(id){document.getElementById(id).classList.remove('on');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='info'?'ℹ ':'✅ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},4000);
+}
+render();
+</script>
+</body>
+</html>
