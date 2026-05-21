@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SYS-03 Factory Calendar · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+.scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
+.sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
+.sh-tt{flex:1;}
+.sh-en{font-size:16px;font-weight:800;color:#fff;}
+.sh-ko{font-size:11px;color:rgba(255,255,255,.5);}
+.sh-tag{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+.sh-live{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.sh-live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.toolbar{background:#fff;border-bottom:1px solid var(--bd);padding:9px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
+.fld{display:flex;flex-direction:column;gap:2px;}
+.fld label{font-size:8px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;}
+select{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink);}
+.btn{padding:6px 13px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-p{background:var(--pp);color:#fff;}.btn-p:hover{background:var(--pp-dk);}
+.btn-s{background:#f6f8fa;color:var(--ink);border-color:var(--bd);}.btn-s:hover{background:#eef1f5;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+.body{flex:1;overflow-y:auto;padding:16px 24px 40px;}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:16px;}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:12px 14px;border-left:3px solid var(--c);}
+.kpi .kv{font-size:23px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;color:var(--c);}
+.kpi .kl{font-size:10px;color:var(--sub);margin-top:4px;}
+.card{background:#fff;border:1px solid var(--bd);border-radius:8px;overflow:hidden;}
+.card-t{font-size:12px;font-weight:800;color:var(--pp);padding:11px 14px;border-bottom:1px solid var(--bd);background:#f0fdf4;display:flex;align-items:center;gap:8px;}
+.legend{display:flex;gap:12px;margin-left:auto;font-weight:400;}
+.legend span{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--sub);}
+.legend i{width:11px;height:11px;border-radius:3px;}
+.cal{padding:12px;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+.dow{text-align:center;font-size:9px;font-weight:800;color:var(--sub);padding:4px 0;}
+.dow.sun{color:#dc2626;}.dow.sat{color:#2563eb;}
+.cell{min-height:74px;border:1px solid #eef1f5;border-radius:7px;padding:6px;cursor:pointer;transition:transform .1s;}
+.cell:hover{transform:scale(1.03);box-shadow:0 3px 10px rgba(0,0,0,.12);}
+.cell.empty{background:#fafbfc;border-style:dashed;cursor:default;}
+.cell.empty:hover{transform:none;box-shadow:none;}
+.cell.work{background:#f0fdf4;border-color:#a7f3d0;}
+.cell.off{background:#f3f4f6;border-color:#d1d5db;}
+.cell.special{background:#fffbeb;border-color:#fde68a;}
+.cell.holiday{background:#fef2f2;border-color:#fecaca;}
+.cell.today{outline:2px solid var(--pp);outline-offset:-1px;}
+.cell .dn{font-size:11px;font-weight:800;font-family:'JetBrains Mono',monospace;}
+.cell .dt{font-size:8.5px;font-weight:700;margin-top:3px;}
+.cell .dh{font-size:8px;color:var(--sub);font-family:'JetBrains Mono',monospace;margin-top:2px;}
+.tw{color:#059669;}.to{color:#6b7280;}.ts{color:#b45309;}.th{color:#dc2626;}
+.ov{position:fixed;inset:0;background:rgba(3,20,14,.55);display:none;align-items:center;justify-content:center;z-index:100;}
+.ov.on{display:flex;}
+.modal{background:#fff;border-radius:10px;width:400px;max-width:94vw;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.4);}
+.modal-h{background:linear-gradient(135deg,#03251a,#052e1f);color:#fff;padding:13px 18px;display:flex;align-items:center;gap:10px;}
+.modal-h .mt{font-size:14px;font-weight:800;flex:1;}
+.modal-h .mx{cursor:pointer;font-size:18px;color:rgba(255,255,255,.6);}
+.modal-b{padding:18px;}
+.ff{margin-bottom:12px;}
+.ff label{display:block;font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:5px;}
+.ff input{width:100%;padding:6px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:inherit;}
+.typegrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.ty{border:1.5px solid var(--bd);border-radius:7px;padding:9px;text-align:center;cursor:pointer;font-size:11px;font-weight:700;}
+.ty:hover{background:#f6f8fa;}
+.ty.on{border-width:2px;}
+.ty.on[data-t=work]{background:#f0fdf4;border-color:#059669;color:#059669;}
+.ty.on[data-t=off]{background:#f3f4f6;border-color:#6b7280;color:#374151;}
+.ty.on[data-t=special]{background:#fffbeb;border-color:#d97706;color:#b45309;}
+.ty.on[data-t=holiday]{background:#fef2f2;border-color:#dc2626;color:#dc2626;}
+.modal-f{padding:12px 18px;background:#f6f8fa;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#fff;border-radius:8px;padding:11px 15px;box-shadow:0 8px 26px rgba(0,0,0,.22);border-left:4px solid var(--pp);font-size:12px;min-width:240px;max-width:380px;animation:ti .25s ease;}
+.toast.info{border-left-color:#2563eb;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:var(--sub);font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="scr-head">
+  <div class="sh-id">SYS-03</div>
+  <div class="sh-tt"><div class="sh-en">Factory Calendar</div><div class="sh-ko">공장 캘린더 — 영업일·휴무·특근·교대 패턴 관리</div></div>
+  <span class="sh-tag">/sys/calendar</span>
+  <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
+</div>
+<div class="toolbar">
+  <div class="fld"><label>월 Month</label>
+    <select id="fMonth" onchange="apply()"><option>2026년 5월</option></select></div>
+  <div class="fld"><label>공장 Plant</label>
+    <select id="fPlant" onchange="apply()"><option>SAV 서산공장</option></select></div>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 기본값 복원</button>
+  <div style="margin-left:auto;"><button class="btn btn-s" onclick="exportCsv()">📥 Export</button></div>
+</div>
+<div class="body">
+  <div class="kpis">
+    <div class="kpi" style="--c:#059669"><div class="kv" id="kWork">0</div><div class="kl">영업일 · Working Days</div></div>
+    <div class="kpi" style="--c:#6b7280"><div class="kv" id="kOff">0</div><div class="kl">휴무일 · Off Days</div></div>
+    <div class="kpi" style="--c:#d97706"><div class="kv" id="kSp">0</div><div class="kl">특근일 · Special Work</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kHol">0</div><div class="kl">공휴일 · Holidays</div></div>
+    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kHrs">0</div><div class="kl">월 총 가동시간 · h</div></div>
+  </div>
+  <div class="card">
+    <div class="card-t">📅 2026년 5월 공장 가동 캘린더
+      <span class="legend">
+        <span><i style="background:#a7f3d0"></i>영업일</span>
+        <span><i style="background:#d1d5db"></i>휴무</span>
+        <span><i style="background:#fde68a"></i>특근</span>
+        <span><i style="background:#fecaca"></i>공휴일</span>
+      </span>
+    </div>
+    <div class="cal">
+      <div class="cal-grid" id="dows"></div>
+      <div class="cal-grid" id="cal" style="margin-top:5px;"></div>
+    </div>
+    <div style="padding:0 12px 12px;font-size:9px;color:#9ca3af;">날짜 클릭 = 가동 유형 변경 · 영업일 16h(2교대) · 특근일 8h</div>
+  </div>
+</div>
+
+<!-- day type modal -->
+<div class="ov" id="ovDay">
+  <div class="modal">
+    <div class="modal-h"><span class="mt" id="dmTitle">가동 유형 설정</span><span class="mx" onclick="closeOv('ovDay')">✕</span></div>
+    <div class="modal-b">
+      <div class="ff"><label>가동 유형</label>
+        <div class="typegrid" id="typeGrid">
+          <div class="ty" data-t="work" onclick="pickType('work')">🏭 영업일</div>
+          <div class="ty" data-t="off" onclick="pickType('off')">🛌 휴무일</div>
+          <div class="ty" data-t="special" onclick="pickType('special')">⚡ 특근일</div>
+          <div class="ty" data-t="holiday" onclick="pickType('holiday')">🎌 공휴일</div>
+        </div>
+      </div>
+      <div class="ff" id="noteFf"><label>비고 (공휴일·특근 사유)</label>
+        <input id="dmNote" placeholder="예: 근로자의 날, 토요 특근"></div>
+    </div>
+    <div class="modal-f">
+      <button class="btn btn-s" onclick="closeOv('ovDay')">취소</button>
+      <button class="btn btn-p" onclick="saveDay()">적용</button>
+    </div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+var TODAY=21;
+var TYPE={work:{ko:'영업일',cls:'tw'},off:{ko:'휴무',cls:'to'},special:{ko:'특근',cls:'ts'},holiday:{ko:'공휴일',cls:'th'}};
+/* default day map for May 2026 */
+var DAYS={};
+function defaults(){
+  DAYS={};
+  for(var d=1;d<=31;d++){
+    var dow=new Date(2026,4,d).getDay();
+    DAYS[d]={type:(dow===0||dow===6)?'off':'work',note:''};
+  }
+  DAYS[1]={type:'holiday',note:'근로자의 날'};
+  DAYS[5]={type:'holiday',note:'어린이날'};
+  DAYS[24]={type:'holiday',note:'부처님오신날'};
+  DAYS[9]={type:'special',note:'토요 특근'};
+  DAYS[23]={type:'special',note:'토요 특근'};
+}
+var curDay=null,pickT='work';
+function init(){
+  var dn=['일','월','화','수','목','금','토'];
+  document.getElementById('dows').innerHTML=dn.map(function(d,i){
+    return '<div class="dow'+(i===0?' sun':i===6?' sat':'')+'">'+d+'</div>';}).join('');
+  defaults();apply();
+}
+function apply(){
+  var w=0,o=0,s=0,hh=0;
+  for(var d=1;d<=31;d++){
+    var t=DAYS[d].type;
+    if(t==='work')w++;else if(t==='off')o++;else if(t==='special')s++;else hh++;
+  }
+  document.getElementById('kWork').textContent=w;
+  document.getElementById('kOff').textContent=o;
+  document.getElementById('kSp').textContent=s;
+  document.getElementById('kHol').textContent=hh;
+  document.getElementById('kHrs').textContent=(w*16+s*8).toLocaleString();
+  renderCal();
+}
+function renderCal(){
+  var first=new Date(2026,4,1).getDay();
+  var h='';
+  for(var i=0;i<first;i++)h+='<div class="cell empty"></div>';
+  for(var d=1;d<=31;d++){
+    var info=DAYS[d],t=info.type;
+    h+='<div class="cell '+t+(d===TODAY?' today':'')+'" onclick="dayClick('+d+')">'+
+      '<div class="dn">'+d+'</div>'+
+      '<div class="dt '+TYPE[t].cls+'">'+TYPE[t].ko+'</div>'+
+      (info.note?'<div class="dh">'+info.note+'</div>'
+        :(t==='work'||t==='special'?'<div class="dh">'+(t==='work'?'16h':'8h')+'</div>':''))+
+      '</div>';
+  }
+  document.getElementById('cal').innerHTML=h;
+}
+function dayClick(d){
+  curDay=d;var info=DAYS[d];
+  var dow=['일','월','화','수','목','금','토'][new Date(2026,4,d).getDay()];
+  document.getElementById('dmTitle').textContent='5월 '+d+'일 ('+dow+') 가동 유형';
+  pickType(info.type);
+  document.getElementById('dmNote').value=info.note;
+  openOv('ovDay');
+}
+function pickType(t){
+  pickT=t;
+  [].slice.call(document.querySelectorAll('#typeGrid .ty')).forEach(function(el){
+    el.classList.toggle('on',el.dataset.t===t);});
+}
+function saveDay(){
+  DAYS[curDay]={type:pickT,note:document.getElementById('dmNote').value.trim()};
+  closeOv('ovDay');apply();
+  toast('','5월 '+curDay+'일 변경','가동 유형이 「'+TYPE[pickT].ko+'」(으)로 설정되었습니다.');
+}
+function resetAll(){
+  defaults();apply();
+  toast('info','기본값 복원','공장 캘린더를 표준 가동 패턴으로 복원했습니다.');
+}
+function exportCsv(){
+  var csv='Date,DayOfWeek,Type,WorkHours,Note\n';
+  for(var d=1;d<=31;d++){
+    var info=DAYS[d],dow=['일','월','화','수','목','금','토'][new Date(2026,4,d).getDay()];
+    var hrs=info.type==='work'?16:(info.type==='special'?8:0);
+    csv+=['2026-05-'+('0'+d).slice(-2),dow,TYPE[info.type].ko,hrs,info.note].join(',')+'\n';
+  }
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='SYS_FactoryCalendar_2026-05.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  toast('','Export 완료','공장 캘린더를 CSV로 내보냈습니다.');
+}
+function openOv(id){document.getElementById(id).classList.add('on');}
+function closeOv(id){document.getElementById(id).classList.remove('on');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='info'?'ℹ ':'✅ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},4000);
+}
+init();
+</script>
+</body>
+</html>
