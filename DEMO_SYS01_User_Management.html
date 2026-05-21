@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SYS-01 User Management · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+.scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
+.sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
+.sh-tt{flex:1;}
+.sh-en{font-size:16px;font-weight:800;color:#fff;}
+.sh-ko{font-size:11px;color:rgba(255,255,255,.5);}
+.sh-tag{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.3);}
+.sh-live{font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 9px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.sh-live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.toolbar{background:#fff;border-bottom:1px solid var(--bd);padding:9px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
+.fld{display:flex;flex-direction:column;gap:2px;}
+.fld label{font-size:8px;font-weight:700;color:var(--sub);letter-spacing:.5px;text-transform:uppercase;}
+select,input{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink);}
+.btn{padding:6px 13px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-p{background:var(--pp);color:#fff;}.btn-p:hover{background:var(--pp-dk);}
+.btn-s{background:#f6f8fa;color:var(--ink);border-color:var(--bd);}.btn-s:hover{background:#eef1f5;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+.body{flex:1;overflow-y:auto;padding:16px 24px 40px;}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:16px;}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:12px 14px;border-left:3px solid var(--c);}
+.kpi .kv{font-size:24px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;color:var(--c);}
+.kpi .kl{font-size:10px;color:var(--sub);margin-top:4px;}
+.grid2{display:grid;grid-template-columns:1.55fr 1fr;gap:14px;}
+.card{background:#fff;border:1px solid var(--bd);border-radius:8px;overflow:hidden;}
+.card-t{font-size:12px;font-weight:800;color:var(--pp);padding:11px 14px;border-bottom:1px solid var(--bd);background:#f0fdf4;display:flex;align-items:center;gap:6px;}
+table{width:100%;border-collapse:collapse;font-size:11.5px;}
+thead th{background:#f0f3f7;padding:9px 9px;text-align:left;font-size:10px;font-weight:700;border-bottom:1px solid var(--bd);white-space:nowrap;}
+tbody td{padding:9px 9px;border-bottom:1px solid #eef1f5;}
+tbody tr{cursor:pointer;}
+tbody tr:hover td{background:#f0fdf4;}
+tbody tr.sel td{background:#ecfdf5;}
+.mono{font-family:'JetBrains Mono',monospace;font-size:10px;}
+.av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;}
+.uc{display:flex;align-items:center;gap:8px;}
+.role{display:inline-block;font-size:9px;font-weight:700;padding:2px 8px;border-radius:9px;}
+.role-adm{background:#fee2e2;color:#991b1b;}.role-mgr{background:#ede9fe;color:#5b21b6;}
+.role-opr{background:#dbeafe;color:#1e40af;}.role-view{background:#f3f4f6;color:#4b5563;}
+.st{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;padding:2px 8px;border-radius:9px;}
+.st .dot{width:6px;height:6px;border-radius:50%;}
+.st-on{background:#d1fae5;color:#065f46;}.st-on .dot{background:#10b981;}
+.st-off{background:#f3f4f6;color:#4b5563;}.st-off .dot{background:#9ca3af;}
+.st-lock{background:#fee2e2;color:#991b1b;}.st-lock .dot{background:#dc2626;}
+.empty{padding:34px;text-align:center;color:#9ca3af;}
+/* detail */
+.ud-head{padding:16px;border-bottom:1px solid #eef1f5;display:flex;align-items:center;gap:12px;}
+.ud-head .av{width:52px;height:52px;font-size:18px;}
+.ud-nm{font-size:15px;font-weight:800;}
+.ud-id{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--sub);}
+.specs{padding:6px 16px;}
+.srow{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed #eef1f5;font-size:12px;}
+.srow .sk{color:var(--sub);}.srow .sv{font-weight:700;}
+.acts{display:flex;gap:7px;padding:12px 16px;flex-wrap:wrap;}
+.ov{position:fixed;inset:0;background:rgba(3,20,14,.55);display:none;align-items:center;justify-content:center;z-index:100;}
+.ov.on{display:flex;}
+.modal{background:#fff;border-radius:10px;width:430px;max-width:94vw;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.4);}
+.modal-h{background:linear-gradient(135deg,#03251a,#052e1f);color:#fff;padding:13px 18px;display:flex;align-items:center;gap:10px;}
+.modal-h .mt{font-size:14px;font-weight:800;flex:1;}
+.modal-h .mx{cursor:pointer;font-size:18px;color:rgba(255,255,255,.6);}
+.modal-b{padding:18px;}
+.ff{margin-bottom:11px;}
+.ff label{display:block;font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;margin-bottom:4px;}
+.ff label .req{color:#dc2626;}
+.ff select,.ff input{width:100%;}
+.ff2{display:flex;gap:9px;}.ff2>div{flex:1;}
+.modal-f{padding:12px 18px;background:#f6f8fa;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#fff;border-radius:8px;padding:11px 15px;box-shadow:0 8px 26px rgba(0,0,0,.22);border-left:4px solid var(--pp);font-size:12px;min-width:240px;max-width:380px;animation:ti .25s ease;}
+.toast.err{border-left-color:#dc2626;}.toast.warn{border-left-color:#f59e0b;}.toast.info{border-left-color:#2563eb;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:var(--sub);font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="scr-head">
+  <div class="sh-id">SYS-01</div>
+  <div class="sh-tt"><div class="sh-en">User Management</div><div class="sh-ko">사용자 관리 — 계정 등록·역할·상태 관리</div></div>
+  <span class="sh-tag">/sys/users</span>
+  <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
+</div>
+<div class="toolbar">
+  <div class="fld"><label>부서 Dept</label>
+    <select id="fDept" onchange="apply()"><option value="">전체 All</option><option>생산팀</option><option>품질팀</option><option>설비팀</option><option>물류팀</option><option>경영지원</option></select></div>
+  <div class="fld"><label>역할 Role</label>
+    <select id="fRole" onchange="apply()"><option value="">전체</option><option value="adm">시스템관리자</option><option value="mgr">관리자</option><option value="opr">작업자</option><option value="view">조회전용</option></select></div>
+  <div class="fld"><label>상태 Status</label>
+    <select id="fStat" onchange="apply()"><option value="">전체</option><option value="on">활성</option><option value="off">비활성</option><option value="lock">잠금</option></select></div>
+  <div class="fld"><label>검색 Search</label>
+    <input id="fKw" placeholder="이름·계정" oninput="apply()" style="width:130px;"></div>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <button class="btn btn-p" onclick="openNew()">＋ 사용자 등록</button>
+    <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
+  </div>
+</div>
+<div class="body">
+  <div class="kpis">
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">총 사용자 · Users</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kOn">0</div><div class="kl">활성 계정 · Active</div></div>
+    <div class="kpi" style="--c:#9ca3af"><div class="kv" id="kOff">0</div><div class="kl">비활성 · Inactive</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kLock">0</div><div class="kl">잠금 계정 · Locked</div></div>
+    <div class="kpi" style="--c:#8b5cf6"><div class="kv" id="kAdm">0</div><div class="kl">관리자 권한 · Admin</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-t">👥 사용자 목록 — <span id="listSub" style="font-weight:400;color:#656d76;">0명</span></div>
+      <table>
+        <thead><tr><th>사용자</th><th>부서</th><th>역할</th><th>최근 접속</th><th>상태</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="empty" id="empty" style="display:none;">조건에 맞는 사용자가 없습니다.</div>
+    </div>
+    <div class="card" id="detail"><div class="empty">← 좌측 목록에서 사용자를 선택하세요.</div></div>
+  </div>
+</div>
+
+<!-- new/edit user modal -->
+<div class="ov" id="ovUser">
+  <div class="modal">
+    <div class="modal-h"><span class="mt" id="umTitle">사용자 등록</span><span class="mx" onclick="closeOv('ovUser')">✕</span></div>
+    <div class="modal-b">
+      <div class="ff2">
+        <div class="ff"><label>이름 <span class="req">*</span></label><input id="uNm" placeholder="홍길동"></div>
+        <div class="ff"><label>계정(ID) <span class="req">*</span></label><input id="uId" placeholder="hong.gd"></div>
+      </div>
+      <div class="ff2">
+        <div class="ff"><label>부서 <span class="req">*</span></label>
+          <select id="uDept"><option>생산팀</option><option>품질팀</option><option>설비팀</option><option>물류팀</option><option>경영지원</option></select></div>
+        <div class="ff"><label>직급</label>
+          <select id="uPos"><option>사원</option><option>주임</option><option>대리</option><option>과장</option><option>차장</option><option>부장</option></select></div>
+      </div>
+      <div class="ff2">
+        <div class="ff"><label>역할 <span class="req">*</span></label>
+          <select id="uRole"><option value="opr">작업자</option><option value="mgr">관리자</option><option value="adm">시스템관리자</option><option value="view">조회전용</option></select></div>
+        <div class="ff"><label>상태</label>
+          <select id="uStat"><option value="on">활성</option><option value="off">비활성</option></select></div>
+      </div>
+      <div class="ff"><label>이메일</label><input id="uEmail" placeholder="hong.gd@seoyon.com"></div>
+    </div>
+    <div class="modal-f">
+      <button class="btn btn-s" onclick="closeOv('ovUser')">취소</button>
+      <button class="btn btn-p" id="umSave" onclick="saveUser()">＋ 등록</button>
+    </div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+var ROLE={adm:{ko:'시스템관리자',cls:'role-adm'},mgr:{ko:'관리자',cls:'role-mgr'},opr:{ko:'작업자',cls:'role-opr'},view:{ko:'조회전용',cls:'role-view'}};
+var ST={on:{ko:'활성',cls:'st-on'},off:{ko:'비활성',cls:'st-off'},lock:{ko:'잠금',cls:'st-lock'}};
+var AVC=['#059669','#2563eb','#f59e0b','#8b5cf6','#0891b2','#dc2626','#65a30d','#ec4899'];
+var USERS=[
+ {id:'admin',nm:'시스템관리자',dept:'경영지원',pos:'부장',role:'adm',stat:'on',email:'admin@seoyon.com',last:'2026-05-21 08:12',created:'2024-01-02'},
+ {id:'kim.sh',nm:'김성호',dept:'생산팀',pos:'과장',role:'mgr',stat:'on',email:'kim.sh@seoyon.com',last:'2026-05-21 07:48',created:'2024-03-15'},
+ {id:'lee.jm',nm:'이재민',dept:'생산팀',pos:'대리',role:'opr',stat:'on',email:'lee.jm@seoyon.com',last:'2026-05-21 06:30',created:'2024-06-01'},
+ {id:'park.jn',nm:'박주니어',dept:'생산팀',pos:'사원',role:'opr',stat:'on',email:'park.jn@seoyon.com',last:'2026-05-20 22:05',created:'2025-02-10'},
+ {id:'han.jw',nm:'한지원',dept:'품질팀',pos:'과장',role:'mgr',stat:'on',email:'han.jw@seoyon.com',last:'2026-05-21 08:00',created:'2024-04-22'},
+ {id:'seo.mj',nm:'서민재',dept:'품질팀',pos:'주임',role:'opr',stat:'on',email:'seo.mj@seoyon.com',last:'2026-05-20 18:40',created:'2024-09-03'},
+ {id:'choi.wj',nm:'최우진',dept:'설비팀',pos:'대리',role:'mgr',stat:'lock',email:'choi.wj@seoyon.com',last:'2026-05-12 14:20',created:'2024-05-18'},
+ {id:'jung.eq',nm:'정비반',dept:'설비팀',pos:'사원',role:'opr',stat:'on',email:'jung.eq@seoyon.com',last:'2026-05-21 07:10',created:'2024-07-30'},
+ {id:'oh.sh',nm:'오세훈',dept:'물류팀',pos:'대리',role:'opr',stat:'off',email:'oh.sh@seoyon.com',last:'2026-04-28 17:00',created:'2024-08-12'},
+ {id:'ceo.view',nm:'경영진 조회',dept:'경영지원',pos:'부장',role:'view',stat:'on',email:'ceo@seoyon.com',last:'2026-05-21 09:00',created:'2024-01-15'}
+];
+var selId=null,editId=null;
+function avColor(id){var s=0;for(var i=0;i<id.length;i++)s+=id.charCodeAt(i);return AVC[s%AVC.length];}
+function vis(){
+  var fd=document.getElementById('fDept').value,fr=document.getElementById('fRole').value,fs=document.getElementById('fStat').value;
+  var kw=document.getElementById('fKw').value.trim().toLowerCase();
+  return USERS.filter(function(u){
+    if(fd&&u.dept!==fd)return false;
+    if(fr&&u.role!==fr)return false;
+    if(fs&&u.stat!==fs)return false;
+    if(kw&&u.nm.toLowerCase().indexOf(kw)<0&&u.id.toLowerCase().indexOf(kw)<0)return false;
+    return true;});
+}
+function apply(){
+  document.getElementById('kTot').textContent=USERS.length;
+  document.getElementById('kOn').textContent=USERS.filter(function(u){return u.stat==='on';}).length;
+  document.getElementById('kOff').textContent=USERS.filter(function(u){return u.stat==='off';}).length;
+  document.getElementById('kLock').textContent=USERS.filter(function(u){return u.stat==='lock';}).length;
+  document.getElementById('kAdm').textContent=USERS.filter(function(u){return u.role==='adm'||u.role==='mgr';}).length;
+  renderList();
+}
+function renderList(){
+  var v=vis(),h='';
+  v.forEach(function(u){
+    h+='<tr class="'+(selId===u.id?'sel':'')+'" onclick="pick(\''+u.id+'\')">'+
+      '<td><div class="uc"><div class="av" style="background:'+avColor(u.id)+'">'+u.nm.charAt(0)+'</div>'+
+        '<div><div style="font-weight:700;">'+u.nm+'</div><div class="mono" style="color:#656d76;">'+u.id+'</div></div></div></td>'+
+      '<td>'+u.dept+'</td>'+
+      '<td><span class="role '+ROLE[u.role].cls+'">'+ROLE[u.role].ko+'</span></td>'+
+      '<td class="mono">'+u.last.slice(5)+'</td>'+
+      '<td><span class="st '+ST[u.stat].cls+'"><span class="dot"></span>'+ST[u.stat].ko+'</span></td></tr>';
+  });
+  document.getElementById('tbody').innerHTML=h;
+  document.getElementById('empty').style.display=v.length?'none':'block';
+  document.getElementById('listSub').textContent=v.length+'명';
+}
+function byId(id){return USERS.filter(function(u){return u.id===id;})[0];}
+function pick(id){selId=id;renderList();renderDetail();}
+function renderDetail(){
+  var u=byId(selId);
+  if(!u){document.getElementById('detail').innerHTML='<div class="empty">← 좌측 목록에서 사용자를 선택하세요.</div>';return;}
+  var specs=[['계정 ID',u.id],['부서 / 직급',u.dept+' '+u.pos],['역할','<span class="role '+ROLE[u.role].cls+'">'+ROLE[u.role].ko+'</span>'],
+    ['이메일',u.email],['최근 접속',u.last],['계정 생성일',u.created]];
+  var h='<div class="card-t">👤 사용자 상세</div>'+
+    '<div class="ud-head"><div class="av" style="background:'+avColor(u.id)+'">'+u.nm.charAt(0)+'</div>'+
+      '<div style="flex:1;"><div class="ud-nm">'+u.nm+'</div><div class="ud-id">'+u.id+'</div>'+
+      '<div style="margin-top:6px;"><span class="st '+ST[u.stat].cls+'"><span class="dot"></span>'+ST[u.stat].ko+'</span></div></div></div>'+
+    '<div class="specs">'+specs.map(function(s){
+      return '<div class="srow"><span class="sk">'+s[0]+'</span><span class="sv">'+s[1]+'</span></div>';}).join('')+'</div>'+
+    '<div class="acts">'+
+      '<button class="btn btn-s btn-sm" onclick="editUser()">✎ 정보 수정</button>'+
+      (u.stat==='lock'
+        ?'<button class="btn btn-p btn-sm" onclick="unlock()">🔓 잠금 해제</button>'
+        :'<button class="btn btn-s btn-sm" onclick="toggleStat()">'+(u.stat==='on'?'⏸ 비활성화':'▶ 활성화')+'</button>')+
+      '<button class="btn btn-s btn-sm" onclick="resetPw()">🔑 비밀번호 초기화</button></div>';
+  document.getElementById('detail').innerHTML=h;
+}
+function openNew(){
+  editId=null;
+  document.getElementById('umTitle').textContent='사용자 등록';
+  document.getElementById('umSave').textContent='＋ 등록';
+  ['uNm','uId','uEmail'].forEach(function(f){document.getElementById(f).value='';});
+  document.getElementById('uDept').selectedIndex=0;document.getElementById('uPos').selectedIndex=0;
+  document.getElementById('uRole').value='opr';document.getElementById('uStat').value='on';
+  document.getElementById('uId').disabled=false;
+  openOv('ovUser');
+}
+function editUser(){
+  var u=byId(selId);editId=u.id;
+  document.getElementById('umTitle').textContent='사용자 정보 수정';
+  document.getElementById('umSave').textContent='💾 저장';
+  document.getElementById('uNm').value=u.nm;document.getElementById('uId').value=u.id;
+  document.getElementById('uId').disabled=true;
+  document.getElementById('uDept').value=u.dept;document.getElementById('uPos').value=u.pos;
+  document.getElementById('uRole').value=u.role;document.getElementById('uStat').value=u.stat==='lock'?'on':u.stat;
+  document.getElementById('uEmail').value=u.email;
+  openOv('ovUser');
+}
+function saveUser(){
+  var nm=document.getElementById('uNm').value.trim();
+  var id=document.getElementById('uId').value.trim();
+  if(!nm||!id){toast('err','입력 오류','이름과 계정 ID는 필수 항목입니다.');return;}
+  var data={nm:nm,dept:document.getElementById('uDept').value,pos:document.getElementById('uPos').value,
+    role:document.getElementById('uRole').value,stat:document.getElementById('uStat').value,
+    email:document.getElementById('uEmail').value||id+'@seoyon.com'};
+  if(editId){
+    var u=byId(editId);for(var k in data)u[k]=data[k];
+    toast('','수정 완료',nm+' 사용자 정보가 수정되었습니다.');
+  }else{
+    if(byId(id)){toast('err','중복 오류','이미 존재하는 계정 ID입니다.');return;}
+    USERS.push(Object.assign({id:id,last:'-',created:'2026-05-21'},data));
+    selId=id;toast('','등록 완료',nm+' ('+id+') 사용자가 등록되었습니다.');
+  }
+  closeOv('ovUser');apply();renderDetail();
+}
+function toggleStat(){
+  var u=byId(selId);u.stat=u.stat==='on'?'off':'on';apply();renderDetail();
+  toast('info',u.nm+' 상태 변경','계정이 '+ST[u.stat].ko+' 상태로 전환되었습니다.');
+}
+function unlock(){
+  var u=byId(selId);u.stat='on';apply();renderDetail();
+  toast('',u.nm+' 잠금 해제','계정 잠금이 해제되어 활성 상태가 되었습니다.');
+}
+function resetPw(){
+  var u=byId(selId);
+  toast('warn',u.nm+' 비밀번호 초기화','임시 비밀번호가 발급되어 '+u.email+' 로 발송되었습니다.');
+}
+function exportCsv(){
+  var v=vis();
+  var csv='UserID,Name,Dept,Position,Role,Status,Email,LastLogin,Created\n';
+  v.forEach(function(u){
+    csv+=[u.id,u.nm,u.dept,u.pos,ROLE[u.role].ko,ST[u.stat].ko,u.email,u.last,u.created].join(',')+'\n';});
+  var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='SYS_Users_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  toast('','Export 완료','사용자 '+v.length+'명을 CSV로 내보냈습니다.');
+}
+function resetAll(){
+  ['fDept','fRole','fStat'].forEach(function(f){document.getElementById(f).value='';});
+  document.getElementById('fKw').value='';apply();
+  toast('info','초기화','사용자 목록 필터를 초기화했습니다.');
+}
+function openOv(id){document.getElementById(id).classList.add('on');}
+function closeOv(id){document.getElementById(id).classList.remove('on');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='warn'?'⚠ ':type==='info'?'ℹ ':'✅ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},4200);
+}
+apply();
+</script>
+</body>
+</html>
