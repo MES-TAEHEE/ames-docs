@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PNT-03 Loading R1 · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--sc:#ea580c;--sc-dk:#c2410c;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
+.head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
+.head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#fb923c;}
+.head .tt{flex:1;}
+.head .en{font-size:17px;font-weight:800;color:#fff;}
+.head .ko{font-size:11px;color:#a8997f;}
+.r-badge{background:linear-gradient(180deg,#16a34a,#15803d);color:#fff;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:900;padding:6px 14px;border-radius:7px;letter-spacing:2px;}
+.back{background:#1a1208;border:1px solid #3a2a14;color:#fdba74;font-size:13px;font-weight:700;padding:9px 16px;border-radius:7px;cursor:pointer;font-family:inherit;}
+.live{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:5px 10px;border-radius:5px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.live .d{width:7px;height:7px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.body{flex:1;display:grid;grid-template-columns:1.1fr 1.1fr;gap:14px;padding:18px 24px;min-height:0;overflow:hidden;}
+.col{display:flex;flex-direction:column;gap:13px;min-height:0;}
+.lot-card{background:linear-gradient(160deg,rgba(234,88,12,.12),rgba(234,88,12,.03));border:1px solid #3a2a14;border-top:4px solid var(--sc);border-radius:11px;padding:16px 20px;}
+.lot-card .h{display:flex;align-items:center;gap:11px;margin-bottom:8px;}
+.lot-card .lbl{font-size:10px;color:#fdba74;letter-spacing:2px;font-family:'JetBrains Mono',monospace;}
+.lot-card .stg{margin-left:auto;font-size:10px;font-weight:800;padding:3px 10px;border-radius:10px;background:rgba(34,197,94,.18);color:#86efac;}
+.lot-card .lid{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:900;color:#fff;}
+.lot-card .item{font-size:14px;color:#fff;margin-top:3px;display:flex;align-items:center;gap:8px;}
+.lot-card .item .sw{width:14px;height:14px;border-radius:3px;border:1px solid #666;}
+.lot-card .meta{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:11px;}
+.lot-card .m{background:rgba(0,0,0,.3);border:1px solid #3a2a14;border-radius:7px;padding:8px 10px;}
+.lot-card .m .ml{font-size:9px;color:#a8997f;font-family:'JetBrains Mono',monospace;}
+.lot-card .m .mv{font-size:14px;font-weight:800;color:#fff;margin-top:2px;}
+/* progress */
+.prog{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:11px;padding:18px 22px;text-align:center;}
+.prog .lbl{font-size:11px;color:#fdba74;letter-spacing:2px;font-family:'JetBrains Mono',monospace;}
+.prog .big{font-family:'JetBrains Mono',monospace;font-size:80px;font-weight:900;line-height:.9;margin:8px 0 4px;}
+.prog .big b{color:#22c55e;}
+.prog .big span{color:#a8997f;font-size:46px;}
+.prog .sub{font-size:12px;color:#a8997f;}
+.prog .pbar{height:14px;background:#1a1208;border-radius:7px;overflow:hidden;margin-top:11px;}
+.prog .pbar i{display:block;height:100%;background:linear-gradient(90deg,#16a34a,#22c55e);border-radius:7px;transition:width .4s;}
+.scan{background:rgba(56,189,248,.08);border:2px dashed #38bdf8;border-radius:11px;padding:20px;text-align:center;cursor:pointer;}
+.scan:active{background:rgba(56,189,248,.18);}
+.scan .ic{font-size:42px;}
+.scan .t{font-size:15px;font-weight:800;color:#7dd3fc;margin-top:6px;}
+.scan .s{font-size:11px;color:#a8997f;margin-top:3px;}
+.hgrid{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;background:rgba(0,0,0,.3);border:1px solid #3a2a14;border-radius:11px;padding:14px;}
+.hg{aspect-ratio:1;background:#1a1208;border:1px solid #3a2a14;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:#a8997f;font-weight:800;}
+.hg.on{background:rgba(34,197,94,.18);border-color:#22c55e;color:#86efac;animation:pop .3s ease;}
+@keyframes pop{from{transform:scale(.7);opacity:.3;}}
+.actions{display:flex;gap:10px;}
+.btn-comp{flex:2;padding:18px;background:linear-gradient(180deg,#16a34a,#15803d);border:none;border-radius:11px;color:#fff;font-size:17px;font-weight:800;font-family:inherit;cursor:pointer;letter-spacing:2px;box-shadow:0 4px 0 #14532d;}
+.btn-comp:disabled{background:#3a2a14;color:#6b5a3a;box-shadow:0 4px 0 #1a1208;cursor:not-allowed;}
+.btn-comp:not(:disabled):active{transform:translateY(2px);box-shadow:0 2px 0 #14532d;}
+.btn-pause{flex:1;padding:18px;background:#1a1208;border:1px solid #3a2a14;color:#fdba74;font-size:14px;font-weight:700;border-radius:11px;cursor:pointer;font-family:inherit;}
+.next-lot{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:11px;padding:13px 16px;}
+.next-lot h3{font-size:10px;color:#fdba74;letter-spacing:2px;margin-bottom:8px;font-weight:800;font-family:'JetBrains Mono',monospace;}
+.next-lot .nl{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.07);font-size:11.5px;}
+.next-lot .nl:last-child{border:none;}
+.next-lot .sw{width:14px;height:14px;border-radius:3px;border:1px solid rgba(255,255,255,.1);flex-shrink:0;}
+.next-lot .nl .nm{flex:1;color:#fff;font-weight:700;}
+.next-lot .nl .nq{font-family:'JetBrains Mono',monospace;font-size:10px;color:#fbbf24;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#1a1208;border-radius:10px;padding:13px 17px;border-left:5px solid var(--sc);font-size:13px;min-width:280px;max-width:400px;animation:ti .25s ease;color:#fff;box-shadow:0 8px 26px rgba(0,0,0,.5);}
+.toast.ok{border-left-color:#16a34a;}.toast.info{border-left-color:#2563eb;}.toast.warn{border-left-color:#f59e0b;}
+.toast .tt{font-weight:800;margin-bottom:3px;}
+.toast .tb{color:#a8997f;font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="head">
+  <button class="back" onclick="back()">‹ 대시보드</button>
+  <div class="id">PNT-03</div>
+  <div class="tt"><div class="en">Loading Station</div><div class="ko">로딩 스테이션 — 행거 장착 및 LOT 투입</div></div>
+  <span class="r-badge">R1 LOADING</span>
+  <span class="live"><span class="d"></span>LIVE</span>
+</div>
+<div class="body">
+  <div class="col">
+    <div class="lot-card">
+      <div class="h"><span style="font-size:18px;">🏷</span><span class="lbl">진행 중 LOT</span><span class="stg">R1 LOADING</span></div>
+      <div class="lid">LOT-2605-2107</div>
+      <div class="item"><span class="sw" style="background:#0A0A0A"></span><b>프론트 범퍼 도장</b> · 제트 블랙 (RAL 9005)</div>
+      <div class="meta">
+        <div class="m"><div class="ml">WO</div><div class="mv">WO-2605-132</div></div>
+        <div class="m"><div class="ml">총 행거</div><div class="mv">8 EA</div></div>
+        <div class="m"><div class="ml">시작</div><div class="mv" id="startT">09:14</div></div>
+      </div>
+    </div>
+    <div class="prog">
+      <div class="lbl">▶ 행거 장착 진척</div>
+      <div class="big"><b id="cur">0</b><span> / 8</span></div>
+      <div class="sub">총 48 EA / 행거당 6 EA</div>
+      <div class="pbar"><i id="pi" style="width:0%"></i></div>
+    </div>
+    <div class="scan" onclick="scan()">
+      <div class="ic" id="scanIc">📷</div>
+      <div class="t" id="scanT">행거 스캔 · Scan Hanger</div>
+      <div class="s" id="scanS">행거 RFID/바코드를 스캔하여 장착 완료 등록</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="hgrid" id="hgrid"></div>
+    <div class="actions">
+      <button class="btn-pause" onclick="pause()">⏸ 일시정지</button>
+      <button class="btn-comp" id="bComp" disabled onclick="complete()">▶ R1 완료 → R2</button>
+    </div>
+    <div class="next-lot">
+      <h3>📋 다음 대기 LOT (큐)</h3>
+      <div class="nl"><div class="sw" style="background:#8D948D"></div><span class="nm">LOT-2605-2108 · 그릴 도장 (그레이)</span><span class="nq">32 EA</span></div>
+      <div class="nl"><div class="sw" style="background:#F4F4F4;border-color:#666;"></div><span class="nm">LOT-2605-2109 · 사이드 몰딩 (화이트)</span><span class="nq">42 EA</span></div>
+      <div class="nl"><div class="sw" style="background:#0A0A0A"></div><span class="nm">LOT-2605-2110 · 프론트 범퍼 (블랙)</span><span class="nq">48 EA</span></div>
+    </div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+var cur=0,TOT=8;
+function renderGrid(){
+  var h='';
+  for(var i=1;i<=TOT;i++){h+='<div class="hg'+(i<=cur?' on':'')+'">'+(i<=cur?'✓':'#'+i)+'</div>';}
+  document.getElementById('hgrid').innerHTML=h;
+}
+function scan(){
+  if(cur>=TOT){toast('','전체 완료','모든 행거가 장착되었습니다. R1 완료를 누르세요.');return;}
+  cur++;
+  document.getElementById('cur').textContent=cur;
+  document.getElementById('pi').style.width=(cur/TOT*100)+'%';
+  document.getElementById('bComp').disabled=cur<TOT;
+  renderGrid();
+  toast('ok','행거 스캔 ✓','행거 #'+cur+' 장착 완료 — 6 EA. 누적 '+(cur*6)+' / 48 EA');
+  if(cur===TOT){toast('ok','로딩 완료 ✓','모든 행거 장착 완료. R1 완료 버튼을 누르세요.');}
+}
+function complete(){
+  toast('ok','R1 로딩 완료 ✓','LOT-2605-2107이 R2 오븐 단계로 이송됩니다. (데모)');
+  setTimeout(function(){cur=0;renderGrid();document.getElementById('cur').textContent='0';document.getElementById('pi').style.width='0%';
+    document.getElementById('bComp').disabled=true;toast('info','다음 LOT 로드','LOT-2605-2108 (그레이 그릴) 로딩 시작 준비.');},800);
+}
+function pause(){toast('warn','일시정지','R1 로딩 작업을 일시정지했습니다. 비가동 사유를 입력하세요.');}
+function back(){toast('','뒤로 이동','POP 대시보드로 돌아갑니다.');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='info'?'ℹ ':type==='warn'?'⚠ ':type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3500);
+}
+renderGrid();
+</script>
+</body>
+</html>
