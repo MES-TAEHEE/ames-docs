@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FG-01 PDA Stocking · A-MES PDA Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--pda:#06b6d4;--pda-dk:#0e7490;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
+.pda{width:420px;max-width:100%;height:100%;max-height:760px;background:#0f1f25;border:2px solid #1a3540;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;}
+.pda-top{flex-shrink:0;background:linear-gradient(180deg,#1a3540,#0f1f25);padding:11px 16px;display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--pda);}
+.pda-id{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#22d3ee;}
+.pda-t{flex:1;font-size:13px;font-weight:800;color:#fff;}
+.pda-bat{font-size:9px;color:#67e8f9;font-family:'JetBrains Mono',monospace;}
+.live{font-size:8px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:2px 7px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:3px;}
+.live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.pda-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:11px;}
+.pda-body::-webkit-scrollbar{width:6px;}.pda-body::-webkit-scrollbar-thumb{background:#1a3540;border-radius:3px;}
+.section-h{font-size:10px;color:#67e8f9;text-transform:uppercase;letter-spacing:2px;font-weight:800;display:flex;align-items:center;gap:7px;}
+.section-h .stp{background:var(--pda);color:#fff;width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;}
+.scan-box{background:rgba(34,197,94,.13);border:2px solid #22c55e;border-radius:11px;padding:14px;text-align:center;}
+.scan-box .ic{font-size:32px;}
+.scan-box .t{font-size:14px;font-weight:800;color:#86efac;margin-top:5px;}
+.scan-box .s{font-size:10px;color:#7a9aa3;margin-top:3px;font-family:'JetBrains Mono',monospace;}
+.lot-info{background:rgba(255,255,255,.04);border:1px solid #1a3540;border-top:3px solid var(--pda);border-radius:10px;padding:13px 15px;}
+.lot-info .nm{font-size:14px;font-weight:800;color:#fff;}
+.lot-info .id{font-family:'JetBrains Mono',monospace;font-size:11px;color:#22d3ee;margin-top:2px;}
+.lot-info .meta{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px;font-size:11px;}
+.lot-info .meta .l{color:#7a9aa3;}
+.lot-info .meta b{color:#fff;font-family:'JetBrains Mono',monospace;}
+.loc-card{background:linear-gradient(160deg,rgba(245,158,11,.08),rgba(0,0,0,.3));border:1px solid #f59e0b;border-radius:10px;padding:13px 15px;}
+.loc-card .l{font-size:9px;color:#fbbf24;font-family:'JetBrains Mono',monospace;letter-spacing:1.5px;}
+.loc-card .loc{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:900;color:#fbbf24;margin-top:4px;}
+.loc-card .lsub{font-size:10px;color:#7a9aa3;margin-top:3px;}
+.fifo-note{background:rgba(34,197,94,.1);border:1px solid #16a34a;border-radius:8px;padding:9px 13px;font-size:11px;color:#86efac;display:flex;align-items:center;gap:8px;}
+.fifo-note .ic{font-size:18px;}
+.bottom-bar{flex-shrink:0;display:flex;gap:8px;padding:11px 14px;background:#1a3540;border-top:1px solid #0a1419;}
+.bottom-bar button{flex:1;padding:13px 0;background:linear-gradient(180deg,var(--pda),var(--pda-dk));border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer;letter-spacing:1px;box-shadow:0 3px 0 #155e75;}
+.bottom-bar button:active{transform:translateY(2px);box-shadow:0 1px 0 #155e75;}
+.bottom-bar button.sec{background:#0f1f25;color:#67e8f9;border:1px solid #1a3540;box-shadow:none;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#0f1f25;border:1px solid #1a3540;border-radius:9px;padding:12px 15px;border-left:4px solid var(--pda);font-size:12px;min-width:250px;max-width:340px;animation:ti .25s ease;color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.5);}
+.toast.ok{border-left-color:#16a34a;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:#7a9aa3;font-size:10px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="pda">
+  <div class="pda-top">
+    <div class="pda-id">FG-01</div>
+    <div class="pda-t">완제품 입고 적치</div>
+    <span class="live"><span class="d"></span>LIVE</span>
+    <span class="pda-bat">🔋 70%</span>
+  </div>
+  <div class="pda-body">
+    <div class="section-h"><span class="stp">1</span>완제품 LOT 스캔</div>
+    <div class="scan-box">
+      <div class="ic">📦✅</div>
+      <div class="t">LOT-2605-2105 인식</div>
+      <div class="s">QC 합격 · 출하 대기</div>
+    </div>
+    <div class="lot-info">
+      <div class="nm">라디에이터 그릴</div>
+      <div class="id">GRILLE-02 · LOT-2605-2105</div>
+      <div class="meta">
+        <span class="l">수량</span><b>32 EA</b>
+        <span class="l">색상</span><b>그레이</b>
+        <span class="l">WO</span><b>WO-2605-125</b>
+        <span class="l">생산일</span><b>2026-05-21</b>
+        <span class="l">유효기한</span><b>2027-05-21</b>
+        <span class="l">고객사</span><b>GEO</b>
+      </div>
+    </div>
+    <div class="section-h"><span class="stp">2</span>적치 로케이션 (FIFO 권장)</div>
+    <div class="loc-card">
+      <div class="l">▶ 권장 로케이션 (자동 배정)</div>
+      <div class="loc">FG-A-12-3</div>
+      <div class="lsub">완제품창고 / Block A · 행 12 · 단 3 · 잔여 80 EA</div>
+    </div>
+    <div class="fifo-note">
+      <span class="ic">📅</span>
+      <span><b>FIFO 원칙</b> — 동일 품목 중 가장 오래된 생산일자 우선 출고. 이 로케이션은 신규 입고 우선 배정.</span>
+    </div>
+  </div>
+  <div class="bottom-bar">
+    <button class="sec" onclick="back()">← 취소</button>
+    <button onclick="complete()">✓ 적치 완료</button>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+function complete(){toast('ok','적치 완료 ✓','LOT-2605-2105 — FG-A-12-3 적치 완료. 완제품 재고에 반영됨.');}
+function back(){toast('','뒤로','PDA 메뉴로 돌아갑니다.');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3000);
+}
+</script>
+</body>
+</html>
