@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FG-05 Loading · A-MES PDA Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--pda:#06b6d4;--pda-dk:#0e7490;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
+.pda{width:420px;max-width:100%;height:100%;max-height:760px;background:#0f1f25;border:2px solid #1a3540;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;}
+.pda-top{flex-shrink:0;background:linear-gradient(180deg,#1a3540,#0f1f25);padding:11px 16px;display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--pda);}
+.pda-id{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#22d3ee;}
+.pda-t{flex:1;font-size:13px;font-weight:800;color:#fff;}
+.pda-bat{font-size:9px;color:#67e8f9;font-family:'JetBrains Mono',monospace;}
+.live{font-size:8px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:2px 7px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:3px;}
+.live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.pda-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:11px;}
+.pda-body::-webkit-scrollbar{width:6px;}.pda-body::-webkit-scrollbar-thumb{background:#1a3540;border-radius:3px;}
+.section-h{font-size:10px;color:#67e8f9;text-transform:uppercase;letter-spacing:2px;font-weight:800;display:flex;align-items:center;gap:7px;}
+.section-h .stp{background:var(--pda);color:#fff;width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;}
+.vehicle-card{background:linear-gradient(160deg,rgba(245,158,11,.1),rgba(0,0,0,.3));border:1px solid #f59e0b;border-radius:10px;padding:13px 16px;display:flex;align-items:center;gap:13px;}
+.vehicle-card .ic{font-size:38px;}
+.vehicle-card .info{flex:1;}
+.vehicle-card .plate{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:900;color:#fbbf24;}
+.vehicle-card .nm{font-size:12px;color:#fff;margin-top:2px;}
+.vehicle-card .driver{font-size:10px;color:#7a9aa3;margin-top:3px;}
+.lot-r{background:rgba(255,255,255,.04);border:1px solid #1a3540;border-radius:9px;padding:10px 12px;display:flex;align-items:center;gap:9px;cursor:pointer;border-left:3px solid var(--st);}
+.lot-r:active{transform:scale(.98);}
+.lot-r .ck{width:24px;height:24px;border-radius:6px;background:#1a3540;border:2px solid #2c5564;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#22c55e;font-size:14px;}
+.lot-r.done .ck{background:#16a34a;border-color:#16a34a;color:#fff;}
+.lot-r.done{opacity:.75;}
+.lot-r .info{flex:1;}
+.lot-r .nm{font-size:12px;font-weight:800;color:#fff;}
+.lot-r .meta{font-size:10px;color:#7a9aa3;font-family:'JetBrains Mono',monospace;margin-top:2px;}
+.lot-r .qty{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:900;color:#fbbf24;}
+.prog{background:rgba(255,255,255,.04);border:1px solid #1a3540;border-radius:9px;padding:11px 13px;}
+.prog .h{display:flex;justify-content:space-between;font-size:10px;color:#7a9aa3;margin-bottom:5px;}
+.prog .h b{color:#22c55e;font-family:'JetBrains Mono',monospace;font-size:14px;}
+.prog .bar{height:11px;background:#1a3540;border-radius:5px;overflow:hidden;}
+.prog .bar i{display:block;height:100%;background:linear-gradient(90deg,#22c55e,#16a34a);transition:width .3s;}
+.dest-card{background:rgba(6,182,212,.06);border:1px solid #1a3540;border-radius:9px;padding:11px 14px;}
+.dest-card .l{font-size:9px;color:#67e8f9;font-family:'JetBrains Mono',monospace;letter-spacing:1.5px;}
+.dest-card .v{font-size:13px;font-weight:800;color:#fff;margin-top:3px;}
+.dest-card .sub{font-size:10px;color:#7a9aa3;margin-top:2px;}
+.bottom-bar{flex-shrink:0;display:flex;gap:8px;padding:11px 14px;background:#1a3540;border-top:1px solid #0a1419;}
+.bottom-bar button{flex:1;padding:13px 0;background:linear-gradient(180deg,var(--pda),var(--pda-dk));border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer;letter-spacing:1px;box-shadow:0 3px 0 #155e75;}
+.bottom-bar button:active{transform:translateY(2px);box-shadow:0 1px 0 #155e75;}
+.bottom-bar button.sec{background:#0f1f25;color:#67e8f9;border:1px solid #1a3540;box-shadow:none;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#0f1f25;border:1px solid #1a3540;border-radius:9px;padding:12px 15px;border-left:4px solid var(--pda);font-size:12px;min-width:250px;max-width:340px;animation:ti .25s ease;color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.5);}
+.toast.ok{border-left-color:#16a34a;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:#7a9aa3;font-size:10px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="pda">
+  <div class="pda-top">
+    <div class="pda-id">FG-05</div>
+    <div class="pda-t">상차 확인</div>
+    <span class="live"><span class="d"></span>LIVE</span>
+    <span class="pda-bat">🔋 66%</span>
+  </div>
+  <div class="pda-body">
+    <div class="section-h"><span class="stp">1</span>차량 정보</div>
+    <div class="vehicle-card">
+      <div class="ic">🚚</div>
+      <div class="info">
+        <div class="plate">88 나 5678</div>
+        <div class="nm">5톤 카고 트럭 · 동양물류</div>
+        <div class="driver">기사 박운전 · 010-1234-5678</div>
+      </div>
+    </div>
+    <div class="dest-card">
+      <div class="l">▼ 출하처 · DESTINATION</div>
+      <div class="v">경주공장 콘솔 입고장 (GEO)</div>
+      <div class="sub">경북 경주시 외동읍 산업로 250 · 운송 5h</div>
+    </div>
+    <div class="section-h"><span class="stp">2</span>상차 LOT 체크</div>
+    <div class="prog">
+      <div class="h"><span>상차 진척</span><span><b id="pT">2/5</b></span></div>
+      <div class="bar"><i id="pi" style="width:40%"></i></div>
+    </div>
+    <div id="lotList"></div>
+  </div>
+  <div class="bottom-bar">
+    <button class="sec" onclick="back()">← 취소</button>
+    <button onclick="complete()" id="bComp">✓ 상차 완료 확인</button>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+var LOTS=[
+ {id:'LOT-2605-1985',nm:'콘솔어퍼 · 블랙',qty:'180 EA',done:true},
+ {id:'LOT-2605-2018',nm:'콘솔어퍼 · 블랙',qty:'120 EA',done:true},
+ {id:'LOT-2605-2062',nm:'콘솔어퍼 · 블랙',qty:'170 EA',done:false},
+ {id:'LOT-2605-1958',nm:'라디에이터 그릴 · 그레이',qty:'24 EA',done:false},
+ {id:'LOT-2605-2004',nm:'프론트 범퍼 · 블랙',qty:'48 EA',done:false}
+];
+function render(){
+  document.getElementById('lotList').innerHTML=LOTS.map(function(l,i){
+    return '<div class="lot-r '+(l.done?'done':'')+'" style="--st:'+(l.done?'#22c55e':'#fbbf24')+'" onclick="tg('+i+')">'+
+      '<div class="ck">'+(l.done?'✓':'')+'</div>'+
+      '<div class="info"><div class="nm">'+l.nm+'</div><div class="meta">'+l.id+'</div></div>'+
+      '<div class="qty">'+l.qty+'</div></div>';
+  }).join('');
+  var done=LOTS.filter(function(l){return l.done;}).length;
+  document.getElementById('pT').textContent=done+'/'+LOTS.length;
+  document.getElementById('pi').style.width=(done/LOTS.length*100)+'%';
+}
+function tg(i){LOTS[i].done=!LOTS[i].done;render();}
+function complete(){
+  var done=LOTS.filter(function(l){return l.done;}).length;
+  if(done<LOTS.length){toast('','상차 미완료','전체 '+LOTS.length+' LOT 중 '+done+'개 완료. 나머지 체크 후 완료하세요.');return;}
+  toast('ok','상차 완료 ✓','88-나-5678 차량 출발 가능. 거래명세서 발행 화면(FG-06)으로 이동.');
+}
+function back(){toast('','뒤로','PDA 메뉴로 돌아갑니다.');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3000);
+}
+render();
+</script>
+</body>
+</html>

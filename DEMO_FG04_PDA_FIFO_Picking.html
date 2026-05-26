@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FG-04 PDA FIFO Picking · A-MES PDA Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--pda:#06b6d4;--pda-dk:#0e7490;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
+.pda{width:420px;max-width:100%;height:100%;max-height:760px;background:#0f1f25;border:2px solid #1a3540;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;}
+.pda-top{flex-shrink:0;background:linear-gradient(180deg,#1a3540,#0f1f25);padding:11px 16px;display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--pda);}
+.pda-id{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#22d3ee;}
+.pda-t{flex:1;font-size:13px;font-weight:800;color:#fff;}
+.pda-bat{font-size:9px;color:#67e8f9;font-family:'JetBrains Mono',monospace;}
+.live{font-size:8px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:2px 7px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:3px;}
+.live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.pda-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:11px;}
+.pda-body::-webkit-scrollbar{width:6px;}.pda-body::-webkit-scrollbar-thumb{background:#1a3540;border-radius:3px;}
+.req-card{background:linear-gradient(160deg,rgba(220,38,38,.1),rgba(0,0,0,.3));border:1px solid #dc2626;border-radius:10px;padding:13px 15px;}
+.req-card .h{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.req-card .id{font-family:'JetBrains Mono',monospace;font-size:11px;color:#fca5a5;font-weight:800;}
+.req-card .urg{margin-left:auto;font-size:9px;font-weight:800;padding:2px 7px;border-radius:4px;background:#dc2626;color:#fff;}
+.req-card .nm{font-size:14px;font-weight:800;color:#fff;}
+.req-card .meta{display:flex;justify-content:space-between;margin-top:7px;font-size:11px;color:#7a9aa3;}
+.req-card .meta b{color:#fff;font-family:'JetBrains Mono',monospace;}
+.req-card .req-q{font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:900;color:#fbbf24;text-align:center;margin-top:6px;}
+.section-h{font-size:10px;color:#67e8f9;text-transform:uppercase;letter-spacing:2px;font-weight:800;display:flex;align-items:center;gap:7px;}
+.section-h .stp{background:var(--pda);color:#fff;width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;}
+.fifo-suggest{background:linear-gradient(160deg,rgba(34,197,94,.1),rgba(34,197,94,.02));border:2px solid #22c55e;border-radius:10px;padding:13px 15px;}
+.fifo-suggest .lbl{font-size:9px;color:#86efac;letter-spacing:1.5px;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:5px;}
+.fifo-suggest .lid{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:900;color:#fff;margin-top:5px;}
+.fifo-suggest .loc{font-family:'JetBrains Mono',monospace;font-size:13px;color:#22d3ee;margin-top:3px;font-weight:800;}
+.fifo-suggest .age{font-size:10px;color:#fbbf24;margin-top:3px;}
+.lot-list{display:flex;flex-direction:column;gap:7px;}
+.lot-r{background:rgba(255,255,255,.04);border:1px solid #1a3540;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:9px;cursor:pointer;}
+.lot-r:active{transform:scale(.98);}
+.lot-r.first{border-color:#22c55e;border-width:2px;background:rgba(34,197,94,.06);}
+.lot-r .rank{width:22px;height:22px;border-radius:50%;background:#1a3540;color:#67e8f9;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;flex-shrink:0;}
+.lot-r.first .rank{background:#22c55e;color:#fff;}
+.lot-r .info{flex:1;}
+.lot-r .lid{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:800;color:#fff;}
+.lot-r .meta{font-size:9.5px;color:#7a9aa3;margin-top:2px;}
+.lot-r .qty{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:900;color:#fbbf24;}
+.lot-r .age{font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;background:rgba(245,158,11,.18);color:#fbbf24;}
+.qbox{background:rgba(255,255,255,.04);border:1px solid #1a3540;border-radius:10px;padding:12px;text-align:center;}
+.qbox .l{font-size:9px;color:#67e8f9;font-family:'JetBrains Mono',monospace;}
+.qbox .v{font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:900;color:#22c55e;line-height:1;margin:4px 0;}
+.qbox .u{font-size:9px;color:#7a9aa3;}
+.qty-row{display:flex;gap:6px;}
+.qty-row button{flex:1;padding:11px;background:#1a3540;border:1px solid #2c5564;color:#fff;font-size:13px;font-weight:800;border-radius:7px;cursor:pointer;font-family:inherit;}
+.qty-row button:active{background:var(--pda);}
+.bottom-bar{flex-shrink:0;display:flex;gap:8px;padding:11px 14px;background:#1a3540;border-top:1px solid #0a1419;}
+.bottom-bar button{flex:1;padding:13px 0;background:linear-gradient(180deg,var(--pda),var(--pda-dk));border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer;letter-spacing:1px;box-shadow:0 3px 0 #155e75;}
+.bottom-bar button:active{transform:translateY(2px);box-shadow:0 1px 0 #155e75;}
+.bottom-bar button.sec{background:#0f1f25;color:#67e8f9;border:1px solid #1a3540;box-shadow:none;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#0f1f25;border:1px solid #1a3540;border-radius:9px;padding:12px 15px;border-left:4px solid var(--pda);font-size:12px;min-width:250px;max-width:340px;animation:ti .25s ease;color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.5);}
+.toast.ok{border-left-color:#16a34a;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:#7a9aa3;font-size:10px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="pda">
+  <div class="pda-top">
+    <div class="pda-id">FG-04</div>
+    <div class="pda-t">FIFO 피킹</div>
+    <span class="live"><span class="d"></span>LIVE</span>
+    <span class="pda-bat">🔋 67%</span>
+  </div>
+  <div class="pda-body">
+    <div class="req-card">
+      <div class="h"><span class="id">SO-2605-0313</span><span class="urg">긴급 D-0</span></div>
+      <div class="nm">콘솔어퍼 · GEO</div>
+      <div class="meta"><span>📅 10:00 납품</span><b>경주공장 콘솔 입고장</b></div>
+      <div class="req-q">180 EA</div>
+    </div>
+    <div class="section-h"><span class="stp">1</span>FIFO 권장 LOT (가장 오래된 순)</div>
+    <div class="fifo-suggest">
+      <div class="lbl">✓ FIFO 권장 — 최우선 출고</div>
+      <div class="lid">LOT-2605-1985</div>
+      <div class="loc">📍 FG-A-08-2 · 180 EA</div>
+      <div class="age">생산일 2026-05-15 · 6일 경과</div>
+    </div>
+    <div class="section-h">📦 동일 품목 다른 LOT (참고)</div>
+    <div class="lot-list">
+      <div class="lot-r first">
+        <div class="rank">1</div>
+        <div class="info"><div class="lid">LOT-2605-1985</div><div class="meta">FG-A-08-2 · 6일 경과 · FIFO 우선</div></div>
+        <div style="text-align:right;"><div class="qty">180 EA</div><div class="age">D-6</div></div>
+      </div>
+      <div class="lot-r">
+        <div class="rank">2</div>
+        <div class="info"><div class="lid">LOT-2605-2018</div><div class="meta">FG-A-08-3 · 4일 경과</div></div>
+        <div style="text-align:right;"><div class="qty">120 EA</div><div class="age">D-4</div></div>
+      </div>
+      <div class="lot-r">
+        <div class="rank">3</div>
+        <div class="info"><div class="lid">LOT-2605-2062</div><div class="meta">FG-A-09-1 · 2일 경과</div></div>
+        <div style="text-align:right;"><div class="qty">170 EA</div><div class="age">D-2</div></div>
+      </div>
+    </div>
+    <div class="section-h"><span class="stp">2</span>피킹 수량</div>
+    <div class="qbox">
+      <div class="l">피킹 수량 · PICK QTY</div>
+      <div class="v" id="qV">180</div>
+      <div class="u">EA · 요청 180 EA</div>
+    </div>
+    <div class="qty-row">
+      <button onclick="adj(-10)">−10</button>
+      <button onclick="adj(-1)">−1</button>
+      <button onclick="adj(1)">+1</button>
+      <button onclick="adj(10)">+10</button>
+    </div>
+  </div>
+  <div class="bottom-bar">
+    <button class="sec" onclick="back()">← 취소</button>
+    <button onclick="complete()">✓ FIFO 피킹 완료</button>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+var q=180;
+function adj(d){q=Math.max(0,q+d);document.getElementById('qV').textContent=q;}
+function complete(){toast('ok','FIFO 피킹 완료 ✓','LOT-2605-1985 — 180 EA 피킹 완료. 상차 대기존 이동.');}
+function back(){toast('','뒤로','출하 지시 목록으로 돌아갑니다.');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3000);
+}
+</script>
+</body>
+</html>
