@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>MNT-07 Maintenance Work Order · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -83,137 +83,137 @@ tbody tr:hover td{background:#f0fdf4;}
 <body>
 <div class="scr-head">
   <div class="sh-id">MNT-07</div>
-  <div class="sh-tt"><div class="sh-en">Maintenance Work Order</div><div class="sh-ko">정비 작업지시 — 정비 WO 발행·배정·진행·완료</div></div>
+  <div class="sh-tt"><div class="sh-en">Maintenance Work Order</div><div class="sh-ko">Maintenance WO issue / assign / progress / complete</div></div>
   <span class="sh-tag">/mnt/wo</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>상태 Status</label>
-    <select id="fStat" onchange="render()"><option value="">전체</option><option value="iss">발행</option><option value="asn">배정</option><option value="prog">진행 중</option><option value="done">완료</option></select></div>
-  <div class="fld"><label>우선순위 Priority</label>
-    <select id="fPri" onchange="render()"><option value="">전체</option><option value="1">긴급</option><option value="2">높음</option><option value="3">보통</option></select></div>
-  <div class="fld"><label>유형 Type</label>
-    <select id="fType" onchange="render()"><option value="">전체</option><option>예방정비</option><option>사후정비</option><option>개선</option></select></div>
-  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div class="fld"><label>Status</label>
+    <select id="fStat" onchange="render()"><option value="">All</option><option value="iss">Issued</option><option value="asn">Assigned</option><option value="prog">In Progress</option><option value="done">Completed</option></select></div>
+  <div class="fld"><label>Priority</label>
+    <select id="fPri" onchange="render()"><option value="">All</option><option value="1">Critical</option><option value="2">High</option><option value="3">Normal</option></select></div>
+  <div class="fld"><label>Type</label>
+    <select id="fType" onchange="render()"><option value="">All</option><option>Preventive</option><option>Corrective</option><option>Improvement</option></select></div>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>
   <div style="margin-left:auto;display:flex;gap:8px;">
-    <button class="btn btn-p" onclick="openNew()">＋ 작업지시 발행</button>
+    <button class="btn btn-p" onclick="openNew()">＋ Issue Work Order</button>
     <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
   </div>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#9ca3af"><div class="kv" id="kIss">0</div><div class="kl">미배정 · 발행</div></div>
-    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kAsn">0</div><div class="kl">배정 · Assigned</div></div>
-    <div class="kpi" style="--c:#3b82f6"><div class="kv" id="kProg">0</div><div class="kl">진행 중 · In Progress</div></div>
-    <div class="kpi" style="--c:#10b981"><div class="kv" id="kDone">0</div><div class="kl">완료 · Completed</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kUrg">0</div><div class="kl">긴급 미완료 · Urgent</div></div>
+    <div class="kpi" style="--c:#9ca3af"><div class="kv" id="kIss">0</div><div class="kl">Unassigned · Issued</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kAsn">0</div><div class="kl">Assigned</div></div>
+    <div class="kpi" style="--c:#3b82f6"><div class="kv" id="kProg">0</div><div class="kl">In Progress</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kDone">0</div><div class="kl">Completed</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kUrg">0</div><div class="kl">Critical Open</div></div>
   </div>
   <div class="panel">
-    <div class="panel-h">🧰 정비 작업지시 — <span id="sub" style="font-weight:400;color:#656d76;">0건</span></div>
+    <div class="panel-h">🧰 Maintenance Work Orders — <span id="sub" style="font-weight:400;color:#656d76;">0 records</span></div>
     <table>
       <thead><tr>
-        <th>WO 번호</th><th>설비</th><th>작업 내용</th><th>유형</th>
-        <th style="text-align:center;">우선순위</th><th>담당</th><th style="text-align:center;">상태</th><th></th>
+        <th>WO Number</th><th>Equipment</th><th>Description</th><th>Type</th>
+        <th style="text-align:center;">Priority</th><th>Assignee</th><th style="text-align:center;">Status</th><th></th>
       </tr></thead>
       <tbody id="tbody"></tbody>
     </table>
-    <div class="empty" id="empty" style="display:none;">조건에 맞는 작업지시가 없습니다.</div>
+    <div class="empty" id="empty" style="display:none;">No work orders match the filter.</div>
   </div>
 </div>
 
 <!-- new WO modal -->
 <div class="ov" id="ovNew">
   <div class="modal">
-    <div class="modal-h"><span class="mt">정비 작업지시 발행</span><span class="mx" onclick="closeOv('ovNew')">✕</span></div>
+    <div class="modal-h"><span class="mt">Issue Maintenance Work Order</span><span class="mx" onclick="closeOv('ovNew')">✕</span></div>
     <div class="modal-b">
-      <div class="ff"><label>대상 설비 <span class="req">*</span></label><select id="nEq"></select></div>
-      <div class="ff"><label>작업 내용 <span class="req">*</span></label>
-        <textarea id="nTitle" placeholder="예: 사출기 2호기 구동모터 베어링 교체"></textarea></div>
+      <div class="ff"><label>Equipment <span class="req">*</span></label><select id="nEq"></select></div>
+      <div class="ff"><label>Description <span class="req">*</span></label>
+        <textarea id="nTitle" placeholder="e.g., Replace drive motor bearings on Injection Machine #2"></textarea></div>
       <div class="ff2">
-        <div class="ff"><label>정비 유형 <span class="req">*</span></label>
-          <select id="nType"><option>예방정비</option><option>사후정비</option><option>개선</option></select></div>
-        <div class="ff"><label>우선순위 <span class="req">*</span></label>
-          <select id="nPri"><option value="1">긴급</option><option value="2">높음</option><option value="3" selected>보통</option></select></div>
+        <div class="ff"><label>Type <span class="req">*</span></label>
+          <select id="nType"><option>Preventive</option><option>Corrective</option><option>Improvement</option></select></div>
+        <div class="ff"><label>Priority <span class="req">*</span></label>
+          <select id="nPri"><option value="1">Critical</option><option value="2">High</option><option value="3" selected>Normal</option></select></div>
       </div>
-      <div class="ff"><label>완료 희망일</label><input type="date" id="nDue" value="2026-05-23"></div>
+      <div class="ff"><label>Target Completion</label><input type="date" id="nDue" value="2026-05-23"></div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovNew')">취소</button>
-      <button class="btn btn-p" onclick="addWO()">＋ 발행</button>
+      <button class="btn btn-s" onclick="closeOv('ovNew')">Cancel</button>
+      <button class="btn btn-p" onclick="addWO()">＋ Issue</button>
     </div>
   </div>
 </div>
 <!-- assign modal -->
 <div class="ov" id="ovAsn">
   <div class="modal">
-    <div class="modal-h"><span class="mt">정비 담당 배정</span><span class="mx" onclick="closeOv('ovAsn')">✕</span></div>
+    <div class="modal-h"><span class="mt">Assign Maintenance Technician</span><span class="mx" onclick="closeOv('ovAsn')">✕</span></div>
     <div class="modal-b">
       <div id="asnInfo" style="margin-bottom:12px;"></div>
-      <div class="ff"><label>정비 담당자 <span class="req">*</span></label>
-        <select id="asnBy"><option>이정비 (정비반장)</option><option>박설비 (기계)</option><option>최전기 (전기)</option><option>금형반</option><option>외주 (설비업체)</option></select></div>
+      <div class="ff"><label>Assigned To <span class="req">*</span></label>
+        <select id="asnBy"><option>Tom Wilson (Maintenance Manager)</option><option>Robert Davis (Mechanical)</option><option>Frank Miller (Electrical)</option><option>Mold Team</option><option>External (Vendor)</option></select></div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovAsn')">취소</button>
-      <button class="btn btn-w" onclick="confirmAssign()">배정</button>
+      <button class="btn btn-s" onclick="closeOv('ovAsn')">Cancel</button>
+      <button class="btn btn-w" onclick="confirmAssign()">Assign</button>
     </div>
   </div>
 </div>
 <!-- complete modal -->
 <div class="ov" id="ovDone">
   <div class="modal">
-    <div class="modal-h"><span class="mt">정비 완료 처리</span><span class="mx" onclick="closeOv('ovDone')">✕</span></div>
+    <div class="modal-h"><span class="mt">Complete Maintenance</span><span class="mx" onclick="closeOv('ovDone')">✕</span></div>
     <div class="modal-b">
       <div id="dnInfo" style="margin-bottom:12px;"></div>
-      <div class="ff"><label>정비 결과 <span class="req">*</span></label>
-        <textarea id="dnResult" placeholder="예: 베어링 2개 교체, 윤활 후 시운전 정상 확인"></textarea></div>
+      <div class="ff"><label>Result <span class="req">*</span></label>
+        <textarea id="dnResult" placeholder="e.g., Replaced 2 bearings, lubricated, verified normal operation"></textarea></div>
       <div class="ff2">
-        <div class="ff"><label>소요 시간 (분) <span class="req">*</span></label><input type="number" id="dnMin" value="90" min="1" step="10"></div>
-        <div class="ff"><label>사용 자재 건수</label><input type="number" id="dnParts" value="2" min="0"></div>
+        <div class="ff"><label>Duration (min) <span class="req">*</span></label><input type="number" id="dnMin" value="90" min="1" step="10"></div>
+        <div class="ff"><label>Parts Used</label><input type="number" id="dnParts" value="2" min="0"></div>
       </div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovDone')">취소</button>
-      <button class="btn btn-p" onclick="confirmComplete()">✓ 완료 처리</button>
+      <button class="btn btn-s" onclick="closeOv('ovDone')">Cancel</button>
+      <button class="btn btn-p" onclick="confirmComplete()">✓ Complete</button>
     </div>
   </div>
 </div>
 <!-- detail modal -->
 <div class="ov" id="ovDt">
   <div class="modal">
-    <div class="modal-h"><span class="mt">작업지시 상세</span><span class="mx" onclick="closeOv('ovDt')">✕</span></div>
+    <div class="modal-h"><span class="mt">Work Order Detail</span><span class="mx" onclick="closeOv('ovDt')">✕</span></div>
     <div class="modal-b" id="dtBody"></div>
-    <div class="modal-f"><button class="btn btn-p" onclick="closeOv('ovDt')">확인</button></div>
+    <div class="modal-f"><button class="btn btn-p" onclick="closeOv('ovDt')">OK</button></div>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 
 <script>
 var EQLIST=[
- {id:'EQ-INJ-001',nm:'사출기 1호기'},{id:'EQ-INJ-002',nm:'사출기 2호기'},
- {id:'EQ-ASY-001',nm:'조립1라인 컨베이어'},{id:'EQ-ASY-002',nm:'토크 체결기 #1'},
- {id:'EQ-PNT-001',nm:'도장 부스 1라인'},{id:'EQ-INS-001',nm:'비전 검사기 #1'},
- {id:'EQ-UTL-001',nm:'공기압축기 #1'}
+ {id:'EQ-INJ-001',nm:'Injection Machine #1'},{id:'EQ-INJ-002',nm:'Injection Machine #2'},
+ {id:'EQ-ASY-001',nm:'Assembly Line 1 Conveyor'},{id:'EQ-ASY-002',nm:'Torque Fastener #1'},
+ {id:'EQ-PNT-001',nm:'Paint Booth Line 1'},{id:'EQ-INS-001',nm:'Vision Inspector #1'},
+ {id:'EQ-UTL-001',nm:'Air Compressor #1'}
 ];
-var PRI={'1':{ko:'긴급',cls:'pri1'},'2':{ko:'높음',cls:'pri2'},'3':{ko:'보통',cls:'pri3'}};
-var ST={iss:{ko:'발행',cls:'s-iss'},asn:{ko:'배정',cls:'s-asn'},prog:{ko:'진행 중',cls:'s-prog'},done:{ko:'완료',cls:'s-done'}};
-var STEPS=[['iss','발행'],['asn','배정'],['prog','진행'],['done','완료']];
+var PRI={'1':{ko:'Critical',cls:'pri1'},'2':{ko:'High',cls:'pri2'},'3':{ko:'Normal',cls:'pri3'}};
+var ST={iss:{ko:'Issued',cls:'s-iss'},asn:{ko:'Assigned',cls:'s-asn'},prog:{ko:'In Progress',cls:'s-prog'},done:{ko:'Completed',cls:'s-done'}};
+var STEPS=[['iss','Issued'],['asn','Assigned'],['prog','In Progress'],['done','Completed']];
 var WO=[
- {id:'MWO-2605-031',eq:'EQ-INJ-002',title:'구동모터 과열 — 베어링 교체 및 윤활',type:'사후정비',pri:'1',
-  st:'prog',by:'이정비 (정비반장)',created:'2026-05-20',due:'2026-05-21',result:'',min:0,parts:0},
- {id:'MWO-2605-030',eq:'EQ-ASY-002',title:'토크 캘리브레이션 및 센서 점검',type:'예방정비',pri:'3',
-  st:'asn',by:'최전기 (전기)',created:'2026-05-20',due:'2026-05-22',result:'',min:0,parts:0},
- {id:'MWO-2605-029',eq:'EQ-INJ-001',title:'형개 가이드 마모 점검 및 윤활 보강',type:'예방정비',pri:'2',
-  st:'iss',by:'-',created:'2026-05-20',due:'2026-05-23',result:'',min:0,parts:0},
- {id:'MWO-2605-027',eq:'EQ-PNT-001',title:'분사노즐 3개 교체',type:'사후정비',pri:'2',
-  st:'done',by:'박설비 (기계)',created:'2026-05-19',due:'2026-05-19',result:'노즐 3개 교체, 도막 균일도 정상',min:95,parts:3},
- {id:'MWO-2605-024',eq:'EQ-UTL-001',title:'압축기 밸브 플레이트 교체',type:'사후정비',pri:'1',
-  st:'done',by:'외주 (설비업체)',created:'2026-05-16',due:'2026-05-16',result:'밸브 플레이트 교체, 토출압력 정상화',min:155,parts:1},
- {id:'MWO-2605-022',eq:'EQ-INS-001',title:'비전 검사기 조명 LED 교체',type:'사후정비',pri:'3',
-  st:'done',by:'최전기 (전기)',created:'2026-05-14',due:'2026-05-14',result:'LED 바 교체 완료',min:35,parts:1},
- {id:'MWO-2605-019',eq:'EQ-ASY-001',title:'컨베이어 벨트 장력 조정',type:'예방정비',pri:'3',
-  st:'done',by:'이정비 (정비반장)',created:'2026-05-11',due:'2026-05-11',result:'벨트 장력 재조정, 정렬 확인',min:40,parts:0},
- {id:'MWO-2605-016',eq:'EQ-INJ-001',title:'사출기 노후 호퍼 개선 설치',type:'개선',pri:'3',
-  st:'asn',by:'박설비 (기계)',created:'2026-05-12',due:'2026-05-26',result:'',min:0,parts:0}
+ {id:'MWO-2605-031',eq:'EQ-INJ-002',title:'Drive motor overheat — bearing replacement and lubrication',type:'Corrective',pri:'1',
+  st:'prog',by:'Tom Wilson (Maintenance Manager)',created:'05/20/2026',due:'05/21/2026',result:'',min:0,parts:0},
+ {id:'MWO-2605-030',eq:'EQ-ASY-002',title:'Torque calibration and sensor inspection',type:'Preventive',pri:'3',
+  st:'asn',by:'Frank Miller (Electrical)',created:'05/20/2026',due:'05/22/2026',result:'',min:0,parts:0},
+ {id:'MWO-2605-029',eq:'EQ-INJ-001',title:'Mold-open guide wear inspection and re-lubrication',type:'Preventive',pri:'2',
+  st:'iss',by:'-',created:'05/20/2026',due:'05/23/2026',result:'',min:0,parts:0},
+ {id:'MWO-2605-027',eq:'EQ-PNT-001',title:'Replace 3 spray nozzles',type:'Corrective',pri:'2',
+  st:'done',by:'Robert Davis (Mechanical)',created:'05/19/2026',due:'05/19/2026',result:'Replaced 3 nozzles, coating uniformity verified',min:95,parts:3},
+ {id:'MWO-2605-024',eq:'EQ-UTL-001',title:'Compressor valve plate replacement',type:'Corrective',pri:'1',
+  st:'done',by:'External (Vendor)',created:'05/16/2026',due:'05/16/2026',result:'Replaced valve plate, discharge pressure normalized',min:155,parts:1},
+ {id:'MWO-2605-022',eq:'EQ-INS-001',title:'Vision inspector LED lighting replacement',type:'Corrective',pri:'3',
+  st:'done',by:'Frank Miller (Electrical)',created:'05/14/2026',due:'05/14/2026',result:'LED bar replacement complete',min:35,parts:1},
+ {id:'MWO-2605-019',eq:'EQ-ASY-001',title:'Conveyor belt tension adjustment',type:'Preventive',pri:'3',
+  st:'done',by:'Tom Wilson (Maintenance Manager)',created:'05/11/2026',due:'05/11/2026',result:'Belt tension adjusted, alignment verified',min:40,parts:0},
+ {id:'MWO-2605-016',eq:'EQ-INJ-001',title:'Hopper upgrade installation on aging injection machine',type:'Improvement',pri:'3',
+  st:'asn',by:'Robert Davis (Mechanical)',created:'05/12/2026',due:'05/26/2026',result:'',min:0,parts:0}
 ];
 var seq=32,curId=null;
 function eqNm(id){var e=EQLIST.filter(function(x){return x.id===id;})[0];return e?e.nm:id;}
@@ -229,6 +229,11 @@ function vis(){
     if(ft&&w.type!==ft)return false;
     return true;});
 }
+function fmtMDY(d){
+  /* "YYYY-MM-DD" -> "MM/DD/YYYY" */
+  var y=d.slice(0,4),m=d.slice(5,7),dd=d.slice(8,10);
+  return m+'/'+dd+'/'+y;
+}
 function render(){
   document.getElementById('kIss').textContent=WO.filter(function(w){return w.st==='iss';}).length;
   document.getElementById('kAsn').textContent=WO.filter(function(w){return w.st==='asn';}).length;
@@ -242,19 +247,19 @@ function render(){
       '<td style="max-width:230px;">'+w.title+'</td>'+
       '<td><span class="wt">'+w.type+'</span></td>'+
       '<td style="text-align:center;"><span class="pri '+PRI[w.pri].cls+'">'+PRI[w.pri].ko+'</span></td>'+
-      '<td>'+(w.by==='-'?'<span style="color:#9ca3af;">미배정</span>':w.by)+'</td>'+
+      '<td>'+(w.by==='-'?'<span style="color:#9ca3af;">Unassigned</span>':w.by)+'</td>'+
       '<td style="text-align:center;"><span class="stt '+ST[w.st].cls+'"><span class="dot"></span>'+ST[w.st].ko+'</span></td>'+
       '<td>'+actionBtn(w)+'</td></tr>';
   });
   document.getElementById('tbody').innerHTML=h;
   document.getElementById('empty').style.display=v.length?'none':'block';
-  document.getElementById('sub').textContent=v.length+'건';
+  document.getElementById('sub').textContent=v.length+' records';
 }
 function actionBtn(w){
-  if(w.st==='iss')return '<button class="btn btn-w btn-sm" onclick="openAssign(\''+w.id+'\')">담당 배정</button>';
-  if(w.st==='asn')return '<button class="btn btn-b btn-sm" onclick="startWO(\''+w.id+'\')">▶ 작업 시작</button>';
-  if(w.st==='prog')return '<button class="btn btn-p btn-sm" onclick="openDone(\''+w.id+'\')">✓ 완료 처리</button>';
-  return '<button class="btn btn-s btn-sm" onclick="detail(\''+w.id+'\')">상세</button>';
+  if(w.st==='iss')return '<button class="btn btn-w btn-sm" onclick="openAssign(\''+w.id+'\')">Assign</button>';
+  if(w.st==='asn')return '<button class="btn btn-b btn-sm" onclick="startWO(\''+w.id+'\')">▶ Start Work</button>';
+  if(w.st==='prog')return '<button class="btn btn-p btn-sm" onclick="openDone(\''+w.id+'\')">✓ Complete</button>';
+  return '<button class="btn btn-s btn-sm" onclick="detail(\''+w.id+'\')">Detail</button>';
 }
 function openNew(){
   document.getElementById('nTitle').value='';document.getElementById('nPri').value='3';
@@ -262,49 +267,49 @@ function openNew(){
 }
 function addWO(){
   var title=document.getElementById('nTitle').value.trim();
-  if(!title){toast('err','입력 오류','작업 내용은 필수 항목입니다.');return;}
+  if(!title){toast('err','Input Error','Description is required.');return;}
   var id='MWO-2605-0'+(seq++);
   WO.unshift({id:id,eq:document.getElementById('nEq').value,title:title,
     type:document.getElementById('nType').value,pri:document.getElementById('nPri').value,
-    st:'iss',by:'-',created:'2026-05-20',due:document.getElementById('nDue').value,result:'',min:0,parts:0});
+    st:'iss',by:'-',created:'05/20/2026',due:fmtMDY(document.getElementById('nDue').value),result:'',min:0,parts:0});
   closeOv('ovNew');render();
-  toast('','작업지시 발행',id+' — '+eqNm(document.getElementById('nEq').value)+' 정비 WO가 발행되었습니다.');
+  toast('','Work Order Issued',id+' — '+eqNm(document.getElementById('nEq').value)+' maintenance WO has been issued.');
 }
 function openAssign(id){
   curId=id;var w=byId(id);
   document.getElementById('asnInfo').innerHTML=
-    '<div class="drow"><span class="dk">WO 번호</span><span class="dv">'+w.id+'</span></div>'+
-    '<div class="drow"><span class="dk">설비</span><span class="dv">'+eqNm(w.eq)+'</span></div>'+
-    '<div class="drow"><span class="dk">작업</span><span class="dv" style="max-width:260px;">'+w.title+'</span></div>';
+    '<div class="drow"><span class="dk">WO Number</span><span class="dv">'+w.id+'</span></div>'+
+    '<div class="drow"><span class="dk">Equipment</span><span class="dv">'+eqNm(w.eq)+'</span></div>'+
+    '<div class="drow"><span class="dk">Description</span><span class="dv" style="max-width:260px;">'+w.title+'</span></div>';
   openOv('ovAsn');
 }
 function confirmAssign(){
   var w=byId(curId);w.by=document.getElementById('asnBy').value;w.st='asn';
   closeOv('ovAsn');render();
-  toast('',w.id+' 배정','정비 담당 '+w.by+' 배정 완료. 작업 시작 대기 상태입니다.');
+  toast('',w.id+' Assigned',w.by+' assigned. Awaiting work start.');
 }
 function startWO(id){
   var w=byId(id);w.st='prog';render();
-  toast('info',w.id+' 작업 시작','정비 작업이 진행 중 상태로 전환되었습니다.');
+  toast('info',w.id+' Started','Maintenance work is now in progress.');
 }
 function openDone(id){
   curId=id;var w=byId(id);
   document.getElementById('dnInfo').innerHTML=
-    '<div class="drow"><span class="dk">WO 번호</span><span class="dv">'+w.id+'</span></div>'+
-    '<div class="drow"><span class="dk">설비</span><span class="dv">'+eqNm(w.eq)+'</span></div>'+
-    '<div class="drow"><span class="dk">담당</span><span class="dv">'+w.by+'</span></div>';
+    '<div class="drow"><span class="dk">WO Number</span><span class="dv">'+w.id+'</span></div>'+
+    '<div class="drow"><span class="dk">Equipment</span><span class="dv">'+eqNm(w.eq)+'</span></div>'+
+    '<div class="drow"><span class="dk">Assignee</span><span class="dv">'+w.by+'</span></div>';
   document.getElementById('dnResult').value='';
   openOv('ovDone');
 }
 function confirmComplete(){
   var w=byId(curId);
   var result=document.getElementById('dnResult').value.trim();
-  if(!result){toast('err','입력 오류','정비 결과는 필수 항목입니다.');return;}
+  if(!result){toast('err','Input Error','Result is required.');return;}
   var min=parseInt(document.getElementById('dnMin').value,10);
-  if(isNaN(min)||min<1){toast('err','입력 오류','소요 시간을 확인하세요.');return;}
+  if(isNaN(min)||min<1){toast('err','Input Error','Please verify the duration.');return;}
   w.st='done';w.result=result;w.min=min;w.parts=parseInt(document.getElementById('dnParts').value,10)||0;
   closeOv('ovDone');render();
-  toast('',w.id+' 정비 완료','소요 '+min+'분, 자재 '+w.parts+'건으로 정비가 완료되었습니다.');
+  toast('',w.id+' Maintenance Complete','Completed in '+min+' min, '+w.parts+' parts used.');
 }
 function detail(id){
   var w=byId(id);
@@ -312,14 +317,14 @@ function detail(id){
   var steps='<div class="steps">'+STEPS.map(function(s,i){
     return '<div class="step'+(i<=si?' on':'')+'">'+s[1]+'</div>';}).join('')+'</div>';
   var rows=[
-    ['WO 번호',w.id],['설비',eqNm(w.eq)+' ('+w.eq+')'],['작업 내용',w.title],
-    ['정비 유형','<span class="wt">'+w.type+'</span>'],
-    ['우선순위','<span class="pri '+PRI[w.pri].cls+'">'+PRI[w.pri].ko+'</span>'],
-    ['담당',w.by],['발행일',w.created],['완료 희망일',w.due]
+    ['WO Number',w.id],['Equipment',eqNm(w.eq)+' ('+w.eq+')'],['Description',w.title],
+    ['Type','<span class="wt">'+w.type+'</span>'],
+    ['Priority','<span class="pri '+PRI[w.pri].cls+'">'+PRI[w.pri].ko+'</span>'],
+    ['Assignee',w.by],['Issued',w.created],['Target Completion',w.due]
   ];
-  if(w.result)rows.push(['정비 결과',w.result]);
-  if(w.min)rows.push(['소요 시간',w.min+'분']);
-  if(w.parts)rows.push(['사용 자재',w.parts+'건']);
+  if(w.result)rows.push(['Result',w.result]);
+  if(w.min)rows.push(['Duration',w.min+' min']);
+  if(w.parts)rows.push(['Parts Used',w.parts]);
   document.getElementById('dtBody').innerHTML=steps+rows.map(function(r){
     return '<div class="drow"><span class="dk">'+r[0]+'</span><span class="dv" style="max-width:270px;">'+r[1]+'</span></div>';}).join('');
   openOv('ovDt');
@@ -334,12 +339,12 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='MNT_WorkOrder_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','정비 작업지시 '+v.length+'건을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+v.length+' work orders to CSV.');
 }
 function resetAll(){
   document.getElementById('fStat').value='';document.getElementById('fPri').value='';
   document.getElementById('fType').value='';render();
-  toast('info','초기화','작업지시 필터를 초기화했습니다.');
+  toast('info','Reset','Work order filters have been reset.');
 }
 function openOv(id){document.getElementById(id).classList.add('on');}
 function closeOv(id){document.getElementById(id).classList.remove('on');}

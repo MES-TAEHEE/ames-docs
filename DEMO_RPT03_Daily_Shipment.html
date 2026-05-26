@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>RPT-03 Daily Shipment · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -76,49 +76,49 @@ tfoot td{padding:9px 9px;background:#f0fdf4;font-weight:800;border-top:2px solid
 <body>
 <div class="scr-head">
   <div class="sh-id">RPT-03</div>
-  <div class="sh-tt"><div class="sh-en">Daily Shipment Report</div><div class="sh-ko">일일 출하 리포트 — 거래선·차수별 출하 실적</div></div>
+  <div class="sh-tt"><div class="sh-en">Daily Shipment Report</div><div class="sh-ko">Shipment Performance by Customer and Round</div></div>
   <span class="sh-tag">/rpt/daily-ship</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>일자 Date</label>
-    <select id="fDate" onchange="apply()"><option>2026-05-20 (수)</option><option>2026-05-19 (화)</option></select></div>
-  <div class="fld"><label>거래선 Customer</label>
-    <select id="fCust" onchange="apply()"><option value="">전체 All</option><option>SAV</option><option>GEO</option></select></div>
-  <div class="fld"><label>차수 Round</label>
-    <select id="fRound" onchange="apply()"><option value="">전체</option><option>1차</option><option>2차</option><option>3차</option></select></div>
-  <button class="btn btn-p btn-sm" onclick="apply()">🔍 적용</button>
-  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div class="fld"><label>Date</label>
+    <select id="fDate" onchange="apply()"><option>05/20/2026 (Wed)</option><option>05/19/2026 (Tue)</option></select></div>
+  <div class="fld"><label>Customer</label>
+    <select id="fCust" onchange="apply()"><option value="">All Customers</option><option>SAV</option><option>GEO</option></select></div>
+  <div class="fld"><label>Round</label>
+    <select id="fRound" onchange="apply()"><option value="">All</option><option>Round 1</option><option>Round 2</option><option>Round 3</option></select></div>
+  <button class="btn btn-p btn-sm" onclick="apply()">🔍 Apply</button>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>
   <div style="margin-left:auto;display:flex;gap:8px;">
-    <button class="btn btn-s" onclick="printRpt()">🖨 인쇄</button>
+    <button class="btn btn-s" onclick="printRpt()">🖨 Print</button>
     <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
   </div>
 </div>
 <div class="body">
-  <div class="rpt-title"><h2>일일 출하 리포트</h2><span class="sub" id="rSub">2026-05-20 · 전체 거래선</span></div>
+  <div class="rpt-title"><h2>Daily Shipment Report</h2><span class="sub" id="rSub">05/20/2026 · All Customers</span></div>
   <div class="kpis">
-    <div class="kpi" style="--c:#059669"><div class="kv" id="kQty">0</div><div class="kl">총 출하량 · Shipped Qty</div></div>
-    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kCnt">0</div><div class="kl">출하 건수 · Shipments</div></div>
-    <div class="kpi" style="--c:#10b981"><div class="kv" id="kOnt">0%</div><div class="kl">정시 출하율 · On-Time</div><div class="kt">target ≥ 98%</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kLate">0</div><div class="kl">지연 출하 · Late</div></div>
-    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kAmt">0</div><div class="kl">출하 금액 · 백만원</div></div>
+    <div class="kpi" style="--c:#059669"><div class="kv" id="kQty">0</div><div class="kl">Shipped Quantity</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kCnt">0</div><div class="kl">Shipments</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kOnt">0%</div><div class="kl">On-Time Shipment Rate</div><div class="kt">target ≥ 98%</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kLate">0</div><div class="kl">Late Shipments</div></div>
+    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kAmt">0</div><div class="kl">Shipment Amount · $K USD</div></div>
   </div>
   <div class="grid2">
     <div class="card">
-      <div class="card-t">🏢 거래선별 출하 실적</div>
+      <div class="card-t">🏢 Shipment by Customer</div>
       <div id="custDist"></div>
     </div>
     <div class="card">
-      <div class="card-t">🚚 차수별 출하 요약</div>
+      <div class="card-t">🚚 Shipment Summary by Round</div>
       <div class="rounds" id="rounds"></div>
     </div>
   </div>
   <div class="panel">
-    <div class="panel-h">📋 출하 상세 내역 — <span id="sub" style="font-weight:400;color:#656d76;">0건</span></div>
+    <div class="panel-h">📋 Shipment Detail — <span id="sub" style="font-weight:400;color:#656d76;">0 records</span></div>
     <table>
       <thead><tr>
-        <th>출하 번호</th><th>거래선</th><th>차수</th><th>품목</th>
-        <th class="c">수량</th><th class="c">출하 시각</th><th>차량</th><th class="c">상태</th>
+        <th>Shipment No.</th><th>Customer</th><th>Round</th><th>Item</th>
+        <th class="c">Qty</th><th class="c">Ship Time</th><th>Vehicle</th><th class="c">Status</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
       <tfoot id="tfoot"></tfoot>
@@ -129,23 +129,29 @@ tfoot td{padding:9px 9px;background:#f0fdf4;font-weight:800;border-top:2px solid
 
 <script>
 var SHIP=[
- {no:'SH-2605-201',cust:'SAV',round:'1차',item:'도어트림 LH',qty:240,time:'07:30',plan:'07:30',car:'45가1234',amt:7.2},
- {no:'SH-2605-202',cust:'GEO',round:'1차',item:'콘솔어퍼',qty:180,time:'08:05',plan:'08:00',car:'88나5678',amt:9.0},
- {no:'SH-2605-203',cust:'SAV',round:'1차',item:'사이드 몰딩 5',qty:320,time:'08:40',plan:'08:30',car:'45가1234',amt:6.4},
- {no:'SH-2605-204',cust:'GEO',round:'2차',item:'라디에이터 그릴',qty:150,time:'11:20',plan:'11:00',car:'12다9012',amt:8.3},
- {no:'SH-2605-205',cust:'SAV',round:'2차',item:'도어트림 RH',qty:260,time:'11:50',plan:'12:00',car:'45가1234',amt:7.8},
- {no:'SH-2605-206',cust:'SAV',round:'2차',item:'프론트 범퍼',qty:120,time:'12:30',plan:'12:30',car:'77라3456',amt:9.6},
- {no:'SH-2605-207',cust:'GEO',round:'2차',item:'콘솔어퍼',qty:170,time:'13:10',plan:'13:00',car:'88나5678',amt:8.5},
- {no:'SH-2605-208',cust:'SAV',round:'3차',item:'사이드 몰딩 5',qty:300,time:'15:40',plan:'15:30',car:'77라3456',amt:6.0},
- {no:'SH-2605-209',cust:'GEO',round:'3차',item:'라디에이터 그릴',qty:140,time:'16:15',plan:'16:00',car:'12다9012',amt:7.7},
- {no:'SH-2605-210',cust:'SAV',round:'3차',item:'도어트림 LH',qty:220,time:'16:50',plan:'16:30',car:'45가1234',amt:6.6},
- {no:'SH-2605-211',cust:'GEO',round:'3차',item:'프론트 범퍼',qty:110,time:'17:30',plan:'17:30',car:'77라3456',amt:8.8},
- {no:'SH-2605-212',cust:'SAV',round:'3차',item:'콘솔 조립',qty:90,time:'-',plan:'18:00',car:'대기',amt:5.4}
+ {no:'SH-2605-201',cust:'SAV',round:'Round 1',item:'Door Trim LH',qty:240,time:'07:30 AM',plan:'07:30 AM',car:'TRK-1234',amt:7.2},
+ {no:'SH-2605-202',cust:'GEO',round:'Round 1',item:'Console Upper',qty:180,time:'08:05 AM',plan:'08:00 AM',car:'TRK-5678',amt:9.0},
+ {no:'SH-2605-203',cust:'SAV',round:'Round 1',item:'Side Molding 5',qty:320,time:'08:40 AM',plan:'08:30 AM',car:'TRK-1234',amt:6.4},
+ {no:'SH-2605-204',cust:'GEO',round:'Round 2',item:'Radiator Grille',qty:150,time:'11:20 AM',plan:'11:00 AM',car:'TRK-9012',amt:8.3},
+ {no:'SH-2605-205',cust:'SAV',round:'Round 2',item:'Door Trim RH',qty:260,time:'11:50 AM',plan:'12:00 PM',car:'TRK-1234',amt:7.8},
+ {no:'SH-2605-206',cust:'SAV',round:'Round 2',item:'Front Bumper',qty:120,time:'12:30 PM',plan:'12:30 PM',car:'TRK-3456',amt:9.6},
+ {no:'SH-2605-207',cust:'GEO',round:'Round 2',item:'Console Upper',qty:170,time:'01:10 PM',plan:'01:00 PM',car:'TRK-5678',amt:8.5},
+ {no:'SH-2605-208',cust:'SAV',round:'Round 3',item:'Side Molding 5',qty:300,time:'03:40 PM',plan:'03:30 PM',car:'TRK-3456',amt:6.0},
+ {no:'SH-2605-209',cust:'GEO',round:'Round 3',item:'Radiator Grille',qty:140,time:'04:15 PM',plan:'04:00 PM',car:'TRK-9012',amt:7.7},
+ {no:'SH-2605-210',cust:'SAV',round:'Round 3',item:'Door Trim LH',qty:220,time:'04:50 PM',plan:'04:30 PM',car:'TRK-1234',amt:6.6},
+ {no:'SH-2605-211',cust:'GEO',round:'Round 3',item:'Front Bumper',qty:110,time:'05:30 PM',plan:'05:30 PM',car:'TRK-3456',amt:8.8},
+ {no:'SH-2605-212',cust:'SAV',round:'Round 3',item:'Console Assembly',qty:90,time:'-',plan:'06:00 PM',car:'Pending',amt:5.4}
 ];
+function parseT(s){
+  if(s==='-')return null;
+  var m=s.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if(!m)return null;
+  var h=+m[1]%12+(m[3].toUpperCase()==='PM'?12:0);
+  return h*60+ +m[2];
+}
 function late(s){
   if(s.time==='-')return null;
-  var a=s.time.split(':'),b=s.plan.split(':');
-  return (+a[0]*60+ +a[1])>(+b[0]*60+ +b[1]);
+  return parseT(s.time)>parseT(s.plan);
 }
 function vis(){
   var fc=document.getElementById('fCust').value,fr=document.getElementById('fRound').value;
@@ -163,9 +169,9 @@ function apply(){
   document.getElementById('kOnt').textContent=ont+'%';
   document.getElementById('kOnt').style.color=ont>=98?'#10b981':'#f59e0b';
   document.getElementById('kLate').textContent=lateN;
-  document.getElementById('kAmt').textContent=(Math.round(amt*10)/10);
+  document.getElementById('kAmt').textContent='$'+(Math.round(amt*10)/10)+'K';
   document.getElementById('rSub').textContent=document.getElementById('fDate').value.slice(0,10)+
-    ' · '+(document.getElementById('fCust').value||'전체 거래선')+
+    ' · '+(document.getElementById('fCust').value||'All Customers')+
     (document.getElementById('fRound').value?' · '+document.getElementById('fRound').value:'');
   renderCust();renderRounds();renderTable(v,qty,amt);
 }
@@ -181,67 +187,67 @@ function renderCust(){
     var pend=rows.length-shipped.length;
     var qty=shipped.reduce(function(s,x){return s+x.qty;},0);
     var tot=rows.length||1;
-    h+='<div class="cust"><div class="ch"><span>'+(c==='SAV'?'SAV (서산)':'GEO (경주)')+'</span>'+
-      '<b>'+qty.toLocaleString()+' EA · '+rows.length+'건</b></div>'+
+    h+='<div class="cust"><div class="ch"><span>'+(c==='SAV'?'SAV (Detroit, MI)':'GEO (Birmingham, AL)')+'</span>'+
+      '<b>'+qty.toLocaleString()+' EA · '+rows.length+' shipments</b></div>'+
       '<div class="ct">'+
         '<i style="width:'+(onN/tot*100)+'%;background:#10b981;"></i>'+
         '<i style="width:'+(lateN/tot*100)+'%;background:#dc2626;"></i>'+
         '<i style="width:'+(pend/tot*100)+'%;background:#f59e0b;"></i></div>'+
-      '<div class="cl"><span><i style="background:#10b981"></i>정시 '+onN+'</span>'+
-        '<span><i style="background:#dc2626"></i>지연 '+lateN+'</span>'+
-        '<span><i style="background:#f59e0b"></i>대기 '+pend+'</span></div></div>';
+      '<div class="cl"><span><i style="background:#10b981"></i>On-Time '+onN+'</span>'+
+        '<span><i style="background:#dc2626"></i>Late '+lateN+'</span>'+
+        '<span><i style="background:#f59e0b"></i>Pending '+pend+'</span></div></div>';
   });
   document.getElementById('custDist').innerHTML=h;
 }
 function renderRounds(){
   var v=vis();
-  var rounds=['1차','2차','3차'];
+  var rounds=['Round 1','Round 2','Round 3'];
   document.getElementById('rounds').innerHTML=rounds.map(function(r){
     var rows=v.filter(function(s){return s.round===r;});
     var shipped=rows.filter(function(s){return s.time!=='-';});
     var qty=shipped.reduce(function(s,x){return s+x.qty;},0);
     return '<div class="rd"><div class="rn">'+r+'</div>'+
       '<div class="rv">'+qty.toLocaleString()+'</div>'+
-      '<div class="rd-d">'+shipped.length+'/'+rows.length+'건 출하 · EA</div></div>';
+      '<div class="rd-d">'+shipped.length+'/'+rows.length+' shipped · EA</div></div>';
   }).join('');
 }
 function renderTable(v,qty,amt){
   var h='';
   v.forEach(function(s){
     var l=late(s);
-    var st=s.time==='-'?'<span class="st st-rdy">출하 대기</span>'
-      :(l?'<span class="st st-late">지연</span>':'<span class="st st-on">정시</span>');
+    var st=s.time==='-'?'<span class="st st-rdy">Pending</span>'
+      :(l?'<span class="st st-late">Late</span>':'<span class="st st-on">On-Time</span>');
     h+='<tr><td class="mono" style="font-weight:700;">'+s.no+'</td>'+
       '<td>'+s.cust+'</td><td>'+s.round+'</td><td>'+s.item+'</td>'+
       '<td class="c mono" style="text-align:center;font-weight:700;">'+s.qty+'</td>'+
-      '<td class="c mono" style="text-align:center;">'+s.time+(s.time!=='-'&&l?' <span style="color:#dc2626;font-size:8px;">(계획 '+s.plan+')</span>':'')+'</td>'+
+      '<td class="c mono" style="text-align:center;">'+s.time+(s.time!=='-'&&l?' <span style="color:#dc2626;font-size:8px;">(plan '+s.plan+')</span>':'')+'</td>'+
       '<td class="mono">'+s.car+'</td>'+
       '<td class="c" style="text-align:center;">'+st+'</td></tr>';
   });
   document.getElementById('tbody').innerHTML=h;
-  document.getElementById('tfoot').innerHTML='<tr><td colspan="4">합계 · TOTAL</td>'+
+  document.getElementById('tfoot').innerHTML='<tr><td colspan="4">TOTAL</td>'+
     '<td style="text-align:center;">'+qty.toLocaleString()+'</td>'+
-    '<td colspan="2" style="text-align:center;">'+v.filter(function(s){return s.time!=='-';}).length+'건 출하 완료</td>'+
-    '<td style="text-align:center;">'+(Math.round(amt*10)/10)+'백만</td></tr>';
-  document.getElementById('sub').textContent=v.length+'건';
+    '<td colspan="2" style="text-align:center;">'+v.filter(function(s){return s.time!=='-';}).length+' shipments completed</td>'+
+    '<td style="text-align:center;">$'+(Math.round(amt*10)/10)+'K</td></tr>';
+  document.getElementById('sub').textContent=v.length+' records';
 }
 function exportCsv(){
   var v=vis();
-  var csv='ShipNo,Customer,Round,Item,Qty,ShipTime,PlanTime,Vehicle,Amount(M),Status\n';
+  var csv='ShipNo,Customer,Round,Item,Qty,ShipTime,PlanTime,Vehicle,Amount($K),Status\n';
   v.forEach(function(s){var l=late(s);
     csv+=[s.no,s.cust,s.round,s.item,s.qty,s.time,s.plan,s.car,s.amt,
-      s.time==='-'?'대기':(l?'지연':'정시')].join(',')+'\n';});
+      s.time==='-'?'Pending':(l?'Late':'On-Time')].join(',')+'\n';});
   var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='RPT_DailyShipment_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','일일 출하 리포트를 CSV로 내보냈습니다.');
+  toast('','Export Complete','Daily Shipment Report exported to CSV.');
 }
-function printRpt(){toast('info','인쇄 미리보기','일일 출하 리포트 인쇄를 준비합니다. (데모)');}
+function printRpt(){toast('info','Print Preview','Preparing Daily Shipment Report for print. (Demo)');}
 function resetAll(){
   document.getElementById('fCust').value='';document.getElementById('fRound').value='';
   document.getElementById('fDate').selectedIndex=0;apply();
-  toast('info','초기화','리포트 조건을 초기화했습니다.');
+  toast('info','Reset','Report filters have been reset.');
 }
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');

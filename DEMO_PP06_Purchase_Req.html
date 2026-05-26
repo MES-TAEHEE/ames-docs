@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PP-06 Purchase Requisition · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -99,63 +99,63 @@ tbody tr.just td{animation:fl 1.8s ease;}
 <body>
 <div class="scr-head">
   <div class="sh-id">PP-06</div>
-  <div class="sh-tt"><div class="sh-en">Purchase Requisition → SAP B1</div><div class="sh-ko">자재발주 요청 — PR 생성 · SAP B1 Service Layer 전송 · PO 추적</div></div>
+  <div class="sh-tt"><div class="sh-en">Purchase Requisition → SAP B1</div><div class="sh-ko">PR creation, SAP B1 Service Layer transmission, and PO tracking</div></div>
   <span class="sh-tag">/pp/pr</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>상태 Status</label>
-    <select id="fStatus" onchange="render()"><option value="">전체 All</option><option>Draft</option><option>Sent</option><option>Approved</option><option>Failed</option></select></div>
-  <div class="fld"><label>필요일 From</label><input type="date" id="fDate" onchange="render()"></div>
-  <div class="fld"><label>검색 Search</label>
-    <input type="text" id="fSearch" placeholder="PR·DocNum·자재..." oninput="render()" style="width:170px;"></div>
-  <button class="btn btn-s btn-sm" onclick="resetFilters()">↺ 초기화</button>
+  <div class="fld"><label>Status</label>
+    <select id="fStatus" onchange="render()"><option value="">All</option><option>Draft</option><option>Sent</option><option>Approved</option><option>Failed</option></select></div>
+  <div class="fld"><label>Required From</label><input type="date" id="fDate" onchange="render()"></div>
+  <div class="fld"><label>Search</label>
+    <input type="text" id="fSearch" placeholder="PR·DocNum·Material..." oninput="render()" style="width:170px;"></div>
+  <button class="btn btn-s btn-sm" onclick="resetFilters()">↺ Reset</button>
   <div style="margin-left:auto;display:flex;gap:8px;">
     <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
-    <button class="btn btn-go" id="btnBulk" onclick="bulkSend()">📤 SAP B1 일괄 전송</button>
+    <button class="btn btn-go" id="btnBulk" onclick="bulkSend()">📤 Batch Send to SAP B1</button>
   </div>
 </div>
 <div class="body">
-  <div class="runbar" id="runbar"><div class="spin"></div><span id="runText">전송 중...</span><span class="ep" id="runEp">POST /PurchaseRequests</span><div class="rprog"><i id="rprog"></i></div></div>
+  <div class="runbar" id="runbar"><div class="spin"></div><span id="runText">Transmitting...</span><span class="ep" id="runEp">POST /PurchaseRequests</span><div class="rprog"><i id="rprog"></i></div></div>
   <div class="kpis">
-    <div class="kpi" style="--c:#92400e"><div class="kv" id="kDraft">0</div><div class="kl">Draft · 작성중</div></div>
-    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kSent">0</div><div class="kl">Sent · 전송완료</div></div>
-    <div class="kpi" style="--c:#16a34a"><div class="kv" id="kAppr">0</div><div class="kl">Approved · PO 생성</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kFail">0</div><div class="kl">Failed · 전송 실패</div></div>
+    <div class="kpi" style="--c:#92400e"><div class="kv" id="kDraft">0</div><div class="kl">Draft · In Drafting</div></div>
+    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kSent">0</div><div class="kl">Sent · Transmitted</div></div>
+    <div class="kpi" style="--c:#16a34a"><div class="kv" id="kAppr">0</div><div class="kl">Approved · PO Created</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kFail">0</div><div class="kl">Failed · Transmission Failed</div></div>
   </div>
   <div class="panel">
-    <div class="panel-h"><span>📤 자재발주 요청서 — Draft는 [전송], Failed는 [재시도] · 전송 후 SAP B1 PO 자동 생성</span></div>
+    <div class="panel-h"><span>📤 Purchase Requisitions — Draft: [Send] · Failed: [Retry] · After send, SAP B1 PO auto-created</span></div>
     <table>
       <thead><tr>
-        <th>PR 번호<span class="k">PR No.</span></th>
+        <th>PR No.</th>
         <th>SAP DocNum</th>
-        <th>자재<span class="k">Item</span></th>
-        <th style="text-align:right;">수량<span class="k">Qty</span></th>
-        <th>필요일<span class="k">Required</span></th>
-        <th>연결 WO<span class="k">Linked WO</span></th>
-        <th style="text-align:center;">상태<span class="k">Status</span></th>
-        <th style="text-align:center;">작업<span class="k">Action</span></th>
+        <th>Material<span class="k">Item</span></th>
+        <th style="text-align:right;">Qty</th>
+        <th>Required</th>
+        <th>Linked WO</th>
+        <th style="text-align:center;">Status</th>
+        <th style="text-align:center;">Action</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
     </table>
-    <div class="empty" id="emptyMsg" style="display:none;">조건에 맞는 PR이 없습니다.</div>
+    <div class="empty" id="emptyMsg" style="display:none;">No PRs match the current filters.</div>
   </div>
 </div>
 
 <!-- BULK SEND MODAL -->
 <div class="ov" id="ovBulk">
   <div class="modal">
-    <div class="modal-h"><span>📤</span><span class="mt">SAP B1 일괄 전송 — 확인</span><button class="mx" onclick="closeModal('ovBulk')">✕</button></div>
+    <div class="modal-h"><span>📤</span><span class="mt">Batch Send to SAP B1 — Confirm</span><button class="mx" onclick="closeModal('ovBulk')">✕</button></div>
     <div class="modal-b">
-      <div class="cf-line"><span class="cl">전송 대상 (Draft PR)</span><span class="cv" id="bCnt">0 건</span></div>
-      <div class="cf-line"><span class="cl">전송 엔드포인트</span><span class="cv">POST /PurchaseRequests</span></div>
-      <div class="cf-line"><span class="cl">재시도 정책</span><span class="cv">3× exponential backoff</span></div>
+      <div class="cf-line"><span class="cl">Send Targets (Draft PRs)</span><span class="cv" id="bCnt">0</span></div>
+      <div class="cf-line"><span class="cl">Endpoint</span><span class="cv">POST /PurchaseRequests</span></div>
+      <div class="cf-line"><span class="cl">Retry Policy</span><span class="cv">3× exponential backoff</span></div>
       <div class="cf-list" id="bList"></div>
-      <div class="hint">⚙ Draft 상태 PR을 SAP B1 Service Layer로 일괄 전송합니다. 전송 성공 시 SAP DocNum이 부여되고, SAP B1에서 PO가 생성되면 WH-01 입고예정으로 반영됩니다. 전송 실패 건은 3회 자동 재시도 후 PLAN 관리자에게 에스컬레이션됩니다.</div>
+      <div class="hint">⚙ Batch-sends Draft PRs to SAP B1 Service Layer. On success, a SAP DocNum is assigned, and when SAP B1 creates the PO it shows up as expected receipt in WH-01. Failures are auto-retried 3× then escalated to the PLAN manager.</div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeModal('ovBulk')">취소</button>
-      <button class="btn btn-go" onclick="doBulkSend()">📤 일괄 전송 실행</button>
+      <button class="btn btn-s" onclick="closeModal('ovBulk')">Cancel</button>
+      <button class="btn btn-go" onclick="doBulkSend()">📤 Run Batch Send</button>
     </div>
   </div>
 </div>
@@ -165,12 +165,12 @@ tbody tr.just td{animation:fl 1.8s ease;}
 <script>
 var DOCSEQ=5543;
 var DATA=[
-  {pr:'PR-20250729-002',doc:'PR-B1-5530',code:'ADH-001',nm:'접착제 표준',qty:200,unit:'kg',req:'2025-08-20',wos:['WO-20250730-009'],status:'Approved',po:'PO-B1-8821',retries:0},
-  {pr:'PR-20250801-001',doc:'PR-B1-5542',code:'RM-PP-NAT-20',nm:'PP 펠렛 나튜럴',qty:1000,unit:'kg',req:'2025-09-08',wos:['WO-20250801-001','WO-20250802-006'],status:'Approved',po:'PO-B1-8830',retries:0},
-  {pr:'PR-20250801-002',doc:'PR-B1-5543',code:'FAB-BK-001',nm:'원단 (흑색)',qty:400,unit:'roll',req:'2025-09-01',wos:['WO-20250801-002'],status:'Sent',po:null,retries:0},
-  {pr:'PR-20250802-003',doc:null,code:'PWD-RAL9005',nm:'분체도료 RAL9005',qty:280,unit:'kg',req:'2025-09-05',wos:['WO-20250801-005'],status:'Draft',po:null,retries:0},
-  {pr:'PR-20250802-004',doc:null,code:'RM-PP-BLK-21',nm:'PP 펠렛 흑색',qty:300,unit:'kg',req:'2025-09-10',wos:['WO-20250801-005','WO-20250803-002'],status:'Draft',po:null,retries:0},
-  {pr:'PR-20250730-009',doc:null,code:'PNT-BK-NH578',nm:'블랙 도료 NH578',qty:100,unit:'L',req:'2025-08-25',wos:['WO-20250730-007'],status:'Failed',po:null,retries:3}
+  {pr:'PR-20250729-002',doc:'PR-B1-5530',code:'ADH-001',nm:'Standard Adhesive',qty:200,unit:'kg',req:'08/20/2025',wos:['WO-20250730-009'],status:'Approved',po:'PO-B1-8821',retries:0},
+  {pr:'PR-20250801-001',doc:'PR-B1-5542',code:'RM-PP-NAT-20',nm:'PP Pellet Natural',qty:1000,unit:'kg',req:'09/08/2025',wos:['WO-20250801-001','WO-20250802-006'],status:'Approved',po:'PO-B1-8830',retries:0},
+  {pr:'PR-20250801-002',doc:'PR-B1-5543',code:'FAB-BK-001',nm:'Fabric (Black)',qty:400,unit:'roll',req:'09/01/2025',wos:['WO-20250801-002'],status:'Sent',po:null,retries:0},
+  {pr:'PR-20250802-003',doc:null,code:'PWD-RAL9005',nm:'Powder Coating RAL9005',qty:280,unit:'kg',req:'09/05/2025',wos:['WO-20250801-005'],status:'Draft',po:null,retries:0},
+  {pr:'PR-20250802-004',doc:null,code:'RM-PP-BLK-21',nm:'PP Pellet Black',qty:300,unit:'kg',req:'09/10/2025',wos:['WO-20250801-005','WO-20250803-002'],status:'Draft',po:null,retries:0},
+  {pr:'PR-20250730-009',doc:null,code:'PNT-BK-NH578',nm:'Black Paint NH578',qty:100,unit:'L',req:'08/25/2025',wos:['WO-20250730-007'],status:'Failed',po:null,retries:3}
 ];
 var busy=false;
 function statusBadge(r){
@@ -184,7 +184,7 @@ function filtered(){
       q=document.getElementById('fSearch').value.trim().toLowerCase();
   return DATA.filter(function(r){
     if(s&&r.status!==s) return false;
-    if(dt&&r.req<dt) return false;
+    if(dt){var p=r.req.split('/');var iso=p[2]+'-'+p[0]+'-'+p[1];if(iso<dt) return false;}
     if(q&&((r.pr+' '+(r.doc||'')+' '+r.code+' '+r.nm).toLowerCase().indexOf(q)<0)) return false;
     return true;
   });
@@ -193,10 +193,10 @@ function render(){
   var rows=filtered(),h='';
   rows.forEach(function(r){
     var idx=DATA.indexOf(r);
-    var act='<button class="btn btn-s btn-sm" onclick="toggleDetail('+idx+',this)">상세</button>';
-    if(r.status==='Draft') act='<button class="btn btn-p btn-sm" onclick="sendOne('+idx+')">📤 전송</button> '+act;
-    else if(r.status==='Failed') act='<button class="btn btn-d btn-sm" onclick="retryOne('+idx+')">🔁 재시도</button> '+act;
-    else if(r.status==='Approved') act='<button class="btn btn-s btn-sm" onclick="viewPo('+idx+')">PO 보기</button> '+act;
+    var act='<button class="btn btn-s btn-sm" onclick="toggleDetail('+idx+',this)">Detail</button>';
+    if(r.status==='Draft') act='<button class="btn btn-p btn-sm" onclick="sendOne('+idx+')">📤 Send</button> '+act;
+    else if(r.status==='Failed') act='<button class="btn btn-d btn-sm" onclick="retryOne('+idx+')">🔁 Retry</button> '+act;
+    else if(r.status==='Approved') act='<button class="btn btn-s btn-sm" onclick="viewPo('+idx+')">View PO</button> '+act;
     h+='<tr class="'+(r.status==='Failed'?'failed':'')+(r._just?' just':'')+'">'+
       '<td class="mono" style="font-weight:700;'+(r.status==='Failed'?'color:#dc2626;':'')+'">'+r.pr+'</td>'+
       '<td class="mono" style="color:'+(r.doc?'#059669':'#9ca3af')+';">'+(r.doc||'—')+'</td>'+
@@ -219,25 +219,25 @@ function render(){
 }
 function toggleDetail(idx,btn){
   var tr=btn.closest('tr'),nx=tr.nextElementSibling;
-  if(nx&&nx.classList.contains('detail-row')){nx.remove();btn.textContent='상세';return;}
-  btn.textContent='닫기';
+  if(nx&&nx.classList.contains('detail-row')){nx.remove();btn.textContent='Detail';return;}
+  btn.textContent='Close';
   var r=DATA[idx];
-  var log=[{t:r.pr.slice(3,11),m:'PR 생성 (PP-05 MRP 부족 결과)',c:''}];
-  if(r.status==='Sent'||r.status==='Approved') log.push({t:'',m:'SAP B1 전송 성공 — DocNum '+r.doc,c:'lg-ok'});
-  if(r.status==='Approved') log.push({t:'',m:'SAP B1 PO 생성 '+r.po+' — WH-01 입고예정 반영',c:'lg-ok'});
-  if(r.status==='Failed'){for(var i=1;i<=r.retries;i++) log.push({t:'',m:'전송 재시도 '+i+'/3 — 실패 (SAP B1 응답 없음)',c:'lg-er'});
-    log.push({t:'',m:'PLAN 관리자 에스컬레이션 (BR-PP-006)',c:'lg-w'});}
+  var log=[{t:r.pr.slice(3,11),m:'PR created (from PP-05 MRP shortage)',c:''}];
+  if(r.status==='Sent'||r.status==='Approved') log.push({t:'',m:'SAP B1 transmission successful — DocNum '+r.doc,c:'lg-ok'});
+  if(r.status==='Approved') log.push({t:'',m:'SAP B1 PO created '+r.po+' — reflected in WH-01 expected receipts',c:'lg-ok'});
+  if(r.status==='Failed'){for(var i=1;i<=r.retries;i++) log.push({t:'',m:'Retry '+i+'/3 — failed (SAP B1 no response)',c:'lg-er'});
+    log.push({t:'',m:'Escalated to PLAN manager (BR-PP-006)',c:'lg-w'});}
   var lh='';log.forEach(function(x){lh+='<div class="logline '+x.c+'">'+(x.t?'<span style="color:#059669;">'+x.t+'</span> · ':'▸ ')+x.m+'</div>';});
   var d=document.createElement('tr');d.className='detail-row';
   d.innerHTML='<td colspan="8"><div class="detail-in">'+
     '<div class="dgrid">'+
-      '<div class="dt"><div class="dl">발주 자재 / 수량</div><div class="dv">'+r.code+' · '+r.qty.toLocaleString()+r.unit+'</div></div>'+
-      '<div class="dt"><div class="dl">필요일</div><div class="dv">'+r.req+'</div></div>'+
+      '<div class="dt"><div class="dl">Material / Qty</div><div class="dv">'+r.code+' · '+r.qty.toLocaleString()+r.unit+'</div></div>'+
+      '<div class="dt"><div class="dl">Required</div><div class="dv">'+r.req+'</div></div>'+
       '<div class="dt"><div class="dl">SAP DocNum / PO</div><div class="dv">'+(r.doc||'—')+(r.po?' / '+r.po:'')+'</div></div>'+
-      '<div class="dt"><div class="dl">전송 상태</div><div class="dv">'+r.status+'</div></div>'+
+      '<div class="dt"><div class="dl">Transmission Status</div><div class="dv">'+r.status+'</div></div>'+
     '</div>'+
-    '<div class="dsub">연결 작업지시 (WO)</div>'+r.wos.map(function(w){return '<span class="wochip">'+w+'</span>';}).join('')+
-    '<div class="dsub" style="margin-top:9px;">PR 전송 로그 (PP_PRSendLog)</div>'+lh+
+    '<div class="dsub">Linked work orders (WO)</div>'+r.wos.map(function(w){return '<span class="wochip">'+w+'</span>';}).join('')+
+    '<div class="dsub" style="margin-top:9px;">PR Send Log (PP_PRSendLog)</div>'+lh+
     '</div></td>';
   tr.after(d);
 }
@@ -253,20 +253,20 @@ function transmit(text,cb){
   },85);
 }
 function sendOne(idx){
-  transmit('SAP B1 전송 중 — '+DATA[idx].pr,function(){
+  transmit('Sending to SAP B1 — '+DATA[idx].pr,function(){
     var r=DATA[idx];DOCSEQ++;
     r.doc='PR-B1-'+DOCSEQ;r.status='Sent';r._just=true;
     render();
-    toast('','전송 완료 — '+r.pr,'SAP B1 수신 성공. DocNum '+r.doc+' 부여 — PO 생성 대기 중.');
+    toast('','Send Complete — '+r.pr,'SAP B1 received successfully. DocNum '+r.doc+' assigned — awaiting PO creation.');
     autoApprove(idx);
   });
 }
 function retryOne(idx){
   var r=DATA[idx];
-  transmit('재전송 시도 — '+r.pr+' (backoff)',function(){
+  transmit('Retry sending — '+r.pr+' (backoff)',function(){
     DOCSEQ++;r.doc='PR-B1-'+DOCSEQ;r.status='Sent';r.retries=0;r._just=true;
     render();
-    toast('','재전송 성공 — '+r.pr,'SAP B1 연결 복구. DocNum '+r.doc+' 부여 — 전송 완료.');
+    toast('','Resend Successful — '+r.pr,'SAP B1 connection restored. DocNum '+r.doc+' assigned — transmission complete.');
     autoApprove(idx);
   });
 }
@@ -276,17 +276,17 @@ function autoApprove(idx){
     if(r.status!=='Sent') return;
     r.status='Approved';r.po='PO-B1-'+(8830+idx+1);r._just=true;
     render();
-    toast('info','SAP B1 PO 생성 — '+r.pr,r.po+' 생성 완료. WH-01 입고예정에 반영되었습니다.');
+    toast('info','SAP B1 PO Created — '+r.pr,r.po+' created. Reflected in WH-01 expected receipts.');
   },2600);
 }
 function viewPo(idx){
   var r=DATA[idx];
-  toast('info','구매오더 '+r.po,r.code+' '+r.qty.toLocaleString()+r.unit+' · 필요일 '+r.req+'. SAP B1에서 PO 발행 완료 — WH-01 입고예정으로 추적됩니다.');
+  toast('info','Purchase Order '+r.po,r.code+' '+r.qty.toLocaleString()+r.unit+' · Required '+r.req+'. PO issued in SAP B1 — tracked via WH-01 expected receipts.');
 }
 function bulkSend(){
   var dr=DATA.filter(function(r){return r.status==='Draft';});
-  if(!dr.length){toast('info','전송 대상 없음','Draft 상태 PR이 없습니다.');return;}
-  document.getElementById('bCnt').textContent=dr.length+' 건';
+  if(!dr.length){toast('info','Nothing to Send','No Draft PRs.');return;}
+  document.getElementById('bCnt').textContent=dr.length;
   var h='';dr.forEach(function(r){h+='<div class="cf-item"><span><span class="mono">'+r.pr+'</span> · '+r.code+'</span><span class="mono">'+r.qty.toLocaleString()+' '+r.unit+'</span></div>';});
   document.getElementById('bList').innerHTML=h;
   document.getElementById('ovBulk').classList.add('show');
@@ -294,27 +294,27 @@ function bulkSend(){
 function doBulkSend(){
   closeModal('ovBulk');
   var dr=[];DATA.forEach(function(r,i){if(r.status==='Draft')dr.push(i);});
-  transmit('SAP B1 일괄 전송 중 — '+dr.length+'건',function(){
+  transmit('Batch sending to SAP B1 — '+dr.length+' items',function(){
     dr.forEach(function(i){var r=DATA[i];DOCSEQ++;r.doc='PR-B1-'+DOCSEQ;r.status='Sent';r._just=true;});
     render();
-    toast('','일괄 전송 완료',dr.length+'개 PR을 SAP B1로 전송했습니다. DocNum 부여 — PO 생성 대기.');
+    toast('','Batch Send Complete','Sent '+dr.length+' PRs to SAP B1. DocNums assigned — awaiting PO creation.');
     dr.forEach(function(i){autoApprove(i);});
   });
 }
 function resetFilters(){
   document.getElementById('fStatus').value='';document.getElementById('fDate').value='';document.getElementById('fSearch').value='';
-  render();toast('info','필터 초기화','검색 조건을 초기화했습니다.');
+  render();toast('info','Filters Reset','Search filters have been cleared.');
 }
 function exportCsv(){
   var rows=filtered();
-  if(!rows.length){toast('err','내보낼 데이터 없음','조건에 맞는 PR이 없습니다.');return;}
+  if(!rows.length){toast('err','No Data to Export','No PRs match the current filters.');return;}
   var csv='PR_No,SAP_DocNum,Item,Name,Qty,Unit,Required,Status,PO\n';
   rows.forEach(function(r){csv+=[r.pr,r.doc||'',r.code,r.nm,r.qty,r.unit,r.req,r.status,r.po||''].join(',')+'\n';});
   var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='PP06_PurchaseReq_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','PR 목록 '+rows.length+'행을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+rows.length+' PRs to CSV.');
 }
 function closeModal(id){document.getElementById(id).classList.remove('show');}
 function toast(type,title,body){

@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>WH-02 PDA Inbound · A-MES PDA Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--pda:#06b6d4;--pda-dk:#0e7490;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
 .pda{width:420px;max-width:100%;height:100%;max-height:760px;background:#0f1f25;border:2px solid #1a3540;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;}
 .pda-top{flex-shrink:0;background:linear-gradient(180deg,#1a3540,#0f1f25);padding:11px 16px;display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--pda);}
 .pda-id{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#22d3ee;}
@@ -62,32 +62,32 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font
 <div class="pda">
   <div class="pda-top">
     <div class="pda-id">WH-02</div>
-    <div class="pda-t">입고 검수</div>
+    <div class="pda-t">PDA Receiving</div>
     <span class="live"><span class="d"></span>LIVE</span>
     <span class="pda-bat">🔋 78%</span>
   </div>
   <div class="pda-body">
-    <div class="section-h">📷 STEP 1 · 입고 라벨 스캔</div>
+    <div class="section-h">📷 STEP 1 · Scan Inbound Label</div>
     <div class="scan-box ok">
       <div class="ic">✅</div>
-      <div class="t">RC-2605-0421 인식</div>
-      <div class="s">PP 수지 (블랙) · 2,400 KG</div>
+      <div class="t">RC-2605-0421 Detected</div>
+      <div class="s">PP Resin (Black) · 2,400 LB</div>
     </div>
     <div class="lot-info">
-      <div class="h"><span class="id">RC-2605-0421</span><span class="st">BOM 일치</span></div>
-      <div class="nm">PP 수지 (블랙)</div>
+      <div class="h"><span class="id">RC-2605-0421</span><span class="st">BOM MATCH</span></div>
+      <div class="nm">PP Resin (Black)</div>
       <div class="meta">
-        <span class="l">자재 코드</span><b>RM-PP-BLK</b>
-        <span class="l">공급사</span><b>대한플라스틱</b>
-        <span class="l">예정 수량</span><b>2,400 KG</b>
-        <span class="l">로트 번호</span><b>LT-PP-26052</b>
+        <span class="l">Item Code</span><b>RM-PP-BLK</b>
+        <span class="l">Supplier</span><b>LyondellBasell</b>
+        <span class="l">Expected Qty</span><b>2,400 LB</b>
+        <span class="l">Lot #</span><b>LT-PP-26052</b>
       </div>
     </div>
-    <div class="section-h">📊 STEP 2 · 실수령 수량 확인</div>
+    <div class="section-h">📊 STEP 2 · Confirm Actual Qty</div>
     <div class="qty-card">
-      <div class="l">실수령 수량 · ACTUAL QTY</div>
+      <div class="l">ACTUAL QTY RECEIVED</div>
       <div class="v" id="qV">2,400</div>
-      <div class="uom">KG</div>
+      <div class="uom">LB</div>
       <div class="qty-row">
         <button onclick="qty(-10)">−10</button>
         <button onclick="qty(-1)">−1</button>
@@ -95,25 +95,25 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font
         <button onclick="qty(10)">+10</button>
       </div>
     </div>
-    <div class="section-h">📍 STEP 3 · 적치 로케이션</div>
+    <div class="section-h">📍 STEP 3 · Put-Away Location</div>
     <div class="loc-card" onclick="scanLoc()">
-      <div class="l">권장 로케이션 (자동 배정)</div>
+      <div class="l">SUGGESTED BIN (AUTO-ASSIGNED)</div>
       <div class="loc">A-03-2</div>
-      <div class="lsub">자재창고 / Block A · 행 03 · 단 2 · 잔여 1,600 KG</div>
+      <div class="lsub">Raw Material WH / Block A · Row 03 · Level 2 · 1,600 LB free</div>
     </div>
   </div>
   <div class="bottom-bar">
-    <button class="sec" onclick="back()">← 취소</button>
-    <button onclick="complete()">✓ 입고 완료</button>
+    <button class="sec" onclick="back()">← Cancel</button>
+    <button onclick="complete()">✓ Confirm Receipt</button>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 <script>
 var q=2400;
 function qty(d){q=Math.max(0,q+d);document.getElementById('qV').textContent=q.toLocaleString();}
-function scanLoc(){toast('','로케이션 스캔','지정 로케이션의 라벨을 스캔하면 검증 후 적치 처리됩니다.');}
-function complete(){toast('ok','입고 완료 ✓','RC-2605-0421 — '+q.toLocaleString()+' KG, A-03-2 적치 완료. 재고에 반영됨.');}
-function back(){toast('','뒤로','입고 예정 목록으로 돌아갑니다.');}
+function scanLoc(){toast('','Scan Location','Scan the bin label to verify and complete put-away.');}
+function complete(){toast('ok','Receipt Complete ✓','RC-2605-0421 — '+q.toLocaleString()+' LB put-away at A-03-2. Inventory updated.');}
+function back(){toast('','Back','Returning to inbound schedule list.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';

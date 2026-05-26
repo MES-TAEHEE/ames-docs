@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PP-01 Forecast Management · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 /* SCREEN HEADER */
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:2px;color:#34d399;line-height:.9;}
@@ -105,58 +105,58 @@ tbody tr.unmapped:hover td{background:#fee2e2;}
 <body>
 <div class="scr-head">
   <div class="sh-id">PP-01</div>
-  <div class="sh-tt"><div class="sh-en">Forecast Management</div><div class="sh-ko">Forecast 관리 — 고객사 수요예측 수신·매핑·편차분석</div></div>
+  <div class="sh-tt"><div class="sh-en">Forecast Management</div><div class="sh-ko">Customer demand forecast import, mapping, and variance analysis</div></div>
   <span class="sh-tag">/pp/forecast</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>고객사 Customer</label>
-    <select id="fCust" onchange="render()"><option value="">전체 All</option><option>SAV</option><option>GEO</option></select></div>
-  <div class="fld"><label>기간 Period</label>
+  <div class="fld"><label>Customer</label>
+    <select id="fCust" onchange="render()"><option value="">All</option><option>SAV</option><option>GEO</option></select></div>
+  <div class="fld"><label>Period</label>
     <select id="fPeriod" onchange="periodChange()"><option>2025-Q4</option><option>2025-Q3</option><option>2026-Q1</option></select></div>
-  <div class="fld"><label>품목 검색 Item</label>
-    <input type="text" id="fSearch" placeholder="품목코드·품목명..." oninput="render()" style="width:180px;"></div>
-  <button class="btn btn-s btn-sm" onclick="resetFilters()">↺ 초기화</button>
+  <div class="fld"><label>Item Search</label>
+    <input type="text" id="fSearch" placeholder="Item code or name..." oninput="render()" style="width:180px;"></div>
+  <button class="btn btn-s btn-sm" onclick="resetFilters()">↺ Reset</button>
   <div style="margin-left:auto;display:flex;gap:8px;">
-    <button class="btn btn-p" onclick="openUpload()">📤 Excel 업로드</button>
+    <button class="btn btn-p" onclick="openUpload()">📤 Excel Upload</button>
     <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
   </div>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#059669"><div class="kv" id="kMapped">0</div><div class="kl">매핑 품목 · Mapped Items</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kUnmapped">0</div><div class="kl">미매핑 · Unmapped</div></div>
-    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kGap">0</div><div class="kl">편차 20%↑ · Gap Alert</div></div>
-    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kUpload" style="font-size:17px;">—</div><div class="kl">최근 업로드 · Last Upload</div></div>
+    <div class="kpi" style="--c:#059669"><div class="kv" id="kMapped">0</div><div class="kl">Mapped Items</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kUnmapped">0</div><div class="kl">Unmapped</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kGap">0</div><div class="kl">Variance &gt; 20% · Gap Alert</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kUpload" style="font-size:17px;">—</div><div class="kl">Last Upload</div></div>
   </div>
   <div class="tabs">
-    <div class="tab on" id="tab-fc" onclick="switchTab('fc')">📊 Forecast 현황</div>
-    <div class="tab" id="tab-hi" onclick="switchTab('hi')">🕓 업로드 이력</div>
+    <div class="tab on" id="tab-fc" onclick="switchTab('fc')">📊 Forecast Status</div>
+    <div class="tab" id="tab-hi" onclick="switchTab('hi')">🕓 Upload History</div>
   </div>
   <div class="panel" id="panel-fc">
     <table>
       <thead><tr>
-        <th>고객사<span class="k">Customer</span></th>
-        <th>고객사 품번<span class="k">Customer Item No.</span></th>
-        <th>A-MES 코드<span class="k">Internal Code</span></th>
-        <th>품목명<span class="k">Item Name</span></th>
+        <th>Customer</th>
+        <th>Customer Item No.</th>
+        <th>A-MES Code<span class="k">Internal Code</span></th>
+        <th>Item Name</th>
         <th style="text-align:right;">M+1</th><th style="text-align:right;">M+2</th><th style="text-align:right;">M+3</th>
-        <th style="text-align:right;">M+4~6<span class="k">참고</span></th>
-        <th style="text-align:right;">확정수주<span class="k">Confirmed</span></th>
-        <th style="text-align:center;">편차<span class="k">Gap</span></th>
-        <th style="text-align:center;">작업<span class="k">Action</span></th>
+        <th style="text-align:right;">M+4~6<span class="k">Reference</span></th>
+        <th style="text-align:right;">Confirmed Order</th>
+        <th style="text-align:center;">Gap</th>
+        <th style="text-align:center;">Action</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
     </table>
-    <div class="empty" id="emptyMsg" style="display:none;">조건에 맞는 Forecast 데이터가 없습니다.</div>
+    <div class="empty" id="emptyMsg" style="display:none;">No Forecast data matches the current filters.</div>
   </div>
   <div class="panel" id="panel-hi" style="display:none;">
     <table>
       <thead><tr>
-        <th>업로드 일시<span class="k">Uploaded</span></th><th>고객사<span class="k">Customer</span></th>
-        <th>파일명<span class="k">File</span></th><th style="text-align:right;">행 수<span class="k">Rows</span></th>
-        <th style="text-align:right;">매핑<span class="k">Mapped</span></th><th style="text-align:right;">미매핑<span class="k">Unmapped</span></th>
-        <th>업로더<span class="k">By</span></th>
+        <th>Uploaded</th><th>Customer</th>
+        <th>File</th><th style="text-align:right;">Rows</th>
+        <th style="text-align:right;">Mapped</th><th style="text-align:right;">Unmapped</th>
+        <th>Uploaded By</th>
       </tr></thead>
       <tbody id="hbody"></tbody>
     </table>
@@ -166,17 +166,17 @@ tbody tr.unmapped:hover td{background:#fee2e2;}
 <!-- UPLOAD MODAL -->
 <div class="ov" id="ovUpload">
   <div class="modal">
-    <div class="modal-h"><span>📤</span><span class="mt">Excel 업로드 — 고객사 Forecast</span><button class="mx" onclick="closeModal('ovUpload')">✕</button></div>
+    <div class="modal-h"><span>📤</span><span class="mt">Excel Upload — Customer Forecast</span><button class="mx" onclick="closeModal('ovUpload')">✕</button></div>
     <div class="modal-b">
-      <div class="mlabel">① SCM 포탈에서 다운로드한 파일 선택</div>
+      <div class="mlabel">① Select file downloaded from SCM Portal</div>
       <div id="fileList"></div>
-      <div class="mlabel">② 파싱·매핑 검증 결과</div>
-      <div class="parse-box" id="parseBox"><div style="color:#9ca3af;text-align:center;padding:8px;">파일을 선택하면 검증 결과가 표시됩니다</div></div>
-      <div class="hint">⚙ 업로드 시 <b>PP_CustomerItemMap</b>으로 고객사 품번 → A-MES 코드 자동 매핑. 미매핑 행은 빨강 표시되며 [매핑] 버튼으로 수동 연결합니다. (BR-PP-F001)</div>
+      <div class="mlabel">② Parse and Mapping Validation Results</div>
+      <div class="parse-box" id="parseBox"><div style="color:#9ca3af;text-align:center;padding:8px;">Select a file to display validation results</div></div>
+      <div class="hint">⚙ On upload, <b>PP_CustomerItemMap</b> auto-maps customer item number → A-MES code. Unmapped rows are flagged in red and can be linked manually via the [Map] button. (BR-PP-F001)</div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeModal('ovUpload')">취소</button>
-      <button class="btn btn-p" id="btnDoUpload" onclick="doUpload()" disabled style="opacity:.5;">업로드 실행</button>
+      <button class="btn btn-s" onclick="closeModal('ovUpload')">Cancel</button>
+      <button class="btn btn-p" id="btnDoUpload" onclick="doUpload()" disabled style="opacity:.5;">Run Upload</button>
     </div>
   </div>
 </div>
@@ -184,24 +184,24 @@ tbody tr.unmapped:hover td{background:#fee2e2;}
 <!-- MAP MODAL -->
 <div class="ov" id="ovMap">
   <div class="modal" style="width:440px;">
-    <div class="modal-h"><span>🔗</span><span class="mt">고객사 품번 매핑</span><button class="mx" onclick="closeModal('ovMap')">✕</button></div>
+    <div class="modal-h"><span>🔗</span><span class="mt">Customer Item Mapping</span><button class="mx" onclick="closeModal('ovMap')">✕</button></div>
     <div class="modal-b">
-      <div class="mlabel">고객사 품번 (미매핑)</div>
+      <div class="mlabel">Customer Item No. (Unmapped)</div>
       <input type="text" class="full" id="mapCustNo" readonly style="background:#fef2f2;color:#991b1b;font-family:'JetBrains Mono',monospace;">
-      <div class="mlabel">→ A-MES 품목코드 선택</div>
+      <div class="mlabel">→ Select A-MES Item Code</div>
       <select class="full" id="mapTarget">
-        <option value="">— 품목 선택 —</option>
-        <option value="GRILLE-03|라디에이터 그릴 신형">GRILLE-03 · 라디에이터 그릴 신형</option>
-        <option value="TRIM-RR-001|도어트림 RR">TRIM-RR-001 · 도어트림 RR</option>
-        <option value="MOLDING-07|사이드 몰딩">MOLDING-07 · 사이드 몰딩</option>
-        <option value="CONS-LW-002|콘솔로어">CONS-LW-002 · 콘솔로어</option>
-        <option value="BUMPER-02|범퍼 신형">BUMPER-02 · 범퍼 신형</option>
+        <option value="">— Select Item —</option>
+        <option value="GRILLE-03|Radiator Grille (New)">GRILLE-03 · Radiator Grille (New)</option>
+        <option value="TRIM-RR-001|Door Trim RR">TRIM-RR-001 · Door Trim RR</option>
+        <option value="MOLDING-07|Side Molding">MOLDING-07 · Side Molding</option>
+        <option value="CONS-LW-002|Console Lower">CONS-LW-002 · Console Lower</option>
+        <option value="BUMPER-02|Bumper (New)">BUMPER-02 · Bumper (New)</option>
       </select>
-      <div class="hint">매핑 확정 시 해당 품번이 <b>PP_CustomerItemMap</b>에 등록되어 다음 업로드부터 자동 매핑됩니다. 매핑 후 편차가 자동 재계산됩니다.</div>
+      <div class="hint">When confirmed, this mapping is registered in <b>PP_CustomerItemMap</b> and will auto-map on subsequent uploads. Variance is automatically recalculated after mapping.</div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeModal('ovMap')">취소</button>
-      <button class="btn btn-p" onclick="doMap()">매핑 확정</button>
+      <button class="btn btn-s" onclick="closeModal('ovMap')">Cancel</button>
+      <button class="btn btn-p" onclick="doMap()">Confirm Mapping</button>
     </div>
   </div>
 </div>
@@ -211,28 +211,28 @@ tbody tr.unmapped:hover td{background:#fee2e2;}
 <script>
 /* ---------- DATA ---------- */
 var DATA=[
-  {cust:'SAV',cno:'SAV-TRIM-LH',code:'TRIM-LH-001',name:'도어트림 LH',m1:2400,m2:2200,m3:2000,conf:2350},
-  {cust:'GEO',cno:'GEO-TRIM-RH',code:'TRIM-RH-001',name:'도어트림 RH',m1:1600,m2:1500,m3:1400,conf:1580},
-  {cust:'SAV',cno:'SAV-CONS-UP',code:'CONS-UP-001',name:'콘솔어퍼',m1:800,m2:900,m3:1000,conf:660},
-  {cust:'SAV',cno:'SAV-GRILLE',code:'GRILLE-02',name:'라디에이터 그릴',m1:1200,m2:1100,m3:1100,conf:1530},
-  {cust:'GEO',cno:'GEO-MOLD-5',code:'MOLDING-05',name:'사이드 몰딩 5',m1:600,m2:650,m3:700,conf:590},
-  {cust:'SAV',cno:'SAV-BUMPER',code:'BUMPER-01',name:'프론트 범퍼',m1:900,m2:900,m3:850,conf:905},
+  {cust:'SAV',cno:'SAV-TRIM-LH',code:'TRIM-LH-001',name:'Door Trim LH',m1:2400,m2:2200,m3:2000,conf:2350},
+  {cust:'GEO',cno:'GEO-TRIM-RH',code:'TRIM-RH-001',name:'Door Trim RH',m1:1600,m2:1500,m3:1400,conf:1580},
+  {cust:'SAV',cno:'SAV-CONS-UP',code:'CONS-UP-001',name:'Console Upper',m1:800,m2:900,m3:1000,conf:660},
+  {cust:'SAV',cno:'SAV-GRILLE',code:'GRILLE-02',name:'Radiator Grille',m1:1200,m2:1100,m3:1100,conf:1530},
+  {cust:'GEO',cno:'GEO-MOLD-5',code:'MOLDING-05',name:'Side Molding 5',m1:600,m2:650,m3:700,conf:590},
+  {cust:'SAV',cno:'SAV-BUMPER',code:'BUMPER-01',name:'Front Bumper',m1:900,m2:900,m3:850,conf:905},
   {cust:'GEO',cno:'GEO-NEW-PT',code:null,name:null,m1:500,m2:500,m3:500,conf:null},
   {cust:'GEO',cno:'GEO-XTR-9',code:null,name:null,m1:300,m2:350,m3:300,conf:null}
 ];
 var HISTORY=[
-  {dt:'2025-08-01 09:12',cust:'SAV',file:'SAV_Forecast_2025-08.xlsx',rows:5,mapped:5,unmapped:0,by:'김계획'},
-  {dt:'2025-08-01 09:20',cust:'GEO',file:'GEO_Forecast_2025-08.xlsx',rows:4,mapped:3,unmapped:1,by:'김계획'}
+  {dt:'08/01/2025 09:12',cust:'SAV',file:'SAV_Forecast_2025-08.xlsx',rows:5,mapped:5,unmapped:0,by:'Jennifer Park'},
+  {dt:'08/01/2025 09:20',cust:'GEO',file:'GEO_Forecast_2025-08.xlsx',rows:4,mapped:3,unmapped:1,by:'Jennifer Park'}
 ];
-var lastUpload='2025-08-01';
+var lastUpload='08/01/2025';
 var FILES=[
-  {id:'sav9',cust:'SAV',name:'SAV_Forecast_2025-09.xlsx',rows:3,desc:'3개 행 · M+1~M+6',
-   data:[{cust:'SAV',cno:'SAV-TRIM-LH',code:'TRIM-LH-001',name:'도어트림 LH',m1:2500,m2:2300,m3:2100,conf:2350},
-         {cust:'SAV',cno:'SAV-MOLD-7',code:'MOLDING-07',name:'사이드 몰딩 7',m1:700,m2:720,m3:700,conf:690},
+  {id:'sav9',cust:'SAV',name:'SAV_Forecast_2025-09.xlsx',rows:3,desc:'3 rows · M+1~M+6',
+   data:[{cust:'SAV',cno:'SAV-TRIM-LH',code:'TRIM-LH-001',name:'Door Trim LH',m1:2500,m2:2300,m3:2100,conf:2350},
+         {cust:'SAV',cno:'SAV-MOLD-7',code:'MOLDING-07',name:'Side Molding 7',m1:700,m2:720,m3:700,conf:690},
          {cust:'SAV',cno:'SAV-ZZ-NEW',code:null,name:null,m1:420,m2:420,m3:420,conf:null}]},
-  {id:'geo9',cust:'GEO',name:'GEO_Forecast_2025-09.xlsx',rows:2,desc:'2개 행 · M+1~M+6',
-   data:[{cust:'GEO',cno:'GEO-TRIM-RH',code:'TRIM-RH-001',name:'도어트림 RH',m1:1700,m2:1600,m3:1500,conf:1580},
-         {cust:'GEO',cno:'GEO-MOLD-5',code:'MOLDING-05',name:'사이드 몰딩 5',m1:640,m2:650,m3:680,conf:590}]}
+  {id:'geo9',cust:'GEO',name:'GEO_Forecast_2025-09.xlsx',rows:2,desc:'2 rows · M+1~M+6',
+   data:[{cust:'GEO',cno:'GEO-TRIM-RH',code:'TRIM-RH-001',name:'Door Trim RH',m1:1700,m2:1600,m3:1500,conf:1580},
+         {cust:'GEO',cno:'GEO-MOLD-5',code:'MOLDING-05',name:'Side Molding 5',m1:640,m2:650,m3:680,conf:590}]}
 ];
 var curTab='fc',selFile=null,mapIdx=-1;
 
@@ -262,15 +262,15 @@ function render(){
     h+='<tr class="'+(un?'unmapped':'')+'">'+
       '<td>'+r.cust+'</td>'+
       '<td class="mono'+(un?'" style="color:#dc2626;font-weight:700;':'"')+'">'+r.cno+'</td>'+
-      '<td class="mono">'+(un?'<span style="color:#dc2626;">⚠ 미매핑</span>':r.code)+'</td>'+
-      '<td>'+(un?'<span style="color:#991b1b;">UNMAPPED · 매핑 필요</span>':r.name)+'</td>'+
+      '<td class="mono">'+(un?'<span style="color:#dc2626;">⚠ Unmapped</span>':r.code)+'</td>'+
+      '<td>'+(un?'<span style="color:#991b1b;">UNMAPPED · Mapping Required</span>':r.name)+'</td>'+
       '<td class="num">'+nf(r.m1)+'</td><td class="num">'+nf(r.m2)+'</td><td class="num">'+nf(r.m3)+'</td>'+
-      '<td class="num ref">참고</td>'+
+      '<td class="num ref">ref</td>'+
       '<td class="num" style="font-weight:700;">'+nf(r.conf)+'</td>'+
       '<td style="text-align:center;">'+gapBadge(g)+'</td>'+
       '<td style="text-align:center;">'+(un
-        ?'<button class="btn btn-p btn-sm" onclick="openMap('+idx+')">🔗 매핑</button>'
-        :'<button class="btn btn-s btn-sm" onclick="toggleDetail('+idx+',this)">상세</button>')+'</td>'+
+        ?'<button class="btn btn-p btn-sm" onclick="openMap('+idx+')">🔗 Map</button>'
+        :'<button class="btn btn-s btn-sm" onclick="toggleDetail('+idx+',this)">Detail</button>')+'</td>'+
       '</tr>';
   });
   tb.innerHTML=h;
@@ -292,22 +292,22 @@ function renderHistory(){
 }
 function toggleDetail(idx,btn){
   var tr=btn.closest('tr'),nx=tr.nextElementSibling;
-  if(nx&&nx.classList.contains('detail-row')){nx.remove();btn.textContent='상세';return;}
-  btn.textContent='닫기';
+  if(nx&&nx.classList.contains('detail-row')){nx.remove();btn.textContent='Detail';return;}
+  btn.textContent='Close';
   var r=DATA[idx],g=gap(r),tot=r.m1+r.m2+r.m3;
   var mx=Math.max(r.m1,r.m2,r.m3);
   var d=document.createElement('tr');d.className='detail-row';
   d.innerHTML='<td colspan="11"><div class="detail-in">'+
-    '<div class="dt"><div class="dl">3개월 합계 Forecast</div><div class="dv">'+tot.toLocaleString()+' EA</div></div>'+
-    '<div class="dt"><div class="dl">확정수주 / 편차</div><div class="dv">'+nf(r.conf)+' EA · '+(g>0?'+':'')+g+'%</div></div>'+
-    '<div class="dt"><div class="dl">구속력 구간</div><div class="dv">M+1~M+3 (생산계획 구속)</div></div>'+
-    '<div class="dt" style="grid-column:1/4;"><div class="dl">월별 추이 M+1 · M+2 · M+3</div>'+
+    '<div class="dt"><div class="dl">3-Month Forecast Total</div><div class="dv">'+tot.toLocaleString()+' EA</div></div>'+
+    '<div class="dt"><div class="dl">Confirmed / Gap</div><div class="dv">'+nf(r.conf)+' EA · '+(g>0?'+':'')+g+'%</div></div>'+
+    '<div class="dt"><div class="dl">Binding Window</div><div class="dv">M+1~M+3 (Plan Locked)</div></div>'+
+    '<div class="dt" style="grid-column:1/4;"><div class="dl">Monthly Trend M+1 · M+2 · M+3</div>'+
       '<div class="spark"><span style="height:'+(r.m1/mx*100)+'%"></span><span style="height:'+(r.m2/mx*100)+'%"></span><span style="height:'+(r.m3/mx*100)+'%"></span></div></div>'+
     '</div></td>';
   tr.after(d);
 }
-function periodChange(){toast('info','기간 변경','선택 기간: '+document.getElementById('fPeriod').value+' — 해당 분기 Forecast를 조회했습니다.');render();}
-function resetFilters(){document.getElementById('fCust').value='';document.getElementById('fSearch').value='';document.getElementById('fPeriod').selectedIndex=0;render();toast('info','필터 초기화','검색 조건을 초기화했습니다.');}
+function periodChange(){toast('info','Period Changed','Selected period: '+document.getElementById('fPeriod').value+' — Forecast data for this quarter has been loaded.');render();}
+function resetFilters(){document.getElementById('fCust').value='';document.getElementById('fSearch').value='';document.getElementById('fPeriod').selectedIndex=0;render();toast('info','Filters Reset','Search filters have been cleared.');}
 function switchTab(t){
   curTab=t;
   document.getElementById('tab-fc').classList.toggle('on',t==='fc');
@@ -323,11 +323,11 @@ function openUpload(){
   var h='';
   FILES.forEach(function(f){
     h+='<div class="file-opt" id="fo-'+f.id+'" onclick="pickFile(\''+f.id+'\')">'+
-       '<span class="fi">📄</span><div><div class="fn">'+f.name+'</div><div class="fd">고객사 '+f.cust+' · '+f.desc+'</div></div>'+
+       '<span class="fi">📄</span><div><div class="fn">'+f.name+'</div><div class="fd">Customer '+f.cust+' · '+f.desc+'</div></div>'+
        '<span class="fr"></span></div>';
   });
   document.getElementById('fileList').innerHTML=h;
-  document.getElementById('parseBox').innerHTML='<div style="color:#9ca3af;text-align:center;padding:8px;">파일을 선택하면 검증 결과가 표시됩니다</div>';
+  document.getElementById('parseBox').innerHTML='<div style="color:#9ca3af;text-align:center;padding:8px;">Select a file to display validation results</div>';
   var b=document.getElementById('btnDoUpload');b.disabled=true;b.style.opacity=.5;
   document.getElementById('ovUpload').classList.add('show');
 }
@@ -338,10 +338,10 @@ function pickFile(id){
   var mapped=selFile.data.filter(function(r){return r.code!==null;}).length;
   var unmapped=selFile.data.length-mapped;
   document.getElementById('parseBox').innerHTML=
-    '<div class="parse-row"><span class="pl">총 데이터 행</span><span class="pv">'+selFile.data.length+' 행</span></div>'+
-    '<div class="parse-row"><span class="pl">✅ 자동 매핑 성공</span><span class="pv" style="color:#166534;">'+mapped+' 행</span></div>'+
-    '<div class="parse-row"><span class="pl">⚠ 미매핑 (매핑 필요)</span><span class="pv" style="color:'+(unmapped?'#dc2626':'#9ca3af')+';">'+unmapped+' 행</span></div>'+
-    '<div class="parse-row" style="border-top:1px dashed #d0d7de;margin-top:4px;padding-top:6px;"><span class="pl">스키마 검증</span><span class="pv" style="color:#166534;">✓ 정상 (필수 컬럼 확인)</span></div>';
+    '<div class="parse-row"><span class="pl">Total Data Rows</span><span class="pv">'+selFile.data.length+' rows</span></div>'+
+    '<div class="parse-row"><span class="pl">✅ Auto-Mapped</span><span class="pv" style="color:#166534;">'+mapped+' rows</span></div>'+
+    '<div class="parse-row"><span class="pl">⚠ Unmapped (action required)</span><span class="pv" style="color:'+(unmapped?'#dc2626':'#9ca3af')+';">'+unmapped+' rows</span></div>'+
+    '<div class="parse-row" style="border-top:1px dashed #d0d7de;margin-top:4px;padding-top:6px;"><span class="pl">Schema Validation</span><span class="pv" style="color:#166534;">✓ OK (required columns verified)</span></div>';
   var b=document.getElementById('btnDoUpload');b.disabled=false;b.style.opacity=1;
 }
 function doUpload(){
@@ -354,16 +354,16 @@ function doUpload(){
     if(nr.code===null) unmapped++;
   });
   var mapped=selFile.data.length-unmapped;
-  var now=new Date(),ds=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  var now=new Date(),ds=String(now.getMonth()+1).padStart(2,'0')+'/'+String(now.getDate()).padStart(2,'0')+'/'+now.getFullYear();
   lastUpload=ds;
   HISTORY.unshift({dt:ds+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'),
-    cust:selFile.cust,file:selFile.name,rows:selFile.data.length,mapped:mapped,unmapped:unmapped,by:'김계획'});
+    cust:selFile.cust,file:selFile.name,rows:selFile.data.length,mapped:mapped,unmapped:unmapped,by:'Jennifer Park'});
   closeModal('ovUpload');render();
-  toast('','업로드 완료 — '+selFile.name,'신규 '+added+'행 · 갱신 '+updated+'행 반영. 자동 매핑 '+mapped+'행 성공'+(unmapped?', 미매핑 '+unmapped+'행 (BR-PP-F001)':'.'));
-  if(unmapped) setTimeout(function(){toast('warn','미매핑 품번 '+unmapped+'건','테이블의 빨강 행에서 [매핑] 버튼으로 A-MES 코드를 연결하세요.');},600);
+  toast('','Upload Complete — '+selFile.name,'New '+added+' rows · Updated '+updated+' rows. Auto-mapped '+mapped+' rows successfully'+(unmapped?', '+unmapped+' rows unmapped (BR-PP-F001).':'.'));
+  if(unmapped) setTimeout(function(){toast('warn',unmapped+' unmapped items','Use the [Map] button on the red-highlighted rows to link them to an A-MES code.');},600);
   /* gap alert */
   var ga=DATA.filter(function(r){var g=gap(r);return g!==null&&Math.abs(g)>20;}).length;
-  if(ga) setTimeout(function(){toast('warn','편차 알림 (BR-PP-F002)','Forecast 대비 확정수주 편차 20% 초과 품목 '+ga+'건 — PLAN/MGR 알림 발송.');},1100);
+  if(ga) setTimeout(function(){toast('warn','Variance Alert (BR-PP-F002)',ga+' item(s) exceed 20% variance between Forecast and Confirmed Orders — PLAN/MGR notification sent.');},1100);
 }
 
 /* ---------- MAP ---------- */
@@ -375,18 +375,18 @@ function openMap(idx){
 }
 function doMap(){
   var v=document.getElementById('mapTarget').value;
-  if(!v){toast('err','매핑 대상 미선택','연결할 A-MES 품목코드를 선택하세요.');return;}
+  if(!v){toast('err','No Mapping Target Selected','Please select an A-MES item code to link.');return;}
   var p=v.split('|'),r=DATA[mapIdx];
   r.code=p[0];r.name=p[1];
   if(r.conf===null) r.conf=Math.round(r.m1*(0.92+Math.random()*0.16));
   closeModal('ovMap');render();
-  toast('','매핑 완료','['+r.cno+'] → '+p[0]+' 연결. PP_CustomerItemMap 등록 — 편차 자동 재계산됨.');
+  toast('','Mapping Complete','['+r.cno+'] → '+p[0]+' linked. Registered in PP_CustomerItemMap — variance recalculated.');
 }
 
 /* ---------- EXPORT ---------- */
 function exportCsv(){
   var rows=filtered();
-  if(!rows.length){toast('err','내보낼 데이터 없음','조건에 맞는 행이 없습니다.');return;}
+  if(!rows.length){toast('err','No Data to Export','No rows match the current filters.');return;}
   var csv='Customer,CustomerItemNo,AMES_Code,ItemName,M+1,M+2,M+3,Confirmed,Gap%\n';
   rows.forEach(function(r){
     var g=gap(r);
@@ -396,7 +396,7 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='PP01_Forecast_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','현재 조회 '+rows.length+'행을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+rows.length+' filtered rows to CSV.');
 }
 
 /* ---------- MODAL / TOAST ---------- */

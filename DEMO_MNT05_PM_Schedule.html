@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>MNT-05 PM Schedule · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -45,7 +45,9 @@ select,input{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-s
 .cell{min-height:88px;border:1px solid #eef1f5;border-radius:6px;padding:4px;background:#fff;}
 .cell.empty{background:#fafbfc;border-style:dashed;}
 .cell.today{border-color:var(--pp);box-shadow:0 0 0 1px var(--pp);}
+.cell.hol{background:#fef2f2;}
 .cell .dn{font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;margin-bottom:3px;}
+.cell .hl{font-size:8px;color:#dc2626;font-weight:700;margin-bottom:2px;}
 .cell.today .dn{color:var(--pp);}
 .pm{font-size:9px;padding:2px 5px;border-radius:3px;margin-bottom:2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid;}
 .pm:hover{filter:brightness(.96);}
@@ -82,38 +84,38 @@ select,input{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-s
 <body>
 <div class="scr-head">
   <div class="sh-id">MNT-05</div>
-  <div class="sh-tt"><div class="sh-en">PM Schedule</div><div class="sh-ko">예방정비 일정 — 설비 PM 캘린더·완료 관리</div></div>
+  <div class="sh-tt"><div class="sh-en">PM Schedule</div><div class="sh-ko">Preventive maintenance calendar / completion</div></div>
   <span class="sh-tag">/mnt/pm</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>월 Month</label>
-    <select id="fMonth" onchange="apply()"><option>2026년 5월</option></select></div>
-  <div class="fld"><label>설비 Equipment</label>
-    <select id="fEq" onchange="apply()"><option value="">전체 All</option></select></div>
-  <div class="fld"><label>상태 Status</label>
-    <select id="fStat" onchange="apply()"><option value="">전체</option><option value="done">완료</option><option value="due">금일 예정</option><option value="over">지연</option><option value="plan">예정</option></select></div>
-  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div class="fld"><label>Month</label>
+    <select id="fMonth" onchange="apply()"><option>May 2026</option></select></div>
+  <div class="fld"><label>Equipment</label>
+    <select id="fEq" onchange="apply()"><option value="">All</option></select></div>
+  <div class="fld"><label>Status</label>
+    <select id="fStat" onchange="apply()"><option value="">All</option><option value="done">Completed</option><option value="due">Due Today</option><option value="over">Overdue</option><option value="plan">Planned</option></select></div>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>
   <div style="margin-left:auto;display:flex;gap:8px;">
-    <button class="btn btn-p" onclick="openNew()">＋ PM 등록</button>
+    <button class="btn btn-p" onclick="openNew()">＋ Add PM</button>
     <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
   </div>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kPlan">0</div><div class="kl">금월 PM 계획 · Total</div></div>
-    <div class="kpi" style="--c:#10b981"><div class="kv" id="kDone">0</div><div class="kl">완료 · Completed</div></div>
-    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kFut">0</div><div class="kl">예정 · Upcoming</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kOver">0</div><div class="kl">지연 · Overdue</div></div>
-    <div class="kpi" style="--c:#059669"><div class="kv" id="kRate">0%</div><div class="kl">PM 준수율 · Compliance</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kPlan">0</div><div class="kl">MTD PM Plan · Total</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kDone">0</div><div class="kl">Completed</div></div>
+    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kFut">0</div><div class="kl">Upcoming</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kOver">0</div><div class="kl">Overdue</div></div>
+    <div class="kpi" style="--c:#059669"><div class="kv" id="kRate">0%</div><div class="kl">PM Compliance</div></div>
   </div>
   <div class="card">
-    <div class="card-t">📅 2026년 5월 예방정비 캘린더
+    <div class="card-t">📅 May 2026 Preventive Maintenance Calendar
       <span class="legend">
-        <span><i style="background:#10b981"></i>완료</span>
-        <span><i style="background:#f59e0b"></i>금일</span>
-        <span><i style="background:#dc2626"></i>지연</span>
-        <span><i style="background:#6366f1"></i>예정</span>
+        <span><i style="background:#10b981"></i>Completed</span>
+        <span><i style="background:#f59e0b"></i>Today</span>
+        <span><i style="background:#dc2626"></i>Overdue</span>
+        <span><i style="background:#6366f1"></i>Planned</span>
       </span>
     </div>
     <div class="cal">
@@ -126,35 +128,35 @@ select,input{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-s
 <!-- task detail modal -->
 <div class="ov" id="ovDt">
   <div class="modal">
-    <div class="modal-h"><span class="mt">PM 작업 상세</span><span class="mx" onclick="closeOv('ovDt')">✕</span></div>
+    <div class="modal-h"><span class="mt">PM Task Detail</span><span class="mx" onclick="closeOv('ovDt')">✕</span></div>
     <div class="modal-b" id="dtBody"></div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovDt')">닫기</button>
-      <button class="btn btn-p" id="dtDone" onclick="completeTask()">✓ PM 완료 처리</button>
+      <button class="btn btn-s" onclick="closeOv('ovDt')">Close</button>
+      <button class="btn btn-p" id="dtDone" onclick="completeTask()">✓ Complete PM</button>
     </div>
   </div>
 </div>
 <!-- new PM modal -->
 <div class="ov" id="ovNew">
   <div class="modal">
-    <div class="modal-h"><span class="mt">예방정비 일정 등록</span><span class="mx" onclick="closeOv('ovNew')">✕</span></div>
+    <div class="modal-h"><span class="mt">Add Preventive Maintenance</span><span class="mx" onclick="closeOv('ovNew')">✕</span></div>
     <div class="modal-b">
-      <div class="ff"><label>대상 설비 <span class="req">*</span></label><select id="nEq"></select></div>
+      <div class="ff"><label>Equipment <span class="req">*</span></label><select id="nEq"></select></div>
       <div class="ff2">
-        <div class="ff"><label>PM 유형 <span class="req">*</span></label>
-          <select id="nType"><option>일상 점검</option><option>정기 PM</option><option>정밀 진단</option></select></div>
-        <div class="ff"><label>예정일 <span class="req">*</span></label><input type="date" id="nDate" value="2026-05-25" min="2026-05-01" max="2026-05-31"></div>
+        <div class="ff"><label>PM Type <span class="req">*</span></label>
+          <select id="nType"><option>Daily Inspection</option><option>Routine PM</option><option>Diagnostic</option></select></div>
+        <div class="ff"><label>Scheduled Date <span class="req">*</span></label><input type="date" id="nDate" value="2026-05-25" min="2026-05-01" max="2026-05-31"></div>
       </div>
       <div class="ff2">
-        <div class="ff"><label>주기 Cycle</label>
-          <select id="nCycle"><option>주간</option><option>월간</option><option>분기</option><option>반기</option></select></div>
-        <div class="ff"><label>담당</label>
-          <select id="nBy"><option>정비반</option><option>금형반</option><option>도장반</option><option>외주</option></select></div>
+        <div class="ff"><label>Cycle</label>
+          <select id="nCycle"><option>Weekly</option><option>Monthly</option><option>Quarterly</option><option>Semi-Annual</option></select></div>
+        <div class="ff"><label>Assigned To</label>
+          <select id="nBy"><option>Maintenance Team</option><option>Mold Team</option><option>Paint Team</option><option>External</option></select></div>
       </div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovNew')">취소</button>
-      <button class="btn btn-p" onclick="addPM()">＋ 등록</button>
+      <button class="btn btn-s" onclick="closeOv('ovNew')">Cancel</button>
+      <button class="btn btn-p" onclick="addPM()">＋ Register</button>
     </div>
   </div>
 </div>
@@ -162,33 +164,34 @@ select,input{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-s
 
 <script>
 var TODAY=20;
+var HOLIDAYS={25:'Memorial Day'};
 var EQLIST=[
- {id:'EQ-INJ-001',nm:'사출기 1호기'},{id:'EQ-INJ-002',nm:'사출기 2호기'},
- {id:'EQ-ASY-001',nm:'조립1라인 컨베이어'},{id:'EQ-ASY-002',nm:'토크 체결기 #1'},
- {id:'EQ-PNT-001',nm:'도장 부스 1라인'},{id:'EQ-INS-001',nm:'비전 검사기 #1'},
- {id:'EQ-UTL-001',nm:'공기압축기 #1'}
+ {id:'EQ-INJ-001',nm:'Injection Machine #1'},{id:'EQ-INJ-002',nm:'Injection Machine #2'},
+ {id:'EQ-ASY-001',nm:'Assembly Line 1 Conveyor'},{id:'EQ-ASY-002',nm:'Torque Fastener #1'},
+ {id:'EQ-PNT-001',nm:'Paint Booth Line 1'},{id:'EQ-INS-001',nm:'Vision Inspector #1'},
+ {id:'EQ-UTL-001',nm:'Air Compressor #1'}
 ];
 /* st base: done/over/plan ; due computed when date==TODAY */
 var PM=[
- {id:'PM-001',eq:'EQ-PNT-001',type:'정기 PM',day:3,cycle:'월간',by:'도장반',st:'done'},
- {id:'PM-002',eq:'EQ-ASY-001',type:'일상 점검',day:5,cycle:'주간',by:'정비반',st:'done'},
- {id:'PM-003',eq:'EQ-INJ-001',type:'일상 점검',day:7,cycle:'주간',by:'정비반',st:'done'},
- {id:'PM-004',eq:'EQ-INS-001',type:'정밀 진단',day:8,cycle:'분기',by:'외주',st:'done'},
- {id:'PM-005',eq:'EQ-UTL-001',type:'정기 PM',day:11,cycle:'월간',by:'정비반',st:'done'},
- {id:'PM-006',eq:'EQ-ASY-001',type:'일상 점검',day:12,cycle:'주간',by:'정비반',st:'done'},
- {id:'PM-007',eq:'EQ-INJ-002',type:'정기 PM',day:14,cycle:'월간',by:'정비반',st:'over'},
- {id:'PM-008',eq:'EQ-ASY-002',type:'일상 점검',day:18,cycle:'주간',by:'정비반',st:'over'},
- {id:'PM-009',eq:'EQ-INJ-001',type:'일상 점검',day:19,cycle:'주간',by:'정비반',st:'done'},
- {id:'PM-010',eq:'EQ-PNT-001',type:'일상 점검',day:20,cycle:'주간',by:'도장반',st:'plan'},
- {id:'PM-011',eq:'EQ-ASY-001',type:'일상 점검',day:20,cycle:'주간',by:'정비반',st:'plan'},
- {id:'PM-012',eq:'EQ-INJ-002',type:'정밀 진단',day:22,cycle:'분기',by:'외주',st:'plan'},
- {id:'PM-013',eq:'EQ-UTL-001',type:'일상 점검',day:25,cycle:'주간',by:'정비반',st:'plan'},
- {id:'PM-014',eq:'EQ-INS-001',type:'정기 PM',day:27,cycle:'월간',by:'정비반',st:'plan'},
- {id:'PM-015',eq:'EQ-INJ-001',type:'정기 PM',day:29,cycle:'월간',by:'정비반',st:'plan'}
+ {id:'PM-2605-001',eq:'EQ-PNT-001',type:'Routine PM',day:3,cycle:'Monthly',by:'Paint Team',st:'done'},
+ {id:'PM-2605-002',eq:'EQ-ASY-001',type:'Daily Inspection',day:5,cycle:'Weekly',by:'Maintenance Team',st:'done'},
+ {id:'PM-2605-003',eq:'EQ-INJ-001',type:'Daily Inspection',day:7,cycle:'Weekly',by:'Maintenance Team',st:'done'},
+ {id:'PM-2605-004',eq:'EQ-INS-001',type:'Diagnostic',day:8,cycle:'Quarterly',by:'External',st:'done'},
+ {id:'PM-2605-005',eq:'EQ-UTL-001',type:'Routine PM',day:11,cycle:'Monthly',by:'Maintenance Team',st:'done'},
+ {id:'PM-2605-006',eq:'EQ-ASY-001',type:'Daily Inspection',day:12,cycle:'Weekly',by:'Maintenance Team',st:'done'},
+ {id:'PM-2605-007',eq:'EQ-INJ-002',type:'Routine PM',day:14,cycle:'Monthly',by:'Maintenance Team',st:'over'},
+ {id:'PM-2605-008',eq:'EQ-ASY-002',type:'Daily Inspection',day:18,cycle:'Weekly',by:'Maintenance Team',st:'over'},
+ {id:'PM-2605-009',eq:'EQ-INJ-001',type:'Daily Inspection',day:19,cycle:'Weekly',by:'Maintenance Team',st:'done'},
+ {id:'PM-2605-010',eq:'EQ-PNT-001',type:'Daily Inspection',day:20,cycle:'Weekly',by:'Paint Team',st:'plan'},
+ {id:'PM-2605-011',eq:'EQ-ASY-001',type:'Daily Inspection',day:20,cycle:'Weekly',by:'Maintenance Team',st:'plan'},
+ {id:'PM-2605-012',eq:'EQ-INJ-002',type:'Diagnostic',day:22,cycle:'Quarterly',by:'External',st:'plan'},
+ {id:'PM-2605-013',eq:'EQ-UTL-001',type:'Daily Inspection',day:26,cycle:'Weekly',by:'Maintenance Team',st:'plan'},
+ {id:'PM-2605-014',eq:'EQ-INS-001',type:'Routine PM',day:27,cycle:'Monthly',by:'Maintenance Team',st:'plan'},
+ {id:'PM-2605-015',eq:'EQ-INJ-001',type:'Routine PM',day:29,cycle:'Monthly',by:'Maintenance Team',st:'plan'}
 ];
 var seq=16,curId=null;
 var STT={done:'tg-done',due:'tg-due',over:'tg-over',plan:'tg-plan'};
-var STK={done:'완료',due:'금일 예정',over:'지연',plan:'예정'};
+var STK={done:'Completed',due:'Due Today',over:'Overdue',plan:'Planned'};
 function effSt(p){
   if(p.st==='done')return 'done';
   if(p.day<TODAY)return 'over';
@@ -196,12 +199,20 @@ function effSt(p){
   return 'plan';
 }
 function eqNm(id){var e=EQLIST.filter(function(x){return x.id===id;})[0];return e?e.nm:id;}
+function shortNm(nm){
+  return nm.replace(/Injection Machine #(\d+)/,'INJ#$1')
+    .replace(/Assembly Line (\d+) Conveyor/,'Asm$1')
+    .replace(/Torque Fastener #(\d+)/,'TF#$1')
+    .replace(/Paint Booth Line (\d+)/,'PB$1')
+    .replace(/Vision Inspector #(\d+)/,'VI#$1')
+    .replace(/Air Compressor #(\d+)/,'AC#$1');
+}
 function initSel(){
-  var o='<option value="">전체 All</option>';
+  var o='<option value="">All</option>';
   EQLIST.forEach(function(e){o+='<option value="'+e.id+'">'+e.nm+'</option>';});
   document.getElementById('fEq').innerHTML=o;
   document.getElementById('nEq').innerHTML=EQLIST.map(function(e){return '<option value="'+e.id+'">'+e.id+' '+e.nm+'</option>';}).join('');
-  var dn=['일','월','화','수','목','금','토'];
+  var dn=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   document.getElementById('dows').innerHTML=dn.map(function(d,i){
     return '<div class="dow'+(i===0?' sun':i===6?' sat':'')+'">'+d+'</div>';}).join('');
 }
@@ -236,11 +247,13 @@ function renderCal(){
   for(var i=0;i<first;i++)h+='<div class="cell empty"></div>';
   for(var d=1;d<=days;d++){
     var tasks=(byDay[d]||[]);
-    h+='<div class="cell'+(d===TODAY?' today':'')+'"><div class="dn">'+d+'</div>';
+    var holiday=HOLIDAYS[d];
+    h+='<div class="cell'+(d===TODAY?' today':'')+(holiday?' hol':'')+'"><div class="dn">'+d+'</div>';
+    if(holiday)h+='<div class="hl">'+holiday+'</div>';
     tasks.forEach(function(p){
       var s=effSt(p);
       h+='<div class="pm '+s+'" onclick="taskClick(\''+p.id+'\')" title="'+eqNm(p.eq)+' · '+p.type+'">'+
-        eqNm(p.eq).replace(/(호기|라인|컨베이어|체결기|검사기|압축기|부스).*/,'')+' '+p.type.slice(0,2)+'</div>';
+        shortNm(eqNm(p.eq))+' '+p.type.slice(0,8)+'</div>';
     });
     h+='</div>';
   }
@@ -250,48 +263,48 @@ function byId(id){return PM.filter(function(p){return p.id===id;})[0];}
 function taskClick(id){
   curId=id;var p=byId(id),s=effSt(p);
   document.getElementById('dtBody').innerHTML=
-    '<div class="drow"><span class="dk">PM 번호</span><span class="dv">'+p.id+'</span></div>'+
-    '<div class="drow"><span class="dk">대상 설비</span><span class="dv">'+eqNm(p.eq)+'</span></div>'+
-    '<div class="drow"><span class="dk">PM 유형</span><span class="dv">'+p.type+'</span></div>'+
-    '<div class="drow"><span class="dk">예정일</span><span class="dv">2026-05-'+('0'+p.day).slice(-2)+'</span></div>'+
-    '<div class="drow"><span class="dk">주기</span><span class="dv">'+p.cycle+'</span></div>'+
-    '<div class="drow"><span class="dk">담당</span><span class="dv">'+p.by+'</span></div>'+
-    '<div class="drow"><span class="dk">상태</span><span class="dv"><span class="pmtag '+STT[s]+'">'+STK[s]+'</span></span></div>';
+    '<div class="drow"><span class="dk">PM ID</span><span class="dv">'+p.id+'</span></div>'+
+    '<div class="drow"><span class="dk">Equipment</span><span class="dv">'+eqNm(p.eq)+'</span></div>'+
+    '<div class="drow"><span class="dk">PM Type</span><span class="dv">'+p.type+'</span></div>'+
+    '<div class="drow"><span class="dk">Scheduled</span><span class="dv">05/'+('0'+p.day).slice(-2)+'/2026</span></div>'+
+    '<div class="drow"><span class="dk">Cycle</span><span class="dv">'+p.cycle+'</span></div>'+
+    '<div class="drow"><span class="dk">Assigned To</span><span class="dv">'+p.by+'</span></div>'+
+    '<div class="drow"><span class="dk">Status</span><span class="dv"><span class="pmtag '+STT[s]+'">'+STK[s]+'</span></span></div>';
   document.getElementById('dtDone').style.display=(s==='done')?'none':'inline-flex';
   openOv('ovDt');
 }
 function completeTask(){
   var p=byId(curId);p.st='done';
   closeOv('ovDt');apply();
-  toast('',p.id+' PM 완료',eqNm(p.eq)+' 「'+p.type+'」 예방정비가 완료 처리되었습니다.');
+  toast('',p.id+' PM Complete',eqNm(p.eq)+' "'+p.type+'" preventive maintenance marked complete.');
 }
-function openNew(){document.getElementById('nDate').value='2026-05-25';openOv('ovNew');}
+function openNew(){document.getElementById('nDate').value='2026-05-26';openOv('ovNew');}
 function addPM(){
   var date=document.getElementById('nDate').value;
-  if(!date){toast('err','입력 오류','예정일을 입력하세요.');return;}
+  if(!date){toast('err','Input Error','Please enter the scheduled date.');return;}
   var day=+date.slice(8,10);
-  if(date.slice(0,7)!=='2026-05'){toast('err','입력 오류','2026년 5월 내 날짜를 선택하세요.');return;}
-  var id='PM-'+('00'+seq++).slice(-3);
+  if(date.slice(0,7)!=='2026-05'){toast('err','Input Error','Please pick a date within May 2026.');return;}
+  var id='PM-2605-'+('00'+seq++).slice(-3);
   PM.push({id:id,eq:document.getElementById('nEq').value,type:document.getElementById('nType').value,
     day:day,cycle:document.getElementById('nCycle').value,by:document.getElementById('nBy').value,
     st:(day<TODAY?'over':'plan')});
   closeOv('ovNew');apply();
-  toast('','PM 일정 등록',id+' — '+eqNm(document.getElementById('nEq').value)+' 5/'+day+' 예방정비 일정이 등록되었습니다.');
+  toast('','PM Added',id+' — '+eqNm(document.getElementById('nEq').value)+' 5/'+day+' preventive maintenance has been added.');
 }
 function exportCsv(){
   var v=visTasks();
   var csv='PM_ID,Equipment,EquipName,Type,Date,Cycle,Assignee,Status\n';
   v.forEach(function(p){
-    csv+=[p.id,p.eq,eqNm(p.eq),p.type,'2026-05-'+('0'+p.day).slice(-2),p.cycle,p.by,STK[effSt(p)]].join(',')+'\n';});
+    csv+=[p.id,p.eq,eqNm(p.eq),p.type,'05/'+('0'+p.day).slice(-2)+'/2026',p.cycle,p.by,STK[effSt(p)]].join(',')+'\n';});
   var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='MNT_PM_Schedule_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','PM 일정 '+v.length+'건을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+v.length+' PM tasks to CSV.');
 }
 function resetAll(){
   document.getElementById('fEq').value='';document.getElementById('fStat').value='';
-  apply();toast('info','초기화','PM 캘린더 필터를 초기화했습니다.');
+  apply();toast('info','Reset','PM calendar filters have been reset.');
 }
 function openOv(id){document.getElementById(id).classList.add('on');}
 function closeOv(id){document.getElementById(id).classList.remove('on');}

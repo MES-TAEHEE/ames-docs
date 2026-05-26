@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>FG-RTN Customer Return · A-MES PDA Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--pda:#06b6d4;--pda-dk:#0e7490;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
 .pda{width:420px;max-width:100%;height:100%;max-height:760px;background:#0f1f25;border:2px solid #1a3540;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;}
 .pda-top{flex-shrink:0;background:linear-gradient(180deg,#1a3540,#0f1f25);padding:11px 16px;display:flex;align-items:center;gap:9px;border-bottom:2px solid #dc2626;}
 .pda-id{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#fca5a5;}
@@ -62,64 +62,64 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font
 <div class="pda">
   <div class="pda-top">
     <div class="pda-id">FG-RTN</div>
-    <div class="pda-t">고객 반품</div>
+    <div class="pda-t">Customer Return</div>
     <span class="live"><span class="d"></span>RETURN</span>
     <span class="pda-bat">🔋 61%</span>
   </div>
   <div class="pda-body">
-    <div class="section-h"><span class="stp">1</span>반품 LOT 스캔</div>
+    <div class="section-h"><span class="stp">1</span>Scan Returned LOT</div>
     <div class="scan-box">
       <div class="ic">↩️✅</div>
-      <div class="t">LOT-2605-1958 인식</div>
-      <div class="s">5/19 출하 · 라디에이터 그릴</div>
+      <div class="t">LOT-2605-1958 Detected</div>
+      <div class="s">Shipped 05/19 · Radiator Grille</div>
     </div>
     <div class="info-card">
-      <div class="nm">라디에이터 그릴 (그레이)</div>
+      <div class="nm">Radiator Grille (Gray)</div>
       <div class="id">GRILLE-02 · LOT-2605-1958</div>
       <div class="meta">
-        <span class="l">출하일</span><b>2026-05-19</b>
-        <span class="l">고객사</span><b>GEO</b>
-        <span class="l">원 출하 수량</span><b>24 EA</b>
-        <span class="l">반품 사유</span><b style="color:#fca5a5;">크롬 박리</b>
+        <span class="l">Ship Date</span><b>05/19/2026</b>
+        <span class="l">Customer</span><b>GEO</b>
+        <span class="l">Original Qty</span><b>24 EA</b>
+        <span class="l">Return Reason</span><b style="color:#fca5a5;">Chrome Delamination</b>
       </div>
     </div>
-    <div class="section-h"><span class="stp">2</span>반품 수량</div>
+    <div class="section-h"><span class="stp">2</span>Return Qty</div>
     <div class="qbox">
-      <div class="l">반품 수량 · RETURN QTY</div>
+      <div class="l">RETURN QTY</div>
       <div class="v" id="qV">6</div>
-      <div class="u">EA · 출하 24 중</div>
+      <div class="u">EA · of 24 shipped</div>
     </div>
     <div class="qty-row">
       <button onclick="adj(-1)">−1</button>
       <button onclick="adj(1)">+1</button>
     </div>
-    <div class="section-h"><span class="stp">3</span>반품 사유</div>
+    <div class="section-h"><span class="stp">3</span>Return Reason</div>
     <div class="reasons">
-      <div class="rsn on" data-r="품질 불량" onclick="pickR(this)">⛔ 품질 불량</div>
-      <div class="rsn" data-r="배송 손상" onclick="pickR(this)">📦 배송 손상</div>
-      <div class="rsn" data-r="오발주" onclick="pickR(this)">❓ 오발주</div>
-      <div class="rsn" data-r="기타" onclick="pickR(this)">📝 기타</div>
+      <div class="rsn on" data-r="Quality Defect" onclick="pickR(this)">⛔ Quality Defect</div>
+      <div class="rsn" data-r="Shipping Damage" onclick="pickR(this)">📦 Shipping Damage</div>
+      <div class="rsn" data-r="Wrong Order" onclick="pickR(this)">❓ Wrong Order</div>
+      <div class="rsn" data-r="Other" onclick="pickR(this)">📝 Other</div>
     </div>
-    <div class="section-h"><span class="stp">4</span>처리 방식</div>
+    <div class="section-h"><span class="stp">4</span>Disposition</div>
     <div class="actions">
-      <div class="act on" data-a="재작업" onclick="pickA(this)">♻ 재작업</div>
-      <div class="act" data-a="폐기" onclick="pickA(this)">🗑 폐기</div>
-      <div class="act" data-a="특채" onclick="pickA(this)">⚖ 특채</div>
+      <div class="act on" data-a="Rework" onclick="pickA(this)">♻ Rework</div>
+      <div class="act" data-a="Scrap" onclick="pickA(this)">🗑 Scrap</div>
+      <div class="act" data-a="Use-As-Is" onclick="pickA(this)">⚖ Use-As-Is</div>
     </div>
   </div>
   <div class="bottom-bar">
-    <button class="sec" onclick="back()">← 취소</button>
-    <button onclick="submit()">↩ 반품 접수</button>
+    <button class="sec" onclick="back()">← Cancel</button>
+    <button onclick="submit()">↩ Submit Return</button>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 <script>
-var q=6,rsn='품질 불량',act='재작업';
+var q=6,rsn='Quality Defect',act='Rework';
 function adj(d){q=Math.max(1,q+d);document.getElementById('qV').textContent=q;}
 function pickR(e){[].slice.call(document.querySelectorAll('.rsn')).forEach(function(x){x.classList.remove('on');});e.classList.add('on');rsn=e.dataset.r;}
 function pickA(e){[].slice.call(document.querySelectorAll('.act')).forEach(function(x){x.classList.remove('on');});e.classList.add('on');act=e.dataset.a;}
-function submit(){toast('ok','반품 접수 완료 ✓','RTN-2605-0008 — '+q+' EA · '+rsn+' · '+act+' 처리 등록됨. QC팀에 자동 통보.');}
-function back(){toast('','뒤로','PDA 메뉴로 돌아갑니다.');}
+function submit(){toast('ok','Return Submitted ✓','RTN-2605-0008 — '+q+' EA · '+rsn+' · '+act+' registered. QC team notified.');}
+function back(){toast('','Back','Returning to PDA menu.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';

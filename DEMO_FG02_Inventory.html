@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>FG-02 FG Inventory · A-MES PDA Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--pda:#06b6d4;--pda-dk:#0e7490;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
 .pda{width:420px;max-width:100%;height:100%;max-height:760px;background:#0f1f25;border:2px solid #1a3540;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;}
 .pda-top{flex-shrink:0;background:linear-gradient(180deg,#1a3540,#0f1f25);padding:11px 16px;display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--pda);}
 .pda-id{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#22d3ee;}
@@ -55,40 +55,40 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font
 <div class="pda">
   <div class="pda-top">
     <div class="pda-id">FG-02</div>
-    <div class="pda-t">완제품 재고</div>
+    <div class="pda-t">FG Inventory</div>
     <span class="live"><span class="d"></span>LIVE</span>
     <span class="pda-bat">🔋 69%</span>
   </div>
   <div class="pda-body">
     <div class="search">
-      <input placeholder="🔍 품목·LOT·고객사" id="kw" oninput="render()">
+      <input placeholder="🔍 Item / LOT / Customer" id="kw" oninput="render()">
       <button onclick="scan()">📷</button>
     </div>
     <div class="kpis">
-      <div class="k" style="--c:#22d3ee"><div class="l">총 LOT</div><div class="v">42</div><div class="s">건</div></div>
+      <div class="k" style="--c:#22d3ee"><div class="l">TOTAL LOT</div><div class="v">42</div><div class="s">lots</div></div>
       <div class="k" style="--c:#22c55e"><div class="l">SAV</div><div class="v">18</div><div class="s">LOT</div></div>
       <div class="k" style="--c:#a78bfa"><div class="l">GEO</div><div class="v">24</div><div class="s">LOT</div></div>
     </div>
-    <div class="section-h">📦 완제품 LOT (FIFO 순) <span class="b" id="cnt">8건</span></div>
+    <div class="section-h">📦 FG LOTs (FIFO Order) <span class="b" id="cnt">8 LOTS</span></div>
     <div id="list"></div>
   </div>
   <div class="bottom-bar">
-    <button class="sec" onclick="back()">← 메뉴</button>
-    <button onclick="scan()">📷 LOT 스캔</button>
+    <button class="sec" onclick="back()">← Menu</button>
+    <button onclick="scan()">📷 Scan LOT</button>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 <script>
-var CMAP={'블랙':'#0A0A0A','그레이':'#8D948D','화이트':'#F4F4F4','레드':'#CC0605'};
+var CMAP={'Black':'#0A0A0A','Gray':'#8D948D','White':'#F4F4F4','Red':'#CC0605'};
 var LOTS=[
- {id:'LOT-2605-1985',nm:'콘솔어퍼',color:'블랙',qty:180,cust:'GEO',loc:'FG-A-08-2',age:5,prod:'2026-05-15'},
- {id:'LOT-2605-2042',nm:'프론트 범퍼',color:'블랙',qty:48,cust:'GEO',loc:'FG-A-09-1',age:4,prod:'2026-05-17'},
- {id:'LOT-2605-2078',nm:'그릴 도장',color:'그레이',qty:24,cust:'GEO',loc:'FG-A-10-1',age:3,prod:'2026-05-18'},
- {id:'LOT-2605-2098',nm:'사이드 몰딩',color:'화이트',qty:60,cust:'SAV',loc:'FG-B-04-1',age:2,prod:'2026-05-19'},
- {id:'LOT-2605-2099',nm:'그릴 도장',color:'그레이',qty:36,cust:'GEO',loc:'FG-A-10-2',age:2,prod:'2026-05-19'},
- {id:'LOT-2605-2100',nm:'프론트 범퍼',color:'블랙',qty:48,cust:'GEO',loc:'FG-A-09-2',age:1,prod:'2026-05-20'},
- {id:'LOT-2605-2103',nm:'사이드 몰딩',color:'그레이',qty:54,cust:'SAV',loc:'FG-B-04-2',age:0,prod:'2026-05-21'},
- {id:'LOT-2605-2105',nm:'라디에이터 그릴',color:'그레이',qty:32,cust:'GEO',loc:'FG-A-12-3',age:0,prod:'2026-05-21'}
+ {id:'LOT-2605-1985',nm:'Console Upper',color:'Black',qty:180,cust:'GEO',loc:'FG-A-08-2',age:5,prod:'05/15/2026'},
+ {id:'LOT-2605-2042',nm:'Front Bumper',color:'Black',qty:48,cust:'GEO',loc:'FG-A-09-1',age:4,prod:'05/17/2026'},
+ {id:'LOT-2605-2078',nm:'Painted Grille',color:'Gray',qty:24,cust:'GEO',loc:'FG-A-10-1',age:3,prod:'05/18/2026'},
+ {id:'LOT-2605-2098',nm:'Side Molding',color:'White',qty:60,cust:'SAV',loc:'FG-B-04-1',age:2,prod:'05/19/2026'},
+ {id:'LOT-2605-2099',nm:'Painted Grille',color:'Gray',qty:36,cust:'GEO',loc:'FG-A-10-2',age:2,prod:'05/19/2026'},
+ {id:'LOT-2605-2100',nm:'Front Bumper',color:'Black',qty:48,cust:'GEO',loc:'FG-A-09-2',age:1,prod:'05/20/2026'},
+ {id:'LOT-2605-2103',nm:'Side Molding',color:'Gray',qty:54,cust:'SAV',loc:'FG-B-04-2',age:0,prod:'05/21/2026'},
+ {id:'LOT-2605-2105',nm:'Radiator Grille',color:'Gray',qty:32,cust:'GEO',loc:'FG-A-12-3',age:0,prod:'05/21/2026'}
 ];
 function age(d){
   if(d>=4)return {c:'#fbbf24',b:'rgba(245,158,11,.18)'};
@@ -98,20 +98,20 @@ function age(d){
 function render(){
   var kw=(document.getElementById('kw').value||'').toLowerCase();
   var rows=LOTS.filter(function(l){return !kw||l.nm.toLowerCase().indexOf(kw)>=0||l.id.toLowerCase().indexOf(kw)>=0||l.cust.toLowerCase().indexOf(kw)>=0;});
-  document.getElementById('cnt').textContent=rows.length+'건';
+  document.getElementById('cnt').textContent=rows.length+' LOTS';
   document.getElementById('list').innerHTML=rows.map(function(l){
     var a=age(l.age);
     return '<div class="lot-r" style="--ac:'+a.c+';--ab:'+a.b+'" onclick="pick(\''+l.id+'\')">'+
       '<div class="h"><span class="sw" style="background:'+(CMAP[l.color]||'#888')+'"></span>'+
       '<span class="nm">'+l.nm+'</span>'+
-      '<span class="age">'+(l.age===0?'당일':'D-'+l.age)+'</span></div>'+
-      '<div class="id">'+l.id+' · 생산 '+l.prod+'</div>'+
+      '<span class="age">'+(l.age===0?'TODAY':'D-'+l.age)+'</span></div>'+
+      '<div class="id">'+l.id+' · Mfg '+l.prod+'</div>'+
       '<div class="meta"><span>📍 '+l.loc+' · '+l.cust+'</span><span class="qty"><b>'+l.qty+' EA</b></span></div></div>';
   }).join('');
 }
-function pick(id){toast('',id+' 선택','LOT 상세 화면으로 이동합니다.');}
-function scan(){toast('','📷 LOT 스캔','완제품 LOT 라벨을 스캔하세요.');}
-function back(){toast('','PDA 메뉴','PDA 메뉴로 돌아갑니다.');}
+function pick(id){toast('',id+' Selected','Opening LOT detail.');}
+function scan(){toast('','📷 Scan LOT','Scan an FG LOT label.');}
+function back(){toast('','PDA Menu','Returning to PDA menu.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">• '+title+'</div><div class="tb">'+body+'</div>';

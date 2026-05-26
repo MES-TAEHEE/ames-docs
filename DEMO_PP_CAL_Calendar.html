@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PP-CAL Production Calendar · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -94,42 +94,42 @@ select{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12
 <body>
 <div class="scr-head">
   <div class="sh-id">PP-CAL</div>
-  <div class="sh-tt"><div class="sh-en">Production Calendar</div><div class="sh-ko">생산 캘린더 — WO 납기 월간 뷰 · 드래그-드롭 재일정</div></div>
+  <div class="sh-tt"><div class="sh-en">Production Calendar</div><div class="sh-ko">Monthly view of WO due dates · drag-and-drop reschedule</div></div>
   <span class="sh-tag">/pp/calendar</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <button class="btn btn-s btn-sm" onclick="navMonth(-1)">‹ 이전</button>
+  <button class="btn btn-s btn-sm" onclick="navMonth(-1)">‹ Prev</button>
   <span class="monthlbl" id="monthLbl">SEP 2025</span>
-  <button class="btn btn-s btn-sm" onclick="navMonth(1)">다음 ›</button>
-  <button class="btn btn-p btn-sm" onclick="goToday()">오늘</button>
-  <div class="fld" style="margin-left:8px;"><label>보기 View</label>
+  <button class="btn btn-s btn-sm" onclick="navMonth(1)">Next ›</button>
+  <button class="btn btn-p btn-sm" onclick="goToday()">Today</button>
+  <div class="fld" style="margin-left:8px;"><label>View</label>
     <select id="fView" onchange="viewChange()"><option>Month View</option><option>Week View</option><option>Day View</option></select></div>
-  <div class="fld"><label>라인 Line</label>
-    <select id="fLine" onchange="renderCal()"><option value="">전체 All</option><option>INJ-L1</option><option>INJ-L2</option><option>IMG-L1</option><option>PNT-L1</option><option>PNT-L2</option></select></div>
-  <span style="margin-left:auto;font-size:10px;color:var(--sub);">💡 WO 칩을 다른 날짜로 드래그하면 납기가 재조정됩니다</span>
+  <div class="fld"><label>Line</label>
+    <select id="fLine" onchange="renderCal()"><option value="">All</option><option>INJ-L1</option><option>INJ-L2</option><option>IMG-L1</option><option>PNT-L1</option><option>PNT-L2</option></select></div>
+  <span style="margin-left:auto;font-size:10px;color:var(--sub);">💡 Drag a WO chip to another date to reschedule its due date</span>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#059669"><div class="kv" id="kWo">0</div><div class="kl">이번달 WO · Month WOs</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kD3">0</div><div class="kl">D-3 임박 · Critical</div></div>
-    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kOver">0</div><div class="kl">납기 지연 · Overdue</div></div>
-    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kQty" style="font-size:19px;">0</div><div class="kl">총 계획수량 · Plan Qty</div></div>
+    <div class="kpi" style="--c:#059669"><div class="kv" id="kWo">0</div><div class="kl">Month WOs</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kD3">0</div><div class="kl">D-3 Critical</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kOver">0</div><div class="kl">Overdue</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kQty" style="font-size:19px;">0</div><div class="kl">Plan Qty Total</div></div>
   </div>
   <div class="cal">
-    <div class="cal-wd"><div class="sun">일 SUN</div><div>월 MON</div><div>화 TUE</div><div>수 WED</div><div>목 THU</div><div>금 FRI</div><div class="sat">토 SAT</div></div>
+    <div class="cal-wd"><div class="sun">SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div class="sat">SAT</div></div>
     <div class="cal-grid" id="grid"></div>
   </div>
   <div class="legend">
-    <span><span class="lg-box" style="background:#fef2f2;border-left:3px solid #dc2626;"></span>D-3 임박 Critical</span>
-    <span><span class="lg-box" style="background:#fffbeb;border-left:3px solid #f59e0b;"></span>접근중 Approaching</span>
-    <span><span class="lg-box" style="background:#fff;border-left:3px solid #22c55e;"></span>정상 Normal</span>
-    <span><span class="lg-box" style="background:#fffbeb;box-shadow:inset 0 0 0 2px #f59e0b;"></span>오늘 Today</span>
-    <span><span class="lg-box" style="background:#2563eb;"></span>라우팅 A</span>
-    <span><span class="lg-box" style="background:#ea580c;"></span>라우팅 B</span>
+    <span><span class="lg-box" style="background:#fef2f2;border-left:3px solid #dc2626;"></span>D-3 Critical</span>
+    <span><span class="lg-box" style="background:#fffbeb;border-left:3px solid #f59e0b;"></span>Approaching</span>
+    <span><span class="lg-box" style="background:#fff;border-left:3px solid #22c55e;"></span>Normal</span>
+    <span><span class="lg-box" style="background:#fffbeb;box-shadow:inset 0 0 0 2px #f59e0b;"></span>Today</span>
+    <span><span class="lg-box" style="background:#2563eb;"></span>Routing A</span>
+    <span><span class="lg-box" style="background:#ea580c;"></span>Routing B</span>
   </div>
   <div class="daydetail" id="dayDetail">
-    <div class="dd-h"><span id="ddTitle">날짜</span><span id="ddSum" style="font-size:10px;color:var(--sub);font-weight:400;"></span><button class="x" onclick="closeDayDetail()">✕</button></div>
+    <div class="dd-h"><span id="ddTitle">Date</span><span id="ddSum" style="font-size:10px;color:var(--sub);font-weight:400;"></span><button class="x" onclick="closeDayDetail()">✕</button></div>
     <div class="dd-b" id="ddBody"></div>
   </div>
 </div>
@@ -137,14 +137,14 @@ select{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12
 <!-- APPROVAL MODAL (past-date reschedule) -->
 <div class="ov" id="ovAppr">
   <div class="modal">
-    <div class="modal-h"><span>⚠</span><span class="mt">과거 일자 재일정 — 매니저 승인</span><button class="mx" onclick="cancelAppr()">✕</button></div>
+    <div class="modal-h"><span>⚠</span><span class="mt">Past Date Reschedule — Manager Approval</span><button class="mx" onclick="cancelAppr()">✕</button></div>
     <div class="modal-b">
       <div class="warnbox" id="apprMsg"></div>
-      <div class="hint">과거 일자(오늘 이전)로의 납기 재조정은 <b>매니저 승인</b>이 필요하며 감사 로그(SYS-05)에 기록됩니다. (BR-PP-008)</div>
+      <div class="hint">Rescheduling to a past date (before today) requires <b>Manager approval</b> and is logged in the audit trail (SYS-05). (BR-PP-008)</div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="cancelAppr()">취소</button>
-      <button class="btn btn-d" onclick="approveAppr()">매니저 승인 후 이동</button>
+      <button class="btn btn-s" onclick="cancelAppr()">Cancel</button>
+      <button class="btn btn-d" onclick="approveAppr()">Approve as Manager</button>
     </div>
   </div>
 </div>
@@ -152,22 +152,23 @@ select{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12
 <div class="toasts" id="toasts"></div>
 
 <script>
-var TODAY=new Date(2025,8,12); /* 2025-09-12 */
+var TODAY=new Date(2025,8,12); /* 09/12/2025 */
 var curY=2025,curM=8; /* month 8 = Sep */
 var WO=[
-  {wo:'WO-20250730-009',code:'MOLDING-05',name:'사이드 몰딩 5',qty:390,routing:'A',line:'INJ-L2',due:'2025-09-09'},
-  {wo:'WO-20250801-002',code:'TRIM-LH-001',name:'도어트림 LH (회색)',qty:2030,routing:'A',line:'INJ-L1',due:'2025-09-15'},
-  {wo:'WO-20250715-003',code:'TRIM-RH-001',name:'도어트림 RH',qty:1160,routing:'A',line:'IMG-L1',due:'2025-09-15'},
-  {wo:'WO-20250801-009',code:'GRILLE-02',name:'라디에이터 그릴 (시험)',qty:300,routing:'A',line:'INJ-L1',due:'2025-09-13'},
-  {wo:'WO-20250801-005',code:'CONS-UP-001',name:'콘솔어퍼',qty:650,routing:'B',line:'PNT-L1',due:'2025-09-17'},
-  {wo:'WO-20250802-006',code:'GRILLE-02',name:'라디에이터 그릴',qty:1450,routing:'A',line:'INJ-L1',due:'2025-09-20'},
-  {wo:'WO-20250803-002',code:'BUMPER-01',name:'프론트 범퍼',qty:905,routing:'B',line:'PNT-L2',due:'2025-09-25'},
-  {wo:'WO-20250802-011',code:'CONS-UP-001',name:'콘솔어퍼 (2차)',qty:800,routing:'B',line:'PNT-L1',due:'2025-09-25'},
-  {wo:'WO-20250804-014',code:'TRIM-LH-001',name:'도어트림 LH',qty:1700,routing:'A',line:'INJ-L1',due:'2025-09-29'}
+  {wo:'WO-20250730-009',code:'MOLDING-05',name:'Side Molding 5',qty:390,routing:'A',line:'INJ-L2',due:'2025-09-09'},
+  {wo:'WO-20250801-002',code:'TRIM-LH-001',name:'Door Trim LH (Gray)',qty:2030,routing:'A',line:'INJ-L1',due:'2025-09-15'},
+  {wo:'WO-20250715-003',code:'TRIM-RH-001',name:'Door Trim RH',qty:1160,routing:'A',line:'IMG-L1',due:'2025-09-15'},
+  {wo:'WO-20250801-009',code:'GRILLE-02',name:'Radiator Grille (Pilot)',qty:300,routing:'A',line:'INJ-L1',due:'2025-09-13'},
+  {wo:'WO-20250801-005',code:'CONS-UP-001',name:'Console Upper',qty:650,routing:'B',line:'PNT-L1',due:'2025-09-17'},
+  {wo:'WO-20250802-006',code:'GRILLE-02',name:'Radiator Grille',qty:1450,routing:'A',line:'INJ-L1',due:'2025-09-20'},
+  {wo:'WO-20250803-002',code:'BUMPER-01',name:'Front Bumper',qty:905,routing:'B',line:'PNT-L2',due:'2025-09-25'},
+  {wo:'WO-20250802-011',code:'CONS-UP-001',name:'Console Upper (Run 2)',qty:800,routing:'B',line:'PNT-L1',due:'2025-09-25'},
+  {wo:'WO-20250804-014',code:'TRIM-LH-001',name:'Door Trim LH',qty:1700,routing:'A',line:'INJ-L1',due:'2025-09-29'}
 ];
 var MN=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
 var pad=function(n){return String(n).padStart(2,'0');};
 var dstr=function(y,m,d){return y+'-'+pad(m+1)+'-'+pad(d);};
+var fmtUS=function(iso){var p=iso.split('-');return p[1]+'/'+p[2]+'/'+p[0];};
 var todayStr=dstr(TODAY.getFullYear(),TODAY.getMonth(),TODAY.getDate());
 var dragWo=-1,apprPending=null,selDate=null;
 
@@ -193,7 +194,7 @@ function renderCal(){
     var st=dws.length?dayState(ds):(ds===todayStr?'today':'');
     var cls='cell'+(st?' '+(st==='over'?'d3':st):'');
     var diff=Math.round((new Date(ds)-TODAY)/86400000);
-    var tdd=ds===todayStr?'<span class="tdd" style="color:#92400e;">TODAY</span>':(dws.length&&diff>=0&&diff<=3?'<span class="tdd">D-'+diff+'</span>':(dws.length&&ds<todayStr?'<span class="tdd">지연</span>':''));
+    var tdd=ds===todayStr?'<span class="tdd" style="color:#92400e;">TODAY</span>':(dws.length&&diff>=0&&diff<=3?'<span class="tdd">D-'+diff+'</span>':(dws.length&&ds<todayStr?'<span class="tdd">LATE</span>':''));
     var chips='';
     dws.forEach(function(w){
       var gi=WO.indexOf(w);
@@ -224,41 +225,41 @@ function drop(e,ds){
   if(w.due===ds){dragWo=-1;return;}
   if(ds<todayStr){
     apprPending={wi:dragWo,to:ds};
-    document.getElementById('apprMsg').innerHTML='<b>'+w.wo+'</b> · '+w.code+'<br>납기 '+w.due+' → <b>'+ds+'</b> (과거 일자)<br><br>오늘 이전 날짜로 이동합니다. 매니저 승인이 필요합니다.';
+    document.getElementById('apprMsg').innerHTML='<b>'+w.wo+'</b> · '+w.code+'<br>Due '+fmtUS(w.due)+' → <b>'+fmtUS(ds)+'</b> (past date)<br><br>Moving to a date before today. Manager approval required.';
     document.getElementById('ovAppr').classList.add('show');
     dragWo=-1;return;
   }
   var from=w.due;w.due=ds;dragWo=-1;
   renderCal();if(selDate)openDayDetail(selDate);
-  toast('','납기 재조정 — '+w.wo,w.code+' 납기 '+from+' → '+ds+' 로 변경. 감사 로그(SYS-05) 기록.');
+  toast('','Due Date Rescheduled — '+w.wo,w.code+' due '+fmtUS(from)+' → '+fmtUS(ds)+'. Recorded in audit log (SYS-05).');
 }
 function approveAppr(){
   if(!apprPending) return;
   var w=WO[apprPending.wi],from=w.due;w.due=apprPending.to;
   document.getElementById('ovAppr').classList.remove('show');
   renderCal();if(selDate)openDayDetail(selDate);
-  toast('warn','과거 일자 재일정 승인 — '+w.wo,'매니저 승인 처리. 납기 '+from+' → '+apprPending.to+'. 감사 로그 기록 완료.');
+  toast('warn','Past Date Reschedule Approved — '+w.wo,'Manager approved. Due '+fmtUS(from)+' → '+fmtUS(apprPending.to)+'. Audit log recorded.');
   apprPending=null;
 }
 function cancelAppr(){document.getElementById('ovAppr').classList.remove('show');apprPending=null;}
 function woClick(wi){
   var w=WO[wi];
-  toast('info',w.wo+' · '+w.code,w.name+' · '+w.qty.toLocaleString()+'EA · 라우팅 '+w.routing+' · '+w.line+' · 납기 '+w.due+'. 드래그하여 다른 날짜로 재일정할 수 있습니다.');
+  toast('info',w.wo+' · '+w.code,w.name+' · '+w.qty.toLocaleString()+' EA · Routing '+w.routing+' · '+w.line+' · Due '+fmtUS(w.due)+'. Drag to another date to reschedule.');
 }
 function openDayDetail(ds){
   selDate=ds;
   var dws=lineWos().filter(function(w){return w.due===ds;});
-  var dt=new Date(ds),wd=['일','월','화','수','목','금','토'][dt.getDay()];
-  document.getElementById('ddTitle').textContent=ds+' ('+wd+')';
-  document.getElementById('ddSum').textContent=dws.length?(dws.length+'개 WO · '+dws.reduce(function(a,w){return a+w.qty;},0).toLocaleString()+' EA'):'예정 WO 없음';
+  var dt=new Date(ds),wd=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dt.getDay()];
+  document.getElementById('ddTitle').textContent=fmtUS(ds)+' ('+wd+')';
+  document.getElementById('ddSum').textContent=dws.length?(dws.length+' WO · '+dws.reduce(function(a,w){return a+w.qty;},0).toLocaleString()+' EA'):'No scheduled WOs';
   var h='';
-  if(!dws.length) h='<div style="padding:14px;text-align:center;color:#9ca3af;font-size:11px;">이 날짜에 예정된 작업지시가 없습니다. 다른 날의 WO 칩을 드래그해 이동할 수 있습니다.</div>';
+  if(!dws.length) h='<div style="padding:14px;text-align:center;color:#9ca3af;font-size:11px;">No work orders scheduled for this date. Drag a WO chip from another day to move it here.</div>';
   dws.forEach(function(w){
     var gi=WO.indexOf(w);
     h+='<div class="dd-wo"><span class="rt '+w.routing+'">'+w.routing+'</span>'+
        '<span class="mono">'+w.wo+'</span>'+
        '<div class="nm"><div class="it">'+w.code+' · '+w.name+'</div><div class="ln">'+w.line+' · '+w.qty.toLocaleString()+' EA</div></div>'+
-       '<button class="btn btn-s btn-sm" onclick="woClick('+gi+')">정보</button></div>';
+       '<button class="btn btn-s btn-sm" onclick="woClick('+gi+')">Info</button></div>';
   });
   document.getElementById('ddBody').innerHTML=h;
   document.getElementById('dayDetail').classList.add('show');
@@ -268,10 +269,10 @@ function navMonth(d){
   curM+=d;if(curM<0){curM=11;curY--;}if(curM>11){curM=0;curY++;}
   closeDayDetail();renderCal();
 }
-function goToday(){curY=TODAY.getFullYear();curM=TODAY.getMonth();closeDayDetail();renderCal();toast('info','오늘로 이동',MN[curM]+' '+curY+' · '+todayStr+' 표시.');}
+function goToday(){curY=TODAY.getFullYear();curM=TODAY.getMonth();closeDayDetail();renderCal();toast('info','Jumped to Today',MN[curM]+' '+curY+' · '+fmtUS(todayStr)+' displayed.');}
 function viewChange(){
   var v=document.getElementById('fView').value;
-  if(v!=='Month View'){toast('info',v+' 데모','본 데모는 Month View가 구현되어 있습니다. Week/Day 뷰는 동일 데이터를 좁은 범위로 표시합니다.');document.getElementById('fView').value='Month View';}
+  if(v!=='Month View'){toast('info',v+' Demo','This demo implements Month View. Week/Day views would render the same data over a narrower range.');document.getElementById('fView').value='Month View';}
 }
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');

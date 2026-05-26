@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PP-02 SAP B1 Supply Plan Import · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -98,69 +98,69 @@ tbody tr.justnew td{animation:fl 1.6s ease;}
 <body>
 <div class="scr-head">
   <div class="sh-id">PP-02</div>
-  <div class="sh-tt"><div class="sh-en">SAP B1 Supply Plan Import</div><div class="sh-ko">공급계획 수신 — SAP Business One 확정 판매오더 Import</div></div>
+  <div class="sh-tt"><div class="sh-en">SAP B1 Supply Plan Import</div><div class="sh-ko">Import confirmed sales orders from SAP Business One</div></div>
   <span class="sh-tag">/pp/supply-plan/import</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>수신 방식 Method</label>
+  <div class="fld"><label>Method</label>
     <select id="fMethod" onchange="methodChange()"><option value="excel">Excel Upload (Phase 1)</option><option value="api">Service Layer API (Phase 2)</option></select></div>
-  <div class="fld"><label>거래선 Customer</label>
-    <select id="fCust" onchange="render()"><option value="">전체 All</option><option>SAV</option><option>GEO</option></select></div>
-  <div class="fld"><label>상태 Status</label>
-    <select id="fStatus" onchange="render()"><option value="">전체 All</option><option>Confirmed</option><option>Open</option></select></div>
-  <div class="fld"><label>검색 Search</label>
-    <input type="text" id="fSearch" placeholder="SO·품목..." oninput="render()" style="width:150px;"></div>
-  <button class="btn btn-s btn-sm" onclick="resetFilters()">↺ 초기화</button>
+  <div class="fld"><label>Customer</label>
+    <select id="fCust" onchange="render()"><option value="">All</option><option>SAV</option><option>GEO</option></select></div>
+  <div class="fld"><label>Status</label>
+    <select id="fStatus" onchange="render()"><option value="">All</option><option>Confirmed</option><option>Open</option></select></div>
+  <div class="fld"><label>Search</label>
+    <input type="text" id="fSearch" placeholder="SO·Item..." oninput="render()" style="width:150px;"></div>
+  <button class="btn btn-s btn-sm" onclick="resetFilters()">↺ Reset</button>
   <div style="margin-left:auto;display:flex;gap:8px;">
-    <button class="btn btn-s" onclick="sampleTemplate()">📋 샘플 양식</button>
+    <button class="btn btn-s" onclick="sampleTemplate()">📋 Sample Template</button>
     <button class="btn btn-p" onclick="openImport()">⬆ Excel Import</button>
   </div>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#059669"><div class="kv" id="kTotal">0</div><div class="kl">금일 수주 · Today's SOs</div></div>
-    <div class="kpi" style="--c:#22c55e"><div class="kv" id="kConf">0</div><div class="kl">확정 · Confirmed</div></div>
-    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kOpen">0</div><div class="kl">미확정 · Open</div></div>
-    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kSync" style="font-size:20px;">—</div><div class="kl">최근 동기화 · Last Sync</div></div>
+    <div class="kpi" style="--c:#059669"><div class="kv" id="kTotal">0</div><div class="kl">Today's SOs</div></div>
+    <div class="kpi" style="--c:#22c55e"><div class="kv" id="kConf">0</div><div class="kl">Confirmed</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kOpen">0</div><div class="kl">Open</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kSync" style="font-size:20px;">—</div><div class="kl">Last Sync</div></div>
   </div>
   <div class="srcbar">
-    <span>📂</span><div>수신 소스: <b id="srcName">SAP B1 Excel Export (Phase 1 · 수동)</b> — 매일 07:00 KST 배치 수신 예정</div>
+    <span>📂</span><div>Source: <b id="srcName">SAP B1 Excel Export (Phase 1 · Manual)</b> — Scheduled daily batch at 07:00 EST</div>
     <span class="ph2">Phase 2: Service Layer API GET /Orders</span>
   </div>
   <div class="panel">
     <table>
       <thead><tr>
-        <th>SO 번호<span class="k">SO No.</span></th>
-        <th>거래선<span class="k">Customer</span></th>
-        <th>품목코드<span class="k">Item Code</span></th>
-        <th>품목명<span class="k">Item Name</span></th>
-        <th style="text-align:right;">수주량<span class="k">Order Qty</span></th>
-        <th>납기일<span class="k">Due Date</span></th>
-        <th style="text-align:center;">상태<span class="k">Status</span></th>
-        <th>WO 연결<span class="k">WO Link</span></th>
-        <th style="text-align:center;">작업<span class="k">Action</span></th>
+        <th>SO No.</th>
+        <th>Customer</th>
+        <th>Item Code</th>
+        <th>Item Name</th>
+        <th style="text-align:right;">Order Qty</th>
+        <th>Due Date</th>
+        <th style="text-align:center;">Status</th>
+        <th>WO Link</th>
+        <th style="text-align:center;">Action</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
     </table>
-    <div class="empty" id="emptyMsg" style="display:none;">조건에 맞는 공급계획(SO)이 없습니다.</div>
+    <div class="empty" id="emptyMsg" style="display:none;">No supply plan (SO) matches the current filters.</div>
   </div>
 </div>
 
 <!-- IMPORT MODAL -->
 <div class="ov" id="ovImport">
   <div class="modal">
-    <div class="modal-h"><span>⬆</span><span class="mt">SAP B1 공급계획 Excel Import</span><button class="mx" onclick="closeModal('ovImport')">✕</button></div>
+    <div class="modal-h"><span>⬆</span><span class="mt">SAP B1 Supply Plan Excel Import</span><button class="mx" onclick="closeModal('ovImport')">✕</button></div>
     <div class="modal-b">
-      <div class="mlabel">① SAP B1에서 Export 한 공급계획 파일 선택</div>
+      <div class="mlabel">① Select the supply plan file exported from SAP B1</div>
       <div id="fileList"></div>
-      <div class="mlabel">② 파싱·스키마 검증 결과</div>
-      <div class="parse-box" id="parseBox"><div style="color:#9ca3af;text-align:center;padding:8px;">파일을 선택하면 검증 결과가 표시됩니다</div></div>
-      <div class="hint">⚙ Import 시 SO번호 기준으로 <b>PP_SupplyPlan</b>에 신규 삽입·기존 갱신. 확정(Confirmed) SO는 PP-03 생산계획 수립 대상이 되며, 미확정(Open) SO는 [확정] 처리 후 반영됩니다. Import 이력은 감사 로그에 기록됩니다.</div>
+      <div class="mlabel">② Parse and Schema Validation Results</div>
+      <div class="parse-box" id="parseBox"><div style="color:#9ca3af;text-align:center;padding:8px;">Select a file to display validation results</div></div>
+      <div class="hint">⚙ On import, rows are inserted/updated in <b>PP_SupplyPlan</b> by SO No. Confirmed SOs feed PP-03 production planning; Open SOs require [Confirm] before being eligible. Import history is recorded in the audit log.</div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeModal('ovImport')">취소</button>
-      <button class="btn btn-p" id="btnDoImport" onclick="doImport()" disabled style="opacity:.5;">Import 실행</button>
+      <button class="btn btn-s" onclick="closeModal('ovImport')">Cancel</button>
+      <button class="btn btn-p" id="btnDoImport" onclick="doImport()" disabled style="opacity:.5;">Run Import</button>
     </div>
   </div>
 </div>
@@ -169,28 +169,28 @@ tbody tr.justnew td{animation:fl 1.6s ease;}
 
 <script>
 var DATA=[
-  {so:'SO-2025-08001',cust:'SAV',code:'TRIM-LH-001',name:'도어트림 LH',qty:2350,due:'2025-09-15',status:'Confirmed',wo:'WO-20250801-001'},
-  {so:'SO-2025-07055',cust:'SAV',code:'TRIM-RH-001',name:'도어트림 RH',qty:1580,due:'2025-08-31',status:'Confirmed',wo:'WO-20250715-003'},
-  {so:'SO-2025-08003',cust:'GEO',code:'CONS-UP-001',name:'콘솔어퍼',qty:800,due:'2025-09-25',status:'Open',wo:null},
-  {so:'SO-2025-08004',cust:'SAV',code:'GRILLE-02',name:'라디에이터 그릴',qty:1530,due:'2025-09-20',status:'Confirmed',wo:'WO-20250802-006'},
-  {so:'SO-2025-08007',cust:'GEO',code:'MOLDING-05',name:'사이드 몰딩 5',qty:590,due:'2025-10-02',status:'Open',wo:null},
-  {so:'SO-2025-08009',cust:'SAV',code:'BUMPER-01',name:'프론트 범퍼',qty:905,due:'2025-09-28',status:'Confirmed',wo:'WO-20250803-002'}
+  {so:'SO-2025-08001',cust:'SAV',code:'TRIM-LH-001',name:'Door Trim LH',qty:2350,due:'09/15/2025',status:'Confirmed',wo:'WO-20250801-001'},
+  {so:'SO-2025-07055',cust:'SAV',code:'TRIM-RH-001',name:'Door Trim RH',qty:1580,due:'08/31/2025',status:'Confirmed',wo:'WO-20250715-003'},
+  {so:'SO-2025-08003',cust:'GEO',code:'CONS-UP-001',name:'Console Upper',qty:800,due:'09/25/2025',status:'Open',wo:null},
+  {so:'SO-2025-08004',cust:'SAV',code:'GRILLE-02',name:'Radiator Grille',qty:1530,due:'09/20/2025',status:'Confirmed',wo:'WO-20250802-006'},
+  {so:'SO-2025-08007',cust:'GEO',code:'MOLDING-05',name:'Side Molding 5',qty:590,due:'10/02/2025',status:'Open',wo:null},
+  {so:'SO-2025-08009',cust:'SAV',code:'BUMPER-01',name:'Front Bumper',qty:905,due:'09/28/2025',status:'Confirmed',wo:'WO-20250803-002'}
 ];
 var lastSync='07:12';
 var FILES=[
-  {id:'f912',name:'SAP_SupplyPlan_2025-09-12.xlsx',desc:'3개 SO · SAV 2 / GEO 1',
-   data:[{so:'SO-2025-09012',cust:'SAV',code:'TRIM-LH-001',name:'도어트림 LH',qty:2500,due:'2025-10-15',status:'Confirmed',wo:null},
-         {so:'SO-2025-09013',cust:'SAV',code:'GRILLE-02',name:'라디에이터 그릴',qty:1400,due:'2025-10-18',status:'Confirmed',wo:null},
-         {so:'SO-2025-09015',cust:'GEO',code:'MOLDING-05',name:'사이드 몰딩 5',qty:620,due:'2025-10-22',status:'Open',wo:null}]},
-  {id:'f913',name:'SAP_SupplyPlan_2025-09-13.xlsx',desc:'2개 SO · GEO 2',
-   data:[{so:'SO-2025-09020',cust:'GEO',code:'CONS-UP-001',name:'콘솔어퍼',qty:880,due:'2025-10-25',status:'Confirmed',wo:null},
-         {so:'SO-2025-09021',cust:'GEO',code:'BUMPER-01',name:'프론트 범퍼',qty:760,due:'2025-10-28',status:'Open',wo:null}]}
+  {id:'f912',name:'SAP_SupplyPlan_2025-09-12.xlsx',desc:'3 SOs · SAV 2 / GEO 1',
+   data:[{so:'SO-2025-09012',cust:'SAV',code:'TRIM-LH-001',name:'Door Trim LH',qty:2500,due:'10/15/2025',status:'Confirmed',wo:null},
+         {so:'SO-2025-09013',cust:'SAV',code:'GRILLE-02',name:'Radiator Grille',qty:1400,due:'10/18/2025',status:'Confirmed',wo:null},
+         {so:'SO-2025-09015',cust:'GEO',code:'MOLDING-05',name:'Side Molding 5',qty:620,due:'10/22/2025',status:'Open',wo:null}]},
+  {id:'f913',name:'SAP_SupplyPlan_2025-09-13.xlsx',desc:'2 SOs · GEO 2',
+   data:[{so:'SO-2025-09020',cust:'GEO',code:'CONS-UP-001',name:'Console Upper',qty:880,due:'10/25/2025',status:'Confirmed',wo:null},
+         {so:'SO-2025-09021',cust:'GEO',code:'BUMPER-01',name:'Front Bumper',qty:760,due:'10/28/2025',status:'Open',wo:null}]}
 ];
 var selFile=null;
 
 function woCell(r){
   if(r.wo) return '<span class="mono" style="color:#059669;font-weight:700;">'+r.wo+'</span>';
-  if(r.status==='Confirmed') return '<span class="b b-i">PP-03 검토 대기</span>';
+  if(r.status==='Confirmed') return '<span class="b b-i">Awaiting PP-03 Review</span>';
   return '<span style="color:#9ca3af;">—</span>';
 }
 function filtered(){
@@ -217,8 +217,8 @@ function render(){
       '<td style="text-align:center;">'+(op?'<span class="b b-w">Open</span>':'<span class="b b-ok">Confirmed</span>')+'</td>'+
       '<td>'+woCell(r)+'</td>'+
       '<td style="text-align:center;">'+(op
-        ?'<button class="btn btn-p btn-sm" onclick="confirmSo('+idx+')">✓ 확정</button>'
-        :'<button class="btn btn-s btn-sm" onclick="toggleDetail('+idx+',this)">상세</button>')+'</td>'+
+        ?'<button class="btn btn-p btn-sm" onclick="confirmSo('+idx+')">✓ Confirm</button>'
+        :'<button class="btn btn-s btn-sm" onclick="toggleDetail('+idx+',this)">Detail</button>')+'</td>'+
       '</tr>';
     r._new=false;
   });
@@ -229,19 +229,20 @@ function render(){
   document.getElementById('kOpen').textContent=DATA.filter(function(r){return r.status==='Open';}).length;
   document.getElementById('kSync').textContent=lastSync;
 }
+function parseUSDate(s){var p=s.split('/');return new Date(+p[2],+p[0]-1,+p[1]);}
 function toggleDetail(idx,btn){
   var tr=btn.closest('tr'),nx=tr.nextElementSibling;
-  if(nx&&nx.classList.contains('detail-row')){nx.remove();btn.textContent='상세';return;}
-  btn.textContent='닫기';
+  if(nx&&nx.classList.contains('detail-row')){nx.remove();btn.textContent='Detail';return;}
+  btn.textContent='Close';
   var r=DATA[idx];
-  var due=new Date(r.due),today=new Date('2025-09-12');
+  var due=parseUSDate(r.due),today=new Date(2025,8,12);
   var dday=Math.round((due-today)/86400000);
   var d=document.createElement('tr');d.className='detail-row';
   d.innerHTML='<td colspan="9"><div class="detail-in">'+
-    '<div class="dt"><div class="dl">거래선 / 소스</div><div class="dv">'+r.cust+' · SAP B1</div></div>'+
-    '<div class="dt"><div class="dl">수주량 / 납기</div><div class="dv">'+r.qty.toLocaleString()+' EA · '+r.due+'</div></div>'+
+    '<div class="dt"><div class="dl">Customer / Source</div><div class="dv">'+r.cust+' · SAP B1</div></div>'+
+    '<div class="dt"><div class="dl">Order Qty / Due</div><div class="dv">'+r.qty.toLocaleString()+' EA · '+r.due+'</div></div>'+
     '<div class="dt"><div class="dl">D-Day</div><div class="dv" style="color:'+(dday<=14?'#dc2626':'#059669')+';">D'+(dday>=0?'-'+dday:'+'+(-dday))+'</div></div>'+
-    '<div class="dt"><div class="dl">WO 연결 상태</div><div class="dv">'+(r.wo?r.wo:'PP-03 생산계획 검토 대기')+'</div></div>'+
+    '<div class="dt"><div class="dl">WO Link Status</div><div class="dv">'+(r.wo?r.wo:'Awaiting PP-03 Plan Review')+'</div></div>'+
     '</div></td>';
   tr.after(d);
 }
@@ -249,25 +250,25 @@ function confirmSo(idx){
   var r=DATA[idx];
   r.status='Confirmed';r._new=true;
   render();
-  toast('','SO 확정 처리 — '+r.so,r.name+' '+r.qty.toLocaleString()+'EA가 확정되어 PP-03 생산계획 수립 대상에 포함됩니다.');
+  toast('','SO Confirmed — '+r.so,r.name+' '+r.qty.toLocaleString()+' EA confirmed and added to PP-03 production planning queue.');
 }
 function methodChange(){
   var m=document.getElementById('fMethod');
   if(m.value==='api'){
-    toast('warn','Phase 2 기능','Service Layer API 직접 연동은 Phase 2 예정입니다. 현재는 Excel Upload로 진행하세요.');
+    toast('warn','Phase 2 Feature','Direct Service Layer API integration is planned for Phase 2. Please continue with Excel Upload for now.');
     m.value='excel';
   }
 }
 function resetFilters(){
   document.getElementById('fCust').value='';document.getElementById('fStatus').value='';document.getElementById('fSearch').value='';
-  render();toast('info','필터 초기화','검색 조건을 초기화했습니다.');
+  render();toast('info','Filters Reset','Search filters have been cleared.');
 }
 function sampleTemplate(){
   var csv='SO_No,Customer,Item_Code,Item_Name,Order_Qty,Due_Date,Status\n';
   var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='SAP_SupplyPlan_Template.csv';document.body.appendChild(a);a.click();a.remove();
-  toast('info','샘플 양식 다운로드','SAP B1 공급계획 Import용 빈 양식(필수 컬럼)을 내려받았습니다.');
+  toast('info','Template Downloaded','Empty SAP B1 supply plan import template (required columns) saved.');
 }
 function openImport(){
   selFile=null;
@@ -278,7 +279,7 @@ function openImport(){
        '<span class="fr"></span></div>';
   });
   document.getElementById('fileList').innerHTML=h;
-  document.getElementById('parseBox').innerHTML='<div style="color:#9ca3af;text-align:center;padding:8px;">파일을 선택하면 검증 결과가 표시됩니다</div>';
+  document.getElementById('parseBox').innerHTML='<div style="color:#9ca3af;text-align:center;padding:8px;">Select a file to display validation results</div>';
   var b=document.getElementById('btnDoImport');b.disabled=true;b.style.opacity=.5;
   document.getElementById('ovImport').classList.add('show');
 }
@@ -290,11 +291,11 @@ function pickFile(id){
   selFile.data.forEach(function(nr){ DATA.some(function(r){return r.so===nr.so;})?up++:nw++; });
   var cf=selFile.data.filter(function(r){return r.status==='Confirmed';}).length;
   document.getElementById('parseBox').innerHTML=
-    '<div class="parse-row"><span class="pl">총 SO 행</span><span class="pv">'+selFile.data.length+' 행</span></div>'+
-    '<div class="parse-row"><span class="pl">신규 SO</span><span class="pv" style="color:#166534;">'+nw+' 행</span></div>'+
-    '<div class="parse-row"><span class="pl">기존 SO 갱신</span><span class="pv" style="color:#1e40af;">'+up+' 행</span></div>'+
-    '<div class="parse-row"><span class="pl">확정 / 미확정</span><span class="pv">'+cf+' / '+(selFile.data.length-cf)+'</span></div>'+
-    '<div class="parse-row" style="border-top:1px dashed #d0d7de;margin-top:4px;padding-top:6px;"><span class="pl">스키마 검증</span><span class="pv" style="color:#166534;">✓ 정상 (SO·거래선·품목·수량·납기)</span></div>';
+    '<div class="parse-row"><span class="pl">Total SO Rows</span><span class="pv">'+selFile.data.length+' rows</span></div>'+
+    '<div class="parse-row"><span class="pl">New SOs</span><span class="pv" style="color:#166534;">'+nw+' rows</span></div>'+
+    '<div class="parse-row"><span class="pl">Existing SO Updates</span><span class="pv" style="color:#1e40af;">'+up+' rows</span></div>'+
+    '<div class="parse-row"><span class="pl">Confirmed / Open</span><span class="pv">'+cf+' / '+(selFile.data.length-cf)+'</span></div>'+
+    '<div class="parse-row" style="border-top:1px dashed #d0d7de;margin-top:4px;padding-top:6px;"><span class="pl">Schema Validation</span><span class="pv" style="color:#166534;">✓ OK (SO · Customer · Item · Qty · Due)</span></div>';
   var b=document.getElementById('btnDoImport');b.disabled=false;b.style.opacity=1;
 }
 function doImport(){
@@ -310,9 +311,9 @@ function doImport(){
   closeModal('ovImport');
   document.getElementById('fStatus').value='';document.getElementById('fCust').value='';
   render();
-  toast('','Import 완료 — '+selFile.name,'신규 SO '+nw+'건 · 갱신 '+up+'건 수신. PP_SupplyPlan 반영 완료.');
+  toast('','Import Complete — '+selFile.name,'New SOs '+nw+' · Updated '+up+'. PP_SupplyPlan reflects all changes.');
   var op=selFile.data.filter(function(r){return r.status==='Open';}).length;
-  if(op) setTimeout(function(){toast('warn','미확정 SO '+op+'건','Open 상태 SO는 [확정] 처리 후 PP-03 생산계획 수립 대상이 됩니다.');},600);
+  if(op) setTimeout(function(){toast('warn',op+' Open SO(s)','Open SOs require [Confirm] before they become eligible for PP-03 production planning.');},600);
 }
 function closeModal(id){document.getElementById(id).classList.remove('show');}
 function toast(type,title,body){

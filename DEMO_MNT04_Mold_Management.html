@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>MNT-04 Mold Management · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -97,120 +97,120 @@ tbody tr.sel td{background:#ecfdf5;}
 <body>
 <div class="scr-head">
   <div class="sh-id">MNT-04</div>
-  <div class="sh-tt"><div class="sh-en">Mold Management</div><div class="sh-ko">금형 관리 — 금형 대장·샷 카운트·수명 추적</div></div>
+  <div class="sh-tt"><div class="sh-en">Mold Management</div><div class="sh-ko">Mold register · shot count · life tracking</div></div>
   <span class="sh-tag">/mnt/mold</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>금형 유형 Type</label>
-    <select id="fType" onchange="apply()"><option value="">전체 All</option><option>2단 금형</option><option>3단 금형</option><option>핫러너</option></select></div>
-  <div class="fld"><label>상태 Status</label>
-    <select id="fStat" onchange="apply()"><option value="">전체</option><option value="ok">가용</option><option value="need">정비 필요</option><option value="mnt">정비 중</option><option value="scrap">폐기 예정</option></select></div>
-  <div class="fld"><label>검색 Search</label>
-    <input id="fKw" placeholder="금형명·코드" oninput="apply()" style="width:150px;"></div>
-  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div class="fld"><label>Mold Type</label>
+    <select id="fType" onchange="apply()"><option value="">All</option><option>2-Plate</option><option>3-Plate</option><option>Hot Runner</option></select></div>
+  <div class="fld"><label>Status</label>
+    <select id="fStat" onchange="apply()"><option value="">All</option><option value="ok">Available</option><option value="need">Service Required</option><option value="mnt">Under Maintenance</option><option value="scrap">Scrap Pending</option></select></div>
+  <div class="fld"><label>Search</label>
+    <input id="fKw" placeholder="Name or code" oninput="apply()" style="width:150px;"></div>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>
   <div style="margin-left:auto;display:flex;gap:8px;">
-    <button class="btn btn-p" onclick="openNew()">＋ 신규 금형</button>
+    <button class="btn btn-p" onclick="openNew()">＋ New Mold</button>
     <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
   </div>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">총 금형 · Molds</div></div>
-    <div class="kpi" style="--c:#10b981"><div class="kv" id="kOk">0</div><div class="kl">가용 · Available</div></div>
-    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kNeed">0</div><div class="kl">정비 필요·중 · Service</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kEnd">0</div><div class="kl">수명 임박 · ≥85%</div></div>
-    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kUse">0%</div><div class="kl">평균 수명 소진율 · Wear</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">Total Molds</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kOk">0</div><div class="kl">Available</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kNeed">0</div><div class="kl">Service Needed / In</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kEnd">0</div><div class="kl">Near End of Life · ≥85%</div></div>
+    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kUse">0%</div><div class="kl">Avg Life Used</div></div>
   </div>
   <div class="grid2">
     <div class="card">
-      <div class="card-t">🔩 금형 목록 — <span id="listSub" style="font-weight:400;color:#656d76;">0개</span></div>
+      <div class="card-t">🔩 Mold List — <span id="listSub" style="font-weight:400;color:#656d76;">0 molds</span></div>
       <table>
-        <thead><tr><th>금형 코드</th><th>금형명</th><th>샷 / 한도</th><th style="width:120px;">수명 소진</th><th>상태</th></tr></thead>
+        <thead><tr><th>Mold Code</th><th>Name</th><th>Shots / Limit</th><th style="width:120px;">Life Used</th><th>Status</th></tr></thead>
         <tbody id="tbody"></tbody>
       </table>
-      <div class="empty" id="empty" style="display:none;">조건에 맞는 금형이 없습니다.</div>
+      <div class="empty" id="empty" style="display:none;">No molds match the filter.</div>
     </div>
-    <div class="card" id="detail"><div class="empty">← 좌측 목록에서 금형을 선택하세요.</div></div>
+    <div class="card" id="detail"><div class="empty">← Select a mold from the list.</div></div>
   </div>
 </div>
 
 <!-- shot count modal -->
 <div class="ov" id="ovShot">
   <div class="modal">
-    <div class="modal-h"><span class="mt">샷 카운트 갱신</span><span class="mx" onclick="closeOv('ovShot')">✕</span></div>
+    <div class="modal-h"><span class="mt">Update Shot Count</span><span class="mx" onclick="closeOv('ovShot')">✕</span></div>
     <div class="modal-b">
       <div id="shInfo" style="margin-bottom:12px;"></div>
-      <div class="ff"><label>추가 샷 수 <span class="req">*</span></label>
+      <div class="ff"><label>Additional Shots <span class="req">*</span></label>
         <input type="number" id="shAdd" value="500" min="1" step="50"></div>
       <div style="font-size:10px;color:var(--sub);background:#f0fdf4;border:1px solid #a7f3d0;border-radius:5px;padding:8px;">
-        ℹ 생산 실적 누적 샷을 반영합니다. 한도 초과 시 자동으로 정비 필요 상태로 전환됩니다.</div>
+        ℹ Reflects accumulated production shots. When the limit is exceeded, the status switches automatically to Service Required.</div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovShot')">취소</button>
-      <button class="btn btn-p" onclick="addShots()">반영</button>
+      <button class="btn btn-s" onclick="closeOv('ovShot')">Cancel</button>
+      <button class="btn btn-p" onclick="addShots()">Apply</button>
     </div>
   </div>
 </div>
 <!-- maintenance modal -->
 <div class="ov" id="ovMaint">
   <div class="modal">
-    <div class="modal-h"><span class="mt">금형 정비 등록</span><span class="mx" onclick="closeOv('ovMaint')">✕</span></div>
+    <div class="modal-h"><span class="mt">Register Mold Maintenance</span><span class="mx" onclick="closeOv('ovMaint')">✕</span></div>
     <div class="modal-b">
       <div id="mtInfo" style="margin-bottom:12px;"></div>
-      <div class="ff"><label>정비 유형 <span class="req">*</span></label>
-        <select id="mtType"><option>정기 점검·청소</option><option>코어 핀 교체</option><option>캐비티 연마</option><option>핫러너 점검</option><option>치수 보정</option><option>전체 오버홀</option></select></div>
-      <div class="ff"><label>샷 카운트 리셋</label>
-        <select id="mtReset"><option value="no">리셋 안 함 (부분 정비)</option><option value="yes">0으로 리셋 (전체 정비)</option></select></div>
-      <div class="ff"><label>정비 담당</label>
-        <select id="mtBy"><option>금형반</option><option>정비반</option><option>외주 (금형업체)</option></select></div>
+      <div class="ff"><label>Maintenance Type <span class="req">*</span></label>
+        <select id="mtType"><option>Routine Inspection / Cleaning</option><option>Core Pin Replacement</option><option>Cavity Polishing</option><option>Hot Runner Inspection</option><option>Dimensional Correction</option><option>Full Overhaul</option></select></div>
+      <div class="ff"><label>Reset Shot Count</label>
+        <select id="mtReset"><option value="no">Do Not Reset (Partial Maintenance)</option><option value="yes">Reset to 0 (Full Maintenance)</option></select></div>
+      <div class="ff"><label>Performed By</label>
+        <select id="mtBy"><option>Mold Team</option><option>Maintenance Team</option><option>External (Mold Vendor)</option></select></div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovMaint')">취소</button>
-      <button class="btn btn-w" onclick="doMaint()">정비 완료 등록</button>
+      <button class="btn btn-s" onclick="closeOv('ovMaint')">Cancel</button>
+      <button class="btn btn-w" onclick="doMaint()">Register Completion</button>
     </div>
   </div>
 </div>
 <!-- new mold modal -->
 <div class="ov" id="ovNew">
   <div class="modal">
-    <div class="modal-h"><span class="mt">신규 금형 등록</span><span class="mx" onclick="closeOv('ovNew')">✕</span></div>
+    <div class="modal-h"><span class="mt">Register New Mold</span><span class="mx" onclick="closeOv('ovNew')">✕</span></div>
     <div class="modal-b">
-      <div class="ff"><label>금형명 <span class="req">*</span></label><input id="nNm" placeholder="예: 도어트림 LH 금형"></div>
-      <div class="ff"><label>생산 품목 <span class="req">*</span></label><input id="nProd" placeholder="예: TRIM-LH-001"></div>
+      <div class="ff"><label>Mold Name <span class="req">*</span></label><input id="nNm" placeholder="e.g., Door Trim LH Mold"></div>
+      <div class="ff"><label>Product <span class="req">*</span></label><input id="nProd" placeholder="e.g., TRIM-LH-001"></div>
       <div class="ff2">
-        <div class="ff"><label>금형 유형</label>
-          <select id="nType"><option>2단 금형</option><option>3단 금형</option><option>핫러너</option></select></div>
-        <div class="ff"><label>캐비티 수</label><input type="number" id="nCav" value="2" min="1"></div>
+        <div class="ff"><label>Mold Type</label>
+          <select id="nType"><option>2-Plate</option><option>3-Plate</option><option>Hot Runner</option></select></div>
+        <div class="ff"><label>Cavities</label><input type="number" id="nCav" value="2" min="1"></div>
       </div>
-      <div class="ff"><label>수명 한도 (샷) <span class="req">*</span></label>
+      <div class="ff"><label>Life Limit (Shots) <span class="req">*</span></label>
         <input type="number" id="nLife" value="500000" min="10000" step="10000"></div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovNew')">취소</button>
-      <button class="btn btn-p" onclick="addMold()">＋ 등록</button>
+      <button class="btn btn-s" onclick="closeOv('ovNew')">Cancel</button>
+      <button class="btn btn-p" onclick="addMold()">＋ Register</button>
     </div>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 
 <script>
-var ST={ok:{ko:'가용',cls:'st-ok'},need:{ko:'정비 필요',cls:'st-need'},mnt:{ko:'정비 중',cls:'st-mnt'},scrap:{ko:'폐기 예정',cls:'st-scrap'}};
+var ST={ok:{ko:'Available',cls:'st-ok'},need:{ko:'Service Required',cls:'st-need'},mnt:{ko:'Under Maintenance',cls:'st-mnt'},scrap:{ko:'Scrap Pending',cls:'st-scrap'}};
 var MOLD=[
- {id:'MD-INJ-101',nm:'도어트림 LH 금형',prod:'TRIM-LH-001',type:'2단 금형',cav:2,shots:428000,life:500000,st:'ok',
-  loc:'사출 1호기',lastMaint:'2026-03-12',hist:[['03-12','정기 점검·청소'],['25-12','코어 핀 교체']]},
- {id:'MD-INJ-102',nm:'도어트림 RH 금형',prod:'TRIM-RH-001',type:'2단 금형',cav:2,shots:472000,life:500000,st:'need',
-  loc:'사출 1호기',lastMaint:'2026-02-20',hist:[['02-20','캐비티 연마'],['25-11','정기 점검·청소']]},
- {id:'MD-INJ-103',nm:'사이드 몰딩 금형',prod:'MOLDING-05',type:'3단 금형',cav:4,shots:215000,life:600000,st:'ok',
-  loc:'사출 2호기',lastMaint:'2026-04-05',hist:[['04-05','정기 점검·청소']]},
- {id:'MD-INJ-104',nm:'라디에이터 그릴 금형',prod:'GRILLE-02',type:'핫러너',cav:1,shots:558000,life:600000,st:'need',
-  loc:'사출 2호기',lastMaint:'2026-01-18',hist:[['01-18','핫러너 점검'],['25-09','치수 보정']]},
- {id:'MD-INJ-105',nm:'콘솔어퍼 금형',prod:'CONS-UP-001',type:'핫러너',cav:1,shots:62000,life:550000,st:'mnt',
-  loc:'금형 창고',lastMaint:'2026-05-18',hist:[['05-18','전체 오버홀 진행 중']]},
- {id:'MD-INJ-106',nm:'프론트 범퍼 금형',prod:'BUMPER-01',type:'3단 금형',cav:1,shots:489000,life:500000,st:'scrap',
-  loc:'금형 창고',lastMaint:'2025-12-02',hist:[['25-12','캐비티 연마'],['25-07','코어 핀 교체']]},
- {id:'MD-INJ-107',nm:'콘솔 조립 지그금형',prod:'CONS-ASSY-1',type:'2단 금형',cav:2,shots:184000,life:450000,st:'ok',
-  loc:'사출 1호기',lastMaint:'2026-04-28',hist:[['04-28','정기 점검·청소']]}
+ {id:'MD-INJ-101',nm:'Door Trim LH Mold',prod:'TRIM-LH-001',type:'2-Plate',cav:2,shots:428000,life:500000,st:'ok',
+  loc:'Injection #1',lastMaint:'03/12/2026',hist:[['03/12','Routine Inspection / Cleaning'],['25/12','Core Pin Replacement']]},
+ {id:'MD-INJ-102',nm:'Door Trim RH Mold',prod:'TRIM-RH-001',type:'2-Plate',cav:2,shots:472000,life:500000,st:'need',
+  loc:'Injection #1',lastMaint:'02/20/2026',hist:[['02/20','Cavity Polishing'],['25/11','Routine Inspection / Cleaning']]},
+ {id:'MD-INJ-103',nm:'Side Molding Mold',prod:'MOLDING-05',type:'3-Plate',cav:4,shots:215000,life:600000,st:'ok',
+  loc:'Injection #2',lastMaint:'04/05/2026',hist:[['04/05','Routine Inspection / Cleaning']]},
+ {id:'MD-INJ-104',nm:'Radiator Grille Mold',prod:'GRILLE-02',type:'Hot Runner',cav:1,shots:558000,life:600000,st:'need',
+  loc:'Injection #2',lastMaint:'01/18/2026',hist:[['01/18','Hot Runner Inspection'],['25/09','Dimensional Correction']]},
+ {id:'MD-INJ-105',nm:'Console Upper Mold',prod:'CONS-UP-001',type:'Hot Runner',cav:1,shots:62000,life:550000,st:'mnt',
+  loc:'Mold Storage',lastMaint:'05/18/2026',hist:[['05/18','Full Overhaul in progress']]},
+ {id:'MD-INJ-106',nm:'Front Bumper Mold',prod:'BUMPER-01',type:'3-Plate',cav:1,shots:489000,life:500000,st:'scrap',
+  loc:'Mold Storage',lastMaint:'12/02/2025',hist:[['25/12','Cavity Polishing'],['25/07','Core Pin Replacement']]},
+ {id:'MD-INJ-107',nm:'Console Assy Jig Mold',prod:'CONS-ASSY-1',type:'2-Plate',cav:2,shots:184000,life:450000,st:'ok',
+  loc:'Injection #1',lastMaint:'04/28/2026',hist:[['04/28','Routine Inspection / Cleaning']]}
 ];
 var seq=108,selId=null;
 function lifePct(m){return Math.min(100,Math.round(m.shots/m.life*1000)/10);}
@@ -246,57 +246,57 @@ function renderList(){
   });
   document.getElementById('tbody').innerHTML=h;
   document.getElementById('empty').style.display=v.length?'none':'block';
-  document.getElementById('listSub').textContent=v.length+'개';
+  document.getElementById('listSub').textContent=v.length+' molds';
 }
 function pickMold(id){selId=id;renderList();renderDetail();}
 function byId(id){return MOLD.filter(function(m){return m.id===id;})[0];}
 function renderDetail(){
   var m=byId(selId);
-  if(!m){document.getElementById('detail').innerHTML='<div class="empty">← 좌측 목록에서 금형을 선택하세요.</div>';return;}
+  if(!m){document.getElementById('detail').innerHTML='<div class="empty">← Select a mold from the list.</div>';return;}
   var p=lifePct(m),c=lifeColor(p);
-  var specs=[['생산 품목',m.prod],['금형 유형',m.type],['캐비티',m.cav+' cavity'],
-    ['보관 위치',m.loc],['수명 한도',m.life.toLocaleString()+' shot'],['최근 정비',m.lastMaint]];
-  var h='<div class="card-t">🔩 금형 상세</div>'+
+  var specs=[['Product',m.prod],['Mold Type',m.type],['Cavities',m.cav+' cavity'],
+    ['Storage Location',m.loc],['Life Limit',m.life.toLocaleString()+' shots'],['Last Maintenance',m.lastMaint]];
+  var h='<div class="card-t">🔩 Mold Detail</div>'+
     '<div class="md-head"><div class="md-ph">🔩</div>'+
       '<div style="flex:1;"><div class="md-nm">'+m.nm+'</div><div class="md-id">'+m.id+'</div>'+
       '<div style="margin-top:6px;"><span class="st '+ST[m.st].cls+'"><span class="dot"></span>'+ST[m.st].ko+'</span></div></div></div>'+
-    '<div class="gauge"><div class="gt">금형 수명 소진율</div>'+
+    '<div class="gauge"><div class="gt">Mold Life Consumption</div>'+
       '<div class="gbar"><i style="width:'+p+'%;background:'+c+';"></i><div class="gnum">'+p+'%</div></div>'+
-      '<div class="gsub">'+m.shots.toLocaleString()+' / '+m.life.toLocaleString()+' shot · 잔여 '+(m.life-m.shots).toLocaleString()+' shot'+
-      (p>=85?' · ⚠ 수명 임박':'')+'</div></div>'+
+      '<div class="gsub">'+m.shots.toLocaleString()+' / '+m.life.toLocaleString()+' shots · Remaining '+(m.life-m.shots).toLocaleString()+' shots'+
+      (p>=85?' · ⚠ Near End of Life':'')+'</div></div>'+
     '<div class="specs">'+specs.map(function(s){
       return '<div class="srow"><span class="sk">'+s[0]+'</span><span class="sv">'+s[1]+'</span></div>';}).join('')+'</div>'+
     '<div class="acts">'+
-      '<button class="btn btn-p btn-sm" style="flex:1;" onclick="openShot()">＋ 샷 카운트 갱신</button>'+
-      '<button class="btn btn-w btn-sm" style="flex:1;" onclick="openMaint()">🔧 정비 등록</button></div>'+
-    '<div class="hist"><div class="hist-t">정비 이력 ('+m.hist.length+'건)</div>'+
+      '<button class="btn btn-p btn-sm" style="flex:1;" onclick="openShot()">＋ Update Shot Count</button>'+
+      '<button class="btn btn-w btn-sm" style="flex:1;" onclick="openMaint()">🔧 Register Maintenance</button></div>'+
+    '<div class="hist"><div class="hist-t">Maintenance History ('+m.hist.length+')</div>'+
       m.hist.map(function(hh){return '<div class="hi"><span class="hd">'+hh[0]+'</span><span>'+hh[1]+'</span></div>';}).join('')+'</div>';
   document.getElementById('detail').innerHTML=h;
 }
 function openShot(){
   var m=byId(selId);
   document.getElementById('shInfo').innerHTML=
-    '<div class="srow"><span class="sk">금형</span><span class="sv">'+m.nm+'</span></div>'+
-    '<div class="srow"><span class="sk">현재 샷</span><span class="sv">'+m.shots.toLocaleString()+'</span></div>'+
-    '<div class="srow"><span class="sk">수명 한도</span><span class="sv">'+m.life.toLocaleString()+'</span></div>';
+    '<div class="srow"><span class="sk">Mold</span><span class="sv">'+m.nm+'</span></div>'+
+    '<div class="srow"><span class="sk">Current Shots</span><span class="sv">'+m.shots.toLocaleString()+'</span></div>'+
+    '<div class="srow"><span class="sk">Life Limit</span><span class="sv">'+m.life.toLocaleString()+'</span></div>';
   document.getElementById('shAdd').value=500;openOv('ovShot');
 }
 function addShots(){
   var m=byId(selId),add=parseInt(document.getElementById('shAdd').value,10);
-  if(isNaN(add)||add<1){toast('err','입력 오류','추가 샷 수는 1 이상이어야 합니다.');return;}
+  if(isNaN(add)||add<1){toast('err','Input Error','Additional shots must be at least 1.');return;}
   m.shots+=add;
   var p=lifePct(m);
   if(p>=100&&m.st!=='scrap'){m.st='scrap';}
   else if(p>=85&&m.st==='ok'){m.st='need';}
   closeOv('ovShot');apply();renderDetail();
-  toast(p>=85?'warn':'',m.id+' 샷 갱신',add.toLocaleString()+' shot 반영 → 누적 '+m.shots.toLocaleString()+' ('+p+'%)'+
-    (p>=100?' · 수명 한도 초과, 폐기 검토':p>=85?' · 정비 필요 상태로 전환':''));
+  toast(p>=85?'warn':'',m.id+' Shot Count Updated',add.toLocaleString()+' shots applied → total '+m.shots.toLocaleString()+' ('+p+'%)'+
+    (p>=100?' · Life limit exceeded, review for scrap':p>=85?' · Switched to Service Required':''));
 }
 function openMaint(){
   var m=byId(selId);
   document.getElementById('mtInfo').innerHTML=
-    '<div class="srow"><span class="sk">금형</span><span class="sv">'+m.nm+'</span></div>'+
-    '<div class="srow"><span class="sk">현재 소진율</span><span class="sv">'+lifePct(m)+'%</span></div>';
+    '<div class="srow"><span class="sk">Mold</span><span class="sv">'+m.nm+'</span></div>'+
+    '<div class="srow"><span class="sk">Current Life Used</span><span class="sv">'+lifePct(m)+'%</span></div>';
   openOv('ovMaint');
 }
 function doMaint(){
@@ -304,10 +304,10 @@ function doMaint(){
   var ty=document.getElementById('mtType').value;
   var reset=document.getElementById('mtReset').value==='yes';
   if(reset)m.shots=0;
-  m.st='ok';m.lastMaint='2026-05-20';
-  m.hist.unshift(['05-20',ty+(reset?' (샷 리셋)':'')]);
+  m.st='ok';m.lastMaint='05/20/2026';
+  m.hist.unshift(['05/20',ty+(reset?' (Shot Reset)':'')]);
   closeOv('ovMaint');apply();renderDetail();
-  toast('',m.id+' 정비 완료','「'+ty+'」 정비가 등록되었습니다.'+(reset?' 샷 카운트 0으로 리셋.':'')+' 상태: 가용.');
+  toast('',m.id+' Maintenance Complete','"'+ty+'" maintenance registered.'+(reset?' Shot count reset to 0.':'')+' Status: Available.');
 }
 function openNew(){
   ['nNm','nProd'].forEach(function(id){document.getElementById(id).value='';});
@@ -317,15 +317,15 @@ function openNew(){
 function addMold(){
   var nm=document.getElementById('nNm').value.trim();
   var prod=document.getElementById('nProd').value.trim();
-  if(!nm||!prod){toast('err','입력 오류','금형명과 생산 품목은 필수입니다.');return;}
+  if(!nm||!prod){toast('err','Input Error','Mold Name and Product are required.');return;}
   var life=parseInt(document.getElementById('nLife').value,10);
-  if(isNaN(life)||life<10000){toast('err','입력 오류','수명 한도를 확인하세요.');return;}
+  if(isNaN(life)||life<10000){toast('err','Input Error','Please verify the life limit value.');return;}
   var id='MD-INJ-'+(seq++);
   MOLD.push({id:id,nm:nm,prod:prod,type:document.getElementById('nType').value,
     cav:parseInt(document.getElementById('nCav').value,10)||1,shots:0,life:life,st:'ok',
-    loc:'금형 창고',lastMaint:'2026-05-20',hist:[['05-20','금형 신규 등록']]});
+    loc:'Mold Storage',lastMaint:'05/20/2026',hist:[['05/20','New mold registered']]});
   closeOv('ovNew');selId=id;apply();renderDetail();
-  toast('','금형 등록 완료',id+' 「'+nm+'」 금형이 대장에 등록되었습니다.');
+  toast('','Mold Registered',id+' "'+nm+'" mold has been added to the register.');
 }
 function exportCsv(){
   var v=vis();
@@ -336,12 +336,12 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='MNT_Mold_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','금형 '+v.length+'개를 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+v.length+' molds to CSV.');
 }
 function resetAll(){
   document.getElementById('fType').value='';document.getElementById('fStat').value='';
   document.getElementById('fKw').value='';apply();
-  toast('info','초기화','금형 목록 필터를 초기화했습니다.');
+  toast('info','Reset','Mold list filters have been reset.');
 }
 function openOv(id){document.getElementById(id).classList.add('on');}
 function closeOv(id){document.getElementById(id).classList.remove('on');}

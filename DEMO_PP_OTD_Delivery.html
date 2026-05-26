@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PP-OTD On-Time Delivery KPI · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -50,7 +50,7 @@ select{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12
 .pareto-row{display:flex;align-items:center;gap:8px;padding:7px 0;cursor:pointer;border-bottom:1px dashed #eef1f5;}
 .pareto-row:hover{background:#f0fdf4;}
 .pareto-row.sel{background:#ecfdf5;}
-.pareto-row .pn{font-size:11px;flex-shrink:0;width:128px;}
+.pareto-row .pn{font-size:11px;flex-shrink:0;width:140px;}
 .pareto-row .ptrk{flex:1;height:14px;background:#eef1f5;border-radius:3px;overflow:hidden;}
 .pareto-row .ptrk i{display:block;height:100%;border-radius:3px;}
 .pareto-row .pc{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;width:64px;text-align:right;}
@@ -83,58 +83,58 @@ tbody tr:hover td{background:#f0fdf4;}
 <body>
 <div class="scr-head">
   <div class="sh-id">PP-OTD</div>
-  <div class="sh-tt"><div class="sh-en">On-Time Delivery KPI</div><div class="sh-ko">납기 준수율 — 거래선별 OTD · 추이 · 지연 원인 분석</div></div>
+  <div class="sh-tt"><div class="sh-en">On-Time Delivery KPI</div><div class="sh-ko">OTD by customer · trend · delay root cause analysis</div></div>
   <span class="sh-tag">/pp/otd</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>거래선 Customer</label>
-    <select id="fCust" onchange="apply()"><option value="">전체 All</option><option>SAV</option><option>GEO</option></select></div>
-  <div class="fld"><label>기간 Period</label>
-    <select id="fPeriod" onchange="apply()"><option>최근 12개월</option><option>2025-Q3</option><option>2025-Q2</option><option>YTD 2025</option></select></div>
-  <div class="fld"><label>지연 원인 Cause</label>
-    <select id="fCause" onchange="render()"><option value="">전체 원인</option><option>자재 부족</option><option>설비 고장</option><option>품질 불합격</option><option>물류 지연</option><option>기타</option></select></div>
-  <button class="btn btn-p btn-sm" onclick="apply()">🔍 적용</button>
-  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div class="fld"><label>Customer</label>
+    <select id="fCust" onchange="apply()"><option value="">All</option><option>SAV</option><option>GEO</option></select></div>
+  <div class="fld"><label>Period</label>
+    <select id="fPeriod" onchange="apply()"><option>Last 12 Months</option><option>2025-Q3</option><option>2025-Q2</option><option>YTD 2025</option></select></div>
+  <div class="fld"><label>Root Cause</label>
+    <select id="fCause" onchange="render()"><option value="">All Causes</option><option>Material Shortage</option><option>Equipment Breakdown</option><option>Quality Fail</option><option>Logistics Delay</option><option>Other</option></select></div>
+  <button class="btn btn-p btn-sm" onclick="apply()">🔍 Apply</button>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>
   <div style="margin-left:auto;">
-    <button class="btn btn-s" onclick="exportCsv()">📥 지연건 Export</button>
+    <button class="btn btn-s" onclick="exportCsv()">📥 Export Delays</button>
   </div>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi lit" style="--c:#22c55e;--lt:#f0fdf4"><div class="kv" id="kSav">0%</div><div class="kl">SAV 납기준수율</div><div class="kt">target ≥ 98%</div></div>
-    <div class="kpi lit" style="--c:#f59e0b;--lt:#fffbeb"><div class="kv" id="kGeo">0%</div><div class="kl">GEO 납기준수율</div><div class="kt">target ≥ 96%</div></div>
-    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">총 출하건 · Shipments</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kDly">0</div><div class="kl">지연건 · Delayed</div></div>
-    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kAvg">0d</div><div class="kl">평균 지연일 · Avg Delay</div></div>
+    <div class="kpi lit" style="--c:#22c55e;--lt:#f0fdf4"><div class="kv" id="kSav">0%</div><div class="kl">SAV OTD</div><div class="kt">target ≥ 98%</div></div>
+    <div class="kpi lit" style="--c:#f59e0b;--lt:#fffbeb"><div class="kv" id="kGeo">0%</div><div class="kl">GEO OTD</div><div class="kt">target ≥ 96%</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">Total Shipments</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kDly">0</div><div class="kl">Delayed</div></div>
+    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kAvg">0d</div><div class="kl">Avg Delay</div></div>
   </div>
   <div class="grid2">
     <div class="card">
-      <div class="card-t">📈 <span id="trendTitle">12개월 OTD 추이</span></div>
+      <div class="card-t">📈 <span id="trendTitle">12-Month OTD Trend</span></div>
       <div class="chart" id="chart"></div>
-      <div class="chart-cap" id="chartCap">2024-09 ~ 2025-08 · 목표선 SAV 98% / GEO 96% · 막대 클릭 시 상세</div>
+      <div class="chart-cap" id="chartCap">09/2024 ~ 08/2025 · Target lines SAV 98% / GEO 96% · Click a bar for detail</div>
     </div>
     <div class="card">
-      <div class="card-t">📊 지연 원인 Pareto <span style="margin-left:auto;font-size:9px;color:#9ca3af;font-weight:400;">행 클릭 = 필터</span></div>
+      <div class="card-t">📊 Delay Root Cause Pareto <span style="margin-left:auto;font-size:9px;color:#9ca3af;font-weight:400;">Click a row to filter</span></div>
       <div id="pareto"></div>
     </div>
   </div>
   <div class="panel">
-    <div class="panel-h"><span>🚚 지연 출하 상세 — <span id="dlySub" style="font-weight:800;color:#dc2626;">0건</span></span>
-      <button class="btn btn-s btn-sm clr" id="clrBtn" onclick="clearCause()" style="display:none;">✕ 원인 필터 해제</button></div>
+    <div class="panel-h"><span>🚚 Delayed Shipments — <span id="dlySub" style="font-weight:800;color:#dc2626;">0</span></span>
+      <button class="btn btn-s btn-sm clr" id="clrBtn" onclick="clearCause()" style="display:none;">✕ Clear Cause Filter</button></div>
     <table>
       <thead><tr>
-        <th>출하 번호<span class="k">Shipment</span></th>
-        <th>거래선<span class="k">Customer</span></th>
-        <th>품목<span class="k">Item</span></th>
-        <th>납기<span class="k">Due</span></th>
-        <th>실제 출하<span class="k">Actual</span></th>
-        <th style="text-align:center;">지연일<span class="k">Delay</span></th>
-        <th style="text-align:center;">지연 원인<span class="k">Root Cause</span></th>
+        <th>Shipment</th>
+        <th>Customer</th>
+        <th>Item</th>
+        <th>Due</th>
+        <th>Actual</th>
+        <th style="text-align:center;">Delay</th>
+        <th style="text-align:center;">Root Cause</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
     </table>
-    <div class="empty" id="emptyMsg" style="display:none;">해당 조건의 지연 출하건이 없습니다.</div>
+    <div class="empty" id="emptyMsg" style="display:none;">No delayed shipments match the current filters.</div>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
@@ -149,24 +149,24 @@ var MONTHS=[
   {lbl:'25-05',sav:99.1,geo:97.2,ship:75},{lbl:'25-06',sav:98.3,geo:95.8,ship:69},
   {lbl:'25-07',sav:98.7,geo:96.4,ship:71},{lbl:'25-08',sav:98.2,geo:95.4,ship:73}
 ];
-var CZ={'자재 부족':'cz1','설비 고장':'cz2','품질 불합격':'cz3','물류 지연':'cz4','기타':'cz5'};
+var CZ={'Material Shortage':'cz1','Equipment Breakdown':'cz2','Quality Fail':'cz3','Logistics Delay':'cz4','Other':'cz5'};
 var DELAYED=[
-  {sh:'SH-2508-0142',cust:'GEO',code:'CONS-UP-001',name:'콘솔어퍼',due:'2025-08-05',act:'2025-08-09',days:4,cause:'자재 부족'},
-  {sh:'SH-2508-0150',cust:'SAV',code:'TRIM-LH-001',name:'도어트림 LH',due:'2025-08-07',act:'2025-08-09',days:2,cause:'자재 부족'},
-  {sh:'SH-2508-0163',cust:'GEO',code:'MOLDING-05',name:'사이드 몰딩 5',due:'2025-08-08',act:'2025-08-11',days:3,cause:'설비 고장'},
-  {sh:'SH-2508-0177',cust:'SAV',code:'GRILLE-02',name:'라디에이터 그릴',due:'2025-08-11',act:'2025-08-12',days:1,cause:'품질 불합격'},
-  {sh:'SH-2508-0188',cust:'GEO',code:'BUMPER-01',name:'프론트 범퍼',due:'2025-08-12',act:'2025-08-17',days:5,cause:'자재 부족'},
-  {sh:'SH-2508-0201',cust:'SAV',code:'TRIM-RH-001',name:'도어트림 RH',due:'2025-08-13',act:'2025-08-15',days:2,cause:'설비 고장'},
-  {sh:'SH-2508-0215',cust:'GEO',code:'CONS-UP-001',name:'콘솔어퍼',due:'2025-08-14',act:'2025-08-16',days:2,cause:'자재 부족'},
-  {sh:'SH-2508-0229',cust:'SAV',code:'MOLDING-05',name:'사이드 몰딩 5',due:'2025-08-18',act:'2025-08-19',days:1,cause:'품질 불합격'},
-  {sh:'SH-2508-0240',cust:'GEO',code:'GRILLE-02',name:'라디에이터 그릴',due:'2025-08-19',act:'2025-08-22',days:3,cause:'설비 고장'},
-  {sh:'SH-2508-0251',cust:'SAV',code:'BUMPER-01',name:'프론트 범퍼',due:'2025-08-20',act:'2025-08-22',days:2,cause:'자재 부족'},
-  {sh:'SH-2508-0263',cust:'GEO',code:'TRIM-LH-001',name:'도어트림 LH',due:'2025-08-21',act:'2025-08-24',days:3,cause:'물류 지연'},
-  {sh:'SH-2508-0274',cust:'SAV',code:'CONS-UP-001',name:'콘솔어퍼',due:'2025-08-22',act:'2025-08-23',days:1,cause:'품질 불합격'},
-  {sh:'SH-2508-0285',cust:'GEO',code:'MOLDING-05',name:'사이드 몰딩 5',due:'2025-08-25',act:'2025-08-28',days:3,cause:'자재 부족'},
-  {sh:'SH-2508-0296',cust:'SAV',code:'GRILLE-02',name:'라디에이터 그릴',due:'2025-08-26',act:'2025-08-28',days:2,cause:'설비 고장'},
-  {sh:'SH-2508-0308',cust:'SAV',code:'TRIM-RH-001',name:'도어트림 RH',due:'2025-08-27',act:'2025-08-29',days:2,cause:'자재 부족'},
-  {sh:'SH-2508-0319',cust:'GEO',code:'BUMPER-01',name:'프론트 범퍼',due:'2025-08-28',act:'2025-08-31',days:3,cause:'기타'}
+  {sh:'SH-2508-0142',cust:'GEO',code:'CONS-UP-001',name:'Console Upper',due:'08/05/2025',act:'08/09/2025',days:4,cause:'Material Shortage'},
+  {sh:'SH-2508-0150',cust:'SAV',code:'TRIM-LH-001',name:'Door Trim LH',due:'08/07/2025',act:'08/09/2025',days:2,cause:'Material Shortage'},
+  {sh:'SH-2508-0163',cust:'GEO',code:'MOLDING-05',name:'Side Molding 5',due:'08/08/2025',act:'08/11/2025',days:3,cause:'Equipment Breakdown'},
+  {sh:'SH-2508-0177',cust:'SAV',code:'GRILLE-02',name:'Radiator Grille',due:'08/11/2025',act:'08/12/2025',days:1,cause:'Quality Fail'},
+  {sh:'SH-2508-0188',cust:'GEO',code:'BUMPER-01',name:'Front Bumper',due:'08/12/2025',act:'08/17/2025',days:5,cause:'Material Shortage'},
+  {sh:'SH-2508-0201',cust:'SAV',code:'TRIM-RH-001',name:'Door Trim RH',due:'08/13/2025',act:'08/15/2025',days:2,cause:'Equipment Breakdown'},
+  {sh:'SH-2508-0215',cust:'GEO',code:'CONS-UP-001',name:'Console Upper',due:'08/14/2025',act:'08/16/2025',days:2,cause:'Material Shortage'},
+  {sh:'SH-2508-0229',cust:'SAV',code:'MOLDING-05',name:'Side Molding 5',due:'08/18/2025',act:'08/19/2025',days:1,cause:'Quality Fail'},
+  {sh:'SH-2508-0240',cust:'GEO',code:'GRILLE-02',name:'Radiator Grille',due:'08/19/2025',act:'08/22/2025',days:3,cause:'Equipment Breakdown'},
+  {sh:'SH-2508-0251',cust:'SAV',code:'BUMPER-01',name:'Front Bumper',due:'08/20/2025',act:'08/22/2025',days:2,cause:'Material Shortage'},
+  {sh:'SH-2508-0263',cust:'GEO',code:'TRIM-LH-001',name:'Door Trim LH',due:'08/21/2025',act:'08/24/2025',days:3,cause:'Logistics Delay'},
+  {sh:'SH-2508-0274',cust:'SAV',code:'CONS-UP-001',name:'Console Upper',due:'08/22/2025',act:'08/23/2025',days:1,cause:'Quality Fail'},
+  {sh:'SH-2508-0285',cust:'GEO',code:'MOLDING-05',name:'Side Molding 5',due:'08/25/2025',act:'08/28/2025',days:3,cause:'Material Shortage'},
+  {sh:'SH-2508-0296',cust:'SAV',code:'GRILLE-02',name:'Radiator Grille',due:'08/26/2025',act:'08/28/2025',days:2,cause:'Equipment Breakdown'},
+  {sh:'SH-2508-0308',cust:'SAV',code:'TRIM-RH-001',name:'Door Trim RH',due:'08/27/2025',act:'08/29/2025',days:2,cause:'Material Shortage'},
+  {sh:'SH-2508-0319',cust:'GEO',code:'BUMPER-01',name:'Front Bumper',due:'08/28/2025',act:'08/31/2025',days:3,cause:'Other'}
 ];
 var SHIPBASE={SAV:512,GEO:335};
 
@@ -186,7 +186,7 @@ function apply(){
   document.getElementById('kTot').textContent=tot.toLocaleString();
   document.getElementById('kDly').textContent=dl.length;
   document.getElementById('kAvg').textContent=(dl.length?(Math.round(avg(dl.map(function(d){return d.days;}))*10)/10):0)+'d';
-  document.getElementById('trendTitle').textContent='12개월 OTD 추이'+(c?' — '+c:' (SAV·GEO)');
+  document.getElementById('trendTitle').textContent='12-Month OTD Trend'+(c?' — '+c:' (SAV · GEO)');
   renderChart();renderPareto();render();
 }
 function renderChart(){
@@ -209,8 +209,8 @@ function renderChart(){
 function barClick(i){
   var m=MONTHS[i],c=curCust();
   var v=c==='SAV'?m.sav:(c==='GEO'?m.geo:Math.round((m.sav+m.geo)/2*10)/10);
-  toast('info','20'+m.lbl+' OTD 상세','SAV '+m.sav+'% · GEO '+m.geo+'% · 출하 '+m.ship+'건. '+
-    (v>=97?'목표 달성 ✓':'목표 미달 — 지연 원인 검토 필요'));
+  toast('info','20'+m.lbl+' OTD Detail','SAV '+m.sav+'% · GEO '+m.geo+'% · Shipments '+m.ship+'. '+
+    (v>=97?'Target met ✓':'Target missed — review delay causes'));
 }
 function renderPareto(){
   var c=curCust(),dl=DELAYED.filter(function(d){return !c||d.cust===c;});
@@ -219,13 +219,13 @@ function renderPareto(){
   var arr=Object.keys(cnt).map(function(k){return{k:k,n:cnt[k]};}).sort(function(a,b){return b.n-a.n;});
   var max=Math.max.apply(null,arr.map(function(x){return x.n;}))||1;
   var tot=dl.length||1,sel=document.getElementById('fCause').value;
-  var colmap={'자재 부족':'#dc2626','설비 고장':'#f59e0b','품질 불합격':'#8b5cf6','물류 지연':'#2563eb','기타':'#9ca3af'};
+  var colmap={'Material Shortage':'#dc2626','Equipment Breakdown':'#f59e0b','Quality Fail':'#8b5cf6','Logistics Delay':'#2563eb','Other':'#9ca3af'};
   var h='';
   arr.forEach(function(x){
     h+='<div class="pareto-row'+(sel===x.k?' sel':'')+'" onclick="pickCause(\''+x.k+'\')">'+
        '<span class="pn">'+x.k+'</span>'+
        '<span class="ptrk"><i style="width:'+(x.n/max*100)+'%;background:'+colmap[x.k]+';"></i></span>'+
-       '<span class="pc">'+x.n+'건 '+Math.round(x.n/tot*100)+'%</span></div>';
+       '<span class="pc">'+x.n+' · '+Math.round(x.n/tot*100)+'%</span></div>';
   });
   document.getElementById('pareto').innerHTML=h;
 }
@@ -250,25 +250,25 @@ function render(){
   });
   document.getElementById('tbody').innerHTML=h;
   document.getElementById('emptyMsg').style.display=rows.length?'none':'block';
-  document.getElementById('dlySub').textContent=rows.length+'건'+(cz?' · 원인: '+cz:'')+(c?' · '+c:'');
+  document.getElementById('dlySub').textContent=rows.length+(cz?' · Cause: '+cz:'')+(c?' · '+c:'');
   document.getElementById('clrBtn').style.display=cz?'inline-flex':'none';
 }
 function resetAll(){
   document.getElementById('fCust').value='';document.getElementById('fPeriod').selectedIndex=0;
   document.getElementById('fCause').value='';
-  apply();toast('info','초기화','전체 거래선·최근 12개월 기준으로 초기화했습니다.');
+  apply();toast('info','Reset','Reset to all customers, last 12 months.');
 }
 function exportCsv(){
   var c=curCust(),cz=document.getElementById('fCause').value;
   var rows=DELAYED.filter(function(d){return (!c||d.cust===c)&&(!cz||d.cause===cz);});
-  if(!rows.length){toast('err','내보낼 데이터 없음','조건에 맞는 지연건이 없습니다.');return;}
+  if(!rows.length){toast('err','No Data to Export','No delayed shipments match the current filters.');return;}
   var csv='Shipment,Customer,Item,Name,Due,Actual,DelayDays,RootCause\n';
   rows.forEach(function(d){csv+=[d.sh,d.cust,d.code,d.name,d.due,d.act,d.days,d.cause].join(',')+'\n';});
   var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='PP_OTD_Delayed_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','지연 출하 '+rows.length+'건을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+rows.length+' delayed shipments to CSV.');
 }
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');

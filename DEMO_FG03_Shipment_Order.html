@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>FG-03 Shipment Order · A-MES PDA Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--pda:#06b6d4;--pda-dk:#0e7490;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
 .pda{width:420px;max-width:100%;height:100%;max-height:760px;background:#0f1f25;border:2px solid #1a3540;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;}
 .pda-top{flex-shrink:0;background:linear-gradient(180deg,#1a3540,#0f1f25);padding:11px 16px;display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--pda);}
 .pda-id{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#22d3ee;}
@@ -56,40 +56,40 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font
 <div class="pda">
   <div class="pda-top">
     <div class="pda-id">FG-03</div>
-    <div class="pda-t">출하 지시</div>
+    <div class="pda-t">Shipment Order</div>
     <span class="live"><span class="d"></span>LIVE</span>
     <span class="pda-bat">🔋 68%</span>
   </div>
   <div class="pda-body">
     <div class="tabs">
-      <button class="tb on" data-f="all" onclick="pickF(this)">전체</button>
-      <button class="tb" data-f="urgent" onclick="pickF(this)">긴급 (D-0)</button>
+      <button class="tb on" data-f="all" onclick="pickF(this)">ALL</button>
+      <button class="tb" data-f="urgent" onclick="pickF(this)">URGENT (D-0)</button>
       <button class="tb" data-f="sav" onclick="pickF(this)">SAV</button>
       <button class="tb" data-f="geo" onclick="pickF(this)">GEO</button>
     </div>
     <div class="kpis">
-      <div class="k" style="--c:#22d3ee"><div class="l">금일 출하</div><div class="v">12</div><div class="s">건</div></div>
-      <div class="k" style="--c:#fca5a5"><div class="l">긴급</div><div class="v">3</div><div class="s">D-0</div></div>
-      <div class="k" style="--c:#22c55e"><div class="l">완료</div><div class="v">5</div><div class="s">건</div></div>
+      <div class="k" style="--c:#22d3ee"><div class="l">TODAY SHIP</div><div class="v">12</div><div class="s">orders</div></div>
+      <div class="k" style="--c:#fca5a5"><div class="l">URGENT</div><div class="v">3</div><div class="s">D-0</div></div>
+      <div class="k" style="--c:#22c55e"><div class="l">COMPLETE</div><div class="v">5</div><div class="s">shipped</div></div>
     </div>
-    <div class="section-h">🚚 출하 지시 <span class="b" id="cnt">7건</span></div>
+    <div class="section-h">🚚 Shipment Orders <span class="b" id="cnt">7 ORDERS</span></div>
     <div id="list"></div>
   </div>
   <div class="bottom-bar">
-    <button class="sec" onclick="back()">← 메뉴</button>
-    <button onclick="picking()">📦 피킹 시작</button>
+    <button class="sec" onclick="back()">← Menu</button>
+    <button onclick="picking()">📦 Start Picking</button>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 <script>
 var SOS=[
- {id:'SO-2605-0312',cust:'SAV',item:'도어트림 LH · 240 EA',due:'09:30',rd:'1차',pri:'urgent'},
- {id:'SO-2605-0313',cust:'GEO',item:'콘솔어퍼 · 180 EA',due:'10:00',rd:'1차',pri:'urgent'},
- {id:'SO-2605-0314',cust:'SAV',item:'사이드 몰딩 · 320 EA',due:'11:30',rd:'1차',pri:'urgent'},
- {id:'SO-2605-0315',cust:'GEO',item:'라디에이터 그릴 · 150 EA',due:'13:00',rd:'2차',pri:'normal'},
- {id:'SO-2605-0316',cust:'SAV',item:'도어트림 RH · 260 EA',due:'14:30',rd:'2차',pri:'normal'},
- {id:'SO-2605-0317',cust:'SAV',item:'프론트 범퍼 · 120 EA',due:'15:00',rd:'2차',pri:'normal'},
- {id:'SO-2605-0318',cust:'GEO',item:'콘솔어퍼 · 170 EA',due:'16:00',rd:'3차',pri:'normal'}
+ {id:'SO-2605-0312',cust:'SAV',item:'Door Trim LH · 240 EA',due:'09:30',rd:'Run 1',pri:'urgent'},
+ {id:'SO-2605-0313',cust:'GEO',item:'Console Upper · 180 EA',due:'10:00',rd:'Run 1',pri:'urgent'},
+ {id:'SO-2605-0314',cust:'SAV',item:'Side Molding · 320 EA',due:'11:30',rd:'Run 1',pri:'urgent'},
+ {id:'SO-2605-0315',cust:'GEO',item:'Radiator Grille · 150 EA',due:'13:00',rd:'Run 2',pri:'normal'},
+ {id:'SO-2605-0316',cust:'SAV',item:'Door Trim RH · 260 EA',due:'14:30',rd:'Run 2',pri:'normal'},
+ {id:'SO-2605-0317',cust:'SAV',item:'Front Bumper · 120 EA',due:'15:00',rd:'Run 2',pri:'normal'},
+ {id:'SO-2605-0318',cust:'GEO',item:'Console Upper · 170 EA',due:'16:00',rd:'Run 3',pri:'normal'}
 ];
 var f='all';
 function pickF(e){[].slice.call(document.querySelectorAll('.tb')).forEach(function(x){x.classList.remove('on');});e.classList.add('on');f=e.dataset.f;render();}
@@ -101,19 +101,19 @@ function render(){
     if(f==='geo')return s.cust==='GEO';
     return true;
   });
-  document.getElementById('cnt').textContent=rows.length+'건';
+  document.getElementById('cnt').textContent=rows.length+' ORDERS';
   document.getElementById('list').innerHTML=rows.map(function(s){
     var col=s.pri==='urgent'?'#dc2626':'#22d3ee';
     return '<div class="so" style="--st:'+col+'" onclick="pick(\''+s.id+'\')">'+
-      '<div class="h"><span class="id">'+s.id+'</span><span class="pri '+(s.pri==='urgent'?'pri-u':'pri-n')+'">'+(s.pri==='urgent'?'긴급 D-0':s.rd)+'</span></div>'+
+      '<div class="h"><span class="id">'+s.id+'</span><span class="pri '+(s.pri==='urgent'?'pri-u':'pri-n')+'">'+(s.pri==='urgent'?'URGENT D-0':s.rd)+'</span></div>'+
       '<div class="cust">'+s.cust+' · '+s.rd+'</div>'+
       '<div class="item">'+s.item+'</div>'+
-      '<div class="meta"><span>📅 납품 '+s.due+'</span><span>▶ 피킹 대기</span></div></div>';
+      '<div class="meta"><span>📅 Due '+s.due+'</span><span>▶ Pick Pending</span></div></div>';
   }).join('');
 }
-function pick(id){toast('',id+' 선택','FIFO 피킹 화면(FG-04)으로 이동합니다.');}
-function picking(){toast('','📦 피킹 시작','다음 출하 지시 「SO-2605-0312」 피킹 시작.');}
-function back(){toast('','PDA 메뉴','PDA 메뉴로 돌아갑니다.');}
+function pick(id){toast('',id+' Selected','Opening FIFO Picking screen (FG-04).');}
+function picking(){toast('','📦 Start Picking','Starting picking for next order SO-2605-0312.');}
+function back(){toast('','PDA Menu','Returning to PDA menu.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">• '+title+'</div><div class="tb">'+body+'</div>';

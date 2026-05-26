@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>MNT-03 OEE Analysis · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -71,48 +71,48 @@ tbody tr.sel td{background:#ecfdf5;}
 <body>
 <div class="scr-head">
   <div class="sh-id">MNT-03</div>
-  <div class="sh-tt"><div class="sh-en">OEE Analysis</div><div class="sh-ko">OEE 분석 — 설비별 종합효율·신뢰도(MTBF·MTTR) 추이</div></div>
+  <div class="sh-tt"><div class="sh-en">OEE Analysis</div><div class="sh-ko">Equipment OEE / Reliability (MTBF · MTTR) Trends</div></div>
   <span class="sh-tag">/mnt/oee</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>설비 유형 Type</label>
-    <select id="fType" onchange="apply()"><option value="">전체 All</option><option>사출기</option><option>조립설비</option><option>도장설비</option><option>검사기</option></select></div>
-  <div class="fld"><label>기간 Period</label>
-    <select id="fPeriod" onchange="apply()"><option>최근 6개월</option><option>최근 3개월</option><option>2026 YTD</option></select></div>
-  <button class="btn btn-p btn-sm" onclick="apply()">🔍 적용</button>
-  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div class="fld"><label>Equipment Type</label>
+    <select id="fType" onchange="apply()"><option value="">All</option><option>Injection</option><option>Assembly</option><option>Paint</option><option>Inspection</option></select></div>
+  <div class="fld"><label>Period</label>
+    <select id="fPeriod" onchange="apply()"><option>Last 6 Months</option><option>Last 3 Months</option><option>2026 YTD</option></select></div>
+  <button class="btn btn-p btn-sm" onclick="apply()">🔍 Apply</button>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>
   <div style="margin-left:auto;"><button class="btn btn-s" onclick="exportCsv()">📥 Export</button></div>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#059669"><div class="kv" id="kOee">0%</div><div class="kl">평균 OEE</div><div class="kt">world-class ≥ 85%</div></div>
-    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kMtbf">0h</div><div class="kl">평균 MTBF · 고장간격</div></div>
-    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kMttr">0분</div><div class="kl">평균 MTTR · 수리시간</div></div>
-    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kAvail">0%</div><div class="kl">평균 가용성 · Availability</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kFail">0</div><div class="kl">금월 고장 · Failures</div></div>
+    <div class="kpi" style="--c:#059669"><div class="kv" id="kOee">0%</div><div class="kl">Average OEE</div><div class="kt">world-class ≥ 85%</div></div>
+    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kMtbf">0h</div><div class="kl">Avg MTBF · hours</div></div>
+    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kMttr">0 min</div><div class="kl">Avg MTTR · minutes</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kAvail">0%</div><div class="kl">Avg Availability</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kFail">0</div><div class="kl">MTD Failures</div></div>
   </div>
   <div class="card">
-    <div class="card-t">🏭 설비별 OEE·신뢰도 — <span style="font-weight:400;color:#9ca3af;font-size:9px;">행 클릭 시 하단 추이</span></div>
+    <div class="card-t">🏭 Equipment OEE / Reliability — <span style="font-weight:400;color:#9ca3af;font-size:9px;">click a row for trend</span></div>
     <table>
       <thead><tr>
-        <th>설비</th><th>유형</th><th class="c">OEE</th><th>6개월 추이</th>
-        <th class="c">MTBF(h)</th><th class="c">MTTR(분)</th>
-        <th class="c">금월 고장</th><th class="c">가용성</th>
+        <th>Equipment</th><th>Type</th><th class="c">OEE</th><th>6-Month Trend</th>
+        <th class="c">MTBF(h)</th><th class="c">MTTR(min)</th>
+        <th class="c">MTD Failures</th><th class="c">Availability</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
     </table>
   </div>
   <div class="card">
-    <div class="card-t">📈 월별 OEE 추이 — <span id="trLine" style="font-weight:800;">전체 평균</span>
+    <div class="card-t">📈 Monthly OEE Trend — <span id="trLine" style="font-weight:800;">Overall Average</span>
       <span class="legend">
-        <span><i style="background:#2563eb"></i>가용성 A</span>
-        <span><i style="background:#8b5cf6"></i>성능 P</span>
-        <span><i style="background:#0891b2"></i>품질 Q</span>
+        <span><i style="background:#2563eb"></i>Availability A</span>
+        <span><i style="background:#8b5cf6"></i>Performance P</span>
+        <span><i style="background:#0891b2"></i>Quality Q</span>
       </span>
     </div>
     <div class="trend" id="trend"></div>
-    <div style="text-align:center;font-size:9px;color:#9ca3af;margin-top:8px;">막대 = OEE(A·P·Q 누적) · 빨간 점선 = 목표 85% · 막대 클릭 시 상세</div>
+    <div style="text-align:center;font-size:9px;color:#9ca3af;margin-top:8px;">Bars = OEE (A · P · Q stacked) · Red dashed line = 85% target · Click bar for details</div>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
@@ -124,12 +124,12 @@ function mk(base){return MON.map(function(_,i){
   var j=(i-2.5)/3;
   return {a:base.a+j*base.av+(i%2?1.2:-0.8),p:base.p+j*base.pv,q:base.q+(i%3?0.3:-0.4)};});}
 var EQ=[
- {id:'EQ-INJ-001',nm:'사출기 1호기',type:'사출기',mtbf:412,mttr:48,fails:1,m:mk({a:90,av:3,p:93,pv:2,q:99})},
- {id:'EQ-INJ-002',nm:'사출기 2호기',type:'사출기',mtbf:168,mttr:96,fails:4,m:mk({a:80,av:-5,p:87,pv:-3,q:97.5})},
- {id:'EQ-ASY-001',nm:'조립1라인 컨베이어',type:'조립설비',mtbf:520,mttr:38,fails:1,m:mk({a:93,av:2,p:91,pv:1,q:99.5})},
- {id:'EQ-ASY-002',nm:'토크 체결기 #1',type:'조립설비',mtbf:336,mttr:55,fails:2,m:mk({a:88,av:1,p:90,pv:2,q:99})},
- {id:'EQ-PNT-001',nm:'도장 부스 1라인',type:'도장설비',mtbf:290,mttr:88,fails:2,m:mk({a:85,av:-2,p:89,pv:-1,q:98})},
- {id:'EQ-INS-001',nm:'비전 검사기 #1',type:'검사기',mtbf:610,mttr:32,fails:1,m:mk({a:95,av:2,p:94,pv:1,q:99.7})}
+ {id:'EQ-INJ-001',nm:'Injection Machine #1',type:'Injection',mtbf:412,mttr:48,fails:1,m:mk({a:90,av:3,p:93,pv:2,q:99})},
+ {id:'EQ-INJ-002',nm:'Injection Machine #2',type:'Injection',mtbf:168,mttr:96,fails:4,m:mk({a:80,av:-5,p:87,pv:-3,q:97.5})},
+ {id:'EQ-ASY-001',nm:'Assembly Line 1 Conveyor',type:'Assembly',mtbf:520,mttr:38,fails:1,m:mk({a:93,av:2,p:91,pv:1,q:99.5})},
+ {id:'EQ-ASY-002',nm:'Torque Fastener #1',type:'Assembly',mtbf:336,mttr:55,fails:2,m:mk({a:88,av:1,p:90,pv:2,q:99})},
+ {id:'EQ-PNT-001',nm:'Paint Booth Line 1',type:'Paint',mtbf:290,mttr:88,fails:2,m:mk({a:85,av:-2,p:89,pv:-1,q:98})},
+ {id:'EQ-INS-001',nm:'Vision Inspector #1',type:'Inspection',mtbf:610,mttr:32,fails:1,m:mk({a:95,av:2,p:94,pv:1,q:99.7})}
 ];
 var selI=-1;
 function oeeOf(mm){return mm.a*mm.p*mm.q/10000;}
@@ -147,7 +147,7 @@ function apply(){
   document.getElementById('kOee').textContent=r1(oee)+'%';
   document.getElementById('kOee').style.color=oee>=85?'#059669':(oee>=65?'#d97706':'#dc2626');
   document.getElementById('kMtbf').textContent=Math.round(mtbf)+'h';
-  document.getElementById('kMttr').textContent=Math.round(mttr)+'분';
+  document.getElementById('kMttr').textContent=Math.round(mttr)+' min';
   document.getElementById('kAvail').textContent=r1(av)+'%';
   document.getElementById('kFail').textContent=fail;
   if(selI>=0&&!vis().some(function(x){return x.i===selI;}))selI=-1;
@@ -167,13 +167,13 @@ function renderTable(){
       '<td><div class="spark">'+sp+'</div></td>'+
       '<td class="c" style="text-align:center;font-family:JetBrains Mono,monospace;font-weight:700;color:'+(e.mtbf>=300?'#059669':'#dc2626')+'">'+e.mtbf+'</td>'+
       '<td class="c" style="text-align:center;font-family:JetBrains Mono,monospace;font-weight:700;color:'+(e.mttr<=60?'#059669':'#dc2626')+'">'+e.mttr+'</td>'+
-      '<td class="c" style="text-align:center;font-weight:700;color:'+(e.fails>=3?'#dc2626':'#24292f')+'">'+e.fails+'건</td>'+
+      '<td class="c" style="text-align:center;font-weight:700;color:'+(e.fails>=3?'#dc2626':'#24292f')+'">'+e.fails+'</td>'+
       '<td class="c" style="text-align:center;font-family:JetBrains Mono,monospace;">'+r1(avg(e.m.map(function(mm){return mm.a;})))+'%</td></tr>';
   });
   document.getElementById('tbody').innerHTML=h;
 }
 function pickEq(i){selI=(selI===i)?-1:i;renderTable();renderTrend();
-  if(selI>=0)toast('info',EQ[i].id+' 선택','해당 설비의 월별 OEE 추이를 표시합니다.');}
+  if(selI>=0)toast('info',EQ[i].id+' Selected','Showing monthly OEE trend for this equipment.');}
 function renderTrend(){
   var v=vis(),series,name;
   if(selI>=0){series=EQ[selI].m;name=EQ[selI].id+' '+EQ[selI].nm;}
@@ -182,17 +182,12 @@ function renderTrend(){
       return {a:avg(v.map(function(x){return x.e.m[i].a;})),
               p:avg(v.map(function(x){return x.e.m[i].p;})),
               q:avg(v.map(function(x){return x.e.m[i].q;}))};});
-    name='전체 평균';
+    name='Overall Average';
   }
   document.getElementById('trLine').textContent=name;
   var h='<div class="tgt" style="bottom:'+(85/100*100)+'%;"></div>';
   series.forEach(function(mm,i){
     var o=oeeOf(mm);
-    /* stacked proportional segments scaled so total height = OEE% of 100 */
-    var aSeg=mm.a/100, pSeg=mm.a/100*mm.p/100, qSeg=o/100;
-    var aH=(aSeg)*0, /* compute additive */ x=0;
-    /* segment heights as fraction of 100 height: A contributes a*100? use simple: show A,P,Q sub-bars */
-    var hA=(o/100)*(mm.a/(mm.a+mm.p+mm.q)*3);
     h+='<div class="tbar" onclick="barInfo('+i+','+o.toFixed(1)+','+mm.a.toFixed(1)+','+mm.p.toFixed(1)+','+mm.q.toFixed(1)+')">'+
       '<div class="tv">'+r1(o)+'</div>'+
       '<div class="bw" style="height:'+o+'%;">'+
@@ -205,8 +200,8 @@ function renderTrend(){
   document.getElementById('trend').innerHTML=h;
 }
 function barInfo(i,o,a,p,q){
-  toast('info','20'+MON[i]+' OEE 상세','OEE '+o+'% = 가용성 '+a+'% × 성능 '+p+'% × 품질 '+q+'%. '+
-    (o>=85?'목표 달성 ✓':'목표(85%) 미달 — 개선 필요'));
+  toast('info','20'+MON[i]+' OEE Detail','OEE '+o+'% = Availability '+a+'% × Performance '+p+'% × Quality '+q+'%. '+
+    (o>=85?'Target achieved ✓':'Below target (85%) — improvement required'));
 }
 function exportCsv(){
   var v=vis();
@@ -218,11 +213,11 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='MNT_OEE_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','설비 OEE 분석을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Equipment OEE analysis exported to CSV.');
 }
 function resetAll(){
   document.getElementById('fType').value='';document.getElementById('fPeriod').selectedIndex=0;
-  selI=-1;apply();toast('info','초기화','OEE 분석을 전체 설비 기준으로 초기화했습니다.');
+  selI=-1;apply();toast('info','Reset','OEE analysis reset to all equipment.');
 }
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');

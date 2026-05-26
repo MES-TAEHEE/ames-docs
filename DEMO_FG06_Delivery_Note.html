@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>FG-06 Delivery Note · A-MES PDA Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--pda:#06b6d4;--pda-dk:#0e7490;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
 .pda{width:420px;max-width:100%;height:100%;max-height:760px;background:#0f1f25;border:2px solid #1a3540;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;}
 .pda-top{flex-shrink:0;background:linear-gradient(180deg,#1a3540,#0f1f25);padding:11px 16px;display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--pda);}
 .pda-id{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#22d3ee;}
@@ -23,7 +23,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font
 .note{background:#fff;color:#000;border-radius:11px;padding:18px;font-family:'JetBrains Mono',monospace;}
 .note .title{text-align:center;font-size:16px;font-weight:900;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:11px;}
 .note .num{font-size:11px;text-align:right;color:#444;margin-bottom:8px;}
-.note .row{display:grid;grid-template-columns:80px 1fr;gap:7px;font-size:11px;padding:4px 0;border-bottom:1px dashed #ccc;}
+.note .row{display:grid;grid-template-columns:90px 1fr;gap:7px;font-size:11px;padding:4px 0;border-bottom:1px dashed #ccc;}
 .note .row .l{color:#555;}
 .note .row b{font-weight:800;}
 .note table{width:100%;border-collapse:collapse;margin-top:11px;font-size:10.5px;}
@@ -57,52 +57,52 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font
 <div class="pda">
   <div class="pda-top">
     <div class="pda-id">FG-06</div>
-    <div class="pda-t">거래명세서</div>
+    <div class="pda-t">Bill of Lading</div>
     <span class="live"><span class="d"></span>LIVE</span>
     <span class="pda-bat">🔋 65%</span>
   </div>
   <div class="pda-body">
     <div class="note">
-      <div class="num">No. DN-2605-0313</div>
-      <div class="title">거 래 명 세 표</div>
-      <div class="row"><span class="l">공급자</span><b>SEOYON E-HWA · A-MES</b></div>
-      <div class="row"><span class="l">수신자</span><b>서연이화 경주공장 (GEO)</b></div>
-      <div class="row"><span class="l">출하 일자</span><b>2026-05-21</b></div>
-      <div class="row"><span class="l">납품 일자</span><b>2026-05-21</b></div>
-      <div class="row"><span class="l">차량 번호</span><b>88 나 5678 (5톤)</b></div>
-      <div class="row"><span class="l">출하 번호</span><b>SO-2605-0313</b></div>
+      <div class="num">No. BOL-2605-0313</div>
+      <div class="title">BILL OF LADING</div>
+      <div class="row"><span class="l">Shipper</span><b>SEOYON E-HWA · A-MES (Detroit, MI)</b></div>
+      <div class="row"><span class="l">Consignee</span><b>SEOYON E-HWA Birmingham (GEO)</b></div>
+      <div class="row"><span class="l">Ship Date</span><b>05/21/2026</b></div>
+      <div class="row"><span class="l">Delivery Date</span><b>05/21/2026</b></div>
+      <div class="row"><span class="l">Truck #</span><b>TX-88-5678 (53ft Dry Van)</b></div>
+      <div class="row"><span class="l">SO #</span><b>SO-2605-0313</b></div>
       <table>
-        <thead><tr><th>품목</th><th class="r">수량</th><th class="c">로트</th></tr></thead>
+        <thead><tr><th>Item</th><th class="r">Qty</th><th class="c">LOT</th></tr></thead>
         <tbody>
-          <tr><td>콘솔어퍼 (블랙)</td><td class="r">180</td><td class="c">1985</td></tr>
-          <tr><td>콘솔어퍼 (블랙)</td><td class="r">120</td><td class="c">2018</td></tr>
-          <tr><td>콘솔어퍼 (블랙)</td><td class="r">170</td><td class="c">2062</td></tr>
-          <tr><td>라디에이터 그릴 (그레이)</td><td class="r">24</td><td class="c">1958</td></tr>
-          <tr><td>프론트 범퍼 (블랙)</td><td class="r">48</td><td class="c">2004</td></tr>
+          <tr><td>Console Upper (Black)</td><td class="r">180</td><td class="c">1985</td></tr>
+          <tr><td>Console Upper (Black)</td><td class="r">120</td><td class="c">2018</td></tr>
+          <tr><td>Console Upper (Black)</td><td class="r">170</td><td class="c">2062</td></tr>
+          <tr><td>Radiator Grille (Gray)</td><td class="r">24</td><td class="c">1958</td></tr>
+          <tr><td>Front Bumper (Black)</td><td class="r">48</td><td class="c">2004</td></tr>
         </tbody>
-        <tfoot><tr><td>합계 · TOTAL</td><td class="r">542 EA</td><td class="c">5 LOT</td></tr></tfoot>
+        <tfoot><tr><td>TOTAL</td><td class="r">542 EA</td><td class="c">5 LOT</td></tr></tfoot>
       </table>
       <div class="qr">
         <div class="q"></div>
-        <div class="qt">DN-2605-0313 · 스캔하여 추적</div>
+        <div class="qt">BOL-2605-0313 · Scan to Track</div>
       </div>
       <div class="sign">
-        <div class="sb"><div class="l">출하 담당</div><div class="v">박작업</div></div>
-        <div class="sb"><div class="l">기사 확인</div><div class="v">박운전</div></div>
+        <div class="sb"><div class="l">Shipper Signature</div><div class="v">David Chen</div></div>
+        <div class="sb"><div class="l">Driver Signature</div><div class="v">Mike Wilson</div></div>
       </div>
     </div>
   </div>
   <div class="bottom-bar">
-    <button class="sec" onclick="back()">← 뒤로</button>
-    <button onclick="prn()">🖨 인쇄</button>
-    <button onclick="send()">📧 송부</button>
+    <button class="sec" onclick="back()">← Back</button>
+    <button onclick="prn()">🖨 Print</button>
+    <button onclick="send()">📧 Send</button>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 <script>
-function prn(){toast('','🖨 인쇄','거래명세서를 출력합니다. (Zebra ZT411)');}
-function send(){toast('ok','📧 송부 완료','거래명세서가 GEO 경주공장 이메일로 전송되었습니다.');}
-function back(){toast('','뒤로','상차 확인 화면으로 돌아갑니다.');}
+function prn(){toast('','🖨 Print','Printing BOL. (Zebra ZT411)');}
+function send(){toast('ok','📧 Sent ✓','BOL emailed to GEO Birmingham receiving.');}
+function back(){toast('','Back','Returning to Loading screen.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';

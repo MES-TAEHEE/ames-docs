@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>MNT-08 Spare Parts · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -94,82 +94,82 @@ tbody tr.sel td{background:#ecfdf5;}
 <body>
 <div class="scr-head">
   <div class="sh-id">MNT-08</div>
-  <div class="sh-tt"><div class="sh-en">Spare Parts</div><div class="sh-ko">정비 자재 — 예비품 재고·입출고 관리</div></div>
+  <div class="sh-tt"><div class="sh-en">Spare Parts</div><div class="sh-ko">MRO inventory · receive / issue management</div></div>
   <span class="sh-tag">/mnt/spare</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>분류 Category</label>
-    <select id="fCat" onchange="apply()"><option value="">전체 All</option><option>베어링</option><option>모터부품</option><option>전기부품</option><option>유압부품</option><option>금형부품</option><option>소모품</option></select></div>
-  <div class="fld"><label>재고 상태 Stock</label>
-    <select id="fStat" onchange="apply()"><option value="">전체</option><option value="ok">정상</option><option value="low">부족</option><option value="out">품절</option></select></div>
-  <div class="fld"><label>검색 Search</label>
-    <input id="fKw" placeholder="자재명·코드" oninput="apply()" style="width:150px;"></div>
-  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div class="fld"><label>Category</label>
+    <select id="fCat" onchange="apply()"><option value="">All</option><option>Bearings</option><option>Motor Parts</option><option>Electrical</option><option>Hydraulic</option><option>Mold Parts</option><option>Consumables</option></select></div>
+  <div class="fld"><label>Stock Status</label>
+    <select id="fStat" onchange="apply()"><option value="">All</option><option value="ok">Normal</option><option value="low">Low</option><option value="out">Out of Stock</option></select></div>
+  <div class="fld"><label>Search</label>
+    <input id="fKw" placeholder="Name or code" oninput="apply()" style="width:150px;"></div>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>
   <div style="margin-left:auto;display:flex;gap:8px;">
-    <button class="btn btn-p" onclick="openNew()">＋ 자재 등록</button>
+    <button class="btn btn-p" onclick="openNew()">＋ Add Part</button>
     <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
   </div>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">총 품목 · Items</div></div>
-    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kLow">0</div><div class="kl">재고 부족 · Low Stock</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kOut">0</div><div class="kl">품절 · Out of Stock</div></div>
-    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kVal">0</div><div class="kl">재고 금액 · 천원</div></div>
-    <div class="kpi" style="--c:#10b981"><div class="kv" id="kTx">0</div><div class="kl">금일 입출고 · Txns</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">Total Items</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kLow">0</div><div class="kl">Low Stock</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kOut">0</div><div class="kl">Out of Stock</div></div>
+    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kVal">$0</div><div class="kl">Inventory Value</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kTx">0</div><div class="kl">Today's Txns</div></div>
   </div>
   <div class="grid2">
     <div class="card">
-      <div class="card-t">📦 정비 자재 목록 — <span id="listSub" style="font-weight:400;color:#656d76;">0품목</span></div>
+      <div class="card-t">📦 Spare Parts List — <span id="listSub" style="font-weight:400;color:#656d76;">0 items</span></div>
       <table>
-        <thead><tr><th>자재 코드</th><th>자재명</th><th>분류</th><th>현재고</th><th style="width:90px;">재고율</th><th>상태</th></tr></thead>
+        <thead><tr><th>Part Code</th><th>Name</th><th>Category</th><th>On Hand</th><th style="width:90px;">Stock %</th><th>Status</th></tr></thead>
         <tbody id="tbody"></tbody>
       </table>
-      <div class="empty" id="empty" style="display:none;">조건에 맞는 자재가 없습니다.</div>
+      <div class="empty" id="empty" style="display:none;">No parts match the filter.</div>
     </div>
-    <div class="card" id="detail"><div class="empty">← 좌측 목록에서 자재를 선택하세요.</div></div>
+    <div class="card" id="detail"><div class="empty">← Select a part from the list.</div></div>
   </div>
 </div>
 
 <!-- in/out modal -->
 <div class="ov" id="ovTxn">
   <div class="modal">
-    <div class="modal-h"><span class="mt" id="txTitle">입고 처리</span><span class="mx" onclick="closeOv('ovTxn')">✕</span></div>
+    <div class="modal-h"><span class="mt" id="txTitle">Receive Stock</span><span class="mx" onclick="closeOv('ovTxn')">✕</span></div>
     <div class="modal-b">
       <div id="txInfo" style="margin-bottom:12px;"></div>
       <div class="ff2">
-        <div class="ff"><label id="txQL">입고 수량 <span class="req">*</span></label><input type="number" id="txQty" value="10" min="1"></div>
-        <div class="ff"><label>구분</label><select id="txRef"></select></div>
+        <div class="ff"><label id="txQL">Receive Qty <span class="req">*</span></label><input type="number" id="txQty" value="10" min="1"></div>
+        <div class="ff"><label>Reference</label><select id="txRef"></select></div>
       </div>
       <div id="txWarn" style="font-size:10px;display:none;background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;padding:8px;color:#9a3412;"></div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovTxn')">취소</button>
-      <button class="btn btn-p" id="txBtn" onclick="doTxn()">처리</button>
+      <button class="btn btn-s" onclick="closeOv('ovTxn')">Cancel</button>
+      <button class="btn btn-p" id="txBtn" onclick="doTxn()">Process</button>
     </div>
   </div>
 </div>
 <!-- new part modal -->
 <div class="ov" id="ovNew">
   <div class="modal">
-    <div class="modal-h"><span class="mt">신규 자재 등록</span><span class="mx" onclick="closeOv('ovNew')">✕</span></div>
+    <div class="modal-h"><span class="mt">Add New Part</span><span class="mx" onclick="closeOv('ovNew')">✕</span></div>
     <div class="modal-b">
-      <div class="ff"><label>자재명 <span class="req">*</span></label><input id="nNm" placeholder="예: 깊은홈 볼베어링 6204"></div>
+      <div class="ff"><label>Part Name <span class="req">*</span></label><input id="nNm" placeholder="e.g., Deep Groove Ball Bearing 6204"></div>
       <div class="ff2">
-        <div class="ff"><label>분류 <span class="req">*</span></label>
-          <select id="nCat"><option>베어링</option><option>모터부품</option><option>전기부품</option><option>유압부품</option><option>금형부품</option><option>소모품</option></select></div>
-        <div class="ff"><label>보관 위치</label><input id="nLoc" placeholder="예: A-03-2"></div>
+        <div class="ff"><label>Category <span class="req">*</span></label>
+          <select id="nCat"><option>Bearings</option><option>Motor Parts</option><option>Electrical</option><option>Hydraulic</option><option>Mold Parts</option><option>Consumables</option></select></div>
+        <div class="ff"><label>Storage Location</label><input id="nLoc" placeholder="e.g., A-03-2"></div>
       </div>
       <div class="ff2">
-        <div class="ff"><label>초기 재고 <span class="req">*</span></label><input type="number" id="nQty" value="20" min="0"></div>
-        <div class="ff"><label>안전 재고 <span class="req">*</span></label><input type="number" id="nSafe" value="10" min="0"></div>
+        <div class="ff"><label>Initial Stock <span class="req">*</span></label><input type="number" id="nQty" value="20" min="0"></div>
+        <div class="ff"><label>Safety Stock <span class="req">*</span></label><input type="number" id="nSafe" value="10" min="0"></div>
       </div>
-      <div class="ff"><label>단가 (원)</label><input type="number" id="nPrice" value="8000" min="0" step="100"></div>
+      <div class="ff"><label>Unit Price ($)</label><input type="number" id="nPrice" value="8.00" min="0" step="0.01"></div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovNew')">취소</button>
-      <button class="btn btn-p" onclick="addPart()">＋ 등록</button>
+      <button class="btn btn-s" onclick="closeOv('ovNew')">Cancel</button>
+      <button class="btn btn-p" onclick="addPart()">＋ Register</button>
     </div>
   </div>
 </div>
@@ -177,29 +177,30 @@ tbody tr.sel td{background:#ecfdf5;}
 
 <script>
 var PART=[
- {id:'SP-BRG-001',nm:'깊은홈 볼베어링 6206',cat:'베어링',qty:24,safe:12,price:9500,loc:'A-01-1',
-  txn:[['05-18','out',2,'MWO-2605-031'],['05-10','in',20,'발주입고']]},
- {id:'SP-BRG-002',nm:'테이퍼 롤러베어링 30205',cat:'베어링',qty:6,safe:8,price:14000,loc:'A-01-2',
-  txn:[['05-16','out',4,'MWO-2605-024']]},
- {id:'SP-MOT-001',nm:'서보모터 1.5kW',cat:'모터부품',qty:2,safe:1,price:480000,loc:'B-02-1',
-  txn:[['04-22','in',2,'발주입고']]},
- {id:'SP-MOT-002',nm:'모터 커플링 D-32',cat:'모터부품',qty:0,safe:4,price:32000,loc:'B-02-2',
-  txn:[['05-12','out',3,'MWO-2605-016'],['05-02','out',2,'정비반 청구']]},
- {id:'SP-ELE-001',nm:'근접 센서 PNP NO',cat:'전기부품',qty:15,safe:10,price:18000,loc:'C-01-1',
-  txn:[['05-14','out',1,'MWO-2605-022']]},
- {id:'SP-ELE-002',nm:'LED 조명바 24V',cat:'전기부품',qty:8,safe:6,price:42000,loc:'C-01-2',
-  txn:[['05-14','out',1,'MWO-2605-022'],['04-30','in',10,'발주입고']]},
- {id:'SP-HYD-001',nm:'유압 솔레노이드 밸브',cat:'유압부품',qty:5,safe:6,price:88000,loc:'D-01-1',
-  txn:[['05-16','out',1,'MWO-2605-024']]},
- {id:'SP-HYD-002',nm:'유압유 ISO VG46 (20L)',cat:'소모품',qty:11,safe:8,price:65000,loc:'D-02-1',
-  txn:[['04-22','out',2,'정기 PM']]},
- {id:'SP-MLD-001',nm:'금형 이젝터 핀 세트',cat:'금형부품',qty:3,safe:5,price:120000,loc:'E-01-1',
-  txn:[['05-08','out',2,'금형 정비']]}
+ {id:'SP-BRG-001',nm:'Deep Groove Ball Bearing 6206',cat:'Bearings',qty:24,safe:12,price:9.50,loc:'A-01-1',
+  txn:[['05/18','out',2,'MWO-2605-031'],['05/10','in',20,'PO Receipt']]},
+ {id:'SP-BRG-002',nm:'Tapered Roller Bearing 30205',cat:'Bearings',qty:6,safe:8,price:14.00,loc:'A-01-2',
+  txn:[['05/16','out',4,'MWO-2605-024']]},
+ {id:'SP-MOT-001',nm:'Servo Motor 1.5kW',cat:'Motor Parts',qty:2,safe:1,price:480.00,loc:'B-02-1',
+  txn:[['04/22','in',2,'PO Receipt']]},
+ {id:'SP-MOT-002',nm:'Motor Coupling D-32',cat:'Motor Parts',qty:0,safe:4,price:32.00,loc:'B-02-2',
+  txn:[['05/12','out',3,'MWO-2605-016'],['05/02','out',2,'Maint. Request']]},
+ {id:'SP-ELE-001',nm:'Proximity Sensor PNP NO',cat:'Electrical',qty:15,safe:10,price:18.00,loc:'C-01-1',
+  txn:[['05/14','out',1,'MWO-2605-022']]},
+ {id:'SP-ELE-002',nm:'LED Light Bar 24V',cat:'Electrical',qty:8,safe:6,price:42.00,loc:'C-01-2',
+  txn:[['05/14','out',1,'MWO-2605-022'],['04/30','in',10,'PO Receipt']]},
+ {id:'SP-HYD-001',nm:'Hydraulic Solenoid Valve',cat:'Hydraulic',qty:5,safe:6,price:88.00,loc:'D-01-1',
+  txn:[['05/16','out',1,'MWO-2605-024']]},
+ {id:'SP-HYD-002',nm:'Hydraulic Oil ISO VG46 (5 gal)',cat:'Consumables',qty:11,safe:8,price:65.00,loc:'D-02-1',
+  txn:[['04/22','out',2,'Routine PM']]},
+ {id:'SP-MLD-001',nm:'Mold Ejector Pin Set',cat:'Mold Parts',qty:3,safe:5,price:120.00,loc:'E-01-1',
+  txn:[['05/08','out',2,'Mold Maintenance']]}
 ];
-var ICON={'베어링':'⚙️','모터부품':'🔌','전기부품':'💡','유압부품':'🛢️','금형부품':'🔩','소모품':'🧴'};
+var ICON={'Bearings':'⚙️','Motor Parts':'🔌','Electrical':'💡','Hydraulic':'🛢️','Mold Parts':'🔩','Consumables':'🧴'};
 var seq=10,selId=null,txMode='in';
 function statOf(p){return p.qty===0?'out':(p.qty<=p.safe?'low':'ok');}
-var ST={ok:{ko:'정상',cls:'st-ok'},low:{ko:'부족',cls:'st-low'},out:{ko:'품절',cls:'st-out'}};
+var ST={ok:{ko:'Normal',cls:'st-ok'},low:{ko:'Low',cls:'st-low'},out:{ko:'Out of Stock',cls:'st-out'}};
+function fmtUsd(n){return '$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function vis(){
   var fc=document.getElementById('fCat').value,fs=document.getElementById('fStat').value;
   var kw=document.getElementById('fKw').value.trim().toLowerCase();
@@ -214,8 +215,8 @@ function apply(){
   document.getElementById('kLow').textContent=PART.filter(function(p){return statOf(p)==='low';}).length;
   document.getElementById('kOut').textContent=PART.filter(function(p){return statOf(p)==='out';}).length;
   var val=PART.reduce(function(s,p){return s+p.qty*p.price;},0);
-  document.getElementById('kVal').textContent=Math.round(val/1000).toLocaleString();
-  var tx=PART.reduce(function(s,p){return s+p.txn.filter(function(t){return t[0]==='05-20';}).length;},0);
+  document.getElementById('kVal').textContent=fmtUsd(val);
+  var tx=PART.reduce(function(s,p){return s+p.txn.filter(function(t){return t[0]==='05/20';}).length;},0);
   document.getElementById('kTx').textContent=tx;
   renderList();
 }
@@ -233,46 +234,46 @@ function renderList(){
   });
   document.getElementById('tbody').innerHTML=h;
   document.getElementById('empty').style.display=v.length?'none':'block';
-  document.getElementById('listSub').textContent=v.length+'품목';
+  document.getElementById('listSub').textContent=v.length+' items';
 }
 function byId(id){return PART.filter(function(p){return p.id===id;})[0];}
 function pickPart(id){selId=id;renderList();renderDetail();}
 function renderDetail(){
   var p=byId(selId);
-  if(!p){document.getElementById('detail').innerHTML='<div class="empty">← 좌측 목록에서 자재를 선택하세요.</div>';return;}
+  if(!p){document.getElementById('detail').innerHTML='<div class="empty">← Select a part from the list.</div>';return;}
   var s=statOf(p);
   var c=s==='out'?'#dc2626':(s==='low'?'#f59e0b':'#059669');
-  var specs=[['분류',p.cat],['보관 위치',p.loc],['안전 재고',p.safe+' EA'],
-    ['단가',p.price.toLocaleString()+' 원'],['재고 금액',(p.qty*p.price).toLocaleString()+' 원']];
-  var h='<div class="card-t">📦 자재 상세</div>'+
+  var specs=[['Category',p.cat],['Location',p.loc],['Safety Stock',p.safe+' EA'],
+    ['Unit Price',fmtUsd(p.price)],['Stock Value',fmtUsd(p.qty*p.price)]];
+  var h='<div class="card-t">📦 Part Detail</div>'+
     '<div class="pd-head"><div class="pd-ph">'+(ICON[p.cat]||'📦')+'</div>'+
       '<div style="flex:1;"><div class="pd-nm">'+p.nm+'</div><div class="pd-id">'+p.id+'</div>'+
       '<div style="margin-top:6px;"><span class="st '+ST[s].cls+'"><span class="dot"></span>'+ST[s].ko+'</span></div></div></div>'+
     '<div class="stockbig"><div class="sv" style="color:'+c+'">'+p.qty+'</div>'+
-      '<div class="sl">현재고 EA · 안전재고 '+p.safe+' EA'+(s==='low'?' · ⚠ 발주 필요':s==='out'?' · ⛔ 즉시 발주':'')+'</div></div>'+
+      '<div class="sl">On Hand EA · Safety Stock '+p.safe+' EA'+(s==='low'?' · ⚠ Reorder required':s==='out'?' · ⛔ Order immediately':'')+'</div></div>'+
     '<div class="specs">'+specs.map(function(x){
       return '<div class="srow"><span class="sk">'+x[0]+'</span><span class="sv">'+x[1]+'</span></div>';}).join('')+'</div>'+
     '<div class="acts">'+
-      '<button class="btn btn-b btn-sm" style="flex:1;" onclick="openTxn(\'in\')">▼ 입고</button>'+
-      '<button class="btn btn-o btn-sm" style="flex:1;" onclick="openTxn(\'out\')">▲ 출고</button></div>'+
-    '<div class="txns"><div class="txns-t">입출고 이력 ('+p.txn.length+'건)</div>'+
+      '<button class="btn btn-b btn-sm" style="flex:1;" onclick="openTxn(\'in\')">▼ Receive</button>'+
+      '<button class="btn btn-o btn-sm" style="flex:1;" onclick="openTxn(\'out\')">▲ Issue</button></div>'+
+    '<div class="txns"><div class="txns-t">Transaction History ('+p.txn.length+')</div>'+
       p.txn.map(function(t){
         return '<div class="tx"><span class="td">'+t[0]+'</span>'+
-          '<span class="tb '+(t[1]==='in'?'tx-in':'tx-out')+'">'+(t[1]==='in'?'입고':'출고')+' '+t[2]+'</span>'+
+          '<span class="tb '+(t[1]==='in'?'tx-in':'tx-out')+'">'+(t[1]==='in'?'IN':'OUT')+' '+t[2]+'</span>'+
           '<span style="color:#656d76;flex:1;">'+t[3]+'</span></div>';
       }).join('')+'</div>';
   document.getElementById('detail').innerHTML=h;
 }
 function openTxn(mode){
   txMode=mode;var p=byId(selId);
-  document.getElementById('txTitle').textContent=(mode==='in'?'입고 처리':'출고 처리');
-  document.getElementById('txQL').innerHTML=(mode==='in'?'입고':'출고')+' 수량 <span class="req">*</span>';
+  document.getElementById('txTitle').textContent=(mode==='in'?'Receive Stock':'Issue Stock');
+  document.getElementById('txQL').innerHTML=(mode==='in'?'Receive':'Issue')+' Qty <span class="req">*</span>';
   document.getElementById('txInfo').innerHTML=
-    '<div class="srow"><span class="sk">자재</span><span class="sv">'+p.nm+'</span></div>'+
-    '<div class="srow"><span class="sk">현재고</span><span class="sv">'+p.qty+' EA</span></div>';
+    '<div class="srow"><span class="sk">Part</span><span class="sv">'+p.nm+'</span></div>'+
+    '<div class="srow"><span class="sk">On Hand</span><span class="sv">'+p.qty+' EA</span></div>';
   document.getElementById('txRef').innerHTML=(mode==='in'
-    ?['발주입고','반품입고','재고조정'].map(function(r){return '<option>'+r+'</option>';}).join('')
-    :['정비 청구','MWO 작업지시','폐기','재고조정'].map(function(r){return '<option>'+r+'</option>';}).join(''));
+    ?['PO Receipt','Return Receipt','Inventory Adjustment'].map(function(r){return '<option>'+r+'</option>';}).join('')
+    :['Maint. Request','MWO Work Order','Scrap','Inventory Adjustment'].map(function(r){return '<option>'+r+'</option>';}).join(''));
   document.getElementById('txQty').value=mode==='in'?20:1;
   document.getElementById('txWarn').style.display='none';
   document.getElementById('txBtn').className='btn '+(mode==='in'?'btn-b':'btn-o');
@@ -280,56 +281,56 @@ function openTxn(mode){
 }
 function doTxn(){
   var p=byId(selId),q=parseInt(document.getElementById('txQty').value,10);
-  if(isNaN(q)||q<1){toast('err','입력 오류','수량은 1 이상이어야 합니다.');return;}
+  if(isNaN(q)||q<1){toast('err','Input Error','Quantity must be at least 1.');return;}
   if(txMode==='out'&&q>p.qty){
     document.getElementById('txWarn').style.display='block';
-    document.getElementById('txWarn').textContent='⚠ 출고 수량('+q+')이 현재고('+p.qty+')를 초과합니다.';
+    document.getElementById('txWarn').textContent='⚠ Issue qty ('+q+') exceeds on-hand stock ('+p.qty+').';
     return;
   }
   var ref=document.getElementById('txRef').value;
   if(txMode==='in')p.qty+=q;else p.qty-=q;
-  p.txn.unshift(['05-20',txMode,q,ref]);
+  p.txn.unshift(['05/20',txMode,q,ref]);
   closeOv('ovTxn');apply();renderDetail();
   var s=statOf(p);
   toast(s==='out'?'err':s==='low'?'warn':'',
-    p.id+(txMode==='in'?' 입고':' 출고')+' 완료',
-    q+' EA '+(txMode==='in'?'입고':'출고')+' → 현재고 '+p.qty+' EA'+
-    (s==='out'?' · 품절 상태':s==='low'?' · 재고 부족, 발주 권장':''));
+    p.id+(txMode==='in'?' Received':' Issued')+' Successfully',
+    q+' EA '+(txMode==='in'?'received':'issued')+' → on hand '+p.qty+' EA'+
+    (s==='out'?' · Out of stock':s==='low'?' · Low stock, reorder recommended':''));
 }
 function openNew(){
   ['nNm','nLoc'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('nQty').value=20;document.getElementById('nSafe').value=10;
-  document.getElementById('nPrice').value=8000;openOv('ovNew');
+  document.getElementById('nPrice').value=8.00;openOv('ovNew');
 }
 function addPart(){
   var nm=document.getElementById('nNm').value.trim();
-  if(!nm){toast('err','입력 오류','자재명은 필수 항목입니다.');return;}
+  if(!nm){toast('err','Input Error','Part Name is required.');return;}
   var qty=parseInt(document.getElementById('nQty').value,10);
   var safe=parseInt(document.getElementById('nSafe').value,10);
-  if(isNaN(qty)||isNaN(safe)||qty<0||safe<0){toast('err','입력 오류','재고 수량을 확인하세요.');return;}
+  if(isNaN(qty)||isNaN(safe)||qty<0||safe<0){toast('err','Input Error','Please verify stock values.');return;}
   var cat=document.getElementById('nCat').value;
-  var pfx={'베어링':'BRG','모터부품':'MOT','전기부품':'ELE','유압부품':'HYD','금형부품':'MLD','소모품':'CSM'}[cat];
+  var pfx={'Bearings':'BRG','Motor Parts':'MOT','Electrical':'ELE','Hydraulic':'HYD','Mold Parts':'MLD','Consumables':'CSM'}[cat];
   var id='SP-'+pfx+'-'+('00'+seq++).slice(-3);
-  PART.push({id:id,nm:nm,cat:cat,qty:qty,safe:safe,price:parseInt(document.getElementById('nPrice').value,10)||0,
-    loc:document.getElementById('nLoc').value||'-',txn:[['05-20','in',qty,'신규 등록']]});
+  PART.push({id:id,nm:nm,cat:cat,qty:qty,safe:safe,price:parseFloat(document.getElementById('nPrice').value)||0,
+    loc:document.getElementById('nLoc').value||'-',txn:[['05/20','in',qty,'New Registration']]});
   closeOv('ovNew');selId=id;apply();renderDetail();
-  toast('','자재 등록 완료',id+' 「'+nm+'」 자재가 등록되었습니다.');
+  toast('','Part Registered',id+' "'+nm+'" has been registered.');
 }
 function exportCsv(){
   var v=vis();
   var csv='PartID,Name,Category,Qty,SafetyStock,Status,UnitPrice,StockValue,Location\n';
   v.forEach(function(p){
-    csv+=[p.id,p.nm,p.cat,p.qty,p.safe,ST[statOf(p)].ko,p.price,p.qty*p.price,p.loc].join(',')+'\n';});
+    csv+=[p.id,p.nm,p.cat,p.qty,p.safe,ST[statOf(p)].ko,p.price.toFixed(2),(p.qty*p.price).toFixed(2),p.loc].join(',')+'\n';});
   var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='MNT_SpareParts_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','정비 자재 '+v.length+'품목을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+v.length+' parts to CSV.');
 }
 function resetAll(){
   document.getElementById('fCat').value='';document.getElementById('fStat').value='';
   document.getElementById('fKw').value='';apply();
-  toast('info','초기화','자재 목록 필터를 초기화했습니다.');
+  toast('info','Reset','Parts list filters have been reset.');
 }
 function openOv(id){document.getElementById(id).classList.add('on');}
 function closeOv(id){document.getElementById(id).classList.remove('on');}

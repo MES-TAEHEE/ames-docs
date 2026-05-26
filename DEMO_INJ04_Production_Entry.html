@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>INJ-04 Production Entry · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--sc:#ea580c;--sc-dk:#c2410c;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:15px;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:15px;display:flex;flex-direction:column;overflow:hidden;}
 .head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
 .head .id{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;color:#fb923c;}
 .head .tt{flex:1;}
@@ -72,28 +72,28 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 </head>
 <body>
 <div class="head">
-  <button class="back" onclick="back()">‹ 대시보드</button>
+  <button class="back" onclick="back()">‹ Dashboard</button>
   <div class="id">INJ-04</div>
-  <div class="tt"><div class="en">Production Entry</div><div class="ko">생산 실적 입력 — 양품·불량 수량 보고</div></div>
-  <div class="wo-mini"><span class="lbl">WO</span><span class="val">WO-2605-115</span><span class="lbl" style="margin-left:8px;">금형</span><span class="val">MD-INJ-102</span></div>
+  <div class="tt"><div class="en">Production Entry</div><div class="ko">Good / Defect Qty Report</div></div>
+  <div class="wo-mini"><span class="lbl">WO</span><span class="val">WO-2605-115</span><span class="lbl" style="margin-left:8px;">MOLD</span><span class="val">MD-INJ-102</span></div>
   <span class="live"><span class="d"></span>LIVE</span>
 </div>
 <div class="body">
   <div class="col">
     <div class="cnt sel" id="cntGood" onclick="selT('good')">
-      <div class="lbl">양품 · GOOD</div>
+      <div class="lbl">GOOD</div>
       <div class="val" id="vGood">320</div>
-      <div class="uom">EA · 누적</div>
-      <div class="delta" id="dGood">▲ 마지막 입력 +24</div>
+      <div class="uom">EA · Cumulative</div>
+      <div class="delta" id="dGood">▲ Last Entry +24</div>
     </div>
     <div class="cnt def" id="cntDef" onclick="selT('def')">
-      <div class="lbl">불량 · DEFECT</div>
+      <div class="lbl">DEFECT</div>
       <div class="val" id="vDef">8</div>
-      <div class="uom">EA · 누적</div>
-      <div class="delta" id="dDef">▲ 마지막 입력 +2</div>
+      <div class="uom">EA · Cumulative</div>
+      <div class="delta" id="dDef">▲ Last Entry +2</div>
     </div>
     <div class="input-box">
-      <div class="il" id="inpL">▶ 양품 추가 수량 입력 (EA)</div>
+      <div class="il" id="inpL">▶ Enter Good Qty to Add (EA)</div>
       <div class="iv" id="inpV">0</div>
     </div>
     <div class="qbtns">
@@ -119,11 +119,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
       <button class="k fn" onclick="bksp()">⌫</button>
     </div>
     <div class="actions">
-      <button class="btn-pause" onclick="pause()">⏸ 일시정지</button>
-      <button class="btn-sub" onclick="submit()">✓ 실적 등록</button>
+      <button class="btn-pause" onclick="pause()">⏸ Pause</button>
+      <button class="btn-sub" onclick="submit()">✓ Submit</button>
     </div>
     <div class="recent">
-      <h3>🕒 최근 입력 이력</h3>
+      <h3>🕒 Recent Entry History</h3>
       <div class="r-list" id="rList"></div>
     </div>
   </div>
@@ -132,16 +132,16 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 <script>
 var typ='good',v='',good=320,def=8;
 var LOG=[
- {t:'09:12',ty:'good',q:24},{t:'09:08',ty:'def',q:2,c:'미성형'},
+ {t:'09:12',ty:'good',q:24},{t:'09:08',ty:'def',q:2,c:'Short Shot'},
  {t:'09:00',ty:'good',q:48},{t:'08:48',ty:'good',q:30},
- {t:'08:36',ty:'def',q:1,c:'표면 스크래치'},{t:'08:24',ty:'good',q:60},
+ {t:'08:36',ty:'def',q:1,c:'Surface Scratch'},{t:'08:24',ty:'good',q:60},
  {t:'08:12',ty:'good',q:42},{t:'08:00',ty:'good',q:60}
 ];
 function selT(t){
   typ=t;
   document.getElementById('cntGood').classList.toggle('sel',t==='good');
   document.getElementById('cntDef').classList.toggle('sel',t==='def');
-  document.getElementById('inpL').textContent=t==='good'?'▶ 양품 추가 수량 입력 (EA)':'▶ 불량 추가 수량 입력 (EA)';
+  document.getElementById('inpL').textContent=t==='good'?'▶ Enter Good Qty to Add (EA)':'▶ Enter Defect Qty to Add (EA)';
 }
 function key(d){if(v.length>=4)return;v+=d;upd();}
 function clr(){v='';upd();}
@@ -150,19 +150,19 @@ function quick(n){v=String((parseInt(v||'0',10))+n);upd();}
 function upd(){document.getElementById('inpV').textContent=v||'0';}
 function submit(){
   var n=parseInt(v||'0',10);
-  if(!n){toast('err','입력 오류','수량을 입력하세요.');return;}
-  if(typ==='good'){good+=n;document.getElementById('vGood').textContent=good;document.getElementById('dGood').textContent='▲ 마지막 입력 +'+n;}
-  else{def+=n;document.getElementById('vDef').textContent=def;document.getElementById('dDef').textContent='▲ 마지막 입력 +'+n;}
+  if(!n){toast('err','Input Error','Please enter a quantity.');return;}
+  if(typ==='good'){good+=n;document.getElementById('vGood').textContent=good;document.getElementById('dGood').textContent='▲ Last Entry +'+n;}
+  else{def+=n;document.getElementById('vDef').textContent=def;document.getElementById('dDef').textContent='▲ Last Entry +'+n;}
   LOG.unshift({t:new Date().toTimeString().slice(0,5),ty:typ,q:n});
   v='';upd();renderLog();
-  toast('ok',typ==='good'?'양품 실적 등록 ✓':'불량 실적 등록 ✓',n+' EA 등록 · 누적 '+(typ==='good'?good:def)+' EA. 진척률 '+Math.round(good/520*100)+'%');
+  toast('ok',typ==='good'?'Good Qty Submitted ✓':'Defect Qty Submitted ✓',n+' EA recorded · Cumulative '+(typ==='good'?good:def)+' EA. Progress '+Math.round(good/520*100)+'%');
 }
-function pause(){toast('warn','작업 일시정지','비가동 처리 화면으로 전환하여 사유를 입력하세요. (데모)');}
-function back(){toast('','뒤로 이동','POP 대시보드로 돌아갑니다.');}
+function pause(){toast('warn','Work Paused','Switch to Downtime screen and enter the reason. (Demo)');}
+function back(){toast('','Back','Returning to POP Dashboard.');}
 function renderLog(){
   document.getElementById('rList').innerHTML=LOG.slice(0,12).map(function(r){
     return '<div class="r"><span class="t">'+r.t+'</span>'+
-      '<span class="nm">'+(r.ty==='good'?'양품 실적':'불량 실적 · '+(r.c||'기타'))+'</span>'+
+      '<span class="nm">'+(r.ty==='good'?'Good Entry':'Defect Entry · '+(r.c||'Other'))+'</span>'+
       '<span class="q'+(r.ty==='def'?' def':'')+'">+'+r.q+'</span><span class="un">EA</span></div>';
   }).join('');
 }

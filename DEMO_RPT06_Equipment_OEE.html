@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>RPT-06 Equipment OEE Report · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -82,51 +82,51 @@ tfoot td{padding:9px 9px;background:#f0fdf4;font-weight:800;border-top:2px solid
 <body>
 <div class="scr-head">
   <div class="sh-id">RPT-06</div>
-  <div class="sh-tt"><div class="sh-en">Equipment OEE Report</div><div class="sh-ko">설비 OEE 리포트 — 월간 종합효율 집계 보고서</div></div>
+  <div class="sh-tt"><div class="sh-en">Equipment OEE Report</div><div class="sh-ko">Monthly Overall Equipment Effectiveness Summary</div></div>
   <span class="sh-tag">/rpt/oee</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>대상 월 Month</label>
-    <select id="fMonth" onchange="apply()"><option>2026년 5월</option><option>2026년 4월</option><option>2026년 3월</option></select></div>
-  <div class="fld"><label>라인 Line</label>
-    <select id="fLine" onchange="apply()"><option value="">전체 All</option><option>SAV-INJ-01</option><option>SAV-INJ-02</option><option>SAV-ASSY-01</option><option>SAV-PNT-01</option></select></div>
-  <button class="btn btn-p btn-sm" onclick="apply()">🔍 적용</button>
-  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div class="fld"><label>Month</label>
+    <select id="fMonth" onchange="apply()"><option>May 2026</option><option>April 2026</option><option>March 2026</option></select></div>
+  <div class="fld"><label>Line</label>
+    <select id="fLine" onchange="apply()"><option value="">All Lines</option><option>SAV-INJ-01</option><option>SAV-INJ-02</option><option>SAV-ASSY-01</option><option>SAV-PNT-01</option></select></div>
+  <button class="btn btn-p btn-sm" onclick="apply()">🔍 Apply</button>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>
   <div style="margin-left:auto;display:flex;gap:8px;">
-    <button class="btn btn-s" onclick="printRpt()">🖨 인쇄</button>
+    <button class="btn btn-s" onclick="printRpt()">🖨 Print</button>
     <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
   </div>
 </div>
 <div class="body">
-  <div class="rpt-title"><h2>설비 OEE 리포트</h2><span class="sub" id="rSub">2026년 5월 · 전체 라인</span></div>
+  <div class="rpt-title"><h2>Equipment OEE Report</h2><span class="sub" id="rSub">May 2026 · All Lines</span></div>
   <div class="kpis">
-    <div class="kpi" style="--c:#059669"><div class="kv" id="kOee">0%</div><div class="kl">전사 종합 OEE <span class="kd" id="kOeeD"></span></div></div>
-    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kA">0%</div><div class="kl">가용성 Availability</div></div>
-    <div class="kpi" style="--c:#8b5cf6"><div class="kv" id="kP">0%</div><div class="kl">성능 Performance</div></div>
-    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kQ">0%</div><div class="kl">품질 Quality</div></div>
-    <div class="kpi" style="--c:#10b981"><div class="kv" id="kBest">-</div><div class="kl">최우수 라인 · Best</div></div>
+    <div class="kpi" style="--c:#059669"><div class="kv" id="kOee">0%</div><div class="kl">Overall Plant OEE <span class="kd" id="kOeeD"></span></div></div>
+    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kA">0%</div><div class="kl">Availability</div></div>
+    <div class="kpi" style="--c:#8b5cf6"><div class="kv" id="kP">0%</div><div class="kl">Performance</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kQ">0%</div><div class="kl">Quality</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kBest">-</div><div class="kl">Best Line</div></div>
   </div>
   <div class="grid2">
     <div class="card">
-      <div class="card-t">📈 월별 전사 OEE 추이 <span style="margin-left:auto;font-size:9px;color:#9ca3af;font-weight:400;">막대 클릭=상세</span></div>
+      <div class="card-t">📈 Monthly Plant OEE Trend <span style="margin-left:auto;font-size:9px;color:#9ca3af;font-weight:400;">Click bar for details</span></div>
       <div class="trend" id="trend"></div>
-      <div style="text-align:center;font-size:9px;color:#9ca3af;margin-top:8px;">최근 6개월 · 빨간 점선=목표 85%</div>
+      <div style="text-align:center;font-size:9px;color:#9ca3af;margin-top:8px;">Last 6 Months · Red dashed=Target 85%</div>
     </div>
     <div class="card">
-      <div class="card-t">🏆 최우수 / 개선필요 라인</div>
+      <div class="card-t">🏆 Best / Needs Improvement Line</div>
       <div class="callout" id="callout"></div>
     </div>
   </div>
   <div class="panel">
-    <div class="panel-h">🏭 라인별 OEE 상세 (대상 월)</div>
+    <div class="panel-h">🏭 OEE Detail by Line (Selected Month)</div>
     <table>
       <thead><tr>
-        <th>라인</th>
-        <th class="c" style="width:120px;">가용성 A</th>
-        <th class="c" style="width:120px;">성능 P</th>
-        <th class="c" style="width:120px;">품질 Q</th>
-        <th class="c">OEE</th><th class="c">전월 대비</th><th class="c">등급</th>
+        <th>Line</th>
+        <th class="c" style="width:120px;">Availability A</th>
+        <th class="c" style="width:120px;">Performance P</th>
+        <th class="c" style="width:120px;">Quality Q</th>
+        <th class="c">OEE</th><th class="c">vs Prev Month</th><th class="c">Grade</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
       <tfoot id="tfoot"></tfoot>
@@ -143,16 +143,16 @@ function gen(a0,av,p0,pv,q0){
     var j=(i-2.5)/3;
     return {a:a0+j*av+(i%2?0.8:-0.6),p:p0+j*pv,q:q0+(i%3?0.2:-0.3)};});}
 var LINES=[
- {id:'SAV-INJ-01',nm:'사출 1호기',m:gen(90,3,93,2,99.0)},
- {id:'SAV-INJ-02',nm:'사출 2호기',m:gen(80,-4,87,-2,97.6)},
- {id:'SAV-ASSY-01',nm:'조립 1라인',m:gen(93,2,91,1,99.4)},
- {id:'SAV-PNT-01',nm:'도장 1라인',m:gen(86,-1,89,1,98.1)}
+ {id:'SAV-INJ-01',nm:'Injection Machine 1',m:gen(90,3,93,2,99.0)},
+ {id:'SAV-INJ-02',nm:'Injection Machine 2',m:gen(80,-4,87,-2,97.6)},
+ {id:'SAV-ASSY-01',nm:'Assembly Line 1',m:gen(93,2,91,1,99.4)},
+ {id:'SAV-PNT-01',nm:'Paint Line 1',m:gen(86,-1,89,1,98.1)}
 ];
 function monIdx(){var s=document.getElementById('fMonth').value;
-  return s.indexOf('5월')>=0?5:(s.indexOf('4월')>=0?4:3);}
+  return s.indexOf('May')>=0?5:(s.indexOf('April')>=0?4:3);}
 function oee(mm){return mm.a*mm.p*mm.q/10000;}
 function r1(n){return Math.round(n*10)/10;}
-function grade(o){return o>=85?{t:'World Class',c:'#059669'}:o>=65?{t:'양호',c:'#d97706'}:{t:'개선 필요',c:'#dc2626'};}
+function grade(o){return o>=85?{t:'World Class',c:'#059669'}:o>=65?{t:'Good',c:'#d97706'}:{t:'Needs Improvement',c:'#dc2626'};}
 function avg(a){return a.reduce(function(x,y){return x+y;},0)/a.length;}
 function visLines(){var f=document.getElementById('fLine').value;return LINES.filter(function(L){return !f||L.id===f;});}
 function apply(){
@@ -174,7 +174,7 @@ function apply(){
   document.getElementById('kBest').textContent=ranked.length?ranked[0].L.id.replace('SAV-',''):'-';
   document.getElementById('kBest').style.fontSize='15px';
   document.getElementById('rSub').textContent=document.getElementById('fMonth').value+' · '+
-    (document.getElementById('fLine').value||'전체 라인');
+    (document.getElementById('fLine').value||'All Lines');
   renderTrend(v,mi);renderCallout(ranked);renderTable(v,mi);
 }
 function renderTrend(v,mi){
@@ -191,20 +191,20 @@ function renderTrend(v,mi){
   document.getElementById('trend').innerHTML=h;
 }
 function barInfo(i,o){
-  toast('info','20'+MON[i]+' 전사 OEE','OEE '+o+'% · '+(o>=85?'목표 달성 ✓':'목표(85%) 미달'));
+  toast('info','20'+MON[i]+' Plant OEE','OEE '+o+'% · '+(o>=85?'Target met ✓':'Below target (85%)'));
 }
 function renderCallout(ranked){
   if(!ranked.length){document.getElementById('callout').innerHTML='';return;}
   var best=ranked[0],worst=ranked[ranked.length-1];
   document.getElementById('callout').innerHTML=
-    '<div class="co best"><div class="ct" style="color:#059669;">🏆 최우수 라인</div>'+
+    '<div class="co best"><div class="ct" style="color:#059669;">🏆 Best Line</div>'+
       '<div class="cn">'+best.L.id+' '+best.L.nm+'</div>'+
       '<div class="cv" style="color:#059669;">'+r1(best.o)+'%</div>'+
-      '<div class="cs">'+grade(best.o).t+' 등급 — 목표 대비 우수</div></div>'+
-    '<div class="co worst"><div class="ct" style="color:#dc2626;">⚠ 개선 필요 라인</div>'+
+      '<div class="cs">'+grade(best.o).t+' grade — Exceeds target</div></div>'+
+    '<div class="co worst"><div class="ct" style="color:#dc2626;">⚠ Needs Improvement</div>'+
       '<div class="cn">'+worst.L.id+' '+worst.L.nm+'</div>'+
       '<div class="cv" style="color:#dc2626;">'+r1(worst.o)+'%</div>'+
-      '<div class="cs">'+grade(worst.o).t+' — 비가동·성능 손실 분석 권장</div></div>';
+      '<div class="cs">'+grade(worst.o).t+' — Downtime & performance loss analysis recommended</div></div>';
 }
 function apqCell(v,col){
   return '<td class="c" style="text-align:center;"><span class="apq"><span class="at"><i style="width:'+v+'%;background:'+col+'"></i></span>'+
@@ -223,7 +223,7 @@ function renderTable(v,mi){
   });
   document.getElementById('tbody').innerHTML=h;
   var n=v.length||1;
-  document.getElementById('tfoot').innerHTML='<tr><td>전사 평균</td>'+
+  document.getElementById('tfoot').innerHTML='<tr><td>Plant Average</td>'+
     '<td style="text-align:center;">'+r1(tA/n)+'%</td>'+
     '<td style="text-align:center;">'+r1(tP/n)+'%</td>'+
     '<td style="text-align:center;">'+r1(tQ/n)+'%</td>'+
@@ -238,12 +238,12 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='RPT_EquipmentOEE_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','설비 OEE 리포트를 CSV로 내보냈습니다.');
+  toast('','Export Complete','Equipment OEE Report exported to CSV.');
 }
-function printRpt(){toast('info','인쇄 미리보기','설비 OEE 리포트 인쇄를 준비합니다. (데모)');}
+function printRpt(){toast('info','Print Preview','Preparing Equipment OEE Report for print. (Demo)');}
 function resetAll(){
   document.getElementById('fMonth').selectedIndex=0;document.getElementById('fLine').value='';
-  apply();toast('info','초기화','리포트 조건을 초기화했습니다.');
+  apply();toast('info','Reset','Report filters have been reset.');
 }
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');

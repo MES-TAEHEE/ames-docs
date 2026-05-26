@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>INJ-06 Mold Change · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--sc:#ea580c;--sc-dk:#c2410c;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
 .head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
 .head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#fb923c;}
 .head .tt{flex:1;}
@@ -77,35 +77,35 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 </head>
 <body>
 <div class="head">
-  <button class="back" onclick="back()">‹ 대시보드</button>
+  <button class="back" onclick="back()">‹ Dashboard</button>
   <div class="id">INJ-06</div>
-  <div class="tt"><div class="en">Mold Change</div><div class="ko">금형 교체 — 단계별 교환 워크플로</div></div>
+  <div class="tt"><div class="en">Mold Change</div><div class="ko">Step-by-Step Changeover Workflow</div></div>
   <span class="timer" id="timer">00:00</span>
   <span class="live"><span class="d"></span>CHANGEOVER</span>
 </div>
 <div class="body">
   <div class="swap">
     <div class="mold" style="--c:#9ca3af">
-      <div class="lbl">FROM · 분리 금형</div>
-      <div class="nm">도어트림 RH 금형</div>
+      <div class="lbl">FROM · Removing Mold</div>
+      <div class="nm">Door Trim RH Mold</div>
       <div class="cd">MD-INJ-102</div>
       <div class="meta">
-        <div>품목 <b>TRIM-RH-001</b></div>
-        <div>샷 <b>472K / 500K</b></div>
-        <div>캐비티 <b>2 cav</b></div>
-        <div>WO 종료 <b>WO-2605-115</b></div>
+        <div>Item <b>TRIM-RH-001</b></div>
+        <div>Shots <b>472K / 500K</b></div>
+        <div>Cavity <b>2 cav</b></div>
+        <div>WO End <b>WO-2605-115</b></div>
       </div>
     </div>
     <div class="swap-arr">▶</div>
     <div class="mold" style="--c:#22c55e">
-      <div class="lbl">TO · 신규 금형</div>
-      <div class="nm">콘솔어퍼 금형</div>
+      <div class="lbl">TO · New Mold</div>
+      <div class="nm">Console Upper Mold</div>
       <div class="cd">MD-INJ-105</div>
       <div class="meta">
-        <div>품목 <b>CONS-UP-001</b></div>
-        <div>샷 <b>62K / 550K</b></div>
-        <div>캐비티 <b>1 cav</b></div>
-        <div>다음 WO <b>WO-2605-130</b></div>
+        <div>Item <b>CONS-UP-001</b></div>
+        <div>Shots <b>62K / 550K</b></div>
+        <div>Cavity <b>1 cav</b></div>
+        <div>Next WO <b>WO-2605-130</b></div>
       </div>
     </div>
   </div>
@@ -115,16 +115,16 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 <div class="toasts" id="toasts"></div>
 <script>
 var STEPS=[
- {n:'01',ti:'작업 일시정지',ds:'현재 작업을 안전하게 정지하고 비가동 사유에 「금형 교체」를 등록합니다.',icon:'⏸',type:'check',items:[
-   '잔여 사이클 완료 후 정지','히터 OFF / 안전 모드 전환','비가동 사유 「금형 교체」 등록']},
- {n:'02',ti:'기존 금형 분리',ds:'현재 장착된 금형을 분리하여 보관함으로 이동합니다.',icon:'🔧',type:'check',items:[
-   '냉각수 라인 차단','클램프 해제 / 형개','금형 인양 및 보관함 이동','금형 상태 점검 기록']},
- {n:'03',ti:'신규 금형 스캔',ds:'장착할 신규 금형의 바코드를 스캔하여 검증합니다.',icon:'📷',type:'scan'},
- {n:'04',ti:'금형 장착·고정',ds:'신규 금형을 사출기에 장착하고 클램프·냉각수 라인을 연결합니다.',icon:'🔩',type:'check',items:[
-   '금형 인양·정렬','클램프 체결 / 형개 확인','냉각수 라인 연결','전기·신호 케이블 연결','안전 펜스 / 광막 정상']},
- {n:'05',ti:'초도품 확인',ds:'초도품 2~3 shot 생산 후 검사 기준 충족 여부를 확인합니다.',icon:'🔍',type:'check',items:[
-   '온도·압력 정상화 대기','초도품 2 shot 생산','치수·외관 검사','품질팀 승인 기록']},
- {n:'06',ti:'작업 재개',ds:'금형 교체 완료. 다음 작업지시(WO-2605-130) 작업을 시작합니다.',icon:'▶',type:'final'}
+ {n:'01',ti:'Pause Production',ds:'Safely stop current work and register downtime reason as "Mold Change".',icon:'⏸',type:'check',items:[
+   'Finish remaining cycle then stop','Heater OFF / Safety Mode','Register downtime reason: Mold Change']},
+ {n:'02',ti:'Remove Current Mold',ds:'Remove the currently mounted mold and move it to storage.',icon:'🔧',type:'check',items:[
+   'Shut off coolant lines','Release clamp / Open mold','Lift mold and move to storage','Record mold condition']},
+ {n:'03',ti:'Scan New Mold',ds:'Scan the barcode of the new mold to be mounted for verification.',icon:'📷',type:'scan'},
+ {n:'04',ti:'Mount & Secure Mold',ds:'Mount the new mold to the injection machine and connect clamps / coolant lines.',icon:'🔩',type:'check',items:[
+   'Lift & align mold','Engage clamp / Verify mold close','Connect coolant lines','Connect electrical/signal cables','Safety fence / light curtain OK']},
+ {n:'05',ti:'Initial Sample Check',ds:'Produce 2~3 initial sample shots and verify they meet inspection spec.',icon:'🔍',type:'check',items:[
+   'Wait for temp/pressure stabilization','Produce 2 initial shots','Dimensional & visual inspection','QC team approval recorded']},
+ {n:'06',ti:'Resume Production',ds:'Mold change complete. Start next Work Order (WO-2605-130).',icon:'▶',type:'final'}
 ];
 var idx=0,startT=Date.now(),secs=0,scanned=false,checks={};
 function renderSteps(){
@@ -143,14 +143,14 @@ function renderCur(){
   }
   if(s.type==='scan'){
     h+='<div class="scan-area'+(scanned?' scanned':'')+'" onclick="scan()"><div class="ic">'+(scanned?'✅':'📷')+'</div>'+
-      '<div class="t">'+(scanned?'금형 검증 완료 — MD-INJ-105 인식':'신규 금형 바코드 스캔')+'</div></div>';
+      '<div class="t">'+(scanned?'Mold Verified — MD-INJ-105 Recognized':'Scan New Mold Barcode')+'</div></div>';
   }
   if(s.type==='final'){
-    h+='<div style="font-size:14px;color:#86efac;font-weight:800;">교체 소요 시간 <span id="finT">--</span></div>';
+    h+='<div style="font-size:14px;color:#86efac;font-weight:800;">Changeover Time <span id="finT">--</span></div>';
   }
   h+='<div class="actions">'+
-    (idx>0?'<button class="btn-prev" onclick="prev()">‹ 이전</button>':'')+
-    '<button class="btn-next" id="bn" '+(canNext()?'':'disabled')+' onclick="next()">'+(idx===STEPS.length-1?'✓ 교체 완료':'다음 단계 ▶')+'</button></div>';
+    (idx>0?'<button class="btn-prev" onclick="prev()">‹ Previous</button>':'')+
+    '<button class="btn-next" id="bn" '+(canNext()?'':'disabled')+' onclick="next()">'+(idx===STEPS.length-1?'✓ Complete Changeover':'Next Step ▶')+'</button></div>';
   document.getElementById('curp').innerHTML=h;
   if(s.type==='final'){
     var m=Math.floor(secs/60),sc=secs%60;
@@ -174,20 +174,20 @@ function chk(si,i){
 function scan(){
   if(scanned)return;
   scanned=true;
-  toast('ok','금형 바코드 인식 ✓','MD-INJ-105 (콘솔어퍼 금형) 검증 완료. 작업지시 금형과 일치합니다.');
+  toast('ok','Mold Barcode Recognized ✓','MD-INJ-105 (Console Upper Mold) verified. Matches Work Order mold.');
   renderCur();
 }
 function next(){
   if(!canNext())return;
   if(idx===STEPS.length-1){
-    toast('ok','금형 교체 완료 ✓','MD-INJ-102 → MD-INJ-105 교체 완료 ('+document.getElementById('timer').textContent+' 소요). 작업 재개 화면으로 이동... (데모)');
+    toast('ok','Mold Change Complete ✓','MD-INJ-102 → MD-INJ-105 changeover complete ('+document.getElementById('timer').textContent+' elapsed). Navigating to Resume Production... (Demo)');
     return;
   }
   idx++;renderSteps();renderCur();
-  toast('','STEP '+STEPS[idx].n+' 진행',STEPS[idx].ti+' 단계로 이동했습니다.');
+  toast('','STEP '+STEPS[idx].n+' In Progress','Moved to '+STEPS[idx].ti+' step.');
 }
 function prev(){if(idx>0){idx--;renderSteps();renderCur();}}
-function back(){toast('','뒤로 이동','POP 대시보드로 돌아갑니다. 진행 중인 교체는 일시 보류됩니다.');}
+function back(){toast('','Back','Returning to POP Dashboard. Changeover will be temporarily on hold.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='warn'?'⚠ ':type==='ok'?'✓ ':'ℹ ')+title+'</div><div class="tb">'+body+'</div>';

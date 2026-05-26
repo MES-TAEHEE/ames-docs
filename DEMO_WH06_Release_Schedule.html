@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>WH-06 Release Schedule · A-MES PDA Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--pda:#06b6d4;--pda-dk:#0e7490;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
 .pda{width:420px;max-width:100%;height:100%;max-height:760px;background:#0f1f25;border:2px solid #1a3540;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;}
 .pda-top{flex-shrink:0;background:linear-gradient(180deg,#1a3540,#0f1f25);padding:11px 16px;display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--pda);}
 .pda-id{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#22d3ee;}
@@ -54,59 +54,59 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font
 <div class="pda">
   <div class="pda-top">
     <div class="pda-id">WH-06</div>
-    <div class="pda-t">출고 예정</div>
+    <div class="pda-t">Release Schedule</div>
     <span class="live"><span class="d"></span>LIVE</span>
     <span class="pda-bat">🔋 73%</span>
   </div>
   <div class="pda-body">
     <div class="kpis">
-      <div class="k" style="--c:#22d3ee"><div class="l">금일 출고 계획</div><div class="v">12</div><div class="s">건</div></div>
-      <div class="k" style="--c:#fbbf24"><div class="l">피킹 중</div><div class="v">3</div><div class="s">건</div></div>
-      <div class="k" style="--c:#22c55e"><div class="l">완료</div><div class="v">5</div><div class="s">건</div></div>
-      <div class="k" style="--c:#67e8f9"><div class="l">대기</div><div class="v">4</div><div class="s">건</div></div>
+      <div class="k" style="--c:#22d3ee"><div class="l">TODAY PLAN</div><div class="v">12</div><div class="s">orders</div></div>
+      <div class="k" style="--c:#fbbf24"><div class="l">PICKING</div><div class="v">3</div><div class="s">in progress</div></div>
+      <div class="k" style="--c:#22c55e"><div class="l">COMPLETE</div><div class="v">5</div><div class="s">issued</div></div>
+      <div class="k" style="--c:#67e8f9"><div class="l">PENDING</div><div class="v">4</div><div class="s">waiting</div></div>
     </div>
-    <div class="section-h">📤 출고 예정 LOT <span class="b">12건</span></div>
+    <div class="section-h">📤 Release Schedule <span class="b">12 LOTS</span></div>
     <div class="r-item" style="--st:#fbbf24" onclick="pick('RL-2605-0612')">
-      <div class="h"><span class="id">RL-2605-0612</span><span class="stg stg-pick">피킹 중</span></div>
-      <div class="it">PP 수지 (블랙) <small>RM-PP-BLK</small></div>
-      <div class="meta"><span>📍 A-03-2 · 사출 1라인</span><span><b>800 KG</b></span></div>
+      <div class="h"><span class="id">RL-2605-0612</span><span class="stg stg-pick">PICKING</span></div>
+      <div class="it">PP Resin (Black) <small>RM-PP-BLK</small></div>
+      <div class="meta"><span>📍 A-03-2 · Injection L1</span><span><b>800 LB</b></span></div>
     </div>
     <div class="r-item" style="--st:#22d3ee" onclick="pick('RL-2605-0613')">
-      <div class="h"><span class="id">RL-2605-0613</span><span class="stg stg-wait">대기</span></div>
-      <div class="it">베이스코트 도료 그레이 <small>PNT-BC-002</small></div>
-      <div class="meta"><span>📍 B-02-2 · 도장 1라인</span><span><b>120 L</b></span></div>
+      <div class="h"><span class="id">RL-2605-0613</span><span class="stg stg-wait">PENDING</span></div>
+      <div class="it">Basecoat Paint Gray <small>PNT-BC-002</small></div>
+      <div class="meta"><span>📍 B-02-2 · Paint L1</span><span><b>120 GAL</b></span></div>
     </div>
     <div class="r-item" style="--st:#22d3ee" onclick="pick('RL-2605-0614')">
-      <div class="h"><span class="id">RL-2605-0614</span><span class="stg stg-wait">대기</span></div>
-      <div class="it">고정 클립 <small>AM-CLIP-01</small></div>
-      <div class="meta"><span>📍 C-05-3 · 조립 1라인</span><span><b>2,400 EA</b></span></div>
+      <div class="h"><span class="id">RL-2605-0614</span><span class="stg stg-wait">PENDING</span></div>
+      <div class="it">Fastener Clip <small>AM-CLIP-01</small></div>
+      <div class="meta"><span>📍 C-05-3 · Assembly L1</span><span><b>2,400 EA</b></span></div>
     </div>
     <div class="r-item" style="--st:#fbbf24" onclick="pick('RL-2605-0611')">
-      <div class="h"><span class="id">RL-2605-0611</span><span class="stg stg-pick">피킹 중</span></div>
-      <div class="it">ABS 수지 <small>RM-ABS-NAT</small></div>
-      <div class="meta"><span>📍 A-04-1 · 사출 2라인</span><span><b>500 KG</b></span></div>
+      <div class="h"><span class="id">RL-2605-0611</span><span class="stg stg-pick">PICKING</span></div>
+      <div class="it">ABS Resin <small>RM-ABS-NAT</small></div>
+      <div class="meta"><span>📍 A-04-1 · Injection L2</span><span><b>500 LB</b></span></div>
     </div>
     <div class="r-item" style="--st:#22c55e" onclick="pick('RL-2605-0608')">
-      <div class="h"><span class="id">RL-2605-0608</span><span class="stg stg-done">완료</span></div>
-      <div class="it">PP 수지 (블랙) <small>RM-PP-BLK</small></div>
-      <div class="meta"><span>✓ 08:24 출고</span><span><b>600 KG</b></span></div>
+      <div class="h"><span class="id">RL-2605-0608</span><span class="stg stg-done">COMPLETE</span></div>
+      <div class="it">PP Resin (Black) <small>RM-PP-BLK</small></div>
+      <div class="meta"><span>✓ 08:24 Issued</span><span><b>600 LB</b></span></div>
     </div>
     <div class="r-item" style="--st:#22c55e" onclick="pick('RL-2605-0607')">
-      <div class="h"><span class="id">RL-2605-0607</span><span class="stg stg-done">완료</span></div>
-      <div class="it">클리어코트 <small>PNT-CC-001</small></div>
-      <div class="meta"><span>✓ 07:15 출고</span><span><b>80 L</b></span></div>
+      <div class="h"><span class="id">RL-2605-0607</span><span class="stg stg-done">COMPLETE</span></div>
+      <div class="it">Clearcoat <small>PNT-CC-001</small></div>
+      <div class="meta"><span>✓ 07:15 Issued</span><span><b>80 GAL</b></span></div>
     </div>
   </div>
   <div class="bottom-bar">
-    <button class="sec" onclick="back()">← 메뉴</button>
-    <button onclick="picking()">📦 피킹 시작</button>
+    <button class="sec" onclick="back()">← Menu</button>
+    <button onclick="picking()">📦 Start Picking</button>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 <script>
-function pick(id){toast('',id+' 선택','피킹 상세 화면(WH-07)으로 이동합니다.');}
-function picking(){toast('','📦 피킹 시작','대기 중 LOT의 피킹을 시작합니다.');}
-function back(){toast('','PDA 메뉴','PDA 메뉴로 돌아갑니다.');}
+function pick(id){toast('',id+' Selected','Opening Picking detail (WH-07).');}
+function picking(){toast('','📦 Start Picking','Starting picking for pending lots.');}
+function back(){toast('','PDA Menu','Returning to PDA menu.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">• '+title+'</div><div class="tb">'+body+'</div>';

@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>WH-01 Inbound Schedule · A-MES PDA Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--pda:#06b6d4;--pda-dk:#0e7490;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
 .pda{width:420px;max-width:100%;height:100%;max-height:760px;background:#0f1f25;border:2px solid #1a3540;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;}
 .pda-top{flex-shrink:0;background:linear-gradient(180deg,#1a3540,#0f1f25);padding:11px 16px;display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--pda);}
 .pda-id{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#22d3ee;}
@@ -55,65 +55,65 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font
 <div class="pda">
   <div class="pda-top">
     <div class="pda-id">WH-01</div>
-    <div class="pda-t">입고 예정</div>
+    <div class="pda-t">Inbound Schedule</div>
     <span class="live"><span class="d"></span>LIVE</span>
     <span class="pda-bat">🔋 78%</span>
   </div>
   <div class="pda-body">
     <div class="kpis">
-      <div class="k" style="--c:#22d3ee"><div class="l">금일 예정</div><div class="v">8</div><div class="s">건</div></div>
-      <div class="k" style="--c:#fbbf24"><div class="l">진행 중</div><div class="v">2</div><div class="s">검수 중</div></div>
-      <div class="k" style="--c:#22c55e"><div class="l">완료</div><div class="v">3</div><div class="s">건</div></div>
-      <div class="k" style="--c:#fca5a5"><div class="l">지연</div><div class="v">1</div><div class="s">건</div></div>
+      <div class="k" style="--c:#22d3ee"><div class="l">TODAY</div><div class="v">8</div><div class="s">scheduled</div></div>
+      <div class="k" style="--c:#fbbf24"><div class="l">IN PROGRESS</div><div class="v">2</div><div class="s">inspecting</div></div>
+      <div class="k" style="--c:#22c55e"><div class="l">COMPLETE</div><div class="v">3</div><div class="s">received</div></div>
+      <div class="k" style="--c:#fca5a5"><div class="l">LATE</div><div class="v">1</div><div class="s">overdue</div></div>
     </div>
-    <div class="section-h">📋 금일 입고 예정 <span class="b">8건</span></div>
+    <div class="section-h">📋 Today's Inbound Schedule <span class="b">8 ORDERS</span></div>
     <div class="item due" style="--st:#fbbf24" onclick="pick('RC-2605-0421')">
-      <div class="ih"><span class="iid">RC-2605-0421</span><span class="ist">금일 도착</span></div>
-      <div class="it">PP 수지 (블랙)</div>
-      <div class="id">RM-PP-BLK / 대한플라스틱(주)</div>
-      <div class="imeta"><span>📅 09:00 도착 예정</span><span><b>2,400 KG</b></span></div>
+      <div class="ih"><span class="iid">RC-2605-0421</span><span class="ist">ARRIVING TODAY</span></div>
+      <div class="it">PP Resin (Black)</div>
+      <div class="id">RM-PP-BLK / LyondellBasell USA</div>
+      <div class="imeta"><span>📅 ETA 09:00</span><span><b>2,400 LB</b></span></div>
     </div>
     <div class="item" style="--st:#22d3ee" onclick="pick('RC-2605-0422')">
-      <div class="ih"><span class="iid">RC-2605-0422</span><span class="ist">대기</span></div>
-      <div class="it">ABS 수지 (내추럴)</div>
-      <div class="id">RM-ABS-NAT / 한성수지공업</div>
-      <div class="imeta"><span>📅 11:00 도착 예정</span><span><b>1,800 KG</b></span></div>
+      <div class="ih"><span class="iid">RC-2605-0422</span><span class="ist">PENDING</span></div>
+      <div class="it">ABS Resin (Natural)</div>
+      <div class="id">RM-ABS-NAT / INEOS Styrolution</div>
+      <div class="imeta"><span>📅 ETA 11:00</span><span><b>1,800 LB</b></span></div>
     </div>
     <div class="item" style="--st:#22d3ee" onclick="pick('RC-2605-0423')">
-      <div class="ih"><span class="iid">RC-2605-0423</span><span class="ist">대기</span></div>
-      <div class="it">베이스코트 도료 블랙</div>
-      <div class="id">PNT-BC-001 / 세종도료(주)</div>
-      <div class="imeta"><span>📅 13:30 도착 예정</span><span><b>400 L</b></span></div>
+      <div class="ih"><span class="iid">RC-2605-0423</span><span class="ist">PENDING</span></div>
+      <div class="it">Basecoat Paint Black</div>
+      <div class="id">PNT-BC-001 / PPG Industries</div>
+      <div class="imeta"><span>📅 ETA 13:30</span><span><b>400 GAL</b></span></div>
     </div>
     <div class="item late" style="--st:#dc2626" onclick="pick('RC-2605-0420')">
-      <div class="ih"><span class="iid">RC-2605-0420</span><span class="ist">지연 D+1</span></div>
-      <div class="it">고정 클립</div>
-      <div class="id">AM-CLIP-01 / 한성정밀</div>
-      <div class="imeta"><span>⚠ 5/20 미도착</span><span><b>8,000 EA</b></span></div>
+      <div class="ih"><span class="iid">RC-2605-0420</span><span class="ist">LATE D+1</span></div>
+      <div class="it">Fastener Clip</div>
+      <div class="id">AM-CLIP-01 / ITW Fastex</div>
+      <div class="imeta"><span>⚠ 05/20 Not Arrived</span><span><b>8,000 EA</b></span></div>
     </div>
     <div class="item done" style="--st:#22c55e" onclick="pick('RC-2605-0418')">
-      <div class="ih"><span class="iid">RC-2605-0418</span><span class="ist">검수 완료</span></div>
-      <div class="it">PP 수지 (블랙)</div>
-      <div class="id">RM-PP-BLK / 한성수지공업</div>
-      <div class="imeta"><span>✓ 07:42 입고 완료</span><span><b>1,200 KG</b></span></div>
+      <div class="ih"><span class="iid">RC-2605-0418</span><span class="ist">VERIFIED</span></div>
+      <div class="it">PP Resin (Black)</div>
+      <div class="id">RM-PP-BLK / INEOS Styrolution</div>
+      <div class="imeta"><span>✓ 07:42 Received</span><span><b>1,200 LB</b></span></div>
     </div>
     <div class="item done" style="--st:#22c55e" onclick="pick('RC-2605-0417')">
-      <div class="ih"><span class="iid">RC-2605-0417</span><span class="ist">검수 완료</span></div>
-      <div class="it">유압유 ISO VG46</div>
-      <div class="id">SP-HYD-002 / SK엔무브</div>
-      <div class="imeta"><span>✓ 06:50 입고 완료</span><span><b>200 L</b></span></div>
+      <div class="ih"><span class="iid">RC-2605-0417</span><span class="ist">VERIFIED</span></div>
+      <div class="it">Hydraulic Oil ISO VG46</div>
+      <div class="id">SP-HYD-002 / Mobil Industrial</div>
+      <div class="imeta"><span>✓ 06:50 Received</span><span><b>200 GAL</b></span></div>
     </div>
   </div>
   <div class="bottom-bar">
-    <button class="sec" onclick="back()">← 메뉴</button>
-    <button onclick="scan()">📷 바코드 스캔</button>
+    <button class="sec" onclick="back()">← Menu</button>
+    <button onclick="scan()">📷 Scan Barcode</button>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 <script>
-function pick(id){toast('',id+' 선택','입고 검수 화면(WH-02)으로 이동합니다.');}
-function scan(){toast('','📷 바코드 스캔','입고 차량/팔레트 라벨을 스캔하세요.');}
-function back(){toast('','PDA 메뉴','PDA 메뉴 화면으로 돌아갑니다.');}
+function pick(id){toast('',id+' Selected','Opening Receiving screen (WH-02).');}
+function scan(){toast('','📷 Scan Barcode','Scan inbound truck/pallet label.');}
+function back(){toast('','PDA Menu','Returning to PDA main menu.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='ok'?'✓ ':type==='warn'?'⚠ ':'• ')+title+'</div><div class="tb">'+body+'</div>';

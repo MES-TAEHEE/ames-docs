@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>MD-03 BOM Version · A-MES Demo</title>
+<title>MD-16 RFID Tag · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#d97706;--pp-dk:#b45309;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#2b1a02,#3d2606);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fbbf24;line-height:.9;}
 .sh-tt{flex:1;}
@@ -77,8 +77,8 @@ tbody tr.sel td{background:#fef3c7;}
 </head>
 <body>
 <div class="scr-head">
-  <div class="sh-id" id="shId">MD-03</div>
-  <div class="sh-tt"><div class="sh-en" id="shEn">BOM Version</div><div class="sh-ko" id="shKo"></div></div>
+  <div class="sh-id" id="shId">MD-16</div>
+  <div class="sh-tt"><div class="sh-en" id="shEn">RFID Tag</div><div class="sh-ko" id="shKo"></div></div>
   <span class="sh-tag" id="shTag"></span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
@@ -87,20 +87,20 @@ tbody tr.sel td{background:#fef3c7;}
   <div class="kpis" id="kpis"></div>
   <div class="grid2">
     <div class="card">
-      <div class="card-t" id="listT">목록</div>
+      <div class="card-t" id="listT">List</div>
       <table><thead><tr id="thr"></tr></thead><tbody id="tbody"></tbody></table>
-      <div class="empty" id="empty" style="display:none;">조건에 맞는 데이터가 없습니다.</div>
+      <div class="empty" id="empty" style="display:none;">No data matches your criteria.</div>
     </div>
-    <div class="card" id="detail"><div class="empty">← 좌측 목록에서 항목을 선택하세요.</div></div>
+    <div class="card" id="detail"><div class="empty">← Select an item from the list on the left.</div></div>
   </div>
 </div>
 <div class="ov" id="ovEd">
   <div class="modal">
-    <div class="modal-h"><span class="mt" id="emTitle">등록</span><span class="mx" onclick="closeOv('ovEd')">✕</span></div>
+    <div class="modal-h"><span class="mt" id="emTitle">Add</span><span class="mx" onclick="closeOv('ovEd')">✕</span></div>
     <div class="modal-b" id="emBody"></div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovEd')">취소</button>
-      <button class="btn btn-p" id="emSave" onclick="saveRec()">＋ 등록</button>
+      <button class="btn btn-s" onclick="closeOv('ovEd')">Cancel</button>
+      <button class="btn btn-p" id="emSave" onclick="saveRec()">＋ Add</button>
     </div>
   </div>
 </div>
@@ -109,41 +109,41 @@ tbody tr.sel td{background:#fef3c7;}
 <script>
 /* ===== ENTITY CONFIG ===== */
 var CFG={
-  id:'MD-16',en:'RFID Tag',ko:'RFID 태그 — RFID 태그 등록·매핑 기준정보',tag:'/md/rfid-tag',
-  idKey:'code',entity:'RFID 태그',
-  filters:[{k:'type',label:'태그 유형'},{k:'status',label:'상태'}],
+  id:'MD-16',en:'RFID Tag',ko:'RFID Tag — RFID tag registration & mapping master data',tag:'/md/rfid-tag',
+  idKey:'code',entity:'RFID Tag',
+  filters:[{k:'type',label:'Tag Type'},{k:'status',label:'Status'}],
   search:['code','mapObj','epc'],
   cols:[
-    {k:'code',label:'태그 ID',mono:true,bold:true},
-    {k:'type',label:'유형'},
-    {k:'mapObj',label:'매핑 대상'},
-    {k:'epc',label:'EPC 코드',mono:true},
-    {k:'status',label:'상태',badge:{'활성':'b0','미사용':'b2','분실':'b1'}}
+    {k:'code',label:'Tag ID',mono:true,bold:true},
+    {k:'type',label:'Type'},
+    {k:'mapObj',label:'Mapped Object'},
+    {k:'epc',label:'EPC Code',mono:true},
+    {k:'status',label:'Status',badge:{'Active':'b0','Unused':'b2','Lost':'b1'}}
   ],
   fields:[
-    {k:'code',label:'태그 ID',type:'text',req:true,uniq:true,ph:'TAG-PLT-0042'},
-    {k:'type',label:'태그 유형',type:'select',opts:['파레트','품목','지그','작업자','컨테이너']},
-    {k:'mapObj',label:'매핑 대상',type:'text',req:true,ph:'파레트 PLT-042'},
-    {k:'epc',label:'EPC 코드',type:'text',req:true,ph:'E280-1160-6000-0204-2042'},
-    {k:'band',label:'주파수 대역',type:'select',opts:['UHF (900MHz)','HF (13.56MHz)']},
-    {k:'issued',label:'발행일',type:'date'},
-    {k:'status',label:'상태',type:'select',opts:['활성','미사용','분실']}
+    {k:'code',label:'Tag ID',type:'text',req:true,uniq:true,ph:'TAG-PLT-0042'},
+    {k:'type',label:'Tag Type',type:'select',opts:['Pallet','Item','Jig','Operator','Container']},
+    {k:'mapObj',label:'Mapped Object',type:'text',req:true,ph:'Pallet PLT-042'},
+    {k:'epc',label:'EPC Code',type:'text',req:true,ph:'E280-1160-6000-0204-2042'},
+    {k:'band',label:'Frequency Band',type:'select',opts:['UHF (900MHz)','HF (13.56MHz)']},
+    {k:'issued',label:'Issue Date',type:'date'},
+    {k:'status',label:'Status',type:'select',opts:['Active','Unused','Lost']}
   ],
   kpis:[
-    {label:'총 RFID 태그',c:'#d97706',calc:function(d){return d.length;}},
-    {label:'활성 태그 · Active',c:'#16a34a',calc:function(d){return d.filter(function(r){return r.status==='활성';}).length;}},
-    {label:'파레트 태그',c:'#2563eb',calc:function(d){return d.filter(function(r){return r.type==='파레트';}).length;}},
-    {label:'분실·미사용',c:'#dc2626',calc:function(d){return d.filter(function(r){return r.status!=='활성';}).length;}}
+    {label:'Total RFID Tags',c:'#d97706',calc:function(d){return d.length;}},
+    {label:'Active Tags',c:'#16a34a',calc:function(d){return d.filter(function(r){return r.status==='Active';}).length;}},
+    {label:'Pallet Tags',c:'#2563eb',calc:function(d){return d.filter(function(r){return r.type==='Pallet';}).length;}},
+    {label:'Lost / Unused',c:'#dc2626',calc:function(d){return d.filter(function(r){return r.status!=='Active';}).length;}}
   ],
   data:[
-    {code:'TAG-PLT-0041',type:'파레트',mapObj:'파레트 PLT-041',epc:'E280-1160-6000-0204-2041',band:'UHF (900MHz)',issued:'2025-11-02',status:'활성'},
-    {code:'TAG-PLT-0042',type:'파레트',mapObj:'파레트 PLT-042',epc:'E280-1160-6000-0204-2042',band:'UHF (900MHz)',issued:'2025-11-02',status:'활성'},
-    {code:'TAG-PLT-0043',type:'파레트',mapObj:'파레트 PLT-043',epc:'E280-1160-6000-0204-2043',band:'UHF (900MHz)',issued:'2025-11-02',status:'활성'},
-    {code:'TAG-ITM-1201',type:'품목',mapObj:'도어트림 LH 로트',epc:'E280-1160-6000-0301-1201',band:'UHF (900MHz)',issued:'2026-02-14',status:'활성'},
-    {code:'TAG-JIG-0008',type:'지그',mapObj:'조립 지그 JIG-ASY-001',epc:'E280-1160-6000-0402-0008',band:'HF (13.56MHz)',issued:'2025-09-20',status:'활성'},
-    {code:'TAG-WKR-0015',type:'작업자',mapObj:'작업자 김성호',epc:'E280-1160-6000-0503-0015',band:'HF (13.56MHz)',issued:'2025-08-01',status:'활성'},
-    {code:'TAG-CNT-0023',type:'컨테이너',mapObj:'출하 컨테이너 CNT-023',epc:'E280-1160-6000-0604-0023',band:'UHF (900MHz)',issued:'2026-01-10',status:'미사용'},
-    {code:'TAG-PLT-0099',type:'파레트',mapObj:'파레트 PLT-099 (분실)',epc:'E280-1160-6000-0204-2099',band:'UHF (900MHz)',issued:'2024-05-15',status:'분실'}
+    {code:'TAG-PLT-0041',type:'Pallet',mapObj:'Pallet PLT-041',epc:'E280-1160-6000-0204-2041',band:'UHF (900MHz)',issued:'11/02/2025',status:'Active'},
+    {code:'TAG-PLT-0042',type:'Pallet',mapObj:'Pallet PLT-042',epc:'E280-1160-6000-0204-2042',band:'UHF (900MHz)',issued:'11/02/2025',status:'Active'},
+    {code:'TAG-PLT-0043',type:'Pallet',mapObj:'Pallet PLT-043',epc:'E280-1160-6000-0204-2043',band:'UHF (900MHz)',issued:'11/02/2025',status:'Active'},
+    {code:'TAG-ITM-1201',type:'Item',mapObj:'Door Trim LH Lot',epc:'E280-1160-6000-0301-1201',band:'UHF (900MHz)',issued:'02/14/2026',status:'Active'},
+    {code:'TAG-JIG-0008',type:'Jig',mapObj:'Assembly Jig JIG-ASY-001',epc:'E280-1160-6000-0402-0008',band:'HF (13.56MHz)',issued:'09/20/2025',status:'Active'},
+    {code:'TAG-WKR-0015',type:'Operator',mapObj:'Operator Mike Johnson',epc:'E280-1160-6000-0503-0015',band:'HF (13.56MHz)',issued:'08/01/2025',status:'Active'},
+    {code:'TAG-CNT-0023',type:'Container',mapObj:'Shipping Container CNT-023',epc:'E280-1160-6000-0604-0023',band:'UHF (900MHz)',issued:'01/10/2026',status:'Unused'},
+    {code:'TAG-PLT-0099',type:'Pallet',mapObj:'Pallet PLT-099 (Lost)',epc:'E280-1160-6000-0204-2099',band:'UHF (900MHz)',issued:'05/15/2024',status:'Lost'}
   ]
 };
 /* ===== GENERIC MASTER ENGINE ===== */
@@ -159,15 +159,15 @@ function init(){
   CFG.filters.forEach(function(f){
     var opts=[];DATA.forEach(function(r){if(opts.indexOf(r[f.k])<0)opts.push(r[f.k]);});
     tb+='<div class="fld"><label>'+f.label+'</label><select data-fk="'+f.k+'" onchange="render()">'+
-      '<option value="">전체 All</option>'+opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select></div>';
+      '<option value="">All</option>'+opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select></div>';
   });
-  tb+='<div class="fld"><label>검색 Search</label><input id="fKw" placeholder="코드·명칭" oninput="render()" style="width:150px;"></div>';
-  tb+='<button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>';
+  tb+='<div class="fld"><label>Search</label><input id="fKw" placeholder="Code or name" oninput="render()" style="width:150px;"></div>';
+  tb+='<button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>';
   tb+='<div style="margin-left:auto;display:flex;gap:8px;">'+
-    '<button class="btn btn-p" onclick="openNew()">＋ '+CFG.entity+' 등록</button>'+
+    '<button class="btn btn-p" onclick="openNew()">＋ Add '+CFG.entity+'</button>'+
     '<button class="btn btn-s" onclick="exportCsv()">📥 Export</button></div>';
   $('toolbar').innerHTML=tb;
-  $('listT').textContent='📋 '+CFG.entity+' 목록';
+  $('listT').textContent='📋 '+CFG.entity+' List';
   $('thr').innerHTML=CFG.cols.map(function(c){return '<th>'+c.label+'</th>';}).join('');
   render();
 }
@@ -197,7 +197,7 @@ function render(){
   });
   $('tbody').innerHTML=h;
   $('empty').style.display=v.length?'none':'block';
-  $('listT').textContent='📋 '+CFG.entity+' 목록 — '+v.length+'건';
+  $('listT').textContent='📋 '+CFG.entity+' List — '+v.length+' records';
   if(selKey&&!byKey(selKey))selKey=null;
   renderDetail();
 }
@@ -205,9 +205,9 @@ function byKey(k){return DATA.filter(function(r){return r[CFG.idKey]===k;})[0];}
 function pick(k){selKey=k;render();}
 function renderDetail(){
   var r=byKey(selKey);
-  if(!r){$('detail').innerHTML='<div class="empty">← 좌측 목록에서 항목을 선택하세요.</div>';return;}
+  if(!r){$('detail').innerHTML='<div class="empty">← Select an item from the list on the left.</div>';return;}
   var nmField=CFG.fields[1]?CFG.fields[1].k:CFG.idKey;
-  var h='<div class="card-t">📑 '+CFG.entity+' 상세</div>'+
+  var h='<div class="card-t">📑 '+CFG.entity+' Detail</div>'+
     '<div class="dt-head"><div class="dt-nm">'+(r[nmField]||r[CFG.idKey])+'</div><div class="dt-id">'+r[CFG.idKey]+'</div></div>'+
     '<div class="specs">';
   CFG.fields.forEach(function(f){
@@ -215,8 +215,8 @@ function renderDetail(){
     var v=r[f.k];if(v===''||v==null)v='—';
     h+='<div class="srow"><span class="sk">'+f.label+'</span><span class="sv">'+v+'</span></div>';
   });
-  h+='</div><div class="acts"><button class="btn btn-s btn-sm" onclick="editRec()">✎ 수정</button>'+
-    '<button class="btn btn-s btn-sm" onclick="delRec()">🗑 삭제</button></div>';
+  h+='</div><div class="acts"><button class="btn btn-s btn-sm" onclick="editRec()">✎ Edit</button>'+
+    '<button class="btn btn-s btn-sm" onclick="delRec()">🗑 Delete</button></div>';
   $('detail').innerHTML=h;
 }
 function formHtml(r){
@@ -232,31 +232,31 @@ function formHtml(r){
   }).join('');
 }
 function openNew(){
-  editKey=null;$('emTitle').textContent=CFG.entity+' 등록';$('emSave').textContent='＋ 등록';
+  editKey=null;$('emTitle').textContent='Add '+CFG.entity;$('emSave').textContent='＋ Add';
   $('emBody').innerHTML=formHtml(null);openOv('ovEd');
 }
 function editRec(){
-  editKey=selKey;$('emTitle').textContent=CFG.entity+' 수정';$('emSave').textContent='💾 저장';
+  editKey=selKey;$('emTitle').textContent='Edit '+CFG.entity;$('emSave').textContent='💾 Save';
   $('emBody').innerHTML=formHtml(byKey(selKey));openOv('ovEd');
 }
 function saveRec(){
   var o={};
   [].slice.call(document.querySelectorAll('#emBody [data-fk]')).forEach(function(el){o[el.dataset.fk]=el.value.trim?el.value.trim():el.value;});
   for(var i=0;i<CFG.fields.length;i++){var f=CFG.fields[i];
-    if(f.req&&!o[f.k]&&!(editKey&&f.uniq)){toast('err','입력 오류',f.label+'은(는) 필수 항목입니다.');return;}}
+    if(f.req&&!o[f.k]&&!(editKey&&f.uniq)){toast('err','Input Error',f.label+' is required.');return;}}
   if(editKey){var r=byKey(editKey);for(var k in o){if(k!==CFG.idKey)r[k]=o[k];}
-    toast('','수정 완료',CFG.entity+' 정보가 수정되었습니다.');
+    toast('','Updated',CFG.entity+' has been updated.');
   }else{
-    if(byKey(o[CFG.idKey])){toast('err','중복 오류','이미 존재하는 코드입니다.');return;}
+    if(byKey(o[CFG.idKey])){toast('err','Duplicate','This code already exists.');return;}
     DATA.push(o);selKey=o[CFG.idKey];
-    toast('','등록 완료',o[CFG.idKey]+' '+CFG.entity+'이(가) 등록되었습니다.');
+    toast('','Added',o[CFG.idKey]+' '+CFG.entity+' has been added.');
   }
   closeOv('ovEd');render();
 }
 function delRec(){
   var r=byKey(selKey);var i=DATA.indexOf(r);
   if(i>=0)DATA.splice(i,1);selKey=null;render();
-  toast('info','삭제 완료',CFG.entity+' 항목이 삭제되었습니다.');
+  toast('info','Deleted',CFG.entity+' record has been deleted.');
 }
 function exportCsv(){
   var v=vis();
@@ -266,11 +266,11 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=CFG.id+'_'+CFG.en.replace(/ /g,'')+'_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료',CFG.entity+' '+v.length+'건을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+v.length+' '+CFG.entity+' records to CSV.');
 }
 function resetAll(){
   [].slice.call(document.querySelectorAll('#toolbar select')).forEach(function(s){s.value='';});
-  $('fKw').value='';render();toast('info','초기화','목록 필터를 초기화했습니다.');
+  $('fKw').value='';render();toast('info','Reset','Filters have been reset.');
 }
 function openOv(id){$(id).classList.add('on');}
 function closeOv(id){$(id).classList.remove('on');}

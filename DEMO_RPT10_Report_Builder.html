@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>RPT-10 Report Builder · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -80,50 +80,50 @@ tfoot td.c{text-align:right;font-family:'JetBrains Mono',monospace;}
 <body>
 <div class="scr-head">
   <div class="sh-id">RPT-10</div>
-  <div class="sh-tt"><div class="sh-en">Report Builder</div><div class="sh-ko">리포트 빌더 — 사용자 정의 분석 리포트 작성</div></div>
+  <div class="sh-tt"><div class="sh-en">Report Builder</div><div class="sh-ko">Custom Analysis Report Designer</div></div>
   <span class="sh-tag">/rpt/builder</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <span class="tb-t">🧩 데이터 소스 · 항목 · 시각화를 선택하면 오른쪽에 리포트가 즉시 생성됩니다</span>
+  <span class="tb-t">🧩 Select data source, measures, and visualization — the report is generated instantly on the right</span>
   <div style="margin-left:auto;display:flex;gap:8px;">
-    <button class="btn btn-s" onclick="resetAll()">↺ 초기화</button>
+    <button class="btn btn-s" onclick="resetAll()">↺ Reset</button>
     <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
-    <button class="btn btn-p" onclick="saveRpt()">💾 리포트 저장</button>
+    <button class="btn btn-p" onclick="saveRpt()">💾 Save Report</button>
   </div>
 </div>
 <div class="body">
   <div class="cfg">
     <div class="cfg-sec">
-      <h4><span class="n">1</span>데이터 소스</h4>
+      <h4><span class="n">1</span>Data Source</h4>
       <select id="cSource" onchange="changeSource()"></select>
     </div>
     <div class="cfg-sec">
-      <h4><span class="n">2</span>그룹 기준 (행)</h4>
+      <h4><span class="n">2</span>Group By (Row)</h4>
       <select id="cDim" onchange="build()"></select>
     </div>
     <div class="cfg-sec">
-      <h4><span class="n">3</span>측정 항목</h4>
+      <h4><span class="n">3</span>Measures</h4>
       <div id="cMeasures"></div>
     </div>
     <div class="cfg-sec">
-      <h4><span class="n">4</span>기간 필터</h4>
+      <h4><span class="n">4</span>Period Filter</h4>
       <select id="cPeriod" onchange="build()">
-        <option>2026년 5월</option><option>2026 Q2</option><option>2026 YTD</option></select>
+        <option>May 2026</option><option>2026 Q2</option><option>2026 YTD</option></select>
     </div>
     <div class="cfg-sec">
-      <h4><span class="n">5</span>시각화 유형</h4>
+      <h4><span class="n">5</span>Visualization</h4>
       <div class="viz-grid" id="cViz">
-        <div class="viz on" data-v="table" onclick="pickViz('table')"><span class="vi">▦</span>테이블</div>
-        <div class="viz" data-v="bar" onclick="pickViz('bar')"><span class="vi">▮</span>막대</div>
-        <div class="viz" data-v="line" onclick="pickViz('line')"><span class="vi">📈</span>꺾은선</div>
-        <div class="viz" data-v="pie" onclick="pickViz('pie')"><span class="vi">◕</span>파이</div>
+        <div class="viz on" data-v="table" onclick="pickViz('table')"><span class="vi">▦</span>Table</div>
+        <div class="viz" data-v="bar" onclick="pickViz('bar')"><span class="vi">▮</span>Bar</div>
+        <div class="viz" data-v="line" onclick="pickViz('line')"><span class="vi">📈</span>Line</div>
+        <div class="viz" data-v="pie" onclick="pickViz('pie')"><span class="vi">◕</span>Pie</div>
       </div>
     </div>
   </div>
   <div class="prev">
     <div class="prev-paper">
-      <div class="pp-head"><h2 id="ppTitle">리포트</h2><div class="pm" id="ppMeta"></div></div>
+      <div class="pp-head"><h2 id="ppTitle">Report</h2><div class="pm" id="ppMeta"></div></div>
       <div class="summ" id="ppSumm"></div>
       <div id="ppBody"></div>
     </div>
@@ -135,39 +135,39 @@ tfoot td.c{text-align:right;font-family:'JetBrains Mono',monospace;}
 var PIECOL=['#059669','#2563eb','#f59e0b','#8b5cf6','#0891b2','#dc2626','#65a30d','#ec4899'];
 /* sources: each has dims (group options), measures, rows */
 var SOURCES={
- '생산 실적':{
-   dims:['라인','일자','교대','품목'],
-   measures:[{k:'qty',nm:'생산량',u:'EA'},{k:'good',nm:'양품 수',u:'EA'},{k:'def',nm:'불량 수',u:'EA'}],
+ 'Production':{
+   dims:['Line','Date','Shift','Item'],
+   measures:[{k:'qty',nm:'Production',u:'EA'},{k:'good',nm:'Good Qty',u:'EA'},{k:'def',nm:'Defect Qty',u:'EA'}],
    rows:[
-    {라인:'INJ-01',일자:'05-18',교대:'주간',품목:'도어트림',qty:612,good:604,def:8},
-    {라인:'INJ-01',일자:'05-19',교대:'야간',품목:'도어트림',qty:498,good:492,def:6},
-    {라인:'INJ-02',일자:'05-18',교대:'주간',품목:'몰딩',qty:720,good:706,def:14},
-    {라인:'INJ-02',일자:'05-19',교대:'야간',품목:'그릴',qty:602,good:591,def:11},
-    {라인:'ASSY-01',일자:'05-18',교대:'주간',품목:'콘솔',qty:441,good:436,def:5},
-    {라인:'ASSY-01',일자:'05-19',교대:'야간',품목:'범퍼',qty:392,good:388,def:4},
-    {라인:'PNT-01',일자:'05-18',교대:'주간',품목:'범퍼',qty:352,good:343,def:9},
-    {라인:'PNT-01',일자:'05-19',교대:'야간',품목:'그릴',qty:298,good:291,def:7}]
+    {Line:'INJ-01',Date:'05/18',Shift:'Day',Item:'Door Trim',qty:612,good:604,def:8},
+    {Line:'INJ-01',Date:'05/19',Shift:'Night',Item:'Door Trim',qty:498,good:492,def:6},
+    {Line:'INJ-02',Date:'05/18',Shift:'Day',Item:'Molding',qty:720,good:706,def:14},
+    {Line:'INJ-02',Date:'05/19',Shift:'Night',Item:'Grille',qty:602,good:591,def:11},
+    {Line:'ASSY-01',Date:'05/18',Shift:'Day',Item:'Console',qty:441,good:436,def:5},
+    {Line:'ASSY-01',Date:'05/19',Shift:'Night',Item:'Bumper',qty:392,good:388,def:4},
+    {Line:'PNT-01',Date:'05/18',Shift:'Day',Item:'Bumper',qty:352,good:343,def:9},
+    {Line:'PNT-01',Date:'05/19',Shift:'Night',Item:'Grille',qty:298,good:291,def:7}]
  },
- '품질 검사':{
-   dims:['공정','불량유형','검사원'],
-   measures:[{k:'insp',nm:'검사 수',u:'건'},{k:'pass',nm:'합격',u:'건'},{k:'fail',nm:'불합격',u:'건'}],
+ 'Quality Inspection':{
+   dims:['Process','DefectType','Inspector'],
+   measures:[{k:'insp',nm:'Inspected',u:'cases'},{k:'pass',nm:'Pass',u:'cases'},{k:'fail',nm:'Fail',u:'cases'}],
    rows:[
-    {공정:'사출',불량유형:'미성형',검사원:'김검사',insp:1200,pass:1158,fail:42},
-    {공정:'사출',불량유형:'버',검사원:'이검사',insp:980,pass:939,fail:41},
-    {공정:'조립',불량유형:'스크래치',검사원:'박검사',insp:760,pass:734,fail:26},
-    {공정:'도장',불량유형:'색상불량',검사원:'김검사',insp:540,pass:519,fail:21},
-    {공정:'검사',불량유형:'치수불량',검사원:'이검사',insp:430,pass:412,fail:18}]
+    {Process:'Injection',DefectType:'Short Shot',Inspector:'Sarah Williams',insp:1200,pass:1158,fail:42},
+    {Process:'Injection',DefectType:'Burr',Inspector:'David Chen',insp:980,pass:939,fail:41},
+    {Process:'Assembly',DefectType:'Scratch',Inspector:'Mike Johnson',insp:760,pass:734,fail:26},
+    {Process:'Paint',DefectType:'Color Defect',Inspector:'Sarah Williams',insp:540,pass:519,fail:21},
+    {Process:'Inspection',DefectType:'Dimensional',Inspector:'David Chen',insp:430,pass:412,fail:18}]
  },
- '출하 실적':{
-   dims:['거래선','차수','품목'],
-   measures:[{k:'qty',nm:'출하량',u:'EA'},{k:'amt',nm:'출하금액',u:'백만'}],
+ 'Shipment':{
+   dims:['Customer','Round','Item'],
+   measures:[{k:'qty',nm:'Shipped Qty',u:'EA'},{k:'amt',nm:'Amount',u:'$K'}],
    rows:[
-    {거래선:'SAV',차수:'1차',품목:'도어트림',qty:560,amt:13.6},
-    {거래선:'SAV',차수:'2차',품목:'몰딩',qty:380,amt:13.8},
-    {거래선:'SAV',차수:'3차',품목:'범퍼',qty:300,amt:12.0},
-    {거래선:'GEO',차수:'1차',품목:'콘솔어퍼',qty:180,amt:9.0},
-    {거래선:'GEO',차수:'2차',품목:'그릴',qty:320,amt:16.0},
-    {거래선:'GEO',차수:'3차',품목:'범퍼',qty:250,amt:16.5}]
+    {Customer:'SAV',Round:'Round 1',Item:'Door Trim',qty:560,amt:13.6},
+    {Customer:'SAV',Round:'Round 2',Item:'Molding',qty:380,amt:13.8},
+    {Customer:'SAV',Round:'Round 3',Item:'Bumper',qty:300,amt:12.0},
+    {Customer:'GEO',Round:'Round 1',Item:'Console Upper',qty:180,amt:9.0},
+    {Customer:'GEO',Round:'Round 2',Item:'Grille',qty:320,amt:16.0},
+    {Customer:'GEO',Round:'Round 3',Item:'Bumper',qty:250,amt:16.5}]
  }
 };
 var viz='table';
@@ -190,7 +190,7 @@ function changeSource(){
 }
 function toggleM(el){
   if(el.classList.contains('on')&&selMeasures().length<=1){
-    toast('info','최소 1개 필요','측정 항목은 최소 1개 이상 선택해야 합니다.');return;}
+    toast('info','At least 1 required','Must select at least one measure.');return;}
   el.classList.toggle('on');build();
 }
 function pickViz(v){
@@ -211,16 +211,16 @@ function build(){
     msDef.forEach(function(m){groups[g][m.k]=(groups[g][m.k]||0)+r[m.k];});
   });
   var keys=Object.keys(groups);
-  document.getElementById('ppTitle').textContent=document.getElementById('cSource').value+' — '+dim+'별 '+
-    msDef.map(function(m){return m.nm;}).join('·');
-  document.getElementById('ppMeta').textContent='기간: '+document.getElementById('cPeriod').value+
-    ' · 그룹: '+dim+' ('+keys.length+') · 측정: '+msDef.length+'개 · 시각화: '+vizName(viz)+
-    ' · 생성 '+new Date().toTimeString().slice(0,5);
+  document.getElementById('ppTitle').textContent=document.getElementById('cSource').value+' — '+dim+' by '+
+    msDef.map(function(m){return m.nm;}).join(' · ');
+  document.getElementById('ppMeta').textContent='Period: '+document.getElementById('cPeriod').value+
+    ' · Group: '+dim+' ('+keys.length+') · Measures: '+msDef.length+' · Viz: '+vizName(viz)+
+    ' · Generated '+new Date().toTimeString().slice(0,5);
   /* summary cards: total per measure */
   document.getElementById('ppSumm').innerHTML=msDef.map(function(m){
     var t=keys.reduce(function(s,k){return s+groups[k][m.k];},0);
     return '<div class="sc"><div class="sv">'+Math.round(t).toLocaleString()+'</div>'+
-      '<div class="sl">총 '+m.nm+' ('+m.u+')</div></div>';
+      '<div class="sl">Total '+m.nm+' ('+m.u+')</div></div>';
   }).join('');
   /* body by viz */
   var body='';
@@ -231,7 +231,7 @@ function build(){
   document.getElementById('ppBody').innerHTML=body;
   window._rpt={keys:keys,groups:groups,dim:dim,ms:msDef};
 }
-function vizName(v){return {table:'테이블',bar:'막대',line:'꺾은선',pie:'파이'}[v];}
+function vizName(v){return {table:'Table',bar:'Bar',line:'Line',pie:'Pie'}[v];}
 function tableView(keys,groups,dim,ms){
   var h='<table><thead><tr><th>'+dim+'</th>'+
     ms.map(function(m){return '<th class="c">'+m.nm+' ('+m.u+')</th>';}).join('')+'</tr></thead><tbody>';
@@ -239,7 +239,7 @@ function tableView(keys,groups,dim,ms){
     h+='<tr><td><b>'+k+'</b></td>'+
       ms.map(function(m){return '<td class="c">'+Math.round(groups[k][m.k]).toLocaleString()+'</td>';}).join('')+'</tr>';
   });
-  h+='</tbody><tfoot><tr><td>합계</td>'+
+  h+='</tbody><tfoot><tr><td>Total</td>'+
     ms.map(function(m){var t=keys.reduce(function(s,k){return s+groups[k][m.k];},0);
       return '<td class="c">'+Math.round(t).toLocaleString()+'</td>';}).join('')+'</tr></tfoot></table>';
   return h;
@@ -254,8 +254,8 @@ function barView(keys,groups,dim,ms){
       '<div class="bb" style="height:'+(v/max*165)+'px;"></div>'+
       '<div class="bl">'+k+'</div></div>';
   });
-  h+='</div><div class="axis-cap">'+dim+'별 '+m.nm+' ('+m.u+')'+
-    (ms.length>1?' · 막대 차트는 첫 번째 측정 항목을 표시합니다':'')+'</div>';
+  h+='</div><div class="axis-cap">'+m.nm+' by '+dim+' ('+m.u+')'+
+    (ms.length>1?' · Bar chart displays the first measure':'')+'</div>';
   return h;
 }
 function lineView(keys,groups,dim,ms){
@@ -277,7 +277,7 @@ function lineView(keys,groups,dim,ms){
       'font-size:9px;font-weight:700;font-family:JetBrains Mono,monospace;color:#059669;">'+Math.round(vals[i]).toLocaleString()+'</div>'+
       '<div style="position:absolute;left:'+p.x+'%;bottom:-16px;transform:translateX(-50%);font-size:9px;color:#656d76;">'+keys[i]+'</div>';
   });
-  h+='</div><div class="axis-cap" style="margin-top:20px;">'+dim+'별 '+m.nm+' ('+m.u+') 추이</div>';
+  h+='</div><div class="axis-cap" style="margin-top:20px;">'+m.nm+' Trend by '+dim+' ('+m.u+')</div>';
   return h;
 }
 function pieView(keys,groups,dim,ms){
@@ -295,7 +295,7 @@ function pieView(keys,groups,dim,ms){
     h+='<div class="pl"><i style="background:'+PIECOL[i%PIECOL.length]+'"></i>'+k+
       '<span class="pv">'+Math.round(v).toLocaleString()+' · '+Math.round(v/tot*100)+'%</span></div>';
   });
-  h+='</div></div><div class="axis-cap">'+dim+'별 '+m.nm+' 구성비</div>';
+  h+='</div></div><div class="axis-cap">'+m.nm+' Composition by '+dim+'</div>';
   return h;
 }
 function exportCsv(){
@@ -307,16 +307,16 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='RPT_Custom_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','사용자 정의 리포트를 CSV로 내보냈습니다.');
+  toast('','Export Complete','Custom report exported to CSV.');
 }
 function saveRpt(){
-  toast('','리포트 저장 완료','「'+document.getElementById('ppTitle').textContent+'」 리포트가 내 리포트 목록에 저장되었습니다.');
+  toast('','Report Saved','"'+document.getElementById('ppTitle').textContent+'" has been saved to My Reports.');
 }
 function resetAll(){
   document.getElementById('cSource').selectedIndex=0;
   document.getElementById('cPeriod').selectedIndex=0;
   pickViz('table');changeSource();
-  toast('info','초기화','리포트 빌더를 초기 상태로 되돌렸습니다.');
+  toast('info','Reset','Report Builder has been reset to defaults.');
 }
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');

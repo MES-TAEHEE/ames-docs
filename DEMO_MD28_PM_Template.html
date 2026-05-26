@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>MD-03 BOM Version · A-MES Demo</title>
+<title>MD-28 PM Template · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#d97706;--pp-dk:#b45309;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#2b1a02,#3d2606);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fbbf24;line-height:.9;}
 .sh-tt{flex:1;}
@@ -77,8 +77,8 @@ tbody tr.sel td{background:#fef3c7;}
 </head>
 <body>
 <div class="scr-head">
-  <div class="sh-id" id="shId">MD-03</div>
-  <div class="sh-tt"><div class="sh-en" id="shEn">BOM Version</div><div class="sh-ko" id="shKo"></div></div>
+  <div class="sh-id" id="shId">MD-28</div>
+  <div class="sh-tt"><div class="sh-en" id="shEn">PM Template</div><div class="sh-ko" id="shKo"></div></div>
   <span class="sh-tag" id="shTag"></span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
@@ -87,20 +87,20 @@ tbody tr.sel td{background:#fef3c7;}
   <div class="kpis" id="kpis"></div>
   <div class="grid2">
     <div class="card">
-      <div class="card-t" id="listT">목록</div>
+      <div class="card-t" id="listT">List</div>
       <table><thead><tr id="thr"></tr></thead><tbody id="tbody"></tbody></table>
-      <div class="empty" id="empty" style="display:none;">조건에 맞는 데이터가 없습니다.</div>
+      <div class="empty" id="empty" style="display:none;">No data matches your criteria.</div>
     </div>
-    <div class="card" id="detail"><div class="empty">← 좌측 목록에서 항목을 선택하세요.</div></div>
+    <div class="card" id="detail"><div class="empty">← Select an item from the list on the left.</div></div>
   </div>
 </div>
 <div class="ov" id="ovEd">
   <div class="modal">
-    <div class="modal-h"><span class="mt" id="emTitle">등록</span><span class="mx" onclick="closeOv('ovEd')">✕</span></div>
+    <div class="modal-h"><span class="mt" id="emTitle">Add</span><span class="mx" onclick="closeOv('ovEd')">✕</span></div>
     <div class="modal-b" id="emBody"></div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovEd')">취소</button>
-      <button class="btn btn-p" id="emSave" onclick="saveRec()">＋ 등록</button>
+      <button class="btn btn-s" onclick="closeOv('ovEd')">Cancel</button>
+      <button class="btn btn-p" id="emSave" onclick="saveRec()">＋ Add</button>
     </div>
   </div>
 </div>
@@ -109,44 +109,44 @@ tbody tr.sel td{background:#fef3c7;}
 <script>
 /* ===== ENTITY CONFIG ===== */
 var CFG={
-  id:'MD-28',en:'PM Template',ko:'PM 템플릿 — 예방정비 표준 점검 템플릿',tag:'/md/pm-template',
-  idKey:'code',entity:'PM 템플릿',
-  filters:[{k:'eqType',label:'대상 설비'},{k:'cycle',label:'주기'},{k:'status',label:'상태'}],
+  id:'MD-28',en:'PM Template',ko:'PM Template — Preventive maintenance standard inspection template',tag:'/md/pm-template',
+  idKey:'code',entity:'PM Template',
+  filters:[{k:'eqType',label:'Equipment Type'},{k:'cycle',label:'Frequency'},{k:'status',label:'Status'}],
   search:['code','name'],
   cols:[
-    {k:'code',label:'템플릿 코드',mono:true,bold:true},
-    {k:'name',label:'템플릿명'},
-    {k:'eqType',label:'대상 설비'},
-    {k:'cycle',label:'점검 주기'},
-    {k:'status',label:'상태',badge:{'사용':'b0','검토':'b3','폐기':'b2'}}
+    {k:'code',label:'Template Code',mono:true,bold:true},
+    {k:'name',label:'Template Name'},
+    {k:'eqType',label:'Equipment Type'},
+    {k:'cycle',label:'Frequency'},
+    {k:'status',label:'Status',badge:{'Active':'b0','Under Review':'b3','Retired':'b2'}}
   ],
   fields:[
-    {k:'code',label:'템플릿 코드',type:'text',req:true,uniq:true,ph:'PMT-INJ-04'},
-    {k:'name',label:'템플릿명',type:'text',req:true,ph:'사출기 월간 정기 PM'},
-    {k:'eqType',label:'대상 설비 유형',type:'select',opts:['사출기','조립설비','도장설비','검사기','유틸리티']},
-    {k:'cycle',label:'점검 주기',type:'select',opts:['일상(매일)','주간','월간','분기','반기','연간']},
-    {k:'tasks',label:'점검 항목 수',type:'number',req:true},
-    {k:'duration',label:'표준 소요시간 (분)',type:'number',req:true},
-    {k:'worker',label:'표준 투입 인원',type:'number'},
-    {k:'desc',label:'주요 점검 내용',type:'textarea',ph:'점검 항목 요약'},
-    {k:'status',label:'상태',type:'select',opts:['사용','검토','폐기']}
+    {k:'code',label:'Template Code',type:'text',req:true,uniq:true,ph:'PMT-INJ-04'},
+    {k:'name',label:'Template Name',type:'text',req:true,ph:'Injection Machine Monthly PM'},
+    {k:'eqType',label:'Target Equipment Type',type:'select',opts:['Injection Machine','Assembly Equipment','Paint Equipment','Inspection Equipment','Utility']},
+    {k:'cycle',label:'Frequency',type:'select',opts:['Daily','Weekly','Monthly','Quarterly','Semi-Annual','Annual']},
+    {k:'tasks',label:'Task Count',type:'number',req:true},
+    {k:'duration',label:'Standard Duration (min)',type:'number',req:true},
+    {k:'worker',label:'Standard Crew Size',type:'number'},
+    {k:'desc',label:'Key Inspection Items',type:'textarea',ph:'Summary of inspection items'},
+    {k:'status',label:'Status',type:'select',opts:['Active','Under Review','Retired']}
   ],
   kpis:[
-    {label:'총 PM 템플릿',c:'#d97706',calc:function(d){return d.length;}},
-    {label:'사용 중 · Active',c:'#16a34a',calc:function(d){return d.filter(function(r){return r.status==='사용';}).length;}},
-    {label:'정기(월간↑) 템플릿',c:'#2563eb',calc:function(d){return d.filter(function(r){return ['월간','분기','반기','연간'].indexOf(r.cycle)>=0;}).length;}},
-    {label:'총 점검 항목 수',c:'#8b5cf6',calc:function(d){return d.reduce(function(s,r){return s+(+r.tasks||0);},0);}}
+    {label:'Total PM Templates',c:'#d97706',calc:function(d){return d.length;}},
+    {label:'Active',c:'#16a34a',calc:function(d){return d.filter(function(r){return r.status==='Active';}).length;}},
+    {label:'Monthly+ Templates',c:'#2563eb',calc:function(d){return d.filter(function(r){return ['Monthly','Quarterly','Semi-Annual','Annual'].indexOf(r.cycle)>=0;}).length;}},
+    {label:'Total Task Items',c:'#8b5cf6',calc:function(d){return d.reduce(function(s,r){return s+(+r.tasks||0);},0);}}
   ],
   data:[
-    {code:'PMT-INJ-01',name:'사출기 일상 점검',eqType:'사출기',cycle:'일상(매일)',tasks:8,duration:15,worker:1,desc:'유압유 레벨·온도·이상소음·안전장치 점검',status:'사용'},
-    {code:'PMT-INJ-02',name:'사출기 월간 정기 PM',eqType:'사출기',cycle:'월간',tasks:24,duration:120,worker:2,desc:'유압유 교체·히터밴드·형개 가이드 윤활·전장 점검',status:'사용'},
-    {code:'PMT-INJ-03',name:'사출기 연간 오버홀',eqType:'사출기',cycle:'연간',tasks:52,duration:480,worker:3,desc:'유압 시스템 정밀 진단·실린더 분해 점검·전체 교정',status:'사용'},
-    {code:'PMT-ASY-01',name:'조립설비 주간 점검',eqType:'조립설비',cycle:'주간',tasks:12,duration:40,worker:1,desc:'컨베이어 벨트 장력·구동부 윤활·센서 동작 확인',status:'사용'},
-    {code:'PMT-ASY-02',name:'토크 체결기 분기 교정',eqType:'조립설비',cycle:'분기',tasks:10,duration:90,worker:1,desc:'토크 캘리브레이션·센서 정밀 교정',status:'사용'},
-    {code:'PMT-PNT-01',name:'도장설비 월간 PM',eqType:'도장설비',cycle:'월간',tasks:18,duration:150,worker:2,desc:'부스 필터 교체·분사노즐 점검·온도 센서 교정',status:'사용'},
-    {code:'PMT-INS-01',name:'검사기 반기 정밀 점검',eqType:'검사기',cycle:'반기',tasks:14,duration:120,worker:1,desc:'비전 카메라 교정·조명 점검·소프트웨어 업데이트',status:'사용'},
-    {code:'PMT-UTL-01',name:'유틸리티 월간 점검',eqType:'유틸리티',cycle:'월간',tasks:16,duration:90,worker:1,desc:'압축기 오일·드라이어·칠러 냉매 점검',status:'사용'},
-    {code:'PMT-OLD-99',name:'(구) 사출기 점검 양식',eqType:'사출기',cycle:'주간',tasks:6,duration:30,worker:1,desc:'세분화 템플릿으로 대체됨',status:'폐기'}
+    {code:'PMT-INJ-01',name:'Injection Machine Daily Check',eqType:'Injection Machine',cycle:'Daily',tasks:8,duration:15,worker:1,desc:'Hydraulic oil level/temp, noise, safety device check',status:'Active'},
+    {code:'PMT-INJ-02',name:'Injection Machine Monthly PM',eqType:'Injection Machine',cycle:'Monthly',tasks:24,duration:120,worker:2,desc:'Hydraulic oil change, heater bands, mold-open guide lube, electrical check',status:'Active'},
+    {code:'PMT-INJ-03',name:'Injection Machine Annual Overhaul',eqType:'Injection Machine',cycle:'Annual',tasks:52,duration:480,worker:3,desc:'Hydraulic system precision diagnosis, cylinder teardown, full calibration',status:'Active'},
+    {code:'PMT-ASY-01',name:'Assembly Equipment Weekly Check',eqType:'Assembly Equipment',cycle:'Weekly',tasks:12,duration:40,worker:1,desc:'Conveyor belt tension, drive lubrication, sensor operation verify',status:'Active'},
+    {code:'PMT-ASY-02',name:'Torque Wrench Quarterly Calibration',eqType:'Assembly Equipment',cycle:'Quarterly',tasks:10,duration:90,worker:1,desc:'Torque calibration, sensor precision check',status:'Active'},
+    {code:'PMT-PNT-01',name:'Paint Equipment Monthly PM',eqType:'Paint Equipment',cycle:'Monthly',tasks:18,duration:150,worker:2,desc:'Booth filter change, spray nozzle inspection, temp sensor calibration',status:'Active'},
+    {code:'PMT-INS-01',name:'Inspection Machine Semi-Annual',eqType:'Inspection Equipment',cycle:'Semi-Annual',tasks:14,duration:120,worker:1,desc:'Vision camera calibration, illumination check, software update',status:'Active'},
+    {code:'PMT-UTL-01',name:'Utility Monthly Check',eqType:'Utility',cycle:'Monthly',tasks:16,duration:90,worker:1,desc:'Compressor oil, dryer, chiller refrigerant check',status:'Active'},
+    {code:'PMT-OLD-99',name:'(Legacy) Injection Machine Check Form',eqType:'Injection Machine',cycle:'Weekly',tasks:6,duration:30,worker:1,desc:'Replaced by detailed templates',status:'Retired'}
   ]
 };
 /* ===== GENERIC MASTER ENGINE ===== */
@@ -162,15 +162,15 @@ function init(){
   CFG.filters.forEach(function(f){
     var opts=[];DATA.forEach(function(r){if(opts.indexOf(r[f.k])<0)opts.push(r[f.k]);});
     tb+='<div class="fld"><label>'+f.label+'</label><select data-fk="'+f.k+'" onchange="render()">'+
-      '<option value="">전체 All</option>'+opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select></div>';
+      '<option value="">All</option>'+opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select></div>';
   });
-  tb+='<div class="fld"><label>검색 Search</label><input id="fKw" placeholder="코드·명칭" oninput="render()" style="width:150px;"></div>';
-  tb+='<button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>';
+  tb+='<div class="fld"><label>Search</label><input id="fKw" placeholder="Code or name" oninput="render()" style="width:150px;"></div>';
+  tb+='<button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>';
   tb+='<div style="margin-left:auto;display:flex;gap:8px;">'+
-    '<button class="btn btn-p" onclick="openNew()">＋ '+CFG.entity+' 등록</button>'+
+    '<button class="btn btn-p" onclick="openNew()">＋ Add '+CFG.entity+'</button>'+
     '<button class="btn btn-s" onclick="exportCsv()">📥 Export</button></div>';
   $('toolbar').innerHTML=tb;
-  $('listT').textContent='📋 '+CFG.entity+' 목록';
+  $('listT').textContent='📋 '+CFG.entity+' List';
   $('thr').innerHTML=CFG.cols.map(function(c){return '<th>'+c.label+'</th>';}).join('');
   render();
 }
@@ -200,7 +200,7 @@ function render(){
   });
   $('tbody').innerHTML=h;
   $('empty').style.display=v.length?'none':'block';
-  $('listT').textContent='📋 '+CFG.entity+' 목록 — '+v.length+'건';
+  $('listT').textContent='📋 '+CFG.entity+' List — '+v.length+' records';
   if(selKey&&!byKey(selKey))selKey=null;
   renderDetail();
 }
@@ -208,9 +208,9 @@ function byKey(k){return DATA.filter(function(r){return r[CFG.idKey]===k;})[0];}
 function pick(k){selKey=k;render();}
 function renderDetail(){
   var r=byKey(selKey);
-  if(!r){$('detail').innerHTML='<div class="empty">← 좌측 목록에서 항목을 선택하세요.</div>';return;}
+  if(!r){$('detail').innerHTML='<div class="empty">← Select an item from the list on the left.</div>';return;}
   var nmField=CFG.fields[1]?CFG.fields[1].k:CFG.idKey;
-  var h='<div class="card-t">📑 '+CFG.entity+' 상세</div>'+
+  var h='<div class="card-t">📑 '+CFG.entity+' Detail</div>'+
     '<div class="dt-head"><div class="dt-nm">'+(r[nmField]||r[CFG.idKey])+'</div><div class="dt-id">'+r[CFG.idKey]+'</div></div>'+
     '<div class="specs">';
   CFG.fields.forEach(function(f){
@@ -218,8 +218,8 @@ function renderDetail(){
     var v=r[f.k];if(v===''||v==null)v='—';
     h+='<div class="srow"><span class="sk">'+f.label+'</span><span class="sv">'+v+'</span></div>';
   });
-  h+='</div><div class="acts"><button class="btn btn-s btn-sm" onclick="editRec()">✎ 수정</button>'+
-    '<button class="btn btn-s btn-sm" onclick="delRec()">🗑 삭제</button></div>';
+  h+='</div><div class="acts"><button class="btn btn-s btn-sm" onclick="editRec()">✎ Edit</button>'+
+    '<button class="btn btn-s btn-sm" onclick="delRec()">🗑 Delete</button></div>';
   $('detail').innerHTML=h;
 }
 function formHtml(r){
@@ -235,31 +235,31 @@ function formHtml(r){
   }).join('');
 }
 function openNew(){
-  editKey=null;$('emTitle').textContent=CFG.entity+' 등록';$('emSave').textContent='＋ 등록';
+  editKey=null;$('emTitle').textContent='Add '+CFG.entity;$('emSave').textContent='＋ Add';
   $('emBody').innerHTML=formHtml(null);openOv('ovEd');
 }
 function editRec(){
-  editKey=selKey;$('emTitle').textContent=CFG.entity+' 수정';$('emSave').textContent='💾 저장';
+  editKey=selKey;$('emTitle').textContent='Edit '+CFG.entity;$('emSave').textContent='💾 Save';
   $('emBody').innerHTML=formHtml(byKey(selKey));openOv('ovEd');
 }
 function saveRec(){
   var o={};
   [].slice.call(document.querySelectorAll('#emBody [data-fk]')).forEach(function(el){o[el.dataset.fk]=el.value.trim?el.value.trim():el.value;});
   for(var i=0;i<CFG.fields.length;i++){var f=CFG.fields[i];
-    if(f.req&&!o[f.k]&&!(editKey&&f.uniq)){toast('err','입력 오류',f.label+'은(는) 필수 항목입니다.');return;}}
+    if(f.req&&!o[f.k]&&!(editKey&&f.uniq)){toast('err','Input Error',f.label+' is required.');return;}}
   if(editKey){var r=byKey(editKey);for(var k in o){if(k!==CFG.idKey)r[k]=o[k];}
-    toast('','수정 완료',CFG.entity+' 정보가 수정되었습니다.');
+    toast('','Updated',CFG.entity+' has been updated.');
   }else{
-    if(byKey(o[CFG.idKey])){toast('err','중복 오류','이미 존재하는 코드입니다.');return;}
+    if(byKey(o[CFG.idKey])){toast('err','Duplicate','This code already exists.');return;}
     DATA.push(o);selKey=o[CFG.idKey];
-    toast('','등록 완료',o[CFG.idKey]+' '+CFG.entity+'이(가) 등록되었습니다.');
+    toast('','Added',o[CFG.idKey]+' '+CFG.entity+' has been added.');
   }
   closeOv('ovEd');render();
 }
 function delRec(){
   var r=byKey(selKey);var i=DATA.indexOf(r);
   if(i>=0)DATA.splice(i,1);selKey=null;render();
-  toast('info','삭제 완료',CFG.entity+' 항목이 삭제되었습니다.');
+  toast('info','Deleted',CFG.entity+' record has been deleted.');
 }
 function exportCsv(){
   var v=vis();
@@ -269,11 +269,11 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=CFG.id+'_'+CFG.en.replace(/ /g,'')+'_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료',CFG.entity+' '+v.length+'건을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+v.length+' '+CFG.entity+' records to CSV.');
 }
 function resetAll(){
   [].slice.call(document.querySelectorAll('#toolbar select')).forEach(function(s){s.value='';});
-  $('fKw').value='';render();toast('info','초기화','목록 필터를 초기화했습니다.');
+  $('fKw').value='';render();toast('info','Reset','Filters have been reset.');
 }
 function openOv(id){$(id).classList.add('on');}
 function closeOv(id){$(id).classList.remove('on');}

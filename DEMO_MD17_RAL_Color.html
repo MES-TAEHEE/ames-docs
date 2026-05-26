@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>MD-03 BOM Version · A-MES Demo</title>
+<title>MD-17 RAL Paint Color · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#d97706;--pp-dk:#b45309;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#2b1a02,#3d2606);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fbbf24;line-height:.9;}
 .sh-tt{flex:1;}
@@ -77,8 +77,8 @@ tbody tr.sel td{background:#fef3c7;}
 </head>
 <body>
 <div class="scr-head">
-  <div class="sh-id" id="shId">MD-03</div>
-  <div class="sh-tt"><div class="sh-en" id="shEn">BOM Version</div><div class="sh-ko" id="shKo"></div></div>
+  <div class="sh-id" id="shId">MD-17</div>
+  <div class="sh-tt"><div class="sh-en" id="shEn">RAL Paint Color</div><div class="sh-ko" id="shKo"></div></div>
   <span class="sh-tag" id="shTag"></span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
@@ -87,20 +87,20 @@ tbody tr.sel td{background:#fef3c7;}
   <div class="kpis" id="kpis"></div>
   <div class="grid2">
     <div class="card">
-      <div class="card-t" id="listT">목록</div>
+      <div class="card-t" id="listT">List</div>
       <table><thead><tr id="thr"></tr></thead><tbody id="tbody"></tbody></table>
-      <div class="empty" id="empty" style="display:none;">조건에 맞는 데이터가 없습니다.</div>
+      <div class="empty" id="empty" style="display:none;">No data matches your criteria.</div>
     </div>
-    <div class="card" id="detail"><div class="empty">← 좌측 목록에서 항목을 선택하세요.</div></div>
+    <div class="card" id="detail"><div class="empty">← Select an item from the list on the left.</div></div>
   </div>
 </div>
 <div class="ov" id="ovEd">
   <div class="modal">
-    <div class="modal-h"><span class="mt" id="emTitle">등록</span><span class="mx" onclick="closeOv('ovEd')">✕</span></div>
+    <div class="modal-h"><span class="mt" id="emTitle">Add</span><span class="mx" onclick="closeOv('ovEd')">✕</span></div>
     <div class="modal-b" id="emBody"></div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovEd')">취소</button>
-      <button class="btn btn-p" id="emSave" onclick="saveRec()">＋ 등록</button>
+      <button class="btn btn-s" onclick="closeOv('ovEd')">Cancel</button>
+      <button class="btn btn-p" id="emSave" onclick="saveRec()">＋ Add</button>
     </div>
   </div>
 </div>
@@ -109,41 +109,41 @@ tbody tr.sel td{background:#fef3c7;}
 <script>
 /* ===== ENTITY CONFIG ===== */
 var CFG={
-  id:'MD-17',en:'RAL Paint Color',ko:'RAL 컬러 — 도장 색상 RAL 코드 기준정보',tag:'/md/ral-color',
-  idKey:'code',entity:'RAL 컬러',
-  filters:[{k:'family',label:'색 계열'},{k:'gloss',label:'광택'},{k:'status',label:'상태'}],
+  id:'MD-17',en:'RAL Paint Color',ko:'RAL Color — Paint color RAL code master data',tag:'/md/ral-color',
+  idKey:'code',entity:'RAL Color',
+  filters:[{k:'family',label:'Color Family'},{k:'gloss',label:'Gloss'},{k:'status',label:'Status'}],
   search:['code','name'],
   cols:[
-    {k:'code',label:'RAL 코드',mono:true,bold:true},
-    {k:'name',label:'색상명'},
-    {k:'family',label:'색 계열'},
+    {k:'code',label:'RAL Code',mono:true,bold:true},
+    {k:'name',label:'Color Name'},
+    {k:'family',label:'Color Family'},
     {k:'hex',label:'HEX',mono:true},
-    {k:'status',label:'상태',badge:{'양산 적용':'b0','승인 대기':'b3','단종':'b2'}}
+    {k:'status',label:'Status',badge:{'Production':'b0','Pending Approval':'b3','Discontinued':'b2'}}
   ],
   fields:[
-    {k:'code',label:'RAL 코드',type:'text',req:true,uniq:true,ph:'RAL 9005'},
-    {k:'name',label:'색상명',type:'text',req:true,ph:'제트 블랙'},
-    {k:'family',label:'색 계열',type:'select',opts:['블랙/그레이','화이트','레드','블루','실버/메탈']},
-    {k:'hex',label:'HEX 값',type:'text',req:true,ph:'#0A0A0A'},
-    {k:'gloss',label:'광택',type:'select',opts:['무광','반광','유광']},
-    {k:'paint',label:'적용 도료',type:'text',ph:'베이스코트 블랙'},
-    {k:'status',label:'상태',type:'select',opts:['양산 적용','승인 대기','단종']}
+    {k:'code',label:'RAL Code',type:'text',req:true,uniq:true,ph:'RAL 9005'},
+    {k:'name',label:'Color Name',type:'text',req:true,ph:'Jet Black'},
+    {k:'family',label:'Color Family',type:'select',opts:['Black/Gray','White','Red','Blue','Silver/Metallic']},
+    {k:'hex',label:'HEX Value',type:'text',req:true,ph:'#0A0A0A'},
+    {k:'gloss',label:'Gloss',type:'select',opts:['Matte','Semi-Gloss','Gloss']},
+    {k:'paint',label:'Applied Paint',type:'text',ph:'Basecoat Black'},
+    {k:'status',label:'Status',type:'select',opts:['Production','Pending Approval','Discontinued']}
   ],
   kpis:[
-    {label:'총 RAL 컬러',c:'#d97706',calc:function(d){return d.length;}},
-    {label:'양산 적용 · Active',c:'#16a34a',calc:function(d){return d.filter(function(r){return r.status==='양산 적용';}).length;}},
-    {label:'승인 대기',c:'#2563eb',calc:function(d){return d.filter(function(r){return r.status==='승인 대기';}).length;}},
-    {label:'색 계열 수',c:'#8b5cf6',calc:function(d){var t=[];d.forEach(function(r){if(t.indexOf(r.family)<0)t.push(r.family);});return t.length;}}
+    {label:'Total RAL Colors',c:'#d97706',calc:function(d){return d.length;}},
+    {label:'Production · Active',c:'#16a34a',calc:function(d){return d.filter(function(r){return r.status==='Production';}).length;}},
+    {label:'Pending Approval',c:'#2563eb',calc:function(d){return d.filter(function(r){return r.status==='Pending Approval';}).length;}},
+    {label:'Color Families',c:'#8b5cf6',calc:function(d){var t=[];d.forEach(function(r){if(t.indexOf(r.family)<0)t.push(r.family);});return t.length;}}
   ],
   data:[
-    {code:'RAL 9005',name:'제트 블랙',family:'블랙/그레이',hex:'#0A0A0A',gloss:'무광',paint:'베이스코트 블랙',status:'양산 적용'},
-    {code:'RAL 7042',name:'트래픽 그레이 A',family:'블랙/그레이',hex:'#8D948D',gloss:'반광',paint:'베이스코트 그레이',status:'양산 적용'},
-    {code:'RAL 9003',name:'시그널 화이트',family:'화이트',hex:'#F4F4F4',gloss:'유광',paint:'베이스코트 화이트',status:'양산 적용'},
-    {code:'RAL 3020',name:'트래픽 레드',family:'레드',hex:'#CC0605',gloss:'유광',paint:'베이스코트 레드',status:'양산 적용'},
-    {code:'RAL 5010',name:'젠티안 블루',family:'블루',hex:'#0E294B',gloss:'유광',paint:'베이스코트 블루',status:'승인 대기'},
-    {code:'RAL 9006',name:'화이트 알루미늄',family:'실버/메탈',hex:'#A5A5A5',gloss:'반광',paint:'메탈릭 실버',status:'양산 적용'},
-    {code:'RAL 9007',name:'그레이 알루미늄',family:'실버/메탈',hex:'#8F8F8F',gloss:'반광',paint:'메탈릭 그레이',status:'승인 대기'},
-    {code:'RAL 1015',name:'(구) 라이트 아이보리',family:'화이트',hex:'#E6D2B5',gloss:'유광',paint:'-',status:'단종'}
+    {code:'RAL 9005',name:'Jet Black',family:'Black/Gray',hex:'#0A0A0A',gloss:'Matte',paint:'Basecoat Black',status:'Production'},
+    {code:'RAL 7042',name:'Traffic Gray A',family:'Black/Gray',hex:'#8D948D',gloss:'Semi-Gloss',paint:'Basecoat Gray',status:'Production'},
+    {code:'RAL 9003',name:'Signal White',family:'White',hex:'#F4F4F4',gloss:'Gloss',paint:'Basecoat White',status:'Production'},
+    {code:'RAL 3020',name:'Traffic Red',family:'Red',hex:'#CC0605',gloss:'Gloss',paint:'Basecoat Red',status:'Production'},
+    {code:'RAL 5010',name:'Gentian Blue',family:'Blue',hex:'#0E294B',gloss:'Gloss',paint:'Basecoat Blue',status:'Pending Approval'},
+    {code:'RAL 9006',name:'White Aluminum',family:'Silver/Metallic',hex:'#A5A5A5',gloss:'Semi-Gloss',paint:'Metallic Silver',status:'Production'},
+    {code:'RAL 9007',name:'Gray Aluminum',family:'Silver/Metallic',hex:'#8F8F8F',gloss:'Semi-Gloss',paint:'Metallic Gray',status:'Pending Approval'},
+    {code:'RAL 1015',name:'(Legacy) Light Ivory',family:'White',hex:'#E6D2B5',gloss:'Gloss',paint:'-',status:'Discontinued'}
   ]
 };
 /* ===== GENERIC MASTER ENGINE ===== */
@@ -159,15 +159,15 @@ function init(){
   CFG.filters.forEach(function(f){
     var opts=[];DATA.forEach(function(r){if(opts.indexOf(r[f.k])<0)opts.push(r[f.k]);});
     tb+='<div class="fld"><label>'+f.label+'</label><select data-fk="'+f.k+'" onchange="render()">'+
-      '<option value="">전체 All</option>'+opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select></div>';
+      '<option value="">All</option>'+opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select></div>';
   });
-  tb+='<div class="fld"><label>검색 Search</label><input id="fKw" placeholder="코드·명칭" oninput="render()" style="width:150px;"></div>';
-  tb+='<button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>';
+  tb+='<div class="fld"><label>Search</label><input id="fKw" placeholder="Code or name" oninput="render()" style="width:150px;"></div>';
+  tb+='<button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>';
   tb+='<div style="margin-left:auto;display:flex;gap:8px;">'+
-    '<button class="btn btn-p" onclick="openNew()">＋ '+CFG.entity+' 등록</button>'+
+    '<button class="btn btn-p" onclick="openNew()">＋ Add '+CFG.entity+'</button>'+
     '<button class="btn btn-s" onclick="exportCsv()">📥 Export</button></div>';
   $('toolbar').innerHTML=tb;
-  $('listT').textContent='📋 '+CFG.entity+' 목록';
+  $('listT').textContent='📋 '+CFG.entity+' List';
   $('thr').innerHTML=CFG.cols.map(function(c){return '<th>'+c.label+'</th>';}).join('');
   render();
 }
@@ -197,7 +197,7 @@ function render(){
   });
   $('tbody').innerHTML=h;
   $('empty').style.display=v.length?'none':'block';
-  $('listT').textContent='📋 '+CFG.entity+' 목록 — '+v.length+'건';
+  $('listT').textContent='📋 '+CFG.entity+' List — '+v.length+' records';
   if(selKey&&!byKey(selKey))selKey=null;
   renderDetail();
 }
@@ -205,9 +205,9 @@ function byKey(k){return DATA.filter(function(r){return r[CFG.idKey]===k;})[0];}
 function pick(k){selKey=k;render();}
 function renderDetail(){
   var r=byKey(selKey);
-  if(!r){$('detail').innerHTML='<div class="empty">← 좌측 목록에서 항목을 선택하세요.</div>';return;}
+  if(!r){$('detail').innerHTML='<div class="empty">← Select an item from the list on the left.</div>';return;}
   var nmField=CFG.fields[1]?CFG.fields[1].k:CFG.idKey;
-  var h='<div class="card-t">📑 '+CFG.entity+' 상세</div>'+
+  var h='<div class="card-t">📑 '+CFG.entity+' Detail</div>'+
     '<div class="dt-head"><div class="dt-nm">'+(r[nmField]||r[CFG.idKey])+'</div><div class="dt-id">'+r[CFG.idKey]+'</div></div>'+
     '<div class="specs">';
   CFG.fields.forEach(function(f){
@@ -215,8 +215,8 @@ function renderDetail(){
     var v=r[f.k];if(v===''||v==null)v='—';
     h+='<div class="srow"><span class="sk">'+f.label+'</span><span class="sv">'+v+'</span></div>';
   });
-  h+='</div><div class="acts"><button class="btn btn-s btn-sm" onclick="editRec()">✎ 수정</button>'+
-    '<button class="btn btn-s btn-sm" onclick="delRec()">🗑 삭제</button></div>';
+  h+='</div><div class="acts"><button class="btn btn-s btn-sm" onclick="editRec()">✎ Edit</button>'+
+    '<button class="btn btn-s btn-sm" onclick="delRec()">🗑 Delete</button></div>';
   $('detail').innerHTML=h;
 }
 function formHtml(r){
@@ -232,31 +232,31 @@ function formHtml(r){
   }).join('');
 }
 function openNew(){
-  editKey=null;$('emTitle').textContent=CFG.entity+' 등록';$('emSave').textContent='＋ 등록';
+  editKey=null;$('emTitle').textContent='Add '+CFG.entity;$('emSave').textContent='＋ Add';
   $('emBody').innerHTML=formHtml(null);openOv('ovEd');
 }
 function editRec(){
-  editKey=selKey;$('emTitle').textContent=CFG.entity+' 수정';$('emSave').textContent='💾 저장';
+  editKey=selKey;$('emTitle').textContent='Edit '+CFG.entity;$('emSave').textContent='💾 Save';
   $('emBody').innerHTML=formHtml(byKey(selKey));openOv('ovEd');
 }
 function saveRec(){
   var o={};
   [].slice.call(document.querySelectorAll('#emBody [data-fk]')).forEach(function(el){o[el.dataset.fk]=el.value.trim?el.value.trim():el.value;});
   for(var i=0;i<CFG.fields.length;i++){var f=CFG.fields[i];
-    if(f.req&&!o[f.k]&&!(editKey&&f.uniq)){toast('err','입력 오류',f.label+'은(는) 필수 항목입니다.');return;}}
+    if(f.req&&!o[f.k]&&!(editKey&&f.uniq)){toast('err','Input Error',f.label+' is required.');return;}}
   if(editKey){var r=byKey(editKey);for(var k in o){if(k!==CFG.idKey)r[k]=o[k];}
-    toast('','수정 완료',CFG.entity+' 정보가 수정되었습니다.');
+    toast('','Updated',CFG.entity+' has been updated.');
   }else{
-    if(byKey(o[CFG.idKey])){toast('err','중복 오류','이미 존재하는 코드입니다.');return;}
+    if(byKey(o[CFG.idKey])){toast('err','Duplicate','This code already exists.');return;}
     DATA.push(o);selKey=o[CFG.idKey];
-    toast('','등록 완료',o[CFG.idKey]+' '+CFG.entity+'이(가) 등록되었습니다.');
+    toast('','Added',o[CFG.idKey]+' '+CFG.entity+' has been added.');
   }
   closeOv('ovEd');render();
 }
 function delRec(){
   var r=byKey(selKey);var i=DATA.indexOf(r);
   if(i>=0)DATA.splice(i,1);selKey=null;render();
-  toast('info','삭제 완료',CFG.entity+' 항목이 삭제되었습니다.');
+  toast('info','Deleted',CFG.entity+' record has been deleted.');
 }
 function exportCsv(){
   var v=vis();
@@ -266,11 +266,11 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=CFG.id+'_'+CFG.en.replace(/ /g,'')+'_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료',CFG.entity+' '+v.length+'건을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+v.length+' '+CFG.entity+' records to CSV.');
 }
 function resetAll(){
   [].slice.call(document.querySelectorAll('#toolbar select')).forEach(function(s){s.value='';});
-  $('fKw').value='';render();toast('info','초기화','목록 필터를 초기화했습니다.');
+  $('fKw').value='';render();toast('info','Reset','Filters have been reset.');
 }
 function openOv(id){$(id).classList.add('on');}
 function closeOv(id){$(id).classList.remove('on');}
