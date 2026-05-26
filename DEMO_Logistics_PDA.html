@@ -49,6 +49,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0a1418;color:#dbe6ea;font
 .pmi .pt{flex:1;}
 .pmi .pid{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:#22d3ee;}
 .pmi .pnm{font-size:12px;font-weight:600;color:#cddde2;}
+.pmi .live{font-size:8px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:2px 6px;border-radius:4px;background:#16a34a;color:#fff;letter-spacing:.5px;margin-left:5px;}
 .pmi.active .pnm{color:#fff;}
 .pmi .parr{font-size:11px;color:#3a5560;}
 .pda-dock{height:34px;background:#06141a;border-top:1px solid #143947;display:flex;align-items:center;justify-content:center;font-size:9px;color:#5b7682;font-family:'JetBrains Mono',monospace;}
@@ -97,7 +98,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0a1418;color:#dbe6ea;font
       </div>
       <div class="pda-menu">
         <div class="pm-grp"><span class="pe">📦</span>WH · 창고관리<span class="pc">8</span></div>
-        <div class="pmi" onclick="ld(this)" data-src="VOL03_WH01_Inbound_Schedule.html" data-crumb="WH 창고 · WH-01 Inbound Schedule"><div class="pi">📋</div><div class="pt"><div class="pid">WH-01</div><div class="pnm">입고 예정</div></div><span class="parr">›</span></div>
+        <div class="pmi" onclick="ld(this)" data-src="DEMO_WH01_Inbound_Schedule.html" data-crumb="WH 창고 · WH-01 Inbound Schedule"><div class="pi">📋</div><div class="pt"><div class="pid">WH-01</div><div class="pnm">입고 예정</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
         <div class="pmi" onclick="ld(this)" data-src="VOL03_WH02_PDA_Inbound.html" data-crumb="WH 창고 · WH-02 PDA Inbound"><div class="pi">📥</div><div class="pt"><div class="pid">WH-02</div><div class="pnm">PDA 입고 검수</div></div><span class="parr">›</span></div>
         <div class="pmi" onclick="ld(this)" data-src="VOL03_WH03_Inventory_Status.html" data-crumb="WH 창고 · WH-03 Inventory Status"><div class="pi">📊</div><div class="pt"><div class="pid">WH-03</div><div class="pnm">재고 현황</div></div><span class="parr">›</span></div>
         <div class="pmi" onclick="ld(this)" data-src="VOL03_WH04_Location_Map.html" data-crumb="WH 창고 · WH-04 Location Map"><div class="pi">🗺</div><div class="pt"><div class="pid">WH-04</div><div class="pnm">로케이션 맵</div></div><span class="parr">›</span></div>
@@ -151,7 +152,8 @@ function ld(el){
   f.style.display='block';
   f.src=el.dataset.src;
   document.getElementById('crumb').textContent=el.dataset.crumb;
-  document.getElementById('srctag').textContent='L3 설계서 · '+el.dataset.src;
+  var isDemo=el.dataset.src.indexOf('DEMO_')===0;
+  document.getElementById('srctag').textContent=(isDemo?'● 인터랙티브 데모 화면 · ':'L3 설계서 · ')+el.dataset.src;
 }
 (function(){
   var c=document.getElementById('clock');

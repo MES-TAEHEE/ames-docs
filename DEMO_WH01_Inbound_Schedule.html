@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WH-01 Inbound Schedule · A-MES PDA Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--pda:#06b6d4;--pda-dk:#0e7490;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
+.pda{width:420px;max-width:100%;height:100%;max-height:760px;background:#0f1f25;border:2px solid #1a3540;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;}
+.pda-top{flex-shrink:0;background:linear-gradient(180deg,#1a3540,#0f1f25);padding:11px 16px;display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--pda);}
+.pda-id{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#22d3ee;}
+.pda-t{flex:1;font-size:13px;font-weight:800;color:#fff;}
+.pda-bat{font-size:9px;color:#67e8f9;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:3px;}
+.live{font-size:8px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:2px 7px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:3px;}
+.live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.pda-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:11px;}
+.pda-body::-webkit-scrollbar{width:6px;}.pda-body::-webkit-scrollbar-thumb{background:#1a3540;border-radius:3px;}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;}
+.k{background:rgba(6,182,212,.08);border:1px solid #1a3540;border-top:3px solid var(--c);border-radius:9px;padding:9px 12px;}
+.k .l{font-size:9px;color:#67e8f9;letter-spacing:1px;font-family:'JetBrains Mono',monospace;}
+.k .v{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:900;color:var(--c);margin-top:2px;line-height:1;}
+.k .s{font-size:9px;color:#7a9aa3;margin-top:2px;}
+.section-h{font-size:10px;color:#67e8f9;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin-bottom:-3px;display:flex;align-items:center;gap:6px;}
+.section-h .b{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:9px;background:rgba(6,182,212,.18);padding:2px 6px;border-radius:4px;color:#22d3ee;}
+.item{background:rgba(255,255,255,.03);border:1px solid #1a3540;border-radius:9px;padding:11px 13px;cursor:pointer;border-left:3px solid var(--st);}
+.item:active{transform:scale(.98);background:rgba(6,182,212,.08);}
+.item .ih{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.item .iid{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;color:#fff;}
+.item .ist{margin-left:auto;font-size:8.5px;font-weight:800;padding:2px 7px;border-radius:4px;background:rgba(6,182,212,.18);color:#22d3ee;}
+.item.due .ist{background:rgba(245,158,11,.2);color:#fbbf24;}
+.item.late .ist{background:rgba(220,38,38,.2);color:#fca5a5;}
+.item.done .ist{background:rgba(34,197,94,.2);color:#86efac;}
+.item .it{font-size:12px;font-weight:800;color:#fff;}
+.item .id{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#67e8f9;margin-top:2px;}
+.item .imeta{display:flex;justify-content:space-between;font-size:10px;color:#7a9aa3;margin-top:6px;}
+.item .imeta b{color:#fbbf24;font-family:'JetBrains Mono',monospace;}
+.bottom-bar{flex-shrink:0;display:flex;gap:8px;padding:11px 14px;background:#1a3540;border-top:1px solid #0a1419;}
+.bottom-bar button{flex:1;padding:13px 0;background:linear-gradient(180deg,var(--pda),var(--pda-dk));border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer;letter-spacing:1px;box-shadow:0 3px 0 #155e75;}
+.bottom-bar button:active{transform:translateY(2px);box-shadow:0 1px 0 #155e75;}
+.bottom-bar button.sec{background:#0f1f25;color:#67e8f9;border:1px solid #1a3540;box-shadow:none;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#0f1f25;border:1px solid #1a3540;border-radius:9px;padding:12px 15px;border-left:4px solid var(--pda);font-size:12px;min-width:250px;max-width:340px;animation:ti .25s ease;color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.5);}
+.toast.ok{border-left-color:#16a34a;}.toast.warn{border-left-color:#f59e0b;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:#7a9aa3;font-size:10px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="pda">
+  <div class="pda-top">
+    <div class="pda-id">WH-01</div>
+    <div class="pda-t">입고 예정</div>
+    <span class="live"><span class="d"></span>LIVE</span>
+    <span class="pda-bat">🔋 78%</span>
+  </div>
+  <div class="pda-body">
+    <div class="kpis">
+      <div class="k" style="--c:#22d3ee"><div class="l">금일 예정</div><div class="v">8</div><div class="s">건</div></div>
+      <div class="k" style="--c:#fbbf24"><div class="l">진행 중</div><div class="v">2</div><div class="s">검수 중</div></div>
+      <div class="k" style="--c:#22c55e"><div class="l">완료</div><div class="v">3</div><div class="s">건</div></div>
+      <div class="k" style="--c:#fca5a5"><div class="l">지연</div><div class="v">1</div><div class="s">건</div></div>
+    </div>
+    <div class="section-h">📋 금일 입고 예정 <span class="b">8건</span></div>
+    <div class="item due" style="--st:#fbbf24" onclick="pick('RC-2605-0421')">
+      <div class="ih"><span class="iid">RC-2605-0421</span><span class="ist">금일 도착</span></div>
+      <div class="it">PP 수지 (블랙)</div>
+      <div class="id">RM-PP-BLK / 대한플라스틱(주)</div>
+      <div class="imeta"><span>📅 09:00 도착 예정</span><span><b>2,400 KG</b></span></div>
+    </div>
+    <div class="item" style="--st:#22d3ee" onclick="pick('RC-2605-0422')">
+      <div class="ih"><span class="iid">RC-2605-0422</span><span class="ist">대기</span></div>
+      <div class="it">ABS 수지 (내추럴)</div>
+      <div class="id">RM-ABS-NAT / 한성수지공업</div>
+      <div class="imeta"><span>📅 11:00 도착 예정</span><span><b>1,800 KG</b></span></div>
+    </div>
+    <div class="item" style="--st:#22d3ee" onclick="pick('RC-2605-0423')">
+      <div class="ih"><span class="iid">RC-2605-0423</span><span class="ist">대기</span></div>
+      <div class="it">베이스코트 도료 블랙</div>
+      <div class="id">PNT-BC-001 / 세종도료(주)</div>
+      <div class="imeta"><span>📅 13:30 도착 예정</span><span><b>400 L</b></span></div>
+    </div>
+    <div class="item late" style="--st:#dc2626" onclick="pick('RC-2605-0420')">
+      <div class="ih"><span class="iid">RC-2605-0420</span><span class="ist">지연 D+1</span></div>
+      <div class="it">고정 클립</div>
+      <div class="id">AM-CLIP-01 / 한성정밀</div>
+      <div class="imeta"><span>⚠ 5/20 미도착</span><span><b>8,000 EA</b></span></div>
+    </div>
+    <div class="item done" style="--st:#22c55e" onclick="pick('RC-2605-0418')">
+      <div class="ih"><span class="iid">RC-2605-0418</span><span class="ist">검수 완료</span></div>
+      <div class="it">PP 수지 (블랙)</div>
+      <div class="id">RM-PP-BLK / 한성수지공업</div>
+      <div class="imeta"><span>✓ 07:42 입고 완료</span><span><b>1,200 KG</b></span></div>
+    </div>
+    <div class="item done" style="--st:#22c55e" onclick="pick('RC-2605-0417')">
+      <div class="ih"><span class="iid">RC-2605-0417</span><span class="ist">검수 완료</span></div>
+      <div class="it">유압유 ISO VG46</div>
+      <div class="id">SP-HYD-002 / SK엔무브</div>
+      <div class="imeta"><span>✓ 06:50 입고 완료</span><span><b>200 L</b></span></div>
+    </div>
+  </div>
+  <div class="bottom-bar">
+    <button class="sec" onclick="back()">← 메뉴</button>
+    <button onclick="scan()">📷 바코드 스캔</button>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+function pick(id){toast('',id+' 선택','입고 검수 화면(WH-02)으로 이동합니다.');}
+function scan(){toast('','📷 바코드 스캔','입고 차량/팔레트 라벨을 스캔하세요.');}
+function back(){toast('','PDA 메뉴','PDA 메뉴 화면으로 돌아갑니다.');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='ok'?'✓ ':type==='warn'?'⚠ ':'• ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3000);
+}
+</script>
+</body>
+</html>
