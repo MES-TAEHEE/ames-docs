@@ -14,6 +14,7 @@ Paper: **U.S. Letter Portrait** · No printer header/footer · Optimized for scr
 | Volume | Title | Module | Direct Download |
 |---|---|---|---|
 | **VOL00** | Foundation | Index · ERD · DB Schema | [📄 AMES_L3_VOL00_Foundation.pdf](AMES_L3_VOL00_Foundation.pdf) |
+| **VOL01** | Technology Stack | Architecture · .NET · Blazor · MAUI · MSSQL | [📄 AMES_L3_VOL01_Tech_Stack.pdf](AMES_L3_VOL01_Tech_Stack.pdf) |
 | **VOL03** | Warehouse | WH | [📄 AMES_L3_VOL03_Warehouse.pdf](AMES_L3_VOL03_Warehouse.pdf) |
 | **VOL04** | Production Planning | PP | [📄 AMES_L3_VOL04_Production_Planning.pdf](AMES_L3_VOL04_Production_Planning.pdf) |
 | **VOL05** | Injection POP | INJ | [📄 AMES_L3_VOL05_Injection_POP.pdf](AMES_L3_VOL05_Injection_POP.pdf) |

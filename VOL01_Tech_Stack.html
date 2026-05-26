@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.1 · Technology Stack</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{
+  --gold:#d4a017;--gold-lt:#fdf6e3;--gold-dk:#a07810;
+  --ink:#0d1117;--ink2:#161b22;--ink3:#21262d;
+  --surface:#fff;--bg:#f6f8fa;--border:#d0d7de;--text:#24292f;--sub:#656d76;
+  --web:#0db87a;--pop:#ea580c;--pda:#0891b2;
+  --api:#6366f1;--db:#dc2626;--auth:#7c3aed;
+  --mod-color:#d4a017;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.65;}
+
+/* ── Top Nav (consistent with other VOL pages) ── */
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}
+.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;transition:color .12s;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}
+.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+
+.page-wrap{display:block;}
+.main{max-width:1200px;margin:0 auto;padding:0;}
+
+/* ── Hero / Cover ── */
+.hero{padding:48px 56px 32px;background:linear-gradient(135deg,#1f1305,#0d1117 65%);color:#fff;border-bottom:1px solid var(--gold-dk);}
+.hero-eyebrow{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold);letter-spacing:5px;font-weight:700;text-transform:uppercase;margin-bottom:10px;}
+.hero-title{font-family:'Bebas Neue',sans-serif;font-size:64px;line-height:.95;letter-spacing:4px;color:#fff;margin-bottom:6px;}
+.hero-sub{font-size:14px;color:rgba(255,255,255,.55);max-width:780px;line-height:1.9;}
+.hero-sub b{color:#fde047;font-weight:700;}
+
+/* ── PDF Download Button (same style as other hubs) ── */
+.pdf-dl-wrap{display:inline-block;margin-top:18px;}
+.pdf-dl{display:inline-flex;align-items:center;gap:11px;padding:9px 16px 9px 13px;background:linear-gradient(135deg,rgba(212,160,23,.22),rgba(212,160,23,.08));border:1px solid rgba(212,160,23,.55);border-radius:7px;color:#fde68a;text-decoration:none;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.5px;transition:all .15s ease;}
+.pdf-dl:hover{background:linear-gradient(135deg,rgba(212,160,23,.4),rgba(212,160,23,.18));border-color:#fbbf24;color:#fff;transform:translateY(-1px);}
+.pdf-dl .pdf-ico{font-size:18px;width:26px;height:26px;background:rgba(212,160,23,.18);border-radius:5px;display:flex;align-items:center;justify-content:center;}
+.pdf-dl .pdf-lbl{font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#fbbf24;display:block;}
+.pdf-dl .pdf-meta{font-size:9.5px;font-weight:500;letter-spacing:.5px;color:rgba(253,230,138,.7);text-transform:none;display:block;}
+
+/* ── Decision summary chips ── */
+.decisions{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:24px;}
+.dec{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-top:3px solid var(--c);border-radius:4px;padding:11px 14px;}
+.dec .dec-tag{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--c);letter-spacing:1.5px;text-transform:uppercase;font-weight:700;}
+.dec .dec-pick{font-size:14px;font-weight:800;color:#fff;margin-top:4px;line-height:1.2;}
+.dec .dec-sub{font-size:9.5px;color:rgba(255,255,255,.45);margin-top:3px;}
+
+.content{padding:32px 56px 56px;}
+
+/* ── Section title (gold ribbon) ── */
+.sec-div{display:flex;align-items:center;gap:14px;margin:36px 0 18px;}
+.sd-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--border) 20%,var(--border) 80%,transparent);}
+.sd-lbl{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--gold-dk);letter-spacing:2.5px;white-space:nowrap;padding:5px 12px;background:#fef9e7;border:1px solid #f0d878;border-radius:3px;}
+
+/* ── Architecture diagram (3-system + shared API/DB) ── */
+.arch{background:linear-gradient(135deg,#0c1a23,#0a1620);color:#e2e8f0;border-radius:10px;padding:24px 26px;margin-bottom:18px;box-shadow:0 4px 20px rgba(0,0,0,.18);}
+.arch-h{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:18px;}
+.arch-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px;}
+.arch-sys{background:rgba(255,255,255,.04);border-radius:8px;padding:18px 16px;border-top:3px solid var(--c);}
+.arch-sys-icon{font-size:32px;margin-bottom:8px;}
+.arch-sys-name{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--c);letter-spacing:2px;line-height:1;}
+.arch-sys-sub{font-size:10px;color:rgba(255,255,255,.45);margin-top:3px;}
+.arch-sys-tech{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;}
+.tech-chip{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:#fff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);padding:3px 8px;border-radius:3px;}
+.tech-chip.primary{background:rgba(var(--cr),.2);border-color:rgba(var(--cr),.5);color:#fff;}
+.arch-down{display:flex;justify-content:center;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:2px;margin:12px 0;}
+.arch-down::before,.arch-down::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.15);}
+.arch-shared{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px;}
+.arch-shared-item{background:rgba(255,255,255,.03);border-radius:8px;padding:14px 16px;border-left:3px solid var(--c);}
+.arch-shared-name{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--c);letter-spacing:1.5px;}
+.arch-shared-sub{font-size:9.5px;color:rgba(255,255,255,.5);margin:3px 0 6px;}
+.arch-shared-tech{display:flex;flex-wrap:wrap;gap:4px;}
+
+/* ── Per-system detail card ── */
+.sys-card{background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:18px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.sys-card-hdr{padding:18px 22px;background:linear-gradient(135deg,color-mix(in srgb,var(--c) 26%,#000),color-mix(in srgb,var(--c) 12%,#000));display:flex;align-items:center;gap:16px;}
+.sys-card-ico{font-size:42px;line-height:1;}
+.sys-card-tt{flex:1;}
+.sys-card-tag{font-family:'JetBrains Mono',monospace;font-size:10px;color:#fde047;letter-spacing:1.5px;text-transform:uppercase;}
+.sys-card-name{font-size:18px;font-weight:800;color:#fff;margin-top:3px;}
+.sys-card-meta{font-size:11px;color:rgba(255,255,255,.55);margin-top:2px;}
+.sys-card-body{padding:18px 22px;}
+.sys-table{width:100%;border-collapse:collapse;}
+.sys-table th{text-align:left;font-size:9.5px;font-weight:700;color:var(--sub);letter-spacing:1px;text-transform:uppercase;padding:8px 12px;border-bottom:1.5px solid var(--border);background:#f6f8fa;}
+.sys-table td{padding:9px 12px;font-size:12px;border-bottom:1px solid #ebeef2;vertical-align:top;}
+.sys-table td.layer{font-weight:700;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;background:#fafbfc;}
+.sys-table td.pick{font-weight:700;color:#0d1117;}
+.sys-table td.pick b{color:var(--c);}
+.sys-table td.why{color:var(--sub);font-size:11px;}
+
+/* ── Tech library list ── */
+.lib-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.lib-card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:14px 16px;border-left:3px solid var(--c);}
+.lib-card .lc-cat{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--c);letter-spacing:1.5px;text-transform:uppercase;font-weight:700;}
+.lib-card .lc-name{font-size:14px;font-weight:800;color:var(--text);margin:3px 0 4px;}
+.lib-card .lc-sub{font-size:10.5px;color:var(--sub);line-height:1.55;}
+.lib-card .lc-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}
+.lc-tag{font-family:'JetBrains Mono',monospace;font-size:8.5px;background:#f0f3f7;color:var(--sub);border:1px solid var(--border);padding:1px 6px;border-radius:3px;}
+.lc-tag.free{background:#d1fae5;color:#065f46;border-color:#a7f3d0;}
+.lc-tag.commercial{background:#fef3c7;color:#92400e;border-color:#fde68a;}
+.lc-tag.opt{background:#e0f2fe;color:#0369a1;border-color:#bae6fd;}
+
+/* ── Auth flow diagram ── */
+.flow-box{background:#fff;border:1px solid var(--border);border-radius:8px;padding:18px 22px;margin-bottom:14px;}
+.flow-step{display:flex;align-items:flex-start;gap:14px;padding:10px 0;border-bottom:1px dashed #e5e7eb;}
+.flow-step:last-child{border-bottom:none;}
+.flow-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;color:#fff;background:var(--auth);width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.flow-text{flex:1;font-size:12px;color:var(--text);line-height:1.6;}
+.flow-text b{color:#0d1117;}
+.flow-text code{font-family:'JetBrains Mono',monospace;font-size:11px;background:#f0f3f7;padding:1px 5px;border-radius:3px;color:var(--auth);}
+
+/* ── Deployment topology ── */
+.deploy-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.deploy-card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:16px 18px;}
+.deploy-card .dh{display:flex;align-items:center;gap:9px;margin-bottom:10px;}
+.deploy-card .dh-ico{font-size:24px;}
+.deploy-card .dh-name{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--c);letter-spacing:1.5px;}
+.deploy-card ul{list-style:none;padding:0;}
+.deploy-card li{font-size:11px;color:var(--text);padding:5px 0;border-bottom:1px dashed #ebeef2;line-height:1.6;}
+.deploy-card li:last-child{border-bottom:none;}
+.deploy-card li b{color:var(--c);font-weight:700;}
+.deploy-card li code{font-family:'JetBrains Mono',monospace;font-size:10px;background:#f0f3f7;padding:1px 5px;border-radius:3px;color:var(--text);}
+
+/* ── Integrations matrix ── */
+.intg-tbl{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.intg-tbl thead th{background:#0d1117;color:#fde047;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;padding:10px 14px;text-align:left;font-weight:700;}
+.intg-tbl tbody td{padding:11px 14px;border-bottom:1px solid #ebeef2;vertical-align:top;font-size:11.5px;}
+.intg-tbl tbody tr:nth-child(even){background:#fafbfc;}
+.intg-tbl td.system{font-family:'JetBrains Mono',monospace;font-weight:700;color:#0d1117;font-size:11px;}
+.intg-tbl td.lib{color:var(--text);}
+.intg-tbl td.lib b{color:var(--api);}
+.intg-tbl td.proto{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--sub);}
+.intg-tbl td.notes{color:var(--sub);font-size:11px;}
+
+/* ── Dev environment checklist ── */
+.dev-chk{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;}
+.dev-chk-item{display:flex;align-items:flex-start;gap:10px;background:#fff;border:1px solid var(--border);border-radius:6px;padding:11px 14px;}
+.dev-chk-bullet{font-size:14px;color:#16a34a;flex-shrink:0;font-weight:700;}
+.dev-chk-text{font-size:11.5px;color:var(--text);line-height:1.55;}
+.dev-chk-text b{color:#0d1117;font-weight:700;}
+.dev-chk-text code{font-family:'JetBrains Mono',monospace;font-size:10.5px;background:#f0f3f7;padding:1px 5px;border-radius:3px;color:#0d1117;}
+
+/* ── Notes / Callouts ── */
+.note{background:#fffbeb;border:1px solid #fde68a;border-left:4px solid #d4a017;border-radius:6px;padding:13px 16px;margin:12px 0;font-size:11.5px;color:#5b4a1a;line-height:1.65;}
+.note b{color:#92400e;font-weight:700;}
+.note.info{background:#eff6ff;border-color:#bfdbfe;border-left-color:#2563eb;color:#1e3a8a;}
+.note.info b{color:#1e40af;}
+.note.warn{background:#fef2f2;border-color:#fecaca;border-left-color:#dc2626;color:#7f1d1d;}
+.note.warn b{color:#991b1b;}
+
+.foot{padding:32px 56px;border-top:1px solid var(--border);background:#fff;color:var(--sub);font-size:10px;font-family:'JetBrains Mono',monospace;text-align:center;letter-spacing:1px;}
+
+/* ── Mini hub h2 ── */
+h2.s-h{font-size:20px;font-weight:800;color:var(--text);letter-spacing:-.3px;margin-bottom:6px;}
+.s-h-sub{font-size:11.5px;color:var(--sub);margin-bottom:14px;line-height:1.6;}
+</style>
+</head>
+<body>
+
+<!-- Top Nav -->
+<nav class="ames-nav"><div class="ames-nav-inner">
+<a class="nav-home" href="INDEX.html"><div><div class="nav-home-logo">A-MES</div><div class="nav-home-sub">L3 INDEX</div></div></a>
+<a class="nav-vol active" href="VOL01_Tech_Stack.html"><span class="nv-code">VOL.1</span> Tech Stack</a>
+<a class="nav-vol" href="VOL03_WH_Warehouse.html"><span class="nv-code">VOL.3</span> Warehouse</a>
+<a class="nav-vol" href="VOL04_PP_Production_Plan.html"><span class="nv-code">VOL.4</span> Prod Plan</a>
+<a class="nav-vol" href="VOL05_INJ_Injection.html"><span class="nv-code">VOL.5</span> Injection</a>
+<a class="nav-vol" href="VOL06_IMG_Wrapping.html"><span class="nv-code">VOL.6</span> Wrapping</a>
+<a class="nav-vol" href="VOL07_PNT_Painting.html"><span class="nv-code">VOL.7</span> Painting</a>
+<a class="nav-vol" href="VOL08_QC_Quality.html"><span class="nv-code">VOL.8</span> Quality</a>
+<a class="nav-vol" href="VOL09_FG_Finished_Goods.html"><span class="nv-code">VOL.9</span> Fin.Goods</a>
+<a class="nav-vol" href="VOL10_MNT_Maintenance.html"><span class="nv-code">VOL.10</span> Maint.</a>
+<a class="nav-vol" href="VOL11_RPT_Reports.html"><span class="nv-code">VOL.11</span> Reports</a>
+<a class="nav-vol" href="VOL12_SYS_System.html"><span class="nv-code">VOL.12</span> System</a>
+<a class="nav-vol" href="VOL13_MD_Master_Data.html"><span class="nv-code">VOL.13</span> Master Data</a>
+</div></nav>
+
+<div class="page-wrap"><div class="main">
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-eyebrow">VOL.1 · A-MES Architecture &amp; Technology Stack</div>
+  <div class="hero-title">TECHNOLOGY STACK</div>
+  <div class="hero-sub">
+    Implementation stack for the A-MES three-system architecture &mdash;
+    <b>Office Web</b>, <b>Shop-Floor POP</b>, and <b>Logistics PDA</b>.
+    All components target the <b>.NET 8/9</b> runtime and <b>Microsoft SQL Server</b>.
+    Development is standardized on <b>Visual Studio 2022</b> with optional Rider/VS Code support.
+    The implementation team is composed of .NET / MSSQL specialists; tooling choices favor
+    long-term familiarity, native debugging, and minimal external-runtime dependencies.
+  </div>
+
+  <div class="pdf-dl-wrap">
+    <!-- @pdf-dl-start -->
+    <a class="pdf-dl" href="dist/AMES_L3_VOL01_Tech_Stack.pdf" download>
+      <span class="pdf-ico">📄</span>
+      <span class="pdf-txt">
+        <span class="pdf-lbl">Download PDF · VOL.1</span>
+        <span class="pdf-meta">Tech Stack Spec</span>
+      </span>
+    </a>
+    <!-- @pdf-dl-end -->
+  </div>
+
+  <div class="decisions">
+    <div class="dec" style="--c:#0db87a"><div class="dec-tag">Office Web</div><div class="dec-pick">Blazor Server</div><div class="dec-sub">.NET 8/9 + SignalR</div></div>
+    <div class="dec" style="--c:#ea580c"><div class="dec-tag">Shop-Floor POP</div><div class="dec-pick">WinForms</div><div class="dec-sub">.NET 8 (Designer)</div></div>
+    <div class="dec" style="--c:#0891b2"><div class="dec-tag">Logistics PDA</div><div class="dec-pick">.NET MAUI</div><div class="dec-sub">Android Native</div></div>
+    <div class="dec" style="--c:#dc2626"><div class="dec-tag">Data</div><div class="dec-pick">SP + ADO.NET</div><div class="dec-sub">MSSQL 2019+</div></div>
+    <div class="dec" style="--c:#7c3aed"><div class="dec-tag">Auth</div><div class="dec-pick">ASP.NET Identity</div><div class="dec-sub">+ JWT for API</div></div>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- ────────────────────────────────────────────── -->
+<div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">▼ ARCHITECTURE OVERVIEW</div><div class="sd-line"></div></div>
+
+<div class="arch">
+  <div class="arch-h">⊕ Three-System Architecture · Shared API · MSSQL</div>
+  <div class="arch-grid">
+    <div class="arch-sys" style="--c:#5dffc4">
+      <div class="arch-sys-icon">🖥️</div>
+      <div class="arch-sys-name">OFFICE WEB</div>
+      <div class="arch-sys-sub">Planner / Engineer · Desktop browser</div>
+      <div class="arch-sys-tech">
+        <span class="tech-chip">Blazor Server</span>
+        <span class="tech-chip">.NET 9</span>
+        <span class="tech-chip">SignalR</span>
+        <span class="tech-chip">MudBlazor</span>
+      </div>
+    </div>
+    <div class="arch-sys" style="--c:#fdba74">
+      <div class="arch-sys-icon">📟</div>
+      <div class="arch-sys-name">SHOP-FLOOR POP</div>
+      <div class="arch-sys-sub">Operator · Fixed touch terminal</div>
+      <div class="arch-sys-tech">
+        <span class="tech-chip">WinForms</span>
+        <span class="tech-chip">.NET 8</span>
+        <span class="tech-chip">HttpClient</span>
+        <span class="tech-chip">ClickOnce</span>
+      </div>
+    </div>
+    <div class="arch-sys" style="--c:#67e8f9">
+      <div class="arch-sys-icon">📱</div>
+      <div class="arch-sys-name">LOGISTICS PDA</div>
+      <div class="arch-sys-sub">Warehouse · Android handheld</div>
+      <div class="arch-sys-tech">
+        <span class="tech-chip">.NET MAUI</span>
+        <span class="tech-chip">Android 11+</span>
+        <span class="tech-chip">Zebra DW</span>
+        <span class="tech-chip">SQLite cache</span>
+      </div>
+    </div>
+  </div>
+  <div class="arch-down">↓ ALL THREE SHARE THIS BACKEND ↓</div>
+  <div class="arch-shared">
+    <div class="arch-shared-item" style="--c:#a5b4fc">
+      <div class="arch-shared-name">SHARED API · ASP.NET Core Web API</div>
+      <div class="arch-shared-sub">Single Web API project &mdash; all three clients consume it</div>
+      <div class="arch-shared-tech">
+        <span class="tech-chip">ASP.NET Core 9</span>
+        <span class="tech-chip">Minimal API / Controllers</span>
+        <span class="tech-chip">JWT bearer</span>
+        <span class="tech-chip">SignalR hub</span>
+        <span class="tech-chip">Serilog</span>
+      </div>
+    </div>
+    <div class="arch-shared-item" style="--c:#fca5a5">
+      <div class="arch-shared-name">DATABASE</div>
+      <div class="arch-shared-sub">MSSQL Server</div>
+      <div class="arch-shared-tech">
+        <span class="tech-chip">MSSQL 2019/2022</span>
+        <span class="tech-chip">Stored Procs</span>
+        <span class="tech-chip">ADO.NET</span>
+      </div>
+    </div>
+    <div class="arch-shared-item" style="--c:#d8b4fe">
+      <div class="arch-shared-name">IDENTITY</div>
+      <div class="arch-shared-sub">User store + role-based authorization</div>
+      <div class="arch-shared-tech">
+        <span class="tech-chip">ASP.NET Identity</span>
+        <span class="tech-chip">AspNetUsers</span>
+        <span class="tech-chip">Roles</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="note info">
+  <b>Why three separate clients?</b> Office workers need a rich data-grid UI on large monitors (Web). Operators need large touch targets on fixed terminals (POP) without browser chrome. Logistics workers need a handheld with barcode scanner integration and offline tolerance (PDA). A single UI cannot serve all three well, so we share the <i>back-end</i> (API + DB + Identity) and tailor each <i>front-end</i> to its environment.
+</div>
+
+<!-- ────────────────────────────────────────────── -->
+<div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">▼ SYSTEM 1 · OFFICE WEB</div><div class="sd-line"></div></div>
+
+<div class="sys-card" style="--c:#059669">
+  <div class="sys-card-hdr">
+    <div class="sys-card-ico">🖥️</div>
+    <div class="sys-card-tt">
+      <div class="sys-card-tag">SYS.1 · OFFICE WEB · 74 SCREENS</div>
+      <div class="sys-card-name">Blazor Server on .NET 9</div>
+      <div class="sys-card-meta">PP · MNT · RPT · SYS · MD modules · Desktop browser (1920px)</div>
+    </div>
+  </div>
+  <div class="sys-card-body">
+    <table class="sys-table">
+      <thead><tr><th style="width:130px">Layer</th><th style="width:230px">Selection</th><th>Rationale</th></tr></thead>
+      <tbody>
+        <tr><td class="layer">Runtime</td><td class="pick"><b>.NET 9</b> (LTS-class)</td><td class="why">Latest stable runtime, free upgrade path from .NET 8 LTS. Compatible with WinForms POP and MAUI PDA — single SDK across stack.</td></tr>
+        <tr><td class="layer">Framework</td><td class="pick"><b>Blazor Server</b></td><td class="why">C# end-to-end (no JavaScript framework). Component model resembles WinForms — knowledge transfer to POP team. SignalR built in for live dashboards (PP-OEE, PP-ODM, RPT-07, MNT-09). Hot Reload + IntelliSense + native VS debugger.</td></tr>
+        <tr><td class="layer">UI Library</td><td class="pick"><b>MudBlazor</b> 6.x (free, MIT)</td><td class="why">Material-design components. Includes <code>MudDataGrid</code> (sort/filter/paging out of the box for 14+ table-heavy screens), <code>MudChart</code> (Pareto/OEE), <code>MudDatePicker</code>, theming. Alternative: Syncfusion Blazor (commercial, richer Gantt/scheduler if PP-LSB or MNT-05 PM calendar needs it).</td></tr>
+        <tr><td class="layer">Real-time</td><td class="pick">SignalR (Blazor Server intrinsic)</td><td class="why">Every Blazor Server circuit already uses SignalR — pushing live updates to live dashboards (OEE/Andon/alarms) requires zero extra plumbing.</td></tr>
+        <tr><td class="layer">Auth UI</td><td class="pick">ASP.NET Identity + Razor pages</td><td class="why">Login/logout/password reset via scaffolded Identity UI. Custom branding overlay matching A-MES.</td></tr>
+        <tr><td class="layer">Charts</td><td class="pick">MudBlazor Chart, ChartJs.Blazor (fallback)</td><td class="why">MudBlazor's built-in chart handles 80% of cases (line/bar/pie/donut). For complex Pareto or stacked OEE, ChartJs.Blazor wraps the de-facto JS chart library while keeping the binding in C#.</td></tr>
+        <tr><td class="layer">Reporting (PDF)</td><td class="pick"><b>QuestPDF</b> (free for &lt; $1M ARR) or Telerik Reporting</td><td class="why">Fluent C# API for generating delivery notes, BOL, daily production reports. Embeds smoothly in Blazor — no JS required.</td></tr>
+        <tr><td class="layer">Excel I/O</td><td class="pick">ClosedXML</td><td class="why">For RPT export / SYS-05 audit export / MD bulk import. Free, MIT.</td></tr>
+        <tr><td class="layer">Background jobs</td><td class="pick">Hangfire</td><td class="why">For PP-02 SAP nightly imports, RPT scheduled emails (SYS-06 Notification), daily snapshots. Dashboard UI included.</td></tr>
+        <tr><td class="layer">Logging</td><td class="pick">Serilog + Seq (optional)</td><td class="why">Structured logging. Audit Log (SYS-05) writes to MSSQL via dedicated SP. Application logs to console + rolling file.</td></tr>
+        <tr><td class="layer">Hosting</td><td class="pick">Kestrel behind <b>IIS</b> on Windows Server 2022</td><td class="why">IIS is the standard for on-prem .NET deployments in Korean enterprise. Windows Authentication available if cross-checking with AD becomes a future requirement.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="note">
+  <b>Blazor Server tradeoff to plan for:</b> each connected user holds an open WebSocket (SignalR circuit) to the server. For ~200 concurrent office users this is well within a single server's capacity (≈100MB RAM ceiling for sessions). If concurrent users approach 1,000+, add a load balancer with sticky sessions or move to <i>Blazor WebAssembly + Web API</i> later.
+</div>
+
+<!-- ────────────────────────────────────────────── -->
+<div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">▼ SYSTEM 2 · SHOP-FLOOR POP</div><div class="sd-line"></div></div>
+
+<div class="sys-card" style="--c:#ea580c">
+  <div class="sys-card-hdr">
+    <div class="sys-card-ico">📟</div>
+    <div class="sys-card-tt">
+      <div class="sys-card-tag">SYS.2 · SHOP-FLOOR POP · 33 SCREENS</div>
+      <div class="sys-card-name">WinForms on .NET 8</div>
+      <div class="sys-card-meta">INJ · IMG · PNT · QC processes · Fixed touch terminals on the line</div>
+    </div>
+  </div>
+  <div class="sys-card-body">
+    <table class="sys-table">
+      <thead><tr><th style="width:130px">Layer</th><th style="width:230px">Selection</th><th>Rationale</th></tr></thead>
+      <tbody>
+        <tr><td class="layer">Runtime</td><td class="pick"><b>.NET 8</b> (LTS until Nov 2026)</td><td class="why">LTS recommended for long-lived fixed terminals. Designer support in Visual Studio is best in .NET 8.</td></tr>
+        <tr><td class="layer">Framework</td><td class="pick"><b>WinForms</b> (.NET 8)</td><td class="why">Modern WinForms preserves the classic designer experience but runs on cross-cutting modern .NET. Drag-and-drop UI design matches what the team already knows.</td></tr>
+        <tr><td class="layer">Touch UI</td><td class="pick">Custom large-button styling + <b>HighDpiMode.PerMonitorV2</b></td><td class="why">Buttons ≥ 64px tall, font ≥ 16pt, dark theme (matches POP demo). Avoid system dialogs — use full-screen kiosk shell.</td></tr>
+        <tr><td class="layer">API client</td><td class="pick">HttpClient + System.Text.Json</td><td class="why">All data goes through the shared Web API — POP never talks to MSSQL directly. Polly retry policy on transient network errors.</td></tr>
+        <tr><td class="layer">Auth</td><td class="pick">JWT bearer (operator employee ID + 4-digit PIN, or RFID badge)</td><td class="why">Short-lived JWT (8 hr shift). RFID badge tap triggers <code>/auth/badge</code> endpoint. PIN keypad on screen for password.</td></tr>
+        <tr><td class="layer">Barcode</td><td class="pick">HID keyboard-wedge scanners (default)</td><td class="why">Scanned barcode appears as typed text in focused input. No SDK needed. For 2D imager features, Honeywell/Zebra SDKs available as optional add-on.</td></tr>
+        <tr><td class="layer">Charts (live)</td><td class="pick">LiveCharts2 (free, MIT)</td><td class="why">For INJ-07 Production Status mini-charts on the POP. Smooth WinForms integration via <code>CartesianChart</code> control.</td></tr>
+        <tr><td class="layer">Andon (INJ-08)</td><td class="pick">SignalR client (<code>Microsoft.AspNetCore.SignalR.Client</code>)</td><td class="why">POP connects to the same SignalR hub the Office Web uses. Andon call is pushed to all subscribed dashboards within ≤ 200 ms.</td></tr>
+        <tr><td class="layer">Offline cache (light)</td><td class="pick">Local JSON file (per workstation)</td><td class="why">Master data (work-order list, mold list, defect codes) cached locally so a brief network blip doesn't block production entry. Posts queue and retry on reconnect.</td></tr>
+        <tr><td class="layer">Logging</td><td class="pick">Serilog + rolling file (local) + Sink.Http to API</td><td class="why">Local file survives WAN outage; HTTP sink ships logs centrally when online.</td></tr>
+        <tr><td class="layer">Deployment</td><td class="pick"><b>ClickOnce</b> from internal IIS share</td><td class="why">Each POP terminal auto-updates from a single network publish URL. No per-terminal manual install. Roll back by re-publishing previous version.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────────────── -->
+<div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">▼ SYSTEM 3 · LOGISTICS PDA</div><div class="sd-line"></div></div>
+
+<div class="sys-card" style="--c:#0891b2">
+  <div class="sys-card-hdr">
+    <div class="sys-card-ico">📱</div>
+    <div class="sys-card-tt">
+      <div class="sys-card-tag">SYS.3 · LOGISTICS PDA · 18 SCREENS</div>
+      <div class="sys-card-name">.NET MAUI (Android)</div>
+      <div class="sys-card-meta">WH · FG modules · Zebra / Honeywell / Datalogic Android handhelds</div>
+    </div>
+  </div>
+  <div class="sys-card-body">
+    <table class="sys-table">
+      <thead><tr><th style="width:130px">Layer</th><th style="width:230px">Selection</th><th>Rationale</th></tr></thead>
+      <tbody>
+        <tr><td class="layer">Runtime</td><td class="pick"><b>.NET 8 (MAUI)</b></td><td class="why">LTS. Single C# codebase compiles to native Android APK (and iOS/Windows if needed later).</td></tr>
+        <tr><td class="layer">Target</td><td class="pick">Android 11 (API 30) minimum, target Android 13 (API 33)</td><td class="why">Covers Zebra TC2x/TC5x, Honeywell CT45, Datalogic Memor 11/12, etc. Most Android-based industrial handhelds shipped 2022+ support API 30.</td></tr>
+        <tr><td class="layer">Framework</td><td class="pick"><b>.NET MAUI</b> (XAML or Blazor Hybrid)</td><td class="why">Recommend XAML pages for the 420px mobile-frame layout demoed. Blazor Hybrid is an option if reusing Office Web's Razor components, but XAML gives faster native start-up on lower-end handhelds.</td></tr>
+        <tr><td class="layer">Barcode scan</td><td class="pick"><b>Zebra DataWedge</b> intent / Honeywell IntentApi</td><td class="why">Hardware scan button on the handheld emits an Android intent (configurable via vendor SDK). MAUI listens for the intent and routes to the active page's scan handler. No 3rd-party library required.</td></tr>
+        <tr><td class="layer">RFID (FG-01 etc.)</td><td class="pick">Vendor RFID SDK (Zebra RFID SDK / Bluebird etc.) wrapped in MAUI binding library</td><td class="why">Some FG/WH workflows need UHF RFID tag reads. Vendor SDK is invoked via Android binding generated by MAUI tooling.</td></tr>
+        <tr><td class="layer">Offline cache</td><td class="pick"><b>SQLite</b> via <code>sqlite-net-pcl</code></td><td class="why">PDA must continue working in the warehouse where Wi-Fi can drop. Inbound/picking transactions queue locally and sync on reconnect. SQLite is the standard Android local store.</td></tr>
+        <tr><td class="layer">API client</td><td class="pick">HttpClient + Polly retry/jitter</td><td class="why">All data exchanged with the shared Web API. Retry policy with backoff for spotty wi-fi.</td></tr>
+        <tr><td class="layer">Auth</td><td class="pick">JWT bearer (employee ID + PIN or RFID badge)</td><td class="why">Same flow as POP. Token stored in secure-storage <code>SecureStorage.SetAsync</code>.</td></tr>
+        <tr><td class="layer">Print (FG-06 BOL)</td><td class="pick">Bluetooth or network ZPL to Zebra ZD421 / ZQ520</td><td class="why">ZPL command stream over TCP socket. For mobile printers, use Bluetooth via <code>Plugin.BLE</code>.</td></tr>
+        <tr><td class="layer">Push notifications</td><td class="pick">Firebase Cloud Messaging (optional)</td><td class="why">For pushing "urgent picking" or "QC hold" alerts to the PDA out-of-hours. Skip if not required.</td></tr>
+        <tr><td class="layer">Deployment</td><td class="pick">APK side-loaded via <b>MDM</b> (SOTI MobiControl / VMware Workspace ONE) or Zebra StageNow</td><td class="why">Internal app — not published to Play Store. MDM pushes new APK to every fielded handheld on tagged updates.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────────────── -->
+<div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">▼ SHARED BACKEND · API · DATA · AUTH</div><div class="sd-line"></div></div>
+
+<div class="sys-card" style="--c:#6366f1">
+  <div class="sys-card-hdr">
+    <div class="sys-card-ico">🧩</div>
+    <div class="sys-card-tt">
+      <div class="sys-card-tag">SHARED · BACKEND API</div>
+      <div class="sys-card-name">ASP.NET Core Web API</div>
+      <div class="sys-card-meta">One project, three clients — single source of business logic</div>
+    </div>
+  </div>
+  <div class="sys-card-body">
+    <table class="sys-table">
+      <thead><tr><th style="width:130px">Layer</th><th style="width:230px">Selection</th><th>Rationale</th></tr></thead>
+      <tbody>
+        <tr><td class="layer">Runtime / FX</td><td class="pick">ASP.NET Core 9 (Web API)</td><td class="why">Hosted under Kestrel + IIS reverse proxy. Same Visual Studio solution as Office Web project for development convenience.</td></tr>
+        <tr><td class="layer">API style</td><td class="pick">Controller-based REST + selective Minimal API endpoints</td><td class="why">Controllers for resource CRUD (familiar pattern). Minimal API for high-frequency utility endpoints (e.g., scan validation).</td></tr>
+        <tr><td class="layer">Data access</td><td class="pick"><b>Stored Procedures + ADO.NET</b> (<code>SqlConnection</code> / <code>SqlCommand</code>)</td><td class="why"><b>Per team decision</b>: business rules live in stored procedures (DBA-managed, transactionally explicit). C# layer is thin SP invoker. Use Dapper as a lightweight mapper if the SP call/result mapping becomes repetitive (still SP-driven — Dapper just maps the result rows).</td></tr>
+        <tr><td class="layer">DB schema mgmt</td><td class="pick">SSDT (SQL Server Database Project) + DACPAC</td><td class="why">Schema is checked into the Git repo as a .sqlproj. Deploy compares the DACPAC to the target DB and generates upgrade script. Code-review friendly. No EF migrations needed (we're SP-driven).</td></tr>
+        <tr><td class="layer">Identity</td><td class="pick"><b>ASP.NET Identity</b></td><td class="why">User accounts stored in AspNetUsers/AspNetRoles tables in the same MSSQL. Password hashed (PBKDF2). Role-based authorization via <code>[Authorize(Roles=...)]</code> attributes. SYS-01 (User Mgmt) and SYS-02 (RBAC) screens manipulate these tables.</td></tr>
+        <tr><td class="layer">Token issuance</td><td class="pick">JWT bearer for POP / PDA / external API clients</td><td class="why">Web API exposes <code>/auth/login</code> that returns a JWT for non-browser clients. Office Web uses Identity cookies natively. Token includes role claims and a short expiry (8 hr).</td></tr>
+        <tr><td class="layer">Validation</td><td class="pick">FluentValidation</td><td class="why">Declarative request validation, decoupled from the controller. Easier code review than DataAnnotations attributes scattered in DTOs.</td></tr>
+        <tr><td class="layer">Real-time</td><td class="pick">SignalR Hub (1 hub, multiple groups)</td><td class="why">Single hub <code>/hubs/realtime</code>. Groups: <code>oee.line-{id}</code>, <code>andon.plant-{id}</code>, <code>alarm.{user}</code>. Office Web, POP, PDA all subscribe.</td></tr>
+        <tr><td class="layer">Background jobs</td><td class="pick">Hangfire (MSSQL storage)</td><td class="why">SAP nightly import (PP-02), report subscriptions (SYS-06), PM-due notifications (MNT-05), daily snapshots. Web dashboard for monitoring jobs.</td></tr>
+        <tr><td class="layer">Logging</td><td class="pick">Serilog → file + MSSQL + Seq (optional)</td><td class="why">Structured logs (JSON). SYS-05 Audit Log writes to a separate <code>SP_AUDIT_INSERT</code> for compliance — kept distinct from app logs.</td></tr>
+        <tr><td class="layer">OpenAPI</td><td class="pick">Swashbuckle (Swagger UI at <code>/swagger</code>)</td><td class="why">Auto-generated API reference for developers. Disable in production or restrict by role.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────────────── -->
+<div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">▼ AUTHENTICATION &amp; AUTHORIZATION FLOW</div><div class="sd-line"></div></div>
+
+<div class="flow-box">
+  <div class="flow-step">
+    <div class="flow-num">1</div>
+    <div class="flow-text"><b>Web user login</b> · Office Web user types ID/password in scaffolded Identity Razor Page. Identity validates against <code>AspNetUsers</code> (PBKDF2 hash). On success, sets <code>.AspNetCore.Identity.Application</code> cookie. Cookie carries role claims via <code>ClaimsPrincipal</code>.</div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-num">2</div>
+    <div class="flow-text"><b>POP / PDA login</b> · Operator scans employee ID and enters 4-digit PIN (or taps RFID badge). Client POSTs to <code>/api/auth/login</code> with credentials → API verifies via Identity's <code>SignInManager.CheckPasswordSignInAsync</code> → returns a <b>JWT</b> with <code>sub</code>, <code>role</code>, <code>shift</code>, <code>line</code> claims and 8-hour <code>exp</code>.</div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-num">3</div>
+    <div class="flow-text"><b>Per-request authorization</b> · Each API endpoint declares <code>[Authorize(Roles = "Operator,Supervisor")]</code> or <code>[Authorize(Policy = "QC.Approve")]</code>. Custom policies map to RBAC permission matrix maintained in SYS-02. Identity middleware enforces before controller runs.</div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-num">4</div>
+    <div class="flow-text"><b>SignalR auth</b> · WebSocket upgrade carries the bearer token via query string (<code>?access_token=...</code>) for POP/PDA, or the Identity cookie for Office Web. Hub <code>OnConnectedAsync</code> reads claims and adds the connection to the correct group (e.g., <code>oee.line-INJ-01</code>).</div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-num">5</div>
+    <div class="flow-text"><b>Audit logging</b> · Every authenticated mutation invokes <code>IAuditLogger.LogAsync(userId, action, target, ipAddress)</code> middleware → writes to <code>tbl_AuditLog</code> via <code>SP_AUDIT_INSERT</code>. Visible in SYS-05.</div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-num">6</div>
+    <div class="flow-text"><b>Refresh / revoke</b> · JWT does not auto-refresh — operators re-sign-in at shift change. To revoke before expiry (e.g., user disabled in SYS-01), token is added to a small in-memory blocklist checked by a custom <code>ITokenValidator</code> on each request.</div>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────────────── -->
+<div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">▼ INTEGRATION POINTS · EXTERNAL SYSTEMS</div><div class="sd-line"></div></div>
+
+<table class="intg-tbl">
+  <thead>
+    <tr>
+      <th style="width:130px">External system</th>
+      <th style="width:130px">A-MES touch-point</th>
+      <th style="width:200px">Library / Protocol</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="system">SAP B1</td>
+      <td>PP-02 Supply Plan Import · MD-07 Vendor sync · FG outbound posting</td>
+      <td class="lib"><b>SAP DI-API</b> (COM) or <b>Service Layer REST</b></td>
+      <td class="notes">REST preferred for cross-platform. Hangfire job runs nightly at 02:00 EST pulling Sales Orders → A-MES forecasts.</td>
+    </tr>
+    <tr>
+      <td class="system">RFID Reader (FG/WH)</td>
+      <td>FG-01 Stocking · WH-02 Inbound</td>
+      <td class="lib"><b>Vendor SDK</b> (Zebra/Impinj) or TCP/IP raw stream · MQTT</td>
+      <td class="notes">PDA reads via on-device UHF module. Fixed-station readers stream tags via MQTT to API.</td>
+    </tr>
+    <tr>
+      <td class="system">OPC-UA (equipment)</td>
+      <td>MNT-03 OEE · PP-OEE · INJ shot count</td>
+      <td class="lib"><b>OPCFoundation.NetStandard.Opc.Ua</b> (free, open-source)</td>
+      <td class="notes">Background subscription service polls/subscribes to PLC tags (Siemens, Mitsubishi, AB). Writes to <code>tbl_EquipmentSignal</code>.</td>
+    </tr>
+    <tr>
+      <td class="system">Barcode scanners</td>
+      <td>All POP/PDA workflows</td>
+      <td class="lib">HID keyboard wedge (default) · Zebra DataWedge intent</td>
+      <td class="notes">No SDK for HID. For 2D/PDF417/DPM features use vendor SDK. PDA always uses DataWedge intent.</td>
+    </tr>
+    <tr>
+      <td class="system">Label printers</td>
+      <td>PNT-07 Label Apply · FG-06 BOL</td>
+      <td class="lib">Zebra ZPL via TCP 9100 · BPL for stock-label · PDF for BOL</td>
+      <td class="notes">Send raw ZPL string over TCP socket. For Honeywell, Direct Printer Language. Mobile printer (FG-06) over Bluetooth.</td>
+    </tr>
+    <tr>
+      <td class="system">Email (SYS-06 / RPT subscriptions)</td>
+      <td>Alerts · scheduled reports</td>
+      <td class="lib"><b>MailKit</b> over corporate SMTP</td>
+      <td class="notes">MailKit is the modern replacement for SmtpClient. Works with O365 / Gmail Workspace / on-prem Exchange.</td>
+    </tr>
+    <tr>
+      <td class="system">SMS</td>
+      <td>SYS-06 critical alerts</td>
+      <td class="lib"><b>Twilio .NET SDK</b> (or domestic gateway)</td>
+      <td class="notes">U.S. context — Twilio is the default. For Korean deployment, swap to Aligo/SENS.</td>
+    </tr>
+    <tr>
+      <td class="system">Microsoft Teams</td>
+      <td>SYS-06 channel notifications</td>
+      <td class="lib">Incoming Webhook (HTTPS POST JSON)</td>
+      <td class="notes">No SDK needed — simple webhook URL per channel.</td>
+    </tr>
+    <tr>
+      <td class="system">Active Directory (optional)</td>
+      <td>Future SSO / user provisioning</td>
+      <td class="lib"><b>Microsoft.Identity.Web</b> + LDAP fallback</td>
+      <td class="notes">Not in v1. ASP.NET Identity is self-contained for launch; AD federation can be added without rewriting auth code.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ────────────────────────────────────────────── -->
+<div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">▼ DEVELOPMENT ENVIRONMENT</div><div class="sd-line"></div></div>
+
+<h2 class="s-h">Toolchain — Visual Studio 2022 standard</h2>
+<div class="s-h-sub">Every team member uses the same Visual Studio 2022 installation profile to ensure consistent .editorconfig, debugger settings, and template availability.</div>
+
+<div class="dev-chk">
+  <div class="dev-chk-item"><div class="dev-chk-bullet">✓</div><div class="dev-chk-text"><b>Visual Studio 2022 Community/Pro</b> v17.10+ — install workloads: <code>ASP.NET and web development</code>, <code>.NET desktop development</code>, <code>.NET Multi-platform App UI development</code>, <code>Data storage and processing</code></div></div>
+  <div class="dev-chk-item"><div class="dev-chk-bullet">✓</div><div class="dev-chk-text"><b>SQL Server Management Studio (SSMS) 20</b> — for SP development and DBA tasks</div></div>
+  <div class="dev-chk-item"><div class="dev-chk-bullet">✓</div><div class="dev-chk-text"><b>SQL Server 2022 Developer Edition</b> (local) — free, full feature parity with production for local dev</div></div>
+  <div class="dev-chk-item"><div class="dev-chk-bullet">✓</div><div class="dev-chk-text"><b>Git for Windows</b> + GitHub or Azure DevOps — repo: <code>github.com/MES-TAEHEE/ames-docs</code></div></div>
+  <div class="dev-chk-item"><div class="dev-chk-bullet">✓</div><div class="dev-chk-text"><b>Android SDK + emulator</b> (via VS MAUI workload) — for PDA development without a physical handheld</div></div>
+  <div class="dev-chk-item"><div class="dev-chk-bullet">✓</div><div class="dev-chk-text"><b>Postman or Bruno</b> — REST API testing against the shared Web API</div></div>
+  <div class="dev-chk-item"><div class="dev-chk-bullet">✓</div><div class="dev-chk-text"><b>Hot Reload</b> enabled for Blazor Server and WinForms — instant feedback during UI iteration</div></div>
+  <div class="dev-chk-item"><div class="dev-chk-bullet">✓</div><div class="dev-chk-text"><b>.editorconfig</b> in repo root — enforced C# code style (4-space indent, brace placement, file-scoped namespaces)</div></div>
+</div>
+
+<!-- ────────────────────────────────────────────── -->
+<div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">▼ DEPLOYMENT TOPOLOGY</div><div class="sd-line"></div></div>
+
+<div class="deploy-grid">
+  <div class="deploy-card" style="--c:#0db87a">
+    <div class="dh"><div class="dh-ico">🖥️</div><div class="dh-name">OFFICE WEB</div></div>
+    <ul>
+      <li><b>Host:</b> Windows Server 2022 + IIS 10 reverse-proxy → Kestrel</li>
+      <li><b>SSL:</b> Wildcard cert on IIS</li>
+      <li><b>URL:</b> <code>https://ames.seyonehwa.us</code></li>
+      <li><b>Scale:</b> 1 server initially; sticky-session LB if &gt; 500 concurrent</li>
+      <li><b>Update:</b> Web Deploy package via Azure DevOps release pipeline</li>
+    </ul>
+  </div>
+  <div class="deploy-card" style="--c:#ea580c">
+    <div class="dh"><div class="dh-ico">📟</div><div class="dh-name">SHOP-FLOOR POP</div></div>
+    <ul>
+      <li><b>Host:</b> Each line has a fixed Windows 11 IoT terminal (touch monitor)</li>
+      <li><b>Distribution:</b> <b>ClickOnce</b> published to internal IIS share</li>
+      <li><b>URL:</b> <code>https://ames.seyonehwa.us/pop/install</code></li>
+      <li><b>Update:</b> Terminal checks for update on launch; auto-installs new version</li>
+      <li><b>Rollback:</b> Re-publish previous version</li>
+    </ul>
+  </div>
+  <div class="deploy-card" style="--c:#0891b2">
+    <div class="dh"><div class="dh-ico">📱</div><div class="dh-name">LOGISTICS PDA</div></div>
+    <ul>
+      <li><b>Device:</b> Zebra TC52ax / Honeywell CT45 (Android 13)</li>
+      <li><b>Distribution:</b> Signed APK pushed via MDM (SOTI / Workspace ONE / Zebra StageNow)</li>
+      <li><b>Update:</b> MDM tag drives version rollout (canary → 10% → 100%)</li>
+      <li><b>Offline:</b> Local SQLite cache; transactions queue and sync on Wi-Fi recovery</li>
+      <li><b>Crash reporting:</b> AppCenter Diagnostics (optional)</li>
+    </ul>
+  </div>
+</div>
+
+<div class="note info" style="margin-top:18px">
+  <b>CI/CD pipeline:</b> All three projects build in a single Azure DevOps pipeline (or GitHub Actions). Triggers on push to <code>main</code>: <b>(1)</b> Web API + Web App → Web Deploy package → IIS, <b>(2)</b> WinForms POP → ClickOnce publish, <b>(3)</b> MAUI Android → signed APK uploaded to MDM endpoint. DACPAC for the database is applied to staging on PR merge, to production on tagged release.
+</div>
+
+<!-- ────────────────────────────────────────────── -->
+<div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">▼ COMPLETE LIBRARY MATRIX</div><div class="sd-line"></div></div>
+
+<div class="lib-grid">
+  <div class="lib-card" style="--c:#0db87a">
+    <div class="lc-cat">UI · Office Web</div>
+    <div class="lc-name">MudBlazor</div>
+    <div class="lc-sub">Material-design Blazor component library. Includes DataGrid (sort/filter/paging), Chart, DatePicker, Dialog, Theming.</div>
+    <div class="lc-tags"><span class="lc-tag free">FREE · MIT</span><span class="lc-tag">v7.x</span></div>
+  </div>
+  <div class="lib-card" style="--c:#0db87a">
+    <div class="lc-cat">UI · Office Web (commercial alt.)</div>
+    <div class="lc-name">Syncfusion Blazor</div>
+    <div class="lc-sub">Richer enterprise components (Gantt, Scheduler, RichTextEditor). Adopt if MudBlazor falls short for PP-LSB Gantt or MNT-05 PM calendar.</div>
+    <div class="lc-tags"><span class="lc-tag commercial">COMMERCIAL</span><span class="lc-tag opt">OPTIONAL</span></div>
+  </div>
+  <div class="lib-card" style="--c:#dc2626">
+    <div class="lc-cat">Data · SP runner / mapper</div>
+    <div class="lc-name">Dapper</div>
+    <div class="lc-sub">Lightweight result-set mapper. Use to map SP result rows to C# DTOs (still SP-driven).</div>
+    <div class="lc-tags"><span class="lc-tag free">FREE · Apache</span></div>
+  </div>
+  <div class="lib-card" style="--c:#dc2626">
+    <div class="lc-cat">Data · Schema mgmt</div>
+    <div class="lc-name">SQL Server Database Project (SSDT) / DACPAC</div>
+    <div class="lc-sub">Schema-as-code in the repo. Generates upgrade scripts on deploy.</div>
+    <div class="lc-tags"><span class="lc-tag free">FREE · Microsoft</span></div>
+  </div>
+  <div class="lib-card" style="--c:#6366f1">
+    <div class="lc-cat">API · Validation</div>
+    <div class="lc-name">FluentValidation</div>
+    <div class="lc-sub">Declarative request validation with C# expressions.</div>
+    <div class="lc-tags"><span class="lc-tag free">FREE · Apache</span></div>
+  </div>
+  <div class="lib-card" style="--c:#6366f1">
+    <div class="lc-cat">API · OpenAPI</div>
+    <div class="lc-name">Swashbuckle.AspNetCore</div>
+    <div class="lc-sub">Swagger UI at <code>/swagger</code> for testing.</div>
+    <div class="lc-tags"><span class="lc-tag free">FREE · MIT</span></div>
+  </div>
+  <div class="lib-card" style="--c:#a855f7">
+    <div class="lc-cat">Background jobs</div>
+    <div class="lc-name">Hangfire</div>
+    <div class="lc-sub">Recurring/delayed/queue jobs with MSSQL persistence. Web dashboard included.</div>
+    <div class="lc-tags"><span class="lc-tag free">FREE · LGPL</span></div>
+  </div>
+  <div class="lib-card" style="--c:#a855f7">
+    <div class="lc-cat">Logging</div>
+    <div class="lc-name">Serilog + Sinks (File / MSSQL / Seq)</div>
+    <div class="lc-sub">Structured logging with multiple sinks.</div>
+    <div class="lc-tags"><span class="lc-tag free">FREE · Apache</span></div>
+  </div>
+  <div class="lib-card" style="--c:#0891b2">
+    <div class="lc-cat">PDA · DB</div>
+    <div class="lc-name">sqlite-net-pcl</div>
+    <div class="lc-sub">Offline cache on the handheld. Sync queue when Wi-Fi recovers.</div>
+    <div class="lc-tags"><span class="lc-tag free">FREE · MIT</span></div>
+  </div>
+  <div class="lib-card" style="--c:#0891b2">
+    <div class="lc-cat">PDA · HTTP resilience</div>
+    <div class="lc-name">Polly</div>
+    <div class="lc-sub">Retry, circuit-breaker, jitter for unreliable Wi-Fi.</div>
+    <div class="lc-tags"><span class="lc-tag free">FREE · BSD</span></div>
+  </div>
+  <div class="lib-card" style="--c:#ea580c">
+    <div class="lc-cat">POP · Charts</div>
+    <div class="lc-name">LiveCharts2</div>
+    <div class="lc-sub">Real-time WinForms charts for cycle time, OEE on the line.</div>
+    <div class="lc-tags"><span class="lc-tag free">FREE · MIT</span></div>
+  </div>
+  <div class="lib-card" style="--c:#475569">
+    <div class="lc-cat">PDF</div>
+    <div class="lc-name">QuestPDF</div>
+    <div class="lc-sub">Fluent C# API for BOL, delivery notes, daily reports.</div>
+    <div class="lc-tags"><span class="lc-tag free">FREE &lt; $1M ARR</span></div>
+  </div>
+  <div class="lib-card" style="--c:#475569">
+    <div class="lc-cat">Excel</div>
+    <div class="lc-name">ClosedXML</div>
+    <div class="lc-sub">Excel export/import (RPT-09 Report Center · MD bulk import).</div>
+    <div class="lc-tags"><span class="lc-tag free">FREE · MIT</span></div>
+  </div>
+  <div class="lib-card" style="--c:#475569">
+    <div class="lc-cat">Email</div>
+    <div class="lc-name">MailKit</div>
+    <div class="lc-sub">Modern SMTP/IMAP client. Replaces deprecated SmtpClient.</div>
+    <div class="lc-tags"><span class="lc-tag free">FREE · MIT</span></div>
+  </div>
+  <div class="lib-card" style="--c:#475569">
+    <div class="lc-cat">OPC-UA (equipment)</div>
+    <div class="lc-name">OPCFoundation.NetStandard.Opc.Ua</div>
+    <div class="lc-sub">Official .NET OPC-UA client. Subscribes to PLC tags.</div>
+    <div class="lc-tags"><span class="lc-tag free">FREE · MIT</span></div>
+  </div>
+  <div class="lib-card" style="--c:#475569">
+    <div class="lc-cat">SAP B1 (optional)</div>
+    <div class="lc-name">SAP B1 Service Layer SDK (REST)</div>
+    <div class="lc-sub">REST + OData against SAP B1. Plain <code>HttpClient</code> works.</div>
+    <div class="lc-tags"><span class="lc-tag commercial">SAP-LICENSED</span></div>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────────────── -->
+<div class="sec-div"><div class="sd-line"></div><div class="sd-lbl">▼ SOLUTION STRUCTURE</div><div class="sd-line"></div></div>
+
+<div class="note">
+<b>Recommended single Visual Studio solution layout</b> &mdash; one <code>.sln</code> spans all three clients + shared API + DB project, enabling F5-to-debug across the stack.
+</div>
+
+<pre style="background:#0d1117;color:#e2e8f0;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.7;padding:18px 22px;border-radius:8px;overflow:auto;margin:8px 0 18px;">
+A-MES.sln
+├── 01_Shared/
+│   ├── AMES.Contracts/           # DTOs, enums, shared between API and clients
+│   └── AMES.Common/              # JWT helpers, validation, audit interfaces
+│
+├── 02_Database/
+│   └── AMES.Database/            # SSDT .sqlproj — schema, SPs, seed data → DACPAC
+│
+├── 03_Api/
+│   └── AMES.Api/                 # ASP.NET Core Web API + SignalR hub + Hangfire
+│
+├── 04_OfficeWeb/
+│   └── AMES.OfficeWeb/           # Blazor Server (74 screens) + ASP.NET Identity UI
+│
+├── 05_PopWinForms/
+│   └── AMES.Pop/                 # WinForms (.NET 8) for POP terminals
+│
+├── 06_PdaMaui/
+│   └── AMES.Pda/                 # .NET MAUI (Android) for handheld PDA
+│
+└── 07_Tests/
+    ├── AMES.Api.Tests/           # xUnit + WebApplicationFactory
+    ├── AMES.OfficeWeb.Tests/     # bUnit for Blazor components
+    └── AMES.Integration.Tests/   # End-to-end (testcontainers MSSQL)
+</pre>
+
+<div class="note info">
+  <b>Why one solution?</b> Allows F5 debugging across boundaries (e.g., set breakpoint in API, drive from Blazor Web). Single <code>dotnet build</code> validates all clients still compile against the shared contracts. Each project still publishes independently.
+</div>
+
+</div><!-- /.content -->
+
+<div class="foot">
+A-MES · L3 SPEC · VOL.1 TECHNOLOGY STACK · SEOYON E-HWA · CONFIDENTIAL · FOR INTERNAL USE ONLY
+</div>
+
+</div></div><!-- /.main /.page-wrap -->
+
+</body>
+</html>

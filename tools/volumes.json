@@ -7,6 +7,13 @@
     "files": ["INDEX.html", "AMES_ERD.html", "AMES_DB_Schema.html"]
   },
   {
+    "code": "VOL01",
+    "shortTitle": "Tech_Stack",
+    "title": "Technology Stack & Architecture",
+    "subtitle": ".NET 9 · Blazor Server · WinForms · MAUI · MSSQL",
+    "files": ["VOL01_Tech_Stack.html"]
+  },
+  {
     "code": "VOL03",
     "shortTitle": "Warehouse",
     "title": "Warehouse Management (WH)",
