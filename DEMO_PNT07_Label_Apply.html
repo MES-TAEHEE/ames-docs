@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PNT-07 Label Apply · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--sc:#ea580c;--sc-dk:#c2410c;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
 .head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
 .head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#fb923c;}
 .head .tt{flex:1;}
@@ -84,64 +84,64 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 </head>
 <body>
 <div class="head">
-  <button class="back" onclick="back()">‹ 대시보드</button>
+  <button class="back" onclick="back()">‹ Dashboard</button>
   <div class="id">PNT-07</div>
-  <div class="tt"><div class="en">LOT Label Apply</div><div class="ko">LOT 라벨 부착 — 완료품 라벨 인쇄·부착</div></div>
+  <div class="tt"><div class="en">LOT Label Apply</div><div class="ko">LOT Label Apply — Print and Affix Labels on Finished Parts</div></div>
   <span class="live"><span class="d"></span>LIVE</span>
 </div>
 <div class="body">
   <div class="col">
     <div class="lot-card">
-      <div class="h"><span style="font-size:18px;">🏷</span><span class="lbl">대상 LOT · TARGET</span></div>
+      <div class="h"><span style="font-size:18px;">🏷</span><span class="lbl">TARGET LOT</span></div>
       <div class="lid">LOT-2605-2103</div>
-      <div class="item"><span class="sw" style="background:#8D948D"></span><b>사이드 몰딩 도장</b> · 그레이</div>
+      <div class="item"><span class="sw" style="background:#8D948D"></span><b>Side Molding Paint</b> · Gray</div>
       <div class="meta">
         <div class="m"><div class="ml">WO</div><div class="mv">WO-2605-140</div></div>
-        <div class="m"><div class="ml">수량</div><div class="mv">54 EA</div></div>
+        <div class="m"><div class="ml">QTY</div><div class="mv">54 EA</div></div>
         <div class="m"><div class="ml">RAL</div><div class="mv">7042</div></div>
-        <div class="m"><div class="ml">완료</div><div class="mv">09:14</div></div>
+        <div class="m"><div class="ml">DONE</div><div class="mv">09:14</div></div>
       </div>
     </div>
     <div>
-      <div style="font-size:11px;color:#fdba74;text-transform:uppercase;letter-spacing:2px;margin-bottom:9px;font-weight:800;">🏷 라벨 템플릿 · TEMPLATE</div>
+      <div style="font-size:11px;color:#fdba74;text-transform:uppercase;letter-spacing:2px;margin-bottom:9px;font-weight:800;">🏷 Label Template</div>
       <div class="print-grid">
-        <div class="pset on" data-t="prod" onclick="pickT(this)"><div class="lh"><span class="ic">🏷</span><div><div class="nm">제품 식별 라벨</div><div class="ds">개별 부품용</div></div></div><div class="sz">50×30mm · 바코드</div></div>
-        <div class="pset" data-t="qr" onclick="pickT(this)"><div class="lh"><span class="ic">📱</span><div><div class="nm">제품 QR 라벨</div><div class="ds">로트 추적</div></div></div><div class="sz">40×40mm · QR 코드</div></div>
-        <div class="pset" data-t="box" onclick="pickT(this)"><div class="lh"><span class="ic">📦</span><div><div class="nm">포장 박스 라벨</div><div class="ds">박스용 (Code128)</div></div></div><div class="sz">100×70mm · Code128</div></div>
-        <div class="pset" data-t="plt" onclick="pickT(this)"><div class="lh"><span class="ic">🚚</span><div><div class="nm">파레트 라벨</div><div class="ds">RFID 칩 포함</div></div></div><div class="sz">200×150mm · RFID</div></div>
+        <div class="pset on" data-t="prod" onclick="pickT(this)"><div class="lh"><span class="ic">🏷</span><div><div class="nm">Part ID Label</div><div class="ds">Per individual part</div></div></div><div class="sz">50×30mm · Barcode</div></div>
+        <div class="pset" data-t="qr" onclick="pickT(this)"><div class="lh"><span class="ic">📱</span><div><div class="nm">Part QR Label</div><div class="ds">LOT traceability</div></div></div><div class="sz">40×40mm · QR Code</div></div>
+        <div class="pset" data-t="box" onclick="pickT(this)"><div class="lh"><span class="ic">📦</span><div><div class="nm">Carton Label</div><div class="ds">Box (Code128)</div></div></div><div class="sz">100×70mm · Code128</div></div>
+        <div class="pset" data-t="plt" onclick="pickT(this)"><div class="lh"><span class="ic">🚚</span><div><div class="nm">Pallet Label</div><div class="ds">Embedded RFID</div></div></div><div class="sz">200×150mm · RFID</div></div>
       </div>
     </div>
     <div class="qty-card">
-      <div class="lbl">📊 인쇄 수량 · QTY</div>
+      <div class="lbl">📊 Print Quantity</div>
       <div class="qty-r">
         <div class="ctl"><button onclick="qty(-1)">−</button><div class="val" id="qVal">54</div><button onclick="qty(1)">＋</button></div>
-        <div class="total"><div>총 인쇄 매수</div><b id="qBig">54</b> 매</div>
+        <div class="total"><div>Total Labels</div><b id="qBig">54</b> pcs</div>
       </div>
     </div>
     <div class="printer-stat">
       <span class="ic">✓</span>
-      <span><b>Zebra ZD421</b> · 연결됨 · 잉크 충분 · 용지 잔여 92%</span>
+      <span><b>Zebra ZD421</b> · Connected · Ink OK · Media 92%</span>
     </div>
     <div class="actions">
-      <button class="btn-preview" onclick="prev()">🖨 미리보기</button>
-      <button class="btn-print" onclick="print()">▶ 라벨 인쇄·부착</button>
+      <button class="btn-preview" onclick="prev()">🖨 Preview</button>
+      <button class="btn-print" onclick="print()">▶ Print & Apply</button>
     </div>
     <div class="h-list">
-      <h3>🕒 금일 인쇄 이력</h3>
+      <h3>🕒 Today's Print History</h3>
       <div class="h-body" id="hist"></div>
     </div>
   </div>
   <div class="col">
     <div class="label-prev">
       <div class="lp-h">A-MES PRODUCTION LABEL</div>
-      <div class="lp-it" id="lpItem">사이드 몰딩 도장</div>
+      <div class="lp-it" id="lpItem">Side Molding Paint</div>
       <div class="lp-cd" id="lpCode">MOLDING-05 · GRAY (RAL 7042)</div>
       <div class="lp-bar"></div>
       <div class="lp-fields">
         <span class="l">LOT</span><span class="v">LOT-2605-2103</span>
         <span class="l">QTY</span><span class="v" id="lpQty">54 EA</span>
         <span class="l">WO</span><span class="v">WO-2605-140</span>
-        <span class="l">DATE</span><span class="v" id="lpDate">2026-05-21</span>
+        <span class="l">DATE</span><span class="v" id="lpDate">05/21/2026</span>
         <span class="l">SHIFT</span><span class="v">DAY-A</span>
         <span class="l">LINE</span><span class="v">SAV-PNT-01</span>
       </div>
@@ -167,17 +167,17 @@ function pickT(el){
   el.classList.add('on');
 }
 function qty(d){q=Math.max(1,q+d);document.getElementById('qVal').textContent=q;document.getElementById('qBig').textContent=q;document.getElementById('lpQty').textContent=q+' EA';}
-function prev(){toast('info','라벨 미리보기','우측 미리보기로 라벨 디자인을 확인하세요. 인쇄 전 검토 권장.');}
+function prev(){toast('info','Label Preview','Check the preview on the right. Review before printing.');}
 function print(){
   HIST.unshift({t:new Date().toTimeString().slice(0,5),lot:'LOT-2605-2103',q:q});renderHist();
-  toast('ok','라벨 인쇄 완료 ✓','LOT-2605-2103 라벨 '+q+'매 인쇄 완료 — Zebra ZD421. 부착 후 다음 LOT으로 이동.');
+  toast('ok','Print Complete ✓','LOT-2605-2103 — '+q+' labels printed on Zebra ZD421. Apply and proceed to next LOT.');
 }
 function renderHist(){
   document.getElementById('hist').innerHTML=HIST.map(function(h){
-    return '<div class="hr"><span class="t">'+h.t+'</span><span class="l">'+h.lot+'</span><span class="q">'+h.q+' 매</span></div>';
+    return '<div class="hr"><span class="t">'+h.t+'</span><span class="l">'+h.lot+'</span><span class="q">'+h.q+' pcs</span></div>';
   }).join('');
 }
-function back(){toast('','뒤로 이동','POP 대시보드로 돌아갑니다.');}
+function back(){toast('','Back','Returning to POP Dashboard.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='info'?'ℹ ':type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';

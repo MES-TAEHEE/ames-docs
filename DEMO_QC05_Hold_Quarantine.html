@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>QC-05 Hold / Quarantine · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--qc:#8b5cf6;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
 .head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--qc);background:rgba(0,0,0,.3);}
 .head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#c4b5fd;}
 .head .tt{flex:1;}
@@ -59,31 +59,31 @@ tbody td{padding:8px 10px;border-bottom:1px dashed rgba(255,255,255,.06);}
 </head>
 <body>
 <div class="head">
-  <button class="back" onclick="back()">‹ 대시보드</button>
+  <button class="back" onclick="back()">‹ Dashboard</button>
   <div class="id">QC-05</div>
-  <div class="tt"><div class="en">Hold / Quarantine</div><div class="ko">보류·격리 — 부적합 LOT 격리 및 처분 결정</div></div>
+  <div class="tt"><div class="en">Hold / Quarantine</div><div class="ko">Hold / Quarantine — Quarantine Non-Conforming LOTs and Disposition</div></div>
   <span class="live"><span class="d"></span>HOLD</span>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#dc2626"><div class="lbl">보류 중 LOT</div><div class="val" id="kHold">5</div><div class="sub">건</div></div>
-    <div class="kpi" style="--c:#fbbf24"><div class="lbl">처분 검토</div><div class="val" id="kRev">2</div><div class="sub">건</div></div>
-    <div class="kpi" style="--c:#22c55e"><div class="lbl">금일 해제</div><div class="val">3</div><div class="sub">건</div></div>
-    <div class="kpi" style="--c:#fca5a5"><div class="lbl">총 격리 수량</div><div class="val">312</div><div class="sub">EA</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="lbl">LOTs ON HOLD</div><div class="val" id="kHold">5</div><div class="sub">LOTs</div></div>
+    <div class="kpi" style="--c:#fbbf24"><div class="lbl">UNDER REVIEW</div><div class="val" id="kRev">2</div><div class="sub">LOTs</div></div>
+    <div class="kpi" style="--c:#22c55e"><div class="lbl">RELEASED TODAY</div><div class="val">3</div><div class="sub">LOTs</div></div>
+    <div class="kpi" style="--c:#fca5a5"><div class="lbl">TOTAL QUARANTINED</div><div class="val">312</div><div class="sub">EA</div></div>
   </div>
   <div class="section">
-    <h3>🚧 격리 중 LOT (Quarantine)</h3>
+    <h3>🚧 Quarantined LOTs</h3>
     <div class="h-grid" id="holdList"></div>
   </div>
   <div class="section">
-    <h3>📋 처분 이력 (최근 종결)</h3>
+    <h3>📋 Recent Dispositions</h3>
     <table>
-      <thead><tr><th>처분일</th><th>LOT</th><th>품목</th><th>처분 결과</th><th>수량</th><th>승인자</th></tr></thead>
+      <thead><tr><th>Disposed</th><th>LOT</th><th>Item</th><th>Disposition</th><th>QTY</th><th>Approved By</th></tr></thead>
       <tbody>
-        <tr><td>2026-05-21 08:42</td><td class="mono" style="color:#fbbf24;">LOT-2605-2078</td><td>그릴 도장</td><td style="color:#22c55e;">✓ 특채 출하</td><td>24 EA</td><td>한지원</td></tr>
-        <tr><td>2026-05-20 16:18</td><td class="mono" style="color:#fbbf24;">LOT-2605-2055</td><td>도어트림 LH</td><td style="color:#dc2626;">✕ 폐기</td><td>18 EA</td><td>박품질</td></tr>
-        <tr><td>2026-05-20 14:05</td><td class="mono" style="color:#fbbf24;">LOT-2605-2042</td><td>프론트 범퍼</td><td style="color:#fbbf24;">♻ 재작업</td><td>12 EA</td><td>한지원</td></tr>
-        <tr><td>2026-05-19 17:30</td><td class="mono" style="color:#fbbf24;">RC-2605-0398</td><td>PP 수지</td><td style="color:#fbbf24;">↩ 반품</td><td>1,200 KG</td><td>서민재</td></tr>
+        <tr><td>05/21/2026 08:42</td><td class="mono" style="color:#fbbf24;">LOT-2605-2078</td><td>Grille Paint</td><td style="color:#22c55e;">✓ Use-As-Is Ship</td><td>24 EA</td><td>Sarah Williams</td></tr>
+        <tr><td>05/20/2026 16:18</td><td class="mono" style="color:#fbbf24;">LOT-2605-2055</td><td>Door Trim LH</td><td style="color:#dc2626;">✕ Scrap</td><td>18 EA</td><td>Karen Lee</td></tr>
+        <tr><td>05/20/2026 14:05</td><td class="mono" style="color:#fbbf24;">LOT-2605-2042</td><td>Front Bumper</td><td style="color:#fbbf24;">♻ Rework</td><td>12 EA</td><td>Sarah Williams</td></tr>
+        <tr><td>05/19/2026 17:30</td><td class="mono" style="color:#fbbf24;">RC-2605-0398</td><td>PP Resin</td><td style="color:#fbbf24;">↩ Return to Vendor</td><td>1,200 KG</td><td>Linda Garcia</td></tr>
       </tbody>
     </table>
   </div>
@@ -91,36 +91,36 @@ tbody td{padding:8px 10px;border-bottom:1px dashed rgba(255,255,255,.06);}
 <div class="toasts" id="toasts"></div>
 <script>
 var HOLDS=[
- {lot:'LOT-2605-2103',item:'사이드 몰딩 (그레이)',qty:'54 EA',sit:'2026-05-21 09:14',ncr:'NCR-2605-011',reason:'표면 스크래치 다발 발견 (3건/240) — 외관 검사 불합격',sev:'경미',st:'보류'},
- {lot:'LOT-2605-2104',item:'프론트 범퍼 (블랙)',qty:'48 EA',sit:'2026-05-21 08:51',ncr:'NCR-2605-010',reason:'색차 ΔE 1.4 — 한계치(1.0) 초과',sev:'중대',st:'처분 검토'},
- {lot:'RC-2605-0418',item:'PP 수지 (블랙)',qty:'2,400 KG',sit:'2026-05-20 14:22',ncr:'NCR-2605-008',reason:'용융지수 9.2 — 규격 10~14 미달, 공급사 불량',sev:'치명',st:'보류'},
- {lot:'LOT-2605-1985',item:'콘솔어퍼',qty:'180 EA',sit:'2026-05-20 11:18',ncr:'NCR-2605-009',reason:'클립 체결력 38N — 기준 40~55N 미달',sev:'중대',st:'처분 검토'},
- {lot:'LOT-2605-1972',item:'사이드 몰딩',qty:'60 EA',sit:'2026-05-20 09:30',ncr:'NCR-2605-007',reason:'사출 게이트 미제거 발견 (5건/60)',sev:'경미',st:'보류'}
+ {lot:'LOT-2605-2103',item:'Side Molding (Gray)',qty:'54 EA',sit:'05/21/2026 09:14',ncr:'NCR-2605-011',reason:'Multiple surface scratches found (3 of 240) — visual inspection failed',sev:'Minor',st:'Hold'},
+ {lot:'LOT-2605-2104',item:'Front Bumper (Black)',qty:'48 EA',sit:'05/21/2026 08:51',ncr:'NCR-2605-010',reason:'Color diff dE 1.4 — limit (1.0) exceeded',sev:'Major',st:'Under Review'},
+ {lot:'RC-2605-0418',item:'PP Resin (Black)',qty:'2,400 KG',sit:'05/20/2026 14:22',ncr:'NCR-2605-008',reason:'Melt Index 9.2 — Spec 10~14 not met, vendor defect',sev:'Critical',st:'Hold'},
+ {lot:'LOT-2605-1985',item:'Console Upper',qty:'180 EA',sit:'05/20/2026 11:18',ncr:'NCR-2605-009',reason:'Clip retention 38N — Spec 40~55N not met',sev:'Major',st:'Under Review'},
+ {lot:'LOT-2605-1972',item:'Side Molding',qty:'60 EA',sit:'05/20/2026 09:30',ncr:'NCR-2605-007',reason:'Gate not removed (5 of 60)',sev:'Minor',st:'Hold'}
 ];
 function render(){
-  var sevColor={'치명':'#dc2626','중대':'#fb923c','경미':'#fbbf24'};
+  var sevColor={'Critical':'#dc2626','Major':'#fb923c','Minor':'#fbbf24'};
   document.getElementById('holdList').innerHTML=HOLDS.map(function(h,i){
-    var stClass=h.st==='보류'?'':'rev';
+    var stClass=h.st==='Hold'?'':'rev';
     return '<div class="h-card" style="--c:'+sevColor[h.sev]+'">'+
       '<div class="lh"><div class="ic">🚧</div><div class="nm">'+h.item+'</div>'+
       '<span class="stg '+stClass+'">'+h.st+'</span></div>'+
       '<div class="lid">'+h.lot+'</div>'+
-      '<div class="meta">수량 <b>'+h.qty+'</b> · 격리 <b>'+h.sit.slice(5)+'</b> · NCR <b>'+h.ncr+'</b></div>'+
-      '<div class="reason"><b>격리 사유</b>'+h.reason+'</div>'+
+      '<div class="meta">QTY <b>'+h.qty+'</b> · Held <b>'+h.sit+'</b> · NCR <b>'+h.ncr+'</b></div>'+
+      '<div class="reason"><b>HOLD REASON</b>'+h.reason+'</div>'+
       '<div class="acts">'+
-      '<button class="ok" onclick="dispose('+i+',\'특채\')">✓ 특채</button>'+
-      '<button onclick="dispose('+i+',\'재작업\')">♻ 재작업</button>'+
-      '<button class="rj" onclick="dispose('+i+',\'폐기\')">✕ 폐기</button>'+
+      '<button class="ok" onclick="dispose('+i+',\'Use-As-Is\')">✓ Use-As-Is</button>'+
+      '<button onclick="dispose('+i+',\'Rework\')">♻ Rework</button>'+
+      '<button class="rj" onclick="dispose('+i+',\'Scrap\')">✕ Scrap</button>'+
       '</div></div>';
   }).join('');
 }
 function dispose(i,act){
   var h=HOLDS[i];
   HOLDS.splice(i,1);render();
-  var sym={'특채':'ok','재작업':'','폐기':'err'}[act];
-  toast(sym,'처분 완료 ✓',h.lot+' — '+act+' 처리. NCR '+h.ncr+' 자동 종결됨.');
+  var sym={'Use-As-Is':'ok','Rework':'','Scrap':'err'}[act];
+  toast(sym,'Disposition Recorded ✓',h.lot+' — '+act+' applied. NCR '+h.ncr+' auto-closed.');
 }
-function back(){toast('','뒤로 이동','대시보드로 돌아갑니다.');}
+function back(){toast('','Back','Returning to Dashboard.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';

@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>MD-02 BOM · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#d97706;--pp-dk:#b45309;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#2b1a02,#3d2606);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fbbf24;line-height:.9;}
 .sh-tt{flex:1;}
@@ -81,56 +81,56 @@ tfoot td{padding:9px 9px;background:#fffbeb;font-weight:800;border-top:2px solid
 <body>
 <div class="scr-head">
   <div class="sh-id">MD-02</div>
-  <div class="sh-tt"><div class="sh-en">Bill of Materials</div><div class="sh-ko">BOM — 제품별 자재 구성 명세</div></div>
+  <div class="sh-tt"><div class="sh-en">Bill of Materials</div><div class="sh-ko">BOM — Component Structure by Product</div></div>
   <span class="sh-tag">/md/bom</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>검색 Search</label>
-    <input id="fKw" placeholder="제품명·코드" oninput="renderParents()" style="width:170px;"></div>
-  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div class="fld"><label>Search</label>
+    <input id="fKw" placeholder="Product name/code" oninput="renderParents()" style="width:170px;"></div>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>
   <div style="margin-left:auto;display:flex;gap:8px;">
-    <button class="btn btn-p" onclick="openAdd()">＋ 구성품 추가</button>
+    <button class="btn btn-p" onclick="openAdd()">＋ Add Component</button>
     <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
   </div>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#d97706"><div class="kv" id="kProd">0</div><div class="kl">BOM 등록 제품 · Products</div></div>
-    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kComp">0</div><div class="kl">총 구성품 · Components</div></div>
-    <div class="kpi" style="--c:#8b5cf6"><div class="kv" id="kAvg">0</div><div class="kl">제품당 평균 부품 수</div></div>
-    <div class="kpi" style="--c:#16a34a"><div class="kv" id="kCost">0</div><div class="kl">선택 제품 자재비 · 원</div></div>
+    <div class="kpi" style="--c:#d97706"><div class="kv" id="kProd">0</div><div class="kl">BOM Products</div></div>
+    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kComp">0</div><div class="kl">Total Components</div></div>
+    <div class="kpi" style="--c:#8b5cf6"><div class="kv" id="kAvg">0</div><div class="kl">Avg Parts / Product</div></div>
+    <div class="kpi" style="--c:#16a34a"><div class="kv" id="kCost">0</div><div class="kl">Selected Product Material Cost · USD</div></div>
   </div>
   <div class="grid2">
     <div class="card">
-      <div class="card-t">🏷 제품 목록</div>
+      <div class="card-t">🏷 Product List</div>
       <div id="parents"></div>
     </div>
-    <div class="card" id="bomCard"><div class="empty">← 좌측에서 제품을 선택하세요.</div></div>
+    <div class="card" id="bomCard"><div class="empty">← Select a product on the left.</div></div>
   </div>
 </div>
 
 <div class="ov" id="ovAdd">
   <div class="modal">
-    <div class="modal-h"><span class="mt">BOM 구성품 추가</span><span class="mx" onclick="closeOv('ovAdd')">✕</span></div>
+    <div class="modal-h"><span class="mt">Add BOM Component</span><span class="mx" onclick="closeOv('ovAdd')">✕</span></div>
     <div class="modal-b">
       <div id="addInfo" style="margin-bottom:12px;font-size:12px;"></div>
-      <div class="ff"><label>구성품 <span class="req">*</span></label>
+      <div class="ff"><label>Component <span class="req">*</span></label>
         <select id="aChild"></select></div>
       <div class="ff2">
-        <div class="ff"><label>소요량 <span class="req">*</span></label><input type="number" id="aQty" value="1" min="0.01" step="0.01"></div>
-        <div class="ff"><label>단위</label>
-          <select id="aUom"><option>EA</option><option>SET</option><option>KG</option><option>M</option><option>L</option></select></div>
+        <div class="ff"><label>Quantity <span class="req">*</span></label><input type="number" id="aQty" value="1" min="0.01" step="0.01"></div>
+        <div class="ff"><label>UOM</label>
+          <select id="aUom"><option>EA</option><option>SET</option><option>LB</option><option>FT</option><option>GAL</option></select></div>
       </div>
       <div class="ff2">
-        <div class="ff"><label>로스율 (%)</label><input type="number" id="aLoss" value="2" min="0" step="0.5"></div>
-        <div class="ff"><label>레벨</label>
+        <div class="ff"><label>Loss Rate (%)</label><input type="number" id="aLoss" value="2" min="0" step="0.5"></div>
+        <div class="ff"><label>Level</label>
           <select id="aLevel"><option>1</option><option>2</option><option>3</option></select></div>
       </div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovAdd')">취소</button>
-      <button class="btn btn-p" onclick="addComp()">＋ 추가</button>
+      <button class="btn btn-s" onclick="closeOv('ovAdd')">Cancel</button>
+      <button class="btn btn-p" onclick="addComp()">＋ Add</button>
     </div>
   </div>
 </div>
@@ -138,34 +138,34 @@ tfoot td{padding:9px 9px;background:#fffbeb;font-weight:800;border-top:2px solid
 
 <script>
 var COMPS=[
- {code:'SF-TRIM-CORE',nm:'도어트림 코어',type:2},{code:'RM-PP-BLK',nm:'PP 수지 (블랙)',type:2},
- {code:'RM-ABS-NAT',nm:'ABS 수지',type:2},{code:'RM-PNT-BC',nm:'베이스코트 도료',type:3},
- {code:'AM-BOLT-M8',nm:'볼트 M8×20',type:3},{code:'AM-CLIP-01',nm:'고정 클립',type:3},
- {code:'AM-FELT-01',nm:'흡음 펠트',type:3},{code:'RM-CHROME',nm:'크롬 도금재',type:3}
+ {code:'SF-TRIM-CORE',nm:'Door Trim Core',type:2},{code:'RM-PP-BLK',nm:'PP Resin (Black)',type:2},
+ {code:'RM-ABS-NAT',nm:'ABS Resin',type:2},{code:'RM-PNT-BC',nm:'Base Coat Paint',type:3},
+ {code:'AM-BOLT-M8',nm:'Bolt M8×20',type:3},{code:'AM-CLIP-01',nm:'Retention Clip',type:3},
+ {code:'AM-FELT-01',nm:'Acoustic Felt',type:3},{code:'RM-CHROME',nm:'Chrome Plating Mat.',type:3}
 ];
-var PRICE={'SF-TRIM-CORE':4200,'RM-PP-BLK':2400,'RM-ABS-NAT':3100,'RM-PNT-BC':12000,
- 'AM-BOLT-M8':50,'AM-CLIP-01':120,'AM-FELT-01':800,'RM-CHROME':5400};
+var PRICE={'SF-TRIM-CORE':3.50,'RM-PP-BLK':2.00,'RM-ABS-NAT':2.60,'RM-PNT-BC':45.00,
+ 'AM-BOLT-M8':0.04,'AM-CLIP-01':0.10,'AM-FELT-01':0.65,'RM-CHROME':9.80};
 var BOM=[
- {code:'TRIM-LH-001',nm:'도어트림 LH',items:[
+ {code:'TRIM-LH-001',nm:'Door Trim LH',items:[
    {child:'SF-TRIM-CORE',qty:1,uom:'EA',loss:1,lv:1},
-   {child:'RM-PNT-BC',qty:0.12,uom:'L',loss:3,lv:2},
+   {child:'RM-PNT-BC',qty:0.032,uom:'GAL',loss:3,lv:2},
    {child:'AM-CLIP-01',qty:8,uom:'EA',loss:2,lv:2},
    {child:'AM-FELT-01',qty:1,uom:'EA',loss:1,lv:2}]},
- {code:'TRIM-RH-001',nm:'도어트림 RH',items:[
+ {code:'TRIM-RH-001',nm:'Door Trim RH',items:[
    {child:'SF-TRIM-CORE',qty:1,uom:'EA',loss:1,lv:1},
-   {child:'RM-PNT-BC',qty:0.12,uom:'L',loss:3,lv:2},
+   {child:'RM-PNT-BC',qty:0.032,uom:'GAL',loss:3,lv:2},
    {child:'AM-CLIP-01',qty:8,uom:'EA',loss:2,lv:2}]},
- {code:'CONS-UP-001',nm:'콘솔어퍼',items:[
-   {child:'RM-ABS-NAT',qty:0.85,uom:'KG',loss:3,lv:1},
-   {child:'RM-PNT-BC',qty:0.08,uom:'L',loss:3,lv:2},
+ {code:'CONS-UP-001',nm:'Console Upper',items:[
+   {child:'RM-ABS-NAT',qty:1.87,uom:'LB',loss:3,lv:1},
+   {child:'RM-PNT-BC',qty:0.021,uom:'GAL',loss:3,lv:2},
    {child:'AM-BOLT-M8',qty:4,uom:'EA',loss:2,lv:2}]},
- {code:'GRILLE-02',nm:'라디에이터 그릴',items:[
-   {child:'RM-ABS-NAT',qty:0.6,uom:'KG',loss:3,lv:1},
-   {child:'RM-CHROME',qty:0.2,uom:'KG',loss:5,lv:2},
+ {code:'GRILLE-02',nm:'Radiator Grille',items:[
+   {child:'RM-ABS-NAT',qty:1.32,uom:'LB',loss:3,lv:1},
+   {child:'RM-CHROME',qty:0.44,uom:'LB',loss:5,lv:2},
    {child:'AM-CLIP-01',qty:6,uom:'EA',loss:2,lv:2}]},
- {code:'BUMPER-01',nm:'프론트 범퍼',items:[
-   {child:'RM-PP-BLK',qty:2.4,uom:'KG',loss:3,lv:1},
-   {child:'RM-PNT-BC',qty:0.18,uom:'L',loss:4,lv:2},
+ {code:'BUMPER-01',nm:'Front Bumper',items:[
+   {child:'RM-PP-BLK',qty:5.29,uom:'LB',loss:3,lv:1},
+   {child:'RM-PNT-BC',qty:0.048,uom:'GAL',loss:4,lv:2},
    {child:'AM-BOLT-M8',qty:6,uom:'EA',loss:2,lv:2}]}
 ];
 var selCode=null;
@@ -173,6 +173,7 @@ function compNm(c){var x=COMPS.filter(function(o){return o.code===c;})[0];return
 function compType(c){var x=COMPS.filter(function(o){return o.code===c;})[0];return x?x.type:3;}
 function byCode(c){return BOM.filter(function(b){return b.code===c;})[0];}
 function bomCost(b){return b.items.reduce(function(s,i){return s+(PRICE[i.child]||0)*i.qty*(1+i.loss/100);},0);}
+function fmtUsd(n){return '$'+n.toFixed(2);}
 function apply(){
   document.getElementById('kProd').textContent=BOM.length;
   var tc=BOM.reduce(function(s,b){return s+b.items.length;},0);
@@ -186,37 +187,37 @@ function renderParents(){
   document.getElementById('parents').innerHTML=v.map(function(b){
     return '<div class="pi'+(selCode===b.code?' on':'')+'" onclick="pick(\''+b.code+'\')">'+
       '<div class="pi-nm">'+b.nm+'</div><div class="pi-cd">'+b.code+'</div>'+
-      '<div class="pi-cnt">구성품 '+b.items.length+'종 · 자재비 '+Math.round(bomCost(b)).toLocaleString()+'원</div></div>';
-  }).join('')||'<div class="empty">검색 결과 없음</div>';
+      '<div class="pi-cnt">'+b.items.length+' components · Cost '+fmtUsd(bomCost(b))+'</div></div>';
+  }).join('')||'<div class="empty">No results</div>';
 }
 function pick(c){selCode=c;renderParents();renderBom();}
 function renderBom(){
   var b=byCode(selCode);
-  if(!b){document.getElementById('bomCard').innerHTML='<div class="empty">← 좌측에서 제품을 선택하세요.</div>';return;}
-  document.getElementById('kCost').textContent=Math.round(bomCost(b)).toLocaleString();
-  var h='<div class="card-t">🧬 BOM 구성 — '+b.nm+'</div>'+
+  if(!b){document.getElementById('bomCard').innerHTML='<div class="empty">← Select a product on the left.</div>';return;}
+  document.getElementById('kCost').textContent=fmtUsd(bomCost(b));
+  var h='<div class="card-t">🧬 BOM Structure — '+b.nm+'</div>'+
     '<div class="bom-head"><div><div class="bom-nm">'+b.nm+'</div><div class="bom-cd">'+b.code+'</div></div></div>'+
-    '<table><thead><tr><th>Lv</th><th>구성품 코드</th><th>구성품명</th>'+
-    '<th class="c">소요량</th><th class="c">로스</th><th class="c">단가</th><th class="c">소요금액</th><th></th></tr></thead><tbody>';
+    '<table><thead><tr><th>Lv</th><th>Component Code</th><th>Component Name</th>'+
+    '<th class="c">Quantity</th><th class="c">Loss</th><th class="c">Unit Price</th><th class="c">Amount</th><th></th></tr></thead><tbody>';
   b.items.forEach(function(it,i){
     var amt=(PRICE[it.child]||0)*it.qty*(1+it.loss/100);
     h+='<tr><td><span class="lv">L'+it.lv+'</span></td>'+
       '<td class="mono" style="font-weight:700;">'+it.child+'</td>'+
-      '<td>'+compNm(it.child)+' <span class="tg t'+compType(it.child)+'">'+(compType(it.child)===1?'완제품':compType(it.child)===2?'반제품/원자재':'부자재')+'</span></td>'+
+      '<td>'+compNm(it.child)+' <span class="tg t'+compType(it.child)+'">'+(compType(it.child)===1?'Finished':compType(it.child)===2?'WIP/Raw':'Sub Mat.')+'</span></td>'+
       '<td class="c mono" style="text-align:center;">'+it.qty+' '+it.uom+'</td>'+
       '<td class="c mono" style="text-align:center;">'+it.loss+'%</td>'+
-      '<td class="c mono" style="text-align:center;">'+(PRICE[it.child]||0).toLocaleString()+'</td>'+
-      '<td class="c mono" style="text-align:center;font-weight:700;">'+Math.round(amt).toLocaleString()+'</td>'+
+      '<td class="c mono" style="text-align:center;">'+fmtUsd(PRICE[it.child]||0)+'</td>'+
+      '<td class="c mono" style="text-align:center;font-weight:700;">'+fmtUsd(amt)+'</td>'+
       '<td><span class="del" onclick="delComp('+i+')">✕</span></td></tr>';
   });
-  h+='</tbody><tfoot><tr><td colspan="6">총 자재비 (Roll-up)</td>'+
-    '<td style="text-align:center;">'+Math.round(bomCost(b)).toLocaleString()+'</td><td></td></tr></tfoot></table>';
+  h+='</tbody><tfoot><tr><td colspan="6">Total Material Cost (Roll-up)</td>'+
+    '<td style="text-align:center;">'+fmtUsd(bomCost(b))+'</td><td></td></tr></tfoot></table>';
   document.getElementById('bomCard').innerHTML=h;
 }
 function openAdd(){
-  if(!selCode){toast('info','제품 선택 필요','먼저 좌측에서 제품을 선택하세요.');return;}
+  if(!selCode){toast('info','Select Product','Please select a product on the left first.');return;}
   var b=byCode(selCode);
-  document.getElementById('addInfo').innerHTML='대상 제품: <b>'+b.nm+'</b> ('+b.code+')';
+  document.getElementById('addInfo').innerHTML='Target Product: <b>'+b.nm+'</b> ('+b.code+')';
   document.getElementById('aChild').innerHTML=COMPS.map(function(c){
     return '<option value="'+c.code+'">'+c.code+' · '+c.nm+'</option>';}).join('');
   document.getElementById('aQty').value=1;document.getElementById('aLoss').value=2;
@@ -226,34 +227,34 @@ function addComp(){
   var b=byCode(selCode);
   var child=document.getElementById('aChild').value;
   var qty=parseFloat(document.getElementById('aQty').value);
-  if(isNaN(qty)||qty<=0){toast('err','입력 오류','소요량을 확인하세요.');return;}
-  if(b.items.some(function(i){return i.child===child;})){toast('err','중복','이미 등록된 구성품입니다.');return;}
+  if(isNaN(qty)||qty<=0){toast('err','Input Error','Please check the quantity.');return;}
+  if(b.items.some(function(i){return i.child===child;})){toast('err','Duplicate','Component is already registered.');return;}
   b.items.push({child:child,qty:qty,uom:document.getElementById('aUom').value,
     loss:parseFloat(document.getElementById('aLoss').value)||0,lv:parseInt(document.getElementById('aLevel').value,10)});
   closeOv('ovAdd');apply();renderBom();
-  toast('','구성품 추가',compNm(child)+' 부품이 BOM에 추가되었습니다.');
+  toast('','Component Added',compNm(child)+' has been added to BOM.');
 }
 function delComp(i){
   var b=byCode(selCode);var nm=compNm(b.items[i].child);
   b.items.splice(i,1);apply();renderBom();
-  toast('info','구성품 삭제',nm+' 부품이 BOM에서 제거되었습니다.');
+  toast('info','Component Removed',nm+' has been removed from BOM.');
 }
 function exportCsv(){
   var csv='Product,ProductName,Level,Component,ComponentName,Qty,UOM,Loss%,UnitPrice,Amount\n';
   BOM.forEach(function(b){
     b.items.forEach(function(it){
       var amt=(PRICE[it.child]||0)*it.qty*(1+it.loss/100);
-      csv+=[b.code,b.nm,'L'+it.lv,it.child,compNm(it.child),it.qty,it.uom,it.loss,PRICE[it.child]||0,Math.round(amt)].join(',')+'\n';
+      csv+=[b.code,b.nm,'L'+it.lv,it.child,compNm(it.child),it.qty,it.uom,it.loss,(PRICE[it.child]||0).toFixed(2),amt.toFixed(2)].join(',')+'\n';
     });
   });
   var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='MD_BOM_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','전체 BOM 명세를 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported full BOM detail to CSV.');
 }
 function resetAll(){document.getElementById('fKw').value='';renderParents();
-  toast('info','초기화','검색 조건을 초기화했습니다.');}
+  toast('info','Reset','Search filters reset.');}
 function openOv(id){document.getElementById(id).classList.add('on');}
 function closeOv(id){document.getElementById(id).classList.remove('on');}
 function toast(type,title,body){

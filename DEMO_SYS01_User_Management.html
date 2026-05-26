@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>SYS-01 User Management · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -87,92 +87,92 @@ tbody tr.sel td{background:#ecfdf5;}
 <body>
 <div class="scr-head">
   <div class="sh-id">SYS-01</div>
-  <div class="sh-tt"><div class="sh-en">User Management</div><div class="sh-ko">사용자 관리 — 계정 등록·역할·상태 관리</div></div>
+  <div class="sh-tt"><div class="sh-en">User Management</div><div class="sh-ko">Account registration, roles &amp; status — SAV Detroit, MI</div></div>
   <span class="sh-tag">/sys/users</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>부서 Dept</label>
-    <select id="fDept" onchange="apply()"><option value="">전체 All</option><option>생산팀</option><option>품질팀</option><option>설비팀</option><option>물류팀</option><option>경영지원</option></select></div>
-  <div class="fld"><label>역할 Role</label>
-    <select id="fRole" onchange="apply()"><option value="">전체</option><option value="adm">시스템관리자</option><option value="mgr">관리자</option><option value="opr">작업자</option><option value="view">조회전용</option></select></div>
-  <div class="fld"><label>상태 Status</label>
-    <select id="fStat" onchange="apply()"><option value="">전체</option><option value="on">활성</option><option value="off">비활성</option><option value="lock">잠금</option></select></div>
-  <div class="fld"><label>검색 Search</label>
-    <input id="fKw" placeholder="이름·계정" oninput="apply()" style="width:130px;"></div>
-  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div class="fld"><label>Dept</label>
+    <select id="fDept" onchange="apply()"><option value="">All</option><option>Production Operations</option><option>Quality Assurance</option><option>Maintenance</option><option>Logistics</option><option>Admin / Finance</option></select></div>
+  <div class="fld"><label>Role</label>
+    <select id="fRole" onchange="apply()"><option value="">All</option><option value="adm">System Administrator</option><option value="mgr">Manager</option><option value="opr">Operator</option><option value="view">View-Only</option></select></div>
+  <div class="fld"><label>Status</label>
+    <select id="fStat" onchange="apply()"><option value="">All</option><option value="on">Active</option><option value="off">Inactive</option><option value="lock">Locked</option></select></div>
+  <div class="fld"><label>Search</label>
+    <input id="fKw" placeholder="Name / Username" oninput="apply()" style="width:140px;"></div>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>
   <div style="margin-left:auto;display:flex;gap:8px;">
-    <button class="btn btn-p" onclick="openNew()">＋ 사용자 등록</button>
+    <button class="btn btn-p" onclick="openNew()">＋ New User</button>
     <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
   </div>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">총 사용자 · Users</div></div>
-    <div class="kpi" style="--c:#10b981"><div class="kv" id="kOn">0</div><div class="kl">활성 계정 · Active</div></div>
-    <div class="kpi" style="--c:#9ca3af"><div class="kv" id="kOff">0</div><div class="kl">비활성 · Inactive</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kLock">0</div><div class="kl">잠금 계정 · Locked</div></div>
-    <div class="kpi" style="--c:#8b5cf6"><div class="kv" id="kAdm">0</div><div class="kl">관리자 권한 · Admin</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">Total Users</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kOn">0</div><div class="kl">Active Accounts</div></div>
+    <div class="kpi" style="--c:#9ca3af"><div class="kv" id="kOff">0</div><div class="kl">Inactive</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kLock">0</div><div class="kl">Locked Accounts</div></div>
+    <div class="kpi" style="--c:#8b5cf6"><div class="kv" id="kAdm">0</div><div class="kl">Admin / Manager</div></div>
   </div>
   <div class="grid2">
     <div class="card">
-      <div class="card-t">👥 사용자 목록 — <span id="listSub" style="font-weight:400;color:#656d76;">0명</span></div>
+      <div class="card-t">👥 User List — <span id="listSub" style="font-weight:400;color:#656d76;">0 users</span></div>
       <table>
-        <thead><tr><th>사용자</th><th>부서</th><th>역할</th><th>최근 접속</th><th>상태</th></tr></thead>
+        <thead><tr><th>User</th><th>Department</th><th>Role</th><th>Last Login</th><th>Status</th></tr></thead>
         <tbody id="tbody"></tbody>
       </table>
-      <div class="empty" id="empty" style="display:none;">조건에 맞는 사용자가 없습니다.</div>
+      <div class="empty" id="empty" style="display:none;">No users match the current filter.</div>
     </div>
-    <div class="card" id="detail"><div class="empty">← 좌측 목록에서 사용자를 선택하세요.</div></div>
+    <div class="card" id="detail"><div class="empty">← Select a user from the list to view details.</div></div>
   </div>
 </div>
 
 <!-- new/edit user modal -->
 <div class="ov" id="ovUser">
   <div class="modal">
-    <div class="modal-h"><span class="mt" id="umTitle">사용자 등록</span><span class="mx" onclick="closeOv('ovUser')">✕</span></div>
+    <div class="modal-h"><span class="mt" id="umTitle">New User</span><span class="mx" onclick="closeOv('ovUser')">✕</span></div>
     <div class="modal-b">
       <div class="ff2">
-        <div class="ff"><label>이름 <span class="req">*</span></label><input id="uNm" placeholder="홍길동"></div>
-        <div class="ff"><label>계정(ID) <span class="req">*</span></label><input id="uId" placeholder="hong.gd"></div>
+        <div class="ff"><label>Full Name <span class="req">*</span></label><input id="uNm" placeholder="John Smith"></div>
+        <div class="ff"><label>Username (ID) <span class="req">*</span></label><input id="uId" placeholder="jsmith"></div>
       </div>
       <div class="ff2">
-        <div class="ff"><label>부서 <span class="req">*</span></label>
-          <select id="uDept"><option>생산팀</option><option>품질팀</option><option>설비팀</option><option>물류팀</option><option>경영지원</option></select></div>
-        <div class="ff"><label>직급</label>
-          <select id="uPos"><option>사원</option><option>주임</option><option>대리</option><option>과장</option><option>차장</option><option>부장</option></select></div>
+        <div class="ff"><label>Department <span class="req">*</span></label>
+          <select id="uDept"><option>Production Operations</option><option>Quality Assurance</option><option>Maintenance</option><option>Logistics</option><option>Admin / Finance</option></select></div>
+        <div class="ff"><label>Title</label>
+          <select id="uPos"><option>Associate</option><option>Lead</option><option>Supervisor</option><option>Manager</option><option>Sr. Manager</option><option>Director</option></select></div>
       </div>
       <div class="ff2">
-        <div class="ff"><label>역할 <span class="req">*</span></label>
-          <select id="uRole"><option value="opr">작업자</option><option value="mgr">관리자</option><option value="adm">시스템관리자</option><option value="view">조회전용</option></select></div>
-        <div class="ff"><label>상태</label>
-          <select id="uStat"><option value="on">활성</option><option value="off">비활성</option></select></div>
+        <div class="ff"><label>Role <span class="req">*</span></label>
+          <select id="uRole"><option value="opr">Operator</option><option value="mgr">Manager</option><option value="adm">System Administrator</option><option value="view">View-Only</option></select></div>
+        <div class="ff"><label>Status</label>
+          <select id="uStat"><option value="on">Active</option><option value="off">Inactive</option></select></div>
       </div>
-      <div class="ff"><label>이메일</label><input id="uEmail" placeholder="hong.gd@seoyon.com"></div>
+      <div class="ff"><label>Email</label><input id="uEmail" placeholder="jsmith@seyonehwa.us"></div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovUser')">취소</button>
-      <button class="btn btn-p" id="umSave" onclick="saveUser()">＋ 등록</button>
+      <button class="btn btn-s" onclick="closeOv('ovUser')">Cancel</button>
+      <button class="btn btn-p" id="umSave" onclick="saveUser()">＋ Create</button>
     </div>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 
 <script>
-var ROLE={adm:{ko:'시스템관리자',cls:'role-adm'},mgr:{ko:'관리자',cls:'role-mgr'},opr:{ko:'작업자',cls:'role-opr'},view:{ko:'조회전용',cls:'role-view'}};
-var ST={on:{ko:'활성',cls:'st-on'},off:{ko:'비활성',cls:'st-off'},lock:{ko:'잠금',cls:'st-lock'}};
+var ROLE={adm:{ko:'System Administrator',cls:'role-adm'},mgr:{ko:'Manager',cls:'role-mgr'},opr:{ko:'Operator',cls:'role-opr'},view:{ko:'View-Only',cls:'role-view'}};
+var ST={on:{ko:'Active',cls:'st-on'},off:{ko:'Inactive',cls:'st-off'},lock:{ko:'Locked',cls:'st-lock'}};
 var AVC=['#059669','#2563eb','#f59e0b','#8b5cf6','#0891b2','#dc2626','#65a30d','#ec4899'];
 var USERS=[
- {id:'admin',nm:'시스템관리자',dept:'경영지원',pos:'부장',role:'adm',stat:'on',email:'admin@seoyon.com',last:'2026-05-21 08:12',created:'2024-01-02'},
- {id:'kim.sh',nm:'김성호',dept:'생산팀',pos:'과장',role:'mgr',stat:'on',email:'kim.sh@seoyon.com',last:'2026-05-21 07:48',created:'2024-03-15'},
- {id:'lee.jm',nm:'이재민',dept:'생산팀',pos:'대리',role:'opr',stat:'on',email:'lee.jm@seoyon.com',last:'2026-05-21 06:30',created:'2024-06-01'},
- {id:'park.jn',nm:'박주니어',dept:'생산팀',pos:'사원',role:'opr',stat:'on',email:'park.jn@seoyon.com',last:'2026-05-20 22:05',created:'2025-02-10'},
- {id:'han.jw',nm:'한지원',dept:'품질팀',pos:'과장',role:'mgr',stat:'on',email:'han.jw@seoyon.com',last:'2026-05-21 08:00',created:'2024-04-22'},
- {id:'seo.mj',nm:'서민재',dept:'품질팀',pos:'주임',role:'opr',stat:'on',email:'seo.mj@seoyon.com',last:'2026-05-20 18:40',created:'2024-09-03'},
- {id:'choi.wj',nm:'최우진',dept:'설비팀',pos:'대리',role:'mgr',stat:'lock',email:'choi.wj@seoyon.com',last:'2026-05-12 14:20',created:'2024-05-18'},
- {id:'jung.eq',nm:'정비반',dept:'설비팀',pos:'사원',role:'opr',stat:'on',email:'jung.eq@seoyon.com',last:'2026-05-21 07:10',created:'2024-07-30'},
- {id:'oh.sh',nm:'오세훈',dept:'물류팀',pos:'대리',role:'opr',stat:'off',email:'oh.sh@seoyon.com',last:'2026-04-28 17:00',created:'2024-08-12'},
- {id:'ceo.view',nm:'경영진 조회',dept:'경영지원',pos:'부장',role:'view',stat:'on',email:'ceo@seoyon.com',last:'2026-05-21 09:00',created:'2024-01-15'}
+ {id:'admin',nm:'System Administrator',dept:'Admin / Finance',pos:'Director',role:'adm',stat:'on',email:'admin@seyonehwa.us',last:'05/21/2026 08:12',created:'01/02/2024'},
+ {id:'jpark',nm:'Jennifer Park',dept:'Production Operations',pos:'Manager',role:'mgr',stat:'on',email:'jpark@seyonehwa.us',last:'05/21/2026 07:48',created:'03/15/2024'},
+ {id:'bthompson',nm:'Brian Thompson',dept:'Production Operations',pos:'Sr. Manager',role:'mgr',stat:'on',email:'bthompson@seyonehwa.us',last:'05/21/2026 06:30',created:'06/01/2024'},
+ {id:'mjohnson',nm:'Mike Johnson',dept:'Production Operations',pos:'Associate',role:'opr',stat:'on',email:'mjohnson@seyonehwa.us',last:'05/20/2026 22:05',created:'02/10/2025'},
+ {id:'swilliams',nm:'Sarah Williams',dept:'Quality Assurance',pos:'Supervisor',role:'mgr',stat:'on',email:'swilliams@seyonehwa.us',last:'05/21/2026 08:00',created:'04/22/2024'},
+ {id:'kbrown',nm:'Karen Brown',dept:'Quality Assurance',pos:'Lead',role:'opr',stat:'on',email:'kbrown@seyonehwa.us',last:'05/20/2026 18:40',created:'09/03/2024'},
+ {id:'rdavis',nm:'Robert Davis',dept:'Maintenance',pos:'Lead',role:'mgr',stat:'lock',email:'rdavis@seyonehwa.us',last:'05/12/2026 14:20',created:'05/18/2024'},
+ {id:'tmartin',nm:'Tom Martin',dept:'Maintenance',pos:'Associate',role:'opr',stat:'on',email:'tmartin@seyonehwa.us',last:'05/21/2026 07:10',created:'07/30/2024'},
+ {id:'dchen',nm:'David Chen',dept:'Logistics',pos:'Lead',role:'opr',stat:'off',email:'dchen@seyonehwa.us',last:'04/28/2026 17:00',created:'08/12/2024'},
+ {id:'execview',nm:'Executive View',dept:'Admin / Finance',pos:'Director',role:'view',stat:'on',email:'exec@seyonehwa.us',last:'05/21/2026 09:00',created:'01/15/2024'}
 ];
 var selId=null,editId=null;
 function avColor(id){var s=0;for(var i=0;i<id.length;i++)s+=id.charCodeAt(i);return AVC[s%AVC.length];}
@@ -202,38 +202,38 @@ function renderList(){
         '<div><div style="font-weight:700;">'+u.nm+'</div><div class="mono" style="color:#656d76;">'+u.id+'</div></div></div></td>'+
       '<td>'+u.dept+'</td>'+
       '<td><span class="role '+ROLE[u.role].cls+'">'+ROLE[u.role].ko+'</span></td>'+
-      '<td class="mono">'+u.last.slice(5)+'</td>'+
+      '<td class="mono">'+u.last+'</td>'+
       '<td><span class="st '+ST[u.stat].cls+'"><span class="dot"></span>'+ST[u.stat].ko+'</span></td></tr>';
   });
   document.getElementById('tbody').innerHTML=h;
   document.getElementById('empty').style.display=v.length?'none':'block';
-  document.getElementById('listSub').textContent=v.length+'명';
+  document.getElementById('listSub').textContent=v.length+' users';
 }
 function byId(id){return USERS.filter(function(u){return u.id===id;})[0];}
 function pick(id){selId=id;renderList();renderDetail();}
 function renderDetail(){
   var u=byId(selId);
-  if(!u){document.getElementById('detail').innerHTML='<div class="empty">← 좌측 목록에서 사용자를 선택하세요.</div>';return;}
-  var specs=[['계정 ID',u.id],['부서 / 직급',u.dept+' '+u.pos],['역할','<span class="role '+ROLE[u.role].cls+'">'+ROLE[u.role].ko+'</span>'],
-    ['이메일',u.email],['최근 접속',u.last],['계정 생성일',u.created]];
-  var h='<div class="card-t">👤 사용자 상세</div>'+
+  if(!u){document.getElementById('detail').innerHTML='<div class="empty">← Select a user from the list to view details.</div>';return;}
+  var specs=[['Username',u.id],['Department / Title',u.dept+' · '+u.pos],['Role','<span class="role '+ROLE[u.role].cls+'">'+ROLE[u.role].ko+'</span>'],
+    ['Email',u.email],['Last Login',u.last],['Created',u.created]];
+  var h='<div class="card-t">👤 User Details</div>'+
     '<div class="ud-head"><div class="av" style="background:'+avColor(u.id)+'">'+u.nm.charAt(0)+'</div>'+
       '<div style="flex:1;"><div class="ud-nm">'+u.nm+'</div><div class="ud-id">'+u.id+'</div>'+
       '<div style="margin-top:6px;"><span class="st '+ST[u.stat].cls+'"><span class="dot"></span>'+ST[u.stat].ko+'</span></div></div></div>'+
     '<div class="specs">'+specs.map(function(s){
       return '<div class="srow"><span class="sk">'+s[0]+'</span><span class="sv">'+s[1]+'</span></div>';}).join('')+'</div>'+
     '<div class="acts">'+
-      '<button class="btn btn-s btn-sm" onclick="editUser()">✎ 정보 수정</button>'+
+      '<button class="btn btn-s btn-sm" onclick="editUser()">✎ Edit</button>'+
       (u.stat==='lock'
-        ?'<button class="btn btn-p btn-sm" onclick="unlock()">🔓 잠금 해제</button>'
-        :'<button class="btn btn-s btn-sm" onclick="toggleStat()">'+(u.stat==='on'?'⏸ 비활성화':'▶ 활성화')+'</button>')+
-      '<button class="btn btn-s btn-sm" onclick="resetPw()">🔑 비밀번호 초기화</button></div>';
+        ?'<button class="btn btn-p btn-sm" onclick="unlock()">🔓 Unlock</button>'
+        :'<button class="btn btn-s btn-sm" onclick="toggleStat()">'+(u.stat==='on'?'⏸ Deactivate':'▶ Activate')+'</button>')+
+      '<button class="btn btn-s btn-sm" onclick="resetPw()">🔑 Reset Password</button></div>';
   document.getElementById('detail').innerHTML=h;
 }
 function openNew(){
   editId=null;
-  document.getElementById('umTitle').textContent='사용자 등록';
-  document.getElementById('umSave').textContent='＋ 등록';
+  document.getElementById('umTitle').textContent='New User';
+  document.getElementById('umSave').textContent='＋ Create';
   ['uNm','uId','uEmail'].forEach(function(f){document.getElementById(f).value='';});
   document.getElementById('uDept').selectedIndex=0;document.getElementById('uPos').selectedIndex=0;
   document.getElementById('uRole').value='opr';document.getElementById('uStat').value='on';
@@ -242,8 +242,8 @@ function openNew(){
 }
 function editUser(){
   var u=byId(selId);editId=u.id;
-  document.getElementById('umTitle').textContent='사용자 정보 수정';
-  document.getElementById('umSave').textContent='💾 저장';
+  document.getElementById('umTitle').textContent='Edit User';
+  document.getElementById('umSave').textContent='💾 Save';
   document.getElementById('uNm').value=u.nm;document.getElementById('uId').value=u.id;
   document.getElementById('uId').disabled=true;
   document.getElementById('uDept').value=u.dept;document.getElementById('uPos').value=u.pos;
@@ -254,47 +254,47 @@ function editUser(){
 function saveUser(){
   var nm=document.getElementById('uNm').value.trim();
   var id=document.getElementById('uId').value.trim();
-  if(!nm||!id){toast('err','입력 오류','이름과 계정 ID는 필수 항목입니다.');return;}
+  if(!nm||!id){toast('err','Input Error','Full Name and Username are required.');return;}
   var data={nm:nm,dept:document.getElementById('uDept').value,pos:document.getElementById('uPos').value,
     role:document.getElementById('uRole').value,stat:document.getElementById('uStat').value,
-    email:document.getElementById('uEmail').value||id+'@seoyon.com'};
+    email:document.getElementById('uEmail').value||id+'@seyonehwa.us'};
   if(editId){
     var u=byId(editId);for(var k in data)u[k]=data[k];
-    toast('','수정 완료',nm+' 사용자 정보가 수정되었습니다.');
+    toast('','Updated',nm+' user information has been updated.');
   }else{
-    if(byId(id)){toast('err','중복 오류','이미 존재하는 계정 ID입니다.');return;}
-    USERS.push(Object.assign({id:id,last:'-',created:'2026-05-21'},data));
-    selId=id;toast('','등록 완료',nm+' ('+id+') 사용자가 등록되었습니다.');
+    if(byId(id)){toast('err','Duplicate','A user with this username already exists.');return;}
+    USERS.push(Object.assign({id:id,last:'-',created:'05/21/2026'},data));
+    selId=id;toast('','Created',nm+' ('+id+') has been added.');
   }
   closeOv('ovUser');apply();renderDetail();
 }
 function toggleStat(){
   var u=byId(selId);u.stat=u.stat==='on'?'off':'on';apply();renderDetail();
-  toast('info',u.nm+' 상태 변경','계정이 '+ST[u.stat].ko+' 상태로 전환되었습니다.');
+  toast('info',u.nm+' status changed','Account is now '+ST[u.stat].ko+'.');
 }
 function unlock(){
   var u=byId(selId);u.stat='on';apply();renderDetail();
-  toast('',u.nm+' 잠금 해제','계정 잠금이 해제되어 활성 상태가 되었습니다.');
+  toast('',u.nm+' unlocked','Account lock cleared — status set to Active.');
 }
 function resetPw(){
   var u=byId(selId);
-  toast('warn',u.nm+' 비밀번호 초기화','임시 비밀번호가 발급되어 '+u.email+' 로 발송되었습니다.');
+  toast('warn',u.nm+' password reset','A temporary password has been issued and emailed to '+u.email+'.');
 }
 function exportCsv(){
   var v=vis();
-  var csv='UserID,Name,Dept,Position,Role,Status,Email,LastLogin,Created\n';
+  var csv='UserID,Name,Dept,Title,Role,Status,Email,LastLogin,Created\n';
   v.forEach(function(u){
     csv+=[u.id,u.nm,u.dept,u.pos,ROLE[u.role].ko,ST[u.stat].ko,u.email,u.last,u.created].join(',')+'\n';});
   var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='SYS_Users_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','사용자 '+v.length+'명을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+v.length+' users to CSV.');
 }
 function resetAll(){
   ['fDept','fRole','fStat'].forEach(function(f){document.getElementById(f).value='';});
   document.getElementById('fKw').value='';apply();
-  toast('info','초기화','사용자 목록 필터를 초기화했습니다.');
+  toast('info','Reset','User list filters have been reset.');
 }
 function openOv(id){document.getElementById(id).classList.add('on');}
 function closeOv(id){document.getElementById(id).classList.remove('on');}

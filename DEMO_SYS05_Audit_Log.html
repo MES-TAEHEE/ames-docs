@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>SYS-05 Audit Log · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -72,89 +72,89 @@ tbody tr:hover td{background:#f0fdf4;}
 <body>
 <div class="scr-head">
   <div class="sh-id">SYS-05</div>
-  <div class="sh-tt"><div class="sh-en">Audit Log</div><div class="sh-ko">감사 로그 — 사용자 활동 추적·보안 감사</div></div>
+  <div class="sh-tt"><div class="sh-en">Audit Log</div><div class="sh-ko">User activity tracking &amp; security audit</div></div>
   <span class="sh-tag">/sys/audit</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>기간 Period</label>
-    <select id="fPeriod" onchange="render()"><option>최근 7일</option><option>금일</option><option>당월</option></select></div>
-  <div class="fld"><label>사용자 User</label>
-    <select id="fUser" onchange="render()"><option value="">전체 All</option></select></div>
-  <div class="fld"><label>액션 Action</label>
-    <select id="fAct" onchange="render()"><option value="">전체</option>
-      <option value="login">로그인</option><option value="logout">로그아웃</option>
-      <option value="create">등록</option><option value="update">수정</option><option value="delete">삭제</option>
-      <option value="approve">승인</option><option value="perm">권한변경</option>
-      <option value="config">설정변경</option><option value="export">내보내기</option></select></div>
-  <div class="fld"><label>검색 Search</label>
-    <input id="fKw" placeholder="대상·모듈" oninput="render()" style="width:130px;"></div>
-  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div class="fld"><label>Period</label>
+    <select id="fPeriod" onchange="render()"><option>Last 7 Days</option><option>Today</option><option>This Month</option></select></div>
+  <div class="fld"><label>User</label>
+    <select id="fUser" onchange="render()"><option value="">All</option></select></div>
+  <div class="fld"><label>Action</label>
+    <select id="fAct" onchange="render()"><option value="">All</option>
+      <option value="login">Login</option><option value="logout">Logout</option>
+      <option value="create">Create</option><option value="update">Update</option><option value="delete">Delete</option>
+      <option value="approve">Approve</option><option value="perm">Permission</option>
+      <option value="config">Config</option><option value="export">Export</option></select></div>
+  <div class="fld"><label>Search</label>
+    <input id="fKw" placeholder="Target / Module" oninput="render()" style="width:140px;"></div>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>
   <div style="margin-left:auto;"><button class="btn btn-s" onclick="exportCsv()">📥 Export</button></div>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">총 감사 로그 · Events</div></div>
-    <div class="kpi" style="--c:#10b981"><div class="kv" id="kToday">0</div><div class="kl">금일 로그 · Today</div></div>
-    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kLogin">0</div><div class="kl">로그인 · Sign-in</div></div>
-    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kChg">0</div><div class="kl">데이터 변경 · CRUD</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kSec">0</div><div class="kl">보안 이벤트 · 권한·실패</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">Total Events</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kToday">0</div><div class="kl">Today's Logs</div></div>
+    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kLogin">0</div><div class="kl">Sign-ins</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kChg">0</div><div class="kl">Data Changes · CRUD</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kSec">0</div><div class="kl">Security Events</div></div>
   </div>
   <div class="panel">
-    <div class="panel-h">🔍 감사 로그 — <span id="sub" style="font-weight:400;color:#656d76;">0건</span></div>
+    <div class="panel-h">🔍 Audit Log — <span id="sub" style="font-weight:400;color:#656d76;">0 events</span></div>
     <table>
       <thead><tr>
-        <th>발생 일시</th><th>사용자</th><th>액션</th><th>모듈</th><th>대상</th><th>IP 주소</th><th>결과</th>
+        <th>Timestamp</th><th>User</th><th>Action</th><th>Module</th><th>Target</th><th>IP Address</th><th>Result</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
     </table>
-    <div class="empty" id="empty" style="display:none;">조건에 맞는 감사 로그가 없습니다.</div>
+    <div class="empty" id="empty" style="display:none;">No audit logs match the current filter.</div>
   </div>
 </div>
 
 <!-- detail modal -->
 <div class="ov" id="ovDt">
   <div class="modal">
-    <div class="modal-h"><span class="mt">감사 로그 상세</span><span class="mx" onclick="closeOv('ovDt')">✕</span></div>
+    <div class="modal-h"><span class="mt">Audit Log Detail</span><span class="mx" onclick="closeOv('ovDt')">✕</span></div>
     <div class="modal-b" id="dtBody"></div>
-    <div class="modal-f"><button class="btn btn-p" onclick="closeOv('ovDt')">확인</button></div>
+    <div class="modal-f"><button class="btn btn-p" onclick="closeOv('ovDt')">OK</button></div>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 
 <script>
 var ACT={
- login:{ko:'로그인',cls:'a-login'},logout:{ko:'로그아웃',cls:'a-logout'},
- create:{ko:'등록',cls:'a-create'},update:{ko:'수정',cls:'a-update'},delete:{ko:'삭제',cls:'a-delete'},
- approve:{ko:'승인',cls:'a-approve'},perm:{ko:'권한변경',cls:'a-perm'},
- config:{ko:'설정변경',cls:'a-config'},export:{ko:'내보내기',cls:'a-export'}
+ login:{ko:'Login',cls:'a-login'},logout:{ko:'Logout',cls:'a-logout'},
+ create:{ko:'Create',cls:'a-create'},update:{ko:'Update',cls:'a-update'},delete:{ko:'Delete',cls:'a-delete'},
+ approve:{ko:'Approve',cls:'a-approve'},perm:{ko:'Permission',cls:'a-perm'},
+ config:{ko:'Config',cls:'a-config'},export:{ko:'Export',cls:'a-export'}
 };
 var LOG=[
- {dt:'2026-05-21 09:02:14',user:'admin',act:'login',mod:'시스템',tgt:'관리자 콘솔',ip:'10.20.1.5',ok:true,detail:'2단계 인증 성공'},
- {dt:'2026-05-21 08:48:30',user:'kim.sh',act:'login',mod:'시스템',tgt:'A-MES 포털',ip:'10.20.3.12',ok:true,detail:'정상 로그인'},
- {dt:'2026-05-21 08:50:11',user:'kim.sh',act:'approve',mod:'PP 생산계획',tgt:'WO-2605-132 작업지시',ip:'10.20.3.12',ok:true,detail:'작업지시 발행 승인'},
- {dt:'2026-05-21 08:55:42',user:'han.jw',act:'create',mod:'QC 품질',tgt:'검사 성적서 QC-0521-03',ip:'10.20.4.8',ok:true,detail:'신규 검사 결과 등록'},
- {dt:'2026-05-21 09:05:20',user:'admin',act:'perm',mod:'SYS 시스템',tgt:'역할: 품질관리자',ip:'10.20.1.5',ok:true,detail:'QC 모듈 삭제 권한 부여'},
- {dt:'2026-05-21 09:10:33',user:'lee.jm',act:'update',mod:'PP 생산계획',tgt:'생산계획 PLN-2605-08',ip:'10.20.3.15',ok:true,detail:'계획 수량 480→520 변경'},
- {dt:'2026-05-21 09:15:00',user:'unknown',act:'login',mod:'시스템',tgt:'A-MES 포털',ip:'203.0.113.44',ok:false,detail:'비밀번호 5회 오류 — 계정 잠금'},
- {dt:'2026-05-21 09:20:18',user:'seo.mj',act:'update',mod:'QC 품질',tgt:'불량 코드 DEF-012',ip:'10.20.4.10',ok:true,detail:'불량 분류 수정'},
- {dt:'2026-05-21 09:28:55',user:'choi.wj',act:'delete',mod:'MNT 설비',tgt:'정비 WO-2605-019',ip:'10.20.5.3',ok:true,detail:'중복 작업지시 삭제'},
- {dt:'2026-05-21 09:35:12',user:'han.jw',act:'export',mod:'RPT 리포트',tgt:'불량 파레토 리포트',ip:'10.20.4.8',ok:true,detail:'XLSX 다운로드'},
- {dt:'2026-05-21 09:40:40',user:'admin',act:'config',mod:'SYS 시스템',tgt:'알림 설정 — 임계치',ip:'10.20.1.5',ok:true,detail:'OEE 경고 임계치 80→82 변경'},
- {dt:'2026-05-20 17:50:09',user:'oh.sh',act:'create',mod:'WH 창고',tgt:'출하 SH-2605-212',ip:'10.20.6.7',ok:true,detail:'신규 출하 등록'},
- {dt:'2026-05-20 18:02:31',user:'lee.jm',act:'logout',mod:'시스템',tgt:'A-MES 포털',ip:'10.20.3.15',ok:true,detail:'정상 로그아웃'},
- {dt:'2026-05-20 16:20:44',user:'kim.sh',act:'update',mod:'PP 생산계획',tgt:'작업지시 WO-2605-120',ip:'10.20.3.12',ok:true,detail:'작업 상태 변경'},
- {dt:'2026-05-20 14:11:08',user:'admin',act:'perm',mod:'SYS 시스템',tgt:'사용자: choi.wj',ip:'10.20.1.5',ok:true,detail:'계정 잠금 해제'},
- {dt:'2026-05-19 11:30:22',user:'han.jw',act:'approve',mod:'QC 품질',tgt:'특채 신청 SR-0519-02',ip:'10.20.4.8',ok:true,detail:'품질 특채 승인'},
- {dt:'2026-05-19 10:05:55',user:'park.jn',act:'login',mod:'시스템',tgt:'A-MES 포털',ip:'10.20.3.20',ok:false,detail:'비밀번호 오류 (1회)'},
- {dt:'2026-05-19 09:40:13',user:'seo.mj',act:'delete',mod:'QC 품질',tgt:'검사 결과 QC-0518-11',ip:'10.20.4.10',ok:true,detail:'오입력 데이터 삭제'},
- {dt:'2026-05-18 15:22:30',user:'admin',act:'config',mod:'SYS 시스템',tgt:'인터페이스 IF04 설정',ip:'10.20.1.5',ok:true,detail:'바코드 연동 재시도 횟수 변경'},
- {dt:'2026-05-18 08:45:00',user:'kim.sh',act:'export',mod:'RPT 리포트',tgt:'일일 생산 리포트',ip:'10.20.3.12',ok:true,detail:'PDF 다운로드'}
+ {dt:'05/21/2026 09:02:14',user:'admin',act:'login',mod:'System',tgt:'Admin Console',ip:'10.20.1.5',ok:true,detail:'2FA authentication successful'},
+ {dt:'05/21/2026 08:48:30',user:'jpark',act:'login',mod:'System',tgt:'A-MES Portal',ip:'10.20.3.12',ok:true,detail:'Successful login'},
+ {dt:'05/21/2026 08:50:11',user:'jpark',act:'approve',mod:'PP Production',tgt:'Work Order WO-2605-132',ip:'10.20.3.12',ok:true,detail:'Work order release approved'},
+ {dt:'05/21/2026 08:55:42',user:'swilliams',act:'create',mod:'QC Quality',tgt:'Inspection Report QC-0521-03',ip:'10.20.4.8',ok:true,detail:'New inspection result recorded'},
+ {dt:'05/21/2026 09:05:20',user:'admin',act:'perm',mod:'SYS System',tgt:'Role: Quality Manager',ip:'10.20.1.5',ok:true,detail:'Granted QC module delete permission'},
+ {dt:'05/21/2026 09:10:33',user:'bthompson',act:'update',mod:'PP Production',tgt:'Plan PLN-2605-08',ip:'10.20.3.15',ok:true,detail:'Plan qty changed 480 to 520'},
+ {dt:'05/21/2026 09:15:00',user:'unknown',act:'login',mod:'System',tgt:'A-MES Portal',ip:'203.0.113.44',ok:false,detail:'Password failed 5 times — account locked'},
+ {dt:'05/21/2026 09:20:18',user:'kbrown',act:'update',mod:'QC Quality',tgt:'Defect Code DEF-012',ip:'10.20.4.10',ok:true,detail:'Defect classification updated'},
+ {dt:'05/21/2026 09:28:55',user:'rdavis',act:'delete',mod:'MNT Maintenance',tgt:'PM Work Order WO-2605-019',ip:'10.20.5.3',ok:true,detail:'Duplicate work order removed'},
+ {dt:'05/21/2026 09:35:12',user:'swilliams',act:'export',mod:'RPT Reporting',tgt:'Defect Pareto Report',ip:'10.20.4.8',ok:true,detail:'XLSX download'},
+ {dt:'05/21/2026 09:40:40',user:'admin',act:'config',mod:'SYS System',tgt:'Notification Settings — Thresholds',ip:'10.20.1.5',ok:true,detail:'OEE warning threshold changed 80 to 82'},
+ {dt:'05/20/2026 17:50:09',user:'dchen',act:'create',mod:'WH Warehouse',tgt:'Shipment SH-2605-212',ip:'10.20.6.7',ok:true,detail:'New shipment created'},
+ {dt:'05/20/2026 18:02:31',user:'bthompson',act:'logout',mod:'System',tgt:'A-MES Portal',ip:'10.20.3.15',ok:true,detail:'Normal logout'},
+ {dt:'05/20/2026 16:20:44',user:'jpark',act:'update',mod:'PP Production',tgt:'Work Order WO-2605-120',ip:'10.20.3.12',ok:true,detail:'Work order status changed'},
+ {dt:'05/20/2026 14:11:08',user:'admin',act:'perm',mod:'SYS System',tgt:'User: rdavis',ip:'10.20.1.5',ok:true,detail:'Account lock cleared'},
+ {dt:'05/19/2026 11:30:22',user:'swilliams',act:'approve',mod:'QC Quality',tgt:'Deviation Request SR-0519-02',ip:'10.20.4.8',ok:true,detail:'Quality deviation approved'},
+ {dt:'05/19/2026 10:05:55',user:'mjohnson',act:'login',mod:'System',tgt:'A-MES Portal',ip:'10.20.3.20',ok:false,detail:'Password error (1 attempt)'},
+ {dt:'05/19/2026 09:40:13',user:'kbrown',act:'delete',mod:'QC Quality',tgt:'Inspection Result QC-0518-11',ip:'10.20.4.10',ok:true,detail:'Removed mis-entered data'},
+ {dt:'05/18/2026 15:22:30',user:'admin',act:'config',mod:'SYS System',tgt:'Interface IF04 Settings',ip:'10.20.1.5',ok:true,detail:'Barcode integration retry count updated'},
+ {dt:'05/18/2026 08:45:00',user:'jpark',act:'export',mod:'RPT Reporting',tgt:'Daily Production Report',ip:'10.20.3.12',ok:true,detail:'PDF download'}
 ];
 function isSec(e){return e.act==='perm'||!e.ok;}
 function initUsers(){
   var us=[];LOG.forEach(function(e){if(us.indexOf(e.user)<0)us.push(e.user);});
-  document.getElementById('fUser').innerHTML='<option value="">전체 All</option>'+
+  document.getElementById('fUser').innerHTML='<option value="">All</option>'+
     us.map(function(u){return '<option>'+u+'</option>';}).join('');
 }
 function vis(){
@@ -168,33 +168,33 @@ function vis(){
 }
 function render(){
   document.getElementById('kTot').textContent=LOG.length;
-  document.getElementById('kToday').textContent=LOG.filter(function(e){return e.dt.indexOf('2026-05-21')===0;}).length;
+  document.getElementById('kToday').textContent=LOG.filter(function(e){return e.dt.indexOf('05/21/2026')===0;}).length;
   document.getElementById('kLogin').textContent=LOG.filter(function(e){return e.act==='login';}).length;
   document.getElementById('kChg').textContent=LOG.filter(function(e){return ['create','update','delete'].indexOf(e.act)>=0;}).length;
   document.getElementById('kSec').textContent=LOG.filter(isSec).length;
   var v=vis(),h='';
   v.forEach(function(e,i){
     var gi=LOG.indexOf(e);
-    h+='<tr onclick="detail('+gi+')"><td class="mono">'+e.dt.slice(5)+'</td>'+
+    h+='<tr onclick="detail('+gi+')"><td class="mono">'+e.dt+'</td>'+
       '<td><b>'+e.user+'</b></td>'+
-      '<td><span class="act '+ACT[e.act].cls+'">'+ACT[e.act].ko+'</span>'+(e.act==='perm'?'<span class="sec">보안</span>':'')+'</td>'+
+      '<td><span class="act '+ACT[e.act].cls+'">'+ACT[e.act].ko+'</span>'+(e.act==='perm'?'<span class="sec">SECURITY</span>':'')+'</td>'+
       '<td>'+e.mod+'</td>'+
       '<td style="max-width:230px;">'+e.tgt+'</td>'+
       '<td class="mono">'+e.ip+'</td>'+
-      '<td>'+(e.ok?'<span class="rs-ok">✓ 성공</span>':'<span class="rs-fail">⛔ 실패</span>')+'</td></tr>';
+      '<td>'+(e.ok?'<span class="rs-ok">✓ Success</span>':'<span class="rs-fail">⛔ Failed</span>')+'</td></tr>';
   });
   document.getElementById('tbody').innerHTML=h;
   document.getElementById('empty').style.display=v.length?'none':'block';
-  document.getElementById('sub').textContent=v.length+'건';
+  document.getElementById('sub').textContent=v.length+' events';
 }
 function detail(i){
   var e=LOG[i];
   var rows=[
-    ['발생 일시',e.dt],['사용자 계정',e.user],
-    ['액션','<span class="act '+ACT[e.act].cls+'">'+ACT[e.act].ko+'</span>'],
-    ['대상 모듈',e.mod],['대상 객체',e.tgt],['IP 주소',e.ip],
-    ['결과',e.ok?'<span class="rs-ok">성공</span>':'<span class="rs-fail">실패</span>'],
-    ['상세 내역',e.detail],['보안 이벤트',isSec(e)?'<span style="color:#dc2626;font-weight:800;">예 — 검토 필요</span>':'아니오']
+    ['Timestamp',e.dt],['User Account',e.user],
+    ['Action','<span class="act '+ACT[e.act].cls+'">'+ACT[e.act].ko+'</span>'],
+    ['Module',e.mod],['Target Object',e.tgt],['IP Address',e.ip],
+    ['Result',e.ok?'<span class="rs-ok">Success</span>':'<span class="rs-fail">Failed</span>'],
+    ['Detail',e.detail],['Security Event',isSec(e)?'<span style="color:#dc2626;font-weight:800;">Yes — review required</span>':'No']
   ];
   document.getElementById('dtBody').innerHTML=rows.map(function(r){
     return '<div class="drow"><span class="dk">'+r[0]+'</span><span class="dv" style="max-width:280px;">'+r[1]+'</span></div>';}).join('');
@@ -204,17 +204,17 @@ function exportCsv(){
   var v=vis();
   var csv='DateTime,User,Action,Module,Target,IP,Result,Detail\n';
   v.forEach(function(e){
-    csv+=[e.dt,e.user,ACT[e.act].ko,e.mod,'"'+e.tgt+'"',e.ip,e.ok?'성공':'실패','"'+e.detail+'"'].join(',')+'\n';});
+    csv+=[e.dt,e.user,ACT[e.act].ko,e.mod,'"'+e.tgt+'"',e.ip,e.ok?'Success':'Failed','"'+e.detail+'"'].join(',')+'\n';});
   var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='SYS_AuditLog_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','감사 로그 '+v.length+'건을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+v.length+' audit log entries to CSV.');
 }
 function resetAll(){
   document.getElementById('fUser').value='';document.getElementById('fAct').value='';
   document.getElementById('fKw').value='';document.getElementById('fPeriod').selectedIndex=0;
-  render();toast('info','초기화','감사 로그 필터를 초기화했습니다.');
+  render();toast('info','Reset','Audit log filters reset.');
 }
 function openOv(id){document.getElementById(id).classList.add('on');}
 function closeOv(id){document.getElementById(id).classList.remove('on');}

@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>MD-03 BOM Version · A-MES Demo</title>
+<title>MD-08 Equipment Master · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#d97706;--pp-dk:#b45309;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#2b1a02,#3d2606);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fbbf24;line-height:.9;}
 .sh-tt{flex:1;}
@@ -77,8 +77,8 @@ tbody tr.sel td{background:#fef3c7;}
 </head>
 <body>
 <div class="scr-head">
-  <div class="sh-id" id="shId">MD-03</div>
-  <div class="sh-tt"><div class="sh-en" id="shEn">BOM Version</div><div class="sh-ko" id="shKo"></div></div>
+  <div class="sh-id" id="shId">MD-08</div>
+  <div class="sh-tt"><div class="sh-en" id="shEn">Equipment Master</div><div class="sh-ko" id="shKo"></div></div>
   <span class="sh-tag" id="shTag"></span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
@@ -87,20 +87,20 @@ tbody tr.sel td{background:#fef3c7;}
   <div class="kpis" id="kpis"></div>
   <div class="grid2">
     <div class="card">
-      <div class="card-t" id="listT">목록</div>
+      <div class="card-t" id="listT">List</div>
       <table><thead><tr id="thr"></tr></thead><tbody id="tbody"></tbody></table>
-      <div class="empty" id="empty" style="display:none;">조건에 맞는 데이터가 없습니다.</div>
+      <div class="empty" id="empty" style="display:none;">No matching data found.</div>
     </div>
-    <div class="card" id="detail"><div class="empty">← 좌측 목록에서 항목을 선택하세요.</div></div>
+    <div class="card" id="detail"><div class="empty">← Select an item from the list on the left.</div></div>
   </div>
 </div>
 <div class="ov" id="ovEd">
   <div class="modal">
-    <div class="modal-h"><span class="mt" id="emTitle">등록</span><span class="mx" onclick="closeOv('ovEd')">✕</span></div>
+    <div class="modal-h"><span class="mt" id="emTitle">Add</span><span class="mx" onclick="closeOv('ovEd')">✕</span></div>
     <div class="modal-b" id="emBody"></div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovEd')">취소</button>
-      <button class="btn btn-p" id="emSave" onclick="saveRec()">＋ 등록</button>
+      <button class="btn btn-s" onclick="closeOv('ovEd')">Cancel</button>
+      <button class="btn btn-p" id="emSave" onclick="saveRec()">＋ Add</button>
     </div>
   </div>
 </div>
@@ -109,44 +109,44 @@ tbody tr.sel td{background:#fef3c7;}
 <script>
 /* ===== ENTITY CONFIG ===== */
 var CFG={
-  id:'MD-08',en:'Equipment Master',ko:'설비 — 생산 설비 기준정보 마스터',tag:'/md/equipment',
-  idKey:'code',entity:'설비',
-  filters:[{k:'type',label:'설비 유형'},{k:'line',label:'라인'},{k:'status',label:'상태'}],
+  id:'MD-08',en:'Equipment Master',ko:'Equipment — Production Equipment Master',tag:'/md/equipment',
+  idKey:'code',entity:'Equipment',
+  filters:[{k:'type',label:'Equipment Type'},{k:'line',label:'Line'},{k:'status',label:'Status'}],
   search:['code','name'],
   cols:[
-    {k:'code',label:'설비 코드',mono:true,bold:true},
-    {k:'name',label:'설비명'},
-    {k:'type',label:'유형'},
-    {k:'line',label:'라인'},
-    {k:'status',label:'상태',badge:{'사용':'b0','정비':'b3','폐기':'b2'}}
+    {k:'code',label:'Equipment Code',mono:true,bold:true},
+    {k:'name',label:'Equipment Name'},
+    {k:'type',label:'Type'},
+    {k:'line',label:'Line'},
+    {k:'status',label:'Status',badge:{'Active':'b0','Maintenance':'b3','Retired':'b2'}}
   ],
   fields:[
-    {k:'code',label:'설비 코드',type:'text',req:true,uniq:true,ph:'EQ-INJ-003'},
-    {k:'name',label:'설비명',type:'text',req:true,ph:'사출기 3호기'},
-    {k:'type',label:'설비 유형',type:'select',opts:['사출기','조립설비','도장설비','검사기','유틸리티']},
-    {k:'line',label:'설치 라인',type:'select',opts:['SAV-INJ-01','SAV-INJ-02','SAV-ASSY-01','SAV-PNT-01','공통']},
-    {k:'maker',label:'제조사',type:'text',ph:'LS Mtron'},
-    {k:'model',label:'모델명',type:'text',ph:'LGE-650'},
-    {k:'install',label:'설치일',type:'date'},
-    {k:'cap',label:'정격 능력',type:'text',ph:'650 Ton'},
-    {k:'status',label:'상태',type:'select',opts:['사용','정비','폐기']}
+    {k:'code',label:'Equipment Code',type:'text',req:true,uniq:true,ph:'EQ-INJ-003'},
+    {k:'name',label:'Equipment Name',type:'text',req:true,ph:'Injection Machine #3'},
+    {k:'type',label:'Equipment Type',type:'select',opts:['Injection Machine','Assembly Eqp','Paint Eqp','Inspection Eqp','Utility']},
+    {k:'line',label:'Installation Line',type:'select',opts:['SAV-INJ-01','SAV-INJ-02','SAV-ASSY-01','SAV-PNT-01','Common']},
+    {k:'maker',label:'Manufacturer',type:'text',ph:'Husky'},
+    {k:'model',label:'Model',type:'text',ph:'H650-RS'},
+    {k:'install',label:'Install Date',type:'date'},
+    {k:'cap',label:'Rated Capacity',type:'text',ph:'650 Ton'},
+    {k:'status',label:'Status',type:'select',opts:['Active','Maintenance','Retired']}
   ],
   kpis:[
-    {label:'총 설비',c:'#d97706',calc:function(d){return d.length;}},
-    {label:'사용 중 · Active',c:'#16a34a',calc:function(d){return d.filter(function(r){return r.status==='사용';}).length;}},
-    {label:'정비 중 · Maintenance',c:'#2563eb',calc:function(d){return d.filter(function(r){return r.status==='정비';}).length;}},
-    {label:'사출 설비',c:'#8b5cf6',calc:function(d){return d.filter(function(r){return r.type==='사출기';}).length;}}
+    {label:'Total Equipment',c:'#d97706',calc:function(d){return d.length;}},
+    {label:'Active',c:'#16a34a',calc:function(d){return d.filter(function(r){return r.status==='Active';}).length;}},
+    {label:'Maintenance',c:'#2563eb',calc:function(d){return d.filter(function(r){return r.status==='Maintenance';}).length;}},
+    {label:'Injection Machines',c:'#8b5cf6',calc:function(d){return d.filter(function(r){return r.type==='Injection Machine';}).length;}}
   ],
   data:[
-    {code:'EQ-INJ-001',name:'사출기 1호기',type:'사출기',line:'SAV-INJ-01',maker:'LS Mtron',model:'LGE-650',install:'2019-03-12',cap:'650 Ton',status:'사용'},
-    {code:'EQ-INJ-002',name:'사출기 2호기',type:'사출기',line:'SAV-INJ-02',maker:'LS Mtron',model:'LGE-850',install:'2020-07-01',cap:'850 Ton',status:'사용'},
-    {code:'EQ-ASY-001',name:'조립1라인 컨베이어',type:'조립설비',line:'SAV-ASSY-01',maker:'한성ENG',model:'CV-2400',install:'2021-02-18',cap:'24 m/min',status:'사용'},
-    {code:'EQ-ASY-002',name:'토크 체결기 #1',type:'조립설비',line:'SAV-ASSY-01',maker:'AtlasCopco',model:'TBP-30',install:'2022-09-05',cap:'30 Nm',status:'정비'},
-    {code:'EQ-PNT-001',name:'도장 부스 1라인',type:'도장설비',line:'SAV-PNT-01',maker:'대원코팅',model:'PB-Line-A',install:'2018-11-30',cap:'18 unit/h',status:'사용'},
-    {code:'EQ-INS-001',name:'비전 검사기 #1',type:'검사기',line:'SAV-ASSY-01',maker:'코그넥스',model:'VX-700',install:'2023-04-22',cap:'1200 pcs/h',status:'사용'},
-    {code:'EQ-UTL-001',name:'공기압축기 #1',type:'유틸리티',line:'공통',maker:'한신기계',model:'AC-75kW',install:'2017-06-10',cap:'75 kW',status:'사용'},
-    {code:'EQ-UTL-002',name:'냉각수 칠러 #1',type:'유틸리티',line:'공통',maker:'센추리',model:'CH-40RT',install:'2020-01-15',cap:'40 RT',status:'사용'},
-    {code:'EQ-INJ-099',name:'(구) 사출 9호기',type:'사출기',line:'SAV-INJ-02',maker:'우진',model:'WJ-450',install:'2010-05-01',cap:'450 Ton',status:'폐기'}
+    {code:'EQ-INJ-001',name:'Injection Machine #1',type:'Injection Machine',line:'SAV-INJ-01',maker:'Husky',model:'H650-RS',install:'03/12/2019',cap:'650 Ton',status:'Active'},
+    {code:'EQ-INJ-002',name:'Injection Machine #2',type:'Injection Machine',line:'SAV-INJ-02',maker:'Husky',model:'H850-RS',install:'07/01/2020',cap:'850 Ton',status:'Active'},
+    {code:'EQ-ASY-001',name:'Assembly Line 1 Conveyor',type:'Assembly Eqp',line:'SAV-ASSY-01',maker:'Bosch Rexroth',model:'CV-2400',install:'02/18/2021',cap:'80 ft/min',status:'Active'},
+    {code:'EQ-ASY-002',name:'Torque Driver #1',type:'Assembly Eqp',line:'SAV-ASSY-01',maker:'Atlas Copco',model:'TBP-30',install:'09/05/2022',cap:'265 in-lb',status:'Maintenance'},
+    {code:'EQ-PNT-001',name:'Paint Booth Line 1',type:'Paint Eqp',line:'SAV-PNT-01',maker:'Durr Systems',model:'PB-Line-A',install:'11/30/2018',cap:'18 units/h',status:'Active'},
+    {code:'EQ-INS-001',name:'Vision Inspection #1',type:'Inspection Eqp',line:'SAV-ASSY-01',maker:'Cognex',model:'VX-700',install:'04/22/2023',cap:'1200 pcs/h',status:'Active'},
+    {code:'EQ-UTL-001',name:'Air Compressor #1',type:'Utility',line:'Common',maker:'Ingersoll Rand',model:'AC-100HP',install:'06/10/2017',cap:'100 HP',status:'Active'},
+    {code:'EQ-UTL-002',name:'Cooling Chiller #1',type:'Utility',line:'Common',maker:'Trane',model:'CH-40RT',install:'01/15/2020',cap:'40 RT',status:'Active'},
+    {code:'EQ-INJ-099',name:'(Old) Injection #9',type:'Injection Machine',line:'SAV-INJ-02',maker:'Cincinnati Milacron',model:'CM-450',install:'05/01/2010',cap:'450 Ton',status:'Retired'}
   ]
 };
 /* ===== GENERIC MASTER ENGINE ===== */
@@ -162,15 +162,15 @@ function init(){
   CFG.filters.forEach(function(f){
     var opts=[];DATA.forEach(function(r){if(opts.indexOf(r[f.k])<0)opts.push(r[f.k]);});
     tb+='<div class="fld"><label>'+f.label+'</label><select data-fk="'+f.k+'" onchange="render()">'+
-      '<option value="">전체 All</option>'+opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select></div>';
+      '<option value="">All</option>'+opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select></div>';
   });
-  tb+='<div class="fld"><label>검색 Search</label><input id="fKw" placeholder="코드·명칭" oninput="render()" style="width:150px;"></div>';
-  tb+='<button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>';
+  tb+='<div class="fld"><label>Search</label><input id="fKw" placeholder="Code / name" oninput="render()" style="width:150px;"></div>';
+  tb+='<button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>';
   tb+='<div style="margin-left:auto;display:flex;gap:8px;">'+
-    '<button class="btn btn-p" onclick="openNew()">＋ '+CFG.entity+' 등록</button>'+
+    '<button class="btn btn-p" onclick="openNew()">＋ Add '+CFG.entity+'</button>'+
     '<button class="btn btn-s" onclick="exportCsv()">📥 Export</button></div>';
   $('toolbar').innerHTML=tb;
-  $('listT').textContent='📋 '+CFG.entity+' 목록';
+  $('listT').textContent='📋 '+CFG.entity+' List';
   $('thr').innerHTML=CFG.cols.map(function(c){return '<th>'+c.label+'</th>';}).join('');
   render();
 }
@@ -200,7 +200,7 @@ function render(){
   });
   $('tbody').innerHTML=h;
   $('empty').style.display=v.length?'none':'block';
-  $('listT').textContent='📋 '+CFG.entity+' 목록 — '+v.length+'건';
+  $('listT').textContent='📋 '+CFG.entity+' List — '+v.length+' items';
   if(selKey&&!byKey(selKey))selKey=null;
   renderDetail();
 }
@@ -208,9 +208,9 @@ function byKey(k){return DATA.filter(function(r){return r[CFG.idKey]===k;})[0];}
 function pick(k){selKey=k;render();}
 function renderDetail(){
   var r=byKey(selKey);
-  if(!r){$('detail').innerHTML='<div class="empty">← 좌측 목록에서 항목을 선택하세요.</div>';return;}
+  if(!r){$('detail').innerHTML='<div class="empty">← Select an item from the list on the left.</div>';return;}
   var nmField=CFG.fields[1]?CFG.fields[1].k:CFG.idKey;
-  var h='<div class="card-t">📑 '+CFG.entity+' 상세</div>'+
+  var h='<div class="card-t">📑 '+CFG.entity+' Detail</div>'+
     '<div class="dt-head"><div class="dt-nm">'+(r[nmField]||r[CFG.idKey])+'</div><div class="dt-id">'+r[CFG.idKey]+'</div></div>'+
     '<div class="specs">';
   CFG.fields.forEach(function(f){
@@ -218,8 +218,8 @@ function renderDetail(){
     var v=r[f.k];if(v===''||v==null)v='—';
     h+='<div class="srow"><span class="sk">'+f.label+'</span><span class="sv">'+v+'</span></div>';
   });
-  h+='</div><div class="acts"><button class="btn btn-s btn-sm" onclick="editRec()">✎ 수정</button>'+
-    '<button class="btn btn-s btn-sm" onclick="delRec()">🗑 삭제</button></div>';
+  h+='</div><div class="acts"><button class="btn btn-s btn-sm" onclick="editRec()">✎ Edit</button>'+
+    '<button class="btn btn-s btn-sm" onclick="delRec()">🗑 Delete</button></div>';
   $('detail').innerHTML=h;
 }
 function formHtml(r){
@@ -235,31 +235,31 @@ function formHtml(r){
   }).join('');
 }
 function openNew(){
-  editKey=null;$('emTitle').textContent=CFG.entity+' 등록';$('emSave').textContent='＋ 등록';
+  editKey=null;$('emTitle').textContent='Add '+CFG.entity;$('emSave').textContent='＋ Add';
   $('emBody').innerHTML=formHtml(null);openOv('ovEd');
 }
 function editRec(){
-  editKey=selKey;$('emTitle').textContent=CFG.entity+' 수정';$('emSave').textContent='💾 저장';
+  editKey=selKey;$('emTitle').textContent='Edit '+CFG.entity;$('emSave').textContent='💾 Save';
   $('emBody').innerHTML=formHtml(byKey(selKey));openOv('ovEd');
 }
 function saveRec(){
   var o={};
   [].slice.call(document.querySelectorAll('#emBody [data-fk]')).forEach(function(el){o[el.dataset.fk]=el.value.trim?el.value.trim():el.value;});
   for(var i=0;i<CFG.fields.length;i++){var f=CFG.fields[i];
-    if(f.req&&!o[f.k]&&!(editKey&&f.uniq)){toast('err','입력 오류',f.label+'은(는) 필수 항목입니다.');return;}}
+    if(f.req&&!o[f.k]&&!(editKey&&f.uniq)){toast('err','Input Error',f.label+' is a required field.');return;}}
   if(editKey){var r=byKey(editKey);for(var k in o){if(k!==CFG.idKey)r[k]=o[k];}
-    toast('','수정 완료',CFG.entity+' 정보가 수정되었습니다.');
+    toast('','Updated',CFG.entity+' information has been updated.');
   }else{
-    if(byKey(o[CFG.idKey])){toast('err','중복 오류','이미 존재하는 코드입니다.');return;}
+    if(byKey(o[CFG.idKey])){toast('err','Duplicate Error','Code already exists.');return;}
     DATA.push(o);selKey=o[CFG.idKey];
-    toast('','등록 완료',o[CFG.idKey]+' '+CFG.entity+'이(가) 등록되었습니다.');
+    toast('','Added',o[CFG.idKey]+' '+CFG.entity+' has been added.');
   }
   closeOv('ovEd');render();
 }
 function delRec(){
   var r=byKey(selKey);var i=DATA.indexOf(r);
   if(i>=0)DATA.splice(i,1);selKey=null;render();
-  toast('info','삭제 완료',CFG.entity+' 항목이 삭제되었습니다.');
+  toast('info','Deleted',CFG.entity+' item has been deleted.');
 }
 function exportCsv(){
   var v=vis();
@@ -269,11 +269,11 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=CFG.id+'_'+CFG.en.replace(/ /g,'')+'_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료',CFG.entity+' '+v.length+'건을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+v.length+' '+CFG.entity+' items to CSV.');
 }
 function resetAll(){
   [].slice.call(document.querySelectorAll('#toolbar select')).forEach(function(s){s.value='';});
-  $('fKw').value='';render();toast('info','초기화','목록 필터를 초기화했습니다.');
+  $('fKw').value='';render();toast('info','Reset','List filters have been reset.');
 }
 function openOv(id){$(id).classList.add('on');}
 function closeOv(id){$(id).classList.remove('on');}

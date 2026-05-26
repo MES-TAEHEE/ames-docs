@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>SYS-07 System Config · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -43,7 +43,7 @@ select,input{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-s
 .cfg-nm{font-size:12px;font-weight:700;}
 .cfg-nm .key{font-family:'JetBrains Mono',monospace;font-size:9px;color:#9ca3af;font-weight:400;margin-left:6px;}
 .cfg-ds{font-size:10px;color:var(--sub);margin-top:2px;}
-.cfg-ctl{flex-shrink:0;width:200px;display:flex;justify-content:flex-end;}
+.cfg-ctl{flex-shrink:0;width:220px;display:flex;justify-content:flex-end;}
 .cfg-ctl input,.cfg-ctl select{width:100%;}
 .cfg-ctl input[type=number]{text-align:right;font-family:'JetBrains Mono',monospace;}
 .tk{width:42px;height:23px;border-radius:12px;background:#cbd5e1;position:relative;cursor:pointer;transition:background .15s;}
@@ -62,28 +62,28 @@ select,input{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-s
 <body>
 <div class="scr-head">
   <div class="sh-id">SYS-07</div>
-  <div class="sh-tt"><div class="sh-en">System Configuration</div><div class="sh-ko">시스템 설정 — 전역 운영 파라미터 관리</div></div>
+  <div class="sh-tt"><div class="sh-en">System Configuration</div><div class="sh-ko">Global operating parameter management</div></div>
   <span class="sh-tag">/sys/config</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>분류 Category</label>
-    <select id="fCat" onchange="render()"><option value="">전체 All</option><option>일반</option><option>생산</option><option>품질</option><option>보안</option><option>인터페이스</option></select></div>
-  <div class="fld"><label>검색 Search</label>
-    <input id="fKw" placeholder="설정 항목" oninput="render()" style="width:160px;"></div>
-  <span class="dirty" id="dirty">● 저장되지 않은 변경 사항</span>
+  <div class="fld"><label>Category</label>
+    <select id="fCat" onchange="render()"><option value="">All</option><option>General</option><option>Production</option><option>Quality</option><option>Security</option><option>Interface</option></select></div>
+  <div class="fld"><label>Search</label>
+    <input id="fKw" placeholder="Setting name" oninput="render()" style="width:170px;"></div>
+  <span class="dirty" id="dirty">● Unsaved changes</span>
   <div style="margin-left:auto;display:flex;gap:8px;">
-    <button class="btn btn-s" onclick="resetDefaults()">↺ 기본값 복원</button>
+    <button class="btn btn-s" onclick="resetDefaults()">↺ Restore Defaults</button>
     <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
-    <button class="btn btn-p" onclick="save()">💾 설정 저장</button>
+    <button class="btn btn-p" onclick="save()">💾 Save Config</button>
   </div>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">설정 항목 · Parameters</div></div>
-    <div class="kpi" style="--c:#8b5cf6"><div class="kv" id="kCat">0</div><div class="kl">설정 분류 · Categories</div></div>
-    <div class="kpi" style="--c:#d97706"><div class="kv" id="kChg">0</div><div class="kl">변경된 항목 · Modified</div></div>
-    <div class="kpi" style="--c:#10b981"><div class="kv" id="kVer">v3.1</div><div class="kl">시스템 버전 · A-MES</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">Parameters</div></div>
+    <div class="kpi" style="--c:#8b5cf6"><div class="kv" id="kCat">0</div><div class="kl">Categories</div></div>
+    <div class="kpi" style="--c:#d97706"><div class="kv" id="kChg">0</div><div class="kl">Modified</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kVer">v3.1</div><div class="kl">A-MES Version</div></div>
   </div>
   <div id="groups"></div>
 </div>
@@ -91,22 +91,22 @@ select,input{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-s
 
 <script>
 var CFG=[
- {cat:'일반',key:'SYS.COMPANY',nm:'사업장명',ds:'시스템 상단에 표시되는 사업장 명칭',type:'text',def:'SEOYON E-HWA 서산공장'},
- {cat:'일반',key:'SYS.TIMEZONE',nm:'표준 시간대',ds:'시스템 전역 시간대 설정',type:'select',opts:['Asia/Seoul (KST)','UTC'],def:'Asia/Seoul (KST)'},
- {cat:'일반',key:'SYS.LANG',nm:'기본 언어',ds:'신규 사용자 기본 표시 언어',type:'select',opts:['한국어','English','中文'],def:'한국어'},
- {cat:'일반',key:'SYS.SESSION',nm:'세션 유지 시간',ds:'미사용 시 자동 로그아웃까지 시간',type:'number',unit:'분',def:30},
- {cat:'생산',key:'PRD.SHIFT',nm:'교대 운영 방식',ds:'공장 기본 교대 패턴',type:'select',opts:['2교대 (주·야)','3교대','1교대'],def:'2교대 (주·야)'},
- {cat:'생산',key:'PRD.WO_AUTO',nm:'작업지시 자동 발행',ds:'생산계획 확정 시 작업지시 자동 생성',type:'toggle',def:true},
- {cat:'생산',key:'PRD.OEE_TARGET',nm:'OEE 목표치',ds:'라인 OEE 목표 기준값',type:'number',unit:'%',def:85},
- {cat:'품질',key:'QC.DEFECT_LIMIT',nm:'불량률 관리 한계',ds:'공정 불량률 경고 발동 임계값',type:'number',unit:'%',def:2.0},
- {cat:'품질',key:'QC.SAMPLING',nm:'검사 방식',ds:'기본 품질 검사 방식',type:'select',opts:['전수 검사','샘플링 검사','AQL 기준'],def:'샘플링 검사'},
- {cat:'품질',key:'QC.HOLD_AUTO',nm:'불합격 자동 보류',ds:'검사 불합격 시 로트 자동 보류 처리',type:'toggle',def:true},
- {cat:'보안',key:'SEC.PW_EXPIRE',nm:'비밀번호 만료 주기',ds:'비밀번호 강제 변경 주기',type:'number',unit:'일',def:90},
- {cat:'보안',key:'SEC.LOGIN_LOCK',nm:'로그인 실패 잠금 횟수',ds:'연속 실패 시 계정 잠금 기준',type:'number',unit:'회',def:5},
- {cat:'보안',key:'SEC.MFA',nm:'2단계 인증 (MFA)',ds:'관리자 계정 2단계 인증 강제',type:'toggle',def:true},
- {cat:'인터페이스',key:'IF.SAP_CYCLE',nm:'SAP 연동 주기',ds:'SAP B1 데이터 동기화 간격',type:'select',opts:['실시간','15분','30분','1시간'],def:'30분'},
- {cat:'인터페이스',key:'IF.RETRY',nm:'연동 실패 재시도 횟수',ds:'인터페이스 오류 시 자동 재시도 횟수',type:'number',unit:'회',def:3},
- {cat:'인터페이스',key:'IF.OPC_BUFFER',nm:'설비 데이터 버퍼링',ds:'OPC-UA 수집 데이터 임시 버퍼 사용',type:'toggle',def:true}
+ {cat:'General',key:'SYS.COMPANY',nm:'Plant Name',ds:'Site name displayed in the system header',type:'text',def:'SEOYON E-HWA — SAV (Detroit, MI)'},
+ {cat:'General',key:'SYS.TIMEZONE',nm:'Time Zone',ds:'System-wide time zone setting',type:'select',opts:['America/Detroit (ET)','America/Chicago (CT)','America/Los_Angeles (PT)','UTC'],def:'America/Detroit (ET)'},
+ {cat:'General',key:'SYS.LANG',nm:'Default Language',ds:'Default display language for new users',type:'select',opts:['English','Korean','Spanish'],def:'English'},
+ {cat:'General',key:'SYS.SESSION',nm:'Session Timeout',ds:'Auto-logout duration after inactivity',type:'number',unit:'min',def:30},
+ {cat:'Production',key:'PRD.SHIFT',nm:'Shift Pattern',ds:'Default plant shift configuration',type:'select',opts:['2 Shifts (Day / Night)','3 Shifts (Day / Swing / Night)','1 Shift'],def:'2 Shifts (Day / Night)'},
+ {cat:'Production',key:'PRD.WO_AUTO',nm:'Auto-Release Work Orders',ds:'Auto-create work orders when production plan is confirmed',type:'toggle',def:true},
+ {cat:'Production',key:'PRD.OEE_TARGET',nm:'OEE Target',ds:'Target threshold for line OEE',type:'number',unit:'%',def:85},
+ {cat:'Quality',key:'QC.DEFECT_LIMIT',nm:'Defect Rate Control Limit',ds:'Warning threshold for process defect rate',type:'number',unit:'%',def:2.0},
+ {cat:'Quality',key:'QC.SAMPLING',nm:'Inspection Method',ds:'Default quality inspection method',type:'select',opts:['100% Inspection','Sampling','AQL-Based'],def:'Sampling'},
+ {cat:'Quality',key:'QC.HOLD_AUTO',nm:'Auto-Hold on Reject',ds:'Automatically place lot on hold when inspection fails',type:'toggle',def:true},
+ {cat:'Security',key:'SEC.PW_EXPIRE',nm:'Password Expiration',ds:'Forced password change interval',type:'number',unit:'days',def:90},
+ {cat:'Security',key:'SEC.LOGIN_LOCK',nm:'Login Lock Threshold',ds:'Account lock after consecutive failures',type:'number',unit:'attempts',def:5},
+ {cat:'Security',key:'SEC.MFA',nm:'Multi-Factor Auth (MFA)',ds:'Enforce 2FA for administrator accounts',type:'toggle',def:true},
+ {cat:'Interface',key:'IF.SAP_CYCLE',nm:'SAP Sync Interval',ds:'SAP S/4HANA data synchronization frequency',type:'select',opts:['Real-time','15 min','30 min','Hourly'],def:'30 min'},
+ {cat:'Interface',key:'IF.RETRY',nm:'Integration Retry Count',ds:'Auto-retry attempts on interface failure',type:'number',unit:'times',def:3},
+ {cat:'Interface',key:'IF.OPC_BUFFER',nm:'Equipment Data Buffering',ds:'Enable temporary buffer for OPC-UA collection data',type:'toggle',def:true}
 ];
 var val={},dirty=false;
 function initVal(){CFG.forEach(function(c){val[c.key]=c.def;});}
@@ -126,10 +126,10 @@ function render(){
   document.getElementById('kChg').textContent=chg;
   var v=vis();
   var byCat={};v.forEach(function(c){(byCat[c.cat]=byCat[c.cat]||[]).push(c);});
-  var ic={'일반':'⚙️','생산':'🏭','품질':'🔬','보안':'🔐','인터페이스':'🔌'};
+  var ic={'General':'⚙️','Production':'🏭','Quality':'🔬','Security':'🔐','Interface':'🔌'};
   var h='';
   Object.keys(byCat).forEach(function(cat){
-    h+='<div class="grp"><div class="grp-h">'+(ic[cat]||'•')+' '+cat+' 설정</div>';
+    h+='<div class="grp"><div class="grp-h">'+(ic[cat]||'•')+' '+cat+' Settings</div>';
     byCat[cat].forEach(function(c){
       var changed=val[c.key]!==c.def;
       h+='<div class="cfg-r'+(changed?' chg':'')+'">'+
@@ -139,7 +139,7 @@ function render(){
     });
     h+='</div>';
   });
-  document.getElementById('groups').innerHTML=h||'<div style="text-align:center;color:#9ca3af;padding:30px;">조건에 맞는 설정이 없습니다.</div>';
+  document.getElementById('groups').innerHTML=h||'<div style="text-align:center;color:#9ca3af;padding:30px;">No settings match the current filter.</div>';
 }
 function ctl(c){
   var cur=val[c.key];
@@ -165,17 +165,17 @@ function setVal(key,v){
 }
 function setDirty(v){dirty=v;document.getElementById('dirty').style.display=v?'inline-block':'none';}
 function save(){
-  if(!dirty){toast('info','변경 없음','저장할 변경 사항이 없습니다.');return;}
+  if(!dirty){toast('info','No Changes','There are no changes to save.');return;}
   var chg=CFG.filter(function(c){return val[c.key]!==c.def;}).length;
   /* commit: new defaults */
   CFG.forEach(function(c){c.def=val[c.key];});
   setDirty(false);render();
-  toast('','설정 저장 완료',chg+'개 항목의 변경 사항이 시스템에 적용되었습니다.');
+  toast('','Config Saved',chg+' parameter changes have been applied to the system.');
 }
 function resetDefaults(){
   CFG.forEach(function(c){val[c.key]=c.def;});
   setDirty(false);render();
-  toast('info','기본값 복원','저장된 값으로 모든 설정을 복원했습니다.');
+  toast('info','Defaults Restored','All settings have been restored to saved values.');
 }
 function exportCsv(){
   var csv='Category,Key,Name,CurrentValue,Type\n';
@@ -185,7 +185,7 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='SYS_Config_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','시스템 설정을 CSV로 내보냈습니다.');
+  toast('','Export Complete','System configuration exported to CSV.');
 }
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');

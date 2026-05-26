@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PNT-09 Shift Report · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--sc:#ea580c;--sc-dk:#c2410c;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
 .head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
 .head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#fb923c;}
 .head .tt{flex:1;}
@@ -68,79 +68,79 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 </head>
 <body>
 <div class="head">
-  <button class="back" onclick="back()">‹ 대시보드</button>
+  <button class="back" onclick="back()">‹ Dashboard</button>
   <div class="id">PNT-09</div>
-  <div class="tt"><div class="en">Shift Report</div><div class="ko">교대 일지·리포트 — 도장 라인 교대 종료 보고</div></div>
+  <div class="tt"><div class="en">Shift Report</div><div class="ko">Shift Report — End-of-Shift Report for Paint Line</div></div>
   <span class="live"><span class="d"></span>LIVE</span>
 </div>
 <div class="body">
   <div class="col">
     <div class="shift-card">
-      <div class="lbl">▼ 교대 정보 · SHIFT</div>
-      <h1>주간 A조 · 2026-05-21</h1>
+      <div class="lbl">▼ SHIFT INFO</div>
+      <h1>DAY · Team A · 05/21/2026</h1>
       <div class="info">
-        <div class="ii"><div class="il">시작 / 종료</div><div class="iv">06:00 ~ 14:00</div></div>
-        <div class="ii"><div class="il">라인</div><div class="iv">SAV-PNT-01</div></div>
-        <div class="ii"><div class="il">조장 · 인원</div><div class="iv">박작업 외 6명</div></div>
+        <div class="ii"><div class="il">START / END</div><div class="iv">06:00 ~ 14:00</div></div>
+        <div class="ii"><div class="il">LINE</div><div class="iv">SAV-PNT-01</div></div>
+        <div class="ii"><div class="il">LEAD · HEADCOUNT</div><div class="iv">Mike Johnson + 6</div></div>
       </div>
     </div>
     <div class="kpi-grid">
-      <div class="kpi" style="--c:#22c55e"><div class="lbl">완료 LOT</div><div class="val">9</div><div class="sub">개</div></div>
-      <div class="kpi" style="--c:#0891b2"><div class="lbl">양품 수량</div><div class="val">462</div><div class="sub">EA</div></div>
-      <div class="kpi" style="--c:#dc2626"><div class="lbl">불량 수량</div><div class="val">18</div><div class="sub">불량률 3.75%</div></div>
+      <div class="kpi" style="--c:#22c55e"><div class="lbl">LOTs DONE</div><div class="val">9</div><div class="sub">LOTs</div></div>
+      <div class="kpi" style="--c:#0891b2"><div class="lbl">GOOD QTY</div><div class="val">462</div><div class="sub">EA</div></div>
+      <div class="kpi" style="--c:#dc2626"><div class="lbl">DEFECT QTY</div><div class="val">18</div><div class="sub">Defect Rate 3.75%</div></div>
       <div class="kpi" style="--c:#fbbf24"><div class="lbl">OEE</div><div class="val">81.4</div><div class="sub">%</div></div>
     </div>
     <div class="card">
-      <h3>📋 완료 LOT 목록 (9건)</h3>
-      <div class="lot-row"><div class="sw" style="background:#0A0A0A"></div><span class="lid">LOT-2605-2098</span><span class="nm">사이드 몰딩 (블랙)</span><span class="q">60 EA</span><span class="stg">완료</span></div>
-      <div class="lot-row"><div class="sw" style="background:#8D948D"></div><span class="lid">LOT-2605-2099</span><span class="nm">그릴 도장 (그레이)</span><span class="q">36 EA</span><span class="stg">완료</span></div>
-      <div class="lot-row"><div class="sw" style="background:#0A0A0A"></div><span class="lid">LOT-2605-2100</span><span class="nm">프론트 범퍼 (블랙)</span><span class="q">48 EA</span><span class="stg">완료</span></div>
-      <div class="lot-row"><div class="sw" style="background:#F4F4F4;border-color:#666;"></div><span class="lid">LOT-2605-2101</span><span class="nm">프론트 범퍼 (화이트)</span><span class="q">42 EA</span><span class="stg">완료</span></div>
-      <div class="lot-row"><div class="sw" style="background:#CC0605"></div><span class="lid">LOT-2605-2102</span><span class="nm">그릴 도장 (레드)</span><span class="q">24 EA</span><span class="stg">완료</span></div>
-      <div class="lot-row"><div class="sw" style="background:#8D948D"></div><span class="lid">LOT-2605-2103</span><span class="nm">사이드 몰딩 (그레이)</span><span class="q">54 EA</span><span class="stg">완료</span></div>
-      <div class="lot-row"><div class="sw" style="background:#0A0A0A"></div><span class="lid">LOT-2605-2104</span><span class="nm">프론트 범퍼 (블랙)</span><span class="q">48 EA</span><span class="stg">완료</span></div>
-      <div class="lot-row"><div class="sw" style="background:#8D948D"></div><span class="lid">LOT-2605-2105</span><span class="nm">그릴 도장 (그레이)</span><span class="q">32 EA</span><span class="stg">완료</span></div>
-      <div class="lot-row"><div class="sw" style="background:#0A0A0A"></div><span class="lid">LOT-2605-2106</span><span class="nm">사이드 몰딩 (블랙)</span><span class="q">60 EA</span><span class="stg">완료</span></div>
+      <h3>📋 Completed LOTs (9)</h3>
+      <div class="lot-row"><div class="sw" style="background:#0A0A0A"></div><span class="lid">LOT-2605-2098</span><span class="nm">Side Molding (Black)</span><span class="q">60 EA</span><span class="stg">DONE</span></div>
+      <div class="lot-row"><div class="sw" style="background:#8D948D"></div><span class="lid">LOT-2605-2099</span><span class="nm">Grille Paint (Gray)</span><span class="q">36 EA</span><span class="stg">DONE</span></div>
+      <div class="lot-row"><div class="sw" style="background:#0A0A0A"></div><span class="lid">LOT-2605-2100</span><span class="nm">Front Bumper (Black)</span><span class="q">48 EA</span><span class="stg">DONE</span></div>
+      <div class="lot-row"><div class="sw" style="background:#F4F4F4;border-color:#666;"></div><span class="lid">LOT-2605-2101</span><span class="nm">Front Bumper (White)</span><span class="q">42 EA</span><span class="stg">DONE</span></div>
+      <div class="lot-row"><div class="sw" style="background:#CC0605"></div><span class="lid">LOT-2605-2102</span><span class="nm">Grille Paint (Red)</span><span class="q">24 EA</span><span class="stg">DONE</span></div>
+      <div class="lot-row"><div class="sw" style="background:#8D948D"></div><span class="lid">LOT-2605-2103</span><span class="nm">Side Molding (Gray)</span><span class="q">54 EA</span><span class="stg">DONE</span></div>
+      <div class="lot-row"><div class="sw" style="background:#0A0A0A"></div><span class="lid">LOT-2605-2104</span><span class="nm">Front Bumper (Black)</span><span class="q">48 EA</span><span class="stg">DONE</span></div>
+      <div class="lot-row"><div class="sw" style="background:#8D948D"></div><span class="lid">LOT-2605-2105</span><span class="nm">Grille Paint (Gray)</span><span class="q">32 EA</span><span class="stg">DONE</span></div>
+      <div class="lot-row"><div class="sw" style="background:#0A0A0A"></div><span class="lid">LOT-2605-2106</span><span class="nm">Side Molding (Black)</span><span class="q">60 EA</span><span class="stg">DONE</span></div>
     </div>
     <div class="card">
-      <h3>🔻 불량 발생 요약 (18건)</h3>
-      <div class="def-row"><span class="nm">색상 불량 (ΔE 초과)</span><span class="q">7건</span></div>
-      <div class="def-row"><span class="nm">오렌지 필</span><span class="q">5건</span></div>
-      <div class="def-row"><span class="nm">기포·핀홀</span><span class="q">3건</span></div>
-      <div class="def-row"><span class="nm">도막 두께 부족</span><span class="q">2건</span></div>
-      <div class="def-row"><span class="nm">이물 혼입</span><span class="q">1건</span></div>
+      <h3>🔻 Defect Summary (18)</h3>
+      <div class="def-row"><span class="nm">Color Mismatch (dE over)</span><span class="q">7</span></div>
+      <div class="def-row"><span class="nm">Orange Peel</span><span class="q">5</span></div>
+      <div class="def-row"><span class="nm">Pinhole / Bubble</span><span class="q">3</span></div>
+      <div class="def-row"><span class="nm">Thickness OOS</span><span class="q">2</span></div>
+      <div class="def-row"><span class="nm">Dust Inclusion</span><span class="q">1</span></div>
     </div>
   </div>
   <div class="col">
     <div class="card">
-      <h3>⏸ 비가동 시간 (총 42분)</h3>
-      <div class="dr-row"><span class="t">07:32</span><span class="ds">색상 전환 (블랙→그레이) — 부스 청소</span><span class="min">15분</span></div>
-      <div class="dr-row"><span class="t">09:15</span><span class="ds">노즐 부분 막힘 — 정비반 호출</span><span class="min">12분</span></div>
-      <div class="dr-row"><span class="t">11:30</span><span class="ds">교대 휴게 (정기)</span><span class="min">15분</span></div>
+      <h3>⏸ Downtime (Total 42 min)</h3>
+      <div class="dr-row"><span class="t">07:32</span><span class="ds">Color changeover (Black→Gray) — Booth cleaning</span><span class="min">15 min</span></div>
+      <div class="dr-row"><span class="t">09:15</span><span class="ds">Nozzle partial clog — Maintenance call</span><span class="min">12 min</span></div>
+      <div class="dr-row"><span class="t">11:30</span><span class="ds">Scheduled break</span><span class="min">15 min</span></div>
     </div>
     <div class="card">
-      <h3>📝 특이사항 및 메모</h3>
-      <textarea class="note" id="note" placeholder="교대 중 발생한 특이사항, 다음 교대로 인계할 내용을 기재하세요...">▶ 09:15 R2 오븐 Zone 3 온도 일시 상승(138→142℃) — 안정화 후 정상화. 야간조에서 점검 권장
-▶ 도료 KP-BC-001 (블랙) 잔량 약 30% — 1차 보충 요청
-▶ 14:00 시점 진행 중 LOT 없음 — 인계 즉시 LOT-2605-2107 시작 가능</textarea>
+      <h3>📝 Notes / Memos</h3>
+      <textarea class="note" id="note" placeholder="Enter any abnormalities and items to hand over to the next shift...">▶ 09:15 R2 Oven Zone 3 temperature spike (138→142°C) — stabilized after cooldown. Recommend inspection by night shift.
+▶ Paint KP-BC-001 (Black) at ~30% remaining — first refill requested.
+▶ 14:00 — no active LOT in progress. LOT-2605-2107 ready to start immediately upon handover.</textarea>
     </div>
     <div class="handover">
-      <b>🔄 야간 B조 인계 사항</b>
-      ▸ 다음 LOT: LOT-2605-2107 (프론트 범퍼 · 블랙 48EA) 시작 대기<br>
-      ▸ R2 오븐 Zone 3 모니터링 강화 권장<br>
-      ▸ 도료 보충 협조 필요 — KP-BC-001
+      <b>🔄 Handover to NIGHT Team B</b>
+      ▸ Next LOT: LOT-2605-2107 (Front Bumper · Black 48 EA) ready to start<br>
+      ▸ Recommend close monitoring of R2 Oven Zone 3<br>
+      ▸ Paint refill assistance needed — KP-BC-001
     </div>
     <div class="btn-bar">
-      <button class="btn-print" onclick="print()">🖨 리포트 인쇄</button>
-      <button class="btn-submit" onclick="submit()">✓ 교대 종료·제출</button>
+      <button class="btn-print" onclick="print()">🖨 Print Report</button>
+      <button class="btn-submit" onclick="submit()">✓ End Shift & Submit</button>
     </div>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 <script>
-function submit(){toast('ok','교대 일지 제출 완료 ✓','주간 A조 일지가 시스템에 등록되었습니다. 야간 B조 인계 알림이 발송됩니다.');}
-function print(){toast('info','리포트 인쇄','교대 일지 PDF가 생성되었습니다. (데모)');}
-function back(){toast('','뒤로 이동','POP 대시보드로 돌아갑니다.');}
+function submit(){toast('ok','Shift Report Submitted ✓','DAY Team A report logged. Notification sent to NIGHT Team B.');}
+function print(){toast('info','Print Report','Shift report PDF generated. (Demo)');}
+function back(){toast('','Back','Returning to POP Dashboard.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='info'?'ℹ ':type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';

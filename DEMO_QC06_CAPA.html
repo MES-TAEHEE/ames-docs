@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>QC-06 CAPA · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--qc:#8b5cf6;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:13px;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:13px;display:flex;flex-direction:column;overflow:hidden;}
 .head{flex-shrink:0;padding:13px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--qc);background:rgba(0,0,0,.3);}
 .head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#c4b5fd;}
 .head .tt{flex:1;}
@@ -74,21 +74,21 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 </head>
 <body>
 <div class="head">
-  <button class="back" onclick="back()">‹ 대시보드</button>
+  <button class="back" onclick="back()">‹ Dashboard</button>
   <div class="id">QC-06</div>
-  <div class="tt"><div class="en">CAPA Management</div><div class="ko">시정조치 — Corrective &amp; Preventive Action</div></div>
+  <div class="tt"><div class="en">CAPA Management</div><div class="ko">Corrective and Preventive Action</div></div>
   <span class="live"><span class="d"></span>LIVE</span>
 </div>
 <div class="body">
   <div class="col">
     <div class="kpis">
-      <div class="kpi" style="--c:#fbbf24"><div class="lbl">진행 중</div><div class="val">7</div><div class="sub">CAPA</div></div>
-      <div class="kpi" style="--c:#22c55e"><div class="lbl">검증 완료</div><div class="val">18</div><div class="sub">금월</div></div>
-      <div class="kpi" style="--c:#dc2626"><div class="lbl">기한 초과</div><div class="val">2</div><div class="sub">긴급</div></div>
-      <div class="kpi" style="--c:#c4b5fd"><div class="lbl">평균 종결일</div><div class="val">8.4</div><div class="sub">일</div></div>
+      <div class="kpi" style="--c:#fbbf24"><div class="lbl">IN PROGRESS</div><div class="val">7</div><div class="sub">CAPAs</div></div>
+      <div class="kpi" style="--c:#22c55e"><div class="lbl">VERIFIED CLOSED</div><div class="val">18</div><div class="sub">This Month</div></div>
+      <div class="kpi" style="--c:#dc2626"><div class="lbl">OVERDUE</div><div class="val">2</div><div class="sub">Urgent</div></div>
+      <div class="kpi" style="--c:#c4b5fd"><div class="lbl">AVG CLOSURE</div><div class="val">8.4</div><div class="sub">days</div></div>
     </div>
     <div class="list">
-      <h3>📋 CAPA 목록</h3>
+      <h3>📋 CAPA List</h3>
       <div class="l-body" id="capaList"></div>
     </div>
   </div>
@@ -99,31 +99,31 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 <div class="toasts" id="toasts"></div>
 <script>
 var CAPAS=[
- {id:'CAPA-2605-007',ti:'PP 수지 MI 미달 — 공급사 품질 개선',ncr:'NCR-2605-008',sev:'치명',pic:'서민재',due:'2026-05-30',st:'시정 진행',stC:'st-pr',rootCause:'공급사 원료 로트 변동성 — 입고 검사 강화 필요',immAct:'해당 로트(RC-2605-0418) 반품 처리, 대체 자재 긴급 발주',corrAct:'대한플라스틱(주) 품질 협의 — MI 측정 결과 100% 제출 의무화',prevAct:'수입 검사 시 매 로트 MI 측정 추가, 공급사 평가 등급 재조정',vrf:'30일간 입고 5로트 연속 합격 시 종결',step:2},
- {id:'CAPA-2605-006',ti:'클립 체결력 미달 — 토크 캘리브레이션',ncr:'NCR-2605-009',sev:'중대',pic:'박품질',due:'2026-05-25',st:'시정 진행',stC:'st-pr',rootCause:'토크 체결기 #1 캘리브레이션 편차 (12일 경과)',immAct:'해당 LOT 보류, 토크기 정비 호출',corrAct:'토크 체결기 #1 캘리브레이션 즉시 실시',prevAct:'토크기 분기 캘리브레이션 주기 → 월간으로 단축',vrf:'1주일 후 체결력 재측정, 평균 ≥ 45N 확인',step:2},
- {id:'CAPA-2605-005',ti:'도장 색차 ΔE 다발 — 부스 청소 주기',ncr:'NCR-2605-010',sev:'중대',pic:'한지원',due:'2026-05-26',st:'계획 수립',stC:'st-pl',rootCause:'',immAct:'',corrAct:'',prevAct:'',vrf:'',step:1},
- {id:'CAPA-2605-004',ti:'사출 게이트 잔존 다발',ncr:'NCR-2605-007',sev:'경미',pic:'박품질',due:'2026-05-24',st:'효과 검증',stC:'st-vr',rootCause:'게이트 절단 지그 마모',immAct:'지그 즉시 교체',corrAct:'지그 점검 주기 단축 (월→주)',prevAct:'지그 사용 횟수 기반 자동 알람 설정',vrf:'2주간 게이트 잔존율 < 0.5% 확인 중',step:3},
- {id:'CAPA-2605-003',ti:'크롬 박리 (그릴)',ncr:'NCR-2605-006',sev:'중대',pic:'서민재',due:'2026-05-22',st:'종결',stC:'st-cl',rootCause:'프라이머 두께 부족 (8㎛, 기준 ≥12㎛)',immAct:'영향 LOT 폐기',corrAct:'프라이머 도포 시간 +2초 표준 변경',prevAct:'프라이머 두께 자동 측정 시스템 도입',vrf:'완료 — 5/19~5/21 LOT 박리율 0%',step:4}
+ {id:'CAPA-2605-007',ti:'PP Resin MI Out-of-Spec — Vendor Quality Improvement',ncr:'NCR-2605-008',sev:'Critical',pic:'Linda Garcia',due:'05/30/2026',st:'In Progress',stC:'st-pr',rootCause:'Vendor raw material LOT variability — incoming inspection must be strengthened',immAct:'Affected LOT (RC-2605-0418) returned to vendor; alternative material rush ordered',corrAct:'Dow Chemical quality meeting — require 100% MI measurement submission',prevAct:'Add MI test for every incoming LOT; re-assess vendor rating',vrf:'Close after 5 consecutive incoming LOTs pass within 30 days',step:2},
+ {id:'CAPA-2605-006',ti:'Clip Retention Force Below Spec — Torque Calibration',ncr:'NCR-2605-009',sev:'Major',pic:'Karen Lee',due:'05/25/2026',st:'In Progress',stC:'st-pr',rootCause:'Torque tool #1 calibration drift (12 days since last cal)',immAct:'LOT held; maintenance call placed for torque tool',corrAct:'Immediate calibration of torque tool #1',prevAct:'Shorten torque calibration cycle quarterly → monthly',vrf:'Re-measure clip force after 1 week; mean ≥ 45N',step:2},
+ {id:'CAPA-2605-005',ti:'Paint Color dE Defects — Booth Cleaning Cycle',ncr:'NCR-2605-010',sev:'Major',pic:'Sarah Williams',due:'05/26/2026',st:'Planning',stC:'st-pl',rootCause:'',immAct:'',corrAct:'',prevAct:'',vrf:'',step:1},
+ {id:'CAPA-2605-004',ti:'Injection Gate Residue Defects',ncr:'NCR-2605-007',sev:'Minor',pic:'Karen Lee',due:'05/24/2026',st:'Verification',stC:'st-vr',rootCause:'Gate-cutter jig worn',immAct:'Replace jig immediately',corrAct:'Shorten jig inspection cycle (month → week)',prevAct:'Add auto-alarm based on jig usage count',vrf:'Confirm gate residue rate < 0.5% over 2 weeks',step:3},
+ {id:'CAPA-2605-003',ti:'Chrome Delamination (Grille)',ncr:'NCR-2605-006',sev:'Major',pic:'Linda Garcia',due:'05/22/2026',st:'Closed',stC:'st-cl',rootCause:'Primer thickness insufficient (8㎛, spec ≥12㎛)',immAct:'Affected LOT scrapped',corrAct:'Primer application time +2 sec standard update',prevAct:'Introduce auto-thickness measurement system for primer',vrf:'Closed — delamination rate 0% for 5/19~5/21 LOTs',step:4}
 ];
 var sel=0;
 function renderList(){
   document.getElementById('capaList').innerHTML=CAPAS.map(function(c,i){
-    return '<div class="capa-row'+(i===sel?' sel':'')+'" style="--c:'+(c.sev==='치명'?'#dc2626':(c.sev==='중대'?'#fbbf24':'#22c55e'))+'" onclick="pick('+i+')">'+
+    return '<div class="capa-row'+(i===sel?' sel':'')+'" style="--c:'+(c.sev==='Critical'?'#dc2626':(c.sev==='Major'?'#fbbf24':'#22c55e'))+'" onclick="pick('+i+')">'+
       '<div class="ch"><span class="cid">'+c.id+'</span><span class="st '+c.stC+'">'+c.st+'</span></div>'+
       '<div class="ti">'+c.ti+'</div>'+
-      '<div class="meta">'+c.ncr+' · 담당 '+c.pic+' · 기한 '+c.due+'</div></div>';
+      '<div class="meta">'+c.ncr+' · Owner '+c.pic+' · Due '+c.due+'</div></div>';
   }).join('');
 }
 function pick(i){sel=i;renderList();renderDetail();}
 function renderDetail(){
   var c=CAPAS[sel];
-  var stepNames=['계획 수립','시정 조치','효과 검증','종결'];
+  var stepNames=['Planning','Action','Verification','Closed'];
   var html='<h2>'+c.id+' — '+c.ti+'</h2>'+
     '<div class="meta-r">'+
-    '<div class="m"><div class="ml">관련 NCR</div><div class="mv">'+c.ncr+'</div></div>'+
-    '<div class="m"><div class="ml">심각도</div><div class="mv" style="color:'+(c.sev==='치명'?'#fca5a5':(c.sev==='중대'?'#fbbf24':'#86efac'))+'">'+c.sev+'</div></div>'+
-    '<div class="m"><div class="ml">담당자</div><div class="mv">'+c.pic+'</div></div>'+
-    '<div class="m"><div class="ml">목표 기한</div><div class="mv">'+c.due+'</div></div></div>'+
+    '<div class="m"><div class="ml">RELATED NCR</div><div class="mv">'+c.ncr+'</div></div>'+
+    '<div class="m"><div class="ml">SEVERITY</div><div class="mv" style="color:'+(c.sev==='Critical'?'#fca5a5':(c.sev==='Major'?'#fbbf24':'#86efac'))+'">'+c.sev+'</div></div>'+
+    '<div class="m"><div class="ml">OWNER</div><div class="mv">'+c.pic+'</div></div>'+
+    '<div class="m"><div class="ml">DUE DATE</div><div class="mv">'+c.due+'</div></div></div>'+
     '<div class="steps">';
   for(var i=0;i<4;i++){
     var cls=i+1<c.step?'done':(i+1===c.step?'cur':'');
@@ -131,29 +131,29 @@ function renderDetail(){
   }
   html+='</div>';
   html+=
-    (c.rootCause?'<div class="sec"><h4>🔍 근본 원인 (Root Cause)</h4><div class="content">'+c.rootCause+'</div></div>':'')+
-    (c.immAct?'<div class="sec"><h4>⚡ 즉시 조치 (Immediate Action)</h4><div class="content">'+c.immAct+'</div></div>':'')+
-    (c.corrAct?'<div class="sec"><h4>🛠 시정 조치 (Corrective Action)</h4><div class="content">'+c.corrAct+'</div></div>':'')+
-    (c.prevAct?'<div class="sec"><h4>🛡 예방 조치 (Preventive Action)</h4><div class="content">'+c.prevAct+'</div></div>':'')+
-    (c.vrf?'<div class="sec"><h4>✓ 효과 검증 (Verification)</h4><div class="content">'+c.vrf+'</div></div>':'');
+    (c.rootCause?'<div class="sec"><h4>🔍 Root Cause (RCA)</h4><div class="content">'+c.rootCause+'</div></div>':'')+
+    (c.immAct?'<div class="sec"><h4>⚡ Immediate Action</h4><div class="content">'+c.immAct+'</div></div>':'')+
+    (c.corrAct?'<div class="sec"><h4>🛠 Corrective Action</h4><div class="content">'+c.corrAct+'</div></div>':'')+
+    (c.prevAct?'<div class="sec"><h4>🛡 Preventive Action</h4><div class="content">'+c.prevAct+'</div></div>':'')+
+    (c.vrf?'<div class="sec"><h4>✓ Verification</h4><div class="content">'+c.vrf+'</div></div>':'');
   if(c.step<4){
     html+='<div class="actions">'+
-      '<button onclick="addNote()">📝 노트 추가</button>'+
-      '<button class="pri" onclick="advance()">▶ 다음 단계 진행</button></div>';
+      '<button onclick="addNote()">📝 Add Note</button>'+
+      '<button class="pri" onclick="advance()">▶ Advance Step</button></div>';
   }
   document.getElementById('detail').innerHTML=html;
 }
 function advance(){
   var c=CAPAS[sel];if(c.step<4){c.step++;
     var stMap=['st-pl','st-pr','st-vr','st-cl'];
-    var stNames=['계획 수립','시정 진행','효과 검증','종결'];
+    var stNames=['Planning','In Progress','Verification','Closed'];
     c.st=stNames[c.step-1];c.stC=stMap[c.step-1];
     renderList();renderDetail();
-    toast('ok','단계 진행 ✓',c.id+' — '+c.st+' 단계로 진행되었습니다.');
+    toast('ok','Step Advanced ✓',c.id+' — moved to '+c.st+' stage.');
   }
 }
-function addNote(){toast('','노트 추가','CAPA 진행 노트 입력 화면을 표시합니다. (데모)');}
-function back(){toast('','뒤로 이동','대시보드로 돌아갑니다.');}
+function addNote(){toast('','Add Note','Opening CAPA note entry. (Demo)');}
+function back(){toast('','Back','Returning to Dashboard.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';

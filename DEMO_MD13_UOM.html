@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>MD-03 BOM Version · A-MES Demo</title>
+<title>MD-13 Unit of Measure · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#d97706;--pp-dk:#b45309;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#2b1a02,#3d2606);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fbbf24;line-height:.9;}
 .sh-tt{flex:1;}
@@ -77,8 +77,8 @@ tbody tr.sel td{background:#fef3c7;}
 </head>
 <body>
 <div class="scr-head">
-  <div class="sh-id" id="shId">MD-03</div>
-  <div class="sh-tt"><div class="sh-en" id="shEn">BOM Version</div><div class="sh-ko" id="shKo"></div></div>
+  <div class="sh-id" id="shId">MD-13</div>
+  <div class="sh-tt"><div class="sh-en" id="shEn">Unit of Measure</div><div class="sh-ko" id="shKo"></div></div>
   <span class="sh-tag" id="shTag"></span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
@@ -87,20 +87,20 @@ tbody tr.sel td{background:#fef3c7;}
   <div class="kpis" id="kpis"></div>
   <div class="grid2">
     <div class="card">
-      <div class="card-t" id="listT">목록</div>
+      <div class="card-t" id="listT">List</div>
       <table><thead><tr id="thr"></tr></thead><tbody id="tbody"></tbody></table>
-      <div class="empty" id="empty" style="display:none;">조건에 맞는 데이터가 없습니다.</div>
+      <div class="empty" id="empty" style="display:none;">No matching data found.</div>
     </div>
-    <div class="card" id="detail"><div class="empty">← 좌측 목록에서 항목을 선택하세요.</div></div>
+    <div class="card" id="detail"><div class="empty">← Select an item from the list on the left.</div></div>
   </div>
 </div>
 <div class="ov" id="ovEd">
   <div class="modal">
-    <div class="modal-h"><span class="mt" id="emTitle">등록</span><span class="mx" onclick="closeOv('ovEd')">✕</span></div>
+    <div class="modal-h"><span class="mt" id="emTitle">Add</span><span class="mx" onclick="closeOv('ovEd')">✕</span></div>
     <div class="modal-b" id="emBody"></div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovEd')">취소</button>
-      <button class="btn btn-p" id="emSave" onclick="saveRec()">＋ 등록</button>
+      <button class="btn btn-s" onclick="closeOv('ovEd')">Cancel</button>
+      <button class="btn btn-p" id="emSave" onclick="saveRec()">＋ Add</button>
     </div>
   </div>
 </div>
@@ -109,43 +109,43 @@ tbody tr.sel td{background:#fef3c7;}
 <script>
 /* ===== ENTITY CONFIG ===== */
 var CFG={
-  id:'MD-13',en:'Unit of Measure',ko:'단위 — 측정 단위(UOM) 기준정보',tag:'/md/uom',
-  idKey:'code',entity:'단위',
-  filters:[{k:'type',label:'단위 유형'},{k:'status',label:'상태'}],
+  id:'MD-13',en:'Unit of Measure',ko:'UOM — Unit of Measure Master',tag:'/md/uom',
+  idKey:'code',entity:'UOM',
+  filters:[{k:'type',label:'UOM Type'},{k:'status',label:'Status'}],
   search:['code','name'],
   cols:[
-    {k:'code',label:'단위 코드',mono:true,bold:true},
-    {k:'name',label:'단위명'},
-    {k:'type',label:'유형'},
-    {k:'ratio',label:'환산 계수',mono:true},
-    {k:'status',label:'상태',badge:{'사용':'b0','미사용':'b2'}}
+    {k:'code',label:'UOM Code',mono:true,bold:true},
+    {k:'name',label:'UOM Name'},
+    {k:'type',label:'Type'},
+    {k:'ratio',label:'Conversion',mono:true},
+    {k:'status',label:'Status',badge:{'Active':'b0','Inactive':'b2'}}
   ],
   fields:[
-    {k:'code',label:'단위 코드',type:'text',req:true,uniq:true,ph:'BOX'},
-    {k:'name',label:'단위명',type:'text',req:true,ph:'박스'},
-    {k:'type',label:'단위 유형',type:'select',opts:['수량','중량','길이','부피','시간']},
-    {k:'base',label:'기준 단위',type:'text',ph:'EA'},
-    {k:'ratio',label:'기준 단위 환산 계수',type:'number',req:true},
-    {k:'desc',label:'설명',type:'text',ph:'1 BOX = 24 EA'},
-    {k:'status',label:'상태',type:'select',opts:['사용','미사용']}
+    {k:'code',label:'UOM Code',type:'text',req:true,uniq:true,ph:'BOX'},
+    {k:'name',label:'UOM Name',type:'text',req:true,ph:'Box'},
+    {k:'type',label:'UOM Type',type:'select',opts:['Quantity','Weight','Length','Volume','Time']},
+    {k:'base',label:'Base Unit',type:'text',ph:'EA'},
+    {k:'ratio',label:'Conversion to Base',type:'number',req:true},
+    {k:'desc',label:'Description',type:'text',ph:'1 BOX = 24 EA'},
+    {k:'status',label:'Status',type:'select',opts:['Active','Inactive']}
   ],
   kpis:[
-    {label:'총 단위',c:'#d97706',calc:function(d){return d.length;}},
-    {label:'사용 중 · Active',c:'#16a34a',calc:function(d){return d.filter(function(r){return r.status==='사용';}).length;}},
-    {label:'수량 단위',c:'#2563eb',calc:function(d){return d.filter(function(r){return r.type==='수량';}).length;}},
-    {label:'단위 유형 수',c:'#8b5cf6',calc:function(d){var t=[];d.forEach(function(r){if(t.indexOf(r.type)<0)t.push(r.type);});return t.length;}}
+    {label:'Total UOMs',c:'#d97706',calc:function(d){return d.length;}},
+    {label:'Active',c:'#16a34a',calc:function(d){return d.filter(function(r){return r.status==='Active';}).length;}},
+    {label:'Quantity UOMs',c:'#2563eb',calc:function(d){return d.filter(function(r){return r.type==='Quantity';}).length;}},
+    {label:'UOM Types',c:'#8b5cf6',calc:function(d){var t=[];d.forEach(function(r){if(t.indexOf(r.type)<0)t.push(r.type);});return t.length;}}
   ],
   data:[
-    {code:'EA',name:'개',type:'수량',base:'EA',ratio:1,desc:'기본 수량 단위',status:'사용'},
-    {code:'SET',name:'세트',type:'수량',base:'EA',ratio:1,desc:'1 SET = 1 조립 단위',status:'사용'},
-    {code:'BOX',name:'박스',type:'수량',base:'EA',ratio:24,desc:'1 BOX = 24 EA',status:'사용'},
-    {code:'PLT',name:'파레트',type:'수량',base:'EA',ratio:480,desc:'1 PLT = 480 EA',status:'사용'},
-    {code:'KG',name:'킬로그램',type:'중량',base:'KG',ratio:1,desc:'기본 중량 단위',status:'사용'},
-    {code:'TON',name:'톤',type:'중량',base:'KG',ratio:1000,desc:'1 TON = 1000 KG',status:'사용'},
-    {code:'M',name:'미터',type:'길이',base:'M',ratio:1,desc:'기본 길이 단위',status:'사용'},
-    {code:'L',name:'리터',type:'부피',base:'L',ratio:1,desc:'기본 부피 단위',status:'사용'},
-    {code:'HR',name:'시간',type:'시간',base:'HR',ratio:1,desc:'기본 시간 단위',status:'사용'},
-    {code:'YD',name:'야드',type:'길이',base:'M',ratio:0.9144,desc:'1 YD = 0.9144 M',status:'미사용'}
+    {code:'EA',name:'Each',type:'Quantity',base:'EA',ratio:1,desc:'Base quantity unit',status:'Active'},
+    {code:'SET',name:'Set',type:'Quantity',base:'EA',ratio:1,desc:'1 SET = 1 assembled unit',status:'Active'},
+    {code:'BOX',name:'Box',type:'Quantity',base:'EA',ratio:24,desc:'1 BOX = 24 EA',status:'Active'},
+    {code:'PLT',name:'Pallet',type:'Quantity',base:'EA',ratio:480,desc:'1 PLT = 480 EA',status:'Active'},
+    {code:'LB',name:'Pound',type:'Weight',base:'LB',ratio:1,desc:'Base weight unit',status:'Active'},
+    {code:'TON',name:'Short Ton',type:'Weight',base:'LB',ratio:2000,desc:'1 TON = 2000 LB',status:'Active'},
+    {code:'FT',name:'Foot',type:'Length',base:'FT',ratio:1,desc:'Base length unit',status:'Active'},
+    {code:'GAL',name:'Gallon',type:'Volume',base:'GAL',ratio:1,desc:'Base volume unit (US)',status:'Active'},
+    {code:'HR',name:'Hour',type:'Time',base:'HR',ratio:1,desc:'Base time unit',status:'Active'},
+    {code:'YD',name:'Yard',type:'Length',base:'FT',ratio:3,desc:'1 YD = 3 FT',status:'Inactive'}
   ]
 };
 /* ===== GENERIC MASTER ENGINE ===== */
@@ -161,15 +161,15 @@ function init(){
   CFG.filters.forEach(function(f){
     var opts=[];DATA.forEach(function(r){if(opts.indexOf(r[f.k])<0)opts.push(r[f.k]);});
     tb+='<div class="fld"><label>'+f.label+'</label><select data-fk="'+f.k+'" onchange="render()">'+
-      '<option value="">전체 All</option>'+opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select></div>';
+      '<option value="">All</option>'+opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select></div>';
   });
-  tb+='<div class="fld"><label>검색 Search</label><input id="fKw" placeholder="코드·명칭" oninput="render()" style="width:150px;"></div>';
-  tb+='<button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>';
+  tb+='<div class="fld"><label>Search</label><input id="fKw" placeholder="Code / name" oninput="render()" style="width:150px;"></div>';
+  tb+='<button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>';
   tb+='<div style="margin-left:auto;display:flex;gap:8px;">'+
-    '<button class="btn btn-p" onclick="openNew()">＋ '+CFG.entity+' 등록</button>'+
+    '<button class="btn btn-p" onclick="openNew()">＋ Add '+CFG.entity+'</button>'+
     '<button class="btn btn-s" onclick="exportCsv()">📥 Export</button></div>';
   $('toolbar').innerHTML=tb;
-  $('listT').textContent='📋 '+CFG.entity+' 목록';
+  $('listT').textContent='📋 '+CFG.entity+' List';
   $('thr').innerHTML=CFG.cols.map(function(c){return '<th>'+c.label+'</th>';}).join('');
   render();
 }
@@ -199,7 +199,7 @@ function render(){
   });
   $('tbody').innerHTML=h;
   $('empty').style.display=v.length?'none':'block';
-  $('listT').textContent='📋 '+CFG.entity+' 목록 — '+v.length+'건';
+  $('listT').textContent='📋 '+CFG.entity+' List — '+v.length+' items';
   if(selKey&&!byKey(selKey))selKey=null;
   renderDetail();
 }
@@ -207,9 +207,9 @@ function byKey(k){return DATA.filter(function(r){return r[CFG.idKey]===k;})[0];}
 function pick(k){selKey=k;render();}
 function renderDetail(){
   var r=byKey(selKey);
-  if(!r){$('detail').innerHTML='<div class="empty">← 좌측 목록에서 항목을 선택하세요.</div>';return;}
+  if(!r){$('detail').innerHTML='<div class="empty">← Select an item from the list on the left.</div>';return;}
   var nmField=CFG.fields[1]?CFG.fields[1].k:CFG.idKey;
-  var h='<div class="card-t">📑 '+CFG.entity+' 상세</div>'+
+  var h='<div class="card-t">📑 '+CFG.entity+' Detail</div>'+
     '<div class="dt-head"><div class="dt-nm">'+(r[nmField]||r[CFG.idKey])+'</div><div class="dt-id">'+r[CFG.idKey]+'</div></div>'+
     '<div class="specs">';
   CFG.fields.forEach(function(f){
@@ -217,8 +217,8 @@ function renderDetail(){
     var v=r[f.k];if(v===''||v==null)v='—';
     h+='<div class="srow"><span class="sk">'+f.label+'</span><span class="sv">'+v+'</span></div>';
   });
-  h+='</div><div class="acts"><button class="btn btn-s btn-sm" onclick="editRec()">✎ 수정</button>'+
-    '<button class="btn btn-s btn-sm" onclick="delRec()">🗑 삭제</button></div>';
+  h+='</div><div class="acts"><button class="btn btn-s btn-sm" onclick="editRec()">✎ Edit</button>'+
+    '<button class="btn btn-s btn-sm" onclick="delRec()">🗑 Delete</button></div>';
   $('detail').innerHTML=h;
 }
 function formHtml(r){
@@ -234,31 +234,31 @@ function formHtml(r){
   }).join('');
 }
 function openNew(){
-  editKey=null;$('emTitle').textContent=CFG.entity+' 등록';$('emSave').textContent='＋ 등록';
+  editKey=null;$('emTitle').textContent='Add '+CFG.entity;$('emSave').textContent='＋ Add';
   $('emBody').innerHTML=formHtml(null);openOv('ovEd');
 }
 function editRec(){
-  editKey=selKey;$('emTitle').textContent=CFG.entity+' 수정';$('emSave').textContent='💾 저장';
+  editKey=selKey;$('emTitle').textContent='Edit '+CFG.entity;$('emSave').textContent='💾 Save';
   $('emBody').innerHTML=formHtml(byKey(selKey));openOv('ovEd');
 }
 function saveRec(){
   var o={};
   [].slice.call(document.querySelectorAll('#emBody [data-fk]')).forEach(function(el){o[el.dataset.fk]=el.value.trim?el.value.trim():el.value;});
   for(var i=0;i<CFG.fields.length;i++){var f=CFG.fields[i];
-    if(f.req&&!o[f.k]&&!(editKey&&f.uniq)){toast('err','입력 오류',f.label+'은(는) 필수 항목입니다.');return;}}
+    if(f.req&&!o[f.k]&&!(editKey&&f.uniq)){toast('err','Input Error',f.label+' is a required field.');return;}}
   if(editKey){var r=byKey(editKey);for(var k in o){if(k!==CFG.idKey)r[k]=o[k];}
-    toast('','수정 완료',CFG.entity+' 정보가 수정되었습니다.');
+    toast('','Updated',CFG.entity+' information has been updated.');
   }else{
-    if(byKey(o[CFG.idKey])){toast('err','중복 오류','이미 존재하는 코드입니다.');return;}
+    if(byKey(o[CFG.idKey])){toast('err','Duplicate Error','Code already exists.');return;}
     DATA.push(o);selKey=o[CFG.idKey];
-    toast('','등록 완료',o[CFG.idKey]+' '+CFG.entity+'이(가) 등록되었습니다.');
+    toast('','Added',o[CFG.idKey]+' '+CFG.entity+' has been added.');
   }
   closeOv('ovEd');render();
 }
 function delRec(){
   var r=byKey(selKey);var i=DATA.indexOf(r);
   if(i>=0)DATA.splice(i,1);selKey=null;render();
-  toast('info','삭제 완료',CFG.entity+' 항목이 삭제되었습니다.');
+  toast('info','Deleted',CFG.entity+' item has been deleted.');
 }
 function exportCsv(){
   var v=vis();
@@ -268,11 +268,11 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=CFG.id+'_'+CFG.en.replace(/ /g,'')+'_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료',CFG.entity+' '+v.length+'건을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+v.length+' '+CFG.entity+' items to CSV.');
 }
 function resetAll(){
   [].slice.call(document.querySelectorAll('#toolbar select')).forEach(function(s){s.value='';});
-  $('fKw').value='';render();toast('info','초기화','목록 필터를 초기화했습니다.');
+  $('fKw').value='';render();toast('info','Reset','List filters have been reset.');
 }
 function openOv(id){$(id).classList.add('on');}
 function closeOv(id){$(id).classList.remove('on');}

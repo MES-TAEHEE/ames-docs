@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>SYS-04 Interface Monitor · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -81,33 +81,33 @@ tbody tr:hover td{background:#f0fdf4;}
 <body>
 <div class="scr-head">
   <div class="sh-id">SYS-04</div>
-  <div class="sh-tt"><div class="sh-en">Interface Monitor</div><div class="sh-ko">인터페이스 모니터 — 외부 시스템 연동 상태 감시</div></div>
+  <div class="sh-tt"><div class="sh-en">Interface Monitor</div><div class="sh-ko">External system integration status monitoring</div></div>
   <span class="sh-tag">/sys/interface</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>연동 시스템 System</label>
-    <select id="fSys" onchange="render()"><option value="">전체 All</option><option>SAP Business One</option><option>설비 (OPC-UA)</option><option>물류 (Barcode)</option><option>그룹웨어</option></select></div>
-  <div class="fld"><label>상태 Status</label>
-    <select id="fStat" onchange="render()"><option value="">전체</option><option value="ok">정상</option><option value="err">오류</option><option value="idle">대기</option></select></div>
-  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
-  <div class="swt" style="margin-left:auto;"><span>실시간 갱신</span>
+  <div class="fld"><label>System</label>
+    <select id="fSys" onchange="render()"><option value="">All</option><option>SAP S/4HANA</option><option>Equipment (OPC-UA)</option><option>Logistics (Barcode)</option><option>Microsoft Teams</option></select></div>
+  <div class="fld"><label>Status</label>
+    <select id="fStat" onchange="render()"><option value="">All</option><option value="ok">Healthy</option><option value="err">Error</option><option value="idle">Idle</option></select></div>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>
+  <div class="swt" style="margin-left:auto;"><span>Live Refresh</span>
     <div class="tk on" id="autoTk" onclick="toggleAuto()"><i></i></div></div>
   <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">총 인터페이스 · Interfaces</div></div>
-    <div class="kpi" style="--c:#10b981"><div class="kv" id="kOk">0</div><div class="kl">정상 가동 · Normal</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kErr">0</div><div class="kl">오류 · Error</div></div>
-    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kCnt">0</div><div class="kl">금일 송수신 · Messages</div></div>
-    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kRt">0</div><div class="kl">평균 응답시간 · ms</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">Total Interfaces</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kOk">0</div><div class="kl">Healthy</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kErr">0</div><div class="kl">Errors</div></div>
+    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kCnt">0</div><div class="kl">Today's Messages</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kRt">0</div><div class="kl">Avg Response · ms</div></div>
   </div>
   <div class="cards" id="cards"></div>
   <div class="panel">
-    <div class="panel-h">📋 최근 연동 실행 로그</div>
+    <div class="panel-h">📋 Recent Integration Activity Log</div>
     <table>
-      <thead><tr><th>실행 시각</th><th>인터페이스</th><th>방향</th><th>건수</th><th>응답(ms)</th><th>결과</th></tr></thead>
+      <thead><tr><th>Time</th><th>Interface</th><th>Direction</th><th>Records</th><th>Response (ms)</th><th>Result</th></tr></thead>
       <tbody id="logBody"></tbody>
     </table>
   </div>
@@ -115,28 +115,28 @@ tbody tr:hover td{background:#f0fdf4;}
 <div class="toasts" id="toasts"></div>
 
 <script>
-var DIR={in:{ko:'수신',cls:'dir-in'},out:{ko:'송신',cls:'dir-out'},bi:{ko:'양방향',cls:'dir-bi'}};
-var ST={ok:{ko:'정상',cls:'st-ok',col:'#10b981'},err:{ko:'오류',cls:'st-err',col:'#dc2626'},idle:{ko:'대기',cls:'st-idle',col:'#9ca3af'}};
+var DIR={in:{ko:'Inbound',cls:'dir-in'},out:{ko:'Outbound',cls:'dir-out'},bi:{ko:'Bidirectional',cls:'dir-bi'}};
+var ST={ok:{ko:'Healthy',cls:'st-ok',col:'#10b981'},err:{ko:'Error',cls:'st-err',col:'#dc2626'},idle:{ko:'Idle',cls:'st-idle',col:'#9ca3af'}};
 var IFS=[
- {id:'IF01',nm:'SAP 공급계획 수신',sys:'SAP Business One',ic:'📥',dir:'in',cycle:'1시간',
+ {id:'IF01',nm:'SAP Supply Plan Inbound',sys:'SAP S/4HANA',ic:'📥',dir:'in',cycle:'Hourly',
   st:'ok',succ:99.6,cnt:142,rt:320,last:'08:00:12'},
- {id:'IF02',nm:'SAP 생산실적 송신',sys:'SAP Business One',ic:'📤',dir:'out',cycle:'30분',
+ {id:'IF02',nm:'SAP Production Posting',sys:'SAP S/4HANA',ic:'📤',dir:'out',cycle:'30 min',
   st:'ok',succ:99.9,cnt:288,rt:280,last:'08:30:05'},
- {id:'IF03',nm:'설비 데이터 수집',sys:'설비 (OPC-UA)',ic:'⚙️',dir:'in',cycle:'실시간',
+ {id:'IF03',nm:'Equipment Data Collection',sys:'Equipment (OPC-UA)',ic:'⚙️',dir:'in',cycle:'Real-time',
   st:'ok',succ:98.4,cnt:8642,rt:45,last:'08:32:51'},
- {id:'IF04',nm:'바코드 출하 연동',sys:'물류 (Barcode)',ic:'🏷️',dir:'bi',cycle:'실시간',
+ {id:'IF04',nm:'Barcode Shipping Sync',sys:'Logistics (Barcode)',ic:'🏷️',dir:'bi',cycle:'Real-time',
   st:'err',succ:91.2,cnt:64,rt:1240,last:'08:28:33'},
- {id:'IF05',nm:'품질 SPC 데이터 연동',sys:'설비 (OPC-UA)',ic:'📊',dir:'in',cycle:'5분',
+ {id:'IF05',nm:'Quality SPC Data Sync',sys:'Equipment (OPC-UA)',ic:'📊',dir:'in',cycle:'5 min',
   st:'ok',succ:99.1,cnt:412,rt:88,last:'08:30:00'},
- {id:'IF06',nm:'그룹웨어 알림 송신',sys:'그룹웨어',ic:'✉️',dir:'out',cycle:'이벤트',
+ {id:'IF06',nm:'Teams Notification Push',sys:'Microsoft Teams',ic:'✉️',dir:'out',cycle:'On Event',
   st:'idle',succ:100,cnt:18,rt:210,last:'07:45:20'}
 ];
 var LOG=[
- {t:'08:32:51',ifn:'설비 데이터 수집',dir:'in',cnt:120,rt:45,ok:true},
- {t:'08:30:05',ifn:'SAP 생산실적 송신',dir:'out',cnt:24,rt:280,ok:true},
- {t:'08:30:00',ifn:'품질 SPC 데이터 연동',dir:'in',cnt:35,rt:88,ok:true},
- {t:'08:28:33',ifn:'바코드 출하 연동',dir:'bi',cnt:0,rt:1240,ok:false},
- {t:'08:00:12',ifn:'SAP 공급계획 수신',dir:'in',cnt:142,rt:320,ok:true}
+ {t:'08:32:51',ifn:'Equipment Data Collection',dir:'in',cnt:120,rt:45,ok:true},
+ {t:'08:30:05',ifn:'SAP Production Posting',dir:'out',cnt:24,rt:280,ok:true},
+ {t:'08:30:00',ifn:'Quality SPC Data Sync',dir:'in',cnt:35,rt:88,ok:true},
+ {t:'08:28:33',ifn:'Barcode Shipping Sync',dir:'bi',cnt:0,rt:1240,ok:false},
+ {t:'08:00:12',ifn:'SAP Supply Plan Inbound',dir:'in',cnt:142,rt:320,ok:true}
 ];
 var auto=true,timer=null;
 function nowStr(){return new Date().toTimeString().slice(0,8);}
@@ -158,19 +158,19 @@ function render(){
         '<div style="flex:1;"><div class="ifc-nm">'+f.nm+'</div><div class="ifc-sys">'+f.sys+'</div></div>'+
         '<span class="ifc-st '+s.cls+'"><span class="dot"></span>'+s.ko+'</span></div>'+
       '<div class="ifc-b">'+
-        '<span class="dirbar '+DIR[f.dir].cls+'">'+DIR[f.dir].ko+' · 주기 '+f.cycle+'</span>'+
-        '<div class="ifc-stats"><div class="s"><div class="sv">'+f.cnt.toLocaleString()+'</div><div class="sl">금일 건수</div></div>'+
-          '<div class="s"><div class="sv">'+f.rt+'</div><div class="sl">응답 ms</div></div>'+
-          '<div class="s"><div class="sv" style="color:'+(f.succ>=98?'#059669':'#dc2626')+'">'+f.succ+'%</div><div class="sl">성공률</div></div></div>'+
+        '<span class="dirbar '+DIR[f.dir].cls+'">'+DIR[f.dir].ko+' · Every '+f.cycle+'</span>'+
+        '<div class="ifc-stats"><div class="s"><div class="sv">'+f.cnt.toLocaleString()+'</div><div class="sl">Today\'s Records</div></div>'+
+          '<div class="s"><div class="sv">'+f.rt+'</div><div class="sl">Response ms</div></div>'+
+          '<div class="s"><div class="sv" style="color:'+(f.succ>=98?'#059669':'#dc2626')+'">'+f.succ+'%</div><div class="sl">Success Rate</div></div></div>'+
         '<div class="succbar"><i style="width:'+f.succ+'%;background:'+(f.succ>=98?'#10b981':'#dc2626')+'"></i></div>'+
-        '<div class="ifc-last">최근 실행 '+f.last+'</div></div>'+
+        '<div class="ifc-last">Last run '+f.last+'</div></div>'+
       '<div class="ifc-f">'+
         (f.st==='err'
-          ?'<button class="btn btn-p btn-sm" onclick="retryIf(\''+f.id+'\')">↻ 재연동</button>'
-          :'<button class="btn btn-s btn-sm" onclick="runIf(\''+f.id+'\')">▶ 수동 실행</button>')+
-        '<button class="btn btn-s btn-sm" onclick="viewLog(\''+f.id+'\')">📄 로그</button></div></div>';
+          ?'<button class="btn btn-p btn-sm" onclick="retryIf(\''+f.id+'\')">↻ Retry</button>'
+          :'<button class="btn btn-s btn-sm" onclick="runIf(\''+f.id+'\')">▶ Run Manually</button>')+
+        '<button class="btn btn-s btn-sm" onclick="viewLog(\''+f.id+'\')">📄 Logs</button></div></div>';
   });
-  document.getElementById('cards').innerHTML=h||'<div style="grid-column:1/-1;text-align:center;color:#9ca3af;padding:30px;">조건에 맞는 인터페이스가 없습니다.</div>';
+  document.getElementById('cards').innerHTML=h||'<div style="grid-column:1/-1;text-align:center;color:#9ca3af;padding:30px;">No interfaces match the current filter.</div>';
   renderLog();
 }
 function renderLog(){
@@ -178,7 +178,7 @@ function renderLog(){
     return '<tr><td class="mono">'+e.t+'</td><td>'+e.ifn+'</td>'+
       '<td><span class="dirbar '+DIR[e.dir].cls+'" style="margin:0;">'+DIR[e.dir].ko+'</span></td>'+
       '<td class="mono">'+e.cnt+'</td><td class="mono">'+e.rt+'</td>'+
-      '<td>'+(e.ok?'<span class="rs rs-ok">성공</span>':'<span class="rs rs-err">실패</span>')+'</td></tr>';
+      '<td>'+(e.ok?'<span class="rs rs-ok">Success</span>':'<span class="rs rs-err">Failed</span>')+'</td></tr>';
   }).join('');
 }
 function byId(id){return IFS.filter(function(f){return f.id===id;})[0];}
@@ -188,29 +188,29 @@ function runIf(id){
   f.cnt+=cnt;f.last=nowStr();
   LOG.unshift({t:nowStr(),ifn:f.nm,dir:f.dir,cnt:cnt,rt:Math.max(rt,30),ok:true});
   render();
-  toast('',f.nm+' 실행 완료',cnt+'건 송수신 성공 (응답 '+Math.max(rt,30)+'ms).');
+  toast('',f.nm+' executed',cnt+' records processed (response '+Math.max(rt,30)+'ms).');
 }
 function retryIf(id){
   var f=byId(id);
-  toast('info',f.nm+' 재연동 시도','오류 인터페이스 재연동을 시도합니다...');
+  toast('info',f.nm+' retry initiated','Attempting to reconnect failed interface...');
   setTimeout(function(){
     f.st='ok';f.succ=Math.round((f.succ+8)*10)/10;if(f.succ>100)f.succ=99.5;
     var cnt=Math.floor(Math.random()*30)+15;f.cnt+=cnt;f.rt=Math.floor(Math.random()*150)+260;f.last=nowStr();
     LOG.unshift({t:nowStr(),ifn:f.nm,dir:f.dir,cnt:cnt,rt:f.rt,ok:true});
     render();
-    toast('',f.nm+' 재연동 성공','연결이 복구되어 정상 상태로 전환되었습니다.');
+    toast('',f.nm+' reconnected','Connection restored — status is now Healthy.');
   },1100);
 }
 function viewLog(id){var f=byId(id);
-  toast('info',f.nm+' 연동 로그','최근 실행 '+f.last+' · 금일 '+f.cnt+'건 · 성공률 '+f.succ+'% (데모 — 상세 로그 생략)');}
+  toast('info',f.nm+' integration log','Last run '+f.last+' · Today '+f.cnt+' records · '+f.succ+'% success (demo — detail log omitted)');}
 function toggleAuto(){
   auto=!auto;document.getElementById('autoTk').classList.toggle('on',auto);
-  if(auto){timer=setInterval(tick,4000);toast('info','실시간 갱신 ON','4초 간격으로 인터페이스 상태가 갱신됩니다.');}
-  else{clearInterval(timer);toast('info','실시간 갱신 OFF','자동 갱신을 중지했습니다.');}
+  if(auto){timer=setInterval(tick,4000);toast('info','Live Refresh ON','Interface status will refresh every 4 seconds.');}
+  else{clearInterval(timer);toast('info','Live Refresh OFF','Auto-refresh has been stopped.');}
 }
 function tick(){
   IFS.forEach(function(f){
-    if(f.st==='ok'&&f.cycle==='실시간'){
+    if(f.st==='ok'&&f.cycle==='Real-time'){
       var cnt=Math.floor(Math.random()*60)+20;f.cnt+=cnt;f.last=nowStr();
       f.rt=Math.max(30,f.rt+Math.floor((Math.random()-0.5)*20));
     }
@@ -226,11 +226,11 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='SYS_Interface_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','인터페이스 상태를 CSV로 내보냈습니다.');
+  toast('','Export Complete','Interface status exported to CSV.');
 }
 function resetAll(){
   document.getElementById('fSys').value='';document.getElementById('fStat').value='';
-  render();toast('info','초기화','인터페이스 필터를 초기화했습니다.');
+  render();toast('info','Reset','Interface filters reset.');
 }
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');

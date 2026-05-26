@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>QC-04 NCR Register · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--qc:#8b5cf6;--sc:#ea580c;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:13px;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:13px;display:flex;flex-direction:column;overflow:hidden;}
 .head{flex-shrink:0;padding:13px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--qc);background:rgba(0,0,0,.3);}
 .head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#c4b5fd;}
 .head .tt{flex:1;}
@@ -75,33 +75,33 @@ tbody tr:hover td{background:rgba(139,92,246,.06);}
 </head>
 <body>
 <div class="head">
-  <button class="back" onclick="back()">‹ 대시보드</button>
+  <button class="back" onclick="back()">‹ Dashboard</button>
   <div class="id">QC-04</div>
-  <div class="tt"><div class="en">NCR Register</div><div class="ko">부적합 등록 — Non-Conformance Report 기록·관리</div></div>
+  <div class="tt"><div class="en">NCR Register</div><div class="ko">Non-Conformance Report — Record and Manage NCRs</div></div>
   <span class="qbadge">NCR</span>
   <span class="live"><span class="d"></span>LIVE</span>
 </div>
 <div class="toolbar">
-  <select id="fS" onchange="render()"><option value="">전체 상태</option><option>접수</option><option>검토 중</option><option>종결</option></select>
-  <select id="fSev" onchange="render()"><option value="">전체 심각도</option><option>치명</option><option>중대</option><option>경미</option></select>
-  <input id="fKw" placeholder="검색: 품목·LOT·NCR 번호" oninput="render()" style="width:280px;">
-  <button class="btn-new" onclick="newNCR()">＋ 부적합 신규 등록</button>
+  <select id="fS" onchange="render()"><option value="">All Status</option><option>Open</option><option>Under Review</option><option>Closed</option></select>
+  <select id="fSev" onchange="render()"><option value="">All Severity</option><option>Critical</option><option>Major</option><option>Minor</option></select>
+  <input id="fKw" placeholder="Search: Item / LOT / NCR #" oninput="render()" style="width:280px;">
+  <button class="btn-new" onclick="newNCR()">＋ New NCR</button>
 </div>
 <div class="body">
   <div class="kpi-grid">
-    <div class="kpi" style="--c:#dc2626"><div class="lbl">접수 (오픈)</div><div class="val" id="kOpen">5</div><div class="sub">건</div></div>
-    <div class="kpi" style="--c:#fbbf24"><div class="lbl">검토 중</div><div class="val" id="kRev">3</div><div class="sub">건</div></div>
-    <div class="kpi" style="--c:#22c55e"><div class="lbl">금월 종결</div><div class="val">14</div><div class="sub">건</div></div>
-    <div class="kpi" style="--c:#fca5a5"><div class="lbl">치명 (Critical)</div><div class="val">1</div><div class="sub">접수</div></div>
-    <div class="kpi" style="--c:#8b5cf6"><div class="lbl">평균 처리시간</div><div class="val">2.4</div><div class="sub">일</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="lbl">OPEN</div><div class="val" id="kOpen">5</div><div class="sub">NCRs</div></div>
+    <div class="kpi" style="--c:#fbbf24"><div class="lbl">UNDER REVIEW</div><div class="val" id="kRev">3</div><div class="sub">NCRs</div></div>
+    <div class="kpi" style="--c:#22c55e"><div class="lbl">CLOSED THIS MONTH</div><div class="val">14</div><div class="sub">NCRs</div></div>
+    <div class="kpi" style="--c:#fca5a5"><div class="lbl">CRITICAL</div><div class="val">1</div><div class="sub">Open</div></div>
+    <div class="kpi" style="--c:#8b5cf6"><div class="lbl">AVG TIME TO CLOSE</div><div class="val">2.4</div><div class="sub">days</div></div>
   </div>
   <div class="table-wrap">
-    <div class="tw-h">📋 NCR 부적합 보고서 목록 <span class="b" id="cnt">22건</span></div>
+    <div class="tw-h">📋 Non-Conformance Reports <span class="b" id="cnt">22</span></div>
     <div class="tw-body">
       <table>
         <thead><tr>
-          <th>NCR 번호</th><th>발견일</th><th>품목·LOT</th><th>부적합 내용</th>
-          <th class="c">심각도</th><th class="c">상태</th><th>담당</th>
+          <th>NCR #</th><th>Date Found</th><th>Item / LOT</th><th>Description</th>
+          <th class="c">Severity</th><th class="c">Status</th><th>Owner</th>
         </tr></thead>
         <tbody id="tbody"></tbody>
       </table>
@@ -110,44 +110,44 @@ tbody tr:hover td{background:rgba(139,92,246,.06);}
 </div>
 <div class="ov" id="ovNew">
   <div class="modal">
-    <h2>📝 부적합 신규 등록</h2>
+    <h2>📝 New NCR</h2>
     <div class="fld2">
-      <div class="fld"><label>NCR 번호 (자동)</label><input id="nId" value="" disabled></div>
-      <div class="fld"><label>발견일</label><input id="nDt" type="date" value="2026-05-21"></div>
+      <div class="fld"><label>NCR # (auto)</label><input id="nId" value="" disabled></div>
+      <div class="fld"><label>Date Found</label><input id="nDt" type="date" value="2026-05-21"></div>
     </div>
-    <div class="fld"><label>품목 / LOT</label><input id="nItem" placeholder="예: 도어트림 LH / LOT-2605-2103"></div>
+    <div class="fld"><label>Item / LOT</label><input id="nItem" placeholder="e.g. Door Trim LH / LOT-2605-2103"></div>
     <div class="fld2">
-      <div class="fld"><label>발견 공정</label>
-        <select id="nProc"><option>수입검사</option><option>사출</option><option>도장</option><option>조립</option><option>최종검사</option></select></div>
-      <div class="fld"><label>심각도</label>
-        <select id="nSev"><option>치명</option><option>중대</option><option>경미</option></select></div>
+      <div class="fld"><label>Process</label>
+        <select id="nProc"><option>Incoming Inspection</option><option>Injection</option><option>Paint</option><option>Assembly</option><option>Final Inspection</option></select></div>
+      <div class="fld"><label>Severity</label>
+        <select id="nSev"><option>Critical</option><option>Major</option><option>Minor</option></select></div>
     </div>
-    <div class="fld"><label>부적합 내용 (상세)</label><textarea id="nDesc" placeholder="발생 현상·원인 추정·영향 범위"></textarea></div>
+    <div class="fld"><label>Description</label><textarea id="nDesc" placeholder="Symptom / suspected cause / scope of impact"></textarea></div>
     <div class="fld2">
-      <div class="fld"><label>수량 (영향 EA)</label><input id="nQty" type="number" value="0"></div>
-      <div class="fld"><label>담당자</label>
-        <select id="nBy"><option>한지원</option><option>서민재</option><option>박품질</option></select></div>
+      <div class="fld"><label>Affected QTY (EA)</label><input id="nQty" type="number" value="0"></div>
+      <div class="fld"><label>Owner</label>
+        <select id="nBy"><option>Sarah Williams</option><option>Linda Garcia</option><option>Karen Lee</option></select></div>
     </div>
     <div class="modal-bar">
-      <button class="btn-cancel" onclick="closeMod()">취소</button>
-      <button class="btn-save" onclick="saveNCR()">▶ 등록</button>
+      <button class="btn-cancel" onclick="closeMod()">Cancel</button>
+      <button class="btn-save" onclick="saveNCR()">▶ Submit</button>
     </div>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 <script>
 var seq=12,NCRS=[
- {id:'NCR-2605-011',dt:'2026-05-21',item:'도어트림 LH · LOT-2605-2103',desc:'표면 스크래치 다발 (3건/240)',sev:'경미',proc:'최종검사',st:'접수',by:'한지원'},
- {id:'NCR-2605-010',dt:'2026-05-21',item:'프론트 범퍼 · LOT-2605-2104',desc:'도장 색차 ΔE 1.4 초과 (목표 ≤1.0)',sev:'중대',proc:'도장',st:'접수',by:'서민재'},
- {id:'NCR-2605-009',dt:'2026-05-20',item:'콘솔어퍼 · LOT-2605-1985',desc:'조립 시 클립 체결력 미달 (38N, 기준 40~55N)',sev:'중대',proc:'조립',st:'검토 중',by:'박품질'},
- {id:'NCR-2605-008',dt:'2026-05-20',item:'PP 수지 · RC-2605-0418',desc:'용융지수(MI) 9.2 — 규격 10~14 미달',sev:'치명',proc:'수입검사',st:'접수',by:'한지원'},
- {id:'NCR-2605-007',dt:'2026-05-20',item:'사이드 몰딩 · LOT-2605-1972',desc:'사출 게이트 미제거 (5건/60)',sev:'경미',proc:'사출',st:'검토 중',by:'박품질'},
- {id:'NCR-2605-006',dt:'2026-05-19',item:'라디에이터 그릴 · LOT-2605-1840',desc:'크롬 도금 박리 (2건/24)',sev:'중대',proc:'도장',st:'접수',by:'서민재'},
- {id:'NCR-2605-005',dt:'2026-05-19',item:'도어트림 RH · LOT-2605-1832',desc:'스크래치 미세 (1건/240) — 특채 협의',sev:'경미',proc:'최종검사',st:'검토 중',by:'한지원'},
- {id:'NCR-2605-004',dt:'2026-05-18',item:'프론트 범퍼 · LOT-2605-1735',desc:'센서 마운트 위치 편차',sev:'중대',proc:'조립',st:'종결',by:'박품질'},
- {id:'NCR-2605-003',dt:'2026-05-18',item:'PP 수지 · RC-2605-0392',desc:'수분 함량 0.12% (기준 ≤0.10%)',sev:'중대',proc:'수입검사',st:'종결',by:'한지원'},
- {id:'NCR-2605-002',dt:'2026-05-17',item:'베이스코트 도료',desc:'점도 1180 cps — 규격 ≤1100',sev:'경미',proc:'수입검사',st:'종결',by:'서민재'},
- {id:'NCR-2605-001',dt:'2026-05-17',item:'사이드 몰딩 · LOT-2605-1701',desc:'몰딩 길이 0.5mm 편차',sev:'경미',proc:'사출',st:'종결',by:'박품질'}
+ {id:'NCR-2605-011',dt:'05/21/2026',item:'Door Trim LH · LOT-2605-2103',desc:'Multiple surface scratches (3 of 240)',sev:'Minor',proc:'Final Inspection',st:'Open',by:'Sarah Williams'},
+ {id:'NCR-2605-010',dt:'05/21/2026',item:'Front Bumper · LOT-2605-2104',desc:'Paint color diff dE 1.4 over (target ≤1.0)',sev:'Major',proc:'Paint',st:'Open',by:'Linda Garcia'},
+ {id:'NCR-2605-009',dt:'05/20/2026',item:'Console Upper · LOT-2605-1985',desc:'Clip retention force low (38N, spec 40~55N)',sev:'Major',proc:'Assembly',st:'Under Review',by:'Karen Lee'},
+ {id:'NCR-2605-008',dt:'05/20/2026',item:'PP Resin · RC-2605-0418',desc:'Melt Index 9.2 — Spec 10~14 not met',sev:'Critical',proc:'Incoming Inspection',st:'Open',by:'Sarah Williams'},
+ {id:'NCR-2605-007',dt:'05/20/2026',item:'Side Molding · LOT-2605-1972',desc:'Gate not removed (5 of 60)',sev:'Minor',proc:'Injection',st:'Under Review',by:'Karen Lee'},
+ {id:'NCR-2605-006',dt:'05/19/2026',item:'Radiator Grille · LOT-2605-1840',desc:'Chrome plating delamination (2 of 24)',sev:'Major',proc:'Paint',st:'Open',by:'Linda Garcia'},
+ {id:'NCR-2605-005',dt:'05/19/2026',item:'Door Trim RH · LOT-2605-1832',desc:'Light scratch (1 of 240) — Use-As-Is discussion',sev:'Minor',proc:'Final Inspection',st:'Under Review',by:'Sarah Williams'},
+ {id:'NCR-2605-004',dt:'05/18/2026',item:'Front Bumper · LOT-2605-1735',desc:'Sensor mount position deviation',sev:'Major',proc:'Assembly',st:'Closed',by:'Karen Lee'},
+ {id:'NCR-2605-003',dt:'05/18/2026',item:'PP Resin · RC-2605-0392',desc:'Moisture content 0.12% (spec ≤0.10%)',sev:'Major',proc:'Incoming Inspection',st:'Closed',by:'Sarah Williams'},
+ {id:'NCR-2605-002',dt:'05/17/2026',item:'Basecoat Paint',desc:'Viscosity 1180 cps — Spec ≤1100',sev:'Minor',proc:'Incoming Inspection',st:'Closed',by:'Linda Garcia'},
+ {id:'NCR-2605-001',dt:'05/17/2026',item:'Side Molding · LOT-2605-1701',desc:'Molding length 0.5mm deviation',sev:'Minor',proc:'Injection',st:'Closed',by:'Karen Lee'}
 ];
 function render(){
   var fs=document.getElementById('fS').value,fv=document.getElementById('fSev').value,kw=document.getElementById('fKw').value.toLowerCase();
@@ -157,15 +157,15 @@ function render(){
     if(kw&&(n.id.toLowerCase().indexOf(kw)<0&&n.item.toLowerCase().indexOf(kw)<0&&n.desc.toLowerCase().indexOf(kw)<0))return false;
     return true;
   });
-  document.getElementById('cnt').textContent=rows.length+'건';
-  document.getElementById('kOpen').textContent=NCRS.filter(function(n){return n.st==='접수';}).length;
-  document.getElementById('kRev').textContent=NCRS.filter(function(n){return n.st==='검토 중';}).length;
+  document.getElementById('cnt').textContent=rows.length;
+  document.getElementById('kOpen').textContent=NCRS.filter(function(n){return n.st==='Open';}).length;
+  document.getElementById('kRev').textContent=NCRS.filter(function(n){return n.st==='Under Review';}).length;
   document.getElementById('tbody').innerHTML=rows.map(function(n){
-    var sevC=n.sev==='치명'?'sev1':(n.sev==='중대'?'sev2':'sev3');
-    var stC=n.st==='접수'?'st-open':(n.st==='검토 중'?'st-rev':'st-cls');
+    var sevC=n.sev==='Critical'?'sev1':(n.sev==='Major'?'sev2':'sev3');
+    var stC=n.st==='Open'?'st-open':(n.st==='Under Review'?'st-rev':'st-cls');
     return '<tr onclick="view(\''+n.id+'\')">'+
       '<td class="mono" style="color:#fbbf24;font-weight:800;">'+n.id+'</td>'+
-      '<td class="mono" style="color:#a8997f;">'+n.dt.slice(5)+'</td>'+
+      '<td class="mono" style="color:#a8997f;">'+n.dt+'</td>'+
       '<td>'+n.item+'</td>'+
       '<td style="color:#fdba74;">'+n.desc+'</td>'+
       '<td class="c" style="text-align:center;"><span class="sev '+sevC+'">'+n.sev+'</span></td>'+
@@ -178,16 +178,16 @@ function closeMod(){document.getElementById('ovNew').classList.remove('on');}
 function saveNCR(){
   var n={
     id:document.getElementById('nId').value,dt:document.getElementById('nDt').value,
-    item:document.getElementById('nItem').value||'미입력',
-    desc:document.getElementById('nDesc').value||'미입력',
+    item:document.getElementById('nItem').value||'(not entered)',
+    desc:document.getElementById('nDesc').value||'(not entered)',
     sev:document.getElementById('nSev').value,proc:document.getElementById('nProc').value,
-    st:'접수',by:document.getElementById('nBy').value
+    st:'Open',by:document.getElementById('nBy').value
   };
   NCRS.unshift(n);render();closeMod();
-  toast('ok','NCR 등록 완료 ✓',n.id+' — '+n.sev+' 부적합이 등록되었습니다. 담당자에게 알림 발송.');
+  toast('ok','NCR Submitted ✓',n.id+' — '+n.sev+' severity recorded. Owner notified.');
 }
-function view(id){toast('','NCR 상세',id+' 상세 화면으로 이동합니다. 시정조치(CAPA) 연결 가능. (데모)');}
-function back(){toast('','뒤로 이동','대시보드로 돌아갑니다.');}
+function view(id){toast('','NCR Detail','Opening '+id+' detail. CAPA may be linked. (Demo)');}
+function back(){toast('','Back','Returning to Dashboard.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='warn'?'⚠ ':type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';

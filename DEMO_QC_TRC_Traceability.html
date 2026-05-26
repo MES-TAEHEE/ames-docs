@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>QC-TRC Traceability · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--qc:#8b5cf6;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:13px;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:13px;display:flex;flex-direction:column;overflow:hidden;}
 .head{flex-shrink:0;padding:13px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--qc);background:rgba(0,0,0,.3);}
 .head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#c4b5fd;}
 .head .tt{flex:1;}
@@ -76,81 +76,81 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 </head>
 <body>
 <div class="head">
-  <button class="back" onclick="back()">‹ 대시보드</button>
+  <button class="back" onclick="back()">‹ Dashboard</button>
   <div class="id">QC-TRC</div>
-  <div class="tt"><div class="en">Traceability</div><div class="ko">추적성 조회 — LOT/제품 정·역방향 이력 추적</div></div>
+  <div class="tt"><div class="en">Traceability</div><div class="ko">Traceability — Forward / Backward LOT and Serial History</div></div>
   <span class="live"><span class="d"></span>LIVE</span>
 </div>
 <div class="search-bar">
-  <input id="srch" placeholder="🔍 LOT 번호 · 제품 시리얼 · 바코드 입력 (예: LOT-2605-2103)" value="LOT-2605-2103">
-  <button onclick="search()">🔍 추적 조회</button>
+  <input id="srch" placeholder="🔍 LOT # · Serial # · Barcode (e.g. LOT-2605-2103)" value="LOT-2605-2103">
+  <button onclick="search()">🔍 Trace</button>
 </div>
 <div class="body" id="body">
   <div class="lot-card">
     <h2>LOT-2605-2103</h2>
-    <div class="item">사이드 몰딩 도장 · MOLDING-05 · 그레이 (RAL 7042)</div>
+    <div class="item">Side Molding Paint · MOLDING-05 · Gray (RAL 7042)</div>
     <div class="meta">
-      <div class="m"><div class="ml">상태</div><div class="mv ok">출하 대기</div></div>
-      <div class="m"><div class="ml">수량</div><div class="mv">54 EA</div></div>
+      <div class="m"><div class="ml">STATUS</div><div class="mv ok">Awaiting Shipment</div></div>
+      <div class="m"><div class="ml">QTY</div><div class="mv">54 EA</div></div>
       <div class="m"><div class="ml">WO</div><div class="mv">WO-2605-140</div></div>
-      <div class="m"><div class="ml">생산일</div><div class="mv">2026-05-21</div></div>
-      <div class="m"><div class="ml">출하처</div><div class="mv">SAV-SD-02</div></div>
+      <div class="m"><div class="ml">PROD DATE</div><div class="mv">05/21/2026</div></div>
+      <div class="m"><div class="ml">SHIP TO</div><div class="mv">SAV-SD-02</div></div>
     </div>
   </div>
   <div class="row">
     <div class="card">
-      <h3>🧬 BOM 정방향 (Forward)</h3>
+      <h3>🧬 BOM Forward</h3>
       <div class="bom-tree">
-        <div class="n l1">▸ MOLDING-05 (사이드 몰딩) <span class="lot">LOT-2605-2103</span></div>
-        <div class="n" style="padding-left:18px;">├─ RM-PP-BLK (PP 수지)<span class="lot">LOT RC-2605-0421</span></div>
-        <div class="n" style="padding-left:18px;">├─ PNT-BC-002 (베이스 그레이)<span class="lot">LOT PT-2605-0085</span></div>
-        <div class="n" style="padding-left:18px;">├─ PNT-CC-001 (클리어코트)<span class="lot">LOT PT-2605-0091</span></div>
-        <div class="n" style="padding-left:18px;">└─ AM-CLIP-01 (고정 클립)<span class="lot">LOT RC-2605-0387</span></div>
+        <div class="n l1">▸ MOLDING-05 (Side Molding) <span class="lot">LOT-2605-2103</span></div>
+        <div class="n" style="padding-left:18px;">├─ RM-PP-BLK (PP Resin)<span class="lot">LOT RC-2605-0421</span></div>
+        <div class="n" style="padding-left:18px;">├─ PNT-BC-002 (Basecoat Gray)<span class="lot">LOT PT-2605-0085</span></div>
+        <div class="n" style="padding-left:18px;">├─ PNT-CC-001 (Clearcoat)<span class="lot">LOT PT-2605-0091</span></div>
+        <div class="n" style="padding-left:18px;">└─ AM-CLIP-01 (Retention Clip)<span class="lot">LOT RC-2605-0387</span></div>
       </div>
     </div>
     <div class="card">
-      <h3>📋 QC 검사 이력</h3>
-      <div class="qc-r"><span class="ic">📥</span><span class="nm">원자재 수입검사 (PP 수지)</span><span class="val">IS-PP-01</span><span class="res p">합격</span></div>
-      <div class="qc-r"><span class="ic">🏭</span><span class="nm">사출 공정 검사</span><span class="val">IS-MOLD-01</span><span class="res p">합격</span></div>
-      <div class="qc-r"><span class="ic">🎨</span><span class="nm">도장 공정 검사</span><span class="val">IS-GRILLE-01</span><span class="res p">합격</span></div>
-      <div class="qc-r"><span class="ic">✓</span><span class="nm">최종 검사 (AQL 2.5)</span><span class="val">IS-TRIM-LH-01</span><span class="res p">합격</span></div>
-      <div class="qc-r"><span class="ic">⚠</span><span class="nm">스크래치 발견 (3건/240)</span><span class="val">NCR-2605-011</span><span class="res f">검토</span></div>
+      <h3>📋 QC Inspection History</h3>
+      <div class="qc-r"><span class="ic">📥</span><span class="nm">Incoming Inspection (PP Resin)</span><span class="val">IS-PP-01</span><span class="res p">Pass</span></div>
+      <div class="qc-r"><span class="ic">🏭</span><span class="nm">Injection Process Inspection</span><span class="val">IS-MOLD-01</span><span class="res p">Pass</span></div>
+      <div class="qc-r"><span class="ic">🎨</span><span class="nm">Paint Process Inspection</span><span class="val">IS-GRILLE-01</span><span class="res p">Pass</span></div>
+      <div class="qc-r"><span class="ic">✓</span><span class="nm">Final Inspection (AQL 2.5)</span><span class="val">IS-TRIM-LH-01</span><span class="res p">Pass</span></div>
+      <div class="qc-r"><span class="ic">⚠</span><span class="nm">Scratch Found (3 of 240)</span><span class="val">NCR-2605-011</span><span class="res f">Review</span></div>
     </div>
   </div>
   <div class="timeline">
-    <h3>🛤 LOT 흐름 타임라인 (정방향)</h3>
+    <h3>🛤 LOT Flow Timeline (Forward)</h3>
     <div class="tl">
       <div class="tl-item ok" style="--c:#22c55e">
-        <div class="tl-h"><span class="tl-stg">▶ STEP 1 · 원자재 입고</span><span class="tl-t">2026-05-20 14:22</span><span class="tl-st">완료</span></div>
-        <div class="tl-c"><span class="l">로트:</span><b>RC-2605-0421</b> (PP 수지 블랙) · <span class="l">공급사:</span><b>대한플라스틱(주)</b> · <span class="l">수량:</span><b>2,400 KG</b> · <span class="l">QC:</span>합격</div>
+        <div class="tl-h"><span class="tl-stg">▶ STEP 1 · Material Received</span><span class="tl-t">05/20/2026 14:22</span><span class="tl-st">Done</span></div>
+        <div class="tl-c"><span class="l">LOT:</span><b>RC-2605-0421</b> (PP Resin Black) · <span class="l">Vendor:</span><b>Dow Chemical (Midland, MI)</b> · <span class="l">QTY:</span><b>2,400 KG</b> · <span class="l">QC:</span>Pass</div>
       </div>
       <div class="tl-item ok" style="--c:#22c55e">
-        <div class="tl-h"><span class="tl-stg">▶ STEP 2 · 사출 성형</span><span class="tl-t">2026-05-21 06:30</span><span class="tl-st">완료</span></div>
-        <div class="tl-c"><span class="l">라인:</span><b>SAV-INJ-02</b> · <span class="l">금형:</span><b>MD-INJ-103</b> · <span class="l">샷 카운트:</span><b>215,066~215,120</b> · <span class="l">작업자:</span><b>박작업</b></div>
+        <div class="tl-h"><span class="tl-stg">▶ STEP 2 · Injection Molding</span><span class="tl-t">05/21/2026 06:30</span><span class="tl-st">Done</span></div>
+        <div class="tl-c"><span class="l">Line:</span><b>SAV-INJ-02</b> · <span class="l">Mold:</span><b>MD-INJ-103</b> · <span class="l">Shot Count:</span><b>215,066~215,120</b> · <span class="l">Operator:</span><b>Mike Johnson</b></div>
       </div>
       <div class="tl-item ok" style="--c:#22c55e">
-        <div class="tl-h"><span class="tl-stg">▶ STEP 3 · 도장</span><span class="tl-t">2026-05-21 07:15</span><span class="tl-st">완료</span></div>
-        <div class="tl-c"><span class="l">라인:</span><b>SAV-PNT-01</b> · <span class="l">색상:</span><b>RAL 7042 그레이</b> · <span class="l">오븐:</span><b>4-zone (80/120/135/45℃)</b> · <span class="l">통과 시간:</span><b>22분</b></div>
+        <div class="tl-h"><span class="tl-stg">▶ STEP 3 · Paint</span><span class="tl-t">05/21/2026 07:15</span><span class="tl-st">Done</span></div>
+        <div class="tl-c"><span class="l">Line:</span><b>SAV-PNT-01</b> · <span class="l">Color:</span><b>RAL 7042 Gray</b> · <span class="l">Oven:</span><b>4-zone (80/120/135/45°C)</b> · <span class="l">Cure Time:</span><b>22 min</b></div>
       </div>
       <div class="tl-item ok" style="--c:#fbbf24">
-        <div class="tl-h"><span class="tl-stg">▶ STEP 4 · 최종 검사</span><span class="tl-t">2026-05-21 09:14</span><span class="tl-st" style="background:rgba(245,158,11,.18);color:#fbbf24;">NCR</span></div>
-        <div class="tl-c"><span class="l">검사원:</span><b>한지원</b> · <span class="l">샘플:</span><b>5/54</b> · <span class="l">결과:</span><b>스크래치 3건 발견</b> · <span class="l">NCR:</span><b>NCR-2605-011</b></div>
+        <div class="tl-h"><span class="tl-stg">▶ STEP 4 · Final Inspection</span><span class="tl-t">05/21/2026 09:14</span><span class="tl-st" style="background:rgba(245,158,11,.18);color:#fbbf24;">NCR</span></div>
+        <div class="tl-c"><span class="l">Inspector:</span><b>Sarah Williams</b> · <span class="l">Sample:</span><b>5/54</b> · <span class="l">Result:</span><b>3 scratches found</b> · <span class="l">NCR:</span><b>NCR-2605-011</b></div>
       </div>
       <div class="tl-item" style="--c:#a8997f">
-        <div class="tl-h"><span class="tl-stg">○ STEP 5 · 라벨 부착</span><span class="tl-t">대기</span><span class="tl-st" style="background:rgba(255,255,255,.08);color:#a8997f;">대기 중</span></div>
-        <div class="tl-c"><span class="l">예정:</span>QC 종결 후 진행</div>
+        <div class="tl-h"><span class="tl-stg">○ STEP 5 · Label Apply</span><span class="tl-t">Pending</span><span class="tl-st" style="background:rgba(255,255,255,.08);color:#a8997f;">Waiting</span></div>
+        <div class="tl-c"><span class="l">Scheduled:</span>After QC closure</div>
       </div>
       <div class="tl-item" style="--c:#a8997f">
-        <div class="tl-h"><span class="tl-stg">○ STEP 6 · 출하</span><span class="tl-t">예정</span><span class="tl-st" style="background:rgba(255,255,255,.08);color:#a8997f;">미발생</span></div>
-        <div class="tl-c"><span class="l">출하처:</span><b>SAV-SD-02</b> · <span class="l">예정일:</span><b>2026-05-22</b></div>
+        <div class="tl-h"><span class="tl-stg">○ STEP 6 · Shipment</span><span class="tl-t">Scheduled</span><span class="tl-st" style="background:rgba(255,255,255,.08);color:#a8997f;">Pending</span></div>
+        <div class="tl-c"><span class="l">Ship To:</span><b>SAV-SD-02</b> · <span class="l">Scheduled:</span><b>05/22/2026</b></div>
       </div>
     </div>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 <script>
-function search(){toast('','추적 조회 ✓','LOT '+document.getElementById('srch').value+' 의 정·역방향 이력을 조회합니다. (데모)');}
-function back(){toast('','뒤로 이동','대시보드로 돌아갑니다.');}
+function search(){toast('','Trace ✓','Tracing forward and backward history for LOT '+document.getElementById('srch').value+'. (Demo)');}
+function back(){toast('','Back','Returning to Dashboard.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">• '+title+'</div><div class="tb">'+body+'</div>';

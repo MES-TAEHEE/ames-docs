@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>QC-02 In-Process Inspection · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--sc:#ea580c;--sc-dk:#c2410c;--qc:#8b5cf6;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
 .head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--qc);background:rgba(0,0,0,.3);}
 .head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#c4b5fd;}
 .head .tt{flex:1;}
@@ -87,82 +87,82 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 </head>
 <body>
 <div class="head">
-  <button class="back" onclick="back()">‹ 대시보드</button>
+  <button class="back" onclick="back()">‹ Dashboard</button>
   <div class="id">QC-02</div>
-  <div class="tt"><div class="en">In-Process Inspection</div><div class="ko">공정 검사 — 사출·도장·조립 중간 공정 품질 검증</div></div>
+  <div class="tt"><div class="en">In-Process Inspection</div><div class="ko">In-Process Inspection (IPQC) — Quality Verification at Injection / Paint / Assembly</div></div>
   <span class="qbadge">QC IN-PROCESS</span>
   <span class="live"><span class="d"></span>LIVE</span>
 </div>
 <div class="body">
   <div class="col">
     <div class="kpi-grid">
-      <div class="kpi" style="--c:#22c55e"><div class="lbl">금일 합격</div><div class="val">18</div><div class="sub">로트</div></div>
-      <div class="kpi" style="--c:#dc2626"><div class="lbl">불합격</div><div class="val">2</div><div class="sub">로트</div></div>
-      <div class="kpi" style="--c:#fbbf24"><div class="lbl">대기 로트</div><div class="val" id="kQ">5</div><div class="sub">검사 대기</div></div>
-      <div class="kpi" style="--c:#8b5cf6"><div class="lbl">합격률</div><div class="val">90%</div><div class="sub">금일</div></div>
+      <div class="kpi" style="--c:#22c55e"><div class="lbl">PASS TODAY</div><div class="val">18</div><div class="sub">LOTs</div></div>
+      <div class="kpi" style="--c:#dc2626"><div class="lbl">FAIL TODAY</div><div class="val">2</div><div class="sub">LOTs</div></div>
+      <div class="kpi" style="--c:#fbbf24"><div class="lbl">QUEUE</div><div class="val" id="kQ">5</div><div class="sub">Awaiting Inspection</div></div>
+      <div class="kpi" style="--c:#8b5cf6"><div class="lbl">PASS RATE</div><div class="val">90%</div><div class="sub">Today</div></div>
     </div>
     <div class="lot-card">
-      <div class="h"><span style="font-size:18px;">📦</span><span class="lbl">검사 중 LOT · CURRENT</span><span class="stg">검사 진행</span></div>
+      <div class="h"><span style="font-size:18px;">📦</span><span class="lbl">CURRENT LOT</span><span class="stg">IN PROGRESS</span></div>
       <div class="lid">IP-2605-0117</div>
-      <div class="item"><b>도어트림 LH (사출 후)</b> · TRIM-LH-001 · WO-2605-115</div>
+      <div class="item"><b>Door Trim LH (After Molding)</b> · TRIM-LH-001 · WO-2605-115</div>
       <div class="meta">
-        <div class="m"><div class="ml">공정</div><div class="mv">사출 1라인</div></div>
-        <div class="m"><div class="ml">샷 카운트</div><div class="mv">428,142</div></div>
-        <div class="m"><div class="ml">샘플 수</div><div class="mv">3 EA / 시간</div></div>
-        <div class="m"><div class="ml">검사원</div><div class="mv">서민재</div></div>
+        <div class="m"><div class="ml">PROCESS</div><div class="mv">Injection Line 1</div></div>
+        <div class="m"><div class="ml">SHOT COUNT</div><div class="mv">428,142</div></div>
+        <div class="m"><div class="ml">SAMPLING</div><div class="mv">3 EA / hour</div></div>
+        <div class="m"><div class="ml">INSPECTOR</div><div class="mv">Linda Garcia</div></div>
       </div>
     </div>
     <div class="card">
-      <h3>📐 검사 항목 · INSPECTION ITEMS</h3>
+      <h3>📐 Inspection Items</h3>
       <div class="insp-row" data-i="0">
         <div class="ic" id="ic0">−</div>
-        <div class="info"><div class="nm">외관 검사</div><div class="ds">색상·이물·변색 육안 검사</div></div>
-        <div class="spec">무결점</div>
-        <input class="val-in" placeholder="합/불">
-        <div class="actbg"><button class="p" onclick="setR(0,'p')">합</button><button class="f" onclick="setR(0,'f')">불</button></div>
+        <div class="info"><div class="nm">Visual Inspection</div><div class="ds">Color / Foreign matter / Discoloration</div></div>
+        <div class="spec">No defects</div>
+        <input class="val-in" placeholder="Pass/Fail">
+        <div class="actbg"><button class="p" onclick="setR(0,'p')">Pass</button><button class="f" onclick="setR(0,'f')">Fail</button></div>
       </div>
       <div class="insp-row" data-i="1">
         <div class="ic" id="ic1">−</div>
-        <div class="info"><div class="nm">전장 치수</div><div class="ds">측정 — 1198~1202mm</div></div>
+        <div class="info"><div class="nm">Overall Length</div><div class="ds">Measured — 1198~1202mm</div></div>
         <div class="spec">1200 ±2</div>
-        <input class="val-in" id="mi" value="1200.4" placeholder="값">
-        <div class="actbg"><button class="p" onclick="setR(1,'p')">합</button><button class="f" onclick="setR(1,'f')">불</button></div>
+        <input class="val-in" id="mi" value="1200.4" placeholder="Value">
+        <div class="actbg"><button class="p" onclick="setR(1,'p')">Pass</button><button class="f" onclick="setR(1,'f')">Fail</button></div>
       </div>
       <div class="insp-row" data-i="2">
         <div class="ic" id="ic2">−</div>
-        <div class="info"><div class="nm">두께 측정</div><div class="ds">측정 — 19~21mm</div></div>
+        <div class="info"><div class="nm">Thickness</div><div class="ds">Measured — 19~21mm</div></div>
         <div class="spec">20 ±1</div>
-        <input class="val-in" id="hm" value="20.2" placeholder="값">
-        <div class="actbg"><button class="p" onclick="setR(2,'p')">합</button><button class="f" onclick="setR(2,'f')">불</button></div>
+        <input class="val-in" id="hm" value="20.2" placeholder="Value">
+        <div class="actbg"><button class="p" onclick="setR(2,'p')">Pass</button><button class="f" onclick="setR(2,'f')">Fail</button></div>
       </div>
       <div class="insp-row" data-i="3">
         <div class="ic" id="ic3">−</div>
-        <div class="info"><div class="nm">클립 체결력</div><div class="ds">측정 — ≥ 40 N</div></div>
+        <div class="info"><div class="nm">Clip Retention Force</div><div class="ds">Measured — ≥ 40 N</div></div>
         <div class="spec">40~55</div>
-        <input class="val-in" id="ts" value="46.2" placeholder="값">
-        <div class="actbg"><button class="p" onclick="setR(3,'p')">합</button><button class="f" onclick="setR(3,'f')">불</button></div>
+        <input class="val-in" id="ts" value="46.2" placeholder="Value">
+        <div class="actbg"><button class="p" onclick="setR(3,'p')">Pass</button><button class="f" onclick="setR(3,'f')">Fail</button></div>
       </div>
       <div class="insp-row" data-i="4">
         <div class="ic" id="ic4">−</div>
-        <div class="info"><div class="nm">버 / 게이트 잔존</div><div class="ds">외관 — 무결점</div></div>
-        <div class="spec">무결점</div>
-        <input class="val-in" placeholder="합/불">
-        <div class="actbg"><button class="p" onclick="setR(4,'p')">합</button><button class="f" onclick="setR(4,'f')">불</button></div>
+        <div class="info"><div class="nm">Flash / Gate Residue</div><div class="ds">Visual — No defects</div></div>
+        <div class="spec">No defects</div>
+        <input class="val-in" placeholder="Pass/Fail">
+        <div class="actbg"><button class="p" onclick="setR(4,'p')">Pass</button><button class="f" onclick="setR(4,'f')">Fail</button></div>
       </div>
     </div>
   </div>
   <div class="col">
     <div class="result-card" style="--c:#a8997f">
-      <div class="lbl">▼ 종합 판정 결과</div>
-      <div class="verdict" id="verdict">대기 중</div>
-      <div class="ds" id="vds">검사 항목을 평가하세요 (5개 항목)</div>
+      <div class="lbl">▼ OVERALL VERDICT</div>
+      <div class="verdict" id="verdict">PENDING</div>
+      <div class="ds" id="vds">Evaluate all inspection items (5 items)</div>
     </div>
     <div class="actions">
-      <button class="btn-reject" onclick="reject()">⛔ 불합격 처리</button>
-      <button class="btn-submit" onclick="submit()">✓ 검사 완료</button>
+      <button class="btn-reject" onclick="reject()">⛔ Reject</button>
+      <button class="btn-submit" onclick="submit()">✓ Submit Verdict</button>
     </div>
     <div class="next-queue">
-      <h3>📋 검사 대기 큐 <span class="b" id="qcnt">5건</span></h3>
+      <h3>📋 Inspection Queue <span class="b" id="qcnt">5</span></h3>
       <div class="q-body" id="qList"></div>
     </div>
   </div>
@@ -171,11 +171,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 <script>
 var R=[null,null,null,null,null];
 var QUEUE=[
- {id:'RC-2605-0422',nm:'ABS 수지 (내추럴)',qty:'1,800 KG',vd:'한성수지공업'},
- {id:'RC-2605-0423',nm:'베이스코트 도료 블랙',qty:'400 L',vd:'세종도료(주)'},
- {id:'RC-2605-0424',nm:'PVC 인조가죽 블랙',qty:'120 롤',vd:'대원섬유'},
- {id:'RC-2605-0425',nm:'볼트 M8×20',qty:'12,000 EA',vd:'한성정밀'},
- {id:'RC-2605-0426',nm:'금형 부품 - 코어핀',qty:'24 SET',vd:'우진금형'}
+ {id:'IP-2605-0118',nm:'Door Trim RH (After Molding)',qty:'WO-2605-116',vd:'Inj. Line 1'},
+ {id:'IP-2605-0119',nm:'Front Bumper (After Paint)',qty:'WO-2605-132',vd:'Paint Line 1'},
+ {id:'IP-2605-0120',nm:'Pillar Trim (After Wrap)',qty:'WO-2605-141',vd:'Wrap Line 2'},
+ {id:'IP-2605-0121',nm:'Side Molding (After Paint)',qty:'WO-2605-140',vd:'Paint Line 1'},
+ {id:'IP-2605-0122',nm:'Console Trim (After Assy)',qty:'WO-2605-150',vd:'Assy Line 3'}
 ];
 function setR(i,v){
   R[i]=v;
@@ -195,30 +195,30 @@ function updateVerdict(){
   var done=R.filter(function(x){return x;}).length;
   var fails=R.filter(function(x){return x==='f';}).length;
   rc.style.borderTopColor='#a8997f';v.classList.remove('pass','fail','partial');
-  if(done<5){v.textContent=done+'/5';d.textContent='나머지 '+(5-done)+'개 항목을 평가하세요';return;}
-  if(fails===0){v.textContent='PASS';v.classList.add('pass');rc.style.borderTopColor='#22c55e';d.textContent='5개 항목 전체 합격 — 입고 승인 가능';}
-  else if(fails<3){v.textContent='PARTIAL';v.classList.add('partial');rc.style.borderTopColor='#fbbf24';d.textContent=fails+'개 항목 불합격 — 특채 검토 또는 반품 결정 필요';}
-  else{v.textContent='FAIL';v.classList.add('fail');rc.style.borderTopColor='#dc2626';d.textContent=fails+'개 항목 불합격 — 즉시 반품 처리 권장';}
+  if(done<5){v.textContent=done+'/5';d.textContent='Evaluate remaining '+(5-done)+' items';return;}
+  if(fails===0){v.textContent='PASS';v.classList.add('pass');rc.style.borderTopColor='#22c55e';d.textContent='All 5 items passed — LOT may proceed to next process';}
+  else if(fails<3){v.textContent='PARTIAL';v.classList.add('partial');rc.style.borderTopColor='#fbbf24';d.textContent=fails+' items failed — Rework or Use-As-Is review required';}
+  else{v.textContent='FAIL';v.classList.add('fail');rc.style.borderTopColor='#dc2626';d.textContent=fails+' items failed — Hold LOT and notify production';}
 }
 function submit(){
   var done=R.filter(function(x){return x;}).length;
-  if(done<5){toast('err','검사 미완료','5개 항목 전체를 평가해 주세요. ('+done+'/5)');return;}
+  if(done<5){toast('err','Inspection Incomplete','Please evaluate all 5 items. ('+done+'/5)');return;}
   var fails=R.filter(function(x){return x==='f';}).length;
-  toast(fails===0?'ok':'warn','검사 완료 ✓','RC-2605-0421 — '+(fails===0?'합격 처리. 입고 승인됨.':fails+'개 불합격, 특채/반품 검토 필요.'));
+  toast(fails===0?'ok':'warn','Inspection Submitted ✓','IP-2605-0117 — '+(fails===0?'PASSED. LOT may proceed.':fails+' fails, Rework/Use-As-Is review required.'));
   /* next */
   R=[null,null,null,null,null];
   [].slice.call(document.querySelectorAll('.insp-row .ic')).forEach(function(el){el.classList.remove('pass','fail');el.textContent='−';});
   [].slice.call(document.querySelectorAll('.actbg button')).forEach(function(b){b.classList.remove('on');});
   updateVerdict();
 }
-function reject(){toast('err','불합격 처리','RC-2605-0421이 불합격 처리됩니다. 공급사 통보 및 반품 처리 진행.');}
+function reject(){toast('err','Rejected','IP-2605-0117 marked FAIL. LOT placed on Hold and Production notified.');}
 function renderQ(){
-  document.getElementById('qcnt').textContent=QUEUE.length+'건';document.getElementById('kQ').textContent=QUEUE.length;
+  document.getElementById('qcnt').textContent=QUEUE.length;document.getElementById('kQ').textContent=QUEUE.length;
   document.getElementById('qList').innerHTML=QUEUE.map(function(q){
     return '<div class="qi"><span class="qid">'+q.id+'</span><span class="qn">'+q.nm+' · '+q.vd+'</span><span class="qq">'+q.qty+'</span></div>';
   }).join('');
 }
-function back(){toast('','뒤로 이동','대시보드로 돌아갑니다.');}
+function back(){toast('','Back','Returning to Dashboard.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='warn'?'⚠ ':type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';
