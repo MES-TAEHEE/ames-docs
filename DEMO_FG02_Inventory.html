@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FG-02 FG Inventory · A-MES PDA Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--pda:#06b6d4;--pda-dk:#0e7490;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
+.pda{width:420px;max-width:100%;height:100%;max-height:760px;background:#0f1f25;border:2px solid #1a3540;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;}
+.pda-top{flex-shrink:0;background:linear-gradient(180deg,#1a3540,#0f1f25);padding:11px 16px;display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--pda);}
+.pda-id{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#22d3ee;}
+.pda-t{flex:1;font-size:13px;font-weight:800;color:#fff;}
+.pda-bat{font-size:9px;color:#67e8f9;font-family:'JetBrains Mono',monospace;}
+.live{font-size:8px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:2px 7px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:3px;}
+.live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.pda-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:11px;}
+.pda-body::-webkit-scrollbar{width:6px;}.pda-body::-webkit-scrollbar-thumb{background:#1a3540;border-radius:3px;}
+.search{display:flex;gap:8px;}
+.search input{flex:1;padding:11px 14px;background:#1a3540;border:1px solid #2c5564;border-radius:8px;color:#fff;font-size:13px;font-family:inherit;}
+.search button{padding:11px 13px;background:var(--pda);border:none;border-radius:8px;color:#fff;font-size:16px;cursor:pointer;}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+.k{background:rgba(6,182,212,.08);border:1px solid #1a3540;border-top:3px solid var(--c);border-radius:9px;padding:9px 10px;text-align:center;}
+.k .l{font-size:8.5px;color:#67e8f9;font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.k .v{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:900;color:var(--c);margin-top:2px;line-height:1;}
+.k .s{font-size:8.5px;color:#7a9aa3;}
+.section-h{font-size:10px;color:#67e8f9;text-transform:uppercase;letter-spacing:2px;font-weight:800;display:flex;align-items:center;gap:6px;}
+.section-h .b{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:9px;background:rgba(6,182,212,.18);padding:2px 6px;border-radius:4px;color:#22d3ee;}
+.lot-r{background:rgba(255,255,255,.04);border:1px solid #1a3540;border-radius:9px;padding:11px 13px;cursor:pointer;}
+.lot-r:active{transform:scale(.98);}
+.lot-r .h{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.lot-r .sw{width:14px;height:14px;border-radius:3px;border:1px solid #555;}
+.lot-r .nm{font-size:12px;font-weight:800;color:#fff;flex:1;}
+.lot-r .age{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;color:var(--ac);background:var(--ab);padding:2px 7px;border-radius:4px;}
+.lot-r .id{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#22d3ee;}
+.lot-r .meta{display:flex;justify-content:space-between;margin-top:5px;font-size:11px;color:#7a9aa3;}
+.lot-r .meta b{color:#fff;font-family:'JetBrains Mono',monospace;}
+.lot-r .meta .qty{color:#22c55e;}
+.bottom-bar{flex-shrink:0;display:flex;gap:8px;padding:11px 14px;background:#1a3540;border-top:1px solid #0a1419;}
+.bottom-bar button{flex:1;padding:13px 0;background:linear-gradient(180deg,var(--pda),var(--pda-dk));border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer;letter-spacing:1px;box-shadow:0 3px 0 #155e75;}
+.bottom-bar button:active{transform:translateY(2px);box-shadow:0 1px 0 #155e75;}
+.bottom-bar button.sec{background:#0f1f25;color:#67e8f9;border:1px solid #1a3540;box-shadow:none;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#0f1f25;border:1px solid #1a3540;border-radius:9px;padding:12px 15px;border-left:4px solid var(--pda);font-size:12px;min-width:250px;max-width:340px;animation:ti .25s ease;color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.5);}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:#7a9aa3;font-size:10px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="pda">
+  <div class="pda-top">
+    <div class="pda-id">FG-02</div>
+    <div class="pda-t">완제품 재고</div>
+    <span class="live"><span class="d"></span>LIVE</span>
+    <span class="pda-bat">🔋 69%</span>
+  </div>
+  <div class="pda-body">
+    <div class="search">
+      <input placeholder="🔍 품목·LOT·고객사" id="kw" oninput="render()">
+      <button onclick="scan()">📷</button>
+    </div>
+    <div class="kpis">
+      <div class="k" style="--c:#22d3ee"><div class="l">총 LOT</div><div class="v">42</div><div class="s">건</div></div>
+      <div class="k" style="--c:#22c55e"><div class="l">SAV</div><div class="v">18</div><div class="s">LOT</div></div>
+      <div class="k" style="--c:#a78bfa"><div class="l">GEO</div><div class="v">24</div><div class="s">LOT</div></div>
+    </div>
+    <div class="section-h">📦 완제품 LOT (FIFO 순) <span class="b" id="cnt">8건</span></div>
+    <div id="list"></div>
+  </div>
+  <div class="bottom-bar">
+    <button class="sec" onclick="back()">← 메뉴</button>
+    <button onclick="scan()">📷 LOT 스캔</button>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+var CMAP={'블랙':'#0A0A0A','그레이':'#8D948D','화이트':'#F4F4F4','레드':'#CC0605'};
+var LOTS=[
+ {id:'LOT-2605-1985',nm:'콘솔어퍼',color:'블랙',qty:180,cust:'GEO',loc:'FG-A-08-2',age:5,prod:'2026-05-15'},
+ {id:'LOT-2605-2042',nm:'프론트 범퍼',color:'블랙',qty:48,cust:'GEO',loc:'FG-A-09-1',age:4,prod:'2026-05-17'},
+ {id:'LOT-2605-2078',nm:'그릴 도장',color:'그레이',qty:24,cust:'GEO',loc:'FG-A-10-1',age:3,prod:'2026-05-18'},
+ {id:'LOT-2605-2098',nm:'사이드 몰딩',color:'화이트',qty:60,cust:'SAV',loc:'FG-B-04-1',age:2,prod:'2026-05-19'},
+ {id:'LOT-2605-2099',nm:'그릴 도장',color:'그레이',qty:36,cust:'GEO',loc:'FG-A-10-2',age:2,prod:'2026-05-19'},
+ {id:'LOT-2605-2100',nm:'프론트 범퍼',color:'블랙',qty:48,cust:'GEO',loc:'FG-A-09-2',age:1,prod:'2026-05-20'},
+ {id:'LOT-2605-2103',nm:'사이드 몰딩',color:'그레이',qty:54,cust:'SAV',loc:'FG-B-04-2',age:0,prod:'2026-05-21'},
+ {id:'LOT-2605-2105',nm:'라디에이터 그릴',color:'그레이',qty:32,cust:'GEO',loc:'FG-A-12-3',age:0,prod:'2026-05-21'}
+];
+function age(d){
+  if(d>=4)return {c:'#fbbf24',b:'rgba(245,158,11,.18)'};
+  if(d>=2)return {c:'#22d3ee',b:'rgba(6,182,212,.18)'};
+  return {c:'#86efac',b:'rgba(34,197,94,.18)'};
+}
+function render(){
+  var kw=(document.getElementById('kw').value||'').toLowerCase();
+  var rows=LOTS.filter(function(l){return !kw||l.nm.toLowerCase().indexOf(kw)>=0||l.id.toLowerCase().indexOf(kw)>=0||l.cust.toLowerCase().indexOf(kw)>=0;});
+  document.getElementById('cnt').textContent=rows.length+'건';
+  document.getElementById('list').innerHTML=rows.map(function(l){
+    var a=age(l.age);
+    return '<div class="lot-r" style="--ac:'+a.c+';--ab:'+a.b+'" onclick="pick(\''+l.id+'\')">'+
+      '<div class="h"><span class="sw" style="background:'+(CMAP[l.color]||'#888')+'"></span>'+
+      '<span class="nm">'+l.nm+'</span>'+
+      '<span class="age">'+(l.age===0?'당일':'D-'+l.age)+'</span></div>'+
+      '<div class="id">'+l.id+' · 생산 '+l.prod+'</div>'+
+      '<div class="meta"><span>📍 '+l.loc+' · '+l.cust+'</span><span class="qty"><b>'+l.qty+' EA</b></span></div></div>';
+  }).join('');
+}
+function pick(id){toast('',id+' 선택','LOT 상세 화면으로 이동합니다.');}
+function scan(){toast('','📷 LOT 스캔','완제품 LOT 라벨을 스캔하세요.');}
+function back(){toast('','PDA 메뉴','PDA 메뉴로 돌아갑니다.');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">• '+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3000);
+}
+render();
+</script>
+</body>
+</html>
