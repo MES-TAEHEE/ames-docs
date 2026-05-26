@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>QC-TRC Traceability · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--qc:#8b5cf6;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:13px;display:flex;flex-direction:column;overflow:hidden;}
+.head{flex-shrink:0;padding:13px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--qc);background:rgba(0,0,0,.3);}
+.head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#c4b5fd;}
+.head .tt{flex:1;}
+.head .en{font-size:17px;font-weight:800;color:#fff;}
+.head .ko{font-size:11px;color:#a8997f;}
+.back{background:#1a1208;border:1px solid #3a2a14;color:#fdba74;font-size:13px;font-weight:700;padding:9px 16px;border-radius:7px;cursor:pointer;font-family:inherit;}
+.live{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:5px 10px;border-radius:5px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.live .d{width:7px;height:7px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.search-bar{flex-shrink:0;padding:18px 24px;background:linear-gradient(180deg,rgba(139,92,246,.06),rgba(0,0,0,.2));border-bottom:1px solid #3a2a14;display:flex;gap:11px;align-items:center;}
+.search-bar input{flex:1;padding:13px 18px;background:#1a1208;border:2px solid #3a2a14;border-radius:9px;color:#fff;font-size:15px;font-family:'JetBrains Mono',monospace;letter-spacing:1px;}
+.search-bar input:focus{outline:none;border-color:var(--qc);}
+.search-bar button{padding:13px 24px;background:linear-gradient(180deg,#8b5cf6,#6d28d9);border:none;border-radius:9px;color:#fff;font-size:14px;font-weight:800;font-family:inherit;cursor:pointer;letter-spacing:1px;}
+.search-bar button:active{transform:translateY(1px);}
+.body{flex:1;display:flex;flex-direction:column;padding:14px 24px;gap:13px;min-height:0;overflow-y:auto;}
+.body::-webkit-scrollbar{width:8px;}.body::-webkit-scrollbar-thumb{background:#4a3618;border-radius:4px;}
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#a8997f;}
+.empty .ic{font-size:80px;opacity:.3;}
+.empty .t{font-size:16px;margin-top:14px;}
+.lot-card{background:linear-gradient(160deg,rgba(139,92,246,.12),rgba(139,92,246,.02));border:1px solid #3a2a14;border-top:4px solid var(--qc);border-radius:11px;padding:18px 24px;}
+.lot-card h2{font-size:24px;color:#fff;font-family:'JetBrains Mono',monospace;font-weight:900;letter-spacing:1px;}
+.lot-card .item{font-size:14px;color:#fdba74;margin-top:4px;}
+.lot-card .meta{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-top:13px;}
+.lot-card .m{background:rgba(0,0,0,.3);border:1px solid #3a2a14;border-radius:7px;padding:8px 11px;}
+.lot-card .m .ml{font-size:9px;color:#a8997f;font-family:'JetBrains Mono',monospace;}
+.lot-card .m .mv{font-size:12px;font-weight:800;color:#fff;margin-top:2px;}
+.lot-card .m .mv.ok{color:#86efac;}
+.timeline{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:11px;padding:16px 22px;}
+.timeline h3{font-size:11px;color:#c4b5fd;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin-bottom:14px;}
+.tl{position:relative;padding-left:26px;}
+.tl::before{content:'';position:absolute;left:9px;top:6px;bottom:6px;width:2px;background:#3a2a14;}
+.tl-item{position:relative;padding-bottom:14px;}
+.tl-item:last-child{padding-bottom:0;}
+.tl-item::before{content:'';position:absolute;left:-20px;top:5px;width:14px;height:14px;border-radius:50%;background:var(--c);border:2px solid #1a1208;}
+.tl-item.ok::before{box-shadow:0 0 0 2px var(--c);}
+.tl-h{display:flex;align-items:center;gap:9px;margin-bottom:5px;}
+.tl-stg{font-size:11px;font-weight:800;color:var(--c);letter-spacing:1px;font-family:'JetBrains Mono',monospace;}
+.tl-t{font-size:10px;color:#a8997f;font-family:'JetBrains Mono',monospace;}
+.tl-st{margin-left:auto;font-size:9px;font-weight:800;padding:2px 7px;border-radius:5px;background:rgba(34,197,94,.18);color:#86efac;}
+.tl-c{background:rgba(0,0,0,.3);border:1px solid #3a2a14;border-radius:8px;padding:10px 13px;font-size:11.5px;color:#fff;line-height:1.7;}
+.tl-c .l{color:#a8997f;margin-right:7px;}
+.tl-c b{color:#fbbf24;font-family:'JetBrains Mono',monospace;}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
+.card{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:11px;padding:14px 20px;}
+.card h3{font-size:11px;color:#c4b5fd;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin-bottom:11px;}
+.bom-tree{font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.8;}
+.bom-tree .n{color:#fff;}
+.bom-tree .n.l1{color:#fbbf24;font-weight:800;}
+.bom-tree .lot{color:#c4b5fd;font-size:10px;margin-left:9px;}
+.qc-r{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.07);font-size:12px;}
+.qc-r:last-child{border:none;}
+.qc-r .ic{font-size:16px;}
+.qc-r .nm{flex:1;color:#fff;}
+.qc-r .val{font-family:'JetBrains Mono',monospace;font-size:11px;color:#fbbf24;}
+.qc-r .res{font-size:9px;font-weight:800;padding:2px 7px;border-radius:5px;}
+.qc-r .res.p{background:rgba(34,197,94,.18);color:#86efac;}
+.qc-r .res.f{background:rgba(220,38,38,.18);color:#fca5a5;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#1a1208;border-radius:10px;padding:13px 17px;border-left:5px solid var(--qc);font-size:13px;min-width:280px;max-width:400px;animation:ti .25s ease;color:#fff;box-shadow:0 8px 26px rgba(0,0,0,.5);}
+.toast .tt{font-weight:800;margin-bottom:3px;}
+.toast .tb{color:#a8997f;font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="head">
+  <button class="back" onclick="back()">‹ 대시보드</button>
+  <div class="id">QC-TRC</div>
+  <div class="tt"><div class="en">Traceability</div><div class="ko">추적성 조회 — LOT/제품 정·역방향 이력 추적</div></div>
+  <span class="live"><span class="d"></span>LIVE</span>
+</div>
+<div class="search-bar">
+  <input id="srch" placeholder="🔍 LOT 번호 · 제품 시리얼 · 바코드 입력 (예: LOT-2605-2103)" value="LOT-2605-2103">
+  <button onclick="search()">🔍 추적 조회</button>
+</div>
+<div class="body" id="body">
+  <div class="lot-card">
+    <h2>LOT-2605-2103</h2>
+    <div class="item">사이드 몰딩 도장 · MOLDING-05 · 그레이 (RAL 7042)</div>
+    <div class="meta">
+      <div class="m"><div class="ml">상태</div><div class="mv ok">출하 대기</div></div>
+      <div class="m"><div class="ml">수량</div><div class="mv">54 EA</div></div>
+      <div class="m"><div class="ml">WO</div><div class="mv">WO-2605-140</div></div>
+      <div class="m"><div class="ml">생산일</div><div class="mv">2026-05-21</div></div>
+      <div class="m"><div class="ml">출하처</div><div class="mv">SAV-SD-02</div></div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="card">
+      <h3>🧬 BOM 정방향 (Forward)</h3>
+      <div class="bom-tree">
+        <div class="n l1">▸ MOLDING-05 (사이드 몰딩) <span class="lot">LOT-2605-2103</span></div>
+        <div class="n" style="padding-left:18px;">├─ RM-PP-BLK (PP 수지)<span class="lot">LOT RC-2605-0421</span></div>
+        <div class="n" style="padding-left:18px;">├─ PNT-BC-002 (베이스 그레이)<span class="lot">LOT PT-2605-0085</span></div>
+        <div class="n" style="padding-left:18px;">├─ PNT-CC-001 (클리어코트)<span class="lot">LOT PT-2605-0091</span></div>
+        <div class="n" style="padding-left:18px;">└─ AM-CLIP-01 (고정 클립)<span class="lot">LOT RC-2605-0387</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>📋 QC 검사 이력</h3>
+      <div class="qc-r"><span class="ic">📥</span><span class="nm">원자재 수입검사 (PP 수지)</span><span class="val">IS-PP-01</span><span class="res p">합격</span></div>
+      <div class="qc-r"><span class="ic">🏭</span><span class="nm">사출 공정 검사</span><span class="val">IS-MOLD-01</span><span class="res p">합격</span></div>
+      <div class="qc-r"><span class="ic">🎨</span><span class="nm">도장 공정 검사</span><span class="val">IS-GRILLE-01</span><span class="res p">합격</span></div>
+      <div class="qc-r"><span class="ic">✓</span><span class="nm">최종 검사 (AQL 2.5)</span><span class="val">IS-TRIM-LH-01</span><span class="res p">합격</span></div>
+      <div class="qc-r"><span class="ic">⚠</span><span class="nm">스크래치 발견 (3건/240)</span><span class="val">NCR-2605-011</span><span class="res f">검토</span></div>
+    </div>
+  </div>
+  <div class="timeline">
+    <h3>🛤 LOT 흐름 타임라인 (정방향)</h3>
+    <div class="tl">
+      <div class="tl-item ok" style="--c:#22c55e">
+        <div class="tl-h"><span class="tl-stg">▶ STEP 1 · 원자재 입고</span><span class="tl-t">2026-05-20 14:22</span><span class="tl-st">완료</span></div>
+        <div class="tl-c"><span class="l">로트:</span><b>RC-2605-0421</b> (PP 수지 블랙) · <span class="l">공급사:</span><b>대한플라스틱(주)</b> · <span class="l">수량:</span><b>2,400 KG</b> · <span class="l">QC:</span>합격</div>
+      </div>
+      <div class="tl-item ok" style="--c:#22c55e">
+        <div class="tl-h"><span class="tl-stg">▶ STEP 2 · 사출 성형</span><span class="tl-t">2026-05-21 06:30</span><span class="tl-st">완료</span></div>
+        <div class="tl-c"><span class="l">라인:</span><b>SAV-INJ-02</b> · <span class="l">금형:</span><b>MD-INJ-103</b> · <span class="l">샷 카운트:</span><b>215,066~215,120</b> · <span class="l">작업자:</span><b>박작업</b></div>
+      </div>
+      <div class="tl-item ok" style="--c:#22c55e">
+        <div class="tl-h"><span class="tl-stg">▶ STEP 3 · 도장</span><span class="tl-t">2026-05-21 07:15</span><span class="tl-st">완료</span></div>
+        <div class="tl-c"><span class="l">라인:</span><b>SAV-PNT-01</b> · <span class="l">색상:</span><b>RAL 7042 그레이</b> · <span class="l">오븐:</span><b>4-zone (80/120/135/45℃)</b> · <span class="l">통과 시간:</span><b>22분</b></div>
+      </div>
+      <div class="tl-item ok" style="--c:#fbbf24">
+        <div class="tl-h"><span class="tl-stg">▶ STEP 4 · 최종 검사</span><span class="tl-t">2026-05-21 09:14</span><span class="tl-st" style="background:rgba(245,158,11,.18);color:#fbbf24;">NCR</span></div>
+        <div class="tl-c"><span class="l">검사원:</span><b>한지원</b> · <span class="l">샘플:</span><b>5/54</b> · <span class="l">결과:</span><b>스크래치 3건 발견</b> · <span class="l">NCR:</span><b>NCR-2605-011</b></div>
+      </div>
+      <div class="tl-item" style="--c:#a8997f">
+        <div class="tl-h"><span class="tl-stg">○ STEP 5 · 라벨 부착</span><span class="tl-t">대기</span><span class="tl-st" style="background:rgba(255,255,255,.08);color:#a8997f;">대기 중</span></div>
+        <div class="tl-c"><span class="l">예정:</span>QC 종결 후 진행</div>
+      </div>
+      <div class="tl-item" style="--c:#a8997f">
+        <div class="tl-h"><span class="tl-stg">○ STEP 6 · 출하</span><span class="tl-t">예정</span><span class="tl-st" style="background:rgba(255,255,255,.08);color:#a8997f;">미발생</span></div>
+        <div class="tl-c"><span class="l">출하처:</span><b>SAV-SD-02</b> · <span class="l">예정일:</span><b>2026-05-22</b></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+function search(){toast('','추적 조회 ✓','LOT '+document.getElementById('srch').value+' 의 정·역방향 이력을 조회합니다. (데모)');}
+function back(){toast('','뒤로 이동','대시보드로 돌아갑니다.');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">• '+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3500);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>QC-04 NCR Register · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--qc:#8b5cf6;--sc:#ea580c;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:13px;display:flex;flex-direction:column;overflow:hidden;}
+.head{flex-shrink:0;padding:13px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--qc);background:rgba(0,0,0,.3);}
+.head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#c4b5fd;}
+.head .tt{flex:1;}
+.head .en{font-size:17px;font-weight:800;color:#fff;}
+.head .ko{font-size:11px;color:#a8997f;}
+.back{background:#1a1208;border:1px solid #3a2a14;color:#fdba74;font-size:13px;font-weight:700;padding:9px 16px;border-radius:7px;cursor:pointer;font-family:inherit;}
+.qbadge{background:linear-gradient(180deg,#dc2626,#991b1b);color:#fff;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:900;padding:6px 14px;border-radius:7px;letter-spacing:2px;}
+.live{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:5px 10px;border-radius:5px;background:#dc2626;color:#fff;display:flex;align-items:center;gap:5px;}
+.live .d{width:7px;height:7px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.toolbar{flex-shrink:0;padding:11px 24px;background:rgba(0,0,0,.2);border-bottom:1px solid #3a2a14;display:flex;gap:11px;align-items:center;}
+.toolbar select,.toolbar input{padding:7px 11px;background:#1a1208;border:1px solid #3a2a14;border-radius:6px;color:#fff;font-size:12px;font-family:inherit;}
+.btn-new{margin-left:auto;padding:9px 18px;background:linear-gradient(180deg,#dc2626,#991b1b);border:none;border-radius:7px;color:#fff;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer;}
+.btn-new:active{transform:translateY(1px);}
+.body{flex:1;display:flex;flex-direction:column;padding:14px 24px;gap:13px;min-height:0;overflow:hidden;}
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;}
+.kpi{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-top:4px solid var(--c);border-radius:10px;padding:11px 14px;}
+.kpi .lbl{font-size:9px;color:#c4b5fd;letter-spacing:1.5px;font-family:'JetBrains Mono',monospace;}
+.kpi .val{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:900;color:var(--c);line-height:1;margin-top:3px;}
+.kpi .sub{font-size:9px;color:#a8997f;}
+.table-wrap{flex:1;background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:11px;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+.tw-h{padding:11px 16px;border-bottom:1px solid #3a2a14;background:rgba(139,92,246,.08);display:flex;align-items:center;gap:8px;font-size:11px;color:#c4b5fd;text-transform:uppercase;letter-spacing:2px;font-weight:800;}
+.tw-h .b{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;background:rgba(139,92,246,.2);padding:3px 8px;border-radius:5px;}
+.tw-body{flex:1;overflow-y:auto;}
+.tw-body::-webkit-scrollbar{width:8px;}.tw-body::-webkit-scrollbar-thumb{background:#4a3618;border-radius:4px;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead{position:sticky;top:0;background:#1a1208;z-index:1;}
+thead th{padding:9px 11px;text-align:left;font-size:10px;font-weight:800;color:#c4b5fd;border-bottom:1px solid #3a2a14;letter-spacing:1px;}
+thead th.c{text-align:center;}
+tbody td{padding:9px 11px;border-bottom:1px dashed rgba(255,255,255,.06);}
+tbody tr{cursor:pointer;}
+tbody tr:hover td{background:rgba(139,92,246,.06);}
+.mono{font-family:'JetBrains Mono',monospace;font-size:11px;}
+.sev{display:inline-block;font-size:9px;font-weight:800;padding:2px 8px;border-radius:9px;}
+.sev1{background:rgba(220,38,38,.18);color:#fca5a5;}
+.sev2{background:rgba(245,158,11,.18);color:#fbbf24;}
+.sev3{background:rgba(34,197,94,.16);color:#86efac;}
+.st{display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:800;padding:3px 9px;border-radius:9px;}
+.st .dot{width:6px;height:6px;border-radius:50%;}
+.st-open{background:rgba(220,38,38,.18);color:#fca5a5;}.st-open .dot{background:#dc2626;animation:bl 1s infinite;}
+.st-rev{background:rgba(245,158,11,.18);color:#fbbf24;}.st-rev .dot{background:#f59e0b;}
+.st-cls{background:rgba(34,197,94,.18);color:#86efac;}.st-cls .dot{background:#22c55e;}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:200;}
+.ov.on{display:flex;}
+.modal{background:#1a1208;border:1px solid #3a2a14;border-top:4px solid var(--qc);border-radius:13px;padding:24px 28px;width:560px;max-width:94vw;max-height:88vh;overflow-y:auto;}
+.modal h2{font-size:16px;color:#c4b5fd;margin-bottom:18px;display:flex;align-items:center;gap:9px;}
+.fld{margin-bottom:11px;}
+.fld label{display:block;font-size:9px;font-weight:800;color:#a8997f;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+.fld input,.fld select,.fld textarea{width:100%;padding:10px 13px;background:#0a0805;border:1px solid #3a2a14;border-radius:6px;color:#fff;font-size:13px;font-family:inherit;}
+.fld textarea{resize:vertical;min-height:60px;}
+.fld2{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:11px;}
+.modal-bar{display:flex;gap:9px;margin-top:18px;}
+.modal-bar button{flex:1;padding:13px;border:none;border-radius:8px;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer;}
+.btn-save{background:linear-gradient(180deg,#8b5cf6,#6d28d9);color:#fff;}
+.btn-cancel{background:#1a1208;border:1px solid #3a2a14;color:#a8997f;}
+.toasts{position:fixed;top:14px;right:14px;z-index:300;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#1a1208;border-radius:10px;padding:13px 17px;border-left:5px solid var(--qc);font-size:13px;min-width:280px;max-width:400px;animation:ti .25s ease;color:#fff;box-shadow:0 8px 26px rgba(0,0,0,.5);}
+.toast.ok{border-left-color:#16a34a;}.toast.warn{border-left-color:#f59e0b;}
+.toast .tt{font-weight:800;margin-bottom:3px;}
+.toast .tb{color:#a8997f;font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="head">
+  <button class="back" onclick="back()">‹ 대시보드</button>
+  <div class="id">QC-04</div>
+  <div class="tt"><div class="en">NCR Register</div><div class="ko">부적합 등록 — Non-Conformance Report 기록·관리</div></div>
+  <span class="qbadge">NCR</span>
+  <span class="live"><span class="d"></span>LIVE</span>
+</div>
+<div class="toolbar">
+  <select id="fS" onchange="render()"><option value="">전체 상태</option><option>접수</option><option>검토 중</option><option>종결</option></select>
+  <select id="fSev" onchange="render()"><option value="">전체 심각도</option><option>치명</option><option>중대</option><option>경미</option></select>
+  <input id="fKw" placeholder="검색: 품목·LOT·NCR 번호" oninput="render()" style="width:280px;">
+  <button class="btn-new" onclick="newNCR()">＋ 부적합 신규 등록</button>
+</div>
+<div class="body">
+  <div class="kpi-grid">
+    <div class="kpi" style="--c:#dc2626"><div class="lbl">접수 (오픈)</div><div class="val" id="kOpen">5</div><div class="sub">건</div></div>
+    <div class="kpi" style="--c:#fbbf24"><div class="lbl">검토 중</div><div class="val" id="kRev">3</div><div class="sub">건</div></div>
+    <div class="kpi" style="--c:#22c55e"><div class="lbl">금월 종결</div><div class="val">14</div><div class="sub">건</div></div>
+    <div class="kpi" style="--c:#fca5a5"><div class="lbl">치명 (Critical)</div><div class="val">1</div><div class="sub">접수</div></div>
+    <div class="kpi" style="--c:#8b5cf6"><div class="lbl">평균 처리시간</div><div class="val">2.4</div><div class="sub">일</div></div>
+  </div>
+  <div class="table-wrap">
+    <div class="tw-h">📋 NCR 부적합 보고서 목록 <span class="b" id="cnt">22건</span></div>
+    <div class="tw-body">
+      <table>
+        <thead><tr>
+          <th>NCR 번호</th><th>발견일</th><th>품목·LOT</th><th>부적합 내용</th>
+          <th class="c">심각도</th><th class="c">상태</th><th>담당</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<div class="ov" id="ovNew">
+  <div class="modal">
+    <h2>📝 부적합 신규 등록</h2>
+    <div class="fld2">
+      <div class="fld"><label>NCR 번호 (자동)</label><input id="nId" value="" disabled></div>
+      <div class="fld"><label>발견일</label><input id="nDt" type="date" value="2026-05-21"></div>
+    </div>
+    <div class="fld"><label>품목 / LOT</label><input id="nItem" placeholder="예: 도어트림 LH / LOT-2605-2103"></div>
+    <div class="fld2">
+      <div class="fld"><label>발견 공정</label>
+        <select id="nProc"><option>수입검사</option><option>사출</option><option>도장</option><option>조립</option><option>최종검사</option></select></div>
+      <div class="fld"><label>심각도</label>
+        <select id="nSev"><option>치명</option><option>중대</option><option>경미</option></select></div>
+    </div>
+    <div class="fld"><label>부적합 내용 (상세)</label><textarea id="nDesc" placeholder="발생 현상·원인 추정·영향 범위"></textarea></div>
+    <div class="fld2">
+      <div class="fld"><label>수량 (영향 EA)</label><input id="nQty" type="number" value="0"></div>
+      <div class="fld"><label>담당자</label>
+        <select id="nBy"><option>한지원</option><option>서민재</option><option>박품질</option></select></div>
+    </div>
+    <div class="modal-bar">
+      <button class="btn-cancel" onclick="closeMod()">취소</button>
+      <button class="btn-save" onclick="saveNCR()">▶ 등록</button>
+    </div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+var seq=12,NCRS=[
+ {id:'NCR-2605-011',dt:'2026-05-21',item:'도어트림 LH · LOT-2605-2103',desc:'표면 스크래치 다발 (3건/240)',sev:'경미',proc:'최종검사',st:'접수',by:'한지원'},
+ {id:'NCR-2605-010',dt:'2026-05-21',item:'프론트 범퍼 · LOT-2605-2104',desc:'도장 색차 ΔE 1.4 초과 (목표 ≤1.0)',sev:'중대',proc:'도장',st:'접수',by:'서민재'},
+ {id:'NCR-2605-009',dt:'2026-05-20',item:'콘솔어퍼 · LOT-2605-1985',desc:'조립 시 클립 체결력 미달 (38N, 기준 40~55N)',sev:'중대',proc:'조립',st:'검토 중',by:'박품질'},
+ {id:'NCR-2605-008',dt:'2026-05-20',item:'PP 수지 · RC-2605-0418',desc:'용융지수(MI) 9.2 — 규격 10~14 미달',sev:'치명',proc:'수입검사',st:'접수',by:'한지원'},
+ {id:'NCR-2605-007',dt:'2026-05-20',item:'사이드 몰딩 · LOT-2605-1972',desc:'사출 게이트 미제거 (5건/60)',sev:'경미',proc:'사출',st:'검토 중',by:'박품질'},
+ {id:'NCR-2605-006',dt:'2026-05-19',item:'라디에이터 그릴 · LOT-2605-1840',desc:'크롬 도금 박리 (2건/24)',sev:'중대',proc:'도장',st:'접수',by:'서민재'},
+ {id:'NCR-2605-005',dt:'2026-05-19',item:'도어트림 RH · LOT-2605-1832',desc:'스크래치 미세 (1건/240) — 특채 협의',sev:'경미',proc:'최종검사',st:'검토 중',by:'한지원'},
+ {id:'NCR-2605-004',dt:'2026-05-18',item:'프론트 범퍼 · LOT-2605-1735',desc:'센서 마운트 위치 편차',sev:'중대',proc:'조립',st:'종결',by:'박품질'},
+ {id:'NCR-2605-003',dt:'2026-05-18',item:'PP 수지 · RC-2605-0392',desc:'수분 함량 0.12% (기준 ≤0.10%)',sev:'중대',proc:'수입검사',st:'종결',by:'한지원'},
+ {id:'NCR-2605-002',dt:'2026-05-17',item:'베이스코트 도료',desc:'점도 1180 cps — 규격 ≤1100',sev:'경미',proc:'수입검사',st:'종결',by:'서민재'},
+ {id:'NCR-2605-001',dt:'2026-05-17',item:'사이드 몰딩 · LOT-2605-1701',desc:'몰딩 길이 0.5mm 편차',sev:'경미',proc:'사출',st:'종결',by:'박품질'}
+];
+function render(){
+  var fs=document.getElementById('fS').value,fv=document.getElementById('fSev').value,kw=document.getElementById('fKw').value.toLowerCase();
+  var rows=NCRS.filter(function(n){
+    if(fs&&n.st!==fs)return false;
+    if(fv&&n.sev!==fv)return false;
+    if(kw&&(n.id.toLowerCase().indexOf(kw)<0&&n.item.toLowerCase().indexOf(kw)<0&&n.desc.toLowerCase().indexOf(kw)<0))return false;
+    return true;
+  });
+  document.getElementById('cnt').textContent=rows.length+'건';
+  document.getElementById('kOpen').textContent=NCRS.filter(function(n){return n.st==='접수';}).length;
+  document.getElementById('kRev').textContent=NCRS.filter(function(n){return n.st==='검토 중';}).length;
+  document.getElementById('tbody').innerHTML=rows.map(function(n){
+    var sevC=n.sev==='치명'?'sev1':(n.sev==='중대'?'sev2':'sev3');
+    var stC=n.st==='접수'?'st-open':(n.st==='검토 중'?'st-rev':'st-cls');
+    return '<tr onclick="view(\''+n.id+'\')">'+
+      '<td class="mono" style="color:#fbbf24;font-weight:800;">'+n.id+'</td>'+
+      '<td class="mono" style="color:#a8997f;">'+n.dt.slice(5)+'</td>'+
+      '<td>'+n.item+'</td>'+
+      '<td style="color:#fdba74;">'+n.desc+'</td>'+
+      '<td class="c" style="text-align:center;"><span class="sev '+sevC+'">'+n.sev+'</span></td>'+
+      '<td class="c" style="text-align:center;"><span class="st '+stC+'"><span class="dot"></span>'+n.st+'</span></td>'+
+      '<td>'+n.by+'</td></tr>';
+  }).join('');
+}
+function newNCR(){document.getElementById('nId').value='NCR-2605-0'+(seq++);document.getElementById('ovNew').classList.add('on');}
+function closeMod(){document.getElementById('ovNew').classList.remove('on');}
+function saveNCR(){
+  var n={
+    id:document.getElementById('nId').value,dt:document.getElementById('nDt').value,
+    item:document.getElementById('nItem').value||'미입력',
+    desc:document.getElementById('nDesc').value||'미입력',
+    sev:document.getElementById('nSev').value,proc:document.getElementById('nProc').value,
+    st:'접수',by:document.getElementById('nBy').value
+  };
+  NCRS.unshift(n);render();closeMod();
+  toast('ok','NCR 등록 완료 ✓',n.id+' — '+n.sev+' 부적합이 등록되었습니다. 담당자에게 알림 발송.');
+}
+function view(id){toast('','NCR 상세',id+' 상세 화면으로 이동합니다. 시정조치(CAPA) 연결 가능. (데모)');}
+function back(){toast('','뒤로 이동','대시보드로 돌아갑니다.');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='warn'?'⚠ ':type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3500);
+}
+render();
+</script>
+</body>
+</html>

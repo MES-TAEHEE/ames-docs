@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>QC-05 Hold / Quarantine · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--qc:#8b5cf6;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
+.head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--qc);background:rgba(0,0,0,.3);}
+.head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#c4b5fd;}
+.head .tt{flex:1;}
+.head .en{font-size:17px;font-weight:800;color:#fff;}
+.head .ko{font-size:11px;color:#a8997f;}
+.back{background:#1a1208;border:1px solid #3a2a14;color:#fdba74;font-size:13px;font-weight:700;padding:9px 16px;border-radius:7px;cursor:pointer;font-family:inherit;}
+.live{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:5px 10px;border-radius:5px;background:#dc2626;color:#fff;display:flex;align-items:center;gap:5px;}
+.live .d{width:7px;height:7px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.body{flex:1;display:flex;flex-direction:column;padding:18px 24px;gap:13px;min-height:0;overflow-y:auto;}
+.body::-webkit-scrollbar{width:8px;}.body::-webkit-scrollbar-thumb{background:#4a3618;border-radius:4px;}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;}
+.kpi{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-top:4px solid var(--c);border-radius:11px;padding:13px 16px;}
+.kpi .lbl{font-size:10px;color:#c4b5fd;letter-spacing:1.5px;font-family:'JetBrains Mono',monospace;}
+.kpi .val{font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:900;color:var(--c);line-height:1;margin-top:3px;}
+.kpi .sub{font-size:10px;color:#a8997f;margin-top:2px;}
+.h-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;}
+.h-card{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-top:4px solid var(--c);border-radius:11px;padding:15px 18px;}
+.h-card .lh{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+.h-card .lh .ic{width:34px;height:34px;border-radius:7px;background:rgba(220,38,38,.18);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.h-card .lh .nm{font-size:13px;font-weight:800;color:#fff;}
+.h-card .lh .stg{margin-left:auto;font-size:9px;font-weight:800;padding:3px 8px;border-radius:6px;background:rgba(220,38,38,.18);color:#fca5a5;}
+.h-card .stg.rev{background:rgba(245,158,11,.18);color:#fbbf24;}
+.h-card .stg.rel{background:rgba(34,197,94,.18);color:#86efac;}
+.h-card .lid{font-family:'JetBrains Mono',monospace;font-size:13px;color:#fbbf24;font-weight:800;margin-bottom:5px;}
+.h-card .meta{font-size:11px;color:#a8997f;margin-bottom:9px;line-height:1.6;}
+.h-card .meta b{color:#fff;font-family:'JetBrains Mono',monospace;}
+.h-card .reason{background:rgba(0,0,0,.3);border:1px solid #3a2a14;border-radius:7px;padding:9px 11px;font-size:11px;color:#fdba74;line-height:1.5;margin-bottom:10px;}
+.h-card .reason b{display:block;color:#c4b5fd;font-size:9px;margin-bottom:2px;letter-spacing:1px;font-family:'JetBrains Mono',monospace;}
+.h-card .acts{display:flex;gap:6px;}
+.h-card .acts button{flex:1;padding:9px 0;background:#1a1208;border:1px solid #3a2a14;color:#fdba74;font-size:11px;font-weight:800;border-radius:6px;cursor:pointer;font-family:inherit;}
+.h-card .acts button.ok{background:linear-gradient(180deg,#16a34a,#15803d);color:#fff;border-color:#16a34a;}
+.h-card .acts button.rj{background:linear-gradient(180deg,#dc2626,#991b1b);color:#fff;border-color:#dc2626;}
+.h-card .acts button:active{transform:translateY(1px);}
+.section{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:11px;padding:14px 18px;}
+.section h3{font-size:11px;color:#c4b5fd;text-transform:uppercase;letter-spacing:2px;margin-bottom:11px;font-weight:800;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead th{padding:8px 10px;text-align:left;font-size:10px;color:#c4b5fd;border-bottom:1px solid #3a2a14;letter-spacing:1px;}
+tbody td{padding:8px 10px;border-bottom:1px dashed rgba(255,255,255,.06);}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#1a1208;border-radius:10px;padding:13px 17px;border-left:5px solid var(--qc);font-size:13px;min-width:280px;max-width:400px;animation:ti .25s ease;color:#fff;box-shadow:0 8px 26px rgba(0,0,0,.5);}
+.toast.ok{border-left-color:#16a34a;}.toast.err{border-left-color:#dc2626;}
+.toast .tt{font-weight:800;margin-bottom:3px;}
+.toast .tb{color:#a8997f;font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="head">
+  <button class="back" onclick="back()">‹ 대시보드</button>
+  <div class="id">QC-05</div>
+  <div class="tt"><div class="en">Hold / Quarantine</div><div class="ko">보류·격리 — 부적합 LOT 격리 및 처분 결정</div></div>
+  <span class="live"><span class="d"></span>HOLD</span>
+</div>
+<div class="body">
+  <div class="kpis">
+    <div class="kpi" style="--c:#dc2626"><div class="lbl">보류 중 LOT</div><div class="val" id="kHold">5</div><div class="sub">건</div></div>
+    <div class="kpi" style="--c:#fbbf24"><div class="lbl">처분 검토</div><div class="val" id="kRev">2</div><div class="sub">건</div></div>
+    <div class="kpi" style="--c:#22c55e"><div class="lbl">금일 해제</div><div class="val">3</div><div class="sub">건</div></div>
+    <div class="kpi" style="--c:#fca5a5"><div class="lbl">총 격리 수량</div><div class="val">312</div><div class="sub">EA</div></div>
+  </div>
+  <div class="section">
+    <h3>🚧 격리 중 LOT (Quarantine)</h3>
+    <div class="h-grid" id="holdList"></div>
+  </div>
+  <div class="section">
+    <h3>📋 처분 이력 (최근 종결)</h3>
+    <table>
+      <thead><tr><th>처분일</th><th>LOT</th><th>품목</th><th>처분 결과</th><th>수량</th><th>승인자</th></tr></thead>
+      <tbody>
+        <tr><td>2026-05-21 08:42</td><td class="mono" style="color:#fbbf24;">LOT-2605-2078</td><td>그릴 도장</td><td style="color:#22c55e;">✓ 특채 출하</td><td>24 EA</td><td>한지원</td></tr>
+        <tr><td>2026-05-20 16:18</td><td class="mono" style="color:#fbbf24;">LOT-2605-2055</td><td>도어트림 LH</td><td style="color:#dc2626;">✕ 폐기</td><td>18 EA</td><td>박품질</td></tr>
+        <tr><td>2026-05-20 14:05</td><td class="mono" style="color:#fbbf24;">LOT-2605-2042</td><td>프론트 범퍼</td><td style="color:#fbbf24;">♻ 재작업</td><td>12 EA</td><td>한지원</td></tr>
+        <tr><td>2026-05-19 17:30</td><td class="mono" style="color:#fbbf24;">RC-2605-0398</td><td>PP 수지</td><td style="color:#fbbf24;">↩ 반품</td><td>1,200 KG</td><td>서민재</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+var HOLDS=[
+ {lot:'LOT-2605-2103',item:'사이드 몰딩 (그레이)',qty:'54 EA',sit:'2026-05-21 09:14',ncr:'NCR-2605-011',reason:'표면 스크래치 다발 발견 (3건/240) — 외관 검사 불합격',sev:'경미',st:'보류'},
+ {lot:'LOT-2605-2104',item:'프론트 범퍼 (블랙)',qty:'48 EA',sit:'2026-05-21 08:51',ncr:'NCR-2605-010',reason:'색차 ΔE 1.4 — 한계치(1.0) 초과',sev:'중대',st:'처분 검토'},
+ {lot:'RC-2605-0418',item:'PP 수지 (블랙)',qty:'2,400 KG',sit:'2026-05-20 14:22',ncr:'NCR-2605-008',reason:'용융지수 9.2 — 규격 10~14 미달, 공급사 불량',sev:'치명',st:'보류'},
+ {lot:'LOT-2605-1985',item:'콘솔어퍼',qty:'180 EA',sit:'2026-05-20 11:18',ncr:'NCR-2605-009',reason:'클립 체결력 38N — 기준 40~55N 미달',sev:'중대',st:'처분 검토'},
+ {lot:'LOT-2605-1972',item:'사이드 몰딩',qty:'60 EA',sit:'2026-05-20 09:30',ncr:'NCR-2605-007',reason:'사출 게이트 미제거 발견 (5건/60)',sev:'경미',st:'보류'}
+];
+function render(){
+  var sevColor={'치명':'#dc2626','중대':'#fb923c','경미':'#fbbf24'};
+  document.getElementById('holdList').innerHTML=HOLDS.map(function(h,i){
+    var stClass=h.st==='보류'?'':'rev';
+    return '<div class="h-card" style="--c:'+sevColor[h.sev]+'">'+
+      '<div class="lh"><div class="ic">🚧</div><div class="nm">'+h.item+'</div>'+
+      '<span class="stg '+stClass+'">'+h.st+'</span></div>'+
+      '<div class="lid">'+h.lot+'</div>'+
+      '<div class="meta">수량 <b>'+h.qty+'</b> · 격리 <b>'+h.sit.slice(5)+'</b> · NCR <b>'+h.ncr+'</b></div>'+
+      '<div class="reason"><b>격리 사유</b>'+h.reason+'</div>'+
+      '<div class="acts">'+
+      '<button class="ok" onclick="dispose('+i+',\'특채\')">✓ 특채</button>'+
+      '<button onclick="dispose('+i+',\'재작업\')">♻ 재작업</button>'+
+      '<button class="rj" onclick="dispose('+i+',\'폐기\')">✕ 폐기</button>'+
+      '</div></div>';
+  }).join('');
+}
+function dispose(i,act){
+  var h=HOLDS[i];
+  HOLDS.splice(i,1);render();
+  var sym={'특채':'ok','재작업':'','폐기':'err'}[act];
+  toast(sym,'처분 완료 ✓',h.lot+' — '+act+' 처리. NCR '+h.ncr+' 자동 종결됨.');
+}
+function back(){toast('','뒤로 이동','대시보드로 돌아갑니다.');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3500);
+}
+render();
+</script>
+</body>
+</html>

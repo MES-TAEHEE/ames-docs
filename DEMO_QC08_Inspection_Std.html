@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>QC-08 Inspection Standard · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--qc:#8b5cf6;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:13px;display:flex;flex-direction:column;overflow:hidden;}
+.head{flex-shrink:0;padding:13px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--qc);background:rgba(0,0,0,.3);}
+.head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#c4b5fd;}
+.head .tt{flex:1;}
+.head .en{font-size:17px;font-weight:800;color:#fff;}
+.head .ko{font-size:11px;color:#a8997f;}
+.back{background:#1a1208;border:1px solid #3a2a14;color:#fdba74;font-size:13px;font-weight:700;padding:9px 16px;border-radius:7px;cursor:pointer;font-family:inherit;}
+.live{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:5px 10px;border-radius:5px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.live .d{width:7px;height:7px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.toolbar{flex-shrink:0;padding:10px 24px;background:rgba(0,0,0,.2);border-bottom:1px solid #3a2a14;display:flex;gap:11px;align-items:center;}
+.toolbar select,.toolbar input{padding:7px 11px;background:#1a1208;border:1px solid #3a2a14;border-radius:6px;color:#fff;font-size:12px;font-family:inherit;}
+.body{flex:1;display:grid;grid-template-columns:1fr 1.4fr;gap:13px;padding:14px 24px;min-height:0;overflow:hidden;}
+.col{display:flex;flex-direction:column;gap:11px;min-height:0;}
+.col:last-child{overflow-y:auto;}
+.col:last-child::-webkit-scrollbar{width:8px;}.col:last-child::-webkit-scrollbar-thumb{background:#4a3618;border-radius:4px;}
+.list{flex:1;background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:11px;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+.list-h{padding:11px 14px;background:rgba(139,92,246,.08);border-bottom:1px solid #3a2a14;font-size:11px;color:#c4b5fd;letter-spacing:2px;font-weight:800;display:flex;align-items:center;gap:8px;}
+.list-h .b{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;background:rgba(139,92,246,.2);padding:3px 8px;border-radius:5px;}
+.list-body{flex:1;overflow-y:auto;}
+.list-body::-webkit-scrollbar{width:8px;}.list-body::-webkit-scrollbar-thumb{background:#4a3618;border-radius:4px;}
+.std-r{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;}
+.std-r:hover{background:rgba(139,92,246,.06);}
+.std-r.sel{background:rgba(139,92,246,.13);border-left:4px solid var(--qc);}
+.std-r .h{display:flex;align-items:center;gap:9px;margin-bottom:3px;}
+.std-r .id{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:800;color:#fff;}
+.std-r .ver{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:9.5px;background:rgba(168,85,247,.2);color:#c4b5fd;padding:2px 7px;border-radius:5px;}
+.std-r .nm{font-size:12px;color:#fdba74;}
+.std-r .meta{font-size:9.5px;color:#a8997f;margin-top:3px;font-family:'JetBrains Mono',monospace;}
+.detail{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:11px;padding:18px 22px;}
+.detail h2{font-size:18px;color:#fff;margin-bottom:5px;}
+.detail .item-code{font-family:'JetBrains Mono',monospace;font-size:13px;color:#fbbf24;margin-bottom:14px;}
+.detail .meta-r{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:16px;}
+.detail .m{background:rgba(0,0,0,.3);border:1px solid #3a2a14;border-radius:7px;padding:8px 11px;}
+.detail .m .ml{font-size:9px;color:#a8997f;font-family:'JetBrains Mono',monospace;}
+.detail .m .mv{font-size:12px;font-weight:800;color:#fff;margin-top:2px;}
+.criteria{margin-bottom:16px;}
+.criteria h3{font-size:11px;color:#c4b5fd;text-transform:uppercase;letter-spacing:2px;font-weight:800;margin-bottom:9px;}
+.crit-row{background:rgba(0,0,0,.3);border:1px solid #3a2a14;border-left:4px solid var(--c);border-radius:8px;padding:11px 14px;margin-bottom:8px;}
+.crit-row .ch{display:flex;align-items:center;gap:9px;margin-bottom:5px;}
+.crit-row .cn{font-size:12px;font-weight:800;color:#fff;}
+.crit-row .ct{margin-left:auto;font-size:9px;font-weight:800;padding:2px 7px;border-radius:5px;background:rgba(139,92,246,.2);color:#c4b5fd;}
+.crit-row .cd{font-size:11px;color:#fdba74;line-height:1.5;}
+.crit-row .crange{font-family:'JetBrains Mono',monospace;color:#fbbf24;}
+.actions{display:flex;gap:9px;margin-top:14px;}
+.actions button{flex:1;padding:13px;background:#1a1208;border:1px solid #3a2a14;color:#fdba74;font-size:12px;font-weight:800;border-radius:8px;cursor:pointer;font-family:inherit;}
+.actions button.pri{background:linear-gradient(180deg,#8b5cf6,#6d28d9);color:#fff;border-color:#8b5cf6;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#1a1208;border-radius:10px;padding:13px 17px;border-left:5px solid var(--qc);font-size:13px;min-width:280px;max-width:400px;animation:ti .25s ease;color:#fff;box-shadow:0 8px 26px rgba(0,0,0,.5);}
+.toast .tt{font-weight:800;margin-bottom:3px;}
+.toast .tb{color:#a8997f;font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="head">
+  <button class="back" onclick="back()">‹ 대시보드</button>
+  <div class="id">QC-08</div>
+  <div class="tt"><div class="en">Inspection Standard</div><div class="ko">검사 기준 — 품목별 검사 항목·규격 조회</div></div>
+  <span class="live"><span class="d"></span>LIVE</span>
+</div>
+<div class="toolbar">
+  <select id="fItem" onchange="render()"><option value="">전체 품목</option><option>도어트림</option><option>콘솔어퍼</option><option>프론트 범퍼</option><option>라디에이터 그릴</option></select>
+  <select id="fProc" onchange="render()"><option value="">전체 공정</option><option>수입검사</option><option>사출</option><option>도장</option><option>조립</option><option>최종검사</option></select>
+  <input id="fKw" placeholder="검사기준 코드·항목명 검색" oninput="render()" style="width:280px;">
+</div>
+<div class="body">
+  <div class="col">
+    <div class="list">
+      <div class="list-h">📋 검사 기준 목록 <span class="b" id="cnt">10건</span></div>
+      <div class="list-body" id="stdList"></div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="detail" id="detail"></div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+var STDS=[
+ {id:'IS-TRIM-LH-01',item:'도어트림 LH',code:'TRIM-LH-001',proc:'최종검사',ver:'V2.3',by:'한지원',upd:'2026-04-12',sample:'5/240 (AQL 2.5)',cnt:5,
+  crit:[
+    {nm:'전장 치수',type:'치수',ds:'전체 길이 측정 (mm) — 도면 기준 ±2',range:'1198 ~ 1202'},
+    {nm:'표면 스크래치',type:'외관',ds:'육안 검사 — 무결점, 0.3mm 이상 결함 불합격',range:'무결점'},
+    {nm:'클립 체결력',type:'기능',ds:'토크 게이지로 측정 (N) — 8개 클립 평균',range:'40 ~ 55 N'},
+    {nm:'두께 측정',type:'치수',ds:'8개 지점 측정 — 평균 ±1mm 이내',range:'20 ±1 mm'},
+    {nm:'색상 일치',type:'외관',ds:'표준 색상과 비교 — ΔE 기준',range:'ΔE ≤ 1.0'}
+  ]},
+ {id:'IS-CONS-01',item:'콘솔어퍼',code:'CONS-UP-001',proc:'조립',ver:'V1.8',by:'박품질',upd:'2026-03-22',sample:'3/EA',cnt:4,
+  crit:[
+    {nm:'장착 형상',type:'치수',ds:'마운팅 홀 위치 확인',range:'기준 ±0.5mm'},
+    {nm:'클립 체결',type:'기능',ds:'4개 클립 전수 체결력 측정',range:'40 ~ 55 N'},
+    {nm:'표면 스크래치',type:'외관',ds:'육안 검사',range:'무결점'},
+    {nm:'색상 일치',type:'외관',ds:'표준 색상과 비교',range:'ΔE ≤ 1.0'}
+  ]},
+ {id:'IS-BUMPER-01',item:'프론트 범퍼',code:'BUMPER-01',proc:'최종검사',ver:'V3.1',by:'한지원',upd:'2026-04-28',sample:'5/EA',cnt:6,
+  crit:[
+    {nm:'전장 치수',type:'치수',ds:'전체 길이 측정',range:'1580 ±3 mm'},
+    {nm:'센서 마운트 위치',type:'치수',ds:'4개 센서 마운트 위치',range:'기준 ±0.5mm'},
+    {nm:'도막 두께',type:'측정',ds:'10개 지점 측정 평균',range:'25 ±5 ㎛'},
+    {nm:'색상 ΔE',type:'외관',ds:'표준 색상 대비',range:'ΔE ≤ 1.0'},
+    {nm:'오렌지 필',type:'외관',ds:'육안 등급 평가',range:'Grade A'},
+    {nm:'기능 작동',type:'기능',ds:'센서 작동 확인',range:'정상 작동'}
+  ]},
+ {id:'IS-GRILLE-01',item:'라디에이터 그릴',code:'GRILLE-02',proc:'도장',ver:'V2.0',by:'서민재',upd:'2026-05-08',sample:'5/24',cnt:4,
+  crit:[
+    {nm:'크롬 광택도',type:'측정',ds:'광택계 측정',range:'≥ 85 GU'},
+    {nm:'크롬 박리',type:'외관',ds:'육안 검사',range:'무결점'},
+    {nm:'치수 확인',type:'치수',ds:'전장·폭 측정',range:'도면 ±2 mm'},
+    {nm:'색상 일치',type:'외관',ds:'블랙 크롬 표준 대비',range:'ΔE ≤ 1.2'}
+  ]},
+ {id:'IS-MOLD-01',item:'사이드 몰딩',code:'MOLDING-05',proc:'사출',ver:'V1.5',by:'박품질',upd:'2026-02-15',sample:'3/시간',cnt:3,
+  crit:[
+    {nm:'전장 치수',type:'치수',ds:'전체 길이',range:'980 ±1 mm'},
+    {nm:'두께',type:'치수',ds:'두께 측정',range:'22 ±0.5 mm'},
+    {nm:'표면 외관',type:'외관',ds:'육안 검사',range:'무결점'}
+  ]},
+ {id:'IS-PP-01',item:'PP 수지',code:'RM-PP-BLK',proc:'수입검사',ver:'V2.2',by:'서민재',upd:'2026-04-30',sample:'5/200',cnt:5,
+  crit:[
+    {nm:'외관',type:'외관',ds:'색상·이물 육안',range:'무결점'},
+    {nm:'용융지수 MI',type:'측정',ds:'표준 ASTM D1238',range:'10 ~ 14 g/10min'},
+    {nm:'수분 함량',type:'측정',ds:'Karl Fischer',range:'≤ 0.10%'},
+    {nm:'인장강도',type:'측정',ds:'ASTM D638',range:'≥ 28 MPa'},
+    {nm:'포장 상태',type:'외관',ds:'파손·라벨',range:'정상'}
+  ]}
+];
+var sel=0;
+function render(){
+  var fi=document.getElementById('fItem').value,fp=document.getElementById('fProc').value,kw=document.getElementById('fKw').value.toLowerCase();
+  var filt=STDS.filter(function(s){
+    if(fi&&s.item.indexOf(fi)<0)return false;
+    if(fp&&s.proc!==fp)return false;
+    if(kw&&(s.id.toLowerCase().indexOf(kw)<0&&s.item.toLowerCase().indexOf(kw)<0))return false;
+    return true;
+  });
+  document.getElementById('cnt').textContent=filt.length+'건';
+  document.getElementById('stdList').innerHTML=filt.map(function(s){
+    var i=STDS.indexOf(s);
+    return '<div class="std-r'+(i===sel?' sel':'')+'" onclick="pick('+i+')">'+
+      '<div class="h"><span class="id">'+s.id+'</span><span class="ver">'+s.ver+'</span></div>'+
+      '<div class="nm">'+s.item+' · '+s.proc+'</div>'+
+      '<div class="meta">검사항목 '+s.cnt+'개 · 작성 '+s.by+' · '+s.upd+'</div></div>';
+  }).join('');
+  if(filt.length&&!filt.find(function(s){return STDS.indexOf(s)===sel;}))sel=STDS.indexOf(filt[0]);
+  renderDetail();
+}
+function pick(i){sel=i;render();}
+function renderDetail(){
+  var s=STDS[sel];if(!s)return;
+  var typeColor={'치수':'#fbbf24','외관':'#8b5cf6','기능':'#22c55e','측정':'#0891b2'};
+  document.getElementById('detail').innerHTML=
+    '<h2>'+s.item+' 검사 기준</h2>'+
+    '<div class="item-code">'+s.id+' / 품목 '+s.code+'</div>'+
+    '<div class="meta-r">'+
+    '<div class="m"><div class="ml">버전</div><div class="mv">'+s.ver+'</div></div>'+
+    '<div class="m"><div class="ml">적용 공정</div><div class="mv">'+s.proc+'</div></div>'+
+    '<div class="m"><div class="ml">샘플 크기</div><div class="mv">'+s.sample+'</div></div>'+
+    '<div class="m"><div class="ml">최근 개정</div><div class="mv">'+s.upd+'</div></div></div>'+
+    '<div class="criteria"><h3>📐 검사 항목 ('+s.crit.length+'개)</h3>'+
+    s.crit.map(function(c){
+      return '<div class="crit-row" style="--c:'+typeColor[c.type]+'">'+
+        '<div class="ch"><span class="cn">'+c.nm+'</span><span class="ct">'+c.type+'</span></div>'+
+        '<div class="cd">'+c.ds+' · <span class="crange">규격: '+c.range+'</span></div></div>';
+    }).join('')+'</div>'+
+    '<div class="actions">'+
+    '<button onclick="prn()">🖨 인쇄</button>'+
+    '<button onclick="rev()">📝 개정 요청</button>'+
+    '<button class="pri" onclick="apply()">▶ 검사 화면으로 적용</button></div>';
+}
+function prn(){toast('','인쇄','검사 기준서 PDF를 인쇄합니다. (데모)');}
+function rev(){toast('','개정 요청','검사 기준 개정 워크플로를 시작합니다. (데모)');}
+function apply(){toast('','검사 적용',STDS[sel].id+' 기준이 다음 검사 화면에 적용됩니다.');}
+function back(){toast('','뒤로 이동','대시보드로 돌아갑니다.');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">• '+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3500);
+}
+render();
+</script>
+</body>
+</html>
