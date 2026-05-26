@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -373,6 +373,84 @@ select.inp{background:rgba(0,0,0,.3);}
 .rf-arrow{color:#475569;font-size:20px;font-weight:700;line-height:1;}
 
 </style>
+<!-- @pdf-grid-css -->
+<style>
+.pdf-bundle {
+  background: linear-gradient(160deg, rgba(212,160,23,.08), rgba(15,23,42,.6));
+  border: 1px solid rgba(212,160,23,.25);
+  border-radius: 9px;
+  padding: 18px 18px 22px;
+  margin: 14px 0 22px;
+}
+.pdf-bundle-h {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom: 6px; flex-wrap:wrap; gap:8px;
+}
+.pdf-bundle-t {
+  font-family:'Bebas Neue', sans-serif;
+  font-size: 22px; letter-spacing: 3px;
+  color: #d4a017;
+}
+.pdf-bundle-s {
+  font-size: 11px; color:#94a3b8;
+  font-family:'JetBrains Mono', monospace; letter-spacing: 1px;
+}
+.pdf-bundle-info {
+  font-size: 11px; color:#cbd5e1;
+  margin-bottom: 14px; line-height: 1.6;
+}
+.pdf-grid {
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+}
+.pdf-card {
+  display:flex; flex-direction:column; gap:3px;
+  padding: 11px 13px 13px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid #334155;
+  border-left: 4px solid var(--pc, #d4a017);
+  border-radius: 6px;
+  text-decoration: none;
+  position: relative;
+  transition: all .15s ease;
+}
+.pdf-card:hover {
+  background: rgba(212,160,23,.08);
+  border-color: var(--pc, #d4a017);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,.4);
+}
+.pdf-card .pc-badge {
+  font-family:'JetBrains Mono', monospace;
+  font-size: 9px; font-weight: 700; letter-spacing: 1px;
+  color: var(--pc, #d4a017);
+  margin-bottom: 2px;
+}
+.pdf-card .pc-icon {
+  font-size: 22px;
+  margin-bottom: 3px;
+  filter: grayscale(0.2);
+}
+.pdf-card .pc-title {
+  font-size: 13px; font-weight: 700;
+  color: #f1f5f9;
+}
+.pdf-card .pc-sub {
+  font-size: 10px;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+.pdf-card .pc-meta {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #334155;
+  font-family:'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: #fbbf24;
+  letter-spacing: 0.5px;
+}
+</style>
 </head>
 <body><nav id="ames-nb" style="
         position:sticky;top:0;z-index:9999;background:#0d1117;
@@ -420,6 +498,113 @@ select.inp{background:rgba(0,0,0,.3);}
   <div class="stat-item"><div class="stat-num" style="color:#475569">7</div><div class="stat-lbl">RBAC Roles</div></div>
   <div class="stat-item"><div class="stat-num" style="color:#7c3aed">150+</div><div class="stat-lbl">Business Rules</div></div>
 </div>
+<!-- @pdf-grid-start -->
+<div class="sec-title">📥 PDF Deliverables &nbsp;PDF 산출물</div>
+<div class="pdf-bundle">
+  <div class="pdf-bundle-h">
+    <div class="pdf-bundle-t">DOWNLOAD AS PDF</div>
+    <div class="pdf-bundle-s">U.S. Letter | Auto-generated</div>
+  </div>
+  <div class="pdf-bundle-info">
+    Each volume is available as a self-contained PDF (cover | TOC | all L3 specs).
+    Click any tile below to download. Files are generated from the latest source HTML  -
+    rebuild via <code style="background:#1e293b;padding:1px 5px;border-radius:3px;color:#fbbf24;">.\tools\build_pdf.ps1</code>.
+  </div>
+  <div class="pdf-grid">
+  <a class="pdf-card" href="dist/AMES_L3_VOL00_Foundation.pdf" download style="--pc:#94a3b8">
+    <div class="pc-badge">VOL00</div>
+    <div class="pc-icon">📄</div>
+    <div class="pc-title">Foundation</div>
+    <div class="pc-sub">Index | ERD | DB Schema</div>
+    <div class="pc-meta">2.0 MB</div>
+  </a>
+  <a class="pdf-card" href="dist/AMES_L3_VOL03_Warehouse.pdf" download style="--pc:#0891b2">
+    <div class="pc-badge">VOL03</div>
+    <div class="pc-icon">📄</div>
+    <div class="pc-title">Warehouse</div>
+    <div class="pc-sub">WH  - Inbound | Inventory</div>
+    <div class="pc-meta">14.6 MB</div>
+  </a>
+  <a class="pdf-card" href="dist/AMES_L3_VOL04_Production_Planning.pdf" download style="--pc:#059669">
+    <div class="pc-badge">VOL04</div>
+    <div class="pc-icon">📄</div>
+    <div class="pc-title">Production Planning</div>
+    <div class="pc-sub">PP  - Forecast | MRP | WO</div>
+    <div class="pc-meta">17.8 MB</div>
+  </a>
+  <a class="pdf-card" href="dist/AMES_L3_VOL05_Injection_POP.pdf" download style="--pc:#2563eb">
+    <div class="pc-badge">VOL05</div>
+    <div class="pc-icon">📄</div>
+    <div class="pc-title">Injection POP</div>
+    <div class="pc-sub">INJ  - Operator Terminal</div>
+    <div class="pc-meta">12.4 MB</div>
+  </a>
+  <a class="pdf-card" href="dist/AMES_L3_VOL06_Wrapping_POP.pdf" download style="--pc:#7c3aed">
+    <div class="pc-badge">VOL06</div>
+    <div class="pc-icon">📄</div>
+    <div class="pc-title">Wrapping POP</div>
+    <div class="pc-sub">IMG  - Fabric | Adhesive</div>
+    <div class="pc-meta">10.5 MB</div>
+  </a>
+  <a class="pdf-card" href="dist/AMES_L3_VOL07_Painting_POP.pdf" download style="--pc:#ea580c">
+    <div class="pc-badge">VOL07</div>
+    <div class="pc-icon">📄</div>
+    <div class="pc-title">Painting POP</div>
+    <div class="pc-sub">PNT  - Oven | LOT | Label</div>
+    <div class="pc-meta">15.0 MB</div>
+  </a>
+  <a class="pdf-card" href="dist/AMES_L3_VOL08_Quality_Control.pdf" download style="--pc:#dc2626">
+    <div class="pc-badge">VOL08</div>
+    <div class="pc-icon">📄</div>
+    <div class="pc-title">Quality Control</div>
+    <div class="pc-sub">QC  - NCR | CAPA | Trace</div>
+    <div class="pc-meta">16.7 MB</div>
+  </a>
+  <a class="pdf-card" href="dist/AMES_L3_VOL09_Finished_Goods.pdf" download style="--pc:#0db87a">
+    <div class="pc-badge">VOL09</div>
+    <div class="pc-icon">📄</div>
+    <div class="pc-title">Finished Goods</div>
+    <div class="pc-sub">FG  - FIFO | BOL | Returns</div>
+    <div class="pc-meta">16.2 MB</div>
+  </a>
+  <a class="pdf-card" href="dist/AMES_L3_VOL10_Maintenance.pdf" download style="--pc:#0284c7">
+    <div class="pc-badge">VOL10</div>
+    <div class="pc-icon">📄</div>
+    <div class="pc-title">Maintenance</div>
+    <div class="pc-sub">MNT  - PM | Failure | Spares</div>
+    <div class="pc-meta">14.3 MB</div>
+  </a>
+  <a class="pdf-card" href="dist/AMES_L3_VOL11_Reports.pdf" download style="--pc:#6366f1">
+    <div class="pc-badge">VOL11</div>
+    <div class="pc-icon">📄</div>
+    <div class="pc-title">Reports</div>
+    <div class="pc-sub">RPT  - KPI | Pareto | OEE</div>
+    <div class="pc-meta">17.2 MB</div>
+  </a>
+  <a class="pdf-card" href="dist/AMES_L3_VOL12_System_Admin.pdf" download style="--pc:#475569">
+    <div class="pc-badge">VOL12</div>
+    <div class="pc-icon">📄</div>
+    <div class="pc-title">System Admin</div>
+    <div class="pc-sub">SYS  - RBAC | Audit | Health</div>
+    <div class="pc-meta">12.4 MB</div>
+  </a>
+  <a class="pdf-card" href="dist/AMES_L3_VOL13_Master_Data.pdf" download style="--pc:#d97706">
+    <div class="pc-badge">VOL13</div>
+    <div class="pc-icon">📄</div>
+    <div class="pc-title">Master Data</div>
+    <div class="pc-sub">MD  - 29 entities</div>
+    <div class="pc-meta">29.1 MB</div>
+  </a>
+  <a class="pdf-card" href="dist/AMES_L3_VOL14_Demo_Appendix.pdf" download style="--pc:#16a34a">
+    <div class="pc-badge">VOL14</div>
+    <div class="pc-icon">📄</div>
+    <div class="pc-title">Demo Appendix</div>
+    <div class="pc-sub">125 interactive demo URLs</div>
+    <div class="pc-meta">308 KB</div>
+  </a>
+  </div>
+</div>
+<!-- @pdf-grid-end -->
 <div class="sec-title">Overall Process Flow &nbsp;전체 공정 흐름</div><div class="flow-box"><svg viewBox="0 0 760 80" style="width:100%;max-width:760px;display:block;margin:0 auto"><rect x="12" y="10" width="76" height="44" rx="6" fill="#64748b" opacity="0.9"/><text x="50" y="28" text-anchor="middle" fill="white" font-size="10" font-weight="bold">SCM</text><text x="50" y="44" text-anchor="middle" fill="white" font-size="10" font-weight="bold">(ERP)</text><line x1="88" y1="32" x2="112" y2="32" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/><rect x="112" y="10" width="76" height="44" rx="6" fill="#0891b2" opacity="0.9"/><text x="150" y="28" text-anchor="middle" fill="white" font-size="10" font-weight="bold">WH</text><text x="150" y="44" text-anchor="middle" fill="white" font-size="10" font-weight="bold">창고</text><line x1="188" y1="32" x2="217" y2="32" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/><rect x="217" y="10" width="76" height="44" rx="6" fill="#059669" opacity="0.9"/><text x="255" y="28" text-anchor="middle" fill="white" font-size="10" font-weight="bold">PP</text><text x="255" y="44" text-anchor="middle" fill="white" font-size="10" font-weight="bold">생산계획</text><line x1="293" y1="32" x2="352" y2="32" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/><rect x="352" y="10" width="76" height="44" rx="6" fill="#7c3aed" opacity="0.9"/><text x="390" y="28" text-anchor="middle" fill="white" font-size="10" font-weight="bold">INJ/IMG/PNT</text><text x="390" y="44" text-anchor="middle" fill="white" font-size="10" font-weight="bold">생산공정</text><line x1="428" y1="32" x2="472" y2="32" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/><rect x="472" y="10" width="76" height="44" rx="6" fill="#dc2626" opacity="0.9"/><text x="510" y="28" text-anchor="middle" fill="white" font-size="10" font-weight="bold">QC</text><text x="510" y="44" text-anchor="middle" fill="white" font-size="10" font-weight="bold">품질</text><line x1="548" y1="32" x2="572" y2="32" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/><rect x="572" y="10" width="76" height="44" rx="6" fill="#0db87a" opacity="0.9"/><text x="610" y="28" text-anchor="middle" fill="white" font-size="10" font-weight="bold">FG</text><text x="610" y="44" text-anchor="middle" fill="white" font-size="10" font-weight="bold">완제품</text><line x1="648" y1="32" x2="672" y2="32" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/><rect x="672" y="10" width="76" height="44" rx="6" fill="#0891b2" opacity="0.9"/><text x="710" y="28" text-anchor="middle" fill="white" font-size="10" font-weight="bold">출하</text><defs><marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#475569"/></marker></defs></svg></div><div class="sec-title">BOP Product Routing &nbsp;제품 라우팅</div><div class="flow-box"><div class="rflow-wrap"><div class="rflow-row"><div class="rflow-label"><strong>Routing A</strong><br><span style="font-size:11px;color:#94a3b8">도어트림 / 콘솔어퍼</span></div><div class="rflow-steps"><div class="rf-step" style="--rc:#2563eb">INJ</div><div class="rf-arrow">→</div><div class="rf-step" style="--rc:#2563eb">IMG</div><div class="rf-arrow">→</div><div class="rf-step" style="--rc:#2563eb">QC</div><div class="rf-arrow">→</div><div class="rf-step" style="--rc:#2563eb">FG</div></div></div><div class="rflow-row"><div class="rflow-label"><strong>Routing B</strong><br><span style="font-size:11px;color:#94a3b8">내장 도색 사출품 (TBD)</span></div><div class="rflow-steps"><div class="rf-step" style="--rc:#ea580c">INJ</div><div class="rf-arrow">→</div><div class="rf-step" style="--rc:#ea580c">PNT</div><div class="rf-arrow">→</div><div class="rf-step" style="--rc:#ea580c">QC</div><div class="rf-arrow">→</div><div class="rf-step" style="--rc:#ea580c">FG</div></div></div></div></div><div class="sec-title">Module Index &nbsp;모듈 목록</div><div class="idx-grid">
 <a class="idx-card" href="VOL03_WH_Warehouse.html" style="--c:#0891b2">
   <div class="idx-badge">VOL03</div>

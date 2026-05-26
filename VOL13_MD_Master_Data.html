@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -184,6 +184,70 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .pf-l{font-size:10px;color:rgba(255,255,255,.2);font-family:'JetBrains Mono',monospace;}
 .pf-r{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(212,160,23,.4);}
 </style>
+<!-- @pdf-dl-css -->
+<style>
+/* === A-MES L3 PDF Download Button =================================== */
+.pdf-dl {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  margin: 0 0 14px 0;
+  padding: 9px 16px 9px 13px;
+  background: linear-gradient(135deg, rgba(212,160,23,.22), rgba(212,160,23,.08));
+  border: 1px solid rgba(212,160,23,.55);
+  border-radius: 7px;
+  color: #fde68a;
+  text-decoration: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  transition: all .15s ease;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,.18);
+}
+.pdf-dl:hover {
+  background: linear-gradient(135deg, rgba(212,160,23,.4), rgba(212,160,23,.18));
+  border-color: #fbbf24;
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0,0,0,.28);
+}
+.pdf-dl:active { transform: translateY(0); }
+.pdf-dl .pdf-ico {
+  font-size: 18px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: rgba(212,160,23,.18);
+  border-radius: 5px;
+}
+.pdf-dl .pdf-txt {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  text-align: left;
+}
+.pdf-dl .pdf-lbl {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #fbbf24;
+}
+.pdf-dl .pdf-meta {
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: rgba(253,230,138,.7);
+  text-transform: none;
+}
+.pdf-dl:hover .pdf-lbl { color: #fff; }
+.pdf-dl:hover .pdf-meta { color: rgba(255,255,255,.85); }
+</style>
 </head>
 <body>
 <nav class="ames-nav"><div class="ames-nav-inner"><a href="INDEX.html" class="nav-home"><span class="nav-home-logo">A-MES</span><span class="nav-home-sub">◀ Index</span></a><a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span> Warehouse</span></a><a href="VOL04_PP_Production_Plan.html" class="nav-vol"><span class="nv-code" style="color:#059669;">PP</span><span> Prod. Plan</span></a><a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span> Injection</span></a><a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span> Wrapping</span></a><a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span> Painting</span></a><a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span> Quality</span></a><a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span> Fin. Goods</span></a><a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span> Maintenance</span></a><a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span> Reports</span></a><a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span> System</span></a><a href="VOL13_MD_Master_Data.html" class="nav-vol active"><span class="nv-code" style="color:#d97706;">MD</span><span> Master Data</span></a></div></nav>
@@ -238,6 +302,15 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 <div class="main">
   <div class="mod-hdr">
     <div class="mod-hdr-inner">
+      <!-- @pdf-dl-start -->
+      <a class="pdf-dl" href="dist/AMES_L3_VOL13_Master_Data.pdf" download>
+        <span class="pdf-ico">📄</span>
+        <span class="pdf-txt">
+          <span class="pdf-lbl">Download PDF | VOL.13</span>
+          <span class="pdf-meta">29.1 MB | L3 Spec</span>
+        </span>
+      </a>
+<!-- @pdf-dl-end -->
       <div class="mod-eyebrow">VOL.13 · MD · Master Data Management · 기준정보</div>
       <div class="mod-title-en">MASTER DATA</div>
       <div class="mod-title-ko">기준정보 관리 — 29 Entities · 5 Categories · Phase-0 Foundation</div>
