@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PNT-04 Line Board · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--sc:#ea580c;--sc-dk:#c2410c;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
 .head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
 .head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#fb923c;}
 .head .tt{flex:1;}
@@ -62,31 +62,31 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 </head>
 <body>
 <div class="head">
-  <button class="back" onclick="back()">‹ 대시보드</button>
+  <button class="back" onclick="back()">‹ Dashboard</button>
   <div class="id">PNT-04</div>
-  <div class="tt"><div class="en">Line Tracking Board</div><div class="ko">라인 추적 보드 — R1→R2→R3 실시간 LOT 흐름</div></div>
+  <div class="tt"><div class="en">Line Tracking Board</div><div class="ko">Line Tracking Board — R1→R2→R3 Real-Time LOT Flow</div></div>
   <span class="live"><span class="d"></span>LIVE</span>
   <span class="clk" id="clk">--:--:--</span>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#0891b2"><div class="lbl">현재 라인 가동률</div><div class="val">88%</div><div class="sub">목표 ≥ 85%</div></div>
-    <div class="kpi" style="--c:#16a34a"><div class="lbl">R1 로딩 중</div><div class="val" id="kR1">2</div><div class="sub">LOT</div></div>
-    <div class="kpi" style="--c:#fbbf24"><div class="lbl">R2 오븐 통과 중</div><div class="val" id="kR2">3</div><div class="sub">LOT</div></div>
-    <div class="kpi" style="--c:#a78bfa"><div class="lbl">R3 언로딩 중</div><div class="val" id="kR3">2</div><div class="sub">LOT</div></div>
-    <div class="kpi" style="--c:#22c55e"><div class="lbl">금일 완료</div><div class="val">9</div><div class="sub">LOT</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="lbl">LINE UPTIME</div><div class="val">88%</div><div class="sub">Target ≥ 85%</div></div>
+    <div class="kpi" style="--c:#16a34a"><div class="lbl">R1 LOADING</div><div class="val" id="kR1">2</div><div class="sub">LOT</div></div>
+    <div class="kpi" style="--c:#fbbf24"><div class="lbl">R2 OVEN CURE</div><div class="val" id="kR2">3</div><div class="sub">LOT</div></div>
+    <div class="kpi" style="--c:#a78bfa"><div class="lbl">R3 UNLOADING</div><div class="val" id="kR3">2</div><div class="sub">LOT</div></div>
+    <div class="kpi" style="--c:#22c55e"><div class="lbl">COMPLETED TODAY</div><div class="val">9</div><div class="sub">LOT</div></div>
   </div>
   <div class="line-track">
-    <div class="lt-h">🛤 라인 추적 보드 · LIVE
+    <div class="lt-h">🛤 Line Tracking Board · LIVE
       <span class="lgd">
-        <span><i style="background:#16a34a"></i>R1 로딩</span>
-        <span><i style="background:#fbbf24"></i>R2 오븐</span>
-        <span><i style="background:#a78bfa"></i>R3 언로딩</span>
+        <span><i style="background:#16a34a"></i>R1 Loading</span>
+        <span><i style="background:#fbbf24"></i>R2 Oven</span>
+        <span><i style="background:#a78bfa"></i>R3 Unloading</span>
       </span>
     </div>
     <div class="stations">
       <div class="st-col io" style="--c:#a8997f">
-        <div class="st-h">대기</div>
+        <div class="st-h">QUEUE</div>
         <div id="qList"></div>
       </div>
       <div class="st-col" style="--c:#16a34a">
@@ -102,7 +102,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
         <div id="r3List"></div>
       </div>
       <div class="st-col io" style="--c:#22c55e">
-        <div class="st-h">완료</div>
+        <div class="st-h">DONE</div>
         <div id="doneList"></div>
       </div>
     </div>
@@ -110,22 +110,22 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 </div>
 <div class="toasts" id="toasts"></div>
 <script>
-var CMAP={'블랙':'#0A0A0A','그레이':'#8D948D','화이트':'#F4F4F4','레드':'#CC0605','블루':'#0E294B','실버':'#A5A5A5'};
+var CMAP={'Black':'#0A0A0A','Gray':'#8D948D','White':'#F4F4F4','Red':'#CC0605','Blue':'#0E294B','Silver':'#A5A5A5'};
 var LOTS=[
  /* stage: q (queue), r1, r2, r3, done */
- {id:'LOT-2605-2107',item:'프론트 범퍼',color:'블랙',qty:48,stage:'r1',prog:62},
- {id:'LOT-2605-2106',item:'사이드 몰딩',color:'블랙',qty:60,stage:'r1',prog:24},
- {id:'LOT-2605-2105',item:'그릴 도장',color:'그레이',qty:32,stage:'r2',prog:38},
- {id:'LOT-2605-2104',item:'프론트 범퍼',color:'블랙',qty:48,stage:'r2',prog:65},
- {id:'LOT-2605-2103',item:'사이드 몰딩',color:'그레이',qty:54,stage:'r2',prog:88},
- {id:'LOT-2605-2102',item:'그릴 도장',color:'레드',qty:24,stage:'r3',prog:42},
- {id:'LOT-2605-2101',item:'프론트 범퍼',color:'화이트',qty:42,stage:'r3',prog:85},
- {id:'LOT-2605-2108',item:'그릴 도장',color:'블랙',qty:30,stage:'q'},
- {id:'LOT-2605-2109',item:'사이드 몰딩',color:'블루',qty:36,stage:'q'},
- {id:'LOT-2605-2110',item:'프론트 범퍼',color:'레드',qty:24,stage:'q'},
- {id:'LOT-2605-2100',item:'프론트 범퍼',color:'블랙',qty:48,stage:'done'},
- {id:'LOT-2605-2099',item:'그릴 도장',color:'그레이',qty:36,stage:'done'},
- {id:'LOT-2605-2098',item:'사이드 몰딩',color:'화이트',qty:60,stage:'done'}
+ {id:'LOT-2605-2107',item:'Front Bumper',color:'Black',qty:48,stage:'r1',prog:62},
+ {id:'LOT-2605-2106',item:'Side Molding',color:'Black',qty:60,stage:'r1',prog:24},
+ {id:'LOT-2605-2105',item:'Grille Paint',color:'Gray',qty:32,stage:'r2',prog:38},
+ {id:'LOT-2605-2104',item:'Front Bumper',color:'Black',qty:48,stage:'r2',prog:65},
+ {id:'LOT-2605-2103',item:'Side Molding',color:'Gray',qty:54,stage:'r2',prog:88},
+ {id:'LOT-2605-2102',item:'Grille Paint',color:'Red',qty:24,stage:'r3',prog:42},
+ {id:'LOT-2605-2101',item:'Front Bumper',color:'White',qty:42,stage:'r3',prog:85},
+ {id:'LOT-2605-2108',item:'Grille Paint',color:'Black',qty:30,stage:'q'},
+ {id:'LOT-2605-2109',item:'Side Molding',color:'Blue',qty:36,stage:'q'},
+ {id:'LOT-2605-2110',item:'Front Bumper',color:'Red',qty:24,stage:'q'},
+ {id:'LOT-2605-2100',item:'Front Bumper',color:'Black',qty:48,stage:'done'},
+ {id:'LOT-2605-2099',item:'Grille Paint',color:'Gray',qty:36,stage:'done'},
+ {id:'LOT-2605-2098',item:'Side Molding',color:'White',qty:60,stage:'done'}
 ];
 var COL={r1:'#16a34a',r2:'#fbbf24',r3:'#a78bfa'};
 function render(){
@@ -147,7 +147,7 @@ function render(){
           '<div class="item">'+l.item+' · '+l.color+'</div>'+
           '<div class="meta"><span>'+l.qty+' EA</span><b>'+l.prog+'%</b></div>'+
           '<div class="pgb"><i style="width:'+l.prog+'%"></i></div></div>';
-      }).join('')||'<div style="color:#a8997f;text-align:center;padding:14px;font-size:11px;">단계 비어 있음</div>';
+      }).join('')||'<div style="color:#a8997f;text-align:center;padding:14px;font-size:11px;">Stage empty</div>';
     }
     document.getElementById(elId).innerHTML=h;
   });
@@ -164,7 +164,7 @@ function tick(){
         var nx={r1:'r2',r2:'r3',r3:'done'}[l.stage];
         var was=l.id+' '+l.stage.toUpperCase();
         l.stage=nx;l.prog=nx==='done'?100:Math.floor(Math.random()*10)+5;
-        if(nx==='done')toast('ok',was+' 완료 ✓','LOT가 다음 단계로 이송되었습니다.');
+        if(nx==='done')toast('ok',was+' Complete ✓','LOT advanced to the next stage.');
       }
     }
   });
@@ -172,11 +172,11 @@ function tick(){
   var r1Count=LOTS.filter(function(l){return l.stage==='r1';}).length;
   if(r1Count<2){
     var q=LOTS.filter(function(l){return l.stage==='q';})[0];
-    if(q){q.stage='r1';q.prog=5;toast('info',q.id+' R1 시작','대기열에서 로딩 시작');}
+    if(q){q.stage='r1';q.prog=5;toast('info',q.id+' R1 Started','Loading started from queue.');}
   }
   render();
 }
-function back(){toast('','뒤로 이동','POP 대시보드로 돌아갑니다.');}
+function back(){toast('','Back','Returning to POP Dashboard.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='info'?'ℹ ':type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';

@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>MD-03 BOM Version · A-MES Demo</title>
+<title>MD-11 Shipment Destination · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#d97706;--pp-dk:#b45309;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#2b1a02,#3d2606);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fbbf24;line-height:.9;}
 .sh-tt{flex:1;}
@@ -77,8 +77,8 @@ tbody tr.sel td{background:#fef3c7;}
 </head>
 <body>
 <div class="scr-head">
-  <div class="sh-id" id="shId">MD-03</div>
-  <div class="sh-tt"><div class="sh-en" id="shEn">BOM Version</div><div class="sh-ko" id="shKo"></div></div>
+  <div class="sh-id" id="shId">MD-11</div>
+  <div class="sh-tt"><div class="sh-en" id="shEn">Shipment Destination</div><div class="sh-ko" id="shKo"></div></div>
   <span class="sh-tag" id="shTag"></span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
@@ -87,20 +87,20 @@ tbody tr.sel td{background:#fef3c7;}
   <div class="kpis" id="kpis"></div>
   <div class="grid2">
     <div class="card">
-      <div class="card-t" id="listT">목록</div>
+      <div class="card-t" id="listT">List</div>
       <table><thead><tr id="thr"></tr></thead><tbody id="tbody"></tbody></table>
-      <div class="empty" id="empty" style="display:none;">조건에 맞는 데이터가 없습니다.</div>
+      <div class="empty" id="empty" style="display:none;">No matching data found.</div>
     </div>
-    <div class="card" id="detail"><div class="empty">← 좌측 목록에서 항목을 선택하세요.</div></div>
+    <div class="card" id="detail"><div class="empty">← Select an item from the list on the left.</div></div>
   </div>
 </div>
 <div class="ov" id="ovEd">
   <div class="modal">
-    <div class="modal-h"><span class="mt" id="emTitle">등록</span><span class="mx" onclick="closeOv('ovEd')">✕</span></div>
+    <div class="modal-h"><span class="mt" id="emTitle">Add</span><span class="mx" onclick="closeOv('ovEd')">✕</span></div>
     <div class="modal-b" id="emBody"></div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovEd')">취소</button>
-      <button class="btn btn-p" id="emSave" onclick="saveRec()">＋ 등록</button>
+      <button class="btn btn-s" onclick="closeOv('ovEd')">Cancel</button>
+      <button class="btn btn-p" id="emSave" onclick="saveRec()">＋ Add</button>
     </div>
   </div>
 </div>
@@ -109,41 +109,41 @@ tbody tr.sel td{background:#fef3c7;}
 <script>
 /* ===== ENTITY CONFIG ===== */
 var CFG={
-  id:'MD-11',en:'Shipment Destination',ko:'출하처 — 납품 출하 목적지 기준정보',tag:'/md/shipment-dest',
-  idKey:'code',entity:'출하처',
-  filters:[{k:'customer',label:'고객사'},{k:'region',label:'지역'},{k:'status',label:'상태'}],
+  id:'MD-11',en:'Shipment Destination',ko:'Ship-To — Delivery Destination Master',tag:'/md/shipment-dest',
+  idKey:'code',entity:'Ship-To',
+  filters:[{k:'customer',label:'Customer'},{k:'region',label:'Region'},{k:'status',label:'Status'}],
   search:['code','name'],
   cols:[
-    {k:'code',label:'출하처 코드',mono:true,bold:true},
-    {k:'name',label:'출하처명'},
-    {k:'customer',label:'고객사'},
-    {k:'region',label:'지역'},
-    {k:'status',label:'상태',badge:{'사용':'b0','중단':'b2'}}
+    {k:'code',label:'Ship-To Code',mono:true,bold:true},
+    {k:'name',label:'Ship-To Name'},
+    {k:'customer',label:'Customer'},
+    {k:'region',label:'Region'},
+    {k:'status',label:'Status',badge:{'Active':'b0','Discontinued':'b2'}}
   ],
   fields:[
-    {k:'code',label:'출하처 코드',type:'text',req:true,uniq:true,ph:'SD-SAV-03'},
-    {k:'name',label:'출하처명',type:'text',req:true,ph:'서산 공장 1라인 입고장'},
-    {k:'customer',label:'고객사',type:'select',opts:['SAV','GEO']},
-    {k:'region',label:'지역',type:'select',opts:['충남 서산','경북 경주','경기 화성','울산']},
-    {k:'address',label:'주소',type:'text',ph:'충남 서산시 ...'},
-    {k:'contact',label:'담당자',type:'text',ph:'입고담당 김주임'},
-    {k:'leadTime',label:'운송 리드타임 (h)',type:'number'},
-    {k:'status',label:'상태',type:'select',opts:['사용','중단']}
+    {k:'code',label:'Ship-To Code',type:'text',req:true,uniq:true,ph:'SD-SAV-03'},
+    {k:'name',label:'Ship-To Name',type:'text',req:true,ph:'Detroit Plant Line 1 Dock'},
+    {k:'customer',label:'Customer',type:'select',opts:['SAV','GEO']},
+    {k:'region',label:'Region',type:'select',opts:['Detroit, MI','Birmingham, AL','Auburn Hills, MI','Lansing, MI']},
+    {k:'address',label:'Address',type:'text',ph:'1234 Industrial Blvd ...'},
+    {k:'contact',label:'Contact',type:'text',ph:'Receiving - Kevin Lee'},
+    {k:'leadTime',label:'Transport Lead Time (h)',type:'number'},
+    {k:'status',label:'Status',type:'select',opts:['Active','Discontinued']}
   ],
   kpis:[
-    {label:'총 출하처',c:'#d97706',calc:function(d){return d.length;}},
-    {label:'사용 중 · Active',c:'#16a34a',calc:function(d){return d.filter(function(r){return r.status==='사용';}).length;}},
-    {label:'SAV 출하처',c:'#2563eb',calc:function(d){return d.filter(function(r){return r.customer==='SAV';}).length;}},
-    {label:'GEO 출하처',c:'#8b5cf6',calc:function(d){return d.filter(function(r){return r.customer==='GEO';}).length;}}
+    {label:'Total Ship-To Points',c:'#d97706',calc:function(d){return d.length;}},
+    {label:'Active',c:'#16a34a',calc:function(d){return d.filter(function(r){return r.status==='Active';}).length;}},
+    {label:'SAV Ship-To',c:'#2563eb',calc:function(d){return d.filter(function(r){return r.customer==='SAV';}).length;}},
+    {label:'GEO Ship-To',c:'#8b5cf6',calc:function(d){return d.filter(function(r){return r.customer==='GEO';}).length;}}
   ],
   data:[
-    {code:'SD-SAV-01',name:'서산공장 도어모듈 입고장',customer:'SAV',region:'충남 서산',address:'충남 서산시 대산읍 평신산단로 100',contact:'입고담당 김주임',leadTime:2,status:'사용'},
-    {code:'SD-SAV-02',name:'서산공장 의장1라인',customer:'SAV',region:'충남 서산',address:'충남 서산시 대산읍 평신산단로 100',contact:'의장반장',leadTime:2,status:'사용'},
-    {code:'SD-SAV-03',name:'서산공장 범퍼 입고장',customer:'SAV',region:'충남 서산',address:'충남 서산시 대산읍 평신산단로 100',contact:'범퍼담당',leadTime:3,status:'사용'},
-    {code:'SD-GEO-01',name:'경주공장 콘솔 입고장',customer:'GEO',region:'경북 경주',address:'경북 경주시 외동읍 산업로 250',contact:'경주 입고팀',leadTime:5,status:'사용'},
-    {code:'SD-GEO-02',name:'경주공장 그릴 입고장',customer:'GEO',region:'경북 경주',address:'경북 경주시 외동읍 산업로 250',contact:'경주 입고팀',leadTime:5,status:'사용'},
-    {code:'SD-GEO-03',name:'화성 KD센터',customer:'GEO',region:'경기 화성',address:'경기 화성시 우정읍 ...',contact:'KD 물류팀',leadTime:4,status:'사용'},
-    {code:'SD-OLD-99',name:'(구) 울산 임시창고',customer:'GEO',region:'울산',address:'울산 북구 ...',contact:'-',leadTime:6,status:'중단'}
+    {code:'SD-SAV-01',name:'Detroit Plant Door Module Dock',customer:'SAV',region:'Detroit, MI',address:'1500 Conner St, Detroit, MI 48215',contact:'Receiving - Kevin Lee',leadTime:2,status:'Active'},
+    {code:'SD-SAV-02',name:'Detroit Plant Trim Line 1',customer:'SAV',region:'Detroit, MI',address:'1500 Conner St, Detroit, MI 48215',contact:'Trim Supervisor',leadTime:2,status:'Active'},
+    {code:'SD-SAV-03',name:'Detroit Plant Bumper Dock',customer:'SAV',region:'Detroit, MI',address:'1500 Conner St, Detroit, MI 48215',contact:'Bumper Receiver',leadTime:3,status:'Active'},
+    {code:'SD-GEO-01',name:'Birmingham Plant Console Dock',customer:'GEO',region:'Birmingham, AL',address:'2100 Industrial Pkwy, Birmingham, AL 35211',contact:'Birmingham Receiving',leadTime:5,status:'Active'},
+    {code:'SD-GEO-02',name:'Birmingham Plant Grille Dock',customer:'GEO',region:'Birmingham, AL',address:'2100 Industrial Pkwy, Birmingham, AL 35211',contact:'Birmingham Receiving',leadTime:5,status:'Active'},
+    {code:'SD-GEO-03',name:'Auburn Hills KD Center',customer:'GEO',region:'Auburn Hills, MI',address:'800 Chrysler Dr, Auburn Hills, MI 48326',contact:'KD Logistics Team',leadTime:4,status:'Active'},
+    {code:'SD-OLD-99',name:'(Old) Lansing Temp Warehouse',customer:'GEO',region:'Lansing, MI',address:'500 Cedar St, Lansing, MI',contact:'-',leadTime:6,status:'Discontinued'}
   ]
 };
 /* ===== GENERIC MASTER ENGINE ===== */
@@ -159,15 +159,15 @@ function init(){
   CFG.filters.forEach(function(f){
     var opts=[];DATA.forEach(function(r){if(opts.indexOf(r[f.k])<0)opts.push(r[f.k]);});
     tb+='<div class="fld"><label>'+f.label+'</label><select data-fk="'+f.k+'" onchange="render()">'+
-      '<option value="">전체 All</option>'+opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select></div>';
+      '<option value="">All</option>'+opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select></div>';
   });
-  tb+='<div class="fld"><label>검색 Search</label><input id="fKw" placeholder="코드·명칭" oninput="render()" style="width:150px;"></div>';
-  tb+='<button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>';
+  tb+='<div class="fld"><label>Search</label><input id="fKw" placeholder="Code / name" oninput="render()" style="width:150px;"></div>';
+  tb+='<button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>';
   tb+='<div style="margin-left:auto;display:flex;gap:8px;">'+
-    '<button class="btn btn-p" onclick="openNew()">＋ '+CFG.entity+' 등록</button>'+
+    '<button class="btn btn-p" onclick="openNew()">＋ Add '+CFG.entity+'</button>'+
     '<button class="btn btn-s" onclick="exportCsv()">📥 Export</button></div>';
   $('toolbar').innerHTML=tb;
-  $('listT').textContent='📋 '+CFG.entity+' 목록';
+  $('listT').textContent='📋 '+CFG.entity+' List';
   $('thr').innerHTML=CFG.cols.map(function(c){return '<th>'+c.label+'</th>';}).join('');
   render();
 }
@@ -197,7 +197,7 @@ function render(){
   });
   $('tbody').innerHTML=h;
   $('empty').style.display=v.length?'none':'block';
-  $('listT').textContent='📋 '+CFG.entity+' 목록 — '+v.length+'건';
+  $('listT').textContent='📋 '+CFG.entity+' List — '+v.length+' items';
   if(selKey&&!byKey(selKey))selKey=null;
   renderDetail();
 }
@@ -205,9 +205,9 @@ function byKey(k){return DATA.filter(function(r){return r[CFG.idKey]===k;})[0];}
 function pick(k){selKey=k;render();}
 function renderDetail(){
   var r=byKey(selKey);
-  if(!r){$('detail').innerHTML='<div class="empty">← 좌측 목록에서 항목을 선택하세요.</div>';return;}
+  if(!r){$('detail').innerHTML='<div class="empty">← Select an item from the list on the left.</div>';return;}
   var nmField=CFG.fields[1]?CFG.fields[1].k:CFG.idKey;
-  var h='<div class="card-t">📑 '+CFG.entity+' 상세</div>'+
+  var h='<div class="card-t">📑 '+CFG.entity+' Detail</div>'+
     '<div class="dt-head"><div class="dt-nm">'+(r[nmField]||r[CFG.idKey])+'</div><div class="dt-id">'+r[CFG.idKey]+'</div></div>'+
     '<div class="specs">';
   CFG.fields.forEach(function(f){
@@ -215,8 +215,8 @@ function renderDetail(){
     var v=r[f.k];if(v===''||v==null)v='—';
     h+='<div class="srow"><span class="sk">'+f.label+'</span><span class="sv">'+v+'</span></div>';
   });
-  h+='</div><div class="acts"><button class="btn btn-s btn-sm" onclick="editRec()">✎ 수정</button>'+
-    '<button class="btn btn-s btn-sm" onclick="delRec()">🗑 삭제</button></div>';
+  h+='</div><div class="acts"><button class="btn btn-s btn-sm" onclick="editRec()">✎ Edit</button>'+
+    '<button class="btn btn-s btn-sm" onclick="delRec()">🗑 Delete</button></div>';
   $('detail').innerHTML=h;
 }
 function formHtml(r){
@@ -232,31 +232,31 @@ function formHtml(r){
   }).join('');
 }
 function openNew(){
-  editKey=null;$('emTitle').textContent=CFG.entity+' 등록';$('emSave').textContent='＋ 등록';
+  editKey=null;$('emTitle').textContent='Add '+CFG.entity;$('emSave').textContent='＋ Add';
   $('emBody').innerHTML=formHtml(null);openOv('ovEd');
 }
 function editRec(){
-  editKey=selKey;$('emTitle').textContent=CFG.entity+' 수정';$('emSave').textContent='💾 저장';
+  editKey=selKey;$('emTitle').textContent='Edit '+CFG.entity;$('emSave').textContent='💾 Save';
   $('emBody').innerHTML=formHtml(byKey(selKey));openOv('ovEd');
 }
 function saveRec(){
   var o={};
   [].slice.call(document.querySelectorAll('#emBody [data-fk]')).forEach(function(el){o[el.dataset.fk]=el.value.trim?el.value.trim():el.value;});
   for(var i=0;i<CFG.fields.length;i++){var f=CFG.fields[i];
-    if(f.req&&!o[f.k]&&!(editKey&&f.uniq)){toast('err','입력 오류',f.label+'은(는) 필수 항목입니다.');return;}}
+    if(f.req&&!o[f.k]&&!(editKey&&f.uniq)){toast('err','Input Error',f.label+' is a required field.');return;}}
   if(editKey){var r=byKey(editKey);for(var k in o){if(k!==CFG.idKey)r[k]=o[k];}
-    toast('','수정 완료',CFG.entity+' 정보가 수정되었습니다.');
+    toast('','Updated',CFG.entity+' information has been updated.');
   }else{
-    if(byKey(o[CFG.idKey])){toast('err','중복 오류','이미 존재하는 코드입니다.');return;}
+    if(byKey(o[CFG.idKey])){toast('err','Duplicate Error','Code already exists.');return;}
     DATA.push(o);selKey=o[CFG.idKey];
-    toast('','등록 완료',o[CFG.idKey]+' '+CFG.entity+'이(가) 등록되었습니다.');
+    toast('','Added',o[CFG.idKey]+' '+CFG.entity+' has been added.');
   }
   closeOv('ovEd');render();
 }
 function delRec(){
   var r=byKey(selKey);var i=DATA.indexOf(r);
   if(i>=0)DATA.splice(i,1);selKey=null;render();
-  toast('info','삭제 완료',CFG.entity+' 항목이 삭제되었습니다.');
+  toast('info','Deleted',CFG.entity+' item has been deleted.');
 }
 function exportCsv(){
   var v=vis();
@@ -266,11 +266,11 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=CFG.id+'_'+CFG.en.replace(/ /g,'')+'_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료',CFG.entity+' '+v.length+'건을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+v.length+' '+CFG.entity+' items to CSV.');
 }
 function resetAll(){
   [].slice.call(document.querySelectorAll('#toolbar select')).forEach(function(s){s.value='';});
-  $('fKw').value='';render();toast('info','초기화','목록 필터를 초기화했습니다.');
+  $('fKw').value='';render();toast('info','Reset','List filters have been reset.');
 }
 function openOv(id){$(id).classList.add('on');}
 function closeOv(id){$(id).classList.remove('on');}

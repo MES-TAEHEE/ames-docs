@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>QC-07 QC Dashboard · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--qc:#8b5cf6;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:13px;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:13px;display:flex;flex-direction:column;overflow:hidden;}
 .head{flex-shrink:0;padding:13px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--qc);background:rgba(0,0,0,.3);}
 .head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#c4b5fd;}
 .head .tt{flex:1;}
@@ -68,62 +68,62 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 </head>
 <body>
 <div class="head">
-  <button class="back" onclick="back()">‹ 대시보드</button>
+  <button class="back" onclick="back()">‹ Dashboard</button>
   <div class="id">QC-07</div>
-  <div class="tt"><div class="en">QC Dashboard</div><div class="ko">QC 종합 대시보드 — 품질 KPI·트렌드 모니터링</div></div>
+  <div class="tt"><div class="en">QC Dashboard</div><div class="ko">QC Overall Dashboard — Quality KPI &amp; Trend Monitoring</div></div>
   <span class="live"><span class="d"></span>LIVE</span>
 </div>
 <div class="body">
   <div class="bigs">
-    <div class="big" style="--c:#22c55e"><div class="lbl">금일 양품률 · FTT</div><div class="val">97.6%</div><div class="sub">target ≥ 97%</div></div>
-    <div class="big" style="--c:#fca5a5"><div class="lbl">불량률</div><div class="val">2.4%</div><div class="sub">42 / 2,461</div></div>
-    <div class="big" style="--c:#fbbf24"><div class="lbl">검사 합격률</div><div class="val">90%</div><div class="sub">18 / 20 로트</div></div>
-    <div class="big" style="--c:#dc2626"><div class="lbl">오픈 NCR</div><div class="val">8</div><div class="sub">치명 1 · 중대 4</div></div>
-    <div class="big" style="--c:#8b5cf6"><div class="lbl">진행 CAPA</div><div class="val">7</div><div class="sub">평균 8.4일</div></div>
+    <div class="big" style="--c:#22c55e"><div class="lbl">FTT YIELD TODAY</div><div class="val">97.6%</div><div class="sub">target ≥ 97%</div></div>
+    <div class="big" style="--c:#fca5a5"><div class="lbl">DEFECT RATE</div><div class="val">2.4%</div><div class="sub">42 / 2,461</div></div>
+    <div class="big" style="--c:#fbbf24"><div class="lbl">INSPECTION PASS</div><div class="val">90%</div><div class="sub">18 / 20 LOTs</div></div>
+    <div class="big" style="--c:#dc2626"><div class="lbl">OPEN NCRs</div><div class="val">8</div><div class="sub">Critical 1 · Major 4</div></div>
+    <div class="big" style="--c:#8b5cf6"><div class="lbl">ACTIVE CAPA</div><div class="val">7</div><div class="sub">Avg 8.4 days</div></div>
   </div>
   <div class="card">
-    <h3>📈 시간대별 불량 추이 — 오늘 (06~14시) <span class="b">목표 ≤ 1.5%</span></h3>
+    <h3>📈 Hourly Defect Trend — Today (06~14h) <span class="b">Target ≤ 1.5%</span></h3>
     <div class="chart" id="chart">
       <div class="tgt-line" style="bottom:50%;"></div>
-      <div class="tgt-l" style="bottom:50%;">목표 1.5%</div>
+      <div class="tgt-l" style="bottom:50%;">Target 1.5%</div>
     </div>
   </div>
   <div class="row">
     <div class="card">
-      <h3>🔻 불량 유형 Top 6 (금일)</h3>
+      <h3>🔻 Defect Type Top 6 (Today)</h3>
       <div id="defList"></div>
     </div>
     <div class="card">
-      <h3>🏭 공정별 합격률</h3>
+      <h3>🏭 Process Pass Rate</h3>
       <div class="proc-grid">
-        <div class="pc" style="--c:#22c55e"><div class="pn"><span>사출</span><span class="v">98.4%</span></div>
-          <div class="pm"><span>검사 <b>1,240</b></span><span>불량 <b>20</b></span></div></div>
-        <div class="pc" style="--c:#22c55e"><div class="pn"><span>조립</span><span class="v">98.1%</span></div>
-          <div class="pm"><span>검사 <b>840</b></span><span>불량 <b>16</b></span></div></div>
-        <div class="pc" style="--c:#fbbf24"><div class="pn"><span>도장</span><span class="v">93.8%</span></div>
-          <div class="pm"><span>검사 <b>520</b></span><span>불량 <b>32</b></span></div></div>
-        <div class="pc" style="--c:#22c55e"><div class="pn"><span>최종검사</span><span class="v">97.2%</span></div>
-          <div class="pm"><span>검사 <b>720</b></span><span>불량 <b>20</b></span></div></div>
+        <div class="pc" style="--c:#22c55e"><div class="pn"><span>Injection</span><span class="v">98.4%</span></div>
+          <div class="pm"><span>Inspected <b>1,240</b></span><span>Defects <b>20</b></span></div></div>
+        <div class="pc" style="--c:#22c55e"><div class="pn"><span>Assembly</span><span class="v">98.1%</span></div>
+          <div class="pm"><span>Inspected <b>840</b></span><span>Defects <b>16</b></span></div></div>
+        <div class="pc" style="--c:#fbbf24"><div class="pn"><span>Paint</span><span class="v">93.8%</span></div>
+          <div class="pm"><span>Inspected <b>520</b></span><span>Defects <b>32</b></span></div></div>
+        <div class="pc" style="--c:#22c55e"><div class="pn"><span>Final Inspection</span><span class="v">97.2%</span></div>
+          <div class="pm"><span>Inspected <b>720</b></span><span>Defects <b>20</b></span></div></div>
       </div>
     </div>
   </div>
   <div class="row">
     <div class="card">
-      <h3>🚨 실시간 알람 · LIVE ALERTS</h3>
-      <div class="alert-row"><span class="ic">⚠</span><div class="ti">NCR-2605-008 — PP 수지 MI 미달 (치명) <b style="color:#fca5a5;">즉시 조치 필요</b></div><span class="meta">09:14</span></div>
-      <div class="alert-row"><span class="ic">📌</span><div class="ti">CAPA-2605-006 효과 검증 만료 임박 <span style="color:#fbbf24;">D-3</span></div><span class="meta">08:42</span></div>
-      <div class="alert-row"><span class="ic">📊</span><div class="ti">도장 라인 불량률 3.75% — 한계선 초과</div><span class="meta">08:30</span></div>
-      <div class="alert-row"><span class="ic">✓</span><div class="ti">CAPA-2605-003 종결 완료 (크롬 박리)</div><span class="meta">08:15</span></div>
+      <h3>🚨 LIVE ALERTS</h3>
+      <div class="alert-row"><span class="ic">⚠</span><div class="ti">NCR-2605-008 — PP Resin MI out-of-spec (Critical) <b style="color:#fca5a5;">Immediate action required</b></div><span class="meta">09:14</span></div>
+      <div class="alert-row"><span class="ic">📌</span><div class="ti">CAPA-2605-006 verification due soon <span style="color:#fbbf24;">D-3</span></div><span class="meta">08:42</span></div>
+      <div class="alert-row"><span class="ic">📊</span><div class="ti">Paint line defect rate 3.75% — over threshold</div><span class="meta">08:30</span></div>
+      <div class="alert-row"><span class="ic">✓</span><div class="ti">CAPA-2605-003 closed (Chrome Delamination)</div><span class="meta">08:15</span></div>
     </div>
     <div class="card">
-      <h3>📋 처리 현황 요약</h3>
+      <h3>📋 Summary</h3>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;">
-        <div class="pc" style="--c:#dc2626"><div class="pn"><span>NCR 접수</span><span class="v">5건</span></div></div>
-        <div class="pc" style="--c:#fbbf24"><div class="pn"><span>NCR 검토</span><span class="v">3건</span></div></div>
-        <div class="pc" style="--c:#22c55e"><div class="pn"><span>NCR 종결</span><span class="v">14건</span></div></div>
-        <div class="pc" style="--c:#fca5a5"><div class="pn"><span>보류 LOT</span><span class="v">5건</span></div></div>
-        <div class="pc" style="--c:#8b5cf6"><div class="pn"><span>CAPA 진행</span><span class="v">7건</span></div></div>
-        <div class="pc" style="--c:#86efac"><div class="pn"><span>CAPA 종결</span><span class="v">18건</span></div></div>
+        <div class="pc" style="--c:#dc2626"><div class="pn"><span>NCR Open</span><span class="v">5</span></div></div>
+        <div class="pc" style="--c:#fbbf24"><div class="pn"><span>NCR Review</span><span class="v">3</span></div></div>
+        <div class="pc" style="--c:#22c55e"><div class="pn"><span>NCR Closed</span><span class="v">14</span></div></div>
+        <div class="pc" style="--c:#fca5a5"><div class="pn"><span>LOTs on Hold</span><span class="v">5</span></div></div>
+        <div class="pc" style="--c:#8b5cf6"><div class="pn"><span>CAPA Active</span><span class="v">7</span></div></div>
+        <div class="pc" style="--c:#86efac"><div class="pn"><span>CAPA Closed</span><span class="v">18</span></div></div>
       </div>
     </div>
   </div>
@@ -133,15 +133,15 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 var TREND=[1.2,1.4,2.1,1.8,2.4,2.8,2.1,2.4];
 var HRS=['06','07','08','09','10','11','12','13'];
 var DEFECTS=[
- {n:'색상 불량 (ΔE)',q:11,p:26},{n:'표면 스크래치',q:8,p:19},
- {n:'오렌지 필',q:6,p:14},{n:'미성형',q:5,p:12},
- {n:'클립 체결력',q:4,p:10},{n:'기타',q:8,p:19}
+ {n:'Color Mismatch (dE)',q:11,p:26},{n:'Surface Scratch',q:8,p:19},
+ {n:'Orange Peel',q:6,p:14},{n:'Short Shot',q:5,p:12},
+ {n:'Clip Retention',q:4,p:10},{n:'Other',q:8,p:19}
 ];
 function renderChart(){
   var max=Math.max.apply(null,TREND);
   document.getElementById('chart').innerHTML=
     '<div class="tgt-line" style="bottom:'+(1.5/max*100)+'%;"></div>'+
-    '<div class="tgt-l" style="bottom:'+(1.5/max*100)+'%;">목표 1.5%</div>'+
+    '<div class="tgt-l" style="bottom:'+(1.5/max*100)+'%;">Target 1.5%</div>'+
     TREND.map(function(t,i){
       var h=(t/max*110);
       return '<div class="cbar'+(t>1.5?' bad':'')+'" onclick="hourDetail('+i+')"><div class="bv">'+t+'%</div>'+
@@ -159,8 +159,8 @@ function renderDef(){
       '<div class="q">'+d.q+' / '+d.p+'%</div></div>';
   }).join('');
 }
-function hourDetail(i){toast('','시간대 상세',HRS[i]+'시 — 불량률 '+TREND[i]+'%. 상세 분석 화면으로 이동 (데모)');}
-function back(){toast('','뒤로 이동','대시보드로 돌아갑니다.');}
+function hourDetail(i){toast('','Hour Detail',HRS[i]+':00 — Defect rate '+TREND[i]+'%. Opening detail analysis (Demo)');}
+function back(){toast('','Back','Returning to Dashboard.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">• '+title+'</div><div class="tb">'+body+'</div>';

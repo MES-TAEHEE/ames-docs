@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PNT-05 Oven Monitor R2 · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--sc:#ea580c;--sc-dk:#c2410c;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
 .head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
 .head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#fb923c;}
 .head .tt{flex:1;}
@@ -72,9 +72,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 </head>
 <body>
 <div class="head">
-  <button class="back" onclick="back()">‹ 대시보드</button>
+  <button class="back" onclick="back()">‹ Dashboard</button>
   <div class="id">PNT-05</div>
-  <div class="tt"><div class="en">Oven Monitor</div><div class="ko">오븐 모니터 — 4-zone 온도 및 LOT 통과 시간 감시</div></div>
+  <div class="tt"><div class="en">Oven Monitor</div><div class="ko">Oven Monitor — 4-Zone Temperature and LOT Cure-Time Monitoring</div></div>
   <span class="r-badge">R2 OVEN</span>
   <span class="live"><span class="d"></span>LIVE</span>
 </div>
@@ -82,30 +82,30 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
   <div class="zones" id="zones"></div>
   <div class="alert-bar" id="alertBar"><span class="ic">⚠</span><span id="alertTxt"></span></div>
   <div class="lots-in">
-    <h3>🔥 오븐 통과 중 LOT <span class="b" id="cntInOven">3개</span></h3>
+    <h3>🔥 LOTs In Oven <span class="b" id="cntInOven">3</span></h3>
     <div id="lotsList"></div>
   </div>
   <div class="chart-card">
-    <h3>📈 오븐 Zone 2 온도 추이 (최근 10분)</h3>
+    <h3>📈 Oven Zone 2 Temperature Trend (Last 10 Min)</h3>
     <div class="chart" id="chart">
       <div class="tgt-line" style="bottom:75%;"></div>
-      <div class="tgt-l" style="bottom:75%;">목표 120℃ ± 5</div>
+      <div class="tgt-l" style="bottom:75%;">Target 120°C ± 5</div>
     </div>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 <script>
 var ZONES=[
- {n:'Zone 1',ds:'예열·Preheat',target:80,range:5,cur:81,c:'#22c55e'},
- {n:'Zone 2',ds:'경화·Curing',target:120,range:5,cur:118,c:'#f59e0b'},
- {n:'Zone 3',ds:'경화·Curing',target:135,range:5,cur:138,c:'#dc2626'},
- {n:'Zone 4',ds:'냉각·Cooling',target:45,range:5,cur:44,c:'#0891b2'}
+ {n:'Zone 1',ds:'Preheat',target:80,range:5,cur:81,c:'#22c55e'},
+ {n:'Zone 2',ds:'Curing',target:120,range:5,cur:118,c:'#f59e0b'},
+ {n:'Zone 3',ds:'Curing',target:135,range:5,cur:138,c:'#dc2626'},
+ {n:'Zone 4',ds:'Cooling',target:45,range:5,cur:44,c:'#0891b2'}
 ];
-var CMAP={'블랙':'#0A0A0A','그레이':'#8D948D','화이트':'#F4F4F4','레드':'#CC0605','블루':'#0E294B'};
+var CMAP={'Black':'#0A0A0A','Gray':'#8D948D','White':'#F4F4F4','Red':'#CC0605','Blue':'#0E294B'};
 var OLOTS=[
- {id:'LOT-2605-2105',item:'그릴 도장',color:'그레이',qty:32,enter:'08:42',totalSec:1200,elapsedSec:456},
- {id:'LOT-2605-2104',item:'프론트 범퍼',color:'블랙',qty:48,enter:'08:51',totalSec:1500,elapsedSec:780},
- {id:'LOT-2605-2103',item:'사이드 몰딩',color:'그레이',qty:54,enter:'09:02',totalSec:1100,elapsedSec:1060}
+ {id:'LOT-2605-2105',item:'Grille Paint',color:'Gray',qty:32,enter:'08:42',totalSec:1200,elapsedSec:456},
+ {id:'LOT-2605-2104',item:'Front Bumper',color:'Black',qty:48,enter:'08:51',totalSec:1500,elapsedSec:780},
+ {id:'LOT-2605-2103',item:'Side Molding',color:'Gray',qty:54,enter:'09:02',totalSec:1100,elapsedSec:1060}
 ];
 var TEMPHIST=[120,121,119,120,122,118,121,120,119,118];
 function renderZones(){
@@ -118,15 +118,15 @@ function renderZones(){
       '<div class="zn">'+z.n+'</div>'+
       '<div class="nm">'+z.ds+'</div>'+
       '<div class="temp">'+z.cur.toFixed(1)+'</div>'+
-      '<div class="uom">℃</div>'+
-      '<div class="range">'+z.target+' ± '+z.range+'℃</div>'+
+      '<div class="uom">°C</div>'+
+      '<div class="range">'+z.target+' ± '+z.range+'°C</div>'+
       '<div class="gauge"><i style="width:'+pct+'%"></i>'+
       '<span class="tgt" style="left:'+(z.target/(z.target*1.5)*100)+'%"></span></div></div>';
   }).join('');
   var alarms=ZONES.filter(function(z){return Math.abs(z.cur-z.target)>z.range;});
   var ab=document.getElementById('alertBar');
   if(alarms.length){ab.classList.add('on');ab.classList.add('crit');
-    document.getElementById('alertTxt').textContent='⚠ Zone '+alarms.map(function(z){return z.n.slice(-1);}).join(', ')+' 온도 범위 이탈 — 즉시 점검 필요';}
+    document.getElementById('alertTxt').textContent='⚠ Zone '+alarms.map(function(z){return z.n.slice(-1);}).join(', ')+' temperature out of range — immediate inspection required';}
   else{ab.classList.remove('on');}
 }
 function renderLots(){
@@ -138,10 +138,10 @@ function renderLots(){
     return '<div class="lot-row"><div class="sw" style="background:'+(CMAP[l.color]||'#888')+'"></div>'+
       '<div class="info"><div class="lid">'+l.id+'</div><div class="ds">'+l.item+' · '+l.color+'</div></div>'+
       '<div class="qty">'+l.qty+' EA</div>'+
-      '<div class="timer'+(warn?' warn':'')+'">'+String(rm).padStart(2,'0')+':'+String(rs).padStart(2,'0')+'<div style="font-size:8px;color:#a8997f;font-weight:400;letter-spacing:1px;margin-top:2px;">잔여 시간</div></div>'+
-      '<div><div class="pbar"><i style="width:'+pct+'%"></i></div><div class="pgi">'+pct+'% · 입고 '+l.enter+'</div></div></div>';
+      '<div class="timer'+(warn?' warn':'')+'">'+String(rm).padStart(2,'0')+':'+String(rs).padStart(2,'0')+'<div style="font-size:8px;color:#a8997f;font-weight:400;letter-spacing:1px;margin-top:2px;">REMAINING</div></div>'+
+      '<div><div class="pbar"><i style="width:'+pct+'%"></i></div><div class="pgi">'+pct+'% · Entered '+l.enter+'</div></div></div>';
   }).join('');
-  document.getElementById('cntInOven').textContent=OLOTS.length+'개';
+  document.getElementById('cntInOven').textContent=OLOTS.length;
 }
 function renderChart(){
   var max=Math.max.apply(null,TEMPHIST),min=Math.min.apply(null,TEMPHIST);
@@ -150,7 +150,7 @@ function renderChart(){
     return '<div class="cbar"><div class="bv">'+t+'</div><div class="b" style="height:'+h+'px;"></div><div class="bl">-'+(9-i)+'m</div></div>';
   }).join('');
   document.getElementById('chart').innerHTML=
-    '<div class="tgt-line" style="bottom:75%;"></div><div class="tgt-l" style="bottom:75%;">목표 120℃ ± 5</div>'+bars;
+    '<div class="tgt-line" style="bottom:75%;"></div><div class="tgt-l" style="bottom:75%;">Target 120°C ± 5</div>'+bars;
 }
 function tick(){
   ZONES.forEach(function(z){z.cur+=(Math.random()-0.5)*2.5;});
@@ -160,14 +160,14 @@ function tick(){
     if(OLOTS[i].elapsedSec>=OLOTS[i].totalSec){
       var nm=OLOTS[i].id;
       OLOTS.splice(i,1);
-      toast('ok',nm+' 오븐 통과 완료 ✓','R3 언로딩 단계로 이송됩니다.');
+      toast('ok',nm+' Oven Done ✓','Transferring to R3 Unloading stage.');
     }
   }
   /* shift temp chart */
   TEMPHIST.shift();TEMPHIST.push(Math.round(ZONES[1].cur*10)/10);
   renderZones();renderLots();renderChart();
 }
-function back(){toast('','뒤로 이동','POP 대시보드로 돌아갑니다.');}
+function back(){toast('','Back','Returning to POP Dashboard.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='warn'?'⚠ ':type==='err'?'⛔ ':type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';

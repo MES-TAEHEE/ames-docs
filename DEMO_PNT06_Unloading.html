@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>PNT-06 Unloading R1 · A-MES Demo</title>
+<title>PNT-06 Unloading R3 · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--sc:#ea580c;--sc-dk:#c2410c;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
 .head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
 .head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#fb923c;}
 .head .tt{flex:1;}
@@ -73,47 +73,47 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 </head>
 <body>
 <div class="head">
-  <button class="back" onclick="back()">‹ 대시보드</button>
+  <button class="back" onclick="back()">‹ Dashboard</button>
   <div class="id">PNT-06</div>
-  <div class="tt"><div class="en">Unloading Station</div><div class="ko">언로딩·집계 — 도장 완료품 회수 및 집계</div></div>
+  <div class="tt"><div class="en">Unloading Station</div><div class="ko">Unloading / Yield — Painted Part Recovery and Yield Count</div></div>
   <span class="r-badge">R3 UNLOADING</span>
   <span class="live"><span class="d"></span>LIVE</span>
 </div>
 <div class="body">
   <div class="col">
     <div class="lot-card">
-      <div class="h"><span style="font-size:18px;">🏷</span><span class="lbl">진행 중 LOT</span><span class="stg">R3 UNLOADING</span></div>
+      <div class="h"><span style="font-size:18px;">🏷</span><span class="lbl">ACTIVE LOT</span><span class="stg">R3 UNLOADING</span></div>
       <div class="lid">LOT-2605-2103</div>
-      <div class="item"><span class="sw" style="background:#8D948D"></span><b>사이드 몰딩 도장</b> · 그레이 (RAL 7042)</div>
+      <div class="item"><span class="sw" style="background:#8D948D"></span><b>Side Molding Paint</b> · Gray (RAL 7042)</div>
       <div class="meta">
         <div class="m"><div class="ml">WO</div><div class="mv">WO-2605-132</div></div>
-        <div class="m"><div class="ml">총 행거</div><div class="mv">8 EA</div></div>
-        <div class="m"><div class="ml">시작</div><div class="mv" id="startT">09:14</div></div>
+        <div class="m"><div class="ml">TOTAL HANGERS</div><div class="mv">8 EA</div></div>
+        <div class="m"><div class="ml">STARTED</div><div class="mv" id="startT">09:14</div></div>
       </div>
     </div>
     <div class="prog">
-      <div class="lbl">▶ 행거 회수 진척</div>
+      <div class="lbl">▶ Hanger Recovery Progress</div>
       <div class="big"><b id="cur">0</b><span> / 8</span></div>
-      <div class="sub">총 48 EA / 행거당 6 EA</div>
+      <div class="sub">Total 48 EA / 6 EA per Hanger</div>
       <div class="pbar"><i id="pi" style="width:0%"></i></div>
     </div>
     <div class="scan" onclick="scan()">
       <div class="ic" id="scanIc">📷</div>
-      <div class="t" id="scanT">완료품 스캔 · Scan Hanger</div>
-      <div class="s" id="scanS">완료된 행거를 스캔하여 회수 및 집계 등록</div>
+      <div class="t" id="scanT">Scan Hanger</div>
+      <div class="s" id="scanS">Scan finished hanger to register recovery and yield count</div>
     </div>
   </div>
   <div class="col">
     <div class="hgrid" id="hgrid"></div>
     <div class="actions">
-      <button class="btn-pause" onclick="pause()">⏸ 일시정지</button>
-      <button class="btn-comp" id="bComp" disabled onclick="complete()">▶ R3 완료 → 라벨 부착</button>
+      <button class="btn-pause" onclick="pause()">⏸ Pause</button>
+      <button class="btn-comp" id="bComp" disabled onclick="complete()">▶ R3 Complete → Label Apply</button>
     </div>
     <div class="next-lot">
-      <h3>📋 다음 대기 LOT (큐)</h3>
-      <div class="nl"><div class="sw" style="background:#8D948D"></div><span class="nm">LOT-2605-2108 · 그릴 도장 (그레이)</span><span class="nq">32 EA</span></div>
-      <div class="nl"><div class="sw" style="background:#F4F4F4;border-color:#666;"></div><span class="nm">LOT-2605-2109 · 사이드 몰딩 (화이트)</span><span class="nq">42 EA</span></div>
-      <div class="nl"><div class="sw" style="background:#0A0A0A"></div><span class="nm">LOT-2605-2110 · 프론트 범퍼 (블랙)</span><span class="nq">48 EA</span></div>
+      <h3>📋 NEXT LOTs IN QUEUE</h3>
+      <div class="nl"><div class="sw" style="background:#8D948D"></div><span class="nm">LOT-2605-2108 · Grille Paint (Gray)</span><span class="nq">32 EA</span></div>
+      <div class="nl"><div class="sw" style="background:#F4F4F4;border-color:#666;"></div><span class="nm">LOT-2605-2109 · Side Molding (White)</span><span class="nq">42 EA</span></div>
+      <div class="nl"><div class="sw" style="background:#0A0A0A"></div><span class="nm">LOT-2605-2110 · Front Bumper (Black)</span><span class="nq">48 EA</span></div>
     </div>
   </div>
 </div>
@@ -126,22 +126,22 @@ function renderGrid(){
   document.getElementById('hgrid').innerHTML=h;
 }
 function scan(){
-  if(cur>=TOT){toast('','전체 완료','모든 행거가 장착되었습니다. R1 완료를 누르세요.');return;}
+  if(cur>=TOT){toast('','All Recovered','All hangers recovered. Tap R3 Complete.');return;}
   cur++;
   document.getElementById('cur').textContent=cur;
   document.getElementById('pi').style.width=(cur/TOT*100)+'%';
   document.getElementById('bComp').disabled=cur<TOT;
   renderGrid();
-  toast('ok','행거 스캔 ✓','행거 #'+cur+' 장착 완료 — 6 EA. 누적 '+(cur*6)+' / 48 EA');
-  if(cur===TOT){toast('ok','로딩 완료 ✓','모든 행거 장착 완료. R1 완료 버튼을 누르세요.');}
+  toast('ok','Hanger Scanned ✓','Hanger #'+cur+' recovered — 6 EA. Cumulative '+(cur*6)+' / 48 EA');
+  if(cur===TOT){toast('ok','Unloading Complete ✓','All hangers recovered. Tap R3 Complete to proceed.');}
 }
 function complete(){
-  toast('ok','R1 로딩 완료 ✓','LOT-2605-2107이 R2 오븐 단계로 이송됩니다. (데모)');
+  toast('ok','R3 Unloading Complete ✓','LOT-2605-2103 sent to Label Apply station. (Demo)');
   setTimeout(function(){cur=0;renderGrid();document.getElementById('cur').textContent='0';document.getElementById('pi').style.width='0%';
-    document.getElementById('bComp').disabled=true;toast('info','다음 LOT 로드','LOT-2605-2108 (그레이 그릴) 언로딩 시작 준비.');},800);
+    document.getElementById('bComp').disabled=true;toast('info','Loading Next LOT','LOT-2605-2108 (Gray Grille) ready for unloading.');},800);
 }
-function pause(){toast('warn','일시정지','R1 로딩 작업을 일시정지했습니다. 비가동 사유를 입력하세요.');}
-function back(){toast('','뒤로 이동','POP 대시보드로 돌아갑니다.');}
+function pause(){toast('warn','Paused','R3 Unloading paused. Please enter downtime reason.');}
+function back(){toast('','Back','Returning to POP Dashboard.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='info'?'ℹ ':type==='warn'?'⚠ ':type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';

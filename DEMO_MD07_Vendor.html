@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>MD-03 BOM Version · A-MES Demo</title>
+<title>MD-07 Vendor · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#d97706;--pp-dk:#b45309;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#2b1a02,#3d2606);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fbbf24;line-height:.9;}
 .sh-tt{flex:1;}
@@ -77,8 +77,8 @@ tbody tr.sel td{background:#fef3c7;}
 </head>
 <body>
 <div class="scr-head">
-  <div class="sh-id" id="shId">MD-03</div>
-  <div class="sh-tt"><div class="sh-en" id="shEn">BOM Version</div><div class="sh-ko" id="shKo"></div></div>
+  <div class="sh-id" id="shId">MD-07</div>
+  <div class="sh-tt"><div class="sh-en" id="shEn">Vendor</div><div class="sh-ko" id="shKo"></div></div>
   <span class="sh-tag" id="shTag"></span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
@@ -87,20 +87,20 @@ tbody tr.sel td{background:#fef3c7;}
   <div class="kpis" id="kpis"></div>
   <div class="grid2">
     <div class="card">
-      <div class="card-t" id="listT">목록</div>
+      <div class="card-t" id="listT">List</div>
       <table><thead><tr id="thr"></tr></thead><tbody id="tbody"></tbody></table>
-      <div class="empty" id="empty" style="display:none;">조건에 맞는 데이터가 없습니다.</div>
+      <div class="empty" id="empty" style="display:none;">No matching data found.</div>
     </div>
-    <div class="card" id="detail"><div class="empty">← 좌측 목록에서 항목을 선택하세요.</div></div>
+    <div class="card" id="detail"><div class="empty">← Select an item from the list on the left.</div></div>
   </div>
 </div>
 <div class="ov" id="ovEd">
   <div class="modal">
-    <div class="modal-h"><span class="mt" id="emTitle">등록</span><span class="mx" onclick="closeOv('ovEd')">✕</span></div>
+    <div class="modal-h"><span class="mt" id="emTitle">Add</span><span class="mx" onclick="closeOv('ovEd')">✕</span></div>
     <div class="modal-b" id="emBody"></div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovEd')">취소</button>
-      <button class="btn btn-p" id="emSave" onclick="saveRec()">＋ 등록</button>
+      <button class="btn btn-s" onclick="closeOv('ovEd')">Cancel</button>
+      <button class="btn btn-p" id="emSave" onclick="saveRec()">＋ Add</button>
     </div>
   </div>
 </div>
@@ -109,42 +109,42 @@ tbody tr.sel td{background:#fef3c7;}
 <script>
 /* ===== ENTITY CONFIG ===== */
 var CFG={
-  id:'MD-07',en:'Vendor',ko:'거래선 — 자재·외주 공급업체 기준정보',tag:'/md/vendor',
-  idKey:'code',entity:'거래선',
-  filters:[{k:'type',label:'거래 유형'},{k:'status',label:'상태'}],
+  id:'MD-07',en:'Vendor',ko:'Vendor — Material & Outsourcing Supplier Master',tag:'/md/vendor',
+  idKey:'code',entity:'Vendor',
+  filters:[{k:'type',label:'Vendor Type'},{k:'status',label:'Status'}],
   search:['code','name'],
   cols:[
-    {k:'code',label:'거래선 코드',mono:true,bold:true},
-    {k:'name',label:'거래선명'},
-    {k:'type',label:'거래 유형'},
-    {k:'contact',label:'담당자'},
-    {k:'status',label:'상태',badge:{'거래중':'b0','중단':'b2','검토':'b3'}}
+    {k:'code',label:'Vendor Code',mono:true,bold:true},
+    {k:'name',label:'Vendor Name'},
+    {k:'type',label:'Vendor Type'},
+    {k:'contact',label:'Contact'},
+    {k:'status',label:'Status',badge:{'Active':'b0','Discontinued':'b2','Review':'b3'}}
   ],
   fields:[
-    {k:'code',label:'거래선 코드',type:'text',req:true,uniq:true,ph:'V-INJ-001'},
-    {k:'name',label:'거래선명',type:'text',req:true,ph:'대한플라스틱(주)'},
-    {k:'type',label:'거래 유형',type:'select',opts:['원자재','부자재','외주가공','설비/금형']},
-    {k:'bizNo',label:'사업자등록번호',type:'text',ph:'123-45-67890'},
-    {k:'contact',label:'담당자',type:'text',ph:'홍길동 과장'},
-    {k:'tel',label:'연락처',type:'text',ph:'041-123-4567'},
-    {k:'pay',label:'결제 조건',type:'select',opts:['현금','월말 30일','월말 60일']},
-    {k:'status',label:'상태',type:'select',opts:['거래중','검토','중단']}
+    {k:'code',label:'Vendor Code',type:'text',req:true,uniq:true,ph:'V-INJ-001'},
+    {k:'name',label:'Vendor Name',type:'text',req:true,ph:'ChemTech Industries'},
+    {k:'type',label:'Vendor Type',type:'select',opts:['Raw Material','Sub Material','Subcontract','Equipment/Mold']},
+    {k:'bizNo',label:'Tax ID (EIN)',type:'text',ph:'38-1234567'},
+    {k:'contact',label:'Contact',type:'text',ph:'James Wilson, Mgr.'},
+    {k:'tel',label:'Phone',type:'text',ph:'(313) 555-0101'},
+    {k:'pay',label:'Payment Terms',type:'select',opts:['Cash','Net 30','Net 45','Net 60']},
+    {k:'status',label:'Status',type:'select',opts:['Active','Review','Discontinued']}
   ],
   kpis:[
-    {label:'총 거래선',c:'#d97706',calc:function(d){return d.length;}},
-    {label:'거래 중 · Active',c:'#16a34a',calc:function(d){return d.filter(function(r){return r.status==='거래중';}).length;}},
-    {label:'원·부자재 공급사',c:'#2563eb',calc:function(d){return d.filter(function(r){return r.type==='원자재'||r.type==='부자재';}).length;}},
-    {label:'외주 가공사',c:'#8b5cf6',calc:function(d){return d.filter(function(r){return r.type==='외주가공';}).length;}}
+    {label:'Total Vendors',c:'#d97706',calc:function(d){return d.length;}},
+    {label:'Active',c:'#16a34a',calc:function(d){return d.filter(function(r){return r.status==='Active';}).length;}},
+    {label:'Material Suppliers',c:'#2563eb',calc:function(d){return d.filter(function(r){return r.type==='Raw Material'||r.type==='Sub Material';}).length;}},
+    {label:'Subcontractors',c:'#8b5cf6',calc:function(d){return d.filter(function(r){return r.type==='Subcontract';}).length;}}
   ],
   data:[
-    {code:'V-INJ-001',name:'대한플라스틱(주)',type:'원자재',bizNo:'123-45-67890',contact:'홍길동 과장',tel:'041-123-4567',pay:'월말 60일',status:'거래중'},
-    {code:'V-INJ-002',name:'한성수지공업',type:'원자재',bizNo:'214-81-12345',contact:'김상무',tel:'031-555-1234',pay:'월말 60일',status:'거래중'},
-    {code:'V-PNT-001',name:'세종도료(주)',type:'부자재',bizNo:'312-86-55667',contact:'이부장',tel:'042-777-8899',pay:'월말 30일',status:'거래중'},
-    {code:'V-SUB-001',name:'정밀크롬도금',type:'외주가공',bizNo:'415-12-33445',contact:'박대표',tel:'041-988-2211',pay:'월말 30일',status:'거래중'},
-    {code:'V-SUB-002',name:'동양조립외주',type:'외주가공',bizNo:'511-23-44556',contact:'최팀장',tel:'041-922-3344',pay:'월말 30일',status:'검토'},
-    {code:'V-EQP-001',name:'LS엠트론',type:'설비/금형',bizNo:'617-81-99887',contact:'장차장',tel:'02-1234-5678',pay:'현금',status:'거래중'},
-    {code:'V-EQP-002',name:'우진금형',type:'설비/금형',bizNo:'718-86-11223',contact:'서과장',tel:'041-333-7788',pay:'현금',status:'거래중'},
-    {code:'V-OLD-099',name:'(구) 삼정자재',type:'부자재',bizNo:'819-12-00112',contact:'-',tel:'-',pay:'현금',status:'중단'}
+    {code:'V-INJ-001',name:'ChemTech Industries',type:'Raw Material',bizNo:'38-1234567',contact:'James Wilson, Mgr.',tel:'(313) 555-0101',pay:'Net 60',status:'Active'},
+    {code:'V-INJ-002',name:'ABS Resin Inc.',type:'Raw Material',bizNo:'31-2345678',contact:'Patricia Brown',tel:'(513) 555-0123',pay:'Net 60',status:'Active'},
+    {code:'V-PNT-001',name:'Eastern Coatings Co.',type:'Sub Material',bizNo:'34-3456789',contact:'Robert Miller',tel:'(419) 555-0144',pay:'Net 30',status:'Active'},
+    {code:'V-SUB-001',name:'Precision Chrome Plating',type:'Subcontract',bizNo:'27-4567890',contact:'Michael Davis',tel:'(248) 555-0167',pay:'Net 30',status:'Active'},
+    {code:'V-SUB-002',name:'Midwest Assembly Co.',type:'Subcontract',bizNo:'35-5678901',contact:'Linda Garcia',tel:'(317) 555-0188',pay:'Net 30',status:'Review'},
+    {code:'V-EQP-001',name:'Husky Injection Molding',type:'Equipment/Mold',bizNo:'13-6789012',contact:'David Thompson',tel:'(905) 555-0199',pay:'Cash',status:'Active'},
+    {code:'V-EQP-002',name:'Precision Mold Inc.',type:'Equipment/Mold',bizNo:'34-7890123',contact:'Susan Martinez',tel:'(216) 555-0211',pay:'Cash',status:'Active'},
+    {code:'V-OLD-099',name:'(Old) Sterling Supply',type:'Sub Material',bizNo:'38-8901234',contact:'-',tel:'-',pay:'Cash',status:'Discontinued'}
   ]
 };
 /* ===== GENERIC MASTER ENGINE ===== */
@@ -160,15 +160,15 @@ function init(){
   CFG.filters.forEach(function(f){
     var opts=[];DATA.forEach(function(r){if(opts.indexOf(r[f.k])<0)opts.push(r[f.k]);});
     tb+='<div class="fld"><label>'+f.label+'</label><select data-fk="'+f.k+'" onchange="render()">'+
-      '<option value="">전체 All</option>'+opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select></div>';
+      '<option value="">All</option>'+opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select></div>';
   });
-  tb+='<div class="fld"><label>검색 Search</label><input id="fKw" placeholder="코드·명칭" oninput="render()" style="width:150px;"></div>';
-  tb+='<button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>';
+  tb+='<div class="fld"><label>Search</label><input id="fKw" placeholder="Code / name" oninput="render()" style="width:150px;"></div>';
+  tb+='<button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>';
   tb+='<div style="margin-left:auto;display:flex;gap:8px;">'+
-    '<button class="btn btn-p" onclick="openNew()">＋ '+CFG.entity+' 등록</button>'+
+    '<button class="btn btn-p" onclick="openNew()">＋ Add '+CFG.entity+'</button>'+
     '<button class="btn btn-s" onclick="exportCsv()">📥 Export</button></div>';
   $('toolbar').innerHTML=tb;
-  $('listT').textContent='📋 '+CFG.entity+' 목록';
+  $('listT').textContent='📋 '+CFG.entity+' List';
   $('thr').innerHTML=CFG.cols.map(function(c){return '<th>'+c.label+'</th>';}).join('');
   render();
 }
@@ -198,7 +198,7 @@ function render(){
   });
   $('tbody').innerHTML=h;
   $('empty').style.display=v.length?'none':'block';
-  $('listT').textContent='📋 '+CFG.entity+' 목록 — '+v.length+'건';
+  $('listT').textContent='📋 '+CFG.entity+' List — '+v.length+' items';
   if(selKey&&!byKey(selKey))selKey=null;
   renderDetail();
 }
@@ -206,9 +206,9 @@ function byKey(k){return DATA.filter(function(r){return r[CFG.idKey]===k;})[0];}
 function pick(k){selKey=k;render();}
 function renderDetail(){
   var r=byKey(selKey);
-  if(!r){$('detail').innerHTML='<div class="empty">← 좌측 목록에서 항목을 선택하세요.</div>';return;}
+  if(!r){$('detail').innerHTML='<div class="empty">← Select an item from the list on the left.</div>';return;}
   var nmField=CFG.fields[1]?CFG.fields[1].k:CFG.idKey;
-  var h='<div class="card-t">📑 '+CFG.entity+' 상세</div>'+
+  var h='<div class="card-t">📑 '+CFG.entity+' Detail</div>'+
     '<div class="dt-head"><div class="dt-nm">'+(r[nmField]||r[CFG.idKey])+'</div><div class="dt-id">'+r[CFG.idKey]+'</div></div>'+
     '<div class="specs">';
   CFG.fields.forEach(function(f){
@@ -216,8 +216,8 @@ function renderDetail(){
     var v=r[f.k];if(v===''||v==null)v='—';
     h+='<div class="srow"><span class="sk">'+f.label+'</span><span class="sv">'+v+'</span></div>';
   });
-  h+='</div><div class="acts"><button class="btn btn-s btn-sm" onclick="editRec()">✎ 수정</button>'+
-    '<button class="btn btn-s btn-sm" onclick="delRec()">🗑 삭제</button></div>';
+  h+='</div><div class="acts"><button class="btn btn-s btn-sm" onclick="editRec()">✎ Edit</button>'+
+    '<button class="btn btn-s btn-sm" onclick="delRec()">🗑 Delete</button></div>';
   $('detail').innerHTML=h;
 }
 function formHtml(r){
@@ -233,31 +233,31 @@ function formHtml(r){
   }).join('');
 }
 function openNew(){
-  editKey=null;$('emTitle').textContent=CFG.entity+' 등록';$('emSave').textContent='＋ 등록';
+  editKey=null;$('emTitle').textContent='Add '+CFG.entity;$('emSave').textContent='＋ Add';
   $('emBody').innerHTML=formHtml(null);openOv('ovEd');
 }
 function editRec(){
-  editKey=selKey;$('emTitle').textContent=CFG.entity+' 수정';$('emSave').textContent='💾 저장';
+  editKey=selKey;$('emTitle').textContent='Edit '+CFG.entity;$('emSave').textContent='💾 Save';
   $('emBody').innerHTML=formHtml(byKey(selKey));openOv('ovEd');
 }
 function saveRec(){
   var o={};
   [].slice.call(document.querySelectorAll('#emBody [data-fk]')).forEach(function(el){o[el.dataset.fk]=el.value.trim?el.value.trim():el.value;});
   for(var i=0;i<CFG.fields.length;i++){var f=CFG.fields[i];
-    if(f.req&&!o[f.k]&&!(editKey&&f.uniq)){toast('err','입력 오류',f.label+'은(는) 필수 항목입니다.');return;}}
+    if(f.req&&!o[f.k]&&!(editKey&&f.uniq)){toast('err','Input Error',f.label+' is a required field.');return;}}
   if(editKey){var r=byKey(editKey);for(var k in o){if(k!==CFG.idKey)r[k]=o[k];}
-    toast('','수정 완료',CFG.entity+' 정보가 수정되었습니다.');
+    toast('','Updated',CFG.entity+' information has been updated.');
   }else{
-    if(byKey(o[CFG.idKey])){toast('err','중복 오류','이미 존재하는 코드입니다.');return;}
+    if(byKey(o[CFG.idKey])){toast('err','Duplicate Error','Code already exists.');return;}
     DATA.push(o);selKey=o[CFG.idKey];
-    toast('','등록 완료',o[CFG.idKey]+' '+CFG.entity+'이(가) 등록되었습니다.');
+    toast('','Added',o[CFG.idKey]+' '+CFG.entity+' has been added.');
   }
   closeOv('ovEd');render();
 }
 function delRec(){
   var r=byKey(selKey);var i=DATA.indexOf(r);
   if(i>=0)DATA.splice(i,1);selKey=null;render();
-  toast('info','삭제 완료',CFG.entity+' 항목이 삭제되었습니다.');
+  toast('info','Deleted',CFG.entity+' item has been deleted.');
 }
 function exportCsv(){
   var v=vis();
@@ -267,11 +267,11 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=CFG.id+'_'+CFG.en.replace(/ /g,'')+'_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료',CFG.entity+' '+v.length+'건을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+v.length+' '+CFG.entity+' items to CSV.');
 }
 function resetAll(){
   [].slice.call(document.querySelectorAll('#toolbar select')).forEach(function(s){s.value='';});
-  $('fKw').value='';render();toast('info','초기화','목록 필터를 초기화했습니다.');
+  $('fKw').value='';render();toast('info','Reset','List filters have been reset.');
 }
 function openOv(id){$(id).classList.add('on');}
 function closeOv(id){$(id).classList.remove('on');}

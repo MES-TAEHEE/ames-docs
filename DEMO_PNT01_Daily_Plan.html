@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PNT-01 Daily Plan · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--sc:#ea580c;--sc-dk:#c2410c;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
 .head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
 .head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#fb923c;}
 .head .tt{flex:1;}
@@ -63,91 +63,91 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 </head>
 <body>
 <div class="head">
-  <button class="back" onclick="back()">‹ 대시보드</button>
+  <button class="back" onclick="back()">‹ Dashboard</button>
   <div class="id">PNT-01</div>
-  <div class="tt"><div class="en">Daily Plan</div><div class="ko">일일 생산계획 — 도장 라인 LOT 작업 순서</div></div>
+  <div class="tt"><div class="en">Daily Plan</div><div class="ko">Daily Production Plan — Paint Line LOT Sequence</div></div>
   <span class="live"><span class="d"></span>LIVE</span>
   <span class="clk" id="clk">--:--:--</span>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#22c55e"><div class="lbl">금일 LOT 계획</div><div class="val">18</div><div class="sub">개 LOT</div></div>
-    <div class="kpi" style="--c:#fbbf24"><div class="lbl">완료</div><div class="val">9</div><div class="sub">50% 진행</div></div>
-    <div class="kpi" style="--c:#fb923c"><div class="lbl">진행 중</div><div class="val">3</div><div class="sub">R1·R2·R3</div></div>
-    <div class="kpi" style="--c:#a8997f"><div class="lbl">대기</div><div class="val">6</div><div class="sub">개 LOT</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="lbl">긴급 LOT</div><div class="val">2</div><div class="sub">D-1 납기</div></div>
+    <div class="kpi" style="--c:#22c55e"><div class="lbl">TODAY'S LOT PLAN</div><div class="val">18</div><div class="sub">LOTs</div></div>
+    <div class="kpi" style="--c:#fbbf24"><div class="lbl">COMPLETED</div><div class="val">9</div><div class="sub">50% Progress</div></div>
+    <div class="kpi" style="--c:#fb923c"><div class="lbl">IN PROGRESS</div><div class="val">3</div><div class="sub">R1·R2·R3</div></div>
+    <div class="kpi" style="--c:#a8997f"><div class="lbl">QUEUED</div><div class="val">6</div><div class="sub">LOTs</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="lbl">URGENT LOT</div><div class="val">2</div><div class="sub">D-1 Due</div></div>
   </div>
   <div class="card">
-    <h3>🎨 색상별 작업 계획 · COLOR SEQUENCE</h3>
+    <h3>🎨 Color Sequence Plan · COLOR SEQUENCE</h3>
     <div class="color-chart">
-      <div class="cc"><div class="swatch" style="background:#0A0A0A"></div><div class="nm">제트 블랙</div><div class="qty">6 LOT</div></div>
-      <div class="cc"><div class="swatch" style="background:#8D948D"></div><div class="nm">그레이</div><div class="qty">4 LOT</div></div>
-      <div class="cc"><div class="swatch" style="background:#F4F4F4;border-color:#666;"></div><div class="nm">화이트</div><div class="qty">3 LOT</div></div>
-      <div class="cc"><div class="swatch" style="background:#CC0605"></div><div class="nm">레드</div><div class="qty">2 LOT</div></div>
-      <div class="cc"><div class="swatch" style="background:#0E294B"></div><div class="nm">블루</div><div class="qty">2 LOT</div></div>
-      <div class="cc"><div class="swatch" style="background:#A5A5A5"></div><div class="nm">실버</div><div class="qty">1 LOT</div></div>
+      <div class="cc"><div class="swatch" style="background:#0A0A0A"></div><div class="nm">Jet Black</div><div class="qty">6 LOT</div></div>
+      <div class="cc"><div class="swatch" style="background:#8D948D"></div><div class="nm">Gray</div><div class="qty">4 LOT</div></div>
+      <div class="cc"><div class="swatch" style="background:#F4F4F4;border-color:#666;"></div><div class="nm">White</div><div class="qty">3 LOT</div></div>
+      <div class="cc"><div class="swatch" style="background:#CC0605"></div><div class="nm">Red</div><div class="qty">2 LOT</div></div>
+      <div class="cc"><div class="swatch" style="background:#0E294B"></div><div class="nm">Blue</div><div class="qty">2 LOT</div></div>
+      <div class="cc"><div class="swatch" style="background:#A5A5A5"></div><div class="nm">Silver</div><div class="qty">1 LOT</div></div>
     </div>
-    <div style="font-size:10px;color:#a8997f;margin-top:8px;">▸ 색상 전환 시 부스 청소·노즐 교체 필요 (약 15분 소요)</div>
+    <div style="font-size:10px;color:#a8997f;margin-top:8px;">▸ Color changeover requires booth cleaning and nozzle swap (approx. 15 min)</div>
   </div>
   <div class="card">
-    <h3>📋 대기 중 LOT 작업 순서 <span class="badge" id="qcnt">6개</span></h3>
+    <h3>📋 Queued LOTs · WORK SEQUENCE <span class="badge" id="qcnt">6</span></h3>
     <div class="lots" id="lotList"></div>
   </div>
   <div class="card">
-    <h3>🔄 진행 중 LOT · IN PROGRESS</h3>
+    <h3>🔄 LOTs In Progress · IN PROGRESS</h3>
     <div class="lots" id="progList"></div>
   </div>
   <div class="btn-row">
-    <button class="btn-sec" onclick="reorder()">🔀 작업 순서 변경</button>
-    <button class="btn-pri" onclick="next()">▶ 다음 LOT 시작 (PNT-02)</button>
+    <button class="btn-sec" onclick="reorder()">🔀 Reorder Sequence</button>
+    <button class="btn-pri" onclick="next()">▶ Start Next LOT (PNT-02)</button>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 <script>
 var QUEUE=[
- {id:'LOT-26052101',item:'프론트 범퍼 도장',color:'블랙',qty:48,due:'D-1',pri:'긴급'},
- {id:'LOT-26052102',item:'라디에이터 그릴',color:'그레이',qty:36,due:'D-0',pri:'긴급'},
- {id:'LOT-26052103',item:'사이드 몰딩',color:'블랙',qty:60,due:'D+1',pri:'보통'},
- {id:'LOT-26052104',item:'프론트 범퍼 도장',color:'화이트',qty:42,due:'D+1',pri:'보통'},
- {id:'LOT-26052105',item:'그릴 도장',color:'블랙',qty:30,due:'D+2',pri:'일반'},
- {id:'LOT-26052106',item:'사이드 몰딩',color:'레드',qty:24,due:'D+2',pri:'일반'}
+ {id:'LOT-26052101',item:'Front Bumper Paint',color:'Black',qty:48,due:'D-1',pri:'URGENT'},
+ {id:'LOT-26052102',item:'Radiator Grille',color:'Gray',qty:36,due:'D-0',pri:'URGENT'},
+ {id:'LOT-26052103',item:'Side Molding',color:'Black',qty:60,due:'D+1',pri:'NORMAL'},
+ {id:'LOT-26052104',item:'Front Bumper Paint',color:'White',qty:42,due:'D+1',pri:'NORMAL'},
+ {id:'LOT-26052105',item:'Grille Paint',color:'Black',qty:30,due:'D+2',pri:'LOW'},
+ {id:'LOT-26052106',item:'Side Molding',color:'Red',qty:24,due:'D+2',pri:'LOW'}
 ];
 var PROG=[
- {id:'LOT-26052099',item:'프론트 범퍼',color:'블랙',qty:48,prog:60,stage:'R1 로딩 완료'},
- {id:'LOT-26052098',item:'라디에이터 그릴',color:'그레이',qty:36,prog:80,stage:'R2 오븐 건조'},
- {id:'LOT-26052097',item:'사이드 몰딩',color:'블랙',qty:60,prog:95,stage:'R3 언로딩'}
+ {id:'LOT-26052099',item:'Front Bumper',color:'Black',qty:48,prog:60,stage:'R1 Loading Done'},
+ {id:'LOT-26052098',item:'Radiator Grille',color:'Gray',qty:36,prog:80,stage:'R2 Oven Cure'},
+ {id:'LOT-26052097',item:'Side Molding',color:'Black',qty:60,prog:95,stage:'R3 Unloading'}
 ];
-var CMAP={'블랙':'#0A0A0A','그레이':'#8D948D','화이트':'#F4F4F4','레드':'#CC0605','블루':'#0E294B','실버':'#A5A5A5'};
+var CMAP={'Black':'#0A0A0A','Gray':'#8D948D','White':'#F4F4F4','Red':'#CC0605','Blue':'#0E294B','Silver':'#A5A5A5'};
 function renderLots(){
   document.getElementById('lotList').innerHTML=QUEUE.map(function(l){
-    var c=l.pri==='긴급'?'#dc2626':(l.pri==='보통'?'#fbbf24':'#a8997f');
-    var cls=l.pri==='긴급'?'':(l.pri==='보통'?'warn':'normal');
+    var c=l.pri==='URGENT'?'#dc2626':(l.pri==='NORMAL'?'#fbbf24':'#a8997f');
+    var cls=l.pri==='URGENT'?'':(l.pri==='NORMAL'?'warn':'normal');
     return '<div class="lot '+cls+'" style="--c:'+c+'">'+
       '<div class="lh"><span class="lid">'+l.id+'</span><span class="lpri">'+l.pri+'</span></div>'+
       '<div class="item">'+l.item+'</div>'+
-      '<div class="meta"><span><span class="l">색상</span> <span class="v" style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+CMAP[l.color]+';vertical-align:middle;border:1px solid #666;"></span> '+l.color+'</span><span><span class="v">'+l.qty+' EA</span></span></div>'+
-      '<div class="meta"><span class="l">납기</span><span class="v" style="color:'+c+'">'+l.due+'</span></div></div>';
+      '<div class="meta"><span><span class="l">Color</span> <span class="v" style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+CMAP[l.color]+';vertical-align:middle;border:1px solid #666;"></span> '+l.color+'</span><span><span class="v">'+l.qty+' EA</span></span></div>'+
+      '<div class="meta"><span class="l">Due</span><span class="v" style="color:'+c+'">'+l.due+'</span></div></div>';
   }).join('');
-  document.getElementById('qcnt').textContent=QUEUE.length+'개';
+  document.getElementById('qcnt').textContent=QUEUE.length;
 }
 function renderProg(){
   document.getElementById('progList').innerHTML=PROG.map(function(l){
     return '<div class="lot warn" style="--c:#fb923c">'+
       '<div class="lh"><span class="lid">'+l.id+'</span><span class="lpri">'+l.stage+'</span></div>'+
       '<div class="item">'+l.item+'</div>'+
-      '<div class="meta"><span><span class="l">색상</span> <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+CMAP[l.color]+';vertical-align:middle;border:1px solid #666;"></span> '+l.color+'</span><span><span class="v">'+l.qty+' EA</span></span></div>'+
+      '<div class="meta"><span><span class="l">Color</span> <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+CMAP[l.color]+';vertical-align:middle;border:1px solid #666;"></span> '+l.color+'</span><span><span class="v">'+l.qty+' EA</span></span></div>'+
       '<div class="pbar"><i style="width:'+l.prog+'%"></i></div>'+
-      '<div style="font-size:9px;color:#a8997f;margin-top:3px;text-align:right;">진척 '+l.prog+'%</div></div>';
+      '<div style="font-size:9px;color:#a8997f;margin-top:3px;text-align:right;">Progress '+l.prog+'%</div></div>';
   }).join('');
 }
 function next(){
-  if(!QUEUE.length){toast('','대기 LOT 없음','모든 LOT가 처리되었습니다.');return;}
+  if(!QUEUE.length){toast('','No Queued LOTs','All LOTs have been processed.');return;}
   var l=QUEUE.shift();
-  toast('ok','LOT 시작 ✓',l.id+' 「'+l.item+' · '+l.color+'」 시작 — PNT-02 사전 LOT 발행 화면으로 이동... (데모)');
+  toast('ok','LOT Started ✓',l.id+' "'+l.item+' · '+l.color+'" started — moving to PNT-02 Pre-Issue screen... (Demo)');
   renderLots();
 }
-function reorder(){toast('info','작업 순서 변경','드래그로 LOT 순서를 변경하세요. (데모)');}
-function back(){toast('','뒤로 이동','POP 대시보드로 돌아갑니다.');}
+function reorder(){toast('info','Reorder Sequence','Drag to reorder LOTs. (Demo)');}
+function back(){toast('','Back','Returning to POP Dashboard.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='info'?'ℹ ':type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';

@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>SYS-03 Factory Calendar · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -85,62 +85,62 @@ select{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12
 <body>
 <div class="scr-head">
   <div class="sh-id">SYS-03</div>
-  <div class="sh-tt"><div class="sh-en">Factory Calendar</div><div class="sh-ko">공장 캘린더 — 영업일·휴무·특근·교대 패턴 관리</div></div>
+  <div class="sh-tt"><div class="sh-en">Factory Calendar</div><div class="sh-ko">Working days, off-days, special shifts &amp; holidays</div></div>
   <span class="sh-tag">/sys/calendar</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>월 Month</label>
-    <select id="fMonth" onchange="apply()"><option>2026년 5월</option></select></div>
-  <div class="fld"><label>공장 Plant</label>
-    <select id="fPlant" onchange="apply()"><option>SAV 서산공장</option></select></div>
-  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 기본값 복원</button>
+  <div class="fld"><label>Month</label>
+    <select id="fMonth" onchange="apply()"><option>May 2026</option></select></div>
+  <div class="fld"><label>Plant</label>
+    <select id="fPlant" onchange="apply()"><option>SAV — Detroit, MI</option><option>GEO — Birmingham, AL</option></select></div>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ Restore Defaults</button>
   <div style="margin-left:auto;"><button class="btn btn-s" onclick="exportCsv()">📥 Export</button></div>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#059669"><div class="kv" id="kWork">0</div><div class="kl">영업일 · Working Days</div></div>
-    <div class="kpi" style="--c:#6b7280"><div class="kv" id="kOff">0</div><div class="kl">휴무일 · Off Days</div></div>
-    <div class="kpi" style="--c:#d97706"><div class="kv" id="kSp">0</div><div class="kl">특근일 · Special Work</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kHol">0</div><div class="kl">공휴일 · Holidays</div></div>
-    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kHrs">0</div><div class="kl">월 총 가동시간 · h</div></div>
+    <div class="kpi" style="--c:#059669"><div class="kv" id="kWork">0</div><div class="kl">Working Days</div></div>
+    <div class="kpi" style="--c:#6b7280"><div class="kv" id="kOff">0</div><div class="kl">Off Days</div></div>
+    <div class="kpi" style="--c:#d97706"><div class="kv" id="kSp">0</div><div class="kl">Special Work</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kHol">0</div><div class="kl">Holidays</div></div>
+    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kHrs">0</div><div class="kl">Total Op Hours · h</div></div>
   </div>
   <div class="card">
-    <div class="card-t">📅 2026년 5월 공장 가동 캘린더
+    <div class="card-t">📅 May 2026 — Plant Operating Calendar
       <span class="legend">
-        <span><i style="background:#a7f3d0"></i>영업일</span>
-        <span><i style="background:#d1d5db"></i>휴무</span>
-        <span><i style="background:#fde68a"></i>특근</span>
-        <span><i style="background:#fecaca"></i>공휴일</span>
+        <span><i style="background:#a7f3d0"></i>Working</span>
+        <span><i style="background:#d1d5db"></i>Off-Day</span>
+        <span><i style="background:#fde68a"></i>Special</span>
+        <span><i style="background:#fecaca"></i>Holiday</span>
       </span>
     </div>
     <div class="cal">
       <div class="cal-grid" id="dows"></div>
       <div class="cal-grid" id="cal" style="margin-top:5px;"></div>
     </div>
-    <div style="padding:0 12px 12px;font-size:9px;color:#9ca3af;">날짜 클릭 = 가동 유형 변경 · 영업일 16h(2교대) · 특근일 8h</div>
+    <div style="padding:0 12px 12px;font-size:9px;color:#9ca3af;">Click a day to change its operating type · Working day = 16h (2 shifts) · Special day = 8h</div>
   </div>
 </div>
 
 <!-- day type modal -->
 <div class="ov" id="ovDay">
   <div class="modal">
-    <div class="modal-h"><span class="mt" id="dmTitle">가동 유형 설정</span><span class="mx" onclick="closeOv('ovDay')">✕</span></div>
+    <div class="modal-h"><span class="mt" id="dmTitle">Set Day Type</span><span class="mx" onclick="closeOv('ovDay')">✕</span></div>
     <div class="modal-b">
-      <div class="ff"><label>가동 유형</label>
+      <div class="ff"><label>Operating Type</label>
         <div class="typegrid" id="typeGrid">
-          <div class="ty" data-t="work" onclick="pickType('work')">🏭 영업일</div>
-          <div class="ty" data-t="off" onclick="pickType('off')">🛌 휴무일</div>
-          <div class="ty" data-t="special" onclick="pickType('special')">⚡ 특근일</div>
-          <div class="ty" data-t="holiday" onclick="pickType('holiday')">🎌 공휴일</div>
+          <div class="ty" data-t="work" onclick="pickType('work')">🏭 Working Day</div>
+          <div class="ty" data-t="off" onclick="pickType('off')">🛌 Off-Day</div>
+          <div class="ty" data-t="special" onclick="pickType('special')">⚡ Special Work</div>
+          <div class="ty" data-t="holiday" onclick="pickType('holiday')">🎌 Holiday</div>
         </div>
       </div>
-      <div class="ff" id="noteFf"><label>비고 (공휴일·특근 사유)</label>
-        <input id="dmNote" placeholder="예: 근로자의 날, 토요 특근"></div>
+      <div class="ff" id="noteFf"><label>Note (holiday or special-shift reason)</label>
+        <input id="dmNote" placeholder="e.g., Memorial Day, Saturday Overtime"></div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovDay')">취소</button>
-      <button class="btn btn-p" onclick="saveDay()">적용</button>
+      <button class="btn btn-s" onclick="closeOv('ovDay')">Cancel</button>
+      <button class="btn btn-p" onclick="saveDay()">Apply</button>
     </div>
   </div>
 </div>
@@ -148,7 +148,7 @@ select{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12
 
 <script>
 var TODAY=21;
-var TYPE={work:{ko:'영업일',cls:'tw'},off:{ko:'휴무',cls:'to'},special:{ko:'특근',cls:'ts'},holiday:{ko:'공휴일',cls:'th'}};
+var TYPE={work:{ko:'Working',cls:'tw'},off:{ko:'Off',cls:'to'},special:{ko:'Special',cls:'ts'},holiday:{ko:'Holiday',cls:'th'}};
 /* default day map for May 2026 */
 var DAYS={};
 function defaults(){
@@ -157,15 +157,13 @@ function defaults(){
     var dow=new Date(2026,4,d).getDay();
     DAYS[d]={type:(dow===0||dow===6)?'off':'work',note:''};
   }
-  DAYS[1]={type:'holiday',note:'근로자의 날'};
-  DAYS[5]={type:'holiday',note:'어린이날'};
-  DAYS[24]={type:'holiday',note:'부처님오신날'};
-  DAYS[9]={type:'special',note:'토요 특근'};
-  DAYS[23]={type:'special',note:'토요 특근'};
+  DAYS[25]={type:'holiday',note:'Memorial Day'};
+  DAYS[9]={type:'special',note:'Saturday Overtime'};
+  DAYS[23]={type:'special',note:'Saturday Overtime'};
 }
 var curDay=null,pickT='work';
 function init(){
-  var dn=['일','월','화','수','목','금','토'];
+  var dn=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   document.getElementById('dows').innerHTML=dn.map(function(d,i){
     return '<div class="dow'+(i===0?' sun':i===6?' sat':'')+'">'+d+'</div>';}).join('');
   defaults();apply();
@@ -200,8 +198,8 @@ function renderCal(){
 }
 function dayClick(d){
   curDay=d;var info=DAYS[d];
-  var dow=['일','월','화','수','목','금','토'][new Date(2026,4,d).getDay()];
-  document.getElementById('dmTitle').textContent='5월 '+d+'일 ('+dow+') 가동 유형';
+  var dow=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(2026,4,d).getDay()];
+  document.getElementById('dmTitle').textContent='May '+d+' ('+dow+') — Day Type';
   pickType(info.type);
   document.getElementById('dmNote').value=info.note;
   openOv('ovDay');
@@ -214,24 +212,24 @@ function pickType(t){
 function saveDay(){
   DAYS[curDay]={type:pickT,note:document.getElementById('dmNote').value.trim()};
   closeOv('ovDay');apply();
-  toast('','5월 '+curDay+'일 변경','가동 유형이 「'+TYPE[pickT].ko+'」(으)로 설정되었습니다.');
+  toast('','May '+curDay+' updated','Day type set to "'+TYPE[pickT].ko+'".');
 }
 function resetAll(){
   defaults();apply();
-  toast('info','기본값 복원','공장 캘린더를 표준 가동 패턴으로 복원했습니다.');
+  toast('info','Defaults Restored','Factory calendar reset to standard operating pattern.');
 }
 function exportCsv(){
   var csv='Date,DayOfWeek,Type,WorkHours,Note\n';
   for(var d=1;d<=31;d++){
-    var info=DAYS[d],dow=['일','월','화','수','목','금','토'][new Date(2026,4,d).getDay()];
+    var info=DAYS[d],dow=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(2026,4,d).getDay()];
     var hrs=info.type==='work'?16:(info.type==='special'?8:0);
-    csv+=['2026-05-'+('0'+d).slice(-2),dow,TYPE[info.type].ko,hrs,info.note].join(',')+'\n';
+    csv+=['05/'+('0'+d).slice(-2)+'/2026',dow,TYPE[info.type].ko,hrs,info.note].join(',')+'\n';
   }
   var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='SYS_FactoryCalendar_2026-05.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','공장 캘린더를 CSV로 내보냈습니다.');
+  toast('','Export Complete','Factory calendar exported to CSV.');
 }
 function openOv(id){document.getElementById(id).classList.add('on');}
 function closeOv(id){document.getElementById(id).classList.remove('on');}

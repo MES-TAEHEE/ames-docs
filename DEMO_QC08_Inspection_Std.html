@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>QC-08 Inspection Standard · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--qc:#8b5cf6;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:13px;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:13px;display:flex;flex-direction:column;overflow:hidden;}
 .head{flex-shrink:0;padding:13px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--qc);background:rgba(0,0,0,.3);}
 .head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#c4b5fd;}
 .head .tt{flex:1;}
@@ -65,20 +65,20 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 </head>
 <body>
 <div class="head">
-  <button class="back" onclick="back()">‹ 대시보드</button>
+  <button class="back" onclick="back()">‹ Dashboard</button>
   <div class="id">QC-08</div>
-  <div class="tt"><div class="en">Inspection Standard</div><div class="ko">검사 기준 — 품목별 검사 항목·규격 조회</div></div>
+  <div class="tt"><div class="en">Inspection Standard</div><div class="ko">Inspection Standard — Items and Specs by Part</div></div>
   <span class="live"><span class="d"></span>LIVE</span>
 </div>
 <div class="toolbar">
-  <select id="fItem" onchange="render()"><option value="">전체 품목</option><option>도어트림</option><option>콘솔어퍼</option><option>프론트 범퍼</option><option>라디에이터 그릴</option></select>
-  <select id="fProc" onchange="render()"><option value="">전체 공정</option><option>수입검사</option><option>사출</option><option>도장</option><option>조립</option><option>최종검사</option></select>
-  <input id="fKw" placeholder="검사기준 코드·항목명 검색" oninput="render()" style="width:280px;">
+  <select id="fItem" onchange="render()"><option value="">All Items</option><option>Door Trim</option><option>Console Upper</option><option>Front Bumper</option><option>Radiator Grille</option></select>
+  <select id="fProc" onchange="render()"><option value="">All Processes</option><option>Incoming Inspection</option><option>Injection</option><option>Paint</option><option>Assembly</option><option>Final Inspection</option></select>
+  <input id="fKw" placeholder="Search by Standard Code or Item" oninput="render()" style="width:280px;">
 </div>
 <div class="body">
   <div class="col">
     <div class="list">
-      <div class="list-h">📋 검사 기준 목록 <span class="b" id="cnt">10건</span></div>
+      <div class="list-h">📋 Inspection Standards <span class="b" id="cnt">10</span></div>
       <div class="list-body" id="stdList"></div>
     </div>
   </div>
@@ -89,50 +89,50 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 <div class="toasts" id="toasts"></div>
 <script>
 var STDS=[
- {id:'IS-TRIM-LH-01',item:'도어트림 LH',code:'TRIM-LH-001',proc:'최종검사',ver:'V2.3',by:'한지원',upd:'2026-04-12',sample:'5/240 (AQL 2.5)',cnt:5,
+ {id:'IS-TRIM-LH-01',item:'Door Trim LH',code:'TRIM-LH-001',proc:'Final Inspection',ver:'V2.3',by:'Sarah Williams',upd:'04/12/2026',sample:'5/240 (AQL 2.5)',cnt:5,
   crit:[
-    {nm:'전장 치수',type:'치수',ds:'전체 길이 측정 (mm) — 도면 기준 ±2',range:'1198 ~ 1202'},
-    {nm:'표면 스크래치',type:'외관',ds:'육안 검사 — 무결점, 0.3mm 이상 결함 불합격',range:'무결점'},
-    {nm:'클립 체결력',type:'기능',ds:'토크 게이지로 측정 (N) — 8개 클립 평균',range:'40 ~ 55 N'},
-    {nm:'두께 측정',type:'치수',ds:'8개 지점 측정 — 평균 ±1mm 이내',range:'20 ±1 mm'},
-    {nm:'색상 일치',type:'외관',ds:'표준 색상과 비교 — ΔE 기준',range:'ΔE ≤ 1.0'}
+    {nm:'Overall Length',type:'Dim',ds:'Total length measurement (mm) — drawing ±2',range:'1198 ~ 1202'},
+    {nm:'Surface Scratch',type:'Visual',ds:'Visual inspection — No defects; ≥0.3mm fails',range:'No defects'},
+    {nm:'Clip Retention',type:'Function',ds:'Torque gauge measurement (N) — 8 clips mean',range:'40 ~ 55 N'},
+    {nm:'Thickness',type:'Dim',ds:'8-point measurement — mean within ±1mm',range:'20 ±1 mm'},
+    {nm:'Color Match',type:'Visual',ds:'Compare to color standard — dE',range:'dE ≤ 1.0'}
   ]},
- {id:'IS-CONS-01',item:'콘솔어퍼',code:'CONS-UP-001',proc:'조립',ver:'V1.8',by:'박품질',upd:'2026-03-22',sample:'3/EA',cnt:4,
+ {id:'IS-CONS-01',item:'Console Upper',code:'CONS-UP-001',proc:'Assembly',ver:'V1.8',by:'Karen Lee',upd:'03/22/2026',sample:'3/EA',cnt:4,
   crit:[
-    {nm:'장착 형상',type:'치수',ds:'마운팅 홀 위치 확인',range:'기준 ±0.5mm'},
-    {nm:'클립 체결',type:'기능',ds:'4개 클립 전수 체결력 측정',range:'40 ~ 55 N'},
-    {nm:'표면 스크래치',type:'외관',ds:'육안 검사',range:'무결점'},
-    {nm:'색상 일치',type:'외관',ds:'표준 색상과 비교',range:'ΔE ≤ 1.0'}
+    {nm:'Mounting Geometry',type:'Dim',ds:'Mounting hole position check',range:'Drawing ±0.5mm'},
+    {nm:'Clip Engagement',type:'Function',ds:'4 clips 100% retention force',range:'40 ~ 55 N'},
+    {nm:'Surface Scratch',type:'Visual',ds:'Visual inspection',range:'No defects'},
+    {nm:'Color Match',type:'Visual',ds:'Compare to color standard',range:'dE ≤ 1.0'}
   ]},
- {id:'IS-BUMPER-01',item:'프론트 범퍼',code:'BUMPER-01',proc:'최종검사',ver:'V3.1',by:'한지원',upd:'2026-04-28',sample:'5/EA',cnt:6,
+ {id:'IS-BUMPER-01',item:'Front Bumper',code:'BUMPER-01',proc:'Final Inspection',ver:'V3.1',by:'Sarah Williams',upd:'04/28/2026',sample:'5/EA',cnt:6,
   crit:[
-    {nm:'전장 치수',type:'치수',ds:'전체 길이 측정',range:'1580 ±3 mm'},
-    {nm:'센서 마운트 위치',type:'치수',ds:'4개 센서 마운트 위치',range:'기준 ±0.5mm'},
-    {nm:'도막 두께',type:'측정',ds:'10개 지점 측정 평균',range:'25 ±5 ㎛'},
-    {nm:'색상 ΔE',type:'외관',ds:'표준 색상 대비',range:'ΔE ≤ 1.0'},
-    {nm:'오렌지 필',type:'외관',ds:'육안 등급 평가',range:'Grade A'},
-    {nm:'기능 작동',type:'기능',ds:'센서 작동 확인',range:'정상 작동'}
+    {nm:'Overall Length',type:'Dim',ds:'Total length measurement',range:'1580 ±3 mm'},
+    {nm:'Sensor Mount Pos',type:'Dim',ds:'4 sensor mount positions',range:'Drawing ±0.5mm'},
+    {nm:'Paint Thickness',type:'Measurement',ds:'10-point measurement mean',range:'25 ±5 ㎛'},
+    {nm:'Color dE',type:'Visual',ds:'Compared to color standard',range:'dE ≤ 1.0'},
+    {nm:'Orange Peel',type:'Visual',ds:'Visual grade rating',range:'Grade A'},
+    {nm:'Function Test',type:'Function',ds:'Sensor operation check',range:'Normal operation'}
   ]},
- {id:'IS-GRILLE-01',item:'라디에이터 그릴',code:'GRILLE-02',proc:'도장',ver:'V2.0',by:'서민재',upd:'2026-05-08',sample:'5/24',cnt:4,
+ {id:'IS-GRILLE-01',item:'Radiator Grille',code:'GRILLE-02',proc:'Paint',ver:'V2.0',by:'Linda Garcia',upd:'05/08/2026',sample:'5/24',cnt:4,
   crit:[
-    {nm:'크롬 광택도',type:'측정',ds:'광택계 측정',range:'≥ 85 GU'},
-    {nm:'크롬 박리',type:'외관',ds:'육안 검사',range:'무결점'},
-    {nm:'치수 확인',type:'치수',ds:'전장·폭 측정',range:'도면 ±2 mm'},
-    {nm:'색상 일치',type:'외관',ds:'블랙 크롬 표준 대비',range:'ΔE ≤ 1.2'}
+    {nm:'Chrome Gloss',type:'Measurement',ds:'Gloss meter measurement',range:'≥ 85 GU'},
+    {nm:'Chrome Delamination',type:'Visual',ds:'Visual inspection',range:'No defects'},
+    {nm:'Dimensions',type:'Dim',ds:'Length / width measurement',range:'Drawing ±2 mm'},
+    {nm:'Color Match',type:'Visual',ds:'Compare to black chrome standard',range:'dE ≤ 1.2'}
   ]},
- {id:'IS-MOLD-01',item:'사이드 몰딩',code:'MOLDING-05',proc:'사출',ver:'V1.5',by:'박품질',upd:'2026-02-15',sample:'3/시간',cnt:3,
+ {id:'IS-MOLD-01',item:'Side Molding',code:'MOLDING-05',proc:'Injection',ver:'V1.5',by:'Karen Lee',upd:'02/15/2026',sample:'3/hour',cnt:3,
   crit:[
-    {nm:'전장 치수',type:'치수',ds:'전체 길이',range:'980 ±1 mm'},
-    {nm:'두께',type:'치수',ds:'두께 측정',range:'22 ±0.5 mm'},
-    {nm:'표면 외관',type:'외관',ds:'육안 검사',range:'무결점'}
+    {nm:'Overall Length',type:'Dim',ds:'Total length',range:'980 ±1 mm'},
+    {nm:'Thickness',type:'Dim',ds:'Thickness measurement',range:'22 ±0.5 mm'},
+    {nm:'Surface Appearance',type:'Visual',ds:'Visual inspection',range:'No defects'}
   ]},
- {id:'IS-PP-01',item:'PP 수지',code:'RM-PP-BLK',proc:'수입검사',ver:'V2.2',by:'서민재',upd:'2026-04-30',sample:'5/200',cnt:5,
+ {id:'IS-PP-01',item:'PP Resin',code:'RM-PP-BLK',proc:'Incoming Inspection',ver:'V2.2',by:'Linda Garcia',upd:'04/30/2026',sample:'5/200',cnt:5,
   crit:[
-    {nm:'외관',type:'외관',ds:'색상·이물 육안',range:'무결점'},
-    {nm:'용융지수 MI',type:'측정',ds:'표준 ASTM D1238',range:'10 ~ 14 g/10min'},
-    {nm:'수분 함량',type:'측정',ds:'Karl Fischer',range:'≤ 0.10%'},
-    {nm:'인장강도',type:'측정',ds:'ASTM D638',range:'≥ 28 MPa'},
-    {nm:'포장 상태',type:'외관',ds:'파손·라벨',range:'정상'}
+    {nm:'Visual',type:'Visual',ds:'Color / foreign matter visual',range:'No defects'},
+    {nm:'Melt Index (MI)',type:'Measurement',ds:'Standard ASTM D1238',range:'10 ~ 14 g/10min'},
+    {nm:'Moisture',type:'Measurement',ds:'Karl Fischer',range:'≤ 0.10%'},
+    {nm:'Tensile Strength',type:'Measurement',ds:'ASTM D638',range:'≥ 28 MPa'},
+    {nm:'Packaging',type:'Visual',ds:'Damage / label',range:'OK'}
   ]}
 ];
 var sel=0;
@@ -144,13 +144,13 @@ function render(){
     if(kw&&(s.id.toLowerCase().indexOf(kw)<0&&s.item.toLowerCase().indexOf(kw)<0))return false;
     return true;
   });
-  document.getElementById('cnt').textContent=filt.length+'건';
+  document.getElementById('cnt').textContent=filt.length;
   document.getElementById('stdList').innerHTML=filt.map(function(s){
     var i=STDS.indexOf(s);
     return '<div class="std-r'+(i===sel?' sel':'')+'" onclick="pick('+i+')">'+
       '<div class="h"><span class="id">'+s.id+'</span><span class="ver">'+s.ver+'</span></div>'+
       '<div class="nm">'+s.item+' · '+s.proc+'</div>'+
-      '<div class="meta">검사항목 '+s.cnt+'개 · 작성 '+s.by+' · '+s.upd+'</div></div>';
+      '<div class="meta">'+s.cnt+' items · By '+s.by+' · '+s.upd+'</div></div>';
   }).join('');
   if(filt.length&&!filt.find(function(s){return STDS.indexOf(s)===sel;}))sel=STDS.indexOf(filt[0]);
   renderDetail();
@@ -158,30 +158,30 @@ function render(){
 function pick(i){sel=i;render();}
 function renderDetail(){
   var s=STDS[sel];if(!s)return;
-  var typeColor={'치수':'#fbbf24','외관':'#8b5cf6','기능':'#22c55e','측정':'#0891b2'};
+  var typeColor={'Dim':'#fbbf24','Visual':'#8b5cf6','Function':'#22c55e','Measurement':'#0891b2'};
   document.getElementById('detail').innerHTML=
-    '<h2>'+s.item+' 검사 기준</h2>'+
-    '<div class="item-code">'+s.id+' / 품목 '+s.code+'</div>'+
+    '<h2>'+s.item+' Inspection Standard</h2>'+
+    '<div class="item-code">'+s.id+' / Item '+s.code+'</div>'+
     '<div class="meta-r">'+
-    '<div class="m"><div class="ml">버전</div><div class="mv">'+s.ver+'</div></div>'+
-    '<div class="m"><div class="ml">적용 공정</div><div class="mv">'+s.proc+'</div></div>'+
-    '<div class="m"><div class="ml">샘플 크기</div><div class="mv">'+s.sample+'</div></div>'+
-    '<div class="m"><div class="ml">최근 개정</div><div class="mv">'+s.upd+'</div></div></div>'+
-    '<div class="criteria"><h3>📐 검사 항목 ('+s.crit.length+'개)</h3>'+
+    '<div class="m"><div class="ml">VERSION</div><div class="mv">'+s.ver+'</div></div>'+
+    '<div class="m"><div class="ml">PROCESS</div><div class="mv">'+s.proc+'</div></div>'+
+    '<div class="m"><div class="ml">SAMPLE SIZE</div><div class="mv">'+s.sample+'</div></div>'+
+    '<div class="m"><div class="ml">LAST REVISED</div><div class="mv">'+s.upd+'</div></div></div>'+
+    '<div class="criteria"><h3>📐 Inspection Items ('+s.crit.length+')</h3>'+
     s.crit.map(function(c){
       return '<div class="crit-row" style="--c:'+typeColor[c.type]+'">'+
         '<div class="ch"><span class="cn">'+c.nm+'</span><span class="ct">'+c.type+'</span></div>'+
-        '<div class="cd">'+c.ds+' · <span class="crange">규격: '+c.range+'</span></div></div>';
+        '<div class="cd">'+c.ds+' · <span class="crange">Spec: '+c.range+'</span></div></div>';
     }).join('')+'</div>'+
     '<div class="actions">'+
-    '<button onclick="prn()">🖨 인쇄</button>'+
-    '<button onclick="rev()">📝 개정 요청</button>'+
-    '<button class="pri" onclick="apply()">▶ 검사 화면으로 적용</button></div>';
+    '<button onclick="prn()">🖨 Print</button>'+
+    '<button onclick="rev()">📝 Request Revision</button>'+
+    '<button class="pri" onclick="apply()">▶ Apply to Inspection Screen</button></div>';
 }
-function prn(){toast('','인쇄','검사 기준서 PDF를 인쇄합니다. (데모)');}
-function rev(){toast('','개정 요청','검사 기준 개정 워크플로를 시작합니다. (데모)');}
-function apply(){toast('','검사 적용',STDS[sel].id+' 기준이 다음 검사 화면에 적용됩니다.');}
-function back(){toast('','뒤로 이동','대시보드로 돌아갑니다.');}
+function prn(){toast('','Print','Printing inspection standard PDF. (Demo)');}
+function rev(){toast('','Revision Request','Starting standard revision workflow. (Demo)');}
+function apply(){toast('','Standard Applied',STDS[sel].id+' applied to the next inspection screen.');}
+function back(){toast('','Back','Returning to Dashboard.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">• '+title+'</div><div class="tb">'+body+'</div>';

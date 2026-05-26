@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PNT-02 LOT Pre-Issue · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--sc:#ea580c;--sc-dk:#c2410c;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
 .head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
 .head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#fb923c;}
 .head .tt{flex:1;}
@@ -69,59 +69,59 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 </head>
 <body>
 <div class="head">
-  <button class="back" onclick="back()">‹ 대시보드</button>
+  <button class="back" onclick="back()">‹ Dashboard</button>
   <div class="id">PNT-02</div>
-  <div class="tt"><div class="en">LOT Pre-Issue</div><div class="ko">가상 LOT 사전발행 — 도장 추적용 LOT 코드 사전 채번</div></div>
+  <div class="tt"><div class="en">LOT Pre-Issue</div><div class="ko">Virtual LOT Pre-Issue — Pre-Assign LOT Code for Paint Traceability</div></div>
   <span class="live"><span class="d"></span>LIVE</span>
 </div>
 <div class="body">
   <div class="col">
     <div class="card">
-      <h3>🆕 신규 LOT 발행 · NEW LOT</h3>
-      <div class="fld"><label>작업지시 · Work Order</label>
+      <h3>🆕 New LOT Issue · NEW LOT</h3>
+      <div class="fld"><label>Work Order</label>
         <select id="wo" onchange="refresh()">
-          <option value="WO-2605-125|GRILLE-02|라디에이터 그릴|320">WO-2605-125 · 그릴 도장 · 320 EA</option>
-          <option value="WO-2605-132|BUMPER-01|프론트 범퍼|280">WO-2605-132 · 프론트 범퍼 · 280 EA</option>
-          <option value="WO-2605-140|MOLDING-05|사이드 몰딩|420">WO-2605-140 · 사이드 몰딩 · 420 EA</option>
+          <option value="WO-2605-125|GRILLE-02|Radiator Grille|320">WO-2605-125 · Grille Paint · 320 EA</option>
+          <option value="WO-2605-132|BUMPER-01|Front Bumper|280">WO-2605-132 · Front Bumper · 280 EA</option>
+          <option value="WO-2605-140|MOLDING-05|Side Molding|420">WO-2605-140 · Side Molding · 420 EA</option>
         </select></div>
-      <div class="fld"><label>색상 · Color</label>
+      <div class="fld"><label>Color</label>
         <div class="color-row" id="colorRow">
-          <div class="cb on" data-c="블랙" data-hex="#0A0A0A" onclick="pickC(this)"><div class="sw" style="background:#0A0A0A"></div><div class="n">블랙</div></div>
-          <div class="cb" data-c="그레이" data-hex="#8D948D" onclick="pickC(this)"><div class="sw" style="background:#8D948D"></div><div class="n">그레이</div></div>
-          <div class="cb" data-c="화이트" data-hex="#F4F4F4" onclick="pickC(this)"><div class="sw" style="background:#F4F4F4;border:1px solid #555;"></div><div class="n">화이트</div></div>
-          <div class="cb" data-c="레드" data-hex="#CC0605" onclick="pickC(this)"><div class="sw" style="background:#CC0605"></div><div class="n">레드</div></div>
-          <div class="cb" data-c="블루" data-hex="#0E294B" onclick="pickC(this)"><div class="sw" style="background:#0E294B"></div><div class="n">블루</div></div>
-          <div class="cb" data-c="실버" data-hex="#A5A5A5" onclick="pickC(this)"><div class="sw" style="background:#A5A5A5"></div><div class="n">실버</div></div>
+          <div class="cb on" data-c="Black" data-hex="#0A0A0A" onclick="pickC(this)"><div class="sw" style="background:#0A0A0A"></div><div class="n">Black</div></div>
+          <div class="cb" data-c="Gray" data-hex="#8D948D" onclick="pickC(this)"><div class="sw" style="background:#8D948D"></div><div class="n">Gray</div></div>
+          <div class="cb" data-c="White" data-hex="#F4F4F4" onclick="pickC(this)"><div class="sw" style="background:#F4F4F4;border:1px solid #555;"></div><div class="n">White</div></div>
+          <div class="cb" data-c="Red" data-hex="#CC0605" onclick="pickC(this)"><div class="sw" style="background:#CC0605"></div><div class="n">Red</div></div>
+          <div class="cb" data-c="Blue" data-hex="#0E294B" onclick="pickC(this)"><div class="sw" style="background:#0E294B"></div><div class="n">Blue</div></div>
+          <div class="cb" data-c="Silver" data-hex="#A5A5A5" onclick="pickC(this)"><div class="sw" style="background:#A5A5A5"></div><div class="n">Silver</div></div>
         </div></div>
       <div class="fld" style="display:flex;gap:11px;">
-        <div style="flex:1;"><label>수량 · QTY (EA)</label><input type="number" id="qty" value="48" min="1" oninput="refresh()"></div>
-        <div style="flex:1;"><label>행거 수 · Hangers</label><input type="number" id="hg" value="8" min="1" oninput="refresh()"></div>
+        <div style="flex:1;"><label>QTY (EA)</label><input type="number" id="qty" value="48" min="1" oninput="refresh()"></div>
+        <div style="flex:1;"><label>Hangers</label><input type="number" id="hg" value="8" min="1" oninput="refresh()"></div>
       </div>
     </div>
     <div class="preview-lot">
-      <div class="lbl">▼ 발행 예정 LOT 번호</div>
+      <div class="lbl">▼ LOT Number To Be Issued</div>
       <div class="lot" id="prevLot">--</div>
-      <div class="meta" id="prevMeta">색상 선택 후 자동 채번</div>
+      <div class="meta" id="prevMeta">Auto-numbered after color selection</div>
     </div>
     <div class="actions">
-      <button class="btn-print" onclick="printL()">🖨 미리보기</button>
-      <button class="btn-issue" onclick="issue()">▶ LOT 발행</button>
+      <button class="btn-print" onclick="printL()">🖨 Preview</button>
+      <button class="btn-issue" onclick="issue()">▶ Issue LOT</button>
     </div>
   </div>
   <div class="col">
     <div class="lot-list">
-      <h3>📋 발행된 LOT 목록 (대기) <span class="b" id="cnt">0개</span></h3>
+      <h3>📋 Issued LOTs (Queue) <span class="b" id="cnt">0</span></h3>
       <div class="list-body" id="lotList"></div>
     </div>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 <script>
-var COLORMAP={'블랙':'#0A0A0A','그레이':'#8D948D','화이트':'#F4F4F4','레드':'#CC0605','블루':'#0E294B','실버':'#A5A5A5'};
-var COLORSEL='블랙',HEX='#0A0A0A',seq=2107;
+var COLORMAP={'Black':'#0A0A0A','Gray':'#8D948D','White':'#F4F4F4','Red':'#CC0605','Blue':'#0E294B','Silver':'#A5A5A5'};
+var COLORSEL='Black',HEX='#0A0A0A',seq=2107;
 var LOTS=[
- {id:'LOT-2605-2105',wo:'WO-2605-125',item:'라디에이터 그릴',color:'그레이',qty:32,hg:8,stage:'발행됨',t:'09:08'},
- {id:'LOT-2605-2106',wo:'WO-2605-140',item:'사이드 몰딩',color:'블랙',qty:60,hg:12,stage:'발행됨',t:'09:12'}
+ {id:'LOT-2605-2105',wo:'WO-2605-125',item:'Radiator Grille',color:'Gray',qty:32,hg:8,stage:'ISSUED',t:'09:08'},
+ {id:'LOT-2605-2106',wo:'WO-2605-140',item:'Side Molding',color:'Black',qty:60,hg:12,stage:'ISSUED',t:'09:12'}
 ];
 function pickC(el){
   [].slice.call(document.querySelectorAll('.cb')).forEach(function(x){x.classList.remove('on');});
@@ -136,33 +136,33 @@ function refresh(){
   var w=woData(),q=parseInt(document.getElementById('qty').value||'0',10),h=parseInt(document.getElementById('hg').value||'0',10);
   var lot='LOT-2605-'+String(seq).padStart(4,'0');
   document.getElementById('prevLot').textContent=lot;
-  document.getElementById('prevMeta').innerHTML='<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+HEX+';vertical-align:middle;border:1px solid #666;"></span> '+COLORSEL+' · '+q+' EA · 행거 '+h+'개 · '+w.nm;
+  document.getElementById('prevMeta').innerHTML='<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+HEX+';vertical-align:middle;border:1px solid #666;"></span> '+COLORSEL+' · '+q+' EA · '+h+' Hangers · '+w.nm;
 }
 function issue(){
   var w=woData(),q=parseInt(document.getElementById('qty').value||'0',10),h=parseInt(document.getElementById('hg').value||'0',10);
-  if(!q){toast('','입력 오류','수량을 확인하세요.');return;}
+  if(!q){toast('','Input Error','Please check the quantity.');return;}
   var lot='LOT-2605-'+String(seq).padStart(4,'0');
-  LOTS.unshift({id:lot,wo:w.wo,item:w.nm,color:COLORSEL,qty:q,hg:h,stage:'발행됨',t:new Date().toTimeString().slice(0,5)});
+  LOTS.unshift({id:lot,wo:w.wo,item:w.nm,color:COLORSEL,qty:q,hg:h,stage:'ISSUED',t:new Date().toTimeString().slice(0,5)});
   seq++;refresh();renderLots();
-  toast('ok','LOT 발행 완료 ✓',lot+' 「'+w.nm+' · '+COLORSEL+' · '+q+' EA」 사전 발행됨. PNT-03 로딩 화면에서 사용 가능.');
+  toast('ok','LOT Issued ✓',lot+' "'+w.nm+' · '+COLORSEL+' · '+q+' EA" pre-issued. Available on PNT-03 Loading screen.');
 }
-function printL(){toast('info','LOT 라벨 미리보기','발행 예정 LOT의 라벨을 미리 표시합니다. (데모)');}
+function printL(){toast('info','LOT Label Preview','Showing label preview for the pending LOT. (Demo)');}
 function renderLots(){
-  document.getElementById('cnt').textContent=LOTS.length+'개';
+  document.getElementById('cnt').textContent=LOTS.length;
   document.getElementById('lotList').innerHTML=LOTS.map(function(l,i){
     return '<div class="lit" style="--c:'+(COLORMAP[l.color]||'#888')+'">'+
       '<div class="sw" style="background:'+(COLORMAP[l.color]||'#888')+'"></div>'+
       '<div class="info"><div class="lid">'+l.id+'</div>'+
       '<div class="item">'+l.item+' · '+l.color+'</div>'+
-      '<div class="meta">'+l.wo+' · '+l.qty+' EA · 행거 '+l.hg+'개 · 발행 '+l.t+'</div>'+
-      '<div class="act"><button onclick="reprint('+i+')">🖨 라벨 재인쇄</button>'+
-      '<button onclick="cancel('+i+')">✕ 취소</button></div></div>'+
+      '<div class="meta">'+l.wo+' · '+l.qty+' EA · '+l.hg+' Hangers · Issued '+l.t+'</div>'+
+      '<div class="act"><button onclick="reprint('+i+')">🖨 Reprint Label</button>'+
+      '<button onclick="cancel('+i+')">✕ Cancel</button></div></div>'+
       '<span class="stg">'+l.stage+'</span></div>';
-  }).join('')||'<div style="text-align:center;color:#a8997f;padding:24px;font-size:12px;">발행된 LOT가 없습니다.</div>';
+  }).join('')||'<div style="text-align:center;color:#a8997f;padding:24px;font-size:12px;">No issued LOTs.</div>';
 }
-function reprint(i){toast('','라벨 재인쇄',LOTS[i].id+' 라벨을 재인쇄합니다. (데모)');}
-function cancel(i){var lot=LOTS[i].id;LOTS.splice(i,1);renderLots();toast('','LOT 취소',lot+' 발행 취소됨.');}
-function back(){toast('','뒤로 이동','POP 대시보드로 돌아갑니다.');}
+function reprint(i){toast('','Reprint Label','Reprinting label for '+LOTS[i].id+'. (Demo)');}
+function cancel(i){var lot=LOTS[i].id;LOTS.splice(i,1);renderLots();toast('','LOT Cancelled',lot+' issuance cancelled.');}
+function back(){toast('','Back','Returning to POP Dashboard.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='info'?'ℹ ':type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';

@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>MD-03 BOM Version · A-MES Demo</title>
+<title>MD-04 BOP Routing · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#d97706;--pp-dk:#b45309;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#2b1a02,#3d2606);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fbbf24;line-height:.9;}
 .sh-tt{flex:1;}
@@ -77,8 +77,8 @@ tbody tr.sel td{background:#fef3c7;}
 </head>
 <body>
 <div class="scr-head">
-  <div class="sh-id" id="shId">MD-03</div>
-  <div class="sh-tt"><div class="sh-en" id="shEn">BOM Version</div><div class="sh-ko" id="shKo"></div></div>
+  <div class="sh-id" id="shId">MD-04</div>
+  <div class="sh-tt"><div class="sh-en" id="shEn">BOP Routing</div><div class="sh-ko" id="shKo"></div></div>
   <span class="sh-tag" id="shTag"></span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
@@ -87,20 +87,20 @@ tbody tr.sel td{background:#fef3c7;}
   <div class="kpis" id="kpis"></div>
   <div class="grid2">
     <div class="card">
-      <div class="card-t" id="listT">목록</div>
+      <div class="card-t" id="listT">List</div>
       <table><thead><tr id="thr"></tr></thead><tbody id="tbody"></tbody></table>
-      <div class="empty" id="empty" style="display:none;">조건에 맞는 데이터가 없습니다.</div>
+      <div class="empty" id="empty" style="display:none;">No matching data found.</div>
     </div>
-    <div class="card" id="detail"><div class="empty">← 좌측 목록에서 항목을 선택하세요.</div></div>
+    <div class="card" id="detail"><div class="empty">← Select an item from the list on the left.</div></div>
   </div>
 </div>
 <div class="ov" id="ovEd">
   <div class="modal">
-    <div class="modal-h"><span class="mt" id="emTitle">등록</span><span class="mx" onclick="closeOv('ovEd')">✕</span></div>
+    <div class="modal-h"><span class="mt" id="emTitle">Add</span><span class="mx" onclick="closeOv('ovEd')">✕</span></div>
     <div class="modal-b" id="emBody"></div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovEd')">취소</button>
-      <button class="btn btn-p" id="emSave" onclick="saveRec()">＋ 등록</button>
+      <button class="btn btn-s" onclick="closeOv('ovEd')">Cancel</button>
+      <button class="btn btn-p" id="emSave" onclick="saveRec()">＋ Add</button>
     </div>
   </div>
 </div>
@@ -109,49 +109,49 @@ tbody tr.sel td{background:#fef3c7;}
 <script>
 /* ===== ENTITY CONFIG ===== */
 var CFG={
-  id:'MD-04',en:'BOP Routing',ko:'공정경로 — 제품별 공정 순서·표준시간',tag:'/md/bop',
-  idKey:'code',entity:'공정 경로',
-  filters:[{k:'product',label:'대상 제품'},{k:'status',label:'상태'}],
+  id:'MD-04',en:'BOP Routing',ko:'BOP Routing — Operation Sequence & Standard Time by Product',tag:'/md/bop',
+  idKey:'code',entity:'Routing',
+  filters:[{k:'product',label:'Target Product'},{k:'status',label:'Status'}],
   search:['code','opName'],
   cols:[
-    {k:'code',label:'공정 코드',mono:true,bold:true},
-    {k:'product',label:'대상 제품'},
-    {k:'seq',label:'순서',mono:true},
-    {k:'opName',label:'공정명'},
-    {k:'wc',label:'작업장'},
-    {k:'status',label:'상태',badge:{'사용':'b0','중단':'b2'}}
+    {k:'code',label:'Operation Code',mono:true,bold:true},
+    {k:'product',label:'Target Product'},
+    {k:'seq',label:'Sequence',mono:true},
+    {k:'opName',label:'Operation Name'},
+    {k:'wc',label:'Work Center'},
+    {k:'status',label:'Status',badge:{'Active':'b0','Discontinued':'b2'}}
   ],
   fields:[
-    {k:'code',label:'공정 코드',type:'text',req:true,uniq:true,ph:'OP-TRIM-LH-10'},
-    {k:'product',label:'대상 제품',type:'text',req:true,ph:'도어트림 LH'},
-    {k:'seq',label:'공정 순서',type:'number',req:true},
-    {k:'opName',label:'공정명',type:'text',req:true,ph:'사출 성형'},
-    {k:'wc',label:'작업장',type:'select',opts:['사출 1라인','사출 2라인','조립 1라인','도장 1라인','검사실']},
-    {k:'cycle',label:'표준 C/T (초)',type:'number',req:true},
-    {k:'setup',label:'준비 시간 (분)',type:'number'},
-    {k:'inspect',label:'검사 공정 여부',type:'select',opts:['N','Y']},
-    {k:'status',label:'상태',type:'select',opts:['사용','중단']}
+    {k:'code',label:'Operation Code',type:'text',req:true,uniq:true,ph:'OP-TRIM-LH-10'},
+    {k:'product',label:'Target Product',type:'text',req:true,ph:'Door Trim LH'},
+    {k:'seq',label:'Operation Sequence',type:'number',req:true},
+    {k:'opName',label:'Operation Name',type:'text',req:true,ph:'Injection Molding'},
+    {k:'wc',label:'Work Center',type:'select',opts:['Injection Line 1','Injection Line 2','Assembly Line 1','Paint Line 1','Inspection Lab']},
+    {k:'cycle',label:'Standard C/T (sec)',type:'number',req:true},
+    {k:'setup',label:'Setup Time (min)',type:'number'},
+    {k:'inspect',label:'Inspection Op',type:'select',opts:['N','Y']},
+    {k:'status',label:'Status',type:'select',opts:['Active','Discontinued']}
   ],
   kpis:[
-    {label:'총 공정 단계',c:'#d97706',calc:function(d){return d.length;}},
-    {label:'사용 공정 · Active',c:'#16a34a',calc:function(d){return d.filter(function(r){return r.status==='사용';}).length;}},
-    {label:'평균 C/T · 초',c:'#2563eb',calc:function(d){var a=d.filter(function(r){return r.status==='사용';});return a.length?Math.round(a.reduce(function(s,r){return s+ (+r.cycle||0);},0)/a.length):0;}},
-    {label:'등록 제품 수',c:'#8b5cf6',calc:function(d){var p=[];d.forEach(function(r){if(p.indexOf(r.product)<0)p.push(r.product);});return p.length;}}
+    {label:'Total Operations',c:'#d97706',calc:function(d){return d.length;}},
+    {label:'Active Operations',c:'#16a34a',calc:function(d){return d.filter(function(r){return r.status==='Active';}).length;}},
+    {label:'Avg C/T (sec)',c:'#2563eb',calc:function(d){var a=d.filter(function(r){return r.status==='Active';});return a.length?Math.round(a.reduce(function(s,r){return s+ (+r.cycle||0);},0)/a.length):0;}},
+    {label:'Products Routed',c:'#8b5cf6',calc:function(d){var p=[];d.forEach(function(r){if(p.indexOf(r.product)<0)p.push(r.product);});return p.length;}}
   ],
   data:[
-    {code:'OP-TRIM-LH-10',product:'도어트림 LH',seq:10,opName:'사출 성형',wc:'사출 1라인',cycle:48,setup:30,inspect:'N',status:'사용'},
-    {code:'OP-TRIM-LH-20',product:'도어트림 LH',seq:20,opName:'트리밍·게이트 제거',wc:'사출 1라인',cycle:22,setup:5,inspect:'N',status:'사용'},
-    {code:'OP-TRIM-LH-30',product:'도어트림 LH',seq:30,opName:'표면 도장',wc:'도장 1라인',cycle:65,setup:20,inspect:'N',status:'사용'},
-    {code:'OP-TRIM-LH-40',product:'도어트림 LH',seq:40,opName:'클립·펠트 조립',wc:'조립 1라인',cycle:54,setup:10,inspect:'N',status:'사용'},
-    {code:'OP-TRIM-LH-50',product:'도어트림 LH',seq:50,opName:'최종 검사',wc:'검사실',cycle:30,setup:0,inspect:'Y',status:'사용'},
-    {code:'OP-CONS-10',product:'콘솔어퍼',seq:10,opName:'사출 성형',wc:'사출 2라인',cycle:52,setup:35,inspect:'N',status:'사용'},
-    {code:'OP-CONS-20',product:'콘솔어퍼',seq:20,opName:'표면 도장',wc:'도장 1라인',cycle:60,setup:20,inspect:'N',status:'사용'},
-    {code:'OP-CONS-30',product:'콘솔어퍼',seq:30,opName:'조립',wc:'조립 1라인',cycle:48,setup:10,inspect:'N',status:'사용'},
-    {code:'OP-CONS-40',product:'콘솔어퍼',seq:40,opName:'기능 검사',wc:'검사실',cycle:28,setup:0,inspect:'Y',status:'사용'},
-    {code:'OP-BUMPER-10',product:'프론트 범퍼',seq:10,opName:'사출 성형',wc:'사출 2라인',cycle:88,setup:40,inspect:'N',status:'사용'},
-    {code:'OP-BUMPER-20',product:'프론트 범퍼',seq:20,opName:'2K 도장',wc:'도장 1라인',cycle:120,setup:25,inspect:'N',status:'사용'},
-    {code:'OP-BUMPER-30',product:'프론트 범퍼',seq:30,opName:'센서·브라켓 조립',wc:'조립 1라인',cycle:75,setup:15,inspect:'N',status:'사용'},
-    {code:'OP-BUMPER-99',product:'프론트 범퍼',seq:99,opName:'(구) 수동 검사',wc:'검사실',cycle:45,setup:0,inspect:'Y',status:'중단'}
+    {code:'OP-TRIM-LH-10',product:'Door Trim LH',seq:10,opName:'Injection Molding',wc:'Injection Line 1',cycle:48,setup:30,inspect:'N',status:'Active'},
+    {code:'OP-TRIM-LH-20',product:'Door Trim LH',seq:20,opName:'Trim / Gate Cut',wc:'Injection Line 1',cycle:22,setup:5,inspect:'N',status:'Active'},
+    {code:'OP-TRIM-LH-30',product:'Door Trim LH',seq:30,opName:'Surface Painting',wc:'Paint Line 1',cycle:65,setup:20,inspect:'N',status:'Active'},
+    {code:'OP-TRIM-LH-40',product:'Door Trim LH',seq:40,opName:'Clip & Felt Assembly',wc:'Assembly Line 1',cycle:54,setup:10,inspect:'N',status:'Active'},
+    {code:'OP-TRIM-LH-50',product:'Door Trim LH',seq:50,opName:'Final Inspection',wc:'Inspection Lab',cycle:30,setup:0,inspect:'Y',status:'Active'},
+    {code:'OP-CONS-10',product:'Console Upper',seq:10,opName:'Injection Molding',wc:'Injection Line 2',cycle:52,setup:35,inspect:'N',status:'Active'},
+    {code:'OP-CONS-20',product:'Console Upper',seq:20,opName:'Surface Painting',wc:'Paint Line 1',cycle:60,setup:20,inspect:'N',status:'Active'},
+    {code:'OP-CONS-30',product:'Console Upper',seq:30,opName:'Assembly',wc:'Assembly Line 1',cycle:48,setup:10,inspect:'N',status:'Active'},
+    {code:'OP-CONS-40',product:'Console Upper',seq:40,opName:'Functional Inspection',wc:'Inspection Lab',cycle:28,setup:0,inspect:'Y',status:'Active'},
+    {code:'OP-BUMPER-10',product:'Front Bumper',seq:10,opName:'Injection Molding',wc:'Injection Line 2',cycle:88,setup:40,inspect:'N',status:'Active'},
+    {code:'OP-BUMPER-20',product:'Front Bumper',seq:20,opName:'2K Painting',wc:'Paint Line 1',cycle:120,setup:25,inspect:'N',status:'Active'},
+    {code:'OP-BUMPER-30',product:'Front Bumper',seq:30,opName:'Sensor / Bracket Assembly',wc:'Assembly Line 1',cycle:75,setup:15,inspect:'N',status:'Active'},
+    {code:'OP-BUMPER-99',product:'Front Bumper',seq:99,opName:'(Old) Manual Inspection',wc:'Inspection Lab',cycle:45,setup:0,inspect:'Y',status:'Discontinued'}
   ]
 };
 /* ===== GENERIC MASTER ENGINE ===== */
@@ -167,15 +167,15 @@ function init(){
   CFG.filters.forEach(function(f){
     var opts=[];DATA.forEach(function(r){if(opts.indexOf(r[f.k])<0)opts.push(r[f.k]);});
     tb+='<div class="fld"><label>'+f.label+'</label><select data-fk="'+f.k+'" onchange="render()">'+
-      '<option value="">전체 All</option>'+opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select></div>';
+      '<option value="">All</option>'+opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select></div>';
   });
-  tb+='<div class="fld"><label>검색 Search</label><input id="fKw" placeholder="코드·명칭" oninput="render()" style="width:150px;"></div>';
-  tb+='<button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>';
+  tb+='<div class="fld"><label>Search</label><input id="fKw" placeholder="Code / name" oninput="render()" style="width:150px;"></div>';
+  tb+='<button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>';
   tb+='<div style="margin-left:auto;display:flex;gap:8px;">'+
-    '<button class="btn btn-p" onclick="openNew()">＋ '+CFG.entity+' 등록</button>'+
+    '<button class="btn btn-p" onclick="openNew()">＋ Add '+CFG.entity+'</button>'+
     '<button class="btn btn-s" onclick="exportCsv()">📥 Export</button></div>';
   $('toolbar').innerHTML=tb;
-  $('listT').textContent='📋 '+CFG.entity+' 목록';
+  $('listT').textContent='📋 '+CFG.entity+' List';
   $('thr').innerHTML=CFG.cols.map(function(c){return '<th>'+c.label+'</th>';}).join('');
   render();
 }
@@ -205,7 +205,7 @@ function render(){
   });
   $('tbody').innerHTML=h;
   $('empty').style.display=v.length?'none':'block';
-  $('listT').textContent='📋 '+CFG.entity+' 목록 — '+v.length+'건';
+  $('listT').textContent='📋 '+CFG.entity+' List — '+v.length+' items';
   if(selKey&&!byKey(selKey))selKey=null;
   renderDetail();
 }
@@ -213,9 +213,9 @@ function byKey(k){return DATA.filter(function(r){return r[CFG.idKey]===k;})[0];}
 function pick(k){selKey=k;render();}
 function renderDetail(){
   var r=byKey(selKey);
-  if(!r){$('detail').innerHTML='<div class="empty">← 좌측 목록에서 항목을 선택하세요.</div>';return;}
+  if(!r){$('detail').innerHTML='<div class="empty">← Select an item from the list on the left.</div>';return;}
   var nmField=CFG.fields[1]?CFG.fields[1].k:CFG.idKey;
-  var h='<div class="card-t">📑 '+CFG.entity+' 상세</div>'+
+  var h='<div class="card-t">📑 '+CFG.entity+' Detail</div>'+
     '<div class="dt-head"><div class="dt-nm">'+(r[nmField]||r[CFG.idKey])+'</div><div class="dt-id">'+r[CFG.idKey]+'</div></div>'+
     '<div class="specs">';
   CFG.fields.forEach(function(f){
@@ -223,8 +223,8 @@ function renderDetail(){
     var v=r[f.k];if(v===''||v==null)v='—';
     h+='<div class="srow"><span class="sk">'+f.label+'</span><span class="sv">'+v+'</span></div>';
   });
-  h+='</div><div class="acts"><button class="btn btn-s btn-sm" onclick="editRec()">✎ 수정</button>'+
-    '<button class="btn btn-s btn-sm" onclick="delRec()">🗑 삭제</button></div>';
+  h+='</div><div class="acts"><button class="btn btn-s btn-sm" onclick="editRec()">✎ Edit</button>'+
+    '<button class="btn btn-s btn-sm" onclick="delRec()">🗑 Delete</button></div>';
   $('detail').innerHTML=h;
 }
 function formHtml(r){
@@ -240,31 +240,31 @@ function formHtml(r){
   }).join('');
 }
 function openNew(){
-  editKey=null;$('emTitle').textContent=CFG.entity+' 등록';$('emSave').textContent='＋ 등록';
+  editKey=null;$('emTitle').textContent='Add '+CFG.entity;$('emSave').textContent='＋ Add';
   $('emBody').innerHTML=formHtml(null);openOv('ovEd');
 }
 function editRec(){
-  editKey=selKey;$('emTitle').textContent=CFG.entity+' 수정';$('emSave').textContent='💾 저장';
+  editKey=selKey;$('emTitle').textContent='Edit '+CFG.entity;$('emSave').textContent='💾 Save';
   $('emBody').innerHTML=formHtml(byKey(selKey));openOv('ovEd');
 }
 function saveRec(){
   var o={};
   [].slice.call(document.querySelectorAll('#emBody [data-fk]')).forEach(function(el){o[el.dataset.fk]=el.value.trim?el.value.trim():el.value;});
   for(var i=0;i<CFG.fields.length;i++){var f=CFG.fields[i];
-    if(f.req&&!o[f.k]&&!(editKey&&f.uniq)){toast('err','입력 오류',f.label+'은(는) 필수 항목입니다.');return;}}
+    if(f.req&&!o[f.k]&&!(editKey&&f.uniq)){toast('err','Input Error',f.label+' is a required field.');return;}}
   if(editKey){var r=byKey(editKey);for(var k in o){if(k!==CFG.idKey)r[k]=o[k];}
-    toast('','수정 완료',CFG.entity+' 정보가 수정되었습니다.');
+    toast('','Updated',CFG.entity+' information has been updated.');
   }else{
-    if(byKey(o[CFG.idKey])){toast('err','중복 오류','이미 존재하는 코드입니다.');return;}
+    if(byKey(o[CFG.idKey])){toast('err','Duplicate Error','Code already exists.');return;}
     DATA.push(o);selKey=o[CFG.idKey];
-    toast('','등록 완료',o[CFG.idKey]+' '+CFG.entity+'이(가) 등록되었습니다.');
+    toast('','Added',o[CFG.idKey]+' '+CFG.entity+' has been added.');
   }
   closeOv('ovEd');render();
 }
 function delRec(){
   var r=byKey(selKey);var i=DATA.indexOf(r);
   if(i>=0)DATA.splice(i,1);selKey=null;render();
-  toast('info','삭제 완료',CFG.entity+' 항목이 삭제되었습니다.');
+  toast('info','Deleted',CFG.entity+' item has been deleted.');
 }
 function exportCsv(){
   var v=vis();
@@ -274,11 +274,11 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=CFG.id+'_'+CFG.en.replace(/ /g,'')+'_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료',CFG.entity+' '+v.length+'건을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+v.length+' '+CFG.entity+' items to CSV.');
 }
 function resetAll(){
   [].slice.call(document.querySelectorAll('#toolbar select')).forEach(function(s){s.value='';});
-  $('fKw').value='';render();toast('info','초기화','목록 필터를 초기화했습니다.');
+  $('fKw').value='';render();toast('info','Reset','List filters have been reset.');
 }
 function openOv(id){$(id).classList.add('on');}
 function closeOv(id){$(id).classList.remove('on');}
