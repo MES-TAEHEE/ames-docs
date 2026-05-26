@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PNT-07 Label Apply · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--sc:#ea580c;--sc-dk:#c2410c;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
+.head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
+.head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#fb923c;}
+.head .tt{flex:1;}
+.head .en{font-size:17px;font-weight:800;color:#fff;}
+.head .ko{font-size:11px;color:#a8997f;}
+.back{background:#1a1208;border:1px solid #3a2a14;color:#fdba74;font-size:13px;font-weight:700;padding:9px 16px;border-radius:7px;cursor:pointer;font-family:inherit;}
+.live{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:5px 10px;border-radius:5px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.live .d{width:7px;height:7px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.body{flex:1;display:grid;grid-template-columns:1fr 380px;gap:16px;padding:18px 24px;min-height:0;overflow:hidden;}
+.col{display:flex;flex-direction:column;gap:13px;min-height:0;}
+.lot-card{background:linear-gradient(160deg,rgba(234,88,12,.12),rgba(234,88,12,.03));border:1px solid #3a2a14;border-top:4px solid var(--sc);border-radius:11px;padding:16px 20px;}
+.lot-card .h{display:flex;align-items:center;gap:11px;margin-bottom:8px;}
+.lot-card .lbl{font-size:10px;color:#fdba74;letter-spacing:2px;font-family:'JetBrains Mono',monospace;}
+.lot-card .lid{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:900;color:#fff;}
+.lot-card .item{font-size:14px;color:#fff;margin-top:3px;display:flex;align-items:center;gap:8px;}
+.lot-card .sw{width:14px;height:14px;border-radius:3px;border:1px solid #666;}
+.lot-card .meta{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:11px;}
+.lot-card .m{background:rgba(0,0,0,.3);border:1px solid #3a2a14;border-radius:7px;padding:7px 10px;}
+.lot-card .m .ml{font-size:9px;color:#a8997f;font-family:'JetBrains Mono',monospace;}
+.lot-card .m .mv{font-size:13px;font-weight:800;color:#fff;margin-top:2px;}
+.print-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.pset{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:9px;padding:14px 16px;cursor:pointer;}
+.pset:active{transform:scale(.96);}
+.pset.on{background:rgba(234,88,12,.18);border-color:var(--sc);border-width:2px;}
+.pset .lh{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.pset .ic{font-size:24px;}
+.pset .nm{font-size:13px;font-weight:800;color:#fff;}
+.pset .ds{font-size:10px;color:#a8997f;margin-top:1px;}
+.pset .sz{font-family:'JetBrains Mono',monospace;font-size:10px;color:#fbbf24;}
+.qty-card{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:11px;padding:14px 18px;}
+.qty-card .lbl{font-size:10px;color:#fdba74;letter-spacing:2px;font-family:'JetBrains Mono',monospace;}
+.qty-r{display:flex;align-items:center;gap:14px;margin-top:9px;}
+.qty-r .ctl{display:flex;align-items:center;gap:8px;flex:1;}
+.qty-r .ctl button{width:44px;height:44px;background:#1a1208;border:1px solid #3a2a14;color:#fff;font-size:22px;font-weight:800;border-radius:8px;cursor:pointer;font-family:inherit;}
+.qty-r .ctl button:active{background:var(--sc);}
+.qty-r .ctl .val{flex:1;font-family:'JetBrains Mono',monospace;font-size:40px;font-weight:900;color:#fff;text-align:center;line-height:1;}
+.qty-r .total{text-align:right;font-size:11px;color:#a8997f;}
+.qty-r .total b{font-family:'JetBrains Mono',monospace;font-size:20px;color:#fbbf24;}
+.printer-stat{display:flex;align-items:center;gap:10px;background:rgba(34,197,94,.08);border:1px solid #16a34a;border-radius:9px;padding:11px 14px;font-size:12px;color:#86efac;}
+.printer-stat .ic{font-size:22px;}
+.actions{display:flex;gap:11px;}
+.btn-print{flex:2;padding:20px;background:linear-gradient(180deg,var(--sc),var(--sc-dk));border:none;border-radius:11px;color:#fff;font-size:18px;font-weight:800;font-family:inherit;cursor:pointer;letter-spacing:2px;box-shadow:0 4px 0 #7c2d12;}
+.btn-print:active{transform:translateY(2px);box-shadow:0 2px 0 #7c2d12;}
+.btn-preview{flex:1;padding:20px;background:#1a1208;border:1px solid #3a2a14;color:#fdba74;font-size:14px;font-weight:700;border-radius:11px;cursor:pointer;font-family:inherit;}
+.label-prev{background:#fff;color:#000;border-radius:11px;padding:18px;font-family:'JetBrains Mono',monospace;height:100%;display:flex;flex-direction:column;}
+.lp-h{font-size:10px;letter-spacing:2px;border-bottom:2px solid #000;padding-bottom:5px;text-align:center;}
+.lp-it{font-size:22px;font-weight:900;margin:11px 0 4px;}
+.lp-cd{font-size:12px;color:#666;}
+.lp-bar{flex:1;display:flex;align-items:center;justify-content:center;background:repeating-linear-gradient(90deg,#000 0,#000 3px,#fff 3px,#fff 5px,#000 5px,#000 7px,#fff 7px,#fff 10px);min-height:60px;margin:14px 0;border-radius:3px;}
+.lp-fields{display:grid;grid-template-columns:auto 1fr;gap:5px 11px;font-size:10px;}
+.lp-fields .l{color:#666;}
+.lp-fields .v{font-weight:800;}
+.lp-qr{margin-top:10px;text-align:center;}
+.lp-qr .q{display:inline-block;width:48px;height:48px;background:repeating-conic-gradient(#000 0 25%,#fff 0 50%) 50%/8px 8px;border-radius:3px;}
+.lp-qr .qt{font-size:9px;letter-spacing:1px;color:#666;margin-top:3px;}
+.h-list{flex:1;background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:11px;padding:14px 18px;display:flex;flex-direction:column;min-height:0;}
+.h-list h3{font-size:11px;color:#fdba74;text-transform:uppercase;letter-spacing:2px;margin-bottom:11px;font-weight:800;}
+.h-body{flex:1;overflow-y:auto;}
+.h-body::-webkit-scrollbar{width:8px;}.h-body::-webkit-scrollbar-thumb{background:#4a3618;border-radius:4px;}
+.hr{display:flex;gap:9px;align-items:center;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.07);font-size:11px;}
+.hr .t{font-family:'JetBrains Mono',monospace;font-size:10px;color:#a8997f;width:50px;flex-shrink:0;}
+.hr .l{flex:1;color:#fff;font-family:'JetBrains Mono',monospace;font-size:10.5px;}
+.hr .q{font-family:'JetBrains Mono',monospace;font-weight:800;color:#fbbf24;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#1a1208;border-radius:10px;padding:13px 17px;border-left:5px solid var(--sc);font-size:13px;min-width:280px;max-width:400px;animation:ti .25s ease;color:#fff;box-shadow:0 8px 26px rgba(0,0,0,.5);}
+.toast.ok{border-left-color:#16a34a;}.toast.info{border-left-color:#2563eb;}
+.toast .tt{font-weight:800;margin-bottom:3px;}
+.toast .tb{color:#a8997f;font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="head">
+  <button class="back" onclick="back()">‹ 대시보드</button>
+  <div class="id">PNT-07</div>
+  <div class="tt"><div class="en">LOT Label Apply</div><div class="ko">LOT 라벨 부착 — 완료품 라벨 인쇄·부착</div></div>
+  <span class="live"><span class="d"></span>LIVE</span>
+</div>
+<div class="body">
+  <div class="col">
+    <div class="lot-card">
+      <div class="h"><span style="font-size:18px;">🏷</span><span class="lbl">대상 LOT · TARGET</span></div>
+      <div class="lid">LOT-2605-2103</div>
+      <div class="item"><span class="sw" style="background:#8D948D"></span><b>사이드 몰딩 도장</b> · 그레이</div>
+      <div class="meta">
+        <div class="m"><div class="ml">WO</div><div class="mv">WO-2605-140</div></div>
+        <div class="m"><div class="ml">수량</div><div class="mv">54 EA</div></div>
+        <div class="m"><div class="ml">RAL</div><div class="mv">7042</div></div>
+        <div class="m"><div class="ml">완료</div><div class="mv">09:14</div></div>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:#fdba74;text-transform:uppercase;letter-spacing:2px;margin-bottom:9px;font-weight:800;">🏷 라벨 템플릿 · TEMPLATE</div>
+      <div class="print-grid">
+        <div class="pset on" data-t="prod" onclick="pickT(this)"><div class="lh"><span class="ic">🏷</span><div><div class="nm">제품 식별 라벨</div><div class="ds">개별 부품용</div></div></div><div class="sz">50×30mm · 바코드</div></div>
+        <div class="pset" data-t="qr" onclick="pickT(this)"><div class="lh"><span class="ic">📱</span><div><div class="nm">제품 QR 라벨</div><div class="ds">로트 추적</div></div></div><div class="sz">40×40mm · QR 코드</div></div>
+        <div class="pset" data-t="box" onclick="pickT(this)"><div class="lh"><span class="ic">📦</span><div><div class="nm">포장 박스 라벨</div><div class="ds">박스용 (Code128)</div></div></div><div class="sz">100×70mm · Code128</div></div>
+        <div class="pset" data-t="plt" onclick="pickT(this)"><div class="lh"><span class="ic">🚚</span><div><div class="nm">파레트 라벨</div><div class="ds">RFID 칩 포함</div></div></div><div class="sz">200×150mm · RFID</div></div>
+      </div>
+    </div>
+    <div class="qty-card">
+      <div class="lbl">📊 인쇄 수량 · QTY</div>
+      <div class="qty-r">
+        <div class="ctl"><button onclick="qty(-1)">−</button><div class="val" id="qVal">54</div><button onclick="qty(1)">＋</button></div>
+        <div class="total"><div>총 인쇄 매수</div><b id="qBig">54</b> 매</div>
+      </div>
+    </div>
+    <div class="printer-stat">
+      <span class="ic">✓</span>
+      <span><b>Zebra ZD421</b> · 연결됨 · 잉크 충분 · 용지 잔여 92%</span>
+    </div>
+    <div class="actions">
+      <button class="btn-preview" onclick="prev()">🖨 미리보기</button>
+      <button class="btn-print" onclick="print()">▶ 라벨 인쇄·부착</button>
+    </div>
+    <div class="h-list">
+      <h3>🕒 금일 인쇄 이력</h3>
+      <div class="h-body" id="hist"></div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="label-prev">
+      <div class="lp-h">A-MES PRODUCTION LABEL</div>
+      <div class="lp-it" id="lpItem">사이드 몰딩 도장</div>
+      <div class="lp-cd" id="lpCode">MOLDING-05 · GRAY (RAL 7042)</div>
+      <div class="lp-bar"></div>
+      <div class="lp-fields">
+        <span class="l">LOT</span><span class="v">LOT-2605-2103</span>
+        <span class="l">QTY</span><span class="v" id="lpQty">54 EA</span>
+        <span class="l">WO</span><span class="v">WO-2605-140</span>
+        <span class="l">DATE</span><span class="v" id="lpDate">2026-05-21</span>
+        <span class="l">SHIFT</span><span class="v">DAY-A</span>
+        <span class="l">LINE</span><span class="v">SAV-PNT-01</span>
+      </div>
+      <div class="lp-qr">
+        <div class="q"></div>
+        <div class="qt">LOT-2605-2103</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+var sel='prod',q=54;
+var HIST=[
+ {t:'09:08',lot:'LOT-2605-2105',q:32},
+ {t:'08:51',lot:'LOT-2605-2104',q:48},
+ {t:'08:36',lot:'LOT-2605-2102',q:24},
+ {t:'08:18',lot:'LOT-2605-2101',q:42}
+];
+function pickT(el){
+  sel=el.dataset.t;
+  [].slice.call(document.querySelectorAll('.pset')).forEach(function(x){x.classList.remove('on');});
+  el.classList.add('on');
+}
+function qty(d){q=Math.max(1,q+d);document.getElementById('qVal').textContent=q;document.getElementById('qBig').textContent=q;document.getElementById('lpQty').textContent=q+' EA';}
+function prev(){toast('info','라벨 미리보기','우측 미리보기로 라벨 디자인을 확인하세요. 인쇄 전 검토 권장.');}
+function print(){
+  HIST.unshift({t:new Date().toTimeString().slice(0,5),lot:'LOT-2605-2103',q:q});renderHist();
+  toast('ok','라벨 인쇄 완료 ✓','LOT-2605-2103 라벨 '+q+'매 인쇄 완료 — Zebra ZD421. 부착 후 다음 LOT으로 이동.');
+}
+function renderHist(){
+  document.getElementById('hist').innerHTML=HIST.map(function(h){
+    return '<div class="hr"><span class="t">'+h.t+'</span><span class="l">'+h.lot+'</span><span class="q">'+h.q+' 매</span></div>';
+  }).join('');
+}
+function back(){toast('','뒤로 이동','POP 대시보드로 돌아갑니다.');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='info'?'ℹ ':type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3500);
+}
+renderHist();
+</script>
+</body>
+</html>
