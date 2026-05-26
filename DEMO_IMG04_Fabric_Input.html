@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>IMG-04 Fabric Input · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--sc:#ea580c;--sc-dk:#c2410c;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
+.head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
+.head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#fb923c;}
+.head .tt{flex:1;}
+.head .en{font-size:17px;font-weight:800;color:#fff;}
+.head .ko{font-size:11px;color:#a8997f;}
+.back{background:#1a1208;border:1px solid #3a2a14;color:#fdba74;font-size:13px;font-weight:700;padding:9px 16px;border-radius:7px;cursor:pointer;font-family:inherit;}
+.back:active{background:rgba(234,88,12,.18);}
+.live{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:5px 10px;border-radius:5px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.live .d{width:7px;height:7px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.body{flex:1;display:grid;grid-template-columns:1.2fr 1fr;gap:16px;padding:18px 24px;min-height:0;overflow:hidden;}
+.col{display:flex;flex-direction:column;gap:14px;min-height:0;}
+.col:last-child{overflow-y:auto;}
+.col:last-child::-webkit-scrollbar{width:8px;}.col:last-child::-webkit-scrollbar-thumb{background:#4a3618;border-radius:4px;}
+.sec h3{font-size:11px;color:#fdba74;text-transform:uppercase;letter-spacing:2px;margin-bottom:11px;font-weight:700;display:flex;align-items:center;gap:7px;}
+.req-card{background:linear-gradient(160deg,rgba(234,88,12,.1),rgba(234,88,12,.02));border:1px solid #3a2a14;border-top:4px solid var(--sc);border-radius:11px;padding:14px 18px;}
+.req-card .h{display:flex;align-items:center;gap:9px;margin-bottom:8px;}
+.req-card .h .lbl{font-size:10px;color:#fdba74;letter-spacing:2px;}
+.req-card .h .v{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:800;color:#fff;}
+.req-card .item{font-size:16px;font-weight:800;color:#fff;}
+.req-card .code{font-family:'JetBrains Mono',monospace;color:#fbbf24;font-size:13px;margin-top:3px;}
+.spec{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:11px;}
+.sp{background:rgba(0,0,0,.3);border:1px solid #3a2a14;border-radius:7px;padding:9px 11px;}
+.sp .sl{font-size:9px;color:#a8997f;font-family:'JetBrains Mono',monospace;letter-spacing:1px;}
+.sp .sv{font-size:14px;font-weight:800;color:#fff;margin-top:2px;}
+.scan-area{background:rgba(56,189,248,.08);border:2px dashed #38bdf8;border-radius:11px;padding:24px;text-align:center;cursor:pointer;transition:all .15s;}
+.scan-area:active{background:rgba(56,189,248,.18);}
+.scan-area.ok{background:rgba(34,197,94,.12);border-color:#22c55e;border-style:solid;}
+.scan-area.err{background:rgba(220,38,38,.12);border-color:#dc2626;border-style:solid;}
+.scan-area .ic{font-size:48px;}
+.scan-area .t{font-size:16px;font-weight:800;color:#7dd3fc;margin-top:6px;}
+.scan-area.ok .t{color:#86efac;}
+.scan-area.err .t{color:#fca5a5;}
+.scan-area .s{font-size:11px;color:#a8997f;margin-top:3px;}
+.lot-info{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:11px;padding:14px 18px;}
+.lot-info h3{font-size:11px;color:#fdba74;text-transform:uppercase;letter-spacing:2px;margin-bottom:11px;font-weight:700;}
+.lot-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.07);font-size:12px;}
+.lot-row:last-child{border:none;}
+.lot-row .l{color:#a8997f;}
+.lot-row .v{color:#fff;font-family:'JetBrains Mono',monospace;font-weight:700;}
+.lot-row .v.ok{color:#86efac;}
+.lot-row .v.warn{color:#fbbf24;}
+.lot-row .v.err{color:#fca5a5;}
+.actions{display:flex;gap:11px;}
+.btn-confirm{flex:2;padding:18px;background:linear-gradient(180deg,#16a34a,#15803d);border:none;border-radius:11px;color:#fff;font-size:17px;font-weight:800;font-family:inherit;cursor:pointer;letter-spacing:2px;box-shadow:0 4px 0 #14532d;}
+.btn-confirm:disabled{background:#3a2a14;color:#6b5a3a;box-shadow:0 4px 0 #1a1208;cursor:not-allowed;}
+.btn-confirm:not(:disabled):active{transform:translateY(2px);box-shadow:0 2px 0 #14532d;}
+.btn-reject{flex:1;padding:18px;background:linear-gradient(180deg,#dc2626,#991b1b);border:none;border-radius:11px;color:#fff;font-size:14px;font-weight:800;font-family:inherit;cursor:pointer;box-shadow:0 4px 0 #7f1d1d;}
+.btn-reject:active{transform:translateY(2px);box-shadow:0 2px 0 #7f1d1d;}
+.history{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:11px;padding:14px 18px;flex:1;display:flex;flex-direction:column;min-height:200px;}
+.history h3{font-size:11px;color:#fdba74;text-transform:uppercase;letter-spacing:2px;margin-bottom:11px;font-weight:700;}
+.h-list{flex:1;overflow-y:auto;}
+.h-list::-webkit-scrollbar{width:8px;}.h-list::-webkit-scrollbar-thumb{background:#4a3618;border-radius:4px;}
+.h-r{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px dashed rgba(255,255,255,.07);font-size:12px;}
+.h-r .t{font-family:'JetBrains Mono',monospace;font-size:10px;color:#a8997f;width:50px;flex-shrink:0;}
+.h-r .lot{font-family:'JetBrains Mono',monospace;font-size:10px;color:#fbbf24;width:90px;flex-shrink:0;}
+.h-r .ds{flex:1;color:#fff;}
+.h-r .st{font-size:9px;font-weight:800;padding:2px 7px;border-radius:6px;}
+.h-r .st.ok{background:rgba(34,197,94,.18);color:#86efac;}
+.h-r .st.err{background:rgba(220,38,38,.18);color:#fca5a5;}
+.warn-banner{background:rgba(245,158,11,.12);border:1px solid #f59e0b;border-radius:9px;padding:12px 15px;font-size:12px;color:#fbbf24;display:none;align-items:center;gap:10px;}
+.warn-banner.on{display:flex;}
+.warn-banner .ic{font-size:22px;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#1a1208;border-radius:10px;padding:13px 17px;border-left:5px solid var(--sc);font-size:13px;min-width:280px;max-width:400px;animation:ti .25s ease;color:#fff;box-shadow:0 8px 26px rgba(0,0,0,.5);}
+.toast.err{border-left-color:#dc2626;}.toast.ok{border-left-color:#16a34a;}.toast.warn{border-left-color:#f59e0b;}
+.toast .tt{font-weight:800;margin-bottom:3px;}
+.toast .tb{color:#a8997f;font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="head">
+  <button class="back" onclick="back()">‹ 대시보드</button>
+  <div class="id">IMG-04</div>
+  <div class="tt"><div class="en">Fabric Input</div><div class="ko">원단 투입·검증 — 로트 추적·BOM 매칭</div></div>
+  <span class="live"><span class="d"></span>LIVE</span>
+</div>
+<div class="body">
+  <div class="col">
+    <div class="sec">
+      <h3><span style="font-size:16px;">📋</span>요구 원단 · REQUIRED FABRIC</h3>
+      <div class="req-card">
+        <div class="h"><span class="lbl">WO-2605-208</span><span class="v">잔여 178 / 380 EA</span></div>
+        <div class="item">PVC 인조가죽 블랙</div>
+        <div class="code">FB-PVC-001</div>
+        <div class="spec">
+          <div class="sp"><div class="sl">두께</div><div class="sv">1.2mm</div></div>
+          <div class="sp"><div class="sl">색상</div><div class="sv">블랙 (RAL 9005)</div></div>
+          <div class="sp"><div class="sl">소요량 / EA</div><div class="sv">0.42 m</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="sec">
+      <h3><span style="font-size:16px;">📷</span>원단 로트 스캔 · LOT SCAN</h3>
+      <div class="scan-area" id="scan" onclick="scan()">
+        <div class="ic" id="scanIc">📷</div>
+        <div class="t" id="scanT">원단 롤 라벨 스캔</div>
+        <div class="s" id="scanS">투입할 원단 롤의 RFID 또는 바코드를 스캔하세요</div>
+      </div>
+      <div class="warn-banner" id="warnB"><span class="ic">⚠</span><span id="warnT"></span></div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="lot-info" id="lotInfo" style="display:none;">
+      <h3>📦 스캔된 로트 정보</h3>
+      <div class="lot-row"><span class="l">로트 번호</span><span class="v" id="li-lot">-</span></div>
+      <div class="lot-row"><span class="l">자재 코드</span><span class="v" id="li-code">-</span></div>
+      <div class="lot-row"><span class="l">자재명</span><span class="v" id="li-nm">-</span></div>
+      <div class="lot-row"><span class="l">BOM 일치 여부</span><span class="v" id="li-bom">-</span></div>
+      <div class="lot-row"><span class="l">잔여 수량</span><span class="v" id="li-qty">-</span></div>
+      <div class="lot-row"><span class="l">유효기한</span><span class="v" id="li-exp">-</span></div>
+      <div class="lot-row"><span class="l">QC 합격 여부</span><span class="v" id="li-qc">-</span></div>
+      <div style="margin-top:14px;display:flex;gap:11px;">
+        <button class="btn-reject" onclick="reject()">✕ 반려</button>
+        <button class="btn-confirm" id="btnConf" onclick="confirm()" disabled>✓ 투입 확인</button>
+      </div>
+    </div>
+    <div class="history">
+      <h3>🕒 금일 투입 이력</h3>
+      <div class="h-list" id="hList"></div>
+    </div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+var LOTS=[
+ /* simulate scan options — cycle through */
+ {lot:'LT-FB-26031',code:'FB-PVC-001',nm:'PVC 인조가죽 블랙',qty:'48 m',exp:'2027-03-15',qc:'합격',ok:true},
+ {lot:'LT-FB-26032',code:'FB-PVC-002',nm:'PVC 인조가죽 그레이',qty:'45 m',exp:'2027-02-28',qc:'합격',ok:false,err:'BOM 불일치 — 요구: FB-PVC-001'},
+ {lot:'LT-FB-26033',code:'FB-PVC-001',nm:'PVC 인조가죽 블랙',qty:'50 m',exp:'2026-04-10',qc:'합격',ok:false,err:'유효기한 임박 — 사용 제한 (2026-04-10)'},
+ {lot:'LT-FB-26034',code:'FB-PVC-001',nm:'PVC 인조가죽 블랙',qty:'45 m',exp:'2027-05-08',qc:'합격',ok:true}
+];
+var LOG=[
+ {t:'08:42',lot:'LT-FB-26028',ds:'PVC 인조가죽 블랙 — 48m 투입',st:'ok',stT:'정상 투입'},
+ {t:'07:55',lot:'LT-FB-26025',ds:'PVC 인조가죽 블랙 — 50m 투입',st:'ok',stT:'정상 투입'},
+ {t:'07:32',lot:'LT-FB-26022',ds:'PVC 인조가죽 그레이 — BOM 불일치',st:'err',stT:'반려'},
+ {t:'06:48',lot:'LT-FB-26019',ds:'PVC 인조가죽 블랙 — 45m 투입',st:'ok',stT:'정상 투입'}
+];
+var sIdx=0,curLot=null;
+function scan(){
+  curLot=LOTS[sIdx%LOTS.length];sIdx++;
+  document.getElementById('lotInfo').style.display='block';
+  document.getElementById('li-lot').textContent=curLot.lot;
+  document.getElementById('li-code').textContent=curLot.code;
+  document.getElementById('li-nm').textContent=curLot.nm;
+  document.getElementById('li-bom').innerHTML=curLot.code==='FB-PVC-001'?'<span class="v ok">✓ 일치</span>':'<span class="v err">✕ 불일치</span>';
+  document.getElementById('li-qty').textContent=curLot.qty;
+  document.getElementById('li-exp').innerHTML=curLot.exp<'2026-08-01'?'<span class="v warn">⚠ '+curLot.exp+'</span>':'<span class="v">'+curLot.exp+'</span>';
+  document.getElementById('li-qc').innerHTML='<span class="v ok">✓ '+curLot.qc+'</span>';
+  var sc=document.getElementById('scan'),sT=document.getElementById('scanT'),sI=document.getElementById('scanIc'),sS=document.getElementById('scanS'),wb=document.getElementById('warnB'),wT=document.getElementById('warnT');
+  sc.classList.remove('ok','err');wb.classList.remove('on');
+  if(curLot.ok){
+    sc.classList.add('ok');sI.textContent='✅';sT.textContent='로트 검증 완료';sS.textContent=curLot.lot+' — BOM 일치 · QC 합격 · 투입 가능';
+    document.getElementById('btnConf').disabled=false;
+  }else{
+    sc.classList.add('err');sI.textContent='⛔';sT.textContent='검증 실패';sS.textContent=curLot.err;
+    wb.classList.add('on');wT.textContent=curLot.err+' — 투입할 수 없습니다.';
+    document.getElementById('btnConf').disabled=true;
+  }
+  toast(curLot.ok?'ok':'err','로트 스캔 — '+curLot.lot,curLot.ok?'BOM 일치, 투입 가능':curLot.err);
+}
+function confirm(){
+  if(!curLot||!curLot.ok)return;
+  LOG.unshift({t:new Date().toTimeString().slice(0,5),lot:curLot.lot,ds:curLot.nm+' — '+curLot.qty+' 투입',st:'ok',stT:'정상 투입'});
+  renderLog();
+  toast('ok','원단 투입 완료 ✓',curLot.lot+' 투입 등록 완료. 재고가 차감되고 WO에 연결됩니다.');
+  reset();
+}
+function reject(){
+  if(!curLot)return;
+  LOG.unshift({t:new Date().toTimeString().slice(0,5),lot:curLot.lot,ds:curLot.nm+' — 작업자 반려',st:'err',stT:'반려'});
+  renderLog();
+  toast('warn','로트 반려',curLot.lot+' 반려 처리. 다른 로트를 스캔하세요.');
+  reset();
+}
+function reset(){
+  curLot=null;
+  document.getElementById('lotInfo').style.display='none';
+  var sc=document.getElementById('scan');sc.classList.remove('ok','err');
+  document.getElementById('scanIc').textContent='📷';document.getElementById('scanT').textContent='원단 롤 라벨 스캔';
+  document.getElementById('scanS').textContent='투입할 원단 롤의 RFID 또는 바코드를 스캔하세요';
+  document.getElementById('warnB').classList.remove('on');
+}
+function renderLog(){
+  document.getElementById('hList').innerHTML=LOG.map(function(r){
+    return '<div class="h-r"><span class="t">'+r.t+'</span><span class="lot">'+r.lot+'</span>'+
+      '<span class="ds">'+r.ds+'</span><span class="st '+r.st+'">'+r.stT+'</span></div>';
+  }).join('');
+}
+function back(){toast('','뒤로 이동','POP 대시보드로 돌아갑니다.');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='warn'?'⚠ ':type==='ok'?'✓ ':'ℹ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3500);
+}
+renderLog();
+</script>
+</body>
+</html>
