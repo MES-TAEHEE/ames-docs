@@ -1,175 +1,86 @@
 /* ============================================================
-   A-MES L3 Spec — Print Stylesheet
-   Applied to merged-volume HTML when rendering to PDF
+   A-MES L3 Spec - Print Stylesheet
+   Injected into each source VOL*.html before Chrome --print-to-pdf.
+   Hides on-screen navigation chrome and resets layout to single
+   full-width content column.
    ============================================================ */
+
 @page {
   size: Letter portrait;
-  margin: 14mm 12mm 16mm 12mm;
-  @bottom-center {
-    content: counter(page) " / " counter(pages);
-    font-family: 'Inter', sans-serif;
-    font-size: 9pt;
-    color: #656d76;
-  }
-  @top-left {
-    content: string(doc-title);
-    font-family: 'Inter', sans-serif;
-    font-size: 8.5pt;
-    color: #656d76;
-  }
-  @top-right {
-    content: "A-MES · SEOYON E-HWA";
-    font-family: 'Inter', sans-serif;
-    font-size: 8.5pt;
-    color: #656d76;
-  }
+  margin: 14mm 11mm 16mm 11mm;
 }
 
-/* Hide on-screen-only navigation chrome */
 @media print {
+  /* --- Hide on-screen navigation chrome ----------------------- */
   .ames-nav,
+  .ames-nav-inner,
   .nav-home,
   .nav-vol,
-  .ames-nav-inner,
+  .nav-home-logo,
+  .nav-home-sub,
   .sidebar,
   .sb-head,
   .sb-section,
   .sb-link,
+  .sb-toc,
+  .sb-vol,
   .sb-mod-en,
   .sb-mod-ko,
-  .sb-vol,
-  .pda-nav,
   .ab-switch,
   .ab-sw,
+  .pdf-dl,
   .demo-note,
   .toasts,
   .toast,
-  iframe { display: none !important; }
+  iframe,
+  /* breadcrumb above content is also nav-y; keep main content only */
+  .l3-crumb-mini {
+    display: none !important;
+  }
 
-  .page-wrap { display: block !important; }
-  .main { margin-left: 0 !important; padding: 0 !important; }
-
-  body {
+  /* --- Reset page layout to single full-width column ---------- */
+  html, body {
     background: #fff !important;
-    color: #000 !important;
-    font-size: 10pt !important;
-    line-height: 1.5 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+    overflow: visible !important;
+  }
+  .page-wrap {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .main,
+  .main-content,
+  .content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    flex: none !important;
   }
 
-  /* Each embedded section starts on a new page */
-  .pdf-section {
-    page-break-before: always;
-    string-set: doc-title attr(data-section-title);
-  }
-  .pdf-section:first-of-type { page-break-before: auto; }
-
-  /* Cover page */
-  .pdf-cover {
-    page-break-after: always;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    background: linear-gradient(160deg, #0d1117, #161b22);
-    color: #fff;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  .pdf-cover .pc-brand {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 56pt;
-    letter-spacing: 8pt;
-    color: #d4a017;
-    margin-bottom: 8pt;
-  }
-  .pdf-cover .pc-vol {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 14pt;
-    letter-spacing: 4pt;
-    color: rgba(255,255,255,.45);
-    margin-bottom: 6pt;
-  }
-  .pdf-cover .pc-title {
-    font-size: 32pt;
-    font-weight: 800;
-    color: #fff;
-    margin-bottom: 24pt;
-  }
-  .pdf-cover .pc-meta {
-    font-size: 11pt;
-    color: rgba(255,255,255,.55);
-    line-height: 1.9;
-  }
-  .pdf-cover .pc-meta b { color: #fdba74; font-weight: 700; }
-  .pdf-cover .pc-foot {
-    position: absolute;
-    bottom: 20mm;
-    font-size: 9pt;
-    color: rgba(255,255,255,.3);
-    font-family: 'JetBrains Mono', monospace;
+  /* --- Drop sticky positioning that breaks pagination -------- */
+  .sidebar, .l3-crumb, .ames-nav {
+    position: static !important;
+    height: auto !important;
+    overflow: visible !important;
   }
 
-  /* TOC page */
-  .pdf-toc {
-    page-break-after: always;
-    padding: 12mm 8mm;
-  }
-  .pdf-toc h1 {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 28pt;
-    letter-spacing: 4pt;
-    color: #d4a017;
-    border-bottom: 2pt solid #d4a017;
-    padding-bottom: 6pt;
-    margin-bottom: 16pt;
-  }
-  .pdf-toc .toc-row {
-    display: flex;
-    align-items: baseline;
-    padding: 5pt 0;
-    border-bottom: 1pt dotted #d0d7de;
-    font-size: 10.5pt;
-  }
-  .pdf-toc .toc-code {
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 700;
-    color: #0891b2;
-    width: 90pt;
-    flex-shrink: 0;
-  }
-  .pdf-toc .toc-title {
-    flex: 1;
-    color: #24292f;
-    font-weight: 600;
-  }
-  .pdf-toc .toc-dots {
-    flex: 1;
-    border-bottom: 1pt dotted #9ca3af;
-    margin: 0 6pt;
-    height: 8pt;
-  }
-  .pdf-toc .toc-page {
-    font-family: 'JetBrains Mono', monospace;
-    color: #656d76;
-    font-size: 10pt;
-  }
-
-  /* Force colored backgrounds to print */
+  /* --- Force colored backgrounds & gradients to print --------- */
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* Reduce excessive whitespace */
-  .page-content,
-  .main {
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-
-  /* Better keep-together for headings & tables */
+  /* --- Avoid page-breaks inside common blocks ----------------- */
   h1, h2, h3, h4 { page-break-after: avoid; }
-  table, .card, .info-card, .kpi-card { page-break-inside: avoid; }
+  table, .card, .info-card, .kpi-card, .sec-card, .br-card,
+  .ef-card, .pr-card, .cs-card { page-break-inside: avoid; }
+
+  /* --- Slightly tighten body type for print readability ------- */
+  body { font-size: 10.5pt !important; line-height: 1.5 !important; }
 }

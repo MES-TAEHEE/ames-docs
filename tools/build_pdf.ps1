@@ -262,6 +262,25 @@ $rows
 "@
 }
 
+# Load the print.css once (injected into every source VOL HTML before render)
+$printCssText = Get-Content "tools\print.css" -Raw -Encoding UTF8
+
+function New-PrintReadyHtml {
+  param([string]$sourceHtml, [string]$outputHtml)
+  $raw = Get-Content $sourceHtml -Raw -Encoding UTF8
+  $cssInjection = "<style data-injected=`"print-prep`">`n$printCssText`n</style>`n</head>"
+  if ($raw -match '</head>') {
+    $raw = $raw -replace '</head>', $cssInjection
+  } else {
+    # no </head>? prepend a minimal head
+    $raw = "<head>$cssInjection`n" + $raw
+  }
+  $outDir = Split-Path $outputHtml -Parent
+  if (-not (Test-Path $outDir)) { $null = New-Item -ItemType Directory -Path $outDir -Force }
+  Set-Content -Path $outputHtml -Value $raw -Encoding UTF8 -NoNewline
+  return $outputHtml
+}
+
 function Invoke-ChromePdf {
   param([string]$inputHtml, [string]$outputPdf)
   $absIn = (Resolve-Path $inputHtml).Path
@@ -328,8 +347,11 @@ foreach ($v in $volsToBuild) {
     $tocEntries += [pscustomobject]@{ code = $shortCode; title = $title }
 
     $secPdf = Join-Path $volDir "${idxStr}_$($shortCode).pdf"
+    # Inject print.css into a working copy, then render that copy
+    $prepHtml = Join-Path $volDir "${idxStr}_$($shortCode).prep.html"
+    $null = New-PrintReadyHtml -sourceHtml (Resolve-Path $f).Path -outputHtml $prepHtml
     Write-Host "  → $idxStr $shortCode" -ForegroundColor DarkGray
-    Invoke-ChromePdf (Resolve-Path $f).Path $secPdf
+    Invoke-ChromePdf $prepHtml $secPdf
     $pdfList += $secPdf
   }
 
