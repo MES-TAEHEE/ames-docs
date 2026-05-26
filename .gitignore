@@ -1,0 +1,12 @@
+# PDF build intermediates (per-file PDFs / cover / toc HTML)
+build/
+
+# .NET build artifacts for the PDF merger tool
+tools/merge_pdf/bin/
+tools/merge_pdf/obj/
+
+# Local OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*.swo

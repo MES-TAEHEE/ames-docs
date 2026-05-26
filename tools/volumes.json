@@ -1,0 +1,93 @@
+[
+  {
+    "code": "VOL00",
+    "shortTitle": "Foundation",
+    "title": "Project Overview & Data Foundation",
+    "subtitle": "Index · ERD · DB Schema",
+    "files": ["INDEX.html", "AMES_ERD.html", "AMES_DB_Schema.html"]
+  },
+  {
+    "code": "VOL03",
+    "shortTitle": "Warehouse",
+    "title": "Warehouse Management (WH)",
+    "subtitle": "Inbound · Inventory · Release · Locations",
+    "files": ["VOL03_WH_Warehouse.html","VOL03_WH01_Inbound_Schedule.html","VOL03_WH02_PDA_Inbound.html","VOL03_WH03_Inventory_Status.html","VOL03_WH04_Location_Map.html","VOL03_WH05_Inventory_Adjust.html","VOL03_WH06_Release_Schedule.html","VOL03_WH07_PDA_Release.html","VOL03_WH08_Transaction_History.html"]
+  },
+  {
+    "code": "VOL04",
+    "shortTitle": "Production Planning",
+    "title": "Production Planning (PP)",
+    "subtitle": "Forecast · MRP · Work Order · Calendar · OEE",
+    "files": ["VOL04_PP_Production_Plan.html","VOL04_PP01_Forecast.html","VOL04_PP02_SAP_Import.html","VOL04_PP03_Plan_Confirm.html","VOL04_PP04_Work_Order.html","VOL04_PP05_MRP.html","VOL04_PP06_Purchase_Req.html","VOL04_PP07_WO_Release.html","VOL04_PP_CAL_Calendar.html","VOL04_PP_OTD_Delivery.html","VOL04_PP_LSB_Line_Schedule_Board.html","VOL04_PP_ODM_Operating_Downtime_Monitor.html","VOL04_PP_OEE_Line_Availability.html","VOL04_PP_DTL_Downtime_Log.html"]
+  },
+  {
+    "code": "VOL05",
+    "shortTitle": "Injection POP",
+    "title": "Injection Molding POP (INJ)",
+    "subtitle": "Login · Dashboard · WO · Production · Defect · Mold · Andon",
+    "files": ["VOL05_INJ_Injection.html","VOL05_INJ01_POP_Login.html","VOL05_INJ02_POP_Dashboard.html","VOL05_INJ03_WO_Confirm.html","VOL05_INJ04_Production_Entry.html","VOL05_INJ05_Defect.html","VOL05_INJ06_Mold_Change.html","VOL05_INJ07_Prod_Status.html","VOL05_INJ08_Andon.html"]
+  },
+  {
+    "code": "VOL06",
+    "shortTitle": "Wrapping POP",
+    "title": "Wrapping POP (IMG)",
+    "subtitle": "Login · Dashboard · Production · Fabric · Defect · Adhesive",
+    "files": ["VOL06_IMG_Wrapping.html","VOL06_IMG01_POP_Login.html","VOL06_IMG02_POP_Dashboard.html","VOL06_IMG03_Production_Entry.html","VOL06_IMG04_Fabric_Input.html","VOL06_IMG05_Defect.html","VOL06_IMG06_Bond_Setup.html","VOL06_IMG07_Prod_Status.html"]
+  },
+  {
+    "code": "VOL07",
+    "shortTitle": "Painting POP",
+    "title": "Painting POP (PNT)",
+    "subtitle": "Plan · LOT · Loading · Oven · Unloading · Label · Defect",
+    "files": ["VOL07_PNT_Painting.html","VOL07_PNT01_Daily_Plan.html","VOL07_PNT02_Lot_PreIssue.html","VOL07_PNT03_Loading.html","VOL07_PNT04_Line_Board.html","VOL07_PNT05_Oven_Monitor.html","VOL07_PNT06_Unloading.html","VOL07_PNT07_Label_Apply.html","VOL07_PNT08_Defect.html","VOL07_PNT09_Shift_Report.html"]
+  },
+  {
+    "code": "VOL08",
+    "shortTitle": "Quality Control",
+    "title": "Quality Control (QC)",
+    "subtitle": "Incoming · In-Process · Final · NCR · CAPA · Traceability",
+    "files": ["VOL08_QC_Quality.html","VOL08_QC01_Incoming_Inspection.html","VOL08_QC02_InProcess_Inspection.html","VOL08_QC03_Final_Inspection.html","VOL08_QC04_NCR_Register.html","VOL08_QC05_Hold_Quarantine.html","VOL08_QC06_CAPA.html","VOL08_QC07_Dashboard.html","VOL08_QC08_Inspection_Std.html","VOL08_QC_TRC_Traceability.html"]
+  },
+  {
+    "code": "VOL09",
+    "shortTitle": "Finished Goods",
+    "title": "Finished Goods (FG)",
+    "subtitle": "Put-Away · Inventory · Shipment · Picking · Loading · BOL · Returns",
+    "files": ["VOL09_FG_Finished_Goods.html","VOL09_FG01_PDA_Stocking.html","VOL09_FG02_Inventory.html","VOL09_FG03_Shipment_Order.html","VOL09_FG04_PDA_FIFO_Picking.html","VOL09_FG05_Loading.html","VOL09_FG06_Delivery_Note.html","VOL09_FG07_Day_End_Close.html","VOL09_FG08_Shipment_History.html","VOL09_FG09_Dashboard.html","VOL09_FG_RTN_Return.html"]
+  },
+  {
+    "code": "VOL10",
+    "shortTitle": "Maintenance",
+    "title": "Maintenance (MNT)",
+    "subtitle": "Equipment · Failure · OEE · Mold · PM · Downtime · WO · Spares",
+    "files": ["VOL10_MNT_Maintenance.html","VOL10_MNT01_Equipment_Card.html","VOL10_MNT02_Failure_Register.html","VOL10_MNT03_OEE_Analysis.html","VOL10_MNT04_Mold_Management.html","VOL10_MNT05_PM_Schedule.html","VOL10_MNT06_Downtime_Log.html","VOL10_MNT07_Work_Order.html","VOL10_MNT08_Spare_Parts.html","VOL10_MNT09_Dashboard.html"]
+  },
+  {
+    "code": "VOL11",
+    "shortTitle": "Reports",
+    "title": "Reports & Analytics (RPT)",
+    "subtitle": "Daily · Pareto · Shipment · OTD · Inventory · OEE · KPI · Builder",
+    "files": ["VOL11_RPT_Reports.html","VOL11_RPT01_Daily_Production.html","VOL11_RPT02_Defect_Pareto.html","VOL11_RPT03_Daily_Shipment.html","VOL11_RPT04_OnTime_Delivery.html","VOL11_RPT05_Inventory_Status.html","VOL11_RPT06_Equipment_OEE.html","VOL11_RPT07_Monthly_KPI.html","VOL11_RPT08_Schedule_Adherence.html","VOL11_RPT09_Report_Center.html","VOL11_RPT10_Report_Builder.html"]
+  },
+  {
+    "code": "VOL12",
+    "shortTitle": "System Admin",
+    "title": "System Administration (SYS)",
+    "subtitle": "Users · RBAC · Calendar · Interface · Audit · Notification · Config · Health",
+    "files": ["VOL12_SYS_System.html","VOL12_SYS01_User_Management.html","VOL12_SYS02_RBAC_Permissions.html","VOL12_SYS03_Factory_Calendar.html","VOL12_SYS04_Interface_Monitor.html","VOL12_SYS05_Audit_Log.html","VOL12_SYS06_Notification_Settings.html","VOL12_SYS07_System_Config.html","VOL12_SYS08_System_Health.html"]
+  },
+  {
+    "code": "VOL13",
+    "shortTitle": "Master Data",
+    "title": "Master Data (MD)",
+    "subtitle": "29 Entities — Item · BOM · BOP · Equipment · Mold · Color · Codes",
+    "files": ["VOL13_MD_Master_Data.html","VOL13_MD_L3_Foundation.html","VOL13_MD_L3_Production.html","VOL13_MD_L3_Resources.html","VOL13_MD_L3_RFID_Color.html","VOL13_MD_L3_Quality.html","VOL13_MD01_Item.html","VOL13_MD02_BOM.html","VOL13_MD03_BOM_Version.html","VOL13_MD04_BOP.html","VOL13_MD05_Work_Center.html","VOL13_MD06_Inspection_Std.html","VOL13_MD07_Vendor.html","VOL13_MD08_Equipment.html","VOL13_MD09_Mold.html","VOL13_MD10_Paint_Fabric.html","VOL13_MD11_Shipment_Dest.html","VOL13_MD12_Customer.html","VOL13_MD13_UOM.html","VOL13_MD14_Calendar.html","VOL13_MD15_Jig.html","VOL13_MD16_RFID_Tag.html","VOL13_MD17_RAL_Color.html","VOL13_MD18_Oven.html","VOL13_MD19_RFID_Reader.html","VOL13_MD20_Line.html","VOL13_MD21_Defect_Code.html","VOL13_MD22_Defect_Cause.html","VOL13_MD23_Packaging_Spec.html","VOL13_MD24_Label_Template.html","VOL13_MD25_Reason_Code.html","VOL13_MD26_Code_Group.html","VOL13_MD27_Spare_Parts.html","VOL13_MD28_PM_Template.html","VOL13_MD29_Line_Time_Pattern.html"]
+  },
+  {
+    "code": "VOL14",
+    "shortTitle": "Demo Appendix",
+    "title": "Interactive Demo Appendix",
+    "subtitle": "URLs to 125 live interactive demo screens",
+    "files": ["__DEMO_APPENDIX__"]
+  }
+]
