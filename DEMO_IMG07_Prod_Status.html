@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>IMG-07 Production Status · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--sc:#ea580c;--sc-dk:#c2410c;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
+.head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
+.head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#fb923c;}
+.head .tt{flex:1;}
+.head .en{font-size:17px;font-weight:800;color:#fff;}
+.head .ko{font-size:11px;color:#a8997f;}
+.back{background:#1a1208;border:1px solid #3a2a14;color:#fdba74;font-size:13px;font-weight:700;padding:9px 16px;border-radius:7px;cursor:pointer;font-family:inherit;}
+.back:active{background:rgba(234,88,12,.18);}
+.live{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:5px 10px;border-radius:5px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.live .d{width:7px;height:7px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.body{flex:1;display:flex;flex-direction:column;padding:16px 24px;gap:14px;min-height:0;overflow-y:auto;}
+.body::-webkit-scrollbar{width:8px;}.body::-webkit-scrollbar-thumb{background:#4a3618;border-radius:4px;}
+/* big stats */
+.bigs{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;}
+.big{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-top:4px solid var(--c);border-radius:11px;padding:14px 18px;}
+.big .lbl{font-size:10px;color:#fdba74;letter-spacing:2px;font-family:'JetBrains Mono',monospace;}
+.big .val{font-family:'JetBrains Mono',monospace;font-size:42px;font-weight:900;color:var(--c);line-height:.95;margin-top:4px;}
+.big .sub{font-size:11px;color:#a8997f;margin-top:3px;}
+/* line grid */
+.lines{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;}
+.line{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:11px;padding:14px 16px;border-top:4px solid var(--st);}
+.line .lh{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;}
+.line .lid{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:800;color:#fff;}
+.line .stb{font-size:9px;font-weight:800;padding:3px 8px;border-radius:6px;background:rgba(34,197,94,.18);color:#86efac;display:flex;align-items:center;gap:5px;}
+.line .stb .dd{width:6px;height:6px;border-radius:50%;background:#22c55e;animation:bl 1.2s infinite;}
+.line.down .stb{background:rgba(220,38,38,.18);color:#fca5a5;}
+.line.down .stb .dd{background:#dc2626;}
+.line .item{font-size:13px;color:#fdba74;}
+.line .item b{color:#fff;}
+.line .nums{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px;}
+.line .nn{background:rgba(0,0,0,.3);border-radius:7px;padding:8px 10px;text-align:center;}
+.line .nn .nv{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:800;color:var(--c);}
+.line .nn .nl{font-size:9px;color:#a8997f;margin-top:1px;}
+.line .pt{margin-top:8px;}
+.line .pl{display:flex;justify-content:space-between;font-size:10px;color:#a8997f;margin-bottom:3px;}
+.line .pl b{font-family:'JetBrains Mono',monospace;color:#fff;}
+.line .bb{height:9px;background:#1a1208;border-radius:4px;overflow:hidden;}
+.line .bb i{display:block;height:100%;background:linear-gradient(90deg,#16a34a,#22c55e);border-radius:4px;}
+.line.down .bb i{background:linear-gradient(90deg,#dc2626,#b91c1c);}
+/* hourly chart */
+.chart-card{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:11px;padding:14px 18px;}
+.chart-card h3{font-size:11px;color:#fdba74;text-transform:uppercase;letter-spacing:2px;margin-bottom:11px;font-weight:700;}
+.chart{display:flex;align-items:flex-end;gap:6px;height:130px;border-bottom:2px solid #3a2a14;padding:0 2px;}
+.cbar{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.cbar .bw{width:75%;border-radius:3px 3px 0 0;background:linear-gradient(180deg,#22c55e,#16a34a);}
+.cbar.cur .bw{background:linear-gradient(180deg,#fbbf24,#d97706);}
+.cbar .bv{font-size:8.5px;font-weight:700;font-family:'JetBrains Mono',monospace;color:#fdba74;}
+.cbar .bl{font-size:8.5px;color:#a8997f;font-family:'JetBrains Mono',monospace;}
+.shift-cmp{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.shc{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:11px;padding:14px 16px;border-left:4px solid var(--c);}
+.shc h4{font-size:13px;font-weight:800;color:#fff;margin-bottom:9px;display:flex;align-items:center;gap:7px;}
+.shc h4 .ic{font-size:18px;}
+.shc .row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,.07);font-size:13px;}
+.shc .row:last-child{border:none;}
+.shc .row .l{color:#a8997f;}
+.shc .row .v{font-family:'JetBrains Mono',monospace;font-weight:800;color:#fff;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#1a1208;border-radius:10px;padding:13px 17px;border-left:5px solid var(--sc);font-size:13px;min-width:280px;max-width:400px;animation:ti .25s ease;color:#fff;box-shadow:0 8px 26px rgba(0,0,0,.5);}
+.toast.info{border-left-color:#2563eb;}
+.toast .tt{font-weight:800;margin-bottom:3px;}
+.toast .tb{color:#a8997f;font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="head">
+  <button class="back" onclick="back()">‹ 대시보드</button>
+  <div class="id">IMG-07</div>
+  <div class="tt"><div class="en">Production Status</div><div class="ko">생산 현황 — 라인·교대 실적 종합</div></div>
+  <span class="live"><span class="d"></span>LIVE</span>
+</div>
+<div class="body">
+  <div class="bigs">
+    <div class="big" style="--c:#22c55e"><div class="lbl">금일 양품 · GOOD</div><div class="val" id="kGood">2,461</div><div class="sub">EA · 4개 라인 합계</div></div>
+    <div class="big" style="--c:#dc2626"><div class="lbl">금일 불량 · DEFECT</div><div class="val" id="kDef">42</div><div class="sub">불량률 1.68%</div></div>
+    <div class="big" style="--c:#fbbf24"><div class="lbl">달성률 · 계획 대비</div><div class="val" id="kAch">87%</div><div class="sub">3,880 EA 계획 · 잔여 1h 24m</div></div>
+    <div class="big" style="--c:#6366f1"><div class="lbl">전사 OEE</div><div class="val" id="kOee">82.4%</div><div class="sub">target ≥ 85%</div></div>
+  </div>
+  <div class="lines" id="lines"></div>
+  <div class="chart-card">
+    <h3>📈 라인 SAV-INJ-01 시간대별 생산 추이</h3>
+    <div class="chart" id="chart"></div>
+    <div style="font-size:9px;color:#a8997f;text-align:center;margin-top:6px;">06:00 ~ 14:00 · 막대 = 시간당 생산 (EA) · 노란색 = 현재 시간</div>
+  </div>
+  <div class="shift-cmp">
+    <div class="shc" style="--c:#fbbf24"><h4><span class="ic">☀</span>주간 A조 (06:00~14:00)</h4>
+      <div class="row"><span class="l">생산량</span><span class="v">2,461 EA</span></div>
+      <div class="row"><span class="l">불량률</span><span class="v">1.68%</span></div>
+      <div class="row"><span class="l">OEE</span><span class="v" style="color:#22c55e;">82.4%</span></div>
+      <div class="row"><span class="l">계획 달성률</span><span class="v">87%</span></div>
+      <div class="row"><span class="l">비가동 시간</span><span class="v">42분</span></div>
+    </div>
+    <div class="shc" style="--c:#a78bfa"><h4><span class="ic">🌙</span>야간 B조 (14:00~22:00, 예정)</h4>
+      <div class="row"><span class="l">생산 계획</span><span class="v">2,200 EA</span></div>
+      <div class="row"><span class="l">예정 WO</span><span class="v">WO-2605-130 / 132</span></div>
+      <div class="row"><span class="l">교대 인원</span><span class="v">8명</span></div>
+      <div class="row"><span class="l">시작 시각</span><span class="v">14:00</span></div>
+      <div class="row"><span class="l">상태</span><span class="v" style="color:#fbbf24;">교대 대기</span></div>
+    </div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+var LINES=[
+ {id:'SAV-INJ-01',st:'run',wo:'WO-2605-115',it:'도어트림 RH',plan:520,act:328,def:8,oee:84,c:'#22c55e'},
+ {id:'SAV-INJ-02',st:'down',wo:'WO-2605-118',it:'라디에이터 그릴',plan:540,act:392,def:14,oee:67,c:'#dc2626'},
+ {id:'SAV-ASSY-01',st:'run',wo:'WO-2605-120',it:'콘솔 조립',plan:420,act:341,def:5,oee:88,c:'#22c55e'},
+ {id:'SAV-PNT-01',st:'run',wo:'WO-2605-125',it:'그릴 도장',plan:320,act:248,def:15,oee:75,c:'#fbbf24'}
+];
+function renderLines(){
+  document.getElementById('lines').innerHTML=LINES.map(function(l){
+    var pct=Math.round(l.act/l.plan*100);
+    return '<div class="line'+(l.st==='down'?' down':'')+'" style="--st:'+l.c+';--c:'+l.c+'">'+
+      '<div class="lh"><span class="lid">'+l.id+'</span><span class="stb"><span class="dd"></span>'+(l.st==='down'?'정지':'가동')+'</span></div>'+
+      '<div class="item"><b>'+l.wo+'</b> · '+l.it+'</div>'+
+      '<div class="nums"><div class="nn"><div class="nv">'+l.act+'</div><div class="nl">실적 EA</div></div>'+
+      '<div class="nn"><div class="nv">'+l.def+'</div><div class="nl">불량 EA</div></div></div>'+
+      '<div class="pt"><div class="pl"><span>진척률</span><b>'+pct+'%</b></div><div class="bb"><i style="width:'+pct+'%"></i></div></div>'+
+      '<div style="font-size:10px;color:#a8997f;margin-top:6px;">OEE <b style="font-family:JetBrains Mono,monospace;color:#fff;">'+l.oee+'%</b></div></div>';
+  }).join('');
+}
+var HOURS=[{h:'06',v:62},{h:'07',v:71},{h:'08',v:74},{h:'09',v:68,cur:true},{h:'10',v:0,fut:true},{h:'11',v:0,fut:true},{h:'12',v:0,fut:true},{h:'13',v:0,fut:true}];
+function renderChart(){
+  var max=Math.max.apply(null,HOURS.map(function(x){return x.v||10;}));
+  document.getElementById('chart').innerHTML=HOURS.map(function(x){
+    var h=x.fut?6:(x.v/max*110);
+    return '<div class="cbar'+(x.cur?' cur':'')+'"><div class="bv">'+(x.fut?'-':x.v)+'</div>'+
+      '<div class="bw" style="height:'+h+'px;'+(x.fut?'background:rgba(255,255,255,.08);':'')+'"></div>'+
+      '<div class="bl">'+x.h+':00</div></div>';
+  }).join('');
+}
+function back(){toast('','뒤로 이동','POP 대시보드로 돌아갑니다.');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='info'?'ℹ ':'✅ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3500);
+}
+renderLines();renderChart();
+/* simulate live */
+setInterval(function(){
+  LINES.forEach(function(l){if(l.st==='run')l.act=Math.min(l.plan,l.act+Math.floor(Math.random()*3)+1);});
+  document.getElementById('kGood').textContent=LINES.reduce(function(s,l){return s+(l.act-l.def);},0).toLocaleString();
+  renderLines();
+},2800);
+</script>
+</body>
+</html>

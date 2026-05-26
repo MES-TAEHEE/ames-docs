@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>IMG-01 POP Login · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--sc:#ea580c;--sc-dk:#c2410c;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:15px;display:flex;flex-direction:column;overflow:hidden;}
+.head{flex-shrink:0;padding:18px 28px;display:flex;align-items:center;gap:16px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
+.head .id{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:3px;color:#fb923c;}
+.head .tt{flex:1;}
+.head .en{font-size:18px;font-weight:800;color:#fff;}
+.head .ko{font-size:12px;color:#a8997f;}
+.head .live{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:5px 10px;border-radius:5px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.head .live .d{width:7px;height:7px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.body{flex:1;display:flex;align-items:center;justify-content:center;padding:30px;gap:40px;}
+.lo-card{width:480px;background:linear-gradient(160deg,rgba(234,88,12,.1),rgba(234,88,12,.02));border:1px solid #3a2a14;border-top:4px solid var(--sc);border-radius:14px;padding:34px 36px;}
+.lo-logo{text-align:center;margin-bottom:24px;}
+.lo-logo .ico{font-size:48px;}
+.lo-logo h1{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:4px;color:#fff;margin-top:4px;}
+.lo-logo .sub{font-size:13px;color:#fdba74;}
+.station{background:rgba(0,0,0,.3);border:1px solid #3a2a14;border-radius:9px;padding:14px 18px;margin-bottom:20px;display:flex;gap:16px;}
+.station .s{flex:1;}
+.station .sl{font-size:9px;color:#a8997f;font-family:'JetBrains Mono',monospace;letter-spacing:1px;}
+.station .sv{font-size:15px;font-weight:800;color:#fff;margin-top:2px;}
+.fld{margin-bottom:14px;}
+.fld label{display:block;font-size:10px;font-weight:700;color:#a8997f;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.fld input{width:100%;padding:14px 18px;background:#1a1208;border:2px solid #3a2a14;border-radius:8px;color:#fff;font-size:18px;font-family:'JetBrains Mono',monospace;outline:none;letter-spacing:2px;}
+.fld input:focus{border-color:var(--sc);}
+.fld input::placeholder{color:rgba(255,255,255,.25);letter-spacing:1px;}
+.kbd{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px;margin-bottom:18px;}
+.k{padding:18px 0;background:#1a1208;border:1px solid #3a2a14;border-radius:8px;color:#fff;font-size:22px;font-weight:800;font-family:'JetBrains Mono',monospace;cursor:pointer;text-align:center;transition:all .1s;}
+.k:active{background:var(--sc);border-color:var(--sc);transform:scale(.97);}
+.k.fn{font-size:13px;color:#fdba74;}
+.btn-login{width:100%;padding:18px;background:linear-gradient(180deg,var(--sc),var(--sc-dk));border:none;border-radius:10px;color:#fff;font-size:18px;font-weight:800;font-family:inherit;cursor:pointer;letter-spacing:3px;box-shadow:0 4px 0 #7c2d12;}
+.btn-login:active{transform:translateY(2px);box-shadow:0 2px 0 #7c2d12;}
+.recent{width:380px;}
+.recent h3{font-size:11px;color:#a8997f;text-transform:uppercase;letter-spacing:2px;margin-bottom:14px;font-weight:700;}
+.r-card{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:9px;padding:14px 16px;margin-bottom:9px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:all .12s;}
+.r-card:active{background:rgba(234,88,12,.18);border-color:var(--sc);transform:scale(.98);}
+.r-card .av{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--sc),var(--sc-dk));color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;flex-shrink:0;}
+.r-card .info{flex:1;}
+.r-card .nm{font-size:15px;font-weight:800;color:#fff;}
+.r-card .dt{font-size:10px;color:#a8997f;font-family:'JetBrains Mono',monospace;}
+.r-card .arr{color:#fb923c;font-size:18px;}
+.scan{background:rgba(56,183,237,.08);border:1px dashed #38bdf8;border-radius:9px;padding:16px;text-align:center;margin-top:14px;}
+.scan .ic{font-size:30px;}
+.scan .t{font-size:13px;font-weight:700;color:#7dd3fc;margin-top:4px;}
+.scan .s{font-size:10px;color:#a8997f;margin-top:3px;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#1a1208;border-radius:10px;padding:13px 17px;border-left:5px solid var(--sc);font-size:13px;min-width:280px;max-width:400px;animation:ti .25s ease;color:#fff;box-shadow:0 8px 26px rgba(0,0,0,.5);}
+.toast.err{border-left-color:#dc2626;}.toast.ok{border-left-color:#16a34a;}
+.toast .tt{font-weight:800;margin-bottom:3px;}
+.toast .tb{color:#a8997f;font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+.foot{flex-shrink:0;padding:14px 28px;border-top:1px solid #3a2a14;background:rgba(0,0,0,.35);font-size:11px;color:#a8997f;display:flex;justify-content:space-between;}
+.foot .clk{font-family:'JetBrains Mono',monospace;font-size:14px;color:#fdba74;font-weight:700;}
+</style>
+</head>
+<body>
+<div class="head">
+  <div class="id">IMG-01</div>
+  <div class="tt"><div class="en">POP Login</div><div class="ko">POP 로그인 — 감싸기 라인 작업자 인증</div></div>
+  <span class="live"><span class="d"></span>LIVE DEMO</span>
+</div>
+<div class="body">
+  <div class="lo-card">
+    <div class="lo-logo">
+      <div class="ico">📟</div>
+      <h1>A-MES POP</h1>
+      <div class="sub">Shop-Floor Operator Console</div>
+    </div>
+    <div class="station">
+      <div class="s"><div class="sl">STATION</div><div class="sv">POP-IMG-01</div></div>
+      <div class="s"><div class="sl">LINE</div><div class="sv">SAV-IMG-01</div></div>
+      <div class="s"><div class="sl">SHIFT</div><div class="sv">주간 DAY</div></div>
+    </div>
+    <div class="fld"><label>사원 번호 Operator ID</label>
+      <input id="opId" placeholder="● ● ● ● ●" maxlength="6" readonly></div>
+    <div class="fld"><label>비밀번호 PIN</label>
+      <input id="opPw" type="password" placeholder="● ● ● ●" maxlength="6" readonly></div>
+    <div class="kbd">
+      <button class="k" onclick="key('1')">1</button>
+      <button class="k" onclick="key('2')">2</button>
+      <button class="k" onclick="key('3')">3</button>
+      <button class="k" onclick="key('4')">4</button>
+      <button class="k" onclick="key('5')">5</button>
+      <button class="k" onclick="key('6')">6</button>
+      <button class="k" onclick="key('7')">7</button>
+      <button class="k" onclick="key('8')">8</button>
+      <button class="k" onclick="key('9')">9</button>
+      <button class="k fn" onclick="clr()">CLR</button>
+      <button class="k" onclick="key('0')">0</button>
+      <button class="k fn" onclick="bksp()">⌫</button>
+    </div>
+    <button class="btn-login" onclick="login()">▶ 로그인</button>
+  </div>
+  <div class="recent">
+    <h3>최근 로그인 작업자</h3>
+    <div class="r-card" onclick="quickLogin('kim','김성호')">
+      <div class="av">김</div>
+      <div class="info"><div class="nm">김성호 (10231)</div><div class="dt">2026-05-21 06:30 · IMG-01</div></div>
+      <div class="arr">▶</div>
+    </div>
+    <div class="r-card" onclick="quickLogin('lee','이재민')">
+      <div class="av">이</div>
+      <div class="info"><div class="nm">이재민 (10412)</div><div class="dt">2026-05-20 22:05 · IMG-01</div></div>
+      <div class="arr">▶</div>
+    </div>
+    <div class="r-card" onclick="quickLogin('park','박작업')">
+      <div class="av">박</div>
+      <div class="info"><div class="nm">박작업 (10589)</div><div class="dt">2026-05-20 14:18 · IMG-01</div></div>
+      <div class="arr">▶</div>
+    </div>
+    <div class="scan" onclick="badgeScan()">
+      <div class="ic">🪪</div>
+      <div class="t">사원증 스캔 (RFID)</div>
+      <div class="s">사원증을 단말에 가까이 대세요</div>
+    </div>
+  </div>
+</div>
+<div class="foot">
+  <span>A-MES POP v3.1 · SAV 서산공장</span>
+  <span class="clk" id="clk">--:--:--</span>
+  <span>안전 보호구 착용 / 작업 표준 준수</span>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+var focusF='id';
+function key(d){
+  var el=document.getElementById(focusF==='id'?'opId':'opPw');
+  if(el.value.length>=(focusF==='id'?5:6))return;
+  el.value+=d;
+  if(focusF==='id'&&el.value.length===5)focusF='pw';
+}
+function clr(){document.getElementById('opId').value='';document.getElementById('opPw').value='';focusF='id';}
+function bksp(){
+  var el=document.getElementById(focusF==='id'?'opId':'opPw');
+  if(!el.value&&focusF==='pw'){focusF='id';return;}
+  el.value=el.value.slice(0,-1);
+}
+function login(){
+  var id=document.getElementById('opId').value;
+  var pw=document.getElementById('opPw').value;
+  if(!id){toast('err','로그인 실패','사원 번호를 입력하세요.');return;}
+  if(!pw){toast('err','로그인 실패','비밀번호를 입력하세요.');return;}
+  toast('ok','로그인 성공 ✓','작업자 인증되었습니다. 대시보드로 이동합니다... (데모)');
+}
+function quickLogin(k,nm){
+  document.getElementById('opId').value=k==='kim'?'10231':(k==='lee'?'10412':'10589');
+  focusF='pw';
+  toast('','PIN 입력 대기',nm+' 선택됨. 비밀번호 4자리를 입력하세요.');
+}
+function badgeScan(){
+  toast('','RFID 사원증 인식','김성호 (10231) 사원증이 인식되었습니다. 자동 로그인 진행... (데모)');
+  setTimeout(function(){toast('ok','로그인 성공 ✓','김성호 (A조) 인증 완료. 대시보드로 이동합니다.');},900);
+}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='ok'?'✓ ':'ℹ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3500);
+}
+(function(){var c=document.getElementById('clk');function t(){var d=new Date();c.textContent=d.toTimeString().slice(0,8);}t();setInterval(t,1000);})();
+</script>
+</body>
+</html>

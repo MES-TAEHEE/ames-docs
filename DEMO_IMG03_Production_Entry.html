@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>IMG-03 Production Entry · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--sc:#ea580c;--sc-dk:#c2410c;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:15px;display:flex;flex-direction:column;overflow:hidden;}
+.head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
+.head .id{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;color:#fb923c;}
+.head .tt{flex:1;}
+.head .en{font-size:17px;font-weight:800;color:#fff;}
+.head .ko{font-size:11px;color:#a8997f;}
+.back{background:#1a1208;border:1px solid #3a2a14;color:#fdba74;font-size:13px;font-weight:700;padding:9px 16px;border-radius:7px;cursor:pointer;font-family:inherit;}
+.back:active{background:rgba(234,88,12,.18);}
+.live{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:5px 10px;border-radius:5px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.live .d{width:7px;height:7px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.wo-mini{background:rgba(234,88,12,.1);border:1px solid #3a2a14;padding:8px 14px;border-radius:8px;display:flex;align-items:center;gap:10px;}
+.wo-mini .lbl{font-size:9px;color:#fdba74;font-family:'JetBrains Mono',monospace;letter-spacing:1px;}
+.wo-mini .val{font-size:14px;font-weight:800;color:#fff;font-family:'JetBrains Mono',monospace;}
+.body{flex:1;display:grid;grid-template-columns:1fr 1.1fr;gap:18px;padding:18px 24px;min-height:0;overflow:hidden;}
+.col{display:flex;flex-direction:column;gap:14px;min-height:0;}
+/* counter card */
+.cnt{background:linear-gradient(160deg,rgba(34,197,94,.08),rgba(34,197,94,.02));border:1px solid #3a2a14;border-top:4px solid #22c55e;border-radius:12px;padding:18px 22px;text-align:center;cursor:pointer;transition:all .15s;}
+.cnt:active{transform:scale(.98);}
+.cnt.def{border-top-color:#dc2626;background:linear-gradient(160deg,rgba(220,38,38,.08),rgba(220,38,38,.02));}
+.cnt.sel{box-shadow:0 0 0 3px var(--sc);}
+.cnt .lbl{font-size:13px;font-weight:700;color:#fdba74;letter-spacing:2px;}
+.cnt .val{font-family:'JetBrains Mono',monospace;font-size:72px;font-weight:900;color:#22c55e;line-height:.95;margin:6px 0;}
+.cnt.def .val{color:#fca5a5;}
+.cnt .uom{font-size:13px;color:#a8997f;}
+.cnt .delta{font-size:11px;color:#fdba74;margin-top:6px;font-family:'JetBrains Mono',monospace;}
+.input-box{background:rgba(255,255,255,.04);border:2px solid var(--sc);border-radius:11px;padding:18px 22px;text-align:center;}
+.input-box .il{font-size:10px;color:#fdba74;letter-spacing:2px;font-family:'JetBrains Mono',monospace;}
+.input-box .iv{font-family:'JetBrains Mono',monospace;font-size:48px;font-weight:900;color:#fff;line-height:1;margin-top:4px;}
+.qbtns{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:auto;}
+.qb{padding:14px 0;background:#1a1208;border:1px solid #3a2a14;border-radius:8px;color:#fff;font-size:15px;font-weight:800;font-family:'JetBrains Mono',monospace;cursor:pointer;}
+.qb:active{background:var(--sc);border-color:var(--sc);transform:scale(.95);}
+.qb.minus{color:#fca5a5;}
+/* keypad */
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
+.k{padding:22px 0;background:#1a1208;border:1px solid #3a2a14;border-radius:9px;color:#fff;font-size:26px;font-weight:800;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:all .1s;}
+.k:active{background:var(--sc);border-color:var(--sc);transform:scale(.97);}
+.k.fn{font-size:14px;color:#fdba74;}
+.k.cl{color:#fca5a5;}
+.actions{display:flex;gap:11px;margin-top:auto;}
+.btn-sub{flex:2;padding:20px;background:linear-gradient(180deg,#16a34a,#15803d);border:none;border-radius:11px;color:#fff;font-size:17px;font-weight:800;font-family:inherit;cursor:pointer;letter-spacing:2px;box-shadow:0 4px 0 #14532d;}
+.btn-sub:active{transform:translateY(2px);box-shadow:0 2px 0 #14532d;}
+.btn-pause{flex:1;padding:20px;background:#1a1208;border:1px solid #3a2a14;color:#fdba74;font-size:14px;font-weight:700;border-radius:11px;cursor:pointer;font-family:inherit;}
+.recent{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:11px;padding:14px 18px;flex:1;display:flex;flex-direction:column;min-height:0;}
+.recent h3{font-size:11px;color:#fdba74;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;font-weight:700;}
+.r-list{flex:1;overflow-y:auto;}
+.r-list::-webkit-scrollbar{width:8px;}.r-list::-webkit-scrollbar-thumb{background:#4a3618;border-radius:4px;}
+.r{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px dashed rgba(255,255,255,.07);font-size:12px;}
+.r .t{font-family:'JetBrains Mono',monospace;font-size:10px;color:#a8997f;width:46px;flex-shrink:0;}
+.r .nm{flex:1;color:#fff;}
+.r .q{font-family:'JetBrains Mono',monospace;font-weight:800;color:#22c55e;}
+.r .q.def{color:#fca5a5;}
+.r .un{color:#a8997f;font-size:10px;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#1a1208;border-radius:10px;padding:13px 17px;border-left:5px solid var(--sc);font-size:13px;min-width:280px;max-width:400px;animation:ti .25s ease;color:#fff;box-shadow:0 8px 26px rgba(0,0,0,.5);}
+.toast.err{border-left-color:#dc2626;}.toast.ok{border-left-color:#16a34a;}.toast.warn{border-left-color:#f59e0b;}
+.toast .tt{font-weight:800;margin-bottom:3px;}
+.toast .tb{color:#a8997f;font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="head">
+  <button class="back" onclick="back()">‹ 대시보드</button>
+  <div class="id">IMG-03</div>
+  <div class="tt"><div class="en">Production Entry</div><div class="ko">생산 실적 입력 — 양품·불량 수량 보고</div></div>
+  <div class="wo-mini"><span class="lbl">WO</span><span class="val">WO-2605-208</span><span class="lbl" style="margin-left:8px;">원단</span><span class="val">FB-PVC-001</span></div>
+  <span class="live"><span class="d"></span>LIVE</span>
+</div>
+<div class="body">
+  <div class="col">
+    <div class="cnt sel" id="cntGood" onclick="selT('good')">
+      <div class="lbl">양품 · GOOD</div>
+      <div class="val" id="vGood">320</div>
+      <div class="uom">EA · 누적</div>
+      <div class="delta" id="dGood">▲ 마지막 입력 +24</div>
+    </div>
+    <div class="cnt def" id="cntDef" onclick="selT('def')">
+      <div class="lbl">불량 · DEFECT</div>
+      <div class="val" id="vDef">8</div>
+      <div class="uom">EA · 누적</div>
+      <div class="delta" id="dDef">▲ 마지막 입력 +2</div>
+    </div>
+    <div class="input-box">
+      <div class="il" id="inpL">▶ 양품 추가 수량 입력 (EA)</div>
+      <div class="iv" id="inpV">0</div>
+    </div>
+    <div class="qbtns">
+      <button class="qb" onclick="quick(1)">+1</button>
+      <button class="qb" onclick="quick(5)">+5</button>
+      <button class="qb" onclick="quick(10)">+10</button>
+      <button class="qb" onclick="quick(50)">+50</button>
+    </div>
+  </div>
+  <div class="col">
+    <div class="keypad">
+      <button class="k" onclick="key('7')">7</button>
+      <button class="k" onclick="key('8')">8</button>
+      <button class="k" onclick="key('9')">9</button>
+      <button class="k" onclick="key('4')">4</button>
+      <button class="k" onclick="key('5')">5</button>
+      <button class="k" onclick="key('6')">6</button>
+      <button class="k" onclick="key('1')">1</button>
+      <button class="k" onclick="key('2')">2</button>
+      <button class="k" onclick="key('3')">3</button>
+      <button class="k fn cl" onclick="clr()">CLR</button>
+      <button class="k" onclick="key('0')">0</button>
+      <button class="k fn" onclick="bksp()">⌫</button>
+    </div>
+    <div class="actions">
+      <button class="btn-pause" onclick="pause()">⏸ 일시정지</button>
+      <button class="btn-sub" onclick="submit()">✓ 실적 등록</button>
+    </div>
+    <div class="recent">
+      <h3>🕒 최근 입력 이력</h3>
+      <div class="r-list" id="rList"></div>
+    </div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+var typ='good',v='',good=320,def=8;
+var LOG=[
+ {t:'09:12',ty:'good',q:24},{t:'09:08',ty:'def',q:2,c:'미성형'},
+ {t:'09:00',ty:'good',q:48},{t:'08:48',ty:'good',q:30},
+ {t:'08:36',ty:'def',q:1,c:'표면 스크래치'},{t:'08:24',ty:'good',q:60},
+ {t:'08:12',ty:'good',q:42},{t:'08:00',ty:'good',q:60}
+];
+function selT(t){
+  typ=t;
+  document.getElementById('cntGood').classList.toggle('sel',t==='good');
+  document.getElementById('cntDef').classList.toggle('sel',t==='def');
+  document.getElementById('inpL').textContent=t==='good'?'▶ 양품 추가 수량 입력 (EA)':'▶ 불량 추가 수량 입력 (EA)';
+}
+function key(d){if(v.length>=4)return;v+=d;upd();}
+function clr(){v='';upd();}
+function bksp(){v=v.slice(0,-1);upd();}
+function quick(n){v=String((parseInt(v||'0',10))+n);upd();}
+function upd(){document.getElementById('inpV').textContent=v||'0';}
+function submit(){
+  var n=parseInt(v||'0',10);
+  if(!n){toast('err','입력 오류','수량을 입력하세요.');return;}
+  if(typ==='good'){good+=n;document.getElementById('vGood').textContent=good;document.getElementById('dGood').textContent='▲ 마지막 입력 +'+n;}
+  else{def+=n;document.getElementById('vDef').textContent=def;document.getElementById('dDef').textContent='▲ 마지막 입력 +'+n;}
+  LOG.unshift({t:new Date().toTimeString().slice(0,5),ty:typ,q:n});
+  v='';upd();renderLog();
+  toast('ok',typ==='good'?'양품 실적 등록 ✓':'불량 실적 등록 ✓',n+' EA 등록 · 누적 '+(typ==='good'?good:def)+' EA. 진척률 '+Math.round(good/520*100)+'%');
+}
+function pause(){toast('warn','작업 일시정지','비가동 처리 화면으로 전환하여 사유를 입력하세요. (데모)');}
+function back(){toast('','뒤로 이동','POP 대시보드로 돌아갑니다.');}
+function renderLog(){
+  document.getElementById('rList').innerHTML=LOG.slice(0,12).map(function(r){
+    return '<div class="r"><span class="t">'+r.t+'</span>'+
+      '<span class="nm">'+(r.ty==='good'?'양품 실적':'불량 실적 · '+(r.c||'기타'))+'</span>'+
+      '<span class="q'+(r.ty==='def'?' def':'')+'">+'+r.q+'</span><span class="un">EA</span></div>';
+  }).join('');
+}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='warn'?'⚠ ':type==='ok'?'✓ ':'ℹ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3500);
+}
+renderLog();
+</script>
+</body>
+</html>

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>IMG-06 Bond Setup · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--sc:#ea580c;--sc-dk:#c2410c;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
+.head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
+.head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#fb923c;}
+.head .tt{flex:1;}
+.head .en{font-size:17px;font-weight:800;color:#fff;}
+.head .ko{font-size:11px;color:#a8997f;}
+.back{background:#1a1208;border:1px solid #3a2a14;color:#fdba74;font-size:13px;font-weight:700;padding:9px 16px;border-radius:7px;cursor:pointer;font-family:inherit;}
+.back:active{background:rgba(234,88,12,.18);}
+.live{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:5px 10px;border-radius:5px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.live .d{width:7px;height:7px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.body{flex:1;display:grid;grid-template-columns:1.1fr 1fr;gap:16px;padding:18px 24px;min-height:0;overflow:hidden;}
+.col{display:flex;flex-direction:column;gap:14px;min-height:0;}
+/* status panel */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.stat-c{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-top:4px solid var(--c);border-radius:11px;padding:14px 16px;text-align:center;}
+.stat-c .lbl{font-size:10px;color:#fdba74;letter-spacing:1.5px;font-family:'JetBrains Mono',monospace;}
+.stat-c .val{font-family:'JetBrains Mono',monospace;font-size:38px;font-weight:900;color:var(--c);line-height:1;margin:4px 0;}
+.stat-c .uom{font-size:11px;color:#a8997f;}
+.stat-c .ok{font-size:10px;color:#86efac;margin-top:3px;font-family:'JetBrains Mono',monospace;}
+.stat-c .ng{font-size:10px;color:#fca5a5;margin-top:3px;font-family:'JetBrains Mono',monospace;}
+/* control */
+.ctrl{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:11px;padding:14px 18px;}
+.ctrl h3{font-size:11px;color:#fdba74;text-transform:uppercase;letter-spacing:2px;margin-bottom:11px;font-weight:700;}
+.param{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px dashed rgba(255,255,255,.07);}
+.param:last-child{border:none;}
+.param .pl{flex:1;}
+.param .pn{font-size:13px;font-weight:800;color:#fff;}
+.param .pr{font-size:10px;color:#a8997f;font-family:'JetBrains Mono',monospace;}
+.param .pv{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:800;color:var(--c);width:80px;text-align:right;}
+.param .pa{display:flex;gap:4px;}
+.param .pa button{width:36px;height:36px;background:#1a1208;border:1px solid #3a2a14;color:#fff;font-size:18px;font-weight:800;border-radius:7px;cursor:pointer;font-family:inherit;}
+.param .pa button:active{background:var(--sc);border-color:var(--sc);}
+.preset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
+.preset{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:8px;padding:11px 13px;cursor:pointer;text-align:center;}
+.preset:active{transform:scale(.96);}
+.preset.on{background:rgba(234,88,12,.18);border-color:var(--sc);border-width:2px;}
+.preset .nm{font-size:12px;font-weight:800;color:#fff;}
+.preset .ds{font-size:9px;color:#a8997f;margin-top:2px;}
+.gauge-wrap{display:flex;justify-content:space-around;gap:12px;}
+.gauge{position:relative;width:130px;height:130px;}
+.gauge svg{width:100%;height:100%;transform:rotate(-90deg);}
+.gauge .gc{fill:none;stroke-width:11;stroke-linecap:round;}
+.gauge .bg{stroke:#3a2a14;}
+.gauge .fg{stroke:var(--c);transition:stroke-dashoffset .6s;}
+.gauge .gt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.gauge .gv{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:900;color:#fff;line-height:1;}
+.gauge .gu{font-size:10px;color:#a8997f;margin-top:2px;}
+.gauge .gl{font-size:10px;font-weight:700;color:#fdba74;letter-spacing:1px;text-align:center;margin-top:8px;}
+.actions{display:flex;gap:11px;margin-top:auto;}
+.btn-apply{flex:2;padding:18px;background:linear-gradient(180deg,#16a34a,#15803d);border:none;border-radius:11px;color:#fff;font-size:17px;font-weight:800;font-family:inherit;cursor:pointer;letter-spacing:2px;box-shadow:0 4px 0 #14532d;}
+.btn-apply:active{transform:translateY(2px);box-shadow:0 2px 0 #14532d;}
+.btn-reset{flex:1;padding:18px;background:#1a1208;border:1px solid #3a2a14;color:#fdba74;font-size:14px;font-weight:700;border-radius:11px;cursor:pointer;font-family:inherit;}
+.btn-reset:active{background:rgba(234,88,12,.18);}
+.alarm-box{background:rgba(34,197,94,.08);border:1px solid #16a34a;border-radius:9px;padding:11px 14px;font-size:12px;color:#86efac;display:flex;align-items:center;gap:10px;}
+.alarm-box.warn{background:rgba(245,158,11,.1);border-color:#f59e0b;color:#fbbf24;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#1a1208;border-radius:10px;padding:13px 17px;border-left:5px solid var(--sc);font-size:13px;min-width:280px;max-width:400px;animation:ti .25s ease;color:#fff;box-shadow:0 8px 26px rgba(0,0,0,.5);}
+.toast.err{border-left-color:#dc2626;}.toast.ok{border-left-color:#16a34a;}.toast.warn{border-left-color:#f59e0b;}
+.toast .tt{font-weight:800;margin-bottom:3px;}
+.toast .tb{color:#a8997f;font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="head">
+  <button class="back" onclick="back()">‹ 대시보드</button>
+  <div class="id">IMG-06</div>
+  <div class="tt"><div class="en">Bond Setup</div><div class="ko">본드 설정 — 점도·온도·도포량 제어</div></div>
+  <span class="live"><span class="d"></span>LIVE</span>
+</div>
+<div class="body">
+  <div class="col">
+    <div class="ctrl">
+      <h3>🎛 작업 프리셋 · BONDING PRESET</h3>
+      <div class="preset-grid">
+        <div class="preset on" data-p="pvc-thick" onclick="loadPreset('pvc-thick')"><div class="nm">PVC 두꺼움</div><div class="ds">두께 1.2mm+</div></div>
+        <div class="preset" data-p="pvc-thin" onclick="loadPreset('pvc-thin')"><div class="nm">PVC 얇음</div><div class="ds">두께 1.0mm 이하</div></div>
+        <div class="preset" data-p="fabric" onclick="loadPreset('fabric')"><div class="nm">직물 원단</div><div class="ds">고흡수</div></div>
+      </div>
+    </div>
+    <div class="ctrl">
+      <h3>⚙ 본드 파라미터 · ADJUST</h3>
+      <div class="param" style="--c:#fbbf24">
+        <div class="pl"><div class="pn">노즐 온도 · Temperature</div><div class="pr">권장 145~155 ℃</div></div>
+        <div class="pa"><button onclick="adj('temp',-1)">−</button></div>
+        <div class="pv" id="vTemp">150</div>
+        <div class="pa"><button onclick="adj('temp',1)">＋</button></div>
+      </div>
+      <div class="param" style="--c:#22c55e">
+        <div class="pl"><div class="pn">도포량 · Bond Volume</div><div class="pr">권장 3.0~4.5 g/m</div></div>
+        <div class="pa"><button onclick="adj('vol',-1)">−</button></div>
+        <div class="pv" id="vVol">3.8</div>
+        <div class="pa"><button onclick="adj('vol',1)">＋</button></div>
+      </div>
+      <div class="param" style="--c:#a78bfa">
+        <div class="pl"><div class="pn">점도 · Viscosity</div><div class="pr">권장 850~1100 cps</div></div>
+        <div class="pa"><button onclick="adj('vis',-25)">−</button></div>
+        <div class="pv" id="vVis">980</div>
+        <div class="pa"><button onclick="adj('vis',25)">＋</button></div>
+      </div>
+      <div class="param" style="--c:#0891b2">
+        <div class="pl"><div class="pn">롤러 압력 · Roller Pressure</div><div class="pr">권장 0.4~0.7 MPa</div></div>
+        <div class="pa"><button onclick="adj('prs',-0.05)">−</button></div>
+        <div class="pv" id="vPrs">0.55</div>
+        <div class="pa"><button onclick="adj('prs',0.05)">＋</button></div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn-reset" onclick="resetPreset()">↺ 프리셋 복원</button>
+      <button class="btn-apply" onclick="apply()">▶ 설정 적용</button>
+    </div>
+  </div>
+  <div class="col">
+    <div class="stat-grid">
+      <div class="stat-c" style="--c:#fbbf24"><div class="lbl">현재 노즐 온도</div><div class="val" id="rTemp">150</div><div class="uom">℃</div><div class="ok" id="sTemp">정상 범위</div></div>
+      <div class="stat-c" style="--c:#22c55e"><div class="lbl">현재 도포량</div><div class="val" id="rVol">3.8</div><div class="uom">g/m</div><div class="ok" id="sVol">정상 범위</div></div>
+    </div>
+    <div class="ctrl">
+      <h3>📊 실시간 모니터링 · LIVE</h3>
+      <div class="gauge-wrap">
+        <div>
+          <div class="gauge" style="--c:#a78bfa">
+            <svg viewBox="0 0 100 100"><circle class="gc bg" cx="50" cy="50" r="42"/><circle class="gc fg" id="gVis" cx="50" cy="50" r="42" stroke-dasharray="264" stroke-dashoffset="50"/></svg>
+            <div class="gt"><div class="gv" id="gVisV">980</div><div class="gu">cps</div></div>
+          </div>
+          <div class="gl">점도 Viscosity</div>
+        </div>
+        <div>
+          <div class="gauge" style="--c:#0891b2">
+            <svg viewBox="0 0 100 100"><circle class="gc bg" cx="50" cy="50" r="42"/><circle class="gc fg" id="gPrs" cx="50" cy="50" r="42" stroke-dasharray="264" stroke-dashoffset="120"/></svg>
+            <div class="gt"><div class="gv" id="gPrsV">0.55</div><div class="gu">MPa</div></div>
+          </div>
+          <div class="gl">롤러 압력 Pressure</div>
+        </div>
+      </div>
+    </div>
+    <div class="alarm-box" id="alarmBox">
+      <span style="font-size:22px;">✓</span>
+      <span id="alarmTxt">모든 파라미터 정상 범위 내 — 작업 가능</span>
+    </div>
+    <div class="ctrl">
+      <h3>📝 작업 노트</h3>
+      <div style="font-size:12px;color:#a8997f;line-height:1.7;">
+        ▸ 본드 토출 시 점도가 1100 cps 이상이면 노즐 막힘 위험<br>
+        ▸ 도포량 부족(&lt; 3.0 g/m) 시 박리 발생 → 시간당 점검 권장<br>
+        ▸ 온도가 155℃ 초과 시 본드 변성 — 즉시 정비 호출<br>
+        ▸ 신규 원단 투입 시 프리셋 변경 후 5분 안정화 필요
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+var PRESETS={
+ 'pvc-thick':{temp:150,vol:3.8,vis:980,prs:0.55},
+ 'pvc-thin':{temp:145,vol:3.2,vis:920,prs:0.45},
+ 'fabric':{temp:155,vol:4.2,vis:1050,prs:0.65}
+};
+var RANGE={
+ temp:[145,155],vol:[3.0,4.5],vis:[850,1100],prs:[0.4,0.7]
+};
+var cur={temp:150,vol:3.8,vis:980,prs:0.55},sel='pvc-thick';
+function loadPreset(p){
+  sel=p;cur=Object.assign({},PRESETS[p]);
+  [].slice.call(document.querySelectorAll('.preset')).forEach(function(el){el.classList.toggle('on',el.dataset.p===p);});
+  upd();toast('','프리셋 로드',p+' 프리셋을 적용했습니다.');
+}
+function adj(k,delta){
+  cur[k]=Math.round((cur[k]+delta)*100)/100;
+  if(k==='vis')cur[k]=Math.round(cur[k]);
+  upd();
+}
+function upd(){
+  document.getElementById('vTemp').textContent=cur.temp;
+  document.getElementById('vVol').textContent=cur.vol.toFixed(1);
+  document.getElementById('vVis').textContent=cur.vis;
+  document.getElementById('vPrs').textContent=cur.prs.toFixed(2);
+  document.getElementById('rTemp').textContent=cur.temp;
+  document.getElementById('rVol').textContent=cur.vol.toFixed(1);
+  document.getElementById('gVisV').textContent=cur.vis;
+  document.getElementById('gPrsV').textContent=cur.prs.toFixed(2);
+  /* gauge: vis 800-1200 → fraction */
+  var visF=(cur.vis-800)/400;
+  document.getElementById('gVis').style.strokeDashoffset=264-264*Math.max(0,Math.min(1,visF));
+  var prsF=(cur.prs-0.3)/0.5;
+  document.getElementById('gPrs').style.strokeDashoffset=264-264*Math.max(0,Math.min(1,prsF));
+  /* check ranges */
+  var bad=[];
+  ['temp','vol','vis','prs'].forEach(function(k){
+    if(cur[k]<RANGE[k][0]||cur[k]>RANGE[k][1])bad.push(k);
+  });
+  var sT=document.getElementById('sTemp'),sV=document.getElementById('sVol');
+  sT.className=(cur.temp>=RANGE.temp[0]&&cur.temp<=RANGE.temp[1])?'ok':'ng';
+  sT.textContent=(sT.className==='ok')?'정상 범위':'⚠ 범위 이탈';
+  sV.className=(cur.vol>=RANGE.vol[0]&&cur.vol<=RANGE.vol[1])?'ok':'ng';
+  sV.textContent=(sV.className==='ok')?'정상 범위':'⚠ 범위 이탈';
+  var ab=document.getElementById('alarmBox');
+  if(bad.length){ab.classList.add('warn');document.getElementById('alarmTxt').innerHTML='⚠ '+bad.length+'개 파라미터 권장 범위 이탈 — 조정 권장';ab.querySelector('span').textContent='⚠';}
+  else{ab.classList.remove('warn');document.getElementById('alarmTxt').textContent='모든 파라미터 정상 범위 내 — 작업 가능';ab.querySelector('span').textContent='✓';}
+}
+function apply(){toast('ok','본드 설정 적용 ✓','노즐 온도 '+cur.temp+'℃ · 도포량 '+cur.vol+' g/m · 점도 '+cur.vis+' cps · 압력 '+cur.prs+' MPa 적용 완료. 5분 안정화 후 작업 가능.');}
+function resetPreset(){loadPreset(sel);}
+function back(){toast('','뒤로 이동','POP 대시보드로 돌아갑니다.');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='warn'?'⚠ ':type==='ok'?'✓ ':'ℹ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3500);
+}
+upd();
+</script>
+</body>
+</html>
