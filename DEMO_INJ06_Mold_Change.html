@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>INJ-06 Mold Change · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--sc:#ea580c;--sc-dk:#c2410c;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
+.head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
+.head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#fb923c;}
+.head .tt{flex:1;}
+.head .en{font-size:17px;font-weight:800;color:#fff;}
+.head .ko{font-size:11px;color:#a8997f;}
+.back{background:#1a1208;border:1px solid #3a2a14;color:#fdba74;font-size:13px;font-weight:700;padding:9px 16px;border-radius:7px;cursor:pointer;font-family:inherit;}
+.back:active{background:rgba(234,88,12,.18);}
+.timer{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:800;color:#fbbf24;background:rgba(0,0,0,.4);padding:6px 14px;border-radius:7px;border:1px solid #3a2a14;}
+.live{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:5px 10px;border-radius:5px;background:#f59e0b;color:#fff;display:flex;align-items:center;gap:5px;}
+.live .d{width:7px;height:7px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.body{flex:1;display:flex;flex-direction:column;padding:18px 30px;gap:18px;min-height:0;overflow-y:auto;}
+.body::-webkit-scrollbar{width:8px;}.body::-webkit-scrollbar-thumb{background:#4a3618;border-radius:4px;}
+/* mold swap visual */
+.swap{display:grid;grid-template-columns:1fr 60px 1fr;gap:14px;align-items:center;}
+.mold{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-top:4px solid var(--c);border-radius:12px;padding:16px 18px;}
+.mold .lbl{font-size:10px;color:#a8997f;letter-spacing:2px;font-family:'JetBrains Mono',monospace;}
+.mold .nm{font-size:17px;font-weight:800;color:#fff;margin-top:4px;}
+.mold .cd{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--c);margin-top:2px;}
+.mold .meta{margin-top:9px;display:grid;grid-template-columns:1fr 1fr;gap:7px;font-size:11px;}
+.mold .meta div{color:#a8997f;}
+.mold .meta b{color:#fff;font-family:'JetBrains Mono',monospace;}
+.swap-arr{font-size:46px;color:var(--sc);text-align:center;animation:slide 1.6s ease-in-out infinite;}
+@keyframes slide{50%{transform:translateX(8px);}}
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;background:rgba(0,0,0,.3);padding:14px;border-radius:10px;border:1px solid #3a2a14;}
+.st{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:8px 4px;border-radius:8px;border:1px solid transparent;}
+.st .nm{font-size:10px;font-weight:700;color:#a8997f;line-height:1.3;}
+.st .cir{width:38px;height:38px;border-radius:50%;background:#1a1208;border:2px solid #3a2a14;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;font-family:'JetBrains Mono',monospace;color:#a8997f;}
+.st.done .cir{background:#16a34a;border-color:#16a34a;color:#fff;}
+.st.done .nm{color:#86efac;}
+.st.cur{background:rgba(234,88,12,.12);border-color:var(--sc);}
+.st.cur .cir{background:var(--sc);border-color:var(--sc);color:#fff;animation:pulse 1.4s infinite;}
+.st.cur .nm{color:#fff;font-weight:800;}
+@keyframes pulse{50%{box-shadow:0 0 0 8px rgba(234,88,12,.3);}}
+/* current step panel */
+.curp{flex:1;background:linear-gradient(160deg,rgba(234,88,12,.1),rgba(234,88,12,.02));border:1px solid #3a2a14;border-top:4px solid var(--sc);border-radius:14px;padding:24px 30px;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;}
+.curp .num{font-family:'Bebas Neue',sans-serif;font-size:78px;color:#fdba74;line-height:.9;letter-spacing:3px;}
+.curp .ti{font-size:24px;font-weight:800;color:#fff;}
+.curp .ds{font-size:13px;color:#fdba74;max-width:580px;line-height:1.7;}
+.curp .icon{font-size:60px;}
+.checks{display:grid;grid-template-columns:1fr 1fr;gap:9px;width:100%;max-width:580px;margin-top:6px;}
+.ck-r{background:rgba(0,0,0,.3);border:1px solid #3a2a14;border-radius:8px;padding:11px 14px;display:flex;align-items:center;gap:9px;font-size:12px;color:#cdc4b4;cursor:pointer;text-align:left;}
+.ck-r .ck{width:24px;height:24px;border-radius:7px;background:#1a1208;border:2px solid #3a2a14;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#22c55e;}
+.ck-r.on .ck{background:#16a34a;border-color:#16a34a;color:#fff;}
+.ck-r.on{color:#fff;}
+.scan-area{background:rgba(56,189,248,.08);border:2px dashed #38bdf8;border-radius:11px;padding:18px 26px;width:100%;max-width:520px;text-align:center;cursor:pointer;}
+.scan-area:active{background:rgba(56,189,248,.18);}
+.scan-area.scanned{background:rgba(34,197,94,.12);border-color:#22c55e;}
+.scan-area .ic{font-size:34px;}
+.scan-area .t{font-size:14px;font-weight:800;color:#7dd3fc;margin-top:5px;}
+.scan-area.scanned .t{color:#86efac;}
+.actions{display:flex;gap:11px;align-self:stretch;}
+.btn-prev{padding:18px 28px;background:#1a1208;border:1px solid #3a2a14;color:#fdba74;font-size:14px;font-weight:700;border-radius:11px;cursor:pointer;font-family:inherit;}
+.btn-next{flex:1;padding:18px;background:linear-gradient(180deg,var(--sc),var(--sc-dk));border:none;border-radius:11px;color:#fff;font-size:17px;font-weight:800;font-family:inherit;cursor:pointer;letter-spacing:2px;box-shadow:0 4px 0 #7c2d12;}
+.btn-next:disabled{background:#3a2a14;color:#6b5a3a;box-shadow:0 4px 0 #1a1208;cursor:not-allowed;}
+.btn-next:not(:disabled):active{transform:translateY(2px);box-shadow:0 2px 0 #7c2d12;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#1a1208;border-radius:10px;padding:13px 17px;border-left:5px solid var(--sc);font-size:13px;min-width:280px;max-width:400px;animation:ti .25s ease;color:#fff;box-shadow:0 8px 26px rgba(0,0,0,.5);}
+.toast.err{border-left-color:#dc2626;}.toast.ok{border-left-color:#16a34a;}.toast.warn{border-left-color:#f59e0b;}
+.toast .tt{font-weight:800;margin-bottom:3px;}
+.toast .tb{color:#a8997f;font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="head">
+  <button class="back" onclick="back()">‹ 대시보드</button>
+  <div class="id">INJ-06</div>
+  <div class="tt"><div class="en">Mold Change</div><div class="ko">금형 교체 — 단계별 교환 워크플로</div></div>
+  <span class="timer" id="timer">00:00</span>
+  <span class="live"><span class="d"></span>CHANGEOVER</span>
+</div>
+<div class="body">
+  <div class="swap">
+    <div class="mold" style="--c:#9ca3af">
+      <div class="lbl">FROM · 분리 금형</div>
+      <div class="nm">도어트림 RH 금형</div>
+      <div class="cd">MD-INJ-102</div>
+      <div class="meta">
+        <div>품목 <b>TRIM-RH-001</b></div>
+        <div>샷 <b>472K / 500K</b></div>
+        <div>캐비티 <b>2 cav</b></div>
+        <div>WO 종료 <b>WO-2605-115</b></div>
+      </div>
+    </div>
+    <div class="swap-arr">▶</div>
+    <div class="mold" style="--c:#22c55e">
+      <div class="lbl">TO · 신규 금형</div>
+      <div class="nm">콘솔어퍼 금형</div>
+      <div class="cd">MD-INJ-105</div>
+      <div class="meta">
+        <div>품목 <b>CONS-UP-001</b></div>
+        <div>샷 <b>62K / 550K</b></div>
+        <div>캐비티 <b>1 cav</b></div>
+        <div>다음 WO <b>WO-2605-130</b></div>
+      </div>
+    </div>
+  </div>
+  <div class="steps" id="steps"></div>
+  <div class="curp" id="curp"></div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+var STEPS=[
+ {n:'01',ti:'작업 일시정지',ds:'현재 작업을 안전하게 정지하고 비가동 사유에 「금형 교체」를 등록합니다.',icon:'⏸',type:'check',items:[
+   '잔여 사이클 완료 후 정지','히터 OFF / 안전 모드 전환','비가동 사유 「금형 교체」 등록']},
+ {n:'02',ti:'기존 금형 분리',ds:'현재 장착된 금형을 분리하여 보관함으로 이동합니다.',icon:'🔧',type:'check',items:[
+   '냉각수 라인 차단','클램프 해제 / 형개','금형 인양 및 보관함 이동','금형 상태 점검 기록']},
+ {n:'03',ti:'신규 금형 스캔',ds:'장착할 신규 금형의 바코드를 스캔하여 검증합니다.',icon:'📷',type:'scan'},
+ {n:'04',ti:'금형 장착·고정',ds:'신규 금형을 사출기에 장착하고 클램프·냉각수 라인을 연결합니다.',icon:'🔩',type:'check',items:[
+   '금형 인양·정렬','클램프 체결 / 형개 확인','냉각수 라인 연결','전기·신호 케이블 연결','안전 펜스 / 광막 정상']},
+ {n:'05',ti:'초도품 확인',ds:'초도품 2~3 shot 생산 후 검사 기준 충족 여부를 확인합니다.',icon:'🔍',type:'check',items:[
+   '온도·압력 정상화 대기','초도품 2 shot 생산','치수·외관 검사','품질팀 승인 기록']},
+ {n:'06',ti:'작업 재개',ds:'금형 교체 완료. 다음 작업지시(WO-2605-130) 작업을 시작합니다.',icon:'▶',type:'final'}
+];
+var idx=0,startT=Date.now(),secs=0,scanned=false,checks={};
+function renderSteps(){
+  document.getElementById('steps').innerHTML=STEPS.map(function(s,i){
+    var cls=i<idx?'done':(i===idx?'cur':'');
+    return '<div class="st '+cls+'"><div class="cir">'+(i<idx?'✓':s.n)+'</div><div class="nm">'+s.ti+'</div></div>';
+  }).join('');
+}
+function renderCur(){
+  var s=STEPS[idx];
+  var h='<div class="icon">'+s.icon+'</div><div class="num">STEP '+s.n+'</div><div class="ti">'+s.ti+'</div><div class="ds">'+s.ds+'</div>';
+  if(s.type==='check'){
+    h+='<div class="checks">'+s.items.map(function(it,i){
+      var on=(checks[idx]||{})[i];
+      return '<div class="ck-r'+(on?' on':'')+'" data-i="'+i+'" onclick="chk('+idx+','+i+')"><span class="ck">'+(on?'✓':'')+'</span>'+it+'</div>';}).join('')+'</div>';
+  }
+  if(s.type==='scan'){
+    h+='<div class="scan-area'+(scanned?' scanned':'')+'" onclick="scan()"><div class="ic">'+(scanned?'✅':'📷')+'</div>'+
+      '<div class="t">'+(scanned?'금형 검증 완료 — MD-INJ-105 인식':'신규 금형 바코드 스캔')+'</div></div>';
+  }
+  if(s.type==='final'){
+    h+='<div style="font-size:14px;color:#86efac;font-weight:800;">교체 소요 시간 <span id="finT">--</span></div>';
+  }
+  h+='<div class="actions">'+
+    (idx>0?'<button class="btn-prev" onclick="prev()">‹ 이전</button>':'')+
+    '<button class="btn-next" id="bn" '+(canNext()?'':'disabled')+' onclick="next()">'+(idx===STEPS.length-1?'✓ 교체 완료':'다음 단계 ▶')+'</button></div>';
+  document.getElementById('curp').innerHTML=h;
+  if(s.type==='final'){
+    var m=Math.floor(secs/60),sc=secs%60;
+    document.getElementById('finT').textContent=String(m).padStart(2,'0')+':'+String(sc).padStart(2,'0');
+  }
+}
+function canNext(){
+  var s=STEPS[idx];
+  if(s.type==='check'){
+    var c=checks[idx]||{};
+    return s.items.every(function(_,i){return c[i];});
+  }
+  if(s.type==='scan')return scanned;
+  return true;
+}
+function chk(si,i){
+  checks[si]=checks[si]||{};
+  checks[si][i]=!checks[si][i];
+  renderCur();
+}
+function scan(){
+  if(scanned)return;
+  scanned=true;
+  toast('ok','금형 바코드 인식 ✓','MD-INJ-105 (콘솔어퍼 금형) 검증 완료. 작업지시 금형과 일치합니다.');
+  renderCur();
+}
+function next(){
+  if(!canNext())return;
+  if(idx===STEPS.length-1){
+    toast('ok','금형 교체 완료 ✓','MD-INJ-102 → MD-INJ-105 교체 완료 ('+document.getElementById('timer').textContent+' 소요). 작업 재개 화면으로 이동... (데모)');
+    return;
+  }
+  idx++;renderSteps();renderCur();
+  toast('','STEP '+STEPS[idx].n+' 진행',STEPS[idx].ti+' 단계로 이동했습니다.');
+}
+function prev(){if(idx>0){idx--;renderSteps();renderCur();}}
+function back(){toast('','뒤로 이동','POP 대시보드로 돌아갑니다. 진행 중인 교체는 일시 보류됩니다.');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='warn'?'⚠ ':type==='ok'?'✓ ':'ℹ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3500);
+}
+setInterval(function(){
+  secs=Math.floor((Date.now()-startT)/1000);
+  var m=Math.floor(secs/60),s=secs%60;
+  document.getElementById('timer').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+},1000);
+renderSteps();renderCur();
+</script>
+</body>
+</html>
