@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PNT-08 Defect Register · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--sc:#ea580c;--sc-dk:#c2410c;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
+.head{flex-shrink:0;padding:13px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
+.head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#fb923c;}
+.head .tt{flex:1;}
+.head .en{font-size:17px;font-weight:800;color:#fff;}
+.head .ko{font-size:11px;color:#a8997f;}
+.back{background:#1a1208;border:1px solid #3a2a14;color:#fdba74;font-size:13px;font-weight:700;padding:9px 16px;border-radius:7px;cursor:pointer;font-family:inherit;}
+.back:active{background:rgba(234,88,12,.18);}
+.live{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:5px 10px;border-radius:5px;background:#dc2626;color:#fff;display:flex;align-items:center;gap:5px;}
+.live .d{width:7px;height:7px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.body{flex:1;display:grid;grid-template-columns:1.4fr 1fr;gap:14px;padding:14px 24px;min-height:0;overflow:hidden;}
+.col{display:flex;flex-direction:column;gap:12px;min-height:0;}
+.col:first-child{overflow-y:auto;}
+.col:first-child::-webkit-scrollbar{width:8px;}.col:first-child::-webkit-scrollbar-thumb{background:#4a3618;border-radius:4px;}
+.sec h3{font-size:11px;color:#fdba74;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;font-weight:700;display:flex;align-items:center;gap:7px;}
+.sec h3 .step{background:var(--sc);color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-family:'JetBrains Mono',monospace;}
+.dgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;}
+.dt{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:9px;padding:14px 8px;text-align:center;cursor:pointer;transition:all .12s;}
+.dt:active{transform:scale(.95);}
+.dt.on{background:rgba(220,38,38,.18);border-color:#dc2626;border-width:2px;}
+.dt .ic{font-size:24px;}
+.dt .nm{font-size:12px;font-weight:800;color:#fff;margin-top:3px;}
+.dt .cd{font-family:'JetBrains Mono',monospace;font-size:8.5px;color:#a8997f;}
+.dt.on .cd{color:#fca5a5;}
+.cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.cz{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:8px;padding:11px 9px;text-align:center;cursor:pointer;font-size:12px;font-weight:700;color:#fff;}
+.cz:active{transform:scale(.96);}
+.cz.on{background:rgba(245,158,11,.16);border-color:#f59e0b;color:#fbbf24;}
+.agrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.act{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:9px;padding:13px;text-align:center;cursor:pointer;}
+.act:active{transform:scale(.96);}
+.act.on{background:rgba(234,88,12,.18);border-color:var(--sc);border-width:2px;}
+.act .ic{font-size:22px;}
+.act .nm{font-size:12px;font-weight:800;color:#fff;margin-top:4px;}
+.input-box{background:rgba(255,255,255,.04);border:2px solid #dc2626;border-radius:11px;padding:16px 22px;text-align:center;margin-bottom:11px;}
+.input-box .il{font-size:10px;color:#fca5a5;letter-spacing:2px;font-family:'JetBrains Mono',monospace;}
+.input-box .iv{font-family:'JetBrains Mono',monospace;font-size:54px;font-weight:900;color:#fff;line-height:1;margin-top:4px;}
+.input-box .iu{font-size:11px;color:#a8997f;}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;flex:1;min-height:0;}
+.k{padding:0;background:#1a1208;border:1px solid #3a2a14;border-radius:9px;color:#fff;font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:all .1s;}
+.k:active{background:var(--sc);border-color:var(--sc);transform:scale(.97);}
+.k.fn{font-size:13px;color:#fdba74;}
+.k.cl{color:#fca5a5;}
+.photo{background:rgba(56,189,248,.08);border:1px dashed #38bdf8;border-radius:9px;padding:12px;text-align:center;cursor:pointer;}
+.photo:active{background:rgba(56,189,248,.15);}
+.photo .ic{font-size:24px;}
+.photo .t{font-size:12px;font-weight:700;color:#7dd3fc;margin-top:3px;}
+.photo .s{font-size:9px;color:#a8997f;}
+.btn-sub{padding:18px;background:linear-gradient(180deg,#dc2626,#b91c1c);border:none;border-radius:11px;color:#fff;font-size:17px;font-weight:800;font-family:inherit;cursor:pointer;letter-spacing:2px;box-shadow:0 4px 0 #7f1d1d;}
+.btn-sub:disabled{background:#3a2a14;color:#6b5a3a;box-shadow:0 4px 0 #1a1208;cursor:not-allowed;}
+.btn-sub:not(:disabled):active{transform:translateY(2px);box-shadow:0 2px 0 #7f1d1d;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#1a1208;border-radius:10px;padding:13px 17px;border-left:5px solid var(--sc);font-size:13px;min-width:280px;max-width:400px;animation:ti .25s ease;color:#fff;box-shadow:0 8px 26px rgba(0,0,0,.5);}
+.toast.err{border-left-color:#dc2626;}.toast.ok{border-left-color:#16a34a;}.toast.warn{border-left-color:#f59e0b;}
+.toast .tt{font-weight:800;margin-bottom:3px;}
+.toast .tb{color:#a8997f;font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="head">
+  <button class="back" onclick="back()">‹ 대시보드</button>
+  <div class="id">PNT-08</div>
+  <div class="tt"><div class="en">Defect Register</div><div class="ko">불량 등록 — 유형·수량·원인·조치 보고</div></div>
+  <span class="live"><span class="d"></span>DEFECT MODE</span>
+</div>
+<div class="body">
+  <div class="col">
+    <div class="sec">
+      <h3><span class="step">1</span>불량 유형 · DEFECT TYPE</h3>
+      <div class="dgrid" id="typeGrid">
+        <div class="dt" data-c="DEF-PN-001" data-n="색상 불량 (ΔE)" onclick="pickT(this)"><div class="ic">🎨</div><div class="nm">색상 불량</div><div class="cd">DEF-PN-001</div></div>
+        <div class="dt" data-c="DEF-PN-002" data-n="도막 두께 부족" onclick="pickT(this)"><div class="ic">📏</div><div class="nm">두께 부족</div><div class="cd">DEF-PN-002</div></div>
+        <div class="dt" data-c="DEF-PN-003" data-n="흘러내림 (Run/Sag)" onclick="pickT(this)"><div class="ic">💧</div><div class="nm">흘러내림</div><div class="cd">DEF-PN-003</div></div>
+        <div class="dt" data-c="DEF-PN-004" data-n="오렌지 필" onclick="pickT(this)"><div class="ic">🍊</div><div class="nm">오렌지 필</div><div class="cd">DEF-PN-004</div></div>
+        <div class="dt" data-c="DEF-PN-005" data-n="기포·핀홀" onclick="pickT(this)"><div class="ic">🫧</div><div class="nm">기포·핀홀</div><div class="cd">DEF-PN-005</div></div>
+        <div class="dt" data-c="DEF-PN-006" data-n="박리 (Peeling)" onclick="pickT(this)"><div class="ic">📋</div><div class="nm">박리</div><div class="cd">DEF-PN-006</div></div>
+        <div class="dt" data-c="DEF-MT-001" data-n="이물 혼입" onclick="pickT(this)"><div class="ic">🦠</div><div class="nm">이물질</div><div class="cd">DEF-MT-001</div></div>
+        <div class="dt" data-c="DEF-OTHER" data-n="기타" onclick="pickT(this)"><div class="ic">❓</div><div class="nm">기타</div><div class="cd">기타</div></div>
+      </div>
+    </div>
+    <div class="sec">
+      <h3><span class="step">2</span>발생 원인 · ROOT CAUSE (4M)</h3>
+      <div class="cgrid" id="causeGrid">
+        <div class="cz" data-c="설비(Machine)" onclick="pickC(this)">⚙️ 설비 (Machine)</div>
+        <div class="cz" data-c="금형" onclick="pickC(this)">🔩 금형 (Mold)</div>
+        <div class="cz" data-c="자재(Material)" onclick="pickC(this)">📦 자재 (Material)</div>
+        <div class="cz" data-c="작업자(Man)" onclick="pickC(this)">👷 작업자 (Man)</div>
+        <div class="cz" data-c="방법(Method)" onclick="pickC(this)">📋 방법 (Method)</div>
+        <div class="cz" data-c="환경" onclick="pickC(this)">🌡 환경 (Env)</div>
+      </div>
+    </div>
+    <div class="sec">
+      <h3><span class="step">3</span>조치 · ACTION</h3>
+      <div class="agrid" id="actGrid">
+        <div class="act" data-a="폐기" onclick="pickA(this)"><div class="ic">🗑</div><div class="nm">폐기</div></div>
+        <div class="act" data-a="재작업" onclick="pickA(this)"><div class="ic">🔄</div><div class="nm">재작업</div></div>
+        <div class="act" data-a="특채 검토" onclick="pickA(this)"><div class="ic">⚖</div><div class="nm">특채 검토</div></div>
+      </div>
+    </div>
+    <div class="photo" onclick="photo()">
+      <div class="ic">📷</div><div class="t">불량 사진 촬영</div><div class="s">증빙용 사진 첨부 (선택)</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="input-box">
+      <div class="il">▶ 불량 수량 입력 (EA)</div>
+      <div class="iv" id="iv">0</div>
+      <div class="iu" id="iuSel">유형 미선택</div>
+    </div>
+    <div class="keypad">
+      <button class="k" onclick="key('7')">7</button>
+      <button class="k" onclick="key('8')">8</button>
+      <button class="k" onclick="key('9')">9</button>
+      <button class="k" onclick="key('4')">4</button>
+      <button class="k" onclick="key('5')">5</button>
+      <button class="k" onclick="key('6')">6</button>
+      <button class="k" onclick="key('1')">1</button>
+      <button class="k" onclick="key('2')">2</button>
+      <button class="k" onclick="key('3')">3</button>
+      <button class="k fn cl" onclick="clr()">CLR</button>
+      <button class="k" onclick="key('0')">0</button>
+      <button class="k fn" onclick="bksp()">⌫</button>
+    </div>
+    <button class="btn-sub" id="btnSub" disabled onclick="submit()">⛔ 불량 등록</button>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+var typ=null,cause=null,act=null,v='';
+function pickT(el){[].slice.call(document.querySelectorAll('#typeGrid .dt')).forEach(function(x){x.classList.remove('on');});el.classList.add('on');typ={c:el.dataset.c,n:el.dataset.n};document.getElementById('iuSel').textContent='유형: '+typ.n;chk();}
+function pickC(el){[].slice.call(document.querySelectorAll('#causeGrid .cz')).forEach(function(x){x.classList.remove('on');});el.classList.add('on');cause=el.dataset.c;chk();}
+function pickA(el){[].slice.call(document.querySelectorAll('#actGrid .act')).forEach(function(x){x.classList.remove('on');});el.classList.add('on');act=el.dataset.a;chk();}
+function key(d){if(v.length>=4)return;v+=d;upd();chk();}
+function clr(){v='';upd();chk();}
+function bksp(){v=v.slice(0,-1);upd();chk();}
+function upd(){document.getElementById('iv').textContent=v||'0';}
+function chk(){document.getElementById('btnSub').disabled=!(typ&&cause&&act&&parseInt(v||'0',10)>0);}
+function photo(){toast('','사진 첨부','카메라가 활성화되었습니다. 불량 사진을 촬영하세요. (데모)');}
+function submit(){
+  var n=parseInt(v,10);
+  toast('ok','불량 등록 ✓',typ.n+' '+n+' EA · '+cause+' · '+act+' 처리. 품질팀에 자동 통보됩니다.');
+  /* reset */
+  typ=null;cause=null;act=null;v='';upd();
+  [].slice.call(document.querySelectorAll('.dt.on,.cz.on,.act.on')).forEach(function(x){x.classList.remove('on');});
+  document.getElementById('iuSel').textContent='유형 미선택';chk();
+}
+function back(){toast('','뒤로 이동','POP 대시보드로 돌아갑니다.');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='warn'?'⚠ ':type==='ok'?'✓ ':'ℹ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3500);
+}
+</script>
+</body>
+</html>
