@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WH-02 PDA Inbound · A-MES PDA Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--pda:#06b6d4;--pda-dk:#0e7490;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
+.pda{width:420px;max-width:100%;height:100%;max-height:760px;background:#0f1f25;border:2px solid #1a3540;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;}
+.pda-top{flex-shrink:0;background:linear-gradient(180deg,#1a3540,#0f1f25);padding:11px 16px;display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--pda);}
+.pda-id{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#22d3ee;}
+.pda-t{flex:1;font-size:13px;font-weight:800;color:#fff;}
+.pda-bat{font-size:9px;color:#67e8f9;font-family:'JetBrains Mono',monospace;}
+.live{font-size:8px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:2px 7px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:3px;}
+.live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.pda-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px;}
+.pda-body::-webkit-scrollbar{width:6px;}.pda-body::-webkit-scrollbar-thumb{background:#1a3540;border-radius:3px;}
+.scan-box{background:linear-gradient(160deg,rgba(6,182,212,.12),rgba(0,0,0,.3));border:2px dashed var(--pda);border-radius:11px;padding:16px;text-align:center;cursor:pointer;}
+.scan-box.ok{background:rgba(34,197,94,.15);border-color:#22c55e;border-style:solid;}
+.scan-box .ic{font-size:36px;}
+.scan-box .t{font-size:14px;font-weight:800;color:#22d3ee;margin-top:5px;}
+.scan-box.ok .t{color:#86efac;}
+.scan-box .s{font-size:10px;color:#7a9aa3;margin-top:3px;}
+.lot-info{background:rgba(255,255,255,.04);border:1px solid #1a3540;border-top:3px solid var(--pda);border-radius:10px;padding:13px 15px;}
+.lot-info .h{display:flex;align-items:center;gap:7px;margin-bottom:5px;}
+.lot-info .id{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;color:#22d3ee;}
+.lot-info .st{margin-left:auto;font-size:8.5px;font-weight:800;padding:2px 7px;border-radius:4px;background:rgba(34,197,94,.18);color:#86efac;}
+.lot-info .nm{font-size:14px;font-weight:800;color:#fff;}
+.lot-info .meta{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px;font-size:10.5px;}
+.lot-info .meta .l{color:#7a9aa3;}
+.lot-info .meta b{color:#fff;font-family:'JetBrains Mono',monospace;}
+.qty-card{background:rgba(255,255,255,.04);border:1px solid #1a3540;border-radius:10px;padding:13px 15px;text-align:center;}
+.qty-card .l{font-size:9px;color:#67e8f9;letter-spacing:1.5px;font-family:'JetBrains Mono',monospace;}
+.qty-card .v{font-family:'JetBrains Mono',monospace;font-size:42px;font-weight:900;color:#fff;line-height:1;margin:5px 0;}
+.qty-card .uom{font-size:10px;color:#7a9aa3;}
+.qty-row{display:flex;gap:8px;margin-top:9px;}
+.qty-row button{flex:1;padding:11px;background:#1a3540;border:1px solid #2c5564;color:#fff;font-size:14px;font-weight:800;border-radius:7px;cursor:pointer;font-family:inherit;}
+.qty-row button:active{background:var(--pda);}
+.loc-card{background:rgba(255,255,255,.04);border:1px solid #1a3540;border-radius:10px;padding:13px 15px;cursor:pointer;}
+.loc-card .l{font-size:9px;color:#67e8f9;letter-spacing:1.5px;font-family:'JetBrains Mono',monospace;margin-bottom:5px;}
+.loc-card .loc{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:800;color:#22d3ee;}
+.loc-card .lsub{font-size:10px;color:#7a9aa3;margin-top:3px;}
+.section-h{font-size:10px;color:#67e8f9;text-transform:uppercase;letter-spacing:2px;font-weight:800;}
+.bottom-bar{flex-shrink:0;display:flex;gap:8px;padding:11px 14px;background:#1a3540;border-top:1px solid #0a1419;}
+.bottom-bar button{flex:1;padding:13px 0;background:linear-gradient(180deg,var(--pda),var(--pda-dk));border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer;letter-spacing:1px;box-shadow:0 3px 0 #155e75;}
+.bottom-bar button:not(:disabled):active{transform:translateY(2px);box-shadow:0 1px 0 #155e75;}
+.bottom-bar button.sec{background:#0f1f25;color:#67e8f9;border:1px solid #1a3540;box-shadow:none;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#0f1f25;border:1px solid #1a3540;border-radius:9px;padding:12px 15px;border-left:4px solid var(--pda);font-size:12px;min-width:250px;max-width:340px;animation:ti .25s ease;color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.5);}
+.toast.ok{border-left-color:#16a34a;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:#7a9aa3;font-size:10px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="pda">
+  <div class="pda-top">
+    <div class="pda-id">WH-02</div>
+    <div class="pda-t">입고 검수</div>
+    <span class="live"><span class="d"></span>LIVE</span>
+    <span class="pda-bat">🔋 78%</span>
+  </div>
+  <div class="pda-body">
+    <div class="section-h">📷 STEP 1 · 입고 라벨 스캔</div>
+    <div class="scan-box ok">
+      <div class="ic">✅</div>
+      <div class="t">RC-2605-0421 인식</div>
+      <div class="s">PP 수지 (블랙) · 2,400 KG</div>
+    </div>
+    <div class="lot-info">
+      <div class="h"><span class="id">RC-2605-0421</span><span class="st">BOM 일치</span></div>
+      <div class="nm">PP 수지 (블랙)</div>
+      <div class="meta">
+        <span class="l">자재 코드</span><b>RM-PP-BLK</b>
+        <span class="l">공급사</span><b>대한플라스틱</b>
+        <span class="l">예정 수량</span><b>2,400 KG</b>
+        <span class="l">로트 번호</span><b>LT-PP-26052</b>
+      </div>
+    </div>
+    <div class="section-h">📊 STEP 2 · 실수령 수량 확인</div>
+    <div class="qty-card">
+      <div class="l">실수령 수량 · ACTUAL QTY</div>
+      <div class="v" id="qV">2,400</div>
+      <div class="uom">KG</div>
+      <div class="qty-row">
+        <button onclick="qty(-10)">−10</button>
+        <button onclick="qty(-1)">−1</button>
+        <button onclick="qty(1)">+1</button>
+        <button onclick="qty(10)">+10</button>
+      </div>
+    </div>
+    <div class="section-h">📍 STEP 3 · 적치 로케이션</div>
+    <div class="loc-card" onclick="scanLoc()">
+      <div class="l">권장 로케이션 (자동 배정)</div>
+      <div class="loc">A-03-2</div>
+      <div class="lsub">자재창고 / Block A · 행 03 · 단 2 · 잔여 1,600 KG</div>
+    </div>
+  </div>
+  <div class="bottom-bar">
+    <button class="sec" onclick="back()">← 취소</button>
+    <button onclick="complete()">✓ 입고 완료</button>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+var q=2400;
+function qty(d){q=Math.max(0,q+d);document.getElementById('qV').textContent=q.toLocaleString();}
+function scanLoc(){toast('','로케이션 스캔','지정 로케이션의 라벨을 스캔하면 검증 후 적치 처리됩니다.');}
+function complete(){toast('ok','입고 완료 ✓','RC-2605-0421 — '+q.toLocaleString()+' KG, A-03-2 적치 완료. 재고에 반영됨.');}
+function back(){toast('','뒤로','입고 예정 목록으로 돌아갑니다.');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3000);
+}
+</script>
+</body>
+</html>
