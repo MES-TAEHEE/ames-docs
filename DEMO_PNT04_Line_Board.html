@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PNT-04 Line Board · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--sc:#ea580c;--sc-dk:#c2410c;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
+.head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
+.head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#fb923c;}
+.head .tt{flex:1;}
+.head .en{font-size:17px;font-weight:800;color:#fff;}
+.head .ko{font-size:11px;color:#a8997f;}
+.back{background:#1a1208;border:1px solid #3a2a14;color:#fdba74;font-size:13px;font-weight:700;padding:9px 16px;border-radius:7px;cursor:pointer;font-family:inherit;}
+.live{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:5px 10px;border-radius:5px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.live .d{width:7px;height:7px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.clk{font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:700;color:#fff;}
+.body{flex:1;display:flex;flex-direction:column;padding:18px 24px;gap:14px;min-height:0;overflow:hidden;}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;}
+.kpi{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-top:4px solid var(--c);border-radius:11px;padding:12px 16px;}
+.kpi .lbl{font-size:10px;color:#fdba74;letter-spacing:1.5px;font-family:'JetBrains Mono',monospace;}
+.kpi .val{font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:900;color:var(--c);line-height:1;margin-top:3px;}
+.kpi .sub{font-size:10px;color:#a8997f;margin-top:2px;}
+.line-track{flex:1;background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:11px;padding:18px 20px;display:flex;flex-direction:column;min-height:0;}
+.lt-h{display:flex;align-items:center;gap:8px;margin-bottom:14px;font-size:12px;color:#fdba74;text-transform:uppercase;letter-spacing:2px;font-weight:800;}
+.lt-h .lgd{margin-left:auto;display:flex;gap:11px;font-weight:400;}
+.lt-h .lgd span{display:flex;align-items:center;gap:4px;font-size:9px;color:#a8997f;text-transform:none;letter-spacing:0;}
+.lt-h .lgd i{width:11px;height:11px;border-radius:2px;}
+.stations{display:grid;grid-template-columns:80px 1fr 1fr 1fr 80px;gap:0;flex:1;min-height:0;}
+.st-col{border-right:1px dashed #3a2a14;padding:10px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;}
+.st-col:last-child{border-right:none;}
+.st-col::-webkit-scrollbar{width:6px;}.st-col::-webkit-scrollbar-thumb{background:#4a3618;border-radius:3px;}
+.st-h{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;text-align:center;padding-bottom:6px;border-bottom:2px solid var(--c);margin-bottom:6px;color:var(--c);}
+.st-col.io .st-h{color:#a8997f;}
+.lot-tag{background:linear-gradient(160deg,rgba(0,0,0,.4),rgba(0,0,0,.2));border:1px solid #3a2a14;border-left:4px solid var(--cc);border-radius:8px;padding:9px 11px;animation:slide .4s ease;}
+@keyframes slide{from{opacity:0;transform:translateX(-10px);}}
+.lot-tag .lh{display:flex;align-items:center;gap:7px;margin-bottom:4px;}
+.lot-tag .sw{width:13px;height:13px;border-radius:3px;border:1px solid rgba(255,255,255,.1);flex-shrink:0;}
+.lot-tag .lid{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;color:#fff;}
+.lot-tag .item{font-size:11.5px;color:#fdba74;}
+.lot-tag .meta{font-size:9.5px;color:#a8997f;margin-top:3px;display:flex;justify-content:space-between;}
+.lot-tag .meta b{font-family:'JetBrains Mono',monospace;color:#fbbf24;}
+.lot-tag .pgb{height:5px;background:#1a1208;border-radius:3px;overflow:hidden;margin-top:5px;}
+.lot-tag .pgb i{display:block;height:100%;background:var(--cc);border-radius:3px;}
+.io-tag{background:rgba(255,255,255,.05);border:1px dashed #3a2a14;border-radius:7px;padding:8px;text-align:center;font-size:11px;color:#a8997f;}
+.io-tag .v{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:800;color:#fff;}
+.flow{height:30px;margin-top:6px;display:flex;align-items:center;justify-content:space-evenly;}
+.flow .arr{color:var(--sc);font-size:22px;animation:slide2 1.4s ease-in-out infinite;}
+@keyframes slide2{50%{transform:translateX(6px);}}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#1a1208;border-radius:10px;padding:13px 17px;border-left:5px solid var(--sc);font-size:13px;min-width:280px;max-width:400px;animation:ti .25s ease;color:#fff;box-shadow:0 8px 26px rgba(0,0,0,.5);}
+.toast.info{border-left-color:#2563eb;}.toast.ok{border-left-color:#16a34a;}
+.toast .tt{font-weight:800;margin-bottom:3px;}
+.toast .tb{color:#a8997f;font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="head">
+  <button class="back" onclick="back()">‹ 대시보드</button>
+  <div class="id">PNT-04</div>
+  <div class="tt"><div class="en">Line Tracking Board</div><div class="ko">라인 추적 보드 — R1→R2→R3 실시간 LOT 흐름</div></div>
+  <span class="live"><span class="d"></span>LIVE</span>
+  <span class="clk" id="clk">--:--:--</span>
+</div>
+<div class="body">
+  <div class="kpis">
+    <div class="kpi" style="--c:#0891b2"><div class="lbl">현재 라인 가동률</div><div class="val">88%</div><div class="sub">목표 ≥ 85%</div></div>
+    <div class="kpi" style="--c:#16a34a"><div class="lbl">R1 로딩 중</div><div class="val" id="kR1">2</div><div class="sub">LOT</div></div>
+    <div class="kpi" style="--c:#fbbf24"><div class="lbl">R2 오븐 통과 중</div><div class="val" id="kR2">3</div><div class="sub">LOT</div></div>
+    <div class="kpi" style="--c:#a78bfa"><div class="lbl">R3 언로딩 중</div><div class="val" id="kR3">2</div><div class="sub">LOT</div></div>
+    <div class="kpi" style="--c:#22c55e"><div class="lbl">금일 완료</div><div class="val">9</div><div class="sub">LOT</div></div>
+  </div>
+  <div class="line-track">
+    <div class="lt-h">🛤 라인 추적 보드 · LIVE
+      <span class="lgd">
+        <span><i style="background:#16a34a"></i>R1 로딩</span>
+        <span><i style="background:#fbbf24"></i>R2 오븐</span>
+        <span><i style="background:#a78bfa"></i>R3 언로딩</span>
+      </span>
+    </div>
+    <div class="stations">
+      <div class="st-col io" style="--c:#a8997f">
+        <div class="st-h">대기</div>
+        <div id="qList"></div>
+      </div>
+      <div class="st-col" style="--c:#16a34a">
+        <div class="st-h">R1 LOADING</div>
+        <div id="r1List"></div>
+      </div>
+      <div class="st-col" style="--c:#fbbf24">
+        <div class="st-h">R2 OVEN</div>
+        <div id="r2List"></div>
+      </div>
+      <div class="st-col" style="--c:#a78bfa">
+        <div class="st-h">R3 UNLOAD</div>
+        <div id="r3List"></div>
+      </div>
+      <div class="st-col io" style="--c:#22c55e">
+        <div class="st-h">완료</div>
+        <div id="doneList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+var CMAP={'블랙':'#0A0A0A','그레이':'#8D948D','화이트':'#F4F4F4','레드':'#CC0605','블루':'#0E294B','실버':'#A5A5A5'};
+var LOTS=[
+ /* stage: q (queue), r1, r2, r3, done */
+ {id:'LOT-2605-2107',item:'프론트 범퍼',color:'블랙',qty:48,stage:'r1',prog:62},
+ {id:'LOT-2605-2106',item:'사이드 몰딩',color:'블랙',qty:60,stage:'r1',prog:24},
+ {id:'LOT-2605-2105',item:'그릴 도장',color:'그레이',qty:32,stage:'r2',prog:38},
+ {id:'LOT-2605-2104',item:'프론트 범퍼',color:'블랙',qty:48,stage:'r2',prog:65},
+ {id:'LOT-2605-2103',item:'사이드 몰딩',color:'그레이',qty:54,stage:'r2',prog:88},
+ {id:'LOT-2605-2102',item:'그릴 도장',color:'레드',qty:24,stage:'r3',prog:42},
+ {id:'LOT-2605-2101',item:'프론트 범퍼',color:'화이트',qty:42,stage:'r3',prog:85},
+ {id:'LOT-2605-2108',item:'그릴 도장',color:'블랙',qty:30,stage:'q'},
+ {id:'LOT-2605-2109',item:'사이드 몰딩',color:'블루',qty:36,stage:'q'},
+ {id:'LOT-2605-2110',item:'프론트 범퍼',color:'레드',qty:24,stage:'q'},
+ {id:'LOT-2605-2100',item:'프론트 범퍼',color:'블랙',qty:48,stage:'done'},
+ {id:'LOT-2605-2099',item:'그릴 도장',color:'그레이',qty:36,stage:'done'},
+ {id:'LOT-2605-2098',item:'사이드 몰딩',color:'화이트',qty:60,stage:'done'}
+];
+var COL={r1:'#16a34a',r2:'#fbbf24',r3:'#a78bfa'};
+function render(){
+  ['q','r1','r2','r3','done'].forEach(function(stg){
+    var elId={q:'qList',r1:'r1List',r2:'r2List',r3:'r3List',done:'doneList'}[stg];
+    var rows=LOTS.filter(function(l){return l.stage===stg;});
+    var h='';
+    if(stg==='q'||stg==='done'){
+      h='<div class="io-tag"><div class="v">'+rows.length+'</div><div>LOT</div></div>'+
+        rows.slice(0,4).map(function(l){
+          return '<div class="io-tag" style="text-align:left;border-left:3px solid '+(CMAP[l.color]||'#888')+';padding:7px 9px;font-size:10px;line-height:1.4;">'+
+            '<b style="font-family:JetBrains Mono,monospace;color:#fff;font-size:10px;">'+l.id.slice(8)+'</b><br>'+l.item+'</div>';
+        }).join('');
+    }else{
+      var col=COL[stg];
+      h=rows.map(function(l){
+        return '<div class="lot-tag" style="--cc:'+col+'">'+
+          '<div class="lh"><span class="sw" style="background:'+(CMAP[l.color]||'#888')+'"></span><span class="lid">'+l.id+'</span></div>'+
+          '<div class="item">'+l.item+' · '+l.color+'</div>'+
+          '<div class="meta"><span>'+l.qty+' EA</span><b>'+l.prog+'%</b></div>'+
+          '<div class="pgb"><i style="width:'+l.prog+'%"></i></div></div>';
+      }).join('')||'<div style="color:#a8997f;text-align:center;padding:14px;font-size:11px;">단계 비어 있음</div>';
+    }
+    document.getElementById(elId).innerHTML=h;
+  });
+  document.getElementById('kR1').textContent=LOTS.filter(function(l){return l.stage==='r1';}).length;
+  document.getElementById('kR2').textContent=LOTS.filter(function(l){return l.stage==='r2';}).length;
+  document.getElementById('kR3').textContent=LOTS.filter(function(l){return l.stage==='r3';}).length;
+}
+function tick(){
+  /* advance progress */
+  LOTS.forEach(function(l){
+    if(l.stage==='r1'||l.stage==='r2'||l.stage==='r3'){
+      l.prog+=Math.floor(Math.random()*4)+1;
+      if(l.prog>=100){
+        var nx={r1:'r2',r2:'r3',r3:'done'}[l.stage];
+        var was=l.id+' '+l.stage.toUpperCase();
+        l.stage=nx;l.prog=nx==='done'?100:Math.floor(Math.random()*10)+5;
+        if(nx==='done')toast('ok',was+' 완료 ✓','LOT가 다음 단계로 이송되었습니다.');
+      }
+    }
+  });
+  /* queue → r1 if r1 has < 2 */
+  var r1Count=LOTS.filter(function(l){return l.stage==='r1';}).length;
+  if(r1Count<2){
+    var q=LOTS.filter(function(l){return l.stage==='q';})[0];
+    if(q){q.stage='r1';q.prog=5;toast('info',q.id+' R1 시작','대기열에서 로딩 시작');}
+  }
+  render();
+}
+function back(){toast('','뒤로 이동','POP 대시보드로 돌아갑니다.');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='info'?'ℹ ':type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3000);
+}
+(function(){var c=document.getElementById('clk');function t(){var d=new Date();c.textContent=d.toTimeString().slice(0,8);}t();setInterval(t,1000);})();
+render();setInterval(tick,3000);
+</script>
+</body>
+</html>
