@@ -208,6 +208,7 @@ if (Test-Path $indexFile) {
   # Collect all PDFs we want listed (in order)
   $indexPdfs = @(
     @{ Code="VOL00"; Title="Foundation";          Sub="Index | ERD | DB Schema";     Color="#94a3b8"; Pdf="AMES_L3_VOL00_Foundation.pdf" },
+    @{ Code="VOL01"; Title="Tech Stack";          Sub=".NET | Blazor | MAUI | MSSQL"; Color="#d4a017"; Pdf="AMES_L3_VOL01_Tech_Stack.pdf" },
     @{ Code="VOL03"; Title="Warehouse";           Sub="WH  - Inbound | Inventory";    Color="#0891b2"; Pdf="AMES_L3_VOL03_Warehouse.pdf" },
     @{ Code="VOL04"; Title="Production Planning"; Sub="PP  - Forecast | MRP | WO";    Color="#059669"; Pdf="AMES_L3_VOL04_Production_Planning.pdf" },
     @{ Code="VOL05"; Title="Injection POP";       Sub="INJ  - Operator Terminal";     Color="#2563eb"; Pdf="AMES_L3_VOL05_Injection_POP.pdf" },
