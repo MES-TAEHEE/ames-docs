@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WH-08 Transaction History · A-MES PDA Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--pda:#06b6d4;--pda-dk:#0e7490;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
+.pda{width:420px;max-width:100%;height:100%;max-height:760px;background:#0f1f25;border:2px solid #1a3540;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;}
+.pda-top{flex-shrink:0;background:linear-gradient(180deg,#1a3540,#0f1f25);padding:11px 16px;display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--pda);}
+.pda-id{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#22d3ee;}
+.pda-t{flex:1;font-size:13px;font-weight:800;color:#fff;}
+.pda-bat{font-size:9px;color:#67e8f9;font-family:'JetBrains Mono',monospace;}
+.live{font-size:8px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:2px 7px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:3px;}
+.live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.pda-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:11px;}
+.pda-body::-webkit-scrollbar{width:6px;}.pda-body::-webkit-scrollbar-thumb{background:#1a3540;border-radius:3px;}
+.filter-tabs{display:flex;gap:6px;}
+.ft{flex:1;padding:9px 0;background:#1a3540;border:1px solid #2c5564;border-radius:7px;text-align:center;font-size:11px;font-weight:800;color:#67e8f9;cursor:pointer;font-family:inherit;}
+.ft.on{background:var(--pda);color:#fff;border-color:var(--pda);}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;}
+.k{background:rgba(6,182,212,.08);border:1px solid #1a3540;border-top:3px solid var(--c);border-radius:9px;padding:9px 12px;}
+.k .l{font-size:9px;color:#67e8f9;font-family:'JetBrains Mono',monospace;}
+.k .v{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:900;color:var(--c);margin-top:2px;line-height:1;}
+.k .s{font-size:9px;color:#7a9aa3;}
+.tx{background:rgba(255,255,255,.04);border:1px solid #1a3540;border-radius:9px;padding:10px 12px;display:flex;align-items:flex-start;gap:10px;border-left:3px solid var(--st);}
+.tx .tic{width:28px;height:28px;border-radius:6px;background:var(--st);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;flex-shrink:0;}
+.tx .info{flex:1;min-width:0;}
+.tx .h{display:flex;align-items:center;gap:6px;margin-bottom:2px;}
+.tx .h .ty{font-size:9px;font-weight:800;color:var(--st);font-family:'JetBrains Mono',monospace;}
+.tx .h .t{margin-left:auto;font-size:9px;color:#7a9aa3;font-family:'JetBrains Mono',monospace;}
+.tx .nm{font-size:12px;font-weight:800;color:#fff;}
+.tx .meta{font-size:9.5px;color:#7a9aa3;font-family:'JetBrains Mono',monospace;margin-top:2px;}
+.tx .q{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:900;color:var(--st);flex-shrink:0;align-self:center;}
+.bottom-bar{flex-shrink:0;display:flex;gap:8px;padding:11px 14px;background:#1a3540;border-top:1px solid #0a1419;}
+.bottom-bar button{flex:1;padding:13px 0;background:linear-gradient(180deg,var(--pda),var(--pda-dk));border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer;letter-spacing:1px;box-shadow:0 3px 0 #155e75;}
+.bottom-bar button:active{transform:translateY(2px);box-shadow:0 1px 0 #155e75;}
+.bottom-bar button.sec{background:#0f1f25;color:#67e8f9;border:1px solid #1a3540;box-shadow:none;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#0f1f25;border:1px solid #1a3540;border-radius:9px;padding:12px 15px;border-left:4px solid var(--pda);font-size:12px;min-width:250px;max-width:340px;animation:ti .25s ease;color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.5);}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:#7a9aa3;font-size:10px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="pda">
+  <div class="pda-top">
+    <div class="pda-id">WH-08</div>
+    <div class="pda-t">입출고 이력</div>
+    <span class="live"><span class="d"></span>LIVE</span>
+    <span class="pda-bat">🔋 71%</span>
+  </div>
+  <div class="pda-body">
+    <div class="filter-tabs">
+      <button class="ft on" data-f="all" onclick="pickF(this)">전체</button>
+      <button class="ft" data-f="in" onclick="pickF(this)">입고</button>
+      <button class="ft" data-f="out" onclick="pickF(this)">출고</button>
+      <button class="ft" data-f="adj" onclick="pickF(this)">조정</button>
+    </div>
+    <div class="kpis">
+      <div class="k" style="--c:#22c55e"><div class="l">금일 입고</div><div class="v">3</div><div class="s">건 · 5,200 KG</div></div>
+      <div class="k" style="--c:#f59e0b"><div class="l">금일 출고</div><div class="v">8</div><div class="s">건 · 3,440 KG</div></div>
+      <div class="k" style="--c:#22d3ee"><div class="l">금일 조정</div><div class="v">1</div><div class="s">건 · −50 KG</div></div>
+      <div class="k" style="--c:#a78bfa"><div class="l">총 트랜잭션</div><div class="v">42</div><div class="s">최근 7일</div></div>
+    </div>
+    <div id="list"></div>
+  </div>
+  <div class="bottom-bar">
+    <button class="sec" onclick="back()">← 메뉴</button>
+    <button onclick="exp()">📥 Export</button>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+var TX=[
+ {t:'09:08',ty:'out',ic:'📤',c:'#f59e0b',nm:'PP 수지 (블랙)',m:'A-03-2 → 사출 1라인',q:'−800 KG',raw:800},
+ {t:'08:42',ty:'in',ic:'📥',c:'#22c55e',nm:'PP 수지 (블랙)',m:'대한플라스틱 → A-03-2',q:'+2,400 KG',raw:2400},
+ {t:'08:24',ty:'out',ic:'📤',c:'#f59e0b',nm:'베이스코트 그레이',m:'B-02-2 → 도장 1라인',q:'−120 L',raw:120},
+ {t:'07:42',ty:'in',ic:'📥',c:'#22c55e',nm:'ABS 수지',m:'한성수지 → A-04-1',q:'+1,800 KG',raw:1800},
+ {t:'07:30',ty:'adj',ic:'✏️',c:'#22d3ee',nm:'PP 수지 (블랙)',m:'A-03-2 실사 차이 조정',q:'−50 KG',raw:50},
+ {t:'07:15',ty:'out',ic:'📤',c:'#f59e0b',nm:'클리어코트',m:'B-02-3 → 도장 1라인',q:'−80 L',raw:80},
+ {t:'06:50',ty:'in',ic:'📥',c:'#22c55e',nm:'유압유 ISO VG46',m:'SK엔무브 → D-02-1',q:'+200 L',raw:200},
+ {t:'06:30',ty:'out',ic:'📤',c:'#f59e0b',nm:'고정 클립',m:'C-05-3 → 조립 1라인',q:'−480 EA',raw:480},
+ {t:'06:18',ty:'out',ic:'📤',c:'#f59e0b',nm:'PP 수지 (블랙)',m:'A-03-2 → 사출 2라인',q:'−600 KG',raw:600},
+ {t:'어제',ty:'out',ic:'📤',c:'#f59e0b',nm:'볼베어링 6206',m:'E-01-2 → 정비반',q:'−4 EA',raw:4},
+ {t:'어제',ty:'in',ic:'📥',c:'#22c55e',nm:'베이스코트 블랙',m:'세종도료 → B-02-1',q:'+400 L',raw:400}
+];
+var f='all';
+function pickF(e){[].slice.call(document.querySelectorAll('.ft')).forEach(function(x){x.classList.remove('on');});e.classList.add('on');f=e.dataset.f;render();}
+function render(){
+  var rows=TX.filter(function(t){return f==='all'||t.ty===f;});
+  document.getElementById('list').innerHTML=rows.map(function(t){
+    return '<div class="tx" style="--st:'+t.c+'">'+
+      '<div class="tic">'+t.ic+'</div>'+
+      '<div class="info"><div class="h"><span class="ty">'+(t.ty==='in'?'입고':t.ty==='out'?'출고':'조정')+'</span><span class="t">'+t.t+'</span></div>'+
+      '<div class="nm">'+t.nm+'</div><div class="meta">'+t.m+'</div></div>'+
+      '<div class="q">'+t.q+'</div></div>';
+  }).join('');
+}
+function exp(){toast('','📥 Export','금일 입출고 이력을 CSV로 내보냈습니다. (데모)');}
+function back(){toast('','PDA 메뉴','PDA 메뉴로 돌아갑니다.');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">• '+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3000);
+}
+render();
+</script>
+</body>
+</html>
