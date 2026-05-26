@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>INJ-02 POP Dashboard · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--sc:#ea580c;--sc-dk:#c2410c;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:15px;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:15px;display:flex;flex-direction:column;overflow:hidden;}
 .head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:16px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
 .head .id{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;color:#fb923c;}
 .head .tt{flex:1;}
@@ -86,8 +86,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 <body>
 <div class="head">
   <div class="id">INJ-02</div>
-  <div class="tt"><div class="en">POP Dashboard</div><div class="ko">POP 대시보드 — 작업자 메인 화면</div></div>
-  <div class="op-badge"><div class="av">박</div><div class="info"><div class="nm">박작업 (10589)</div><div class="rl">A조 · POP-INJ-01</div></div></div>
+  <div class="tt"><div class="en">POP Dashboard</div><div class="ko">Operator Main Screen</div></div>
+  <div class="op-badge"><div class="av">MJ</div><div class="info"><div class="nm">Mike Johnson (10589)</div><div class="rl">Team A · POP-INJ-01</div></div></div>
   <span class="live"><span class="d"></span>LIVE</span>
   <span class="clk" id="clk">--:--:--</span>
 </div>
@@ -96,36 +96,36 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
     <div class="wo">
       <div class="wo-h">
         <span style="font-size:18px;">📋</span>
-        <span class="lbl">현재 작업지시 · CURRENT WORK ORDER</span>
+        <span class="lbl">CURRENT WORK ORDER</span>
         <span class="live"><span class="d"></span>RUNNING</span>
       </div>
       <div class="wo-id">WO-2605-115</div>
-      <div class="wo-it"><b>TRIM-RH-001</b> · 도어트림 RH · 거래선 SAV</div>
+      <div class="wo-it"><b>TRIM-RH-001</b> · Door Trim RH · Customer SAV</div>
       <div class="wo-meta">
-        <div class="wo-m"><div class="ml">금형</div><div class="mv">MD-INJ-102</div></div>
-        <div class="wo-m"><div class="ml">C/T</div><div class="mv" id="ctm">48 초</div></div>
-        <div class="wo-m"><div class="ml">시작</div><div class="mv">06:30</div></div>
-        <div class="wo-m"><div class="ml">납기</div><div class="mv" style="color:#fbbf24;">D-1</div></div>
+        <div class="wo-m"><div class="ml">MOLD</div><div class="mv">MD-INJ-102</div></div>
+        <div class="wo-m"><div class="ml">C/T</div><div class="mv" id="ctm">48 sec</div></div>
+        <div class="wo-m"><div class="ml">START</div><div class="mv">06:30</div></div>
+        <div class="wo-m"><div class="ml">DUE</div><div class="mv" style="color:#fbbf24;">D-1</div></div>
       </div>
     </div>
     <div class="prog">
-      <div class="ph"><span>생산 진척률</span><span><b id="pg">0%</b></span></div>
+      <div class="ph"><span>Production Progress</span><span><b id="pg">0%</b></span></div>
       <div class="pt"><i id="pi" style="width:0%"></i></div>
-      <div class="pf"><span id="pf1">실적 0 / 계획 520 EA</span><span id="pf2">남은 시간 0:00:00</span></div>
+      <div class="pf"><span id="pf1">Actual 0 / Plan 520 EA</span><span id="pf2">Time Remaining 0:00:00</span></div>
     </div>
     <div class="tiles">
-      <div class="tile prim" onclick="go('생산실적 입력')">
-        <div class="ic">📝</div><div class="nm">생산 실적 입력</div><div class="ds">샷·수량 보고</div></div>
-      <div class="tile red" onclick="go('불량 등록')">
-        <div class="ic">⛔</div><div class="nm">불량 등록</div><div class="ds">유형·수량·사유</div></div>
-      <div class="tile warn" onclick="go('금형 교체')">
-        <div class="ic">🔩</div><div class="nm">금형 교체</div><div class="ds">교환 작업 시작</div></div>
-      <div class="tile" onclick="go('비가동 처리')">
-        <div class="ic">⏸</div><div class="nm">비가동 처리</div><div class="ds">정지 사유 입력</div></div>
-      <div class="tile blue" onclick="go('생산 현황')">
-        <div class="ic">📊</div><div class="nm">생산 현황</div><div class="ds">교대·라인 실적</div></div>
+      <div class="tile prim" onclick="go('Production Entry')">
+        <div class="ic">📝</div><div class="nm">Production Entry</div><div class="ds">Shot · Qty Report</div></div>
+      <div class="tile red" onclick="go('Defect Register')">
+        <div class="ic">⛔</div><div class="nm">Defect Register</div><div class="ds">Type · Qty · Reason</div></div>
+      <div class="tile warn" onclick="go('Mold Change')">
+        <div class="ic">🔩</div><div class="nm">Mold Change</div><div class="ds">Start Changeover</div></div>
+      <div class="tile" onclick="go('Downtime Entry')">
+        <div class="ic">⏸</div><div class="nm">Downtime Entry</div><div class="ds">Stop Reason</div></div>
+      <div class="tile blue" onclick="go('Production Status')">
+        <div class="ic">📊</div><div class="nm">Production Status</div><div class="ds">Shift · Line Output</div></div>
       <div class="tile red" onclick="andon()">
-        <div class="ic">🚨</div><div class="nm">안돈 호출</div><div class="ds">긴급 호출</div></div>
+        <div class="ic">🚨</div><div class="nm">Andon Call</div><div class="ds">Emergency Call</div></div>
     </div>
     <div class="al" id="alert" style="display:none;">
       <span class="ai">⚠️</span>
@@ -134,25 +134,25 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
   </div>
   <div class="col">
     <div class="stat">
-      <h3>📊 실시간 생산 현황</h3>
+      <h3>📊 Live Production Status</h3>
       <div class="live-num">
         <div class="lv" id="cntr">328</div>
-        <div class="ll">현재 실적 (EA)</div>
-        <div class="lp" id="pace">+ 1 EA / 약 48초마다</div>
+        <div class="ll">Current Output (EA)</div>
+        <div class="lp" id="pace">+ 1 EA / every ~48 sec</div>
       </div>
       <div class="mini">
-        <div class="mn" style="--c:#22c55e"><div class="mv" id="kGood">320</div><div class="ml">양품</div></div>
-        <div class="mn" style="--c:#dc2626"><div class="mv" id="kDef">8</div><div class="ml">불량</div></div>
-        <div class="mn" style="--c:#fbbf24"><div class="mv" id="kYld">97.6%</div><div class="ml">양품률</div></div>
+        <div class="mn" style="--c:#22c55e"><div class="mv" id="kGood">320</div><div class="ml">Good</div></div>
+        <div class="mn" style="--c:#dc2626"><div class="mv" id="kDef">8</div><div class="ml">Defect</div></div>
+        <div class="mn" style="--c:#fbbf24"><div class="mv" id="kYld">97.6%</div><div class="ml">Yield</div></div>
         <div class="mn" style="--c:#22c55e"><div class="mv" id="kOee">84%</div><div class="ml">OEE</div></div>
-        <div class="mn" style="--c:#2563eb"><div class="mv">2h 36m</div><div class="ml">경과</div></div>
-        <div class="mn" style="--c:#a78bfa"><div class="mv">A조</div><div class="ml">교대</div></div>
+        <div class="mn" style="--c:#2563eb"><div class="mv">2h 36m</div><div class="ml">Elapsed</div></div>
+        <div class="mn" style="--c:#a78bfa"><div class="mv">Team A</div><div class="ml">Shift</div></div>
       </div>
     </div>
     <div class="foot-act">
-      <button class="fa" onclick="go('작업지시 확인')">📋 WO 상세</button>
-      <button class="fa" onclick="go('교대 인계')">🔄 교대 인계</button>
-      <button class="fa danger" onclick="logout()">🚪 로그아웃</button>
+      <button class="fa" onclick="go('Work Order Confirm')">📋 WO Detail</button>
+      <button class="fa" onclick="go('Shift Handover')">🔄 Shift Handover</button>
+      <button class="fa danger" onclick="logout()">🚪 Sign Out</button>
     </div>
   </div>
 </div>
@@ -164,25 +164,25 @@ function upd(){
   var pct=Math.round(cnt/plan*100);
   document.getElementById('pg').textContent=pct+'%';
   document.getElementById('pi').style.width=pct+'%';
-  document.getElementById('pf1').textContent='실적 '+cnt+' / 계획 '+plan+' EA';
+  document.getElementById('pf1').textContent='Actual '+cnt+' / Plan '+plan+' EA';
   var rem=Math.max(0,plan-cnt);
   var sec=rem*48;
   var h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60;
-  document.getElementById('pf2').textContent='남은 시간 '+h+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  document.getElementById('pf2').textContent='Time Remaining '+h+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
   document.getElementById('kGood').textContent=cnt-8;
   document.getElementById('kYld').textContent=(Math.round((cnt-8)/cnt*1000)/10)+'%';
 }
-function go(t){toast('','메뉴 이동 ▶ '+t,t+' 화면을 호출합니다. (데모 — 실제 환경에서는 해당 POP 화면으로 전환)');}
+function go(t){toast('','Menu ▶ '+t,'Opening '+t+' screen. (Demo — actual POP would transition to that screen)');}
 function andon(){
-  showAlert('⚠ 안돈 호출 발송됨 — 반장에게 긴급 호출 알림이 전송되었습니다.');
-  toast('warn','🚨 안돈 호출','반장 호출 신호가 발송되었습니다. (3초 후 자동 해제)');
+  showAlert('⚠ Andon call sent — emergency call has been dispatched to the Team Lead.');
+  toast('warn','🚨 Andon Call','Team Lead call has been dispatched. (Auto-clears in 3 sec)');
   setTimeout(function(){document.getElementById('alert').style.display='none';},5000);
 }
 function showAlert(txt){
   document.getElementById('alert').style.display='flex';
   document.getElementById('alertText').innerHTML=txt;
 }
-function logout(){toast('','로그아웃 ✓','박작업 (A조) 로그아웃 완료. 로그인 화면으로 돌아갑니다.');}
+function logout(){toast('','Sign Out ✓','Mike Johnson (Team A) signed out. Returning to Sign-In screen.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='warn'?'⚠ ':type==='ok'?'✓ ':'ℹ ')+title+'</div><div class="tb">'+body+'</div>';

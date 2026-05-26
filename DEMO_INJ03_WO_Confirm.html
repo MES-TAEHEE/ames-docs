@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>INJ-03 WO Confirmation · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--sc:#ea580c;--sc-dk:#c2410c;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:15px;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:15px;display:flex;flex-direction:column;overflow:hidden;}
 .head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
 .head .id{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;color:#fb923c;}
 .head .tt{flex:1;}
@@ -73,69 +73,69 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 </head>
 <body>
 <div class="head">
-  <button class="back" onclick="back()">‹ 대시보드</button>
+  <button class="back" onclick="back()">‹ Dashboard</button>
   <div class="id">INJ-03</div>
-  <div class="tt"><div class="en">WO Confirmation</div><div class="ko">작업지시 확인 — 작업 개시 전 점검</div></div>
+  <div class="tt"><div class="en">WO Confirmation</div><div class="ko">Work Order Confirm — Pre-Start Checks</div></div>
   <span class="live"><span class="d"></span>LIVE</span>
 </div>
 <div class="body">
   <div class="col">
     <div class="wo-card">
-      <div class="wo-h"><span style="font-size:18px;">📋</span><span class="lbl">작업지시 · WORK ORDER</span>
-        <span class="wo-status" id="woSt">대기</span></div>
+      <div class="wo-h"><span style="font-size:18px;">📋</span><span class="lbl">WORK ORDER</span>
+        <span class="wo-status" id="woSt">Pending</span></div>
       <div class="wo-id">WO-2605-115</div>
-      <div class="wo-item"><span class="code">TRIM-RH-001</span><span class="ko">도어트림 RH</span></div>
+      <div class="wo-item"><span class="code">TRIM-RH-001</span><span class="ko">Door Trim RH</span></div>
       <div class="spec">
-        <div class="sp"><div class="sl">계획 수량</div><div class="sv lg">520 EA</div></div>
-        <div class="sp"><div class="sl">납기</div><div class="sv">2026-05-22</div></div>
-        <div class="sp"><div class="sl">거래선</div><div class="sv">SAV (서산)</div></div>
-        <div class="sp"><div class="sl">사용 금형</div><div class="sv">MD-INJ-102</div></div>
-        <div class="sp"><div class="sl">표준 C/T</div><div class="sv">48 초</div></div>
-        <div class="sp"><div class="sl">예상 소요</div><div class="sv">6h 56m</div></div>
+        <div class="sp"><div class="sl">PLAN QTY</div><div class="sv lg">520 EA</div></div>
+        <div class="sp"><div class="sl">DUE DATE</div><div class="sv">05/22/2026</div></div>
+        <div class="sp"><div class="sl">CUSTOMER</div><div class="sv">SAV (Detroit)</div></div>
+        <div class="sp"><div class="sl">MOLD</div><div class="sv">MD-INJ-102</div></div>
+        <div class="sp"><div class="sl">STD C/T</div><div class="sv">48 sec</div></div>
+        <div class="sp"><div class="sl">EST TIME</div><div class="sv">6h 56m</div></div>
       </div>
     </div>
     <div class="card">
-      <h3>🧬 BOM 구성품 (사출 투입)</h3>
+      <h3>🧬 BOM Components (Injection Input)</h3>
       <div class="bom-r">
-        <span class="mono">RM-PP-BLK</span><span class="nm">PP 수지 (블랙)</span><span class="qty">0.85 KG / EA</span></div>
+        <span class="mono">RM-PP-BLK</span><span class="nm">PP Resin (Black)</span><span class="qty">0.85 KG / EA</span></div>
       <div class="bom-r">
-        <span class="mono">SF-TRIM-CORE</span><span class="nm">도어트림 코어 (반제품)</span><span class="qty">1 EA / EA</span></div>
+        <span class="mono">SF-TRIM-CORE</span><span class="nm">Door Trim Core (Semi-finished)</span><span class="qty">1 EA / EA</span></div>
       <div class="bom-r">
-        <span class="mono">AM-CLIP-01</span><span class="nm">고정 클립</span><span class="qty">8 EA / EA</span></div>
+        <span class="mono">AM-CLIP-01</span><span class="nm">Fixing Clip</span><span class="qty">8 EA / EA</span></div>
       <div class="bom-r">
-        <span class="mono">AM-FELT-01</span><span class="nm">흡음 펠트</span><span class="qty">1 EA / EA</span></div>
+        <span class="mono">AM-FELT-01</span><span class="nm">Acoustic Felt</span><span class="qty">1 EA / EA</span></div>
     </div>
     <div class="scan-area" id="scan" onclick="scan()">
       <div class="ic" id="scanIc">📷</div>
-      <div class="t" id="scanT">금형 바코드 스캔</div>
-      <div class="s" id="scanS">금형(MD-INJ-102) 바코드를 스캔하여 검증</div>
+      <div class="t" id="scanT">Scan Mold Barcode</div>
+      <div class="s" id="scanS">Scan the mold (MD-INJ-102) barcode to verify</div>
     </div>
   </div>
   <div class="col">
     <div class="card">
-      <h3>✓ 작업 개시 전 점검 항목</h3>
-      <div class="qc-r"><span class="ck" data-i="0" onclick="chk(this)">✓</span><span class="nm">금형 장착 및 형개 확인</span><span class="sp">MD-INJ-102</span></div>
-      <div class="qc-r"><span class="ck" data-i="1" onclick="chk(this)">✓</span><span class="nm">사출 압력 / 온도 설정</span><span class="sp">230℃</span></div>
-      <div class="qc-r"><span class="ck" data-i="2" onclick="chk(this)">✓</span><span class="nm">원자재 호퍼 충전 (PP 블랙)</span><span class="sp">≥ 30%</span></div>
-      <div class="qc-r"><span class="ck" data-i="3" onclick="chk(this)">✓</span><span class="nm">취출 로봇 동작 확인</span><span class="sp">-</span></div>
-      <div class="qc-r"><span class="ck" data-i="4" onclick="chk(this)">✓</span><span class="nm">안전 펜스 / 광막 정상</span><span class="sp">-</span></div>
-      <div class="qc-r"><span class="ck" data-i="5" onclick="chk(this)">✓</span><span class="nm">초도품 확인 (Initial Sample)</span><span class="sp">2 shot</span></div>
+      <h3>✓ Pre-Start Inspection Items</h3>
+      <div class="qc-r"><span class="ck" data-i="0" onclick="chk(this)">✓</span><span class="nm">Mold Mounted & Clamp Verified</span><span class="sp">MD-INJ-102</span></div>
+      <div class="qc-r"><span class="ck" data-i="1" onclick="chk(this)">✓</span><span class="nm">Injection Pressure / Temperature Set</span><span class="sp">446°F</span></div>
+      <div class="qc-r"><span class="ck" data-i="2" onclick="chk(this)">✓</span><span class="nm">Resin Hopper Charged (PP Black)</span><span class="sp">≥ 30%</span></div>
+      <div class="qc-r"><span class="ck" data-i="3" onclick="chk(this)">✓</span><span class="nm">Take-Out Robot Operational</span><span class="sp">-</span></div>
+      <div class="qc-r"><span class="ck" data-i="4" onclick="chk(this)">✓</span><span class="nm">Safety Fence / Light Curtain OK</span><span class="sp">-</span></div>
+      <div class="qc-r"><span class="ck" data-i="5" onclick="chk(this)">✓</span><span class="nm">Initial Sample Verified</span><span class="sp">2 shots</span></div>
     </div>
     <div class="card">
-      <h3>📐 검사 기준 (Inspection Spec)</h3>
+      <h3>📐 Inspection Spec</h3>
       <div class="bom-r">
-        <span class="mono">IS-TRIM-LH-01</span><span class="nm">전장 치수</span><span class="qty">1200 ±2mm</span></div>
+        <span class="mono">IS-TRIM-LH-01</span><span class="nm">Overall Length</span><span class="qty">1200 ±2mm</span></div>
       <div class="bom-r">
-        <span class="mono">IS-TRIM-LH-02</span><span class="nm">표면 스크래치</span><span class="qty">무결점</span></div>
+        <span class="mono">IS-TRIM-LH-02</span><span class="nm">Surface Scratch</span><span class="qty">Zero Defect</span></div>
       <div class="bom-r">
-        <span class="mono">IS-TRIM-LH-03</span><span class="nm">클립 체결력</span><span class="qty">40~55 N</span></div>
+        <span class="mono">IS-TRIM-LH-03</span><span class="nm">Clip Engagement Force</span><span class="qty">40~55 N</span></div>
     </div>
     <div class="actions">
-      <button class="btn-doc" onclick="viewDoc()">📄 도면 보기</button>
-      <button class="btn-start" id="btnStart" onclick="start()" disabled>▶ 작업 시작</button>
+      <button class="btn-doc" onclick="viewDoc()">📄 View Drawing</button>
+      <button class="btn-start" id="btnStart" onclick="start()" disabled>▶ Start Work</button>
     </div>
     <div style="font-size:10px;color:#a8997f;text-align:center;padding:0 4px;">
-      ▸ 금형 바코드 스캔 및 전체 점검 항목 체크 완료 시 작업 시작 활성화
+      ▸ Start Work enables after mold barcode scan and all inspection items checked
     </div>
   </div>
 </div>
@@ -147,9 +147,9 @@ function scan(){
   scanned=true;
   document.getElementById('scan').classList.add('scanned');
   document.getElementById('scanIc').textContent='✅';
-  document.getElementById('scanT').textContent='금형 검증 완료';
-  document.getElementById('scanS').textContent='MD-INJ-102 정상 인식 — 작업지시 금형과 일치';
-  toast('ok','금형 바코드 인식 ✓','MD-INJ-102 (도어트림 RH 금형) 검증 완료. 점검 항목을 진행하세요.');
+  document.getElementById('scanT').textContent='Mold Verified';
+  document.getElementById('scanS').textContent='MD-INJ-102 recognized — matches Work Order mold';
+  toast('ok','Mold Barcode Recognized ✓','MD-INJ-102 (Door Trim RH Mold) verified. Please proceed with inspection items.');
   updateBtn();
 }
 function chk(el){
@@ -164,12 +164,12 @@ function updateBtn(){
   document.getElementById('btnStart').disabled=!(scanned&&allCk);
 }
 function start(){
-  document.getElementById('woSt').textContent='작업 중';
+  document.getElementById('woSt').textContent='In Progress';
   document.getElementById('woSt').classList.add('run');
-  toast('ok','작업 개시 ✓','WO-2605-115 작업이 시작되었습니다. 생산 실적 입력 화면으로 전환됩니다... (데모)');
+  toast('ok','Work Started ✓','WO-2605-115 has started. Navigating to Production Entry screen... (Demo)');
 }
-function viewDoc(){toast('','도면 조회','TRIM-RH-001 도면(PDF)을 열람합니다. (데모)');}
-function back(){toast('','뒤로 이동','POP 대시보드로 돌아갑니다. (데모)');}
+function viewDoc(){toast('','View Drawing','Opening TRIM-RH-001 drawing (PDF). (Demo)');}
+function back(){toast('','Back','Returning to POP Dashboard. (Demo)');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='warn'?'⚠ ':type==='ok'?'✓ ':'ℹ ')+title+'</div><div class="tb">'+body+'</div>';

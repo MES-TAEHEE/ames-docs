@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>FG-09 FG Dashboard · A-MES PDA Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--pda:#06b6d4;--pda-dk:#0e7490;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
 .pda{width:420px;max-width:100%;height:100%;max-height:760px;background:#0f1f25;border:2px solid #1a3540;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;}
 .pda-top{flex-shrink:0;background:linear-gradient(180deg,#1a3540,#0f1f25);padding:11px 16px;display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--pda);}
 .pda-id{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#22d3ee;}
@@ -61,24 +61,24 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font
 <div class="pda">
   <div class="pda-top">
     <div class="pda-id">FG-09</div>
-    <div class="pda-t">완제품 대시보드</div>
+    <div class="pda-t">FG Dashboard</div>
     <span class="live"><span class="d"></span>LIVE</span>
     <span class="pda-bat">🔋 62%</span>
   </div>
   <div class="pda-body">
     <div class="hero">
-      <div class="l">▼ 금일 출하 진행률</div>
+      <div class="l">▼ TODAY SHIPMENT PROGRESS</div>
       <div class="big">9 / 12</div>
-      <div class="ds">75% 달성 · 잔여 3건 D-0 마감 임박</div>
+      <div class="ds">75% achieved · 3 orders D-0 cutoff approaching</div>
     </div>
     <div class="kpis">
-      <div class="k" style="--c:#22c55e"><div class="l">FG 재고</div><div class="v">42</div><div class="s">LOT · 2,840 EA</div></div>
-      <div class="k" style="--c:#fbbf24"><div class="l">출하 대기</div><div class="v">3</div><div class="s">건 · D-0</div></div>
-      <div class="k" style="--c:#22d3ee"><div class="l">금일 입고 적치</div><div class="v">5</div><div class="s">LOT</div></div>
-      <div class="k" style="--c:#fca5a5"><div class="l">반품 대기</div><div class="v">1</div><div class="s">건</div></div>
+      <div class="k" style="--c:#22c55e"><div class="l">FG INVENTORY</div><div class="v">42</div><div class="s">LOT · 2,840 EA</div></div>
+      <div class="k" style="--c:#fbbf24"><div class="l">PENDING SHIP</div><div class="v">3</div><div class="s">orders · D-0</div></div>
+      <div class="k" style="--c:#22d3ee"><div class="l">PUT-AWAY TODAY</div><div class="v">5</div><div class="s">LOT</div></div>
+      <div class="k" style="--c:#fca5a5"><div class="l">RETURN PENDING</div><div class="v">1</div><div class="s">order</div></div>
     </div>
     <div class="bar-chart">
-      <div class="h"><span>📊 최근 7일 출하량</span><span style="color:#22d3ee;font-family:'JetBrains Mono',monospace;font-weight:800;">14,580 EA</span></div>
+      <div class="h"><span>📊 Last 7 Days Shipments</span><span style="color:#22d3ee;font-family:'JetBrains Mono',monospace;font-weight:800;">14,580 EA</span></div>
       <div class="bars">
         <div class="b"><div class="bb" style="height:42px"></div><div class="bl">15</div></div>
         <div class="b"><div class="bb" style="height:55px"></div><div class="bl">16</div></div>
@@ -91,25 +91,25 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font
     </div>
     <div class="alert">
       <span class="ic">⚠</span>
-      <span><b>D-1 이연 임박</b> — 미출하 3건 (SO-2605-0314/0317/0318) 마감 1시간 전</span>
+      <span><b>D-1 Deferral Imminent</b> — 3 unshipped (SO-2605-0314/0317/0318), 1 hour to cutoff</span>
     </div>
     <div class="top-list">
-      <h4>🏆 금일 출하량 TOP 3 (품목별)</h4>
-      <div class="tr"><div class="rk r1">1</div><span class="nm">콘솔어퍼 (블랙)</span><span class="q">470 EA</span></div>
-      <div class="tr"><div class="rk r2">2</div><span class="nm">사이드 몰딩 (그레이)</span><span class="q">320 EA</span></div>
-      <div class="tr"><div class="rk r3">3</div><span class="nm">도어트림 LH</span><span class="q">240 EA</span></div>
-      <div class="tr"><div class="rk">4</div><span class="nm">라디에이터 그릴</span><span class="q">180 EA</span></div>
+      <h4>🏆 TODAY SHIPMENT TOP 3 (BY ITEM)</h4>
+      <div class="tr"><div class="rk r1">1</div><span class="nm">Console Upper (Black)</span><span class="q">470 EA</span></div>
+      <div class="tr"><div class="rk r2">2</div><span class="nm">Side Molding (Gray)</span><span class="q">320 EA</span></div>
+      <div class="tr"><div class="rk r3">3</div><span class="nm">Door Trim LH</span><span class="q">240 EA</span></div>
+      <div class="tr"><div class="rk">4</div><span class="nm">Radiator Grille</span><span class="q">180 EA</span></div>
     </div>
   </div>
   <div class="bottom-bar">
-    <button class="sec" onclick="back()">← 메뉴</button>
-    <button onclick="refresh()">🔄 새로고침</button>
+    <button class="sec" onclick="back()">← Menu</button>
+    <button onclick="refresh()">🔄 Refresh</button>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 <script>
-function refresh(){toast('','🔄 갱신','완제품 대시보드를 최신 데이터로 갱신했습니다.');}
-function back(){toast('','PDA 메뉴','PDA 메뉴로 돌아갑니다.');}
+function refresh(){toast('','🔄 Refresh','FG dashboard refreshed with latest data.');}
+function back(){toast('','PDA Menu','Returning to PDA menu.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">• '+title+'</div><div class="tb">'+body+'</div>';

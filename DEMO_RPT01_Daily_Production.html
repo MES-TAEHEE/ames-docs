@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>RPT-01 Daily Production · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -78,51 +78,51 @@ tfoot td{padding:9px 9px;background:#f0fdf4;font-weight:800;border-top:2px solid
 <body>
 <div class="scr-head">
   <div class="sh-id">RPT-01</div>
-  <div class="sh-tt"><div class="sh-en">Daily Production Report</div><div class="sh-ko">일일 생산 리포트 — 라인·교대별 생산 실적 집계</div></div>
+  <div class="sh-tt"><div class="sh-en">Daily Production Report</div><div class="sh-ko">Production Output by Line and Shift</div></div>
   <span class="sh-tag">/rpt/daily-prod</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>일자 Date</label>
-    <select id="fDate" onchange="apply()"><option>2026-05-20 (수)</option><option>2026-05-19 (화)</option><option>2026-05-18 (월)</option></select></div>
-  <div class="fld"><label>라인 Line</label>
-    <select id="fLine" onchange="apply()"><option value="">전체 All</option><option>SAV-INJ-01</option><option>SAV-INJ-02</option><option>SAV-ASSY-01</option><option>SAV-PNT-01</option></select></div>
-  <div class="fld"><label>교대 Shift</label>
-    <select id="fShift" onchange="apply()"><option>전체 (주·야)</option><option>주간 1교대</option><option>야간 2교대</option></select></div>
-  <button class="btn btn-p btn-sm" onclick="apply()">🔍 적용</button>
-  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div class="fld"><label>Date</label>
+    <select id="fDate" onchange="apply()"><option>05/20/2026 (Wed)</option><option>05/19/2026 (Tue)</option><option>05/18/2026 (Mon)</option></select></div>
+  <div class="fld"><label>Line</label>
+    <select id="fLine" onchange="apply()"><option value="">All Lines</option><option>SAV-INJ-01</option><option>SAV-INJ-02</option><option>SAV-ASSY-01</option><option>SAV-PNT-01</option></select></div>
+  <div class="fld"><label>Shift</label>
+    <select id="fShift" onchange="apply()"><option>All (Day & Night)</option><option>Day Shift</option><option>Night Shift</option></select></div>
+  <button class="btn btn-p btn-sm" onclick="apply()">🔍 Apply</button>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>
   <div style="margin-left:auto;display:flex;gap:8px;">
-    <button class="btn btn-s" onclick="printRpt()">🖨 인쇄</button>
+    <button class="btn btn-s" onclick="printRpt()">🖨 Print</button>
     <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
   </div>
 </div>
 <div class="body">
-  <div class="rpt-title"><h2 id="rTitle">일일 생산 리포트</h2><span class="sub" id="rSub">2026-05-20 · 전체 라인 · 주·야 교대</span></div>
+  <div class="rpt-title"><h2 id="rTitle">Daily Production Report</h2><span class="sub" id="rSub">05/20/2026 · All Lines · Day & Night</span></div>
   <div class="kpis">
-    <div class="kpi" style="--c:#059669"><div class="kv" id="kAct">0</div><div class="kl">총 생산량 · Actual</div></div>
-    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kAch">0%</div><div class="kl">계획 대비 달성률</div><div class="kt">target ≥ 100%</div></div>
-    <div class="kpi" style="--c:#10b981"><div class="kv" id="kYield">0%</div><div class="kl">양품률 · Yield</div><div class="kt">target ≥ 98%</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kDef">0</div><div class="kl">불량 수량 · Defects</div></div>
-    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kPlan">0</div><div class="kl">계획 수량 · Plan</div></div>
+    <div class="kpi" style="--c:#059669"><div class="kv" id="kAct">0</div><div class="kl">Total Production · Actual</div></div>
+    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kAch">0%</div><div class="kl">Plan vs Actual · Achievement</div><div class="kt">target ≥ 100%</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kYield">0%</div><div class="kl">Yield Rate</div><div class="kt">target ≥ 98%</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kDef">0</div><div class="kl">Defect Quantity</div></div>
+    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kPlan">0</div><div class="kl">Planned Quantity</div></div>
   </div>
   <div class="grid2">
     <div class="card">
-      <div class="card-t">📊 시간대별 생산 추이 <span style="margin-left:auto;font-size:9px;color:#9ca3af;font-weight:400;">막대 클릭 = 상세</span></div>
+      <div class="card-t">📊 Hourly Production Trend <span style="margin-left:auto;font-size:9px;color:#9ca3af;font-weight:400;">Click bar for details</span></div>
       <div class="chart" id="chart"></div>
-      <div style="text-align:center;font-size:9px;color:#9ca3af;margin-top:8px;">06:00~18:00 · 녹색=양품 적색=불량 · 단위 EA</div>
+      <div style="text-align:center;font-size:9px;color:#9ca3af;margin-top:8px;">06:00 AM - 06:00 PM · Green=Good Red=Defect · Unit EA</div>
     </div>
     <div class="card">
-      <div class="card-t">🔄 교대별 실적 요약</div>
+      <div class="card-t">🔄 Shift Summary</div>
       <div class="shift-c" id="shifts"></div>
     </div>
   </div>
   <div class="panel">
-    <div class="panel-h">🏭 라인별 생산 실적</div>
+    <div class="panel-h">🏭 Production by Line</div>
     <table>
       <thead><tr>
-        <th>라인</th><th>생산 품목</th>
-        <th class="c">계획</th><th class="c">실적</th><th class="c">달성률</th>
-        <th class="c">양품</th><th class="c">불량</th><th class="c" style="width:130px;">양품률</th>
+        <th>Line</th><th>Product</th>
+        <th class="c">Plan</th><th class="c">Actual</th><th class="c">Achievement</th>
+        <th class="c">Good</th><th class="c">Defect</th><th class="c" style="width:130px;">Yield</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
       <tfoot id="tfoot"></tfoot>
@@ -133,10 +133,10 @@ tfoot td{padding:9px 9px;background:#f0fdf4;font-weight:800;border-top:2px solid
 
 <script>
 var LINES=[
- {id:'SAV-INJ-01',item:'도어트림 LH/RH',plan:1100,d:{주간:{good:612,def:8},야간:{good:498,def:6}}},
- {id:'SAV-INJ-02',item:'사이드 몰딩·그릴',plan:1300,d:{주간:{good:720,def:14},야간:{good:602,def:11}}},
- {id:'SAV-ASSY-01',item:'콘솔·범퍼 조립',plan:820,d:{주간:{good:441,def:5},야간:{good:392,def:4}}},
- {id:'SAV-PNT-01',item:'범퍼·그릴 도장',plan:640,d:{주간:{good:352,def:9},야간:{good:298,def:7}}}
+ {id:'SAV-INJ-01',item:'Door Trim LH/RH',plan:1100,d:{day:{good:612,def:8},night:{good:498,def:6}}},
+ {id:'SAV-INJ-02',item:'Side Molding & Grille',plan:1300,d:{day:{good:720,def:14},night:{good:602,def:11}}},
+ {id:'SAV-ASSY-01',item:'Console & Bumper Assembly',plan:820,d:{day:{good:441,def:5},night:{good:392,def:4}}},
+ {id:'SAV-PNT-01',item:'Bumper & Grille Paint',plan:640,d:{day:{good:352,def:9},night:{good:298,def:7}}}
 ];
 /* hourly: 12 hours 06-18, good/def */
 var HOURLY=[
@@ -146,9 +146,9 @@ var HOURLY=[
 ];
 function shifts(){
   var s=document.getElementById('fShift').value;
-  if(s==='주간 1교대')return ['주간'];
-  if(s==='야간 2교대')return ['야간'];
-  return ['주간','야간'];
+  if(s==='Day Shift')return ['day'];
+  if(s==='Night Shift')return ['night'];
+  return ['day','night'];
 }
 function visLines(){var f=document.getElementById('fLine').value;return LINES.filter(function(L){return !f||L.id===f;});}
 function lineAgg(L){
@@ -171,7 +171,7 @@ function apply(){
   document.getElementById('kYield').style.color=y>=98?'#10b981':'#f59e0b';
   document.getElementById('kDef').textContent=tot.def.toLocaleString();
   document.getElementById('rSub').textContent=document.getElementById('fDate').value.slice(0,10)+
-    ' · '+(document.getElementById('fLine').value||'전체 라인')+' · '+document.getElementById('fShift').value;
+    ' · '+(document.getElementById('fLine').value||'All Lines')+' · '+document.getElementById('fShift').value;
   renderChart();renderShifts();renderTable(tot);
 }
 function renderChart(){
@@ -180,7 +180,7 @@ function renderChart(){
   var max=Math.max.apply(null,rows.map(function(x){return x.g+x.d;}));
   document.getElementById('chart').innerHTML=rows.map(function(x,i){
     var t=x.g+x.d,hh=t/max*130;
-    return '<div class="cbar" onclick="hourInfo('+i+')" title="'+x.h+':00 · 생산 '+t+' (불량 '+x.d+')">'+
+    return '<div class="cbar" onclick="hourInfo('+i+')" title="'+x.h+':00 · Output '+t+' (Defect '+x.d+')">'+
       '<div class="bv">'+t+'</div>'+
       '<div class="bw" style="height:'+hh+'px;">'+
         '<div class="good" style="height:'+(x.g/t*100)+'%"></div>'+
@@ -191,18 +191,18 @@ function renderChart(){
 }
 function hourInfo(i){
   var x=window._hr[i];
-  toast('info',x.h+':00 시간대 상세','생산 '+(x.g+x.d)+' EA · 양품 '+x.g+' · 불량 '+x.d+
-    ' · 양품률 '+(Math.round(x.g/(x.g+x.d)*1000)/10)+'%');
+  toast('info',x.h+':00 Hour Detail','Output '+(x.g+x.d)+' EA · Good '+x.g+' · Defect '+x.d+
+    ' · Yield '+(Math.round(x.g/(x.g+x.d)*1000)/10)+'%');
 }
 function renderShifts(){
   var v=visLines(),h='';
   shifts().forEach(function(sh){
     var good=0,def=0;v.forEach(function(L){good+=L.d[sh].good;def+=L.d[sh].def;});
     var act=good+def,y=act?Math.round(good/act*1000)/10:0;
-    h+='<div class="shift"><div class="sh-n"><span>'+(sh==='주간'?'☀ 주간 1교대':'🌙 야간 2교대')+'</span>'+
+    h+='<div class="shift"><div class="sh-n"><span>'+(sh==='day'?'☀ Day Shift':'🌙 Night Shift')+'</span>'+
       '<span class="mono" style="color:#059669;">'+act.toLocaleString()+' EA</span></div>'+
       '<div class="barpair"><i style="width:'+y+'%;background:'+(y>=98?'#10b981':'#f59e0b')+';"></i></div>'+
-      '<div class="sh-d"><span>양품 '+good.toLocaleString()+' · 불량 '+def+'</span><span>양품률 '+y+'%</span></div></div>';
+      '<div class="sh-d"><span>Good '+good.toLocaleString()+' · Defect '+def+'</span><span>Yield '+y+'%</span></div></div>';
   });
   document.getElementById('shifts').innerHTML=h;
 }
@@ -225,7 +225,7 @@ function renderTable(tot){
   document.getElementById('tbody').innerHTML=h;
   var ach=tot.plan?Math.round(tot.act/tot.plan*1000)/10:0;
   var y=tot.act?Math.round(tot.good/tot.act*1000)/10:0;
-  document.getElementById('tfoot').innerHTML='<tr><td colspan="2">합계 · TOTAL</td>'+
+  document.getElementById('tfoot').innerHTML='<tr><td colspan="2">TOTAL</td>'+
     '<td style="text-align:center;">'+tot.plan.toLocaleString()+'</td>'+
     '<td style="text-align:center;">'+tot.act.toLocaleString()+'</td>'+
     '<td style="text-align:center;color:'+(ach>=100?'#2563eb':'#dc2626')+'">'+ach+'%</td>'+
@@ -243,13 +243,13 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='RPT_DailyProduction_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','일일 생산 리포트를 CSV로 내보냈습니다.');
+  toast('','Export Complete','Daily Production Report exported to CSV.');
 }
-function printRpt(){toast('info','인쇄 미리보기','일일 생산 리포트 인쇄를 준비합니다. (데모 — 브라우저 인쇄 대화상자)');}
+function printRpt(){toast('info','Print Preview','Preparing Daily Production Report for print. (Demo — browser print dialog)');}
 function resetAll(){
   document.getElementById('fLine').value='';document.getElementById('fShift').selectedIndex=0;
   document.getElementById('fDate').selectedIndex=0;apply();
-  toast('info','초기화','리포트 조건을 초기화했습니다.');
+  toast('info','Reset','Report filters have been reset.');
 }
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');

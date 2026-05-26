@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>MD-03 BOM Version · A-MES Demo</title>
+<title>MD-25 Reason Code · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#d97706;--pp-dk:#b45309;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#2b1a02,#3d2606);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fbbf24;line-height:.9;}
 .sh-tt{flex:1;}
@@ -77,8 +77,8 @@ tbody tr.sel td{background:#fef3c7;}
 </head>
 <body>
 <div class="scr-head">
-  <div class="sh-id" id="shId">MD-03</div>
-  <div class="sh-tt"><div class="sh-en" id="shEn">BOM Version</div><div class="sh-ko" id="shKo"></div></div>
+  <div class="sh-id" id="shId">MD-25</div>
+  <div class="sh-tt"><div class="sh-en" id="shEn">Reason Code</div><div class="sh-ko" id="shKo"></div></div>
   <span class="sh-tag" id="shTag"></span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
@@ -87,20 +87,20 @@ tbody tr.sel td{background:#fef3c7;}
   <div class="kpis" id="kpis"></div>
   <div class="grid2">
     <div class="card">
-      <div class="card-t" id="listT">목록</div>
+      <div class="card-t" id="listT">List</div>
       <table><thead><tr id="thr"></tr></thead><tbody id="tbody"></tbody></table>
-      <div class="empty" id="empty" style="display:none;">조건에 맞는 데이터가 없습니다.</div>
+      <div class="empty" id="empty" style="display:none;">No data matches your criteria.</div>
     </div>
-    <div class="card" id="detail"><div class="empty">← 좌측 목록에서 항목을 선택하세요.</div></div>
+    <div class="card" id="detail"><div class="empty">← Select an item from the list on the left.</div></div>
   </div>
 </div>
 <div class="ov" id="ovEd">
   <div class="modal">
-    <div class="modal-h"><span class="mt" id="emTitle">등록</span><span class="mx" onclick="closeOv('ovEd')">✕</span></div>
+    <div class="modal-h"><span class="mt" id="emTitle">Add</span><span class="mx" onclick="closeOv('ovEd')">✕</span></div>
     <div class="modal-b" id="emBody"></div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovEd')">취소</button>
-      <button class="btn btn-p" id="emSave" onclick="saveRec()">＋ 등록</button>
+      <button class="btn btn-s" onclick="closeOv('ovEd')">Cancel</button>
+      <button class="btn btn-p" id="emSave" onclick="saveRec()">＋ Add</button>
     </div>
   </div>
 </div>
@@ -109,42 +109,42 @@ tbody tr.sel td{background:#fef3c7;}
 <script>
 /* ===== ENTITY CONFIG ===== */
 var CFG={
-  id:'MD-25',en:'Reason Code',ko:'사유코드 — 업무 처리 사유 코드 기준정보',tag:'/md/reason-code',
-  idKey:'code',entity:'사유 코드',
-  filters:[{k:'category',label:'사유 분류'},{k:'status',label:'상태'}],
+  id:'MD-25',en:'Reason Code',ko:'Reason Code — Business reason code master data',tag:'/md/reason-code',
+  idKey:'code',entity:'Reason Code',
+  filters:[{k:'category',label:'Reason Category'},{k:'status',label:'Status'}],
   search:['code','name'],
   cols:[
-    {k:'code',label:'사유 코드',mono:true,bold:true},
-    {k:'name',label:'사유명'},
-    {k:'category',label:'분류'},
-    {k:'useArea',label:'사용 화면'},
-    {k:'status',label:'상태',badge:{'사용':'b0','검토':'b3','폐기':'b2'}}
+    {k:'code',label:'Reason Code',mono:true,bold:true},
+    {k:'name',label:'Reason Name'},
+    {k:'category',label:'Category'},
+    {k:'useArea',label:'Used In'},
+    {k:'status',label:'Status',badge:{'Active':'b0','Under Review':'b3','Retired':'b2'}}
   ],
   fields:[
-    {k:'code',label:'사유 코드',type:'text',req:true,uniq:true,ph:'RSN-ADJ-05'},
-    {k:'name',label:'사유명',type:'text',req:true,ph:'재고 실사 차이 조정'},
-    {k:'category',label:'사유 분류',type:'select',opts:['재고 조정','생산 중단','비가동','특채','반품/교환']},
-    {k:'useArea',label:'사용 화면',type:'text',ph:'WH 재고조정'},
-    {k:'approval',label:'승인 필요',type:'select',opts:['불필요','팀장 승인','부서장 승인']},
-    {k:'desc',label:'설명',type:'textarea',ph:'사유 적용 기준'},
-    {k:'status',label:'상태',type:'select',opts:['사용','검토','폐기']}
+    {k:'code',label:'Reason Code',type:'text',req:true,uniq:true,ph:'RSN-ADJ-05'},
+    {k:'name',label:'Reason Name',type:'text',req:true,ph:'Cycle Count Adjustment'},
+    {k:'category',label:'Reason Category',type:'select',opts:['Inventory Adjustment','Production Stop','Downtime','Deviation','Return/Exchange']},
+    {k:'useArea',label:'Used In',type:'text',ph:'WH Inventory Adjustment'},
+    {k:'approval',label:'Approval Required',type:'select',opts:['Not Required','Team Lead Approval','Department Manager Approval']},
+    {k:'desc',label:'Description',type:'textarea',ph:'Reason application criteria'},
+    {k:'status',label:'Status',type:'select',opts:['Active','Under Review','Retired']}
   ],
   kpis:[
-    {label:'총 사유 코드',c:'#d97706',calc:function(d){return d.length;}},
-    {label:'사용 중 · Active',c:'#16a34a',calc:function(d){return d.filter(function(r){return r.status==='사용';}).length;}},
-    {label:'승인 필요 사유',c:'#dc2626',calc:function(d){return d.filter(function(r){return r.approval!=='불필요';}).length;}},
-    {label:'사유 분류 수',c:'#8b5cf6',calc:function(d){var t=[];d.forEach(function(r){if(t.indexOf(r.category)<0)t.push(r.category);});return t.length;}}
+    {label:'Total Reason Codes',c:'#d97706',calc:function(d){return d.length;}},
+    {label:'Active',c:'#16a34a',calc:function(d){return d.filter(function(r){return r.status==='Active';}).length;}},
+    {label:'Approval Required',c:'#dc2626',calc:function(d){return d.filter(function(r){return r.approval!=='Not Required';}).length;}},
+    {label:'Reason Categories',c:'#8b5cf6',calc:function(d){var t=[];d.forEach(function(r){if(t.indexOf(r.category)<0)t.push(r.category);});return t.length;}}
   ],
   data:[
-    {code:'RSN-ADJ-01',name:'재고 실사 차이 조정',category:'재고 조정',useArea:'WH 재고조정',approval:'팀장 승인',desc:'실사 결과 전산 재고 보정',status:'사용'},
-    {code:'RSN-ADJ-02',name:'파손·폐기 처리',category:'재고 조정',useArea:'WH 재고조정',approval:'부서장 승인',desc:'손상 자재 폐기 차감',status:'사용'},
-    {code:'RSN-STP-01',name:'자재 결품 생산 중단',category:'생산 중단',useArea:'PP 작업지시',approval:'팀장 승인',desc:'원자재 미입고로 인한 중단',status:'사용'},
-    {code:'RSN-STP-02',name:'품질 이상 생산 중단',category:'생산 중단',useArea:'PP 작업지시',approval:'팀장 승인',desc:'연속 불량 발생 중단',status:'사용'},
-    {code:'RSN-DT-01',name:'설비 고장 비가동',category:'비가동',useArea:'PP 비가동 로그',approval:'불필요',desc:'설비 고장으로 인한 정지',status:'사용'},
-    {code:'RSN-DT-02',name:'금형 교환 비가동',category:'비가동',useArea:'PP 비가동 로그',approval:'불필요',desc:'금형 교체 작업 정지',status:'사용'},
-    {code:'RSN-SR-01',name:'경미 결함 특채 출하',category:'특채',useArea:'QC 특채 신청',approval:'부서장 승인',desc:'고객 협의 후 특별 채택',status:'사용'},
-    {code:'RSN-RT-01',name:'고객 반품 — 품질 불만',category:'반품/교환',useArea:'WH 반품 처리',approval:'팀장 승인',desc:'고객사 품질 클레임 반품',status:'사용'},
-    {code:'RSN-OLD-99',name:'(구) 기타 사유',category:'재고 조정',useArea:'-',approval:'불필요',desc:'세분류로 대체됨',status:'폐기'}
+    {code:'RSN-ADJ-01',name:'Cycle Count Adjustment',category:'Inventory Adjustment',useArea:'WH Inventory Adjustment',approval:'Team Lead Approval',desc:'Adjust system inventory to physical count',status:'Active'},
+    {code:'RSN-ADJ-02',name:'Damage / Scrap Write-off',category:'Inventory Adjustment',useArea:'WH Inventory Adjustment',approval:'Department Manager Approval',desc:'Damaged material write-off deduction',status:'Active'},
+    {code:'RSN-STP-01',name:'Material Shortage Stop',category:'Production Stop',useArea:'PP Work Order',approval:'Team Lead Approval',desc:'Stop caused by missing raw material',status:'Active'},
+    {code:'RSN-STP-02',name:'Quality Issue Stop',category:'Production Stop',useArea:'PP Work Order',approval:'Team Lead Approval',desc:'Stop due to consecutive defects',status:'Active'},
+    {code:'RSN-DT-01',name:'Equipment Breakdown',category:'Downtime',useArea:'PP Downtime Log',approval:'Not Required',desc:'Stop caused by equipment breakdown',status:'Active'},
+    {code:'RSN-DT-02',name:'Mold Change Downtime',category:'Downtime',useArea:'PP Downtime Log',approval:'Not Required',desc:'Stop for mold changeover',status:'Active'},
+    {code:'RSN-SR-01',name:'Minor Defect Concession Ship',category:'Deviation',useArea:'QC Deviation Request',approval:'Department Manager Approval',desc:'Special accept after customer agreement',status:'Active'},
+    {code:'RSN-RT-01',name:'Customer Return — Quality Claim',category:'Return/Exchange',useArea:'WH Return Processing',approval:'Team Lead Approval',desc:'Customer quality claim return',status:'Active'},
+    {code:'RSN-OLD-99',name:'(Legacy) Other Reason',category:'Inventory Adjustment',useArea:'-',approval:'Not Required',desc:'Replaced by detailed codes',status:'Retired'}
   ]
 };
 /* ===== GENERIC MASTER ENGINE ===== */
@@ -160,15 +160,15 @@ function init(){
   CFG.filters.forEach(function(f){
     var opts=[];DATA.forEach(function(r){if(opts.indexOf(r[f.k])<0)opts.push(r[f.k]);});
     tb+='<div class="fld"><label>'+f.label+'</label><select data-fk="'+f.k+'" onchange="render()">'+
-      '<option value="">전체 All</option>'+opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select></div>';
+      '<option value="">All</option>'+opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select></div>';
   });
-  tb+='<div class="fld"><label>검색 Search</label><input id="fKw" placeholder="코드·명칭" oninput="render()" style="width:150px;"></div>';
-  tb+='<button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>';
+  tb+='<div class="fld"><label>Search</label><input id="fKw" placeholder="Code or name" oninput="render()" style="width:150px;"></div>';
+  tb+='<button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>';
   tb+='<div style="margin-left:auto;display:flex;gap:8px;">'+
-    '<button class="btn btn-p" onclick="openNew()">＋ '+CFG.entity+' 등록</button>'+
+    '<button class="btn btn-p" onclick="openNew()">＋ Add '+CFG.entity+'</button>'+
     '<button class="btn btn-s" onclick="exportCsv()">📥 Export</button></div>';
   $('toolbar').innerHTML=tb;
-  $('listT').textContent='📋 '+CFG.entity+' 목록';
+  $('listT').textContent='📋 '+CFG.entity+' List';
   $('thr').innerHTML=CFG.cols.map(function(c){return '<th>'+c.label+'</th>';}).join('');
   render();
 }
@@ -198,7 +198,7 @@ function render(){
   });
   $('tbody').innerHTML=h;
   $('empty').style.display=v.length?'none':'block';
-  $('listT').textContent='📋 '+CFG.entity+' 목록 — '+v.length+'건';
+  $('listT').textContent='📋 '+CFG.entity+' List — '+v.length+' records';
   if(selKey&&!byKey(selKey))selKey=null;
   renderDetail();
 }
@@ -206,9 +206,9 @@ function byKey(k){return DATA.filter(function(r){return r[CFG.idKey]===k;})[0];}
 function pick(k){selKey=k;render();}
 function renderDetail(){
   var r=byKey(selKey);
-  if(!r){$('detail').innerHTML='<div class="empty">← 좌측 목록에서 항목을 선택하세요.</div>';return;}
+  if(!r){$('detail').innerHTML='<div class="empty">← Select an item from the list on the left.</div>';return;}
   var nmField=CFG.fields[1]?CFG.fields[1].k:CFG.idKey;
-  var h='<div class="card-t">📑 '+CFG.entity+' 상세</div>'+
+  var h='<div class="card-t">📑 '+CFG.entity+' Detail</div>'+
     '<div class="dt-head"><div class="dt-nm">'+(r[nmField]||r[CFG.idKey])+'</div><div class="dt-id">'+r[CFG.idKey]+'</div></div>'+
     '<div class="specs">';
   CFG.fields.forEach(function(f){
@@ -216,8 +216,8 @@ function renderDetail(){
     var v=r[f.k];if(v===''||v==null)v='—';
     h+='<div class="srow"><span class="sk">'+f.label+'</span><span class="sv">'+v+'</span></div>';
   });
-  h+='</div><div class="acts"><button class="btn btn-s btn-sm" onclick="editRec()">✎ 수정</button>'+
-    '<button class="btn btn-s btn-sm" onclick="delRec()">🗑 삭제</button></div>';
+  h+='</div><div class="acts"><button class="btn btn-s btn-sm" onclick="editRec()">✎ Edit</button>'+
+    '<button class="btn btn-s btn-sm" onclick="delRec()">🗑 Delete</button></div>';
   $('detail').innerHTML=h;
 }
 function formHtml(r){
@@ -233,31 +233,31 @@ function formHtml(r){
   }).join('');
 }
 function openNew(){
-  editKey=null;$('emTitle').textContent=CFG.entity+' 등록';$('emSave').textContent='＋ 등록';
+  editKey=null;$('emTitle').textContent='Add '+CFG.entity;$('emSave').textContent='＋ Add';
   $('emBody').innerHTML=formHtml(null);openOv('ovEd');
 }
 function editRec(){
-  editKey=selKey;$('emTitle').textContent=CFG.entity+' 수정';$('emSave').textContent='💾 저장';
+  editKey=selKey;$('emTitle').textContent='Edit '+CFG.entity;$('emSave').textContent='💾 Save';
   $('emBody').innerHTML=formHtml(byKey(selKey));openOv('ovEd');
 }
 function saveRec(){
   var o={};
   [].slice.call(document.querySelectorAll('#emBody [data-fk]')).forEach(function(el){o[el.dataset.fk]=el.value.trim?el.value.trim():el.value;});
   for(var i=0;i<CFG.fields.length;i++){var f=CFG.fields[i];
-    if(f.req&&!o[f.k]&&!(editKey&&f.uniq)){toast('err','입력 오류',f.label+'은(는) 필수 항목입니다.');return;}}
+    if(f.req&&!o[f.k]&&!(editKey&&f.uniq)){toast('err','Input Error',f.label+' is required.');return;}}
   if(editKey){var r=byKey(editKey);for(var k in o){if(k!==CFG.idKey)r[k]=o[k];}
-    toast('','수정 완료',CFG.entity+' 정보가 수정되었습니다.');
+    toast('','Updated',CFG.entity+' has been updated.');
   }else{
-    if(byKey(o[CFG.idKey])){toast('err','중복 오류','이미 존재하는 코드입니다.');return;}
+    if(byKey(o[CFG.idKey])){toast('err','Duplicate','This code already exists.');return;}
     DATA.push(o);selKey=o[CFG.idKey];
-    toast('','등록 완료',o[CFG.idKey]+' '+CFG.entity+'이(가) 등록되었습니다.');
+    toast('','Added',o[CFG.idKey]+' '+CFG.entity+' has been added.');
   }
   closeOv('ovEd');render();
 }
 function delRec(){
   var r=byKey(selKey);var i=DATA.indexOf(r);
   if(i>=0)DATA.splice(i,1);selKey=null;render();
-  toast('info','삭제 완료',CFG.entity+' 항목이 삭제되었습니다.');
+  toast('info','Deleted',CFG.entity+' record has been deleted.');
 }
 function exportCsv(){
   var v=vis();
@@ -267,11 +267,11 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=CFG.id+'_'+CFG.en.replace(/ /g,'')+'_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료',CFG.entity+' '+v.length+'건을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+v.length+' '+CFG.entity+' records to CSV.');
 }
 function resetAll(){
   [].slice.call(document.querySelectorAll('#toolbar select')).forEach(function(s){s.value='';});
-  $('fKw').value='';render();toast('info','초기화','목록 필터를 초기화했습니다.');
+  $('fKw').value='';render();toast('info','Reset','Filters have been reset.');
 }
 function openOv(id){$(id).classList.add('on');}
 function closeOv(id){$(id).classList.remove('on');}

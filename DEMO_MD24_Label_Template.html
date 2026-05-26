@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>MD-03 BOM Version · A-MES Demo</title>
+<title>MD-24 Label Template · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#d97706;--pp-dk:#b45309;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#2b1a02,#3d2606);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fbbf24;line-height:.9;}
 .sh-tt{flex:1;}
@@ -77,8 +77,8 @@ tbody tr.sel td{background:#fef3c7;}
 </head>
 <body>
 <div class="scr-head">
-  <div class="sh-id" id="shId">MD-03</div>
-  <div class="sh-tt"><div class="sh-en" id="shEn">BOM Version</div><div class="sh-ko" id="shKo"></div></div>
+  <div class="sh-id" id="shId">MD-24</div>
+  <div class="sh-tt"><div class="sh-en" id="shEn">Label Template</div><div class="sh-ko" id="shKo"></div></div>
   <span class="sh-tag" id="shTag"></span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
@@ -87,20 +87,20 @@ tbody tr.sel td{background:#fef3c7;}
   <div class="kpis" id="kpis"></div>
   <div class="grid2">
     <div class="card">
-      <div class="card-t" id="listT">목록</div>
+      <div class="card-t" id="listT">List</div>
       <table><thead><tr id="thr"></tr></thead><tbody id="tbody"></tbody></table>
-      <div class="empty" id="empty" style="display:none;">조건에 맞는 데이터가 없습니다.</div>
+      <div class="empty" id="empty" style="display:none;">No data matches your criteria.</div>
     </div>
-    <div class="card" id="detail"><div class="empty">← 좌측 목록에서 항목을 선택하세요.</div></div>
+    <div class="card" id="detail"><div class="empty">← Select an item from the list on the left.</div></div>
   </div>
 </div>
 <div class="ov" id="ovEd">
   <div class="modal">
-    <div class="modal-h"><span class="mt" id="emTitle">등록</span><span class="mx" onclick="closeOv('ovEd')">✕</span></div>
+    <div class="modal-h"><span class="mt" id="emTitle">Add</span><span class="mx" onclick="closeOv('ovEd')">✕</span></div>
     <div class="modal-b" id="emBody"></div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovEd')">취소</button>
-      <button class="btn btn-p" id="emSave" onclick="saveRec()">＋ 등록</button>
+      <button class="btn btn-s" onclick="closeOv('ovEd')">Cancel</button>
+      <button class="btn btn-p" id="emSave" onclick="saveRec()">＋ Add</button>
     </div>
   </div>
 </div>
@@ -109,41 +109,41 @@ tbody tr.sel td{background:#fef3c7;}
 <script>
 /* ===== ENTITY CONFIG ===== */
 var CFG={
-  id:'MD-24',en:'Label Template',ko:'라벨 템플릿 — 식별·출하 라벨 양식 기준정보',tag:'/md/label-template',
-  idKey:'code',entity:'라벨 템플릿',
-  filters:[{k:'type',label:'라벨 유형'},{k:'format',label:'코드 형식'},{k:'status',label:'상태'}],
+  id:'MD-24',en:'Label Template',ko:'Label Template — Identification & shipping label master data',tag:'/md/label-template',
+  idKey:'code',entity:'Label Template',
+  filters:[{k:'type',label:'Label Type'},{k:'format',label:'Code Format'},{k:'status',label:'Status'}],
   search:['code','name'],
   cols:[
-    {k:'code',label:'템플릿 코드',mono:true,bold:true},
-    {k:'name',label:'템플릿명'},
-    {k:'type',label:'유형'},
-    {k:'size',label:'규격',mono:true},
-    {k:'status',label:'상태',badge:{'사용':'b0','검토':'b3','폐기':'b2'}}
+    {k:'code',label:'Template Code',mono:true,bold:true},
+    {k:'name',label:'Template Name'},
+    {k:'type',label:'Type'},
+    {k:'size',label:'Size',mono:true},
+    {k:'status',label:'Status',badge:{'Active':'b0','Under Review':'b3','Retired':'b2'}}
   ],
   fields:[
-    {k:'code',label:'템플릿 코드',type:'text',req:true,uniq:true,ph:'LBL-SHIP-03'},
-    {k:'name',label:'템플릿명',type:'text',req:true,ph:'출하 박스 라벨'},
-    {k:'type',label:'라벨 유형',type:'select',opts:['제품 식별','포장 박스','출하 라벨','파레트 라벨','로트 라벨']},
-    {k:'size',label:'규격 (mm)',type:'text',req:true,ph:'100×70'},
-    {k:'format',label:'코드 형식',type:'select',opts:['바코드 (Code128)','QR 코드','RFID','텍스트']},
-    {k:'fields',label:'표시 항목',type:'text',ph:'품번·품명·수량·로트·일자'},
-    {k:'printer',label:'적용 프린터',type:'select',opts:['Zebra ZT411','Zebra ZD421','TSC TX300']},
-    {k:'status',label:'상태',type:'select',opts:['사용','검토','폐기']}
+    {k:'code',label:'Template Code',type:'text',req:true,uniq:true,ph:'LBL-SHIP-03'},
+    {k:'name',label:'Template Name',type:'text',req:true,ph:'Shipping Box Label'},
+    {k:'type',label:'Label Type',type:'select',opts:['Product ID','Packaging Box','Shipping','Pallet','Lot']},
+    {k:'size',label:'Size (in)',type:'text',req:true,ph:'4×2.75'},
+    {k:'format',label:'Code Format',type:'select',opts:['Barcode (Code128)','QR Code','RFID','Text']},
+    {k:'fields',label:'Displayed Fields',type:'text',ph:'Part#·Name·Qty·Lot·Date'},
+    {k:'printer',label:'Applied Printer',type:'select',opts:['Zebra ZT411','Zebra ZD421','TSC TX300']},
+    {k:'status',label:'Status',type:'select',opts:['Active','Under Review','Retired']}
   ],
   kpis:[
-    {label:'총 라벨 템플릿',c:'#d97706',calc:function(d){return d.length;}},
-    {label:'사용 중 · Active',c:'#16a34a',calc:function(d){return d.filter(function(r){return r.status==='사용';}).length;}},
-    {label:'QR/RFID 적용',c:'#2563eb',calc:function(d){return d.filter(function(r){return r.format.indexOf('QR')>=0||r.format==='RFID';}).length;}},
-    {label:'라벨 유형 수',c:'#8b5cf6',calc:function(d){var t=[];d.forEach(function(r){if(t.indexOf(r.type)<0)t.push(r.type);});return t.length;}}
+    {label:'Total Label Templates',c:'#d97706',calc:function(d){return d.length;}},
+    {label:'Active',c:'#16a34a',calc:function(d){return d.filter(function(r){return r.status==='Active';}).length;}},
+    {label:'QR/RFID Used',c:'#2563eb',calc:function(d){return d.filter(function(r){return r.format.indexOf('QR')>=0||r.format==='RFID';}).length;}},
+    {label:'Label Types',c:'#8b5cf6',calc:function(d){var t=[];d.forEach(function(r){if(t.indexOf(r.type)<0)t.push(r.type);});return t.length;}}
   ],
   data:[
-    {code:'LBL-PRD-01',name:'제품 식별 라벨',type:'제품 식별',size:'50×30',format:'바코드 (Code128)',fields:'품번·품명·일련번호',printer:'Zebra ZD421',status:'사용'},
-    {code:'LBL-PRD-02',name:'제품 QR 라벨',type:'제품 식별',size:'40×40',format:'QR 코드',fields:'품번·로트·생산일자',printer:'Zebra ZD421',status:'사용'},
-    {code:'LBL-BOX-01',name:'포장 박스 라벨',type:'포장 박스',size:'100×70',format:'바코드 (Code128)',fields:'품번·품명·수량·로트',printer:'Zebra ZT411',status:'사용'},
-    {code:'LBL-SHIP-01',name:'출하 납품 라벨',type:'출하 라벨',size:'150×100',format:'QR 코드',fields:'출하번호·거래선·품번·수량·납기',printer:'Zebra ZT411',status:'사용'},
-    {code:'LBL-PLT-01',name:'파레트 식별 라벨',type:'파레트 라벨',size:'200×150',format:'RFID',fields:'파레트번호·품번·총수량',printer:'Zebra ZT411',status:'사용'},
-    {code:'LBL-LOT-01',name:'로트 추적 라벨',type:'로트 라벨',size:'60×40',format:'QR 코드',fields:'로트번호·공정·일시',printer:'TSC TX300',status:'검토'},
-    {code:'LBL-OLD-99',name:'(구) 텍스트 박스 라벨',type:'포장 박스',size:'90×60',format:'텍스트',fields:'품번·수량',printer:'TSC TX300',status:'폐기'}
+    {code:'LBL-PRD-01',name:'Product ID Label',type:'Product ID',size:'2×1.2',format:'Barcode (Code128)',fields:'Part#·Name·Serial#',printer:'Zebra ZD421',status:'Active'},
+    {code:'LBL-PRD-02',name:'Product QR Label',type:'Product ID',size:'1.6×1.6',format:'QR Code',fields:'Part#·Lot·Production Date',printer:'Zebra ZD421',status:'Active'},
+    {code:'LBL-BOX-01',name:'Packaging Box Label',type:'Packaging Box',size:'4×2.75',format:'Barcode (Code128)',fields:'Part#·Name·Qty·Lot',printer:'Zebra ZT411',status:'Active'},
+    {code:'LBL-SHIP-01',name:'Shipping Delivery Label',type:'Shipping',size:'6×4',format:'QR Code',fields:'Ship#·Customer·Part#·Qty·Due Date',printer:'Zebra ZT411',status:'Active'},
+    {code:'LBL-PLT-01',name:'Pallet ID Label',type:'Pallet',size:'8×6',format:'RFID',fields:'Pallet#·Part#·Total Qty',printer:'Zebra ZT411',status:'Active'},
+    {code:'LBL-LOT-01',name:'Lot Trace Label',type:'Lot',size:'2.4×1.6',format:'QR Code',fields:'Lot#·Process·Datetime',printer:'TSC TX300',status:'Under Review'},
+    {code:'LBL-OLD-99',name:'(Legacy) Text Box Label',type:'Packaging Box',size:'3.5×2.4',format:'Text',fields:'Part#·Qty',printer:'TSC TX300',status:'Retired'}
   ]
 };
 /* ===== GENERIC MASTER ENGINE ===== */
@@ -159,15 +159,15 @@ function init(){
   CFG.filters.forEach(function(f){
     var opts=[];DATA.forEach(function(r){if(opts.indexOf(r[f.k])<0)opts.push(r[f.k]);});
     tb+='<div class="fld"><label>'+f.label+'</label><select data-fk="'+f.k+'" onchange="render()">'+
-      '<option value="">전체 All</option>'+opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select></div>';
+      '<option value="">All</option>'+opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select></div>';
   });
-  tb+='<div class="fld"><label>검색 Search</label><input id="fKw" placeholder="코드·명칭" oninput="render()" style="width:150px;"></div>';
-  tb+='<button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>';
+  tb+='<div class="fld"><label>Search</label><input id="fKw" placeholder="Code or name" oninput="render()" style="width:150px;"></div>';
+  tb+='<button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>';
   tb+='<div style="margin-left:auto;display:flex;gap:8px;">'+
-    '<button class="btn btn-p" onclick="openNew()">＋ '+CFG.entity+' 등록</button>'+
+    '<button class="btn btn-p" onclick="openNew()">＋ Add '+CFG.entity+'</button>'+
     '<button class="btn btn-s" onclick="exportCsv()">📥 Export</button></div>';
   $('toolbar').innerHTML=tb;
-  $('listT').textContent='📋 '+CFG.entity+' 목록';
+  $('listT').textContent='📋 '+CFG.entity+' List';
   $('thr').innerHTML=CFG.cols.map(function(c){return '<th>'+c.label+'</th>';}).join('');
   render();
 }
@@ -197,7 +197,7 @@ function render(){
   });
   $('tbody').innerHTML=h;
   $('empty').style.display=v.length?'none':'block';
-  $('listT').textContent='📋 '+CFG.entity+' 목록 — '+v.length+'건';
+  $('listT').textContent='📋 '+CFG.entity+' List — '+v.length+' records';
   if(selKey&&!byKey(selKey))selKey=null;
   renderDetail();
 }
@@ -205,9 +205,9 @@ function byKey(k){return DATA.filter(function(r){return r[CFG.idKey]===k;})[0];}
 function pick(k){selKey=k;render();}
 function renderDetail(){
   var r=byKey(selKey);
-  if(!r){$('detail').innerHTML='<div class="empty">← 좌측 목록에서 항목을 선택하세요.</div>';return;}
+  if(!r){$('detail').innerHTML='<div class="empty">← Select an item from the list on the left.</div>';return;}
   var nmField=CFG.fields[1]?CFG.fields[1].k:CFG.idKey;
-  var h='<div class="card-t">📑 '+CFG.entity+' 상세</div>'+
+  var h='<div class="card-t">📑 '+CFG.entity+' Detail</div>'+
     '<div class="dt-head"><div class="dt-nm">'+(r[nmField]||r[CFG.idKey])+'</div><div class="dt-id">'+r[CFG.idKey]+'</div></div>'+
     '<div class="specs">';
   CFG.fields.forEach(function(f){
@@ -215,8 +215,8 @@ function renderDetail(){
     var v=r[f.k];if(v===''||v==null)v='—';
     h+='<div class="srow"><span class="sk">'+f.label+'</span><span class="sv">'+v+'</span></div>';
   });
-  h+='</div><div class="acts"><button class="btn btn-s btn-sm" onclick="editRec()">✎ 수정</button>'+
-    '<button class="btn btn-s btn-sm" onclick="delRec()">🗑 삭제</button></div>';
+  h+='</div><div class="acts"><button class="btn btn-s btn-sm" onclick="editRec()">✎ Edit</button>'+
+    '<button class="btn btn-s btn-sm" onclick="delRec()">🗑 Delete</button></div>';
   $('detail').innerHTML=h;
 }
 function formHtml(r){
@@ -232,31 +232,31 @@ function formHtml(r){
   }).join('');
 }
 function openNew(){
-  editKey=null;$('emTitle').textContent=CFG.entity+' 등록';$('emSave').textContent='＋ 등록';
+  editKey=null;$('emTitle').textContent='Add '+CFG.entity;$('emSave').textContent='＋ Add';
   $('emBody').innerHTML=formHtml(null);openOv('ovEd');
 }
 function editRec(){
-  editKey=selKey;$('emTitle').textContent=CFG.entity+' 수정';$('emSave').textContent='💾 저장';
+  editKey=selKey;$('emTitle').textContent='Edit '+CFG.entity;$('emSave').textContent='💾 Save';
   $('emBody').innerHTML=formHtml(byKey(selKey));openOv('ovEd');
 }
 function saveRec(){
   var o={};
   [].slice.call(document.querySelectorAll('#emBody [data-fk]')).forEach(function(el){o[el.dataset.fk]=el.value.trim?el.value.trim():el.value;});
   for(var i=0;i<CFG.fields.length;i++){var f=CFG.fields[i];
-    if(f.req&&!o[f.k]&&!(editKey&&f.uniq)){toast('err','입력 오류',f.label+'은(는) 필수 항목입니다.');return;}}
+    if(f.req&&!o[f.k]&&!(editKey&&f.uniq)){toast('err','Input Error',f.label+' is required.');return;}}
   if(editKey){var r=byKey(editKey);for(var k in o){if(k!==CFG.idKey)r[k]=o[k];}
-    toast('','수정 완료',CFG.entity+' 정보가 수정되었습니다.');
+    toast('','Updated',CFG.entity+' has been updated.');
   }else{
-    if(byKey(o[CFG.idKey])){toast('err','중복 오류','이미 존재하는 코드입니다.');return;}
+    if(byKey(o[CFG.idKey])){toast('err','Duplicate','This code already exists.');return;}
     DATA.push(o);selKey=o[CFG.idKey];
-    toast('','등록 완료',o[CFG.idKey]+' '+CFG.entity+'이(가) 등록되었습니다.');
+    toast('','Added',o[CFG.idKey]+' '+CFG.entity+' has been added.');
   }
   closeOv('ovEd');render();
 }
 function delRec(){
   var r=byKey(selKey);var i=DATA.indexOf(r);
   if(i>=0)DATA.splice(i,1);selKey=null;render();
-  toast('info','삭제 완료',CFG.entity+' 항목이 삭제되었습니다.');
+  toast('info','Deleted',CFG.entity+' record has been deleted.');
 }
 function exportCsv(){
   var v=vis();
@@ -266,11 +266,11 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=CFG.id+'_'+CFG.en.replace(/ /g,'')+'_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료',CFG.entity+' '+v.length+'건을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+v.length+' '+CFG.entity+' records to CSV.');
 }
 function resetAll(){
   [].slice.call(document.querySelectorAll('#toolbar select')).forEach(function(s){s.value='';});
-  $('fKw').value='';render();toast('info','초기화','목록 필터를 초기화했습니다.');
+  $('fKw').value='';render();toast('info','Reset','Filters have been reset.');
 }
 function openOv(id){$(id).classList.add('on');}
 function closeOv(id){$(id).classList.remove('on');}

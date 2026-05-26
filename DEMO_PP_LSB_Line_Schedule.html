@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PP-LSB Line Schedule Board · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -94,79 +94,79 @@ select,input[type=number]{padding:5px 9px;border:1px solid var(--bd);border-radi
 <body>
 <div class="scr-head">
   <div class="sh-id">PP-LSB</div>
-  <div class="sh-tt"><div class="sh-en">Line Schedule Board</div><div class="sh-ko">라인 스케줄 보드 — 분 단위 작업·정비 블록 타임라인</div></div>
+  <div class="sh-tt"><div class="sh-en">Line Schedule Board</div><div class="sh-ko">Minute-level timeline of run, changeover, and maintenance blocks</div></div>
   <span class="sh-tag">/pp/lsb</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>일자 Date</label>
-    <select id="fDate" onchange="apply()"><option>2026-05-20 (수)</option><option>2026-05-21 (목)</option><option>2026-05-22 (금)</option></select></div>
-  <div class="fld"><label>사업장 Plant</label>
-    <select id="fPlant" onchange="apply()"><option>SAV 서산</option></select></div>
-  <div class="fld"><label>라인 Line</label>
-    <select id="fLine" onchange="apply()"><option value="">전체 All</option><option>SAV-INJ-01</option><option>SAV-INJ-02</option><option>SAV-ASSY-01</option><option>SAV-PNT-01</option></select></div>
-  <button class="btn btn-p btn-sm" onclick="apply()">🔍 적용</button>
-  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div class="fld"><label>Date</label>
+    <select id="fDate" onchange="apply()"><option>05/20/2026 (Wed)</option><option>05/21/2026 (Thu)</option><option>05/22/2026 (Fri)</option></select></div>
+  <div class="fld"><label>Plant</label>
+    <select id="fPlant" onchange="apply()"><option>SAV Detroit, MI</option></select></div>
+  <div class="fld"><label>Line</label>
+    <select id="fLine" onchange="apply()"><option value="">All</option><option>SAV-INJ-01</option><option>SAV-INJ-02</option><option>SAV-ASSY-01</option><option>SAV-PNT-01</option></select></div>
+  <button class="btn btn-p btn-sm" onclick="apply()">🔍 Apply</button>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>
   <div style="margin-left:auto;display:flex;gap:8px;">
-    <button class="btn btn-w" onclick="openPM()">＋ 계획정비(PM) 추가</button>
-    <button class="btn btn-s" onclick="checkConflict()">⚠ 충돌 검사</button>
+    <button class="btn btn-w" onclick="openPM()">＋ Add Planned PM</button>
+    <button class="btn btn-s" onclick="checkConflict()">⚠ Conflict Check</button>
     <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
   </div>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#10b981"><div class="kv" id="kOp">0</div><div class="kl">생산 블록 · Run Blocks</div></div>
-    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kPd">0</div><div class="kl">계획 다운타임 · PM/교환</div><div class="kt">minutes</div></div>
-    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kQty">0</div><div class="kl">계획 수량 · Planned Qty</div></div>
-    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kUt">0%</div><div class="kl">평균 라인 가동률 · Util.</div><div class="kt">target ≥ 80%</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kConf">0</div><div class="kl">스케줄 충돌 · Conflicts</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kOp">0</div><div class="kl">Run Blocks</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kPd">0</div><div class="kl">Planned Downtime · PM/Changeover</div><div class="kt">minutes</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kQty">0</div><div class="kl">Planned Qty</div></div>
+    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kUt">0%</div><div class="kl">Avg Line Utilization</div><div class="kt">target ≥ 80%</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kConf">0</div><div class="kl">Schedule Conflicts</div></div>
   </div>
   <div class="card">
-    <div class="card-t">🗓 분 단위 스케줄 타임라인 — 06:00 ~ 22:00 (2교대)
+    <div class="card-t">🗓 Minute-Level Schedule Timeline — 06:00 ~ 22:00 (2 Shifts)
       <span class="legend">
-        <span><i style="background:linear-gradient(160deg,#10b981,#047857)"></i>생산</span>
-        <span><i style="background:linear-gradient(160deg,#a78bfa,#7c3aed)"></i>금형교환</span>
-        <span><i style="background:linear-gradient(160deg,#fbbf24,#d97706)"></i>계획정비</span>
-        <span><i style="background:repeating-linear-gradient(45deg,#e5e7eb,#e5e7eb 4px,#d1d5db 4px,#d1d5db 8px)"></i>유휴</span>
+        <span><i style="background:linear-gradient(160deg,#10b981,#047857)"></i>Run</span>
+        <span><i style="background:linear-gradient(160deg,#a78bfa,#7c3aed)"></i>Mold Changeover</span>
+        <span><i style="background:linear-gradient(160deg,#fbbf24,#d97706)"></i>Planned PM</span>
+        <span><i style="background:repeating-linear-gradient(45deg,#e5e7eb,#e5e7eb 4px,#d1d5db 4px,#d1d5db 8px)"></i>Idle</span>
       </span>
     </div>
     <div class="gantt" id="gantt"></div>
-    <div style="font-size:9px;color:#9ca3af;margin-top:8px;">블록 클릭 = 상세 보기 · 빨간 외곽선 = 시간 충돌 · NOW 라인 = 현재 시각</div>
+    <div style="font-size:9px;color:#9ca3af;margin-top:8px;">Click a block for details · Red outline = time conflict · NOW line = current time</div>
   </div>
 </div>
 
 <!-- block detail modal -->
 <div class="ov" id="ovDetail">
   <div class="modal">
-    <div class="modal-h"><span class="mt" id="dmTitle">블록 상세</span><span class="mx" onclick="closeOv('ovDetail')">✕</span></div>
+    <div class="modal-h"><span class="mt" id="dmTitle">Block Detail</span><span class="mx" onclick="closeOv('ovDetail')">✕</span></div>
     <div class="modal-b" id="dmBody"></div>
     <div class="modal-f">
-      <button class="btn btn-s" id="dmDel" onclick="delBlock()" style="display:none;">🗑 블록 삭제</button>
-      <button class="btn btn-p" onclick="closeOv('ovDetail')">확인</button>
+      <button class="btn btn-s" id="dmDel" onclick="delBlock()" style="display:none;">🗑 Delete Block</button>
+      <button class="btn btn-p" onclick="closeOv('ovDetail')">OK</button>
     </div>
   </div>
 </div>
 <!-- PM add modal -->
 <div class="ov" id="ovPM">
   <div class="modal">
-    <div class="modal-h"><span class="mt">계획정비(PM) 블록 추가</span><span class="mx" onclick="closeOv('ovPM')">✕</span></div>
+    <div class="modal-h"><span class="mt">Add Planned Maintenance (PM) Block</span><span class="mx" onclick="closeOv('ovPM')">✕</span></div>
     <div class="modal-b">
-      <div class="mfld"><label>대상 라인 Line</label>
+      <div class="mfld"><label>Target Line</label>
         <select id="pmLine"><option>SAV-INJ-01</option><option>SAV-INJ-02</option><option>SAV-ASSY-01</option><option>SAV-PNT-01</option></select></div>
-      <div class="mfld"><label>정비 내용 Description</label>
-        <select id="pmDesc"><option>금형 점검</option><option>설비 정기 PM</option><option>부스 청소</option><option>윤활·급유</option><option>안전 점검</option></select></div>
+      <div class="mfld"><label>Description</label>
+        <select id="pmDesc"><option>Mold Inspection</option><option>Routine Equipment PM</option><option>Booth Cleaning</option><option>Lubrication</option><option>Safety Inspection</option></select></div>
       <div style="display:flex;gap:10px;">
-        <div class="mfld" style="flex:1;"><label>시작 시각 Start (시)</label>
+        <div class="mfld" style="flex:1;"><label>Start Hour</label>
           <input type="number" id="pmStart" value="14" min="6" max="21" step="1"></div>
-        <div class="mfld" style="flex:1;"><label>소요 시간 Duration (분)</label>
+        <div class="mfld" style="flex:1;"><label>Duration (min)</label>
           <input type="number" id="pmDur" value="60" min="15" max="240" step="15"></div>
       </div>
       <div style="font-size:10px;color:var(--sub);background:#fffbeb;border:1px solid #fde68a;border-radius:5px;padding:8px;">
-        ℹ 기존 생산 블록과 시간이 겹치면 충돌로 표시됩니다. 충돌 검사로 확인하세요.</div>
+        ℹ If the time overlaps an existing run block, a conflict will be flagged. Use Conflict Check to verify.</div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovPM')">취소</button>
-      <button class="btn btn-w" onclick="addPM()">＋ 추가</button>
+      <button class="btn btn-s" onclick="closeOv('ovPM')">Cancel</button>
+      <button class="btn btn-w" onclick="addPM()">＋ Add</button>
     </div>
   </div>
 </div>
@@ -176,34 +176,34 @@ select,input[type=number]{padding:5px 9px;border:1px solid var(--bd);border-radi
 /* timeline: 06:00(0min) ~ 22:00(960min) */
 var T0=6*60, SPAN=16*60;
 function hhmm(min){var m=T0+min;return ('0'+Math.floor(m/60)).slice(-2)+':'+('0'+(m%60)).slice(-2);}
-var TYPE={op:{ko:'생산 실행',cls:'t-op'},co:{ko:'금형 교환',cls:'t-co'},pd:{ko:'계획 정비',cls:'t-pd'},idle:{ko:'유휴',cls:'t-idle'}};
+var TYPE={op:{ko:'Run',cls:'t-op'},co:{ko:'Mold Changeover',cls:'t-co'},pd:{ko:'Planned PM',cls:'t-pd'},idle:{ko:'Idle',cls:'t-idle'}};
 var LINES=[
- {id:'SAV-INJ-01',nm:'사출 1호기',blocks:[
-   {ty:'op',s:0,e:240,wo:'WO-2605-101',it:'TRIM-LH-001',nm:'도어트림 LH',qty:480,op:'김성호'},
-   {ty:'co',s:240,e:270,wo:'',it:'',nm:'금형 교환 (LH→RH)',qty:0,op:'정비반'},
-   {ty:'op',s:270,e:540,wo:'WO-2605-115',it:'TRIM-RH-001',nm:'도어트림 RH',qty:520,op:'김성호'},
-   {ty:'pd',s:540,e:600,wo:'',it:'',nm:'설비 정기 PM',qty:0,op:'정비반'},
-   {ty:'op',s:600,e:900,wo:'WO-2605-130',it:'CONS-UP-001',nm:'콘솔어퍼',qty:600,op:'이재민'},
-   {ty:'idle',s:900,e:960,wo:'',it:'',nm:'유휴',qty:0,op:'-'}]},
- {id:'SAV-INJ-02',nm:'사출 2호기',blocks:[
-   {ty:'op',s:0,e:360,wo:'WO-2605-102',it:'MOLDING-05',nm:'사이드 몰딩 5',qty:720,op:'박junior'},
-   {ty:'co',s:360,e:390,wo:'',it:'',nm:'금형 교환',qty:0,op:'정비반'},
-   {ty:'op',s:390,e:720,wo:'WO-2605-118',it:'GRILLE-02',nm:'라디에이터 그릴',qty:540,op:'박junior'},
-   {ty:'pd',s:720,e:780,wo:'',it:'',nm:'금형 점검',qty:0,op:'정비반'},
-   {ty:'op',s:780,e:960,wo:'WO-2605-132',it:'BUMPER-01',nm:'프론트 범퍼',qty:360,op:'최우진'}]},
- {id:'SAV-ASSY-01',nm:'조립 1라인',blocks:[
-   {ty:'op',s:0,e:300,wo:'WO-2605-103',it:'DOOR-MOD-01',nm:'도어 모듈 조립',qty:300,op:'한지원'},
-   {ty:'pd',s:300,e:330,wo:'',it:'',nm:'교대 점검',qty:0,op:'반장'},
-   {ty:'op',s:330,e:660,wo:'WO-2605-120',it:'CONS-ASSY-1',nm:'콘솔 조립',qty:420,op:'한지원'},
-   {ty:'co',s:660,e:690,wo:'',it:'',nm:'치공구 교환',qty:0,op:'정비반'},
-   {ty:'op',s:690,e:960,wo:'WO-2605-135',it:'BMP-ASSY-1',nm:'범퍼 조립',qty:380,op:'오세훈'}]},
- {id:'SAV-PNT-01',nm:'도장 1라인',blocks:[
-   {ty:'pd',s:0,e:60,wo:'',it:'',nm:'라인 예열',qty:0,op:'도장반'},
-   {ty:'op',s:60,e:420,wo:'WO-2605-104',it:'BUMPER-PNT',nm:'범퍼 도장',qty:280,op:'서민재'},
-   {ty:'pd',s:420,e:480,wo:'',it:'',nm:'부스 청소',qty:0,op:'도장반'},
-   {ty:'op',s:480,e:840,wo:'WO-2605-125',it:'GRILLE-PNT',nm:'그릴 도장',qty:320,op:'서민재'},
-   {ty:'co',s:840,e:870,wo:'',it:'',nm:'색상 교환',qty:0,op:'도장반'},
-   {ty:'idle',s:870,e:960,wo:'',it:'',nm:'유휴',qty:0,op:'-'}]}
+ {id:'SAV-INJ-01',nm:'Injection 1',blocks:[
+   {ty:'op',s:0,e:240,wo:'WO-2605-101',it:'TRIM-LH-001',nm:'Door Trim LH',qty:480,op:'Mike Johnson'},
+   {ty:'co',s:240,e:270,wo:'',it:'',nm:'Mold Changeover (LH→RH)',qty:0,op:'Maintenance Team'},
+   {ty:'op',s:270,e:540,wo:'WO-2605-115',it:'TRIM-RH-001',nm:'Door Trim RH',qty:520,op:'Mike Johnson'},
+   {ty:'pd',s:540,e:600,wo:'',it:'',nm:'Routine Equipment PM',qty:0,op:'Maintenance Team'},
+   {ty:'op',s:600,e:900,wo:'WO-2605-130',it:'CONS-UP-001',nm:'Console Upper',qty:600,op:'James Wilson'},
+   {ty:'idle',s:900,e:960,wo:'',it:'',nm:'Idle',qty:0,op:'-'}]},
+ {id:'SAV-INJ-02',nm:'Injection 2',blocks:[
+   {ty:'op',s:0,e:360,wo:'WO-2605-102',it:'MOLDING-05',nm:'Side Molding 5',qty:720,op:'Robert Davis'},
+   {ty:'co',s:360,e:390,wo:'',it:'',nm:'Mold Changeover',qty:0,op:'Maintenance Team'},
+   {ty:'op',s:390,e:720,wo:'WO-2605-118',it:'GRILLE-02',nm:'Radiator Grille',qty:540,op:'Robert Davis'},
+   {ty:'pd',s:720,e:780,wo:'',it:'',nm:'Mold Inspection',qty:0,op:'Maintenance Team'},
+   {ty:'op',s:780,e:960,wo:'WO-2605-132',it:'BUMPER-01',nm:'Front Bumper',qty:360,op:'Chris Brown'}]},
+ {id:'SAV-ASSY-01',nm:'Assembly 1',blocks:[
+   {ty:'op',s:0,e:300,wo:'WO-2605-103',it:'DOOR-MOD-01',nm:'Door Module Assembly',qty:300,op:'Sarah Williams'},
+   {ty:'pd',s:300,e:330,wo:'',it:'',nm:'Shift Changeover',qty:0,op:'Supervisor'},
+   {ty:'op',s:330,e:660,wo:'WO-2605-120',it:'CONS-ASSY-1',nm:'Console Assembly',qty:420,op:'Sarah Williams'},
+   {ty:'co',s:660,e:690,wo:'',it:'',nm:'Fixture Changeover',qty:0,op:'Maintenance Team'},
+   {ty:'op',s:690,e:960,wo:'WO-2605-135',it:'BMP-ASSY-1',nm:'Bumper Assembly',qty:380,op:'Daniel Martinez'}]},
+ {id:'SAV-PNT-01',nm:'Paint 1',blocks:[
+   {ty:'pd',s:0,e:60,wo:'',it:'',nm:'Line Preheating',qty:0,op:'Paint Crew'},
+   {ty:'op',s:60,e:420,wo:'WO-2605-104',it:'BUMPER-PNT',nm:'Bumper Painting',qty:280,op:'David Chen'},
+   {ty:'pd',s:420,e:480,wo:'',it:'',nm:'Booth Cleaning',qty:0,op:'Paint Crew'},
+   {ty:'op',s:480,e:840,wo:'WO-2605-125',it:'GRILLE-PNT',nm:'Grille Painting',qty:320,op:'David Chen'},
+   {ty:'co',s:840,e:870,wo:'',it:'',nm:'Color Changeover',qty:0,op:'Paint Crew'},
+   {ty:'idle',s:870,e:960,wo:'',it:'',nm:'Idle',qty:0,op:'-'}]}
 ];
 var sel={li:-1,bi:-1};
 function visLines(){var f=document.getElementById('fLine').value;return LINES.map(function(L,i){return{L:L,i:i};}).filter(function(x){return !f||x.L.id===f;});}
@@ -232,7 +232,7 @@ function apply(){
 function renderBoard(){
   var vis=visLines();
   /* axis */
-  var ax='<div class="g-axis"><div class="g-lbl" style="padding:5px 10px;font-size:9px;color:#656d76;font-weight:700;">라인 / 가동률</div><div class="g-ticks">';
+  var ax='<div class="g-axis"><div class="g-lbl" style="padding:5px 10px;font-size:9px;color:#656d76;font-weight:700;">Line / Utilization</div><div class="g-ticks">';
   for(var h=6;h<22;h++)ax+='<div class="g-tick">'+('0'+h).slice(-2)+':00</div>';
   ax+='</div></div>';
   var rows='';
@@ -242,11 +242,11 @@ function renderBoard(){
     var ut=Math.round(run/SPAN*100);
     var utc=ut>=80?'#10b981':(ut>=60?'#f59e0b':'#dc2626');
     rows+='<div class="g-row"><div class="g-lbl"><div class="ln-id">'+L.id+'</div><div class="ln-nm">'+L.nm+'</div>'+
-      '<div class="ln-ut" style="color:'+utc+'">가동 '+ut+'%</div></div><div class="g-track">';
+      '<div class="ln-ut" style="color:'+utc+'">Util '+ut+'%</div></div><div class="g-track">';
     L.blocks.forEach(function(b,bi){
       var conf=L.blocks.some(function(o,oi){return oi!==bi&&overlap(b,o);});
       var left=b.s/SPAN*100,w=(b.e-b.s)/SPAN*100;
-      var lbl=b.ty==='op'?b.nm:(b.ty==='co'?'교환':b.ty==='pd'?b.nm:'유휴');
+      var lbl=b.ty==='op'?b.nm:(b.ty==='co'?'Changeover':b.ty==='pd'?b.nm:'Idle');
       rows+='<div class="blk '+b.ty+(conf?' conf':'')+'" style="left:'+left+'%;width:'+w+'%;" '+
         'onclick="blockClick('+x.i+','+bi+')" title="'+L.id+' · '+lbl+' '+hhmm(b.s)+'-'+hhmm(b.e)+'">'+
         '<div class="bt">'+lbl+'</div><div class="bs">'+hhmm(b.s)+'–'+hhmm(b.e)+(b.qty?' · '+b.qty:'')+'</div></div>';
@@ -256,7 +256,6 @@ function renderBoard(){
   /* NOW line — demo current 14:20 */
   var nowMin=14*60+20-T0;
   if(nowMin>=0&&nowMin<=SPAN){
-    var nleft=138, pct=nowMin/SPAN;
     rows='<div style="position:relative;">'+rows+'</div>';
   }
   var g=document.getElementById('gantt');
@@ -274,17 +273,17 @@ function blockClick(li,bi){
   var L=LINES[li],b=L.blocks[bi];sel={li:li,bi:bi};
   document.getElementById('dmTitle').textContent=L.id+' · '+TYPE[b.ty].ko;
   var rows=[
-    ['라인',L.id+' '+L.nm],
-    ['구분','<span class="tag '+TYPE[b.ty].cls+'">'+TYPE[b.ty].ko+'</span>'],
-    ['시간',hhmm(b.s)+' ~ '+hhmm(b.e)+' ('+(b.e-b.s)+'분)'],
-    ['내용',b.nm]
+    ['Line',L.id+' '+L.nm],
+    ['Type','<span class="tag '+TYPE[b.ty].cls+'">'+TYPE[b.ty].ko+'</span>'],
+    ['Time',hhmm(b.s)+' ~ '+hhmm(b.e)+' ('+(b.e-b.s)+' min)'],
+    ['Description',b.nm]
   ];
-  if(b.wo)rows.push(['작업지시',b.wo]);
-  if(b.it)rows.push(['품목',b.it]);
-  if(b.qty)rows.push(['계획 수량',b.qty.toLocaleString()+' EA']);
-  rows.push(['담당',b.op]);
+  if(b.wo)rows.push(['Work Order',b.wo]);
+  if(b.it)rows.push(['Item',b.it]);
+  if(b.qty)rows.push(['Planned Qty',b.qty.toLocaleString()+' EA']);
+  rows.push(['Owner',b.op]);
   var conf=L.blocks.some(function(o,oi){return oi!==bi&&overlap(b,o);});
-  if(conf)rows.push(['상태','<span style="color:#dc2626;font-weight:800;">⚠ 시간 충돌 발생</span>']);
+  if(conf)rows.push(['Status','<span style="color:#dc2626;font-weight:800;">⚠ Time Conflict Detected</span>']);
   document.getElementById('dmBody').innerHTML=rows.map(function(r){
     return '<div class="drow"><span class="dk">'+r[0]+'</span><span class="dv">'+r[1]+'</span></div>';}).join('');
   /* only PM/idle blocks deletable in demo */
@@ -295,7 +294,7 @@ function delBlock(){
   if(sel.li<0)return;
   var L=LINES[sel.li];L.blocks.splice(sel.bi,1);
   closeOv('ovDetail');apply();
-  toast('','블록 삭제','계획정비 블록을 스케줄에서 제거했습니다.');
+  toast('','Block Deleted','Planned PM block removed from the schedule.');
 }
 function openPM(){document.getElementById('pmStart').value=14;document.getElementById('pmDur').value=60;openOv('ovPM');}
 function addPM(){
@@ -303,24 +302,24 @@ function addPM(){
   var desc=document.getElementById('pmDesc').value;
   var sh=parseInt(document.getElementById('pmStart').value,10);
   var dur=parseInt(document.getElementById('pmDur').value,10);
-  if(isNaN(sh)||sh<6||sh>21){toast('err','입력 오류','시작 시각은 6~21시 범위여야 합니다.');return;}
-  if(isNaN(dur)||dur<15){toast('err','입력 오류','소요 시간은 15분 이상이어야 합니다.');return;}
+  if(isNaN(sh)||sh<6||sh>21){toast('err','Input Error','Start hour must be between 6 and 21.');return;}
+  if(isNaN(dur)||dur<15){toast('err','Input Error','Duration must be at least 15 min.');return;}
   var s=sh*60-T0, e=s+dur;
-  if(e>SPAN){toast('err','범위 초과','정비 종료가 22:00를 넘습니다. 시간을 줄여 주세요.');return;}
+  if(e>SPAN){toast('err','Out of Range','PM end time exceeds 22:00. Please reduce the duration.');return;}
   var L=LINES.filter(function(x){return x.id===lid;})[0];
-  var nb={ty:'pd',s:s,e:e,wo:'',it:'',nm:desc,qty:0,op:'정비반'};
+  var nb={ty:'pd',s:s,e:e,wo:'',it:'',nm:desc,qty:0,op:'Maintenance Team'};
   var clash=L.blocks.some(function(b){return overlap(b,nb);});
   L.blocks.push(nb);
   L.blocks.sort(function(a,b){return a.s-b.s;});
   closeOv('ovPM');apply();
-  if(clash)toast('warn','PM 추가 — 충돌','계획정비 블록을 추가했으나 기존 작업과 시간이 겹칩니다. 재조정이 필요합니다.');
-  else toast('','PM 추가 완료',lid+' '+hhmm(s)+'~'+hhmm(e)+' 「'+desc+'」 블록을 등록했습니다.');
+  if(clash)toast('warn','PM Added — Conflict','PM block added but overlaps an existing block. Rescheduling required.');
+  else toast('','PM Added',lid+' '+hhmm(s)+'~'+hhmm(e)+' "'+desc+'" block registered.');
 }
 function checkConflict(){
   var vis=visLines(),tot=0,detail=[];
-  vis.forEach(function(x){var c=lineConflicts(x.L);if(c){tot+=c;detail.push(x.L.id+' '+c+'건');}});
-  if(tot)toast('warn','충돌 '+tot+'건 발견',detail.join(' · ')+' — 겹친 블록을 조정하세요.');
-  else toast('info','충돌 없음','검사 대상 라인의 스케줄에 시간 충돌이 없습니다. ✓');
+  vis.forEach(function(x){var c=lineConflicts(x.L);if(c){tot+=c;detail.push(x.L.id+' '+c);}});
+  if(tot)toast('warn',tot+' Conflict(s) Found',detail.join(' · ')+' — Adjust the overlapping blocks.');
+  else toast('info','No Conflicts','No time conflicts found on the checked lines. ✓');
 }
 function exportCsv(){
   var vis=visLines();
@@ -334,12 +333,12 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='PP_LSB_Schedule_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','스케줄 블록을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Schedule blocks exported to CSV.');
 }
 function resetAll(){
   document.getElementById('fLine').value='';
   document.getElementById('fDate').selectedIndex=0;
-  apply();toast('info','초기화','전체 라인 기준으로 스케줄 보드를 초기화했습니다.');
+  apply();toast('info','Reset','Schedule board reset to all-lines view.');
 }
 function openOv(id){document.getElementById(id).classList.add('on');}
 function closeOv(id){document.getElementById(id).classList.remove('on');}

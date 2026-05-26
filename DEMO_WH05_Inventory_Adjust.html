@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>WH-05 Inventory Adjust · A-MES PDA Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--pda:#06b6d4;--pda-dk:#0e7490;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
 .pda{width:420px;max-width:100%;height:100%;max-height:760px;background:#0f1f25;border:2px solid #1a3540;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;}
 .pda-top{flex-shrink:0;background:linear-gradient(180deg,#1a3540,#0f1f25);padding:11px 16px;display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--pda);}
 .pda-id{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#22d3ee;}
@@ -63,27 +63,27 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font
 <div class="pda">
   <div class="pda-top">
     <div class="pda-id">WH-05</div>
-    <div class="pda-t">재고 조정</div>
+    <div class="pda-t">Inventory Adjust</div>
     <span class="live"><span class="d"></span>LIVE</span>
     <span class="pda-bat">🔋 74%</span>
   </div>
   <div class="pda-body">
     <div class="scan-box">
       <div class="ic">✅</div>
-      <div class="t">RM-PP-BLK 인식</div>
-      <div class="s">A-03-2 / PP 수지 (블랙)</div>
+      <div class="t">RM-PP-BLK Detected</div>
+      <div class="s">A-03-2 / PP Resin (Black)</div>
     </div>
     <div class="item-card">
-      <div class="nm">PP 수지 (블랙)</div>
-      <div class="id">RM-PP-BLK · 로케이션 A-03-2</div>
-      <div class="meta"><span>최근 입고</span><b>2026-05-21 08:42</b></div>
-      <div class="meta"><span>최근 출고</span><b>2026-05-21 09:08</b></div>
+      <div class="nm">PP Resin (Black)</div>
+      <div class="id">RM-PP-BLK · Bin A-03-2</div>
+      <div class="meta"><span>Last Receipt</span><b>05/21/2026 08:42</b></div>
+      <div class="meta"><span>Last Issue</span><b>05/21/2026 09:08</b></div>
     </div>
-    <div class="section-h">📊 재고 조정</div>
+    <div class="section-h">📊 Inventory Adjustment</div>
     <div class="qty-cmp">
-      <div class="qbox"><div class="l">전산 재고</div><div class="v">8,200</div><div class="u">KG</div></div>
+      <div class="qbox"><div class="l">SYSTEM QTY</div><div class="v">8,200</div><div class="u">LB</div></div>
       <div class="arr">▶</div>
-      <div class="qbox new"><div class="l">실사 재고</div><div class="v" id="newQ">8,150</div><div class="u">KG</div></div>
+      <div class="qbox new"><div class="l">COUNTED QTY</div><div class="v" id="newQ">8,150</div><div class="u">LB</div></div>
     </div>
     <div class="qty-row">
       <button onclick="adj(-100)">−100</button>
@@ -92,37 +92,37 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font
       <button onclick="adj(100)">+100</button>
     </div>
     <div class="diff" id="diff">
-      <div class="l">조정 차이 · DIFF</div>
-      <div class="v" id="dV">−50 KG</div>
+      <div class="l">VARIANCE · DIFF</div>
+      <div class="v" id="dV">−50 LB</div>
     </div>
-    <div class="section-h">📋 조정 사유</div>
+    <div class="section-h">📋 Adjustment Reason</div>
     <div class="reasons">
-      <div class="rsn on" onclick="pickR(this)" data-r="실사 차이">실사 차이</div>
-      <div class="rsn" onclick="pickR(this)" data-r="파손·폐기">파손·폐기</div>
-      <div class="rsn" onclick="pickR(this)" data-r="누락 입고">누락 입고</div>
-      <div class="rsn" onclick="pickR(this)" data-r="기타">기타</div>
+      <div class="rsn on" onclick="pickR(this)" data-r="Cycle Count Variance">Count Variance</div>
+      <div class="rsn" onclick="pickR(this)" data-r="Damaged/Scrap">Damaged/Scrap</div>
+      <div class="rsn" onclick="pickR(this)" data-r="Missed Receipt">Missed Receipt</div>
+      <div class="rsn" onclick="pickR(this)" data-r="Other">Other</div>
     </div>
   </div>
   <div class="bottom-bar">
-    <button class="sec" onclick="back()">← 취소</button>
-    <button onclick="submit()">✓ 조정 등록</button>
+    <button class="sec" onclick="back()">← Cancel</button>
+    <button onclick="submit()">✓ Submit Adjustment</button>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 <script>
-var q=8150,rsn='실사 차이';
+var q=8150,rsn='Cycle Count Variance';
 function adj(d){q+=d;update();}
 function update(){
   document.getElementById('newQ').textContent=q.toLocaleString();
   var diff=q-8200;
-  document.getElementById('dV').textContent=(diff>=0?'+':'')+diff+' KG';
+  document.getElementById('dV').textContent=(diff>=0?'+':'')+diff+' LB';
   document.getElementById('diff').style.borderColor=diff===0?'#16a34a':(diff<0?'#dc2626':'#fbbf24');
 }
 function pickR(e){[].slice.call(document.querySelectorAll('.rsn')).forEach(function(x){x.classList.remove('on');});e.classList.add('on');rsn=e.dataset.r;}
 function submit(){
-  toast('ok','재고 조정 등록 ✓','RM-PP-BLK A-03-2 — '+q+' KG ('+rsn+') 조정 완료. 팀장 승인 대기.');
+  toast('ok','Adjustment Submitted ✓','RM-PP-BLK A-03-2 — '+q+' LB ('+rsn+') submitted. Pending supervisor approval.');
 }
-function back(){toast('','뒤로','PDA 메뉴로 돌아갑니다.');}
+function back(){toast('','Back','Returning to PDA menu.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';

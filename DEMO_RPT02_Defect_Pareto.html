@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>RPT-02 Defect Pareto · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -79,32 +79,32 @@ tbody tr:hover td{background:#f0fdf4;}
 <body>
 <div class="scr-head">
   <div class="sh-id">RPT-02</div>
-  <div class="sh-tt"><div class="sh-en">Defect Pareto Analysis</div><div class="sh-ko">불량 파레토 — 불량 유형별 집중 분석</div></div>
+  <div class="sh-tt"><div class="sh-en">Defect Pareto Analysis</div><div class="sh-ko">Focused Analysis by Defect Type</div></div>
   <span class="sh-tag">/rpt/defect-pareto</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>기간 Period</label>
-    <select id="fPeriod" onchange="apply()"><option>2026-05 (당월)</option><option>최근 7일</option><option>2026-04</option></select></div>
-  <div class="fld"><label>라인 Line</label>
-    <select id="fLine" onchange="apply()"><option value="">전체 All</option><option>SAV-INJ-01</option><option>SAV-INJ-02</option><option>SAV-ASSY-01</option><option>SAV-PNT-01</option></select></div>
-  <div class="fld"><label>공정 Process</label>
-    <select id="fProc" onchange="apply()"><option value="">전체</option><option>사출</option><option>조립</option><option>도장</option><option>검사</option></select></div>
-  <button class="btn btn-p btn-sm" onclick="apply()">🔍 적용</button>
-  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div class="fld"><label>Period</label>
+    <select id="fPeriod" onchange="apply()"><option>May 2026 (MTD)</option><option>Last 7 Days</option><option>April 2026</option></select></div>
+  <div class="fld"><label>Line</label>
+    <select id="fLine" onchange="apply()"><option value="">All Lines</option><option>SAV-INJ-01</option><option>SAV-INJ-02</option><option>SAV-ASSY-01</option><option>SAV-PNT-01</option></select></div>
+  <div class="fld"><label>Process</label>
+    <select id="fProc" onchange="apply()"><option value="">All</option><option>Injection</option><option>Assembly</option><option>Paint</option><option>Inspection</option></select></div>
+  <button class="btn btn-p btn-sm" onclick="apply()">🔍 Apply</button>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>
   <div style="margin-left:auto;"><button class="btn btn-s" onclick="exportCsv()">📥 Export</button></div>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kDef">0</div><div class="kl">총 불량 수 · Defects</div></div>
-    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kRate">0%</div><div class="kl">불량률 · Defect Rate</div></div>
-    <div class="kpi" style="--c:#8b5cf6"><div class="kv" id="kTop">-</div><div class="kl">최다 불량 유형 · Worst</div></div>
-    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kVital">0</div><div class="kl">누적 80% 핵심 유형 수</div></div>
-    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kInsp">0</div><div class="kl">검사 수량 · Inspected</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kDef">0</div><div class="kl">Total Defects</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kRate">0%</div><div class="kl">Defect Rate</div></div>
+    <div class="kpi" style="--c:#8b5cf6"><div class="kv" id="kTop">-</div><div class="kl">Worst Defect Type</div></div>
+    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kVital">0</div><div class="kl">Vital Few (≤80% Cumulative)</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kInsp">0</div><div class="kl">Inspected Quantity</div></div>
   </div>
   <div class="card">
-    <div class="card-t">📊 불량 유형별 파레토 차트
-      <span style="margin-left:auto;font-size:9px;color:#9ca3af;font-weight:400;">녹색 막대=불량건수 · 파란 점=누적% · 막대 클릭=필터</span></div>
+    <div class="card-t">📊 Defect Pareto Chart by Type
+      <span style="margin-left:auto;font-size:9px;color:#9ca3af;font-weight:400;">Green Bars=Defect Count · Blue Dots=Cumulative% · Click Bar=Filter</span></div>
     <div class="pchart">
       <div class="pbars" id="pbars"></div>
       <div class="psvg" id="psvg"></div>
@@ -113,14 +113,14 @@ tbody tr:hover td{background:#f0fdf4;}
   </div>
   <div class="grid2">
     <div class="card">
-      <div class="card-t">🏭 공정별 불량 분포</div>
+      <div class="card-t">🏭 Defect Distribution by Process</div>
       <div id="procDist"></div>
     </div>
     <div class="panel">
-      <div class="panel-h"><span>📋 불량 유형 상세 — <span id="sub" style="font-weight:800;color:#dc2626;">0건</span></span>
-        <button class="btn btn-s btn-sm clr" id="clrBtn" onclick="clearType()" style="display:none;">✕ 필터 해제</button></div>
+      <div class="panel-h"><span>📋 Defect Type Detail — <span id="sub" style="font-weight:800;color:#dc2626;">0 cases</span></span>
+        <button class="btn btn-s btn-sm clr" id="clrBtn" onclick="clearType()" style="display:none;">✕ Clear Filter</button></div>
       <table>
-        <thead><tr><th class="c">순위</th><th>불량 유형</th><th class="c">건수</th><th class="c">비율</th><th class="c">누적%</th><th>주 공정</th></tr></thead>
+        <thead><tr><th class="c">Rank</th><th>Defect Type</th><th class="c">Count</th><th class="c">Ratio</th><th class="c">Cumulative %</th><th>Process</th></tr></thead>
         <tbody id="tbody"></tbody>
       </table>
     </div>
@@ -131,15 +131,15 @@ tbody tr:hover td{background:#f0fdf4;}
 <script>
 /* defect types: count split by process */
 var DEFECTS=[
- {t:'미성형 (Short Shot)',proc:'사출',byLine:{'SAV-INJ-01':28,'SAV-INJ-02':34}},
- {t:'버 (Burr)',proc:'사출',byLine:{'SAV-INJ-01':22,'SAV-INJ-02':19}},
- {t:'스크래치',proc:'조립',byLine:{'SAV-ASSY-01':17,'SAV-PNT-01':9}},
- {t:'변형 (Warpage)',proc:'사출',byLine:{'SAV-INJ-01':9,'SAV-INJ-02':16}},
- {t:'색상 불량',proc:'도장',byLine:{'SAV-PNT-01':21}},
- {t:'치수 불량',proc:'검사',byLine:{'SAV-ASSY-01':12,'SAV-INJ-02':6}},
- {t:'이물질 혼입',proc:'도장',byLine:{'SAV-PNT-01':11}},
- {t:'기포 (Bubble)',proc:'사출',byLine:{'SAV-INJ-02':7}},
- {t:'조립 불량',proc:'조립',byLine:{'SAV-ASSY-01':8}}
+ {t:'Short Shot',proc:'Injection',byLine:{'SAV-INJ-01':28,'SAV-INJ-02':34}},
+ {t:'Burr',proc:'Injection',byLine:{'SAV-INJ-01':22,'SAV-INJ-02':19}},
+ {t:'Scratch',proc:'Assembly',byLine:{'SAV-ASSY-01':17,'SAV-PNT-01':9}},
+ {t:'Warpage',proc:'Injection',byLine:{'SAV-INJ-01':9,'SAV-INJ-02':16}},
+ {t:'Color Defect',proc:'Paint',byLine:{'SAV-PNT-01':21}},
+ {t:'Dimensional Defect',proc:'Inspection',byLine:{'SAV-ASSY-01':12,'SAV-INJ-02':6}},
+ {t:'Contamination',proc:'Paint',byLine:{'SAV-PNT-01':11}},
+ {t:'Bubble',proc:'Injection',byLine:{'SAV-INJ-02':7}},
+ {t:'Assembly Defect',proc:'Assembly',byLine:{'SAV-ASSY-01':8}}
 ];
 var INSPBASE=8400;
 var selType=null;
@@ -168,7 +168,7 @@ function apply(){
   /* vital few (cumulative 80%) */
   var acc=0,vital=0;
   v.forEach(function(x){if(acc<80){vital++;}acc+=x.n/tot*100;});
-  document.getElementById('kVital').textContent=vital+'종';
+  document.getElementById('kVital').textContent=vital+' types';
   renderPareto(v,tot);renderProc();renderTable(v,tot);
 }
 function renderPareto(v,tot){
@@ -207,18 +207,18 @@ function svgLine(coords){
     '" fill="none" stroke="#2563eb" stroke-width="0.8"/></svg>';
 }
 function pickType(t){selType=(selType===t)?null:t;apply();
-  if(selType)toast('info','「'+t+'」 선택','해당 불량 유형이 상세 테이블에서 강조됩니다.');}
+  if(selType)toast('info','"'+t+'" selected','This defect type is highlighted in the detail table.');}
 function clearType(){selType=null;apply();}
 function renderProc(){
   var v=visDefs();
   var byP={};v.forEach(function(x){byP[x.d.proc]=(byP[x.d.proc]||0)+x.n;});
   var arr=Object.keys(byP).map(function(p){return{p:p,n:byP[p]};}).sort(function(a,b){return b.n-a.n;});
   var max=arr.length?arr[0].n:1;
-  var cols={'사출':'#dc2626','조립':'#f59e0b','도장':'#8b5cf6','검사':'#0891b2'};
+  var cols={'Injection':'#dc2626','Assembly':'#f59e0b','Paint':'#8b5cf6','Inspection':'#0891b2'};
   document.getElementById('procDist').innerHTML=arr.map(function(x){
     return '<div class="proc-row"><span class="pn">'+x.p+'</span>'+
       '<span class="pt"><i style="width:'+(x.n/max*100)+'%;background:'+(cols[x.p]||'#059669')+'"></i></span>'+
-      '<span class="pv">'+x.n+'건</span></div>';}).join('');
+      '<span class="pv">'+x.n+' cases</span></div>';}).join('');
 }
 function renderTable(v,tot){
   var acc=0,h='';
@@ -227,14 +227,14 @@ function renderTable(v,tot){
     var vital=acc/tot*100<=80.5||(acc-x.n)/tot*100<80;
     h+='<tr style="'+(selType===x.d.t?'background:#fffbeb;':'')+'">'+
       '<td class="c" style="text-align:center;"><span class="rank '+(i<3?'r'+(i+1):'')+'">'+(i+1)+'</span></td>'+
-      '<td><b>'+x.d.t+'</b>'+(vital&&cum<=80?' <span class="vital">핵심</span>':'')+'</td>'+
+      '<td><b>'+x.d.t+'</b>'+(vital&&cum<=80?' <span class="vital">VITAL</span>':'')+'</td>'+
       '<td class="c mono" style="text-align:center;font-weight:700;color:#dc2626;">'+x.n+'</td>'+
       '<td class="c mono" style="text-align:center;">'+(Math.round(x.n/tot*1000)/10)+'%</td>'+
       '<td class="c mono" style="text-align:center;font-weight:700;color:'+(cum<=80?'#2563eb':'#9ca3af')+'">'+cum+'%</td>'+
       '<td>'+x.d.proc+'</td></tr>';
   });
   document.getElementById('tbody').innerHTML=h;
-  document.getElementById('sub').textContent=tot.toLocaleString()+'건';
+  document.getElementById('sub').textContent=tot.toLocaleString()+' cases';
   document.getElementById('clrBtn').style.display=selType?'inline-flex':'none';
 }
 function exportCsv(){
@@ -246,12 +246,12 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='RPT_DefectPareto_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','불량 파레토 분석을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Defect Pareto Analysis exported to CSV.');
 }
 function resetAll(){
   document.getElementById('fLine').value='';document.getElementById('fProc').value='';
   document.getElementById('fPeriod').selectedIndex=0;selType=null;apply();
-  toast('info','초기화','불량 분석 조건을 초기화했습니다.');
+  toast('info','Reset','Defect analysis filters have been reset.');
 }
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');

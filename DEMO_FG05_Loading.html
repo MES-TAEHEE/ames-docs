@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>FG-05 Loading · A-MES PDA Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--pda:#06b6d4;--pda-dk:#0e7490;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
 .pda{width:420px;max-width:100%;height:100%;max-height:760px;background:#0f1f25;border:2px solid #1a3540;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;}
 .pda-top{flex-shrink:0;background:linear-gradient(180deg,#1a3540,#0f1f25);padding:11px 16px;display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--pda);}
 .pda-id{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#22d3ee;}
@@ -62,45 +62,45 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font
 <div class="pda">
   <div class="pda-top">
     <div class="pda-id">FG-05</div>
-    <div class="pda-t">상차 확인</div>
+    <div class="pda-t">Truck Loading</div>
     <span class="live"><span class="d"></span>LIVE</span>
     <span class="pda-bat">🔋 66%</span>
   </div>
   <div class="pda-body">
-    <div class="section-h"><span class="stp">1</span>차량 정보</div>
+    <div class="section-h"><span class="stp">1</span>Truck Info</div>
     <div class="vehicle-card">
       <div class="ic">🚚</div>
       <div class="info">
-        <div class="plate">88 나 5678</div>
-        <div class="nm">5톤 카고 트럭 · 동양물류</div>
-        <div class="driver">기사 박운전 · 010-1234-5678</div>
+        <div class="plate">TX-88-5678</div>
+        <div class="nm">53 ft Dry Van · Ryder Logistics</div>
+        <div class="driver">Driver: Mike Wilson · (313) 555-7821</div>
       </div>
     </div>
     <div class="dest-card">
-      <div class="l">▼ 출하처 · DESTINATION</div>
-      <div class="v">경주공장 콘솔 입고장 (GEO)</div>
-      <div class="sub">경북 경주시 외동읍 산업로 250 · 운송 5h</div>
+      <div class="l">▼ DESTINATION</div>
+      <div class="v">GEO Console Receiving Dock</div>
+      <div class="sub">1800 Industrial Pkwy, Birmingham AL 35210 · ETA 5h</div>
     </div>
-    <div class="section-h"><span class="stp">2</span>상차 LOT 체크</div>
+    <div class="section-h"><span class="stp">2</span>Verify Loaded LOTs</div>
     <div class="prog">
-      <div class="h"><span>상차 진척</span><span><b id="pT">2/5</b></span></div>
+      <div class="h"><span>Load Progress</span><span><b id="pT">2/5</b></span></div>
       <div class="bar"><i id="pi" style="width:40%"></i></div>
     </div>
     <div id="lotList"></div>
   </div>
   <div class="bottom-bar">
-    <button class="sec" onclick="back()">← 취소</button>
-    <button onclick="complete()" id="bComp">✓ 상차 완료 확인</button>
+    <button class="sec" onclick="back()">← Cancel</button>
+    <button onclick="complete()" id="bComp">✓ Confirm Loading Complete</button>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 <script>
 var LOTS=[
- {id:'LOT-2605-1985',nm:'콘솔어퍼 · 블랙',qty:'180 EA',done:true},
- {id:'LOT-2605-2018',nm:'콘솔어퍼 · 블랙',qty:'120 EA',done:true},
- {id:'LOT-2605-2062',nm:'콘솔어퍼 · 블랙',qty:'170 EA',done:false},
- {id:'LOT-2605-1958',nm:'라디에이터 그릴 · 그레이',qty:'24 EA',done:false},
- {id:'LOT-2605-2004',nm:'프론트 범퍼 · 블랙',qty:'48 EA',done:false}
+ {id:'LOT-2605-1985',nm:'Console Upper · Black',qty:'180 EA',done:true},
+ {id:'LOT-2605-2018',nm:'Console Upper · Black',qty:'120 EA',done:true},
+ {id:'LOT-2605-2062',nm:'Console Upper · Black',qty:'170 EA',done:false},
+ {id:'LOT-2605-1958',nm:'Radiator Grille · Gray',qty:'24 EA',done:false},
+ {id:'LOT-2605-2004',nm:'Front Bumper · Black',qty:'48 EA',done:false}
 ];
 function render(){
   document.getElementById('lotList').innerHTML=LOTS.map(function(l,i){
@@ -116,10 +116,10 @@ function render(){
 function tg(i){LOTS[i].done=!LOTS[i].done;render();}
 function complete(){
   var done=LOTS.filter(function(l){return l.done;}).length;
-  if(done<LOTS.length){toast('','상차 미완료','전체 '+LOTS.length+' LOT 중 '+done+'개 완료. 나머지 체크 후 완료하세요.');return;}
-  toast('ok','상차 완료 ✓','88-나-5678 차량 출발 가능. 거래명세서 발행 화면(FG-06)으로 이동.');
+  if(done<LOTS.length){toast('','Loading Incomplete',done+'/'+LOTS.length+' loaded. Verify remaining lots.');return;}
+  toast('ok','Loading Complete ✓','Truck TX-88-5678 ready to depart. Opening BOL screen (FG-06).');
 }
-function back(){toast('','뒤로','PDA 메뉴로 돌아갑니다.');}
+function back(){toast('','Back','Returning to PDA menu.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';

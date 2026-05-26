@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>FG-04 PDA FIFO Picking · A-MES PDA Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--pda:#06b6d4;--pda-dk:#0e7490;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
 .pda{width:420px;max-width:100%;height:100%;max-height:760px;background:#0f1f25;border:2px solid #1a3540;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;}
 .pda-top{flex-shrink:0;background:linear-gradient(180deg,#1a3540,#0f1f25);padding:11px 16px;display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--pda);}
 .pda-id{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#22d3ee;}
@@ -69,47 +69,47 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font
 <div class="pda">
   <div class="pda-top">
     <div class="pda-id">FG-04</div>
-    <div class="pda-t">FIFO 피킹</div>
+    <div class="pda-t">FIFO Picking</div>
     <span class="live"><span class="d"></span>LIVE</span>
     <span class="pda-bat">🔋 67%</span>
   </div>
   <div class="pda-body">
     <div class="req-card">
-      <div class="h"><span class="id">SO-2605-0313</span><span class="urg">긴급 D-0</span></div>
-      <div class="nm">콘솔어퍼 · GEO</div>
-      <div class="meta"><span>📅 10:00 납품</span><b>경주공장 콘솔 입고장</b></div>
+      <div class="h"><span class="id">SO-2605-0313</span><span class="urg">URGENT D-0</span></div>
+      <div class="nm">Console Upper · GEO</div>
+      <div class="meta"><span>📅 Due 10:00</span><b>GEO Console Receiving Dock</b></div>
       <div class="req-q">180 EA</div>
     </div>
-    <div class="section-h"><span class="stp">1</span>FIFO 권장 LOT (가장 오래된 순)</div>
+    <div class="section-h"><span class="stp">1</span>FIFO Suggested LOT (Oldest First)</div>
     <div class="fifo-suggest">
-      <div class="lbl">✓ FIFO 권장 — 최우선 출고</div>
+      <div class="lbl">✓ FIFO Suggested — Ship First</div>
       <div class="lid">LOT-2605-1985</div>
       <div class="loc">📍 FG-A-08-2 · 180 EA</div>
-      <div class="age">생산일 2026-05-15 · 6일 경과</div>
+      <div class="age">Mfg 05/15/2026 · 6 days old</div>
     </div>
-    <div class="section-h">📦 동일 품목 다른 LOT (참고)</div>
+    <div class="section-h">📦 Other LOTs (Reference)</div>
     <div class="lot-list">
       <div class="lot-r first">
         <div class="rank">1</div>
-        <div class="info"><div class="lid">LOT-2605-1985</div><div class="meta">FG-A-08-2 · 6일 경과 · FIFO 우선</div></div>
+        <div class="info"><div class="lid">LOT-2605-1985</div><div class="meta">FG-A-08-2 · 6 days old · FIFO Priority</div></div>
         <div style="text-align:right;"><div class="qty">180 EA</div><div class="age">D-6</div></div>
       </div>
       <div class="lot-r">
         <div class="rank">2</div>
-        <div class="info"><div class="lid">LOT-2605-2018</div><div class="meta">FG-A-08-3 · 4일 경과</div></div>
+        <div class="info"><div class="lid">LOT-2605-2018</div><div class="meta">FG-A-08-3 · 4 days old</div></div>
         <div style="text-align:right;"><div class="qty">120 EA</div><div class="age">D-4</div></div>
       </div>
       <div class="lot-r">
         <div class="rank">3</div>
-        <div class="info"><div class="lid">LOT-2605-2062</div><div class="meta">FG-A-09-1 · 2일 경과</div></div>
+        <div class="info"><div class="lid">LOT-2605-2062</div><div class="meta">FG-A-09-1 · 2 days old</div></div>
         <div style="text-align:right;"><div class="qty">170 EA</div><div class="age">D-2</div></div>
       </div>
     </div>
-    <div class="section-h"><span class="stp">2</span>피킹 수량</div>
+    <div class="section-h"><span class="stp">2</span>Pick Qty</div>
     <div class="qbox">
-      <div class="l">피킹 수량 · PICK QTY</div>
+      <div class="l">PICK QTY</div>
       <div class="v" id="qV">180</div>
-      <div class="u">EA · 요청 180 EA</div>
+      <div class="u">EA · Requested 180 EA</div>
     </div>
     <div class="qty-row">
       <button onclick="adj(-10)">−10</button>
@@ -119,16 +119,16 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font
     </div>
   </div>
   <div class="bottom-bar">
-    <button class="sec" onclick="back()">← 취소</button>
-    <button onclick="complete()">✓ FIFO 피킹 완료</button>
+    <button class="sec" onclick="back()">← Cancel</button>
+    <button onclick="complete()">✓ FIFO Pick Complete</button>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 <script>
 var q=180;
 function adj(d){q=Math.max(0,q+d);document.getElementById('qV').textContent=q;}
-function complete(){toast('ok','FIFO 피킹 완료 ✓','LOT-2605-1985 — 180 EA 피킹 완료. 상차 대기존 이동.');}
-function back(){toast('','뒤로','출하 지시 목록으로 돌아갑니다.');}
+function complete(){toast('ok','FIFO Pick Complete ✓','LOT-2605-1985 — 180 EA picked. Moved to loading staging.');}
+function back(){toast('','Back','Returning to shipment order list.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';

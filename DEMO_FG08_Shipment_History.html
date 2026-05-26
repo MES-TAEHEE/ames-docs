@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>FG-08 Shipment History · A-MES PDA Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--pda:#06b6d4;--pda-dk:#0e7490;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
 .pda{width:420px;max-width:100%;height:100%;max-height:760px;background:#0f1f25;border:2px solid #1a3540;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;}
 .pda-top{flex-shrink:0;background:linear-gradient(180deg,#1a3540,#0f1f25);padding:11px 16px;display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--pda);}
 .pda-id{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#22d3ee;}
@@ -55,43 +55,43 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font
 <div class="pda">
   <div class="pda-top">
     <div class="pda-id">FG-08</div>
-    <div class="pda-t">출하 이력</div>
+    <div class="pda-t">Shipment History</div>
     <span class="live"><span class="d"></span>LIVE</span>
     <span class="pda-bat">🔋 63%</span>
   </div>
   <div class="pda-body">
     <div class="tabs">
-      <button class="tb on" data-f="all" onclick="pickF(this)">전체</button>
+      <button class="tb on" data-f="all" onclick="pickF(this)">ALL</button>
       <button class="tb" data-f="sav" onclick="pickF(this)">SAV</button>
       <button class="tb" data-f="geo" onclick="pickF(this)">GEO</button>
     </div>
     <div class="kpis">
-      <div class="k" style="--c:#22d3ee"><div class="l">최근 7일</div><div class="v">68</div><div class="s">출하 건</div></div>
-      <div class="k" style="--c:#22c55e"><div class="l">총 수량</div><div class="v">14,580</div><div class="s">EA</div></div>
-      <div class="k" style="--c:#fbbf24"><div class="l">정시율</div><div class="v">98.5%</div><div class="s">OTD</div></div>
-      <div class="k" style="--c:#a78bfa"><div class="l">평균 LOT/건</div><div class="v">3.2</div><div class="s">LOT</div></div>
+      <div class="k" style="--c:#22d3ee"><div class="l">LAST 7 DAYS</div><div class="v">68</div><div class="s">shipments</div></div>
+      <div class="k" style="--c:#22c55e"><div class="l">TOTAL QTY</div><div class="v">14,580</div><div class="s">EA</div></div>
+      <div class="k" style="--c:#fbbf24"><div class="l">ON-TIME</div><div class="v">98.5%</div><div class="s">OTD</div></div>
+      <div class="k" style="--c:#a78bfa"><div class="l">AVG LOT/SO</div><div class="v">3.2</div><div class="s">LOT</div></div>
     </div>
-    <div class="section-h">📚 출하 이력</div>
+    <div class="section-h">📚 Shipment History</div>
     <div id="list"></div>
   </div>
   <div class="bottom-bar">
-    <button class="sec" onclick="back()">← 메뉴</button>
+    <button class="sec" onclick="back()">← Menu</button>
     <button onclick="exp()">📥 Export</button>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 <script>
 var HIST=[
- {dt:'05-21 09:24',id:'SO-2605-0313',cust:'GEO',item:'콘솔어퍼·그릴 외 3종',qty:'542 EA',st:'ok'},
- {dt:'05-21 08:24',id:'SO-2605-0312',cust:'SAV',item:'도어트림 LH·RH',qty:'480 EA',st:'ok'},
- {dt:'05-21 07:15',id:'SO-2605-0311',cust:'SAV',item:'사이드 몰딩',qty:'320 EA',st:'ok'},
- {dt:'05-20 17:10',id:'SO-2605-0310',cust:'GEO',item:'프론트 범퍼',qty:'120 EA',st:'late'},
- {dt:'05-20 14:30',id:'SO-2605-0309',cust:'SAV',item:'콘솔 조립',qty:'240 EA',st:'ok'},
- {dt:'05-20 11:00',id:'SO-2605-0308',cust:'GEO',item:'라디에이터 그릴',qty:'150 EA',st:'ok'},
- {dt:'05-20 09:15',id:'SO-2605-0307',cust:'GEO',item:'콘솔어퍼',qty:'180 EA',st:'ok'},
- {dt:'05-19 16:42',id:'SO-2605-0306',cust:'SAV',item:'도어트림 RH',qty:'260 EA',st:'ok'},
- {dt:'05-19 13:30',id:'SO-2605-0305',cust:'GEO',item:'프론트 범퍼',qty:'110 EA',st:'ok'},
- {dt:'05-19 09:00',id:'SO-2605-0304',cust:'SAV',item:'사이드 몰딩·도어트림',qty:'420 EA',st:'ok'}
+ {dt:'05/21 09:24',id:'SO-2605-0313',cust:'GEO',item:'Console Upper / Grille +3 SKUs',qty:'542 EA',st:'ok'},
+ {dt:'05/21 08:24',id:'SO-2605-0312',cust:'SAV',item:'Door Trim LH/RH',qty:'480 EA',st:'ok'},
+ {dt:'05/21 07:15',id:'SO-2605-0311',cust:'SAV',item:'Side Molding',qty:'320 EA',st:'ok'},
+ {dt:'05/20 17:10',id:'SO-2605-0310',cust:'GEO',item:'Front Bumper',qty:'120 EA',st:'late'},
+ {dt:'05/20 14:30',id:'SO-2605-0309',cust:'SAV',item:'Console Assembly',qty:'240 EA',st:'ok'},
+ {dt:'05/20 11:00',id:'SO-2605-0308',cust:'GEO',item:'Radiator Grille',qty:'150 EA',st:'ok'},
+ {dt:'05/20 09:15',id:'SO-2605-0307',cust:'GEO',item:'Console Upper',qty:'180 EA',st:'ok'},
+ {dt:'05/19 16:42',id:'SO-2605-0306',cust:'SAV',item:'Door Trim RH',qty:'260 EA',st:'ok'},
+ {dt:'05/19 13:30',id:'SO-2605-0305',cust:'GEO',item:'Front Bumper',qty:'110 EA',st:'ok'},
+ {dt:'05/19 09:00',id:'SO-2605-0304',cust:'SAV',item:'Side Molding / Door Trim',qty:'420 EA',st:'ok'}
 ];
 var f='all';
 function pickF(e){[].slice.call(document.querySelectorAll('.tb')).forEach(function(x){x.classList.remove('on');});e.classList.add('on');f=e.dataset.f;render();}
@@ -101,7 +101,7 @@ function render(){
   var groups={};rows.forEach(function(r){var d=r.dt.slice(0,5);(groups[d]=groups[d]||[]).push(r);});
   var h='';
   Object.keys(groups).forEach(function(d){
-    h+='<div class="day-grp"><div class="day-h">📅 2026-'+d+' ('+groups[d].length+' 건)</div>';
+    h+='<div class="day-grp"><div class="day-h">📅 '+d+'/2026 ('+groups[d].length+' orders)</div>';
     groups[d].forEach(function(r){
       var col=r.st==='ok'?'#22c55e':'#fbbf24';
       h+='<div class="sh" style="--st:'+col+'" onclick="view(\''+r.id+'\')">'+
@@ -112,11 +112,11 @@ function render(){
     });
     h+='</div>';
   });
-  document.getElementById('list').innerHTML=h||'<div style="text-align:center;color:#7a9aa3;padding:30px;font-size:12px;">출하 이력이 없습니다.</div>';
+  document.getElementById('list').innerHTML=h||'<div style="text-align:center;color:#7a9aa3;padding:30px;font-size:12px;">No shipment history.</div>';
 }
-function view(id){toast('',id+' 상세','출하 상세·거래명세서 조회. (데모)');}
-function exp(){toast('','📥 Export','출하 이력을 CSV로 내보냈습니다.');}
-function back(){toast('','PDA 메뉴','PDA 메뉴로 돌아갑니다.');}
+function view(id){toast('',id+' Detail','Showing shipment detail / BOL. (demo)');}
+function exp(){toast('','📥 Export','Shipment history exported to CSV.');}
+function back(){toast('','PDA Menu','Returning to PDA menu.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">• '+title+'</div><div class="tb">'+body+'</div>';

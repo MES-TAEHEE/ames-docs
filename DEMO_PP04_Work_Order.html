@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PP-04 Work Order Management · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -104,75 +104,75 @@ tbody tr.just td{animation:fl 1.8s ease;}
 <body>
 <div class="scr-head">
   <div class="sh-id">PP-04</div>
-  <div class="sh-tt"><div class="sh-en">Work Order Management</div><div class="sh-ko">작업지시 관리 — WO 생명주기 Draft → Released → In Progress → Closed</div></div>
+  <div class="sh-tt"><div class="sh-en">Work Order Management</div><div class="sh-ko">WO lifecycle: Draft → Released → In Progress → Closed</div></div>
   <span class="sh-tag">/pp/wo</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>상태 Status</label>
-    <select id="fStatus" onchange="render()"><option value="">전체 All</option><option>Draft</option><option>Released</option><option>In Progress</option><option>Closed</option><option>Blocked</option></select></div>
-  <div class="fld"><label>라우팅 Routing</label>
-    <select id="fRoute" onchange="render()"><option value="">전체 All</option><option value="A">A · INJ→IMG→QC→FG</option><option value="B">B · INJ→PNT→QC→FG</option></select></div>
-  <div class="fld"><label>검색 Search</label>
-    <input type="text" id="fSearch" placeholder="WO·품목·SO..." oninput="render()" style="width:170px;"></div>
-  <button class="btn btn-s btn-sm" onclick="resetFilters()">↺ 초기화</button>
+  <div class="fld"><label>Status</label>
+    <select id="fStatus" onchange="render()"><option value="">All</option><option>Draft</option><option>Released</option><option>In Progress</option><option>Closed</option><option>Blocked</option></select></div>
+  <div class="fld"><label>Routing</label>
+    <select id="fRoute" onchange="render()"><option value="">All</option><option value="A">A · INJ→IMG→QC→FG</option><option value="B">B · INJ→PNT→QC→FG</option></select></div>
+  <div class="fld"><label>Search</label>
+    <input type="text" id="fSearch" placeholder="WO·Item·SO..." oninput="render()" style="width:170px;"></div>
+  <button class="btn btn-s btn-sm" onclick="resetFilters()">↺ Reset</button>
   <div style="margin-left:auto;display:flex;gap:8px;">
     <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
-    <button class="btn btn-p" onclick="openManual()">+ 수동 WO 생성</button>
+    <button class="btn btn-p" onclick="openManual()">+ Manual WO</button>
   </div>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#6b7280"><div class="kv" id="kDraft">0</div><div class="kl">Draft · 작성중</div></div>
-    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kRel">0</div><div class="kl">Released · 발행</div></div>
-    <div class="kpi" style="--c:#22c55e"><div class="kv" id="kProg">0</div><div class="kl">In Progress · 진행</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kBlk">0</div><div class="kl">⚠ Blocked · 차단</div></div>
-    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kDday">0</div><div class="kl">D-3 임박 · D-Day Alert</div></div>
+    <div class="kpi" style="--c:#6b7280"><div class="kv" id="kDraft">0</div><div class="kl">Draft · In Drafting</div></div>
+    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kRel">0</div><div class="kl">Released</div></div>
+    <div class="kpi" style="--c:#22c55e"><div class="kv" id="kProg">0</div><div class="kl">In Progress</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kBlk">0</div><div class="kl">⚠ Blocked</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kDday">0</div><div class="kl">D-3 Critical · D-Day Alert</div></div>
   </div>
   <div class="panel">
-    <div class="panel-h"><span>📋 작업지시 목록 — Draft는 [발행], 진행 전 WO는 [취소] 가능 · 빨강 행은 차단 상태</span></div>
+    <div class="panel-h"><span>📋 Work Order List — Draft: [Release] · Pre-progress: [Cancel] · Red rows = Blocked</span></div>
     <table>
       <thead><tr>
-        <th>WO 번호<span class="k">WO No.</span></th>
-        <th>품목<span class="k">Item</span></th>
-        <th style="text-align:right;">계획수량<span class="k">Plan Qty</span></th>
-        <th style="text-align:center;">라우팅<span class="k">Routing</span></th>
-        <th>진척률<span class="k">Progress</span></th>
+        <th>WO No.</th>
+        <th>Item</th>
+        <th style="text-align:right;">Plan Qty</th>
+        <th style="text-align:center;">Routing</th>
+        <th>Progress</th>
         <th style="text-align:center;">D-Day</th>
-        <th style="text-align:center;">상태<span class="k">Status</span></th>
+        <th style="text-align:center;">Status</th>
         <th>SAP SO</th>
-        <th style="text-align:center;">작업<span class="k">Action</span></th>
+        <th style="text-align:center;">Action</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
     </table>
-    <div class="empty" id="emptyMsg" style="display:none;">조건에 맞는 작업지시가 없습니다.</div>
+    <div class="empty" id="emptyMsg" style="display:none;">No work orders match the current filters.</div>
   </div>
 </div>
 
 <!-- MANUAL WO MODAL -->
 <div class="ov" id="ovManual">
   <div class="modal">
-    <div class="modal-h"><span>📝</span><span class="mt">수동 작업지시(WO) 생성</span><button class="mx" onclick="closeModal('ovManual')">✕</button></div>
+    <div class="modal-h"><span>📝</span><span class="mt">Create Manual Work Order</span><button class="mx" onclick="closeModal('ovManual')">✕</button></div>
     <div class="modal-b">
-      <div class="mlabel">품목 선택</div>
+      <div class="mlabel">Select Item</div>
       <select class="full" id="mItem">
-        <option value="">— 품목 선택 —</option>
-        <option value="TRIM-LH-001|도어트림 LH|A">TRIM-LH-001 · 도어트림 LH (Routing A)</option>
-        <option value="TRIM-RH-001|도어트림 RH|A">TRIM-RH-001 · 도어트림 RH (Routing A)</option>
-        <option value="GRILLE-02|라디에이터 그릴|A">GRILLE-02 · 라디에이터 그릴 (Routing A)</option>
-        <option value="CONS-UP-001|콘솔어퍼|B">CONS-UP-001 · 콘솔어퍼 (Routing B)</option>
-        <option value="MOLDING-05|사이드 몰딩 5|A">MOLDING-05 · 사이드 몰딩 5 (Routing A)</option>
-        <option value="BUMPER-01|프론트 범퍼|B">BUMPER-01 · 프론트 범퍼 (Routing B)</option>
+        <option value="">— Select Item —</option>
+        <option value="TRIM-LH-001|Door Trim LH|A">TRIM-LH-001 · Door Trim LH (Routing A)</option>
+        <option value="TRIM-RH-001|Door Trim RH|A">TRIM-RH-001 · Door Trim RH (Routing A)</option>
+        <option value="GRILLE-02|Radiator Grille|A">GRILLE-02 · Radiator Grille (Routing A)</option>
+        <option value="CONS-UP-001|Console Upper|B">CONS-UP-001 · Console Upper (Routing B)</option>
+        <option value="MOLDING-05|Side Molding 5|A">MOLDING-05 · Side Molding 5 (Routing A)</option>
+        <option value="BUMPER-01|Front Bumper|B">BUMPER-01 · Front Bumper (Routing B)</option>
       </select>
-      <div class="mlabel">계획 수량 (EA)</div>
-      <input type="number" class="full" id="mQty" placeholder="예: 1000" min="1">
-      <div class="mlabel">납기일</div>
+      <div class="mlabel">Plan Qty (EA)</div>
+      <input type="number" class="full" id="mQty" placeholder="e.g. 1000" min="1">
+      <div class="mlabel">Due Date</div>
       <input type="date" class="full" id="mDue" value="2025-09-30">
-      <div class="hint">⚙ 수동 WO는 SAP 공급계획을 경유하지 않는 임시 작업지시입니다. <b>매니저 권한</b> 및 감사 사유가 필요하며, 생성 시 Draft 상태로 시작합니다. 라우팅은 품목 마스터에서 자동 결정됩니다.</div>
+      <div class="hint">⚙ A manual WO bypasses the SAP supply plan and is a temporary work order. Requires <b>Manager privilege</b> and an audit reason. Created in Draft status. Routing is auto-resolved from the item master.</div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeModal('ovManual')">취소</button>
-      <button class="btn btn-p" onclick="doManual()">WO 생성</button>
+      <button class="btn btn-s" onclick="closeModal('ovManual')">Cancel</button>
+      <button class="btn btn-p" onclick="doManual()">Create WO</button>
     </div>
   </div>
 </div>
@@ -180,14 +180,14 @@ tbody tr.just td{animation:fl 1.8s ease;}
 <!-- CANCEL CONFIRM MODAL -->
 <div class="ov" id="ovCancel">
   <div class="modal">
-    <div class="modal-h danger"><span>⚠</span><span class="mt">작업지시 취소</span><button class="mx" onclick="closeModal('ovCancel')">✕</button></div>
+    <div class="modal-h danger"><span>⚠</span><span class="mt">Cancel Work Order</span><button class="mx" onclick="closeModal('ovCancel')">✕</button></div>
     <div class="modal-b">
       <div class="warnbox" id="cancelMsg"></div>
-      <div class="hint">취소 시 해당 WO에 예약된 자재가 자동 해제되며(BR-PP-004), 상태가 Cancelled로 전환됩니다. 취소된 WO는 복구할 수 없습니다.</div>
+      <div class="hint">On cancellation, reserved materials are automatically released (BR-PP-004) and the WO status changes to Cancelled. Cancelled WOs cannot be restored.</div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeModal('ovCancel')">유지</button>
-      <button class="btn btn-d" onclick="doCancel()">취소 확정</button>
+      <button class="btn btn-s" onclick="closeModal('ovCancel')">Keep</button>
+      <button class="btn btn-d" onclick="doCancel()">Confirm Cancel</button>
     </div>
   </div>
 </div>
@@ -198,17 +198,18 @@ tbody tr.just td{animation:fl 1.8s ease;}
 var TODAY=new Date('2025-09-12');
 var WOSEQ=20;
 var DATA=[
-  {wo:'WO-20250715-003',code:'TRIM-RH-001',name:'도어트림 RH',qty:1160,routing:'A',progress:100,due:'2025-08-31',status:'Closed',so:'SO-2025-07055',block:null},
-  {wo:'WO-20250730-009',code:'MOLDING-05',name:'사이드 몰딩 5',qty:390,routing:'A',progress:88,due:'2025-10-02',status:'In Progress',so:'SO-2025-08007',block:null},
-  {wo:'WO-20250801-001',code:'TRIM-LH-001',name:'도어트림 LH',qty:2030,routing:'A',progress:62,due:'2025-09-24',status:'In Progress',so:'SO-2025-08001',block:null},
-  {wo:'WO-20250801-002',code:'TRIM-LH-001',name:'도어트림 LH (회색)',qty:2030,routing:'A',progress:18,due:'2025-09-15',status:'Released',so:'SO-2025-08001',block:null},
-  {wo:'WO-20250801-005',code:'CONS-UP-001',name:'콘솔어퍼',qty:650,routing:'B',progress:0,due:'2025-09-17',status:'Blocked',so:'SO-2025-08003',block:'MRP 자재 부족 — 분체도료 PWD-RAL9005 재고 280 EA 부족'},
-  {wo:'WO-20250802-006',code:'GRILLE-02',name:'라디에이터 그릴',qty:1450,routing:'A',progress:0,due:'2025-09-20',status:'Draft',so:'SO-2025-08004',block:null},
-  {wo:'WO-20250803-002',code:'BUMPER-01',name:'프론트 범퍼',qty:905,routing:'B',progress:0,due:'2025-09-28',status:'Draft',so:'SO-2025-08009',block:null},
-  {wo:'WO-20250802-011',code:'MOLDING-05',name:'사이드 몰딩 5',qty:620,routing:'A',progress:0,due:'2025-09-14',status:'Draft',so:'SO-2025-09015',block:null}
+  {wo:'WO-20250715-003',code:'TRIM-RH-001',name:'Door Trim RH',qty:1160,routing:'A',progress:100,due:'2025-08-31',status:'Closed',so:'SO-2025-07055',block:null},
+  {wo:'WO-20250730-009',code:'MOLDING-05',name:'Side Molding 5',qty:390,routing:'A',progress:88,due:'2025-10-02',status:'In Progress',so:'SO-2025-08007',block:null},
+  {wo:'WO-20250801-001',code:'TRIM-LH-001',name:'Door Trim LH',qty:2030,routing:'A',progress:62,due:'2025-09-24',status:'In Progress',so:'SO-2025-08001',block:null},
+  {wo:'WO-20250801-002',code:'TRIM-LH-001',name:'Door Trim LH (Gray)',qty:2030,routing:'A',progress:18,due:'2025-09-15',status:'Released',so:'SO-2025-08001',block:null},
+  {wo:'WO-20250801-005',code:'CONS-UP-001',name:'Console Upper',qty:650,routing:'B',progress:0,due:'2025-09-17',status:'Blocked',so:'SO-2025-08003',block:'MRP material shortage — Powder coating PWD-RAL9005 short by 280 EA'},
+  {wo:'WO-20250802-006',code:'GRILLE-02',name:'Radiator Grille',qty:1450,routing:'A',progress:0,due:'2025-09-20',status:'Draft',so:'SO-2025-08004',block:null},
+  {wo:'WO-20250803-002',code:'BUMPER-01',name:'Front Bumper',qty:905,routing:'B',progress:0,due:'2025-09-28',status:'Draft',so:'SO-2025-08009',block:null},
+  {wo:'WO-20250802-011',code:'MOLDING-05',name:'Side Molding 5',qty:620,routing:'A',progress:0,due:'2025-09-14',status:'Draft',so:'SO-2025-09015',block:null}
 ];
 var ROUTES={A:['INJ','IMG','QC','FG'],B:['INJ','PNT','QC','FG']};
 var cancelIdx=-1;
+function fmtDate(iso){var p=iso.split('-');return p[1]+'/'+p[2]+'/'+p[0];}
 
 function dday(r){
   if(r.status==='Closed'||r.status==='Cancelled') return null;
@@ -235,10 +236,10 @@ function render(){
   var rows=filtered(),h='';
   rows.forEach(function(r){
     var idx=DATA.indexOf(r),d=dday(r);
-    var act='<button class="btn btn-s btn-sm" onclick="toggleDetail('+idx+',this)">상세</button>';
-    if(r.status==='Draft') act='<button class="btn btn-p btn-sm" onclick="release('+idx+')">▶ 발행</button> '+act+' <button class="btn btn-d btn-sm" onclick="askCancel('+idx+')">취소</button>';
-    else if(r.status==='Released') act=act+' <button class="btn btn-d btn-sm" onclick="askCancel('+idx+')">취소</button>';
-    else if(r.status==='Blocked') act='<button class="btn btn-p btn-sm" disabled title="차단 해제 필요">▶ 발행</button> '+act;
+    var act='<button class="btn btn-s btn-sm" onclick="toggleDetail('+idx+',this)">Detail</button>';
+    if(r.status==='Draft') act='<button class="btn btn-p btn-sm" onclick="release('+idx+')">▶ Release</button> '+act+' <button class="btn btn-d btn-sm" onclick="askCancel('+idx+')">Cancel</button>';
+    else if(r.status==='Released') act=act+' <button class="btn btn-d btn-sm" onclick="askCancel('+idx+')">Cancel</button>';
+    else if(r.status==='Blocked') act='<button class="btn btn-p btn-sm" disabled title="Block must be cleared">▶ Release</button> '+act;
     h+='<tr class="'+(r.status==='Blocked'?'blocked':'')+(r.status==='Cancelled'?'cancelled':'')+(r._just?' just':'')+'">'+
       '<td class="mono" style="font-weight:700;">'+r.wo+'</td>'+
       '<td><div class="it-nm">'+r.code+'</div><div class="it-ko">'+r.name+'</div></td>'+
@@ -262,8 +263,8 @@ function render(){
 }
 function toggleDetail(idx,btn){
   var tr=btn.closest('tr'),nx=tr.nextElementSibling;
-  if(nx&&nx.classList.contains('detail-row')){nx.remove();btn.textContent='상세';return;}
-  btn.textContent='닫기';
+  if(nx&&nx.classList.contains('detail-row')){nx.remove();btn.textContent='Detail';return;}
+  btn.textContent='Close';
   var r=DATA[idx],steps=ROUTES[r.routing];
   var doneN=Math.floor(steps.length*r.progress/100);
   var rf='';
@@ -272,24 +273,24 @@ function toggleDetail(idx,btn){
     rf+='<span class="rstep '+cls+'">'+s+'</span>'+(i<steps.length-1?'<span class="rarr">→</span>':'');
   });
   var hist=[
-    {t:r.wo.slice(3,11),e:'WO Draft 생성 (PP-03 일괄생성)'},
-    r.status!=='Draft'?{t:'08-05',e:'Released — 자재 자동 예약'}:null,
-    r.status==='In Progress'||r.status==='Closed'?{t:'09-01',e:'생산 착수 (INJ POP)'}:null,
-    r.status==='Closed'?{t:'09-10',e:'전 공정 완료 — WO Closed'}:null,
-    r.status==='Blocked'?{t:'08-20',e:'MRP 자재부족 — 자동 차단'}:null
+    {t:r.wo.slice(3,11),e:'WO Draft Created (PP-03 batch creation)'},
+    r.status!=='Draft'?{t:'08/05',e:'Released — Materials auto-reserved'}:null,
+    r.status==='In Progress'||r.status==='Closed'?{t:'09/01',e:'Production Started (INJ POP)'}:null,
+    r.status==='Closed'?{t:'09/10',e:'All operations completed — WO Closed'}:null,
+    r.status==='Blocked'?{t:'08/20',e:'MRP material shortage — auto-blocked'}:null
   ].filter(Boolean);
   var hh='';hist.forEach(function(x){hh+='<div style="font-size:10px;padding:2px 0;"><span class="mono" style="color:#059669;">'+x.t+'</span> · '+x.e+'</div>';});
   var d=document.createElement('tr');d.className='detail-row';
   d.innerHTML='<td colspan="9"><div class="detail-in">'+
     '<div class="dgrid">'+
-      '<div class="dt"><div class="dl">계획수량 / 진척</div><div class="dv">'+r.qty.toLocaleString()+' EA · '+r.progress+'%</div></div>'+
-      '<div class="dt"><div class="dl">SAP 공급계획</div><div class="dv">'+r.so+'</div></div>'+
-      '<div class="dt"><div class="dl">납기일</div><div class="dv">'+r.due+'</div></div>'+
-      '<div class="dt"><div class="dl">자재 예약</div><div class="dv">'+(r.status==='Draft'||r.status==='Blocked'?'미예약':r.status==='Cancelled'?'해제됨':'예약 완료')+'</div></div>'+
+      '<div class="dt"><div class="dl">Plan Qty / Progress</div><div class="dv">'+r.qty.toLocaleString()+' EA · '+r.progress+'%</div></div>'+
+      '<div class="dt"><div class="dl">SAP Supply Plan</div><div class="dv">'+r.so+'</div></div>'+
+      '<div class="dt"><div class="dl">Due Date</div><div class="dv">'+fmtDate(r.due)+'</div></div>'+
+      '<div class="dt"><div class="dl">Material Reservation</div><div class="dv">'+(r.status==='Draft'||r.status==='Blocked'?'Not Reserved':r.status==='Cancelled'?'Released':'Reserved')+'</div></div>'+
     '</div>'+
-    '<div class="dsub">공정 라우팅 '+r.routing+' · 진행 현황</div><div class="rflow">'+rf+'</div>'+
-    '<div class="dsub" style="margin-top:10px;">WO 이력</div>'+hh+
-    (r.block?'<div class="dsub" style="margin-top:10px;color:#dc2626;">차단 사유</div><div style="font-size:11px;color:#991b1b;">'+r.block+'</div>':'')+
+    '<div class="dsub">Routing '+r.routing+' · Progress Status</div><div class="rflow">'+rf+'</div>'+
+    '<div class="dsub" style="margin-top:10px;">WO History</div>'+hh+
+    (r.block?'<div class="dsub" style="margin-top:10px;color:#dc2626;">Block Reason</div><div style="font-size:11px;color:#991b1b;">'+r.block+'</div>':'')+
     '</div></td>';
   tr.after(d);
 }
@@ -297,15 +298,15 @@ function release(idx){
   var r=DATA[idx];
   r.status='Released';r.progress=Math.max(r.progress,8);r._just=true;
   render();
-  toast('','WO 발행 완료 — '+r.wo,r.code+' '+r.qty.toLocaleString()+'EA 발행. 자재 자동 예약(BR-PP-003) 후 현장 POP에 노출됩니다.');
+  toast('','WO Released — '+r.wo,r.code+' '+r.qty.toLocaleString()+' EA released. Materials auto-reserved (BR-PP-003) and pushed to shop floor POP.');
 }
 function whyBlock(idx){
   var r=DATA[idx];
-  toast('err','차단 — '+r.wo+' (BR-PP-002)',r.block+'. PP-06 자재발주 요청(PR) 진행 또는 입고 후 재검증하면 발행 가능합니다.');
+  toast('err','Blocked — '+r.wo+' (BR-PP-002)',r.block+'. Submit a PR via PP-06 or wait for receipt, then re-validate to release.');
 }
 function askCancel(idx){
   cancelIdx=idx;var r=DATA[idx];
-  document.getElementById('cancelMsg').innerHTML='<b>'+r.wo+'</b> · '+r.code+' '+r.qty.toLocaleString()+'EA<br>현재 상태: <b>'+r.status+'</b><br><br>이 작업지시를 취소하시겠습니까?';
+  document.getElementById('cancelMsg').innerHTML='<b>'+r.wo+'</b> · '+r.code+' '+r.qty.toLocaleString()+' EA<br>Current Status: <b>'+r.status+'</b><br><br>Cancel this work order?';
   document.getElementById('ovCancel').classList.add('show');
 }
 function doCancel(){
@@ -313,7 +314,7 @@ function doCancel(){
   var hadReserve=(r.status==='Released');
   r.status='Cancelled';r._just=true;
   closeModal('ovCancel');render();
-  toast('warn','WO 취소 — '+r.wo,(hadReserve?'예약 자재 자동 해제(BR-PP-004) 완료. ':'')+'작업지시가 Cancelled 상태로 전환되었습니다.');
+  toast('warn','WO Cancelled — '+r.wo,(hadReserve?'Reserved materials auto-released (BR-PP-004). ':'')+'Work order is now Cancelled.');
 }
 function openManual(){
   document.getElementById('mItem').value='';document.getElementById('mQty').value='';
@@ -322,32 +323,32 @@ function openManual(){
 }
 function doManual(){
   var iv=document.getElementById('mItem').value,qv=parseInt(document.getElementById('mQty').value,10),dv=document.getElementById('mDue').value;
-  if(!iv){toast('err','품목 미선택','WO를 생성할 품목을 선택하세요.');return;}
-  if(!qv||qv<1){toast('err','수량 오류','계획 수량을 1 이상 입력하세요.');return;}
+  if(!iv){toast('err','No Item Selected','Please select an item for the WO.');return;}
+  if(!qv||qv<1){toast('err','Invalid Qty','Enter a plan quantity of 1 or greater.');return;}
   var p=iv.split('|');
   WOSEQ++;
   var today=new Date(),ds=today.getFullYear()+String(today.getMonth()+1).padStart(2,'0')+String(today.getDate()).padStart(2,'0');
   DATA.unshift({wo:'WO-'+ds+'-'+String(WOSEQ).padStart(3,'0'),code:p[0],name:p[1],qty:qv,routing:p[2],
-    progress:0,due:dv,status:'Draft',so:'(수동)',block:null,_just:true});
+    progress:0,due:dv,status:'Draft',so:'(Manual)',block:null,_just:true});
   closeModal('ovManual');
   document.getElementById('fStatus').value='';document.getElementById('fSearch').value='';
   render();
-  toast('','수동 WO 생성 완료',p[0]+' '+qv.toLocaleString()+'EA · Draft 작업지시 생성. 감사 로그(SYS-05)에 기록되었습니다.');
+  toast('','Manual WO Created',p[0]+' '+qv.toLocaleString()+' EA · Draft WO created. Recorded in audit log (SYS-05).');
 }
 function exportCsv(){
   var rows=filtered();
-  if(!rows.length){toast('err','내보낼 데이터 없음','조건에 맞는 WO가 없습니다.');return;}
+  if(!rows.length){toast('err','No Data to Export','No WOs match the current filters.');return;}
   var csv='WO_No,Item_Code,Item_Name,Plan_Qty,Routing,Progress,Due,Status,SAP_SO\n';
   rows.forEach(function(r){csv+=[r.wo,r.code,r.name,r.qty,r.routing,r.progress+'%',r.due,r.status,r.so].join(',')+'\n';});
   var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='PP04_WorkOrder_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','현재 조회 '+rows.length+'건을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+rows.length+' filtered WOs to CSV.');
 }
 function resetFilters(){
   document.getElementById('fStatus').value='';document.getElementById('fRoute').value='';document.getElementById('fSearch').value='';
-  render();toast('info','필터 초기화','검색 조건을 초기화했습니다.');
+  render();toast('info','Filters Reset','Search filters have been cleared.');
 }
 function closeModal(id){document.getElementById(id).classList.remove('show');}
 function toast(type,title,body){

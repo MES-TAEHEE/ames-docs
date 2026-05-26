@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>RPT-08 Schedule Adherence · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -77,50 +77,50 @@ tfoot td{padding:9px 9px;background:#f0fdf4;font-weight:800;border-top:2px solid
 <body>
 <div class="scr-head">
   <div class="sh-id">RPT-08</div>
-  <div class="sh-tt"><div class="sh-en">Schedule Adherence Report</div><div class="sh-ko">계획 준수율 리포트 — 생산 계획 대비 실적 준수도</div></div>
+  <div class="sh-tt"><div class="sh-en">Schedule Adherence Report</div><div class="sh-ko">Production Plan vs Actual Adherence</div></div>
   <span class="sh-tag">/rpt/adherence</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>기간 Period</label>
-    <select id="fPeriod" onchange="apply()"><option>최근 10일</option><option>당월</option><option>최근 7일</option></select></div>
-  <div class="fld"><label>라인 Line</label>
-    <select id="fLine" onchange="apply()"><option value="">전체 All</option><option>SAV-INJ-01</option><option>SAV-INJ-02</option><option>SAV-ASSY-01</option><option>SAV-PNT-01</option></select></div>
-  <button class="btn btn-p btn-sm" onclick="apply()">🔍 적용</button>
-  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div class="fld"><label>Period</label>
+    <select id="fPeriod" onchange="apply()"><option>Last 10 Days</option><option>Current Month</option><option>Last 7 Days</option></select></div>
+  <div class="fld"><label>Line</label>
+    <select id="fLine" onchange="apply()"><option value="">All Lines</option><option>SAV-INJ-01</option><option>SAV-INJ-02</option><option>SAV-ASSY-01</option><option>SAV-PNT-01</option></select></div>
+  <button class="btn btn-p btn-sm" onclick="apply()">🔍 Apply</button>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>
   <div style="margin-left:auto;display:flex;gap:8px;">
-    <button class="btn btn-s" onclick="printRpt()">🖨 인쇄</button>
+    <button class="btn btn-s" onclick="printRpt()">🖨 Print</button>
     <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
   </div>
 </div>
 <div class="body">
-  <div class="rpt-title"><h2>계획 준수율 리포트</h2><span class="sub" id="rSub">최근 10일 · 전체 라인</span></div>
+  <div class="rpt-title"><h2>Schedule Adherence Report</h2><span class="sub" id="rSub">Last 10 Days · All Lines</span></div>
   <div class="kpis">
-    <div class="kpi" style="--c:#059669"><div class="kv" id="kAdh">0%</div><div class="kl">계획 준수율 · Adherence</div><div class="kt">target ≥ 95%</div></div>
-    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">계획 작업지시 · Planned WO</div></div>
-    <div class="kpi" style="--c:#10b981"><div class="kv" id="kOn">0</div><div class="kl">정시 완료 · On-Schedule</div></div>
-    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kLate">0</div><div class="kl">지연 완료 · Late</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kNo">0</div><div class="kl">미완료 · Incomplete</div></div>
+    <div class="kpi" style="--c:#059669"><div class="kv" id="kAdh">0%</div><div class="kl">Schedule Adherence</div><div class="kt">target ≥ 95%</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">Planned Work Orders</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kOn">0</div><div class="kl">On-Schedule</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kLate">0</div><div class="kl">Late Completion</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kNo">0</div><div class="kl">Incomplete</div></div>
   </div>
   <div class="grid2">
     <div class="card">
-      <div class="card-t">📈 일별 계획 준수율 추이 <span style="margin-left:auto;font-size:9px;color:#9ca3af;font-weight:400;">막대 클릭=상세</span></div>
+      <div class="card-t">📈 Daily Schedule Adherence Trend <span style="margin-left:auto;font-size:9px;color:#9ca3af;font-weight:400;">Click bar for details</span></div>
       <div class="chart" id="chart"></div>
-      <div style="text-align:center;font-size:9px;color:#9ca3af;margin-top:8px;">빨간 점선=목표 95%</div>
+      <div style="text-align:center;font-size:9px;color:#9ca3af;margin-top:8px;">Red dashed=Target 95%</div>
     </div>
     <div class="card">
-      <div class="card-t">🏭 라인별 준수율</div>
+      <div class="card-t">🏭 Adherence by Line</div>
       <div id="lineSum"></div>
     </div>
   </div>
   <div class="panel">
-    <div class="panel-h">📋 작업지시별 계획 대비 실적</div>
+    <div class="panel-h">📋 Work Order Plan vs Actual</div>
     <table>
       <thead><tr>
-        <th>작업지시</th><th>라인</th><th>품목</th>
-        <th class="c">계획수량</th><th class="c">실적수량</th>
-        <th class="c">계획 완료일</th><th class="c">실제 완료일</th>
-        <th class="c">편차(일)</th><th class="c">상태</th>
+        <th>Work Order</th><th>Line</th><th>Item</th>
+        <th class="c">Plan Qty</th><th class="c">Actual Qty</th>
+        <th class="c">Plan Date</th><th class="c">Actual Date</th>
+        <th class="c">Deviation (Days)</th><th class="c">Status</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
       <tfoot id="tfoot"></tfoot>
@@ -132,22 +132,22 @@ tfoot td{padding:9px 9px;background:#f0fdf4;font-weight:800;border-top:2px solid
 <script>
 /* daily adherence % over 10 days */
 var DAYS=[
- {d:'05-11',adh:96.2},{d:'05-12',adh:94.1},{d:'05-13',adh:97.5},{d:'05-14',adh:92.8},
- {d:'05-15',adh:95.6},{d:'05-16',adh:98.0},{d:'05-18',adh:93.4},{d:'05-19',adh:96.8},
- {d:'05-20',adh:95.1},{d:'05-21',adh:97.2}
+ {d:'05/11',adh:96.2},{d:'05/12',adh:94.1},{d:'05/13',adh:97.5},{d:'05/14',adh:92.8},
+ {d:'05/15',adh:95.6},{d:'05/16',adh:98.0},{d:'05/18',adh:93.4},{d:'05/19',adh:96.8},
+ {d:'05/20',adh:95.1},{d:'05/21',adh:97.2}
 ];
 var WO=[
- {id:'WO-2605-101',line:'SAV-INJ-01',item:'도어트림 LH',plan:480,act:480,pd:'05-19',ad:'05-19'},
- {id:'WO-2605-115',line:'SAV-INJ-01',item:'도어트림 RH',plan:520,act:520,pd:'05-20',ad:'05-20'},
- {id:'WO-2605-102',line:'SAV-INJ-02',item:'사이드 몰딩 5',plan:720,act:705,pd:'05-19',ad:'05-20'},
- {id:'WO-2605-118',line:'SAV-INJ-02',item:'라디에이터 그릴',plan:540,act:540,pd:'05-20',ad:'05-20'},
- {id:'WO-2605-132',line:'SAV-INJ-02',item:'프론트 범퍼',plan:360,act:0,pd:'05-21',ad:'-'},
- {id:'WO-2605-103',line:'SAV-ASSY-01',item:'도어 모듈 조립',plan:300,act:300,pd:'05-19',ad:'05-19'},
- {id:'WO-2605-120',line:'SAV-ASSY-01',item:'콘솔 조립',plan:420,act:420,pd:'05-20',ad:'05-20'},
- {id:'WO-2605-135',line:'SAV-ASSY-01',item:'범퍼 조립',plan:380,act:355,pd:'05-20',ad:'05-21'},
- {id:'WO-2605-104',line:'SAV-PNT-01',item:'범퍼 도장',plan:280,act:280,pd:'05-19',ad:'05-19'},
- {id:'WO-2605-125',line:'SAV-PNT-01',item:'그릴 도장',plan:320,act:308,pd:'05-20',ad:'05-21'},
- {id:'WO-2605-140',line:'SAV-PNT-01',item:'몰딩 도장',plan:260,act:0,pd:'05-21',ad:'-'}
+ {id:'WO-2605-101',line:'SAV-INJ-01',item:'Door Trim LH',plan:480,act:480,pd:'05/19',ad:'05/19'},
+ {id:'WO-2605-115',line:'SAV-INJ-01',item:'Door Trim RH',plan:520,act:520,pd:'05/20',ad:'05/20'},
+ {id:'WO-2605-102',line:'SAV-INJ-02',item:'Side Molding 5',plan:720,act:705,pd:'05/19',ad:'05/20'},
+ {id:'WO-2605-118',line:'SAV-INJ-02',item:'Radiator Grille',plan:540,act:540,pd:'05/20',ad:'05/20'},
+ {id:'WO-2605-132',line:'SAV-INJ-02',item:'Front Bumper',plan:360,act:0,pd:'05/21',ad:'-'},
+ {id:'WO-2605-103',line:'SAV-ASSY-01',item:'Door Module Assembly',plan:300,act:300,pd:'05/19',ad:'05/19'},
+ {id:'WO-2605-120',line:'SAV-ASSY-01',item:'Console Assembly',plan:420,act:420,pd:'05/20',ad:'05/20'},
+ {id:'WO-2605-135',line:'SAV-ASSY-01',item:'Bumper Assembly',plan:380,act:355,pd:'05/20',ad:'05/21'},
+ {id:'WO-2605-104',line:'SAV-PNT-01',item:'Bumper Paint',plan:280,act:280,pd:'05/19',ad:'05/19'},
+ {id:'WO-2605-125',line:'SAV-PNT-01',item:'Grille Paint',plan:320,act:308,pd:'05/20',ad:'05/21'},
+ {id:'WO-2605-140',line:'SAV-PNT-01',item:'Molding Paint',plan:260,act:0,pd:'05/21',ad:'-'}
 ];
 function dev(w){
   if(w.ad==='-')return null;
@@ -157,7 +157,7 @@ function statOf(w){
   if(w.ad==='-')return 'no';
   return dev(w)>0?'late':'on';
 }
-var STT={on:{ko:'정시 완료',cls:'st-on'},late:{ko:'지연 완료',cls:'st-late'},no:{ko:'미완료',cls:'st-no'}};
+var STT={on:{en:'On-Schedule',cls:'st-on'},late:{en:'Late',cls:'st-late'},no:{en:'Incomplete',cls:'st-no'}};
 function visWO(){var f=document.getElementById('fLine').value;return WO.filter(function(w){return !f||w.line===f;});}
 function apply(){
   var v=visWO();
@@ -173,7 +173,7 @@ function apply(){
   document.getElementById('kLate').textContent=late;
   document.getElementById('kNo').textContent=no;
   document.getElementById('rSub').textContent=document.getElementById('fPeriod').value+' · '+
-    (document.getElementById('fLine').value||'전체 라인');
+    (document.getElementById('fLine').value||'All Lines');
   renderChart();renderLineSum();renderTable(v);
 }
 function renderChart(){
@@ -181,16 +181,16 @@ function renderChart(){
   DAYS.forEach(function(x,i){
     var hh=(x.adh-88)/(100-88)*120;
     var col=x.adh>=95?'linear-gradient(180deg,#34d399,#059669)':'linear-gradient(180deg,#fbbf24,#d97706)';
-    h+='<div class="cbar" onclick="dayInfo('+i+')" title="'+x.d+' 준수율 '+x.adh+'%">'+
+    h+='<div class="cbar" onclick="dayInfo('+i+')" title="'+x.d+' Adherence '+x.adh+'%">'+
       '<div class="bv">'+x.adh+'</div>'+
       '<div class="bb" style="height:'+Math.max(hh,4)+'px;background:'+col+';"></div>'+
-      '<div class="bl">'+x.d.slice(3)+'</div></div>';
+      '<div class="bl">'+x.d+'</div></div>';
   });
   document.getElementById('chart').innerHTML=h;
 }
 function dayInfo(i){
   var x=DAYS[i];
-  toast('info','05-'+x.d.slice(3)+' 계획 준수율','준수율 '+x.adh+'% — '+(x.adh>=95?'목표 달성 ✓':'목표(95%) 미달'));
+  toast('info',x.d+' Schedule Adherence','Adherence '+x.adh+'% — '+(x.adh>=95?'Target met ✓':'Below target (95%)'));
 }
 function renderLineSum(){
   var lines=['SAV-INJ-01','SAV-INJ-02','SAV-ASSY-01','SAV-PNT-01'];
@@ -220,29 +220,29 @@ function renderTable(v){
       '<td class="c mono" style="text-align:center;">'+w.ad+'</td>'+
       '<td class="c" style="text-align:center;"><span class="dv" style="color:'+(d===null?'#9ca3af':(d>0?'#dc2626':'#059669'))+'">'+
         (d===null?'—':(d>0?'+'+d:d===0?'0':d))+'</span></td>'+
-      '<td class="c" style="text-align:center;"><span class="st '+STT[s].cls+'">'+STT[s].ko+'</span></td></tr>';
+      '<td class="c" style="text-align:center;"><span class="st '+STT[s].cls+'">'+STT[s].en+'</span></td></tr>';
   });
   document.getElementById('tbody').innerHTML=h;
-  document.getElementById('tfoot').innerHTML='<tr><td colspan="3">합계 · TOTAL ('+v.length+' WO)</td>'+
+  document.getElementById('tfoot').innerHTML='<tr><td colspan="3">TOTAL ('+v.length+' WO)</td>'+
     '<td style="text-align:center;">'+tPlan.toLocaleString()+'</td>'+
     '<td style="text-align:center;">'+tAct.toLocaleString()+'</td>'+
-    '<td colspan="4" style="text-align:center;">수량 달성률 '+(tPlan?Math.round(tAct/tPlan*1000)/10:0)+'%</td></tr>';
+    '<td colspan="4" style="text-align:center;">Qty Achievement '+(tPlan?Math.round(tAct/tPlan*1000)/10:0)+'%</td></tr>';
 }
 function exportCsv(){
   var v=visWO();
   var csv='WO,Line,Item,PlanQty,ActualQty,PlanDate,ActualDate,DeviationDays,Status\n';
   v.forEach(function(w){var d=dev(w);
-    csv+=[w.id,w.line,w.item,w.plan,w.act,w.pd,w.ad,d===null?'-':d,STT[statOf(w)].ko].join(',')+'\n';});
+    csv+=[w.id,w.line,w.item,w.plan,w.act,w.pd,w.ad,d===null?'-':d,STT[statOf(w)].en].join(',')+'\n';});
   var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='RPT_ScheduleAdherence_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','계획 준수율 리포트를 CSV로 내보냈습니다.');
+  toast('','Export Complete','Schedule Adherence Report exported to CSV.');
 }
-function printRpt(){toast('info','인쇄 미리보기','계획 준수율 리포트 인쇄를 준비합니다. (데모)');}
+function printRpt(){toast('info','Print Preview','Preparing Schedule Adherence Report for print. (Demo)');}
 function resetAll(){
   document.getElementById('fPeriod').selectedIndex=0;document.getElementById('fLine').value='';
-  apply();toast('info','초기화','리포트 조건을 초기화했습니다.');
+  apply();toast('info','Reset','Report filters have been reset.');
 }
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');

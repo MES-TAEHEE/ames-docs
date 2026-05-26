@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>MNT-06 Downtime Log · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -39,10 +39,10 @@ select{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12
 .prow{display:flex;align-items:center;gap:8px;padding:7px 0;cursor:pointer;border-bottom:1px dashed #eef1f5;}
 .prow:hover{background:#f0fdf4;}
 .prow.sel{background:#ecfdf5;}
-.prow .pn{font-size:11px;width:96px;flex-shrink:0;}
+.prow .pn{font-size:11px;width:120px;flex-shrink:0;}
 .prow .ptrk{flex:1;height:14px;background:#eef1f5;border-radius:3px;overflow:hidden;}
 .prow .ptrk i{display:block;height:100%;border-radius:3px;}
-.prow .pc{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;width:84px;text-align:right;}
+.prow .pc{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;width:96px;text-align:right;}
 .panel{background:#fff;border:1px solid var(--bd);border-radius:8px;overflow:hidden;}
 .panel-h{padding:9px 14px;background:#f0fdf4;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;font-size:11px;}
 .panel-h .clr{margin-left:auto;}
@@ -65,88 +65,89 @@ tbody tr:hover td{background:#f0fdf4;}
 <body>
 <div class="scr-head">
   <div class="sh-id">MNT-06</div>
-  <div class="sh-tt"><div class="sh-en">Downtime Log</div><div class="sh-ko">비가동 로그 — 설비 비가동 이력·원인 분석</div></div>
+  <div class="sh-tt"><div class="sh-en">Downtime Log</div><div class="sh-ko">Equipment downtime history / root cause analysis</div></div>
   <span class="sh-tag">/mnt/downtime</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>기간 Period</label>
-    <select id="fPeriod" onchange="apply()"><option>2026-05 (당월)</option><option>최근 7일</option><option>2026-04</option></select></div>
-  <div class="fld"><label>설비 Equipment</label>
-    <select id="fEq" onchange="apply()"><option value="">전체 All</option></select></div>
-  <div class="fld"><label>원인 분류 Cause</label>
-    <select id="fCause" onchange="render()"><option value="">전체 원인</option></select></div>
-  <button class="btn btn-p btn-sm" onclick="apply()">🔍 적용</button>
-  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div class="fld"><label>Period</label>
+    <select id="fPeriod" onchange="apply()"><option>May 2026 (MTD)</option><option>Last 7 Days</option><option>Apr 2026</option></select></div>
+  <div class="fld"><label>Equipment</label>
+    <select id="fEq" onchange="apply()"><option value="">All</option></select></div>
+  <div class="fld"><label>Cause</label>
+    <select id="fCause" onchange="render()"><option value="">All Causes</option></select></div>
+  <button class="btn btn-p btn-sm" onclick="apply()">🔍 Apply</button>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>
   <div style="margin-left:auto;"><button class="btn btn-s" onclick="exportCsv()">📥 Export</button></div>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kCnt">0</div><div class="kl">총 비가동 건 · Events</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kMin">0</div><div class="kl">총 비가동 시간 · 분</div></div>
-    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kFail">0%</div><div class="kl">설비 고장 비중 · Failure</div></div>
-    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kAvg">0</div><div class="kl">건당 평균 비가동 · 분</div></div>
-    <div class="kpi" style="--c:#8b5cf6"><div class="kv" id="kTop">-</div><div class="kl">최다 비가동 설비 · Worst</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kCnt">0</div><div class="kl">Total Events</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kMin">0</div><div class="kl">Total Downtime · min</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kFail">0%</div><div class="kl">Equipment Failure %</div></div>
+    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kAvg">0</div><div class="kl">Avg per Event · min</div></div>
+    <div class="kpi" style="--c:#8b5cf6"><div class="kv" id="kTop">-</div><div class="kl">Worst Equipment</div></div>
   </div>
   <div class="grid2">
     <div class="card">
-      <div class="card-t">📊 원인별 비가동 Pareto <span style="margin-left:auto;font-size:9px;color:#9ca3af;font-weight:400;">행 클릭 = 필터</span></div>
+      <div class="card-t">📊 Downtime by Cause (Pareto) <span style="margin-left:auto;font-size:9px;color:#9ca3af;font-weight:400;">click row = filter</span></div>
       <div id="pareto"></div>
     </div>
     <div class="card">
-      <div class="card-t">🏭 설비별 비가동 시간 순위</div>
+      <div class="card-t">🏭 Downtime by Equipment (Rank)</div>
       <div id="rank"></div>
     </div>
   </div>
   <div class="panel">
-    <div class="panel-h"><span>📋 비가동 상세 로그 — <span id="sub" style="font-weight:800;color:#dc2626;">0건</span></span>
-      <button class="btn btn-s btn-sm clr" id="clrBtn" onclick="clearCause()" style="display:none;">✕ 원인 필터 해제</button></div>
+    <div class="panel-h"><span>📋 Downtime Detail Log — <span id="sub" style="font-weight:800;color:#dc2626;">0 events</span></span>
+      <button class="btn btn-s btn-sm clr" id="clrBtn" onclick="clearCause()" style="display:none;">✕ Clear Cause Filter</button></div>
     <table>
-      <thead><tr><th>일시</th><th>설비</th><th>라인</th><th>원인 분류</th><th style="text-align:center;">비가동(분)</th><th>비고</th></tr></thead>
+      <thead><tr><th>Date/Time</th><th>Equipment</th><th>Line</th><th>Cause</th><th style="text-align:center;">Downtime (min)</th><th>Note</th></tr></thead>
       <tbody id="tbody"></tbody>
     </table>
-    <div class="empty" id="empty" style="display:none;">조건에 맞는 비가동 로그가 없습니다.</div>
+    <div class="empty" id="empty" style="display:none;">No downtime records match the filter.</div>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 
 <script>
 var EQLIST=[
- {id:'EQ-INJ-001',nm:'사출기 1호기'},{id:'EQ-INJ-002',nm:'사출기 2호기'},
- {id:'EQ-ASY-001',nm:'조립1라인 컨베이어'},{id:'EQ-ASY-002',nm:'토크 체결기 #1'},
- {id:'EQ-PNT-001',nm:'도장 부스 1라인'},{id:'EQ-INS-001',nm:'비전 검사기 #1'}
+ {id:'EQ-INJ-001',nm:'Injection Machine #1'},{id:'EQ-INJ-002',nm:'Injection Machine #2'},
+ {id:'EQ-ASY-001',nm:'Assembly Line 1 Conveyor'},{id:'EQ-ASY-002',nm:'Torque Fastener #1'},
+ {id:'EQ-PNT-001',nm:'Paint Booth Line 1'},{id:'EQ-INS-001',nm:'Vision Inspector #1'},
+ {id:'EQ-UTL-001',nm:'Air Compressor #1'}
 ];
 var CAUSE={
- '설비 고장':{cls:'cz',col:'#dc2626',bg:'#fee2e2',fc:'#991b1b'},
- '금형 문제':{cls:'cz',col:'#f97316',bg:'#ffedd5',fc:'#9a3412'},
- '자재 대기':{cls:'cz',col:'#f59e0b',bg:'#fef3c7',fc:'#92400e'},
- '품질 조정':{cls:'cz',col:'#8b5cf6',bg:'#ede9fe',fc:'#5b21b6'},
- '계획 정비':{cls:'cz',col:'#2563eb',bg:'#dbeafe',fc:'#1e40af'},
- '작업 준비':{cls:'cz',col:'#0891b2',bg:'#cffafe',fc:'#155e75'},
- '기타':{cls:'cz',col:'#9ca3af',bg:'#f3f4f6',fc:'#4b5563'}
+ 'Equipment Failure':{cls:'cz',col:'#dc2626',bg:'#fee2e2',fc:'#991b1b'},
+ 'Mold Issue':{cls:'cz',col:'#f97316',bg:'#ffedd5',fc:'#9a3412'},
+ 'Material Wait':{cls:'cz',col:'#f59e0b',bg:'#fef3c7',fc:'#92400e'},
+ 'Quality Adjustment':{cls:'cz',col:'#8b5cf6',bg:'#ede9fe',fc:'#5b21b6'},
+ 'Planned Maintenance':{cls:'cz',col:'#2563eb',bg:'#dbeafe',fc:'#1e40af'},
+ 'Setup':{cls:'cz',col:'#0891b2',bg:'#cffafe',fc:'#155e75'},
+ 'Other':{cls:'cz',col:'#9ca3af',bg:'#f3f4f6',fc:'#4b5563'}
 };
 var LOG=[
- {id:1,dt:'05-20 13:46',eq:'EQ-INJ-002',line:'SAV-INJ-02',cause:'설비 고장',min:84,note:'구동모터 과열'},
- {id:2,dt:'05-20 10:05',eq:'EQ-INJ-02',line:'SAV-INJ-02',cause:'금형 문제',min:30,note:'금형 교환'},
- {id:3,dt:'05-19 15:30',eq:'EQ-PNT-001',line:'SAV-PNT-01',cause:'설비 고장',min:95,note:'분사노즐 막힘'},
- {id:4,dt:'05-19 09:10',eq:'EQ-ASY-001',line:'SAV-ASSY-01',cause:'작업 준비',min:25,note:'치공구 셋업'},
- {id:5,dt:'05-18 14:20',eq:'EQ-INJ-001',line:'SAV-INJ-01',cause:'품질 조정',min:18,note:'치수 조정'},
- {id:6,dt:'05-18 10:20',eq:'EQ-INJ-001',line:'SAV-INJ-01',cause:'설비 고장',min:50,note:'형개 이상소음'},
- {id:7,dt:'05-17 11:00',eq:'EQ-UTL-001',line:'공통',cause:'계획 정비',min:60,note:'정기 PM'},
- {id:8,dt:'05-16 08:05',eq:'EQ-INJ-002',line:'SAV-INJ-02',cause:'설비 고장',min:155,note:'밸브 플레이트 교체'},
- {id:9,dt:'05-16 13:30',eq:'EQ-ASY-002',line:'SAV-ASSY-01',cause:'품질 조정',min:22,note:'토크 캘리브레이션'},
- {id:10,dt:'05-15 09:40',eq:'EQ-INJ-002',line:'SAV-INJ-02',cause:'자재 대기',min:42,note:'원자재 입고 지연'},
- {id:11,dt:'05-14 13:50',eq:'EQ-INS-001',line:'SAV-ASSY-01',cause:'설비 고장',min:35,note:'조명 LED 교체'},
- {id:12,dt:'05-13 16:10',eq:'EQ-PNT-001',line:'SAV-PNT-01',cause:'작업 준비',min:34,note:'부스 청소'},
- {id:13,dt:'05-12 10:30',eq:'EQ-INJ-001',line:'SAV-INJ-01',cause:'금형 문제',min:28,note:'금형 점검'},
- {id:14,dt:'05-11 08:00',eq:'EQ-ASY-001',line:'SAV-ASSY-01',cause:'계획 정비',min:30,note:'벨트 장력 조정'},
- {id:15,dt:'05-10 14:00',eq:'EQ-INJ-002',line:'SAV-INJ-02',cause:'기타',min:15,note:'정전'}
+ {id:1,dt:'05/20 13:46',eq:'EQ-INJ-002',line:'SAV-INJ-02',cause:'Equipment Failure',min:84,note:'Drive motor overheat'},
+ {id:2,dt:'05/20 10:05',eq:'EQ-INJ-002',line:'SAV-INJ-02',cause:'Mold Issue',min:30,note:'Mold change'},
+ {id:3,dt:'05/19 15:30',eq:'EQ-PNT-001',line:'SAV-PNT-01',cause:'Equipment Failure',min:95,note:'Spray nozzle clog'},
+ {id:4,dt:'05/19 09:10',eq:'EQ-ASY-001',line:'SAV-ASSY-01',cause:'Setup',min:25,note:'Fixture setup'},
+ {id:5,dt:'05/18 14:20',eq:'EQ-INJ-001',line:'SAV-INJ-01',cause:'Quality Adjustment',min:18,note:'Dimensional adjustment'},
+ {id:6,dt:'05/18 10:20',eq:'EQ-INJ-001',line:'SAV-INJ-01',cause:'Equipment Failure',min:50,note:'Abnormal noise during mold open'},
+ {id:7,dt:'05/17 11:00',eq:'EQ-UTL-001',line:'Common',cause:'Planned Maintenance',min:60,note:'Routine PM'},
+ {id:8,dt:'05/16 08:05',eq:'EQ-INJ-002',line:'SAV-INJ-02',cause:'Equipment Failure',min:155,note:'Valve plate replacement'},
+ {id:9,dt:'05/16 13:30',eq:'EQ-ASY-002',line:'SAV-ASSY-01',cause:'Quality Adjustment',min:22,note:'Torque calibration'},
+ {id:10,dt:'05/15 09:40',eq:'EQ-INJ-002',line:'SAV-INJ-02',cause:'Material Wait',min:42,note:'Raw material receipt delay'},
+ {id:11,dt:'05/14 13:50',eq:'EQ-INS-001',line:'SAV-ASSY-01',cause:'Equipment Failure',min:35,note:'LED lighting replacement'},
+ {id:12,dt:'05/13 16:10',eq:'EQ-PNT-001',line:'SAV-PNT-01',cause:'Setup',min:34,note:'Booth cleaning'},
+ {id:13,dt:'05/12 10:30',eq:'EQ-INJ-001',line:'SAV-INJ-01',cause:'Mold Issue',min:28,note:'Mold inspection'},
+ {id:14,dt:'05/11 08:00',eq:'EQ-ASY-001',line:'SAV-ASSY-01',cause:'Planned Maintenance',min:30,note:'Belt tension adjustment'},
+ {id:15,dt:'05/10 14:00',eq:'EQ-INJ-002',line:'SAV-INJ-02',cause:'Other',min:15,note:'Power outage'}
 ];
 function eqNm(id){var e=EQLIST.filter(function(x){return x.id===id;})[0];return e?e.nm:id;}
 function initSel(){
-  document.getElementById('fEq').innerHTML='<option value="">전체 All</option>'+
+  document.getElementById('fEq').innerHTML='<option value="">All</option>'+
     EQLIST.map(function(e){return '<option value="'+e.id+'">'+e.nm+'</option>';}).join('');
-  document.getElementById('fCause').innerHTML='<option value="">전체 원인</option>'+
+  document.getElementById('fCause').innerHTML='<option value="">All Causes</option>'+
     Object.keys(CAUSE).map(function(c){return '<option>'+c+'</option>';}).join('');
 }
 function baseRows(){
@@ -156,14 +157,14 @@ function baseRows(){
 function apply(){
   var rows=baseRows();
   var tot=rows.reduce(function(s,r){return s+r.min;},0);
-  var fail=rows.filter(function(r){return r.cause==='설비 고장';}).reduce(function(s,r){return s+r.min;},0);
+  var fail=rows.filter(function(r){return r.cause==='Equipment Failure';}).reduce(function(s,r){return s+r.min;},0);
   document.getElementById('kCnt').textContent=rows.length;
   document.getElementById('kMin').textContent=tot;
   document.getElementById('kFail').textContent=(tot?Math.round(fail/tot*100):0)+'%';
   document.getElementById('kAvg').textContent=rows.length?Math.round(tot/rows.length):0;
   var byEq={};rows.forEach(function(r){byEq[r.eq]=(byEq[r.eq]||0)+r.min;});
   var top='-',mx=0;for(var k in byEq)if(byEq[k]>mx){mx=byEq[k];top=eqNm(k);}
-  var kt=document.getElementById('kTop');kt.textContent=top;kt.style.fontSize=top.length>7?'13px':'16px';
+  var kt=document.getElementById('kTop');kt.textContent=top;kt.style.fontSize=top.length>14?'12px':'14px';
   renderPareto();renderRank();render();
 }
 function renderPareto(){
@@ -179,7 +180,7 @@ function renderPareto(){
     return '<div class="prow'+(sel===x.c?' sel':'')+'" onclick="pickCause(\''+x.c+'\')">'+
       '<span class="pn">'+x.c+'</span>'+
       '<span class="ptrk"><i style="width:'+(x.m/max*100)+'%;background:'+CAUSE[x.c].col+';"></i></span>'+
-      '<span class="pc">'+x.m+'분 '+Math.round(x.m/tot*100)+'%</span></div>';
+      '<span class="pc">'+x.m+' min '+Math.round(x.m/tot*100)+'%</span></div>';
   }).join('');
 }
 function renderRank(){
@@ -192,7 +193,7 @@ function renderRank(){
     return '<div class="prow" style="cursor:default;">'+
       '<span class="pn">'+eqNm(x.e)+'</span>'+
       '<span class="ptrk"><i style="width:'+(x.m/max*100)+'%;background:'+c+';"></i></span>'+
-      '<span class="pc">'+x.m+'분</span></div>';
+      '<span class="pc">'+x.m+' min</span></div>';
   }).join('');
 }
 function pickCause(c){
@@ -214,7 +215,7 @@ function render(){
       '<td style="color:#656d76;">'+r.note+'</td></tr>';
   }).join('');
   document.getElementById('empty').style.display=rows.length?'none':'block';
-  document.getElementById('sub').textContent=rows.length+'건'+(fc?' · '+fc:'');
+  document.getElementById('sub').textContent=rows.length+' events'+(fc?' · '+fc:'');
   document.getElementById('clrBtn').style.display=fc?'inline-flex':'none';
 }
 function exportCsv(){
@@ -222,17 +223,17 @@ function exportCsv(){
   var rows=baseRows().filter(function(r){return !fc||r.cause===fc;});
   var csv='DateTime,Equipment,EquipName,Line,Cause,DowntimeMin,Note\n';
   rows.forEach(function(r){
-    csv+=['2026-'+r.dt,r.eq,eqNm(r.eq),r.line,r.cause,r.min,'"'+r.note+'"'].join(',')+'\n';});
+    csv+=[r.dt+'/2026',r.eq,eqNm(r.eq),r.line,r.cause,r.min,'"'+r.note+'"'].join(',')+'\n';});
   var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='MNT_Downtime_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','비가동 로그 '+rows.length+'건을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+rows.length+' downtime events to CSV.');
 }
 function resetAll(){
   document.getElementById('fEq').value='';document.getElementById('fCause').value='';
   document.getElementById('fPeriod').selectedIndex=0;apply();
-  toast('info','초기화','비가동 로그 필터를 초기화했습니다.');
+  toast('info','Reset','Downtime log filters have been reset.');
 }
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');

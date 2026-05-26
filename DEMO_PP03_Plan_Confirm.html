@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PP-03 Plan &amp; Confirm · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -93,68 +93,68 @@ tbody tr.justwo td{animation:fl 1.8s ease;}
 <body>
 <div class="scr-head">
   <div class="sh-id">PP-03</div>
-  <div class="sh-tt"><div class="sh-en">Plan &amp; Confirm</div><div class="sh-ko">생산계획 수립 — 공급계획 가용성 검토 · WO 일괄 생성</div></div>
+  <div class="sh-tt"><div class="sh-en">Plan &amp; Confirm</div><div class="sh-ko">Production planning — supply plan availability review and batch WO creation</div></div>
   <span class="sh-tag">/pp/plan</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>납기 From</label><input type="date" id="fFrom" value="2025-08-25" onchange="render()"></div>
-  <div class="fld"><label>납기 To</label><input type="date" id="fTo" value="2025-10-10" onchange="render()"></div>
-  <div class="fld"><label>라인 Line</label>
-    <select id="fLine" onchange="render()"><option value="">전체 All</option><option>INJ-L1</option><option>INJ-L2</option><option>IMG-L1</option><option>PNT-L1</option></select></div>
-  <div class="fld"><label>검색 Search</label><input type="text" id="fSearch" placeholder="SO·품목..." oninput="render()" style="width:140px;"></div>
-  <button class="btn btn-s btn-sm" onclick="resetFilters()">↺ 초기화</button>
+  <div class="fld"><label>Due From</label><input type="date" id="fFrom" value="2025-08-25" onchange="render()"></div>
+  <div class="fld"><label>Due To</label><input type="date" id="fTo" value="2025-10-10" onchange="render()"></div>
+  <div class="fld"><label>Line</label>
+    <select id="fLine" onchange="render()"><option value="">All</option><option>INJ-L1</option><option>INJ-L2</option><option>IMG-L1</option><option>PNT-L1</option></select></div>
+  <div class="fld"><label>Search</label><input type="text" id="fSearch" placeholder="SO·Item..." oninput="render()" style="width:140px;"></div>
+  <button class="btn btn-s btn-sm" onclick="resetFilters()">↺ Reset</button>
   <div style="margin-left:auto;display:flex;gap:8px;">
-    <button class="btn btn-s" onclick="calView()">📅 캘린더 보기</button>
-    <button class="btn btn-go" id="btnBatch" onclick="openBatch()" disabled>▶ WO 일괄 생성 (0)</button>
+    <button class="btn btn-s" onclick="calView()">📅 Calendar View</button>
+    <button class="btn btn-go" id="btnBatch" onclick="openBatch()" disabled>▶ Batch Create WO (0)</button>
   </div>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#059669"><div class="kv" id="kPlan">0</div><div class="kl">계획 대상 · Plan Lines</div></div>
-    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kSel">0</div><div class="kl">선택됨 · Selected</div></div>
-    <div class="kpi" style="--c:#22c55e"><div class="kv" id="kWo">0</div><div class="kl">WO 생성됨 · WO Created</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kBlk">0</div><div class="kl">Phase-0 차단 · Blocked</div></div>
+    <div class="kpi" style="--c:#059669"><div class="kv" id="kPlan">0</div><div class="kl">Plan Lines</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kSel">0</div><div class="kl">Selected</div></div>
+    <div class="kpi" style="--c:#22c55e"><div class="kv" id="kWo">0</div><div class="kl">WO Created</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kBlk">0</div><div class="kl">Phase-0 Blocked</div></div>
   </div>
   <div class="panel">
     <div class="panel-h">
-      <span>📋 생산계획 검토 — 체크박스로 선택 후 WO 일괄 생성</span>
-      <span style="margin-left:auto;">선택: <span class="sel-n" id="selN">0</span>건 · 순생산 합계 <span class="sel-n" id="selQty">0</span> EA</span>
+      <span>📋 Production Plan Review — Select rows and create WOs in bulk</span>
+      <span style="margin-left:auto;">Selected: <span class="sel-n" id="selN">0</span> · Net Production Total <span class="sel-n" id="selQty">0</span> EA</span>
     </div>
     <table>
       <thead><tr>
         <th style="width:34px;text-align:center;"><input type="checkbox" class="ck" id="ckAll" onclick="toggleAll(this)"></th>
-        <th>SO 번호<span class="k">SO No.</span></th>
-        <th>품목<span class="k">Item</span></th>
-        <th style="text-align:right;">공급량<span class="k">Order</span></th>
-        <th style="text-align:right;">FG 재고<span class="k">FG Stock</span></th>
-        <th style="text-align:right;">순생산<span class="k">Net Req.</span></th>
+        <th>SO No.</th>
+        <th>Item</th>
+        <th style="text-align:right;">Order</th>
+        <th style="text-align:right;">FG Stock</th>
+        <th style="text-align:right;">Net Req.</th>
         <th style="text-align:right;">Forecast</th>
-        <th>설비 부하<span class="k">Line Load</span></th>
-        <th>납기<span class="k">Due</span></th>
-        <th style="text-align:center;">상태<span class="k">Status</span></th>
+        <th>Line Load</th>
+        <th>Due</th>
+        <th style="text-align:center;">Status</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
     </table>
-    <div class="empty" id="emptyMsg" style="display:none;">조건에 맞는 생산계획 대상이 없습니다.</div>
+    <div class="empty" id="emptyMsg" style="display:none;">No production plan lines match the current filters.</div>
   </div>
 </div>
 
 <!-- BATCH MODAL -->
 <div class="ov" id="ovBatch">
   <div class="modal">
-    <div class="modal-h"><span>▶</span><span class="mt">WO 일괄 생성 — 확인</span><button class="mx" onclick="closeModal('ovBatch')">✕</button></div>
+    <div class="modal-h"><span>▶</span><span class="mt">Batch Create Work Orders — Confirm</span><button class="mx" onclick="closeModal('ovBatch')">✕</button></div>
     <div class="modal-b">
-      <div class="cf-line"><span class="cl">선택 계획 건수</span><span class="cv" id="cfCnt">0 건</span></div>
-      <div class="cf-line"><span class="cl">순생산 수량 합계</span><span class="cv" id="cfQty">0 EA</span></div>
-      <div class="cf-line"><span class="cl">Phase-0 검증</span><span class="cv" style="color:#166534;">✓ 전 건 통과</span></div>
-      <div class="cf-line"><span class="cl">생성 WO 상태</span><span class="cv">Draft → PP-04 작업지시</span></div>
+      <div class="cf-line"><span class="cl">Selected Plans</span><span class="cv" id="cfCnt">0</span></div>
+      <div class="cf-line"><span class="cl">Net Production Total</span><span class="cv" id="cfQty">0 EA</span></div>
+      <div class="cf-line"><span class="cl">Phase-0 Validation</span><span class="cv" style="color:#166534;">✓ All passed</span></div>
+      <div class="cf-line"><span class="cl">Created WO Status</span><span class="cv">Draft → PP-04 Work Order</span></div>
       <div class="cf-list" id="cfList"></div>
-      <div class="hint">⚙ 선택된 계획 행마다 <b>Draft 작업지시(WO)</b>가 생성되어 PP-04 작업지시 관리로 전달됩니다. Phase-0 미완료 품목은 선택 자체가 차단됩니다 (BR-PP-001).</div>
+      <div class="hint">⚙ Each selected plan row produces a <b>Draft Work Order (WO)</b> forwarded to PP-04 Work Order Management. Items without Phase-0 master data complete cannot be selected (BR-PP-001).</div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeModal('ovBatch')">취소</button>
-      <button class="btn btn-go" onclick="doBatch()">▶ WO 생성 실행</button>
+      <button class="btn btn-s" onclick="closeModal('ovBatch')">Cancel</button>
+      <button class="btn btn-go" onclick="doBatch()">▶ Run WO Creation</button>
     </div>
   </div>
 </div>
@@ -164,15 +164,16 @@ tbody tr.justwo td{animation:fl 1.8s ease;}
 <script>
 var WOSEQ=7;
 var DATA=[
-  {so:'SO-2025-07055',code:'TRIM-RH-001',name:'도어트림 RH',order:1580,fg:420,forecast:1600,load:65,line:'IMG-L1',due:'2025-08-31',phase0:true,wo:null,sel:false},
-  {so:'SO-2025-08001',code:'TRIM-LH-001',name:'도어트림 LH',order:2350,fg:320,forecast:2400,load:72,line:'INJ-L1',due:'2025-09-15',phase0:true,wo:null,sel:false},
-  {so:'SO-2025-08004',code:'GRILLE-02',name:'라디에이터 그릴',order:1530,fg:80,forecast:1200,load:88,line:'INJ-L1',due:'2025-09-20',phase0:true,wo:null,sel:false},
-  {so:'SO-2025-08009',code:'TRIM-RH-002',name:'도어트림 RH (신규)',order:1200,fg:0,forecast:null,load:0,line:'INJ-L1',due:'2025-09-20',phase0:false,wo:null,sel:false},
-  {so:'SO-2025-08003',code:'CONS-UP-001',name:'콘솔어퍼',order:800,fg:150,forecast:900,load:45,line:'PNT-L1',due:'2025-09-25',phase0:true,wo:null,sel:false},
-  {so:'SO-2025-08007',code:'MOLDING-05',name:'사이드 몰딩 5',order:590,fg:200,forecast:650,load:52,line:'INJ-L2',due:'2025-10-02',phase0:true,wo:null,sel:false}
+  {so:'SO-2025-07055',code:'TRIM-RH-001',name:'Door Trim RH',order:1580,fg:420,forecast:1600,load:65,line:'IMG-L1',due:'2025-08-31',phase0:true,wo:null,sel:false},
+  {so:'SO-2025-08001',code:'TRIM-LH-001',name:'Door Trim LH',order:2350,fg:320,forecast:2400,load:72,line:'INJ-L1',due:'2025-09-15',phase0:true,wo:null,sel:false},
+  {so:'SO-2025-08004',code:'GRILLE-02',name:'Radiator Grille',order:1530,fg:80,forecast:1200,load:88,line:'INJ-L1',due:'2025-09-20',phase0:true,wo:null,sel:false},
+  {so:'SO-2025-08009',code:'TRIM-RH-002',name:'Door Trim RH (New)',order:1200,fg:0,forecast:null,load:0,line:'INJ-L1',due:'2025-09-20',phase0:false,wo:null,sel:false},
+  {so:'SO-2025-08003',code:'CONS-UP-001',name:'Console Upper',order:800,fg:150,forecast:900,load:45,line:'PNT-L1',due:'2025-09-25',phase0:true,wo:null,sel:false},
+  {so:'SO-2025-08007',code:'MOLDING-05',name:'Side Molding 5',order:590,fg:200,forecast:650,load:52,line:'INJ-L2',due:'2025-10-02',phase0:true,wo:null,sel:false}
 ];
 function netReq(r){return r.order-r.fg;}
 function loadColor(p){return p>90?'#dc2626':(p>=70?'#f59e0b':'#22c55e');}
+function fmtDate(iso){var p=iso.split('-');return p[1]+'/'+p[2]+'/'+p[0];}
 function filtered(){
   var f=document.getElementById('fFrom').value,t=document.getElementById('fTo').value,
       ln=document.getElementById('fLine').value,q=document.getElementById('fSearch').value.trim().toLowerCase();
@@ -190,9 +191,9 @@ function render(){
     var idx=DATA.indexOf(r),nr=netReq(r),
         cls=!r.phase0?'blocked':(r.wo?'done':(r.sel?'sel':''));
     var status=!r.phase0
-        ?'<span class="b b-e" onclick="whyBlock()">⚠ Phase-0 미완료</span>'
-        :(r.wo?'<span class="b b-ok">WO 생성됨</span><div class="mono" style="color:#059669;margin-top:2px;">'+r.wo+'</div>'
-              :'<span class="b b-i">검토 대기</span>');
+        ?'<span class="b b-e" onclick="whyBlock()">⚠ Phase-0 Incomplete</span>'
+        :(r.wo?'<span class="b b-ok">WO Created</span><div class="mono" style="color:#059669;margin-top:2px;">'+r.wo+'</div>'
+              :'<span class="b b-i">Pending Review</span>');
     var canSel=r.phase0&&!r.wo;
     h+='<tr class="'+cls+'">'+
       '<td style="text-align:center;">'+(canSel
@@ -207,7 +208,7 @@ function render(){
       '<td>'+(!r.phase0?'<span style="color:#9ca3af;font-size:10px;">—</span>'
         :'<span class="bar"><i style="width:'+r.load+'%;background:'+loadColor(r.load)+';"></i></span> <span class="mono">'+r.load+'%</span>'+
           ' <span style="font-size:9px;color:#9ca3af;">'+r.line+'</span>')+'</td>'+
-      '<td class="mono">'+r.due+'</td>'+
+      '<td class="mono">'+fmtDate(r.due)+'</td>'+
       '<td style="text-align:center;">'+status+'</td>'+
       '</tr>';
   });
@@ -224,7 +225,7 @@ function render(){
   document.getElementById('selQty').textContent=sq.toLocaleString();
   var b=document.getElementById('btnBatch');
   b.disabled=sel.length===0;
-  b.textContent='▶ WO 일괄 생성 ('+sel.length+')';
+  b.textContent='▶ Batch Create WO ('+sel.length+')';
   /* select-all state */
   var selectable=rows.filter(function(r){return r.phase0&&!r.wo;});
   var ck=document.getElementById('ckAll');
@@ -235,17 +236,17 @@ function toggleAll(el){
   filtered().forEach(function(r){if(r.phase0&&!r.wo)r.sel=el.checked;});
   render();
 }
-function whyBlock(){toast('err','Phase-0 미완료 — 선택 불가','신규 품목 TRIM-RH-002는 MD 기준정보(BOP·BOM·검사기준) Phase-0 입력이 완료되지 않아 WO 생성이 차단됩니다. (BR-PP-001) — MD 모듈에서 Phase-0를 완료하세요.');}
-function calView(){toast('info','캘린더 보기','PP-CAL 생산 캘린더로 전환합니다 (현재 필터 유지). — 데모 셸 좌측 메뉴 PP-CAL 참조.');}
+function whyBlock(){toast('err','Phase-0 Incomplete — Cannot Select','New item TRIM-RH-002 has not completed Phase-0 master data (BOP · BOM · inspection criteria) and is blocked from WO creation. (BR-PP-001) — Complete Phase-0 in the MD module first.');}
+function calView(){toast('info','Calendar View','Switching to PP-CAL Production Calendar (filters preserved). — See PP-CAL in the left side menu of the demo shell.');}
 function resetFilters(){
   document.getElementById('fFrom').value='2025-08-25';document.getElementById('fTo').value='2025-10-10';
   document.getElementById('fLine').value='';document.getElementById('fSearch').value='';
-  render();toast('info','필터 초기화','검색 조건을 초기화했습니다.');
+  render();toast('info','Filters Reset','Search filters have been cleared.');
 }
 function openBatch(){
   var sel=DATA.filter(function(r){return r.sel;});
-  if(!sel.length){toast('err','선택 없음','WO를 생성할 계획 행을 체크하세요.');return;}
-  document.getElementById('cfCnt').textContent=sel.length+' 건';
+  if(!sel.length){toast('err','Nothing Selected','Please check at least one plan row to create WOs.');return;}
+  document.getElementById('cfCnt').textContent=sel.length;
   document.getElementById('cfQty').textContent=sel.reduce(function(a,r){return a+netReq(r);},0).toLocaleString()+' EA';
   var h='';
   sel.forEach(function(r){h+='<div class="cf-item"><span><span class="mono">'+r.so+'</span> · '+r.code+'</span><span class="num">'+netReq(r).toLocaleString()+' EA</span></div>';});
@@ -261,7 +262,7 @@ function doBatch(){
     r.sel=false;r._just=true;n++;
   });
   closeModal('ovBatch');render();
-  toast('','WO 일괄 생성 완료','계획 '+n+'건에 대해 Draft 작업지시(WO)를 생성했습니다. PP-04 작업지시 관리에서 발행 검토 가능합니다.');
+  toast('','Batch WO Creation Complete','Created '+n+' Draft Work Orders. Review and release them in PP-04 Work Order Management.');
 }
 function closeModal(id){document.getElementById(id).classList.remove('show');}
 function toast(type,title,body){

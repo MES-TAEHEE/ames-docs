@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>RPT-04 On-Time Delivery · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -69,48 +69,48 @@ table.dt tfoot td{padding:9px 9px;background:#f0fdf4;font-weight:800;border-top:
 <body>
 <div class="scr-head">
   <div class="sh-id">RPT-04</div>
-  <div class="sh-tt"><div class="sh-en">On-Time Delivery Report</div><div class="sh-ko">납기 준수율 리포트 — 거래선·월별 OTD 분석</div></div>
+  <div class="sh-tt"><div class="sh-en">On-Time Delivery Report</div><div class="sh-ko">OTD Analysis by Customer and Month</div></div>
   <span class="sh-tag">/rpt/otd</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>기간 Period</label>
-    <select id="fPeriod" onchange="apply()"><option>최근 6개월</option><option>2026 YTD</option><option>최근 3개월</option></select></div>
-  <div class="fld"><label>거래선 Customer</label>
-    <select id="fCust" onchange="apply()"><option value="">전체 All</option><option>SAV</option><option>GEO</option></select></div>
-  <button class="btn btn-p btn-sm" onclick="apply()">🔍 적용</button>
-  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div class="fld"><label>Period</label>
+    <select id="fPeriod" onchange="apply()"><option>Last 6 Months</option><option>2026 YTD</option><option>Last 3 Months</option></select></div>
+  <div class="fld"><label>Customer</label>
+    <select id="fCust" onchange="apply()"><option value="">All Customers</option><option>SAV</option><option>GEO</option></select></div>
+  <button class="btn btn-p btn-sm" onclick="apply()">🔍 Apply</button>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>
   <div style="margin-left:auto;display:flex;gap:8px;">
-    <button class="btn btn-s" onclick="printRpt()">🖨 인쇄</button>
+    <button class="btn btn-s" onclick="printRpt()">🖨 Print</button>
     <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
   </div>
 </div>
 <div class="body">
-  <div class="rpt-title"><h2>납기 준수율 리포트</h2><span class="sub" id="rSub">최근 6개월 · 전체 거래선</span></div>
+  <div class="rpt-title"><h2>On-Time Delivery Report</h2><span class="sub" id="rSub">Last 6 Months · All Customers</span></div>
   <div class="kpis">
-    <div class="kpi" style="--c:#059669"><div class="kv" id="kOtd">0%</div><div class="kl">종합 OTD · On-Time</div><div class="kt">target ≥ 98%</div></div>
-    <div class="kpi" style="--c:#10b981"><div class="kv" id="kOn">0</div><div class="kl">정시 납품 건 · On-Time</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kLate">0</div><div class="kl">지연 납품 건 · Late</div></div>
-    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kAvg">0d</div><div class="kl">평균 지연일 · Avg Delay</div></div>
-    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kBad">0</div><div class="kl">목표 미달 거래선</div></div>
+    <div class="kpi" style="--c:#059669"><div class="kv" id="kOtd">0%</div><div class="kl">Overall OTD</div><div class="kt">target ≥ 98%</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kOn">0</div><div class="kl">On-Time Deliveries</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kLate">0</div><div class="kl">Late Deliveries</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kAvg">0d</div><div class="kl">Avg Delay Days</div></div>
+    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kBad">0</div><div class="kl">Customers Below Target</div></div>
   </div>
   <div class="card">
-    <div class="card-t">🗓 거래선 × 월별 OTD 히트맵</div>
+    <div class="card-t">🗓 OTD Heatmap by Customer × Month</div>
     <table class="hm" id="hm"></table>
     <div class="hm-leg">
-      <span><i style="background:#059669"></i>≥ 98% 우수</span>
-      <span><i style="background:#65a30d"></i>96~98% 양호</span>
-      <span><i style="background:#f59e0b"></i>92~96% 주의</span>
-      <span><i style="background:#dc2626"></i>&lt; 92% 미달</span>
+      <span><i style="background:#059669"></i>≥ 98% Excellent</span>
+      <span><i style="background:#65a30d"></i>96~98% Good</span>
+      <span><i style="background:#f59e0b"></i>92~96% Caution</span>
+      <span><i style="background:#dc2626"></i>&lt; 92% Below Target</span>
     </div>
   </div>
   <div class="panel">
-    <div class="panel-h">📋 품목별 납기 실적</div>
+    <div class="panel-h">📋 Delivery Performance by Item</div>
     <table class="dt">
       <thead><tr>
-        <th>품목</th><th>거래선</th>
-        <th class="c">납품 건수</th><th class="c">정시</th><th class="c">지연</th>
-        <th class="c">평균 지연일</th><th class="c">OTD</th>
+        <th>Item</th><th>Customer</th>
+        <th class="c">Deliveries</th><th class="c">On-Time</th><th class="c">Late</th>
+        <th class="c">Avg Delay Days</th><th class="c">OTD</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
       <tfoot id="tfoot"></tfoot>
@@ -127,14 +127,14 @@ var CUST={
  GEO:[96.4,96.9,95.8,95.1,96.7,95.4]
 };
 var ITEMS=[
- {nm:'도어트림 LH',cust:'SAV',del:96,late:2,avg:1.5},
- {nm:'도어트림 RH',cust:'SAV',del:92,late:1,avg:2.0},
- {nm:'사이드 몰딩 5',cust:'SAV',del:104,late:3,avg:1.7},
- {nm:'콘솔 조립',cust:'SAV',del:74,late:1,avg:1.0},
- {nm:'콘솔어퍼',cust:'GEO',del:88,late:5,avg:2.6},
- {nm:'라디에이터 그릴',cust:'GEO',del:81,late:4,avg:2.3},
- {nm:'프론트 범퍼',cust:'GEO',del:69,late:6,avg:3.1},
- {nm:'사이드 몰딩 5',cust:'GEO',del:58,late:2,avg:1.8}
+ {nm:'Door Trim LH',cust:'SAV',del:96,late:2,avg:1.5},
+ {nm:'Door Trim RH',cust:'SAV',del:92,late:1,avg:2.0},
+ {nm:'Side Molding 5',cust:'SAV',del:104,late:3,avg:1.7},
+ {nm:'Console Assembly',cust:'SAV',del:74,late:1,avg:1.0},
+ {nm:'Console Upper',cust:'GEO',del:88,late:5,avg:2.6},
+ {nm:'Radiator Grille',cust:'GEO',del:81,late:4,avg:2.3},
+ {nm:'Front Bumper',cust:'GEO',del:69,late:6,avg:3.1},
+ {nm:'Side Molding 5',cust:'GEO',del:58,late:2,avg:1.8}
 ];
 function otdColor(v){return v>=98?'#059669':(v>=96?'#65a30d':(v>=92?'#f59e0b':'#dc2626'));}
 function curCusts(){var c=document.getElementById('fCust').value;return c?[c]:['SAV','GEO'];}
@@ -154,24 +154,24 @@ function apply(){
   var wAvg=late?r1(its.reduce(function(s,i){return s+i.avg*i.late;},0)/late):0;
   document.getElementById('kAvg').textContent=wAvg+'d';
   var bad=custs.filter(function(c){return avg(CUST[c])<98;}).length;
-  document.getElementById('kBad').textContent=bad+'개';
+  document.getElementById('kBad').textContent=bad;
   document.getElementById('rSub').textContent=document.getElementById('fPeriod').value+
-    ' · '+(document.getElementById('fCust').value||'전체 거래선');
+    ' · '+(document.getElementById('fCust').value||'All Customers');
   renderHM(custs);renderTable(its);
 }
 function renderHM(custs){
-  var h='<tr><th class="rowh">거래선</th>';
+  var h='<tr><th class="rowh">Customer</th>';
   MON.forEach(function(m){h+='<th>'+m+'</th>';});
-  h+='<th>평균</th></tr>';
+  h+='<th>Avg</th></tr>';
   custs.forEach(function(c){
-    h+='<tr><td class="rowh">'+(c==='SAV'?'SAV 서산':'GEO 경주')+'</td>';
+    h+='<tr><td class="rowh">'+(c==='SAV'?'SAV Detroit':'GEO Birmingham')+'</td>';
     CUST[c].forEach(function(v){
       h+='<td style="background:'+otdColor(v)+';color:#fff;">'+v+'</td>';
     });
     h+='<td class="tot">'+r1(avg(CUST[c]))+'</td></tr>';
   });
   /* monthly all-customer avg row */
-  h+='<tr><td class="rowh" style="background:#03251a;color:#34d399;font-weight:800;">전체 평균</td>';
+  h+='<tr><td class="rowh" style="background:#03251a;color:#34d399;font-weight:800;">Overall Avg</td>';
   MON.forEach(function(_,i){
     var v=r1(avg(custs.map(function(c){return CUST[c][i];})));
     h+='<td style="background:'+otdColor(v)+';color:#fff;">'+v+'</td>';
@@ -194,7 +194,7 @@ function renderTable(its){
   });
   document.getElementById('tbody').innerHTML=h;
   var tOn=tDel-tLate,tOtd=tDel?r1(tOn/tDel*100):0;
-  document.getElementById('tfoot').innerHTML='<tr><td colspan="2">합계 · TOTAL</td>'+
+  document.getElementById('tfoot').innerHTML='<tr><td colspan="2">TOTAL</td>'+
     '<td style="text-align:center;">'+tDel+'</td>'+
     '<td style="text-align:center;color:#10b981;">'+tOn+'</td>'+
     '<td style="text-align:center;color:#dc2626;">'+tLate+'</td>'+
@@ -213,12 +213,12 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='RPT_OnTimeDelivery_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','납기 준수율 리포트를 CSV로 내보냈습니다.');
+  toast('','Export Complete','On-Time Delivery Report exported to CSV.');
 }
-function printRpt(){toast('info','인쇄 미리보기','납기 준수율 리포트 인쇄를 준비합니다. (데모)');}
+function printRpt(){toast('info','Print Preview','Preparing On-Time Delivery Report for print. (Demo)');}
 function resetAll(){
   document.getElementById('fCust').value='';document.getElementById('fPeriod').selectedIndex=0;
-  apply();toast('info','초기화','리포트 조건을 초기화했습니다.');
+  apply();toast('info','Reset','Report filters have been reset.');
 }
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');

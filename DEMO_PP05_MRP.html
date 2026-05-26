@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PP-05 MRP · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -101,65 +101,65 @@ tbody tr.just td{animation:fl 1.8s ease;}
 <body>
 <div class="scr-head">
   <div class="sh-id">PP-05</div>
-  <div class="sh-tt"><div class="sh-en">MRP — Material Requirements Planning</div><div class="sh-ko">자재 소요 계획 — BOM 분해 · 부족 산출 · WO 차단 · PR 연계</div></div>
+  <div class="sh-tt"><div class="sh-en">MRP — Material Requirements Planning</div><div class="sh-ko">BOM explosion · shortage calculation · WO blocking · PR linkage</div></div>
   <span class="sh-tag">/pp/mrp</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="lastrun"><span class="ll">최근 실행 Last Run</span><span class="lv" id="lastRun">2025-09-12 00:00:32</span></div>
-  <button class="btn btn-p" id="btnRun" onclick="runMrp()">▶ MRP 실행</button>
-  <div class="fld"><label>범위 Scope</label>
-    <select id="fScope" onchange="render()"><option value="">전체 자재</option><option value="short">부족 자재만</option><option value="ok">충족 자재만</option></select></div>
-  <div class="fld"><label>자재 검색 Search</label>
-    <input type="text" id="fSearch" placeholder="자재코드·명..." oninput="render()" style="width:150px;"></div>
-  <button class="btn btn-s btn-sm" onclick="resetFilters()">↺ 초기화</button>
+  <div class="lastrun"><span class="ll">Last Run</span><span class="lv" id="lastRun">09/12/2025 00:00:32</span></div>
+  <button class="btn btn-p" id="btnRun" onclick="runMrp()">▶ Run MRP</button>
+  <div class="fld"><label>Scope</label>
+    <select id="fScope" onchange="render()"><option value="">All Materials</option><option value="short">Shortages Only</option><option value="ok">Sufficient Only</option></select></div>
+  <div class="fld"><label>Search</label>
+    <input type="text" id="fSearch" placeholder="Material code/name..." oninput="render()" style="width:150px;"></div>
+  <button class="btn btn-s btn-sm" onclick="resetFilters()">↺ Reset</button>
   <div style="margin-left:auto;display:flex;gap:8px;">
-    <button class="btn btn-go" id="btnBulk" onclick="openBulk()">+ 부족 PR 일괄생성</button>
+    <button class="btn btn-go" id="btnBulk" onclick="openBulk()">+ Create Shortage PRs</button>
     <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
   </div>
 </div>
 <div class="body">
-  <div class="runbar" id="runbar"><div class="spin"></div><span id="runText">MRP 계산 중...</span><div class="rprog"><i id="rprog"></i></div></div>
+  <div class="runbar" id="runbar"><div class="spin"></div><span id="runText">Calculating MRP...</span><div class="rprog"><i id="rprog"></i></div></div>
   <div class="kpis">
-    <div class="kpi" style="--c:#059669"><div class="kv" id="kCalc">0</div><div class="kl">계산 자재 · Materials</div></div>
-    <div class="kpi" style="--c:#22c55e"><div class="kv" id="kOk">0</div><div class="kl">충족 · Sufficient</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kShort">0</div><div class="kl">부족 · Shortage</div></div>
-    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kBlk">0</div><div class="kl">차단 WO · WO Blocked</div></div>
+    <div class="kpi" style="--c:#059669"><div class="kv" id="kCalc">0</div><div class="kl">Materials Calculated</div></div>
+    <div class="kpi" style="--c:#22c55e"><div class="kv" id="kOk">0</div><div class="kl">Sufficient</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kShort">0</div><div class="kl">Shortage</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kBlk">0</div><div class="kl">WO Blocked</div></div>
   </div>
   <div class="panel">
-    <div class="panel-h"><span>🧮 MRP 결과 — 부족량 = 소요 − 재고 − 발주중 · 빨강 행은 PR 생성 필요</span></div>
+    <div class="panel-h"><span>🧮 MRP Results — Shortage = Required − Stock − On Order · Red rows require PR creation</span></div>
     <table>
       <thead><tr>
-        <th>자재<span class="k">Material</span></th>
-        <th style="text-align:right;">소요<span class="k">Required</span></th>
-        <th style="text-align:right;">재고<span class="k">Stock</span></th>
-        <th style="text-align:right;">발주중<span class="k">On Order</span></th>
-        <th style="text-align:right;">부족/잉여<span class="k">Shortage</span></th>
-        <th style="text-align:center;">L/T<span class="k">Lead</span></th>
-        <th>발주 기한<span class="k">Order Due</span></th>
-        <th style="text-align:center;">상태<span class="k">Status</span></th>
-        <th style="text-align:center;">작업<span class="k">Action</span></th>
+        <th>Material</th>
+        <th style="text-align:right;">Required</th>
+        <th style="text-align:right;">Stock</th>
+        <th style="text-align:right;">On Order</th>
+        <th style="text-align:right;">Shortage/Surplus</th>
+        <th style="text-align:center;">L/T</th>
+        <th>Order Due</th>
+        <th style="text-align:center;">Status</th>
+        <th style="text-align:center;">Action</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
     </table>
-    <div class="empty" id="emptyMsg" style="display:none;">조건에 맞는 자재가 없습니다.</div>
+    <div class="empty" id="emptyMsg" style="display:none;">No materials match the current filters.</div>
   </div>
 </div>
 
 <!-- BULK PR MODAL -->
 <div class="ov" id="ovBulk">
   <div class="modal">
-    <div class="modal-h"><span>+</span><span class="mt">부족 자재 PR 일괄생성</span><button class="mx" onclick="closeModal('ovBulk')">✕</button></div>
+    <div class="modal-h"><span>+</span><span class="mt">Batch Create Shortage PRs</span><button class="mx" onclick="closeModal('ovBulk')">✕</button></div>
     <div class="modal-b">
-      <div class="cf-line"><span class="cl">PR 생성 대상 (부족 자재)</span><span class="cv" id="bCnt">0 건</span></div>
-      <div class="cf-line"><span class="cl">최단 발주 기한</span><span class="cv" id="bDue">—</span></div>
-      <div class="cf-line"><span class="cl">PR 전송 대상</span><span class="cv">SAP B1 Service Layer</span></div>
+      <div class="cf-line"><span class="cl">PR Targets (Shortage Materials)</span><span class="cv" id="bCnt">0</span></div>
+      <div class="cf-line"><span class="cl">Earliest Order Due</span><span class="cv" id="bDue">—</span></div>
+      <div class="cf-line"><span class="cl">PR Destination</span><span class="cv">SAP B1 Service Layer</span></div>
       <div class="cf-list" id="bList"></div>
-      <div class="hint">⚙ 부족 자재별로 <b>자재발주 요청서(PR)</b>가 생성되어 PP-06으로 전달됩니다. PR 생성 시 해당 수량이 발주중(On Order)에 반영되어 부족이 해소되고, 차단된 WO가 발행 가능 상태로 전환됩니다.</div>
+      <div class="hint">⚙ A <b>Purchase Requisition (PR)</b> is created for each shortage material and forwarded to PP-06. The PR quantity is added to On Order, clearing the shortage and unblocking the affected WOs.</div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeModal('ovBulk')">취소</button>
-      <button class="btn btn-go" onclick="doBulk()">+ PR 일괄생성</button>
+      <button class="btn btn-s" onclick="closeModal('ovBulk')">Cancel</button>
+      <button class="btn btn-go" onclick="doBulk()">+ Create PRs</button>
     </div>
   </div>
 </div>
@@ -169,14 +169,14 @@ tbody tr.just td{animation:fl 1.8s ease;}
 <script>
 var PRSEQ=40;
 var DATA=[
-  {code:'RM-PP-NAT-20',nm:'PP 펠렛 나튜럴',req:3600,stock:2100,onorder:500,unit:'kg',lead:7,due:'2025-09-08',wos:['WO-20250801-001','WO-20250802-006'],pr:null},
-  {code:'FAB-BK-001',nm:'원단 (흑색)',req:1200,stock:800,onorder:0,unit:'roll',lead:14,due:'2025-09-01',wos:['WO-20250801-002'],pr:null},
-  {code:'PWD-RAL9005',nm:'분체도료 RAL9005',req:1500,stock:1220,onorder:0,unit:'kg',lead:10,due:'2025-09-05',wos:['WO-20250801-005'],pr:null},
-  {code:'RM-PP-BLK-21',nm:'PP 펠렛 흑색',req:1800,stock:900,onorder:600,unit:'kg',lead:7,due:'2025-09-10',wos:['WO-20250801-005','WO-20250803-002'],pr:null},
-  {code:'ADH-001',nm:'접착제 표준',req:650,stock:980,onorder:0,unit:'kg',lead:5,due:null,wos:[],pr:null},
-  {code:'MAT-INJ-002',nm:'수지 B',req:2000,stock:2000,onorder:0,unit:'kg',lead:10,due:null,wos:[],pr:null},
-  {code:'FAB-GY-002',nm:'원단 (회색)',req:900,stock:1100,onorder:0,unit:'roll',lead:14,due:null,wos:[],pr:null},
-  {code:'CLIP-STD-5',nm:'고정 클립 표준',req:12000,stock:30000,onorder:0,unit:'ea',lead:3,due:null,wos:[],pr:null}
+  {code:'RM-PP-NAT-20',nm:'PP Pellet Natural',req:3600,stock:2100,onorder:500,unit:'kg',lead:7,due:'09/08/2025',wos:['WO-20250801-001','WO-20250802-006'],pr:null},
+  {code:'FAB-BK-001',nm:'Fabric (Black)',req:1200,stock:800,onorder:0,unit:'roll',lead:14,due:'09/01/2025',wos:['WO-20250801-002'],pr:null},
+  {code:'PWD-RAL9005',nm:'Powder Coating RAL9005',req:1500,stock:1220,onorder:0,unit:'kg',lead:10,due:'09/05/2025',wos:['WO-20250801-005'],pr:null},
+  {code:'RM-PP-BLK-21',nm:'PP Pellet Black',req:1800,stock:900,onorder:600,unit:'kg',lead:7,due:'09/10/2025',wos:['WO-20250801-005','WO-20250803-002'],pr:null},
+  {code:'ADH-001',nm:'Standard Adhesive',req:650,stock:980,onorder:0,unit:'kg',lead:5,due:null,wos:[],pr:null},
+  {code:'MAT-INJ-002',nm:'Resin B',req:2000,stock:2000,onorder:0,unit:'kg',lead:10,due:null,wos:[],pr:null},
+  {code:'FAB-GY-002',nm:'Fabric (Gray)',req:900,stock:1100,onorder:0,unit:'roll',lead:14,due:null,wos:[],pr:null},
+  {code:'CLIP-STD-5',nm:'Standard Clip',req:12000,stock:30000,onorder:0,unit:'ea',lead:3,due:null,wos:[],pr:null}
 ];
 function shortage(m){return m.req-m.stock-m.onorder;}
 function blockedWos(){
@@ -185,10 +185,10 @@ function blockedWos(){
 }
 function statusOf(m){
   var s=shortage(m);
-  if(m.pr) return '<span class="b b-pr">PR 발주중</span>';
-  if(s<0) return '<span class="b b-short">⛔ 부족</span>';
-  if(s===0) return '<span class="b b-bal">±0 균형</span>';
-  return '<span class="b b-ok">✓ 충족</span>';
+  if(m.pr) return '<span class="b b-pr">PR On Order</span>';
+  if(s<0) return '<span class="b b-short">⛔ Short</span>';
+  if(s===0) return '<span class="b b-bal">±0 Balanced</span>';
+  return '<span class="b b-ok">✓ Sufficient</span>';
 }
 function filtered(){
   var sc=document.getElementById('fScope').value,q=document.getElementById('fSearch').value.trim().toLowerCase();
@@ -207,8 +207,8 @@ function render(){
     var sCell=s<0?'<span style="color:#dc2626;font-weight:800;">'+s.toLocaleString()+' '+m.unit+'</span>'
               :(s===0?'<span style="color:#6b7280;font-weight:700;">±0</span>'
                      :'<span style="color:#16a34a;font-weight:700;">+'+s.toLocaleString()+' '+m.unit+'</span>');
-    var act='<button class="btn btn-s btn-sm" onclick="toggleDetail('+idx+',this)">상세</button>';
-    if(isShort) act='<button class="btn btn-go btn-sm" onclick="makePr('+idx+')">+ PR 생성</button> '+act;
+    var act='<button class="btn btn-s btn-sm" onclick="toggleDetail('+idx+',this)">Detail</button>';
+    if(isShort) act='<button class="btn btn-go btn-sm" onclick="makePr('+idx+')">+ Create PR</button> '+act;
     else if(m.pr) act='<span class="mono" style="color:#1e40af;">'+m.pr+'</span> '+act;
     h+='<tr class="'+(isShort?'short':(m.pr?'fixed':''))+(m._just?' just':'')+'">'+
       '<td><div class="mt-nm">'+m.code+'</div><div class="mt-ko">'+m.nm+'</div></td>'+
@@ -234,21 +234,21 @@ function render(){
 }
 function toggleDetail(idx,btn){
   var tr=btn.closest('tr'),nx=tr.nextElementSibling;
-  if(nx&&nx.classList.contains('detail-row')){nx.remove();btn.textContent='상세';return;}
-  btn.textContent='닫기';
+  if(nx&&nx.classList.contains('detail-row')){nx.remove();btn.textContent='Detail';return;}
+  btn.textContent='Close';
   var m=DATA[idx],s=shortage(m);
-  var wc=m.wos.length?m.wos.map(function(w){return '<span class="wochip">'+w+'</span>';}).join(''):'<span style="color:#9ca3af;font-size:11px;">영향 WO 없음</span>';
+  var wc=m.wos.length?m.wos.map(function(w){return '<span class="wochip">'+w+'</span>';}).join(''):'<span style="color:#9ca3af;font-size:11px;">No affected WOs</span>';
   var d=document.createElement('tr');d.className='detail-row';
   d.innerHTML='<td colspan="9"><div class="detail-in">'+
     '<div class="dgrid">'+
-      '<div class="dt"><div class="dl">BOM 소요량</div><div class="dv">'+m.req.toLocaleString()+' '+m.unit+'</div></div>'+
-      '<div class="dt"><div class="dl">가용 (재고+발주중)</div><div class="dv">'+(m.stock+m.onorder).toLocaleString()+' '+m.unit+'</div></div>'+
-      '<div class="dt"><div class="dl">부족/잉여</div><div class="dv" style="color:'+(s<0?'#dc2626':'#16a34a')+';">'+(s>0?'+':'')+s.toLocaleString()+' '+m.unit+'</div></div>'+
-      '<div class="dt"><div class="dl">조달 L/T</div><div class="dv">'+m.lead+' days</div></div>'+
+      '<div class="dt"><div class="dl">BOM Required</div><div class="dv">'+m.req.toLocaleString()+' '+m.unit+'</div></div>'+
+      '<div class="dt"><div class="dl">Available (Stock + On Order)</div><div class="dv">'+(m.stock+m.onorder).toLocaleString()+' '+m.unit+'</div></div>'+
+      '<div class="dt"><div class="dl">Shortage/Surplus</div><div class="dv" style="color:'+(s<0?'#dc2626':'#16a34a')+';">'+(s>0?'+':'')+s.toLocaleString()+' '+m.unit+'</div></div>'+
+      '<div class="dt"><div class="dl">Procurement L/T</div><div class="dv">'+m.lead+' days</div></div>'+
     '</div>'+
-    '<div class="dsub">이 자재 부족으로 차단되는 작업지시 (WO.IsBlocked=1)</div>'+wc+
-    (s<0&&!m.pr?'<div class="hint" style="color:#991b1b;">⚠ 부족 '+(-s).toLocaleString()+' '+m.unit+' — '+m.due+' 까지 발주 필요 (L/T '+m.lead+'일 역산). [+ PR 생성]으로 PP-06 발주요청.</div>'
-      :m.pr?'<div class="hint" style="color:#1e40af;">✓ '+m.pr+' 발주 완료 — 발주중 수량 반영으로 부족 해소.</div>':'')+
+    '<div class="dsub">Work orders blocked by this shortage (WO.IsBlocked=1)</div>'+wc+
+    (s<0&&!m.pr?'<div class="hint" style="color:#991b1b;">⚠ Shortage of '+(-s).toLocaleString()+' '+m.unit+' — Must order by '+m.due+' (L/T '+m.lead+'d). Use [+ Create PR] to send to PP-06.</div>'
+      :m.pr?'<div class="hint" style="color:#1e40af;">✓ '+m.pr+' on order — Quantity reflected in On Order, shortage cleared.</div>':'')+
     '</div></td>';
   tr.after(d);
 }
@@ -259,12 +259,12 @@ function makePr(idx){
   m.onorder+=(-s);
   m._just=true;
   render();
-  toast('','PR 생성 — '+m.pr,m.code+' 부족 '+(-s).toLocaleString()+m.unit+' 발주요청 생성. 발주중 반영으로 부족 해소 — 관련 WO 차단 해제 가능. (PP-06 연계)');
+  toast('','PR Created — '+m.pr,m.code+' shortage of '+(-s).toLocaleString()+m.unit+' requested. On Order updated, blocked WOs can now be released. (Linked to PP-06)');
 }
 function openBulk(){
   var sh=DATA.filter(function(m){return shortage(m)<0&&!m.pr;});
-  if(!sh.length){toast('info','부족 자재 없음','PR을 생성할 부족 자재가 없습니다.');return;}
-  document.getElementById('bCnt').textContent=sh.length+' 건';
+  if(!sh.length){toast('info','No Shortages','There are no shortage materials to create PRs for.');return;}
+  document.getElementById('bCnt').textContent=sh.length;
   var dues=sh.filter(function(m){return m.due;}).map(function(m){return m.due;}).sort();
   document.getElementById('bDue').textContent=dues.length?dues[0]:'—';
   var h='';
@@ -276,12 +276,12 @@ function doBulk(){
   var sh=DATA.filter(function(m){return shortage(m)<0&&!m.pr;}),n=0;
   sh.forEach(function(m){var s=shortage(m);PRSEQ++;m.pr='PR-2025-'+String(PRSEQ).padStart(3,'0');m.onorder+=(-s);m._just=true;n++;});
   closeModal('ovBulk');render();
-  toast('','PR 일괄생성 완료',n+'개 부족 자재에 대해 자재발주 요청서(PR)를 생성했습니다. PP-06 자재발주 요청 → SAP B1 전송 대기.');
+  toast('','Batch PR Creation Complete','Created PRs for '+n+' shortage materials. PP-06 Purchase Requisition → awaiting SAP B1 transmission.');
 }
 function runMrp(){
   var rb=document.getElementById('runbar'),btn=document.getElementById('btnRun');
   rb.classList.add('show');btn.disabled=true;
-  var p=0,pr=document.getElementById('rprog'),steps=['활성 WO 수집...','BOM 분해 전개...','재고·발주중 대조...','부족량 산출 / WO 차단...'];
+  var p=0,pr=document.getElementById('rprog'),steps=['Collecting active WOs...','Exploding BOM...','Matching stock & on-order...','Calculating shortage / blocking WOs...'];
   var st=document.getElementById('runText'),si=0;
   var iv=setInterval(function(){
     p+=10;pr.style.width=p+'%';
@@ -289,23 +289,23 @@ function runMrp(){
     if(p>=100){
       clearInterval(iv);
       var now=new Date();
-      var ts=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')+' '+
+      var ts=String(now.getMonth()+1).padStart(2,'0')+'/'+String(now.getDate()).padStart(2,'0')+'/'+now.getFullYear()+' '+
              String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
       document.getElementById('lastRun').textContent=ts;
       rb.classList.remove('show');btn.disabled=false;pr.style.width='0';
       render();
       var ns=DATA.filter(function(m){return shortage(m)<0&&!m.pr;}).length;
-      toast('','MRP 재계산 완료','자재 '+DATA.length+'종 계산 · 부족 '+ns+'종 · 차단 WO '+blockedWos()+'건. 매일 00:00 자동 실행됩니다.');
+      toast('','MRP Recalculation Complete','Calculated '+DATA.length+' materials · '+ns+' shortages · '+blockedWos()+' WOs blocked. Auto-runs daily at 00:00.');
     }
   },90);
 }
 function resetFilters(){
   document.getElementById('fScope').value='';document.getElementById('fSearch').value='';
-  render();toast('info','필터 초기화','검색 조건을 초기화했습니다.');
+  render();toast('info','Filters Reset','Search filters have been cleared.');
 }
 function exportCsv(){
   var rows=filtered();
-  if(!rows.length){toast('err','내보낼 데이터 없음','조건에 맞는 자재가 없습니다.');return;}
+  if(!rows.length){toast('err','No Data to Export','No materials match the current filters.');return;}
   var csv='Material,Name,Required,Stock,OnOrder,Shortage,Unit,LeadTime,OrderDue,Status\n';
   rows.forEach(function(m){var s=shortage(m);
     csv+=[m.code,m.nm,m.req,m.stock,m.onorder,s,m.unit,m.lead+'d',m.due||'',m.pr?'PR':'(s<0?Short:OK)'].join(',')+'\n';});
@@ -313,7 +313,7 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='PP05_MRP_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','MRP 결과 '+rows.length+'행을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+rows.length+' MRP rows to CSV.');
 }
 function closeModal(id){document.getElementById(id).classList.remove('show');}
 function toast(type,title,body){

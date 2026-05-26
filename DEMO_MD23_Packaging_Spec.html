@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>MD-03 BOM Version · A-MES Demo</title>
+<title>MD-23 Packaging Spec · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#d97706;--pp-dk:#b45309;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#2b1a02,#3d2606);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fbbf24;line-height:.9;}
 .sh-tt{flex:1;}
@@ -77,8 +77,8 @@ tbody tr.sel td{background:#fef3c7;}
 </head>
 <body>
 <div class="scr-head">
-  <div class="sh-id" id="shId">MD-03</div>
-  <div class="sh-tt"><div class="sh-en" id="shEn">BOM Version</div><div class="sh-ko" id="shKo"></div></div>
+  <div class="sh-id" id="shId">MD-23</div>
+  <div class="sh-tt"><div class="sh-en" id="shEn">Packaging Spec</div><div class="sh-ko" id="shKo"></div></div>
   <span class="sh-tag" id="shTag"></span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
@@ -87,20 +87,20 @@ tbody tr.sel td{background:#fef3c7;}
   <div class="kpis" id="kpis"></div>
   <div class="grid2">
     <div class="card">
-      <div class="card-t" id="listT">목록</div>
+      <div class="card-t" id="listT">List</div>
       <table><thead><tr id="thr"></tr></thead><tbody id="tbody"></tbody></table>
-      <div class="empty" id="empty" style="display:none;">조건에 맞는 데이터가 없습니다.</div>
+      <div class="empty" id="empty" style="display:none;">No data matches your criteria.</div>
     </div>
-    <div class="card" id="detail"><div class="empty">← 좌측 목록에서 항목을 선택하세요.</div></div>
+    <div class="card" id="detail"><div class="empty">← Select an item from the list on the left.</div></div>
   </div>
 </div>
 <div class="ov" id="ovEd">
   <div class="modal">
-    <div class="modal-h"><span class="mt" id="emTitle">등록</span><span class="mx" onclick="closeOv('ovEd')">✕</span></div>
+    <div class="modal-h"><span class="mt" id="emTitle">Add</span><span class="mx" onclick="closeOv('ovEd')">✕</span></div>
     <div class="modal-b" id="emBody"></div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovEd')">취소</button>
-      <button class="btn btn-p" id="emSave" onclick="saveRec()">＋ 등록</button>
+      <button class="btn btn-s" onclick="closeOv('ovEd')">Cancel</button>
+      <button class="btn btn-p" id="emSave" onclick="saveRec()">＋ Add</button>
     </div>
   </div>
 </div>
@@ -109,41 +109,41 @@ tbody tr.sel td{background:#fef3c7;}
 <script>
 /* ===== ENTITY CONFIG ===== */
 var CFG={
-  id:'MD-23',en:'Packaging Spec',ko:'포장사양 — 제품별 포장 규격 기준정보',tag:'/md/packaging',
-  idKey:'code',entity:'포장 사양',
-  filters:[{k:'packType',label:'포장 유형'},{k:'status',label:'상태'}],
+  id:'MD-23',en:'Packaging Spec',ko:'Packaging Spec — Per-item packaging specification master data',tag:'/md/packaging',
+  idKey:'code',entity:'Packaging Spec',
+  filters:[{k:'packType',label:'Pack Type'},{k:'status',label:'Status'}],
   search:['code','item'],
   cols:[
-    {k:'code',label:'사양 코드',mono:true,bold:true},
-    {k:'item',label:'대상 품목'},
-    {k:'packType',label:'포장 유형'},
-    {k:'qtyPerBox',label:'박스당 수량',mono:true},
-    {k:'status',label:'상태',badge:{'사용':'b0','검토':'b3','폐기':'b2'}}
+    {k:'code',label:'Spec Code',mono:true,bold:true},
+    {k:'item',label:'Item'},
+    {k:'packType',label:'Pack Type'},
+    {k:'qtyPerBox',label:'Qty per Box',mono:true},
+    {k:'status',label:'Status',badge:{'Active':'b0','Under Review':'b3','Retired':'b2'}}
   ],
   fields:[
-    {k:'code',label:'사양 코드',type:'text',req:true,uniq:true,ph:'PKG-TRIM-LH-01'},
-    {k:'item',label:'대상 품목',type:'text',req:true,ph:'도어트림 LH'},
-    {k:'packType',label:'포장 유형',type:'select',opts:['박스','파레트','트레이','전용 랙']},
-    {k:'qtyPerBox',label:'박스/트레이당 수량',type:'number',req:true},
-    {k:'boxSize',label:'박스 규격 (mm)',type:'text',ph:'600×400×300'},
-    {k:'palletQty',label:'파레트당 박스 수',type:'number'},
-    {k:'material',label:'포장재',type:'select',opts:['골판지','EPP 트레이','플라스틱 컨테이너','목재 파레트']},
-    {k:'status',label:'상태',type:'select',opts:['사용','검토','폐기']}
+    {k:'code',label:'Spec Code',type:'text',req:true,uniq:true,ph:'PKG-TRIM-LH-01'},
+    {k:'item',label:'Item',type:'text',req:true,ph:'Door Trim LH'},
+    {k:'packType',label:'Pack Type',type:'select',opts:['Box','Pallet','Tray','Custom Rack']},
+    {k:'qtyPerBox',label:'Qty per Box/Tray',type:'number',req:true},
+    {k:'boxSize',label:'Box Dim (in)',type:'text',ph:'24×16×12'},
+    {k:'palletQty',label:'Boxes per Pallet',type:'number'},
+    {k:'material',label:'Packaging Material',type:'select',opts:['Corrugated','EPP Tray','Plastic Container','Wood Pallet']},
+    {k:'status',label:'Status',type:'select',opts:['Active','Under Review','Retired']}
   ],
   kpis:[
-    {label:'총 포장 사양',c:'#d97706',calc:function(d){return d.length;}},
-    {label:'사용 중 · Active',c:'#16a34a',calc:function(d){return d.filter(function(r){return r.status==='사용';}).length;}},
-    {label:'파레트 단위',c:'#2563eb',calc:function(d){return d.filter(function(r){return r.packType==='파레트';}).length;}},
-    {label:'대상 품목 수',c:'#8b5cf6',calc:function(d){var t=[];d.forEach(function(r){if(t.indexOf(r.item)<0)t.push(r.item);});return t.length;}}
+    {label:'Total Packaging Specs',c:'#d97706',calc:function(d){return d.length;}},
+    {label:'Active',c:'#16a34a',calc:function(d){return d.filter(function(r){return r.status==='Active';}).length;}},
+    {label:'Pallet Units',c:'#2563eb',calc:function(d){return d.filter(function(r){return r.packType==='Pallet';}).length;}},
+    {label:'Distinct Items',c:'#8b5cf6',calc:function(d){var t=[];d.forEach(function(r){if(t.indexOf(r.item)<0)t.push(r.item);});return t.length;}}
   ],
   data:[
-    {code:'PKG-TRIM-LH-01',item:'도어트림 LH',packType:'트레이',qtyPerBox:8,boxSize:'1250×500×300',palletQty:12,material:'EPP 트레이',status:'사용'},
-    {code:'PKG-TRIM-RH-01',item:'도어트림 RH',packType:'트레이',qtyPerBox:8,boxSize:'1250×500×300',palletQty:12,material:'EPP 트레이',status:'사용'},
-    {code:'PKG-CONS-01',item:'콘솔어퍼',packType:'박스',qtyPerBox:12,boxSize:'600×400×350',palletQty:20,material:'골판지',status:'사용'},
-    {code:'PKG-GRILLE-01',item:'라디에이터 그릴',packType:'박스',qtyPerBox:10,boxSize:'800×250×200',palletQty:24,material:'골판지',status:'사용'},
-    {code:'PKG-BUMPER-01',item:'프론트 범퍼',packType:'전용 랙',qtyPerBox:6,boxSize:'1700×500×600',palletQty:1,material:'플라스틱 컨테이너',status:'사용'},
-    {code:'PKG-MOLD-01',item:'사이드 몰딩 5',packType:'박스',qtyPerBox:30,boxSize:'1050×200×250',palletQty:30,material:'골판지',status:'사용'},
-    {code:'PKG-OLD-99',item:'도어트림 LH',packType:'박스',qtyPerBox:6,boxSize:'1250×500×400',palletQty:10,material:'골판지',status:'폐기'}
+    {code:'PKG-TRIM-LH-01',item:'Door Trim LH',packType:'Tray',qtyPerBox:8,boxSize:'49×20×12',palletQty:12,material:'EPP Tray',status:'Active'},
+    {code:'PKG-TRIM-RH-01',item:'Door Trim RH',packType:'Tray',qtyPerBox:8,boxSize:'49×20×12',palletQty:12,material:'EPP Tray',status:'Active'},
+    {code:'PKG-CONS-01',item:'Console Upper',packType:'Box',qtyPerBox:12,boxSize:'24×16×14',palletQty:20,material:'Corrugated',status:'Active'},
+    {code:'PKG-GRILLE-01',item:'Radiator Grille',packType:'Box',qtyPerBox:10,boxSize:'31×10×8',palletQty:24,material:'Corrugated',status:'Active'},
+    {code:'PKG-BUMPER-01',item:'Front Bumper',packType:'Custom Rack',qtyPerBox:6,boxSize:'67×20×24',palletQty:1,material:'Plastic Container',status:'Active'},
+    {code:'PKG-MOLD-01',item:'Side Molding 5',packType:'Box',qtyPerBox:30,boxSize:'41×8×10',palletQty:30,material:'Corrugated',status:'Active'},
+    {code:'PKG-OLD-99',item:'Door Trim LH',packType:'Box',qtyPerBox:6,boxSize:'49×20×16',palletQty:10,material:'Corrugated',status:'Retired'}
   ]
 };
 /* ===== GENERIC MASTER ENGINE ===== */
@@ -159,15 +159,15 @@ function init(){
   CFG.filters.forEach(function(f){
     var opts=[];DATA.forEach(function(r){if(opts.indexOf(r[f.k])<0)opts.push(r[f.k]);});
     tb+='<div class="fld"><label>'+f.label+'</label><select data-fk="'+f.k+'" onchange="render()">'+
-      '<option value="">전체 All</option>'+opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select></div>';
+      '<option value="">All</option>'+opts.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select></div>';
   });
-  tb+='<div class="fld"><label>검색 Search</label><input id="fKw" placeholder="코드·명칭" oninput="render()" style="width:150px;"></div>';
-  tb+='<button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>';
+  tb+='<div class="fld"><label>Search</label><input id="fKw" placeholder="Code or name" oninput="render()" style="width:150px;"></div>';
+  tb+='<button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>';
   tb+='<div style="margin-left:auto;display:flex;gap:8px;">'+
-    '<button class="btn btn-p" onclick="openNew()">＋ '+CFG.entity+' 등록</button>'+
+    '<button class="btn btn-p" onclick="openNew()">＋ Add '+CFG.entity+'</button>'+
     '<button class="btn btn-s" onclick="exportCsv()">📥 Export</button></div>';
   $('toolbar').innerHTML=tb;
-  $('listT').textContent='📋 '+CFG.entity+' 목록';
+  $('listT').textContent='📋 '+CFG.entity+' List';
   $('thr').innerHTML=CFG.cols.map(function(c){return '<th>'+c.label+'</th>';}).join('');
   render();
 }
@@ -197,7 +197,7 @@ function render(){
   });
   $('tbody').innerHTML=h;
   $('empty').style.display=v.length?'none':'block';
-  $('listT').textContent='📋 '+CFG.entity+' 목록 — '+v.length+'건';
+  $('listT').textContent='📋 '+CFG.entity+' List — '+v.length+' records';
   if(selKey&&!byKey(selKey))selKey=null;
   renderDetail();
 }
@@ -205,9 +205,9 @@ function byKey(k){return DATA.filter(function(r){return r[CFG.idKey]===k;})[0];}
 function pick(k){selKey=k;render();}
 function renderDetail(){
   var r=byKey(selKey);
-  if(!r){$('detail').innerHTML='<div class="empty">← 좌측 목록에서 항목을 선택하세요.</div>';return;}
+  if(!r){$('detail').innerHTML='<div class="empty">← Select an item from the list on the left.</div>';return;}
   var nmField=CFG.fields[1]?CFG.fields[1].k:CFG.idKey;
-  var h='<div class="card-t">📑 '+CFG.entity+' 상세</div>'+
+  var h='<div class="card-t">📑 '+CFG.entity+' Detail</div>'+
     '<div class="dt-head"><div class="dt-nm">'+(r[nmField]||r[CFG.idKey])+'</div><div class="dt-id">'+r[CFG.idKey]+'</div></div>'+
     '<div class="specs">';
   CFG.fields.forEach(function(f){
@@ -215,8 +215,8 @@ function renderDetail(){
     var v=r[f.k];if(v===''||v==null)v='—';
     h+='<div class="srow"><span class="sk">'+f.label+'</span><span class="sv">'+v+'</span></div>';
   });
-  h+='</div><div class="acts"><button class="btn btn-s btn-sm" onclick="editRec()">✎ 수정</button>'+
-    '<button class="btn btn-s btn-sm" onclick="delRec()">🗑 삭제</button></div>';
+  h+='</div><div class="acts"><button class="btn btn-s btn-sm" onclick="editRec()">✎ Edit</button>'+
+    '<button class="btn btn-s btn-sm" onclick="delRec()">🗑 Delete</button></div>';
   $('detail').innerHTML=h;
 }
 function formHtml(r){
@@ -232,31 +232,31 @@ function formHtml(r){
   }).join('');
 }
 function openNew(){
-  editKey=null;$('emTitle').textContent=CFG.entity+' 등록';$('emSave').textContent='＋ 등록';
+  editKey=null;$('emTitle').textContent='Add '+CFG.entity;$('emSave').textContent='＋ Add';
   $('emBody').innerHTML=formHtml(null);openOv('ovEd');
 }
 function editRec(){
-  editKey=selKey;$('emTitle').textContent=CFG.entity+' 수정';$('emSave').textContent='💾 저장';
+  editKey=selKey;$('emTitle').textContent='Edit '+CFG.entity;$('emSave').textContent='💾 Save';
   $('emBody').innerHTML=formHtml(byKey(selKey));openOv('ovEd');
 }
 function saveRec(){
   var o={};
   [].slice.call(document.querySelectorAll('#emBody [data-fk]')).forEach(function(el){o[el.dataset.fk]=el.value.trim?el.value.trim():el.value;});
   for(var i=0;i<CFG.fields.length;i++){var f=CFG.fields[i];
-    if(f.req&&!o[f.k]&&!(editKey&&f.uniq)){toast('err','입력 오류',f.label+'은(는) 필수 항목입니다.');return;}}
+    if(f.req&&!o[f.k]&&!(editKey&&f.uniq)){toast('err','Input Error',f.label+' is required.');return;}}
   if(editKey){var r=byKey(editKey);for(var k in o){if(k!==CFG.idKey)r[k]=o[k];}
-    toast('','수정 완료',CFG.entity+' 정보가 수정되었습니다.');
+    toast('','Updated',CFG.entity+' has been updated.');
   }else{
-    if(byKey(o[CFG.idKey])){toast('err','중복 오류','이미 존재하는 코드입니다.');return;}
+    if(byKey(o[CFG.idKey])){toast('err','Duplicate','This code already exists.');return;}
     DATA.push(o);selKey=o[CFG.idKey];
-    toast('','등록 완료',o[CFG.idKey]+' '+CFG.entity+'이(가) 등록되었습니다.');
+    toast('','Added',o[CFG.idKey]+' '+CFG.entity+' has been added.');
   }
   closeOv('ovEd');render();
 }
 function delRec(){
   var r=byKey(selKey);var i=DATA.indexOf(r);
   if(i>=0)DATA.splice(i,1);selKey=null;render();
-  toast('info','삭제 완료',CFG.entity+' 항목이 삭제되었습니다.');
+  toast('info','Deleted',CFG.entity+' record has been deleted.');
 }
 function exportCsv(){
   var v=vis();
@@ -266,11 +266,11 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=CFG.id+'_'+CFG.en.replace(/ /g,'')+'_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료',CFG.entity+' '+v.length+'건을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+v.length+' '+CFG.entity+' records to CSV.');
 }
 function resetAll(){
   [].slice.call(document.querySelectorAll('#toolbar select')).forEach(function(s){s.value='';});
-  $('fKw').value='';render();toast('info','초기화','목록 필터를 초기화했습니다.');
+  $('fKw').value='';render();toast('info','Reset','Filters have been reset.');
 }
 function openOv(id){$(id).classList.add('on');}
 function closeOv(id){$(id).classList.remove('on');}

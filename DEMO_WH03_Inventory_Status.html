@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>WH-03 Inventory Status · A-MES PDA Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--pda:#06b6d4;--pda-dk:#0e7490;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
 .pda{width:420px;max-width:100%;height:100%;max-height:760px;background:#0f1f25;border:2px solid #1a3540;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;}
 .pda-top{flex-shrink:0;background:linear-gradient(180deg,#1a3540,#0f1f25);padding:11px 16px;display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--pda);}
 .pda-id{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#22d3ee;}
@@ -57,59 +57,59 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font
 <div class="pda">
   <div class="pda-top">
     <div class="pda-id">WH-03</div>
-    <div class="pda-t">재고 현황</div>
+    <div class="pda-t">Inventory Status</div>
     <span class="live"><span class="d"></span>LIVE</span>
     <span class="pda-bat">🔋 76%</span>
   </div>
   <div class="pda-body">
     <div class="search">
-      <input placeholder="🔍 자재명·코드·로케이션" id="kw" oninput="filter()">
+      <input placeholder="🔍 Item / Code / Bin" id="kw" oninput="filter()">
       <button onclick="scan()">📷</button>
     </div>
     <div class="kpis">
-      <div class="k" style="--c:#22d3ee"><div class="l">총 SKU</div><div class="v">142</div><div class="s">품목</div></div>
-      <div class="k" style="--c:#22c55e"><div class="l">정상</div><div class="v">126</div><div class="s">88.7%</div></div>
-      <div class="k" style="--c:#fbbf24"><div class="l">부족</div><div class="v">12</div><div class="s">발주 필요</div></div>
-      <div class="k" style="--c:#fca5a5"><div class="l">품절</div><div class="v">4</div><div class="s">긴급</div></div>
+      <div class="k" style="--c:#22d3ee"><div class="l">TOTAL SKU</div><div class="v">142</div><div class="s">items</div></div>
+      <div class="k" style="--c:#22c55e"><div class="l">OK</div><div class="v">126</div><div class="s">88.7%</div></div>
+      <div class="k" style="--c:#fbbf24"><div class="l">LOW</div><div class="v">12</div><div class="s">reorder</div></div>
+      <div class="k" style="--c:#fca5a5"><div class="l">OUT</div><div class="v">4</div><div class="s">urgent</div></div>
     </div>
-    <div class="section-h">📦 자재 재고 <span class="b" id="cnt">8건</span></div>
+    <div class="section-h">📦 Material Inventory <span class="b" id="cnt">8 ITEMS</span></div>
     <div id="list"></div>
   </div>
   <div class="bottom-bar">
-    <button class="sec" onclick="back()">← 메뉴</button>
-    <button onclick="scan()">📷 자재 스캔</button>
+    <button class="sec" onclick="back()">← Menu</button>
+    <button onclick="scan()">📷 Scan Item</button>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 <script>
 var INV=[
- {code:'RM-PP-BLK',nm:'PP 수지 (블랙)',qty:'8,200 KG',loc:'A-03-2',pct:65,st:'ok'},
- {code:'RM-ABS-NAT',nm:'ABS 수지 (내추럴)',qty:'5,400 KG',loc:'A-04-1',pct:78,st:'ok'},
- {code:'RM-PP-BLK',nm:'PP 수지 (블랙)',qty:'3,100 KG',loc:'A-03-3',pct:25,st:'low'},
- {code:'PNT-BC-001',nm:'베이스코트 블랙',qty:'420 L',loc:'B-02-1',pct:84,st:'ok'},
- {code:'AM-CLIP-01',nm:'고정 클립',qty:'12,400 EA',loc:'C-05-3',pct:82,st:'ok'},
- {code:'SP-BRG-001',nm:'볼베어링 6206',qty:'8 EA',loc:'E-01-2',pct:18,st:'low'},
- {code:'AM-BOLT-M8',nm:'볼트 M8×20',qty:'0 EA',loc:'C-04-1',pct:0,st:'out'},
- {code:'PNT-CC-001',nm:'클리어코트',qty:'180 L',loc:'B-02-3',pct:45,st:'ok'}
+ {code:'RM-PP-BLK',nm:'PP Resin (Black)',qty:'8,200 LB',loc:'A-03-2',pct:65,st:'ok'},
+ {code:'RM-ABS-NAT',nm:'ABS Resin (Natural)',qty:'5,400 LB',loc:'A-04-1',pct:78,st:'ok'},
+ {code:'RM-PP-BLK',nm:'PP Resin (Black)',qty:'3,100 LB',loc:'A-03-3',pct:25,st:'low'},
+ {code:'PNT-BC-001',nm:'Basecoat Black',qty:'420 GAL',loc:'B-02-1',pct:84,st:'ok'},
+ {code:'AM-CLIP-01',nm:'Fastener Clip',qty:'12,400 EA',loc:'C-05-3',pct:82,st:'ok'},
+ {code:'SP-BRG-001',nm:'Ball Bearing 6206',qty:'8 EA',loc:'E-01-2',pct:18,st:'low'},
+ {code:'AM-BOLT-M8',nm:'Bolt M8×20',qty:'0 EA',loc:'C-04-1',pct:0,st:'out'},
+ {code:'PNT-CC-001',nm:'Clearcoat',qty:'180 GAL',loc:'B-02-3',pct:45,st:'ok'}
 ];
 function color(st){return st==='out'?'#fca5a5':(st==='low'?'#fbbf24':'#22c55e');}
 function render(){
   var kw=(document.getElementById('kw').value||'').toLowerCase();
   var rows=INV.filter(function(r){return !kw||r.nm.toLowerCase().indexOf(kw)>=0||r.code.toLowerCase().indexOf(kw)>=0||r.loc.toLowerCase().indexOf(kw)>=0;});
-  document.getElementById('cnt').textContent=rows.length+'건';
+  document.getElementById('cnt').textContent=rows.length+' ITEMS';
   document.getElementById('list').innerHTML=rows.map(function(r){
     var c=color(r.st);
     return '<div class="inv-r" style="--st:'+c+'" onclick="pick(\''+r.code+'\')">'+
       '<div class="h"><span class="code">'+r.code+'</span><span class="loc">📍 '+r.loc+'</span></div>'+
       '<div class="nm">'+r.nm+'</div>'+
-      '<div class="qty"><span class="qv">'+r.qty+'</span><span class="qs">'+(r.st==='out'?'⛔ 품절':r.st==='low'?'⚠ 안전재고 미달':'✓ 정상')+'</span></div>'+
+      '<div class="qty"><span class="qv">'+r.qty+'</span><span class="qs">'+(r.st==='out'?'⛔ OUT OF STOCK':r.st==='low'?'⚠ BELOW SAFETY':'✓ OK')+'</span></div>'+
       '<div class="qbar"><i style="width:'+r.pct+'%"></i></div></div>';
   }).join('');
 }
 function filter(){render();}
-function pick(c){toast('',c+' 상세','자재 상세 화면으로 이동합니다. (데모)');}
-function scan(){toast('','📷 자재 스캔','자재 라벨을 스캔하면 즉시 재고를 조회합니다.');}
-function back(){toast('','PDA 메뉴','PDA 메뉴로 돌아갑니다.');}
+function pick(c){toast('',c+' Detail','Opening item detail screen. (demo)');}
+function scan(){toast('','📷 Scan Item','Scan an item label to look up inventory instantly.');}
+function back(){toast('','PDA Menu','Returning to PDA menu.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">• '+title+'</div><div class="tb">'+body+'</div>';

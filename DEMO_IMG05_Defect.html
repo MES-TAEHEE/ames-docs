@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>IMG-05 Defect Register · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--sc:#ea580c;--sc-dk:#c2410c;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
 .head{flex-shrink:0;padding:13px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
 .head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#fb923c;}
 .head .tt{flex:1;}
@@ -71,54 +71,54 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 </head>
 <body>
 <div class="head">
-  <button class="back" onclick="back()">‹ 대시보드</button>
+  <button class="back" onclick="back()">‹ Dashboard</button>
   <div class="id">IMG-05</div>
-  <div class="tt"><div class="en">Defect Register</div><div class="ko">불량 등록 — 유형·수량·원인·조치 보고</div></div>
+  <div class="tt"><div class="en">Defect Register</div><div class="ko">Type · Qty · Cause · Action Report</div></div>
   <span class="live"><span class="d"></span>DEFECT MODE</span>
 </div>
 <div class="body">
   <div class="col">
     <div class="sec">
-      <h3><span class="step">1</span>불량 유형 · DEFECT TYPE</h3>
+      <h3><span class="step">1</span>DEFECT TYPE</h3>
       <div class="dgrid" id="typeGrid">
-        <div class="dt" data-c="DEF-WR-001" data-n="원단 주름 (Wrinkle)" onclick="pickT(this)"><div class="ic">〰</div><div class="nm">주름 발생</div><div class="cd">DEF-WR-001</div></div>
-        <div class="dt" data-c="DEF-WR-002" data-n="본드 누락" onclick="pickT(this)"><div class="ic">💧</div><div class="nm">본드 누락</div><div class="cd">DEF-WR-002</div></div>
-        <div class="dt" data-c="DEF-AP-001" data-n="표면 스크래치" onclick="pickT(this)"><div class="ic">⚡</div><div class="nm">스크래치</div><div class="cd">DEF-AP-001</div></div>
-        <div class="dt" data-c="DEF-WR-003" data-n="박리·들뜸" onclick="pickT(this)"><div class="ic">🫧</div><div class="nm">박리·들뜸</div><div class="cd">DEF-WR-003</div></div>
-        <div class="dt" data-c="DEF-PN-001" data-n="색상 불일치" onclick="pickT(this)"><div class="ic">🎨</div><div class="nm">색상 불일치</div><div class="cd">DEF-PN-001</div></div>
-        <div class="dt" data-c="DEF-WR-004" data-n="모서리 들뜸" onclick="pickT(this)"><div class="ic">📐</div><div class="nm">모서리 불량</div><div class="cd">DEF-WR-004</div></div>
-        <div class="dt" data-c="DEF-MT-001" data-n="원단 이물 혼입" onclick="pickT(this)"><div class="ic">🦠</div><div class="nm">이물질</div><div class="cd">DEF-MT-001</div></div>
-        <div class="dt" data-c="DEF-OTHER" data-n="기타" onclick="pickT(this)"><div class="ic">❓</div><div class="nm">기타</div><div class="cd">기타</div></div>
+        <div class="dt" data-c="DEF-WR-001" data-n="Wrinkle" onclick="pickT(this)"><div class="ic">〰</div><div class="nm">Wrinkle</div><div class="cd">DEF-WR-001</div></div>
+        <div class="dt" data-c="DEF-WR-002" data-n="Insufficient Adhesive" onclick="pickT(this)"><div class="ic">💧</div><div class="nm">Insufficient Adhesive</div><div class="cd">DEF-WR-002</div></div>
+        <div class="dt" data-c="DEF-AP-001" data-n="Surface Scratch" onclick="pickT(this)"><div class="ic">⚡</div><div class="nm">Scratch</div><div class="cd">DEF-AP-001</div></div>
+        <div class="dt" data-c="DEF-WR-003" data-n="Lifting / Debond" onclick="pickT(this)"><div class="ic">🫧</div><div class="nm">Lifting</div><div class="cd">DEF-WR-003</div></div>
+        <div class="dt" data-c="DEF-PN-001" data-n="Color Mismatch" onclick="pickT(this)"><div class="ic">🎨</div><div class="nm">Color Mismatch</div><div class="cd">DEF-PN-001</div></div>
+        <div class="dt" data-c="DEF-WR-004" data-n="Edge Lifting" onclick="pickT(this)"><div class="ic">📐</div><div class="nm">Edge Defect</div><div class="cd">DEF-WR-004</div></div>
+        <div class="dt" data-c="DEF-MT-001" data-n="Fabric Foreign Material" onclick="pickT(this)"><div class="ic">🦠</div><div class="nm">Foreign Material</div><div class="cd">DEF-MT-001</div></div>
+        <div class="dt" data-c="DEF-OTHER" data-n="Other" onclick="pickT(this)"><div class="ic">❓</div><div class="nm">Other</div><div class="cd">OTHER</div></div>
       </div>
     </div>
     <div class="sec">
-      <h3><span class="step">2</span>발생 원인 · ROOT CAUSE (4M)</h3>
+      <h3><span class="step">2</span>ROOT CAUSE (4M)</h3>
       <div class="cgrid" id="causeGrid">
-        <div class="cz" data-c="설비(Machine)" onclick="pickC(this)">⚙️ 설비 (Machine)</div>
-        <div class="cz" data-c="금형" onclick="pickC(this)">🔩 금형 (Mold)</div>
-        <div class="cz" data-c="자재(Material)" onclick="pickC(this)">📦 자재 (Material)</div>
-        <div class="cz" data-c="작업자(Man)" onclick="pickC(this)">👷 작업자 (Man)</div>
-        <div class="cz" data-c="방법(Method)" onclick="pickC(this)">📋 방법 (Method)</div>
-        <div class="cz" data-c="환경" onclick="pickC(this)">🌡 환경 (Env)</div>
+        <div class="cz" data-c="Machine" onclick="pickC(this)">⚙️ Machine</div>
+        <div class="cz" data-c="Mold" onclick="pickC(this)">🔩 Mold</div>
+        <div class="cz" data-c="Material" onclick="pickC(this)">📦 Material</div>
+        <div class="cz" data-c="Man" onclick="pickC(this)">👷 Man</div>
+        <div class="cz" data-c="Method" onclick="pickC(this)">📋 Method</div>
+        <div class="cz" data-c="Environment" onclick="pickC(this)">🌡 Environment</div>
       </div>
     </div>
     <div class="sec">
-      <h3><span class="step">3</span>조치 · ACTION</h3>
+      <h3><span class="step">3</span>ACTION</h3>
       <div class="agrid" id="actGrid">
-        <div class="act" data-a="폐기" onclick="pickA(this)"><div class="ic">🗑</div><div class="nm">폐기</div></div>
-        <div class="act" data-a="재작업" onclick="pickA(this)"><div class="ic">🔄</div><div class="nm">재작업</div></div>
-        <div class="act" data-a="특채 검토" onclick="pickA(this)"><div class="ic">⚖</div><div class="nm">특채 검토</div></div>
+        <div class="act" data-a="Scrap" onclick="pickA(this)"><div class="ic">🗑</div><div class="nm">Scrap</div></div>
+        <div class="act" data-a="Rework" onclick="pickA(this)"><div class="ic">🔄</div><div class="nm">Rework</div></div>
+        <div class="act" data-a="Deviation Review" onclick="pickA(this)"><div class="ic">⚖</div><div class="nm">Deviation Review</div></div>
       </div>
     </div>
     <div class="photo" onclick="photo()">
-      <div class="ic">📷</div><div class="t">불량 사진 촬영</div><div class="s">증빙용 사진 첨부 (선택)</div>
+      <div class="ic">📷</div><div class="t">Capture Defect Photo</div><div class="s">Attach evidence photo (optional)</div>
     </div>
   </div>
   <div class="col">
     <div class="input-box">
-      <div class="il">▶ 불량 수량 입력 (EA)</div>
+      <div class="il">▶ Enter Defect Qty (EA)</div>
       <div class="iv" id="iv">0</div>
-      <div class="iu" id="iuSel">유형 미선택</div>
+      <div class="iu" id="iuSel">Type not selected</div>
     </div>
     <div class="keypad">
       <button class="k" onclick="key('7')">7</button>
@@ -134,13 +134,13 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
       <button class="k" onclick="key('0')">0</button>
       <button class="k fn" onclick="bksp()">⌫</button>
     </div>
-    <button class="btn-sub" id="btnSub" disabled onclick="submit()">⛔ 불량 등록</button>
+    <button class="btn-sub" id="btnSub" disabled onclick="submit()">⛔ Register Defect</button>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 <script>
 var typ=null,cause=null,act=null,v='';
-function pickT(el){[].slice.call(document.querySelectorAll('#typeGrid .dt')).forEach(function(x){x.classList.remove('on');});el.classList.add('on');typ={c:el.dataset.c,n:el.dataset.n};document.getElementById('iuSel').textContent='유형: '+typ.n;chk();}
+function pickT(el){[].slice.call(document.querySelectorAll('#typeGrid .dt')).forEach(function(x){x.classList.remove('on');});el.classList.add('on');typ={c:el.dataset.c,n:el.dataset.n};document.getElementById('iuSel').textContent='Type: '+typ.n;chk();}
 function pickC(el){[].slice.call(document.querySelectorAll('#causeGrid .cz')).forEach(function(x){x.classList.remove('on');});el.classList.add('on');cause=el.dataset.c;chk();}
 function pickA(el){[].slice.call(document.querySelectorAll('#actGrid .act')).forEach(function(x){x.classList.remove('on');});el.classList.add('on');act=el.dataset.a;chk();}
 function key(d){if(v.length>=4)return;v+=d;upd();chk();}
@@ -148,16 +148,16 @@ function clr(){v='';upd();chk();}
 function bksp(){v=v.slice(0,-1);upd();chk();}
 function upd(){document.getElementById('iv').textContent=v||'0';}
 function chk(){document.getElementById('btnSub').disabled=!(typ&&cause&&act&&parseInt(v||'0',10)>0);}
-function photo(){toast('','사진 첨부','카메라가 활성화되었습니다. 불량 사진을 촬영하세요. (데모)');}
+function photo(){toast('','Photo Attach','Camera activated. Please capture the defect photo. (Demo)');}
 function submit(){
   var n=parseInt(v,10);
-  toast('ok','불량 등록 ✓',typ.n+' '+n+' EA · '+cause+' · '+act+' 처리. 품질팀에 자동 통보됩니다.');
+  toast('ok','Defect Registered ✓',typ.n+' '+n+' EA · '+cause+' · '+act+'. QC team has been auto-notified.');
   /* reset */
   typ=null;cause=null;act=null;v='';upd();
   [].slice.call(document.querySelectorAll('.dt.on,.cz.on,.act.on')).forEach(function(x){x.classList.remove('on');});
-  document.getElementById('iuSel').textContent='유형 미선택';chk();
+  document.getElementById('iuSel').textContent='Type not selected';chk();
 }
-function back(){toast('','뒤로 이동','POP 대시보드로 돌아갑니다.');}
+function back(){toast('','Back','Returning to POP Dashboard.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='warn'?'⚠ ':type==='ok'?'✓ ':'ℹ ')+title+'</div><div class="tb">'+body+'</div>';

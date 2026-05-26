@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>MNT-02 Failure Register · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -79,127 +79,146 @@ tbody tr:hover td{background:#f0fdf4;}
 <body>
 <div class="scr-head">
   <div class="sh-id">MNT-02</div>
-  <div class="sh-tt"><div class="sh-en">Failure Register</div><div class="sh-ko">고장 등록 — 설비 고장 접수·조치·완료 워크플로</div></div>
+  <div class="sh-tt"><div class="sh-en">Failure Register</div><div class="sh-ko">Equipment failure intake / repair / completion workflow</div></div>
   <span class="sh-tag">/mnt/failure</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>설비 Equipment</label>
-    <select id="fEq" onchange="render()"><option value="">전체 All</option></select></div>
-  <div class="fld"><label>상태 Status</label>
-    <select id="fStat" onchange="render()"><option value="">전체</option><option value="new">접수</option><option value="prog">조치 중</option><option value="done">완료</option></select></div>
-  <div class="fld"><label>심각도 Severity</label>
-    <select id="fSev" onchange="render()"><option value="">전체</option><option value="1">긴급</option><option value="2">높음</option><option value="3">보통</option><option value="4">낮음</option></select></div>
-  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div class="fld"><label>Equipment</label>
+    <select id="fEq" onchange="render()"><option value="">All</option></select></div>
+  <div class="fld"><label>Status</label>
+    <select id="fStat" onchange="render()"><option value="">All</option><option value="new">New</option><option value="prog">In Progress</option><option value="done">Resolved</option></select></div>
+  <div class="fld"><label>Severity</label>
+    <select id="fSev" onchange="render()"><option value="">All</option><option value="1">Critical</option><option value="2">High</option><option value="3">Normal</option><option value="4">Low</option></select></div>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>
   <div style="margin-left:auto;display:flex;gap:8px;">
-    <button class="btn btn-r" onclick="openNew()">＋ 고장 등록</button>
+    <button class="btn btn-r" onclick="openNew()">＋ Report Failure</button>
     <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
   </div>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kToday">0</div><div class="kl">금일 고장 · Today</div></div>
-    <div class="kpi" style="--c:#ef4444"><div class="kv" id="kNew">0</div><div class="kl">미조치 · 접수 대기</div></div>
-    <div class="kpi" style="--c:#3b82f6"><div class="kv" id="kProg">0</div><div class="kl">조치 중 · In Progress</div></div>
-    <div class="kpi" style="--c:#10b981"><div class="kv" id="kDone">0</div><div class="kl">완료 · Resolved</div></div>
-    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kMttr">0</div><div class="kl">평균 수리시간 MTTR · 분</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kToday">0</div><div class="kl">Today's Failures</div></div>
+    <div class="kpi" style="--c:#ef4444"><div class="kv" id="kNew">0</div><div class="kl">Unresolved · New</div></div>
+    <div class="kpi" style="--c:#3b82f6"><div class="kv" id="kProg">0</div><div class="kl">In Progress</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kDone">0</div><div class="kl">Resolved</div></div>
+    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kMttr">0</div><div class="kl">Avg MTTR · min</div></div>
   </div>
   <div class="panel">
-    <div class="panel-h">🛠 고장 이력 — <span id="sub" style="font-weight:400;color:#656d76;">0건</span></div>
+    <div class="panel-h">🛠 Failure History — <span id="sub" style="font-weight:400;color:#656d76;">0 records</span></div>
     <table>
       <thead><tr>
-        <th>고장 번호</th><th>설비</th><th>발생 일시</th><th>증상</th>
-        <th style="text-align:center;">심각도</th><th style="text-align:center;">상태</th>
-        <th style="text-align:center;">수리(분)</th><th></th>
+        <th>Failure ID</th><th>Equipment</th><th>Occurred</th><th>Symptom</th>
+        <th style="text-align:center;">Severity</th><th style="text-align:center;">Status</th>
+        <th style="text-align:center;">Repair (min)</th><th></th>
       </tr></thead>
       <tbody id="tbody"></tbody>
     </table>
-    <div class="empty" id="empty" style="display:none;">조건에 맞는 고장 이력이 없습니다.</div>
+    <div class="empty" id="empty" style="display:none;">No failure records match the filter.</div>
   </div>
 </div>
 
 <!-- new failure modal -->
 <div class="ov" id="ovNew">
   <div class="modal">
-    <div class="modal-h"><span class="mt">🚨 신규 고장 등록</span><span class="mx" onclick="closeOv('ovNew')">✕</span></div>
+    <div class="modal-h"><span class="mt">🚨 Report New Failure</span><span class="mx" onclick="closeOv('ovNew')">✕</span></div>
     <div class="modal-b">
-      <div class="ff"><label>고장 설비 <span class="req">*</span></label><select id="nEq"></select></div>
+      <div class="ff"><label>Equipment <span class="req">*</span></label><select id="nEq"></select></div>
       <div class="ff2">
-        <div class="ff"><label>발생 일시 <span class="req">*</span></label><input type="datetime-local" id="nWhen" value="2026-05-20T13:46"></div>
-        <div class="ff"><label>심각도 <span class="req">*</span></label>
-          <select id="nSev"><option value="1">긴급 — 라인 정지</option><option value="2">높음 — 생산 차질</option><option value="3" selected>보통</option><option value="4">낮음 — 경미</option></select></div>
+        <div class="ff"><label>Occurred At <span class="req">*</span></label><input type="datetime-local" id="nWhen" value="2026-05-20T13:46"></div>
+        <div class="ff"><label>Severity <span class="req">*</span></label>
+          <select id="nSev"><option value="1">Critical — Line Stopped</option><option value="2">High — Production Impact</option><option value="3" selected>Normal</option><option value="4">Low — Minor</option></select></div>
       </div>
-      <div class="ff"><label>고장 증상 <span class="req">*</span></label>
-        <textarea id="nSym" placeholder="예: 구동 모터 과열로 자동 정지, 알람 E-204 발생"></textarea></div>
-      <div class="ff"><label>접수자</label>
-        <select id="nRep"><option>김성호</option><option>박주니어</option><option>한지원</option><option>서민재</option><option>생산반장</option></select></div>
+      <div class="ff"><label>Symptom <span class="req">*</span></label>
+        <textarea id="nSym" placeholder="e.g., Drive motor overheat auto-stop, alarm E-204"></textarea></div>
+      <div class="ff"><label>Reporter</label>
+        <select id="nRep"><option>Mike Johnson</option><option>James Carter</option><option>Emily Brown</option><option>Robert Davis</option><option>Production Lead</option></select></div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovNew')">취소</button>
-      <button class="btn btn-r" onclick="addFail()">＋ 고장 접수</button>
+      <button class="btn btn-s" onclick="closeOv('ovNew')">Cancel</button>
+      <button class="btn btn-r" onclick="addFail()">＋ Report</button>
     </div>
   </div>
 </div>
 <!-- complete modal -->
 <div class="ov" id="ovDone">
   <div class="modal">
-    <div class="modal-h"><span class="mt">고장 조치 완료 처리</span><span class="mx" onclick="closeOv('ovDone')">✕</span></div>
+    <div class="modal-h"><span class="mt">Complete Repair</span><span class="mx" onclick="closeOv('ovDone')">✕</span></div>
     <div class="modal-b">
       <div id="dnInfo" style="margin-bottom:12px;"></div>
-      <div class="ff"><label>고장 원인 <span class="req">*</span></label>
-        <select id="dnCause"><option>부품 마모·노후</option><option>윤활 불량</option><option>과부하 운전</option><option>전기 계통 이상</option><option>오조작</option><option>기타</option></select></div>
-      <div class="ff"><label>조치 내용 <span class="req">*</span></label>
-        <textarea id="dnAction" placeholder="예: 구동모터 베어링 교체 후 시운전 정상 확인"></textarea></div>
-      <div class="ff"><label>수리 완료 일시 <span class="req">*</span></label>
+      <div class="ff"><label>Root Cause <span class="req">*</span></label>
+        <select id="dnCause"><option>Wear / Aging</option><option>Insufficient Lubrication</option><option>Overload Operation</option><option>Electrical Fault</option><option>Operator Error</option><option>Other</option></select></div>
+      <div class="ff"><label>Action Taken <span class="req">*</span></label>
+        <textarea id="dnAction" placeholder="e.g., Replaced drive motor bearings, verified normal operation"></textarea></div>
+      <div class="ff"><label>Repair Completed At <span class="req">*</span></label>
         <input type="datetime-local" id="dnEnd" value="2026-05-20T15:10"></div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovDone')">취소</button>
-      <button class="btn btn-p" onclick="confirmComplete()">✓ 완료 처리</button>
+      <button class="btn btn-s" onclick="closeOv('ovDone')">Cancel</button>
+      <button class="btn btn-p" onclick="confirmComplete()">✓ Complete</button>
     </div>
   </div>
 </div>
 <!-- detail modal -->
 <div class="ov" id="ovDt">
   <div class="modal">
-    <div class="modal-h"><span class="mt">고장 상세</span><span class="mx" onclick="closeOv('ovDt')">✕</span></div>
+    <div class="modal-h"><span class="mt">Failure Detail</span><span class="mx" onclick="closeOv('ovDt')">✕</span></div>
     <div class="modal-b" id="dtBody"></div>
-    <div class="modal-f"><button class="btn btn-p" onclick="closeOv('ovDt')">확인</button></div>
+    <div class="modal-f"><button class="btn btn-p" onclick="closeOv('ovDt')">OK</button></div>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 
 <script>
 var EQLIST=[
- {id:'EQ-INJ-001',nm:'사출기 1호기'},{id:'EQ-INJ-002',nm:'사출기 2호기'},
- {id:'EQ-ASY-001',nm:'조립1라인 컨베이어'},{id:'EQ-ASY-002',nm:'토크 체결기 #1'},
- {id:'EQ-PNT-001',nm:'도장 부스 1라인'},{id:'EQ-INS-001',nm:'비전 검사기 #1'},
- {id:'EQ-UTL-001',nm:'공기압축기 #1'}
+ {id:'EQ-INJ-001',nm:'Injection Machine #1'},{id:'EQ-INJ-002',nm:'Injection Machine #2'},
+ {id:'EQ-ASY-001',nm:'Assembly Line 1 Conveyor'},{id:'EQ-ASY-002',nm:'Torque Fastener #1'},
+ {id:'EQ-PNT-001',nm:'Paint Booth Line 1'},{id:'EQ-INS-001',nm:'Vision Inspector #1'},
+ {id:'EQ-UTL-001',nm:'Air Compressor #1'}
 ];
-var SEV={'1':{ko:'긴급',cls:'sev1'},'2':{ko:'높음',cls:'sev2'},'3':{ko:'보통',cls:'sev3'},'4':{ko:'낮음',cls:'sev4'}};
-var ST={new:{ko:'접수',cls:'s-new'},prog:{ko:'조치 중',cls:'s-prog'},done:{ko:'완료',cls:'s-done'}};
+var SEV={'1':{ko:'Critical',cls:'sev1'},'2':{ko:'High',cls:'sev2'},'3':{ko:'Normal',cls:'sev3'},'4':{ko:'Low',cls:'sev4'}};
+var ST={new:{ko:'New',cls:'s-new'},prog:{ko:'In Progress',cls:'s-prog'},done:{ko:'Resolved',cls:'s-done'}};
+function fmtDateMDY(s){
+  /* s in format "YYYY-MM-DD HH:MM" -> "MM/DD/YYYY HH:MM" */
+  if(!s)return s;
+  var y=s.slice(0,4),m=s.slice(5,7),d=s.slice(8,10),rest=s.slice(10);
+  return m+'/'+d+'/'+y+rest;
+}
 var FAIL=[
- {id:'FL-2605-018',eq:'EQ-INJ-002',when:'2026-05-20 13:46',rep:'생산반장',sev:'1',sym:'구동 모터 과열 자동정지 (알람 E-204)',
+ {id:'FAIL-2605-018',eq:'EQ-INJ-002',when:'05/20/2026 13:46',rep:'Production Lead',sev:'1',sym:'Drive motor overheat auto-stop (alarm E-204)',
   st:'prog',cause:'',action:'',end:'',mttr:null},
- {id:'FL-2605-017',eq:'EQ-ASY-002',when:'2026-05-20 09:12',rep:'한지원',sev:'3',sym:'토크값 편차 발생, 캘리브레이션 필요',
+ {id:'FAIL-2605-017',eq:'EQ-ASY-002',when:'05/20/2026 09:12',rep:'Emily Brown',sev:'3',sym:'Torque value deviation, calibration required',
   st:'new',cause:'',action:'',end:'',mttr:null},
- {id:'FL-2605-015',eq:'EQ-PNT-001',when:'2026-05-19 15:30',rep:'서민재',sev:'2',sym:'분사 노즐 막힘으로 도막 불균일',
-  st:'done',cause:'부품 마모·노후',action:'노즐 3개 교체, 시운전 정상 확인',end:'2026-05-19 17:05',mttr:95},
- {id:'FL-2605-012',eq:'EQ-INJ-001',when:'2026-05-18 10:20',rep:'김성호',sev:'3',sym:'형개 시 이상 소음',
-  st:'done',cause:'윤활 불량',action:'형개 실린더 급유 및 가이드 점검',end:'2026-05-18 11:10',mttr:50},
- {id:'FL-2605-009',eq:'EQ-UTL-001',when:'2026-05-16 08:05',rep:'정비반',sev:'2',sym:'압축기 토출 압력 저하',
-  st:'done',cause:'부품 마모·노후',action:'밸브 플레이트 교체',end:'2026-05-16 10:40',mttr:155},
- {id:'FL-2605-006',eq:'EQ-INS-001',when:'2026-05-14 13:50',rep:'한지원',sev:'4',sym:'조명 LED 일부 점멸',
-  st:'done',cause:'전기 계통 이상',action:'LED 바 교체',end:'2026-05-14 14:25',mttr:35}
+ {id:'FAIL-2605-015',eq:'EQ-PNT-001',when:'05/19/2026 15:30',rep:'Robert Davis',sev:'2',sym:'Spray nozzle clog causing uneven coating',
+  st:'done',cause:'Wear / Aging',action:'Replaced 3 nozzles, verified normal operation',end:'05/19/2026 17:05',mttr:95},
+ {id:'FAIL-2605-012',eq:'EQ-INJ-001',when:'05/18/2026 10:20',rep:'Mike Johnson',sev:'3',sym:'Abnormal noise during mold opening',
+  st:'done',cause:'Insufficient Lubrication',action:'Lubricated clamp cylinder and inspected guides',end:'05/18/2026 11:10',mttr:50},
+ {id:'FAIL-2605-009',eq:'EQ-UTL-001',when:'05/16/2026 08:05',rep:'Maintenance Team',sev:'2',sym:'Compressor discharge pressure drop',
+  st:'done',cause:'Wear / Aging',action:'Replaced valve plate',end:'05/16/2026 10:40',mttr:155},
+ {id:'FAIL-2605-006',eq:'EQ-INS-001',when:'05/14/2026 13:50',rep:'Emily Brown',sev:'4',sym:'Partial LED lighting flicker',
+  st:'done',cause:'Electrical Fault',action:'Replaced LED bar',end:'05/14/2026 14:25',mttr:35}
 ];
 var seq=19;
 function nowStr(){var d=new Date();return d.toISOString().slice(0,16).replace('T',' ');}
 function eqNm(id){var e=EQLIST.filter(function(x){return x.id===id;})[0];return e?e.nm:id;}
-function fmtDT(s){return s.replace('T',' ');}
-function diffMin(a,b){return Math.round((new Date(b)-new Date(a))/60000);}
+function fmtDT(s){
+  /* HTML datetime-local "YYYY-MM-DDTHH:MM" -> "MM/DD/YYYY HH:MM" */
+  var y=s.slice(0,4),m=s.slice(5,7),d=s.slice(8,10),hm=s.slice(11,16);
+  return m+'/'+d+'/'+y+' '+hm;
+}
+function parseDT(s){
+  /* "MM/DD/YYYY HH:MM" -> ISO for Date parsing */
+  var m=s.slice(0,2),d=s.slice(3,5),y=s.slice(6,10),hm=s.slice(11,16);
+  return new Date(y+'-'+m+'-'+d+'T'+hm);
+}
+function diffMin(aStr,bIsoLocal){
+  var a=parseDT(aStr).getTime();
+  var b=new Date(bIsoLocal).getTime();
+  return Math.round((b-a)/60000);
+}
 function byId(id){return FAIL.filter(function(f){return f.id===id;})[0];}
 function initSel(){
-  var o='<option value="">전체 All</option>';
+  var o='<option value="">All</option>';
   EQLIST.forEach(function(e){o+='<option value="'+e.id+'">'+e.id+' '+e.nm+'</option>';});
   document.getElementById('fEq').innerHTML=o;
   document.getElementById('nEq').innerHTML=EQLIST.map(function(e){return '<option value="'+e.id+'">'+e.id+' '+e.nm+'</option>';}).join('');
@@ -213,7 +232,7 @@ function vis(){
     return true;});
 }
 function render(){
-  document.getElementById('kToday').textContent=FAIL.filter(function(f){return f.when.indexOf('2026-05-20')===0;}).length;
+  document.getElementById('kToday').textContent=FAIL.filter(function(f){return f.when.indexOf('05/20/2026')===0;}).length;
   document.getElementById('kNew').textContent=FAIL.filter(function(f){return f.st==='new';}).length;
   document.getElementById('kProg').textContent=FAIL.filter(function(f){return f.st==='prog';}).length;
   document.getElementById('kDone').textContent=FAIL.filter(function(f){return f.st==='done';}).length;
@@ -232,12 +251,12 @@ function render(){
   });
   document.getElementById('tbody').innerHTML=h;
   document.getElementById('empty').style.display=v.length?'none':'block';
-  document.getElementById('sub').textContent=v.length+'건';
+  document.getElementById('sub').textContent=v.length+' records';
 }
 function actionBtn(f){
-  if(f.st==='new')return '<button class="btn btn-w btn-sm" onclick="startRepair(\''+f.id+'\')">▶ 조치 시작</button>';
-  if(f.st==='prog')return '<button class="btn btn-p btn-sm" onclick="openDone(\''+f.id+'\')">✓ 완료 처리</button>';
-  return '<button class="btn btn-s btn-sm" onclick="detail(\''+f.id+'\')">상세</button>';
+  if(f.st==='new')return '<button class="btn btn-w btn-sm" onclick="startRepair(\''+f.id+'\')">▶ Start Repair</button>';
+  if(f.st==='prog')return '<button class="btn btn-p btn-sm" onclick="openDone(\''+f.id+'\')">✓ Complete</button>';
+  return '<button class="btn btn-s btn-sm" onclick="detail(\''+f.id+'\')">Detail</button>';
 }
 function openNew(){
   document.getElementById('nSym').value='';document.getElementById('nWhen').value='2026-05-20T13:46';
@@ -245,56 +264,56 @@ function openNew(){
 }
 function addFail(){
   var sym=document.getElementById('nSym').value.trim();
-  if(!sym){toast('err','입력 오류','고장 증상은 필수 항목입니다.');return;}
+  if(!sym){toast('err','Input Error','Symptom is required.');return;}
   var when=document.getElementById('nWhen').value;
-  if(!when){toast('err','입력 오류','발생 일시를 입력하세요.');return;}
-  var id='FL-2605-'+('00'+seq++).slice(-3);
+  if(!when){toast('err','Input Error','Please enter the occurred time.');return;}
+  var id='FAIL-2605-'+('00'+seq++).slice(-3);
   FAIL.unshift({id:id,eq:document.getElementById('nEq').value,when:fmtDT(when),
     rep:document.getElementById('nRep').value,sev:document.getElementById('nSev').value,
     sym:sym,st:'new',cause:'',action:'',end:'',mttr:null});
   closeOv('ovNew');render();
-  toast('warn','고장 접수 완료',id+' 「'+eqNm(document.getElementById('nEq').value)+'」 고장이 접수되었습니다.');
+  toast('warn','Failure Reported',id+' "'+eqNm(document.getElementById('nEq').value)+'" failure has been registered.');
 }
 function startRepair(id){
   var f=byId(id);f.st='prog';f.repairStart=nowStr();render();
-  toast('info',id+' 조치 시작','정비 담당자가 배정되어 조치가 진행 중입니다.');
+  toast('info',id+' Repair Started','Maintenance technician assigned, repair in progress.');
 }
 var doneId=null;
 function openDone(id){
   doneId=id;var f=byId(id);
   document.getElementById('dnInfo').innerHTML=
-    '<div class="drow"><span class="dk">고장 번호</span><span class="dv">'+f.id+'</span></div>'+
-    '<div class="drow"><span class="dk">설비</span><span class="dv">'+eqNm(f.eq)+'</span></div>'+
-    '<div class="drow"><span class="dk">발생 일시</span><span class="dv">'+f.when+'</span></div>'+
-    '<div class="drow"><span class="dk">증상</span><span class="dv" style="max-width:250px;">'+f.sym+'</span></div>';
+    '<div class="drow"><span class="dk">Failure ID</span><span class="dv">'+f.id+'</span></div>'+
+    '<div class="drow"><span class="dk">Equipment</span><span class="dv">'+eqNm(f.eq)+'</span></div>'+
+    '<div class="drow"><span class="dk">Occurred</span><span class="dv">'+f.when+'</span></div>'+
+    '<div class="drow"><span class="dk">Symptom</span><span class="dv" style="max-width:250px;">'+f.sym+'</span></div>';
   document.getElementById('dnAction').value='';
   openOv('ovDone');
 }
 function confirmComplete(){
   var f=byId(doneId);
   var action=document.getElementById('dnAction').value.trim();
-  if(!action){toast('err','입력 오류','조치 내용은 필수 항목입니다.');return;}
+  if(!action){toast('err','Input Error','Action Taken is required.');return;}
   var end=document.getElementById('dnEnd').value;
-  if(!end){toast('err','입력 오류','수리 완료 일시를 입력하세요.');return;}
-  var m=diffMin(f.when.replace(' ','T'),end);
-  if(m<=0){toast('err','시간 오류','완료 일시가 발생 일시보다 빠릅니다.');return;}
+  if(!end){toast('err','Input Error','Please enter the completed time.');return;}
+  var m=diffMin(f.when,end);
+  if(m<=0){toast('err','Time Error','Completion time is earlier than occurrence time.');return;}
   f.st='done';f.cause=document.getElementById('dnCause').value;f.action=action;
   f.end=fmtDT(end);f.mttr=m;
   closeOv('ovDone');render();
-  toast('',f.id+' 조치 완료','수리시간 '+m+'분으로 고장 조치가 완료되었습니다.');
+  toast('',f.id+' Repair Complete','Failure resolved with MTTR of '+m+' min.');
 }
 function detail(id){
   var f=byId(id);
   var rows=[
-    ['고장 번호',f.id],['설비',eqNm(f.eq)+' ('+f.eq+')'],['발생 일시',f.when],
-    ['접수자',f.rep],['심각도','<span class="sev '+SEV[f.sev].cls+'">'+SEV[f.sev].ko+'</span>'],
-    ['상태','<span class="stt '+ST[f.st].cls+'"><span class="dot"></span>'+ST[f.st].ko+'</span>'],
-    ['증상',f.sym]
+    ['Failure ID',f.id],['Equipment',eqNm(f.eq)+' ('+f.eq+')'],['Occurred',f.when],
+    ['Reporter',f.rep],['Severity','<span class="sev '+SEV[f.sev].cls+'">'+SEV[f.sev].ko+'</span>'],
+    ['Status','<span class="stt '+ST[f.st].cls+'"><span class="dot"></span>'+ST[f.st].ko+'</span>'],
+    ['Symptom',f.sym]
   ];
-  if(f.cause)rows.push(['고장 원인',f.cause]);
-  if(f.action)rows.push(['조치 내용',f.action]);
-  if(f.end)rows.push(['완료 일시',f.end]);
-  if(f.mttr!=null)rows.push(['수리 시간',f.mttr+'분']);
+  if(f.cause)rows.push(['Root Cause',f.cause]);
+  if(f.action)rows.push(['Action Taken',f.action]);
+  if(f.end)rows.push(['Completed',f.end]);
+  if(f.mttr!=null)rows.push(['Repair Time',f.mttr+' min']);
   document.getElementById('dtBody').innerHTML=rows.map(function(r){
     return '<div class="drow"><span class="dk">'+r[0]+'</span><span class="dv" style="max-width:280px;">'+r[1]+'</span></div>';}).join('');
   openOv('ovDt');
@@ -309,12 +328,12 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='MNT_Failure_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','고장 이력 '+v.length+'건을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Exported '+v.length+' failure records to CSV.');
 }
 function resetAll(){
   document.getElementById('fEq').value='';document.getElementById('fStat').value='';
   document.getElementById('fSev').value='';render();
-  toast('info','초기화','고장 이력 필터를 초기화했습니다.');
+  toast('info','Reset','Failure history filters have been reset.');
 }
 function openOv(id){document.getElementById(id).classList.add('on');}
 function closeOv(id){document.getElementById(id).classList.remove('on');}

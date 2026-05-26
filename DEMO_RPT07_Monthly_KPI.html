@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>RPT-07 Monthly KPI · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -72,40 +72,40 @@ tbody tr:hover:not(.cat) td{background:#f0fdf4;}
 <body>
 <div class="scr-head">
   <div class="sh-id">RPT-07</div>
-  <div class="sh-tt"><div class="sh-en">Monthly KPI Scorecard</div><div class="sh-ko">월간 KPI — 핵심성과지표 종합 스코어카드</div></div>
+  <div class="sh-tt"><div class="sh-en">Monthly KPI Scorecard</div><div class="sh-ko">Key Performance Indicators Comprehensive Scorecard</div></div>
   <span class="sh-tag">/rpt/monthly-kpi</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>대상 월 Month</label>
-    <select id="fMonth" onchange="apply()"><option>2026년 5월</option><option>2026년 4월</option><option>2026년 3월</option></select></div>
-  <div class="fld"><label>부문 Category</label>
-    <select id="fCat" onchange="apply()"><option value="">전체</option><option>생산</option><option>품질</option><option>납기</option><option>설비</option><option>원가</option></select></div>
-  <button class="btn btn-p btn-sm" onclick="apply()">🔍 적용</button>
-  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
+  <div class="fld"><label>Month</label>
+    <select id="fMonth" onchange="apply()"><option>May 2026</option><option>April 2026</option><option>March 2026</option></select></div>
+  <div class="fld"><label>Category</label>
+    <select id="fCat" onchange="apply()"><option value="">All</option><option>Production</option><option>Quality</option><option>Delivery</option><option>Equipment</option><option>Cost</option></select></div>
+  <button class="btn btn-p btn-sm" onclick="apply()">🔍 Apply</button>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>
   <div style="margin-left:auto;display:flex;gap:8px;">
-    <button class="btn btn-s" onclick="printRpt()">🖨 인쇄</button>
+    <button class="btn btn-s" onclick="printRpt()">🖨 Print</button>
     <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
   </div>
 </div>
 <div class="body">
-  <div class="rpt-title"><h2>월간 KPI 스코어카드</h2><span class="sub" id="rSub">2026년 5월 · 전 부문</span></div>
+  <div class="rpt-title"><h2>Monthly KPI Scorecard</h2><span class="sub" id="rSub">May 2026 · All Categories</span></div>
   <div class="score-hero">
     <div class="sh-gauge" id="heroGauge"><div class="hole"><div class="gv" id="heroV">0</div><div class="gl">SCORE</div></div></div>
-    <div class="sh-info"><h3 id="heroT">종합 KPI 달성도</h3><p id="heroP">-</p></div>
+    <div class="sh-info"><h3 id="heroT">Overall KPI Achievement</h3><p id="heroP">-</p></div>
   </div>
   <div class="kpis">
-    <div class="kpi" style="--c:#10b981"><div class="kv" id="kPass">0</div><div class="kl">목표 달성 지표 · Pass</div></div>
-    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kWarn">0</div><div class="kl">근접 지표 · Near</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kFail">0</div><div class="kl">미달 지표 · Fail</div></div>
-    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kAvg">0%</div><div class="kl">평균 달성률 · Achievement</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kPass">0</div><div class="kl">Target Met · Pass</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kWarn">0</div><div class="kl">Near Target · Near</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kFail">0</div><div class="kl">Below Target · Fail</div></div>
+    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kAvg">0%</div><div class="kl">Avg Achievement</div></div>
   </div>
   <div class="panel">
-    <div class="panel-h">📊 KPI 상세 스코어카드</div>
+    <div class="panel-h">📊 KPI Detail Scorecard</div>
     <table>
       <thead><tr>
-        <th>KPI 지표</th><th class="c">목표</th><th class="c">실적</th>
-        <th class="c" style="width:150px;">달성률</th><th class="c">6개월 추이</th><th class="c">평가</th>
+        <th>KPI Indicator</th><th class="c">Target</th><th class="c">Actual</th>
+        <th class="c" style="width:150px;">Achievement</th><th class="c">6-Month Trend</th><th class="c">Status</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
     </table>
@@ -116,19 +116,19 @@ tbody tr:hover:not(.cat) td{background:#f0fdf4;}
 <script>
 /* dir: 'up'=higher better, 'dn'=lower better. trend index 5 = current month */
 var KPI=[
- {cat:'생산',nm:'생산 계획 달성률',unit:'%',target:100,dir:'up',trend:[97,99,101,98,103,101.4]},
- {cat:'생산',nm:'설비 종합 가동률',unit:'%',target:90,dir:'up',trend:[88,90,87,89,91,89.2]},
- {cat:'품질',nm:'직행률 (FTT)',unit:'%',target:97,dir:'up',trend:[95.8,96.4,96.0,96.9,97.3,97.6]},
- {cat:'품질',nm:'공정 불량률',unit:'%',target:1.5,dir:'dn',trend:[2.1,1.9,2.0,1.7,1.5,1.42]},
- {cat:'품질',nm:'고객 클레임 건수',unit:'건',target:2,dir:'dn',trend:[4,3,5,2,3,2]},
- {cat:'납기',nm:'납기 준수율 (OTD)',unit:'%',target:98,dir:'up',trend:[97.1,97.8,96.9,97.4,98.0,97.6]},
- {cat:'납기',nm:'출하 정시율',unit:'%',target:98,dir:'up',trend:[98.4,99.0,98.2,98.6,99.1,98.7]},
- {cat:'설비',nm:'종합 OEE',unit:'%',target:85,dir:'up',trend:[78.5,80.1,79.0,79.8,81.2,79.6]},
- {cat:'설비',nm:'평균 MTBF',unit:'h',target:350,dir:'up',trend:[300,320,290,330,360,372]},
- {cat:'원가',nm:'재고 회전율',unit:'회',target:5.0,dir:'up',trend:[4.4,4.6,4.5,4.8,5.1,5.2]}
+ {cat:'Production',nm:'Production Plan Achievement',unit:'%',target:100,dir:'up',trend:[97,99,101,98,103,101.4]},
+ {cat:'Production',nm:'Overall Equipment Uptime',unit:'%',target:90,dir:'up',trend:[88,90,87,89,91,89.2]},
+ {cat:'Quality',nm:'First Time Through (FTT)',unit:'%',target:97,dir:'up',trend:[95.8,96.4,96.0,96.9,97.3,97.6]},
+ {cat:'Quality',nm:'Process Defect Rate',unit:'%',target:1.5,dir:'dn',trend:[2.1,1.9,2.0,1.7,1.5,1.42]},
+ {cat:'Quality',nm:'Customer Claims',unit:' cases',target:2,dir:'dn',trend:[4,3,5,2,3,2]},
+ {cat:'Delivery',nm:'On-Time Delivery (OTD)',unit:'%',target:98,dir:'up',trend:[97.1,97.8,96.9,97.4,98.0,97.6]},
+ {cat:'Delivery',nm:'On-Time Shipment Rate',unit:'%',target:98,dir:'up',trend:[98.4,99.0,98.2,98.6,99.1,98.7]},
+ {cat:'Equipment',nm:'Overall OEE',unit:'%',target:85,dir:'up',trend:[78.5,80.1,79.0,79.8,81.2,79.6]},
+ {cat:'Equipment',nm:'Average MTBF',unit:'h',target:350,dir:'up',trend:[300,320,290,330,360,372]},
+ {cat:'Cost',nm:'Inventory Turnover',unit:'x',target:5.0,dir:'up',trend:[4.4,4.6,4.5,4.8,5.1,5.2]}
 ];
 function monIdx(){var s=document.getElementById('fMonth').value;
-  return s.indexOf('5월')>=0?5:(s.indexOf('4월')>=0?4:3);}
+  return s.indexOf('May')>=0?5:(s.indexOf('April')>=0?4:3);}
 function actual(k){return k.trend[monIdx()];}
 function achv(k){
   var a=actual(k);
@@ -137,7 +137,7 @@ function achv(k){
   return a===0?200:k.target/a*100;
 }
 function status(pct){return pct>=100?'ok':(pct>=95?'warn':'bad');}
-var STT={ok:{ko:'달성',cls:'st-ok'},warn:{ko:'근접',cls:'st-warn'},bad:{ko:'미달',cls:'st-bad'}};
+var STT={ok:{en:'Pass',cls:'st-ok'},warn:{en:'Near',cls:'st-warn'},bad:{en:'Fail',cls:'st-bad'}};
 function r1(n){return Math.round(n*10)/10;}
 function vis(){var c=document.getElementById('fCat').value;return KPI.filter(function(k){return !c||k.cat===c;});}
 function apply(){
@@ -159,10 +159,10 @@ function apply(){
   document.getElementById('heroGauge').style.background='conic-gradient('+col+' 0% '+score+'%,rgba(255,255,255,.12) '+score+'% 100%)';
   document.getElementById('heroV').style.color=col;
   document.getElementById('heroP').textContent=
-    '전체 '+v.length+'개 지표 중 '+pass+'개 달성 · '+warn+'개 근접 · '+fail+'개 미달 — '+
-    (score>=85?'우수한 성과입니다.':score>=70?'대체로 양호하나 일부 개선이 필요합니다.':'중점 개선 관리가 필요합니다.');
+    'Of '+v.length+' indicators: '+pass+' pass · '+warn+' near · '+fail+' fail — '+
+    (score>=85?'Excellent performance.':score>=70?'Generally good, some improvements needed.':'Focused improvement management required.');
   document.getElementById('rSub').textContent=document.getElementById('fMonth').value+' · '+
-    (document.getElementById('fCat').value||'전 부문');
+    (document.getElementById('fCat').value||'All Categories');
   renderTable(v);
 }
 function renderTable(v){
@@ -181,28 +181,28 @@ function renderTable(v){
       '<td class="c" style="text-align:center;"><span class="ach"><span class="at"><i style="width:'+Math.min(100,p)+'%;background:'+col+'"></i></span>'+
         '<b style="color:'+col+'">'+r1(p)+'%</b></span></td>'+
       '<td class="c" style="text-align:center;"><span class="spark">'+spark+'</span></td>'+
-      '<td class="c" style="text-align:center;"><span class="st '+STT[s].cls+'">'+STT[s].ko+'</span></td></tr>';
+      '<td class="c" style="text-align:center;"><span class="st '+STT[s].cls+'">'+STT[s].en+'</span></td></tr>';
   });
   document.getElementById('tbody').innerHTML=h;
 }
 function catName(c){
-  return {'생산':'🏭 생산 부문','품질':'✓ 품질 부문','납기':'🚚 납기 부문','설비':'⚙️ 설비 부문','원가':'💰 원가 부문'}[c]||c;
+  return {'Production':'🏭 Production','Quality':'✓ Quality','Delivery':'🚚 Delivery','Equipment':'⚙️ Equipment','Cost':'💰 Cost'}[c]||c;
 }
 function exportCsv(){
   var v=vis();
   var csv='Category,KPI,Target,Actual,Unit,Achievement%,Status\n';
   v.forEach(function(k){
-    csv+=[k.cat,k.nm,k.target,actual(k),k.unit,r1(achv(k)),STT[status(achv(k))].ko].join(',')+'\n';});
+    csv+=[k.cat,k.nm,k.target,actual(k),k.unit,r1(achv(k)),STT[status(achv(k))].en].join(',')+'\n';});
   var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='RPT_MonthlyKPI_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','월간 KPI 스코어카드를 CSV로 내보냈습니다.');
+  toast('','Export Complete','Monthly KPI Scorecard exported to CSV.');
 }
-function printRpt(){toast('info','인쇄 미리보기','월간 KPI 리포트 인쇄를 준비합니다. (데모)');}
+function printRpt(){toast('info','Print Preview','Preparing Monthly KPI Report for print. (Demo)');}
 function resetAll(){
   document.getElementById('fMonth').selectedIndex=0;document.getElementById('fCat').value='';
-  apply();toast('info','초기화','리포트 조건을 초기화했습니다.');
+  apply();toast('info','Reset','Report filters have been reset.');
 }
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');

@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PP-ODM Operating · Downtime Monitor · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -95,36 +95,36 @@ tbody tr:hover td{background:#f0fdf4;}
 <body>
 <div class="scr-head">
   <div class="sh-id">PP-ODM</div>
-  <div class="sh-tt"><div class="sh-en">Operating · Downtime Monitor</div><div class="sh-ko">가동·비가동 모니터 — 라인별 실시간 가동 상태 감시</div></div>
+  <div class="sh-tt"><div class="sh-en">Operating · Downtime Monitor</div><div class="sh-ko">Real-time line uptime/downtime status monitoring</div></div>
   <span class="sh-tag">/pp/odm</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>사업장 Plant</label>
-    <select id="fPlant" onchange="apply()"><option>SAV 서산</option></select></div>
-  <div class="fld"><label>라인 Line</label>
-    <select id="fLine" onchange="apply()"><option value="">전체 All</option><option>SAV-INJ-01</option><option>SAV-INJ-02</option><option>SAV-ASSY-01</option><option>SAV-PNT-01</option></select></div>
-  <div class="fld"><label>상태 Status</label>
-    <select id="fStat" onchange="apply()"><option value="">전체</option><option value="run">가동 중</option><option value="down">비가동</option></select></div>
-  <button class="btn btn-p btn-sm" onclick="apply()">🔍 적용</button>
-  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
-  <div class="swt" style="margin-left:auto;"><span>실시간 새로고침</span>
+  <div class="fld"><label>Plant</label>
+    <select id="fPlant" onchange="apply()"><option>SAV Detroit, MI</option></select></div>
+  <div class="fld"><label>Line</label>
+    <select id="fLine" onchange="apply()"><option value="">All</option><option>SAV-INJ-01</option><option>SAV-INJ-02</option><option>SAV-ASSY-01</option><option>SAV-PNT-01</option></select></div>
+  <div class="fld"><label>Status</label>
+    <select id="fStat" onchange="apply()"><option value="">All</option><option value="run">Running</option><option value="down">Down</option></select></div>
+  <button class="btn btn-p btn-sm" onclick="apply()">🔍 Apply</button>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>
+  <div class="swt" style="margin-left:auto;"><span>Auto Refresh</span>
     <div class="tk on" id="autoTk" onclick="toggleAuto()"><i></i></div></div>
   <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#10b981"><div class="kv" id="kRun">0</div><div class="kl">가동 라인 · Running</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kDown">0</div><div class="kl">비가동 라인 · Down</div></div>
-    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kDt">0</div><div class="kl">금일 비가동 누계 · 분</div></div>
-    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kUt">0%</div><div class="kl">평균 가동률 · Avail.</div><div class="kt">target ≥ 85%</div></div>
-    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kEv">0</div><div class="kl">금일 비가동 발생 · Events</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kRun">0</div><div class="kl">Running Lines</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kDown">0</div><div class="kl">Down Lines</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kDt">0</div><div class="kl">Today's Downtime (min)</div></div>
+    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kUt">0%</div><div class="kl">Avg Availability</div><div class="kt">target ≥ 85%</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kEv">0</div><div class="kl">Today's Events</div></div>
   </div>
   <div class="cards" id="cards"></div>
   <div class="panel">
-    <div class="panel-h">📋 금일 비가동 이벤트 로그</div>
+    <div class="panel-h">📋 Today's Downtime Event Log</div>
     <table>
-      <thead><tr><th>발생 시각</th><th>라인</th><th>구분</th><th>사유</th><th style="text-align:center;">지속(분)</th><th>상태</th></tr></thead>
+      <thead><tr><th>Time</th><th>Line</th><th>Type</th><th>Reason</th><th style="text-align:center;">Duration (min)</th><th>Status</th></tr></thead>
       <tbody id="logBody"></tbody>
     </table>
   </div>
@@ -133,20 +133,20 @@ tbody tr:hover td{background:#f0fdf4;}
 <!-- stop modal -->
 <div class="ov" id="ovStop">
   <div class="modal">
-    <div class="modal-h"><span class="mt" id="smTitle">라인 정지 처리</span><span class="mx" onclick="closeOv('ovStop')">✕</span></div>
+    <div class="modal-h"><span class="mt" id="smTitle">Stop Line</span><span class="mx" onclick="closeOv('ovStop')">✕</span></div>
     <div class="modal-b">
-      <div class="mfld"><label>비가동 구분 Type</label>
-        <select id="smType"><option value="pd">계획 정지 (PM·교환·휴게)</option><option value="ad">비계획 정지 (고장·불량)</option></select></div>
-      <div class="mfld"><label>사유 Reason</label>
+      <div class="mfld"><label>Downtime Type</label>
+        <select id="smType"><option value="pd">Planned (PM / Changeover / Break)</option><option value="ad">Unplanned (Breakdown / Defect)</option></select></div>
+      <div class="mfld"><label>Reason</label>
         <select id="smReason">
-          <option>설비 고장</option><option>금형 교환</option><option>자재 결품</option>
-          <option>품질 이상</option><option>정기 PM</option><option>교대 휴게</option><option>기타</option></select></div>
+          <option>Equipment Breakdown</option><option>Mold Changeover</option><option>Material Shortage</option>
+          <option>Quality Issue</option><option>Routine PM</option><option>Shift Break</option><option>Other</option></select></div>
       <div style="font-size:10px;color:var(--sub);background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;padding:8px;">
-        ⚠ 정지 처리 시 해당 라인 타이머가 비가동 모드로 전환되고 이벤트 로그에 기록됩니다.</div>
+        ⚠ Stopping the line switches its timer to downtime mode and logs the event.</div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovStop')">취소</button>
-      <button class="btn btn-r" onclick="confirmStop()">정지 처리</button>
+      <button class="btn btn-s" onclick="closeOv('ovStop')">Cancel</button>
+      <button class="btn btn-r" onclick="confirmStop()">Stop Line</button>
     </div>
   </div>
 </div>
@@ -155,19 +155,19 @@ tbody tr:hover td{background:#f0fdf4;}
 <script>
 function nowStr(){var d=new Date();return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);}
 var LINES=[
- {id:'SAV-INJ-01',nm:'사출 1호기',st:'run',elapsed:142,wo:'WO-2605-115',it:'도어트림 RH',op:480,pdt:55,adt:0,reason:''},
- {id:'SAV-INJ-02',nm:'사출 2호기',st:'ad',elapsed:23,wo:'WO-2605-118',it:'라디에이터 그릴',op:392,pdt:30,adt:23,reason:'설비 고장'},
- {id:'SAV-ASSY-01',nm:'조립 1라인',st:'run',elapsed:88,wo:'WO-2605-120',it:'콘솔 조립',op:510,pdt:30,adt:0,reason:''},
- {id:'SAV-PNT-01',nm:'도장 1라인',st:'pd',elapsed:34,wo:'WO-2605-125',it:'그릴 도장',op:360,pdt:120,adt:0,reason:'부스 청소'}
+ {id:'SAV-INJ-01',nm:'Injection 1',st:'run',elapsed:142,wo:'WO-2605-115',it:'Door Trim RH',op:480,pdt:55,adt:0,reason:''},
+ {id:'SAV-INJ-02',nm:'Injection 2',st:'ad',elapsed:23,wo:'WO-2605-118',it:'Radiator Grille',op:392,pdt:30,adt:23,reason:'Equipment Breakdown'},
+ {id:'SAV-ASSY-01',nm:'Assembly 1',st:'run',elapsed:88,wo:'WO-2605-120',it:'Console Assembly',op:510,pdt:30,adt:0,reason:''},
+ {id:'SAV-PNT-01',nm:'Paint 1',st:'pd',elapsed:34,wo:'WO-2605-125',it:'Grille Painting',op:360,pdt:120,adt:0,reason:'Booth Cleaning'}
 ];
 var LOG=[
- {t:'08:30',line:'SAV-PNT-01',ty:'pd',reason:'라인 예열',dur:60,stat:'종료'},
- {t:'10:05',line:'SAV-INJ-02',ty:'pd',reason:'금형 교환',dur:30,stat:'종료'},
- {t:'11:40',line:'SAV-ASSY-01',ty:'pd',reason:'교대 점검',dur:30,stat:'종료'},
- {t:'13:46',line:'SAV-PNT-01',ty:'pd',reason:'부스 청소',dur:34,stat:'진행 중'},
- {t:'13:57',line:'SAV-INJ-02',ty:'ad',reason:'설비 고장',dur:23,stat:'진행 중'}
+ {t:'08:30',line:'SAV-PNT-01',ty:'pd',reason:'Line Preheating',dur:60,stat:'Closed'},
+ {t:'10:05',line:'SAV-INJ-02',ty:'pd',reason:'Mold Changeover',dur:30,stat:'Closed'},
+ {t:'11:40',line:'SAV-ASSY-01',ty:'pd',reason:'Shift Changeover',dur:30,stat:'Closed'},
+ {t:'13:46',line:'SAV-PNT-01',ty:'pd',reason:'Booth Cleaning',dur:34,stat:'In Progress'},
+ {t:'13:57',line:'SAV-INJ-02',ty:'ad',reason:'Equipment Breakdown',dur:23,stat:'In Progress'}
 ];
-var ST={run:{ko:'가동 중',cls:'st-run',col:'#10b981'},pd:{ko:'계획 정지',cls:'st-pd',col:'#f59e0b'},ad:{ko:'비계획 정지',cls:'st-ad',col:'#dc2626'}};
+var ST={run:{ko:'Running',cls:'st-run',col:'#10b981'},pd:{ko:'Planned Stop',cls:'st-pd',col:'#f59e0b'},ad:{ko:'Unplanned Stop',cls:'st-ad',col:'#dc2626'}};
 var auto=true,timer=null,stopIdx=-1;
 function isDown(L){return L.st==='pd'||L.st==='ad';}
 function vis(){
@@ -207,25 +207,25 @@ function renderCards(){
       '<span class="stbadge '+s.cls+'"><span class="dot"></span>'+s.ko+'</span></div>'+
       '<div class="lc-b">'+
       '<div class="lc-tmr"><span class="tv">'+fmt(L.elapsed)+'</span>'+
-      '<span class="tl">'+(L.st==='run'?'현재 작업 경과':'정지 경과 — '+L.reason)+'</span></div>'+
-      '<div class="lc-wo"><span class="wk">작업지시 </span><b>'+L.wo+'</b> · '+L.it+'</div>'+
+      '<span class="tl">'+(L.st==='run'?'Current Run Elapsed':'Downtime Elapsed — '+L.reason)+'</span></div>'+
+      '<div class="lc-wo"><span class="wk">Work Order </span><b>'+L.wo+'</b> · '+L.it+'</div>'+
       '<div class="splitbar">'+
         '<i style="width:'+opP+'%;background:#10b981;"></i>'+
         '<i style="width:'+pdP+'%;background:#f59e0b;"></i>'+
         '<i style="width:'+adP+'%;background:#dc2626;"></i></div>'+
       '<div class="split-lg">'+
-        '<span><i style="background:#10b981"></i>가동 '+L.op+'분</span>'+
-        '<span><i style="background:#f59e0b"></i>계획정지 '+L.pdt+'분</span>'+
-        '<span><i style="background:#dc2626"></i>비계획 '+L.adt+'분</span>'+
-        '<span style="margin-left:auto;font-weight:800;color:'+(ut>=85?'#10b981':'#dc2626')+'">가동률 '+ut+'%</span></div>'+
+        '<span><i style="background:#10b981"></i>Run '+L.op+' min</span>'+
+        '<span><i style="background:#f59e0b"></i>Planned '+L.pdt+' min</span>'+
+        '<span><i style="background:#dc2626"></i>Unplanned '+L.adt+' min</span>'+
+        '<span style="margin-left:auto;font-weight:800;color:'+(ut>=85?'#10b981':'#dc2626')+'">Avail '+ut+'%</span></div>'+
       '</div>'+
-      '<div class="lc-f"><span class="ev">최근: '+(L.st==='run'?'정상 가동 중':L.reason+' 발생')+'</span>'+
+      '<div class="lc-f"><span class="ev">Latest: '+(L.st==='run'?'Running normally':L.reason+' occurred')+'</span>'+
         (L.st==='run'
-          ?'<button class="btn btn-r btn-sm" onclick="openStop('+x.i+')">■ 정지 처리</button>'
-          :'<button class="btn btn-p btn-sm" onclick="resume('+x.i+')">▶ 재가동</button>')+
+          ?'<button class="btn btn-r btn-sm" onclick="openStop('+x.i+')">■ Stop</button>'
+          :'<button class="btn btn-p btn-sm" onclick="resume('+x.i+')">▶ Resume</button>')+
       '</div></div>';
   });
-  document.getElementById('cards').innerHTML=h||'<div style="grid-column:1/-1;text-align:center;color:#9ca3af;padding:30px;">조건에 맞는 라인이 없습니다.</div>';
+  document.getElementById('cards').innerHTML=h||'<div style="grid-column:1/-1;text-align:center;color:#9ca3af;padding:30px;">No lines match the current filters.</div>';
 }
 function renderLog(){
   var fl=document.getElementById('fLine').value;
@@ -233,17 +233,17 @@ function renderLog(){
   var h='';
   rows.slice().reverse().forEach(function(e){
     h+='<tr><td class="mono">'+e.t+'</td><td class="mono" style="font-weight:700;">'+e.line+'</td>'+
-      '<td><span class="dt-tag '+(e.ty==='ad'?'dt-ad':'dt-pd')+'">'+(e.ty==='ad'?'비계획':'계획')+'</span></td>'+
+      '<td><span class="dt-tag '+(e.ty==='ad'?'dt-ad':'dt-pd')+'">'+(e.ty==='ad'?'Unplanned':'Planned')+'</span></td>'+
       '<td>'+e.reason+'</td><td style="text-align:center;font-family:JetBrains Mono,monospace;font-weight:700;">'+e.dur+'</td>'+
-      '<td>'+(e.stat==='진행 중'?'<span style="color:#dc2626;font-weight:800;">● 진행 중</span>':'<span style="color:#10b981;">✓ 종료</span>')+'</td></tr>';
+      '<td>'+(e.stat==='In Progress'?'<span style="color:#dc2626;font-weight:800;">● In Progress</span>':'<span style="color:#10b981;">✓ Closed</span>')+'</td></tr>';
   });
-  document.getElementById('logBody').innerHTML=h||'<tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:20px;">이벤트 없음</td></tr>';
+  document.getElementById('logBody').innerHTML=h||'<tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:20px;">No events</td></tr>';
 }
 function fmt(min){return ('0'+Math.floor(min/60)).slice(-2)+'h '+('0'+(min%60)).slice(-2)+'m';}
 function openStop(i){
   stopIdx=i;
-  document.getElementById('smTitle').textContent=LINES[i].id+' 정지 처리';
-  document.getElementById('smType').value='ad';document.getElementById('smReason').value='설비 고장';
+  document.getElementById('smTitle').textContent=LINES[i].id+' Stop';
+  document.getElementById('smType').value='ad';document.getElementById('smReason').value='Equipment Breakdown';
   openOv('ovStop');
 }
 function confirmStop(){
@@ -252,29 +252,29 @@ function confirmStop(){
   var ty=document.getElementById('smType').value;
   var rs=document.getElementById('smReason').value;
   L.st=ty;L.reason=rs;L.elapsed=0;
-  LOG.push({t:nowStr(),line:L.id,ty:ty,reason:rs,dur:0,stat:'진행 중'});
+  LOG.push({t:nowStr(),line:L.id,ty:ty,reason:rs,dur:0,stat:'In Progress'});
   closeOv('ovStop');apply();
-  toast(ty==='ad'?'warn':'info',L.id+' 정지','「'+rs+'」 사유로 비가동 처리되었습니다. 타이머 전환 완료.');
+  toast(ty==='ad'?'warn':'info',L.id+' Stopped','Reason: "'+rs+'". Timer switched to downtime mode.');
 }
 function resume(i){
   var L=LINES[i],rs=L.reason;
   /* close matching open log */
-  for(var k=LOG.length-1;k>=0;k--){if(LOG[k].line===L.id&&LOG[k].stat==='진행 중'){LOG[k].stat='종료';LOG[k].dur=L.elapsed;break;}}
+  for(var k=LOG.length-1;k>=0;k--){if(LOG[k].line===L.id&&LOG[k].stat==='In Progress'){LOG[k].stat='Closed';LOG[k].dur=L.elapsed;break;}}
   if(L.st==='ad')L.adt+=L.elapsed;else L.pdt+=L.elapsed;
   L.st='run';L.reason='';L.elapsed=0;
   apply();
-  toast('',L.id+' 재가동','라인이 정상 가동 상태로 전환되었습니다. 비가동 '+'시간이 누계에 반영되었습니다.');
+  toast('',L.id+' Resumed','Line is back to running. Downtime added to cumulative.');
 }
 function tick(){
   LINES.forEach(function(L){L.elapsed++;if(L.st==='run')L.op++;else if(L.st==='ad')L.adt++;else L.pdt++;});
-  LOG.forEach(function(e){if(e.stat==='진행 중')e.dur++;});
+  LOG.forEach(function(e){if(e.stat==='In Progress')e.dur++;});
   apply();
 }
 function toggleAuto(){
   auto=!auto;
   document.getElementById('autoTk').classList.toggle('on',auto);
-  if(auto){timer=setInterval(tick,2000);toast('info','실시간 새로고침 ON','2초 간격으로 라인 상태가 갱신됩니다.');}
-  else{clearInterval(timer);toast('info','실시간 새로고침 OFF','자동 갱신을 중지했습니다.');}
+  if(auto){timer=setInterval(tick,2000);toast('info','Auto Refresh ON','Line state refreshes every 2 seconds.');}
+  else{clearInterval(timer);toast('info','Auto Refresh OFF','Stopped automatic refresh.');}
 }
 function exportCsv(){
   var csv='Line,Name,Status,Reason,ElapsedMin,OpMin,PlanDtMin,UnplanDtMin,Avail%\n';
@@ -284,11 +284,11 @@ function exportCsv(){
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='PP_ODM_Status_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','라인 가동 상태를 CSV로 내보냈습니다.');
+  toast('','Export Complete','Line status exported to CSV.');
 }
 function resetAll(){
   document.getElementById('fLine').value='';document.getElementById('fStat').value='';
-  apply();toast('info','초기화','전체 라인 기준으로 모니터를 초기화했습니다.');
+  apply();toast('info','Reset','Monitor reset to all-lines view.');
 }
 function openOv(id){document.getElementById(id).classList.add('on');}
 function closeOv(id){document.getElementById(id).classList.remove('on');}

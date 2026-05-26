@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>INJ-08 Andon Emergency · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--sc:#ea580c;--em:#dc2626;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
 .head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:3px solid var(--em);background:linear-gradient(180deg,rgba(220,38,38,.15),rgba(0,0,0,.3));}
 .head .id{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;color:#fca5a5;}
 .head .tt{flex:1;}
@@ -75,29 +75,29 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 </head>
 <body>
 <div class="head">
-  <button class="back" onclick="back()">‹ 대시보드</button>
+  <button class="back" onclick="back()">‹ Dashboard</button>
   <div class="id">INJ-08</div>
-  <div class="tt"><div class="en">Andon Emergency Call</div><div class="ko">안돈 호출 — 긴급 지원 요청 시스템</div></div>
+  <div class="tt"><div class="en">Andon Emergency Call</div><div class="ko">Emergency Support Request System</div></div>
   <span class="alarm"><span class="d">🚨</span>ANDON ALERT SYSTEM</span>
 </div>
 <div class="body">
   <div class="col">
-    <div class="sec-t"><span style="font-size:16px;">🆘</span>호출 유형 선택 · CALL TYPE</div>
+    <div class="sec-t"><span style="font-size:16px;">🆘</span>CALL TYPE</div>
     <div class="btn-grid">
-      <div class="cbtn" style="--c:#f59e0b" onclick="ask('반장 호출','👨‍💼','반장에게 즉시 호출 신호를 보냅니다','3분')"><div class="ic">👨‍💼</div><div class="nm">반장 호출</div><div class="ds">일반 작업 문의</div><div class="eta">ETA · 3분</div></div>
-      <div class="cbtn" style="--c:#3b82f6" onclick="ask('정비 호출','🔧','설비 정비반에 호출 신호를 보냅니다','5분')"><div class="ic">🔧</div><div class="nm">정비 호출</div><div class="ds">설비 이상·고장</div><div class="eta">ETA · 5분</div></div>
-      <div class="cbtn" style="--c:#8b5cf6" onclick="ask('품질 호출','🔬','품질팀에 호출 신호를 보냅니다','5분')"><div class="ic">🔬</div><div class="nm">품질 호출</div><div class="ds">불량·이상 발생</div><div class="eta">ETA · 5분</div></div>
-      <div class="cbtn" style="--c:#10b981" onclick="ask('자재 부족','📦','자재팀에 즉시 보충 요청을 보냅니다','7분')"><div class="ic">📦</div><div class="nm">자재 부족</div><div class="ds">원자재 보충 요청</div><div class="eta">ETA · 7분</div></div>
+      <div class="cbtn" style="--c:#f59e0b" onclick="ask('Team Lead Call','👨‍💼','Send immediate call signal to Team Lead','3 min')"><div class="ic">👨‍💼</div><div class="nm">Team Lead Call</div><div class="ds">General Work Inquiry</div><div class="eta">ETA · 3 min</div></div>
+      <div class="cbtn" style="--c:#3b82f6" onclick="ask('Maintenance Call','🔧','Send call signal to Maintenance team','5 min')"><div class="ic">🔧</div><div class="nm">Maintenance Call</div><div class="ds">Equipment Issue / Fault</div><div class="eta">ETA · 5 min</div></div>
+      <div class="cbtn" style="--c:#8b5cf6" onclick="ask('QC Call','🔬','Send call signal to QC team','5 min')"><div class="ic">🔬</div><div class="nm">QC Call</div><div class="ds">Defect / Anomaly</div><div class="eta">ETA · 5 min</div></div>
+      <div class="cbtn" style="--c:#10b981" onclick="ask('Material Shortage','📦','Send immediate refill request to Materials team','7 min')"><div class="ic">📦</div><div class="nm">Material Shortage</div><div class="ds">Raw Material Refill Request</div><div class="eta">ETA · 7 min</div></div>
     </div>
-    <div class="sec-t" style="margin-top:6px;"><span style="font-size:16px;">⚠</span>비상 정지 · EMERGENCY STOP</div>
-    <button class="big-stop" onclick="ask('🚨 비상 정지 / 안전 사고','🚨','전체 라인 비상 정지 신호를 발송합니다. 안전 담당·반장·관리자에게 즉시 통보됩니다','즉시')">
+    <div class="sec-t" style="margin-top:6px;"><span style="font-size:16px;">⚠</span>EMERGENCY STOP</div>
+    <button class="big-stop" onclick="ask('🚨 Emergency Stop / Safety Incident','🚨','Dispatch emergency stop signal for the entire line. Safety officer, Team Lead, and Manager will be immediately notified','Immediate')">
       🚨 EMERGENCY STOP
-      <span class="sub">안전 사고 · 비상 정지 (안전 담당 즉시 통보)</span>
+      <span class="sub">Safety Incident · Emergency Stop (Notifies Safety Officer Immediately)</span>
     </button>
   </div>
   <div class="col">
     <div class="calls">
-      <h3>📡 진행 중 호출 <span class="badge" id="badge">2</span></h3>
+      <h3>📡 Active Calls <span class="badge" id="badge">2</span></h3>
       <div class="c-list" id="cList"></div>
     </div>
   </div>
@@ -106,63 +106,63 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 <div class="modal-ov" id="modalConfirm">
   <div class="confirm">
     <div class="ic" id="cIc">🚨</div>
-    <div class="ti" id="cTi">호출 확인</div>
+    <div class="ti" id="cTi">Confirm Call</div>
     <div class="ds" id="cDs"></div>
     <div class="acts">
-      <button class="b cancel" onclick="closeModal()">취소</button>
-      <button class="b send" onclick="confirm()">▶ 즉시 호출</button>
+      <button class="b cancel" onclick="closeModal()">Cancel</button>
+      <button class="b send" onclick="confirm()">▶ Send Now</button>
     </div>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 <script>
-var ICON={'반장 호출':'#f59e0b','정비 호출':'#3b82f6','품질 호출':'#8b5cf6','자재 부족':'#10b981','🚨 비상 정지 / 안전 사고':'#dc2626'};
+var ICON={'Team Lead Call':'#f59e0b','Maintenance Call':'#3b82f6','QC Call':'#8b5cf6','Material Shortage':'#10b981','🚨 Emergency Stop / Safety Incident':'#dc2626'};
 var CALLS=[
- {ty:'정비 호출',ic:'🔧',at:'09:12',by:'박작업',st:'응답 대기',col:'#fbbf24',act:false,eta:'5분'},
- {ty:'자재 부족',ic:'📦',at:'09:05',by:'박작업',st:'배송 중',col:'#10b981',act:true,eta:'2분'}
+ {ty:'Maintenance Call',ic:'🔧',at:'09:12',by:'Mike Johnson',st:'Awaiting Response',col:'#fbbf24',act:false,eta:'5 min'},
+ {ty:'Material Shortage',ic:'📦',at:'09:05',by:'Mike Johnson',st:'In Transit',col:'#10b981',act:true,eta:'2 min'}
 ];
 var pend=null;
 function ask(t,i,d,eta){pend={t:t,i:i,d:d,eta:eta};
   document.getElementById('cIc').textContent=i;
-  document.getElementById('cTi').textContent=t+' 확인';
-  document.getElementById('cDs').innerHTML=d+'.<br><b style="color:#fff;">예상 응답 시간: '+eta+'</b><br><br>「즉시 호출」을 누르면 알림이 즉시 발송됩니다.';
+  document.getElementById('cTi').textContent='Confirm '+t;
+  document.getElementById('cDs').innerHTML=d+'.<br><b style="color:#fff;">Expected response time: '+eta+'</b><br><br>Press "Send Now" to dispatch the alert immediately.';
   document.getElementById('modalConfirm').classList.add('on');
 }
 function closeModal(){document.getElementById('modalConfirm').classList.remove('on');pend=null;}
 function confirm(){
   if(!pend)return;
-  CALLS.unshift({ty:pend.t,ic:pend.i,at:new Date().toTimeString().slice(0,5),by:'박작업',st:'호출 중',col:'#dc2626',act:true,eta:pend.eta});
+  CALLS.unshift({ty:pend.t,ic:pend.i,at:new Date().toTimeString().slice(0,5),by:'Mike Johnson',st:'Calling',col:'#dc2626',act:true,eta:pend.eta});
   renderCalls();closeModal();
-  toast('','🚨 호출 발송됨',pend.t+' — 알림이 발송되었습니다. ETA '+pend.eta);
+  toast('','🚨 Call Sent',pend.t+' — Alert has been dispatched. ETA '+pend.eta);
   /* simulate status progression */
   var c=CALLS[0];
-  setTimeout(function(){c.st='응답 중';c.col='#fbbf24';renderCalls();
-    toast('info','응답 확인',pend.t+' — 담당자가 응답을 확인했습니다.');},2500);
-  setTimeout(function(){c.st='도착';c.col='#22c55e';renderCalls();
-    toast('ok','담당자 도착',pend.t+' — 담당자가 현장에 도착했습니다.');},6000);
+  setTimeout(function(){c.st='Responding';c.col='#fbbf24';renderCalls();
+    toast('info','Response Confirmed',pend.t+' — Responder has acknowledged.');},2500);
+  setTimeout(function(){c.st='Arrived';c.col='#22c55e';renderCalls();
+    toast('ok','Responder Arrived',pend.t+' — Responder has arrived on site.');},6000);
   pend=null;
 }
 function renderCalls(){
-  var n=CALLS.filter(function(c){return c.st!=='해결';}).length;
+  var n=CALLS.filter(function(c){return c.st!=='Resolved';}).length;
   document.getElementById('badge').textContent=n;
   document.getElementById('cList').innerHTML=CALLS.map(function(c,i){
-    var aCls=(c.st==='호출 중'||c.st==='응답 중'||c.st==='배송 중')?'st-act':'';
+    var aCls=(c.st==='Calling'||c.st==='Responding'||c.st==='In Transit')?'st-act':'';
     return '<div class="call '+aCls+'" style="--st:'+c.col+'">'+
       '<div class="ch"><span class="ci">'+c.ic+'</span>'+
       '<span class="ct">'+c.ty+'</span>'+
       '<span class="stb">'+c.st+'</span></div>'+
-      '<div class="cm"><span>호출 '+c.at+' · '+c.by+'</span><b>ETA '+c.eta+'</b></div>'+
+      '<div class="cm"><span>Called '+c.at+' · '+c.by+'</span><b>ETA '+c.eta+'</b></div>'+
       '<div class="cact">'+
-        (c.st==='해결'?'<span class="ca ok">✓ 종료됨</span>':
-          '<button class="ca ok" onclick="resolve('+i+')">✓ 해결 처리</button>'+
-          '<button class="ca cancel" onclick="cancel('+i+')">✕ 취소</button>')+
+        (c.st==='Resolved'?'<span class="ca ok">✓ Closed</span>':
+          '<button class="ca ok" onclick="resolve('+i+')">✓ Resolve</button>'+
+          '<button class="ca cancel" onclick="cancel('+i+')">✕ Cancel</button>')+
       '</div></div>';
-  }).join('')||'<div style="text-align:center;color:#a8997f;padding:20px;font-size:12px;">진행 중인 호출이 없습니다.</div>';
+  }).join('')||'<div style="text-align:center;color:#a8997f;padding:20px;font-size:12px;">No active calls.</div>';
 }
-function resolve(i){CALLS[i].st='해결';CALLS[i].col='#86efac';renderCalls();
-  toast('ok','호출 해결 ✓',CALLS[i].ty+' — 정상 처리되었습니다.');}
-function cancel(i){CALLS.splice(i,1);renderCalls();toast('','호출 취소','호출이 취소되었습니다.');}
-function back(){toast('','뒤로 이동','POP 대시보드로 돌아갑니다.');}
+function resolve(i){CALLS[i].st='Resolved';CALLS[i].col='#86efac';renderCalls();
+  toast('ok','Call Resolved ✓',CALLS[i].ty+' — Resolved successfully.');}
+function cancel(i){CALLS.splice(i,1);renderCalls();toast('','Call Cancelled','The call has been cancelled.');}
+function back(){toast('','Back','Returning to POP Dashboard.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='info'?'ℹ ':type==='ok'?'✓ ':'🚨 ')+title+'</div><div class="tb">'+body+'</div>';

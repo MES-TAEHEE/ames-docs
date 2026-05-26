@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>MNT-09 Equipment Dashboard · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -64,10 +64,10 @@ select{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12
 .b-y{background:#fef3c7;color:#92400e;}.b-b{background:#dbeafe;color:#1e40af;}.b-g{background:#d1fae5;color:#065f46;}
 /* mini bar */
 .mb{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11px;}
-.mb .mbn{width:78px;flex-shrink:0;}
+.mb .mbn{width:110px;flex-shrink:0;}
 .mb .mbt{flex:1;height:13px;background:#eef1f5;border-radius:3px;overflow:hidden;}
 .mb .mbt i{display:block;height:100%;}
-.mb .mbv{width:48px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:10px;}
+.mb .mbv{width:60px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:10px;}
 /* wo status */
 .wos{display:flex;gap:8px;}
 .wos .wc{flex:1;text-align:center;border-radius:7px;padding:10px 4px;}
@@ -84,58 +84,58 @@ select{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12
 <body>
 <div class="scr-head">
   <div class="sh-id">MNT-09</div>
-  <div class="sh-tt"><div class="sh-en">Equipment Dashboard</div><div class="sh-ko">설비 대시보드 — 설비 보전 종합 현황</div></div>
+  <div class="sh-tt"><div class="sh-en">Equipment Dashboard</div><div class="sh-ko">Comprehensive maintenance overview</div></div>
   <span class="sh-tag">/mnt/dashboard</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>사업장 Plant</label>
-    <select id="fPlant" onchange="render()"><option>SAV 서산</option></select></div>
-  <div class="fld"><label>기간 Period</label>
-    <select id="fPeriod" onchange="render()"><option>금일</option><option>최근 7일</option><option>당월</option></select></div>
-  <button class="btn btn-p btn-sm" onclick="refresh()">🔄 새로고침</button>
-  <span class="upd" id="upd">갱신: --:--:--</span>
-  <div class="swt" style="margin-left:auto;"><span>실시간 갱신</span>
+  <div class="fld"><label>Plant</label>
+    <select id="fPlant" onchange="render()"><option>SAV Detroit, MI</option><option>GEO Birmingham, AL</option></select></div>
+  <div class="fld"><label>Period</label>
+    <select id="fPeriod" onchange="render()"><option>Today</option><option>Last 7 Days</option><option>MTD</option></select></div>
+  <button class="btn btn-p btn-sm" onclick="refresh()">🔄 Refresh</button>
+  <span class="upd" id="upd">Updated: --:--:--</span>
+  <div class="swt" style="margin-left:auto;"><span>Live Updates</span>
     <div class="tk on" id="autoTk" onclick="toggleAuto()"><i></i></div></div>
   <button class="btn btn-s" onclick="exportCsv()">📥 Export</button>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#10b981"><div class="kv" id="kUt">0%</div><div class="kl">설비 가동률 · Uptime</div><div class="kt">target ≥ 90%</div></div>
-    <div class="kpi" style="--c:#059669"><div class="kv" id="kOee">0%</div><div class="kl">평균 OEE</div><div class="kt">world-class ≥ 85%</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kFail">0</div><div class="kl">금일 고장 · Failures</div></div>
-    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kWo">0</div><div class="kl">미완료 정비 WO</div></div>
-    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kStock">0</div><div class="kl">재고 알람 · 부족·품절</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kUt">0%</div><div class="kl">Equipment Uptime</div><div class="kt">target ≥ 90%</div></div>
+    <div class="kpi" style="--c:#059669"><div class="kv" id="kOee">0%</div><div class="kl">Average OEE</div><div class="kt">world-class ≥ 85%</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kFail">0</div><div class="kl">Today's Failures</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kWo">0</div><div class="kl">Open Maint. WOs</div></div>
+    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kStock">0</div><div class="kl">Stock Alerts · Low / Out</div></div>
   </div>
   <div class="grid3">
     <div class="card">
-      <div class="card-t">⚙️ 설비 상태 분포</div>
+      <div class="card-t">⚙️ Equipment Status Distribution</div>
       <div class="donut-row">
-        <div class="donut" id="donut"><div class="hole"><div class="dv" id="dnTot">0</div><div class="dl">총 설비</div></div></div>
+        <div class="donut" id="donut"><div class="hole"><div class="dv" id="dnTot">0</div><div class="dl">Total Units</div></div></div>
         <div class="dleg" id="dleg"></div>
       </div>
     </div>
     <div class="card">
-      <div class="card-t">🚨 실시간 고장 알람 <span class="more">최근순</span></div>
+      <div class="card-t">🚨 Live Failure Alerts <span class="more">most recent</span></div>
       <div id="alarms"></div>
     </div>
     <div class="card">
-      <div class="card-t">📅 다가오는 예방정비 (PM) <span class="more">7일 이내</span></div>
+      <div class="card-t">📅 Upcoming Preventive Maintenance <span class="more">within 7 days</span></div>
       <div id="pmList"></div>
     </div>
   </div>
   <div class="grid3">
     <div class="card">
-      <div class="card-t">🔻 비가동 원인 Top 5 <span class="more">당월 누계 · 분</span></div>
+      <div class="card-t">🔻 Downtime Causes — Top 5 <span class="more">MTD · minutes</span></div>
       <div id="dtCause"></div>
     </div>
     <div class="card">
-      <div class="card-t">🧰 정비 작업지시 현황</div>
+      <div class="card-t">🧰 Maintenance Work Orders</div>
       <div class="wos" id="woStat"></div>
       <div style="margin-top:12px;" id="woBar"></div>
     </div>
     <div class="card">
-      <div class="card-t">📦 재고 부족 자재 <span class="more">발주 권장</span></div>
+      <div class="card-t">📦 Low Stock Parts <span class="more">reorder recommended</span></div>
       <div id="stockList"></div>
     </div>
   </div>
@@ -146,30 +146,30 @@ select{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-size:12
 var D={
   ut:91.4,oee:79.6,fail:2,wo:4,stock:3,
   status:[
-    {k:'가동',n:5,c:'#10b981'},{k:'정비 중',n:1,c:'#3b82f6'},
-    {k:'고장',n:1,c:'#dc2626'},{k:'대기',n:1,c:'#9ca3af'}],
+    {k:'Running',n:5,c:'#10b981'},{k:'Under Inspection',n:1,c:'#3b82f6'},
+    {k:'Failure',n:1,c:'#dc2626'},{k:'Idle',n:1,c:'#9ca3af'}],
   alarms:[
-    {t:'사출기 2호기 구동모터 과열',m:'13:46',sev:'b-r',sl:'긴급',dot:'#dc2626'},
-    {t:'토크 체결기 #1 토크값 편차',m:'09:12',sev:'b-y',sl:'보통',dot:'#f59e0b'},
-    {t:'도장 부스 1라인 노즐 막힘',m:'어제',sev:'b-o',sl:'높음',dot:'#f97316'}],
+    {t:'Injection Machine #2 drive motor overheat',m:'13:46',sev:'b-r',sl:'Critical',dot:'#dc2626'},
+    {t:'Torque Fastener #1 torque value deviation',m:'09:12',sev:'b-y',sl:'Normal',dot:'#f59e0b'},
+    {t:'Paint Booth Line 1 nozzle clog',m:'Yesterday',sev:'b-o',sl:'High',dot:'#f97316'}],
   pm:[
-    {t:'도장 부스 1라인 · 일상 점검',d:'D-0',badge:'b-y',bl:'오늘'},
-    {t:'조립1라인 컨베이어 · 일상 점검',d:'D-0',badge:'b-y',bl:'오늘'},
-    {t:'사출기 2호기 · 정밀 진단',d:'D-1',badge:'b-b',bl:'D-1'},
-    {t:'공기압축기 #1 · 일상 점검',d:'D-4',badge:'b-g',bl:'D-4'},
-    {t:'비전 검사기 #1 · 정기 PM',d:'D-6',badge:'b-g',bl:'D-6'}],
+    {t:'Paint Booth Line 1 · Daily Inspection',d:'D-0',badge:'b-y',bl:'Today'},
+    {t:'Assembly Line 1 Conveyor · Daily Inspection',d:'D-0',badge:'b-y',bl:'Today'},
+    {t:'Injection Machine #2 · Diagnostic',d:'D-1',badge:'b-b',bl:'D-1'},
+    {t:'Air Compressor #1 · Daily Inspection',d:'D-4',badge:'b-g',bl:'D-4'},
+    {t:'Vision Inspector #1 · Routine PM',d:'D-6',badge:'b-g',bl:'D-6'}],
   cause:[
-    {k:'설비 고장',v:419,c:'#dc2626'},{k:'금형 문제',v:58,c:'#f97316'},
-    {k:'작업 준비',v:59,c:'#0891b2'},{k:'품질 조정',v:40,c:'#8b5cf6'},
-    {k:'계획 정비',v:90,c:'#2563eb'}],
+    {k:'Equipment Failure',v:419,c:'#dc2626'},{k:'Mold Issue',v:58,c:'#f97316'},
+    {k:'Setup',v:59,c:'#0891b2'},{k:'Quality Adjustment',v:40,c:'#8b5cf6'},
+    {k:'Planned Maintenance',v:90,c:'#2563eb'}],
   woStat:[
-    {k:'발행',n:1,c:'#9ca3af',bg:'#f3f4f6'},{k:'배정',n:2,c:'#f59e0b',bg:'#fef3c7'},
-    {k:'진행',n:1,c:'#3b82f6',bg:'#dbeafe'},{k:'완료',n:4,c:'#10b981',bg:'#d1fae5'}],
+    {k:'Issued',n:1,c:'#9ca3af',bg:'#f3f4f6'},{k:'Assigned',n:2,c:'#f59e0b',bg:'#fef3c7'},
+    {k:'In Progress',n:1,c:'#3b82f6',bg:'#dbeafe'},{k:'Completed',n:4,c:'#10b981',bg:'#d1fae5'}],
   stockItems:[
-    {t:'테이퍼 롤러베어링 30205',m:'6 / 8',badge:'b-y',bl:'부족'},
-    {t:'유압 솔레노이드 밸브',m:'5 / 6',badge:'b-y',bl:'부족'},
-    {t:'금형 이젝터 핀 세트',m:'3 / 5',badge:'b-y',bl:'부족'},
-    {t:'모터 커플링 D-32',m:'0 / 4',badge:'b-r',bl:'품절'}]
+    {t:'Tapered Roller Bearing 30205',m:'6 / 8',badge:'b-y',bl:'Low'},
+    {t:'Hydraulic Solenoid Valve',m:'5 / 6',badge:'b-y',bl:'Low'},
+    {t:'Mold Ejector Pin Set',m:'3 / 5',badge:'b-y',bl:'Low'},
+    {t:'Motor Coupling D-32',m:'0 / 4',badge:'b-r',bl:'Out'}]
 };
 var auto=true,timer=null;
 function render(){
@@ -191,7 +191,7 @@ function render(){
   document.getElementById('dnTot').textContent=tot;
   document.getElementById('dleg').innerHTML=D.status.map(function(x){
     return '<div class="dleg-r"><i style="background:'+x.c+'"></i>'+x.k+
-      '<span class="dn">'+x.n+'대 · '+Math.round(x.n/tot*100)+'%</span></div>';}).join('');
+      '<span class="dn">'+x.n+' units · '+Math.round(x.n/tot*100)+'%</span></div>';}).join('');
   /* alarms */
   document.getElementById('alarms').innerHTML=D.alarms.map(function(a){
     return '<div class="li"><span class="lic" style="background:'+a.dot+'"></span>'+
@@ -206,13 +206,13 @@ function render(){
   document.getElementById('dtCause').innerHTML=D.cause.slice().sort(function(a,b){return b.v-a.v;}).map(function(x){
     return '<div class="mb"><span class="mbn">'+x.k+'</span>'+
       '<span class="mbt"><i style="width:'+(x.v/mx*100)+'%;background:'+x.c+'"></i></span>'+
-      '<span class="mbv">'+x.v+'분</span></div>';}).join('');
+      '<span class="mbv">'+x.v+' min</span></div>';}).join('');
   /* wo */
   document.getElementById('woStat').innerHTML=D.woStat.map(function(w){
     return '<div class="wc" style="background:'+w.bg+'"><div class="wv" style="color:'+w.c+'">'+w.n+'</div>'+
       '<div class="wl" style="color:'+w.c+'">'+w.k+'</div></div>';}).join('');
   var wtot=D.woStat.reduce(function(s,w){return s+w.n;},0);
-  document.getElementById('woBar').innerHTML='<div class="mb"><span class="mbn">완료율</span>'+
+  document.getElementById('woBar').innerHTML='<div class="mb"><span class="mbn">Completion</span>'+
     '<span class="mbt"><i style="width:'+(D.woStat[3].n/wtot*100)+'%;background:#10b981"></i></span>'+
     '<span class="mbv">'+Math.round(D.woStat[3].n/wtot*100)+'%</span></div>';
   /* stock */
@@ -224,19 +224,19 @@ function render(){
 }
 function stamp(){
   var d=new Date();
-  document.getElementById('upd').textContent='갱신: '+d.toTimeString().slice(0,8);
+  document.getElementById('upd').textContent='Updated: '+d.toTimeString().slice(0,8);
 }
 function refresh(){
   /* small jitter to simulate live */
   D.ut=Math.min(99,Math.max(82,D.ut+(Math.random()-0.5)*1.2));
   D.oee=Math.min(95,Math.max(70,D.oee+(Math.random()-0.5)*1.0));
   render();
-  toast('info','대시보드 갱신','설비 보전 현황을 최신 데이터로 갱신했습니다.');
+  toast('info','Dashboard Refreshed','Equipment maintenance overview updated with latest data.');
 }
 function toggleAuto(){
   auto=!auto;document.getElementById('autoTk').classList.toggle('on',auto);
-  if(auto){timer=setInterval(tick,5000);toast('info','실시간 갱신 ON','5초 간격으로 대시보드가 갱신됩니다.');}
-  else{clearInterval(timer);toast('info','실시간 갱신 OFF','자동 갱신을 중지했습니다.');}
+  if(auto){timer=setInterval(tick,5000);toast('info','Live Updates ON','Dashboard will refresh every 5 seconds.');}
+  else{clearInterval(timer);toast('info','Live Updates OFF','Auto-refresh has been disabled.');}
 }
 function tick(){
   D.ut=Math.min(99,Math.max(82,D.ut+(Math.random()-0.5)*0.8));
@@ -245,17 +245,17 @@ function tick(){
 }
 function exportCsv(){
   var csv='Metric,Value\n';
-  csv+='설비 가동률,'+D.ut.toFixed(1)+'%\n평균 OEE,'+D.oee.toFixed(1)+'%\n';
-  csv+='금일 고장,'+D.fail+'\n미완료 WO,'+D.wo+'\n재고 알람,'+D.stock+'\n\n';
-  csv+='설비상태,대수\n';
+  csv+='Equipment Uptime,'+D.ut.toFixed(1)+'%\nAverage OEE,'+D.oee.toFixed(1)+'%\n';
+  csv+="Today's Failures,"+D.fail+'\nOpen WOs,'+D.wo+'\nStock Alerts,'+D.stock+'\n\n';
+  csv+='Equipment Status,Units\n';
   D.status.forEach(function(x){csv+=x.k+','+x.n+'\n';});
-  csv+='\n비가동원인,분\n';
+  csv+='\nDowntime Cause,Minutes\n';
   D.cause.forEach(function(x){csv+=x.k+','+x.v+'\n';});
   var blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='MNT_Dashboard_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','Export 완료','설비 대시보드 요약을 CSV로 내보냈습니다.');
+  toast('','Export Complete','Equipment dashboard summary exported to CSV.');
 }
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');

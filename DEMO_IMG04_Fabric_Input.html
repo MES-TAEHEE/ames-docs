@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>IMG-04 Fabric Input · A-MES Demo</title>
+<title>IMG-04 Fabric Issue · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
 :root{--sc:#ea580c;--sc-dk:#c2410c;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;}
 .head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
 .head .id{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#fb923c;}
 .head .tt{flex:1;}
@@ -83,53 +83,53 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 </head>
 <body>
 <div class="head">
-  <button class="back" onclick="back()">‹ 대시보드</button>
+  <button class="back" onclick="back()">‹ Dashboard</button>
   <div class="id">IMG-04</div>
-  <div class="tt"><div class="en">Fabric Input</div><div class="ko">원단 투입·검증 — 로트 추적·BOM 매칭</div></div>
+  <div class="tt"><div class="en">Fabric Issue</div><div class="ko">Fabric Verify & Issue — Lot Trace · BOM Match</div></div>
   <span class="live"><span class="d"></span>LIVE</span>
 </div>
 <div class="body">
   <div class="col">
     <div class="sec">
-      <h3><span style="font-size:16px;">📋</span>요구 원단 · REQUIRED FABRIC</h3>
+      <h3><span style="font-size:16px;">📋</span>REQUIRED FABRIC</h3>
       <div class="req-card">
-        <div class="h"><span class="lbl">WO-2605-208</span><span class="v">잔여 178 / 380 EA</span></div>
-        <div class="item">PVC 인조가죽 블랙</div>
+        <div class="h"><span class="lbl">WO-2605-208</span><span class="v">Remaining 178 / 380 EA</span></div>
+        <div class="item">PVC Synthetic Leather Black</div>
         <div class="code">FB-PVC-001</div>
         <div class="spec">
-          <div class="sp"><div class="sl">두께</div><div class="sv">1.2mm</div></div>
-          <div class="sp"><div class="sl">색상</div><div class="sv">블랙 (RAL 9005)</div></div>
-          <div class="sp"><div class="sl">소요량 / EA</div><div class="sv">0.42 m</div></div>
+          <div class="sp"><div class="sl">THICKNESS</div><div class="sv">1.2mm</div></div>
+          <div class="sp"><div class="sl">COLOR</div><div class="sv">Black (RAL 9005)</div></div>
+          <div class="sp"><div class="sl">USAGE / EA</div><div class="sv">0.42 m</div></div>
         </div>
       </div>
     </div>
     <div class="sec">
-      <h3><span style="font-size:16px;">📷</span>원단 로트 스캔 · LOT SCAN</h3>
+      <h3><span style="font-size:16px;">📷</span>LOT SCAN</h3>
       <div class="scan-area" id="scan" onclick="scan()">
         <div class="ic" id="scanIc">📷</div>
-        <div class="t" id="scanT">원단 롤 라벨 스캔</div>
-        <div class="s" id="scanS">투입할 원단 롤의 RFID 또는 바코드를 스캔하세요</div>
+        <div class="t" id="scanT">Scan Fabric Roll Label</div>
+        <div class="s" id="scanS">Scan the RFID or barcode of the fabric roll to issue</div>
       </div>
       <div class="warn-banner" id="warnB"><span class="ic">⚠</span><span id="warnT"></span></div>
     </div>
   </div>
   <div class="col">
     <div class="lot-info" id="lotInfo" style="display:none;">
-      <h3>📦 스캔된 로트 정보</h3>
-      <div class="lot-row"><span class="l">로트 번호</span><span class="v" id="li-lot">-</span></div>
-      <div class="lot-row"><span class="l">자재 코드</span><span class="v" id="li-code">-</span></div>
-      <div class="lot-row"><span class="l">자재명</span><span class="v" id="li-nm">-</span></div>
-      <div class="lot-row"><span class="l">BOM 일치 여부</span><span class="v" id="li-bom">-</span></div>
-      <div class="lot-row"><span class="l">잔여 수량</span><span class="v" id="li-qty">-</span></div>
-      <div class="lot-row"><span class="l">유효기한</span><span class="v" id="li-exp">-</span></div>
-      <div class="lot-row"><span class="l">QC 합격 여부</span><span class="v" id="li-qc">-</span></div>
+      <h3>📦 Scanned Lot Information</h3>
+      <div class="lot-row"><span class="l">Lot Number</span><span class="v" id="li-lot">-</span></div>
+      <div class="lot-row"><span class="l">Material Code</span><span class="v" id="li-code">-</span></div>
+      <div class="lot-row"><span class="l">Material Name</span><span class="v" id="li-nm">-</span></div>
+      <div class="lot-row"><span class="l">BOM Match</span><span class="v" id="li-bom">-</span></div>
+      <div class="lot-row"><span class="l">Remaining Qty</span><span class="v" id="li-qty">-</span></div>
+      <div class="lot-row"><span class="l">Expiration Date</span><span class="v" id="li-exp">-</span></div>
+      <div class="lot-row"><span class="l">QC Pass</span><span class="v" id="li-qc">-</span></div>
       <div style="margin-top:14px;display:flex;gap:11px;">
-        <button class="btn-reject" onclick="reject()">✕ 반려</button>
-        <button class="btn-confirm" id="btnConf" onclick="confirm()" disabled>✓ 투입 확인</button>
+        <button class="btn-reject" onclick="reject()">✕ Reject</button>
+        <button class="btn-confirm" id="btnConf" onclick="confirm()" disabled>✓ Confirm Issue</button>
       </div>
     </div>
     <div class="history">
-      <h3>🕒 금일 투입 이력</h3>
+      <h3>🕒 Today's Issue History</h3>
       <div class="h-list" id="hList"></div>
     </div>
   </div>
@@ -138,16 +138,16 @@ body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at
 <script>
 var LOTS=[
  /* simulate scan options — cycle through */
- {lot:'LT-FB-26031',code:'FB-PVC-001',nm:'PVC 인조가죽 블랙',qty:'48 m',exp:'2027-03-15',qc:'합격',ok:true},
- {lot:'LT-FB-26032',code:'FB-PVC-002',nm:'PVC 인조가죽 그레이',qty:'45 m',exp:'2027-02-28',qc:'합격',ok:false,err:'BOM 불일치 — 요구: FB-PVC-001'},
- {lot:'LT-FB-26033',code:'FB-PVC-001',nm:'PVC 인조가죽 블랙',qty:'50 m',exp:'2026-04-10',qc:'합격',ok:false,err:'유효기한 임박 — 사용 제한 (2026-04-10)'},
- {lot:'LT-FB-26034',code:'FB-PVC-001',nm:'PVC 인조가죽 블랙',qty:'45 m',exp:'2027-05-08',qc:'합격',ok:true}
+ {lot:'LT-FB-26031',code:'FB-PVC-001',nm:'PVC Synthetic Leather Black',qty:'48 m',exp:'03/15/2027',qc:'Pass',ok:true},
+ {lot:'LT-FB-26032',code:'FB-PVC-002',nm:'PVC Synthetic Leather Gray',qty:'45 m',exp:'02/28/2027',qc:'Pass',ok:false,err:'BOM Mismatch — Required: FB-PVC-001'},
+ {lot:'LT-FB-26033',code:'FB-PVC-001',nm:'PVC Synthetic Leather Black',qty:'50 m',exp:'04/10/2026',qc:'Pass',ok:false,err:'Expiration Imminent — Use Restricted (04/10/2026)'},
+ {lot:'LT-FB-26034',code:'FB-PVC-001',nm:'PVC Synthetic Leather Black',qty:'45 m',exp:'05/08/2027',qc:'Pass',ok:true}
 ];
 var LOG=[
- {t:'08:42',lot:'LT-FB-26028',ds:'PVC 인조가죽 블랙 — 48m 투입',st:'ok',stT:'정상 투입'},
- {t:'07:55',lot:'LT-FB-26025',ds:'PVC 인조가죽 블랙 — 50m 투입',st:'ok',stT:'정상 투입'},
- {t:'07:32',lot:'LT-FB-26022',ds:'PVC 인조가죽 그레이 — BOM 불일치',st:'err',stT:'반려'},
- {t:'06:48',lot:'LT-FB-26019',ds:'PVC 인조가죽 블랙 — 45m 투입',st:'ok',stT:'정상 투입'}
+ {t:'08:42',lot:'LT-FB-26028',ds:'PVC Synthetic Leather Black — 48m Issued',st:'ok',stT:'Issued'},
+ {t:'07:55',lot:'LT-FB-26025',ds:'PVC Synthetic Leather Black — 50m Issued',st:'ok',stT:'Issued'},
+ {t:'07:32',lot:'LT-FB-26022',ds:'PVC Synthetic Leather Gray — BOM Mismatch',st:'err',stT:'Rejected'},
+ {t:'06:48',lot:'LT-FB-26019',ds:'PVC Synthetic Leather Black — 45m Issued',st:'ok',stT:'Issued'}
 ];
 var sIdx=0,curLot=null;
 function scan(){
@@ -156,42 +156,44 @@ function scan(){
   document.getElementById('li-lot').textContent=curLot.lot;
   document.getElementById('li-code').textContent=curLot.code;
   document.getElementById('li-nm').textContent=curLot.nm;
-  document.getElementById('li-bom').innerHTML=curLot.code==='FB-PVC-001'?'<span class="v ok">✓ 일치</span>':'<span class="v err">✕ 불일치</span>';
+  document.getElementById('li-bom').innerHTML=curLot.code==='FB-PVC-001'?'<span class="v ok">✓ Match</span>':'<span class="v err">✕ Mismatch</span>';
   document.getElementById('li-qty').textContent=curLot.qty;
-  document.getElementById('li-exp').innerHTML=curLot.exp<'2026-08-01'?'<span class="v warn">⚠ '+curLot.exp+'</span>':'<span class="v">'+curLot.exp+'</span>';
+  /* Compare expiration as date — flag if before 08/01/2026 */
+  var d=new Date(curLot.exp);var cutoff=new Date('2026-08-01');
+  document.getElementById('li-exp').innerHTML=d<cutoff?'<span class="v warn">⚠ '+curLot.exp+'</span>':'<span class="v">'+curLot.exp+'</span>';
   document.getElementById('li-qc').innerHTML='<span class="v ok">✓ '+curLot.qc+'</span>';
   var sc=document.getElementById('scan'),sT=document.getElementById('scanT'),sI=document.getElementById('scanIc'),sS=document.getElementById('scanS'),wb=document.getElementById('warnB'),wT=document.getElementById('warnT');
   sc.classList.remove('ok','err');wb.classList.remove('on');
   if(curLot.ok){
-    sc.classList.add('ok');sI.textContent='✅';sT.textContent='로트 검증 완료';sS.textContent=curLot.lot+' — BOM 일치 · QC 합격 · 투입 가능';
+    sc.classList.add('ok');sI.textContent='✅';sT.textContent='Lot Verified';sS.textContent=curLot.lot+' — BOM Match · QC Pass · Issue Allowed';
     document.getElementById('btnConf').disabled=false;
   }else{
-    sc.classList.add('err');sI.textContent='⛔';sT.textContent='검증 실패';sS.textContent=curLot.err;
-    wb.classList.add('on');wT.textContent=curLot.err+' — 투입할 수 없습니다.';
+    sc.classList.add('err');sI.textContent='⛔';sT.textContent='Verification Failed';sS.textContent=curLot.err;
+    wb.classList.add('on');wT.textContent=curLot.err+' — Cannot issue.';
     document.getElementById('btnConf').disabled=true;
   }
-  toast(curLot.ok?'ok':'err','로트 스캔 — '+curLot.lot,curLot.ok?'BOM 일치, 투입 가능':curLot.err);
+  toast(curLot.ok?'ok':'err','Lot Scanned — '+curLot.lot,curLot.ok?'BOM matches, issue allowed':curLot.err);
 }
 function confirm(){
   if(!curLot||!curLot.ok)return;
-  LOG.unshift({t:new Date().toTimeString().slice(0,5),lot:curLot.lot,ds:curLot.nm+' — '+curLot.qty+' 투입',st:'ok',stT:'정상 투입'});
+  LOG.unshift({t:new Date().toTimeString().slice(0,5),lot:curLot.lot,ds:curLot.nm+' — '+curLot.qty+' Issued',st:'ok',stT:'Issued'});
   renderLog();
-  toast('ok','원단 투입 완료 ✓',curLot.lot+' 투입 등록 완료. 재고가 차감되고 WO에 연결됩니다.');
+  toast('ok','Fabric Issue Complete ✓',curLot.lot+' issue registered. Inventory deducted and linked to WO.');
   reset();
 }
 function reject(){
   if(!curLot)return;
-  LOG.unshift({t:new Date().toTimeString().slice(0,5),lot:curLot.lot,ds:curLot.nm+' — 작업자 반려',st:'err',stT:'반려'});
+  LOG.unshift({t:new Date().toTimeString().slice(0,5),lot:curLot.lot,ds:curLot.nm+' — Operator Reject',st:'err',stT:'Rejected'});
   renderLog();
-  toast('warn','로트 반려',curLot.lot+' 반려 처리. 다른 로트를 스캔하세요.');
+  toast('warn','Lot Rejected',curLot.lot+' rejected. Please scan a different lot.');
   reset();
 }
 function reset(){
   curLot=null;
   document.getElementById('lotInfo').style.display='none';
   var sc=document.getElementById('scan');sc.classList.remove('ok','err');
-  document.getElementById('scanIc').textContent='📷';document.getElementById('scanT').textContent='원단 롤 라벨 스캔';
-  document.getElementById('scanS').textContent='투입할 원단 롤의 RFID 또는 바코드를 스캔하세요';
+  document.getElementById('scanIc').textContent='📷';document.getElementById('scanT').textContent='Scan Fabric Roll Label';
+  document.getElementById('scanS').textContent='Scan the RFID or barcode of the fabric roll to issue';
   document.getElementById('warnB').classList.remove('on');
 }
 function renderLog(){
@@ -200,7 +202,7 @@ function renderLog(){
       '<span class="ds">'+r.ds+'</span><span class="st '+r.st+'">'+r.stT+'</span></div>';
   }).join('');
 }
-function back(){toast('','뒤로 이동','POP 대시보드로 돌아갑니다.');}
+function back(){toast('','Back','Returning to POP Dashboard.');}
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
   d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='warn'?'⚠ ':type==='ok'?'✓ ':'ℹ ')+title+'</div><div class="tb">'+body+'</div>';

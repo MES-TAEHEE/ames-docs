@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PP-07 Work Order Release · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -113,62 +113,62 @@ tbody tr.just td{animation:fl 1.8s ease;}
 <body>
 <div class="scr-head">
   <div class="sh-id">PP-07</div>
-  <div class="sh-tt"><div class="sh-en">Work Order Release</div><div class="sh-ko">WO 발행 — 4단계 발행 게이트 검증 후 생산 착수</div></div>
+  <div class="sh-tt"><div class="sh-en">Work Order Release</div><div class="sh-ko">4-gate validation before production start</div></div>
   <span class="sh-tag">/pp/wo/release</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>라인 Line</label>
-    <select id="fLine" onchange="render()"><option value="">전체 All</option><option>INJ-L1</option><option>INJ-L2</option><option>PNT-L1</option><option>PNT-L2</option></select></div>
-  <div class="fld"><label>판정 Result</label>
-    <select id="fRes" onchange="render()"><option value="">전체 All</option><option value="ready">발행 가능</option><option value="blocked">차단</option><option value="released">발행 완료</option></select></div>
-  <div class="fld"><label>검색 Search</label>
-    <input type="text" id="fSearch" placeholder="WO·품목..." oninput="render()" style="width:160px;"></div>
-  <button class="btn btn-s btn-sm" onclick="resetFilters()">↺ 초기화</button>
+  <div class="fld"><label>Line</label>
+    <select id="fLine" onchange="render()"><option value="">All</option><option>INJ-L1</option><option>INJ-L2</option><option>PNT-L1</option><option>PNT-L2</option></select></div>
+  <div class="fld"><label>Result</label>
+    <select id="fRes" onchange="render()"><option value="">All</option><option value="ready">Ready to Release</option><option value="blocked">Blocked</option><option value="released">Released</option></select></div>
+  <div class="fld"><label>Search</label>
+    <input type="text" id="fSearch" placeholder="WO·Item..." oninput="render()" style="width:160px;"></div>
+  <button class="btn btn-s btn-sm" onclick="resetFilters()">↺ Reset</button>
   <div style="margin-left:auto;">
-    <button class="btn btn-go" id="btnBatch" onclick="batchRelease()">✅ 발행 가능 WO 일괄 발행</button>
+    <button class="btn btn-go" id="btnBatch" onclick="batchRelease()">✅ Batch Release Ready WOs</button>
   </div>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#6b7280"><div class="kv" id="kWait">0</div><div class="kl">발행 대기 · Draft</div></div>
-    <div class="kpi" style="--c:#16a34a"><div class="kv" id="kReady">0</div><div class="kl">발행 가능 · Ready</div></div>
-    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kBlk">0</div><div class="kl">차단 · Blocked</div></div>
-    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kRel">0</div><div class="kl">발행 완료 · Released</div></div>
+    <div class="kpi" style="--c:#6b7280"><div class="kv" id="kWait">0</div><div class="kl">Awaiting Release · Draft</div></div>
+    <div class="kpi" style="--c:#16a34a"><div class="kv" id="kReady">0</div><div class="kl">Ready</div></div>
+    <div class="kpi" style="--c:#dc2626"><div class="kv" id="kBlk">0</div><div class="kl">Blocked</div></div>
+    <div class="kpi" style="--c:#2563eb"><div class="kv" id="kRel">0</div><div class="kl">Released</div></div>
   </div>
   <div class="panel">
-    <div class="panel-h"><span>🚦 발행 검증 — 4개 게이트(Phase-0 · MRP · 설비 · 납기) 통과 시 발행 · G칸 클릭으로 검증 실행</span></div>
+    <div class="panel-h"><span>🚦 Release Validation — 4 gates (Phase-0 · MRP · Equipment · Lead Time) must pass · Click a G cell to run validation</span></div>
     <table>
       <thead><tr>
-        <th>WO 번호<span class="k">WO No.</span></th>
-        <th>품목<span class="k">Item</span></th>
-        <th style="text-align:right;">수량<span class="k">Qty</span></th>
-        <th style="text-align:center;">라인<span class="k">Line</span></th>
+        <th>WO No.</th>
+        <th>Item</th>
+        <th style="text-align:right;">Qty</th>
+        <th style="text-align:center;">Line</th>
         <th style="text-align:center;">D-Day</th>
         <th style="text-align:center;">G1·G2·G3·G4<span class="k">Gates</span></th>
-        <th style="text-align:center;">판정<span class="k">Result</span></th>
-        <th style="text-align:center;">작업<span class="k">Action</span></th>
+        <th style="text-align:center;">Result</th>
+        <th style="text-align:center;">Action</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
     </table>
-    <div class="empty" id="emptyMsg" style="display:none;">조건에 맞는 WO가 없습니다.</div>
+    <div class="empty" id="emptyMsg" style="display:none;">No WOs match the current filters.</div>
   </div>
 </div>
 
 <!-- GATE VALIDATION MODAL -->
 <div class="ov" id="ovGate">
   <div class="modal">
-    <div class="modal-h"><span>🚦</span><span class="mt" id="gmTitle">WO 발행 검증</span><span class="ms" id="gmSub"></span><button class="mx" onclick="closeGate()">✕</button></div>
+    <div class="modal-h"><span>🚦</span><span class="mt" id="gmTitle">WO Release Validation</span><span class="ms" id="gmSub"></span><button class="mx" onclick="closeGate()">✕</button></div>
     <div class="modal-b">
-      <div class="gate pending" id="g1"><div class="g-no">1</div><div class="g-tt"><div class="g-nm">Phase-0 Complete</div><div class="g-de">기준정보(BOP·BOM·검사기준) 완료 — BR-PP-001</div></div><div class="g-st" id="g1s">대기</div></div>
-      <div class="gate pending" id="g2"><div class="g-no">2</div><div class="g-tt"><div class="g-nm">MRP Sufficient</div><div class="g-de">자재 소요 충족 — 부족 없음 — BR-PP-002</div></div><div class="g-st" id="g2s">대기</div></div>
-      <div class="gate pending" id="g3"><div class="g-no">3</div><div class="g-tt"><div class="g-nm">Equipment Available</div><div class="g-de">대상 라인 설비 가용 상태 확인</div></div><div class="g-st" id="g3s">대기</div></div>
-      <div class="gate pending" id="g4"><div class="g-no">4</div><div class="g-tt"><div class="g-nm">Delivery Lead Time</div><div class="g-de">납기 대비 생산 리드타임 여유 (최소 7일)</div></div><div class="g-st" id="g4s">대기</div></div>
+      <div class="gate pending" id="g1"><div class="g-no">1</div><div class="g-tt"><div class="g-nm">Phase-0 Complete</div><div class="g-de">Master data (BOP·BOM·inspection) complete — BR-PP-001</div></div><div class="g-st" id="g1s">Pending</div></div>
+      <div class="gate pending" id="g2"><div class="g-no">2</div><div class="g-tt"><div class="g-nm">MRP Sufficient</div><div class="g-de">No material shortage — BR-PP-002</div></div><div class="g-st" id="g2s">Pending</div></div>
+      <div class="gate pending" id="g3"><div class="g-no">3</div><div class="g-tt"><div class="g-nm">Equipment Available</div><div class="g-de">Target line equipment is available</div></div><div class="g-st" id="g3s">Pending</div></div>
+      <div class="gate pending" id="g4"><div class="g-no">4</div><div class="g-tt"><div class="g-nm">Delivery Lead Time</div><div class="g-de">Sufficient lead time vs. due date (min 7 days)</div></div><div class="g-st" id="g4s">Pending</div></div>
       <div class="relbox ok" id="relBox" style="display:none;"></div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeGate()">닫기</button>
-      <button class="btn btn-go" id="btnRel" onclick="confirmRelease()" disabled style="display:none;">✅ WO 발행 실행</button>
+      <button class="btn btn-s" onclick="closeGate()">Close</button>
+      <button class="btn btn-go" id="btnRel" onclick="confirmRelease()" disabled style="display:none;">✅ Run WO Release</button>
     </div>
   </div>
 </div>
@@ -177,21 +177,21 @@ tbody tr.just td{animation:fl 1.8s ease;}
 
 <script>
 var DATA=[
-  {wo:'WO-20250801-002',code:'TRIM-LH-001',name:'도어트림 LH (회색)',qty:2030,line:'INJ-L1',dday:3,
+  {wo:'WO-20250801-002',code:'TRIM-LH-001',name:'Door Trim LH (Gray)',qty:2030,line:'INJ-L1',dday:3,
    g:{p0:'pass',mrp:'pass',equip:'pass',lead:'warn'},status:'Draft'},
-  {wo:'WO-20250802-006',code:'GRILLE-02',name:'라디에이터 그릴',qty:1450,line:'INJ-L1',dday:8,
+  {wo:'WO-20250802-006',code:'GRILLE-02',name:'Radiator Grille',qty:1450,line:'INJ-L1',dday:8,
    g:{p0:'pass',mrp:'pass',equip:'pass',lead:'pass'},status:'Draft'},
-  {wo:'WO-20250803-002',code:'BUMPER-01',name:'프론트 범퍼',qty:905,line:'PNT-L2',dday:16,
+  {wo:'WO-20250803-002',code:'BUMPER-01',name:'Front Bumper',qty:905,line:'PNT-L2',dday:16,
    g:{p0:'pass',mrp:'pass',equip:'pass',lead:'pass'},status:'Draft'},
-  {wo:'WO-20250801-005',code:'CONS-UP-001',name:'콘솔어퍼',qty:650,line:'PNT-L1',dday:5,
+  {wo:'WO-20250801-005',code:'CONS-UP-001',name:'Console Upper',qty:650,line:'PNT-L1',dday:5,
    g:{p0:'pass',mrp:'fail',equip:'pass',lead:'pass'},status:'Draft',
-   failMsg:'MRP 자재 부족 — 분체도료 PWD-RAL9005 280 EA 부족. PP-06 PR 전송·입고 후 발행 가능 (BR-PP-002).'},
-  {wo:'WO-20250804-021',code:'TRIM-RH-002',name:'도어트림 RH (신규)',qty:1200,line:'INJ-L1',dday:9,
+   failMsg:'MRP material shortage — Powder coating PWD-RAL9005 short by 280 EA. Release possible after PP-06 PR transmission and receipt (BR-PP-002).'},
+  {wo:'WO-20250804-021',code:'TRIM-RH-002',name:'Door Trim RH (New)',qty:1200,line:'INJ-L1',dday:9,
    g:{p0:'fail',mrp:'pass',equip:'pass',lead:'pass'},status:'Draft',
-   failMsg:'Phase-0 미완료 — MD 기준정보(BOP·검사기준) 입력 필요. MD 모듈 Phase-0 완료 후 발행 가능 (BR-PP-001).'},
-  {wo:'WO-20250730-009',code:'MOLDING-05',name:'사이드 몰딩 5',qty:390,line:'INJ-L2',dday:11,
+   failMsg:'Phase-0 incomplete — MD master data (BOP · inspection criteria) required. Release possible after Phase-0 completion in MD module (BR-PP-001).'},
+  {wo:'WO-20250730-009',code:'MOLDING-05',name:'Side Molding 5',qty:390,line:'INJ-L2',dday:11,
    g:{p0:'pass',mrp:'pass',equip:'fail',lead:'pass'},status:'Draft',
-   failMsg:'설비 미가용 — INJ-L2 라인 예방정비(PM) 진행 중. MNT-05 PM 일정 종료 후 발행 가능.'}
+   failMsg:'Equipment unavailable — INJ-L2 line is in preventive maintenance (PM). Release possible after MNT-05 PM schedule completes.'}
 ];
 var GKEYS=['p0','mrp','equip','lead'];
 var gateIdx=-1,gateTimer=null;
@@ -199,10 +199,10 @@ function isReady(r){return r.g.p0==='pass'&&r.g.mrp==='pass'&&r.g.equip==='pass'
 function gMark(v){return v==='pass'?'gd-ok':(v==='warn'?'gd-warn':'gd-fail');}
 function gIco(v){return v==='pass'?'✓':(v==='warn'?'!':'✕');}
 function resultOf(r){
-  if(r.status==='Released') return '<span class="b b-rel">발행 완료</span>';
-  if(!isReady(r)) return '<span class="b b-blk">⛔ 차단</span>';
-  if(r.g.lead==='warn') return '<span class="b b-warn">발행 가능 (납기 임박)</span>';
-  return '<span class="b b-rdy">✓ 발행 가능</span>';
+  if(r.status==='Released') return '<span class="b b-rel">Released</span>';
+  if(!isReady(r)) return '<span class="b b-blk">⛔ Blocked</span>';
+  if(r.g.lead==='warn') return '<span class="b b-warn">Ready (Due Imminent)</span>';
+  return '<span class="b b-rdy">✓ Ready</span>';
 }
 function filtered(){
   var ln=document.getElementById('fLine').value,rs=document.getElementById('fRes').value,
@@ -221,8 +221,8 @@ function render(){
   rows.forEach(function(r){
     var idx=DATA.indexOf(r),rel=(r.status==='Released');
     var gd='';GKEYS.forEach(function(k){var v=rel?'pass':r.g[k];gd+='<span class="gd '+gMark(v)+'">'+gIco(v)+'</span>';});
-    var act=rel?'<button class="btn btn-s btn-sm" onclick="toggleDetail('+idx+',this)">상세</button>'
-              :'<button class="btn btn-p btn-sm" onclick="openGate('+idx+')">🚦 발행 검증</button> <button class="btn btn-s btn-sm" onclick="toggleDetail('+idx+',this)">상세</button>';
+    var act=rel?'<button class="btn btn-s btn-sm" onclick="toggleDetail('+idx+',this)">Detail</button>'
+              :'<button class="btn btn-p btn-sm" onclick="openGate('+idx+')">🚦 Validate</button> <button class="btn btn-s btn-sm" onclick="toggleDetail('+idx+',this)">Detail</button>';
     h+='<tr class="'+(rel?'rel':(isReady(r)?'':'blk'))+(r._just?' just':'')+'">'+
       '<td class="mono" style="font-weight:700;">'+r.wo+'</td>'+
       '<td><div class="it-nm">'+r.code+'</div><div class="it-ko">'+r.name+'</div></td>'+
@@ -245,15 +245,15 @@ function render(){
 }
 function toggleDetail(idx,btn){
   var tr=btn.closest('tr'),nx=tr.nextElementSibling;
-  if(nx&&nx.classList.contains('detail-row')){nx.remove();btn.textContent='상세';return;}
-  btn.textContent='닫기';
+  if(nx&&nx.classList.contains('detail-row')){nx.remove();btn.textContent='Detail';return;}
+  btn.textContent='Close';
   var r=DATA[idx];
-  var defs=[['GATE 1','Phase-0','p0'],['GATE 2','MRP 자재','mrp'],['GATE 3','설비 가용','equip'],['GATE 4','납기 여유','lead']];
+  var defs=[['GATE 1','Phase-0','p0'],['GATE 2','MRP Material','mrp'],['GATE 3','Equipment','equip'],['GATE 4','Lead Time','lead']];
   var gh='';
   defs.forEach(function(dd){
     var v=r.status==='Released'?'pass':r.g[dd[2]];
     var col=v==='pass'?'#22c55e':(v==='warn'?'#f59e0b':'#dc2626');
-    var st=v==='pass'?'✓ 통과':(v==='warn'?'⚠ 임박(통과)':'✕ 실패');
+    var st=v==='pass'?'✓ Pass':(v==='warn'?'⚠ Imminent (Pass)':'✕ Fail');
     gh+='<div class="gc" style="--gc:'+col+';"><div class="gc-no">'+dd[0]+'</div><div class="gc-nm">'+dd[1]+'</div>'+
         '<div class="gc-st" style="color:'+col+';">'+st+'</div></div>';
   });
@@ -268,9 +268,9 @@ function setGate(id,cls,txt){
 }
 function openGate(idx){
   gateIdx=idx;var r=DATA[idx];
-  document.getElementById('gmTitle').textContent='WO 발행 검증 — '+r.wo;
+  document.getElementById('gmTitle').textContent='WO Release Validation — '+r.wo;
   document.getElementById('gmSub').textContent=r.code+' · '+r.qty.toLocaleString()+' EA · '+r.line;
-  ['g1','g2','g3','g4'].forEach(function(g){setGate(g,'pending','대기');});
+  ['g1','g2','g3','g4'].forEach(function(g){setGate(g,'pending','Pending');});
   document.getElementById('relBox').style.display='none';
   var br=document.getElementById('btnRel');br.style.display='none';br.disabled=true;
   document.getElementById('ovGate').classList.add('show');
@@ -282,10 +282,10 @@ function runGates(r){
   function step(){
     if(i>=seq.length){finishGates(r);return;}
     var gid=seq[i][0],v=r.g[seq[i][1]];
-    setGate(gid,'checking','<span class="spin"></span> 검증 중');
+    setGate(gid,'checking','<span class="spin"></span> Checking');
     gateTimer=setTimeout(function(){
       if(v==='pass') setGate(gid,'pass','✓ PASS');
-      else if(v==='warn') setGate(gid,'warn','⚠ D-'+r.dday+' 임박');
+      else if(v==='warn') setGate(gid,'warn','⚠ D-'+r.dday+' Imminent');
       else setGate(gid,'fail','✕ FAIL');
       i++;
       if(v==='fail'){finishGates(r);return;}
@@ -298,13 +298,13 @@ function finishGates(r){
   var box=document.getElementById('relBox'),br=document.getElementById('btnRel');
   if(isReady(r)){
     box.className='relbox ok';box.style.display='block';
-    box.innerHTML='✅ <b>4개 게이트 검증 완료</b> — 발행 가능 상태입니다.'+
-      (r.g.lead==='warn'?' (납기 D-'+r.dday+' 임박 — 최소 리드타임은 충족)':'')+
-      '<br>발행 시 자재가 자동 예약되고 WO가 INJ/IMG/PNT POP 화면에 노출됩니다.';
+    box.innerHTML='✅ <b>4 gates passed</b> — Ready to release.'+
+      (r.g.lead==='warn'?' (Due D-'+r.dday+' imminent — minimum lead time satisfied)':'')+
+      '<br>On release, materials will be auto-reserved and the WO will appear on INJ/IMG/PNT POP screens.';
     br.style.display='inline-flex';br.disabled=false;
   }else{
     box.className='relbox no';box.style.display='block';
-    box.innerHTML='⛔ <b>발행 차단</b> — '+(r.failMsg||'검증 실패한 게이트가 있습니다.');
+    box.innerHTML='⛔ <b>Release Blocked</b> — '+(r.failMsg||'One or more gates failed.');
     br.style.display='none';
   }
 }
@@ -312,7 +312,7 @@ function confirmRelease(){
   var r=DATA[gateIdx];
   r.status='Released';r._just=true;
   closeGate();render();
-  toast('','WO 발행 완료 — '+r.wo,r.code+' '+r.qty.toLocaleString()+'EA 발행. 자재 자동 예약(WH_Inventory.Reserved += '+r.qty.toLocaleString()+') 후 현장 POP에 노출되었습니다.');
+  toast('','WO Released — '+r.wo,r.code+' '+r.qty.toLocaleString()+' EA released. Materials auto-reserved (WH_Inventory.Reserved += '+r.qty.toLocaleString()+') and now on shop-floor POP.');
 }
 function closeGate(){
   if(gateTimer)clearTimeout(gateTimer);
@@ -320,15 +320,15 @@ function closeGate(){
 }
 function batchRelease(){
   var rdy=DATA.filter(function(r){return r.status==='Draft'&&isReady(r);});
-  if(!rdy.length){toast('info','발행 대상 없음','발행 가능한 WO가 없습니다.');return;}
+  if(!rdy.length){toast('info','No Targets to Release','No WOs are ready for release.');return;}
   var n=0,q=0;
   rdy.forEach(function(r){r.status='Released';r._just=true;n++;q+=r.qty;});
   render();
-  toast('','일괄 발행 완료',n+'개 WO 발행 (총 '+q.toLocaleString()+'EA). 4게이트 통과 건 자재 자동 예약 + POP 노출 완료.');
+  toast('','Batch Release Complete','Released '+n+' WOs (total '+q.toLocaleString()+' EA). Materials auto-reserved and pushed to POP.');
 }
 function resetFilters(){
   document.getElementById('fLine').value='';document.getElementById('fRes').value='';document.getElementById('fSearch').value='';
-  render();toast('info','필터 초기화','검색 조건을 초기화했습니다.');
+  render();toast('info','Filters Reset','Search filters have been cleared.');
 }
 function toast(type,title,body){
   var d=document.createElement('div');d.className='toast'+(type?' '+type:'');

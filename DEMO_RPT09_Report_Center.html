@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>RPT-09 Report Center · A-MES Demo</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--pp:#059669;--pp-dk:#047857;--bg:#f6f8fa;--bd:#d0d7de;--ink:#24292f;--sub:#656d76;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;flex-direction:column;}
 .scr-head{background:linear-gradient(135deg,#03251a,#052e1f);padding:16px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--pp);flex-shrink:0;}
 .sh-id{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#34d399;line-height:.9;}
 .sh-tt{flex:1;}
@@ -86,40 +86,40 @@ select,input{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-s
 <body>
 <div class="scr-head">
   <div class="sh-id">RPT-09</div>
-  <div class="sh-tt"><div class="sh-en">Report Center</div><div class="sh-ko">리포트 센터 — 표준 리포트 카탈로그·실행·예약</div></div>
+  <div class="sh-tt"><div class="sh-en">Report Center</div><div class="sh-ko">Standard Report Catalog · Run · Subscribe</div></div>
   <span class="sh-tag">/rpt/center</span>
   <span class="sh-live"><span class="d"></span>LIVE DEMO</span>
 </div>
 <div class="toolbar">
-  <div class="fld"><label>카테고리 Category</label>
-    <select id="fCat" onchange="render()"><option value="">전체 All</option><option>생산</option><option>품질</option><option>납기</option><option>설비</option><option>재고</option></select></div>
-  <div class="fld"><label>검색 Search</label>
-    <input id="fKw" placeholder="리포트명" oninput="render()" style="width:170px;"></div>
-  <div class="fld"><label>보기 View</label>
-    <select id="fFav" onchange="render()"><option value="">전체</option><option value="fav">즐겨찾기만</option></select></div>
-  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ 초기화</button>
-  <div style="margin-left:auto;"><button class="btn btn-p" onclick="openSched()">⏰ 예약 발송 추가</button></div>
+  <div class="fld"><label>Category</label>
+    <select id="fCat" onchange="render()"><option value="">All</option><option>Production</option><option>Quality</option><option>Delivery</option><option>Equipment</option><option>Inventory</option></select></div>
+  <div class="fld"><label>Search</label>
+    <input id="fKw" placeholder="Report name" oninput="render()" style="width:170px;"></div>
+  <div class="fld"><label>View</label>
+    <select id="fFav" onchange="render()"><option value="">All</option><option value="fav">Favorites Only</option></select></div>
+  <button class="btn btn-s btn-sm" onclick="resetAll()">↺ Reset</button>
+  <div style="margin-left:auto;"><button class="btn btn-p" onclick="openSched()">⏰ Add Subscription</button></div>
 </div>
 <div class="body">
   <div class="kpis">
-    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">표준 리포트 · Templates</div></div>
-    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kFav">0</div><div class="kl">즐겨찾기 · Favorites</div></div>
-    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kSched">0</div><div class="kl">예약 발송 · Scheduled</div></div>
-    <div class="kpi" style="--c:#10b981"><div class="kv" id="kGen">0</div><div class="kl">금일 생성 · Generated</div></div>
+    <div class="kpi" style="--c:#0891b2"><div class="kv" id="kTot">0</div><div class="kl">Standard Templates</div></div>
+    <div class="kpi" style="--c:#f59e0b"><div class="kv" id="kFav">0</div><div class="kl">Favorites</div></div>
+    <div class="kpi" style="--c:#6366f1"><div class="kv" id="kSched">0</div><div class="kl">Scheduled Subscriptions</div></div>
+    <div class="kpi" style="--c:#10b981"><div class="kv" id="kGen">0</div><div class="kl">Generated Today</div></div>
   </div>
   <div class="grid2">
     <div class="card">
-      <div class="card-t">📚 리포트 카탈로그 — <span id="catSub" style="font-weight:400;color:#656d76;">0종</span></div>
+      <div class="card-t">📚 Report Catalog — <span id="catSub" style="font-weight:400;color:#656d76;">0 reports</span></div>
       <div class="catalog" id="catalog"></div>
-      <div class="empty" id="catEmpty" style="display:none;">조건에 맞는 리포트가 없습니다.</div>
+      <div class="empty" id="catEmpty" style="display:none;">No reports match the filter.</div>
     </div>
     <div>
       <div class="card" style="margin-bottom:14px;">
-        <div class="card-t">🕒 최근 생성 리포트</div>
+        <div class="card-t">🕒 Recently Generated Reports</div>
         <div class="recent-l" id="recent"></div>
       </div>
       <div class="card">
-        <div class="card-t">⏰ 예약 발송 목록</div>
+        <div class="card-t">⏰ Scheduled Subscriptions</div>
         <div class="sched" id="schedList"></div>
       </div>
     </div>
@@ -129,47 +129,47 @@ select,input{padding:5px 9px;border:1px solid var(--bd);border-radius:5px;font-s
 <!-- schedule modal -->
 <div class="ov" id="ovSched">
   <div class="modal">
-    <div class="modal-h"><span class="mt">리포트 예약 발송 설정</span><span class="mx" onclick="closeOv('ovSched')">✕</span></div>
+    <div class="modal-h"><span class="mt">Schedule Report Subscription</span><span class="mx" onclick="closeOv('ovSched')">✕</span></div>
     <div class="modal-b">
-      <div class="ff"><label>대상 리포트</label><select id="scRpt"></select></div>
-      <div class="ff"><label>발송 주기</label>
-        <select id="scCycle"><option>매일 (영업일)</option><option>매주 월요일</option><option>매월 1일</option></select></div>
-      <div class="ff"><label>발송 시각</label>
-        <select id="scTime"><option>07:00</option><option>08:00</option><option>09:00</option><option>18:00</option></select></div>
-      <div class="ff"><label>수신자</label>
-        <select id="scTo"><option>생산팀 (전체)</option><option>품질팀</option><option>경영진</option><option>공장장</option></select></div>
+      <div class="ff"><label>Report</label><select id="scRpt"></select></div>
+      <div class="ff"><label>Frequency</label>
+        <select id="scCycle"><option>Daily (Business Days)</option><option>Weekly (Monday)</option><option>Monthly (1st)</option></select></div>
+      <div class="ff"><label>Send Time</label>
+        <select id="scTime"><option>07:00 AM</option><option>08:00 AM</option><option>09:00 AM</option><option>06:00 PM</option></select></div>
+      <div class="ff"><label>Recipients</label>
+        <select id="scTo"><option>Production Team (All)</option><option>Quality Team</option><option>Executive Team</option><option>Plant Manager</option></select></div>
     </div>
     <div class="modal-f">
-      <button class="btn btn-s" onclick="closeOv('ovSched')">취소</button>
-      <button class="btn btn-p" onclick="addSched()">⏰ 예약 등록</button>
+      <button class="btn btn-s" onclick="closeOv('ovSched')">Cancel</button>
+      <button class="btn btn-p" onclick="addSched()">⏰ Subscribe</button>
     </div>
   </div>
 </div>
 <div class="toasts" id="toasts"></div>
 
 <script>
-var CATCOL={'생산':'#059669','품질':'#8b5cf6','납기':'#2563eb','설비':'#f59e0b','재고':'#0891b2'};
+var CATCOL={'Production':'#059669','Quality':'#8b5cf6','Delivery':'#2563eb','Equipment':'#f59e0b','Inventory':'#0891b2'};
 var REPORTS=[
- {id:'R01',nm:'일일 생산 리포트',cat:'생산',ic:'🏭',ds:'라인·교대별 생산 실적 집계',fmt:['PDF','XLSX'],last:'05-21 07:02',fav:true},
- {id:'R02',nm:'불량 파레토 분석',cat:'품질',ic:'📊',ds:'불량 유형별 집중 분석',fmt:['PDF','XLSX'],last:'05-20 18:10',fav:true},
- {id:'R03',nm:'일일 출하 리포트',cat:'납기',ic:'🚚',ds:'거래선·차수별 출하 실적',fmt:['PDF','XLSX'],last:'05-21 07:05',fav:false},
- {id:'R04',nm:'납기 준수율 리포트',cat:'납기',ic:'📅',ds:'거래선·월별 OTD 분석',fmt:['PDF'],last:'05-20 09:00',fav:false},
- {id:'R05',nm:'재고 현황 리포트',cat:'재고',ic:'📦',ds:'창고·품목군별 재고 집계',fmt:['XLSX'],last:'05-21 06:30',fav:true},
- {id:'R06',nm:'설비 OEE 리포트',cat:'설비',ic:'⚙️',ds:'월간 종합효율 집계 보고서',fmt:['PDF','XLSX'],last:'05-20 17:40',fav:false},
- {id:'R07',nm:'월간 KPI 스코어카드',cat:'생산',ic:'🎯',ds:'핵심성과지표 종합 평가',fmt:['PDF'],last:'05-19 09:00',fav:true},
- {id:'R08',nm:'계획 준수율 리포트',cat:'생산',ic:'📈',ds:'생산 계획 대비 실적 준수도',fmt:['PDF','XLSX'],last:'05-20 18:20',fav:false},
- {id:'R09',nm:'고장·정비 이력 리포트',cat:'설비',ic:'🛠',ds:'설비 고장·정비 작업 이력',fmt:['XLSX'],last:'05-18 16:00',fav:false},
- {id:'R10',nm:'품질 검사 성적서',cat:'품질',ic:'✓',ds:'로트별 검사 결과 성적서',fmt:['PDF'],last:'05-20 14:30',fav:false}
+ {id:'R01',nm:'Daily Production Report',cat:'Production',ic:'🏭',ds:'Production output by line and shift',fmt:['PDF','XLSX'],last:'05/21 07:02 AM',fav:true},
+ {id:'R02',nm:'Defect Pareto Analysis',cat:'Quality',ic:'📊',ds:'Focused analysis by defect type',fmt:['PDF','XLSX'],last:'05/20 06:10 PM',fav:true},
+ {id:'R03',nm:'Daily Shipment Report',cat:'Delivery',ic:'🚚',ds:'Shipment performance by customer and round',fmt:['PDF','XLSX'],last:'05/21 07:05 AM',fav:false},
+ {id:'R04',nm:'On-Time Delivery Report',cat:'Delivery',ic:'📅',ds:'OTD analysis by customer and month',fmt:['PDF'],last:'05/20 09:00 AM',fav:false},
+ {id:'R05',nm:'Inventory Status Report',cat:'Inventory',ic:'📦',ds:'Inventory aggregation by warehouse and category',fmt:['XLSX'],last:'05/21 06:30 AM',fav:true},
+ {id:'R06',nm:'Equipment OEE Report',cat:'Equipment',ic:'⚙️',ds:'Monthly overall equipment effectiveness summary',fmt:['PDF','XLSX'],last:'05/20 05:40 PM',fav:false},
+ {id:'R07',nm:'Monthly KPI Scorecard',cat:'Production',ic:'🎯',ds:'Comprehensive KPI evaluation',fmt:['PDF'],last:'05/19 09:00 AM',fav:true},
+ {id:'R08',nm:'Schedule Adherence Report',cat:'Production',ic:'📈',ds:'Production plan vs actual adherence',fmt:['PDF','XLSX'],last:'05/20 06:20 PM',fav:false},
+ {id:'R09',nm:'Breakdown & Maintenance History',cat:'Equipment',ic:'🛠',ds:'Equipment breakdown and maintenance history',fmt:['XLSX'],last:'05/18 04:00 PM',fav:false},
+ {id:'R10',nm:'Quality Inspection Certificate',cat:'Quality',ic:'✓',ds:'Inspection results certificate by lot',fmt:['PDF'],last:'05/20 02:30 PM',fav:false}
 ];
 var RECENT=[
- {nm:'일일 생산 리포트',t:'05-21 07:02',fmt:'PDF'},
- {nm:'재고 현황 리포트',t:'05-21 06:30',fmt:'XLSX'},
- {nm:'일일 출하 리포트',t:'05-21 07:05',fmt:'PDF'}
+ {nm:'Daily Production Report',t:'05/21 07:02 AM',fmt:'PDF'},
+ {nm:'Inventory Status Report',t:'05/21 06:30 AM',fmt:'XLSX'},
+ {nm:'Daily Shipment Report',t:'05/21 07:05 AM',fmt:'PDF'}
 ];
 var SCHED=[
- {nm:'일일 생산 리포트',cycle:'매일 (영업일)',time:'07:00',to:'생산팀'},
- {nm:'월간 KPI 스코어카드',cycle:'매월 1일',time:'09:00',to:'경영진'},
- {nm:'재고 현황 리포트',cycle:'매일 (영업일)',time:'06:30',to:'자재팀'}
+ {nm:'Daily Production Report',cycle:'Daily (Business Days)',time:'07:00 AM',to:'Production Team'},
+ {nm:'Monthly KPI Scorecard',cycle:'Monthly (1st)',time:'09:00 AM',to:'Executive Team'},
+ {nm:'Inventory Status Report',cycle:'Daily (Business Days)',time:'06:30 AM',to:'Materials Team'}
 ];
 var genToday=3;
 function vis(){
@@ -194,50 +194,53 @@ function render(){
       '<span class="rc-fav '+(r.fav?'on':'')+'" onclick="toggleFav(\''+r.id+'\')">'+(r.fav?'★':'☆')+'</span></div>'+
       '<div class="rc-meta"><span class="rc-cat" style="background:'+CATCOL[r.cat]+'22;color:'+CATCOL[r.cat]+'">'+r.cat+'</span>'+
         r.fmt.map(function(f){return '<span class="fmt">'+f+'</span>';}).join('')+
-        '<span style="margin-left:auto;">최근 '+r.last+'</span></div>'+
+        '<span style="margin-left:auto;">Last '+r.last+'</span></div>'+
       '<div class="rc-act">'+
-        '<button class="btn btn-p btn-sm" onclick="runReport(\''+r.id+'\')">▶ 실행</button>'+
-        '<button class="btn btn-s btn-sm" onclick="dlReport(\''+r.id+'\')">📥 다운로드</button></div></div>';
+        '<button class="btn btn-p btn-sm" onclick="runReport(\''+r.id+'\')">▶ Run</button>'+
+        '<button class="btn btn-s btn-sm" onclick="dlReport(\''+r.id+'\')">📥 Download</button></div></div>';
   });
   document.getElementById('catalog').innerHTML=h;
   document.getElementById('catEmpty').style.display=v.length?'none':'block';
-  document.getElementById('catSub').textContent=v.length+'종';
+  document.getElementById('catSub').textContent=v.length+' reports';
   renderRecent();renderSched();
 }
 function renderRecent(){
   document.getElementById('recent').innerHTML=RECENT.slice(0,6).map(function(r){
     return '<div class="rl"><div class="rl-ic">📄</div>'+
       '<div class="rl-nm">'+r.nm+'<small>'+r.t+' · '+r.fmt+'</small></div>'+
-      '<span class="rl-dl" onclick="toast(\'\',\'다운로드\',\''+r.nm+' 파일을 다운로드했습니다.\')">📥</span></div>';
-  }).join('')||'<div class="empty">생성된 리포트 없음</div>';
+      '<span class="rl-dl" onclick="toast(\'\',\'Download\',\''+r.nm+' file has been downloaded.\')">📥</span></div>';
+  }).join('')||'<div class="empty">No generated reports</div>';
 }
 function renderSched(){
   document.getElementById('schedList').innerHTML=SCHED.map(function(s){
     return '<div class="sc"><span class="sc-c"></span>'+
       '<div class="sc-i">'+s.nm+'<small>'+s.cycle+' · '+s.to+'</small></div>'+
       '<span class="sc-t">'+s.time+'</span></div>';
-  }).join('')||'<div class="empty">예약된 발송 없음</div>';
+  }).join('')||'<div class="empty">No scheduled subscriptions</div>';
 }
 function byId(id){return REPORTS.filter(function(r){return r.id===id;})[0];}
 function toggleFav(id){var r=byId(id);r.fav=!r.fav;render();
-  toast('info',r.fav?'즐겨찾기 추가':'즐겨찾기 해제',r.nm);}
+  toast('info',r.fav?'Added to Favorites':'Removed from Favorites',r.nm);}
 function runReport(id){
   var r=byId(id);
-  toast('info','리포트 생성 중','「'+r.nm+'」 생성을 시작합니다...');
+  toast('info','Generating Report','Starting "'+r.nm+'"...');
   setTimeout(function(){
-    var now=new Date().toTimeString().slice(0,5);
-    RECENT.unshift({nm:r.nm,t:'05-21 '+now,fmt:r.fmt[0]});
-    r.last='05-21 '+now;genToday++;
+    var now=new Date();
+    var h=now.getHours(),m=now.getMinutes();
+    var ampm=h>=12?'PM':'AM',hh=h%12||12;
+    var ts='05/21 '+(hh<10?'0':'')+hh+':'+(m<10?'0':'')+m+' '+ampm;
+    RECENT.unshift({nm:r.nm,t:ts,fmt:r.fmt[0]});
+    r.last=ts;genToday++;
     render();
-    toast('','리포트 생성 완료','「'+r.nm+'」 ('+r.fmt[0]+') 생성이 완료되어 최근 목록에 추가되었습니다.');
+    toast('','Report Generated','"'+r.nm+'" ('+r.fmt[0]+') has been generated and added to Recent list.');
   },900);
 }
 function dlReport(id){var r=byId(id);
-  var blob=new Blob(['﻿Report: '+r.nm+'\nGenerated: '+new Date().toISOString()+'\n(데모 파일)'],{type:'text/csv;charset=utf-8;'});
+  var blob=new Blob(['﻿Report: '+r.nm+'\nGenerated: '+new Date().toISOString()+'\n(Demo file)'],{type:'text/csv;charset=utf-8;'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=r.id+'_'+r.nm.replace(/ /g,'_')+'.csv';
   document.body.appendChild(a);a.click();a.remove();
-  toast('','다운로드 완료','「'+r.nm+'」 파일을 다운로드했습니다.');
+  toast('','Download Complete','"'+r.nm+'" file has been downloaded.');
 }
 function openSched(){
   document.getElementById('scRpt').innerHTML=REPORTS.map(function(r){return '<option>'+r.nm+'</option>';}).join('');
@@ -249,12 +252,12 @@ function addSched(){
     time:document.getElementById('scTime').value,
     to:document.getElementById('scTo').value.replace(/ \(.*/,'')});
   closeOv('ovSched');render();
-  toast('','예약 발송 등록','리포트 자동 발송 예약이 등록되었습니다.');
+  toast('','Subscription Added','Report subscription has been scheduled.');
 }
 function resetAll(){
   document.getElementById('fCat').value='';document.getElementById('fFav').value='';
   document.getElementById('fKw').value='';render();
-  toast('info','초기화','리포트 카탈로그 필터를 초기화했습니다.');
+  toast('info','Reset','Report catalog filters have been reset.');
 }
 function openOv(id){document.getElementById(id).classList.add('on');}
 function closeOv(id){document.getElementById(id).classList.remove('on');}
