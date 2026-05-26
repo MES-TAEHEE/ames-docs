@@ -181,7 +181,7 @@ function ld(el){
   document.getElementById('landing').style.display='none';
   var f=document.getElementById('frame');
   f.style.display='block';
-  f.src=el.dataset.src;
+  f.src=el.dataset.src+'?v='+Date.now();
   document.getElementById('crumb').textContent=el.dataset.crumb;
   var isDemo=el.dataset.src.indexOf('DEMO_')===0;
   document.getElementById('srctag').textContent=(isDemo?'● Interactive Demo · ':'L3 Spec · ')+el.dataset.src;
