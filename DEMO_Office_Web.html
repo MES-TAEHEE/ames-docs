@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>A-MES Demo · Office Web System · 사무 Web 시스템</title>
+<title>A-MES Demo · Office Web System</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--sc:#2563eb;--bar:#0d1117;--side:#161b22;--side2:#21262d;--bg:#f6f8fa;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:#24292f;font-size:13px;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:#24292f;font-size:13px;display:flex;flex-direction:column;overflow:hidden;}
 /* TOP BAR */
 .appbar{height:50px;flex-shrink:0;background:var(--bar);display:flex;align-items:center;gap:0;border-bottom:2px solid var(--sc);}
 .ab-logo{display:flex;align-items:center;gap:8px;padding:0 18px;height:100%;border-right:1px solid rgba(255,255,255,.08);}
@@ -77,7 +77,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:#24292f;fo
 <body>
 <div class="appbar">
   <div class="ab-logo"><span class="lg">A-MES</span></div>
-  <div class="ab-sys"><span class="ico">🖥️</span><div><div class="nm">Office Web System</div><div class="ko">사무·엔지니어 Web · System 1</div></div></div>
+  <div class="ab-sys"><span class="ico">🖥️</span><div><div class="nm">Office Web System</div><div class="ko">Planner / Engineer Web · System 1</div></div></div>
   <div class="ab-switch">
     <a class="ab-sw on" href="DEMO_Office_Web.html">🖥️ Office Web</a>
     <a class="ab-sw" href="DEMO_ShopFloor_POP.html">📟 Shop-Floor POP</a>
@@ -85,133 +85,133 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:#24292f;fo
     <a class="ab-sw" href="DEMO_Site_Map.html">🗺 Site Map</a>
   </div>
   <div class="ab-right">
-    <span class="ab-clock" id="clock">2026-05-20 · 09:14</span>
-    <div class="ab-user"><div class="av">👤</div><div><div class="un">김계획 Planner</div><div class="ur">PLAN Manager · 생산관리팀</div></div></div>
+    <span class="ab-clock" id="clock">05/26/2026 · 09:14</span>
+    <div class="ab-user"><div class="av">👤</div><div><div class="un">Jennifer Park</div><div class="ur">PLAN Manager · Production Planning</div></div></div>
   </div>
 </div>
-<div class="demo-note">▶ <b>DEMO SHELL</b> — 데모 셸: 좌측 메뉴 클릭 시 해당 화면이 우측에 표시됩니다. 현재는 L3 설계서를 표시하며, 데모 화면 구현 시 실제 인터랙티브 화면으로 대체됩니다.</div>
+<div class="demo-note">▶ <b>DEMO SHELL</b> — Click any menu item on the left to load that screen here. Items marked <b>LIVE</b> are interactive demonstrations with realistic U.S. sample data.</div>
 <div class="shell">
   <nav class="side">
-    <div class="side-h">Menu · 메뉴 트리</div>
+    <div class="side-h">Navigation Menu</div>
     <div class="grp open">
-      <button class="grp-h" onclick="tg(this)"><span class="gi">PP</span><span class="gn">생산계획</span><span class="gc">13</span><span class="gx">▶</span></button>
+      <button class="grp-h" onclick="tg(this)"><span class="gi">PP</span><span class="gn">Production Planning</span><span class="gc">13</span><span class="gx">▶</span></button>
       <div class="grp-items">
-        <a class="mi" onclick="ld(this)" data-src="DEMO_PP01_Forecast.html" data-crumb="PP 생산계획 · PP-01 Forecast Mgmt"><span class="mid">PP-01</span><span class="mnm">Forecast 관리</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_PP02_SAP_Import.html" data-crumb="PP 생산계획 · PP-02 SAP B1 Import"><span class="mid">PP-02</span><span class="mnm">공급계획 수신</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_PP03_Plan_Confirm.html" data-crumb="PP 생산계획 · PP-03 Plan &amp; Confirm"><span class="mid">PP-03</span><span class="mnm">생산계획 수립</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_PP04_Work_Order.html" data-crumb="PP 생산계획 · PP-04 Work Order"><span class="mid">PP-04</span><span class="mnm">작업지시 관리</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_PP05_MRP.html" data-crumb="PP 생산계획 · PP-05 MRP"><span class="mid">PP-05</span><span class="mnm">자재 소요 계획</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_PP06_Purchase_Req.html" data-crumb="PP 생산계획 · PP-06 Purchase Req."><span class="mid">PP-06</span><span class="mnm">자재발주 요청</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_PP07_WO_Release.html" data-crumb="PP 생산계획 · PP-07 WO Release"><span class="mid">PP-07</span><span class="mnm">WO 발행</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_PP_CAL_Calendar.html" data-crumb="PP 생산계획 · PP-CAL Calendar"><span class="mid">PP-CAL</span><span class="mnm">생산 캘린더</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_PP_OTD_Delivery.html" data-crumb="PP 생산계획 · PP-OTD Delivery KPI"><span class="mid">PP-OTD</span><span class="mnm">납기 현황</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_PP_LSB_Line_Schedule.html" data-crumb="PP 생산계획 · PP-LSB Line Schedule Board"><span class="mid">PP-LSB</span><span class="mnm">라인 스케줄 보드</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_PP_ODM_Downtime_Monitor.html" data-crumb="PP 생산계획 · PP-ODM Downtime Monitor"><span class="mid">PP-ODM</span><span class="mnm">가동·비가동 모니터</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_PP_OEE_Line_OEE.html" data-crumb="PP 생산계획 · PP-OEE Line OEE"><span class="mid">PP-OEE</span><span class="mnm">라인 가용성·OEE</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_PP_DTL_Downtime_Log.html" data-crumb="PP 생산계획 · PP-DTL Downtime Log"><span class="mid">PP-DTL</span><span class="mnm">비가동 로그 입력</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_PP01_Forecast.html" data-crumb="PP Production Planning · PP-01 Forecast Mgmt"><span class="mid">PP-01</span><span class="mnm">Forecast Mgmt</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_PP02_SAP_Import.html" data-crumb="PP Production Planning · PP-02 SAP B1 Import"><span class="mid">PP-02</span><span class="mnm">Supply Plan Import</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_PP03_Plan_Confirm.html" data-crumb="PP Production Planning · PP-03 Plan &amp; Confirm"><span class="mid">PP-03</span><span class="mnm">Production Plan</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_PP04_Work_Order.html" data-crumb="PP Production Planning · PP-04 Work Order"><span class="mid">PP-04</span><span class="mnm">Work Order Mgmt</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_PP05_MRP.html" data-crumb="PP Production Planning · PP-05 MRP"><span class="mid">PP-05</span><span class="mnm">Material Requirements</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_PP06_Purchase_Req.html" data-crumb="PP Production Planning · PP-06 Purchase Req."><span class="mid">PP-06</span><span class="mnm">Purchase Request</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_PP07_WO_Release.html" data-crumb="PP Production Planning · PP-07 WO Release"><span class="mid">PP-07</span><span class="mnm">WO Release</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_PP_CAL_Calendar.html" data-crumb="PP Production Planning · PP-CAL Calendar"><span class="mid">PP-CAL</span><span class="mnm">Production Calendar</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_PP_OTD_Delivery.html" data-crumb="PP Production Planning · PP-OTD Delivery KPI"><span class="mid">PP-OTD</span><span class="mnm">On-Time Delivery</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_PP_LSB_Line_Schedule.html" data-crumb="PP Production Planning · PP-LSB Line Schedule Board"><span class="mid">PP-LSB</span><span class="mnm">Line Schedule Board</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_PP_ODM_Downtime_Monitor.html" data-crumb="PP Production Planning · PP-ODM Downtime Monitor"><span class="mid">PP-ODM</span><span class="mnm">Up/Downtime Monitor</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_PP_OEE_Line_OEE.html" data-crumb="PP Production Planning · PP-OEE Line OEE"><span class="mid">PP-OEE</span><span class="mnm">Line Availability / OEE</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_PP_DTL_Downtime_Log.html" data-crumb="PP Production Planning · PP-DTL Downtime Log"><span class="mid">PP-DTL</span><span class="mnm">Downtime Log Entry</span><span class="live">LIVE</span></a>
       </div>
     </div>
     <div class="grp">
-      <button class="grp-h" onclick="tg(this)"><span class="gi">MNT</span><span class="gn">설비관리</span><span class="gc">9</span><span class="gx">▶</span></button>
+      <button class="grp-h" onclick="tg(this)"><span class="gi">MNT</span><span class="gn">Maintenance</span><span class="gc">9</span><span class="gx">▶</span></button>
       <div class="grp-items">
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MNT01_Equipment_Card.html" data-crumb="MNT 설비관리 · MNT-01 Equipment Card"><span class="mid">MNT-01</span><span class="mnm">설비 카드</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MNT02_Failure_Register.html" data-crumb="MNT 설비관리 · MNT-02 Failure Register"><span class="mid">MNT-02</span><span class="mnm">고장 등록</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MNT03_OEE_Analysis.html" data-crumb="MNT 설비관리 · MNT-03 OEE Analysis"><span class="mid">MNT-03</span><span class="mnm">OEE 분석</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MNT04_Mold_Management.html" data-crumb="MNT 설비관리 · MNT-04 Mold Management"><span class="mid">MNT-04</span><span class="mnm">금형 관리</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MNT05_PM_Schedule.html" data-crumb="MNT 설비관리 · MNT-05 PM Schedule"><span class="mid">MNT-05</span><span class="mnm">예방정비 일정</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MNT06_Downtime_Log.html" data-crumb="MNT 설비관리 · MNT-06 Downtime Log"><span class="mid">MNT-06</span><span class="mnm">비가동 로그</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MNT07_Work_Order.html" data-crumb="MNT 설비관리 · MNT-07 Work Order"><span class="mid">MNT-07</span><span class="mnm">정비 작업지시</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MNT08_Spare_Parts.html" data-crumb="MNT 설비관리 · MNT-08 Spare Parts"><span class="mid">MNT-08</span><span class="mnm">정비 자재</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MNT09_Dashboard.html" data-crumb="MNT 설비관리 · MNT-09 Dashboard"><span class="mid">MNT-09</span><span class="mnm">설비 대시보드</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MNT01_Equipment_Card.html" data-crumb="MNT Maintenance · MNT-01 Equipment Card"><span class="mid">MNT-01</span><span class="mnm">Equipment Card</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MNT02_Failure_Register.html" data-crumb="MNT Maintenance · MNT-02 Failure Register"><span class="mid">MNT-02</span><span class="mnm">Failure Register</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MNT03_OEE_Analysis.html" data-crumb="MNT Maintenance · MNT-03 OEE Analysis"><span class="mid">MNT-03</span><span class="mnm">OEE Analysis</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MNT04_Mold_Management.html" data-crumb="MNT Maintenance · MNT-04 Mold Management"><span class="mid">MNT-04</span><span class="mnm">Mold Management</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MNT05_PM_Schedule.html" data-crumb="MNT Maintenance · MNT-05 PM Schedule"><span class="mid">MNT-05</span><span class="mnm">PM Schedule</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MNT06_Downtime_Log.html" data-crumb="MNT Maintenance · MNT-06 Downtime Log"><span class="mid">MNT-06</span><span class="mnm">Downtime Log</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MNT07_Work_Order.html" data-crumb="MNT Maintenance · MNT-07 Work Order"><span class="mid">MNT-07</span><span class="mnm">Maintenance Work Order</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MNT08_Spare_Parts.html" data-crumb="MNT Maintenance · MNT-08 Spare Parts"><span class="mid">MNT-08</span><span class="mnm">Spare Parts</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MNT09_Dashboard.html" data-crumb="MNT Maintenance · MNT-09 Dashboard"><span class="mid">MNT-09</span><span class="mnm">Equipment Dashboard</span><span class="live">LIVE</span></a>
       </div>
     </div>
     <div class="grp">
-      <button class="grp-h" onclick="tg(this)"><span class="gi">RPT</span><span class="gn">분석 리포트</span><span class="gc">10</span><span class="gx">▶</span></button>
+      <button class="grp-h" onclick="tg(this)"><span class="gi">RPT</span><span class="gn">Reports &amp; Analytics</span><span class="gc">10</span><span class="gx">▶</span></button>
       <div class="grp-items">
-        <a class="mi" onclick="ld(this)" data-src="DEMO_RPT01_Daily_Production.html" data-crumb="RPT 리포트 · RPT-01 Daily Production"><span class="mid">RPT-01</span><span class="mnm">일일 생산</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_RPT02_Defect_Pareto.html" data-crumb="RPT 리포트 · RPT-02 Defect Pareto"><span class="mid">RPT-02</span><span class="mnm">불량 파레토</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_RPT03_Daily_Shipment.html" data-crumb="RPT 리포트 · RPT-03 Daily Shipment"><span class="mid">RPT-03</span><span class="mnm">일일 출하</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_RPT04_OnTime_Delivery.html" data-crumb="RPT 리포트 · RPT-04 On-Time Delivery"><span class="mid">RPT-04</span><span class="mnm">납기 준수율</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_RPT05_Inventory_Status.html" data-crumb="RPT 리포트 · RPT-05 Inventory Status"><span class="mid">RPT-05</span><span class="mnm">재고 현황</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_RPT06_Equipment_OEE.html" data-crumb="RPT 리포트 · RPT-06 Equipment OEE"><span class="mid">RPT-06</span><span class="mnm">설비 OEE</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_RPT07_Monthly_KPI.html" data-crumb="RPT 리포트 · RPT-07 Monthly KPI"><span class="mid">RPT-07</span><span class="mnm">월간 KPI</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_RPT08_Schedule_Adherence.html" data-crumb="RPT 리포트 · RPT-08 Schedule Adherence"><span class="mid">RPT-08</span><span class="mnm">계획 준수율</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_RPT09_Report_Center.html" data-crumb="RPT 리포트 · RPT-09 Report Center"><span class="mid">RPT-09</span><span class="mnm">리포트 센터</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_RPT10_Report_Builder.html" data-crumb="RPT 리포트 · RPT-10 Report Builder"><span class="mid">RPT-10</span><span class="mnm">리포트 빌더</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_RPT01_Daily_Production.html" data-crumb="RPT Reports · RPT-01 Daily Production"><span class="mid">RPT-01</span><span class="mnm">Daily Production</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_RPT02_Defect_Pareto.html" data-crumb="RPT Reports · RPT-02 Defect Pareto"><span class="mid">RPT-02</span><span class="mnm">Defect Pareto</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_RPT03_Daily_Shipment.html" data-crumb="RPT Reports · RPT-03 Daily Shipment"><span class="mid">RPT-03</span><span class="mnm">Daily Shipment</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_RPT04_OnTime_Delivery.html" data-crumb="RPT Reports · RPT-04 On-Time Delivery"><span class="mid">RPT-04</span><span class="mnm">On-Time Delivery</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_RPT05_Inventory_Status.html" data-crumb="RPT Reports · RPT-05 Inventory Status"><span class="mid">RPT-05</span><span class="mnm">Inventory Status</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_RPT06_Equipment_OEE.html" data-crumb="RPT Reports · RPT-06 Equipment OEE"><span class="mid">RPT-06</span><span class="mnm">Equipment OEE</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_RPT07_Monthly_KPI.html" data-crumb="RPT Reports · RPT-07 Monthly KPI"><span class="mid">RPT-07</span><span class="mnm">Monthly KPI</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_RPT08_Schedule_Adherence.html" data-crumb="RPT Reports · RPT-08 Schedule Adherence"><span class="mid">RPT-08</span><span class="mnm">Schedule Adherence</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_RPT09_Report_Center.html" data-crumb="RPT Reports · RPT-09 Report Center"><span class="mid">RPT-09</span><span class="mnm">Report Center</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_RPT10_Report_Builder.html" data-crumb="RPT Reports · RPT-10 Report Builder"><span class="mid">RPT-10</span><span class="mnm">Report Builder</span><span class="live">LIVE</span></a>
       </div>
     </div>
     <div class="grp">
-      <button class="grp-h" onclick="tg(this)"><span class="gi">SYS</span><span class="gn">시스템 관리</span><span class="gc">8</span><span class="gx">▶</span></button>
+      <button class="grp-h" onclick="tg(this)"><span class="gi">SYS</span><span class="gn">System Admin</span><span class="gc">8</span><span class="gx">▶</span></button>
       <div class="grp-items">
-        <a class="mi" onclick="ld(this)" data-src="DEMO_SYS01_User_Management.html" data-crumb="SYS 시스템 · SYS-01 User Management"><span class="mid">SYS-01</span><span class="mnm">사용자 관리</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_SYS02_RBAC_Permissions.html" data-crumb="SYS 시스템 · SYS-02 RBAC Permissions"><span class="mid">SYS-02</span><span class="mnm">권한 관리</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_SYS03_Factory_Calendar.html" data-crumb="SYS 시스템 · SYS-03 Factory Calendar"><span class="mid">SYS-03</span><span class="mnm">공장 캘린더</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_SYS04_Interface_Monitor.html" data-crumb="SYS 시스템 · SYS-04 Interface Monitor"><span class="mid">SYS-04</span><span class="mnm">인터페이스 모니터</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_SYS05_Audit_Log.html" data-crumb="SYS 시스템 · SYS-05 Audit Log"><span class="mid">SYS-05</span><span class="mnm">감사 로그</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_SYS06_Notification_Settings.html" data-crumb="SYS 시스템 · SYS-06 Notification"><span class="mid">SYS-06</span><span class="mnm">알림 설정</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_SYS07_System_Config.html" data-crumb="SYS 시스템 · SYS-07 System Config"><span class="mid">SYS-07</span><span class="mnm">시스템 설정</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_SYS08_System_Health.html" data-crumb="SYS 시스템 · SYS-08 System Health"><span class="mid">SYS-08</span><span class="mnm">시스템 헬스</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_SYS01_User_Management.html" data-crumb="SYS System · SYS-01 User Management"><span class="mid">SYS-01</span><span class="mnm">User Management</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_SYS02_RBAC_Permissions.html" data-crumb="SYS System · SYS-02 RBAC Permissions"><span class="mid">SYS-02</span><span class="mnm">RBAC Permissions</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_SYS03_Factory_Calendar.html" data-crumb="SYS System · SYS-03 Factory Calendar"><span class="mid">SYS-03</span><span class="mnm">Factory Calendar</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_SYS04_Interface_Monitor.html" data-crumb="SYS System · SYS-04 Interface Monitor"><span class="mid">SYS-04</span><span class="mnm">Interface Monitor</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_SYS05_Audit_Log.html" data-crumb="SYS System · SYS-05 Audit Log"><span class="mid">SYS-05</span><span class="mnm">Audit Log</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_SYS06_Notification_Settings.html" data-crumb="SYS System · SYS-06 Notification"><span class="mid">SYS-06</span><span class="mnm">Notification Settings</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_SYS07_System_Config.html" data-crumb="SYS System · SYS-07 System Config"><span class="mid">SYS-07</span><span class="mnm">System Configuration</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_SYS08_System_Health.html" data-crumb="SYS System · SYS-08 System Health"><span class="mid">SYS-08</span><span class="mnm">System Health</span><span class="live">LIVE</span></a>
       </div>
     </div>
     <div class="grp">
-      <button class="grp-h" onclick="tg(this)"><span class="gi">MD</span><span class="gn">기준정보</span><span class="gc">34</span><span class="gx">▶</span></button>
+      <button class="grp-h" onclick="tg(this)"><span class="gi">MD</span><span class="gn">Master Data</span><span class="gc">34</span><span class="gx">▶</span></button>
       <div class="grp-items">
-        <div class="sub-l">카테고리 L3 허브</div>
-        <a class="mi" onclick="ld(this)" data-src="VOL13_MD_L3_Foundation.html" data-crumb="MD 기준정보 · L3-A Foundation"><span class="mid">L3·A</span><span class="mnm">Foundation</span></a>
-        <a class="mi" onclick="ld(this)" data-src="VOL13_MD_L3_Production.html" data-crumb="MD 기준정보 · L3-B Routing &amp; Production"><span class="mid">L3·B</span><span class="mnm">Routing &amp; Production</span></a>
-        <a class="mi" onclick="ld(this)" data-src="VOL13_MD_L3_Resources.html" data-crumb="MD 기준정보 · L3-C Resources &amp; Equipment"><span class="mid">L3·C</span><span class="mnm">Resources &amp; Equipment</span></a>
-        <a class="mi" onclick="ld(this)" data-src="VOL13_MD_L3_RFID_Color.html" data-crumb="MD 기준정보 · L3-D RFID &amp; Materials"><span class="mid">L3·D</span><span class="mnm">RFID &amp; Materials</span></a>
-        <a class="mi" onclick="ld(this)" data-src="VOL13_MD_L3_Quality.html" data-crumb="MD 기준정보 · L3-E Quality &amp; Logistics"><span class="mid">L3·E</span><span class="mnm">Quality &amp; Logistics</span></a>
-        <div class="sub-l">엔티티 테이블 설계 (29)</div>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD01_Item.html" data-crumb="MD 기준정보 · MD-01 Item Master"><span class="mid">MD-01</span><span class="mnm">품목</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD02_BOM.html" data-crumb="MD 기준정보 · MD-02 BOM"><span class="mid">MD-02</span><span class="mnm">BOM</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD03_BOM_Version.html" data-crumb="MD 기준정보 · MD-03 BOM Version"><span class="mid">MD-03</span><span class="mnm">BOM 버전</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD04_BOP.html" data-crumb="MD 기준정보 · MD-04 BOP Routing"><span class="mid">MD-04</span><span class="mnm">공정경로</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD05_Work_Center.html" data-crumb="MD 기준정보 · MD-05 Work Center"><span class="mid">MD-05</span><span class="mnm">작업장</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD06_Inspection_Std.html" data-crumb="MD 기준정보 · MD-06 Inspection Std"><span class="mid">MD-06</span><span class="mnm">검사기준</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD07_Vendor.html" data-crumb="MD 기준정보 · MD-07 Vendor"><span class="mid">MD-07</span><span class="mnm">거래선</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD08_Equipment.html" data-crumb="MD 기준정보 · MD-08 Equipment"><span class="mid">MD-08</span><span class="mnm">설비</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD09_Mold.html" data-crumb="MD 기준정보 · MD-09 Mold"><span class="mid">MD-09</span><span class="mnm">금형</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD10_Paint_Fabric.html" data-crumb="MD 기준정보 · MD-10 Paint / Fabric"><span class="mid">MD-10</span><span class="mnm">도료·원단</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD11_Shipment_Dest.html" data-crumb="MD 기준정보 · MD-11 Shipment Dest"><span class="mid">MD-11</span><span class="mnm">출하처</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD12_Customer.html" data-crumb="MD 기준정보 · MD-12 Customer"><span class="mid">MD-12</span><span class="mnm">고객사</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD13_UOM.html" data-crumb="MD 기준정보 · MD-13 UOM"><span class="mid">MD-13</span><span class="mnm">단위</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD14_Calendar.html" data-crumb="MD 기준정보 · MD-14 Calendar"><span class="mid">MD-14</span><span class="mnm">캘린더</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD15_Jig.html" data-crumb="MD 기준정보 · MD-15 Jig"><span class="mid">MD-15</span><span class="mnm">지그</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD16_RFID_Tag.html" data-crumb="MD 기준정보 · MD-16 RFID Tag"><span class="mid">MD-16</span><span class="mnm">RFID 태그</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD17_RAL_Color.html" data-crumb="MD 기준정보 · MD-17 RAL Paint Color"><span class="mid">MD-17</span><span class="mnm">RAL 컬러</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD18_Oven.html" data-crumb="MD 기준정보 · MD-18 Oven"><span class="mid">MD-18</span><span class="mnm">오븐</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD19_RFID_Reader.html" data-crumb="MD 기준정보 · MD-19 RFID Reader"><span class="mid">MD-19</span><span class="mnm">RFID 리더</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD20_Line.html" data-crumb="MD 기준정보 · MD-20 Line Master"><span class="mid">MD-20</span><span class="mnm">라인</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD21_Defect_Code.html" data-crumb="MD 기준정보 · MD-21 Defect Code"><span class="mid">MD-21</span><span class="mnm">불량코드</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD22_Defect_Cause.html" data-crumb="MD 기준정보 · MD-22 Defect Cause"><span class="mid">MD-22</span><span class="mnm">불량원인</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD23_Packaging_Spec.html" data-crumb="MD 기준정보 · MD-23 Packaging Spec"><span class="mid">MD-23</span><span class="mnm">포장사양</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD24_Label_Template.html" data-crumb="MD 기준정보 · MD-24 Label Template"><span class="mid">MD-24</span><span class="mnm">라벨 템플릿</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD25_Reason_Code.html" data-crumb="MD 기준정보 · MD-25 Reason Code"><span class="mid">MD-25</span><span class="mnm">사유코드</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD26_Code_Group.html" data-crumb="MD 기준정보 · MD-26 Common Code Group"><span class="mid">MD-26</span><span class="mnm">공통코드</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD27_Spare_Parts.html" data-crumb="MD 기준정보 · MD-27 Spare Parts"><span class="mid">MD-27</span><span class="mnm">정비 자재</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD28_PM_Template.html" data-crumb="MD 기준정보 · MD-28 PM Template"><span class="mid">MD-28</span><span class="mnm">PM 템플릿</span><span class="live">LIVE</span></a>
-        <a class="mi" onclick="ld(this)" data-src="DEMO_MD29_Line_Time_Pattern.html" data-crumb="MD 기준정보 · MD-29 Line Time Pattern"><span class="mid">MD-29</span><span class="mnm">라인 시간패턴</span><span class="live">LIVE</span></a>
+        <div class="sub-l">Category L3 Hubs</div>
+        <a class="mi" onclick="ld(this)" data-src="VOL13_MD_L3_Foundation.html" data-crumb="MD Master Data · L3-A Foundation"><span class="mid">L3·A</span><span class="mnm">Foundation</span></a>
+        <a class="mi" onclick="ld(this)" data-src="VOL13_MD_L3_Production.html" data-crumb="MD Master Data · L3-B Routing &amp; Production"><span class="mid">L3·B</span><span class="mnm">Routing &amp; Production</span></a>
+        <a class="mi" onclick="ld(this)" data-src="VOL13_MD_L3_Resources.html" data-crumb="MD Master Data · L3-C Resources &amp; Equipment"><span class="mid">L3·C</span><span class="mnm">Resources &amp; Equipment</span></a>
+        <a class="mi" onclick="ld(this)" data-src="VOL13_MD_L3_RFID_Color.html" data-crumb="MD Master Data · L3-D RFID &amp; Materials"><span class="mid">L3·D</span><span class="mnm">RFID &amp; Materials</span></a>
+        <a class="mi" onclick="ld(this)" data-src="VOL13_MD_L3_Quality.html" data-crumb="MD Master Data · L3-E Quality &amp; Logistics"><span class="mid">L3·E</span><span class="mnm">Quality &amp; Logistics</span></a>
+        <div class="sub-l">Entity Table Designs (29)</div>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD01_Item.html" data-crumb="MD Master Data · MD-01 Item Master"><span class="mid">MD-01</span><span class="mnm">Item Master</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD02_BOM.html" data-crumb="MD Master Data · MD-02 BOM"><span class="mid">MD-02</span><span class="mnm">BOM</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD03_BOM_Version.html" data-crumb="MD Master Data · MD-03 BOM Version"><span class="mid">MD-03</span><span class="mnm">BOM Version</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD04_BOP.html" data-crumb="MD Master Data · MD-04 BOP Routing"><span class="mid">MD-04</span><span class="mnm">BOP / Routing</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD05_Work_Center.html" data-crumb="MD Master Data · MD-05 Work Center"><span class="mid">MD-05</span><span class="mnm">Work Center</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD06_Inspection_Std.html" data-crumb="MD Master Data · MD-06 Inspection Std"><span class="mid">MD-06</span><span class="mnm">Inspection Std</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD07_Vendor.html" data-crumb="MD Master Data · MD-07 Vendor"><span class="mid">MD-07</span><span class="mnm">Vendor</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD08_Equipment.html" data-crumb="MD Master Data · MD-08 Equipment"><span class="mid">MD-08</span><span class="mnm">Equipment</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD09_Mold.html" data-crumb="MD Master Data · MD-09 Mold"><span class="mid">MD-09</span><span class="mnm">Mold</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD10_Paint_Fabric.html" data-crumb="MD Master Data · MD-10 Paint / Fabric"><span class="mid">MD-10</span><span class="mnm">Paint / Fabric</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD11_Shipment_Dest.html" data-crumb="MD Master Data · MD-11 Shipment Dest"><span class="mid">MD-11</span><span class="mnm">Ship-To</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD12_Customer.html" data-crumb="MD Master Data · MD-12 Customer"><span class="mid">MD-12</span><span class="mnm">Customer</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD13_UOM.html" data-crumb="MD Master Data · MD-13 UOM"><span class="mid">MD-13</span><span class="mnm">UOM</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD14_Calendar.html" data-crumb="MD Master Data · MD-14 Calendar"><span class="mid">MD-14</span><span class="mnm">Calendar</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD15_Jig.html" data-crumb="MD Master Data · MD-15 Jig"><span class="mid">MD-15</span><span class="mnm">Jig</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD16_RFID_Tag.html" data-crumb="MD Master Data · MD-16 RFID Tag"><span class="mid">MD-16</span><span class="mnm">RFID Tag</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD17_RAL_Color.html" data-crumb="MD Master Data · MD-17 RAL Paint Color"><span class="mid">MD-17</span><span class="mnm">RAL Color</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD18_Oven.html" data-crumb="MD Master Data · MD-18 Oven"><span class="mid">MD-18</span><span class="mnm">Oven</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD19_RFID_Reader.html" data-crumb="MD Master Data · MD-19 RFID Reader"><span class="mid">MD-19</span><span class="mnm">RFID Reader</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD20_Line.html" data-crumb="MD Master Data · MD-20 Line Master"><span class="mid">MD-20</span><span class="mnm">Line Master</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD21_Defect_Code.html" data-crumb="MD Master Data · MD-21 Defect Code"><span class="mid">MD-21</span><span class="mnm">Defect Code</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD22_Defect_Cause.html" data-crumb="MD Master Data · MD-22 Defect Cause"><span class="mid">MD-22</span><span class="mnm">Defect Cause</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD23_Packaging_Spec.html" data-crumb="MD Master Data · MD-23 Packaging Spec"><span class="mid">MD-23</span><span class="mnm">Packaging Spec</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD24_Label_Template.html" data-crumb="MD Master Data · MD-24 Label Template"><span class="mid">MD-24</span><span class="mnm">Label Template</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD25_Reason_Code.html" data-crumb="MD Master Data · MD-25 Reason Code"><span class="mid">MD-25</span><span class="mnm">Reason Code</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD26_Code_Group.html" data-crumb="MD Master Data · MD-26 Common Code Group"><span class="mid">MD-26</span><span class="mnm">Common Code Group</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD27_Spare_Parts.html" data-crumb="MD Master Data · MD-27 Spare Parts"><span class="mid">MD-27</span><span class="mnm">Spare Parts</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD28_PM_Template.html" data-crumb="MD Master Data · MD-28 PM Template"><span class="mid">MD-28</span><span class="mnm">PM Template</span><span class="live">LIVE</span></a>
+        <a class="mi" onclick="ld(this)" data-src="DEMO_MD29_Line_Time_Pattern.html" data-crumb="MD Master Data · MD-29 Line Time Pattern"><span class="mid">MD-29</span><span class="mnm">Line Time Pattern</span><span class="live">LIVE</span></a>
       </div>
     </div>
   </nav>
   <div class="content">
     <div class="crumbbar">
       <span class="cb-home">🖥️ Office Web</span><span class="cb-sep">›</span><span id="crumb">Dashboard</span>
-      <span class="cb-tag" id="srctag">데모 셸 · 화면 미선택</span>
+      <span class="cb-tag" id="srctag">Demo Shell · No screen selected</span>
     </div>
     <div class="frame-wrap">
       <div class="landing" id="landing">
         <div class="l-ico">🖥️</div>
         <div class="l-t">OFFICE WEB SYSTEM</div>
-        <div class="l-s">A-MES 사무·엔지니어 Web 시스템 데모</div>
-        <div class="l-d">좌측 메뉴 트리에서 화면을 선택하면 이 영역에 표시됩니다. PP 생산계획 · MNT 설비관리 · RPT 분석리포트 · SYS 시스템관리 · MD 기준정보 — 5개 모듈 74개 화면.</div>
+        <div class="l-s">A-MES Planner / Engineer Web Demo</div>
+        <div class="l-d">Select a screen from the left menu to load it here. PP Production Planning · MNT Maintenance · RPT Reports &amp; Analytics · SYS System Admin · MD Master Data — 5 modules, 74 screens.</div>
         <div class="l-kpis">
           <div class="l-kpi"><div class="v">5</div><div class="k">Modules</div></div>
           <div class="l-kpi"><div class="v">74</div><div class="k">Screens</div></div>
           <div class="l-kpi"><div class="v">1920</div><div class="k">Web PC px</div></div>
         </div>
-        <div class="l-hint">▸ 좌측 메뉴에서 모듈을 펼치고 화면을 클릭하세요</div>
+        <div class="l-hint">▸ Expand a module on the left and click any screen to begin</div>
       </div>
       <iframe id="frame" title="screen"></iframe>
     </div>
@@ -228,11 +228,11 @@ function ld(el){
   f.src=el.dataset.src;
   document.getElementById('crumb').textContent=el.dataset.crumb;
   var isDemo=el.dataset.src.indexOf('DEMO_')===0;
-  document.getElementById('srctag').textContent=(isDemo?'● 인터랙티브 데모 화면 · ':'L3 설계서 · ')+el.dataset.src;
+  document.getElementById('srctag').textContent=(isDemo?'● Interactive Demo · ':'L3 Spec · ')+el.dataset.src;
 }
 (function(){
   var c=document.getElementById('clock');
-  function tick(){var d=new Date();c.textContent=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' · '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+  function tick(){var d=new Date();c.textContent=String(d.getMonth()+1).padStart(2,'0')+'/'+String(d.getDate()).padStart(2,'0')+'/'+d.getFullYear()+' · '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
   tick();setInterval(tick,30000);
 })();
 </script>

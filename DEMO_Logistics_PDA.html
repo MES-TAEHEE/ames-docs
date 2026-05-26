@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>A-MES Demo · Logistics PDA System · 물류 PDA 시스템</title>
+<title>A-MES Demo · Logistics PDA System</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--sc:#0891b2;--bar:#06141a;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:#0a1418;color:#dbe6ea;font-size:13px;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Inter',sans-serif;background:#0a1418;color:#dbe6ea;font-size:13px;display:flex;flex-direction:column;overflow:hidden;}
 /* TOP BAR */
 .appbar{height:48px;flex-shrink:0;background:var(--bar);display:flex;align-items:center;border-bottom:2px solid var(--sc);}
 .ab-logo{display:flex;align-items:center;gap:8px;padding:0 18px;height:100%;border-right:1px solid rgba(255,255,255,.07);}
@@ -77,7 +77,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0a1418;color:#dbe6ea;font
 <body>
 <div class="appbar">
   <div class="ab-logo"><span class="lg">A-MES</span></div>
-  <div class="ab-sys"><span class="ico">📱</span><div><div class="nm">Logistics PDA System</div><div class="ko">물류 핸드헬드 스캐너 · System 3</div></div></div>
+  <div class="ab-sys"><span class="ico">📱</span><div><div class="nm">Logistics PDA System</div><div class="ko">Handheld Scanner · System 3</div></div></div>
   <div class="ab-right">
     <a class="ab-sw" href="DEMO_Office_Web.html">🖥️ Web</a>
     <a class="ab-sw" href="DEMO_ShopFloor_POP.html">📟 POP</a>
@@ -85,7 +85,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0a1418;color:#dbe6ea;font
     <a class="ab-sw" href="DEMO_Site_Map.html">🗺 Site Map</a>
   </div>
 </div>
-<div class="demo-note">▶ <b>DEMO SHELL</b> — 물류 PDA 데모 셸: 좌측 PDA 단말의 메뉴를 탭하면 우측에 화면이 표시됩니다. 데모 화면 구현 시 실제 PDA 화면으로 대체됩니다.</div>
+<div class="demo-note">▶ <b>DEMO SHELL</b> — Tap a menu item on the PDA at left to load that screen at right. Items marked <b>LIVE</b> are interactive demos.</div>
 <div class="shell">
   <div class="pda-pane">
     <div class="pda">
@@ -93,51 +93,51 @@ body{font-family:'Noto Sans KR',sans-serif;background:#0a1418;color:#dbe6ea;font
       <div class="pda-status"><span id="clock">09:14</span><span>▦ LTE　🔋 86%</span></div>
       <div class="pda-head">
         <div class="ph-t">A-MES PDA</div>
-        <div class="ph-s">물류 핸드헬드 · 창고·출하</div>
-        <div class="pda-user"><div class="av">👤</div><div><div class="un">이물류 Logistics</div><div class="ur">WH·FG 담당 · 물류팀</div></div></div>
+        <div class="ph-s">Handheld · Warehouse / Shipping</div>
+        <div class="pda-user"><div class="av">👤</div><div><div class="un">David Chen</div><div class="ur">WH / FG Operator · Logistics</div></div></div>
       </div>
       <div class="pda-menu">
-        <div class="pm-grp"><span class="pe">📦</span>WH · 창고관리<span class="pc">8</span></div>
-        <div class="pmi" onclick="ld(this)" data-src="DEMO_WH01_Inbound_Schedule.html" data-crumb="WH 창고 · WH-01 Inbound Schedule"><div class="pi">📋</div><div class="pt"><div class="pid">WH-01</div><div class="pnm">입고 예정</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
-        <div class="pmi" onclick="ld(this)" data-src="DEMO_WH02_PDA_Inbound.html" data-crumb="WH 창고 · WH-02 PDA Inbound"><div class="pi">📥</div><div class="pt"><div class="pid">WH-02</div><div class="pnm">PDA 입고 검수</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
-        <div class="pmi" onclick="ld(this)" data-src="DEMO_WH03_Inventory_Status.html" data-crumb="WH 창고 · WH-03 Inventory Status"><div class="pi">📊</div><div class="pt"><div class="pid">WH-03</div><div class="pnm">재고 현황</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
-        <div class="pmi" onclick="ld(this)" data-src="DEMO_WH04_Location_Map.html" data-crumb="WH 창고 · WH-04 Location Map"><div class="pi">🗺</div><div class="pt"><div class="pid">WH-04</div><div class="pnm">로케이션 맵</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
-        <div class="pmi" onclick="ld(this)" data-src="DEMO_WH05_Inventory_Adjust.html" data-crumb="WH 창고 · WH-05 Inventory Adjust"><div class="pi">✏️</div><div class="pt"><div class="pid">WH-05</div><div class="pnm">재고 조정</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
-        <div class="pmi" onclick="ld(this)" data-src="DEMO_WH06_Release_Schedule.html" data-crumb="WH 창고 · WH-06 Release Schedule"><div class="pi">📤</div><div class="pt"><div class="pid">WH-06</div><div class="pnm">출고 예정</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
-        <div class="pmi" onclick="ld(this)" data-src="DEMO_WH07_PDA_Release.html" data-crumb="WH 창고 · WH-07 PDA Release"><div class="pi">📦</div><div class="pt"><div class="pid">WH-07</div><div class="pnm">PDA 출고 피킹</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
-        <div class="pmi" onclick="ld(this)" data-src="DEMO_WH08_Transaction_History.html" data-crumb="WH 창고 · WH-08 Transaction History"><div class="pi">🧾</div><div class="pt"><div class="pid">WH-08</div><div class="pnm">입출고 이력</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
-        <div class="pm-grp"><span class="pe">🚚</span>FG · 완제품 출고<span class="pc">10</span></div>
-        <div class="pmi" onclick="ld(this)" data-src="DEMO_FG01_PDA_Stocking.html" data-crumb="FG 완제품 · FG-01 PDA Stocking"><div class="pi">📥</div><div class="pt"><div class="pid">FG-01</div><div class="pnm">PDA 입고 적치</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
-        <div class="pmi" onclick="ld(this)" data-src="DEMO_FG02_Inventory.html" data-crumb="FG 완제품 · FG-02 FG Inventory"><div class="pi">📊</div><div class="pt"><div class="pid">FG-02</div><div class="pnm">완제품 재고</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
-        <div class="pmi" onclick="ld(this)" data-src="DEMO_FG03_Shipment_Order.html" data-crumb="FG 완제품 · FG-03 Shipment Order"><div class="pi">📋</div><div class="pt"><div class="pid">FG-03</div><div class="pnm">출하 지시</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
-        <div class="pmi" onclick="ld(this)" data-src="DEMO_FG04_PDA_FIFO_Picking.html" data-crumb="FG 완제품 · FG-04 PDA FIFO Picking"><div class="pi">📦</div><div class="pt"><div class="pid">FG-04</div><div class="pnm">PDA FIFO 피킹</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
-        <div class="pmi" onclick="ld(this)" data-src="DEMO_FG05_Loading.html" data-crumb="FG 완제품 · FG-05 Loading Confirmation"><div class="pi">🚛</div><div class="pt"><div class="pid">FG-05</div><div class="pnm">상차 확인</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
-        <div class="pmi" onclick="ld(this)" data-src="DEMO_FG06_Delivery_Note.html" data-crumb="FG 완제품 · FG-06 Delivery Note"><div class="pi">🧾</div><div class="pt"><div class="pid">FG-06</div><div class="pnm">거래명세서</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
-        <div class="pmi" onclick="ld(this)" data-src="DEMO_FG07_Day_End_Close.html" data-crumb="FG 완제품 · FG-07 Day-End Close"><div class="pi">🌙</div><div class="pt"><div class="pid">FG-07</div><div class="pnm">일 마감</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
-        <div class="pmi" onclick="ld(this)" data-src="DEMO_FG08_Shipment_History.html" data-crumb="FG 완제품 · FG-08 Shipment History"><div class="pi">📚</div><div class="pt"><div class="pid">FG-08</div><div class="pnm">출하 이력</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
-        <div class="pmi" onclick="ld(this)" data-src="DEMO_FG09_Dashboard.html" data-crumb="FG 완제품 · FG-09 FG Dashboard"><div class="pi">📈</div><div class="pt"><div class="pid">FG-09</div><div class="pnm">완제품 대시보드</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
-        <div class="pmi" onclick="ld(this)" data-src="DEMO_FG_RTN_Return.html" data-crumb="FG 완제품 · FG-RTN Customer Return"><div class="pi">↩️</div><div class="pt"><div class="pid">FG-RTN</div><div class="pnm">고객 반품</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
+        <div class="pm-grp"><span class="pe">📦</span>WH · Warehouse<span class="pc">8</span></div>
+        <div class="pmi" onclick="ld(this)" data-src="DEMO_WH01_Inbound_Schedule.html" data-crumb="WH Warehouse · WH-01 Inbound Schedule"><div class="pi">📋</div><div class="pt"><div class="pid">WH-01</div><div class="pnm">Inbound Schedule</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
+        <div class="pmi" onclick="ld(this)" data-src="DEMO_WH02_PDA_Inbound.html" data-crumb="WH Warehouse · WH-02 PDA Inbound"><div class="pi">📥</div><div class="pt"><div class="pid">WH-02</div><div class="pnm">PDA Receiving</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
+        <div class="pmi" onclick="ld(this)" data-src="DEMO_WH03_Inventory_Status.html" data-crumb="WH Warehouse · WH-03 Inventory Status"><div class="pi">📊</div><div class="pt"><div class="pid">WH-03</div><div class="pnm">Inventory Status</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
+        <div class="pmi" onclick="ld(this)" data-src="DEMO_WH04_Location_Map.html" data-crumb="WH Warehouse · WH-04 Location Map"><div class="pi">🗺</div><div class="pt"><div class="pid">WH-04</div><div class="pnm">Location Map</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
+        <div class="pmi" onclick="ld(this)" data-src="DEMO_WH05_Inventory_Adjust.html" data-crumb="WH Warehouse · WH-05 Inventory Adjust"><div class="pi">✏️</div><div class="pt"><div class="pid">WH-05</div><div class="pnm">Inventory Adjust</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
+        <div class="pmi" onclick="ld(this)" data-src="DEMO_WH06_Release_Schedule.html" data-crumb="WH Warehouse · WH-06 Release Schedule"><div class="pi">📤</div><div class="pt"><div class="pid">WH-06</div><div class="pnm">Release Schedule</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
+        <div class="pmi" onclick="ld(this)" data-src="DEMO_WH07_PDA_Release.html" data-crumb="WH Warehouse · WH-07 PDA Release"><div class="pi">📦</div><div class="pt"><div class="pid">WH-07</div><div class="pnm">PDA Picking</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
+        <div class="pmi" onclick="ld(this)" data-src="DEMO_WH08_Transaction_History.html" data-crumb="WH Warehouse · WH-08 Transaction History"><div class="pi">🧾</div><div class="pt"><div class="pid">WH-08</div><div class="pnm">Transaction History</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
+        <div class="pm-grp"><span class="pe">🚚</span>FG · Finished Goods<span class="pc">10</span></div>
+        <div class="pmi" onclick="ld(this)" data-src="DEMO_FG01_PDA_Stocking.html" data-crumb="FG Finished Goods · FG-01 PDA Stocking"><div class="pi">📥</div><div class="pt"><div class="pid">FG-01</div><div class="pnm">PDA Put-Away</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
+        <div class="pmi" onclick="ld(this)" data-src="DEMO_FG02_Inventory.html" data-crumb="FG Finished Goods · FG-02 FG Inventory"><div class="pi">📊</div><div class="pt"><div class="pid">FG-02</div><div class="pnm">FG Inventory</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
+        <div class="pmi" onclick="ld(this)" data-src="DEMO_FG03_Shipment_Order.html" data-crumb="FG Finished Goods · FG-03 Shipment Order"><div class="pi">📋</div><div class="pt"><div class="pid">FG-03</div><div class="pnm">Shipment Order</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
+        <div class="pmi" onclick="ld(this)" data-src="DEMO_FG04_PDA_FIFO_Picking.html" data-crumb="FG Finished Goods · FG-04 PDA FIFO Picking"><div class="pi">📦</div><div class="pt"><div class="pid">FG-04</div><div class="pnm">PDA FIFO Picking</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
+        <div class="pmi" onclick="ld(this)" data-src="DEMO_FG05_Loading.html" data-crumb="FG Finished Goods · FG-05 Loading Confirmation"><div class="pi">🚛</div><div class="pt"><div class="pid">FG-05</div><div class="pnm">Truck Loading</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
+        <div class="pmi" onclick="ld(this)" data-src="DEMO_FG06_Delivery_Note.html" data-crumb="FG Finished Goods · FG-06 Delivery Note"><div class="pi">🧾</div><div class="pt"><div class="pid">FG-06</div><div class="pnm">Packing Slip / BOL</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
+        <div class="pmi" onclick="ld(this)" data-src="DEMO_FG07_Day_End_Close.html" data-crumb="FG Finished Goods · FG-07 Day-End Close"><div class="pi">🌙</div><div class="pt"><div class="pid">FG-07</div><div class="pnm">Day-End Close</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
+        <div class="pmi" onclick="ld(this)" data-src="DEMO_FG08_Shipment_History.html" data-crumb="FG Finished Goods · FG-08 Shipment History"><div class="pi">📚</div><div class="pt"><div class="pid">FG-08</div><div class="pnm">Shipment History</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
+        <div class="pmi" onclick="ld(this)" data-src="DEMO_FG09_Dashboard.html" data-crumb="FG Finished Goods · FG-09 FG Dashboard"><div class="pi">📈</div><div class="pt"><div class="pid">FG-09</div><div class="pnm">FG Dashboard</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
+        <div class="pmi" onclick="ld(this)" data-src="DEMO_FG_RTN_Return.html" data-crumb="FG Finished Goods · FG-RTN Customer Return"><div class="pi">↩️</div><div class="pt"><div class="pid">FG-RTN</div><div class="pnm">Customer Return</div></div><span class="live">LIVE</span><span class="parr">›</span></div>
       </div>
       <div class="pda-dock">A-MES PDA v1.0 · 18 screens</div>
     </div>
   </div>
   <div class="content">
     <div class="crumbbar">
-      <span class="cb-home">📱 Logistics PDA</span><span class="cb-sep">›</span><span id="crumb">화면 미선택</span>
-      <span class="cb-tag" id="srctag">데모 셸</span>
+      <span class="cb-home">📱 Logistics PDA</span><span class="cb-sep">›</span><span id="crumb">No screen selected</span>
+      <span class="cb-tag" id="srctag">Demo Shell</span>
     </div>
     <div class="frame-wrap">
       <div class="landing" id="landing">
         <div class="l-ico">📱</div>
         <div class="l-t">LOGISTICS PDA SYSTEM</div>
-        <div class="l-s">물류 핸드헬드 스캐너 시스템 데모</div>
-        <div class="l-d">좌측 PDA 단말의 메뉴를 탭하면 해당 화면이 이 영역에 표시됩니다. WH 창고관리 · FG 완제품출고 — 2개 모듈 18개 PDA 화면.</div>
+        <div class="l-s">Handheld Scanner Demo</div>
+        <div class="l-d">Tap a menu item on the PDA at left to display that screen here. WH Warehouse · FG Finished Goods — 2 modules, 18 PDA screens.</div>
         <div class="l-kpis">
           <div class="l-kpi"><div class="v">2</div><div class="k">Modules</div></div>
           <div class="l-kpi"><div class="v">18</div><div class="k">Screens</div></div>
-          <div class="l-kpi"><div class="v">PDA</div><div class="k">핸드헬드</div></div>
+          <div class="l-kpi"><div class="v">PDA</div><div class="k">Handheld</div></div>
         </div>
-        <div class="l-hint">▸ 좌측 PDA 메뉴를 탭하세요</div>
+        <div class="l-hint">▸ Tap a menu item on the PDA at left</div>
       </div>
       <iframe id="frame" title="screen"></iframe>
     </div>
@@ -153,7 +153,7 @@ function ld(el){
   f.src=el.dataset.src;
   document.getElementById('crumb').textContent=el.dataset.crumb;
   var isDemo=el.dataset.src.indexOf('DEMO_')===0;
-  document.getElementById('srctag').textContent=(isDemo?'● 인터랙티브 데모 화면 · ':'L3 설계서 · ')+el.dataset.src;
+  document.getElementById('srctag').textContent=(isDemo?'● Interactive Demo · ':'L3 Spec · ')+el.dataset.src;
 }
 (function(){
   var c=document.getElementById('clock');
