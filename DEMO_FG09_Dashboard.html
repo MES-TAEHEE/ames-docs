@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FG-09 FG Dashboard · A-MES PDA Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--pda:#06b6d4;--pda-dk:#0e7490;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
+.pda{width:420px;max-width:100%;height:100%;max-height:760px;background:#0f1f25;border:2px solid #1a3540;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;}
+.pda-top{flex-shrink:0;background:linear-gradient(180deg,#1a3540,#0f1f25);padding:11px 16px;display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--pda);}
+.pda-id{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#22d3ee;}
+.pda-t{flex:1;font-size:13px;font-weight:800;color:#fff;}
+.pda-bat{font-size:9px;color:#67e8f9;font-family:'JetBrains Mono',monospace;}
+.live{font-size:8px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:2px 7px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:3px;}
+.live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.pda-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:11px;}
+.pda-body::-webkit-scrollbar{width:6px;}.pda-body::-webkit-scrollbar-thumb{background:#1a3540;border-radius:3px;}
+.hero{background:linear-gradient(160deg,rgba(6,182,212,.15),rgba(34,197,94,.05));border:1px solid var(--pda);border-radius:11px;padding:14px 18px;}
+.hero .l{font-size:9px;color:#67e8f9;font-family:'JetBrains Mono',monospace;letter-spacing:2px;}
+.hero .big{font-family:'JetBrains Mono',monospace;font-size:38px;font-weight:900;color:#fff;margin:5px 0;line-height:.9;}
+.hero .ds{font-size:11px;color:#86efac;}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;}
+.k{background:rgba(255,255,255,.04);border:1px solid #1a3540;border-top:3px solid var(--c);border-radius:9px;padding:10px 13px;}
+.k .l{font-size:9px;color:#67e8f9;font-family:'JetBrains Mono',monospace;}
+.k .v{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:900;color:var(--c);margin-top:3px;line-height:1;}
+.k .s{font-size:9px;color:#7a9aa3;}
+.section-h{font-size:10px;color:#67e8f9;text-transform:uppercase;letter-spacing:2px;font-weight:800;}
+.bar-chart{background:rgba(255,255,255,.04);border:1px solid #1a3540;border-radius:9px;padding:12px 14px;}
+.bar-chart .h{display:flex;justify-content:space-between;font-size:10px;color:#7a9aa3;margin-bottom:8px;}
+.bars{display:flex;align-items:flex-end;gap:5px;height:80px;border-bottom:1px solid #1a3540;padding:0 2px;}
+.bars .b{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.bars .b .bb{width:80%;background:linear-gradient(180deg,#22d3ee,var(--pda));border-radius:3px 3px 0 0;}
+.bars .b .bl{font-size:8px;color:#7a9aa3;font-family:'JetBrains Mono',monospace;}
+.alert{background:rgba(245,158,11,.08);border:1px solid #f59e0b;border-radius:9px;padding:9px 12px;display:flex;align-items:center;gap:9px;font-size:11px;color:#fbbf24;}
+.alert .ic{font-size:16px;}
+.top-list{background:rgba(255,255,255,.04);border:1px solid #1a3540;border-radius:9px;padding:11px 13px;}
+.top-list h4{font-size:9px;color:#67e8f9;letter-spacing:1px;font-weight:800;margin-bottom:7px;font-family:'JetBrains Mono',monospace;}
+.tr{display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,.05);font-size:11.5px;}
+.tr:last-child{border:none;}
+.tr .rk{width:18px;height:18px;border-radius:50%;background:#1a3540;color:#22d3ee;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.tr .rk.r1{background:#fbbf24;color:#000;}.tr .rk.r2{background:#a8997f;color:#000;}.tr .rk.r3{background:#8b5cf6;color:#fff;}
+.tr .nm{flex:1;color:#fff;}
+.tr .q{font-family:'JetBrains Mono',monospace;font-weight:800;color:#fbbf24;}
+.bottom-bar{flex-shrink:0;display:flex;gap:8px;padding:11px 14px;background:#1a3540;border-top:1px solid #0a1419;}
+.bottom-bar button{flex:1;padding:13px 0;background:linear-gradient(180deg,var(--pda),var(--pda-dk));border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer;letter-spacing:1px;box-shadow:0 3px 0 #155e75;}
+.bottom-bar button:active{transform:translateY(2px);box-shadow:0 1px 0 #155e75;}
+.bottom-bar button.sec{background:#0f1f25;color:#67e8f9;border:1px solid #1a3540;box-shadow:none;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#0f1f25;border:1px solid #1a3540;border-radius:9px;padding:12px 15px;border-left:4px solid var(--pda);font-size:12px;min-width:250px;max-width:340px;animation:ti .25s ease;color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.5);}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:#7a9aa3;font-size:10px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="pda">
+  <div class="pda-top">
+    <div class="pda-id">FG-09</div>
+    <div class="pda-t">완제품 대시보드</div>
+    <span class="live"><span class="d"></span>LIVE</span>
+    <span class="pda-bat">🔋 62%</span>
+  </div>
+  <div class="pda-body">
+    <div class="hero">
+      <div class="l">▼ 금일 출하 진행률</div>
+      <div class="big">9 / 12</div>
+      <div class="ds">75% 달성 · 잔여 3건 D-0 마감 임박</div>
+    </div>
+    <div class="kpis">
+      <div class="k" style="--c:#22c55e"><div class="l">FG 재고</div><div class="v">42</div><div class="s">LOT · 2,840 EA</div></div>
+      <div class="k" style="--c:#fbbf24"><div class="l">출하 대기</div><div class="v">3</div><div class="s">건 · D-0</div></div>
+      <div class="k" style="--c:#22d3ee"><div class="l">금일 입고 적치</div><div class="v">5</div><div class="s">LOT</div></div>
+      <div class="k" style="--c:#fca5a5"><div class="l">반품 대기</div><div class="v">1</div><div class="s">건</div></div>
+    </div>
+    <div class="bar-chart">
+      <div class="h"><span>📊 최근 7일 출하량</span><span style="color:#22d3ee;font-family:'JetBrains Mono',monospace;font-weight:800;">14,580 EA</span></div>
+      <div class="bars">
+        <div class="b"><div class="bb" style="height:42px"></div><div class="bl">15</div></div>
+        <div class="b"><div class="bb" style="height:55px"></div><div class="bl">16</div></div>
+        <div class="b"><div class="bb" style="height:48px"></div><div class="bl">17</div></div>
+        <div class="b"><div class="bb" style="height:38px"></div><div class="bl">18</div></div>
+        <div class="b"><div class="bb" style="height:60px"></div><div class="bl">19</div></div>
+        <div class="b"><div class="bb" style="height:52px"></div><div class="bl">20</div></div>
+        <div class="b"><div class="bb" style="height:65px"></div><div class="bl">21</div></div>
+      </div>
+    </div>
+    <div class="alert">
+      <span class="ic">⚠</span>
+      <span><b>D-1 이연 임박</b> — 미출하 3건 (SO-2605-0314/0317/0318) 마감 1시간 전</span>
+    </div>
+    <div class="top-list">
+      <h4>🏆 금일 출하량 TOP 3 (품목별)</h4>
+      <div class="tr"><div class="rk r1">1</div><span class="nm">콘솔어퍼 (블랙)</span><span class="q">470 EA</span></div>
+      <div class="tr"><div class="rk r2">2</div><span class="nm">사이드 몰딩 (그레이)</span><span class="q">320 EA</span></div>
+      <div class="tr"><div class="rk r3">3</div><span class="nm">도어트림 LH</span><span class="q">240 EA</span></div>
+      <div class="tr"><div class="rk">4</div><span class="nm">라디에이터 그릴</span><span class="q">180 EA</span></div>
+    </div>
+  </div>
+  <div class="bottom-bar">
+    <button class="sec" onclick="back()">← 메뉴</button>
+    <button onclick="refresh()">🔄 새로고침</button>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+function refresh(){toast('','🔄 갱신','완제품 대시보드를 최신 데이터로 갱신했습니다.');}
+function back(){toast('','PDA 메뉴','PDA 메뉴로 돌아갑니다.');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">• '+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3000);
+}
+</script>
+</body>
+</html>

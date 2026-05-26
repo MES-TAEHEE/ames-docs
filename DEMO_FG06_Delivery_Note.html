@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FG-06 Delivery Note · A-MES PDA Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--pda:#06b6d4;--pda-dk:#0e7490;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:#0a1419;color:#cddde2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
+.pda{width:420px;max-width:100%;height:100%;max-height:760px;background:#0f1f25;border:2px solid #1a3540;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden;}
+.pda-top{flex-shrink:0;background:linear-gradient(180deg,#1a3540,#0f1f25);padding:11px 16px;display:flex;align-items:center;gap:9px;border-bottom:2px solid var(--pda);}
+.pda-id{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#22d3ee;}
+.pda-t{flex:1;font-size:13px;font-weight:800;color:#fff;}
+.pda-bat{font-size:9px;color:#67e8f9;font-family:'JetBrains Mono',monospace;}
+.live{font-size:8px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:2px 7px;border-radius:4px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:3px;}
+.live .d{width:6px;height:6px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.pda-body{flex:1;overflow-y:auto;padding:14px;}
+.pda-body::-webkit-scrollbar{width:6px;}.pda-body::-webkit-scrollbar-thumb{background:#1a3540;border-radius:3px;}
+.note{background:#fff;color:#000;border-radius:11px;padding:18px;font-family:'JetBrains Mono',monospace;}
+.note .title{text-align:center;font-size:16px;font-weight:900;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:11px;}
+.note .num{font-size:11px;text-align:right;color:#444;margin-bottom:8px;}
+.note .row{display:grid;grid-template-columns:80px 1fr;gap:7px;font-size:11px;padding:4px 0;border-bottom:1px dashed #ccc;}
+.note .row .l{color:#555;}
+.note .row b{font-weight:800;}
+.note table{width:100%;border-collapse:collapse;margin-top:11px;font-size:10.5px;}
+.note table th{background:#000;color:#fff;padding:6px 5px;text-align:left;}
+.note table th.c{text-align:center;}
+.note table th.r{text-align:right;}
+.note table td{padding:6px 5px;border-bottom:1px solid #ddd;}
+.note table td.c{text-align:center;}
+.note table td.r{text-align:right;}
+.note table tfoot td{background:#f0f0f0;font-weight:800;}
+.note .qr{text-align:center;margin-top:13px;padding-top:11px;border-top:2px dashed #000;}
+.note .qr .q{display:inline-block;width:60px;height:60px;background:repeating-conic-gradient(#000 0 25%,#fff 0 50%) 50%/10px 10px;border-radius:3px;}
+.note .qr .qt{font-size:10px;margin-top:4px;color:#444;}
+.note .sign{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:13px;}
+.note .sign .sb{border:1px solid #000;border-radius:6px;padding:8px;text-align:center;font-size:10px;}
+.note .sign .sb .l{color:#555;}
+.note .sign .sb .v{font-weight:800;margin-top:25px;font-size:11px;}
+.bottom-bar{flex-shrink:0;display:flex;gap:8px;padding:11px 14px;background:#1a3540;border-top:1px solid #0a1419;}
+.bottom-bar button{flex:1;padding:13px 0;background:linear-gradient(180deg,var(--pda),var(--pda-dk));border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer;letter-spacing:1px;box-shadow:0 3px 0 #155e75;}
+.bottom-bar button:active{transform:translateY(2px);box-shadow:0 1px 0 #155e75;}
+.bottom-bar button.sec{background:#0f1f25;color:#67e8f9;border:1px solid #1a3540;box-shadow:none;}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#0f1f25;border:1px solid #1a3540;border-radius:9px;padding:12px 15px;border-left:4px solid var(--pda);font-size:12px;min-width:250px;max-width:340px;animation:ti .25s ease;color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.5);}
+.toast.ok{border-left-color:#16a34a;}
+.toast .tt{font-weight:800;margin-bottom:2px;}
+.toast .tb{color:#7a9aa3;font-size:10px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="pda">
+  <div class="pda-top">
+    <div class="pda-id">FG-06</div>
+    <div class="pda-t">거래명세서</div>
+    <span class="live"><span class="d"></span>LIVE</span>
+    <span class="pda-bat">🔋 65%</span>
+  </div>
+  <div class="pda-body">
+    <div class="note">
+      <div class="num">No. DN-2605-0313</div>
+      <div class="title">거 래 명 세 표</div>
+      <div class="row"><span class="l">공급자</span><b>SEOYON E-HWA · A-MES</b></div>
+      <div class="row"><span class="l">수신자</span><b>서연이화 경주공장 (GEO)</b></div>
+      <div class="row"><span class="l">출하 일자</span><b>2026-05-21</b></div>
+      <div class="row"><span class="l">납품 일자</span><b>2026-05-21</b></div>
+      <div class="row"><span class="l">차량 번호</span><b>88 나 5678 (5톤)</b></div>
+      <div class="row"><span class="l">출하 번호</span><b>SO-2605-0313</b></div>
+      <table>
+        <thead><tr><th>품목</th><th class="r">수량</th><th class="c">로트</th></tr></thead>
+        <tbody>
+          <tr><td>콘솔어퍼 (블랙)</td><td class="r">180</td><td class="c">1985</td></tr>
+          <tr><td>콘솔어퍼 (블랙)</td><td class="r">120</td><td class="c">2018</td></tr>
+          <tr><td>콘솔어퍼 (블랙)</td><td class="r">170</td><td class="c">2062</td></tr>
+          <tr><td>라디에이터 그릴 (그레이)</td><td class="r">24</td><td class="c">1958</td></tr>
+          <tr><td>프론트 범퍼 (블랙)</td><td class="r">48</td><td class="c">2004</td></tr>
+        </tbody>
+        <tfoot><tr><td>합계 · TOTAL</td><td class="r">542 EA</td><td class="c">5 LOT</td></tr></tfoot>
+      </table>
+      <div class="qr">
+        <div class="q"></div>
+        <div class="qt">DN-2605-0313 · 스캔하여 추적</div>
+      </div>
+      <div class="sign">
+        <div class="sb"><div class="l">출하 담당</div><div class="v">박작업</div></div>
+        <div class="sb"><div class="l">기사 확인</div><div class="v">박운전</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-bar">
+    <button class="sec" onclick="back()">← 뒤로</button>
+    <button onclick="prn()">🖨 인쇄</button>
+    <button onclick="send()">📧 송부</button>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+function prn(){toast('','🖨 인쇄','거래명세서를 출력합니다. (Zebra ZT411)');}
+function send(){toast('ok','📧 송부 완료','거래명세서가 GEO 경주공장 이메일로 전송되었습니다.');}
+function back(){toast('','뒤로','상차 확인 화면으로 돌아갑니다.');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='ok'?'✓ ':'• ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3000);
+}
+</script>
+</body>
+</html>
