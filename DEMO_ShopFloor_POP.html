@@ -49,8 +49,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:#e8e2d8;fo
 .mi:active{background:rgba(234,88,12,.16);}
 .mi.active{background:rgba(234,88,12,.2);border-left-color:var(--sc);}
 .mi .mid{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:#fb923c;width:58px;flex-shrink:0;}
-.mi .mnm{font-size:14px;font-weight:600;color:#cdc4b4;}
+.mi .mnm{font-size:14px;font-weight:600;color:#cdc4b4;flex:1;}
 .mi.active .mnm{color:#fff;}
+.mi .live{font-size:8px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:2px 6px;border-radius:4px;background:#16a34a;color:#fff;letter-spacing:.5px;}
 /* CONTENT */
 .content{flex:1;min-width:0;display:flex;flex-direction:column;background:#fff;}
 .crumbbar{height:42px;flex-shrink:0;background:#1a1208;border-bottom:2px solid var(--sc);display:flex;align-items:center;gap:9px;padding:0 20px;font-size:13px;}
@@ -98,7 +99,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:#e8e2d8;fo
     <div class="grp open">
       <button class="grp-h" onclick="tg(this)"><span class="gi">🟦</span><span class="gt"><span class="gn">INJ · 사출</span><span class="gd">Injection POP</span></span><span class="gc">8</span><span class="gx">▶</span></button>
       <div class="grp-items">
-        <div class="mi" onclick="ld(this)" data-src="VOL05_INJ01_POP_Login.html" data-crumb="INJ 사출 · INJ-01 POP Login"><span class="mid">INJ-01</span><span class="mnm">POP 로그인</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_INJ01_POP_Login.html" data-crumb="INJ 사출 · INJ-01 POP Login"><span class="mid">INJ-01</span><span class="mnm">POP 로그인</span><span class="live">LIVE</span></div>
         <div class="mi" onclick="ld(this)" data-src="VOL05_INJ02_POP_Dashboard.html" data-crumb="INJ 사출 · INJ-02 POP Dashboard"><span class="mid">INJ-02</span><span class="mnm">POP 대시보드</span></div>
         <div class="mi" onclick="ld(this)" data-src="VOL05_INJ03_WO_Confirm.html" data-crumb="INJ 사출 · INJ-03 WO Confirmation"><span class="mid">INJ-03</span><span class="mnm">작업지시 확인</span></div>
         <div class="mi" onclick="ld(this)" data-src="VOL05_INJ04_Production_Entry.html" data-crumb="INJ 사출 · INJ-04 Production Entry"><span class="mid">INJ-04</span><span class="mnm">생산 실적 입력</span></div>
@@ -182,7 +183,8 @@ function ld(el){
   f.style.display='block';
   f.src=el.dataset.src;
   document.getElementById('crumb').textContent=el.dataset.crumb;
-  document.getElementById('srctag').textContent='L3 설계서 · '+el.dataset.src;
+  var isDemo=el.dataset.src.indexOf('DEMO_')===0;
+  document.getElementById('srctag').textContent=(isDemo?'● 인터랙티브 데모 화면 · ':'L3 설계서 · ')+el.dataset.src;
 }
 (function(){
   var c=document.getElementById('clock');
