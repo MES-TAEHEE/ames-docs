@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>A-MES Demo · Shop-Floor POP System · 현장 POP 시스템</title>
+<title>A-MES Demo · Shop-Floor POP System</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--sc:#ea580c;--bar:#1a1208;--side:#211a10;--side2:#3a2a14;--bg:#0f0c08;}
 html,body{height:100%;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;-webkit-user-select:none;user-select:none;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:#e8e2d8;font-size:14px;display:flex;flex-direction:column;overflow:hidden;-webkit-user-select:none;user-select:none;}
 /* TOP BAR */
 .appbar{height:62px;flex-shrink:0;background:var(--bar);display:flex;align-items:center;border-bottom:3px solid var(--sc);}
 .ab-logo{display:flex;align-items:center;gap:9px;padding:0 20px;height:100%;border-right:1px solid rgba(255,255,255,.07);}
@@ -77,11 +77,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:#e8e2d8;fo
 <body>
 <div class="appbar">
   <div class="ab-logo"><span class="lg">A-MES</span></div>
-  <div class="ab-sys"><span class="ico">📟</span><div><div class="nm">Shop-Floor POP</div><div class="ko">현장 작업자 터치 단말 · System 2</div></div></div>
+  <div class="ab-sys"><span class="ico">📟</span><div><div class="nm">Shop-Floor POP</div><div class="ko">Operator Touch Terminal · System 2</div></div></div>
   <div class="ab-line">
     <div class="ab-pill"><span class="l">STATION</span><span class="v">POP-INJ-01</span></div>
-    <div class="ab-pill"><span class="l">OPERATOR</span><span class="v">박작업 (A조)</span></div>
-    <div class="ab-pill"><span class="l">SHIFT</span><span class="v">주간 DAY</span></div>
+    <div class="ab-pill"><span class="l">OPERATOR</span><span class="v">Mike Johnson (Team A)</span></div>
+    <div class="ab-pill"><span class="l">SHIFT</span><span class="v">DAY</span></div>
   </div>
   <div class="ab-right">
     <span class="ab-clock" id="clock">09:14</span>
@@ -93,81 +93,81 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:#e8e2d8;fo
     </div>
   </div>
 </div>
-<div class="demo-note">▶ <b>DEMO SHELL</b> — 현장 POP 데모 셸: 좌측에서 공정·화면을 터치하면 우측에 표시됩니다. 데모 화면 구현 시 실제 터치 화면으로 대체됩니다.</div>
+<div class="demo-note">▶ <b>DEMO SHELL</b> — Touch a process group on the left, then tap any screen to load it. Items marked <b>LIVE</b> are interactive demos.</div>
 <div class="shell">
   <nav class="side">
     <div class="grp open">
-      <button class="grp-h" onclick="tg(this)"><span class="gi">🟦</span><span class="gt"><span class="gn">INJ · 사출</span><span class="gd">Injection POP</span></span><span class="gc">8</span><span class="gx">▶</span></button>
+      <button class="grp-h" onclick="tg(this)"><span class="gi">🟦</span><span class="gt"><span class="gn">INJ · Injection</span><span class="gd">Injection Molding POP</span></span><span class="gc">8</span><span class="gx">▶</span></button>
       <div class="grp-items">
-        <div class="mi" onclick="ld(this)" data-src="DEMO_INJ01_POP_Login.html" data-crumb="INJ 사출 · INJ-01 POP Login"><span class="mid">INJ-01</span><span class="mnm">POP 로그인</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_INJ02_POP_Dashboard.html" data-crumb="INJ 사출 · INJ-02 POP Dashboard"><span class="mid">INJ-02</span><span class="mnm">POP 대시보드</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_INJ03_WO_Confirm.html" data-crumb="INJ 사출 · INJ-03 WO Confirmation"><span class="mid">INJ-03</span><span class="mnm">작업지시 확인</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_INJ04_Production_Entry.html" data-crumb="INJ 사출 · INJ-04 Production Entry"><span class="mid">INJ-04</span><span class="mnm">생산 실적 입력</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_INJ05_Defect.html" data-crumb="INJ 사출 · INJ-05 Defect Register"><span class="mid">INJ-05</span><span class="mnm">불량 등록</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_INJ06_Mold_Change.html" data-crumb="INJ 사출 · INJ-06 Mold Change"><span class="mid">INJ-06</span><span class="mnm">금형 교체</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_INJ07_Prod_Status.html" data-crumb="INJ 사출 · INJ-07 Production Status"><span class="mid">INJ-07</span><span class="mnm">생산 현황</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_INJ08_Andon.html" data-crumb="INJ 사출 · INJ-08 Andon Emergency"><span class="mid">INJ-08</span><span class="mnm">안돈 호출</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_INJ01_POP_Login.html" data-crumb="INJ Injection · INJ-01 POP Login"><span class="mid">INJ-01</span><span class="mnm">POP Login</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_INJ02_POP_Dashboard.html" data-crumb="INJ Injection · INJ-02 POP Dashboard"><span class="mid">INJ-02</span><span class="mnm">POP Dashboard</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_INJ03_WO_Confirm.html" data-crumb="INJ Injection · INJ-03 WO Confirmation"><span class="mid">INJ-03</span><span class="mnm">Work Order Confirm</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_INJ04_Production_Entry.html" data-crumb="INJ Injection · INJ-04 Production Entry"><span class="mid">INJ-04</span><span class="mnm">Production Entry</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_INJ05_Defect.html" data-crumb="INJ Injection · INJ-05 Defect Register"><span class="mid">INJ-05</span><span class="mnm">Defect Register</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_INJ06_Mold_Change.html" data-crumb="INJ Injection · INJ-06 Mold Change"><span class="mid">INJ-06</span><span class="mnm">Mold Change</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_INJ07_Prod_Status.html" data-crumb="INJ Injection · INJ-07 Production Status"><span class="mid">INJ-07</span><span class="mnm">Production Status</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_INJ08_Andon.html" data-crumb="INJ Injection · INJ-08 Andon Emergency"><span class="mid">INJ-08</span><span class="mnm">Andon Call</span><span class="live">LIVE</span></div>
       </div>
     </div>
     <div class="grp">
-      <button class="grp-h" onclick="tg(this)"><span class="gi">🟪</span><span class="gt"><span class="gn">IMG · 감싸기</span><span class="gd">Wrapping POP</span></span><span class="gc">7</span><span class="gx">▶</span></button>
+      <button class="grp-h" onclick="tg(this)"><span class="gi">🟪</span><span class="gt"><span class="gn">IMG · Wrapping</span><span class="gd">Wrapping POP</span></span><span class="gc">7</span><span class="gx">▶</span></button>
       <div class="grp-items">
-        <div class="mi" onclick="ld(this)" data-src="DEMO_IMG01_POP_Login.html" data-crumb="IMG 감싸기 · IMG-01 POP Login"><span class="mid">IMG-01</span><span class="mnm">POP 로그인</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_IMG02_POP_Dashboard.html" data-crumb="IMG 감싸기 · IMG-02 POP Dashboard"><span class="mid">IMG-02</span><span class="mnm">POP 대시보드</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_IMG03_Production_Entry.html" data-crumb="IMG 감싸기 · IMG-03 Production Entry"><span class="mid">IMG-03</span><span class="mnm">생산 실적 입력</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_IMG04_Fabric_Input.html" data-crumb="IMG 감싸기 · IMG-04 Fabric Input"><span class="mid">IMG-04</span><span class="mnm">원단 투입·검증</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_IMG05_Defect.html" data-crumb="IMG 감싸기 · IMG-05 Defect Register"><span class="mid">IMG-05</span><span class="mnm">불량 등록</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_IMG06_Bond_Setup.html" data-crumb="IMG 감싸기 · IMG-06 Bond Setup"><span class="mid">IMG-06</span><span class="mnm">본드 설정</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_IMG07_Prod_Status.html" data-crumb="IMG 감싸기 · IMG-07 Production Status"><span class="mid">IMG-07</span><span class="mnm">생산 현황</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_IMG01_POP_Login.html" data-crumb="IMG Wrapping · IMG-01 POP Login"><span class="mid">IMG-01</span><span class="mnm">POP Login</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_IMG02_POP_Dashboard.html" data-crumb="IMG Wrapping · IMG-02 POP Dashboard"><span class="mid">IMG-02</span><span class="mnm">POP Dashboard</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_IMG03_Production_Entry.html" data-crumb="IMG Wrapping · IMG-03 Production Entry"><span class="mid">IMG-03</span><span class="mnm">Production Entry</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_IMG04_Fabric_Input.html" data-crumb="IMG Wrapping · IMG-04 Fabric Input"><span class="mid">IMG-04</span><span class="mnm">Fabric Issue / Verify</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_IMG05_Defect.html" data-crumb="IMG Wrapping · IMG-05 Defect Register"><span class="mid">IMG-05</span><span class="mnm">Defect Register</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_IMG06_Bond_Setup.html" data-crumb="IMG Wrapping · IMG-06 Bond Setup"><span class="mid">IMG-06</span><span class="mnm">Adhesive Setup</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_IMG07_Prod_Status.html" data-crumb="IMG Wrapping · IMG-07 Production Status"><span class="mid">IMG-07</span><span class="mnm">Production Status</span><span class="live">LIVE</span></div>
       </div>
     </div>
     <div class="grp">
-      <button class="grp-h" onclick="tg(this)"><span class="gi">🟧</span><span class="gt"><span class="gn">PNT · 도장</span><span class="gd">Painting POP</span></span><span class="gc">9</span><span class="gx">▶</span></button>
+      <button class="grp-h" onclick="tg(this)"><span class="gi">🟧</span><span class="gt"><span class="gn">PNT · Paint</span><span class="gd">Painting POP</span></span><span class="gc">9</span><span class="gx">▶</span></button>
       <div class="grp-items">
-        <div class="mi" onclick="ld(this)" data-src="DEMO_PNT01_Daily_Plan.html" data-crumb="PNT 도장 · PNT-01 Daily Plan"><span class="mid">PNT-01</span><span class="mnm">일일 생산계획</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_PNT02_Lot_PreIssue.html" data-crumb="PNT 도장 · PNT-02 LOT Pre-Issue"><span class="mid">PNT-02</span><span class="mnm">가상 LOT 사전발행</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_PNT03_Loading.html" data-crumb="PNT 도장 · PNT-03 Loading (R1)"><span class="mid">PNT-03</span><span class="mnm">로딩 스테이션 (R1)</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_PNT04_Line_Board.html" data-crumb="PNT 도장 · PNT-04 Line Board"><span class="mid">PNT-04</span><span class="mnm">라인 추적 보드</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_PNT05_Oven_Monitor.html" data-crumb="PNT 도장 · PNT-05 Oven Monitor (R2)"><span class="mid">PNT-05</span><span class="mnm">오븐 모니터 (R2)</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_PNT06_Unloading.html" data-crumb="PNT 도장 · PNT-06 Unloading (R3)"><span class="mid">PNT-06</span><span class="mnm">언로딩·집계 (R3)</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_PNT07_Label_Apply.html" data-crumb="PNT 도장 · PNT-07 Label Apply"><span class="mid">PNT-07</span><span class="mnm">LOT 라벨 부착</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_PNT08_Defect.html" data-crumb="PNT 도장 · PNT-08 Defect Register"><span class="mid">PNT-08</span><span class="mnm">불량 등록</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_PNT09_Shift_Report.html" data-crumb="PNT 도장 · PNT-09 Shift Report"><span class="mid">PNT-09</span><span class="mnm">교대 일지·리포트</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_PNT01_Daily_Plan.html" data-crumb="PNT Paint · PNT-01 Daily Plan"><span class="mid">PNT-01</span><span class="mnm">Daily Plan</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_PNT02_Lot_PreIssue.html" data-crumb="PNT Paint · PNT-02 LOT Pre-Issue"><span class="mid">PNT-02</span><span class="mnm">Virtual LOT Pre-Issue</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_PNT03_Loading.html" data-crumb="PNT Paint · PNT-03 Loading (R1)"><span class="mid">PNT-03</span><span class="mnm">Loading Station (R1)</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_PNT04_Line_Board.html" data-crumb="PNT Paint · PNT-04 Line Board"><span class="mid">PNT-04</span><span class="mnm">Line Tracking Board</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_PNT05_Oven_Monitor.html" data-crumb="PNT Paint · PNT-05 Oven Monitor (R2)"><span class="mid">PNT-05</span><span class="mnm">Oven Monitor (R2)</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_PNT06_Unloading.html" data-crumb="PNT Paint · PNT-06 Unloading (R3)"><span class="mid">PNT-06</span><span class="mnm">Unloading / Yield (R3)</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_PNT07_Label_Apply.html" data-crumb="PNT Paint · PNT-07 Label Apply"><span class="mid">PNT-07</span><span class="mnm">LOT Label Apply</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_PNT08_Defect.html" data-crumb="PNT Paint · PNT-08 Defect Register"><span class="mid">PNT-08</span><span class="mnm">Defect Register</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_PNT09_Shift_Report.html" data-crumb="PNT Paint · PNT-09 Shift Report"><span class="mid">PNT-09</span><span class="mnm">Shift Report</span><span class="live">LIVE</span></div>
       </div>
     </div>
     <div class="grp">
-      <button class="grp-h" onclick="tg(this)"><span class="gi">🟥</span><span class="gt"><span class="gn">QC · 품질</span><span class="gd">Quality Control</span></span><span class="gc">9</span><span class="gx">▶</span></button>
+      <button class="grp-h" onclick="tg(this)"><span class="gi">🟥</span><span class="gt"><span class="gn">QC · Quality</span><span class="gd">Quality Control</span></span><span class="gc">9</span><span class="gx">▶</span></button>
       <div class="grp-items">
-        <div class="mi" onclick="ld(this)" data-src="DEMO_QC01_Incoming_Inspection.html" data-crumb="QC 품질 · QC-01 Incoming Inspection"><span class="mid">QC-01</span><span class="mnm">수입 검사</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_QC02_InProcess_Inspection.html" data-crumb="QC 품질 · QC-02 In-Process Inspection"><span class="mid">QC-02</span><span class="mnm">공정 검사</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_QC03_Final_Inspection.html" data-crumb="QC 품질 · QC-03 Final Inspection"><span class="mid">QC-03</span><span class="mnm">최종 검사</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_QC04_NCR_Register.html" data-crumb="QC 품질 · QC-04 NCR Register"><span class="mid">QC-04</span><span class="mnm">부적합 등록</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_QC05_Hold_Quarantine.html" data-crumb="QC 품질 · QC-05 Hold / Quarantine"><span class="mid">QC-05</span><span class="mnm">보류·격리</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_QC06_CAPA.html" data-crumb="QC 품질 · QC-06 CAPA Management"><span class="mid">QC-06</span><span class="mnm">시정조치 CAPA</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_QC07_Dashboard.html" data-crumb="QC 품질 · QC-07 QC Dashboard"><span class="mid">QC-07</span><span class="mnm">QC 대시보드</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_QC08_Inspection_Std.html" data-crumb="QC 품질 · QC-08 Inspection Standard"><span class="mid">QC-08</span><span class="mnm">검사 기준</span><span class="live">LIVE</span></div>
-        <div class="mi" onclick="ld(this)" data-src="DEMO_QC_TRC_Traceability.html" data-crumb="QC 품질 · QC-TRC Traceability"><span class="mid">QC-TRC</span><span class="mnm">추적성 조회</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_QC01_Incoming_Inspection.html" data-crumb="QC Quality · QC-01 Incoming Inspection"><span class="mid">QC-01</span><span class="mnm">Incoming Inspection</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_QC02_InProcess_Inspection.html" data-crumb="QC Quality · QC-02 In-Process Inspection"><span class="mid">QC-02</span><span class="mnm">In-Process Inspection</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_QC03_Final_Inspection.html" data-crumb="QC Quality · QC-03 Final Inspection"><span class="mid">QC-03</span><span class="mnm">Final Inspection</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_QC04_NCR_Register.html" data-crumb="QC Quality · QC-04 NCR Register"><span class="mid">QC-04</span><span class="mnm">NCR Register</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_QC05_Hold_Quarantine.html" data-crumb="QC Quality · QC-05 Hold / Quarantine"><span class="mid">QC-05</span><span class="mnm">Hold / Quarantine</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_QC06_CAPA.html" data-crumb="QC Quality · QC-06 CAPA Management"><span class="mid">QC-06</span><span class="mnm">CAPA Management</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_QC07_Dashboard.html" data-crumb="QC Quality · QC-07 QC Dashboard"><span class="mid">QC-07</span><span class="mnm">QC Dashboard</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_QC08_Inspection_Std.html" data-crumb="QC Quality · QC-08 Inspection Standard"><span class="mid">QC-08</span><span class="mnm">Inspection Standard</span><span class="live">LIVE</span></div>
+        <div class="mi" onclick="ld(this)" data-src="DEMO_QC_TRC_Traceability.html" data-crumb="QC Quality · QC-TRC Traceability"><span class="mid">QC-TRC</span><span class="mnm">Traceability Lookup</span><span class="live">LIVE</span></div>
       </div>
     </div>
   </nav>
   <div class="content">
     <div class="crumbbar">
-      <span class="cb-home">📟 Shop-Floor POP</span><span class="cb-sep">›</span><span id="crumb">화면 미선택</span>
-      <span class="cb-tag" id="srctag">데모 셸</span>
+      <span class="cb-home">📟 Shop-Floor POP</span><span class="cb-sep">›</span><span id="crumb">No screen selected</span>
+      <span class="cb-tag" id="srctag">Demo Shell</span>
     </div>
     <div class="frame-wrap">
       <div class="landing" id="landing">
         <div class="l-ico">📟</div>
         <div class="l-t">SHOP-FLOOR POP</div>
-        <div class="l-s">현장 작업자 터치 단말 시스템 데모</div>
-        <div class="l-d">좌측에서 공정을 터치하여 펼치고 화면을 선택하세요. INJ 사출 · IMG 감싸기 · PNT 도장 · QC 품질 — 4개 공정 33개 터치 화면.</div>
+        <div class="l-s">Operator Touch Terminal Demo</div>
+        <div class="l-d">Touch a process group on the left to expand, then tap any screen. INJ Injection · IMG Wrapping · PNT Paint · QC Quality — 4 process groups, 33 touch screens.</div>
         <div class="l-mods">
-          <div class="l-mod"><div class="e">🟦</div><div class="n">INJ</div><div class="c">8 화면</div></div>
-          <div class="l-mod"><div class="e">🟪</div><div class="n">IMG</div><div class="c">7 화면</div></div>
-          <div class="l-mod"><div class="e">🟧</div><div class="n">PNT</div><div class="c">9 화면</div></div>
-          <div class="l-mod"><div class="e">🟥</div><div class="n">QC</div><div class="c">9 화면</div></div>
+          <div class="l-mod"><div class="e">🟦</div><div class="n">INJ</div><div class="c">8 screens</div></div>
+          <div class="l-mod"><div class="e">🟪</div><div class="n">IMG</div><div class="c">7 screens</div></div>
+          <div class="l-mod"><div class="e">🟧</div><div class="n">PNT</div><div class="c">9 screens</div></div>
+          <div class="l-mod"><div class="e">🟥</div><div class="n">QC</div><div class="c">9 screens</div></div>
         </div>
-        <div class="l-hint">▸ 좌측 공정을 터치하고 화면을 선택하세요</div>
+        <div class="l-hint">▸ Touch a process group on the left and select a screen</div>
       </div>
       <iframe id="frame" title="screen"></iframe>
     </div>
@@ -184,7 +184,7 @@ function ld(el){
   f.src=el.dataset.src;
   document.getElementById('crumb').textContent=el.dataset.crumb;
   var isDemo=el.dataset.src.indexOf('DEMO_')===0;
-  document.getElementById('srctag').textContent=(isDemo?'● 인터랙티브 데모 화면 · ':'L3 설계서 · ')+el.dataset.src;
+  document.getElementById('srctag').textContent=(isDemo?'● Interactive Demo · ':'L3 Spec · ')+el.dataset.src;
 }
 (function(){
   var c=document.getElementById('clock');
