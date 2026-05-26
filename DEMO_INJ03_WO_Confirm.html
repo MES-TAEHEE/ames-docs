@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>INJ-03 WO Confirmation · A-MES Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;}
+:root{--sc:#ea580c;--sc-dk:#c2410c;}
+html,body{height:100%;}
+body{font-family:'Noto Sans KR',sans-serif;background:radial-gradient(ellipse at 50% 30%,#1a1208,#0a0805);color:#e8e2d8;font-size:15px;display:flex;flex-direction:column;overflow:hidden;}
+.head{flex-shrink:0;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid var(--sc);background:rgba(0,0,0,.3);}
+.head .id{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;color:#fb923c;}
+.head .tt{flex:1;}
+.head .en{font-size:17px;font-weight:800;color:#fff;}
+.head .ko{font-size:11px;color:#a8997f;}
+.live{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:5px 10px;border-radius:5px;background:#16a34a;color:#fff;display:flex;align-items:center;gap:5px;}
+.live .d{width:7px;height:7px;border-radius:50%;background:#fff;animation:bl 1.4s infinite;}
+@keyframes bl{50%{opacity:.3;}}
+.back{background:#1a1208;border:1px solid #3a2a14;color:#fdba74;font-size:13px;font-weight:700;padding:9px 16px;border-radius:7px;cursor:pointer;font-family:inherit;}
+.back:active{background:rgba(234,88,12,.18);}
+.body{flex:1;display:grid;grid-template-columns:1.3fr 1fr;gap:14px;padding:16px 24px;min-height:0;overflow:hidden;}
+.col{display:flex;flex-direction:column;gap:12px;min-height:0;overflow-y:auto;}
+.col::-webkit-scrollbar{width:8px;}.col::-webkit-scrollbar-thumb{background:#4a3618;border-radius:4px;}
+.wo-card{background:linear-gradient(160deg,rgba(234,88,12,.12),rgba(234,88,12,.03));border:1px solid #3a2a14;border-top:4px solid var(--sc);border-radius:12px;padding:18px 22px;}
+.wo-h{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.wo-h .lbl{font-size:10px;color:#fdba74;letter-spacing:2px;}
+.wo-status{margin-left:auto;font-size:11px;font-weight:800;padding:4px 12px;border-radius:12px;background:#fef3c7;color:#92400e;}
+.wo-status.run{background:#d1fae5;color:#065f46;}
+.wo-id{font-size:30px;font-weight:900;font-family:'JetBrains Mono',monospace;color:#fff;}
+.wo-item{font-size:18px;color:#fff;font-weight:800;margin-top:4px;}
+.wo-item .code{font-family:'JetBrains Mono',monospace;color:#fbbf24;}
+.wo-item .ko{color:#a8997f;font-weight:400;font-size:13px;margin-left:8px;}
+.spec{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;}
+.sp{background:rgba(0,0,0,.3);border:1px solid #3a2a14;border-radius:8px;padding:11px 13px;}
+.sp .sl{font-size:9px;color:#a8997f;font-family:'JetBrains Mono',monospace;letter-spacing:1px;}
+.sp .sv{font-size:16px;font-weight:800;color:#fff;margin-top:3px;}
+.sp .sv.lg{font-size:22px;color:#fbbf24;}
+.card{background:rgba(255,255,255,.04);border:1px solid #3a2a14;border-radius:11px;padding:14px 18px;}
+.card h3{font-size:11px;color:#fdba74;text-transform:uppercase;letter-spacing:2px;margin-bottom:11px;font-weight:700;display:flex;align-items:center;gap:7px;}
+.bom-r{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,.07);font-size:13px;}
+.bom-r:last-child{border:none;}
+.bom-r .mono{font-family:'JetBrains Mono',monospace;color:#fbbf24;font-size:11px;width:120px;flex-shrink:0;}
+.bom-r .nm{flex:1;color:#fff;}
+.bom-r .qty{font-family:'JetBrains Mono',monospace;font-weight:800;color:#fdba74;}
+.scan-area{background:rgba(56,189,248,.08);border:2px dashed #38bdf8;border-radius:11px;padding:20px;text-align:center;cursor:pointer;transition:all .15s;}
+.scan-area:active{background:rgba(56,189,248,.15);}
+.scan-area .ic{font-size:46px;}
+.scan-area .t{font-size:15px;font-weight:800;color:#7dd3fc;margin-top:6px;}
+.scan-area .s{font-size:11px;color:#a8997f;margin-top:3px;}
+.scanned{background:rgba(34,197,94,.12);border:2px solid #22c55e;color:#86efac;}
+.scanned .t{color:#86efac;}
+.qc-r{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,.07);font-size:12px;}
+.qc-r:last-child{border:none;}
+.qc-r .ck{width:22px;height:22px;border-radius:6px;background:#1a1208;border:2px solid #3a2a14;display:flex;align-items:center;justify-content:center;font-size:14px;color:#22c55e;flex-shrink:0;cursor:pointer;}
+.qc-r .ck.on{background:#16a34a;border-color:#16a34a;color:#fff;}
+.qc-r .nm{flex:1;color:#fff;}
+.qc-r .sp{font-size:10px;color:#a8997f;font-family:'JetBrains Mono',monospace;}
+.actions{display:flex;gap:11px;padding:4px;}
+.btn-start{flex:2;padding:18px;background:linear-gradient(180deg,#16a34a,#15803d);border:none;border-radius:10px;color:#fff;font-size:17px;font-weight:800;font-family:inherit;cursor:pointer;letter-spacing:2px;box-shadow:0 4px 0 #14532d;}
+.btn-start:disabled{background:#3a2a14;color:#6b5a3a;cursor:not-allowed;box-shadow:0 4px 0 #1a1208;}
+.btn-start:not(:disabled):active{transform:translateY(2px);box-shadow:0 2px 0 #14532d;}
+.btn-doc{flex:1;padding:18px;background:#1a1208;border:1px solid #3a2a14;color:#fdba74;font-size:14px;font-weight:700;border-radius:10px;cursor:pointer;font-family:inherit;}
+.btn-doc:active{background:rgba(234,88,12,.18);}
+.toasts{position:fixed;top:14px;right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#1a1208;border-radius:10px;padding:13px 17px;border-left:5px solid var(--sc);font-size:13px;min-width:280px;max-width:400px;animation:ti .25s ease;color:#fff;box-shadow:0 8px 26px rgba(0,0,0,.5);}
+.toast.err{border-left-color:#dc2626;}.toast.ok{border-left-color:#16a34a;}.toast.warn{border-left-color:#f59e0b;}
+.toast .tt{font-weight:800;margin-bottom:3px;}
+.toast .tb{color:#a8997f;font-size:11px;line-height:1.5;}
+@keyframes ti{from{opacity:0;transform:translateX(40px);}}
+</style>
+</head>
+<body>
+<div class="head">
+  <button class="back" onclick="back()">‹ 대시보드</button>
+  <div class="id">INJ-03</div>
+  <div class="tt"><div class="en">WO Confirmation</div><div class="ko">작업지시 확인 — 작업 개시 전 점검</div></div>
+  <span class="live"><span class="d"></span>LIVE</span>
+</div>
+<div class="body">
+  <div class="col">
+    <div class="wo-card">
+      <div class="wo-h"><span style="font-size:18px;">📋</span><span class="lbl">작업지시 · WORK ORDER</span>
+        <span class="wo-status" id="woSt">대기</span></div>
+      <div class="wo-id">WO-2605-115</div>
+      <div class="wo-item"><span class="code">TRIM-RH-001</span><span class="ko">도어트림 RH</span></div>
+      <div class="spec">
+        <div class="sp"><div class="sl">계획 수량</div><div class="sv lg">520 EA</div></div>
+        <div class="sp"><div class="sl">납기</div><div class="sv">2026-05-22</div></div>
+        <div class="sp"><div class="sl">거래선</div><div class="sv">SAV (서산)</div></div>
+        <div class="sp"><div class="sl">사용 금형</div><div class="sv">MD-INJ-102</div></div>
+        <div class="sp"><div class="sl">표준 C/T</div><div class="sv">48 초</div></div>
+        <div class="sp"><div class="sl">예상 소요</div><div class="sv">6h 56m</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>🧬 BOM 구성품 (사출 투입)</h3>
+      <div class="bom-r">
+        <span class="mono">RM-PP-BLK</span><span class="nm">PP 수지 (블랙)</span><span class="qty">0.85 KG / EA</span></div>
+      <div class="bom-r">
+        <span class="mono">SF-TRIM-CORE</span><span class="nm">도어트림 코어 (반제품)</span><span class="qty">1 EA / EA</span></div>
+      <div class="bom-r">
+        <span class="mono">AM-CLIP-01</span><span class="nm">고정 클립</span><span class="qty">8 EA / EA</span></div>
+      <div class="bom-r">
+        <span class="mono">AM-FELT-01</span><span class="nm">흡음 펠트</span><span class="qty">1 EA / EA</span></div>
+    </div>
+    <div class="scan-area" id="scan" onclick="scan()">
+      <div class="ic" id="scanIc">📷</div>
+      <div class="t" id="scanT">금형 바코드 스캔</div>
+      <div class="s" id="scanS">금형(MD-INJ-102) 바코드를 스캔하여 검증</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card">
+      <h3>✓ 작업 개시 전 점검 항목</h3>
+      <div class="qc-r"><span class="ck" data-i="0" onclick="chk(this)">✓</span><span class="nm">금형 장착 및 형개 확인</span><span class="sp">MD-INJ-102</span></div>
+      <div class="qc-r"><span class="ck" data-i="1" onclick="chk(this)">✓</span><span class="nm">사출 압력 / 온도 설정</span><span class="sp">230℃</span></div>
+      <div class="qc-r"><span class="ck" data-i="2" onclick="chk(this)">✓</span><span class="nm">원자재 호퍼 충전 (PP 블랙)</span><span class="sp">≥ 30%</span></div>
+      <div class="qc-r"><span class="ck" data-i="3" onclick="chk(this)">✓</span><span class="nm">취출 로봇 동작 확인</span><span class="sp">-</span></div>
+      <div class="qc-r"><span class="ck" data-i="4" onclick="chk(this)">✓</span><span class="nm">안전 펜스 / 광막 정상</span><span class="sp">-</span></div>
+      <div class="qc-r"><span class="ck" data-i="5" onclick="chk(this)">✓</span><span class="nm">초도품 확인 (Initial Sample)</span><span class="sp">2 shot</span></div>
+    </div>
+    <div class="card">
+      <h3>📐 검사 기준 (Inspection Spec)</h3>
+      <div class="bom-r">
+        <span class="mono">IS-TRIM-LH-01</span><span class="nm">전장 치수</span><span class="qty">1200 ±2mm</span></div>
+      <div class="bom-r">
+        <span class="mono">IS-TRIM-LH-02</span><span class="nm">표면 스크래치</span><span class="qty">무결점</span></div>
+      <div class="bom-r">
+        <span class="mono">IS-TRIM-LH-03</span><span class="nm">클립 체결력</span><span class="qty">40~55 N</span></div>
+    </div>
+    <div class="actions">
+      <button class="btn-doc" onclick="viewDoc()">📄 도면 보기</button>
+      <button class="btn-start" id="btnStart" onclick="start()" disabled>▶ 작업 시작</button>
+    </div>
+    <div style="font-size:10px;color:#a8997f;text-align:center;padding:0 4px;">
+      ▸ 금형 바코드 스캔 및 전체 점검 항목 체크 완료 시 작업 시작 활성화
+    </div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<script>
+var scanned=false,checks=[false,false,false,false,false,false];
+function scan(){
+  if(scanned)return;
+  scanned=true;
+  document.getElementById('scan').classList.add('scanned');
+  document.getElementById('scanIc').textContent='✅';
+  document.getElementById('scanT').textContent='금형 검증 완료';
+  document.getElementById('scanS').textContent='MD-INJ-102 정상 인식 — 작업지시 금형과 일치';
+  toast('ok','금형 바코드 인식 ✓','MD-INJ-102 (도어트림 RH 금형) 검증 완료. 점검 항목을 진행하세요.');
+  updateBtn();
+}
+function chk(el){
+  var i=parseInt(el.dataset.i,10);
+  checks[i]=!checks[i];
+  el.classList.toggle('on',checks[i]);
+  el.textContent=checks[i]?'✓':'';
+  updateBtn();
+}
+function updateBtn(){
+  var allCk=checks.every(function(x){return x;});
+  document.getElementById('btnStart').disabled=!(scanned&&allCk);
+}
+function start(){
+  document.getElementById('woSt').textContent='작업 중';
+  document.getElementById('woSt').classList.add('run');
+  toast('ok','작업 개시 ✓','WO-2605-115 작업이 시작되었습니다. 생산 실적 입력 화면으로 전환됩니다... (데모)');
+}
+function viewDoc(){toast('','도면 조회','TRIM-RH-001 도면(PDF)을 열람합니다. (데모)');}
+function back(){toast('','뒤로 이동','POP 대시보드로 돌아갑니다. (데모)');}
+function toast(type,title,body){
+  var d=document.createElement('div');d.className='toast'+(type?' '+type:'');
+  d.innerHTML='<div class="tt">'+(type==='err'?'⛔ ':type==='warn'?'⚠ ':type==='ok'?'✓ ':'ℹ ')+title+'</div><div class="tb">'+body+'</div>';
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(function(){d.style.transition='opacity .3s';d.style.opacity='0';setTimeout(function(){d.remove();},300);},3500);
+}
+</script>
+</body>
+</html>
