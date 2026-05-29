@@ -63,7 +63,7 @@ public sealed class Inj05DefectForm : PopForm
         }, 0, 0);
         _lblRateNow = new Label
         {
-            Text = "0.0%", Font = new Font("Segoe UI", 42f, FontStyle.Bold),
+            Text = "0.0%", Font = new Font("Segoe UI", 32f, FontStyle.Bold),
             ForeColor = PopTheme.TextOk, AutoSize = true, Anchor = AnchorStyles.Right,
         };
         bGrid.Controls.Add(_lblRateNow, 1, 0);
@@ -125,9 +125,10 @@ public sealed class Inj05DefectForm : PopForm
         iStack.Controls.Add(_lblSelectedDetail, 0, 2);
         _lblInput = new Label
         {
-            Text = "0", Font = new Font("Segoe UI", 80f, FontStyle.Bold),
+            Text = "0", Font = PopTheme.DisplayHuge,   // 64pt — fits in the 160px row
             ForeColor = PopTheme.Accent, BackColor = Color.Black, BorderStyle = BorderStyle.FixedSingle,
-            TextAlign = ContentAlignment.MiddleCenter, Dock = DockStyle.Fill, Margin = new Padding(4, 4, 4, 8),
+            TextAlign = ContentAlignment.MiddleCenter, Dock = DockStyle.Fill,
+            Margin = new Padding(4, 4, 4, 8), AutoSize = false,
         };
         iStack.Controls.Add(_lblInput, 0, 3);
         iStack.Controls.Add(BuildKeypad(), 0, 4);

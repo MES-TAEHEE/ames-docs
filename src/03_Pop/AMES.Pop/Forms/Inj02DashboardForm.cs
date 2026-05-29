@@ -58,29 +58,32 @@ public sealed class Inj02DashboardForm : PopForm
         var woCard = BuildCard();
         var woStack = NewStack(8);
         woStack.Controls.Add(PopShell.SectionHeader("▼ CURRENT WO"));
-        _lblWoNumber = BigLabel("(no WO)", 32f, PopTheme.Accent);
+        _lblWoNumber = BigLabel("(no WO)", 28f, PopTheme.Accent);
+        _lblWoNumber.AutoEllipsis = true;
+        _lblWoNumber.MaximumSize  = new Size(900, 0);
         woStack.Controls.Add(_lblWoNumber);
         _lblWoItem = new Label
         {
             Text = "", Font = PopTheme.BodyBold, ForeColor = PopTheme.TextDim,
-            AutoSize = true, Margin = new Padding(4, 0, 0, 18),
+            AutoSize = true, AutoEllipsis = true, MaximumSize = new Size(900, 0),
+            Margin = new Padding(4, 0, 0, 18),
         };
         woStack.Controls.Add(_lblWoItem);
 
         var progRow = new TableLayoutPanel
         {
-            Dock = DockStyle.Top, Height = 100, ColumnCount = 2, RowCount = 1,
-            BackColor = Color.Transparent, Margin = new Padding(0),
+            Dock = DockStyle.Top, Height = 130, ColumnCount = 2, RowCount = 1,
+            BackColor = PopTheme.BgCard, Margin = new Padding(0),
         };
         progRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         progRow.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         progRow.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        _lblWoProgress = BigLabel("—", 56f, PopTheme.TextOk);
+        _lblWoProgress = BigLabel("—", 48f, PopTheme.TextOk);
         _lblWoProgress.Anchor = AnchorStyles.Left;
         progRow.Controls.Add(_lblWoProgress, 0, 0);
-        _lblWoPct = BigLabel("0%", 36f, PopTheme.Accent);
+        _lblWoPct = BigLabel("0%", 32f, PopTheme.Accent);
         _lblWoPct.Anchor = AnchorStyles.Right;
-        _lblWoPct.Margin = new Padding(0, 24, 8, 0);
+        _lblWoPct.Margin = new Padding(0, 28, 8, 0);
         progRow.Controls.Add(_lblWoPct, 1, 0);
         woStack.Controls.Add(progRow);
 
@@ -114,14 +117,19 @@ public sealed class Inj02DashboardForm : PopForm
         eqLedHolder.Resize += (_, _) => _eqLed.Location = new Point(eqLedHolder.Width / 2 - 60, 12);
         eqLedHolder.Controls.Add(_eqLed);
         eqStack.Controls.Add(eqLedHolder);
-        _lblEquipState = BigLabel("—", 42f, PopTheme.TextOk);
-        _lblEquipState.Dock = DockStyle.Top;
-        _lblEquipState.TextAlign = ContentAlignment.MiddleCenter;
+        _lblEquipState = new Label
+        {
+            Text = "—", Font = new Font("Segoe UI", 36f, FontStyle.Bold),
+            ForeColor = PopTheme.TextOk, AutoSize = false,
+            Dock = DockStyle.Top, Height = 64,
+            TextAlign = ContentAlignment.MiddleCenter,
+        };
         eqStack.Controls.Add(_lblEquipState);
         _lblEquipName = new Label
         {
             Text = "", Font = PopTheme.Mono, ForeColor = PopTheme.TextDim,
-            Dock = DockStyle.Top, Height = 30, TextAlign = ContentAlignment.MiddleCenter,
+            AutoSize = false, AutoEllipsis = true,
+            Dock = DockStyle.Top, Height = 32, TextAlign = ContentAlignment.MiddleCenter,
         };
         eqStack.Controls.Add(_lblEquipName);
         eqCard.Controls.Add(eqStack);

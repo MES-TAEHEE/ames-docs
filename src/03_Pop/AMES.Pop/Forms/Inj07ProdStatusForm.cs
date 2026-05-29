@@ -133,8 +133,9 @@ public sealed class Inj07ProdStatusForm : PopForm
         }, 0, 0);
         var v = new Label
         {
-            Text = value, Font = new Font("Segoe UI", 48f, FontStyle.Bold),
-            ForeColor = valueColor, AutoSize = false, Dock = DockStyle.Fill,
+            Text = value, Font = new Font("Segoe UI", 40f, FontStyle.Bold),
+            ForeColor = valueColor, AutoSize = false, AutoEllipsis = true,
+            Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleLeft,
         };
         stack.Controls.Add(v, 0, 1);

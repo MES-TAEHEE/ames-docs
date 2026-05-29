@@ -47,13 +47,14 @@ public sealed class Inj06MoldChangeForm : PopForm
         stack.Controls.Add(PopShell.SectionHeader("▼ MOUNTED MOLD"), 0, 0);
         _lblCurrent = new Label
         {
-            Text = "(loading)", Font = new Font("Segoe UI", 30f, FontStyle.Bold),
-            ForeColor = PopTheme.Accent, AutoSize = true, Margin = new Padding(4, 0, 0, 0),
+            Text = "(loading)", Font = new Font("Segoe UI", 24f, FontStyle.Bold),
+            ForeColor = PopTheme.Accent, AutoSize = true, AutoEllipsis = true,
+            MaximumSize = new Size(1400, 0), Margin = new Padding(4, 0, 0, 0),
         };
         stack.Controls.Add(_lblCurrent, 0, 1);
         _lblCurrentLife = new Label
         {
-            Text = "", Font = new Font("Segoe UI", 56f, FontStyle.Bold), ForeColor = PopTheme.TextOk,
+            Text = "", Font = new Font("Segoe UI", 44f, FontStyle.Bold), ForeColor = PopTheme.TextOk,
             AutoSize = true, Margin = new Padding(4, 8, 0, 12),
         };
         stack.Controls.Add(_lblCurrentLife, 0, 2);

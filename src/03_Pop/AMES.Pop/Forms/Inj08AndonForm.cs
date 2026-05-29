@@ -50,9 +50,9 @@ public sealed class Inj08AndonForm : PopForm
 
         _lblBigState = new Label
         {
-            Text = "READY", Font = new Font("Segoe UI", 140f, FontStyle.Bold),
+            Text = "READY", Font = new Font("Segoe UI", 96f, FontStyle.Bold),
             ForeColor = Color.White, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter,
-            BackColor = Color.Transparent,
+            BackColor = Color.Transparent, AutoSize = false,
         };
         root.Controls.Add(_lblBigState, 0, 1);
 
@@ -81,7 +81,7 @@ public sealed class Inj08AndonForm : PopForm
         causeStack.Controls.Add(_lblCause, 0, 1);
         _lblElapsed = new Label
         {
-            Text = "00:00", Font = new Font("Segoe UI", 60f, FontStyle.Bold),
+            Text = "00:00", Font = new Font("Segoe UI", 44f, FontStyle.Bold),
             ForeColor = Color.White, AutoSize = false, Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleRight,
         };
