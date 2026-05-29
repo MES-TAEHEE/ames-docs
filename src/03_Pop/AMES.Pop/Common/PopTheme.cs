@@ -21,9 +21,13 @@ internal static class PopTheme
     public static readonly Color BgKeyHover = Color.FromArgb(37, 99, 235);   // mod
 
     public static readonly Color Accent     = Color.FromArgb(147, 197, 253); // mod-tint
-    public static readonly Color AccentSoft = Color.FromArgb(147, 197, 253, 200);
-    public static readonly Color AccentDeep = Color.FromArgb(37, 99, 235);   // mod
-    public static readonly Color Border     = Color.FromArgb(37, 99, 235, 100);
+    public static readonly Color AccentSoft = Color.FromArgb(168, 200, 240);   // opaque (was alpha 200)
+    public static readonly Color AccentDeep = Color.FromArgb(37, 99, 235);     // mod
+    /// <summary>
+    /// Border colour used both with GDI+ Pens and with Button.FlatAppearance.BorderColor.
+    /// MUST stay fully opaque (alpha 255) — FlatAppearance.BorderColor throws on alpha &lt; 255.
+    /// </summary>
+    public static readonly Color Border     = Color.FromArgb(28, 50, 100);
     public static readonly Color TextWhite  = Color.White;
     public static readonly Color TextDim    = Color.FromArgb(150, 184, 195);
     public static readonly Color TextOk     = Color.FromArgb(93, 255, 196);
@@ -45,9 +49,11 @@ internal static class PopTheme
     public static readonly Font InfoValue   = new("Segoe UI", 16F, FontStyle.Bold);
 
     // Display-class fonts for the giant numbers in dashboards / entry screens.
-    public static readonly Font DisplayBig   = new("Segoe UI", 48F, FontStyle.Bold);
-    public static readonly Font DisplayHuge  = new("Segoe UI", 72F, FontStyle.Bold);
-    public static readonly Font DisplayMega  = new("Segoe UI", 96F, FontStyle.Bold);
-    public static readonly Font GaugeValue   = new("Segoe UI", 60F, FontStyle.Bold);
+    // Sized to fit both a 1920×1080 panel and a 1366×768 dev laptop without
+    // clipping when the row height is set per §RowHeights guidance below.
+    public static readonly Font DisplayBig   = new("Segoe UI", 44F, FontStyle.Bold);
+    public static readonly Font DisplayHuge  = new("Segoe UI", 64F, FontStyle.Bold);
+    public static readonly Font DisplayMega  = new("Segoe UI", 84F, FontStyle.Bold);
+    public static readonly Font GaugeValue   = new("Segoe UI", 48F, FontStyle.Bold);
     public static readonly Font BigButton    = new("Segoe UI", 16F, FontStyle.Bold);
 }

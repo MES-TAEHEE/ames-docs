@@ -62,7 +62,9 @@ public sealed class Inj04ProductionEntryForm : PopForm
         leftStack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         for (var i = 0; i < 8; i++) leftStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         leftStack.Controls.Add(PopShell.SectionHeader("▼ CURRENT WO"), 0, 0);
-        _lblWoNo = NewBig("(loading)", 34f, PopTheme.Accent);
+        _lblWoNo = NewBig("(loading)", 28f, PopTheme.Accent);
+        _lblWoNo.AutoEllipsis = true;
+        _lblWoNo.MaximumSize  = new Size(600, 0);
         leftStack.Controls.Add(_lblWoNo, 0, 1);
         _lblItem = new Label
         {
@@ -71,7 +73,7 @@ public sealed class Inj04ProductionEntryForm : PopForm
         };
         leftStack.Controls.Add(_lblItem, 0, 2);
         leftStack.Controls.Add(PopShell.SectionHeader("▼ PROGRESS"), 0, 3);
-        _lblProgress = NewBig("0 / 0", 52f, PopTheme.TextOk);
+        _lblProgress = NewBig("0 / 0", 44f, PopTheme.TextOk);
         leftStack.Controls.Add(_lblProgress, 0, 4);
         _bar = new ProgressBar
         {
@@ -109,15 +111,15 @@ public sealed class Inj04ProductionEntryForm : PopForm
         var rightStack = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, BackColor = Color.Transparent };
         rightStack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         rightStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        rightStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 170));
+        rightStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 210));
         rightStack.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         rightStack.Controls.Add(PopShell.SectionHeader("▼ GOOD QTY THIS CYCLE  ·  EA"), 0, 0);
         _lblInput = new Label
         {
-            Text = "0", Font = new Font("Segoe UI", 96f, FontStyle.Bold),
+            Text = "0", Font = PopTheme.DisplayMega,   // 84pt — fits in 210px row
             ForeColor = PopTheme.Accent, BackColor = Color.Black, BorderStyle = BorderStyle.FixedSingle,
             TextAlign = ContentAlignment.MiddleCenter, Dock = DockStyle.Fill,
-            Margin = new Padding(4, 0, 4, 0),
+            Margin = new Padding(4, 0, 4, 0), AutoSize = false,
         };
         rightStack.Controls.Add(_lblInput, 0, 1);
         rightStack.Controls.Add(BuildKeypad(), 0, 2);
