@@ -20,7 +20,7 @@ public sealed class Inj02DashboardForm : PopForm
     private readonly Label _lblWoNumber, _lblWoItem, _lblWoProgress, _lblWoPct;
     private readonly Label _lblEquipState, _lblEquipName;
     private readonly Label _lblDefectRate, _lblMoldPct, _lblOee, _lblClock;
-    private readonly Panel _eqLed;
+    private readonly StatusLED _eqLed;
     private readonly ProgressBar _woBar;
     private readonly HourlyBarChart _chart;
 
@@ -35,7 +35,7 @@ public sealed class Inj02DashboardForm : PopForm
             BackColor = PopTheme.BgOuter,
         };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));    // topbar
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 104));    // topbar
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 32));     // top cards (WO + Equip)
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 56));     // gauges + chart
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 130));   // bottom nav
@@ -97,41 +97,46 @@ public sealed class Inj02DashboardForm : PopForm
         woCard.Controls.Add(woStack);
         row1.Controls.Add(woCard, 0, 0);
 
-        // equip card
-        var eqCard = BuildCard();
-        var eqStack = NewStack(3);
-        eqStack.Controls.Add(PopShell.SectionHeader("▼ EQUIPMENT STATUS"));
-        _eqLed = new Panel
+        // equip card — uses TableLayoutPanel (not FlowLayout) so rows hold
+        // their absolute heights and the lamp + state + name all fit.
+        var eqCard = NewCardPadded(14);
+        var eqStack = new TableLayoutPanel
         {
-            Width = 120, Height = 120, BackColor = PopTheme.TextOk,
-            Anchor = AnchorStyles.None, Margin = new Padding(0, 20, 0, 12),
+            Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 4, BackColor = PopTheme.BgCard,
         };
-        _eqLed.Paint += (_, e) =>
+        eqStack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        eqStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));       // section header
+        eqStack.RowStyles.Add(new RowStyle(SizeType.Percent, 100));   // LED fills remaining vertical
+        eqStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));       // state text
+        eqStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));       // equip name
+
+        eqStack.Controls.Add(PopShell.SectionHeader("▼ EQUIPMENT STATUS"), 0, 0);
+
+        _eqLed = new StatusLED
         {
-            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            using var br = new SolidBrush(_eqLed.BackColor);
-            e.Graphics.FillEllipse(br, 0, 0, _eqLed.Width, _eqLed.Height);
+            LampColor = PopTheme.TextOk,
+            Dock      = DockStyle.Fill,
+            Margin    = new Padding(0, 6, 0, 6),
+            BackColor = PopTheme.BgCard,
         };
-        var eqLedHolder = new Panel { Dock = DockStyle.Top, Height = 144, BackColor = Color.Transparent };
-        _eqLed.Location = new Point(eqLedHolder.Width / 2 - 60, 12);
-        eqLedHolder.Resize += (_, _) => _eqLed.Location = new Point(eqLedHolder.Width / 2 - 60, 12);
-        eqLedHolder.Controls.Add(_eqLed);
-        eqStack.Controls.Add(eqLedHolder);
+        eqStack.Controls.Add(_eqLed, 0, 1);
+
         _lblEquipState = new Label
         {
-            Text = "—", Font = new Font("Segoe UI", 36f, FontStyle.Bold),
-            ForeColor = PopTheme.TextOk, AutoSize = false,
-            Dock = DockStyle.Top, Height = 64,
-            TextAlign = ContentAlignment.MiddleCenter,
+            Text = "—", Font = new Font("Segoe UI", 32f, FontStyle.Bold),
+            ForeColor = PopTheme.TextOk, AutoSize = false, Height = 50,
+            Dock = DockStyle.Top, TextAlign = ContentAlignment.MiddleCenter,
         };
-        eqStack.Controls.Add(_lblEquipState);
+        eqStack.Controls.Add(_lblEquipState, 0, 2);
+
         _lblEquipName = new Label
         {
             Text = "", Font = PopTheme.Mono, ForeColor = PopTheme.TextDim,
-            AutoSize = false, AutoEllipsis = true,
-            Dock = DockStyle.Top, Height = 32, TextAlign = ContentAlignment.MiddleCenter,
+            AutoSize = false, AutoEllipsis = true, Height = 26,
+            Dock = DockStyle.Top, TextAlign = ContentAlignment.MiddleCenter,
         };
-        eqStack.Controls.Add(_lblEquipName);
+        eqStack.Controls.Add(_lblEquipName, 0, 3);
+
         eqCard.Controls.Add(eqStack);
         row1.Controls.Add(eqCard, 1, 0);
 
@@ -266,14 +271,14 @@ public sealed class Inj02DashboardForm : PopForm
                     "ALARM"    => PopTheme.TextFail,
                     _          => PopTheme.TextDim,
                 };
-                _eqLed.BackColor = col; _eqLed.Invalidate();
+                _eqLed.LampColor = col;
                 _lblEquipState.ForeColor = col;
             }
             else
             {
                 _lblEquipState.Text = "OFFLINE";
                 _lblEquipName.Text  = "no equipment registered";
-                _eqLed.BackColor    = PopTheme.TextDim; _eqLed.Invalidate();
+                _eqLed.LampColor = PopTheme.TextDim;
             }
 
             _chart.SetData(PopServices.Production.GetHourlyToday(_session.LineId));
@@ -292,6 +297,11 @@ public sealed class Inj02DashboardForm : PopForm
     {
         Dock = DockStyle.Fill, BackColor = PopTheme.BgCard, Padding = new Padding(18),
         Margin = new Padding(6),
+    };
+    private static Panel NewCardPadded(int padding) => new()
+    {
+        Dock = DockStyle.Fill, BackColor = PopTheme.BgCard,
+        Padding = new Padding(padding), Margin = new Padding(6),
     };
     private static FlowLayoutPanel NewStack(int _) => new()
     {

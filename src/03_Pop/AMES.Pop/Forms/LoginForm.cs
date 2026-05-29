@@ -38,7 +38,7 @@ public sealed class LoginForm : PopForm
             BackColor = PopTheme.BgOuter,
         };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 104));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         root.Controls.Add(BuildTopBar(),                                     0, 0);
@@ -75,7 +75,7 @@ public sealed class LoginForm : PopForm
         var grid = new TableLayoutPanel
         {
             Dock = DockStyle.Fill, ColumnCount = 3, RowCount = 1,
-            Padding = new Padding(28, 10, 28, 10), BackColor = Color.Transparent,
+            Padding = new Padding(28, 6, 28, 6), BackColor = Color.Transparent,
         };
         grid.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));

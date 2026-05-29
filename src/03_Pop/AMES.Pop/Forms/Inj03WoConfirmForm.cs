@@ -30,7 +30,7 @@ public sealed class Inj03WoConfirmForm : PopForm
             BackColor = PopTheme.BgOuter,
         };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 104));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 130));
         root.Controls.Add(PopShell.BuildTopBar("INJ-03 · WO Confirm", session), 0, 0);

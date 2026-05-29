@@ -13,7 +13,7 @@ internal static class PopShell
         var bar = new Panel
         {
             Dock      = DockStyle.Top,
-            Height    = 80,
+            Height    = 104,
             BackColor = PopTheme.BgTopBar,
         };
         bar.Paint += (_, e) =>
@@ -27,7 +27,7 @@ internal static class PopShell
             Dock        = DockStyle.Fill,
             ColumnCount = 3,
             RowCount    = 1,
-            Padding     = new Padding(28, 10, 28, 10),
+            Padding     = new Padding(28, 6, 28, 6),
             BackColor   = Color.Transparent,
         };
         grid.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));

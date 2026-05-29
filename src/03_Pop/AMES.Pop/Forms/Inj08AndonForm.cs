@@ -32,7 +32,7 @@ public sealed class Inj08AndonForm : PopForm
             Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 5, BackColor = BackColor,
         };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));    // banner
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 104));    // banner
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 35));     // big state text
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 260));   // cause + elapsed
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));    // reason / supervisor action
