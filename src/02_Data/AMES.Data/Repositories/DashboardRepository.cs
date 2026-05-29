@@ -14,10 +14,11 @@ public sealed class DashboardRepository
     private readonly AmesConnectionFactory _factory;
     public DashboardRepository(AmesConnectionFactory f) => _factory = f;
 
-    /// <summary>Per-line summary rows for the supervisor view (INJ-07).</summary>
-    public List<LineSummaryDto> GetAllInjectionLines()
+    /// <summary>Per-line summary rows for the supervisor view (INJ-07 / IMG-07 / ...).</summary>
+    /// <param name="processCode">INJ / IMG / PNT / QC — matches LINE-{code}-* IDs.</param>
+    public List<LineSummaryDto> GetLinesForProcess(string processCode)
     {
-        const string sql = """
+        var sql = $"""
             ;WITH today AS (
               SELECT LineID, SUM(GoodQty) AS Good
               FROM   dbo.PR_ProductionResult
@@ -47,11 +48,12 @@ public sealed class DashboardRepository
             LEFT JOIN defs                   df ON df.LineID = l.LineID
             LEFT JOIN eq                     ej ON ej.LineID = l.LineID
             LEFT JOIN dbo.PR_EquipStatusLog  es ON es.EquipStatusLogID = ej.MaxId
-            WHERE  l.LineID LIKE 'LINE-INJ-%'
+            WHERE  l.LineID LIKE @Prefix
             ORDER  BY l.LineID;
             """;
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Prefix", SqlDbType.VarChar, 30).Value = $"LINE-{processCode}-%";
         using var rdr  = cmd.ExecuteReader();
         var list = new List<LineSummaryDto>();
         while (rdr.Read())

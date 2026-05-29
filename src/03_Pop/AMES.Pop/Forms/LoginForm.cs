@@ -457,8 +457,16 @@ public sealed class LoginForm : PopForm
     private void OpenDashboard(PopSessionDto session)
     {
         Hide();
-        using var dash = new Inj02DashboardForm(session);
-        dash.ShowDialog(this);
+        // Route to module-specific dashboard. Falls back to INJ if unknown.
+        Form dash = AppConfig.Current.ModuleCode switch
+        {
+            "IMG" => new Img02DashboardForm(session),
+            _     => new Inj02DashboardForm(session),
+        };
+        using (dash)
+        {
+            dash.ShowDialog(this);
+        }
         _pinBuf.Clear(); _scanBuf.Clear();
         _lastScannedBadge = null;
         _pinDots.Filled   = 0;

@@ -26,6 +26,8 @@ internal static class PopServices
     public static AndonRepository        Andon             { get; private set; } = null!;
     public static DashboardRepository    Dashboard         { get; private set; } = null!;
     public static MasterDataRepository   Master            { get; private set; } = null!;
+    public static FabricRepository       Fabric            { get; private set; } = null!;
+    public static BondRepository         Bond              { get; private set; } = null!;
 
     public static void Initialize()
     {
@@ -42,5 +44,7 @@ internal static class PopServices
         Andon             = new AndonRepository     (ConnectionFactory);
         Dashboard         = new DashboardRepository (ConnectionFactory);
         Master            = new MasterDataRepository(ConnectionFactory);
+        Fabric            = new FabricRepository    (ConnectionFactory);
+        Bond              = new BondRepository      (ConnectionFactory);
     }
 }

@@ -4,13 +4,13 @@ using AMES.Pop.Common;
 namespace AMES.Pop.Forms;
 
 /// <summary>
-/// INJ-07 Production Status — supervisor / shift-handover summary.
+/// IMG-07 Production Status — supervisor / shift-handover summary.
 ///
 /// The L3 spec targets a Web/Office PC (light theme); this WinForms version
 /// is the read-only POP-side fallback so supervisors can sanity-check at the
 /// terminal before the Blazor portal exists.
 /// </summary>
-public sealed class Inj07ProdStatusForm : PopForm
+public sealed class Img07ProdStatusForm : PopForm
 {
     private readonly PopSessionDto _session;
     private readonly DataGridView  _grid;
@@ -18,10 +18,10 @@ public sealed class Inj07ProdStatusForm : PopForm
     private readonly HourlyBarChart _chart;
     private readonly System.Windows.Forms.Timer _timer;
 
-    public Inj07ProdStatusForm(PopSessionDto session)
+    public Img07ProdStatusForm(PopSessionDto session)
     {
         _session = session;
-        Text = "A-MES POP · INJ-07 Production Status";
+        Text = "A-MES POP · IMG-07 Production Status";
 
         var root = new TableLayoutPanel
         {
@@ -33,7 +33,7 @@ public sealed class Inj07ProdStatusForm : PopForm
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 280));   // hourly chart
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));    // lines grid
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 130));
-        root.Controls.Add(PopShell.BuildTopBar("INJ-07 · Prod Status (Supervisor)", session), 0, 0);
+        root.Controls.Add(PopShell.BuildTopBar("IMG-07 · Prod Status (Supervisor)", session), 0, 0);
 
         // KPI row (4 tiles)
         var kpi = new TableLayoutPanel
@@ -148,7 +148,7 @@ public sealed class Inj07ProdStatusForm : PopForm
     {
         try
         {
-            var rows = PopServices.Dashboard.GetLinesForProcess("INJ");
+            var rows = PopServices.Dashboard.GetLinesForProcess("IMG");
             _grid.Rows.Clear();
             int totalGood = 0, totalDef = 0;
             foreach (var r in rows)
