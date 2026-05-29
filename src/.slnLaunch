@@ -1,0 +1,11 @@
+[
+  {
+    "Name": "AMES.Pop",
+    "Projects": [
+      {
+        "Path": "03_Pop\\AMES.Pop\\AMES.Pop.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]
