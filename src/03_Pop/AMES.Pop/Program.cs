@@ -1,3 +1,4 @@
+using AMES.Pop.Common;
 using AMES.Pop.Forms;
 
 namespace AMES.Pop;
@@ -12,6 +13,7 @@ internal static class Program
     private static void Main()
     {
         ApplicationConfiguration.Initialize();
+        PopServices.Initialize();        // ← single point of DI wiring
         Application.Run(new LoginForm());
     }
 }

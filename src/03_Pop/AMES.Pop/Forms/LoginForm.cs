@@ -3,8 +3,6 @@ using System.Drawing.Drawing2D;
 using AMES.Contracts.Auth;
 using AMES.Contracts.Dto;
 using AMES.Contracts.Enums;
-using AMES.Data.Connection;
-using AMES.Data.Repositories;
 using AMES.Data.Services;
 using AMES.Pop.Common;
 
@@ -37,10 +35,7 @@ public sealed class LoginForm : Form
 
     public LoginForm()
     {
-        var factory  = new AmesConnectionFactory(AppConfig.Current.ConnectionString);
-        _auth = new PopAuthService(
-            new AuthRepository      (factory),
-            new PopSessionRepository(factory));
+        _auth = PopServices.PopAuth;
 
         // ── form chrome ──────────────────────────────────────────────────────
         Text             = "A-MES POP · Shift Login";
@@ -613,7 +608,7 @@ public sealed class LoginForm : Form
     private void OpenDashboard(PopSessionDto session)
     {
         Hide();
-        using var dash = new DashboardForm(session);
+        using var dash = new Inj02DashboardForm(session);
         dash.ShowDialog(this);
         // Back to login.
         _pinBuf.Clear();
