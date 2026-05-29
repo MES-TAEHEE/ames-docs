@@ -12,7 +12,7 @@ namespace AMES.Pop.Forms;
 ///   (PopSessionDto)                                  → standalone (uses active WO)
 ///   (PopSessionDto, WorkOrderDto, int resultId)      → invoked from INJ-04
 /// </summary>
-public sealed class Inj05DefectForm : Form
+public sealed class Inj05DefectForm : PopForm
 {
     private readonly PopSessionDto _session;
     private WorkOrderDto?          _wo;
@@ -32,26 +32,17 @@ public sealed class Inj05DefectForm : Form
         _session  = session;
         _wo       = wo;
         _resultId = resultId;
-
-        Text            = "A-MES POP · INJ-05 Defect";
-        ClientSize      = new Size(1180, 720);
-        BackColor       = PopTheme.BgOuter;
-        ForeColor       = PopTheme.TextWhite;
-        Font            = PopTheme.Body;
-        FormBorderStyle = FormBorderStyle.FixedSingle;
-        StartPosition   = FormStartPosition.CenterParent;
-        MaximizeBox     = false;
-        AutoScaleMode   = AutoScaleMode.Dpi;
+        Text      = "A-MES POP · INJ-05 Defect";
 
         var root = new TableLayoutPanel
         {
             Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 4, BackColor = PopTheme.BgOuter,
         };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 110));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 130));
 
         root.Controls.Add(PopShell.BuildTopBar("INJ-05 · Defect", session), 0, 0);
 
@@ -72,7 +63,7 @@ public sealed class Inj05DefectForm : Form
         }, 0, 0);
         _lblRateNow = new Label
         {
-            Text = "0.0%", Font = new Font("Segoe UI", 26f, FontStyle.Bold),
+            Text = "0.0%", Font = new Font("Segoe UI", 42f, FontStyle.Bold),
             ForeColor = PopTheme.TextOk, AutoSize = true, Anchor = AnchorStyles.Right,
         };
         bGrid.Controls.Add(_lblRateNow, 1, 0);
@@ -114,14 +105,14 @@ public sealed class Inj05DefectForm : Form
         var iStack = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 5, BackColor = Color.Transparent };
         iStack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         iStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        iStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 90));
+        iStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 120));
         iStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        iStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 90));
+        iStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 160));
         iStack.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         iStack.Controls.Add(PopShell.SectionHeader("▼ SELECTED"), 0, 0);
         _lblSelectedCode = new Label
         {
-            Text = "(pick a defect type)", Font = new Font("Segoe UI", 16f, FontStyle.Bold),
+            Text = "(pick a defect type)", Font = new Font("Segoe UI", 22f, FontStyle.Bold),
             ForeColor = PopTheme.Accent, AutoSize = false, Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleCenter,
         };
@@ -134,7 +125,7 @@ public sealed class Inj05DefectForm : Form
         iStack.Controls.Add(_lblSelectedDetail, 0, 2);
         _lblInput = new Label
         {
-            Text = "0", Font = new Font("Segoe UI", 48f, FontStyle.Bold),
+            Text = "0", Font = new Font("Segoe UI", 80f, FontStyle.Bold),
             ForeColor = PopTheme.Accent, BackColor = Color.Black, BorderStyle = BorderStyle.FixedSingle,
             TextAlign = ContentAlignment.MiddleCenter, Dock = DockStyle.Fill, Margin = new Padding(4, 4, 4, 8),
         };
@@ -173,13 +164,13 @@ public sealed class Inj05DefectForm : Form
             var btn = new Button
             {
                 Text      = $"{c.DefectCode}\n{c.DefectNameEn}\n{c.DefectName}",
-                Font      = new Font("Segoe UI", 11f, FontStyle.Bold),
+                Font      = new Font("Segoe UI", 14f, FontStyle.Bold),
                 ForeColor = Color.White,
                 BackColor = PopTheme.BgKey,
                 FlatStyle = FlatStyle.Flat,
-                Width     = 200,
-                Height    = 110,
-                Margin    = new Padding(6),
+                Width     = 280,
+                Height    = 150,
+                Margin    = new Padding(10),
                 Cursor    = Cursors.Hand,
                 Tag       = c,
                 TextAlign = ContentAlignment.MiddleCenter,
@@ -218,9 +209,9 @@ public sealed class Inj05DefectForm : Form
         {
             var b = new Button
             {
-                Text = text, Font = new Font("Segoe UI", 18f, FontStyle.Bold),
+                Text = text, Font = PopTheme.KeyDigit,
                 ForeColor = Color.White, BackColor = bg, FlatStyle = FlatStyle.Flat,
-                Dock = DockStyle.Fill, Margin = new Padding(4), Cursor = Cursors.Hand, TabStop = false,
+                Dock = DockStyle.Fill, Margin = new Padding(6), Cursor = Cursors.Hand, TabStop = false,
             };
             b.FlatAppearance.BorderColor = PopTheme.Border;
             b.FlatAppearance.BorderSize  = 1;

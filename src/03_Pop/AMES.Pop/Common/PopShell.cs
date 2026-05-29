@@ -13,7 +13,7 @@ internal static class PopShell
         var bar = new Panel
         {
             Dock      = DockStyle.Top,
-            Height    = 56,
+            Height    = 80,
             BackColor = PopTheme.BgTopBar,
         };
         bar.Paint += (_, e) =>
@@ -27,7 +27,7 @@ internal static class PopShell
             Dock        = DockStyle.Fill,
             ColumnCount = 3,
             RowCount    = 1,
-            Padding     = new Padding(20, 6, 20, 6),
+            Padding     = new Padding(28, 10, 28, 10),
             BackColor   = Color.Transparent,
         };
         grid.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
@@ -42,16 +42,16 @@ internal static class PopShell
             ForeColor = PopTheme.Accent,
             AutoSize  = true,
             Anchor    = AnchorStyles.Left,
-            Margin    = new Padding(0, 4, 24, 0),
+            Margin    = new Padding(0, 6, 28, 0),
         };
         var info = new Label
         {
             Text      = $"{screenCode}  ·  {session.TerminalId}  ·  {session.LineId}",
-            Font      = PopTheme.Mono,
+            Font      = PopTheme.MonoBold,
             ForeColor = PopTheme.AccentSoft,
             AutoSize  = true,
             Anchor    = AnchorStyles.Left,
-            Margin    = new Padding(0, 14, 0, 0),
+            Margin    = new Padding(0, 22, 0, 0),
         };
 
         var right = new TableLayoutPanel
@@ -96,7 +96,7 @@ internal static class PopShell
 
     /// <summary>Big rectangular POP button — used everywhere outside the login keypad.</summary>
     public static Button BigButton(string text, Color bg, Color fg, EventHandler onClick,
-                                   int height = 56, float fontSize = 13f)
+                                   int height = 84, float fontSize = 16f)
     {
         var b = new Button
         {
@@ -106,7 +106,7 @@ internal static class PopShell
             BackColor = bg,
             FlatStyle = FlatStyle.Flat,
             Dock      = DockStyle.Fill,
-            Margin    = new Padding(4),
+            Margin    = new Padding(6),
             Cursor    = Cursors.Hand,
             Height    = height,
             TabStop   = false,

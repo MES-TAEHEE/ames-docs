@@ -8,7 +8,7 @@ namespace AMES.Pop.Forms;
 /// open a PR_MoldChange row. "Complete change" closes it, resets the new
 /// mold to 0 shots, and marks the old mold for Maintenance.
 /// </summary>
-public sealed class Inj06MoldChangeForm : Form
+public sealed class Inj06MoldChangeForm : PopForm
 {
     private readonly PopSessionDto _session;
     private readonly Label _lblCurrent, _lblCurrentLife, _lblSeverity;
@@ -25,25 +25,16 @@ public sealed class Inj06MoldChangeForm : Form
     public Inj06MoldChangeForm(PopSessionDto session)
     {
         _session = session;
-
-        Text            = "A-MES POP · INJ-06 Mold Change";
-        ClientSize      = new Size(1100, 700);
-        BackColor       = PopTheme.BgOuter;
-        ForeColor       = PopTheme.TextWhite;
-        Font            = PopTheme.Body;
-        FormBorderStyle = FormBorderStyle.FixedSingle;
-        StartPosition   = FormStartPosition.CenterParent;
-        MaximizeBox     = false;
-        AutoScaleMode   = AutoScaleMode.Dpi;
+        Text = "A-MES POP · INJ-06 Mold Change";
 
         var root = new TableLayoutPanel
         {
             Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, BackColor = PopTheme.BgOuter,
         };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 130));
         root.Controls.Add(PopShell.BuildTopBar("INJ-06 · Mold Change", session), 0, 0);
 
         var body = new Panel { Dock = DockStyle.Fill, BackColor = PopTheme.BgOuter, Padding = new Padding(24) };
@@ -56,17 +47,17 @@ public sealed class Inj06MoldChangeForm : Form
         stack.Controls.Add(PopShell.SectionHeader("▼ MOUNTED MOLD"), 0, 0);
         _lblCurrent = new Label
         {
-            Text = "(loading)", Font = new Font("Segoe UI", 22f, FontStyle.Bold),
+            Text = "(loading)", Font = new Font("Segoe UI", 30f, FontStyle.Bold),
             ForeColor = PopTheme.Accent, AutoSize = true, Margin = new Padding(4, 0, 0, 0),
         };
         stack.Controls.Add(_lblCurrent, 0, 1);
         _lblCurrentLife = new Label
         {
-            Text = "", Font = new Font("Segoe UI", 32f, FontStyle.Bold), ForeColor = PopTheme.TextOk,
-            AutoSize = true, Margin = new Padding(4, 4, 0, 8),
+            Text = "", Font = new Font("Segoe UI", 56f, FontStyle.Bold), ForeColor = PopTheme.TextOk,
+            AutoSize = true, Margin = new Padding(4, 8, 0, 12),
         };
         stack.Controls.Add(_lblCurrentLife, 0, 2);
-        _bar = new ProgressBar { Dock = DockStyle.Top, Height = 22, Maximum = 110, Minimum = 0, Style = ProgressBarStyle.Continuous, Margin = new Padding(4, 0, 4, 8) };
+        _bar = new ProgressBar { Dock = DockStyle.Top, Height = 32, Maximum = 110, Minimum = 0, Style = ProgressBarStyle.Continuous, Margin = new Padding(4, 0, 4, 12) };
         stack.Controls.Add(_bar, 0, 3);
         _lblSeverity = new Label
         {
@@ -78,11 +69,11 @@ public sealed class Inj06MoldChangeForm : Form
         stack.Controls.Add(PopShell.SectionHeader("▼ REPLACEMENT MOLD"), 0, 5);
         _cboReplacement = new ComboBox
         {
-            Dock = DockStyle.Top, Margin = new Padding(4, 0, 16, 12),
+            Dock = DockStyle.Top, Margin = new Padding(4, 0, 16, 16),
             DropDownStyle = ComboBoxStyle.DropDownList,
-            Font = new Font("Segoe UI", 14f, FontStyle.Bold),
+            Font = new Font("Segoe UI", 18f, FontStyle.Bold),
             BackColor = Color.Black, ForeColor = PopTheme.Accent, FlatStyle = FlatStyle.Flat,
-            Height = 40,
+            Height = 56,
         };
         stack.Controls.Add(_cboReplacement, 0, 6);
 
