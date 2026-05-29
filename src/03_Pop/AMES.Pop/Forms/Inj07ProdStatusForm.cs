@@ -28,8 +28,8 @@ public sealed class Inj07ProdStatusForm : PopForm
             Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 5, BackColor = PopTheme.BgOuter,
         };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 170));   // KPI tiles
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 104));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 200));   // KPI tiles
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 280));   // hourly chart
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));    // lines grid
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 130));
@@ -39,7 +39,7 @@ public sealed class Inj07ProdStatusForm : PopForm
         var kpi = new TableLayoutPanel
         {
             Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 1,
-            BackColor = PopTheme.BgOuter, Padding = new Padding(20, 12, 20, 6),
+            BackColor = PopTheme.BgOuter, Padding = new Padding(20, 14, 20, 14),
         };
         for (var i = 0; i < 4; i++) kpi.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
         kpi.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
