@@ -3,13 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AMES.Pop", "03_Pop\AMES.Pop\AMES.Pop.csproj", "{A44539DD-32E3-479D-B617-8038A4C3E8F3}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "01_Shared", "01_Shared", "{9A42AFDA-9D3D-D813-9E0D-5C58B88794A7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AMES.Contracts", "01_Shared\AMES.Contracts\AMES.Contracts.csproj", "{0E3568DE-8F9A-413E-BFE7-ADA3F34C0555}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AMES.Data", "02_Data\AMES.Data\AMES.Data.csproj", "{94D8B0C7-A251-4E09-ABED-6F8761AF88F2}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AMES.Pop", "03_Pop\AMES.Pop\AMES.Pop.csproj", "{A44539DD-32E3-479D-B617-8038A4C3E8F3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
