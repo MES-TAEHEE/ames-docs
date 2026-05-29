@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Drawing.Drawing2D;
 using AMES.Contracts.Auth;
 using AMES.Contracts.Dto;
 using AMES.Contracts.Enums;
@@ -12,281 +13,480 @@ namespace AMES.Pop.Forms;
 /// <summary>
 /// INJ-01 POP Login — entry point for shop-floor terminals.
 ///
-/// UI mirrors VOL05_INJ01 spec:
-///   • Top bar: A-MES logo · terminal/line · ONLINE · clock
-///   • Card:    title · badge-scan zone · OR · PIN display · 4×3 keypad
-///   • Footer:  Line / Shift / Equipment from AppConfig
-///
-/// Badge scan behaves like a USB-HID keyboard: characters arrive in
-/// rapid succession, terminated by Enter (CR). Anything that decodes
-/// before Enter is treated as an EmployeeNo and sent through PopAuthService
-/// with AuthMethod.Badge.
-///
-/// PIN path: tap the keypad to fill 4 digits, then tap ✓ to submit.
+/// Layout is fully driven by TableLayoutPanel + Dock + Padding so the form
+/// rescales cleanly under DPI and never overlaps regardless of font width.
 /// </summary>
 public sealed class LoginForm : Form
 {
-    private readonly PopAuthService _authService;
-
-    // Theme — kept inline so the file is self-contained until we extract a Theme class.
-    private static readonly Color BgOuter      = Color.Black;
-    private static readonly Color BgCard       = Color.FromArgb(10, 22, 40);    // #0A1628
-    private static readonly Color BgKey        = Color.FromArgb(28, 38, 60);
-    private static readonly Color BgKeyHover   = Color.FromArgb(37, 99, 235);
-    private static readonly Color BgKeyOk      = Color.FromArgb(13, 184, 122);  // #0DB87A
-    private static readonly Color BgKeyDel     = Color.FromArgb(70, 30, 30);
-    private static readonly Color Accent       = Color.FromArgb(147, 197, 253); // mod-tint
-    private static readonly Color AccentDeep   = Color.FromArgb(37, 99, 235);   // mod
-    private static readonly Color TextDim      = Color.FromArgb(120, 154, 165);
-    private static readonly Color TextOk       = Color.FromArgb(93, 255, 196);
-    private static readonly Color TextFail     = Color.FromArgb(252, 165, 165);
-
     private const int PinLength = 4;
 
-    // Widgets
-    private readonly Label   _lblClock;
-    private readonly Label   _lblTerminal;
-    private readonly Label   _lblOnline;
-    private readonly Label   _lblPinDisplay;
-    private readonly Label   _lblStatus;
-    private readonly Label   _lblLineValue;
-    private readonly Label   _lblShiftValue;
-    private readonly Label   _lblStationValue;
-    private readonly Panel   _badgePanel;
+    private readonly PopAuthService  _auth;
     private readonly System.Windows.Forms.Timer _clockTimer;
 
-    /// <summary>Accumulates printable keystrokes; flushed as a badge scan on Enter.</summary>
-    private readonly System.Text.StringBuilder _scanBuf = new();
+    // ── widgets we mutate after construction
+    private readonly Label           _lblClock;
+    private readonly Label           _lblStatus;
+    private readonly PinDotsDisplay  _pinDots;
+
+    // ── input state
     private readonly System.Text.StringBuilder _pinBuf  = new();
-    private DateTime _lockedUntil = DateTime.MinValue;
+    private readonly System.Text.StringBuilder _scanBuf = new();
+    private string?  _lastScannedBadge;
     private int      _consecutiveFailures;
+    private DateTime _lockedUntil = DateTime.MinValue;
 
     public LoginForm()
     {
-        // 1) Build the service stack (will be moved to DI when AMES.Application lands).
         var factory  = new AmesConnectionFactory(AppConfig.Current.ConnectionString);
-        var auth     = new AuthRepository(factory);
-        var sessions = new PopSessionRepository(factory);
-        _authService = new PopAuthService(auth, sessions);
+        _auth = new PopAuthService(
+            new AuthRepository      (factory),
+            new PopSessionRepository(factory));
 
-        // 2) Form chrome.
-        Text            = "A-MES POP · Shift Login";
-        ClientSize      = new Size(720, 820);
-        BackColor       = BgOuter;
-        ForeColor       = Color.White;
-        Font            = new Font("Segoe UI", 10F);
-        FormBorderStyle = FormBorderStyle.FixedSingle;
-        StartPosition   = FormStartPosition.CenterScreen;
-        MaximizeBox     = false;
-        KeyPreview      = true;
-        DoubleBuffered  = true;
+        // ── form chrome ──────────────────────────────────────────────────────
+        Text             = "A-MES POP · Shift Login";
+        ClientSize       = new Size(820, 940);
+        BackColor        = PopTheme.BgOuter;
+        ForeColor        = PopTheme.TextWhite;
+        Font             = PopTheme.Body;
+        FormBorderStyle  = FormBorderStyle.FixedSingle;
+        StartPosition    = FormStartPosition.CenterScreen;
+        MaximizeBox      = false;
+        KeyPreview       = true;
+        AutoScaleMode    = AutoScaleMode.Dpi;
+        DoubleBuffered   = true;
 
-        // ============================== Top bar ==================================
-        var topBar = new Panel {
-            Dock = DockStyle.Top, Height = 56,
-            BackColor = Color.FromArgb(12, 26, 46),
-        };
-        topBar.Paint += (_, e) => {
-            using var pen = new Pen(Color.FromArgb(37, 99, 235, 80));
-            e.Graphics.DrawLine(pen, 0, topBar.Height - 1, topBar.Width, topBar.Height - 1);
-        };
-
-        var logo = new Label {
-            Text      = "A-MES",
-            Font      = new Font("Segoe UI", 22F, FontStyle.Bold),
-            ForeColor = Accent,
-            AutoSize  = true,
-            Location  = new Point(20, 10),
-        };
-        _lblTerminal = new Label {
-            Text      = $"INJ-01 · {AppConfig.Current.StationId} · {AppConfig.Current.LineId}",
-            Font      = new Font("Consolas", 10F),
-            ForeColor = Color.FromArgb(147, 197, 253, 180),
-            AutoSize  = true,
-            Location  = new Point(140, 22),
-        };
-        _lblOnline = new Label {
-            Text      = "● ONLINE",
-            Font      = new Font("Segoe UI", 9F, FontStyle.Bold),
-            ForeColor = TextOk,
-            AutoSize  = true,
-            Location  = new Point(540, 14),
-        };
-        _lblClock = new Label {
-            Text      = DateTime.Now.ToString("yyyy-MM-dd HH:mm"),
-            Font      = new Font("Consolas", 10F),
-            ForeColor = TextDim,
-            AutoSize  = true,
-            Location  = new Point(540, 32),
-        };
-        topBar.Controls.AddRange([logo, _lblTerminal, _lblOnline, _lblClock]);
-
-        // ============================== Card ====================================
-        var card = new Panel {
-            Location  = new Point(60, 80),
-            Size      = new Size(600, 700),
-            BackColor = BgCard,
-        };
-        card.Paint += (_, e) => {
-            using var pen = new Pen(Color.FromArgb(37, 99, 235, 100), 1);
-            e.Graphics.DrawRectangle(pen, 0, 0, card.Width - 1, card.Height - 1);
-        };
-
-        var cardTitle = new Label {
-            Text      = "SHIFT LOGIN",
-            Font      = new Font("Segoe UI", 22F, FontStyle.Bold),
-            ForeColor = Accent,
-            AutoSize  = true,
-            Location  = new Point(180, 24),
-        };
-        var cardSub = new Label {
-            Text      = "Scan your badge or enter your PIN",
-            Font      = new Font("Segoe UI", 9F),
-            ForeColor = TextDim,
-            AutoSize  = true,
-            Location  = new Point(180, 64),
-        };
-
-        // ---------- Badge scan zone (dashed border, big icon) ----------
-        _badgePanel = new Panel {
-            Location  = new Point(30, 100),
-            Size      = new Size(540, 110),
-            BackColor = Color.FromArgb(15, 35, 65),
-        };
-        _badgePanel.Paint += (_, e) => DrawDashedBorder(e.Graphics, _badgePanel.ClientRectangle,
-                                                       Color.FromArgb(37, 99, 235, 140), 2f);
-        var badgeIcon = new Label {
-            Text      = "[BADGE]",
-            Font      = new Font("Consolas", 16F, FontStyle.Bold),
-            ForeColor = Accent,
-            AutoSize  = true,
-            Location  = new Point(24, 36),
-        };
-        var badgeTitle = new Label {
-            Text      = "Scan Employee Badge",
-            Font      = new Font("Segoe UI", 13F, FontStyle.Bold),
-            ForeColor = Accent,
-            AutoSize  = true,
-            Location  = new Point(120, 28),
-        };
-        var badgeSub = new Label {
-            Text      = "Code-128 barcode · USB HID scanner",
-            Font      = new Font("Segoe UI", 9F),
-            ForeColor = Color.FromArgb(147, 197, 253, 150),
-            AutoSize  = true,
-            Location  = new Point(120, 56),
-        };
-        _badgePanel.Controls.AddRange([badgeIcon, badgeTitle, badgeSub]);
-
-        // ---------- OR separator ----------
-        var orLabel = new Label {
-            Text      = "─────  OR · PIN  ─────",
-            Font      = new Font("Consolas", 9F),
-            ForeColor = TextDim,
-            AutoSize  = true,
-            Location  = new Point(220, 232),
-        };
-
-        // ---------- PIN display ----------
-        _lblPinDisplay = new Label {
-            Text      = MaskedPin(),
-            Font      = new Font("Consolas", 32F, FontStyle.Bold),
-            ForeColor = Accent,
-            BackColor = Color.Black,
-            BorderStyle = BorderStyle.FixedSingle,
-            TextAlign = ContentAlignment.MiddleCenter,
-            Size      = new Size(280, 66),
-            Location  = new Point(160, 262),
-        };
-
-        // ---------- Keypad ----------
-        var keypad = new TableLayoutPanel {
-            Location  = new Point(160, 344),
-            Size      = new Size(280, 240),
-            ColumnCount = 3,
-            RowCount    = 4,
-            BackColor   = BgCard,
-        };
-        for (var i = 0; i < 3; i++) keypad.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33f));
-        for (var i = 0; i < 4; i++) keypad.RowStyles   .Add(new RowStyle   (SizeType.Percent, 25f));
-
-        var keyLayout = new (string Label, Action Handler, Color? Bg)[] {
-            ("1", () => OnDigit('1'), null), ("2", () => OnDigit('2'), null), ("3", () => OnDigit('3'), null),
-            ("4", () => OnDigit('4'), null), ("5", () => OnDigit('5'), null), ("6", () => OnDigit('6'), null),
-            ("7", () => OnDigit('7'), null), ("8", () => OnDigit('8'), null), ("9", () => OnDigit('9'), null),
-            ("<", OnBackspace,         BgKeyDel),
-            ("0", () => OnDigit('0'), null),
-            ("OK", OnSubmitPin,        BgKeyOk),
-        };
-        foreach (var (text, handler, bg) in keyLayout)
+        // ── root layout: TopBar / Card / Spacer ──────────────────────────────
+        var root = new TableLayoutPanel
         {
-            var btn = new Button {
-                Text      = text,
-                Font      = new Font("Segoe UI", 16F, FontStyle.Bold),
-                ForeColor = Color.White,
-                BackColor = bg ?? BgKey,
-                FlatStyle = FlatStyle.Flat,
-                Dock      = DockStyle.Fill,
-                Margin    = new Padding(3),
-                Cursor    = Cursors.Hand,
-                TabStop   = false,
-            };
-            btn.FlatAppearance.BorderColor = Color.FromArgb(37, 99, 235, 100);
-            btn.FlatAppearance.BorderSize  = 1;
-            btn.FlatAppearance.MouseOverBackColor = bg.HasValue
-                ? ControlPaint.Light(bg.Value)
-                : BgKeyHover;
-            btn.Click += (_, _) => handler();
-            keypad.Controls.Add(btn);
-        }
-
-        // ---------- Status row ----------
-        _lblStatus = new Label {
-            Text      = " ",
-            Font      = new Font("Consolas", 10F, FontStyle.Bold),
-            ForeColor = TextDim,
-            TextAlign = ContentAlignment.MiddleCenter,
-            Size      = new Size(540, 28),
-            Location  = new Point(30, 596),
+            Dock        = DockStyle.Fill,
+            BackColor   = PopTheme.BgOuter,
+            ColumnCount = 1,
+            RowCount    = 2,
+            Padding     = new Padding(0),
         };
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        root.RowStyles   .Add(new RowStyle   (SizeType.Absolute, 64));   // top bar
+        root.RowStyles   .Add(new RowStyle   (SizeType.Percent,  100));  // body
 
-        // ---------- Info grid ----------
-        var infoGrid = new Panel {
-            Location  = new Point(30, 632),
-            Size      = new Size(540, 56),
-            BackColor = Color.FromArgb(8, 18, 32),
-        };
-        infoGrid.Controls.AddRange([
-            InfoLabel("LINE",      AppConfig.Current.LineId,       0,   out _lblLineValue),
-            InfoLabel("SHIFT",     AppConfig.Current.DefaultShift, 180, out _lblShiftValue),
-            InfoLabel("STATION",   AppConfig.Current.StationId,    360, out _lblStationValue),
-        ]);
+        root.Controls.Add(BuildTopBar(),         0, 0);
+        root.Controls.Add(BuildBodyWithCard(out _lblStatus, out _pinDots), 0, 1);
 
-        card.Controls.AddRange([
-            cardTitle, cardSub, _badgePanel, orLabel,
-            _lblPinDisplay, keypad, _lblStatus, infoGrid,
-        ]);
+        Controls.Add(root);
 
-        Controls.AddRange([topBar, card]);
-
-        // ============================== Clock ===================================
-        _clockTimer = new System.Windows.Forms.Timer { Interval = 1000 };
+        // clock — created inside BuildTopBar, found by name
+        _lblClock = (Label)Controls.Find("lblClock", searchAllChildren: true)[0];
+        _clockTimer = new System.Windows.Forms.Timer { Interval = 1_000 };
         _clockTimer.Tick += (_, _) => _lblClock.Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
         _clockTimer.Start();
 
-        // Capture scanner keystrokes form-wide (KeyPreview=true above).
+        // form-wide key capture (USB HID badge + manual typing)
         KeyPress += OnFormKeyPress;
         KeyDown  += OnFormKeyDown;
     }
 
-    // ============================ PIN handling ==================================
+    // ════════════════════════════════════════════════════════════════════════
+    //  TOP BAR  ─  [ logo ] [ terminal · line ]   …   [ ●ONLINE / clock ]
+    // ════════════════════════════════════════════════════════════════════════
+    private static Panel BuildTopBar()
+    {
+        var bar = new Panel
+        {
+            Dock      = DockStyle.Fill,
+            BackColor = PopTheme.BgTopBar,
+        };
+        bar.Paint += (_, e) =>
+        {
+            using var pen = new Pen(PopTheme.Border);
+            e.Graphics.DrawLine(pen, 0, bar.Height - 1, bar.Width, bar.Height - 1);
+        };
 
+        var grid = new TableLayoutPanel
+        {
+            Dock        = DockStyle.Fill,
+            ColumnCount = 3,
+            RowCount    = 1,
+            Padding     = new Padding(20, 6, 20, 6),
+            BackColor   = Color.Transparent,
+        };
+        grid.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        grid.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        grid.RowStyles   .Add(new RowStyle   (SizeType.Percent, 100));
+
+        var logo = new Label
+        {
+            Text      = "A-MES",
+            Font      = PopTheme.Logo,
+            ForeColor = PopTheme.Accent,
+            AutoSize  = true,
+            Anchor    = AnchorStyles.Left,
+            Margin    = new Padding(0, 4, 24, 0),
+        };
+
+        var info = new Label
+        {
+            Text      = $"INJ-01  ·  {AppConfig.Current.StationId}  ·  {AppConfig.Current.LineId}",
+            Font      = PopTheme.Mono,
+            ForeColor = PopTheme.AccentSoft,
+            AutoSize  = true,
+            Anchor    = AnchorStyles.Left,
+            Margin    = new Padding(0, 14, 0, 0),
+        };
+
+        // Right side: ONLINE on top, clock under
+        var right = new TableLayoutPanel
+        {
+            ColumnCount = 1,
+            RowCount    = 2,
+            AutoSize    = true,
+            BackColor   = Color.Transparent,
+            Anchor      = AnchorStyles.Right,
+            Margin      = new Padding(0),
+        };
+        right.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        right.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        right.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+
+        var online = new Label
+        {
+            Text      = "● ONLINE",
+            Font      = PopTheme.BodyBold,
+            ForeColor = PopTheme.TextOk,
+            AutoSize  = true,
+            Anchor    = AnchorStyles.Right,
+            Margin    = new Padding(0),
+        };
+        var clock = new Label
+        {
+            Name      = "lblClock",
+            Text      = DateTime.Now.ToString("yyyy-MM-dd HH:mm"),
+            Font      = PopTheme.Mono,
+            ForeColor = PopTheme.TextDim,
+            AutoSize  = true,
+            Anchor    = AnchorStyles.Right,
+            Margin    = new Padding(0, 2, 0, 0),
+        };
+        right.Controls.Add(online, 0, 0);
+        right.Controls.Add(clock,  0, 1);
+
+        grid.Controls.Add(logo,  0, 0);
+        grid.Controls.Add(info,  1, 0);
+        grid.Controls.Add(right, 2, 0);
+
+        bar.Controls.Add(grid);
+        return bar;
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  CARD with 8 stacked rows
+    // ════════════════════════════════════════════════════════════════════════
+    private Panel BuildBodyWithCard(out Label statusLabel, out PinDotsDisplay pinDots)
+    {
+        // Outer body has padding so the card has air around it.
+        var body = new Panel
+        {
+            Dock      = DockStyle.Fill,
+            BackColor = PopTheme.BgOuter,
+            Padding   = new Padding(40, 28, 40, 28),
+        };
+
+        var card = new Panel
+        {
+            Dock      = DockStyle.Fill,
+            BackColor = PopTheme.BgCard,
+            Padding   = new Padding(24),
+        };
+        card.Paint += (_, e) =>
+        {
+            using var pen = new Pen(PopTheme.Border);
+            e.Graphics.DrawRectangle(pen, 0, 0, card.Width - 1, card.Height - 1);
+        };
+
+        var stack = new TableLayoutPanel
+        {
+            Dock        = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount    = 8,
+            BackColor   = Color.Transparent,
+        };
+        stack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));   // 0 title
+        stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));   // 1 subtitle
+        stack.RowStyles.Add(new RowStyle(SizeType.Absolute, 110)); // 2 badge zone
+        stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));   // 3 OR separator
+        stack.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));  // 4 PIN dots
+        stack.RowStyles.Add(new RowStyle(SizeType.Percent, 100));  // 5 keypad fills
+        stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));   // 6 status
+        stack.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));  // 7 info grid
+
+        // ── 0: title
+        stack.Controls.Add(new Label
+        {
+            Text      = "SHIFT LOGIN",
+            Font      = PopTheme.TitleBig,
+            ForeColor = PopTheme.Accent,
+            AutoSize  = true,
+            Anchor    = AnchorStyles.None,
+            Margin    = new Padding(0, 6, 0, 0),
+        }, 0, 0);
+
+        // ── 1: subtitle
+        stack.Controls.Add(new Label
+        {
+            Text      = "Scan your badge or enter your PIN",
+            Font      = PopTheme.BodySmall,
+            ForeColor = PopTheme.TextDim,
+            AutoSize  = true,
+            Anchor    = AnchorStyles.None,
+            Margin    = new Padding(0, 4, 0, 10),
+        }, 0, 1);
+
+        // ── 2: badge zone
+        stack.Controls.Add(BuildBadgeZone(), 0, 2);
+
+        // ── 3: OR
+        stack.Controls.Add(new Label
+        {
+            Text      = "─────  OR · ENTER PIN  ─────",
+            Font      = PopTheme.Mono,
+            ForeColor = PopTheme.TextDim,
+            AutoSize  = true,
+            Anchor    = AnchorStyles.None,
+            Margin    = new Padding(0, 12, 0, 8),
+        }, 0, 3);
+
+        // ── 4: PIN dots
+        pinDots = new PinDotsDisplay
+        {
+            Length = PinLength,
+            Filled = 0,
+            Dock   = DockStyle.Fill,
+            Margin = new Padding(160, 4, 160, 8),
+            BackColor = Color.Black,
+            ForeColor = PopTheme.Accent,
+        };
+        stack.Controls.Add(pinDots, 0, 4);
+
+        // ── 5: keypad
+        stack.Controls.Add(BuildKeypad(), 0, 5);
+
+        // ── 6: status
+        statusLabel = new Label
+        {
+            Text      = " ",
+            Font      = PopTheme.MonoBold,
+            ForeColor = PopTheme.TextDim,
+            AutoSize  = false,
+            Dock      = DockStyle.Top,
+            Height    = 26,
+            TextAlign = ContentAlignment.MiddleCenter,
+            Margin    = new Padding(0, 6, 0, 4),
+        };
+        stack.Controls.Add(statusLabel, 0, 6);
+
+        // ── 7: info grid (LINE / SHIFT / STATION)
+        stack.Controls.Add(BuildInfoGrid(), 0, 7);
+
+        card.Controls.Add(stack);
+        body.Controls.Add(card);
+        return body;
+    }
+
+    // ─── badge zone (1×2 grid: icon | text-stack) ───
+    private Panel BuildBadgeZone()
+    {
+        var zone = new Panel
+        {
+            Dock      = DockStyle.Fill,
+            BackColor = PopTheme.BgBadge,
+            Margin    = new Padding(0, 4, 0, 0),
+        };
+        zone.Paint += (_, e) =>
+        {
+            using var pen = new Pen(PopTheme.AccentDeep, 2f) { DashStyle = DashStyle.Dash };
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            e.Graphics.DrawRectangle(pen, 1, 1, zone.Width - 2, zone.Height - 2);
+        };
+
+        var grid = new TableLayoutPanel
+        {
+            Dock        = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount    = 1,
+            BackColor   = Color.Transparent,
+            Padding     = new Padding(20, 0, 20, 0),
+        };
+        grid.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        grid.RowStyles   .Add(new RowStyle   (SizeType.Percent, 100));
+
+        var icon = new Label
+        {
+            Text      = "[ BADGE ]",
+            Font      = new Font("Consolas", 16F, FontStyle.Bold),
+            ForeColor = PopTheme.Accent,
+            AutoSize  = true,
+            Anchor    = AnchorStyles.Left,
+            Margin    = new Padding(0, 0, 24, 0),
+        };
+
+        var textStack = new TableLayoutPanel
+        {
+            ColumnCount = 1,
+            RowCount    = 2,
+            AutoSize    = true,
+            BackColor   = Color.Transparent,
+            Anchor      = AnchorStyles.Left,
+            Margin      = new Padding(0),
+        };
+        textStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        textStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        textStack.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        textStack.Controls.Add(new Label
+        {
+            Text      = "Scan Employee Badge",
+            Font      = PopTheme.TitleMid,
+            ForeColor = PopTheme.Accent,
+            AutoSize  = true,
+            Margin    = new Padding(0, 0, 0, 2),
+        }, 0, 0);
+        textStack.Controls.Add(new Label
+        {
+            Text      = "Code-128 barcode  ·  USB HID scanner",
+            Font      = PopTheme.BodySmall,
+            ForeColor = PopTheme.AccentSoft,
+            AutoSize  = true,
+            Margin    = new Padding(0),
+        }, 0, 1);
+
+        grid.Controls.Add(icon,      0, 0);
+        grid.Controls.Add(textStack, 1, 0);
+        zone.Controls.Add(grid);
+        return zone;
+    }
+
+    // ─── keypad (4×3) ───
+    private TableLayoutPanel BuildKeypad()
+    {
+        var pad = new TableLayoutPanel
+        {
+            Dock        = DockStyle.Fill,
+            ColumnCount = 3,
+            RowCount    = 4,
+            BackColor   = Color.Transparent,
+            Margin      = new Padding(120, 6, 120, 6),
+        };
+        for (var i = 0; i < 3; i++) pad.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.34f));
+        for (var i = 0; i < 4; i++) pad.RowStyles   .Add(new RowStyle   (SizeType.Percent, 25f));
+
+        var keys = new (string Text, Action Handler, Color Bg)[]
+        {
+            ("1", () => OnDigit('1'), PopTheme.BgKey),
+            ("2", () => OnDigit('2'), PopTheme.BgKey),
+            ("3", () => OnDigit('3'), PopTheme.BgKey),
+            ("4", () => OnDigit('4'), PopTheme.BgKey),
+            ("5", () => OnDigit('5'), PopTheme.BgKey),
+            ("6", () => OnDigit('6'), PopTheme.BgKey),
+            ("7", () => OnDigit('7'), PopTheme.BgKey),
+            ("8", () => OnDigit('8'), PopTheme.BgKey),
+            ("9", () => OnDigit('9'), PopTheme.BgKey),
+            ("DEL", OnBackspace,       PopTheme.BgKeyDel),
+            ("0", () => OnDigit('0'), PopTheme.BgKey),
+            ("OK", OnSubmitPin,        PopTheme.BgKeyOk),
+        };
+        foreach (var (text, handler, bg) in keys)
+        {
+            var btn = new Button
+            {
+                Text      = text,
+                Font      = PopTheme.KeyDigit,
+                ForeColor = Color.White,
+                BackColor = bg,
+                FlatStyle = FlatStyle.Flat,
+                Dock      = DockStyle.Fill,
+                Margin    = new Padding(4),
+                Cursor    = Cursors.Hand,
+                TabStop   = false,
+            };
+            btn.FlatAppearance.BorderColor        = PopTheme.Border;
+            btn.FlatAppearance.BorderSize         = 1;
+            btn.FlatAppearance.MouseOverBackColor = ControlPaint.Light(bg, 0.15f);
+            btn.Click += (_, _) => handler();
+            pad.Controls.Add(btn);
+        }
+        return pad;
+    }
+
+    // ─── info grid (LINE / SHIFT / STATION) ───
+    private Panel BuildInfoGrid()
+    {
+        var wrap = new Panel
+        {
+            Dock      = DockStyle.Fill,
+            BackColor = PopTheme.BgInfo,
+            Margin    = new Padding(0, 8, 0, 0),
+        };
+
+        var grid = new TableLayoutPanel
+        {
+            Dock        = DockStyle.Fill,
+            ColumnCount = 3,
+            RowCount    = 1,
+            BackColor   = Color.Transparent,
+            Padding     = new Padding(20, 8, 20, 8),
+        };
+        for (var i = 0; i < 3; i++) grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.34f));
+        grid.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        grid.Controls.Add(BuildInfoCell("LINE",    AppConfig.Current.LineId       ), 0, 0);
+        grid.Controls.Add(BuildInfoCell("SHIFT",   AppConfig.Current.DefaultShift ), 1, 0);
+        grid.Controls.Add(BuildInfoCell("STATION", AppConfig.Current.StationId    ), 2, 0);
+
+        wrap.Controls.Add(grid);
+        return wrap;
+    }
+
+    private static TableLayoutPanel BuildInfoCell(string caption, string value)
+    {
+        var cell = new TableLayoutPanel
+        {
+            Dock        = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount    = 2,
+            BackColor   = Color.Transparent,
+            Margin      = new Padding(0),
+        };
+        cell.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        cell.RowStyles   .Add(new RowStyle   (SizeType.AutoSize));
+        cell.RowStyles   .Add(new RowStyle   (SizeType.AutoSize));
+        cell.Controls.Add(new Label
+        {
+            Text      = caption,
+            Font      = PopTheme.InfoCaption,
+            ForeColor = PopTheme.AccentSoft,
+            AutoSize  = true,
+            Margin    = new Padding(2, 0, 0, 2),
+        }, 0, 0);
+        cell.Controls.Add(new Label
+        {
+            Text      = value,
+            Font      = PopTheme.InfoValue,
+            ForeColor = PopTheme.TextWhite,
+            AutoSize  = true,
+            Margin    = new Padding(2, 0, 0, 0),
+        }, 0, 1);
+        return cell;
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  Input handlers
+    // ════════════════════════════════════════════════════════════════════════
     private void OnDigit(char d)
     {
         if (IsLocked) return;
         if (_pinBuf.Length >= PinLength) return;
         _pinBuf.Append(d);
-        _lblPinDisplay.Text = MaskedPin();
+        _pinDots.Filled = _pinBuf.Length;
         if (_pinBuf.Length == PinLength) OnSubmitPin();
     }
 
@@ -294,7 +494,7 @@ public sealed class LoginForm : Form
     {
         if (IsLocked || _pinBuf.Length == 0) return;
         _pinBuf.Length--;
-        _lblPinDisplay.Text = MaskedPin();
+        _pinDots.Filled = _pinBuf.Length;
     }
 
     private void OnSubmitPin()
@@ -302,20 +502,19 @@ public sealed class LoginForm : Form
         if (IsLocked) return;
         if (_pinBuf.Length < PinLength)
         {
-            ShowStatus("PIN must be 4 digits", TextFail);
+            ShowStatus("PIN must be 4 digits", PopTheme.TextFail);
             return;
         }
 
-        // For PIN path, AttemptedId is whatever the user has bound to the badge
-        // number; until the keypad supports typing an EmployeeNo we treat the
-        // 4-digit PIN as also encoding the user. Real flow: PIN-only login is
-        // rare, badge scan is the norm. For now require a *prior* badge scan
-        // OR fall back to single-user PIN-only mode for solo dev terminals.
-        // → Until a small "Who are you?" prompt is added, default to E001.
+        // Until a "Who are you?" prompt is wired up, PIN-only logins fall back
+        // to the most recently scanned badge (or E001 for a fresh dev terminal).
         var attemptedId = _lastScannedBadge ?? "E001";
         var pin         = _pinBuf.ToString();
+        _pinBuf.Clear();
+        _pinDots.Filled = 0;
 
-        TryLogin(new LoginRequest {
+        TryLogin(new LoginRequest
+        {
             AttemptedId = attemptedId,
             Pin         = pin,
             Method      = AuthMethod.Pin,
@@ -323,19 +522,8 @@ public sealed class LoginForm : Form
             LineId      = AppConfig.Current.LineId,
             ShiftCode   = AppConfig.Current.DefaultShift,
         });
-
-        _pinBuf.Clear();
-        _lblPinDisplay.Text = MaskedPin();
     }
 
-    // ============================ Badge scan ====================================
-
-    private string? _lastScannedBadge;
-
-    /// <summary>
-    /// USB-HID badge scanners type characters very fast and finish with Enter.
-    /// We accumulate alphanumeric KeyPress events into _scanBuf and flush on Enter.
-    /// </summary>
     private void OnFormKeyPress(object? sender, KeyPressEventArgs e)
     {
         if (char.IsLetterOrDigit(e.KeyChar))
@@ -355,7 +543,8 @@ public sealed class LoginForm : Form
         if (string.IsNullOrEmpty(scanned)) return;
         _lastScannedBadge = scanned;
 
-        TryLogin(new LoginRequest {
+        TryLogin(new LoginRequest
+        {
             AttemptedId = scanned,
             Pin         = null,
             Method      = AuthMethod.Badge,
@@ -365,14 +554,15 @@ public sealed class LoginForm : Form
         });
     }
 
-    // ============================ Auth dispatch =================================
-
+    // ════════════════════════════════════════════════════════════════════════
+    //  Auth dispatch
+    // ════════════════════════════════════════════════════════════════════════
     private void TryLogin(LoginRequest req)
     {
         if (IsLocked)
         {
             var wait = (int)Math.Ceiling((_lockedUntil - DateTime.Now).TotalSeconds);
-            ShowStatus($"× Locked. Try again in {wait}s.", TextFail);
+            ShowStatus($"× Locked. Try again in {wait}s.", PopTheme.TextFail);
             return;
         }
 
@@ -380,12 +570,12 @@ public sealed class LoginForm : Form
         LoginOutcome outcome;
         try
         {
-            outcome = _authService.Login(req);
+            outcome = _auth.Login(req);
         }
         catch (Exception ex)
         {
             Debug.WriteLine(ex);
-            ShowStatus($"× DB error: {ex.GetType().Name}", TextFail);
+            ShowStatus($"× DB error: {ex.GetType().Name}", PopTheme.TextFail);
             return;
         }
         finally
@@ -396,7 +586,7 @@ public sealed class LoginForm : Form
         if (outcome.IsSuccess)
         {
             _consecutiveFailures = 0;
-            ShowStatus($"OK  Welcome, {outcome.Session!.EmployeeName}", TextOk);
+            ShowStatus($"OK  Welcome, {outcome.Session!.EmployeeName}", PopTheme.TextOk);
             OpenDashboard(outcome.Session!);
             return;
         }
@@ -410,13 +600,13 @@ public sealed class LoginForm : Form
             AuthResult.Locked            => "× Account locked",
             _                            => "× Login failed",
         };
-        ShowStatus(msg + $"   ({outcome.FailReason})", TextFail);
+        ShowStatus($"{msg}   ({outcome.FailReason})", PopTheme.TextFail);
 
         if (_consecutiveFailures >= 3)
         {
-            _lockedUntil = DateTime.Now.AddSeconds(30);
-            _consecutiveFailures = 0;
-            ShowStatus("× 3 fails — terminal locked for 30s.", TextFail);
+            _lockedUntil          = DateTime.Now.AddSeconds(30);
+            _consecutiveFailures  = 0;
+            ShowStatus("× 3 fails — terminal locked for 30s.", PopTheme.TextFail);
         }
     }
 
@@ -425,62 +615,25 @@ public sealed class LoginForm : Form
         Hide();
         using var dash = new DashboardForm(session);
         dash.ShowDialog(this);
-        // Returning here means the user logged out → clear PIN, show login again.
+        // Back to login.
         _pinBuf.Clear();
+        _scanBuf.Clear();
         _lastScannedBadge = null;
-        _lblPinDisplay.Text = MaskedPin();
-        ShowStatus(" ", TextDim);
+        _pinDots.Filled   = 0;
+        ShowStatus(" ", PopTheme.TextDim);
         Show();
         Activate();
     }
 
-    // ============================ Helpers =======================================
-
+    // ════════════════════════════════════════════════════════════════════════
+    //  Helpers
+    // ════════════════════════════════════════════════════════════════════════
     private bool IsLocked => DateTime.Now < _lockedUntil;
-    private string MaskedPin()
-    {
-        var n = _pinBuf.Length;
-        return string.Concat(
-            string.Concat(Enumerable.Repeat("● ", n)),
-            string.Concat(Enumerable.Repeat("_ ", PinLength - n))).TrimEnd();
-    }
 
     private void ShowStatus(string text, Color color)
     {
         _lblStatus.Text      = text;
         _lblStatus.ForeColor = color;
-    }
-
-    private static Control InfoLabel(string caption, string value, int x, out Label valueLabel)
-    {
-        var box = new Panel {
-            Location = new Point(x, 4), Size = new Size(170, 48), BackColor = Color.Transparent,
-        };
-        var cap = new Label {
-            Text      = caption,
-            Font      = new Font("Consolas", 8F, FontStyle.Bold),
-            ForeColor = Color.FromArgb(147, 197, 253, 150),
-            AutoSize  = true,
-            Location  = new Point(8, 4),
-        };
-        valueLabel = new Label {
-            Text      = value,
-            Font      = new Font("Segoe UI", 11F, FontStyle.Bold),
-            ForeColor = Color.White,
-            AutoSize  = true,
-            Location  = new Point(8, 22),
-        };
-        box.Controls.AddRange([cap, valueLabel]);
-        return box;
-    }
-
-    private static void DrawDashedBorder(Graphics g, Rectangle rect, Color color, float width)
-    {
-        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-        using var pen = new Pen(color, width) {
-            DashStyle = System.Drawing.Drawing2D.DashStyle.Dash,
-        };
-        g.DrawRectangle(pen, 1, 1, rect.Width - 2, rect.Height - 2);
     }
 
     protected override void Dispose(bool disposing)
