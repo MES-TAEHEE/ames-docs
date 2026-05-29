@@ -9,7 +9,7 @@ namespace AMES.Pop.Forms;
 /// pre-start checklist, Accept → locks WO to this terminal + transitions
 /// status to In Progress.
 /// </summary>
-public sealed class Inj03WoConfirmForm : Form
+public sealed class Inj03WoConfirmForm : PopForm
 {
     private readonly PopSessionDto _session;
     private readonly ListBox       _woList;
@@ -22,16 +22,7 @@ public sealed class Inj03WoConfirmForm : Form
     public Inj03WoConfirmForm(PopSessionDto session)
     {
         _session = session;
-
-        Text            = "A-MES POP · INJ-03 WO Confirm";
-        ClientSize      = new Size(1180, 720);
-        BackColor       = PopTheme.BgOuter;
-        ForeColor       = PopTheme.TextWhite;
-        Font            = PopTheme.Body;
-        FormBorderStyle = FormBorderStyle.FixedSingle;
-        StartPosition   = FormStartPosition.CenterParent;
-        MaximizeBox     = false;
-        AutoScaleMode   = AutoScaleMode.Dpi;
+        Text = "A-MES POP · INJ-03 WO Confirm";
 
         var root = new TableLayoutPanel
         {
@@ -39,9 +30,9 @@ public sealed class Inj03WoConfirmForm : Form
             BackColor = PopTheme.BgOuter,
         };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 130));
         root.Controls.Add(PopShell.BuildTopBar("INJ-03 · WO Confirm", session), 0, 0);
 
         // middle: 2-column = WO list (40%) | detail+checklist (60%)
@@ -64,8 +55,8 @@ public sealed class Inj03WoConfirmForm : Form
         _woList = new ListBox
         {
             Dock = DockStyle.Fill, BackColor = PopTheme.BgCard, ForeColor = PopTheme.TextWhite,
-            Font = new Font("Segoe UI", 11f, FontStyle.Bold), BorderStyle = BorderStyle.None,
-            IntegralHeight = false, ItemHeight = 38,
+            Font = new Font("Segoe UI", 14f, FontStyle.Bold), BorderStyle = BorderStyle.None,
+            IntegralHeight = false, ItemHeight = 52,
         };
         _woList.SelectedIndexChanged += (_, _) => OnWoSelected();
         leftStack.Controls.Add(_woList, 0, 1);
@@ -77,14 +68,15 @@ public sealed class Inj03WoConfirmForm : Form
         var rightStack = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, BackColor = Color.Transparent };
         rightStack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         rightStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        rightStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 170));
+        rightStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 260));
         rightStack.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         rightStack.Controls.Add(PopShell.SectionHeader("▼ WO DETAIL"), 0, 0);
         _lblDetail = new Label
         {
-            Text = "Select a WO from the left list.", Font = PopTheme.Mono, ForeColor = PopTheme.AccentSoft,
+            Text = "Select a WO from the left list.",
+            Font = new Font("Consolas", 14f), ForeColor = PopTheme.AccentSoft,
             AutoSize = false, Dock = DockStyle.Fill, TextAlign = ContentAlignment.TopLeft,
-            Padding = new Padding(8, 4, 8, 4),
+            Padding = new Padding(12, 8, 8, 8),
         };
         rightStack.Controls.Add(_lblDetail, 0, 1);
 
@@ -96,8 +88,8 @@ public sealed class Inj03WoConfirmForm : Form
         _checklist = new CheckedListBox
         {
             Dock = DockStyle.Fill, BackColor = PopTheme.BgCard, ForeColor = PopTheme.TextWhite,
-            BorderStyle = BorderStyle.None, Font = new Font("Segoe UI", 11f),
-            CheckOnClick = true, ItemHeight = 30,
+            BorderStyle = BorderStyle.None, Font = new Font("Segoe UI", 13f),
+            CheckOnClick = true, ItemHeight = 44,
         };
         foreach (var item in PreCheckItems()) _checklist.Items.Add(item, false);
         _checklist.ItemCheck += (_, _) => BeginInvoke(UpdateAcceptEnabled);

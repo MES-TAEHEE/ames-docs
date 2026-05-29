@@ -10,7 +10,7 @@ namespace AMES.Pop.Forms;
 ///
 /// Refresh: 5-second timer re-queries the DB. PLC bridge is mocked.
 /// </summary>
-public sealed class Inj02DashboardForm : Form
+public sealed class Inj02DashboardForm : PopForm
 {
     private readonly PopSessionDto _session;
     private readonly System.Windows.Forms.Timer _refreshTimer;
@@ -27,17 +27,7 @@ public sealed class Inj02DashboardForm : Form
     public Inj02DashboardForm(PopSessionDto session)
     {
         _session = session ?? throw new ArgumentNullException(nameof(session));
-
-        Text            = "A-MES POP · INJ-02 Dashboard";
-        ClientSize      = new Size(1280, 820);
-        BackColor       = PopTheme.BgOuter;
-        ForeColor       = PopTheme.TextWhite;
-        Font            = PopTheme.Body;
-        FormBorderStyle = FormBorderStyle.FixedSingle;
-        StartPosition   = FormStartPosition.CenterScreen;
-        MaximizeBox     = false;
-        AutoScaleMode   = AutoScaleMode.Dpi;
-        DoubleBuffered  = true;
+        Text = "A-MES POP · INJ-02 Dashboard";
 
         var root = new TableLayoutPanel
         {
@@ -45,10 +35,10 @@ public sealed class Inj02DashboardForm : Form
             BackColor = PopTheme.BgOuter,
         };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));   // topbar
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 260));  // top cards (WO + Equip)
-        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));   // gauges + chart
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 100));  // bottom nav
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));    // topbar
+        root.RowStyles.Add(new RowStyle(SizeType.Percent, 32));     // top cards (WO + Equip)
+        root.RowStyles.Add(new RowStyle(SizeType.Percent, 56));     // gauges + chart
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 130));   // bottom nav
 
         // top bar
         var topBar = PopShell.BuildTopBar("INJ-02 · Dashboard", session);
@@ -59,7 +49,7 @@ public sealed class Inj02DashboardForm : Form
         var row1 = new TableLayoutPanel
         {
             Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1,
-            BackColor = PopTheme.BgOuter, Padding = new Padding(20, 14, 20, 6),
+            BackColor = PopTheme.BgOuter, Padding = new Padding(28, 18, 28, 8),
         };
         row1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60));
         row1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
@@ -68,35 +58,35 @@ public sealed class Inj02DashboardForm : Form
         var woCard = BuildCard();
         var woStack = NewStack(8);
         woStack.Controls.Add(PopShell.SectionHeader("▼ CURRENT WO"));
-        _lblWoNumber = BigLabel("(no WO)", 22f, PopTheme.Accent);
+        _lblWoNumber = BigLabel("(no WO)", 32f, PopTheme.Accent);
         woStack.Controls.Add(_lblWoNumber);
         _lblWoItem = new Label
         {
             Text = "", Font = PopTheme.BodyBold, ForeColor = PopTheme.TextDim,
-            AutoSize = true, Margin = new Padding(4, 0, 0, 12),
+            AutoSize = true, Margin = new Padding(4, 0, 0, 18),
         };
         woStack.Controls.Add(_lblWoItem);
 
         var progRow = new TableLayoutPanel
         {
-            Dock = DockStyle.Top, Height = 70, ColumnCount = 2, RowCount = 1,
+            Dock = DockStyle.Top, Height = 100, ColumnCount = 2, RowCount = 1,
             BackColor = Color.Transparent, Margin = new Padding(0),
         };
         progRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         progRow.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         progRow.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        _lblWoProgress = BigLabel("—", 38f, PopTheme.TextOk);
+        _lblWoProgress = BigLabel("—", 56f, PopTheme.TextOk);
         _lblWoProgress.Anchor = AnchorStyles.Left;
         progRow.Controls.Add(_lblWoProgress, 0, 0);
-        _lblWoPct = BigLabel("0%", 22f, PopTheme.Accent);
+        _lblWoPct = BigLabel("0%", 36f, PopTheme.Accent);
         _lblWoPct.Anchor = AnchorStyles.Right;
-        _lblWoPct.Margin = new Padding(0, 16, 8, 0);
+        _lblWoPct.Margin = new Padding(0, 24, 8, 0);
         progRow.Controls.Add(_lblWoPct, 1, 0);
         woStack.Controls.Add(progRow);
 
         _woBar = new ProgressBar
         {
-            Dock = DockStyle.Top, Height = 16, Margin = new Padding(4, 0, 8, 0),
+            Dock = DockStyle.Top, Height = 24, Margin = new Padding(4, 0, 8, 0),
             Style = ProgressBarStyle.Continuous, Minimum = 0, Maximum = 100, Value = 0,
         };
         woStack.Controls.Add(_woBar);
@@ -110,8 +100,8 @@ public sealed class Inj02DashboardForm : Form
         eqStack.Controls.Add(PopShell.SectionHeader("▼ EQUIPMENT STATUS"));
         _eqLed = new Panel
         {
-            Width = 80, Height = 80, BackColor = PopTheme.TextOk,
-            Anchor = AnchorStyles.None, Margin = new Padding(0, 16, 0, 8),
+            Width = 120, Height = 120, BackColor = PopTheme.TextOk,
+            Anchor = AnchorStyles.None, Margin = new Padding(0, 20, 0, 12),
         };
         _eqLed.Paint += (_, e) =>
         {
@@ -119,19 +109,19 @@ public sealed class Inj02DashboardForm : Form
             using var br = new SolidBrush(_eqLed.BackColor);
             e.Graphics.FillEllipse(br, 0, 0, _eqLed.Width, _eqLed.Height);
         };
-        var eqLedHolder = new Panel { Dock = DockStyle.Top, Height = 96, BackColor = Color.Transparent };
-        _eqLed.Location = new Point(eqLedHolder.Width / 2 - 40, 8);
-        eqLedHolder.Resize += (_, _) => _eqLed.Location = new Point(eqLedHolder.Width / 2 - 40, 8);
+        var eqLedHolder = new Panel { Dock = DockStyle.Top, Height = 144, BackColor = Color.Transparent };
+        _eqLed.Location = new Point(eqLedHolder.Width / 2 - 60, 12);
+        eqLedHolder.Resize += (_, _) => _eqLed.Location = new Point(eqLedHolder.Width / 2 - 60, 12);
         eqLedHolder.Controls.Add(_eqLed);
         eqStack.Controls.Add(eqLedHolder);
-        _lblEquipState = BigLabel("—", 28f, PopTheme.TextOk);
+        _lblEquipState = BigLabel("—", 42f, PopTheme.TextOk);
         _lblEquipState.Dock = DockStyle.Top;
         _lblEquipState.TextAlign = ContentAlignment.MiddleCenter;
         eqStack.Controls.Add(_lblEquipState);
         _lblEquipName = new Label
         {
             Text = "", Font = PopTheme.Mono, ForeColor = PopTheme.TextDim,
-            Dock = DockStyle.Top, Height = 22, TextAlign = ContentAlignment.MiddleCenter,
+            Dock = DockStyle.Top, Height = 30, TextAlign = ContentAlignment.MiddleCenter,
         };
         eqStack.Controls.Add(_lblEquipName);
         eqCard.Controls.Add(eqStack);
@@ -143,11 +133,11 @@ public sealed class Inj02DashboardForm : Form
         var row2 = new TableLayoutPanel
         {
             Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2,
-            BackColor = PopTheme.BgOuter, Padding = new Padding(20, 6, 20, 6),
+            BackColor = PopTheme.BgOuter, Padding = new Padding(28, 8, 28, 8),
         };
         row2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        row2.RowStyles.Add(new RowStyle(SizeType.Absolute, 150));
-        row2.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        row2.RowStyles.Add(new RowStyle(SizeType.Percent, 38));
+        row2.RowStyles.Add(new RowStyle(SizeType.Percent, 62));
 
         var gaugeGrid = new TableLayoutPanel
         {
@@ -176,17 +166,18 @@ public sealed class Inj02DashboardForm : Form
         // ── row 3: bottom nav (6 big buttons) ──────────────────────────────
         var nav = new TableLayoutPanel
         {
-            Dock = DockStyle.Fill, ColumnCount = 6, RowCount = 1,
-            BackColor = PopTheme.BgCard, Padding = new Padding(16, 12, 16, 12),
+            Dock = DockStyle.Fill, ColumnCount = 7, RowCount = 1,
+            BackColor = PopTheme.BgCard, Padding = new Padding(24, 16, 24, 16),
         };
-        for (var i = 0; i < 6; i++) nav.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 16.67f));
+        for (var i = 0; i < 7; i++) nav.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f / 7));
         nav.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        nav.Controls.Add(PopShell.BigButton("▶  INJ-03\nWO Confirm",     PopTheme.BgKey,    Color.White, (_, _) => Open<Inj03WoConfirmForm>()), 0, 0);
-        nav.Controls.Add(PopShell.BigButton("▶  INJ-04\nProd Entry",     PopTheme.AccentDeep, Color.White, (_, _) => Open<Inj04ProductionEntryForm>()), 1, 0);
-        nav.Controls.Add(PopShell.BigButton("▶  INJ-05\nDefect",         Color.FromArgb(180,70,30), Color.White, (_, _) => Open<Inj05DefectForm>()), 2, 0);
-        nav.Controls.Add(PopShell.BigButton("▶  INJ-06\nMold Change",    Color.FromArgb(170,120,20), Color.White, (_, _) => Open<Inj06MoldChangeForm>()), 3, 0);
-        nav.Controls.Add(PopShell.BigButton("▶  INJ-07\nProd Status",    PopTheme.BgKey,    Color.White, (_, _) => Open<Inj07ProdStatusForm>()), 4, 0);
-        nav.Controls.Add(PopShell.BigButton("🚨  INJ-08\nANDON",          Color.FromArgb(180,30,30), Color.White, (_, _) => Open<Inj08AndonForm>()), 5, 0);
+        nav.Controls.Add(PopShell.BigButton("▶  INJ-03\nWO Confirm",     PopTheme.BgKey,    Color.White, (_, _) => Open<Inj03WoConfirmForm>(), fontSize:18f), 0, 0);
+        nav.Controls.Add(PopShell.BigButton("▶  INJ-04\nProd Entry",     PopTheme.AccentDeep, Color.White, (_, _) => Open<Inj04ProductionEntryForm>(), fontSize:18f), 1, 0);
+        nav.Controls.Add(PopShell.BigButton("▶  INJ-05\nDefect",         Color.FromArgb(180,70,30), Color.White, (_, _) => Open<Inj05DefectForm>(), fontSize:18f), 2, 0);
+        nav.Controls.Add(PopShell.BigButton("▶  INJ-06\nMold Change",    Color.FromArgb(170,120,20), Color.White, (_, _) => Open<Inj06MoldChangeForm>(), fontSize:18f), 3, 0);
+        nav.Controls.Add(PopShell.BigButton("▶  INJ-07\nProd Status",    PopTheme.BgKey,    Color.White, (_, _) => Open<Inj07ProdStatusForm>(), fontSize:18f), 4, 0);
+        nav.Controls.Add(PopShell.BigButton("🚨  INJ-08\nANDON",          Color.FromArgb(180,30,30), Color.White, (_, _) => Open<Inj08AndonForm>(), fontSize:18f), 5, 0);
+        nav.Controls.Add(PopShell.BigButton("◀  LOGOUT",                  Color.FromArgb(60,60,60), Color.White, (_, _) => ConfirmLogout(), fontSize:18f), 6, 0);
         root.Controls.Add(nav, 0, 3);
 
         Controls.Add(root);
@@ -318,11 +309,11 @@ public sealed class Inj02DashboardForm : Form
             BackColor = Color.Transparent,
         };
         stack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        stack.RowStyles.Add(new RowStyle(SizeType.Percent, 60));
-        stack.RowStyles.Add(new RowStyle(SizeType.Percent, 40));
+        stack.RowStyles.Add(new RowStyle(SizeType.Percent, 70));
+        stack.RowStyles.Add(new RowStyle(SizeType.Percent, 30));
         var v = new Label
         {
-            Text = value, Font = new Font("Segoe UI", 32f, FontStyle.Bold),
+            Text = value, Font = PopTheme.GaugeValue,
             ForeColor = valueColor, AutoSize = false, Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleCenter,
         };

@@ -10,7 +10,7 @@ namespace AMES.Pop.Forms;
 /// +1 mold shot count, close WO when target met.
 /// Defect button opens INJ-05 passing the ResultID for traceability.
 /// </summary>
-public sealed class Inj04ProductionEntryForm : Form
+public sealed class Inj04ProductionEntryForm : PopForm
 {
     private readonly PopSessionDto _session;
 
@@ -33,16 +33,7 @@ public sealed class Inj04ProductionEntryForm : Form
     public Inj04ProductionEntryForm(PopSessionDto session)
     {
         _session = session;
-
-        Text            = "A-MES POP · INJ-04 Production Entry";
-        ClientSize      = new Size(1180, 720);
-        BackColor       = PopTheme.BgOuter;
-        ForeColor       = PopTheme.TextWhite;
-        Font            = PopTheme.Body;
-        FormBorderStyle = FormBorderStyle.FixedSingle;
-        StartPosition   = FormStartPosition.CenterParent;
-        MaximizeBox     = false;
-        AutoScaleMode   = AutoScaleMode.Dpi;
+        Text = "A-MES POP · INJ-04 Production Entry";
 
         var root = new TableLayoutPanel
         {
@@ -50,9 +41,9 @@ public sealed class Inj04ProductionEntryForm : Form
             BackColor = PopTheme.BgOuter,
         };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 130));
         root.Controls.Add(PopShell.BuildTopBar("INJ-04 · Production Entry", session), 0, 0);
 
         // body 2-column: 50% info | 50% input keypad
@@ -71,7 +62,7 @@ public sealed class Inj04ProductionEntryForm : Form
         leftStack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         for (var i = 0; i < 8; i++) leftStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         leftStack.Controls.Add(PopShell.SectionHeader("▼ CURRENT WO"), 0, 0);
-        _lblWoNo = NewBig("(loading)", 24f, PopTheme.Accent);
+        _lblWoNo = NewBig("(loading)", 34f, PopTheme.Accent);
         leftStack.Controls.Add(_lblWoNo, 0, 1);
         _lblItem = new Label
         {
@@ -80,7 +71,7 @@ public sealed class Inj04ProductionEntryForm : Form
         };
         leftStack.Controls.Add(_lblItem, 0, 2);
         leftStack.Controls.Add(PopShell.SectionHeader("▼ PROGRESS"), 0, 3);
-        _lblProgress = NewBig("0 / 0", 30f, PopTheme.TextOk);
+        _lblProgress = NewBig("0 / 0", 52f, PopTheme.TextOk);
         leftStack.Controls.Add(_lblProgress, 0, 4);
         _bar = new ProgressBar
         {
@@ -118,12 +109,12 @@ public sealed class Inj04ProductionEntryForm : Form
         var rightStack = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, BackColor = Color.Transparent };
         rightStack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         rightStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        rightStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 110));
+        rightStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 170));
         rightStack.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         rightStack.Controls.Add(PopShell.SectionHeader("▼ GOOD QTY THIS CYCLE  ·  EA"), 0, 0);
         _lblInput = new Label
         {
-            Text = "0", Font = new Font("Segoe UI", 60f, FontStyle.Bold),
+            Text = "0", Font = new Font("Segoe UI", 96f, FontStyle.Bold),
             ForeColor = PopTheme.Accent, BackColor = Color.Black, BorderStyle = BorderStyle.FixedSingle,
             TextAlign = ContentAlignment.MiddleCenter, Dock = DockStyle.Fill,
             Margin = new Padding(4, 0, 4, 0),
@@ -193,9 +184,9 @@ public sealed class Inj04ProductionEntryForm : Form
         {
             var b = new Button
             {
-                Text = text, Font = new Font("Segoe UI", 20f, FontStyle.Bold),
+                Text = text, Font = PopTheme.KeyDigit,
                 ForeColor = Color.White, BackColor = bg, FlatStyle = FlatStyle.Flat,
-                Dock = DockStyle.Fill, Margin = new Padding(4), Cursor = Cursors.Hand, TabStop = false,
+                Dock = DockStyle.Fill, Margin = new Padding(6), Cursor = Cursors.Hand, TabStop = false,
             };
             b.FlatAppearance.BorderColor = PopTheme.Border;
             b.FlatAppearance.BorderSize  = 1;

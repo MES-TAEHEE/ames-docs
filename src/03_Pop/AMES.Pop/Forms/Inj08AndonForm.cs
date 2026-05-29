@@ -11,7 +11,7 @@ namespace AMES.Pop.Forms;
 /// Stack-light + siren are stubbed (DB row only); the real PLC bridge will
 /// pick the PR_AndonCall row up via the SYS Andon Controller path.
 /// </summary>
-public sealed class Inj08AndonForm : Form
+public sealed class Inj08AndonForm : PopForm
 {
     private readonly PopSessionDto _session;
     private readonly Label _lblBigState, _lblCause, _lblElapsed;
@@ -24,33 +24,25 @@ public sealed class Inj08AndonForm : Form
     public Inj08AndonForm(PopSessionDto session)
     {
         _session = session;
-
-        Text            = "A-MES POP · INJ-08 ANDON";
-        ClientSize      = new Size(1180, 820);
-        BackColor       = Color.FromArgb(35, 6, 6);          // dark red
-        ForeColor       = PopTheme.TextWhite;
-        Font            = PopTheme.Body;
-        FormBorderStyle = FormBorderStyle.FixedSingle;
-        StartPosition   = FormStartPosition.CenterParent;
-        MaximizeBox     = false;
-        AutoScaleMode   = AutoScaleMode.Dpi;
+        Text      = "A-MES POP · INJ-08 ANDON";
+        BackColor = Color.FromArgb(35, 6, 6);   // dark red overrides the default black
 
         var root = new TableLayoutPanel
         {
             Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 5, BackColor = BackColor,
         };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 60));    // banner
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 220));   // big state text
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 200));   // cause + elapsed
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));    // banner
+        root.RowStyles.Add(new RowStyle(SizeType.Percent, 35));     // big state text
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 260));   // cause + elapsed
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));    // reason / supervisor action
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 90));    // nav
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 130));   // nav
 
         // banner
         var banner = new Label
         {
             Text = "🚨  ANDON  ·  EMERGENCY  ·  LINE " + session.LineId,
-            Font = new Font("Segoe UI", 18f, FontStyle.Bold),
+            Font = new Font("Segoe UI", 26f, FontStyle.Bold),
             ForeColor = Color.White, BackColor = Color.FromArgb(190, 30, 30),
             Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter,
         };
@@ -58,7 +50,7 @@ public sealed class Inj08AndonForm : Form
 
         _lblBigState = new Label
         {
-            Text = "READY", Font = new Font("Segoe UI", 80f, FontStyle.Bold),
+            Text = "READY", Font = new Font("Segoe UI", 140f, FontStyle.Bold),
             ForeColor = Color.White, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter,
             BackColor = Color.Transparent,
         };
@@ -82,14 +74,14 @@ public sealed class Inj08AndonForm : Form
         }, 1, 0);
         _lblCause = new Label
         {
-            Text = "(no andon open)", Font = new Font("Segoe UI", 18f, FontStyle.Bold),
+            Text = "(no andon open)", Font = new Font("Segoe UI", 24f, FontStyle.Bold),
             ForeColor = Color.White, AutoSize = false, Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleLeft,
         };
         causeStack.Controls.Add(_lblCause, 0, 1);
         _lblElapsed = new Label
         {
-            Text = "00:00", Font = new Font("Segoe UI", 36f, FontStyle.Bold),
+            Text = "00:00", Font = new Font("Segoe UI", 60f, FontStyle.Bold),
             ForeColor = Color.White, AutoSize = false, Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleRight,
         };

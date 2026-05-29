@@ -10,7 +10,7 @@ namespace AMES.Pop.Forms;
 /// is the read-only POP-side fallback so supervisors can sanity-check at the
 /// terminal before the Blazor portal exists.
 /// </summary>
-public sealed class Inj07ProdStatusForm : Form
+public sealed class Inj07ProdStatusForm : PopForm
 {
     private readonly PopSessionDto _session;
     private readonly DataGridView  _grid;
@@ -21,27 +21,18 @@ public sealed class Inj07ProdStatusForm : Form
     public Inj07ProdStatusForm(PopSessionDto session)
     {
         _session = session;
-
-        Text            = "A-MES POP · INJ-07 Production Status";
-        ClientSize      = new Size(1280, 760);
-        BackColor       = PopTheme.BgOuter;
-        ForeColor       = PopTheme.TextWhite;
-        Font            = PopTheme.Body;
-        FormBorderStyle = FormBorderStyle.FixedSingle;
-        StartPosition   = FormStartPosition.CenterParent;
-        MaximizeBox     = false;
-        AutoScaleMode   = AutoScaleMode.Dpi;
+        Text = "A-MES POP · INJ-07 Production Status";
 
         var root = new TableLayoutPanel
         {
             Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 5, BackColor = PopTheme.BgOuter,
         };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 110));   // KPI tiles
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 200));   // hourly chart
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 170));   // KPI tiles
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 280));   // hourly chart
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));    // lines grid
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 130));
         root.Controls.Add(PopShell.BuildTopBar("INJ-07 · Prod Status (Supervisor)", session), 0, 0);
 
         // KPI row (4 tiles)
@@ -95,11 +86,11 @@ public sealed class Inj07ProdStatusForm : Form
                 ForeColor = PopTheme.TextWhite,
                 SelectionBackColor = Color.FromArgb(28, 42, 68),
                 SelectionForeColor = PopTheme.TextWhite,
-                Font = new Font("Segoe UI", 11f),
+                Font = new Font("Segoe UI", 14f),
             },
             AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-            ColumnHeadersHeight = 38,
-            RowTemplate = { Height = 32 },
+            ColumnHeadersHeight = 50,
+            RowTemplate = { Height = 44 },
             ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single,
         };
         _grid.Columns.Add("LineId",      "Line");
@@ -142,7 +133,7 @@ public sealed class Inj07ProdStatusForm : Form
         }, 0, 0);
         var v = new Label
         {
-            Text = value, Font = new Font("Segoe UI", 30f, FontStyle.Bold),
+            Text = value, Font = new Font("Segoe UI", 48f, FontStyle.Bold),
             ForeColor = valueColor, AutoSize = false, Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleLeft,
         };
