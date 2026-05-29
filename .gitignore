@@ -5,6 +5,12 @@ build/
 tools/merge_pdf/bin/
 tools/merge_pdf/obj/
 
+# .NET build artifacts (solution under src/)
+src/**/bin/
+src/**/obj/
+*.user
+.vs/
+
 # Local OS / editor cruft
 .DS_Store
 Thumbs.db
