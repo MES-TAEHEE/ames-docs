@@ -4,6 +4,7 @@ namespace AMES.Pop;
 
 /// <summary>
 /// A-MES POP (shop-floor terminal) entry point.
+/// Boots straight into the INJ-01 LoginForm.
 /// </summary>
 internal static class Program
 {
@@ -11,6 +12,6 @@ internal static class Program
     private static void Main()
     {
         ApplicationConfiguration.Initialize();
-        Application.Run(new MainForm());
+        Application.Run(new LoginForm());
     }
 }

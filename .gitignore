@@ -1,15 +1,16 @@
 # PDF build intermediates (per-file PDFs / cover / toc HTML)
 build/
 
-# .NET build artifacts for the PDF merger tool
-tools/merge_pdf/bin/
-tools/merge_pdf/obj/
-
-# .NET build artifacts (solution under src/)
+# .NET build artifacts (solution under src/ and every console tool under tools/)
 src/**/bin/
 src/**/obj/
+tools/**/bin/
+tools/**/obj/
 *.user
 .vs/
+
+# Temp commit messages (heredoc workaround)
+COMMIT_MSG.tmp
 
 # Local OS / editor cruft
 .DS_Store
