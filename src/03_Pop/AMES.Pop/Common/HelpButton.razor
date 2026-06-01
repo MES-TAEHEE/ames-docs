@@ -1,0 +1,14 @@
+@*
+    HelpButton — the small "?" chip that lives in every screen's top bar.
+    Owns the open/close state for its paired HelpModal.
+
+        <HelpButton ContentType="@(typeof(Pages.Help.Inj02Help))" />
+*@
+
+<button class="help-btn" @onclick="@(() => _open = true)" title="User guide · 사용법 (F1)">?</button>
+<HelpModal IsOpen="_open" IsOpenChanged="@(v => _open = v)" ContentType="ContentType" />
+
+@code {
+    [Parameter] public Type? ContentType { get; set; }
+    private bool _open;
+}
