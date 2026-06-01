@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>INJ-02 mockup</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{--mod:#2563eb;--mod-tint:#93c5fd;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:1920px;height:1080px;background:#000;font-family:'Noto Sans KR',sans-serif;color:#e2e8f0;overflow:hidden;}
+body{display:flex;align-items:center;justify-content:center;}
+.scaler{transform:scale(1.55);transform-origin:center;}
+
+/* mockup styles copied verbatim from VOL05_INJ02 */
+.pop-mock{background:#000;border:2px solid #1a2840;border-radius:14px;overflow:hidden;color:#e2e8f0;box-shadow:0 12px 50px rgba(37,99,235,.22);width:1180px;}
+.pop-tbar{background:linear-gradient(135deg,#0a1628,#0c1a2e);padding:14px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(37,99,235,.3);}
+.pop-tbar-logo{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--mod-tint);letter-spacing:3px;}
+.pop-tbar-id{font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(147,197,253,.7);}
+.pop-tbar-r{display:flex;gap:12px;align-items:center;font-size:10px;color:rgba(255,255,255,.5);}
+.pop-tbar-r .stat-on{color:#5dffc4;}
+.pop-bd{padding:20px;background:#000;}
+.dash-top{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;margin-bottom:14px;}
+.dash-card{background:#0a1628;border:1px solid rgba(37,99,235,.25);border-radius:8px;padding:16px;}
+.dash-card-h{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mod-tint);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;}
+.wo-progress{display:flex;align-items:baseline;gap:14px;margin-bottom:10px;}
+.wo-progress-v{font-family:'Bebas Neue',sans-serif;font-size:56px;color:#5dffc4;line-height:1;letter-spacing:1px;}
+.wo-progress-t{font-family:'Bebas Neue',sans-serif;font-size:30px;color:rgba(255,255,255,.4);}
+.wo-progress-pct{font-size:18px;color:var(--mod-tint);margin-left:auto;font-weight:700;}
+.dash-progress-bar{height:18px;background:rgba(255,255,255,.06);border-radius:9px;overflow:hidden;margin:8px 0;}
+.dash-progress-fill{height:100%;background:linear-gradient(90deg,#0db87a,#5dffc4);border-radius:9px;}
+.wo-info{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;font-size:11px;}
+.wo-info-l{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(147,197,253,.6);text-transform:uppercase;letter-spacing:.5px;}
+.wo-info-v{font-size:13px;color:#fff;margin-top:2px;font-weight:700;}
+.eq-status{display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;}
+.eq-led{width:60px;height:60px;border-radius:50%;background:radial-gradient(circle,#5dffc4 30%,#0db87a 70%);box-shadow:0 0 30px #0db87a;margin-bottom:10px;}
+.eq-status-t{font-family:'Bebas Neue',sans-serif;font-size:32px;color:#5dffc4;letter-spacing:2px;}
+.eq-status-s{font-size:11px;color:rgba(255,255,255,.5);margin-top:4px;font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.dash-mid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;}
+.gauge{text-align:center;padding:16px;}
+.gauge-v{font-family:'Bebas Neue',sans-serif;font-size:46px;line-height:1;letter-spacing:1px;}
+.gauge-v.ok{color:#5dffc4;}.gauge-v.warn{color:#fde047;}.gauge-v.alert{color:#fca5a5;}
+.gauge-l{font-size:11px;color:rgba(255,255,255,.5);margin-top:6px;font-family:'JetBrains Mono',monospace;letter-spacing:.5px;text-transform:uppercase;}
+.gauge-sub{font-size:9px;color:rgba(255,255,255,.4);margin-top:2px;}
+.hourly-chart{background:#0a1628;border:1px solid rgba(37,99,235,.25);border-radius:8px;padding:16px;}
+.hc-bars{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;align-items:flex-end;height:80px;margin-top:10px;}
+.hc-bar{background:linear-gradient(180deg,var(--mod-tint),var(--mod));border-radius:3px 3px 0 0;}
+.hc-bar.now{background:linear-gradient(180deg,#5dffc4,#0db87a);}
+.hc-bar.target{background:rgba(255,255,255,.1);border:1px dashed rgba(255,255,255,.2);}
+.hc-labels{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;font-size:8px;color:rgba(255,255,255,.4);text-align:center;margin-top:4px;font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<div class="scaler">
+<div class="pop-mock">
+  <div class="pop-tbar">
+    <div style="display:flex;gap:14px;align-items:center;">
+      <span class="pop-tbar-logo">A-MES</span>
+      <span class="pop-tbar-id">INJ-02 · POP-INJ-L1 · 사출 1호기</span>
+    </div>
+    <div class="pop-tbar-r">
+      <span class="stat-on">● RUN</span>
+      <span>J.Kim · DAY · 06:00–18:00</span>
+      <span>2026-05-19 10:24</span>
+    </div>
+  </div>
+  <div class="pop-bd">
+    <div class="dash-top">
+      <div class="dash-card">
+        <div class="dash-card-h">▼ WO PROGRESS · WO-2026-0519-007 · Door Trim LH</div>
+        <div class="wo-progress">
+          <span class="wo-progress-v">&nbsp;</span>
+          <span class="wo-progress-t">/ &nbsp; EA</span>
+          <span class="wo-progress-pct">&nbsp;</span>
+        </div>
+        <div class="dash-progress-bar"><div class="dash-progress-fill" style="width:0%;"></div></div>
+        <div class="wo-info">
+          <div><div class="wo-info-l">D-Day</div><div class="wo-info-v">&nbsp;</div></div>
+          <div><div class="wo-info-l">Cycle Time</div><div class="wo-info-v">&nbsp;</div></div>
+          <div><div class="wo-info-l">Routing</div><div class="wo-info-v">A (INJ→IMG→QC→FG)</div></div>
+          <div><div class="wo-info-l">Next Stop</div><div class="wo-info-v">IMG-L1</div></div>
+        </div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-h">▼ EQUIPMENT STATUS · 사출기 #1</div>
+        <div class="eq-status">
+          <div class="eq-led"></div>
+          <div class="eq-status-t">&nbsp;</div>
+          <div class="eq-status-s">&nbsp;</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-mid">
+      <div class="dash-card gauge">
+        <div class="gauge-v ok">&nbsp;</div>
+        <div class="gauge-l">Defect Rate</div>
+        <div class="gauge-sub">불량률 (한계 5%)</div>
+      </div>
+      <div class="dash-card gauge">
+        <div class="gauge-v warn">&nbsp;</div>
+        <div class="gauge-l">Mold Shot Count</div>
+        <div class="gauge-sub">&nbsp;</div>
+      </div>
+      <div class="dash-card gauge">
+        <div class="gauge-v ok">&nbsp;</div>
+        <div class="gauge-l">OEE</div>
+        <div class="gauge-sub">&nbsp;</div>
+      </div>
+    </div>
+
+    <div class="hourly-chart">
+      <div class="dash-card-h" style="margin-bottom:6px;">▼ HOURLY OUTPUT · 시간별 생산 (Target 18/h)</div>
+      <div class="hc-bars">
+        <div class="hc-bar target" style="height:100%;"></div><div class="hc-bar target" style="height:100%;"></div>
+        <div class="hc-bar target" style="height:100%;"></div><div class="hc-bar target" style="height:100%;"></div>
+        <div class="hc-bar target" style="height:100%;"></div><div class="hc-bar target" style="height:100%;"></div>
+        <div class="hc-bar target" style="height:100%;"></div><div class="hc-bar target" style="height:100%;"></div>
+        <div class="hc-bar target" style="height:100%;"></div><div class="hc-bar target" style="height:100%;"></div>
+        <div class="hc-bar target" style="height:100%;"></div><div class="hc-bar target" style="height:100%;"></div>
+      </div>
+      <div class="hc-labels">
+        <div>06</div><div>07</div><div>08</div><div>09</div><div>10</div><div>11</div><div>12</div><div>13</div><div>14</div><div>15</div><div>16</div><div>17</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</body>
+</html>
