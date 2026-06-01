@@ -1,0 +1,52 @@
+@page "/wh/03"
+@inject PdaApi Api
+@inject NavigationManager Nav
+
+<div class="pda-shell wh">
+    <div class="pda-tbar">
+        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/wh"))'>←</button>
+        <span class="pda-tbar-brand">WH-03 INVENTORY</span>
+    </div>
+    <div class="pda-bd">
+        <div class="pda-card">
+            <input class="pda-input" @bind="_q" @bind:event="oninput" @onkeypress="OnKey" placeholder="Search item or name…" />
+        </div>
+        <div class="pda-card">
+            <div class="pda-card-h">▼ STOCK (@_rows.Count)</div>
+            @if (_rows.Count == 0) { <div class="pda-empty">@_msg</div> }
+            else
+            {
+                @foreach (var r in _rows)
+                {
+                    <div class="pda-row3">
+                        <div class="r3-l">
+                            <div class="r3-code">@r.ItemNo</div>
+                            <div class="r3-sub">@(r.ItemName ?? "—")</div>
+                        </div>
+                        <div class="r3-m">
+                            <div>@r.LocationId</div>
+                            <div class="r3-sub">@(r.ExpiryDate?.ToString("yyyy-MM-dd") ?? "")</div>
+                        </div>
+                        <div class="r3-r">
+                            <div class="big">@r.OnHandQty.ToString("0.#")</div>
+                            <div class="r3-sub">res @r.ReservedQty.ToString("0.#")</div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    string _q = "", _msg = "Type to search.";
+    List<PdaApi.InventoryRow> _rows = new();
+    void OnKey(KeyboardEventArgs e) { if (e.Key == "Enter") _ = Load(); }
+    async Task Load()
+    {
+        _msg = "Loading…";
+        _rows = await Api.WhInventoryAsync(_q);
+        if (_rows.Count == 0) _msg = "No stock matches.";
+    }
+    protected override async Task OnInitializedAsync() => await Load();
+}

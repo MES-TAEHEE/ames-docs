@@ -1,12 +1,54 @@
 @page "/"
+@page "/home"
 @inject AuthState Auth
+@inject PdaApi Api
 @inject NavigationManager Nav
 
-@*  Boot redirect — Login if no session, Dashboard if signed in. *@
+@*  Module tile launcher — first screen after login. *@
+
+@if (Auth.Session is null)
+{
+    <div class="pda-empty" style="padding-top:120px;">Redirecting to login…</div>
+}
+else
+{
+    <div class="pda-shell">
+        <div class="pda-tbar">
+            <span class="pda-tbar-brand">A-MES PDA</span>
+            <span class="pda-tbar-emp">@Auth.Session.EmployeeNo</span>
+            <button class="pda-tbar-out" @onclick="Logout">⏻</button>
+        </div>
+
+        <div class="pda-bd">
+            <div class="pda-greet">@Auth.Session.EmployeeName · @Auth.Session.ShiftCode</div>
+            <div class="pda-greet-sub">@Auth.Session.LineId · @Auth.Session.TerminalId</div>
+
+            <div class="pda-tiles">
+                <button class="pda-tile wh" @onclick='@(() => Nav.NavigateTo("/wh"))'>
+                    <div class="pda-tile-ic">📦</div>
+                    <div class="pda-tile-cap">WAREHOUSE</div>
+                    <div class="pda-tile-sub">8 screens</div>
+                </button>
+                <button class="pda-tile fg" @onclick='@(() => Nav.NavigateTo("/fg"))'>
+                    <div class="pda-tile-ic">🚚</div>
+                    <div class="pda-tile-cap">FINISHED GOODS</div>
+                    <div class="pda-tile-sub">10 screens (soon)</div>
+                </button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     protected override void OnInitialized()
     {
-        Nav.NavigateTo(Auth.Session is null ? "/login" : "/dash", replace: true);
+        if (Auth.Session is null) Nav.NavigateTo("/login", replace: true);
+    }
+
+    private async Task Logout()
+    {
+        try { await Api.LogoutAsync(); } catch { }
+        Nav.NavigateTo("/login", replace: true);
+        Auth.SignOut();
     }
 }

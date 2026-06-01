@@ -134,3 +134,92 @@ body { font-family: 'Inter', sans-serif; background: #0c1320; color: #e8eef7; fo
     cursor: pointer;
 }
 .pda-btn-pri:active { transform: translateY(1px); }
+
+/* ── Tile launcher ────────────────────────────────────────── */
+.pda-greet     { font-size: 16px; font-weight: 700; color: #fff; margin: 4px 0 2px; }
+.pda-greet-sub { font-size: 12px; color: rgba(255,255,255,.55); margin-bottom: 18px;
+                 font-family: 'JetBrains Mono', monospace; }
+
+.pda-tiles {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 14px; margin-top: 6px;
+}
+.pda-tile-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+.pda-tile {
+    background: linear-gradient(160deg, #1e293b, #0f172a);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 14px;
+    padding: 24px 12px;
+    color: #fff; cursor: pointer; text-align: center;
+    transition: transform .12s, border-color .12s;
+}
+.pda-tile:active { transform: translateY(2px); }
+.pda-tile.wh { border-top: 4px solid #93c5fd; }
+.pda-tile.fg { border-top: 4px solid #fbbf24; }
+.pda-tile.sm { padding: 16px 8px; }
+.pda-tile-ic  { font-size: 36px; line-height: 1; }
+.pda-tile.sm .pda-tile-ic { font-size: 26px; }
+.pda-tile-cap { font-family: 'Bebas Neue', sans-serif; font-size: 18px;
+                letter-spacing: 1.5px; color: #fff; margin-top: 8px; }
+.pda-tile-sub { font-family: 'JetBrains Mono', monospace; font-size: 10px;
+                color: rgba(255,255,255,.5); margin-top: 4px; letter-spacing: 1px; }
+
+/* ── Back button + module shells ──────────────────────────── */
+.pda-tbar-back {
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.18);
+    color: #fff; padding: 4px 10px;
+    border-radius: 6px; font-size: 18px; cursor: pointer;
+    line-height: 1;
+}
+.pda-shell.wh .pda-tbar { background: linear-gradient(135deg, #0a1628, #0c1a2e); border-bottom-color: rgba(147,197,253,.4); }
+.pda-shell.fg .pda-tbar { background: linear-gradient(135deg, #2a1a00, #1a0f00); border-bottom-color: rgba(251,191,36,.4); }
+.pda-shell.fg .pda-tbar-brand { color: #fbbf24; }
+
+/* ── 3-column data rows for lists ─────────────────────────── */
+.pda-row3 {
+    display: grid; grid-template-columns: 1.4fr 1fr 1fr;
+    gap: 8px; padding: 10px 4px; align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    font-size: 12px;
+}
+.pda-row3:last-child { border-bottom: none; }
+.pda-row3.ok  { background: rgba(34,197,94,.06); }
+.pda-row3.warn{ background: rgba(251,191,36,.08); }
+.pda-row3.bad { background: rgba(252,165,165,.08); }
+.r3-l .r3-code, .r3-m, .r3-r {
+    color: #fff;
+}
+.r3-code { font-family: 'JetBrains Mono', monospace; color: #93c5fd; font-weight: 700; font-size: 12px; }
+.r3-sub  { color: rgba(255,255,255,.5); font-size: 10px; margin-top: 2px; }
+.r3-m, .r3-r { font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+.r3-r { text-align: right; }
+.r3-r .big { font-size: 16px; color: #86efac; }
+
+/* ── Zone header (WH-04) ──────────────────────────────────── */
+.pda-zone-h {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 1.5px;
+    color: #fbbf24; text-transform: uppercase;
+    padding: 12px 0 6px;
+    border-bottom: 1px solid rgba(251,191,36,.3);
+    margin-bottom: 4px;
+}
+.pda-zone-h:first-child { padding-top: 0; }
+
+/* ── Small key (filter chips on WH-08) ────────────────────── */
+.pda-key.sm {
+    padding: 8px 14px; font-size: 14px;
+    background: rgba(255,255,255,.04); color: #93c5fd;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 6px;
+}
+.pda-key.sm.on { background: #2563eb; color: #fff; border-color: #2563eb; }
+
+/* ── Status text utility (reused from login) ─────────────── */
+.pda-status.ok   { color: #86efac; }
+.pda-status.fail { color: #fca5a5; }
+.pda-status.dim  { color: rgba(255,255,255,.35); }

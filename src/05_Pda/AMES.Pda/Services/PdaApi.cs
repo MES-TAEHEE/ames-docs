@@ -83,14 +83,49 @@ public sealed class PdaApi
 
     // ── WH ───────────────────────────────────────────────────────────────
     public sealed record InboundRow(int LotId, string LotCode, string? ItemNo, string? ItemName,
-                                     decimal Qty, string? Vendor, DateTime? ArrivedAt);
+        decimal Qty, string? Vendor, DateTime? ArrivedAt);
+    public sealed record InboundScheduleRow(int PoId, string PoNumber, int? PoLineNo, string? VendorId,
+        string? ItemNo, string? ItemName, decimal OrderQty, decimal ReceivedQty, DateTime? DueDate, string? Status);
+    public sealed record InventoryRow(int InventoryId, string ItemNo, string? ItemName, string LocationId,
+        int? LotId, decimal OnHandQty, decimal ReservedQty, DateTime? ExpiryDate);
+    public sealed record LocationRow(string LocationId, string? LocationName, string? Zone, int LineCount, decimal TotalQty);
+    public sealed record ReleaseScheduleRow(int ReleaseScheduleId, int? WoId, string? WoNumber,
+        string ItemNo, string? ItemName, decimal DemandQty, decimal PickedQty, DateTime? RequiredAt, string? Status);
+    public sealed record TransactionRow(long TxnId, DateTime TxnTime, string TxnType, string? ItemNo,
+        string? LocationId, decimal QtyBefore, decimal Delta, decimal QtyAfter, string? ReasonCode);
 
-    public async Task<List<InboundRow>> WhInboundTodayAsync()
+    public sealed record ReceiveReq(string LotCode, decimal Qty, string LocationId);
+    public sealed record AdjustReq(string ItemNo, string LocationId, decimal Delta, string ReasonCode, string? Note);
+    public sealed record PickReq(int ReleaseScheduleId, string LotCode, decimal Qty);
+
+    public Task<List<InboundRow>>         WhInboundTodayAsync()    => Get<List<InboundRow>>("/api/wh/inbound/today");
+    public Task<List<InboundScheduleRow>> WhInboundScheduleAsync() => Get<List<InboundScheduleRow>>("/api/wh/inbound/schedule");
+    public Task<List<InventoryRow>>       WhInventoryAsync(string? q = null)
+        => Get<List<InventoryRow>>("/api/wh/inventory" + (string.IsNullOrEmpty(q) ? "" : $"?q={Uri.EscapeDataString(q)}"));
+    public Task<List<LocationRow>>        WhLocationsAsync()       => Get<List<LocationRow>>("/api/wh/locations");
+    public Task<List<ReleaseScheduleRow>> WhReleaseScheduleAsync() => Get<List<ReleaseScheduleRow>>("/api/wh/release/schedule");
+    public Task<List<TransactionRow>>     WhTransactionsAsync(int days = 7) => Get<List<TransactionRow>>($"/api/wh/transactions?days={days}");
+
+    public Task<HttpResponseMessage> WhReceiveAsync(ReceiveReq body) => Post("/api/wh/inbound/receive", body);
+    public Task<HttpResponseMessage> WhAdjustAsync (AdjustReq  body) => Post("/api/wh/inventory/adjust", body);
+    public Task<HttpResponseMessage> WhPickAsync   (PickReq    body) => Post("/api/wh/release/pick",      body);
+
+    // ── private HTTP helpers ────────────────────────────────────────────
+    private async Task<T> Get<T>(string url) where T : new()
     {
         Authorize();
-        var resp = await _http.GetAsync("/api/wh/inbound/today");
-        if (!resp.IsSuccessStatusCode) return new();
-        return await resp.Content.ReadFromJsonAsync<List<InboundRow>>() ?? new();
+        try
+        {
+            var resp = await _http.GetAsync(url);
+            if (!resp.IsSuccessStatusCode) return new T();
+            return await resp.Content.ReadFromJsonAsync<T>() ?? new T();
+        }
+        catch { return new T(); }
+    }
+    private async Task<HttpResponseMessage> Post<TBody>(string url, TBody body)
+    {
+        Authorize();
+        return await _http.PostAsJsonAsync(url, body);
     }
 
     // ── helper ──────────────────────────────────────────────────────────
