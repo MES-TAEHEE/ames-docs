@@ -1,0 +1,24 @@
+@*  Top-level Blazor wrapper used by PopBlazorForm.
+    Cascades the operator's PopSessionDto down to every page so they don't
+    each have to pull it from a service. Also seeds the router to the
+    initial route requested by the WinForms host. *@
+
+@inject NavigationManager Nav
+
+<CascadingValue Value="@Session">
+    <App />
+</CascadingValue>
+
+@code {
+    [Parameter] public PopSessionDto Session { get; set; } = null!;
+    [Parameter] public string InitialRoute { get; set; } = "/inj02";
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender && !string.IsNullOrEmpty(InitialRoute))
+        {
+            var uri = Nav.ToAbsoluteUri(InitialRoute).ToString();
+            if (Nav.Uri != uri) Nav.NavigateTo(InitialRoute);
+        }
+    }
+}

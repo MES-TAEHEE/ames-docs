@@ -1,0 +1,237 @@
+@page "/inj02"
+@implements IDisposable
+@inject IServiceProvider Services
+
+@*
+    INJ-02 Dashboard — Blazor Hybrid version.
+    Markup mirrors VOL05_INJ02_POP_Dashboard.html's .pop-mock structure;
+    every dynamic value is an @-interpolation of state-backed fields that
+    a 5-second timer refreshes from PopServices.
+*@
+
+<div class="pop-shell">
+    <div class="pop-tbar">
+        <div style="display:flex; align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">INJ-02 · @Session.TerminalId · @Session.LineId</span>
+        </div>
+        <div class="pop-tbar-r">
+            <span class="@(_eqClass)">● @_eqStatus</span>
+            <span>@Session.EmployeeName · @Session.ShiftCode</span>
+            <span>@_now.ToString("yyyy-MM-dd HH:mm")</span>
+        </div>
+    </div>
+
+    <div class="pop-bd">
+
+        @* ── row 1: WO progress + Equipment status ─────────────────────── *@
+        <div class="dash-top">
+            <div class="pop-card">
+                <div class="pop-card-h">▼ WO PROGRESS · @(_wo?.WoNumber ?? "(no active WO)") · @(_wo?.ItemNameEn ?? _wo?.ItemName ?? "—")</div>
+                <div class="wo-progress">
+                    <span class="wo-progress-v">@( _wo?.CompletedQty.ToString("0") ?? "—" )</span>
+                    <span class="wo-progress-t">/ @( _wo?.OrderQty.ToString("0") ?? "—" ) EA</span>
+                    <span class="wo-progress-pct">@_woPct%</span>
+                </div>
+                <div class="dash-progress-bar">
+                    <div class="dash-progress-fill" style="width:@_woPct%;"></div>
+                </div>
+                <div class="wo-info">
+                    <div>
+                        <div class="wo-info-l">D-DAY</div>
+                        <div class="wo-info-v @_ddayClass">@_ddayText</div>
+                    </div>
+                    <div>
+                        <div class="wo-info-l">CYCLE TIME</div>
+                        <div class="wo-info-v">@_cycleText</div>
+                    </div>
+                    <div>
+                        <div class="wo-info-l">ROUTING</div>
+                        <div class="wo-info-v">A (INJ→IMG→QC→FG)</div>
+                    </div>
+                    <div>
+                        <div class="wo-info-l">NEXT STOP</div>
+                        <div class="wo-info-v">IMG-L1</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pop-card">
+                <div class="pop-card-h">▼ EQUIPMENT STATUS · @(_eq?.EquipName ?? "—")</div>
+                <div class="eq-status">
+                    <div class="eq-led @_ledClass"></div>
+                    <div class="eq-status-t @_ledClass">@_eqStatus</div>
+                    <div class="eq-status-s">Uptime @_uptimeText</div>
+                </div>
+            </div>
+        </div>
+
+        @* ── row 2: 3 gauges ──────────────────────────────────────────── *@
+        <div class="dash-mid">
+            <div class="pop-card gauge">
+                <div class="gauge-v @_defectClass">@_defectText</div>
+                <div class="gauge-l">Defect Rate</div>
+                <div class="gauge-sub">불량률 (한계 5%)</div>
+            </div>
+            <div class="pop-card gauge">
+                <div class="gauge-v @_moldClass">@_moldText</div>
+                <div class="gauge-l">Mold Shot Count</div>
+                <div class="gauge-sub">@_moldSub</div>
+            </div>
+            <div class="pop-card gauge">
+                <div class="gauge-v dim">—</div>
+                <div class="gauge-l">OEE</div>
+                <div class="gauge-sub">A × P × Q (TODO)</div>
+            </div>
+        </div>
+
+        @* ── row 3: hourly chart ─────────────────────────────────────── *@
+        <div class="pop-card hourly-chart" style="flex:1;">
+            <div class="pop-card-h">▼ HOURLY OUTPUT · 시간별 생산 (Target 18/h)</div>
+            <div class="hc-bars">
+                @for (var h = 6; h <= 17; h++)
+                {
+                    var bucket = _hourly?.FirstOrDefault(x => x.Hour == h);
+                    var maxOut = Math.Max(18, _hourlyMax);
+                    var hPct   = bucket is null ? 0 : (int)((bucket.GoodQty + bucket.DefectQty) * 100.0 / maxOut);
+                    var cls    = h == _now.Hour ? "hc-bar now" : (h > _now.Hour ? "hc-bar target" : "hc-bar");
+                    <div class="@cls" style="height:@(h > _now.Hour ? 100 : Math.Clamp(hPct, 2, 100))%;"></div>
+                }
+            </div>
+            <div class="hc-labels">
+                @for (var h = 6; h <= 17; h++)
+                {
+                    var cls = h == _now.Hour ? "now" : "";
+                    <div class="@cls">@h.ToString("00")@(h == _now.Hour ? "*" : "")</div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @* ── bottom nav ────────────────────────────────────────────────── *@
+    <div class="pop-nav" style="--nav-cols:7;">
+        <button class="nav-btn"          @onclick="@(() => Nav("inj03"))">▶ INJ-03<small>WO Confirm</small></button>
+        <button class="nav-btn primary"  @onclick="@(() => Nav("inj04"))">▶ INJ-04<small>Prod Entry</small></button>
+        <button class="nav-btn warn"     @onclick="@(() => Nav("inj05"))">▶ INJ-05<small>Defect</small></button>
+        <button class="nav-btn gold"     @onclick="@(() => Nav("inj06"))">▶ INJ-06<small>Mold Change</small></button>
+        <button class="nav-btn"          @onclick="@(() => Nav("inj07"))">▶ INJ-07<small>Prod Status</small></button>
+        <button class="nav-btn alert"    @onclick="@(() => Nav("inj08"))">🚨 INJ-08<small>ANDON</small></button>
+        <button class="nav-btn muted"    @onclick="Logout">◀ LOGOUT<small></small></button>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] public PopSessionDto Session { get; set; } = null!;
+
+    // mutable display state
+    private WorkOrderDto? _wo;
+    private MoldDto?      _mold;
+    private EquipmentDto? _eq;
+    private IReadOnlyList<HourlyOutputDto>? _hourly;
+    private int _hourlyMax = 1;
+
+    private int     _woPct      = 0;
+    private string  _ddayText   = "—";
+    private string  _ddayClass  = "";
+    private string  _cycleText  = "—";
+    private string  _eqStatus   = "OFFLINE";
+    private string  _eqClass    = "stat-off";
+    private string  _ledClass   = "offline";
+    private string  _uptimeText = "—";
+    private string  _defectText = "0.0%";
+    private string  _defectClass= "ok";
+    private string  _moldText   = "—";
+    private string  _moldClass  = "ok";
+    private string  _moldSub    = "—";
+    private DateTime _now       = DateTime.Now;
+
+    private System.Threading.Timer? _refreshTimer;
+    private System.Threading.Timer? _clockTimer;
+
+    protected override void OnInitialized()
+    {
+        Refresh();
+        _refreshTimer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); StateHasChanged(); }),
+                                                   null, 5000, 5000);
+        _clockTimer   = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DateTime.Now; StateHasChanged(); }),
+                                                   null, 1000, 1000);
+    }
+
+    private void Refresh()
+    {
+        try
+        {
+            _wo = PopServices.WorkOrders.GetActiveForTerminal(Session.LineId, Session.TerminalId)
+               ?? PopServices.WorkOrders.ListForLine(Session.LineId).FirstOrDefault();
+
+            if (_wo is not null)
+            {
+                _woPct      = (int)Math.Clamp(_wo.ProgressPct, 0, 100);
+                _ddayText   = _wo.DueDate is null ? "—" : $"D-{_wo.DaysToDue}  ({_wo.DueDate:MM/dd})";
+                _ddayClass  = (_wo.DaysToDue ?? 99) <= 1 ? "warn" : "";
+                _cycleText  = _wo.RecipeId is null
+                              ? "—"
+                              : $"{PopServices.Master.GetRecipeCycleTime(_wo.RecipeId)?.ToString() ?? "—"} sec / shot";
+
+                if (!string.IsNullOrEmpty(_wo.MoldId))
+                {
+                    _mold = PopServices.Molds.GetById(_wo.MoldId);
+                    if (_mold is not null)
+                    {
+                        _moldText  = $"{_mold.LifePct:0}%";
+                        _moldSub   = $"{_mold.CurrentShots:N0} / {_mold.RatedShots:N0}";
+                        _moldClass = _mold.Severity switch
+                        {
+                            "warn"  => "warn",
+                            "alert" => "alert",
+                            "hard"  => "alert",
+                            _       => "ok",
+                        };
+                    }
+                }
+
+                var (good, defect) = PopServices.Defects.GetWoTotals(_wo.WoId);
+                var pct = (good + defect) == 0 ? 0 : defect * 100.0 / (good + defect);
+                _defectText  = $"{pct:0.0}%";
+                _defectClass = pct >= 5 ? "alert" : pct >= 4 ? "warn" : "ok";
+            }
+            else
+            {
+                _woPct = 0; _ddayText = "—"; _cycleText = "—";
+                _defectText = "—"; _moldText = "—";
+            }
+
+            _eq = PopServices.Equipment.GetPrimaryForLine(Session.LineId);
+            _eqStatus = (_eq?.Status ?? "OFFLINE").ToUpperInvariant();
+            (_eqClass, _ledClass) = _eqStatus switch
+            {
+                "RUN"     => ("stat-on",  "" /* default green */),
+                "IDLE"    => ("stat-on",  "idle"),
+                "STOP"    => ("stat-off", "stop"),
+                "ALARM"   => ("stat-off", "stop"),
+                _         => ("stat-off", "offline"),
+            };
+            _uptimeText = _eq?.Uptime is null
+                          ? "—"
+                          : $"{(int)_eq.Uptime.Value.TotalHours:00}:{_eq.Uptime.Value.Minutes:00}:{_eq.Uptime.Value.Seconds:00}";
+
+            _hourly = PopServices.Production.GetHourlyToday(Session.LineId);
+            _hourlyMax = _hourly?.Max(h => h.GoodQty + h.DefectQty) ?? 1;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Inj02 refresh] {ex.Message}");
+        }
+    }
+
+    private Task Nav(string screen)
+        => BlazorHost.RaiseAction("nav:" + screen);
+
+    private Task Logout() => BlazorHost.RaiseAction("logout");
+
+    public void Dispose()
+    {
+        _refreshTimer?.Dispose();
+        _clockTimer?.Dispose();
+    }
+}
