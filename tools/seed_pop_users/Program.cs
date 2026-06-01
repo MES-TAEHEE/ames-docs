@@ -47,6 +47,12 @@ internal static class Program
         ("user-p002", "P002", "Yoon Eun-bi",     "Production", "2345",
             """["LINE-PNT-01"]""",                                            "DAY"),
 
+        // ── QC inspectors (품질) ───────────────────────────────────────
+        ("user-q001", "Q001", "Kim Hye-jin",     "Quality",    "1234",
+            """["LINE-QC-01"]""",                                             "DAY"),
+        ("user-q002", "Q002", "Park Jae-won",    "Quality",    "2345",
+            """["LINE-QC-01"]""",                                             "DAY"),
+
         // ── Supervisor with access to all lines ────────────────────────
         ("user-s001", "S001", "Supervisor Choi", "Production", "9999",
             null /* all lines */,                                             "DAY"),

@@ -1,0 +1,147 @@
+@page "/qc04"
+@implements IDisposable
+@inject NavigationManager Nav
+@inject AppState State
+
+@*  QC-04 NCR Register — list open NCRs + add new from form. *@
+
+<div class="pop-shell qc">
+    <div class="pop-tbar">
+        <div style="display:flex; align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">QC-04 · @Session?.TerminalId · @Session?.LineId</span>
+        </div>
+        <div class="pop-tbar-r">
+            <span class="stat-on">● LIVE</span>
+            <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
+            <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
+        </div>
+    </div>
+
+    <div class="pop-bd">
+        <div class="qc-kpis k4">
+            <div class="qc-kpi bad"><div class="lbl">CRITICAL</div><div class="val">@_ncrs.Count(n => n.Severity == "Critical")</div><div class="sub">customer escal.</div></div>
+            <div class="qc-kpi warn"><div class="lbl">MAJOR</div><div class="val">@_ncrs.Count(n => n.Severity == "Major")</div><div class="sub">batch</div></div>
+            <div class="qc-kpi"><div class="lbl">MINOR</div><div class="val">@_ncrs.Count(n => n.Severity == "Minor")</div><div class="sub">rework</div></div>
+            <div class="qc-kpi ok"><div class="lbl">CLOSED 7-DAY</div><div class="val">@_closed7</div><div class="sub">resolved</div></div>
+        </div>
+
+        <div class="pop-card" style="flex:1; overflow:auto;">
+            <div class="pop-card-h">▼ OPEN NCRs (@_ncrs.Count)</div>
+            @if (_ncrs.Count == 0)
+            {
+                <div class="qc-empty">No open NCRs.</div>
+            }
+            else
+            {
+                <div class="qc-ncrs">
+                    @foreach (var n in _ncrs)
+                    {
+                        var cls = (n.Severity ?? "").ToLowerInvariant();
+                        <div class="qc-ncr @cls">
+                            <div class="nh">
+                                <div class="nid">@n.NcrNumber</div>
+                                <div class="nsev">@n.Severity</div>
+                            </div>
+                            <div class="item">@(n.ItemName ?? n.ItemNo)</div>
+                            <div class="meta"><span class="l">DISP</span><span class="v">@(n.Disposition ?? "—")</span></div>
+                            <div class="meta"><span class="l">QTY</span><span class="v">@n.AffectedQty</span></div>
+                            <div class="meta"><span class="l">SOURCE</span><span class="v">@(n.SourceType) · @(n.SourceId ?? "—")</span></div>
+                            <div class="meta"><span class="l">@(n.ReportedAt?.ToString("HH:mm") ?? "—")</span><span class="v">@n.Status</span></div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="pop-card">
+            <div class="pop-card-h">▼ REPORT NEW NCR</div>
+            <div style="display:grid; grid-template-columns:repeat(5, 1fr) 220px; gap:14px;">
+                <div class="qc-fld">
+                    <label>SEVERITY</label>
+                    <select class="qc-input" @bind="_sev">
+                        <option>Minor</option><option>Major</option><option>Critical</option>
+                    </select>
+                </div>
+                <div class="qc-fld">
+                    <label>SOURCE</label>
+                    <select class="qc-input" @bind="_src">
+                        <option>INSPECTION</option><option>POP-DEFECT</option><option>CUSTOMER</option><option>AUDIT</option>
+                    </select>
+                </div>
+                <div class="qc-fld"><label>ITEM</label><input class="qc-input" @bind="_item" placeholder="DR-TRM-LH-A1" /></div>
+                <div class="qc-fld"><label>QTY</label><input class="qc-input" type="number" @bind="_qty" /></div>
+                <div class="qc-fld">
+                    <label>DISPOSITION</label>
+                    <select class="qc-input" @bind="_disp">
+                        <option>HOLD</option><option>REWORK</option><option>SCRAP</option><option>RTV</option><option>USE-AS-IS</option>
+                    </select>
+                </div>
+                <button class="qc-btn ok" @onclick="Create">⚠ REPORT NCR</button>
+            </div>
+            <div class="@_statusCls" style="margin-top:10px; font-size:13px; min-height:20px;">@_status</div>
+        </div>
+    </div>
+
+    <div class="pop-nav" style="--nav-cols:9;">
+        <button class="nav-btn"         @onclick="@(() => Go("qc01"))">▶ QC-01<small>Incoming</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qc02"))">▶ QC-02<small>In-Process</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qc03"))">▶ QC-03<small>Final</small></button>
+        <button class="nav-btn primary" @onclick="@(() => Go("qc07"))">▶ QC-07<small>Dashboard</small></button>
+        <button class="nav-btn warn"    @onclick="@(() => Go("qc05"))">▶ QC-05<small>Hold</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qc06"))">▶ QC-06<small>CAPA</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qc08"))">▶ QC-08<small>Std</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qctrc"))">▶ QC-TRC<small>Trace</small></button>
+        <button class="nav-btn muted"   @onclick="Logout">◀ LOGOUT<small></small></button>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] public PopSessionDto? Session { get; set; }
+
+    private List<QcNcrDto> _ncrs = new();
+    private int     _closed7;
+    private string  _sev = "Major", _src = "INSPECTION", _item = "DR-TRM-LH-A1", _disp = "HOLD";
+    private int     _qty = 24;
+    private string  _status = "", _statusCls = "dim";
+    private DateTime _now = DateTime.Now;
+    private System.Threading.Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        Refresh();
+        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DateTime.Now; StateHasChanged(); }),
+                                            null, 5000, 5000);
+    }
+
+    private void Refresh()
+    {
+        try
+        {
+            _ncrs = PopServices.Qc.ListNcrs("Open,Investigating", 60);
+            var closed = PopServices.Qc.ListNcrs("Closed", 60);
+            _closed7 = closed.Count(n => (n.ReportedAt ?? DateTime.MinValue) >= DateTime.Now.AddDays(-7));
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Qc04] {ex.Message}"); }
+    }
+
+    private void Create()
+    {
+        if (string.IsNullOrWhiteSpace(_item)) { SetStatus("Item is required.", "fail"); return; }
+        if (_qty < 1)                          { SetStatus("Qty must be ≥ 1.", "fail"); return; }
+        try
+        {
+            var id = PopServices.Qc.CreateNcr(_sev, _src, null, _item, _qty, _disp,
+                                                Session?.OperatorId ?? "system",
+                                                Session?.EmployeeNo ?? "Q000");
+            SetStatus($"✓ NCR #{id} created", "ok");
+            Refresh();
+        }
+        catch (Exception ex) { SetStatus("× " + ex.Message, "fail"); }
+    }
+
+    private void SetStatus(string s, string c) { _status = s; _statusCls = c; }
+    private void Go(string r) => Nav.NavigateTo("/" + r);
+    private void Logout()      { State.SignOut(); Nav.NavigateTo("/login"); }
+    public void Dispose() => _timer?.Dispose();
+}

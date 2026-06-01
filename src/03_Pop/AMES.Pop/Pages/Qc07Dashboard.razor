@@ -1,0 +1,125 @@
+@page "/qc07"
+@implements IDisposable
+@inject NavigationManager Nav
+@inject AppState State
+
+@*
+    QC-07 Dashboard (signature). Login landing for QC inspectors.
+    Top KPI strip (defect rates per module + counts), middle pareto chart,
+    bottom action tiles linking to the other 8 QC screens.
+*@
+
+<div class="pop-shell qc">
+    <div class="pop-tbar">
+        <div style="display:flex; align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">QC-07 · @Session?.TerminalId · @Session?.LineId</span>
+        </div>
+        <div class="pop-tbar-r">
+            <span class="stat-on">● LIVE</span>
+            <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
+            <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
+        </div>
+    </div>
+
+    <div class="pop-bd">
+        <div class="qc-kpis">
+            <div class="qc-kpi bad"><div class="lbl">OPEN NCR</div><div class="val">@_openNcr</div><div class="sub">requires action</div></div>
+            <div class="qc-kpi warn"><div class="lbl">ACTIVE HOLD</div><div class="val">@_activeHold</div><div class="sub">quarantine</div></div>
+            <div class="qc-kpi"><div class="lbl">OPEN CAPA</div><div class="val">@_openCapa</div><div class="sub">corrective</div></div>
+            <div class="qc-kpi ok"><div class="lbl">PASS TODAY</div><div class="val">@_passToday</div><div class="sub">inspections</div></div>
+            <div class="qc-kpi bad"><div class="lbl">FAIL TODAY</div><div class="val">@_failToday</div><div class="sub">inspections</div></div>
+        </div>
+
+        <div class="pop-card">
+            <div class="pop-card-h">▼ DEFECT RATE BY MODULE · 모듈별 불량률</div>
+            <div class="qc-modgrid">
+                @foreach (var m in _modules)
+                {
+                    var cls = m.DefectPct >= 5m ? "bad" : m.DefectPct >= 3m ? "warn" : "ok";
+                    <div class="qc-mod @cls">
+                        <div class="ml">@m.Module</div>
+                        <div class="mv">@m.DefectPct.ToString("0.0")<span style="font-size:32px; opacity:.6;">%</span></div>
+                        <div class="msub">good @m.GoodQty / def @m.DefectQty</div>
+                        <div class="mpct" style="color:@(cls == "bad" ? "#fca5a5" : cls == "warn" ? "#fbbf24" : "#22c55e");">target ≤ 3.0%</div>
+                    </div>
+                }
+                @if (_modules.Count == 0)
+                {
+                    <div class="qc-empty" style="grid-column:1/-1;">No production data for today.</div>
+                }
+            </div>
+        </div>
+
+        <div class="pop-card" style="flex:1; overflow:auto;">
+            <div class="pop-card-h">▼ TOP DEFECT PARETO · 오늘 상위 6개</div>
+            @if (_pareto.Count == 0)
+            {
+                <div class="qc-empty">No defects logged today.</div>
+            }
+            else
+            {
+                var maxN = Math.Max(1, _pareto.Max(p => p.Count));
+                <div class="qc-pareto">
+                    @foreach (var p in _pareto)
+                    {
+                        var pct = (int)(p.Count * 100.0 / maxN);
+                        <div class="qc-pareto-row">
+                            <div class="code">@p.DefectCode</div>
+                            <div class="bar"><i style="width:@pct%;"></i></div>
+                            <div class="cnt">@p.Count</div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="pop-nav" style="--nav-cols:9;">
+        <button class="nav-btn"          @onclick="@(() => Go("qc01"))">▶ QC-01<small>Incoming</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("qc02"))">▶ QC-02<small>In-Process</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("qc03"))">▶ QC-03<small>Final</small></button>
+        <button class="nav-btn alert"    @onclick="@(() => Go("qc04"))">▶ QC-04<small>NCR</small></button>
+        <button class="nav-btn warn"     @onclick="@(() => Go("qc05"))">▶ QC-05<small>Hold</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("qc06"))">▶ QC-06<small>CAPA</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("qc08"))">▶ QC-08<small>Std</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("qctrc"))">▶ QC-TRC<small>Trace</small></button>
+        <button class="nav-btn muted"    @onclick="Logout">◀ LOGOUT<small></small></button>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] public PopSessionDto? Session { get; set; }
+
+    private List<QcModuleDefectDto> _modules = new();
+    private List<QcDefectParetoDto> _pareto  = new();
+    private int _openNcr, _activeHold, _openCapa, _passToday, _failToday;
+    private DateTime _now = DateTime.Now;
+    private System.Threading.Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        Refresh();
+        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DateTime.Now; StateHasChanged(); }),
+                                            null, 5000, 5000);
+    }
+
+    private void Refresh()
+    {
+        try
+        {
+            _modules = PopServices.Qc.GetModuleDefectRates();
+            _pareto  = PopServices.Qc.GetDefectPareto(6);
+            (var oN, var aH, var oC) = PopServices.Qc.GetDashboardCounts();
+            _openNcr = oN; _activeHold = aH; _openCapa = oC;
+            var insp = PopServices.Qc.ListInspections("", 100);
+            _passToday = insp.Count(i => i.Verdict == "PASS" && i.InsStartTs.Date == DateTime.Today);
+            _failToday = insp.Count(i => i.Verdict == "FAIL" && i.InsStartTs.Date == DateTime.Today);
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Qc07] {ex.Message}"); }
+    }
+
+    private void Go(string r) => Nav.NavigateTo("/" + r);
+    private void Logout()      { State.SignOut(); Nav.NavigateTo("/login"); }
+    public void Dispose() => _timer?.Dispose();
+}

@@ -1,0 +1,170 @@
+@page "/qc01"
+@implements IDisposable
+@inject NavigationManager Nav
+@inject AppState State
+
+@*  QC-01 Incoming Inspection — AQL sampling against MD_InspectionStd
+    for vendor-delivered lots. Pick row → see measurement detail → PASS/FAIL. *@
+
+<div class="pop-shell qc">
+    <div class="pop-tbar">
+        <div style="display:flex; align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">QC-01 · @Session?.TerminalId · @Session?.LineId</span>
+        </div>
+        <div class="pop-tbar-r">
+            <span class="stat-on">● LIVE</span>
+            <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
+            <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
+        </div>
+    </div>
+
+    <div class="pop-bd">
+        <div class="qc-kpis k4">
+            <div class="qc-kpi"><div class="lbl">TODAY · INCOMING</div><div class="val">@_list.Count</div><div class="sub">batches</div></div>
+            <div class="qc-kpi ok"><div class="lbl">PASS</div><div class="val">@_list.Count(i => i.Verdict == "PASS")</div><div class="sub">accepted</div></div>
+            <div class="qc-kpi bad"><div class="lbl">FAIL</div><div class="val">@_list.Count(i => i.Verdict == "FAIL")</div><div class="sub">to NCR</div></div>
+            <div class="qc-kpi warn"><div class="lbl">IN PROGRESS</div><div class="val">@_list.Count(i => i.Verdict == "IN_PROGRESS")</div><div class="sub">pending</div></div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1.1fr 1fr; gap:16px; flex:1; min-height:0;">
+            <div class="pop-card" style="overflow:auto;">
+                <div class="pop-card-h">▼ INCOMING INSPECTIONS</div>
+                @if (_list.Count == 0)
+                {
+                    <div class="qc-empty">No incoming inspections.</div>
+                }
+                else
+                {
+                    <div class="qc-inspections">
+                        @foreach (var i in _list)
+                        {
+                            var sel = _sel == i.InspectionId;
+                            var st  = i.Verdict.ToLowerInvariant();
+                            <div class="qc-insp @st @(sel ? "selected" : "")" @onclick="@(() => Select(i))">
+                                <div class="ih">
+                                    <div class="iid">@i.InspectionNo</div>
+                                    <div class="ist">@i.Verdict</div>
+                                </div>
+                                <div class="item">@(i.ItemName ?? i.ItemNo)</div>
+                                <div class="meta"><span class="l">SAMPLE</span><span class="v">@i.SampleSize / @i.BatchQty</span></div>
+                                <div class="meta"><span class="l">DEFECTS</span><span class="v" style="color:#fca5a5;">@i.DefectQtyTotal</span></div>
+                                <div class="meta"><span class="l">@i.InsStartTs.ToString("HH:mm")</span><span class="v">@(i.InsEndTs?.ToString("HH:mm") ?? "—")</span></div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="pop-card" style="overflow:auto;">
+                <div class="pop-card-h">▼ MEASUREMENT ITEMS · @(_sel == 0 ? "(select inspection)" : "#" + _sel)</div>
+                @if (_items.Count == 0)
+                {
+                    <div class="qc-empty">No measurement rows.</div>
+                }
+                else
+                {
+                    <table class="qc-meas">
+                        <thead><tr><th>#</th><th>Characteristic</th><th>Standard</th><th>Measured</th><th>Result</th></tr></thead>
+                        <tbody>
+                            @foreach (var m in _items)
+                            {
+                                var rcls = m.Result == "PASS" ? "r-pass" : m.Result == "FAIL" ? "r-fail" : "";
+                                <tr>
+                                    <td>@m.ItemSeq</td>
+                                    <td>@m.ItemName</td>
+                                    <td class="std">@m.Standard</td>
+                                    <td class="meas">@m.Measured</td>
+                                    <td class="@rcls">@m.Result</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+
+        <div class="pop-card">
+            <div class="qc-actions">
+                <button class="qc-btn sec" style="flex:0 0 200px;" @onclick="StartNew">+ NEW BATCH</button>
+                <button class="qc-btn ok"  disabled="@(_sel == 0)" @onclick="@(() => Finalize("PASS"))">✓ PASS</button>
+                <button class="qc-btn"     disabled="@(_sel == 0)" @onclick="@(() => Finalize("FAIL"))">✗ FAIL → NCR</button>
+            </div>
+            <div class="@_statusCls" style="margin-top:10px; font-size:13px; min-height:20px;">@_status</div>
+        </div>
+    </div>
+
+    <div class="pop-nav" style="--nav-cols:9;">
+        <button class="nav-btn primary" @onclick="@(() => Go("qc07"))">▶ QC-07<small>Dashboard</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qc02"))">▶ QC-02<small>In-Process</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qc03"))">▶ QC-03<small>Final</small></button>
+        <button class="nav-btn alert"   @onclick="@(() => Go("qc04"))">▶ QC-04<small>NCR</small></button>
+        <button class="nav-btn warn"    @onclick="@(() => Go("qc05"))">▶ QC-05<small>Hold</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qc06"))">▶ QC-06<small>CAPA</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qc08"))">▶ QC-08<small>Std</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qctrc"))">▶ QC-TRC<small>Trace</small></button>
+        <button class="nav-btn muted"   @onclick="Logout">◀ LOGOUT<small></small></button>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] public PopSessionDto? Session { get; set; }
+
+    private List<QcInspectionDto>     _list  = new();
+    private List<QcInspectionItemDto> _items = new();
+    private int    _sel;
+    private string _status = "", _statusCls = "dim";
+    private DateTime _now = DateTime.Now;
+    private System.Threading.Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        Refresh();
+        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DateTime.Now; StateHasChanged(); }),
+                                            null, 5000, 5000);
+    }
+
+    private void Refresh()
+    {
+        try { _list = PopServices.Qc.ListInspections("Incoming", 30); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Qc01] {ex.Message}"); }
+    }
+
+    private void Select(QcInspectionDto i)
+    {
+        _sel = i.InspectionId;
+        _items = PopServices.Qc.ListInspectionItems(i.InspectionId);
+    }
+
+    private void StartNew()
+    {
+        try
+        {
+            var id = PopServices.Qc.CreateInspection("Incoming", "DR-TRM-LH-A1", 32,
+                                                      Session?.OperatorId ?? "system",
+                                                      Session?.EmployeeNo ?? "Q000");
+            SetStatus($"✓ Inspection #{id} opened (32 samples)", "ok");
+            Refresh();
+        }
+        catch (Exception ex) { SetStatus("× " + ex.Message, "fail"); }
+    }
+
+    private void Finalize(string verdict)
+    {
+        if (_sel == 0) return;
+        try
+        {
+            PopServices.Qc.FinalizeInspection(_sel, verdict,
+                                               Session?.OperatorId ?? "system",
+                                               Session?.EmployeeNo ?? "Q000");
+            SetStatus($"✓ Inspection #{_sel} → {verdict}", verdict == "PASS" ? "ok" : "fail");
+            Refresh();
+        }
+        catch (Exception ex) { SetStatus("× " + ex.Message, "fail"); }
+    }
+
+    private void SetStatus(string s, string c) { _status = s; _statusCls = c; }
+    private void Go(string r) => Nav.NavigateTo("/" + r);
+    private void Logout()      { State.SignOut(); Nav.NavigateTo("/login"); }
+    public void Dispose() => _timer?.Dispose();
+}

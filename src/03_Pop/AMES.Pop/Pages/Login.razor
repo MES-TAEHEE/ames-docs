@@ -145,7 +145,8 @@
             SetStatus($"OK · Welcome, {outcome.Session.EmployeeName}", "ok");
             State.SignIn(outcome.Session);
             var lineId = outcome.Session.LineId ?? "";
-            var target = lineId.Contains("PNT", StringComparison.OrdinalIgnoreCase) ? "/pnt02"
+            var target = lineId.Contains("QC",  StringComparison.OrdinalIgnoreCase) ? "/qc07"
+                       : lineId.Contains("PNT", StringComparison.OrdinalIgnoreCase) ? "/pnt02"
                        : lineId.Contains("IMG", StringComparison.OrdinalIgnoreCase) ? "/img02"
                        : "/inj02";
             Nav.NavigateTo(target);

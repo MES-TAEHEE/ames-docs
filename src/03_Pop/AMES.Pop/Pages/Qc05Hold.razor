@@ -1,0 +1,141 @@
+@page "/qc05"
+@implements IDisposable
+@inject NavigationManager Nav
+@inject AppState State
+
+@*  QC-05 Hold / Quarantine — list held lots + release/reject. *@
+
+<div class="pop-shell qc">
+    <div class="pop-tbar">
+        <div style="display:flex; align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">QC-05 · @Session?.TerminalId · @Session?.LineId</span>
+        </div>
+        <div class="pop-tbar-r">
+            <span class="stat-on">● LIVE</span>
+            <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
+            <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
+        </div>
+    </div>
+
+    <div class="pop-bd">
+        <div class="qc-kpis k4">
+            <div class="qc-kpi bad"><div class="lbl">HELD</div><div class="val">@_holds.Count(h => h.Status == "Held")</div><div class="sub">active</div></div>
+            <div class="qc-kpi ok"><div class="lbl">RELEASED</div><div class="val">@_holds.Count(h => h.Status == "Released")</div><div class="sub">USE-AS-IS / REWORK</div></div>
+            <div class="qc-kpi dim"><div class="lbl">REJECTED</div><div class="val">@_holds.Count(h => h.Status == "Rejected")</div><div class="sub">SCRAP / RTV</div></div>
+            <div class="qc-kpi"><div class="lbl">HELD QTY</div><div class="val">@_holds.Where(h => h.Status == "Held").Sum(h => h.HeldQty).ToString("0")</div><div class="sub">EA</div></div>
+        </div>
+
+        <div class="pop-card" style="flex:1; overflow:auto;">
+            <div class="pop-card-h">▼ ACTIVE HOLDS · 보류 LOT</div>
+            @if (_holds.Count == 0)
+            {
+                <div class="qc-empty">No holds.</div>
+            }
+            else
+            {
+                <div class="qc-holds">
+                    @foreach (var h in _holds)
+                    {
+                        var sel = _sel == h.HoldId;
+                        var cls = (h.Status ?? "Held").ToLowerInvariant();
+                        <div class="qc-hold @cls @(sel ? "selected" : "")" @onclick="@(() => _sel = h.HoldId)">
+                            <div class="hh">
+                                <div class="hid">@h.HoldNumber</div>
+                                <div class="hst">@h.Status</div>
+                            </div>
+                            <div class="item">@(h.ItemName ?? h.ItemNo)</div>
+                            <div class="meta">
+                                <div><span class="l">SEVERITY</span><span class="v"> @h.Severity</span></div>
+                                <div><span class="l">QTY</span><span class="v"> @h.HeldQty</span></div>
+                                <div><span class="l">LOC</span><span class="v"> @h.PhysicalLocation</span></div>
+                                <div><span class="l">NCR</span><span class="v"> @(h.NcrNumber ?? "—")</span></div>
+                                <div><span class="l">TYPE</span><span class="v"> @h.AffectedType</span></div>
+                                <div><span class="l">@(h.HeldAt?.ToString("MM-dd HH:mm") ?? "—")</span><span class="v"></span></div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="pop-card">
+            <div class="pop-card-h">▼ RELEASE / REJECT · 처분</div>
+            <div style="display:grid; grid-template-columns:140px 220px 1fr 220px; gap:14px; align-items:flex-end;">
+                <div class="qc-fld">
+                    <label>SELECTED</label>
+                    <input class="qc-input" disabled value="@(_sel == 0 ? "(none)" : "#" + _sel)" />
+                </div>
+                <div class="qc-fld">
+                    <label>ACTION</label>
+                    <select class="qc-input" @bind="_action">
+                        <option>USE-AS-IS</option><option>REWORK</option><option>SCRAP</option><option>RTV</option>
+                    </select>
+                </div>
+                <div class="qc-fld">
+                    <label>REASON</label>
+                    <input class="qc-input" @bind="_reason" placeholder="customer concession #..." />
+                </div>
+                <button class="qc-btn ok" disabled="@(_sel == 0)" @onclick="Release">✓ APPLY DISPOSITION</button>
+            </div>
+            <div class="@_statusCls" style="margin-top:10px; font-size:13px; min-height:20px;">@_status</div>
+        </div>
+    </div>
+
+    <div class="pop-nav" style="--nav-cols:9;">
+        <button class="nav-btn"         @onclick="@(() => Go("qc01"))">▶ QC-01<small>Incoming</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qc02"))">▶ QC-02<small>In-Process</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qc03"))">▶ QC-03<small>Final</small></button>
+        <button class="nav-btn alert"   @onclick="@(() => Go("qc04"))">▶ QC-04<small>NCR</small></button>
+        <button class="nav-btn primary" @onclick="@(() => Go("qc07"))">▶ QC-07<small>Dashboard</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qc06"))">▶ QC-06<small>CAPA</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qc08"))">▶ QC-08<small>Std</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qctrc"))">▶ QC-TRC<small>Trace</small></button>
+        <button class="nav-btn muted"   @onclick="Logout">◀ LOGOUT<small></small></button>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] public PopSessionDto? Session { get; set; }
+
+    private List<QcHoldDto> _holds = new();
+    private int    _sel;
+    private string _action = "USE-AS-IS", _reason = "";
+    private string _status = "", _statusCls = "dim";
+    private DateTime _now = DateTime.Now;
+    private System.Threading.Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        Refresh();
+        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DateTime.Now; StateHasChanged(); }),
+                                            null, 5000, 5000);
+    }
+
+    private void Refresh()
+    {
+        try { _holds = PopServices.Qc.ListHolds("Held,Released,Rejected", 40); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Qc05] {ex.Message}"); }
+    }
+
+    private void Release()
+    {
+        if (_sel == 0) { SetStatus("Pick a hold first.", "fail"); return; }
+        if (string.IsNullOrWhiteSpace(_reason)) { SetStatus("Reason required.", "fail"); return; }
+        try
+        {
+            PopServices.Qc.ReleaseHold(_sel, _action, _reason,
+                                        Session?.OperatorId ?? "system",
+                                        Session?.EmployeeNo ?? "Q000");
+            SetStatus($"✓ Hold #{_sel} → {_action}", "ok");
+            _sel = 0; _reason = "";
+            Refresh();
+        }
+        catch (Exception ex) { SetStatus("× " + ex.Message, "fail"); }
+    }
+
+    private void SetStatus(string s, string c) { _status = s; _statusCls = c; }
+    private void Go(string r) => Nav.NavigateTo("/" + r);
+    private void Logout()      { State.SignOut(); Nav.NavigateTo("/login"); }
+    public void Dispose() => _timer?.Dispose();
+}
