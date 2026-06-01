@@ -1,6 +1,7 @@
 @page "/img05"
 @implements IDisposable
 @inject NavigationManager Nav
+@inject AppState State
 
 <div class="pop-shell">
     <div class="pop-tbar">
@@ -70,7 +71,7 @@
 </div>
 
 @code {
-    [CascadingParameter] public PopSessionDto Session { get; set; } = null!;
+    [CascadingParameter] public PopSessionDto? Session { get; set; }
 
     List<DefectCodeDto> _codes = new();
     DefectCodeDto?      _selected;
@@ -119,6 +120,6 @@
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[IMG-05] {ex.Message}"); }
     }
 
-    Task Logout() => BlazorHost.RaiseAction("logout");
+    void Logout() { State.SignOut(); Nav.NavigateTo("/login"); }
     public void Dispose() { }
 }

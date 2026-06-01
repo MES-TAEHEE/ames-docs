@@ -1,0 +1,157 @@
+@page "/login"
+@inject AppState State
+@inject NavigationManager Nav
+
+@*  Mirrors the VOL05_INJ01 SHIFT-LOGIN mockup: top bar with terminal id,
+    centered card with badge-scan zone + PIN keypad + info row, animated
+    LED clock. Dev convenience: a SELECT USER button opens a modal list
+    of seeded operators so testers don't have to type the badge number.
+*@
+
+<div class="login-shell">
+    <div class="pop-tbar">
+        <div style="display:flex; align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">INJ-01 · @AppConfig.Current.StationId · @AppConfig.Current.LineId</span>
+        </div>
+        <div class="pop-tbar-r">
+            <span class="stat-on">● ONLINE</span>
+            <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
+        </div>
+    </div>
+
+    <div class="login-body">
+        <div class="login-card">
+            <div class="login-title">SHIFT LOGIN</div>
+            <div class="login-sub">Scan your badge or enter your PIN</div>
+
+            <div class="badge-zone" @onclick="OpenPicker">
+                <div class="badge-icon">[ BADGE ]</div>
+                <div class="badge-text">
+                    @if (_pickedNo is null)
+                    {
+                        <div class="badge-h">Scan Employee Badge</div>
+                        <div class="badge-s">Code-128 barcode · USB HID scanner · or tap here to pick</div>
+                    }
+                    else
+                    {
+                        <div class="badge-h" style="color:var(--ok);">@_pickedNo · @_pickedName</div>
+                        <div class="badge-s">Tap to switch user</div>
+                    }
+                </div>
+            </div>
+
+            <div class="login-or">───── OR · ENTER PIN ─────</div>
+
+            <div class="pin-dots">
+                @for (var i = 0; i < 4; i++)
+                {
+                    <div class="pin-dot @(i < _pin.Length ? "on" : "")"></div>
+                }
+            </div>
+
+            <div class="login-keypad">
+                @foreach (var d in new[] { "1","2","3","4","5","6","7","8","9" })
+                {
+                    var k = d;
+                    <button class="login-key" @onclick="@(() => Press(k))">@k</button>
+                }
+                <button class="login-key del" @onclick="Backspace">←</button>
+                <button class="login-key"     @onclick="@(() => Press("0"))">0</button>
+                <button class="login-key ok"  @onclick="Submit">✓</button>
+            </div>
+
+            <div class="login-status @_statusClass">@_status</div>
+
+            <div class="login-info">
+                <div class="li-cell"><div class="li-l">LINE</div><div class="li-v">@AppConfig.Current.LineId</div></div>
+                <div class="li-cell"><div class="li-l">SHIFT</div><div class="li-v">@AppConfig.Current.DefaultShift</div></div>
+                <div class="li-cell"><div class="li-l">STATION</div><div class="li-v">@AppConfig.Current.StationId</div></div>
+            </div>
+        </div>
+    </div>
+
+    @if (_showPicker)
+    {
+        <div class="picker-backdrop" @onclick="@(() => _showPicker = false)">
+            <div class="picker-modal" @onclick:stopPropagation="true">
+                <div class="picker-h">👤 SELECT USER</div>
+                <div class="picker-list">
+                    @foreach (var p in _profiles)
+                    {
+                        <button class="picker-row" @onclick="@(() => Pick(p))">
+                            <div class="picker-no">@p.EmployeeNo</div>
+                            <div class="picker-name">@p.EmployeeName</div>
+                            <div class="picker-lines">@(string.IsNullOrEmpty(p.AssignedLinesJson) ? "(all lines)" : p.AssignedLinesJson)</div>
+                        </button>
+                    }
+                </div>
+                <button class="picker-cancel" @onclick="@(() => _showPicker = false)">✕  Cancel</button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    System.Text.StringBuilder _pin = new();
+    string?  _pickedNo, _pickedName;
+    string   _status = " ", _statusClass = "dim";
+    bool     _showPicker;
+    List<EmployeeProfileDto> _profiles = new();
+    DateTime _now = DateTime.Now;
+    System.Threading.Timer? _clock;
+
+    protected override void OnInitialized()
+    {
+        _profiles = PopServices.Auth.ListAllProfiles();
+        _clock = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DateTime.Now; StateHasChanged(); }), null, 1000, 1000);
+    }
+
+    void OpenPicker() => _showPicker = true;
+
+    void Pick(EmployeeProfileDto p)
+    {
+        _pickedNo   = p.EmployeeNo;
+        _pickedName = p.EmployeeName;
+        _showPicker = false;
+        SetStatus($"Selected {p.EmployeeNo}", "ok");
+    }
+
+    void Press(string d)
+    {
+        if (_pin.Length >= 4) return;
+        _pin.Append(d);
+        if (_pin.Length == 4) Submit();
+    }
+    void Backspace() { if (_pin.Length > 0) _pin.Length--; }
+
+    void Submit()
+    {
+        if (_pin.Length < 4) { SetStatus("PIN must be 4 digits", "fail"); return; }
+        var attemptedId = _pickedNo ?? "E001";
+        var outcome = PopServices.PopAuth.Login(new AMES.Contracts.Auth.LoginRequest
+        {
+            AttemptedId = attemptedId,
+            Pin         = _pin.ToString(),
+            Method      = AMES.Contracts.Enums.AuthMethod.Pin,
+            TerminalId  = AppConfig.Current.StationId,
+            LineId      = AppConfig.Current.LineId,
+            ShiftCode   = AppConfig.Current.DefaultShift,
+        });
+        _pin.Clear();
+
+        if (outcome.IsSuccess && outcome.Session is not null)
+        {
+            SetStatus($"OK · Welcome, {outcome.Session.EmployeeName}", "ok");
+            State.SignIn(outcome.Session);
+            var target = outcome.Session.LineId.Contains("IMG", StringComparison.OrdinalIgnoreCase) ? "/img02" : "/inj02";
+            Nav.NavigateTo(target);
+            return;
+        }
+        SetStatus($"× {outcome.Result} — {outcome.FailReason}", "fail");
+    }
+
+    void SetStatus(string text, string cls) { _status = text; _statusClass = cls; }
+
+    public void Dispose() => _clock?.Dispose();
+}
