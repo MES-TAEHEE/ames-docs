@@ -31,15 +31,17 @@ internal static class Program
         SeedEquipment     (conn);
         SeedDefectCodes   (conn);
         SeedFabricLots    (conn);
+        SeedRecipes       (conn);
+        SeedWorkOrders    (conn);
         SeedEquipStatus   (conn);
 
         Console.WriteLine();
         Console.WriteLine("[seed-img] Done. IMG POP screens now have demo data.");
         Console.WriteLine();
-        Console.WriteLine("To test IMG locally, edit appsettings.json:");
-        Console.WriteLine("  PopTerminal.LineId    = \"LINE-IMG-01\"");
-        Console.WriteLine("  PopTerminal.StationId = \"POP-IMG-01\"");
-        Console.WriteLine("then F5 — login routes to IMG-02 automatically.");
+        Console.WriteLine("To test IMG locally — no appsettings.json edit needed:");
+        Console.WriteLine("  F5 → login as I001 (PIN 1234)  or  I002 (PIN 2345)");
+        Console.WriteLine("  PopAuthService reroutes the session to LINE-IMG-01 →");
+        Console.WriteLine("  LoginForm dispatches to IMG-02 Wrapping Dashboard.");
         return 0;
     }
 
@@ -150,6 +152,72 @@ internal static class Program
                 """,
                 ("@C", r.LotCode), ("@I", r.ItemNo), ("@Q", r.Color), ("@M", r.Metres.ToString("0.000")));
             Console.WriteLine($"  roll   {r.LotCode,-22} {r.Color}  {r.Metres,6:0.0} m");
+        }
+    }
+
+    private static void SeedRecipes(SqlConnection conn)
+    {
+        // IMG also needs an MD_Item for the *finished* wrapped part — fabric is
+        // only the raw input. We reuse Door Trim LH from the INJ seed; if it
+        // exists fine, if not insert a minimal version.
+        Upsert(conn, """
+            MERGE dbo.MD_Item AS t
+            USING (SELECT @No AS ItemNo) s ON t.ItemNo = s.ItemNo
+            WHEN MATCHED THEN UPDATE SET ItemName=@N, ModifiedTS=SYSDATETIME()
+            WHEN NOT MATCHED THEN INSERT (ItemNo, ItemName, ItemNameEN, ItemType, ItemCategory,
+                                          DefaultUOM, ActiveFlag, CreatedBy, CreatedTS)
+              VALUES (@No, @N, 'Door Trim LH Wrapped', 'FINISHED', 'IMG-DOOR',
+                      'EA', 1, 'seed', SYSDATETIME());
+            """, ("@No", "DR-TRM-LH-W"), ("@N", "도어트림 LH (감싸기 완료)"));
+
+        Upsert(conn, """
+            MERGE dbo.MD_Recipe AS t
+            USING (SELECT @R AS RecipeID) s ON t.RecipeID = s.RecipeID
+            WHEN MATCHED THEN UPDATE SET RecipeName=@N, ItemNo=@I, CycleTime=38,
+                                          Status='Active', Version='1.0', ModifiedTS=SYSDATETIME()
+            WHEN NOT MATCHED THEN INSERT (RecipeID, RecipeName, RecipeType, ItemNo, CycleTime,
+                                          Version, Status, EffectiveDate, CreatedBy, CreatedTS)
+              VALUES (@R, @N, 'WRAPPING', @I, 38, '1.0', 'Active', GETDATE(),
+                      'seed', SYSDATETIME());
+            """, ("@R", "RCP-IMG-A1"), ("@N", "IMG Wrap Recipe"), ("@I", "DR-TRM-LH-W"));
+        Console.WriteLine("  recipe RCP-IMG-A1   wrap 38s / DR-TRM-LH-W");
+    }
+
+    private static void SeedWorkOrders(SqlConnection conn)
+    {
+        var wos = new (string No, string Item, int Qty, int Done, int Pri, int DueOffset)[]
+        {
+            ("WO-IMG-2026-0529-301", "DR-TRM-LH-W", 192, 0, 1, 2),
+            ("WO-IMG-2026-0529-302", "DR-TRM-LH-W", 100, 0, 3, 4),
+        };
+        foreach (var w in wos)
+        {
+            var sql = $"""
+                MERGE dbo.PP_WorkOrder AS t
+                USING (SELECT @No AS WoNumber) s ON t.WoNumber = s.WoNumber
+                WHEN MATCHED THEN UPDATE SET
+                    ItemNo=@I, OrderQty=@Q, OpenQty=@Q, CompletedQty=@D, LineID='LINE-IMG-01',
+                    RecipeID='RCP-IMG-A1', Routing='A',
+                    PlannedStart=DATEADD(day,-1,SYSDATETIME()),
+                    PlannedEnd=DATEADD(day,{w.DueOffset},SYSDATETIME()),
+                    DueDate=DATEADD(day,{w.DueOffset},GETDATE()), Status='Released',
+                    Priority=@P, ReleasedAt=SYSDATETIME(),
+                    TerminalLock=NULL, ActualStart=NULL, ActualEnd=NULL,
+                    ModifiedTS=SYSDATETIME()
+                WHEN NOT MATCHED THEN INSERT
+                    (WoNumber, ItemNo, OrderQty, OpenQty, CompletedQty, ScrapQty, LineID,
+                     RecipeID, Routing, PlannedStart, PlannedEnd, DueDate, Status,
+                     Priority, ReleasedAt, CreatedBy, CreatedTS)
+                  VALUES
+                    (@No, @I, @Q, @Q, @D, 0, 'LINE-IMG-01', 'RCP-IMG-A1', 'A',
+                     DATEADD(day,-1,SYSDATETIME()), DATEADD(day,{w.DueOffset},SYSDATETIME()),
+                     DATEADD(day,{w.DueOffset},GETDATE()), 'Released', @P, SYSDATETIME(),
+                     'seed', SYSDATETIME());
+                """;
+            Upsert(conn, sql,
+                ("@No", w.No), ("@I", w.Item),
+                ("@Q", w.Qty.ToString()), ("@D", w.Done.ToString()), ("@P", w.Pri.ToString()));
+            Console.WriteLine($"  wo     {w.No,-24} {w.Item,-14} {w.Done}/{w.Qty}  D-{w.DueOffset}");
         }
     }
 

@@ -27,12 +27,21 @@ internal static class Program
     private static readonly (string Id, string EmpNo, string Name, string Dept, string Pin,
         string? Lines, string Shift)[] Users =
     {
+        // ── INJ operators (사출) ───────────────────────────────────────
         ("user-e001", "E001", "Kim Min-jun",     "Production", "1234",
             """["LINE-INJ-01"]""",                                            "DAY"),
         ("user-e002", "E002", "Lee Soo-yeon",    "Production", "2345",
             """["LINE-INJ-01"]""",                                            "DAY"),
         ("user-e003", "E003", "Park Hyun-woo",   "Production", "3456",
             """["LINE-INJ-01","LINE-INJ-02"]""",                              "NIGHT"),
+
+        // ── IMG operators (감싸기) ─────────────────────────────────────
+        ("user-i001", "I001", "Choi Joo-won",    "Production", "1234",
+            """["LINE-IMG-01"]""",                                            "DAY"),
+        ("user-i002", "I002", "Han Ji-hye",      "Production", "2345",
+            """["LINE-IMG-01"]""",                                            "DAY"),
+
+        // ── Supervisor with access to all lines ────────────────────────
         ("user-s001", "S001", "Supervisor Choi", "Production", "9999",
             null /* all lines */,                                             "DAY"),
     };
