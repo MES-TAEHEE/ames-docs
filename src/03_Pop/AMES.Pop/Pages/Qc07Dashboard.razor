@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject NavigationManager Nav
 @inject AppState State
+@inject ConfirmService Confirmer
 
 @*
     QC-07 Dashboard (signature). Login landing for QC inspectors.
@@ -122,6 +123,6 @@
     }
 
     private void Go(string r) => Nav.NavigateTo("/" + r);
-    private void Logout()      { Nav.NavigateTo("/login", replace: true); State.SignOut(); }
+    private async Task Logout() { if (!await Confirmer.AskAsync("Log out?", "End your shift and return to the login screen?", "Log out", "Stay", destructive: true)) return; Nav.NavigateTo("/login", replace: true); State.SignOut(); }
     public void Dispose() => _timer?.Dispose();
 }

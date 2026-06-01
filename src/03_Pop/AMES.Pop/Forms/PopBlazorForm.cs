@@ -28,6 +28,8 @@ public class PopBlazorForm : PopForm
         services.AddBlazorWebViewDeveloperTools();
 #endif
         services.AddSingleton<AppState>();
+        services.AddSingleton<ToastService>();
+        services.AddSingleton<ConfirmService>();
 
         _webView = new BlazorWebView
         {
