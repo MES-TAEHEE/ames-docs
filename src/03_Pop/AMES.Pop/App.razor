@@ -1,0 +1,12 @@
+@*  Top-level Blazor component. Just a router that loads matching @page components from the Pages/ folder. *@
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" />
+    </Found>
+    <NotFound>
+        <div style="padding:40px;color:#fca5a5;font-family:Consolas,monospace;">
+            <h2>404 — route not found</h2>
+            <p>The screen you tried to open doesn't have a matching @@page component yet.</p>
+        </div>
+    </NotFound>
+</Router>

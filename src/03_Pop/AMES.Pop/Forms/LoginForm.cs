@@ -551,8 +551,8 @@ public sealed class LoginForm : PopForm
         var moduleCode = ModuleFromLine(session.LineId);
         Form dash = moduleCode switch
         {
-            "IMG" => new Img02DashboardForm(session),
-            _     => new Inj02DashboardFormV2(session),   // PNG-backed PoC
+            "IMG" => new Img02DashboardForm(session),       // still old WinForms — pending Blazor port
+            _     => new PopBlazorForm(session, "/inj02"),  // Blazor Hybrid PoC
         };
         using (dash) dash.ShowDialog(this);
 
