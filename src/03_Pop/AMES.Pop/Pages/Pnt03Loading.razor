@@ -98,16 +98,17 @@
         </div>
     </div>
 
-    <div class="pop-nav" style="--nav-cols:9;">
-        <button class="nav-btn"          @onclick="@(() => Go("pnt01"))">▶ PNT-01<small>Plan</small></button>
-        <button class="nav-btn"          @onclick="@(() => Go("pnt02"))">▶ PNT-02<small>Pre-Issue</small></button>
-        <button class="nav-btn"          @onclick="@(() => Go("pnt04"))">▶ PNT-04<small>Track Board</small></button>
-        <button class="nav-btn primary"  @onclick="@(() => Go("pnt05"))">▶ PNT-05<small>Oven</small></button>
-        <button class="nav-btn"          @onclick="@(() => Go("pnt06"))">▶ PNT-06<small>Unloading</small></button>
-        <button class="nav-btn gold"     @onclick="@(() => Go("pnt07"))">▶ PNT-07<small>Label</small></button>
-        <button class="nav-btn warn"     @onclick="@(() => Go("pnt08"))">▶ PNT-08<small>Defect</small></button>
-        <button class="nav-btn"          @onclick="@(() => Go("pnt09"))">▶ PNT-09<small>Shift Rpt</small></button>
-        <button class="nav-btn muted"    @onclick="Logout">◀ LOGOUT<small></small></button>
+    <div class="pop-nav" style="--nav-cols:10;">
+        <button class="nav-btn" @onclick="@(() => Go("pnt01"))">PNT-01<small>Plan</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("pnt02"))">PNT-02<small>Pre-Issue</small></button>
+        <button class="nav-btn active" @onclick="@(() => Go("pnt03"))">PNT-03<small>Loading</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("pnt04"))">PNT-04<small>Track Board</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("pnt05"))">PNT-05<small>Oven</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("pnt06"))">PNT-06<small>Unloading</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("pnt07"))">PNT-07<small>Label</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("pnt08"))">PNT-08<small>Defect</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("pnt09"))">PNT-09<small>Shift Rpt</small></button>
+        <button class="nav-btn muted" @onclick="Logout">LOGOUT<small>End shift</small></button>
     </div>
 </div>
 

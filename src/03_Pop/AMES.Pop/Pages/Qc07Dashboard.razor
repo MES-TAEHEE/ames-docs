@@ -76,16 +76,17 @@
         </div>
     </div>
 
-    <div class="pop-nav" style="--nav-cols:9;">
-        <button class="nav-btn"          @onclick="@(() => Go("qc01"))">▶ QC-01<small>Incoming</small></button>
-        <button class="nav-btn"          @onclick="@(() => Go("qc02"))">▶ QC-02<small>In-Process</small></button>
-        <button class="nav-btn"          @onclick="@(() => Go("qc03"))">▶ QC-03<small>Final</small></button>
-        <button class="nav-btn alert"    @onclick="@(() => Go("qc04"))">▶ QC-04<small>NCR</small></button>
-        <button class="nav-btn warn"     @onclick="@(() => Go("qc05"))">▶ QC-05<small>Hold</small></button>
-        <button class="nav-btn"          @onclick="@(() => Go("qc06"))">▶ QC-06<small>CAPA</small></button>
-        <button class="nav-btn"          @onclick="@(() => Go("qc08"))">▶ QC-08<small>Std</small></button>
-        <button class="nav-btn"          @onclick="@(() => Go("qctrc"))">▶ QC-TRC<small>Trace</small></button>
-        <button class="nav-btn muted"    @onclick="Logout">◀ LOGOUT<small></small></button>
+    <div class="pop-nav" style="--nav-cols:10;">
+        <button class="nav-btn" @onclick="@(() => Go("qc01"))">QC-01<small>Incoming</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("qc02"))">QC-02<small>In-Process</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("qc03"))">QC-03<small>Final</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("qc04"))">QC-04<small>NCR</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("qc05"))">QC-05<small>Hold</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("qc06"))">QC-06<small>CAPA</small></button>
+        <button class="nav-btn active" @onclick="@(() => Go("qc07"))">QC-07<small>Dashboard</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("qc08"))">QC-08<small>Std</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("qctrc"))">QC-TRC<small>Trace</small></button>
+        <button class="nav-btn muted" @onclick="Logout">LOGOUT<small>End shift</small></button>
     </div>
 </div>
 
