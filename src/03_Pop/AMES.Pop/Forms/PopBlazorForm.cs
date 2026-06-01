@@ -34,17 +34,19 @@ public class PopBlazorForm : PopForm
 
         _webView = new BlazorWebView
         {
-            Dock              = DockStyle.Fill,
-            HostPage          = "wwwroot/index.html",
-            Services          = services.BuildServiceProvider(),
+            Dock      = DockStyle.Fill,
+            HostPage  = "wwwroot/index.html",
+            StartPath = _route,    // navigate straight to the route so the
+                                   // user never sees the brief "/" landing
+                                   // (which has no @page and showed 404).
+            Services  = services.BuildServiceProvider(),
         };
         _webView.RootComponents.Add(new RootComponent(
             selector:      "#app",
             componentType: typeof(AppRoot),
             parameters:    new Dictionary<string, object?>
             {
-                ["Session"]      = _session,
-                ["InitialRoute"] = _route,
+                ["Session"] = _session,
             }));
         Controls.Add(_webView);
 

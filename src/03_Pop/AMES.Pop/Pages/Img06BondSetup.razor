@@ -1,0 +1,95 @@
+@page "/img06"
+@implements IDisposable
+@inject NavigationManager Nav
+
+<div class="pop-shell">
+    <div class="pop-tbar">
+        <div style="display:flex; align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">IMG-06 · BOND SETUP · @Session.LineId</span>
+        </div>
+        <div class="pop-tbar-r">
+            <span class="stat-on">● PLC ONLINE</span>
+            <span>@Session.EmployeeName · @Session.ShiftCode</span>
+        </div>
+    </div>
+
+    <div class="pop-bd">
+        <div class="recipe-banner">
+            <div>
+                <div class="recipe-l">▼ ACTIVE RECIPE</div>
+                <div class="recipe-v">@(_bond?.RecipeId ?? "(none loaded)")</div>
+                <div class="recipe-s">@(_wo is null ? "no WO" : $"WO {_wo.WoNumber}")</div>
+            </div>
+            <div style="text-align:right;">
+                <div class="recipe-l">Status</div>
+                <div class="recipe-v" style="color:@(_bond is null ? "var(--alert)" : "var(--ok)");">@(_bond?.Status ?? "NO RECIPE")</div>
+                <div class="recipe-s">@(_bond?.LoadedAt?.ToString("HH:mm") ?? "—")</div>
+            </div>
+        </div>
+
+        <div class="param-grid">
+            <div class="param-card ok">
+                <div class="param-h">▼ PRESSURE</div>
+                <div><span class="param-v" style="color:var(--ok);">@(_bond?.PressureSp.ToString("0.0") ?? "—")</span><span class="param-u">bar</span></div>
+                <div class="param-spec">setpoint · tolerance ±0.30 bar</div>
+                <div class="param-bar"><div class="param-bar-fill" style="width:50%;"></div></div>
+            </div>
+            <div class="param-card ok">
+                <div class="param-h">▼ TEMPERATURE</div>
+                <div><span class="param-v" style="color:var(--ok);">@(_bond?.TempSp.ToString("0") ?? "—")</span><span class="param-u">°C</span></div>
+                <div class="param-spec">setpoint · tolerance ±5 °C</div>
+                <div class="param-bar"><div class="param-bar-fill" style="width:50%;"></div></div>
+            </div>
+            <div class="param-card ok">
+                <div class="param-h">▼ HOLD TIME</div>
+                <div><span class="param-v" style="color:var(--ok);">@(_bond?.HoldSecSp.ToString() ?? "—")</span><span class="param-u">sec</span></div>
+                <div class="param-spec">setpoint · tolerance ±10 s</div>
+                <div class="param-bar"><div class="param-bar-fill" style="width:50%;"></div></div>
+            </div>
+        </div>
+
+        <div class="recipe-actions">
+            <button class="r-btn r-btn-sec"  @onclick="@(() => Nav.NavigateTo("/img02"))">◀ Back</button>
+            <button class="r-btn r-btn-sec"  @onclick="Reload">⟳ Reload Active</button>
+            <button class="r-btn r-btn-pri"  disabled="@(_wo is null)" @onclick="LoadRecipe">📥 Load WO Recipe</button>
+        </div>
+    </div>
+
+    <div class="pop-nav" style="--nav-cols:2;">
+        <button class="nav-btn"      @onclick="@(() => Nav.NavigateTo("/img02"))">◀ Dashboard</button>
+        <button class="nav-btn muted" @onclick="Logout">◀ LOGOUT</button>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] public PopSessionDto Session { get; set; } = null!;
+
+    WorkOrderDto? _wo;
+    BondSetupDto? _bond;
+
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
+    {
+        _wo   = PopServices.WorkOrders.GetActiveForTerminal(Session.LineId, Session.TerminalId)
+             ?? PopServices.WorkOrders.ListForLine(Session.LineId).FirstOrDefault();
+        _bond = PopServices.Bond.GetActiveForLine(Session.LineId);
+    }
+
+    void LoadRecipe()
+    {
+        if (_wo is null) return;
+        try
+        {
+            PopServices.Bond.LoadRecipe(Session.LineId, _wo.WoId, _wo.RecipeId ?? "RCP-DEFAULT",
+                pressure: 4.2m, temp: 90m, holdSec: 120, tension: 20m,
+                Session.OperatorId, Session.EmployeeNo);
+            Reload();
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[IMG-06] {ex.Message}"); }
+    }
+
+    Task Logout() => BlazorHost.RaiseAction("logout");
+    public void Dispose() { }
+}

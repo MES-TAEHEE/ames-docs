@@ -1,6 +1,6 @@
 @page "/inj02"
 @implements IDisposable
-@inject IServiceProvider Services
+@inject NavigationManager Nav
 
 @*
     INJ-02 Dashboard — Blazor Hybrid version.
@@ -110,12 +110,12 @@
 
     @* ── bottom nav ────────────────────────────────────────────────── *@
     <div class="pop-nav" style="--nav-cols:7;">
-        <button class="nav-btn"          @onclick="@(() => Nav("inj03"))">▶ INJ-03<small>WO Confirm</small></button>
-        <button class="nav-btn primary"  @onclick="@(() => Nav("inj04"))">▶ INJ-04<small>Prod Entry</small></button>
-        <button class="nav-btn warn"     @onclick="@(() => Nav("inj05"))">▶ INJ-05<small>Defect</small></button>
-        <button class="nav-btn gold"     @onclick="@(() => Nav("inj06"))">▶ INJ-06<small>Mold Change</small></button>
-        <button class="nav-btn"          @onclick="@(() => Nav("inj07"))">▶ INJ-07<small>Prod Status</small></button>
-        <button class="nav-btn alert"    @onclick="@(() => Nav("inj08"))">🚨 INJ-08<small>ANDON</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("inj03"))">▶ INJ-03<small>WO Confirm</small></button>
+        <button class="nav-btn primary"  @onclick="@(() => Go("inj04"))">▶ INJ-04<small>Prod Entry</small></button>
+        <button class="nav-btn warn"     @onclick="@(() => Go("inj05"))">▶ INJ-05<small>Defect</small></button>
+        <button class="nav-btn gold"     @onclick="@(() => Go("inj06"))">▶ INJ-06<small>Mold Change</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("inj07"))">▶ INJ-07<small>Prod Status</small></button>
+        <button class="nav-btn alert"    @onclick="@(() => Go("inj08"))">🚨 INJ-08<small>ANDON</small></button>
         <button class="nav-btn muted"    @onclick="Logout">◀ LOGOUT<small></small></button>
     </div>
 </div>
@@ -224,10 +224,8 @@
         }
     }
 
-    private Task Nav(string screen)
-        => BlazorHost.RaiseAction("nav:" + screen);
-
-    private Task Logout() => BlazorHost.RaiseAction("logout");
+    private void Go(string route) => Nav.NavigateTo("/" + route);
+    private Task Logout()           => BlazorHost.RaiseAction("logout");
 
     public void Dispose()
     {
