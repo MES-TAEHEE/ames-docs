@@ -1,0 +1,75 @@
+@*  QC-08 Inspection Std Browser user manual. *@
+
+<div class="help-doc">
+    <div>
+        <div class="help-h1">QC-08 · INSPECTION STD</div>
+        <div class="help-sub">검사 기준서 뷰어 — Active 기준서 + 항목 JSON 미리보기 (읽기 전용)</div>
+
+        <svg class="help-svg" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="708" height="468" rx="10" fill="#000" stroke="rgba(255,255,255,.18)" stroke-width="1.5" />
+            <rect class="hs-region tbar" x="14" y="14" width="692" height="42" fill="#1a0000" stroke="rgba(220,38,38,.35)" />
+
+            @for (var i = 0; i < 4; i++)
+            {
+                var x = 14 + i * 174; var cls = "";
+                var titles = new[]{"ACTIVE","INCOMING","IN-PROCESS","FINAL"};
+                var vals = new[]{"3","1","1","1"};
+                <g>
+                    <rect class="hs-region @cls" x="@x" y="68" width="162" height="78" />
+                    <text class="hs-sub" x="@(x+12)" y="88" fill="#fca5a5">@titles[i]</text>
+                    <text class="hs-label" x="@(x+12)" y="128" style="font-size:24px;">@vals[i]</text>
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="78" r="14" />
+            <text class="hs-num-tx" x="24" y="78">1</text>
+
+            <rect class="hs-region" x="14" y="158" width="338" height="270" />
+            <text class="hs-sub" x="28" y="178" fill="#fca5a5">▼ STANDARDS</text>
+            @for (var i = 0; i < 3; i++)
+            {
+                var y = 194 + i * 76;
+                var sel = i == 0;
+                var stds = new[] {"STD-INC-DR-TRM-LH","STD-IP-DR-TRM-LH","STD-FIN-DR-TRM-LH"};
+                var labels = new[] {"Incoming","InProcess","Final"};
+                var aqls = new[] {"1.50","2.50","0.65"};
+                <g>
+                    <rect class="hs-region @(sel ? "warn" : "")" x="28" y="@y" width="310" height="68" />
+                    <text class="hs-sub" x="42" y="@(y+18)">@stds[i] · v1.0</text>
+                    <text class="hs-label" x="42" y="@(y+38)" style="font-size:13px;">Door Trim LH · @labels[i]</text>
+                    <text class="hs-sub" x="42" y="@(y+58)">AQL @aqls[i] · 1/60</text>
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="168" r="14" />
+            <text class="hs-num-tx" x="24" y="168">2</text>
+
+            <rect class="hs-region" x="368" y="158" width="338" height="270" />
+            <text class="hs-sub" x="382" y="178" fill="#fca5a5">▼ DETAIL · #1</text>
+            <text class="hs-sub" x="382" y="208" fill="#fca5a5">Code:</text>
+            <text class="hs-sub" x="450" y="208">STD-INC-DR-TRM-LH v1.0</text>
+            <text class="hs-sub" x="382" y="232" fill="#fca5a5">Type:</text>
+            <text class="hs-sub" x="450" y="232">Incoming  AQL 1.50</text>
+            <text class="hs-sub" x="382" y="256" fill="#fca5a5">Items:</text>
+
+            <rect x="382" y="270" width="320" height="146" rx="6" fill="rgba(0,0,0,.4)" stroke="rgba(58,20,20,.6)" />
+            <text class="hs-sub" x="394" y="290" fill="#fdba74" style="font-family:monospace;">[{ "name":"Length",</text>
+            <text class="hs-sub" x="394" y="308" fill="#fdba74" style="font-family:monospace;">    "lsl":210, "usl":212 },</text>
+            <text class="hs-sub" x="394" y="326" fill="#fdba74" style="font-family:monospace;">{ "name":"Width",</text>
+            <text class="hs-sub" x="394" y="344" fill="#fdba74" style="font-family:monospace;">    "lsl":89.5, "usl":90.5 },</text>
+            <text class="hs-sub" x="394" y="362" fill="#fdba74" style="font-family:monospace;">{ "name":"Adhesion",</text>
+            <text class="hs-sub" x="394" y="380" fill="#fdba74" style="font-family:monospace;">    "lsl":4.0 } ]</text>
+            <circle class="hs-num" cx="378" cy="168" r="14" />
+            <text class="hs-num-tx" x="378" y="168">3</text>
+
+            <rect class="hs-region nav" x="14" y="432" width="692" height="32" />
+        </svg>
+    </div>
+
+    <div>
+        <div class="help-section-h">▶ STEPS · 단계</div>
+        <div class="help-steps">
+            <div class="help-step"><div class="help-step-num">1</div><div class="help-step-body"><div class="help-step-en">Active standards count by type.</div><div class="help-step-ko">유형별 활성 기준서 카운트.</div></div></div>
+            <div class="help-step warn"><div class="help-step-num">2</div><div class="help-step-body"><div class="help-step-en">Standard list — each card shows code/version, item, AQL, sample interval.</div><div class="help-step-ko">기준서 목록 — 코드/버전, 아이템, AQL, 샘플 주기.</div></div></div>
+            <div class="help-step"><div class="help-step-num">3</div><div class="help-step-body"><div class="help-step-en">Selected std's detail + raw InspItemsJson preview.</div><div class="help-step-ko">선택 기준서 상세 + JSON 항목 미리보기.</div></div></div>
+        </div>
+    </div>
+</div>

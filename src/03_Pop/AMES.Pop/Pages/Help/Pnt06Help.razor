@@ -1,0 +1,67 @@
+@*  PNT-06 Unloading (R3 RFID) user manual. *@
+
+<div class="help-doc">
+    <div>
+        <div class="help-h1">PNT-06 · UNLOADING</div>
+        <div class="help-sub">언로딩 — 양품/불량 확정 (R3 리더)</div>
+
+        <svg class="help-svg" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="708" height="468" rx="10" fill="#000" stroke="rgba(255,255,255,.18)" stroke-width="1.5" />
+            <rect class="hs-region tbar" x="14" y="14" width="692" height="42" fill="#1a0800" stroke="rgba(234,88,12,.35)" />
+
+            @for (var i = 0; i < 4; i++)
+            {
+                var x = 14 + i * 174; var cls = new[]{"warn","","ok","bad"}[i];
+                var titles = new[]{"READY","SELECTED","GOOD","DEFECT"};
+                var vals = new[]{"4","#7","32","0"};
+                <g>
+                    <rect class="hs-region @cls" x="@x" y="68" width="162" height="78" />
+                    <text class="hs-sub" x="@(x+12)" y="88">@titles[i]</text>
+                    <text class="hs-label" x="@(x+12)" y="128" style="font-size:24px;">@vals[i]</text>
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="78" r="14" />
+            <text class="hs-num-tx" x="24" y="78">1</text>
+
+            <rect class="hs-region" x="14" y="158" width="692" height="200" />
+            <text class="hs-sub" x="28" y="178" fill="#fdba74">▼ LOADED / OVEN LOTS</text>
+            @for (var i = 0; i < 4; i++)
+            {
+                var col = i % 4; var x = 36 + col * 168;
+                var cls = i == 0 ? "warn" : i < 3 ? "ok" : "";
+                <g>
+                    <rect class="hs-region @cls" x="@x" y="196" width="160" height="148" />
+                    <text class="hs-sub" x="@(x+10)" y="216">LOT #@(7+i)</text>
+                    <text class="hs-label" x="@(x+10)" y="244" style="font-size:13px;">DOOR TRIM</text>
+                    <text class="hs-sub" x="@(x+10)" y="270">JIG-00@(8+i)</text>
+                    <text class="hs-sub" x="@(x+10)" y="294">LOADED 32 EA</text>
+                    <text class="hs-sub" x="@(x+10)" y="320" fill="#fdba74">@(new[]{"OVEN","OVEN","LOADED","LOADED"}[i])</text>
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="168" r="14" />
+            <text class="hs-num-tx" x="24" y="168">2</text>
+
+            <rect class="hs-region" x="14" y="370" width="350" height="46" />
+            <text class="hs-sub" x="28" y="396">GOOD 32  ·  DEFECT 0</text>
+            <circle class="hs-num" cx="24" cy="378" r="13" />
+            <text class="hs-num-tx" x="24" y="378">3</text>
+
+            <rect class="hs-region ok" x="376" y="370" width="330" height="46" />
+            <text class="hs-label" x="541" y="402" text-anchor="middle" style="font-size:18px;">✓ CONFIRM UNLOAD</text>
+            <circle class="hs-num" cx="386" cy="378" r="13" />
+            <text class="hs-num-tx" x="386" y="378">4</text>
+
+            <rect class="hs-region nav" x="14" y="432" width="692" height="32" />
+        </svg>
+    </div>
+
+    <div>
+        <div class="help-section-h">▶ STEPS · 단계</div>
+        <div class="help-steps">
+            <div class="help-step"><div class="help-step-num">1</div><div class="help-step-body"><div class="help-step-en">4 KPI — Ready / Selected / Good / Defect.</div><div class="help-step-ko">4개 KPI.</div></div></div>
+            <div class="help-step warn"><div class="help-step-num">2</div><div class="help-step-body"><div class="help-step-en">Pick a LOADED or OVEN lot — yellow border = selected.</div><div class="help-step-ko">LOADED/OVEN LOT 선택.</div></div></div>
+            <div class="help-step"><div class="help-step-num">3</div><div class="help-step-body"><div class="help-step-en">Enter Good / Defect qty.</div><div class="help-step-ko">양품/불량 수량 입력.</div></div></div>
+            <div class="help-step ok"><div class="help-step-num">4</div><div class="help-step-body"><div class="help-step-en">CONFIRM advances to CONFIRMED + raises an R3 event.</div><div class="help-step-ko">확정 시 상태 CONFIRMED + R3 이벤트 발생.</div></div></div>
+        </div>
+    </div>
+</div>

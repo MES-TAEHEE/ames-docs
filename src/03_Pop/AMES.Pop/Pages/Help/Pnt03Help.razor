@@ -1,0 +1,83 @@
+@*  PNT-03 Loading (R1 RFID) user manual. *@
+
+<div class="help-doc">
+    <div>
+        <div class="help-h1">PNT-03 · LOADING</div>
+        <div class="help-sub">지그 로딩 (R1 리더) — PRE LOT 선택 → 지그 선택 → 결합 &amp; 로드</div>
+
+        <svg class="help-svg" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="708" height="468" rx="10" fill="#000" stroke="rgba(255,255,255,.18)" stroke-width="1.5" />
+            <rect class="hs-region tbar" x="14" y="14" width="692" height="42" fill="#1a0800" stroke="rgba(234,88,12,.35)" />
+            <text class="hs-sub" x="34" y="40" fill="#fdba74">PNT-03 · R1 ONLINE</text>
+
+            @* ① KPI row *@
+            <rect class="hs-region warn" x="14"  y="68" width="170" height="68" />
+            <text class="hs-sub" x="28" y="88">PRE LOTS</text>
+            <text class="hs-label" x="40" y="124" style="font-size:24px;">2</text>
+
+            <rect class="hs-region ok" x="194"  y="68" width="170" height="68" />
+            <text class="hs-sub" x="208" y="88">JIGS FREE</text>
+            <text class="hs-label" x="220" y="124" style="font-size:24px;">5</text>
+
+            <rect class="hs-region"     x="374" y="68" width="332" height="68" />
+            <text class="hs-sub" x="388" y="88">SELECTED LOT · #5</text>
+            <text class="hs-sub" x="388" y="120">DOOR TRIM LH · RAL 9005</text>
+            <circle class="hs-num" cx="24" cy="78" r="14" />
+            <text class="hs-num-tx" x="24" y="78">1</text>
+
+            @* ② PRE lots list *@
+            <rect class="hs-region" x="14" y="146" width="338" height="200" />
+            <text class="hs-sub" x="28" y="166" fill="#fdba74">▼ PRE LOTS · 결합 대기</text>
+            @for (var i = 0; i < 2; i++)
+            {
+                var y = 180 + i * 78;
+                var sel = i == 0;
+                <g>
+                    <rect class="hs-region @(sel ? "warn" : "")" x="28" y="@y" width="310" height="68" />
+                    <text class="hs-sub" x="42" y="@(y+22)">LOT #@(5+i)  ·  PRE</text>
+                    <text class="hs-label" x="42" y="@(y+44)" style="font-size:14px;">DOOR TRIM LH · 32 EA</text>
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="156" r="14" />
+            <text class="hs-num-tx" x="24" y="156">2</text>
+
+            @* ③ Jig grid *@
+            <rect class="hs-region" x="368" y="146" width="338" height="200" />
+            <text class="hs-sub" x="382" y="166" fill="#fdba74">▼ JIG SCAN · R1 READER</text>
+            @for (var i = 0; i < 6; i++)
+            {
+                var col = i % 3; var row = i / 3;
+                var x = 384 + col * 108; var y = 178 + row * 78;
+                var sel = i == 2;
+                var bad = i == 5;
+                <g>
+                    <rect class="hs-region @(sel ? "warn" : "") @(bad ? "bad" : "")" x="@x" y="@y" width="96" height="64" />
+                    <text class="hs-sub" x="@(x+8)" y="@(y+18)">JIG-00@(i+7)</text>
+                    <text class="hs-label" x="@(x+8)" y="@(y+44)" style="font-size:18px;" fill="@(bad ? "#fca5a5" : "#22c55e")">@(80-i*4)%</text>
+                </g>
+            }
+            <circle class="hs-num" cx="378" cy="156" r="14" />
+            <text class="hs-num-tx" x="378" y="156">3</text>
+
+            @* ④ Action *@
+            <rect class="hs-region" x="14" y="362" width="240" height="56" />
+            <text class="hs-sub" x="28" y="396">QTY LOADED  ·  32</text>
+            <rect class="hs-region ok" x="268" y="362" width="438" height="56" />
+            <text class="hs-label" x="487" y="396" text-anchor="middle" style="font-size:20px;">✓ BIND &amp; LOAD</text>
+            <circle class="hs-num" cx="278" cy="372" r="14" />
+            <text class="hs-num-tx" x="278" y="372">4</text>
+
+            <rect class="hs-region nav" x="14" y="432" width="692" height="32" />
+        </svg>
+    </div>
+
+    <div>
+        <div class="help-section-h">▶ STEPS · 단계</div>
+        <div class="help-steps">
+            <div class="help-step"><div class="help-step-num">1</div><div class="help-step-body"><div class="help-step-en">PRE / FREE jig counters + selected lot/jig context.</div><div class="help-step-ko">PRE 카운트 + 가용 지그 + 선택 정보.</div></div></div>
+            <div class="help-step warn"><div class="help-step-num">2</div><div class="help-step-body"><div class="help-step-en">Pick a PRE lot card.</div><div class="help-step-ko">PRE LOT 카드 선택.</div></div></div>
+            <div class="help-step"><div class="help-step-num">3</div><div class="help-step-body"><div class="help-step-en">Jig tile shows life % — yellow ≥ 70% · red ≥ 85% · grey = in use. Tap an available jig.</div><div class="help-step-ko">지그 수명률 — 노랑 70%↑ · 빨강 85%↑ · 회색 = 사용중. 가용 지그 선택.</div></div></div>
+            <div class="help-step ok"><div class="help-step-num">4</div><div class="help-step-body"><div class="help-step-en">BIND &amp; LOAD writes PNT_JigLoad + advances lot to LOADED + raises a synthetic R1 event for PNT-04.</div><div class="help-step-ko">결합 시 PNT_JigLoad 기록 + LOT 상태 LOADED + R1 이벤트 발생.</div></div></div>
+        </div>
+    </div>
+</div>

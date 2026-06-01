@@ -1,0 +1,133 @@
+@*  Login screen user manual. *@
+
+<div class="help-doc">
+    <div>
+        <div class="help-h1">SHIFT LOGIN</div>
+        <div class="help-sub">교대 로그인 — 배지 스캔 또는 PIN 입력</div>
+
+        <svg class="help-svg" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="708" height="468" rx="10" fill="#000" stroke="rgba(255,255,255,.18)" stroke-width="1.5" />
+
+            @* Top bar *@
+            <rect class="hs-region tbar" x="14" y="14" width="692" height="42" />
+            <text class="hs-label" x="34" y="40">A-MES</text>
+            <text class="hs-sub"   x="98" y="40">INJ-01 · STATION · LINE</text>
+
+            @* Card centre *@
+            <rect class="hs-region" x="170" y="80" width="380" height="380" />
+            <text class="hs-sub"   x="360" y="110" text-anchor="middle">SHIFT LOGIN</text>
+
+            @* ① Badge zone *@
+            <rect class="hs-region warn" x="190" y="130" width="340" height="64" />
+            <text class="hs-sub"   x="360" y="160" text-anchor="middle">[ BADGE ]</text>
+            <text class="hs-sub"   x="360" y="180" text-anchor="middle">Scan or tap to pick a user</text>
+            <circle class="hs-num" cx="206" cy="146" r="14" />
+            <text class="hs-num-tx" x="206" y="146">1</text>
+
+            @* ② PIN dots *@
+            <rect class="hs-region dim" x="240" y="210" width="240" height="34" />
+            <circle cx="290" cy="227" r="9" fill="#22c55e" />
+            <circle cx="330" cy="227" r="9" fill="#22c55e" />
+            <circle cx="370" cy="227" r="9" fill="rgba(255,255,255,.2)" />
+            <circle cx="410" cy="227" r="9" fill="rgba(255,255,255,.2)" />
+            <circle cx="450" cy="227" r="9" fill="rgba(255,255,255,.2)" />
+            <text class="hs-sub"   x="226" y="232" text-anchor="end">●●○○○</text>
+            <circle class="hs-num" cx="250" cy="220" r="13" />
+            <text class="hs-num-tx" x="250" y="220">2</text>
+
+            @* ③ Keypad 4×3 *@
+            @for (var r = 0; r < 4; r++)
+            {
+                for (var c = 0; c < 3; c++)
+                {
+                    var x = 200 + c * 110; var y = 260 + r * 42;
+                    var keys = new[] { "1","2","3","4","5","6","7","8","9","←","0","✓" };
+                    var fill = keys[r*3+c] == "✓" ? "rgba(34,197,94,.4)"
+                              : keys[r*3+c] == "←" ? "rgba(252,165,165,.3)" : "rgba(255,255,255,.06)";
+                    var label = keys[r*3+c];
+                    <g>
+                        <rect x="@x" y="@y" width="100" height="32" rx="6" fill="@fill" stroke="rgba(255,255,255,.18)" />
+                        <text class="hs-label" x="@(x+50)" y="@(y+22)" text-anchor="middle" style="font-size:16px;">@label</text>
+                    </g>
+                }
+            }
+            <circle class="hs-num" cx="184" cy="266" r="13" />
+            <text class="hs-num-tx" x="184" y="266">3</text>
+
+            @* ④ Info row *@
+            <rect class="hs-region dim" x="190" y="430" width="340" height="22" />
+            <text class="hs-sub" x="220" y="446">LINE</text>
+            <text class="hs-sub" x="320" y="446">SHIFT</text>
+            <text class="hs-sub" x="440" y="446">STATION</text>
+            <circle class="hs-num" cx="208" cy="438" r="13" />
+            <text class="hs-num-tx" x="208" y="438">4</text>
+        </svg>
+
+        <div class="help-callout info">
+            <div class="help-callout-i">💡</div>
+            <div class="help-callout-tx">
+                <strong>Auto-route by line.</strong> Your assigned line decides which module dashboard opens after login — INJ → /inj02, IMG → /img02, PNT → /pnt02, QC → /qc07.<br/>
+                <span style="color:rgba(255,255,255,.55);">배정된 라인에 따라 로그인 후 진입 모듈이 자동 결정됩니다.</span>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="help-section-h">▶ READ THE SCREEN · 화면 읽기</div>
+        <div class="help-steps">
+            <div class="help-step warn">
+                <div class="help-step-num">1</div>
+                <div class="help-step-body">
+                    <div class="help-step-en">Badge zone. Scan your employee badge with the USB barcode reader, or tap here to open a user picker.</div>
+                    <div class="help-step-ko">배지 영역. 사원증 바코드 스캔, 또는 탭하여 사용자 선택 팝업 열기.</div>
+                </div>
+            </div>
+            <div class="help-step">
+                <div class="help-step-num">2</div>
+                <div class="help-step-body">
+                    <div class="help-step-en">PIN dots. Each digit you type fills one dot; 4 digits → auto-submit.</div>
+                    <div class="help-step-ko">PIN 점 표시. 4자리 입력 시 자동 제출.</div>
+                </div>
+            </div>
+            <div class="help-step">
+                <div class="help-step-num">3</div>
+                <div class="help-step-body">
+                    <div class="help-step-en">Numeric keypad. ← deletes, ✓ submits manually.</div>
+                    <div class="help-step-ko">숫자 키패드. ← 삭제, ✓ 수동 제출.</div>
+                </div>
+            </div>
+            <div class="help-step dim">
+                <div class="help-step-num">4</div>
+                <div class="help-step-body">
+                    <div class="help-step-en">Current Line · Shift · Station info from terminal config.</div>
+                    <div class="help-step-ko">현재 라인 · 교대 · 단말기 ID 정보.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="help-section-h">▶ COMMON TASKS · 자주 쓰는 작업</div>
+        <div class="help-steps">
+            <div class="help-step">
+                <div class="help-step-num">A</div>
+                <div class="help-step-body">
+                    <div class="help-step-en"><strong>Quick login</strong> — scan badge, type PIN → done.</div>
+                    <div class="help-step-ko"><strong>빠른 로그인</strong> — 배지 스캔 → PIN 입력.</div>
+                </div>
+            </div>
+            <div class="help-step warn">
+                <div class="help-step-num">B</div>
+                <div class="help-step-body">
+                    <div class="help-step-en"><strong>No badge?</strong> Tap the badge zone to open the user list (demo mode only — production uses real badges).</div>
+                    <div class="help-step-ko"><strong>배지 없을 때</strong> — 배지 영역 탭 → 사용자 목록 (데모용).</div>
+                </div>
+            </div>
+            <div class="help-step bad">
+                <div class="help-step-num">C</div>
+                <div class="help-step-body">
+                    <div class="help-step-en"><strong>Wrong PIN?</strong> Status line shows red "× INVALID_PIN". 5 failures → lockout 5 min.</div>
+                    <div class="help-step-ko"><strong>PIN 오류</strong> — 상태 행에 빨간 표시. 5회 실패 시 5분 잠금.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,68 @@
+@*  IMG-06 Bond Setup user manual. *@
+
+<div class="help-doc">
+    <div>
+        <div class="help-h1">IMG-06 · BOND SETUP</div>
+        <div class="help-sub">본드 레시피 설정 — 압력 · 온도 · 유지시간</div>
+
+        <svg class="help-svg" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="708" height="468" rx="10" fill="#000" stroke="rgba(255,255,255,.18)" stroke-width="1.5" />
+            <rect class="hs-region tbar" x="14" y="14" width="692" height="42" />
+            <text class="hs-sub" x="34" y="40">IMG-06 · STATION · LINE</text>
+
+            <rect class="hs-region" x="14" y="68" width="692" height="64" />
+            <text class="hs-sub" x="28" y="88">▼ ACTIVE RECIPE</text>
+            <text class="hs-label" x="28" y="116" style="font-size:18px;">REC-01 · BLACK VINYL · v2.1</text>
+            <circle class="hs-num" cx="24" cy="78" r="14" />
+            <text class="hs-num-tx" x="24" y="78">1</text>
+
+            <rect class="hs-region" x="14" y="148" width="226" height="160" />
+            <text class="hs-sub" x="28" y="168">PRESSURE</text>
+            <text class="hs-label" x="40" y="218" style="font-size:36px;">2.8</text>
+            <text class="hs-sub" x="40" y="244">bar  ·  tol ±0.3</text>
+            <rect x="40" y="262" width="180" height="22" rx="4" fill="rgba(0,0,0,.4)" />
+            <text class="hs-sub" x="60" y="278">SLIDE 1.0 ─ 5.0</text>
+
+            <rect class="hs-region" x="248" y="148" width="226" height="160" />
+            <text class="hs-sub" x="262" y="168">TEMPERATURE</text>
+            <text class="hs-label" x="274" y="218" style="font-size:36px;">82</text>
+            <text class="hs-sub" x="274" y="244">°C  ·  tol ±5</text>
+            <rect x="274" y="262" width="180" height="22" rx="4" fill="rgba(0,0,0,.4)" />
+
+            <rect class="hs-region" x="482" y="148" width="224" height="160" />
+            <text class="hs-sub" x="496" y="168">HOLD TIME</text>
+            <text class="hs-label" x="508" y="218" style="font-size:36px;">12</text>
+            <text class="hs-sub" x="508" y="244">s  ·  tol ±10</text>
+            <rect x="508" y="262" width="180" height="22" rx="4" fill="rgba(0,0,0,.4)" />
+            <circle class="hs-num" cx="24" cy="158" r="14" />
+            <text class="hs-num-tx" x="24" y="158">2</text>
+
+            <rect class="hs-region ok" x="40" y="328" width="320" height="50" />
+            <text class="hs-label" x="200" y="360" text-anchor="middle" style="font-size:18px;">✓ APPLY RECIPE</text>
+
+            <rect class="hs-region warn" x="380" y="328" width="300" height="50" />
+            <text class="hs-label" x="530" y="360" text-anchor="middle" style="font-size:18px;">↺ REVERT</text>
+            <circle class="hs-num" cx="50" cy="338" r="14" />
+            <text class="hs-num-tx" x="50" y="338">3</text>
+
+            <rect class="hs-region nav" x="14" y="432" width="692" height="32" />
+        </svg>
+    </div>
+
+    <div>
+        <div class="help-section-h">▶ STEPS · 단계</div>
+        <div class="help-steps">
+            <div class="help-step"><div class="help-step-num">1</div><div class="help-step-body"><div class="help-step-en">Currently applied recipe banner.</div><div class="help-step-ko">현재 적용 중인 레시피 정보.</div></div></div>
+            <div class="help-step"><div class="help-step-num">2</div><div class="help-step-body"><div class="help-step-en">3 sliders — Pressure (bar), Temp (°C), Hold time (s). Out-of-spec values shown in yellow.</div><div class="help-step-ko">3개 슬라이더 — 압력 · 온도 · 유지시간. 스펙 이탈은 노란 표시.</div></div></div>
+            <div class="help-step ok"><div class="help-step-num">3</div><div class="help-step-body"><div class="help-step-en">APPLY writes PR_BondSetup with an audit row. REVERT brings back the last applied values.</div><div class="help-step-ko">적용 시 감사 기록 작성. 되돌리기는 직전 값 복원.</div></div></div>
+        </div>
+
+        <div class="help-callout warn">
+            <div class="help-callout-i">⚠</div>
+            <div class="help-callout-tx">
+                <strong>Recipe change requires supervisor PIN</strong> for out-of-tolerance settings.<br/>
+                <span style="color:rgba(255,255,255,.55);">허용오차 벗어난 설정 변경 시 반장 PIN 필요.</span>
+            </div>
+        </div>
+    </div>
+</div>

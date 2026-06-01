@@ -20,6 +20,7 @@
             <span class="@(_inSpec ? "stat-on" : "stat-off")">● @(_inSpec ? "IN SPEC" : "OUT OF SPEC")</span>
             <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
             <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
+            <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.Pnt05Help))" />
         </div>
     </div>
 

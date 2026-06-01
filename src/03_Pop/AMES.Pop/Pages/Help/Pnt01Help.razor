@@ -1,0 +1,77 @@
+@*  PNT-01 Daily Plan user manual. *@
+
+<div class="help-doc">
+    <div>
+        <div class="help-h1">PNT-01 · DAILY PLAN</div>
+        <div class="help-sub">분체도장 일일 계획 — KPI · 색상 순서 · 계획 행</div>
+
+        <svg class="help-svg" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="708" height="468" rx="10" fill="#000" stroke="rgba(255,255,255,.18)" stroke-width="1.5" />
+            <rect class="hs-region tbar" x="14" y="14" width="692" height="42" fill="#1a0800" stroke="rgba(234,88,12,.35)" />
+            <text class="hs-sub" x="34" y="40" fill="#fdba74">PNT-01 · STATION · LINE</text>
+
+            @* ① KPI strip 5 *@
+            @for (var i = 0; i < 5; i++)
+            {
+                var cls = new[] {"","ok","warn","dim","bad"}[i];
+                var titles = new[] {"PLAN ROWS","LOTS ISSUED","LOTS BOUND","REMAINING","JIGS REQ"};
+                var vals = new[] {"2","6","4","2","9"};
+                var x = 14 + i * 140;
+                <g>
+                    <rect class="hs-region @cls" x="@x" y="68" width="128" height="78" />
+                    <text class="hs-sub" x="@(x+12)" y="88">@titles[i]</text>
+                    <text class="hs-label" x="@(x+12)" y="128" style="font-size:26px;">@vals[i]</text>
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="78" r="14" />
+            <text class="hs-num-tx" x="24" y="78">1</text>
+
+            @* ② Color sequence *@
+            <rect class="hs-region" x="14" y="158" width="692" height="100" />
+            <text class="hs-sub" x="28" y="178">▼ COLOR SEQUENCE</text>
+            @{
+                var swatches = new[] {"#0a0a0a","#cc0605","#8d948d","#0e294b","#f4f4f4","#a5a5a5"};
+            }
+            @for (var i = 0; i < 6; i++)
+            {
+                var x = 32 + i * 112;
+                <g>
+                    <rect x="@x" y="192" width="96" height="36" rx="4" fill="@swatches[i]" stroke="rgba(255,255,255,.15)" />
+                    <text class="hs-sub" x="@(x+48)" y="246" text-anchor="middle">@(new[]{"BLACK","RED","GRAY","BLUE","WHITE","SILVER"}[i])</text>
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="168" r="14" />
+            <text class="hs-num-tx" x="24" y="168">2</text>
+
+            @* ③ Plan rows *@
+            <rect class="hs-region" x="14" y="272" width="692" height="156" />
+            <text class="hs-sub" x="28" y="292">▼ TODAY'S PLAN ROWS · 2 rows</text>
+            @for (var i = 0; i < 2; i++)
+            {
+                var y = 308 + i * 50;
+                <g>
+                    <rect class="hs-region ok" x="28" y="@y" width="664" height="40" />
+                    <text class="hs-label" x="44" y="@(y+22)" style="font-size:14px;">PLAN #@(100+i) · DOOR TRIM @(new[]{"LH","RH"}[i]) · RAL 9005 · 06:00</text>
+                    <text class="hs-sub" x="676" y="@(y+22)" text-anchor="end">@(new[]{"192 EA","96 EA"}[i])</text>
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="282" r="14" />
+            <text class="hs-num-tx" x="24" y="282">3</text>
+
+            <rect class="hs-region nav" x="14" y="432" width="692" height="32" />
+        </svg>
+    </div>
+
+    <div>
+        <div class="help-section-h">▶ STEPS · 단계</div>
+        <div class="help-steps">
+            <div class="help-step"><div class="help-step-num">1</div><div class="help-step-body"><div class="help-step-en">5 KPI tiles: Plan rows · Lots Issued · Lots Bound · Remaining · Jigs req.</div><div class="help-step-ko">5개 KPI 타일.</div></div></div>
+            <div class="help-step warn"><div class="help-step-num">2</div><div class="help-step-body"><div class="help-step-en">Color sequence. Each colour changeover adds ~15 min for booth cleaning.</div><div class="help-step-ko">색상 순서. 색 교체 1회당 부스 청소 15분 추가.</div></div></div>
+            <div class="help-step ok"><div class="help-step-num">3</div><div class="help-step-body"><div class="help-step-en">Plan row tiles — item, RAL, start time, qty / lots bound progress.</div><div class="help-step-ko">계획 행 — 아이템, RAL, 시작 시간, 진행률.</div></div></div>
+        </div>
+        <div class="help-callout info">
+            <div class="help-callout-i">💡</div>
+            <div class="help-callout-tx">Read-only overview. Operator workflow starts at PNT-02.<br/><span style="color:rgba(255,255,255,.55);">읽기 전용. 작업 시작은 PNT-02.</span></div>
+        </div>
+    </div>
+</div>

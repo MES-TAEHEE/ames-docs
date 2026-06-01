@@ -1,0 +1,81 @@
+@*  PNT-05 Oven Monitor (signature) user manual. *@
+
+<div class="help-doc">
+    <div>
+        <div class="help-h1">PNT-05 · OVEN MONITOR</div>
+        <div class="help-sub">분체도장 오븐 모니터 — 현재 온도 + 3 존 + 10분 곡선 (서명 화면)</div>
+
+        <svg class="help-svg" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="708" height="468" rx="10" fill="#000" stroke="rgba(255,255,255,.18)" stroke-width="1.5" />
+            <rect class="hs-region tbar" x="14" y="14" width="692" height="42" fill="#1a0800" stroke="rgba(234,88,12,.35)" />
+
+            @* ① Current temp *@
+            <rect class="hs-region ok" x="14" y="68" width="410" height="186" />
+            <text class="hs-sub" x="28" y="88" fill="#fdba74">▼ CURRENT TEMPERATURE · OVEN-01</text>
+            <text class="hs-label" x="40" y="170" style="font-size:64px;" fill="#22c55e">180.1</text>
+            <text class="hs-sub" x="260" y="160" style="font-size:24px;" fill="rgba(255,255,255,.5)">°C</text>
+            <text class="hs-sub" x="28" y="200">Target 180°C ±5  ·  Dwell 15 min</text>
+
+            @{
+                var miniKpis = new[] { ("24h MIN","178.0"), ("24h MAX","182.0"), ("JIGS","2"), ("SAMPLES","120") };
+            }
+            @for (var i = 0; i < 4; i++)
+            {
+                var x = 28 + i * 100;
+                <g>
+                    <rect x="@x" y="214" width="92" height="32" rx="4" fill="rgba(0,0,0,.4)" />
+                    <text class="hs-sub" x="@(x+8)" y="228">@miniKpis[i].Item1</text>
+                    <text class="hs-label" x="@(x+8)" y="242" style="font-size:12px;">@miniKpis[i].Item2</text>
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="78" r="14" />
+            <text class="hs-num-tx" x="24" y="78">1</text>
+
+            @* ② Zones *@
+            <rect class="hs-region" x="436" y="68" width="270" height="186" />
+            <text class="hs-sub" x="448" y="88" fill="#fdba74">▼ ZONE STATUS</text>
+            @{
+                var zones = new[] { ("ZONE 1 · ENTRY", "180.1"), ("ZONE 2 · CRUISE", "180.6"), ("ZONE 3 · EXIT", "179.8") };
+            }
+            @for (var i = 0; i < 3; i++)
+            {
+                var y = 102 + i * 50;
+                <g>
+                    <text class="hs-sub" x="448" y="@y">@zones[i].Item1</text>
+                    <text class="hs-label" x="448" y="@(y+24)" style="font-size:22px;" fill="#86efac">@zones[i].Item2 °C</text>
+                </g>
+            }
+            <circle class="hs-num" cx="446" cy="78" r="14" />
+            <text class="hs-num-tx" x="446" y="78">2</text>
+
+            @* ③ Curve *@
+            <rect class="hs-region" x="14" y="266" width="692" height="160" />
+            <text class="hs-sub" x="28" y="286" fill="#fdba74">▼ TEMPERATURE CURVE · 10 min (target line 180°C)</text>
+            <line x1="28" y1="356" x2="700" y2="356" stroke="rgba(255,255,255,.18)" stroke-dasharray="4 4" />
+            @for (var i = 0; i < 60; i++)
+            {
+                var x = 36 + i * 11;
+                var dev = Math.Sin(i * 0.3) * 8 + (i % 7 - 3);
+                var h = (int)(40 + dev);
+                <rect x="@x" y="@(360 - h)" width="9" height="@h" fill="#22c55e" rx="1" />
+            }
+            <circle class="hs-num" cx="24" cy="276" r="14" />
+            <text class="hs-num-tx" x="24" y="276">3</text>
+
+            <rect class="hs-region nav" x="14" y="432" width="692" height="32" />
+        </svg>
+    </div>
+
+    <div>
+        <div class="help-section-h">▶ STEPS · 단계</div>
+        <div class="help-steps">
+            <div class="help-step ok"><div class="help-step-num">1</div><div class="help-step-body"><div class="help-step-en">Live oven temperature. Green = in spec, Yellow ~ borderline, Red = out of spec.</div><div class="help-step-ko">실시간 오븐 온도. 초록=정상, 노랑=경계, 빨강=이탈.</div></div></div>
+            <div class="help-step"><div class="help-step-num">2</div><div class="help-step-body"><div class="help-step-en">3 zones (entry / cruise / exit).</div><div class="help-step-ko">3개 존 (진입/순항/출구).</div></div></div>
+            <div class="help-step"><div class="help-step-num">3</div><div class="help-step-body"><div class="help-step-en">10-min curve sampled every 5 s. 178°C–182°C is the safe band.</div><div class="help-step-ko">10분 곡선 (5초 간격). 178–182°C 안전 구간.</div></div></div>
+        </div>
+        <div class="help-callout">
+            <div class="help-callout-i">🔥</div>
+            <div class="help-callout-tx"><strong>Out-of-spec for > 60s</strong> triggers PNT_OvenDeviationLog + auto-andon.<br/><span style="color:rgba(255,255,255,.55);">60초 이상 이탈 시 이탈 로그 + 자동 안돈.</span></div>
+        </div>
+    </div>
+</div>

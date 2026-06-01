@@ -1,0 +1,93 @@
+@*  INJ-06 Mold Change user manual. *@
+
+<div class="help-doc">
+    <div>
+        <div class="help-h1">INJ-06 · MOLD CHANGE</div>
+        <div class="help-sub">금형 교체 — SMED 흐름, 시작/완료 로깅</div>
+
+        <svg class="help-svg" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="708" height="468" rx="10" fill="#000" stroke="rgba(255,255,255,.18)" stroke-width="1.5" />
+            <rect class="hs-region tbar" x="14" y="14" width="692" height="42" />
+            <text class="hs-sub" x="34" y="40">INJ-06 · STATION · LINE</text>
+
+            @* ① Current vs Next *@
+            <rect class="hs-region warn" x="14" y="68" width="338" height="160" />
+            <text class="hs-sub" x="28" y="88">▼ CURRENT MOLD</text>
+            <text class="hs-label" x="28" y="118" style="font-size:22px;">MOLD-INJ-08</text>
+            <text class="hs-sub" x="28" y="142">8,800 / 10,000 shots · 88% life</text>
+            <text class="hs-sub" x="28" y="166">Item: DOOR TRIM LH</text>
+            <circle class="hs-num" cx="24" cy="78" r="14" />
+            <text class="hs-num-tx" x="24" y="78">1</text>
+
+            <rect class="hs-region ok" x="368" y="68" width="338" height="160" />
+            <text class="hs-sub" x="382" y="88">▼ NEXT MOLD (planned)</text>
+            <text class="hs-label" x="382" y="118" style="font-size:22px;">MOLD-INJ-12</text>
+            <text class="hs-sub" x="382" y="142">320 / 8,000 shots · fresh</text>
+            <text class="hs-sub" x="382" y="166">Item: DOOR TRIM RH</text>
+            <circle class="hs-num" cx="378" cy="78" r="14" />
+            <text class="hs-num-tx" x="378" y="78">2</text>
+
+            @* ② Timer + steps *@
+            <rect class="hs-region" x="14" y="240" width="692" height="116" />
+            <text class="hs-sub" x="28" y="260">▼ SMED TIMER  ·  Target ≤ 10 min</text>
+            <text class="hs-label" x="28" y="304" style="font-size:48px;">07:42</text>
+            <text class="hs-sub" x="28" y="332">START → CLAMP OPEN → SWAP → CLAMP CLOSE → TEST → COMPLETE</text>
+            <circle class="hs-num" cx="24" cy="250" r="14" />
+            <text class="hs-num-tx" x="24" y="250">3</text>
+
+            @* ③ Action *@
+            <rect class="hs-region ok" x="14" y="368" width="338" height="50" />
+            <text class="hs-label" x="184" y="400" text-anchor="middle" style="font-size:18px;">▶ START CHANGE</text>
+
+            <rect class="hs-region bad" x="368" y="368" width="338" height="50" />
+            <text class="hs-label" x="537" y="400" text-anchor="middle" style="font-size:18px;">■ COMPLETE</text>
+            <circle class="hs-num" cx="24" cy="378" r="14" />
+            <text class="hs-num-tx" x="24" y="378">4</text>
+
+            <rect class="hs-region nav" x="14" y="432" width="692" height="32" />
+            <text class="hs-sub" x="360" y="450" text-anchor="middle">▶ INJ-02 · 03 · 04 · ... · LOGOUT</text>
+        </svg>
+    </div>
+
+    <div>
+        <div class="help-section-h">▶ READ THE SCREEN · 화면 읽기</div>
+        <div class="help-steps">
+            <div class="help-step warn">
+                <div class="help-step-num">1</div>
+                <div class="help-step-body">
+                    <div class="help-step-en">Current mold + life pct. ≥ 85% → caution (yellow).</div>
+                    <div class="help-step-ko">현재 금형 + 수명률. 85% 이상 노란 경고.</div>
+                </div>
+            </div>
+            <div class="help-step ok">
+                <div class="help-step-num">2</div>
+                <div class="help-step-body">
+                    <div class="help-step-en">Next planned mold from PP_WorkOrder.MoldID.</div>
+                    <div class="help-step-ko">다음 계획 금형 (PP가 지정).</div>
+                </div>
+            </div>
+            <div class="help-step">
+                <div class="help-step-num">3</div>
+                <div class="help-step-body">
+                    <div class="help-step-en">Live timer + SMED step indicator. Target ≤ 10 min.</div>
+                    <div class="help-step-ko">실시간 타이머 + SMED 단계. 목표 10분 이내.</div>
+                </div>
+            </div>
+            <div class="help-step ok">
+                <div class="help-step-num">4</div>
+                <div class="help-step-body">
+                    <div class="help-step-en">START arms the timer; COMPLETE writes PR_MoldChange and resets the shot counter on INJ-02.</div>
+                    <div class="help-step-ko">시작 → 타이머 작동, 완료 → PR_MoldChange 기록, 샷 카운터 리셋.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="help-callout info">
+            <div class="help-callout-i">💡</div>
+            <div class="help-callout-tx">
+                <strong>If the timer exceeds 15 min</strong>, an Andon call is auto-raised.<br/>
+                <span style="color:rgba(255,255,255,.55);">15분 초과 시 안돈 호출 자동 발생.</span>
+            </div>
+        </div>
+    </div>
+</div>

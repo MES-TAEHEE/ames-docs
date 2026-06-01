@@ -1,0 +1,72 @@
+@*  PNT-02 Lot Pre-Issue (signature) user manual. *@
+
+<div class="help-doc">
+    <div>
+        <div class="help-h1">PNT-02 · LOT PRE-ISSUE</div>
+        <div class="help-sub">가상 LOT 사전 채번 — 계획 선택 → 발행 → 오늘의 LOT 목록 (서명 화면)</div>
+
+        <svg class="help-svg" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="708" height="468" rx="10" fill="#000" stroke="rgba(255,255,255,.18)" stroke-width="1.5" />
+            <rect class="hs-region tbar" x="14" y="14" width="692" height="42" fill="#1a0800" stroke="rgba(234,88,12,.35)" />
+
+            <rect class="hs-region" x="14" y="68" width="692" height="120" />
+            <text class="hs-sub" x="28" y="88" fill="#fdba74">▼ SELECT PLAN ROW</text>
+            @for (var i = 0; i < 2; i++)
+            {
+                var x = 28 + i * 332; var sel = i == 0;
+                <g>
+                    <rect class="hs-region @(sel ? "warn" : "")" x="@x" y="100" width="328" height="80" />
+                    <text class="hs-label" x="@(x+12)" y="124" style="font-size:14px;">PLAN #@(100+i)</text>
+                    <text class="hs-sub" x="@(x+12)" y="146">DOOR TRIM @(new[]{"LH","RH"}[i]) · RAL 9005</text>
+                    <text class="hs-sub" x="@(x+12)" y="166">@(new[]{"6 / 6 LOT (full)","3 / 3 LOT (full)"}[i])</text>
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="78" r="14" />
+            <text class="hs-num-tx" x="24" y="78">1</text>
+
+            <rect class="hs-region" x="14" y="200" width="692" height="80" />
+            <text class="hs-sub" x="28" y="220" fill="#fdba74">▼ ISSUE NEW LOT</text>
+            <rect x="28" y="232" width="380" height="36" rx="6" fill="rgba(0,0,0,.4)" />
+            <text class="hs-sub" x="42" y="256">SELECTED  ·  PLAN #100 · DOOR TRIM LH · RAL 9005</text>
+            <rect x="420" y="232" width="120" height="36" rx="6" fill="rgba(0,0,0,.4)" />
+            <text class="hs-sub" x="430" y="256">QTY 32</text>
+            <rect x="552" y="232" width="140" height="36" rx="6" fill="rgba(34,197,94,.4)" />
+            <text class="hs-label" x="622" y="256" text-anchor="middle" style="font-size:14px;">✓ ISSUE LOT</text>
+            <circle class="hs-num" cx="24" cy="210" r="14" />
+            <text class="hs-num-tx" x="24" y="210">2</text>
+
+            <rect class="hs-region" x="14" y="292" width="692" height="136" />
+            <text class="hs-sub" x="28" y="312" fill="#fdba74">▼ ISSUED TODAY · 6 lots (4 BOUND + 2 PRE)</text>
+            @for (var i = 0; i < 4; i++)
+            {
+                var col = i % 4; var x = 36 + col * 168;
+                var cls = i < 2 ? "ok" : i < 3 ? "warn" : "";
+                <g>
+                    <rect class="hs-region @cls" x="@x" y="328" width="160" height="92" />
+                    <text class="hs-sub" x="@(x+10)" y="346">LOT #@(i+1)</text>
+                    <text class="hs-label" x="@(x+10)" y="372" style="font-size:13px;">@(i < 2 ? "BOUND" : i < 3 ? "PRE" : "BOUND")</text>
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="302" r="14" />
+            <text class="hs-num-tx" x="24" y="302">3</text>
+
+            <rect class="hs-region nav" x="14" y="432" width="692" height="32" />
+        </svg>
+    </div>
+
+    <div>
+        <div class="help-section-h">▶ STEPS · 단계</div>
+        <div class="help-steps">
+            <div class="help-step warn"><div class="help-step-num">1</div><div class="help-step-body"><div class="help-step-en">Tap a plan row — selected card highlighted.</div><div class="help-step-ko">계획 행 선택.</div></div></div>
+            <div class="help-step ok"><div class="help-step-num">2</div><div class="help-step-body"><div class="help-step-en">Type Qty per lot → ✓ ISSUE LOT writes a PRE virtual lot.</div><div class="help-step-ko">LOT 수량 입력 → 발행 (PRE 상태).</div></div></div>
+            <div class="help-step"><div class="help-step-num">3</div><div class="help-step-body"><div class="help-step-en">Lots issued today grid — PRE = awaiting jig · BOUND = ready to load.</div><div class="help-step-ko">오늘 발행 LOT 그리드. PRE = 지그 대기 · BOUND = 로딩 대기.</div></div></div>
+        </div>
+        <div class="help-callout warn">
+            <div class="help-callout-i">⚠</div>
+            <div class="help-callout-tx">
+                <strong>Why pre-issue?</strong> A PRE lot reserves the LotID before the physical jig is bound, so RFID events (R1→R2→R3) can be matched at line speed.<br/>
+                <span style="color:rgba(255,255,255,.55);">물리 지그 결합 전에 LotID 선점 → RFID 통과 시점에 매칭 가능.</span>
+            </div>
+        </div>
+    </div>
+</div>
