@@ -29,4 +29,16 @@
     </None>
   </ItemGroup>
 
+  <!--
+    BlazorWebView resolves HostPage relative to AppContext.BaseDirectory
+    (the bin folder), so the wwwroot tree has to physically land there.
+    Razor SDK's static-web-asset pipeline doesn't copy by default for
+    WinForms output, so we opt in explicitly.
+  -->
+  <ItemGroup>
+    <Content Update="wwwroot\**\*.*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>
