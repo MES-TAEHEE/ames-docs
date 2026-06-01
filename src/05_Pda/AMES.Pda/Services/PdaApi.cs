@@ -26,15 +26,46 @@ public sealed class PdaApi
                                    string? EmployeeNo, string? EmployeeName,
                                    string? LineId, string? ShiftCode, DateTime? ExpiresAt);
 
-    public async Task<LoginRes?> LoginAsync(string employeeNo, string pin,
-                                             string terminalId = "PDA-DEV-01",
-                                             string lineId = "LINE-INJ-01",
-                                             string shiftCode = "DAY")
+    /// <summary>
+    /// Login + session fetch in one call. The API hands back an opaque
+    /// bearer token; we stamp it locally and immediately call /me so the
+    /// caller gets a fully-populated PopSessionDto in one await. Avoids
+    /// the timing bug where AuthState.Token wasn't set yet when MeAsync
+    /// rebuilt the Authorization header.
+    /// Returns null on any auth failure or unreachable API.
+    /// </summary>
+    public async Task<(string Token, PopSessionDto Session, string? Reason)?> LoginAsync(
+        string employeeNo, string pin,
+        string terminalId = "PDA-DEV-01",
+        string lineId = "LINE-INJ-01",
+        string shiftCode = "DAY")
     {
-        var resp = await _http.PostAsJsonAsync("/api/auth/login",
-            new LoginReq(employeeNo, pin, terminalId, lineId, shiftCode));
-        if (!resp.IsSuccessStatusCode) return null;
-        return await resp.Content.ReadFromJsonAsync<LoginRes>();
+        HttpResponseMessage resp;
+        try
+        {
+            resp = await _http.PostAsJsonAsync("/api/auth/login",
+                new LoginReq(employeeNo, pin, terminalId, lineId, shiftCode));
+        }
+        catch (Exception ex) { return (Token: "", Session: null!, Reason: ex.Message); }
+
+        if (!resp.IsSuccessStatusCode)
+            return (Token: "", Session: null!, Reason: $"HTTP {(int)resp.StatusCode}");
+
+        var login = await resp.Content.ReadFromJsonAsync<LoginRes>();
+        if (login is null || string.IsNullOrEmpty(login.Token))
+            return (Token: "", Session: null!, Reason: login?.Reason ?? "no token");
+
+        _http.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", login.Token);
+
+        var meResp = await _http.GetAsync("/api/auth/me");
+        if (!meResp.IsSuccessStatusCode)
+            return (Token: "", Session: null!, Reason: $"/me HTTP {(int)meResp.StatusCode}");
+
+        var session = await meResp.Content.ReadFromJsonAsync<PopSessionDto>();
+        return session is null
+            ? (Token: "", Session: null!, Reason: "/me empty body")
+            : (login.Token, session, null);
     }
 
     public async Task LogoutAsync()
