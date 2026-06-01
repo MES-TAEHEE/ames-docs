@@ -1,0 +1,51 @@
+@page "/wh/01"
+@inject PdaApi Api
+@inject NavigationManager Nav
+@inject AuthState Auth
+
+<div class="pda-shell wh">
+    <div class="pda-tbar">
+        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/wh"))'>←</button>
+        <span class="pda-tbar-brand">WH-01 INBOUND</span>
+    </div>
+    <div class="pda-bd">
+        <div class="pda-card">
+            <div class="pda-card-h">▼ INBOUND SCHEDULE (@_rows.Count)</div>
+            @if (_rows.Count == 0) { <div class="pda-empty">@_msg</div> }
+            else
+            {
+                @foreach (var r in _rows)
+                {
+                    var late = r.DueDate.HasValue && r.DueDate.Value.Date < DateTime.Today;
+                    <div class="pda-row3 @(late ? "bad" : "")">
+                        <div class="r3-l">
+                            <div class="r3-code">@r.PoNumber #@r.PoLineNo</div>
+                            <div class="r3-sub">@(r.ItemName ?? r.ItemNo)</div>
+                        </div>
+                        <div class="r3-m">
+                            <div>@r.ReceivedQty.ToString("0") / @r.OrderQty.ToString("0")</div>
+                            <div class="r3-sub">@(r.VendorId ?? "—")</div>
+                        </div>
+                        <div class="r3-r">
+                            <div>@(r.DueDate?.ToString("MM-dd") ?? "—")</div>
+                            <div class="r3-sub">@(r.Status ?? "")</div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+        <button class="pda-btn-pri" @onclick="Load">↻ REFRESH</button>
+    </div>
+</div>
+
+@code {
+    List<PdaApi.InboundScheduleRow> _rows = new();
+    string _msg = "Loading…";
+    protected override async Task OnInitializedAsync() => await Load();
+    async Task Load()
+    {
+        _msg = "Loading…";
+        _rows = await Api.WhInboundScheduleAsync();
+        if (_rows.Count == 0) _msg = "No inbound scheduled.";
+    }
+}

@@ -1,0 +1,56 @@
+@page "/wh/08"
+@inject PdaApi Api
+@inject NavigationManager Nav
+
+<div class="pda-shell wh">
+    <div class="pda-tbar">
+        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/wh"))'>←</button>
+        <span class="pda-tbar-brand">WH-08 TXN HISTORY</span>
+    </div>
+    <div class="pda-bd">
+        <div class="pda-card">
+            <div class="pda-card-h">▼ LAST @_days DAYS (@_rows.Count)</div>
+            <div style="display:flex; gap:8px; margin-bottom:10px;">
+                <button class="pda-key sm @( _days == 1 ? "on" : "")" @onclick='@(() => Switch(1))'>1d</button>
+                <button class="pda-key sm @( _days == 7 ? "on" : "")" @onclick='@(() => Switch(7))'>7d</button>
+                <button class="pda-key sm @( _days == 30 ? "on" : "")" @onclick='@(() => Switch(30))'>30d</button>
+            </div>
+            @if (_rows.Count == 0) { <div class="pda-empty">@_msg</div> }
+            else
+            {
+                @foreach (var r in _rows)
+                {
+                    var cls = r.Delta > 0 ? "ok" : r.Delta < 0 ? "bad" : "";
+                    <div class="pda-row3 @cls">
+                        <div class="r3-l">
+                            <div class="r3-code">@r.TxnType</div>
+                            <div class="r3-sub">@(r.ItemNo ?? "—") · @(r.LocationId ?? "—")</div>
+                        </div>
+                        <div class="r3-m">
+                            <div>@r.Delta.ToString("+0.#;-0.#;0")</div>
+                            <div class="r3-sub">@(r.ReasonCode ?? "")</div>
+                        </div>
+                        <div class="r3-r">
+                            <div>@r.TxnTime.ToString("MM-dd HH:mm")</div>
+                            <div class="r3-sub">→ @r.QtyAfter.ToString("0.#")</div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    int _days = 7;
+    List<PdaApi.TransactionRow> _rows = new();
+    string _msg = "Loading…";
+    protected override async Task OnInitializedAsync() => await Load();
+    async Task Switch(int d) { _days = d; await Load(); }
+    async Task Load()
+    {
+        _msg = "Loading…";
+        _rows = await Api.WhTransactionsAsync(_days);
+        if (_rows.Count == 0) _msg = "No transactions in this window.";
+    }
+}

@@ -1,0 +1,45 @@
+@page "/wh/02"
+@inject PdaApi Api
+@inject NavigationManager Nav
+
+<div class="pda-shell wh">
+    <div class="pda-tbar">
+        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/wh"))'>←</button>
+        <span class="pda-tbar-brand">WH-02 RECEIVE</span>
+    </div>
+    <div class="pda-bd">
+        <div class="pda-card">
+            <div class="pda-card-h">▼ SCAN LOT &amp; RECEIVE</div>
+            <div class="pda-fld">
+                <label>LOT CODE</label>
+                <input class="pda-input" @bind="_lot" @bind:event="oninput" @onkeypress="OnKey" placeholder="scan barcode" />
+            </div>
+            <div class="pda-fld">
+                <label>QTY</label>
+                <input class="pda-input" type="number" @bind="_qty" />
+            </div>
+            <div class="pda-fld">
+                <label>LOCATION</label>
+                <input class="pda-input" @bind="_loc" placeholder="WH-A-01" />
+            </div>
+        </div>
+        <div class="pda-status @_cls">@_msg</div>
+        <button class="pda-btn-pri" @onclick="Submit" disabled="@(string.IsNullOrWhiteSpace(_lot))">✓ RECEIVE</button>
+    </div>
+</div>
+
+@code {
+    string _lot = "", _loc = "WH-A-01", _msg = " ", _cls = "dim";
+    decimal _qty = 1;
+    void OnKey(KeyboardEventArgs e) { if (e.Key == "Enter") _ = Submit(); }
+    async Task Submit()
+    {
+        try
+        {
+            var r = await Api.WhReceiveAsync(new PdaApi.ReceiveReq(_lot.Trim(), _qty, _loc.Trim()));
+            if (r.IsSuccessStatusCode) { _msg = "✓ Received"; _cls = "ok"; _lot = ""; }
+            else                       { _msg = $"× HTTP {(int)r.StatusCode}"; _cls = "fail"; }
+        }
+        catch (Exception ex) { _msg = "× " + ex.Message; _cls = "fail"; }
+    }
+}

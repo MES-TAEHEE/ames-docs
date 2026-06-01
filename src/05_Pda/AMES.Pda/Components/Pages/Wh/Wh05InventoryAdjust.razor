@@ -1,0 +1,42 @@
+@page "/wh/05"
+@inject PdaApi Api
+@inject NavigationManager Nav
+
+<div class="pda-shell wh">
+    <div class="pda-tbar">
+        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/wh"))'>←</button>
+        <span class="pda-tbar-brand">WH-05 ADJUST</span>
+    </div>
+    <div class="pda-bd">
+        <div class="pda-card">
+            <div class="pda-card-h">▼ INVENTORY ADJUST</div>
+            <div class="pda-fld"><label>ITEM NO</label><input class="pda-input" @bind="_item" placeholder="DR-TRM-LH-A1" /></div>
+            <div class="pda-fld"><label>LOCATION</label><input class="pda-input" @bind="_loc" /></div>
+            <div class="pda-fld"><label>DELTA (+/−)</label><input class="pda-input" type="number" @bind="_delta" /></div>
+            <div class="pda-fld">
+                <label>REASON</label>
+                <select class="pda-input" @bind="_reason">
+                    <option>COUNT</option><option>DAMAGE</option><option>LOSS</option><option>FOUND</option><option>RETURN</option>
+                </select>
+            </div>
+            <div class="pda-fld"><label>NOTE</label><input class="pda-input" @bind="_note" placeholder="optional" /></div>
+        </div>
+        <div class="pda-status @_cls">@_msg</div>
+        <button class="pda-btn-pri" @onclick="Submit" disabled="@(string.IsNullOrWhiteSpace(_item) || _delta == 0)">✓ POST ADJUST</button>
+    </div>
+</div>
+
+@code {
+    string _item = "", _loc = "WH-A-01", _reason = "COUNT", _note = "", _msg = " ", _cls = "dim";
+    decimal _delta;
+    async Task Submit()
+    {
+        try
+        {
+            var r = await Api.WhAdjustAsync(new PdaApi.AdjustReq(_item.Trim(), _loc.Trim(), _delta, _reason, _note));
+            if (r.IsSuccessStatusCode) { _msg = "✓ Posted"; _cls = "ok"; _delta = 0; _note = ""; }
+            else                       { _msg = $"× HTTP {(int)r.StatusCode}"; _cls = "fail"; }
+        }
+        catch (Exception ex) { _msg = "× " + ex.Message; _cls = "fail"; }
+    }
+}

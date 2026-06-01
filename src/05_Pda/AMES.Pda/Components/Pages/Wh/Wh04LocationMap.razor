@@ -1,0 +1,50 @@
+@page "/wh/04"
+@inject PdaApi Api
+@inject NavigationManager Nav
+
+<div class="pda-shell wh">
+    <div class="pda-tbar">
+        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/wh"))'>←</button>
+        <span class="pda-tbar-brand">WH-04 LOCATIONS</span>
+    </div>
+    <div class="pda-bd">
+        <div class="pda-card">
+            <div class="pda-card-h">▼ LOCATIONS (@_rows.Count)</div>
+            @if (_rows.Count == 0) { <div class="pda-empty">@_msg</div> }
+            else
+            {
+                @foreach (var z in _rows.GroupBy(r => r.Zone ?? "—"))
+                {
+                    <div class="pda-zone-h">ZONE @z.Key</div>
+                    @foreach (var r in z)
+                    {
+                        <div class="pda-row3">
+                            <div class="r3-l">
+                                <div class="r3-code">@r.LocationId</div>
+                                <div class="r3-sub">@(r.LocationName ?? "")</div>
+                            </div>
+                            <div class="r3-m">
+                                <div>@r.LineCount</div>
+                                <div class="r3-sub">items</div>
+                            </div>
+                            <div class="r3-r">
+                                <div class="big">@r.TotalQty.ToString("0.#")</div>
+                                <div class="r3-sub">on hand</div>
+                            </div>
+                        </div>
+                    }
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    List<PdaApi.LocationRow> _rows = new();
+    string _msg = "Loading…";
+    protected override async Task OnInitializedAsync()
+    {
+        _rows = await Api.WhLocationsAsync();
+        if (_rows.Count == 0) _msg = "No locations.";
+    }
+}

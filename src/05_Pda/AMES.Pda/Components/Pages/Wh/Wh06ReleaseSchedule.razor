@@ -1,0 +1,50 @@
+@page "/wh/06"
+@inject PdaApi Api
+@inject NavigationManager Nav
+
+<div class="pda-shell wh">
+    <div class="pda-tbar">
+        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/wh"))'>←</button>
+        <span class="pda-tbar-brand">WH-06 RELEASE</span>
+    </div>
+    <div class="pda-bd">
+        <div class="pda-card">
+            <div class="pda-card-h">▼ RELEASE SCHEDULE (@_rows.Count)</div>
+            @if (_rows.Count == 0) { <div class="pda-empty">@_msg</div> }
+            else
+            {
+                @foreach (var r in _rows)
+                {
+                    var pct = r.DemandQty == 0 ? 0 : (int)(r.PickedQty * 100 / r.DemandQty);
+                    <div class="pda-row3 @(pct >= 100 ? "ok" : pct > 0 ? "warn" : "")">
+                        <div class="r3-l">
+                            <div class="r3-code">@(r.WoNumber ?? "—")</div>
+                            <div class="r3-sub">@(r.ItemName ?? r.ItemNo)</div>
+                        </div>
+                        <div class="r3-m">
+                            <div>@r.PickedQty.ToString("0") / @r.DemandQty.ToString("0")</div>
+                            <div class="r3-sub">@pct%</div>
+                        </div>
+                        <div class="r3-r">
+                            <div>@(r.RequiredAt?.ToString("MM-dd HH:mm") ?? "—")</div>
+                            <div class="r3-sub">@(r.Status ?? "")</div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+        <button class="pda-btn-pri" @onclick="Load">↻ REFRESH</button>
+    </div>
+</div>
+
+@code {
+    List<PdaApi.ReleaseScheduleRow> _rows = new();
+    string _msg = "Loading…";
+    protected override async Task OnInitializedAsync() => await Load();
+    async Task Load()
+    {
+        _msg = "Loading…";
+        _rows = await Api.WhReleaseScheduleAsync();
+        if (_rows.Count == 0) _msg = "No release scheduled.";
+    }
+}

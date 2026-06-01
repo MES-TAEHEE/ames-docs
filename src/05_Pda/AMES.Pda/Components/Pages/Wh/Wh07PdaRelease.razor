@@ -1,0 +1,45 @@
+@page "/wh/07"
+@inject PdaApi Api
+@inject NavigationManager Nav
+
+<div class="pda-shell wh">
+    <div class="pda-tbar">
+        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/wh"))'>←</button>
+        <span class="pda-tbar-brand">WH-07 PICK</span>
+    </div>
+    <div class="pda-bd">
+        <div class="pda-card">
+            <div class="pda-card-h">▼ PICK FOR RELEASE</div>
+            <div class="pda-fld">
+                <label>RELEASE SCHEDULE ID</label>
+                <input class="pda-input" type="number" @bind="_sid" />
+            </div>
+            <div class="pda-fld">
+                <label>LOT CODE (scan)</label>
+                <input class="pda-input" @bind="_lot" @bind:event="oninput" @onkeypress="OnKey" placeholder="scan lot" />
+            </div>
+            <div class="pda-fld">
+                <label>QTY</label>
+                <input class="pda-input" type="number" @bind="_qty" />
+            </div>
+        </div>
+        <div class="pda-status @_cls">@_msg</div>
+        <button class="pda-btn-pri" @onclick="Submit" disabled="@(_sid == 0 || string.IsNullOrWhiteSpace(_lot))">✓ PICK &amp; ISSUE</button>
+    </div>
+</div>
+
+@code {
+    int _sid; string _lot = ""; decimal _qty = 1;
+    string _msg = " ", _cls = "dim";
+    void OnKey(KeyboardEventArgs e) { if (e.Key == "Enter") _ = Submit(); }
+    async Task Submit()
+    {
+        try
+        {
+            var r = await Api.WhPickAsync(new PdaApi.PickReq(_sid, _lot.Trim(), _qty));
+            if (r.IsSuccessStatusCode) { _msg = "✓ Picked"; _cls = "ok"; _lot = ""; }
+            else                       { _msg = $"× HTTP {(int)r.StatusCode}"; _cls = "fail"; }
+        }
+        catch (Exception ex) { _msg = "× " + ex.Message; _cls = "fail"; }
+    }
+}
