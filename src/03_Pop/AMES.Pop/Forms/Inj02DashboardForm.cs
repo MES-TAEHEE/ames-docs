@@ -121,19 +121,22 @@ public sealed class Inj02DashboardForm : PopForm
         };
         eqStack.Controls.Add(_eqLed, 0, 1);
 
+        // State + name: AutoSize labels in AutoSize rows so the card sizes to
+        // *content*, not to guessed pixel heights. Anchor=None centres them
+        // horizontally inside their (Percent 100) column.
         _lblEquipState = new Label
         {
-            Text = "—", Font = new Font("Segoe UI", 32f, FontStyle.Bold),
-            ForeColor = PopTheme.TextOk, AutoSize = false, Height = 50,
-            Dock = DockStyle.Top, TextAlign = ContentAlignment.MiddleCenter,
+            Text = "—", Font = new Font("Segoe UI", 30f, FontStyle.Bold),
+            ForeColor = PopTheme.TextOk, AutoSize = true,
+            Anchor = AnchorStyles.None, Margin = new Padding(0, 6, 0, 4),
         };
         eqStack.Controls.Add(_lblEquipState, 0, 2);
 
         _lblEquipName = new Label
         {
-            Text = "", Font = PopTheme.Mono, ForeColor = PopTheme.TextDim,
-            AutoSize = false, AutoEllipsis = true, Height = 26,
-            Dock = DockStyle.Top, TextAlign = ContentAlignment.MiddleCenter,
+            Text = "—", Font = PopTheme.Mono, ForeColor = PopTheme.TextDim,
+            AutoSize = true, AutoEllipsis = true, MaximumSize = new Size(560, 0),
+            Anchor = AnchorStyles.None, Margin = new Padding(0, 0, 0, 4),
         };
         eqStack.Controls.Add(_lblEquipName, 0, 3);
 
