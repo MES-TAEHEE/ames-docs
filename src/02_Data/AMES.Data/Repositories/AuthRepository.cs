@@ -59,6 +59,49 @@ public sealed class AuthRepository
     }
 
     /// <summary>
+    /// All active profiles ordered by EmployeeNo. Used by the dev User Picker
+    /// popup on the login screen so testers can switch identities without
+    /// scanning a barcode. The PasswordHash is loaded too because the picker
+    /// returns the same DTO shape as FindByEmployeeNo for consistency, but
+    /// callers should treat the hash as opaque — verify still flows through
+    /// PopAuthService.
+    /// </summary>
+    public List<EmployeeProfileDto> ListAllProfiles()
+    {
+        const string sql = """
+            SELECT u.Id, u.UserName, u.PasswordHash,
+                   p.EmployeeNo, p.EmployeeName, p.Department, p.DefaultShift,
+                   p.AssignedLines, p.AccountStatus, ISNULL(p.FailedLoginCount,0) AS FailedLoginCount
+            FROM   dbo.SYS_UserProfile p
+            JOIN   dbo.AspNetUsers     u ON u.Id = p.UserID
+            WHERE  ISNULL(p.AccountStatus, 'Active') = 'Active'
+            ORDER  BY p.EmployeeNo;
+            """;
+
+        using var conn = _connFactory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        using var rdr  = cmd.ExecuteReader();
+        var list = new List<EmployeeProfileDto>();
+        while (rdr.Read())
+        {
+            list.Add(new EmployeeProfileDto
+            {
+                UserId            = (string)rdr["Id"],
+                UserName          = (string)rdr["UserName"],
+                PasswordHash      = rdr["PasswordHash"] as string ?? string.Empty,
+                EmployeeNo        = (string)rdr["EmployeeNo"],
+                EmployeeName      = (string)rdr["EmployeeName"],
+                Department        = rdr["Department"]   as string,
+                DefaultShift      = rdr["DefaultShift"] as string,
+                AssignedLinesJson = rdr["AssignedLines"] as string,
+                AccountStatus     = rdr["AccountStatus"] as string,
+                FailedLoginCount  = Convert.ToInt32(rdr["FailedLoginCount"]),
+            });
+        }
+        return list;
+    }
+
+    /// <summary>
     /// Bumps SYS_UserProfile.FailedLoginCount by 1.
     /// AspNetUsers.AccessFailedCount stays untouched (managed by Identity in the web app).
     /// </summary>
