@@ -113,16 +113,16 @@ public sealed class Img02DashboardForm : PopForm
         bondStack.Controls.Add(_bondLed, 0, 1);
         _lblBondState = new Label
         {
-            Text = "—", Font = new Font("Segoe UI", 32f, FontStyle.Bold),
-            ForeColor = PopTheme.TextDim, AutoSize = false, Height = 50,
-            Dock = DockStyle.Top, TextAlign = ContentAlignment.MiddleCenter,
+            Text = "—", Font = new Font("Segoe UI", 30f, FontStyle.Bold),
+            ForeColor = PopTheme.TextDim, AutoSize = true,
+            Anchor = AnchorStyles.None, Margin = new Padding(0, 6, 0, 4),
         };
         bondStack.Controls.Add(_lblBondState, 0, 2);
         _lblBondParams = new Label
         {
             Text = "no recipe", Font = PopTheme.Mono, ForeColor = PopTheme.TextDim,
-            AutoSize = false, AutoEllipsis = true, Height = 26,
-            Dock = DockStyle.Top, TextAlign = ContentAlignment.MiddleCenter,
+            AutoSize = true, AutoEllipsis = true, MaximumSize = new Size(560, 0),
+            Anchor = AnchorStyles.None, Margin = new Padding(0, 0, 0, 4),
         };
         bondStack.Controls.Add(_lblBondParams, 0, 3);
         bondCard.Controls.Add(bondStack);

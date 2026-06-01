@@ -158,7 +158,7 @@ public sealed class LoginForm : PopForm
         stack.RowStyles.Add(new RowStyle(SizeType.Absolute, 90));  // 4 PIN dots
         stack.RowStyles.Add(new RowStyle(SizeType.Percent, 100));  // 5 keypad
         stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // 6 status
-        stack.RowStyles.Add(new RowStyle(SizeType.Absolute, 90));  // 7 info grid
+        stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // 7 info grid (sizes to content)
 
         stack.Controls.Add(new Label
         {
@@ -237,24 +237,29 @@ public sealed class LoginForm : PopForm
             AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0, 0, 30, 0),
         }, 0, 0);
 
+        // Dock=Fill so the stack respects the available column width;
+        // AutoEllipsis on the labels means a too-long string truncates with
+        // "…" instead of bleeding past the dashed border.
         var textStack = new TableLayoutPanel
         {
-            ColumnCount = 1, RowCount = 2, AutoSize = true,
-            BackColor = Color.Transparent, Anchor = AnchorStyles.Left, Margin = new Padding(0),
+            ColumnCount = 1, RowCount = 2, Dock = DockStyle.Fill,
+            BackColor = Color.Transparent, Margin = new Padding(0),
         };
-        textStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        textStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        textStack.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        textStack.RowStyles.Add(new RowStyle(SizeType.Percent, 55));
+        textStack.RowStyles.Add(new RowStyle(SizeType.Percent, 45));
+        textStack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         textStack.Controls.Add(new Label
         {
             Text = "Scan Employee Badge", Font = PopTheme.TitleMid, ForeColor = PopTheme.Accent,
-            AutoSize = true, Margin = new Padding(0, 0, 0, 4),
+            AutoSize = false, AutoEllipsis = true,
+            Dock = DockStyle.Fill, TextAlign = ContentAlignment.BottomLeft,
         }, 0, 0);
         textStack.Controls.Add(new Label
         {
             Text = "Code-128 barcode  ·  USB HID scanner",
             Font = PopTheme.BodySmall, ForeColor = PopTheme.AccentSoft,
-            AutoSize = true,
+            AutoSize = false, AutoEllipsis = true,
+            Dock = DockStyle.Fill, TextAlign = ContentAlignment.TopLeft,
         }, 0, 1);
         grid.Controls.Add(textStack, 1, 0);
 
@@ -283,9 +288,9 @@ public sealed class LoginForm : PopForm
             ("7", () => OnDigit('7'), PopTheme.BgKey),
             ("8", () => OnDigit('8'), PopTheme.BgKey),
             ("9", () => OnDigit('9'), PopTheme.BgKey),
-            ("DEL", OnBackspace,       PopTheme.BgKeyDel),
+            ("←", OnBackspace,        PopTheme.BgKeyDel),
             ("0", () => OnDigit('0'), PopTheme.BgKey),
-            ("OK", OnSubmitPin,        PopTheme.BgKeyOk),
+            ("✓", OnSubmitPin,        PopTheme.BgKeyOk),
         };
         foreach (var (text, h, bg) in keys)
         {
@@ -306,14 +311,21 @@ public sealed class LoginForm : PopForm
 
     private Panel BuildInfoGrid()
     {
-        var wrap = new Panel { Dock = DockStyle.Fill, BackColor = PopTheme.BgInfo, Margin = new Padding(0, 10, 0, 0) };
+        var wrap = new Panel
+        {
+            Dock = DockStyle.Top, AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            BackColor = PopTheme.BgInfo, Margin = new Padding(0, 12, 0, 0),
+        };
         var grid = new TableLayoutPanel
         {
-            Dock = DockStyle.Fill, ColumnCount = 3, RowCount = 1,
-            BackColor = Color.Transparent, Padding = new Padding(24, 12, 24, 12),
+            Dock = DockStyle.Top, AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 3, RowCount = 1,
+            BackColor = Color.Transparent, Padding = new Padding(24, 14, 24, 14),
         };
         for (var i = 0; i < 3; i++) grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.34f));
-        grid.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        grid.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         grid.Controls.Add(InfoCell("LINE",    AppConfig.Current.LineId),       0, 0);
         grid.Controls.Add(InfoCell("SHIFT",   AppConfig.Current.DefaultShift), 1, 0);
         grid.Controls.Add(InfoCell("STATION", AppConfig.Current.StationId),    2, 0);
@@ -325,7 +337,9 @@ public sealed class LoginForm : PopForm
     {
         var c = new TableLayoutPanel
         {
-            Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2,
+            Dock = DockStyle.Top, AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 1, RowCount = 2,
             BackColor = Color.Transparent, Margin = new Padding(0),
         };
         c.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
@@ -334,12 +348,14 @@ public sealed class LoginForm : PopForm
         c.Controls.Add(new Label
         {
             Text = caption, Font = PopTheme.InfoCaption, ForeColor = PopTheme.AccentSoft,
-            AutoSize = true, Margin = new Padding(2, 0, 0, 4),
+            AutoSize = true, AutoEllipsis = true, MaximumSize = new Size(200, 0),
+            Margin = new Padding(2, 0, 0, 6),
         }, 0, 0);
         c.Controls.Add(new Label
         {
             Text = value, Font = PopTheme.InfoValue, ForeColor = PopTheme.TextWhite,
-            AutoSize = true, Margin = new Padding(2, 0, 0, 0),
+            AutoSize = true, AutoEllipsis = true, MaximumSize = new Size(200, 0),
+            Margin = new Padding(2, 0, 0, 4),
         }, 0, 1);
         return c;
     }
