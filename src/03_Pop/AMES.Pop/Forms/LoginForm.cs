@@ -457,22 +457,33 @@ public sealed class LoginForm : PopForm
     private void OpenDashboard(PopSessionDto session)
     {
         Hide();
-        // Route to module-specific dashboard. Falls back to INJ if unknown.
-        Form dash = AppConfig.Current.ModuleCode switch
+        // Route by *session* LineId, not the terminal's AppConfig.
+        // PopAuthService.Login may have rerouted the session to the user's
+        // own primary line when the terminal's line didn't match, so an
+        // IMG operator logging in here lands on the IMG dashboard even if
+        // appsettings.json still says LINE-INJ-01.
+        var moduleCode = ModuleFromLine(session.LineId);
+        Form dash = moduleCode switch
         {
             "IMG" => new Img02DashboardForm(session),
             _     => new Inj02DashboardForm(session),
         };
-        using (dash)
-        {
-            dash.ShowDialog(this);
-        }
+        using (dash) dash.ShowDialog(this);
+
         _pinBuf.Clear(); _scanBuf.Clear();
         _lastScannedBadge = null;
         _pinDots.Filled   = 0;
         ShowStatus(" ", PopTheme.TextDim);
         Show();
         Activate();
+    }
+
+    /// <summary>"LINE-IMG-01" → "IMG". Falls back to "INJ".</summary>
+    private static string ModuleFromLine(string lineId)
+    {
+        if (string.IsNullOrEmpty(lineId)) return "INJ";
+        var parts = lineId.Split('-');
+        return parts.Length >= 2 ? parts[1].ToUpperInvariant() : "INJ";
     }
 
     private bool IsLocked => DateTime.Now < _lockedUntil;
