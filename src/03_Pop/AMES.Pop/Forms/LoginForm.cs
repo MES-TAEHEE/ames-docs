@@ -237,29 +237,31 @@ public sealed class LoginForm : PopForm
             AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0, 0, 30, 0),
         }, 0, 0);
 
-        // Dock=Fill so the stack respects the available column width;
-        // AutoEllipsis on the labels means a too-long string truncates with
-        // "…" instead of bleeding past the dashed border.
+        // Two-line text stack. Labels AutoSize=true so they render fully —
+        // the badge zone's column is plenty wide for both strings, no need
+        // to clip with AutoEllipsis (which was wrapping at the available
+        // width and showing "Scan Employee …").
         var textStack = new TableLayoutPanel
         {
-            ColumnCount = 1, RowCount = 2, Dock = DockStyle.Fill,
+            ColumnCount = 1, RowCount = 2, AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Anchor = AnchorStyles.Left,
             BackColor = Color.Transparent, Margin = new Padding(0),
         };
-        textStack.RowStyles.Add(new RowStyle(SizeType.Percent, 55));
-        textStack.RowStyles.Add(new RowStyle(SizeType.Percent, 45));
-        textStack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        textStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        textStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        textStack.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         textStack.Controls.Add(new Label
         {
-            Text = "Scan Employee Badge", Font = PopTheme.TitleMid, ForeColor = PopTheme.Accent,
-            AutoSize = false, AutoEllipsis = true,
-            Dock = DockStyle.Fill, TextAlign = ContentAlignment.BottomLeft,
+            Text = "Scan Employee Badge",
+            Font = PopTheme.TitleMid, ForeColor = PopTheme.Accent,
+            AutoSize = true, Margin = new Padding(0, 0, 0, 4),
         }, 0, 0);
         textStack.Controls.Add(new Label
         {
             Text = "Code-128 barcode  ·  USB HID scanner",
             Font = PopTheme.BodySmall, ForeColor = PopTheme.AccentSoft,
-            AutoSize = false, AutoEllipsis = true,
-            Dock = DockStyle.Fill, TextAlign = ContentAlignment.TopLeft,
+            AutoSize = true, Margin = new Padding(0),
         }, 0, 1);
         grid.Controls.Add(textStack, 1, 0);
 
@@ -345,17 +347,18 @@ public sealed class LoginForm : PopForm
         c.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         c.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         c.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        // No MaximumSize — that was the previous bug: caps narrower than
+        // "LINE-INJ-01" forced multiline wrap. Plain AutoSize on a short
+        // single-line value renders cleanly.
         c.Controls.Add(new Label
         {
             Text = caption, Font = PopTheme.InfoCaption, ForeColor = PopTheme.AccentSoft,
-            AutoSize = true, AutoEllipsis = true, MaximumSize = new Size(200, 0),
-            Margin = new Padding(2, 0, 0, 6),
+            AutoSize = true, Margin = new Padding(2, 0, 0, 6),
         }, 0, 0);
         c.Controls.Add(new Label
         {
             Text = value, Font = PopTheme.InfoValue, ForeColor = PopTheme.TextWhite,
-            AutoSize = true, AutoEllipsis = true, MaximumSize = new Size(200, 0),
-            Margin = new Padding(2, 0, 0, 4),
+            AutoSize = true, Margin = new Padding(2, 0, 0, 4),
         }, 0, 1);
         return c;
     }

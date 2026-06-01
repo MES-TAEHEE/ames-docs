@@ -97,34 +97,36 @@ public sealed class Img02DashboardForm : PopForm
         woCard.Controls.Add(woStack);
         row1.Controls.Add(woCard, 0, 0);
 
-        // Bond card
-        var bondCard = NewCardPadded(14);
+        // Bond card — same 6-row centred layout as INJ-02 equipment card.
+        var bondCard = NewCardPadded(18);
         var bondStack = new TableLayoutPanel
         {
-            Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 4, BackColor = PopTheme.BgCard,
+            Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 6, BackColor = PopTheme.BgCard,
         };
         bondStack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        bondStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        bondStack.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        bondStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        bondStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        bondStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));        // 0 header
+        bondStack.RowStyles.Add(new RowStyle(SizeType.Percent, 50));     // 1 top filler
+        bondStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 160));   // 2 LED
+        bondStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));        // 3 state
+        bondStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));        // 4 params
+        bondStack.RowStyles.Add(new RowStyle(SizeType.Percent, 50));     // 5 bottom filler
         bondStack.Controls.Add(PopShell.SectionHeader("▼ BOND STATUS"), 0, 0);
         _bondLed = new StatusLED { LampColor = PopTheme.TextDim, Dock = DockStyle.Fill, BackColor = PopTheme.BgCard };
-        bondStack.Controls.Add(_bondLed, 0, 1);
+        bondStack.Controls.Add(_bondLed, 0, 2);
         _lblBondState = new Label
         {
             Text = "—", Font = new Font("Segoe UI", 30f, FontStyle.Bold),
             ForeColor = PopTheme.TextDim, AutoSize = true,
-            Anchor = AnchorStyles.None, Margin = new Padding(0, 6, 0, 4),
+            Anchor = AnchorStyles.None, Margin = new Padding(0, 10, 0, 4),
         };
-        bondStack.Controls.Add(_lblBondState, 0, 2);
+        bondStack.Controls.Add(_lblBondState, 0, 3);
         _lblBondParams = new Label
         {
             Text = "no recipe", Font = PopTheme.Mono, ForeColor = PopTheme.TextDim,
-            AutoSize = true, AutoEllipsis = true, MaximumSize = new Size(560, 0),
+            AutoSize = true,
             Anchor = AnchorStyles.None, Margin = new Padding(0, 0, 0, 4),
         };
-        bondStack.Controls.Add(_lblBondParams, 0, 3);
+        bondStack.Controls.Add(_lblBondParams, 0, 4);
         bondCard.Controls.Add(bondStack);
         row1.Controls.Add(bondCard, 1, 0);
 
