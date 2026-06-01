@@ -1,0 +1,71 @@
+@page "/login"
+@inject AuthState Auth
+@inject PdaApi Api
+@inject NavigationManager Nav
+
+<div class="pda-login">
+    <div class="pda-login-brand">A-MES</div>
+    <div class="pda-login-sub">SHIFT LOGIN  ·  PDA</div>
+
+    <div class="pda-fld">
+        <label>EMPLOYEE NO</label>
+        <input class="pda-input" @bind="_empNo" @bind:event="oninput" placeholder="E001 / I001 / Q001 ..." />
+    </div>
+
+    <div class="pda-pin-dots">
+        @for (var i = 0; i < 4; i++)
+        {
+            <span class="pda-pin-dot @(i < _pin.Length ? "on" : "")"></span>
+        }
+    </div>
+
+    <div class="pda-keypad">
+        @foreach (var d in new[] { "1","2","3","4","5","6","7","8","9" })
+        {
+            var k = d;
+            <button class="pda-key" @onclick="@(() => Press(k))">@k</button>
+        }
+        <button class="pda-key del" @onclick="Back">←</button>
+        <button class="pda-key" @onclick='@(() => Press("0"))'>0</button>
+        <button class="pda-key ok" @onclick="Submit">✓</button>
+    </div>
+
+    <div class="pda-status @_cls">@_status</div>
+</div>
+
+@code {
+    private string _empNo  = "E001";
+    private string _pin    = "";
+    private string _status = " ";
+    private string _cls    = "dim";
+
+    private void Press(string d)
+    {
+        if (_pin.Length >= 4) return;
+        _pin += d;
+        if (_pin.Length == 4) _ = Submit();
+    }
+
+    private void Back() { if (_pin.Length > 0) _pin = _pin[..^1]; }
+
+    private async Task Submit()
+    {
+        if (_pin.Length < 4) { Set("PIN must be 4 digits", "fail"); return; }
+        try
+        {
+            var res = await Api.LoginAsync(_empNo, _pin);
+            if (res is null) { Set("× API unreachable", "fail"); _pin = ""; return; }
+            if (res.Result != 0 || string.IsNullOrEmpty(res.Token))
+            {
+                Set($"× {res.Reason ?? "auth failed"}", "fail"); _pin = ""; return;
+            }
+            var me = await Api.MeAsync();
+            if (me is null) { Set("× session lookup failed", "fail"); _pin = ""; return; }
+            Auth.SignIn(res.Token, me);
+            Nav.NavigateTo("/dash", replace: true);
+        }
+        catch (Exception ex) { Set("× " + ex.Message, "fail"); _pin = ""; }
+    }
+
+    private void Set(string s, string c) { _status = s; _cls = c; }
+}

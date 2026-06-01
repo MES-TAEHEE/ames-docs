@@ -1,0 +1,12 @@
+@page "/"
+@inject AuthState Auth
+@inject NavigationManager Nav
+
+@*  Boot redirect — Login if no session, Dashboard if signed in. *@
+
+@code {
+    protected override void OnInitialized()
+    {
+        Nav.NavigateTo(Auth.Session is null ? "/login" : "/dash", replace: true);
+    }
+}
