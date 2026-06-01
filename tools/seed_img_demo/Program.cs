@@ -34,6 +34,7 @@ internal static class Program
         SeedRecipes       (conn);
         SeedWorkOrders    (conn);
         SeedEquipStatus   (conn);
+        SeedInProgress    (conn);   // active WO with bond + roll mounted + cycles + defect
 
         Console.WriteLine();
         Console.WriteLine("[seed-img] Done. IMG POP screens now have demo data.");
@@ -230,6 +231,195 @@ internal static class Program
               VALUES ('IMG-EQ-01','LINE-IMG-01','RUN','NORMAL', SYSDATETIME(), 'seed', SYSDATETIME());
             """, conn);
         cmd.ExecuteNonQuery();
+    }
+
+    // ── In-progress demo state ─────────────────────────────────────────────
+    // Brings the IMG dashboard to life: 1 active bond setup + 1 mounted
+    // fabric roll + 6 produced cycles (30 EA, 7.5 m consumed) + 1 wrinkle
+    // defect. Idempotent: deletes anything tagged 'img-seed' before re-inserting.
+    private static void SeedInProgress(SqlConnection conn)
+    {
+        Console.WriteLine();
+        Console.WriteLine("[seed-img] Rebuilding in-progress state ...");
+
+        const string LineId       = "LINE-IMG-01";
+        const string OperatorUser = "user-i001";
+        const string WoNumber     = "WO-IMG-2026-0529-301";
+        const string ItemNo       = "DR-TRM-LH-W";
+        const string FabricLotCode= "FAB-GY-2507-020";
+
+        var (woId, fabricRollLotId) = ResolveIds(conn, WoNumber, FabricLotCode);
+        if (woId == 0 || fabricRollLotId == 0)
+        {
+            Console.WriteLine("  ! could not resolve WoID / FabricLotID — skipping.");
+            return;
+        }
+
+        // 1. wipe previous in-progress seed rows so the script is idempotent.
+        ExecRaw(conn, """
+            DELETE FROM dbo.PR_BondCycleLog       WHERE CreatedBy = 'img-seed';
+            DELETE FROM dbo.PR_DefectDetail       WHERE CreatedBy = 'img-seed';
+            DELETE FROM dbo.PR_FabricDeductionLog WHERE CreatedBy = 'img-seed';
+            DELETE FROM dbo.PR_ProductionResult   WHERE CreatedBy = 'img-seed';
+            DELETE FROM dbo.tbl_Lot               WHERE CreatedBy = 'img-seed';
+            DELETE FROM dbo.PR_FabricIssue        WHERE CreatedBy = 'img-seed';
+            DELETE FROM dbo.PR_BondSetup          WHERE CreatedBy = 'img-seed';
+            """);
+
+        // 2. reset roll back to its initial 50 m + WO progress to 0 so the
+        //    counts below land at predictable numbers.
+        ExecRaw(conn, $"""
+            UPDATE dbo.tbl_Lot
+            SET    RemainingQty = BatchSize, Status='OPEN', ModifiedTS=SYSDATETIME()
+            WHERE  LotCode = '{FabricLotCode}';
+
+            UPDATE dbo.PP_WorkOrder
+            SET    CompletedQty=0, Status='In Progress', ActualStart=SYSDATETIME(),
+                   TerminalLock='POP-DEV-01', ModifiedTS=SYSDATETIME()
+            WHERE  WoID = {woId};
+            """);
+
+        // 3. Bond setup APPLIED
+        var bondSetupId = ExecScalar<int>(conn, $"""
+            INSERT INTO dbo.PR_BondSetup
+                (WoID, LineID, RecipeID, PressureSp, TempSp, HoldSecSp, TensionSp,
+                 LoadedAt, LoadedBy, Status, CreatedBy, CreatedTS)
+            OUTPUT INSERTED.BondSetupID
+            VALUES ({woId}, '{LineId}', 'RCP-IMG-A1', 4.2, 90, 120, 20,
+                    SYSDATETIME(), '{OperatorUser}', 'APPLIED',
+                    'img-seed', SYSDATETIME());
+            """);
+        Console.WriteLine($"  bond   id={bondSetupId}  90°C / 4.2 bar / 120 s · APPLIED");
+
+        // 4. Mount the grey fabric roll
+        var fabricIssueId = ExecScalar<int>(conn, $"""
+            INSERT INTO dbo.PR_FabricIssue
+                (WoID, FabricRollLotID, ColorCode, MountedAt, InitialRemainingM,
+                 OperatorID, LineID, CreatedBy, CreatedTS)
+            OUTPUT INSERTED.FabricIssueID
+            VALUES ({woId}, {fabricRollLotId}, 'GY-C03',
+                    DATEADD(minute, -180, SYSDATETIME()), 50.0,
+                    '{OperatorUser}', '{LineId}', 'img-seed', SYSDATETIME());
+            """);
+        Console.WriteLine($"  mount  id={fabricIssueId}  {FabricLotCode} (GY-C03) on {LineId}");
+
+        // 5. Six production cycles spread over the last 3 hours, 5 EA each.
+        //    Each cycle deducts 1.25 m. Total: 30 EA produced, 7.5 m consumed.
+        const decimal metresPerUnit = 0.25m;
+        const int     qtyPerCycle   = 5;
+        int producedTotal = 0;
+        decimal consumedTotal = 0m;
+        int? firstResultIdForDefect = null;
+        for (var i = 0; i < 6; i++)
+        {
+            var minutesAgo = (6 - i) * 25;   // 150, 125, 100, 75, 50, 25 minutes ago
+            var consumed   = qtyPerCycle * metresPerUnit;
+
+            // tbl_Lot for the produced batch
+            var lotId = ExecScalar<int>(conn, $"""
+                INSERT INTO dbo.tbl_Lot
+                    (LotCode, ItemNo, WoID, LineID, ProcessCode, BatchSize, RemainingQty,
+                     ProducedAt, Status, QualityFlag, CreatedBy, CreatedTS)
+                OUTPUT INSERTED.LotID
+                VALUES (CONCAT('L', FORMAT(DATEADD(minute, -{minutesAgo}, SYSDATETIME()), 'yyMMddHHmmss'), '-IMG'),
+                        '{ItemNo}', {woId}, '{LineId}', 'IMG',
+                        {qtyPerCycle}, {qtyPerCycle},
+                        DATEADD(minute, -{minutesAgo}, SYSDATETIME()),
+                        'OPEN', 'PENDING', 'img-seed', SYSDATETIME());
+                """);
+
+            // EntryNo column is VARCHAR(28); keep it short:
+            //   IMG-YYMMDD-HHmmss-{i}   ≈ 21 chars
+            var resultId = ExecScalar<int>(conn, $"""
+                INSERT INTO dbo.PR_ProductionResult
+                    (EntryNo, WoID, LotID, LineID, ProcessCode, GoodQty, CycleSec,
+                     FabricRollID, FabricConsumedM, BondTempAvg,
+                     OperatorID, DefectFlag, EntryAt, CreatedBy, CreatedTS)
+                OUTPUT INSERTED.ResultID
+                VALUES (CONCAT('IMG-', FORMAT(GETDATE(),'yyMMdd-HHmmss'), '-{i}'),
+                        {woId}, {lotId}, '{LineId}', 'IMG', {qtyPerCycle}, 38,
+                        {fabricRollLotId}, {consumed.ToString(System.Globalization.CultureInfo.InvariantCulture)},
+                        {(90.0m + (i % 3) * 0.4m).ToString(System.Globalization.CultureInfo.InvariantCulture)},
+                        '{OperatorUser}', 0,
+                        DATEADD(minute, -{minutesAgo}, SYSDATETIME()),
+                        'img-seed', SYSDATETIME());
+                """);
+
+            // fabric deduction log
+            ExecRaw(conn, $"""
+                INSERT INTO dbo.PR_FabricDeductionLog
+                    (FabricRollLotID, ResultID, ConsumedM, BeforeM, AfterM,
+                     DeductedAt, CreatedBy, CreatedTS)
+                VALUES ({fabricRollLotId}, {resultId},
+                        {consumed.ToString(System.Globalization.CultureInfo.InvariantCulture)},
+                        {(50m - consumedTotal).ToString(System.Globalization.CultureInfo.InvariantCulture)},
+                        {(50m - consumedTotal - consumed).ToString(System.Globalization.CultureInfo.InvariantCulture)},
+                        DATEADD(minute, -{minutesAgo}, SYSDATETIME()),
+                        'img-seed', SYSDATETIME());
+                """);
+
+            // bond cycle PLC sample
+            ExecRaw(conn, $"""
+                INSERT INTO dbo.PR_BondCycleLog
+                    (ResultID, BondSetupID, PressureAvg, TempAvg, HoldActualSec,
+                     TensionAvg, WithinSpec, SampledAt, CreatedBy, CreatedTS)
+                VALUES ({resultId}, {bondSetupId}, 4.2,
+                        {(90.0m + (i % 3) * 0.4m).ToString(System.Globalization.CultureInfo.InvariantCulture)},
+                        120, 20, 1,
+                        DATEADD(minute, -{minutesAgo}, SYSDATETIME()),
+                        'img-seed', SYSDATETIME());
+                """);
+
+            producedTotal += qtyPerCycle;
+            consumedTotal += consumed;
+            firstResultIdForDefect ??= resultId;
+        }
+        Console.WriteLine($"  prod   {producedTotal} EA across 6 cycles · {consumedTotal:0.0} m consumed");
+
+        // 6. Deduct the consumed fabric from the roll + bump WO completed qty.
+        ExecRaw(conn, $"""
+            UPDATE dbo.tbl_Lot
+            SET    RemainingQty = BatchSize - {consumedTotal.ToString(System.Globalization.CultureInfo.InvariantCulture)},
+                   ModifiedTS   = SYSDATETIME()
+            WHERE  LotID = {fabricRollLotId};
+
+            UPDATE dbo.PP_WorkOrder
+            SET    CompletedQty = {producedTotal}, ModifiedTS = SYSDATETIME()
+            WHERE  WoID = {woId};
+            """);
+
+        // 7. One wrinkle defect attached to the first cycle so defect rate > 0.
+        ExecRaw(conn, $"""
+            INSERT INTO dbo.PR_DefectDetail
+                (ResultID, WoID, ProcessCode, DefectCode, Qty,
+                 ReasonNote, DetectedAt, RegisteredBy, CreatedBy, CreatedTS)
+            VALUES ({firstResultIdForDefect}, {woId}, 'IMG', 'IMG-D02', 1,
+                    'Tension drift mid-cycle.',
+                    DATEADD(minute, -120, SYSDATETIME()),
+                    '{OperatorUser}', 'img-seed', SYSDATETIME());
+            """);
+        Console.WriteLine($"  defect IMG-D02 Wrinkle  qty=1  → defect rate ≈ {1.0 * 100 / (producedTotal + 1):0.0}%");
+    }
+
+    private static (int WoId, int FabricLotId) ResolveIds(SqlConnection conn, string woNumber, string fabricLotCode)
+    {
+        int woId = ExecScalar<int>(conn,
+            $"SELECT ISNULL((SELECT TOP 1 WoID FROM dbo.PP_WorkOrder WHERE WoNumber='{woNumber}'),0);");
+        int lotId = ExecScalar<int>(conn,
+            $"SELECT ISNULL((SELECT TOP 1 LotID FROM dbo.tbl_Lot WHERE LotCode='{fabricLotCode}'),0);");
+        return (woId, lotId);
+    }
+
+    private static void ExecRaw(SqlConnection conn, string sql)
+    {
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.ExecuteNonQuery();
+    }
+    private static T ExecScalar<T>(SqlConnection conn, string sql) where T : struct
+    {
+        using var cmd = new SqlCommand(sql, conn);
+        var v = cmd.ExecuteScalar();
+        return v is null || v is DBNull ? default : (T)Convert.ChangeType(v, typeof(T));
     }
 
     // ───────────────────────────────────────────────────────────────────
