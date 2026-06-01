@@ -226,7 +226,7 @@
     }
 
     private void Go(string route) => Nav.NavigateTo("/" + route);
-    private Task Logout()           => BlazorHost.RaiseAction("logout");
+    private void Logout()           { State.SignOut(); Nav.NavigateTo("/login"); }
 
     public void Dispose()
     {
