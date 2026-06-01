@@ -7,11 +7,11 @@
     <div class="pop-tbar">
         <div style="display:flex; align-items:center;">
             <span class="pop-tbar-logo">A-MES</span>
-            <span class="pop-tbar-id">IMG-04 · FABRIC INPUT · @Session.LineId</span>
+            <span class="pop-tbar-id">IMG-04 · FABRIC INPUT · @Session?.LineId</span>
         </div>
         <div class="pop-tbar-r">
             <span style="color:#a78bfa;">⚡ SIGNATURE</span>
-            <span>@Session.EmployeeName · @Session.ShiftCode</span>
+            <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
             <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.Img04Help))" />
         </div>
     </div>
@@ -78,6 +78,7 @@
 
     protected override void OnInitialized()
     {
+        if (Session is null) return;
         _wo = PopServices.WorkOrders.GetActiveForTerminal(Session.LineId, Session.TerminalId)
            ?? PopServices.WorkOrders.ListForLine(Session.LineId).FirstOrDefault();
         _available = PopServices.Fabric.ListAvailableRolls();

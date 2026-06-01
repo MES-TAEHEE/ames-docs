@@ -14,11 +14,11 @@
     <div class="pop-tbar">
         <div style="display:flex; align-items:center;">
             <span class="pop-tbar-logo">A-MES</span>
-            <span class="pop-tbar-id">INJ-02 · @Session.TerminalId · @Session.LineId</span>
+            <span class="pop-tbar-id">INJ-02 · @Session?.TerminalId · @Session?.LineId</span>
         </div>
         <div class="pop-tbar-r">
             <span class="@(_eqClass)">● @_eqStatus</span>
-            <span>@Session.EmployeeName · @Session.ShiftCode</span>
+            <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
             <span>@_now.ToString("yyyy-MM-dd HH:mm")</span>
             <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.Inj02Help))" />
         </div>
@@ -153,6 +153,7 @@
 
     protected override void OnInitialized()
     {
+        if (Session is null) return;
         Refresh();
         _refreshTimer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); StateHasChanged(); }),
                                                    null, 5000, 5000);
@@ -162,6 +163,7 @@
 
     private void Refresh()
     {
+        if (Session is null) return;
         try
         {
             _wo = PopServices.WorkOrders.GetActiveForTerminal(Session.LineId, Session.TerminalId)

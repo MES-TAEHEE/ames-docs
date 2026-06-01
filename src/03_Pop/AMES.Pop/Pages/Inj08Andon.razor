@@ -4,7 +4,7 @@
 
 <div class="andon-shell">
     <div class="andon-bar">
-        <span>🚨 ANDON · @(_openId == 0 ? "READY" : "ACTIVE") · @Session.LineId</span>
+        <span>🚨 ANDON · @(_openId == 0 ? "READY" : "ACTIVE") · @Session?.LineId</span>
         <span>@(_openId == 0 ? "—" : $"AndonID #{_openId} · {_triggered:HH:mm:ss}")</span>
         <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.Inj08Help))" />
     </div>
@@ -38,7 +38,7 @@
         <div class="andon-meta">
             <div>
                 <div class="andon-meta-l">Operator</div>
-                <div class="andon-meta-v">@Session.EmployeeNo</div>
+                <div class="andon-meta-v">@Session?.EmployeeNo</div>
             </div>
             <div>
                 <div class="andon-meta-l">Elapsed</div>
@@ -83,6 +83,7 @@
 
     protected override void OnInitialized()
     {
+        if (Session is null) return;
         _timer = new System.Threading.Timer(_ => InvokeAsync(() =>
         {
             if (_openId != 0)

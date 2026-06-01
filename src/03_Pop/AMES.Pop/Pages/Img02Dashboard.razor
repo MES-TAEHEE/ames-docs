@@ -7,11 +7,11 @@
     <div class="pop-tbar">
         <div style="display:flex; align-items:center;">
             <span class="pop-tbar-logo">A-MES</span>
-            <span class="pop-tbar-id">IMG-02 · @Session.TerminalId · @Session.LineId</span>
+            <span class="pop-tbar-id">IMG-02 · @Session?.TerminalId · @Session?.LineId</span>
         </div>
         <div class="pop-tbar-r">
             <span class="@_eqClass">● @_eqStatus</span>
-            <span>@Session.EmployeeName · @Session.ShiftCode</span>
+            <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
             <span>@_now.ToString("yyyy-MM-dd HH:mm")</span>
             <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.Img02Help))" />
         </div>
@@ -132,6 +132,7 @@
 
     protected override void OnInitialized()
     {
+        if (Session is null) return;
         Refresh();
         _refresh = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); StateHasChanged(); }), null, 5000, 5000);
         _clock   = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DateTime.Now; StateHasChanged(); }), null, 1000, 1000);
@@ -139,6 +140,7 @@
 
     void Refresh()
     {
+        if (Session is null) return;
         _wo = PopServices.WorkOrders.GetActiveForTerminal(Session.LineId, Session.TerminalId)
            ?? PopServices.WorkOrders.ListForLine(Session.LineId).FirstOrDefault();
         if (_wo is not null)

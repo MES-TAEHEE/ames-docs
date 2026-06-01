@@ -7,11 +7,11 @@
     <div class="pop-tbar">
         <div style="display:flex; align-items:center;">
             <span class="pop-tbar-logo">A-MES</span>
-            <span class="pop-tbar-id">IMG-03 · PRODUCTION ENTRY · @Session.LineId</span>
+            <span class="pop-tbar-id">IMG-03 · PRODUCTION ENTRY · @Session?.LineId</span>
         </div>
         <div class="pop-tbar-r">
             <span class="stat-on">● RUN</span>
-            <span>@Session.EmployeeName · @Session.ShiftCode</span>
+            <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
             <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.Img03Help))" />
         </div>
     </div>
@@ -97,6 +97,7 @@
 
     void Refresh()
     {
+        if (Session is null) return;
         _wo   = PopServices.WorkOrders.GetActiveForTerminal(Session.LineId, Session.TerminalId)
              ?? PopServices.WorkOrders.ListForLine(Session.LineId).FirstOrDefault();
         _roll = PopServices.Fabric.GetMountedRoll(Session.LineId);
