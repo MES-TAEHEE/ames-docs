@@ -1,0 +1,185 @@
+@page "/pnt03"
+@implements IDisposable
+@inject NavigationManager Nav
+@inject AppState State
+
+@*
+    PNT-03 Loading — operator selects a PRE-status virtual lot,
+    picks the jig to bind, and presses BIND & LOAD. Writes
+    PNT_JigLoad + advances PNT_VirtualLot.Status → LOADED + raises
+    a synthetic R1 PNT_LineEvent so the track board picks it up.
+*@
+
+<div class="pop-shell pnt">
+    <div class="pop-tbar">
+        <div style="display:flex; align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">PNT-03 · @Session?.TerminalId · @Session?.LineId</span>
+        </div>
+        <div class="pop-tbar-r">
+            <span class="stat-on">● R1 ONLINE</span>
+            <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
+            <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
+        </div>
+    </div>
+
+    <div class="pop-bd">
+        <div class="pnt-kpis k4">
+            <div class="pnt-kpi warn"><div class="lbl">PRE LOTS</div><div class="val">@_preLots.Count</div><div class="sub">awaiting jig</div></div>
+            <div class="pnt-kpi ok"><div class="lbl">JIGS FREE</div><div class="val">@_freeJigs</div><div class="sub">available</div></div>
+            <div class="pnt-kpi"><div class="lbl">SELECTED LOT</div><div class="val">@(_selectedLot == 0 ? "—" : "#" + _selectedLot)</div><div class="sub">@(_selectedLotItem)</div></div>
+            <div class="pnt-kpi"><div class="lbl">SELECTED JIG</div><div class="val">@(_selectedJig ?? "—")</div><div class="sub">target</div></div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:16px; flex:1; min-height:0;">
+            <div class="pop-card" style="overflow:auto;">
+                <div class="pop-card-h">▼ PRE LOTS · 결합 대기</div>
+                @if (_preLots.Count == 0)
+                {
+                    <div class="pnt-empty">No PRE lots to bind.</div>
+                }
+                else
+                {
+                    <div class="pnt-lots">
+                        @foreach (var l in _preLots)
+                        {
+                            var sel = _selectedLot == l.VirtualLotId;
+                            <div class="pnt-lot @(sel ? "selected" : "pre")" @onclick="@(() => SelectLot(l))">
+                                <div class="lh">
+                                    <div class="lid">LOT #@l.VirtualLotId</div>
+                                    <div class="lst">PRE</div>
+                                </div>
+                                <div class="item">
+                                    <span class="swatch" style="background:@(l.HexValue ?? "#666");"></span>
+                                    @(l.ItemName ?? l.ItemNo)
+                                </div>
+                                <div class="meta"><span class="l">RAL</span><span class="v">@l.RalColor</span></div>
+                                <div class="meta"><span class="l">TARGET</span><span class="v">@l.TargetQty EA</span></div>
+                                <div class="meta"><span class="l">ISSUED</span><span class="v">@l.IssuedAt.ToString("HH:mm:ss")</span></div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="pop-card" style="overflow:auto;">
+                <div class="pop-card-h">▼ JIG SCAN · R1 READER</div>
+                <div class="pnt-jigs">
+                    @foreach (var j in _jigs)
+                    {
+                        var cls = !j.Available ? "unavailable" :
+                                  j.LifePct >= 85 ? "bad" :
+                                  j.LifePct >= 70 ? "warn" : "";
+                        if (_selectedJig == j.JigId) cls += " selected";
+                        <div class="pnt-jig @cls" @onclick="@(() => SelectJig(j))">
+                            <div class="jid">@j.JigId</div>
+                            <div class="jpct">@j.LifePct%</div>
+                            <div class="jsub">@j.CycleCount / @j.RatedCycle</div>
+                            <div class="jsub">@(j.Available ? j.HangerCount + " HG" : "IN USE")</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="pop-card">
+            <div style="display:flex; gap:14px; align-items:flex-end;">
+                <div class="pnt-fld" style="flex:1;">
+                    <label>QTY LOADED</label>
+                    <input class="pnt-input" @bind="_loaded" @bind:event="oninput" type="number" />
+                </div>
+                <button class="pnt-btn sec" style="flex:0 0 180px;" @onclick="ResetForm">↺ RESET</button>
+                <button class="pnt-btn ok" style="flex:0 0 260px;"
+                        disabled="@(_selectedLot == 0 || _selectedJig is null)"
+                        @onclick="BindAndLoad">✓ BIND &amp; LOAD</button>
+            </div>
+            <div class="@(_statusCls)" style="margin-top:10px; font-size:13px; min-height:20px;">@_status</div>
+        </div>
+    </div>
+
+    <div class="pop-nav" style="--nav-cols:9;">
+        <button class="nav-btn"          @onclick="@(() => Go("pnt01"))">▶ PNT-01<small>Plan</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt02"))">▶ PNT-02<small>Pre-Issue</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt04"))">▶ PNT-04<small>Track Board</small></button>
+        <button class="nav-btn primary"  @onclick="@(() => Go("pnt05"))">▶ PNT-05<small>Oven</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt06"))">▶ PNT-06<small>Unloading</small></button>
+        <button class="nav-btn gold"     @onclick="@(() => Go("pnt07"))">▶ PNT-07<small>Label</small></button>
+        <button class="nav-btn warn"     @onclick="@(() => Go("pnt08"))">▶ PNT-08<small>Defect</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt09"))">▶ PNT-09<small>Shift Rpt</small></button>
+        <button class="nav-btn muted"    @onclick="Logout">◀ LOGOUT<small></small></button>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] public PopSessionDto? Session { get; set; }
+
+    private List<PntVirtualLotDto> _preLots = new();
+    private List<PntJigDto>        _jigs    = new();
+    private int     _selectedLot;
+    private string  _selectedLotItem = "";
+    private string? _selectedJig;
+    private int     _loaded = 32;
+    private int     _freeJigs;
+    private string  _status = "", _statusCls = "dim";
+    private DateTime _now = DateTime.Now;
+    private System.Threading.Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        Refresh();
+        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DateTime.Now; StateHasChanged(); }),
+                                            null, 4000, 4000);
+    }
+
+    private void Refresh()
+    {
+        try
+        {
+            var lineId = Session?.LineId ?? "LINE-PNT-01";
+            _preLots = PopServices.Pnt.ListAllTodayLots(lineId).Where(l => l.Status == "PRE").ToList();
+            _jigs    = PopServices.Pnt.ListAvailableJigs();
+            _freeJigs = _jigs.Count(j => j.Available);
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Pnt03] {ex.Message}"); }
+    }
+
+    private void SelectLot(PntVirtualLotDto l)
+    {
+        _selectedLot = l.VirtualLotId;
+        _selectedLotItem = (l.ItemName ?? l.ItemNo) + " · " + l.RalColor;
+        if (l.TargetQty > 0) _loaded = l.TargetQty;
+    }
+
+    private void SelectJig(PntJigDto j)
+    {
+        if (!j.Available) return;
+        _selectedJig = j.JigId;
+    }
+
+    private void BindAndLoad()
+    {
+        if (_selectedLot == 0)  { SetStatus("Select a PRE lot.", "fail"); return; }
+        if (_selectedJig is null){ SetStatus("Select a jig.",    "fail"); return; }
+        try
+        {
+            PopServices.Pnt.BindAndLoad(_selectedLot, _selectedJig, _loaded,
+                                         Session?.OperatorId ?? "system",
+                                         Session?.LineId ?? "LINE-PNT-01",
+                                         Session?.EmployeeNo ?? "P000");
+            SetStatus($"✓ LOT #{_selectedLot} bound to {_selectedJig} ({_loaded} EA)", "ok");
+            ResetForm();
+            Refresh();
+        }
+        catch (Exception ex) { SetStatus("× " + ex.Message, "fail"); }
+    }
+
+    private void ResetForm()
+    {
+        _selectedLot = 0; _selectedLotItem = ""; _selectedJig = null; _loaded = 32;
+    }
+
+    private void SetStatus(string s, string c) { _status = s; _statusCls = c; }
+    private void Go(string r) => Nav.NavigateTo("/" + r);
+    private void Logout()      { State.SignOut(); Nav.NavigateTo("/login"); }
+    public void Dispose() => _timer?.Dispose();
+}

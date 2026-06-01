@@ -1,0 +1,130 @@
+@page "/pnt04"
+@implements IDisposable
+@inject NavigationManager Nav
+@inject AppState State
+
+@*
+    PNT-04 Line Track Board — the floor-wide dashboard. Three reader
+    tiles (R1/R2/R3) up top with live event counts, then a scrolling
+    event stream pulled from PNT_LineEvent.
+*@
+
+<div class="pop-shell pnt">
+    <div class="pop-tbar">
+        <div style="display:flex; align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">PNT-04 · @Session?.TerminalId · @Session?.LineId</span>
+        </div>
+        <div class="pop-tbar-r">
+            <span class="stat-on">● LIVE</span>
+            <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
+            <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
+        </div>
+    </div>
+
+    <div class="pop-bd">
+        <div class="pnt-readers">
+            <div class="pnt-reader">
+                <div class="rd-l">R1 · LOADING</div>
+                <div class="rd-v">@_r1Count</div>
+                <div class="rd-g"><span class="led"></span>ONLINE · -42 dBm</div>
+            </div>
+            <div class="pnt-reader">
+                <div class="rd-l">R2 · OVEN ENTRY</div>
+                <div class="rd-v">@_r2Count</div>
+                <div class="rd-g"><span class="led"></span>ONLINE · -38 dBm</div>
+            </div>
+            <div class="pnt-reader">
+                <div class="rd-l">R3 · UNLOADING</div>
+                <div class="rd-v">@_r3Count</div>
+                <div class="rd-g"><span class="led"></span>ONLINE · -40 dBm</div>
+            </div>
+        </div>
+
+        <div class="pnt-kpis k4">
+            <div class="pnt-kpi"><div class="lbl">LOTS ON LINE</div><div class="val">@_onLine</div><div class="sub">PRE+BOUND+LOADED+OVEN</div></div>
+            <div class="pnt-kpi warn"><div class="lbl">IN OVEN</div><div class="val">@_inOven</div><div class="sub">curing</div></div>
+            <div class="pnt-kpi ok"><div class="lbl">CONFIRMED</div><div class="val">@_confirmed</div><div class="sub">today</div></div>
+            <div class="pnt-kpi bad"><div class="lbl">DEFECT</div><div class="val">@_defect</div><div class="sub">today</div></div>
+        </div>
+
+        <div class="pop-card" style="flex:1; overflow:auto;">
+            <div class="pop-card-h">▼ LIVE EVENT STREAM · 최근 RFID 통과 (30)</div>
+            @if (_events.Count == 0)
+            {
+                <div class="pnt-empty">No recent events.</div>
+            }
+            else
+            {
+                <div class="pnt-events">
+                    @foreach (var e in _events)
+                    {
+                        var cls = (e.ReaderId ?? "") switch {
+                            var r when r.Contains("R1") => "r1",
+                            var r when r.Contains("R2") => "r2",
+                            var r when r.Contains("R3") => "r3",
+                            _                            => ""
+                        };
+                        <div class="pnt-event @cls">
+                            <div class="ts">@e.EventTs.ToString("HH:mm:ss")</div>
+                            <div class="rd">@(e.GateLocation ?? "—")</div>
+                            <div class="jg">@(e.JigId ?? "—") @(e.TagId is null ? "" : ("· " + e.TagId))</div>
+                            <div class="gw">RSSI @e.Rssi · @(e.TriggerType ?? "—")</div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="pop-nav" style="--nav-cols:9;">
+        <button class="nav-btn"          @onclick="@(() => Go("pnt01"))">▶ PNT-01<small>Plan</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt02"))">▶ PNT-02<small>Pre-Issue</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt03"))">▶ PNT-03<small>Loading</small></button>
+        <button class="nav-btn primary"  @onclick="@(() => Go("pnt05"))">▶ PNT-05<small>Oven</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt06"))">▶ PNT-06<small>Unloading</small></button>
+        <button class="nav-btn gold"     @onclick="@(() => Go("pnt07"))">▶ PNT-07<small>Label</small></button>
+        <button class="nav-btn warn"     @onclick="@(() => Go("pnt08"))">▶ PNT-08<small>Defect</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt09"))">▶ PNT-09<small>Shift Rpt</small></button>
+        <button class="nav-btn muted"    @onclick="Logout">◀ LOGOUT<small></small></button>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] public PopSessionDto? Session { get; set; }
+
+    private List<PntLineEventDto> _events = new();
+    private int _r1Count, _r2Count, _r3Count, _onLine, _inOven, _confirmed, _defect;
+    private DateTime _now = DateTime.Now;
+    private System.Threading.Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        Refresh();
+        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DateTime.Now; StateHasChanged(); }),
+                                            null, 3000, 3000);
+    }
+
+    private void Refresh()
+    {
+        try
+        {
+            var lineId = Session?.LineId ?? "LINE-PNT-01";
+            _events = PopServices.Pnt.ListRecentEvents(lineId, 30);
+            _r1Count = _events.Count(e => (e.ReaderId ?? "").Contains("R1"));
+            _r2Count = _events.Count(e => (e.ReaderId ?? "").Contains("R2"));
+            _r3Count = _events.Count(e => (e.ReaderId ?? "").Contains("R3"));
+
+            var lots = PopServices.Pnt.ListAllTodayLots(lineId);
+            _onLine    = lots.Count(l => l.Status is "PRE" or "BOUND" or "LOADED" or "OVEN");
+            _inOven    = lots.Count(l => l.Status == "OVEN");
+            _confirmed = lots.Count(l => l.Status is "CONFIRMED" or "LABELED" or "CLOSED");
+            _defect    = lots.Sum(l => l.DefectQty);
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Pnt04] {ex.Message}"); }
+    }
+
+    private void Go(string r) => Nav.NavigateTo("/" + r);
+    private void Logout()      { State.SignOut(); Nav.NavigateTo("/login"); }
+    public void Dispose() => _timer?.Dispose();
+}

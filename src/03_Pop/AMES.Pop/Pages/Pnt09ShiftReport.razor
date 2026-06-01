@@ -1,0 +1,124 @@
+@page "/pnt09"
+@implements IDisposable
+@inject NavigationManager Nav
+@inject AppState State
+
+@*
+    PNT-09 Shift / Daily Report — top-line numbers grouped by shift,
+    plus today's per-color rollup pulled from PNT_VirtualLot. Pure
+    read-only KPI dashboard intended for end-of-shift hand-off.
+*@
+
+<div class="pop-shell pnt">
+    <div class="pop-tbar">
+        <div style="display:flex; align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">PNT-09 · @Session?.TerminalId · @Session?.LineId</span>
+        </div>
+        <div class="pop-tbar-r">
+            <span class="stat-on">● LIVE</span>
+            <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
+            <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
+        </div>
+    </div>
+
+    <div class="pop-bd">
+        <div class="pnt-kpis k4">
+            <div class="pnt-kpi"><div class="lbl">LOTS TODAY</div><div class="val">@_lots.Count</div><div class="sub">virtual</div></div>
+            <div class="pnt-kpi ok"><div class="lbl">CLOSED</div><div class="val">@_closed</div><div class="sub">CONFIRMED+LABELED</div></div>
+            <div class="pnt-kpi"><div class="lbl">GOOD</div><div class="val">@_good</div><div class="sub">EA</div></div>
+            <div class="pnt-kpi bad"><div class="lbl">DEFECT</div><div class="val">@_defect</div><div class="sub">@_defectPct.ToString("0.0")%</div></div>
+        </div>
+
+        <div class="pnt-shift">
+            @foreach (var s in _shifts)
+            {
+                <div class="pnt-shift-card">
+                    <div class="sh-l">SHIFT @s.ShiftCode</div>
+                    <div class="sh-v">@s.LotsClosed <span style="font-size:24px; color:#a8997f;">LOT</span></div>
+                    <div style="display:flex; gap:12px; margin-top:8px;">
+                        <div style="flex:1;"><div class="sh-l">GOOD</div><div class="sh-v" style="font-size:32px; color:#22c55e;">@s.GoodQty</div></div>
+                        <div style="flex:1;"><div class="sh-l">DEFECT</div><div class="sh-v" style="font-size:32px; color:#fca5a5;">@s.DefectQty</div></div>
+                        <div style="flex:1;"><div class="sh-l">RATE</div><div class="sh-v" style="font-size:32px; color:#fbbf24;">@s.DefectPct.ToString("0.0")%</div></div>
+                    </div>
+                </div>
+            }
+            @if (_shifts.Count == 0)
+            {
+                <div class="pnt-shift-card" style="grid-column:1/-1;">
+                    <div class="sh-l">NO LOTS CLOSED TODAY</div>
+                </div>
+            }
+        </div>
+
+        <div class="pop-card" style="flex:1; overflow:auto;">
+            <div class="pop-card-h">▼ PER-COLOR BREAKDOWN</div>
+            <div class="pnt-colors">
+                @foreach (var grp in _lots.GroupBy(l => l.RalColor))
+                {
+                    var swatch = grp.First().HexValue ?? "#666";
+                    var qty    = grp.Sum(l => l.ConfirmedQty);
+                    var def    = grp.Sum(l => l.DefectQty);
+                    <div class="pnt-color">
+                        <div class="swatch" style="background:@swatch;"></div>
+                        <div class="nm">@(grp.First().ColorName ?? grp.Key)</div>
+                        <div class="qty">@qty / @def EA</div>
+                    </div>
+                }
+                @if (_lots.Count == 0)
+                {
+                    <div class="pnt-empty" style="grid-column:1/-1;">No lots issued today.</div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="pop-nav" style="--nav-cols:9;">
+        <button class="nav-btn primary"  @onclick="@(() => Go("pnt01"))">▶ PNT-01<small>Plan</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt02"))">▶ PNT-02<small>Pre-Issue</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt03"))">▶ PNT-03<small>Loading</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt04"))">▶ PNT-04<small>Track Board</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt05"))">▶ PNT-05<small>Oven</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt06"))">▶ PNT-06<small>Unloading</small></button>
+        <button class="nav-btn gold"     @onclick="@(() => Go("pnt07"))">▶ PNT-07<small>Label</small></button>
+        <button class="nav-btn warn"     @onclick="@(() => Go("pnt08"))">▶ PNT-08<small>Defect</small></button>
+        <button class="nav-btn muted"    @onclick="Logout">◀ LOGOUT<small></small></button>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] public PopSessionDto? Session { get; set; }
+
+    private List<PntShiftBucketDto> _shifts = new();
+    private List<PntVirtualLotDto>  _lots   = new();
+    private int     _closed, _good, _defect;
+    private double  _defectPct;
+    private DateTime _now = DateTime.Now;
+    private System.Threading.Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        Refresh();
+        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DateTime.Now; StateHasChanged(); }),
+                                            null, 6000, 6000);
+    }
+
+    private void Refresh()
+    {
+        try
+        {
+            var lineId = Session?.LineId ?? "LINE-PNT-01";
+            _shifts = PopServices.Pnt.GetShiftBuckets(lineId);
+            _lots   = PopServices.Pnt.ListAllTodayLots(lineId);
+            _closed = _lots.Count(l => l.Status is "CONFIRMED" or "LABELED" or "CLOSED");
+            _good   = _lots.Sum(l => l.ConfirmedQty);
+            _defect = _lots.Sum(l => l.DefectQty);
+            _defectPct = _good + _defect == 0 ? 0 : _defect * 100.0 / (_good + _defect);
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Pnt09] {ex.Message}"); }
+    }
+
+    private void Go(string r) => Nav.NavigateTo("/" + r);
+    private void Logout()      { State.SignOut(); Nav.NavigateTo("/login"); }
+    public void Dispose() => _timer?.Dispose();
+}
