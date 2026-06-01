@@ -7,11 +7,11 @@
     <div class="pop-tbar">
         <div style="display:flex; align-items:center;">
             <span class="pop-tbar-logo">A-MES</span>
-            <span class="pop-tbar-id">IMG-06 · BOND SETUP · @Session.LineId</span>
+            <span class="pop-tbar-id">IMG-06 · BOND SETUP · @Session?.LineId</span>
         </div>
         <div class="pop-tbar-r">
             <span class="stat-on">● PLC ONLINE</span>
-            <span>@Session.EmployeeName · @Session.ShiftCode</span>
+            <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
             <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.Img06Help))" />
         </div>
     </div>
@@ -79,6 +79,7 @@
 
     void Reload()
     {
+        if (Session is null) return;
         _wo   = PopServices.WorkOrders.GetActiveForTerminal(Session.LineId, Session.TerminalId)
              ?? PopServices.WorkOrders.ListForLine(Session.LineId).FirstOrDefault();
         _bond = PopServices.Bond.GetActiveForLine(Session.LineId);
@@ -86,6 +87,7 @@
 
     void LoadRecipe()
     {
+        if (Session is null) return;
         if (_wo is null) return;
         try
         {

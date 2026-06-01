@@ -1,9 +1,15 @@
 @inject AppState State
+@inject NavigationManager Nav
 @implements IDisposable
 
 @*  AppRoot subscribes to AppState changes and re-cascades the current
     Session down to every page. Login.razor sets the session; logout clears
-    it; the router does the rest. *@
+    it; the router does the rest.
+
+    Auth guard — when Session is null and the operator is somehow on a
+    protected route (manual nav, post-logout flicker, hot-reload), bounce
+    back to /login so no protected page renders against a null cascade
+    and throws on @Session.X. *@
 
 <CascadingValue Value="State.Session">
     <CascadingValue Value="State">
@@ -14,10 +20,31 @@
 @code {
     protected override void OnInitialized()
     {
-        State.OnChange += OnStateChanged;
+        State.OnChange       += OnStateChanged;
+        Nav.LocationChanged  += OnLocationChanged;
+        EnsureAuthed();
     }
 
-    private void OnStateChanged() => InvokeAsync(StateHasChanged);
+    private void OnStateChanged()
+    {
+        EnsureAuthed();
+        InvokeAsync(StateHasChanged);
+    }
 
-    public void Dispose() => State.OnChange -= OnStateChanged;
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+        => EnsureAuthed();
+
+    private void EnsureAuthed()
+    {
+        if (State.Session is not null) return;
+        var rel = Nav.ToBaseRelativePath(Nav.Uri);
+        if (string.IsNullOrEmpty(rel) || rel.StartsWith("login", StringComparison.OrdinalIgnoreCase)) return;
+        Nav.NavigateTo("/login", forceLoad: false, replace: true);
+    }
+
+    public void Dispose()
+    {
+        State.OnChange      -= OnStateChanged;
+        Nav.LocationChanged -= OnLocationChanged;
+    }
 }

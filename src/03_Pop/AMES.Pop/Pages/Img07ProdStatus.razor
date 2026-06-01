@@ -10,7 +10,7 @@
             <span class="pop-tbar-id">IMG-07 · PRODUCTION STATUS · WRAPPING SUPERVISOR</span>
         </div>
         <div class="pop-tbar-r">
-            <span>@Session.EmployeeName · @Session.ShiftCode</span>
+            <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
             <span>@_now.ToString("yyyy-MM-dd HH:mm")</span>
             <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.Img07Help))" />
         </div>
@@ -26,7 +26,7 @@
         </div>
 
         <div class="pop-card hourly-chart">
-            <div class="pop-card-h">▼ HOURLY OUTPUT · @Session.LineId · today</div>
+            <div class="pop-card-h">▼ HOURLY OUTPUT · @Session?.LineId · today</div>
             <div class="hc-bars">
                 @for (var h = 6; h <= 17; h++)
                 {
@@ -84,12 +84,14 @@
 
     protected override void OnInitialized()
     {
+        if (Session is null) return;
         Refresh();
         _timer = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DateTime.Now; Refresh(); StateHasChanged(); }), null, 10_000, 10_000);
     }
 
     void Refresh()
     {
+        if (Session is null) return;
         _lines = PopServices.Dashboard.GetLinesForProcess("IMG");
         _totalGood = _lines.Sum(l => l.TodayGood);
         _totalDef  = _lines.Sum(l => l.TodayDefect);
