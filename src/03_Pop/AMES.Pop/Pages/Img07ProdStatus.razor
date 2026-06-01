@@ -61,10 +61,14 @@
         </table>
     </div>
 
-    <div class="pop-nav" style="--nav-cols:3;">
-        <button class="nav-btn"        @onclick="@(() => Nav.NavigateTo("/img02"))">◀ Dashboard</button>
-        <button class="nav-btn primary" @onclick="Refresh">⟳ Refresh</button>
-        <button class="nav-btn muted"   @onclick="Logout">◀ LOGOUT</button>
+    <div class="pop-nav" style="--nav-cols:7;">
+        <button class="nav-btn" @onclick="@(() => Go("img02"))">IMG-02<small>Dashboard</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("img03"))">IMG-03<small>Prod Entry</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("img04"))">IMG-04<small>Fabric</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("img05"))">IMG-05<small>Defect</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("img06"))">IMG-06<small>Bond Setup</small></button>
+        <button class="nav-btn active" @onclick="@(() => Go("img07"))">IMG-07<small>Prod Status</small></button>
+        <button class="nav-btn muted" @onclick="Logout">LOGOUT<small>End shift</small></button>
     </div>
 </div>
 
@@ -99,4 +103,5 @@
 
     void Logout() { State.SignOut(); Nav.NavigateTo("/login"); }
     public void Dispose() => _timer?.Dispose();
+    private void Go(string r) => Nav.NavigateTo("/" + r);
 }

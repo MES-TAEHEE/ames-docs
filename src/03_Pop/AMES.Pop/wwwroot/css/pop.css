@@ -1508,3 +1508,24 @@ body {
 .help-callout.info { background: rgba(147,197,253,.08); border-left-color: #93c5fd; }
 .help-callout-i  { font-size: 16px; flex-shrink: 0; }
 .help-callout-tx { font-size: 12px; line-height: 1.6; color: rgba(255,255,255,.85); }
+
+/* ============================================================
+   nav-btn.active — "you are here" indicator
+   Stays in the same slot on every screen so the menu never shifts.
+   ============================================================ */
+.pop-nav .nav-btn.active {
+    background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.05));
+    border-color: var(--mod-tint);
+    color: #fff;
+    cursor: default;
+    pointer-events: none;
+    box-shadow: inset 0 -3px 0 var(--mod-tint);
+}
+.pop-nav .nav-btn.active small {
+    color: var(--mod-tint);
+    font-weight: 700;
+}
+.pop-shell.pnt .pop-nav .nav-btn.active { border-color: #fdba74; box-shadow: inset 0 -3px 0 #fdba74; }
+.pop-shell.pnt .pop-nav .nav-btn.active small { color: #fdba74; }
+.pop-shell.qc  .pop-nav .nav-btn.active { border-color: #fca5a5; box-shadow: inset 0 -3px 0 #fca5a5; }
+.pop-shell.qc  .pop-nav .nav-btn.active small { color: #fca5a5; }
