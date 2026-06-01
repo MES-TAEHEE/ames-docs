@@ -121,15 +121,16 @@ public static class WhEndpoints
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
             const string sql = """
-                SELECT l.LocationID, l.LocationName, l.Zone,
+                SELECT l.LocationID, l.LocationName, l.ZoneCode,
                        (SELECT COUNT(*)            FROM dbo.WH_Inventory i WHERE i.LocationID=l.LocationID) AS LineCount,
                        ISNULL((SELECT SUM(i.OnHandQty) FROM dbo.WH_Inventory i WHERE i.LocationID=l.LocationID),0) AS TotalQty
                 FROM   dbo.MD_Location l
-                ORDER BY l.Zone, l.LocationID;
+                WHERE  ISNULL(l.ActiveFlag,1) = 1
+                ORDER BY l.ZoneCode, l.LocationID;
                 """;
             return Query(factory, sql, r => new LocationRow(
                 r["LocationID"] as string ?? "", r["LocationName"] as string,
-                r["Zone"] as string, (int)r["LineCount"],
+                r["ZoneCode"] as string, (int)r["LineCount"],
                 r.GetDecimal(r.GetOrdinal("TotalQty"))));
         });
 
