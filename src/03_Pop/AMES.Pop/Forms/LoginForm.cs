@@ -28,6 +28,14 @@ public sealed class LoginForm : PopForm
     private DateTime _lockedUntil = DateTime.MinValue;
     private int      _consecutiveFailures;
 
+    /// <summary>
+    /// EmployeeNo selected via the User Picker popup. When set, PIN-only
+    /// submissions authenticate as this user instead of the legacy
+    /// "_lastScannedBadge ?? E001" fallback. Cleared on successful login.
+    /// </summary>
+    private string? _pickedEmployeeNo;
+    private Label?  _lblPickedUser;
+
     public LoginForm()
     {
         Text = "A-MES POP · Shift Login";
@@ -148,17 +156,18 @@ public sealed class LoginForm : PopForm
 
         var stack = new TableLayoutPanel
         {
-            Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 8, BackColor = Color.Transparent,
+            Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 9, BackColor = Color.Transparent,
         };
         stack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // 0 title
         stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // 1 subtitle
         stack.RowStyles.Add(new RowStyle(SizeType.Absolute, 140)); // 2 badge zone
-        stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // 3 OR separator
-        stack.RowStyles.Add(new RowStyle(SizeType.Absolute, 90));  // 4 PIN dots
-        stack.RowStyles.Add(new RowStyle(SizeType.Percent, 100));  // 5 keypad
-        stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // 6 status
-        stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // 7 info grid (sizes to content)
+        stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // 3 user picker
+        stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // 4 OR separator
+        stack.RowStyles.Add(new RowStyle(SizeType.Absolute, 90));  // 5 PIN dots
+        stack.RowStyles.Add(new RowStyle(SizeType.Percent, 100));  // 6 keypad
+        stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // 7 status
+        stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // 8 info grid (sizes to content)
 
         stack.Controls.Add(new Label
         {
@@ -173,13 +182,14 @@ public sealed class LoginForm : PopForm
         }, 0, 1);
 
         stack.Controls.Add(BuildBadgeZone(), 0, 2);
+        stack.Controls.Add(BuildUserPickerRow(), 0, 3);
 
         stack.Controls.Add(new Label
         {
             Text = "─────  OR · ENTER PIN  ─────",
             Font = PopTheme.MonoBold, ForeColor = PopTheme.TextDim,
-            AutoSize = true, Anchor = AnchorStyles.None, Margin = new Padding(0, 16, 0, 10),
-        }, 0, 3);
+            AutoSize = true, Anchor = AnchorStyles.None, Margin = new Padding(0, 12, 0, 10),
+        }, 0, 4);
 
         pinDots = new PinDotsDisplay
         {
@@ -187,9 +197,9 @@ public sealed class LoginForm : PopForm
             Margin = new Padding(140, 4, 140, 10),
             BackColor = Color.Black, ForeColor = PopTheme.Accent,
         };
-        stack.Controls.Add(pinDots, 0, 4);
+        stack.Controls.Add(pinDots, 0, 5);
 
-        stack.Controls.Add(BuildKeypad(), 0, 5);
+        stack.Controls.Add(BuildKeypad(), 0, 6);
 
         statusLabel = new Label
         {
@@ -197,9 +207,9 @@ public sealed class LoginForm : PopForm
             AutoSize = false, Dock = DockStyle.Top, Height = 32,
             TextAlign = ContentAlignment.MiddleCenter, Margin = new Padding(0, 8, 0, 4),
         };
-        stack.Controls.Add(statusLabel, 0, 6);
+        stack.Controls.Add(statusLabel, 0, 7);
 
-        stack.Controls.Add(BuildInfoGrid(), 0, 7);
+        stack.Controls.Add(BuildInfoGrid(), 0, 8);
 
         card.Controls.Add(stack);
         center.Controls.Add(card, 1, 1);
@@ -267,6 +277,61 @@ public sealed class LoginForm : PopForm
 
         zone.Controls.Add(grid);
         return zone;
+    }
+
+    private Panel BuildUserPickerRow()
+    {
+        var wrap = new TableLayoutPanel
+        {
+            Dock = DockStyle.Top, AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 2, RowCount = 1,
+            BackColor = Color.Transparent, Margin = new Padding(0, 12, 0, 0),
+        };
+        wrap.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        wrap.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        wrap.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+        _lblPickedUser = new Label
+        {
+            Text = "No user selected — using default (E001)",
+            Font = PopTheme.BodyBold, ForeColor = PopTheme.TextDim,
+            AutoSize = false, Dock = DockStyle.Fill, Height = 56,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Padding   = new Padding(8, 0, 8, 0),
+        };
+        wrap.Controls.Add(_lblPickedUser, 0, 0);
+
+        var btnPick = new Button
+        {
+            Text = "👤  SELECT USER",
+            Font = new Font("Segoe UI", 12f, FontStyle.Bold),
+            ForeColor = Color.White,
+            BackColor = PopTheme.AccentDeep,
+            FlatStyle = FlatStyle.Flat,
+            Width = 220, Height = 56,
+            Margin = new Padding(8, 0, 0, 0),
+            Cursor = Cursors.Hand, TabStop = false,
+        };
+        btnPick.FlatAppearance.BorderColor = PopTheme.Border;
+        btnPick.FlatAppearance.BorderSize  = 1;
+        btnPick.FlatAppearance.MouseOverBackColor = ControlPaint.Light(PopTheme.AccentDeep, 0.15f);
+        btnPick.Click += (_, _) => OpenUserPicker();
+        wrap.Controls.Add(btnPick, 1, 0);
+
+        return wrap;
+    }
+
+    private void OpenUserPicker()
+    {
+        using var dlg = new UserPickerForm();
+        if (dlg.ShowDialog(this) != DialogResult.OK || dlg.SelectedEmployeeNo is null) return;
+        _pickedEmployeeNo = dlg.SelectedEmployeeNo;
+        if (_lblPickedUser is not null)
+        {
+            _lblPickedUser.Text      = $"Selected:  {dlg.SelectedEmployeeNo}  ·  {dlg.SelectedEmployeeName}";
+            _lblPickedUser.ForeColor = PopTheme.Accent;
+        }
     }
 
     private TableLayoutPanel BuildKeypad()
@@ -388,7 +453,9 @@ public sealed class LoginForm : PopForm
             ShowStatus("PIN must be 4 digits", PopTheme.TextFail);
             return;
         }
-        var attemptedId = _lastScannedBadge ?? "E001";
+        // Picker > last-scanned-badge > E001 fallback. The picker popup is
+        // the explicit dev path; badge scan still works in the background.
+        var attemptedId = _pickedEmployeeNo ?? _lastScannedBadge ?? "E001";
         var pin         = _pinBuf.ToString();
         _pinBuf.Clear();
         _pinDots.Filled = 0;
@@ -491,6 +558,12 @@ public sealed class LoginForm : PopForm
 
         _pinBuf.Clear(); _scanBuf.Clear();
         _lastScannedBadge = null;
+        _pickedEmployeeNo = null;
+        if (_lblPickedUser is not null)
+        {
+            _lblPickedUser.Text      = "No user selected — using default (E001)";
+            _lblPickedUser.ForeColor = PopTheme.TextDim;
+        }
         _pinDots.Filled   = 0;
         ShowStatus(" ", PopTheme.TextDim);
         Show();
