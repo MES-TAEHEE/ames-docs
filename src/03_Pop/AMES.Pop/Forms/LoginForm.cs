@@ -552,7 +552,7 @@ public sealed class LoginForm : PopForm
         Form dash = moduleCode switch
         {
             "IMG" => new Img02DashboardForm(session),
-            _     => new Inj02DashboardForm(session),
+            _     => new Inj02DashboardFormV2(session),   // PNG-backed PoC
         };
         using (dash) dash.ShowDialog(this);
 
