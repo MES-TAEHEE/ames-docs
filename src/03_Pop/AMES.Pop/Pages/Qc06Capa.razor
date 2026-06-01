@@ -1,0 +1,136 @@
+@page "/qc06"
+@implements IDisposable
+@inject NavigationManager Nav
+@inject AppState State
+
+@*  QC-06 CAPA — list open CAPAs + drill into action steps. *@
+
+<div class="pop-shell qc">
+    <div class="pop-tbar">
+        <div style="display:flex; align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">QC-06 · @Session?.TerminalId · @Session?.LineId</span>
+        </div>
+        <div class="pop-tbar-r">
+            <span class="stat-on">● LIVE</span>
+            <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
+            <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
+        </div>
+    </div>
+
+    <div class="pop-bd">
+        <div class="qc-kpis k4">
+            <div class="qc-kpi"><div class="lbl">OPEN CAPAs</div><div class="val">@_capas.Count</div><div class="sub">active</div></div>
+            <div class="qc-kpi warn"><div class="lbl">DUE 7-DAY</div><div class="val">@_capas.Count(c => (c.DueDate ?? DateTime.MaxValue) <= DateTime.Today.AddDays(7))</div><div class="sub">approaching</div></div>
+            <div class="qc-kpi bad"><div class="lbl">OVERDUE</div><div class="val">@_capas.Count(c => (c.DueDate ?? DateTime.MaxValue) < DateTime.Today)</div><div class="sub">past due</div></div>
+            <div class="qc-kpi ok"><div class="lbl">ACTIONS DONE</div><div class="val">@_capas.Sum(c => c.ActionsCompleted)</div><div class="sub">/ @_capas.Sum(c => c.ActionsTotal)</div></div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1.1fr 1fr; gap:16px; flex:1; min-height:0;">
+            <div class="pop-card" style="overflow:auto;">
+                <div class="pop-card-h">▼ OPEN CAPAs</div>
+                @if (_capas.Count == 0)
+                {
+                    <div class="qc-empty">No open CAPAs.</div>
+                }
+                else
+                {
+                    <div class="qc-capas">
+                        @foreach (var c in _capas)
+                        {
+                            var sel = _sel == c.CapaId;
+                            var pct = c.ActionsTotal == 0 ? 0 : c.ActionsCompleted * 100 / c.ActionsTotal;
+                            <div class="qc-capa @(sel ? "selected" : "")" @onclick="@(() => Select(c))">
+                                <div class="ch">
+                                    <div class="cid">@c.CapaNumber</div>
+                                    <div class="cph">@c.Phase</div>
+                                </div>
+                                <div class="ctitle">@(c.RootCause ?? "(no root cause)")</div>
+                                <div class="meta">
+                                    <span><span class="l">TYPE</span><span class="v">@c.Type</span></span>
+                                    <span><span class="l">CAUSE</span><span class="v">@c.Cause4M</span></span>
+                                    <span><span class="l">STATUS</span><span class="v">@c.Status</span></span>
+                                    <span><span class="l">DUE</span><span class="v">@(c.DueDate?.ToString("MM-dd") ?? "—")</span></span>
+                                    <span><span class="l">DONE</span><span class="v">@c.ActionsCompleted / @c.ActionsTotal</span></span>
+                                </div>
+                                <div class="pbar"><i style="width:@pct%;"></i></div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="pop-card" style="overflow:auto;">
+                <div class="pop-card-h">▼ ACTIONS · @(_sel == 0 ? "(select CAPA)" : "#" + _sel)</div>
+                @if (_actions.Count == 0)
+                {
+                    <div class="qc-empty">No actions.</div>
+                }
+                else
+                {
+                    <table class="qc-meas">
+                        <thead><tr><th>Day</th><th>Action</th><th>Metric</th><th>Target / Actual</th><th>Result</th></tr></thead>
+                        <tbody>
+                            @foreach (var a in _actions)
+                            {
+                                var rcls = a.Verdict == "PASS" ? "r-pass" : a.Verdict == "FAIL" ? "r-fail" : "";
+                                <tr>
+                                    <td>D+@a.CheckDay</td>
+                                    <td>@a.Description</td>
+                                    <td class="std">@a.Metric</td>
+                                    <td class="meas">@a.TargetValue / @(a.ActualValue ?? "—")</td>
+                                    <td class="@rcls">@(a.Verdict ?? (a.CompletedAt is null ? "—" : "DONE"))</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="pop-nav" style="--nav-cols:9;">
+        <button class="nav-btn"         @onclick="@(() => Go("qc01"))">▶ QC-01<small>Incoming</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qc02"))">▶ QC-02<small>In-Process</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qc03"))">▶ QC-03<small>Final</small></button>
+        <button class="nav-btn alert"   @onclick="@(() => Go("qc04"))">▶ QC-04<small>NCR</small></button>
+        <button class="nav-btn warn"    @onclick="@(() => Go("qc05"))">▶ QC-05<small>Hold</small></button>
+        <button class="nav-btn primary" @onclick="@(() => Go("qc07"))">▶ QC-07<small>Dashboard</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qc08"))">▶ QC-08<small>Std</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qctrc"))">▶ QC-TRC<small>Trace</small></button>
+        <button class="nav-btn muted"   @onclick="Logout">◀ LOGOUT<small></small></button>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] public PopSessionDto? Session { get; set; }
+
+    private List<QcCapaDto>       _capas   = new();
+    private List<QcCapaActionDto> _actions = new();
+    private int _sel;
+    private DateTime _now = DateTime.Now;
+    private System.Threading.Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        Refresh();
+        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DateTime.Now; StateHasChanged(); }),
+                                            null, 5000, 5000);
+    }
+
+    private void Refresh()
+    {
+        try { _capas = PopServices.Qc.ListCapas("Open,In Progress,Plan,Action,Verify", 30); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Qc06] {ex.Message}"); }
+    }
+
+    private void Select(QcCapaDto c)
+    {
+        _sel = c.CapaId;
+        _actions = PopServices.Qc.ListCapaActions(c.CapaId);
+    }
+
+    private void Go(string r) => Nav.NavigateTo("/" + r);
+    private void Logout()      { State.SignOut(); Nav.NavigateTo("/login"); }
+    public void Dispose() => _timer?.Dispose();
+}

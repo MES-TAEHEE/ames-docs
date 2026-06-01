@@ -1,0 +1,123 @@
+@page "/qc08"
+@implements IDisposable
+@inject NavigationManager Nav
+@inject AppState State
+
+@*  QC-08 Inspection Std Browser — read-only spec viewer. *@
+
+<div class="pop-shell qc">
+    <div class="pop-tbar">
+        <div style="display:flex; align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">QC-08 · @Session?.TerminalId · @Session?.LineId</span>
+        </div>
+        <div class="pop-tbar-r">
+            <span class="stat-on">● LIVE</span>
+            <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
+            <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
+        </div>
+    </div>
+
+    <div class="pop-bd">
+        <div class="qc-kpis k4">
+            <div class="qc-kpi"><div class="lbl">ACTIVE STDS</div><div class="val">@_stds.Count</div><div class="sub">v1.0</div></div>
+            <div class="qc-kpi"><div class="lbl">INCOMING</div><div class="val">@_stds.Count(s => s.InsType == "Incoming")</div><div class="sub">vendor</div></div>
+            <div class="qc-kpi"><div class="lbl">IN-PROCESS</div><div class="val">@_stds.Count(s => s.InsType == "InProcess")</div><div class="sub">patrol</div></div>
+            <div class="qc-kpi"><div class="lbl">FINAL</div><div class="val">@_stds.Count(s => s.InsType == "Final")</div><div class="sub">FG ship</div></div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1.1fr; gap:16px; flex:1; min-height:0;">
+            <div class="pop-card" style="overflow:auto;">
+                <div class="pop-card-h">▼ INSPECTION STANDARDS</div>
+                @if (_stds.Count == 0)
+                {
+                    <div class="qc-empty">No active standards.</div>
+                }
+                else
+                {
+                    <div class="qc-stds">
+                        @foreach (var s in _stds)
+                        {
+                            var sel = _sel == s.StdId;
+                            <div class="qc-std @(sel ? "selected" : "")" @onclick="@(() => _sel = s.StdId)">
+                                <div class="stl">@s.StdCode · @s.VerNo</div>
+                                <div class="stv">@s.StdName</div>
+                                <div class="stm">
+                                    <span><strong>@s.InsType</strong></span>
+                                    <span>AQL <strong>@s.AqlLevel.ToString("0.00")</strong></span>
+                                    <span>SAMPLE <strong>1/@s.SampleInterval</strong></span>
+                                    <span>@(s.EffectiveDate?.ToString("yyyy-MM-dd") ?? "—")</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="pop-card" style="overflow:auto;">
+                <div class="pop-card-h">▼ STANDARD DETAIL · @(_sel == 0 ? "(select)" : "#" + _sel)</div>
+                @{
+                    var selected = _stds.FirstOrDefault(s => s.StdId == _sel);
+                }
+                @if (selected is null)
+                {
+                    <div class="qc-empty">Pick a standard on the left.</div>
+                }
+                else
+                {
+                    <div style="font-size:13px; line-height:1.7;">
+                        <div><strong style="color:#fca5a5;">Code:</strong> @selected.StdCode @selected.VerNo</div>
+                        <div><strong style="color:#fca5a5;">Name:</strong> @selected.StdName</div>
+                        <div><strong style="color:#fca5a5;">Type:</strong> @selected.InsType</div>
+                        <div><strong style="color:#fca5a5;">Item:</strong> @(selected.ItemName ?? selected.ItemNo)</div>
+                        <div><strong style="color:#fca5a5;">AQL:</strong> @selected.AqlLevel.ToString("0.00")</div>
+                        <div><strong style="color:#fca5a5;">Sample interval:</strong> 1 in @selected.SampleInterval</div>
+                        <div><strong style="color:#fca5a5;">Effective:</strong> @(selected.EffectiveDate?.ToString("yyyy-MM-dd") ?? "—")</div>
+                    </div>
+                    <div class="pop-card-h" style="margin-top:18px;">▼ INSPECTION ITEMS · JSON</div>
+                    <pre style="background:rgba(0,0,0,.4); color:#fdba74; padding:12px; border-radius:8px;
+                                font-family:'JetBrains Mono', monospace; font-size:12px; white-space:pre-wrap;
+                                border:1px solid #3a1414;">@(selected.InspItemsJson ?? "(no items defined)")</pre>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="pop-nav" style="--nav-cols:9;">
+        <button class="nav-btn"         @onclick="@(() => Go("qc01"))">▶ QC-01<small>Incoming</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qc02"))">▶ QC-02<small>In-Process</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qc03"))">▶ QC-03<small>Final</small></button>
+        <button class="nav-btn alert"   @onclick="@(() => Go("qc04"))">▶ QC-04<small>NCR</small></button>
+        <button class="nav-btn warn"    @onclick="@(() => Go("qc05"))">▶ QC-05<small>Hold</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qc06"))">▶ QC-06<small>CAPA</small></button>
+        <button class="nav-btn primary" @onclick="@(() => Go("qc07"))">▶ QC-07<small>Dashboard</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qctrc"))">▶ QC-TRC<small>Trace</small></button>
+        <button class="nav-btn muted"   @onclick="Logout">◀ LOGOUT<small></small></button>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] public PopSessionDto? Session { get; set; }
+
+    private List<QcInspectionStdDto> _stds = new();
+    private int _sel;
+    private DateTime _now = DateTime.Now;
+    private System.Threading.Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        Refresh();
+        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DateTime.Now; StateHasChanged(); }),
+                                            null, 1000, 1000);
+    }
+
+    private void Refresh()
+    {
+        try { _stds = PopServices.Qc.ListInspectionStds(); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Qc08] {ex.Message}"); }
+    }
+
+    private void Go(string r) => Nav.NavigateTo("/" + r);
+    private void Logout()      { State.SignOut(); Nav.NavigateTo("/login"); }
+    public void Dispose() => _timer?.Dispose();
+}

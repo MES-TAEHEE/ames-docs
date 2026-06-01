@@ -1,0 +1,114 @@
+@page "/qctrc"
+@implements IDisposable
+@inject NavigationManager Nav
+@inject AppState State
+
+@*  QC-TRC Traceability — type a lot code or LotID, see upstream + downstream
+    genealogy as a flat list of typed nodes. *@
+
+<div class="pop-shell qc">
+    <div class="pop-tbar">
+        <div style="display:flex; align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">QC-TRC · @Session?.TerminalId · @Session?.LineId</span>
+        </div>
+        <div class="pop-tbar-r">
+            <span class="stat-on">● LIVE</span>
+            <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
+            <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
+        </div>
+    </div>
+
+    <div class="pop-bd">
+        <div class="pop-card">
+            <div class="pop-card-h">▼ LOT LOOKUP · 추적성</div>
+            <div style="display:flex; gap:14px; align-items:flex-end;">
+                <div class="qc-fld" style="flex:1;">
+                    <label>SCAN OR TYPE LOT CODE / ID</label>
+                    <input class="qc-input" @bind="_input" @bind:event="oninput"
+                           @onkeypress="OnKey" placeholder="LOT-2026-0001 or 42" />
+                </div>
+                <button class="qc-btn ok" style="flex:0 0 220px;" @onclick="DoTrace">🔍 TRACE</button>
+                <button class="qc-btn sec" style="flex:0 0 140px;" @onclick="Clear">↺ CLEAR</button>
+            </div>
+            <div class="@_statusCls" style="margin-top:10px; font-size:13px; min-height:20px;">@_status</div>
+        </div>
+
+        <div class="pop-card" style="flex:1; overflow:auto;">
+            <div class="pop-card-h">▼ GENEALOGY · @(_nodes.Count) NODES</div>
+            @if (_nodes.Count == 0)
+            {
+                <div class="qc-empty">Scan a lot to view its genealogy.</div>
+            }
+            else
+            {
+                <div class="qc-trace">
+                    @foreach (var n in _nodes)
+                    {
+                        <div class="qc-tnode @n.Kind.ToLowerInvariant()">
+                            <div class="kind">@n.Kind</div>
+                            <div class="ref">@n.RefId</div>
+                            <div>
+                                <div class="tt">@(n.Title ?? "—")</div>
+                                <div class="sub">@(n.Subtitle ?? "")</div>
+                            </div>
+                            <div class="ts">@(n.OccurredAt?.ToString("MM-dd HH:mm") ?? "")</div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="pop-nav" style="--nav-cols:9;">
+        <button class="nav-btn"         @onclick="@(() => Go("qc01"))">▶ QC-01<small>Incoming</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qc02"))">▶ QC-02<small>In-Process</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qc03"))">▶ QC-03<small>Final</small></button>
+        <button class="nav-btn alert"   @onclick="@(() => Go("qc04"))">▶ QC-04<small>NCR</small></button>
+        <button class="nav-btn warn"    @onclick="@(() => Go("qc05"))">▶ QC-05<small>Hold</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qc06"))">▶ QC-06<small>CAPA</small></button>
+        <button class="nav-btn primary" @onclick="@(() => Go("qc07"))">▶ QC-07<small>Dashboard</small></button>
+        <button class="nav-btn"         @onclick="@(() => Go("qc08"))">▶ QC-08<small>Std</small></button>
+        <button class="nav-btn muted"   @onclick="Logout">◀ LOGOUT<small></small></button>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] public PopSessionDto? Session { get; set; }
+
+    private string _input = "";
+    private List<QcTraceNodeDto> _nodes = new();
+    private string _status = "", _statusCls = "dim";
+    private DateTime _now = DateTime.Now;
+    private System.Threading.Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DateTime.Now; StateHasChanged(); }),
+                                            null, 1000, 1000);
+    }
+
+    private void OnKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") DoTrace();
+    }
+
+    private void DoTrace()
+    {
+        if (string.IsNullOrWhiteSpace(_input)) { SetStatus("Enter a lot code or ID.", "fail"); return; }
+        try
+        {
+            int? lotId = int.TryParse(_input, out var n) ? n : PopServices.Qc.FindLotIdByCode(_input.Trim());
+            if (lotId is null) { SetStatus($"× No lot matches '{_input}'.", "fail"); _nodes = new(); return; }
+            _nodes = PopServices.Qc.TraceLot(lotId.Value);
+            SetStatus($"✓ {_nodes.Count} nodes for LotID {lotId}", "ok");
+        }
+        catch (Exception ex) { SetStatus("× " + ex.Message, "fail"); }
+    }
+
+    private void Clear() { _input = ""; _nodes = new(); SetStatus("", "dim"); }
+    private void SetStatus(string s, string c) { _status = s; _statusCls = c; }
+    private void Go(string r) => Nav.NavigateTo("/" + r);
+    private void Logout()      { State.SignOut(); Nav.NavigateTo("/login"); }
+    public void Dispose() => _timer?.Dispose();
+}
