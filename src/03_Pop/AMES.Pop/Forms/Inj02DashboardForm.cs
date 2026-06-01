@@ -97,18 +97,22 @@ public sealed class Inj02DashboardForm : PopForm
         woCard.Controls.Add(woStack);
         row1.Controls.Add(woCard, 0, 0);
 
-        // equip card — uses TableLayoutPanel (not FlowLayout) so rows hold
-        // their absolute heights and the lamp + state + name all fit.
-        var eqCard = NewCardPadded(14);
+        // Equip card: 5 rows — header, vertical filler, LED (fixed size),
+        // state, name, vertical filler. Two fillers split the leftover space
+        // 50/50 so the LED+state+name cluster sits centred vertically while
+        // the section header stays pinned to the top.
+        var eqCard = NewCardPadded(18);
         var eqStack = new TableLayoutPanel
         {
-            Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 4, BackColor = PopTheme.BgCard,
+            Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 6, BackColor = PopTheme.BgCard,
         };
         eqStack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        eqStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));       // section header
-        eqStack.RowStyles.Add(new RowStyle(SizeType.Percent, 100));   // LED fills remaining vertical
-        eqStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));       // state text
-        eqStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));       // equip name
+        eqStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));       // 0 header (top)
+        eqStack.RowStyles.Add(new RowStyle(SizeType.Percent, 50));    // 1 top filler
+        eqStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 160));  // 2 LED — fixed circle
+        eqStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));       // 3 state
+        eqStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));       // 4 name
+        eqStack.RowStyles.Add(new RowStyle(SizeType.Percent, 50));    // 5 bottom filler
 
         eqStack.Controls.Add(PopShell.SectionHeader("▼ EQUIPMENT STATUS"), 0, 0);
 
@@ -119,7 +123,7 @@ public sealed class Inj02DashboardForm : PopForm
             Margin    = new Padding(0, 6, 0, 6),
             BackColor = PopTheme.BgCard,
         };
-        eqStack.Controls.Add(_eqLed, 0, 1);
+        eqStack.Controls.Add(_eqLed, 0, 2);
 
         // State + name: AutoSize labels in AutoSize rows so the card sizes to
         // *content*, not to guessed pixel heights. Anchor=None centres them
@@ -128,17 +132,17 @@ public sealed class Inj02DashboardForm : PopForm
         {
             Text = "—", Font = new Font("Segoe UI", 30f, FontStyle.Bold),
             ForeColor = PopTheme.TextOk, AutoSize = true,
-            Anchor = AnchorStyles.None, Margin = new Padding(0, 6, 0, 4),
+            Anchor = AnchorStyles.None, Margin = new Padding(0, 10, 0, 4),
         };
-        eqStack.Controls.Add(_lblEquipState, 0, 2);
+        eqStack.Controls.Add(_lblEquipState, 0, 3);
 
         _lblEquipName = new Label
         {
             Text = "—", Font = PopTheme.Mono, ForeColor = PopTheme.TextDim,
-            AutoSize = true, AutoEllipsis = true, MaximumSize = new Size(560, 0),
+            AutoSize = true,
             Anchor = AnchorStyles.None, Margin = new Padding(0, 0, 0, 4),
         };
-        eqStack.Controls.Add(_lblEquipName, 0, 3);
+        eqStack.Controls.Add(_lblEquipName, 0, 4);
 
         eqCard.Controls.Add(eqStack);
         row1.Controls.Add(eqCard, 1, 0);
