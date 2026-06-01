@@ -6,6 +6,7 @@
     <div class="andon-bar">
         <span>🚨 ANDON · @(_openId == 0 ? "READY" : "ACTIVE") · @Session.LineId</span>
         <span>@(_openId == 0 ? "—" : $"AndonID #{_openId} · {_triggered:HH:mm:ss}")</span>
+        <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.Inj08Help))" />
     </div>
 
     <div class="andon-bd">

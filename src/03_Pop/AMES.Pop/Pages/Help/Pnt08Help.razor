@@ -1,0 +1,77 @@
+@*  PNT-08 Defect Register user manual. *@
+
+<div class="help-doc">
+    <div>
+        <div class="help-h1">PNT-08 · DEFECT</div>
+        <div class="help-sub">분체도장 불량 등록 — LOT × 코드 × 수량</div>
+
+        <svg class="help-svg" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="708" height="468" rx="10" fill="#000" stroke="rgba(255,255,255,.18)" stroke-width="1.5" />
+            <rect class="hs-region tbar" x="14" y="14" width="692" height="42" fill="#1a0800" stroke="rgba(234,88,12,.35)" />
+
+            @for (var i = 0; i < 4; i++)
+            {
+                var x = 14 + i * 174; var cls = new[]{"","bad","warn",""}[i];
+                var titles = new[]{"ACTIVE","DEFECT","RATE","SELECTED"};
+                var vals = new[]{"4","0","0.0%","—"};
+                <g>
+                    <rect class="hs-region @cls" x="@x" y="68" width="162" height="74" />
+                    <text class="hs-sub" x="@(x+12)" y="88">@titles[i]</text>
+                    <text class="hs-label" x="@(x+12)" y="124" style="font-size:22px;">@vals[i]</text>
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="78" r="14" />
+            <text class="hs-num-tx" x="24" y="78">1</text>
+
+            <rect class="hs-region" x="14" y="156" width="338" height="220" />
+            <text class="hs-sub" x="28" y="176" fill="#fdba74">▼ SELECT LOT</text>
+            @for (var i = 0; i < 3; i++)
+            {
+                var y = 192 + i * 60;
+                var sel = i == 0;
+                <g>
+                    <rect class="hs-region @(sel ? "warn" : "")" x="28" y="@y" width="310" height="52" />
+                    <text class="hs-sub" x="42" y="@(y+18)">LOT #@(7+i)  ·  LOADED</text>
+                    <text class="hs-label" x="42" y="@(y+40)" style="font-size:13px;">DOOR TRIM · 32 EA</text>
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="166" r="14" />
+            <text class="hs-num-tx" x="24" y="166">2</text>
+
+            <rect class="hs-region" x="366" y="156" width="340" height="220" />
+            <text class="hs-sub" x="380" y="176" fill="#fdba74">▼ DEFECT TYPE</text>
+            @for (var i = 0; i < 6; i++)
+            {
+                var col = i % 3; var row = i / 3;
+                var x = 380 + col * 110; var y = 196 + row * 84;
+                var sel = i == 0;
+                var codes = new[] {"PNT-D01","PNT-D02","PNT-D03","PNT-D04","PNT-D05","PNT-D06"};
+                var names = new[] {"Orange","Sagging","Crater","Low Build","Color","Dust"};
+                <g>
+                    <rect class="hs-region @(sel ? "warn" : "")" x="@x" y="@y" width="100" height="72" />
+                    <text class="hs-sub" x="@(x+8)" y="@(y+18)">@codes[i]</text>
+                    <text class="hs-label" x="@(x+8)" y="@(y+44)" style="font-size:11px;">@names[i]</text>
+                </g>
+            }
+            <circle class="hs-num" cx="378" cy="166" r="14" />
+            <text class="hs-num-tx" x="378" y="166">3</text>
+
+            <rect class="hs-region bad" x="14" y="386" width="692" height="40" />
+            <text class="hs-label" x="360" y="412" text-anchor="middle" style="font-size:16px;">⚠ REGISTER DEFECT  ·  QTY 1</text>
+            <circle class="hs-num" cx="24" cy="396" r="13" />
+            <text class="hs-num-tx" x="24" y="396">4</text>
+
+            <rect class="hs-region nav" x="14" y="432" width="692" height="32" />
+        </svg>
+    </div>
+
+    <div>
+        <div class="help-section-h">▶ STEPS · 단계</div>
+        <div class="help-steps">
+            <div class="help-step warn"><div class="help-step-num">1</div><div class="help-step-body"><div class="help-step-en">4 KPI tiles.</div><div class="help-step-ko">4개 KPI.</div></div></div>
+            <div class="help-step"><div class="help-step-num">2</div><div class="help-step-body"><div class="help-step-en">Pick a lot — only LOADED/OVEN/CONFIRMED status lots show.</div><div class="help-step-ko">LOT 선택 — LOADED/OVEN/CONFIRMED 상태만 표시.</div></div></div>
+            <div class="help-step"><div class="help-step-num">3</div><div class="help-step-body"><div class="help-step-en">Pick 1 of 6 painting-defect codes.</div><div class="help-step-ko">6개 분체도장 불량 코드 중 선택.</div></div></div>
+            <div class="help-step bad"><div class="help-step-num">4</div><div class="help-step-body"><div class="help-step-en">REGISTER updates the lot's defect qty.</div><div class="help-step-ko">등록 시 LOT 불량 수량 누적.</div></div></div>
+        </div>
+    </div>
+</div>

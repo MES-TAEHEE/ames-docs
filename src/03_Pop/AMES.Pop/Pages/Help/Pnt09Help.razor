@@ -1,0 +1,80 @@
+@*  PNT-09 Shift / Daily Report user manual. *@
+
+<div class="help-doc">
+    <div>
+        <div class="help-h1">PNT-09 · SHIFT REPORT</div>
+        <div class="help-sub">교대 종료 보고 — DAY/NIGHT KPI + 색상별 집계</div>
+
+        <svg class="help-svg" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="708" height="468" rx="10" fill="#000" stroke="rgba(255,255,255,.18)" stroke-width="1.5" />
+            <rect class="hs-region tbar" x="14" y="14" width="692" height="42" fill="#1a0800" stroke="rgba(234,88,12,.35)" />
+
+            @for (var i = 0; i < 4; i++)
+            {
+                var x = 14 + i * 174; var cls = new[]{"","ok","","bad"}[i];
+                var titles = new[]{"LOTS","CLOSED","GOOD","DEFECT"};
+                var vals = new[]{"6","4","128","0"};
+                <g>
+                    <rect class="hs-region @cls" x="@x" y="68" width="162" height="74" />
+                    <text class="hs-sub" x="@(x+12)" y="88">@titles[i]</text>
+                    <text class="hs-label" x="@(x+12)" y="124" style="font-size:22px;">@vals[i]</text>
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="78" r="14" />
+            <text class="hs-num-tx" x="24" y="78">1</text>
+
+            @* Per-shift cards *@
+            <rect class="hs-region ok" x="14" y="156" width="338" height="160" />
+            <text class="hs-sub" x="28" y="176" fill="#fdba74">SHIFT DAY</text>
+            <text class="hs-label" x="28" y="220" style="font-size:48px;">4</text>
+            <text class="hs-sub" x="120" y="220">LOT</text>
+            <text class="hs-sub" x="28" y="252">GOOD 128 · DEF 0 · RATE 0.0%</text>
+            <text class="hs-sub" x="28" y="278">Day operators: P001 · P002</text>
+
+            <rect class="hs-region dim" x="368" y="156" width="338" height="160" />
+            <text class="hs-sub" x="382" y="176" fill="#fdba74">SHIFT NIGHT</text>
+            <text class="hs-label" x="382" y="220" style="font-size:48px;">2</text>
+            <text class="hs-sub" x="474" y="220">LOT</text>
+            <text class="hs-sub" x="382" y="252">GOOD 64 · DEF 0 · RATE 0.0%</text>
+            <text class="hs-sub" x="382" y="278">Night operators: P003</text>
+            <circle class="hs-num" cx="24" cy="166" r="14" />
+            <text class="hs-num-tx" x="24" y="166">2</text>
+
+            @* Per-color breakdown *@
+            <rect class="hs-region" x="14" y="328" width="692" height="98" />
+            <text class="hs-sub" x="28" y="348" fill="#fdba74">▼ PER-COLOR BREAKDOWN</text>
+            @{
+                var swatches = new[] {"#0a0a0a","#cc0605"};
+                var labels = new[] {"BLACK","RED"};
+                var qtys = new[] {"192 / 0","96 / 0"};
+            }
+            @for (var i = 0; i < 2; i++)
+            {
+                var x = 32 + i * 350;
+                <g>
+                    <rect x="@x" y="358" width="320" height="60" rx="6" fill="rgba(0,0,0,.3)" stroke="rgba(234,88,12,.18)" />
+                    <rect x="@(x+10)" y="370" width="40" height="36" rx="3" fill="@swatches[i]" stroke="rgba(255,255,255,.15)" />
+                    <text class="hs-label" x="@(x+60)" y="394">@labels[i]</text>
+                    <text class="hs-sub" x="@(x+60)" y="412">@qtys[i] EA</text>
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="338" r="14" />
+            <text class="hs-num-tx" x="24" y="338">3</text>
+
+            <rect class="hs-region nav" x="14" y="432" width="692" height="32" />
+        </svg>
+    </div>
+
+    <div>
+        <div class="help-section-h">▶ STEPS · 단계</div>
+        <div class="help-steps">
+            <div class="help-step"><div class="help-step-num">1</div><div class="help-step-body"><div class="help-step-en">Day-total KPI summary.</div><div class="help-step-ko">금일 누계 KPI.</div></div></div>
+            <div class="help-step ok"><div class="help-step-num">2</div><div class="help-step-body"><div class="help-step-en">Day vs Night shift cards — bucketed by IssuedAt hour (06–17 = DAY).</div><div class="help-step-ko">DAY vs NIGHT 카드. 06–17시 발행분 = DAY.</div></div></div>
+            <div class="help-step"><div class="help-step-num">3</div><div class="help-step-body"><div class="help-step-en">Per-color rollup with swatches.</div><div class="help-step-ko">색상별 집계.</div></div></div>
+        </div>
+        <div class="help-callout info">
+            <div class="help-callout-i">💡</div>
+            <div class="help-callout-tx">Read-only end-of-shift handoff view.<br/><span style="color:rgba(255,255,255,.55);">교대 인수인계용 읽기 전용 화면.</span></div>
+        </div>
+    </div>
+</div>

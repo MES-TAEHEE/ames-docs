@@ -1,0 +1,75 @@
+@*  PNT-04 Line Track Board user manual. *@
+
+<div class="help-doc">
+    <div>
+        <div class="help-h1">PNT-04 · LINE TRACK BOARD</div>
+        <div class="help-sub">분체도장 라인 추적 보드 — R1/R2/R3 실시간 RFID 이벤트</div>
+
+        <svg class="help-svg" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="708" height="468" rx="10" fill="#000" stroke="rgba(255,255,255,.18)" stroke-width="1.5" />
+            <rect class="hs-region tbar" x="14" y="14" width="692" height="42" fill="#1a0800" stroke="rgba(234,88,12,.35)" />
+
+            @* ① Reader tiles 3 *@
+            @for (var i = 0; i < 3; i++)
+            {
+                var x = 14 + i * 230; var cnt = new[]{"24","18","20"}[i];
+                var name = new[]{"R1 · LOADING","R2 · OVEN ENTRY","R3 · UNLOADING"}[i];
+                <g>
+                    <rect class="hs-region" x="@x" y="68" width="220" height="92" />
+                    <text class="hs-sub" x="@(x+14)" y="88" fill="#fdba74">@name</text>
+                    <text class="hs-label" x="@(x+14)" y="128" style="font-size:32px;">@cnt</text>
+                    <circle cx="@(x+170)" cy="120" r="8" fill="#22c55e" />
+                    <text class="hs-sub" x="@(x+14)" y="148">ONLINE</text>
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="78" r="14" />
+            <text class="hs-num-tx" x="24" y="78">1</text>
+
+            @* ② KPI strip 4 *@
+            @for (var i = 0; i < 4; i++)
+            {
+                var x = 14 + i * 174; var cls = new[]{"","warn","ok","bad"}[i];
+                var titles = new[]{"ON LINE","IN OVEN","CONFIRMED","DEFECT"};
+                var vals = new[]{"4","2","2","0"};
+                <g>
+                    <rect class="hs-region @cls" x="@x" y="174" width="162" height="60" />
+                    <text class="hs-sub" x="@(x+12)" y="194">@titles[i]</text>
+                    <text class="hs-label" x="@(x+12)" y="222" style="font-size:20px;">@vals[i]</text>
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="184" r="14" />
+            <text class="hs-num-tx" x="24" y="184">2</text>
+
+            @* ③ Event stream *@
+            <rect class="hs-region" x="14" y="248" width="692" height="180" />
+            <text class="hs-sub" x="28" y="268" fill="#fdba74">▼ LIVE EVENT STREAM · 최근 RFID 통과</text>
+            @for (var i = 0; i < 5; i++)
+            {
+                var y = 284 + i * 26;
+                var reader = new[]{"R1","R2","R1","R3","R2"}[i];
+                var color = reader == "R1" ? "#38bdf8" : reader == "R2" ? "#fbbf24" : "#22c55e";
+                <g>
+                    <rect x="28" y="@y" width="664" height="20" rx="4" fill="rgba(0,0,0,.3)" stroke="@color" stroke-width="1" />
+                    <text class="hs-sub" x="42" y="@(y+14)" fill="@color">15:0@(5-i):2@i  ·  @reader  ·  JIG-00@(8-i)</text>
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="258" r="14" />
+            <text class="hs-num-tx" x="24" y="258">3</text>
+
+            <rect class="hs-region nav" x="14" y="432" width="692" height="32" />
+        </svg>
+    </div>
+
+    <div>
+        <div class="help-section-h">▶ STEPS · 단계</div>
+        <div class="help-steps">
+            <div class="help-step"><div class="help-step-num">1</div><div class="help-step-body"><div class="help-step-en">3 reader tiles. Today's pass count + live LED. Red = offline.</div><div class="help-step-ko">3개 리더 타일 — 통과 카운트 + 상태 LED.</div></div></div>
+            <div class="help-step"><div class="help-step-num">2</div><div class="help-step-body"><div class="help-step-en">4 KPI — On Line / In Oven / Confirmed / Defect.</div><div class="help-step-ko">4개 KPI — 라인상 / 오븐내 / 확정 / 불량.</div></div></div>
+            <div class="help-step ok"><div class="help-step-num">3</div><div class="help-step-body"><div class="help-step-en">Live event stream. Blue=R1, Yellow=R2, Green=R3. Auto-scrolls.</div><div class="help-step-ko">이벤트 스트림. 파랑=R1, 노랑=R2, 초록=R3.</div></div></div>
+        </div>
+        <div class="help-callout info">
+            <div class="help-callout-i">💡</div>
+            <div class="help-callout-tx">Refresh every 3 s.<br/><span style="color:rgba(255,255,255,.55);">3초마다 자동 갱신.</span></div>
+        </div>
+    </div>
+</div>

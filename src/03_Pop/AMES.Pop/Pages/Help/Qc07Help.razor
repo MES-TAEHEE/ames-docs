@@ -1,0 +1,78 @@
+@*  QC-07 Dashboard (signature) user manual. *@
+
+<div class="help-doc">
+    <div>
+        <div class="help-h1">QC-07 · DASHBOARD</div>
+        <div class="help-sub">품질 대시보드 — Open NCR/Hold/CAPA + 모듈별 불량률 + 상위 Pareto (로그인 랜딩 · 서명)</div>
+
+        <svg class="help-svg" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="708" height="468" rx="10" fill="#000" stroke="rgba(255,255,255,.18)" stroke-width="1.5" />
+            <rect class="hs-region tbar" x="14" y="14" width="692" height="42" fill="#1a0000" stroke="rgba(220,38,38,.35)" />
+
+            @for (var i = 0; i < 5; i++)
+            {
+                var x = 14 + i * 140; var cls = new[]{"bad","warn","","ok","bad"}[i];
+                var titles = new[]{"OPEN NCR","ACTIVE HOLD","OPEN CAPA","PASS","FAIL"};
+                var vals = new[]{"2","2","2","3","1"};
+                <g>
+                    <rect class="hs-region @cls" x="@x" y="68" width="128" height="78" />
+                    <text class="hs-sub" x="@(x+12)" y="88" fill="#fca5a5">@titles[i]</text>
+                    <text class="hs-label" x="@(x+12)" y="128" style="font-size:24px;">@vals[i]</text>
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="78" r="14" />
+            <text class="hs-num-tx" x="24" y="78">1</text>
+
+            <rect class="hs-region" x="14" y="158" width="692" height="124" />
+            <text class="hs-sub" x="28" y="178" fill="#fca5a5">▼ DEFECT RATE BY MODULE</text>
+            @{
+                var mods = new[] {"INJ","IMG","PNT"};
+                var pcts = new[] {"2.1%","0.0%","0.0%"};
+                var clsM = new[] {"ok","ok","ok"};
+            }
+            @for (var i = 0; i < 3; i++)
+            {
+                var x = 28 + i * 224;
+                <g>
+                    <rect class="hs-region @clsM[i]" x="@x" y="194" width="218" height="78" />
+                    <text class="hs-sub" x="@(x+12)" y="214">@mods[i]</text>
+                    <text class="hs-label" x="@(x+12)" y="254" style="font-size:30px;" fill="#22c55e">@pcts[i]</text>
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="168" r="14" />
+            <text class="hs-num-tx" x="24" y="168">2</text>
+
+            <rect class="hs-region" x="14" y="296" width="692" height="130" />
+            <text class="hs-sub" x="28" y="316" fill="#fca5a5">▼ TOP DEFECT PARETO · 6 codes</text>
+            @{
+                var codes = new[] {"INJ-D02","INJ-D04","IMG-D03","PNT-D01","INJ-D01","INJ-D05"};
+                var widths = new[] {520,410,280,210,140,90};
+            }
+            @for (var i = 0; i < 6; i++)
+            {
+                var y = 330 + i * 14;
+                <g>
+                    <text class="hs-sub" x="28" y="@(y+10)">@codes[i]</text>
+                    <rect x="120" y="@y" width="@widths[i]" height="10" rx="2" fill="#dc2626" />
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="306" r="14" />
+            <text class="hs-num-tx" x="24" y="306">3</text>
+
+            <rect class="hs-region nav" x="14" y="432" width="692" height="32" />
+        </svg>
+    </div>
+
+    <div>
+        <div class="help-section-h">▶ STEPS · 단계</div>
+        <div class="help-steps">
+            <div class="help-step bad"><div class="help-step-num">1</div><div class="help-step-body"><div class="help-step-en">5 KPI tiles. Open NCR / Hold / CAPA counters always visible.</div><div class="help-step-ko">5개 KPI 타일. Open NCR/Hold/CAPA 카운터 상시 표시.</div></div></div>
+            <div class="help-step"><div class="help-step-num">2</div><div class="help-step-body"><div class="help-step-en">Per-module defect rate. Green ≤3% · Yellow 3-5% · Red ≥5%.</div><div class="help-step-ko">모듈별 불량률. 초록 ≤3% · 노랑 3–5% · 빨강 ≥5%.</div></div></div>
+            <div class="help-step"><div class="help-step-num">3</div><div class="help-step-body"><div class="help-step-en">Top-6 defect codes pareto (today only).</div><div class="help-step-ko">상위 6개 불량 코드 Pareto (금일).</div></div></div>
+        </div>
+        <div class="help-callout info">
+            <div class="help-callout-i">💡</div>
+            <div class="help-callout-tx">QC users land here after login.<br/><span style="color:rgba(255,255,255,.55);">QC 사용자 로그인 후 첫 화면.</span></div>
+        </div>
+    </div>
+</div>

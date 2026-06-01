@@ -1,0 +1,63 @@
+@*  QC-03 Final Inspection user manual. *@
+
+<div class="help-doc">
+    <div>
+        <div class="help-h1">QC-03 · FINAL</div>
+        <div class="help-sub">출하 전 최종 검사 — FG LOT 단위 PASS/FAIL 결재 (서명)</div>
+
+        <svg class="help-svg" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="708" height="468" rx="10" fill="#000" stroke="rgba(255,255,255,.18)" stroke-width="1.5" />
+            <rect class="hs-region tbar" x="14" y="14" width="692" height="42" fill="#1a0000" stroke="rgba(220,38,38,.35)" />
+
+            @for (var i = 0; i < 4; i++)
+            {
+                var x = 14 + i * 174; var cls = new[]{"","ok","bad","warn"}[i];
+                var titles = new[]{"FINAL TODAY","READY TO SHIP","REJECTED","PENDING"};
+                var vals = new[]{"1","0","0","1"};
+                <g>
+                    <rect class="hs-region @cls" x="@x" y="68" width="162" height="78" />
+                    <text class="hs-sub" x="@(x+12)" y="88" fill="#fca5a5">@titles[i]</text>
+                    <text class="hs-label" x="@(x+12)" y="128" style="font-size:22px;">@vals[i]</text>
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="78" r="14" />
+            <text class="hs-num-tx" x="24" y="78">1</text>
+
+            <rect class="hs-region" x="14" y="158" width="338" height="200" />
+            <text class="hs-sub" x="28" y="178" fill="#fca5a5">▼ FINAL INSPECTIONS · 출하 전</text>
+            <rect class="hs-region warn" x="28" y="200" width="310" height="60" />
+            <text class="hs-sub" x="42" y="222">FIN-25060104</text>
+            <text class="hs-label" x="42" y="246" style="font-size:14px;">IN_PROGRESS · 32 EA</text>
+            <circle class="hs-num" cx="24" cy="168" r="14" />
+            <text class="hs-num-tx" x="24" y="168">2</text>
+
+            <rect class="hs-region" x="368" y="158" width="338" height="200" />
+            <text class="hs-sub" x="382" y="178" fill="#fca5a5">▼ MEASUREMENT</text>
+            <text class="hs-sub" x="382" y="220">Length  ·  211.0±1  ·  211.1  ·  PASS</text>
+            <text class="hs-sub" x="382" y="246">Width  ·  90.0±0.5  ·  90.2  ·  PASS</text>
+            <circle class="hs-num" cx="378" cy="168" r="14" />
+            <text class="hs-num-tx" x="378" y="168">3</text>
+
+            <rect class="hs-region" x="14" y="370" width="220" height="48" />
+            <text class="hs-label" x="124" y="402" text-anchor="middle" style="font-size:14px;">+ NEW FINAL</text>
+            <rect class="hs-region ok" x="248" y="370" width="220" height="48" />
+            <text class="hs-label" x="358" y="402" text-anchor="middle" style="font-size:14px;">✓ APPROVE · SHIP</text>
+            <rect class="hs-region bad" x="482" y="370" width="224" height="48" />
+            <text class="hs-label" x="594" y="402" text-anchor="middle" style="font-size:14px;">✗ REJECT → HOLD</text>
+            <circle class="hs-num" cx="24" cy="380" r="14" />
+            <text class="hs-num-tx" x="24" y="380">4</text>
+
+            <rect class="hs-region nav" x="14" y="432" width="692" height="32" />
+        </svg>
+    </div>
+
+    <div>
+        <div class="help-section-h">▶ STEPS · 단계</div>
+        <div class="help-steps">
+            <div class="help-step"><div class="help-step-num">1</div><div class="help-step-body"><div class="help-step-en">4 KPI tiles for the day.</div><div class="help-step-ko">금일 4개 KPI.</div></div></div>
+            <div class="help-step warn"><div class="help-step-num">2</div><div class="help-step-body"><div class="help-step-en">Pick the lot pending final inspection.</div><div class="help-step-ko">검사 대기 LOT 선택.</div></div></div>
+            <div class="help-step"><div class="help-step-num">3</div><div class="help-step-body"><div class="help-step-en">Verify each characteristic.</div><div class="help-step-ko">특성별 검증.</div></div></div>
+            <div class="help-step ok"><div class="help-step-num">4</div><div class="help-step-body"><div class="help-step-en">APPROVE = lot can ship. REJECT auto-creates a Hold.</div><div class="help-step-ko">승인 = 출하 가능. 거부 = Hold 자동 생성.</div></div></div>
+        </div>
+    </div>
+</div>

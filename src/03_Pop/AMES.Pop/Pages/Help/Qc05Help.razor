@@ -1,0 +1,71 @@
+@*  QC-05 Hold / Quarantine user manual. *@
+
+<div class="help-doc">
+    <div>
+        <div class="help-h1">QC-05 · HOLD / QUARANTINE</div>
+        <div class="help-sub">보류·격리 — Held LOT + 처분(USE-AS-IS / REWORK / SCRAP / RTV)</div>
+
+        <svg class="help-svg" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="708" height="468" rx="10" fill="#000" stroke="rgba(255,255,255,.18)" stroke-width="1.5" />
+            <rect class="hs-region tbar" x="14" y="14" width="692" height="42" fill="#1a0000" stroke="rgba(220,38,38,.35)" />
+
+            @for (var i = 0; i < 4; i++)
+            {
+                var x = 14 + i * 174; var cls = new[]{"bad","ok","dim",""}[i];
+                var titles = new[]{"HELD","RELEASED","REJECTED","QTY HELD"};
+                var vals = new[]{"2","0","0","128"};
+                <g>
+                    <rect class="hs-region @cls" x="@x" y="68" width="162" height="78" />
+                    <text class="hs-sub" x="@(x+12)" y="88" fill="#fca5a5">@titles[i]</text>
+                    <text class="hs-label" x="@(x+12)" y="128" style="font-size:22px;">@vals[i]</text>
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="78" r="14" />
+            <text class="hs-num-tx" x="24" y="78">1</text>
+
+            <rect class="hs-region" x="14" y="156" width="692" height="200" />
+            <text class="hs-sub" x="28" y="176" fill="#fca5a5">▼ ACTIVE HOLDS · 2 cards</text>
+            @for (var i = 0; i < 2; i++)
+            {
+                var x = 28 + i * 332; var sel = i == 0;
+                <g>
+                    <rect class="hs-region bad @(sel ? "warn" : "")" x="@x" y="192" width="326" height="156" />
+                    <text class="hs-label" x="@(x+14)" y="220" style="font-size:24px;">HLD-2506000@(i+1)</text>
+                    <text class="hs-sub" x="@(x+14)" y="248">DOOR TRIM @(new[]{"RH","LH"}[i])</text>
+                    <text class="hs-sub" x="@(x+14)" y="272">SEVERITY @(new[]{"Major","Critical"}[i])</text>
+                    <text class="hs-sub" x="@(x+14)" y="296">QTY @(new[]{"96","32"}[i]) EA</text>
+                    <text class="hs-sub" x="@(x+14)" y="320">LOC BAY-Q-0@(i+1)</text>
+                </g>
+            }
+            <circle class="hs-num" cx="24" cy="166" r="14" />
+            <text class="hs-num-tx" x="24" y="166">2</text>
+
+            <rect class="hs-region" x="14" y="370" width="220" height="50" />
+            <text class="hs-sub" x="28" y="402">ACTION  ·  USE-AS-IS</text>
+            <circle class="hs-num" cx="24" cy="380" r="13" />
+            <text class="hs-num-tx" x="24" y="380">3</text>
+            <rect class="hs-region" x="248" y="370" width="280" height="50" />
+            <text class="hs-sub" x="262" y="402">REASON  ·  concession #...</text>
+            <rect class="hs-region ok" x="542" y="370" width="164" height="50" />
+            <text class="hs-label" x="624" y="402" text-anchor="middle" style="font-size:14px;">✓ APPLY</text>
+            <circle class="hs-num" cx="552" cy="380" r="13" />
+            <text class="hs-num-tx" x="552" y="380">4</text>
+
+            <rect class="hs-region nav" x="14" y="432" width="692" height="32" />
+        </svg>
+    </div>
+
+    <div>
+        <div class="help-section-h">▶ STEPS · 단계</div>
+        <div class="help-steps">
+            <div class="help-step bad"><div class="help-step-num">1</div><div class="help-step-body"><div class="help-step-en">4 KPI tiles.</div><div class="help-step-ko">4개 KPI.</div></div></div>
+            <div class="help-step warn"><div class="help-step-num">2</div><div class="help-step-body"><div class="help-step-en">Pick a Held card.</div><div class="help-step-ko">보류 카드 선택.</div></div></div>
+            <div class="help-step"><div class="help-step-num">3</div><div class="help-step-body"><div class="help-step-en">Choose disposition + write the reason.</div><div class="help-step-ko">처분 선택 + 사유 입력.</div></div></div>
+            <div class="help-step ok"><div class="help-step-num">4</div><div class="help-step-body"><div class="help-step-en">APPLY writes QC_HoldRelease + flips Status to Released/Rejected.</div><div class="help-step-ko">적용 시 QC_HoldRelease 기록 + 상태 변경.</div></div></div>
+        </div>
+        <div class="help-callout warn">
+            <div class="help-callout-i">⚠</div>
+            <div class="help-callout-tx"><strong>Critical holds need plant manager approval</strong> — additional PIN prompt before APPLY.<br/><span style="color:rgba(255,255,255,.55);">Critical 보류는 공장장 PIN 추가 인증 필요.</span></div>
+        </div>
+    </div>
+</div>
