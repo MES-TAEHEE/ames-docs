@@ -54,14 +54,15 @@
         try
         {
             var res = await Api.LoginAsync(_empNo, _pin);
-            if (res is null) { Set("× API unreachable", "fail"); _pin = ""; return; }
-            if (res.Result != 0 || string.IsNullOrEmpty(res.Token))
+            if (res is null)
             {
-                Set($"× {res.Reason ?? "auth failed"}", "fail"); _pin = ""; return;
+                Set("× API unreachable", "fail"); _pin = ""; return;
             }
-            var me = await Api.MeAsync();
-            if (me is null) { Set("× session lookup failed", "fail"); _pin = ""; return; }
-            Auth.SignIn(res.Token, me);
+            if (res.Value.Session is null)
+            {
+                Set("× " + (res.Value.Reason ?? "auth failed"), "fail"); _pin = ""; return;
+            }
+            Auth.SignIn(res.Value.Token, res.Value.Session);
             Nav.NavigateTo("/dash", replace: true);
         }
         catch (Exception ex) { Set("× " + ex.Message, "fail"); _pin = ""; }
