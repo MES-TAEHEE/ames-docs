@@ -1,0 +1,50 @@
+@*
+    HelpModal — full-screen overlay that hosts a per-screen user manual.
+    Pass `IsOpen` (two-way bound) and `ContentType` (a razor component type
+    holding the SVG diagram + numbered step list). The modal renders the
+    component inside a centred panel with a closable backdrop.
+
+    Usage in a screen:
+
+        <HelpButton ContentType="@(typeof(Pages.Help.Inj02Help))" />
+
+    The button manages its own IsOpen state; pages don't need any wiring
+    other than dropping the tag into the top bar.
+*@
+
+@if (IsOpen)
+{
+    <div class="help-backdrop" @onclick="Close">
+        <div class="help-modal" @onclick:stopPropagation="true">
+            <div class="help-modal-tbar">
+                <div class="help-modal-title">📖 USER GUIDE · 화면 사용법</div>
+                <button class="help-modal-x" @onclick="Close" title="Close (Esc)">✕</button>
+            </div>
+            <div class="help-modal-bd">
+                @if (ContentType is not null)
+                {
+                    <DynamicComponent Type="ContentType" />
+                }
+                else
+                {
+                    <div class="help-empty">No manual registered for this screen.</div>
+                }
+            </div>
+            <div class="help-modal-foot">
+                <button class="help-btn-close" @onclick="Close">CLOSE  ·  닫기 (Esc)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool                    IsOpen        { get; set; }
+    [Parameter] public EventCallback<bool>     IsOpenChanged { get; set; }
+    [Parameter] public Type?                   ContentType   { get; set; }
+
+    private async Task Close()
+    {
+        IsOpen = false;
+        await IsOpenChanged.InvokeAsync(false);
+    }
+}
