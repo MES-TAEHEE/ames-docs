@@ -1,12 +1,23 @@
-@*  Top-level Blazor wrapper used by PopBlazorForm.
-    Cascades the operator's PopSessionDto down to every page so they don't
-    each have to pull it from a service. Initial route is supplied via
-    BlazorWebView.StartPath. *@
+@inject AppState State
+@implements IDisposable
 
-<CascadingValue Value="@Session">
-    <App />
+@*  AppRoot subscribes to AppState changes and re-cascades the current
+    Session down to every page. Login.razor sets the session; logout clears
+    it; the router does the rest. *@
+
+<CascadingValue Value="State.Session">
+    <CascadingValue Value="State">
+        <App />
+    </CascadingValue>
 </CascadingValue>
 
 @code {
-    [Parameter] public PopSessionDto Session { get; set; } = null!;
+    protected override void OnInitialized()
+    {
+        State.OnChange += OnStateChanged;
+    }
+
+    private void OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => State.OnChange -= OnStateChanged;
 }
