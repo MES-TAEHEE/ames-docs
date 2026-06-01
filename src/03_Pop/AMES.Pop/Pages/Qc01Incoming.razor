@@ -2,6 +2,8 @@
 @implements IDisposable
 @inject NavigationManager Nav
 @inject AppState State
+@inject ToastService Toasts
+@inject ConfirmService Confirmer
 
 @*  QC-01 Incoming Inspection — AQL sampling against MD_InspectionStd
     for vendor-delivered lots. Pick row → see measurement detail → PASS/FAIL. *@
@@ -165,8 +167,8 @@
         catch (Exception ex) { SetStatus("× " + ex.Message, "fail"); }
     }
 
-    private void SetStatus(string s, string c) { _status = s; _statusCls = c; }
+    private void SetStatus(string s, string c) { _status = s; _statusCls = c; if (c == "ok") Toasts.Ok(s); else if (c == "fail") Toasts.Bad(s); else if (c == "warn") Toasts.Warn(s); }
     private void Go(string r) => Nav.NavigateTo("/" + r);
-    private void Logout()      { Nav.NavigateTo("/login", replace: true); State.SignOut(); }
+    private async Task Logout() { if (!await Confirmer.AskAsync("Log out?", "End your shift and return to the login screen?", "Log out", "Stay", destructive: true)) return; Nav.NavigateTo("/login", replace: true); State.SignOut(); }
     public void Dispose() => _timer?.Dispose();
 }

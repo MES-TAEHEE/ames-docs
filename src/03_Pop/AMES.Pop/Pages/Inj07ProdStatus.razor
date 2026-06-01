@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject NavigationManager Nav
 @inject AppState State
+@inject ConfirmService Confirmer
 
 <div class="pop-shell">
     <div class="pop-tbar">
@@ -133,7 +134,7 @@
         _hourlyMax = _hourly?.Max(h => h.GoodQty + h.DefectQty) ?? 1;
     }
 
-    void Logout() { Nav.NavigateTo("/login", replace: true); State.SignOut(); }
+    async Task Logout() { if (!await Confirmer.AskAsync("Log out?", "End your shift and return to the login screen?", "Log out", "Stay", destructive: true)) return; Nav.NavigateTo("/login", replace: true); State.SignOut(); }
     public void Dispose() => _timer?.Dispose();
     private void Go(string r) => Nav.NavigateTo("/" + r);
 }

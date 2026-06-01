@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject NavigationManager Nav
 @inject AppState State
+@inject ConfirmService Confirmer
 
 @*
     INJ-02 Dashboard — Blazor Hybrid version.
@@ -230,7 +231,7 @@
     }
 
     private void Go(string route) => Nav.NavigateTo("/" + route);
-    private void Logout()           { Nav.NavigateTo("/login", replace: true); State.SignOut(); }
+    private async Task Logout() { if (!await Confirmer.AskAsync("Log out?", "End your shift and return to the login screen?", "Log out", "Stay", destructive: true)) return; Nav.NavigateTo("/login", replace: true); State.SignOut(); }
 
     public void Dispose()
     {

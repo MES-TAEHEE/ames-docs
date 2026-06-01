@@ -2,6 +2,8 @@
 @implements IDisposable
 @inject NavigationManager Nav
 @inject AppState State
+@inject ToastService Toasts
+@inject ConfirmService Confirmer
 
 @*  QC-03 Final Inspection — gating step before FG ship.
     Same pattern as QC-01/02 but InspectionType='Final'. *@
@@ -156,8 +158,8 @@
         catch (Exception ex) { SetStatus("× " + ex.Message, "fail"); }
     }
 
-    private void SetStatus(string s, string c) { _status = s; _statusCls = c; }
+    private void SetStatus(string s, string c) { _status = s; _statusCls = c; if (c == "ok") Toasts.Ok(s); else if (c == "fail") Toasts.Bad(s); else if (c == "warn") Toasts.Warn(s); }
     private void Go(string r) => Nav.NavigateTo("/" + r);
-    private void Logout()      { Nav.NavigateTo("/login", replace: true); State.SignOut(); }
+    private async Task Logout() { if (!await Confirmer.AskAsync("Log out?", "End your shift and return to the login screen?", "Log out", "Stay", destructive: true)) return; Nav.NavigateTo("/login", replace: true); State.SignOut(); }
     public void Dispose() => _timer?.Dispose();
 }

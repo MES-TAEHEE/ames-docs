@@ -1,0 +1,49 @@
+@*  Global toast stack. Subscribes to ToastService.OnShow, prepends
+    to a list, and dismisses each toast 4 s after it lands. *@
+
+@inject ToastService Toasts
+@implements IDisposable
+
+<div class="toast-host">
+    @foreach (var t in _toasts)
+    {
+        <div class="toast toast-@t.Kind.ToString().ToLowerInvariant()" @key="t.Id">
+            <span class="toast-icon">@Icon(t.Kind)</span>
+            <span class="toast-text">@t.Text</span>
+        </div>
+    }
+</div>
+
+@code {
+    private readonly List<Toast> _toasts = new();
+
+    protected override void OnInitialized() => Toasts.OnShow += Add;
+    public void Dispose() => Toasts.OnShow -= Add;
+
+    private void Add(Toast t)
+    {
+        InvokeAsync(() =>
+        {
+            _toasts.Insert(0, t);
+            if (_toasts.Count > 5) _toasts.RemoveAt(_toasts.Count - 1);
+            StateHasChanged();
+        });
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(4000);
+            await InvokeAsync(() =>
+            {
+                _toasts.RemoveAll(x => x.Id == t.Id);
+                StateHasChanged();
+            });
+        });
+    }
+
+    private static string Icon(ToastKind k) => k switch
+    {
+        ToastKind.Ok   => "✓",
+        ToastKind.Warn => "⚠",
+        ToastKind.Bad  => "✕",
+        _              => "ℹ",
+    };
+}

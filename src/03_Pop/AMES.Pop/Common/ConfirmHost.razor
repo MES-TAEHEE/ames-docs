@@ -1,0 +1,26 @@
+@*  Renders the confirm modal when ConfirmService has a pending request.
+    Esc / backdrop click resolves false; OK button resolves true. *@
+
+@inject ConfirmService Confirmer
+@implements IDisposable
+
+@if (Confirmer.Pending is { } req)
+{
+    <div class="confirm-backdrop" @onclick="@(() => Confirmer.Resolve(false))">
+        <div class="confirm-modal @(req.Destructive ? "bad" : "")" @onclick:stopPropagation="true">
+            <div class="confirm-title">@req.Title</div>
+            <div class="confirm-body">@req.Body</div>
+            <div class="confirm-actions">
+                <button class="confirm-btn" @onclick="@(() => Confirmer.Resolve(false))">@req.CancelLabel</button>
+                <button class="confirm-btn primary @(req.Destructive ? "bad" : "")"
+                        @onclick="@(() => Confirmer.Resolve(true))">@req.OkLabel</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    protected override void OnInitialized() => Confirmer.OnAsk += Refresh;
+    public void Dispose() => Confirmer.OnAsk -= Refresh;
+    private void Refresh(ConfirmRequest _) => InvokeAsync(StateHasChanged);
+}
