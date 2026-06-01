@@ -126,7 +126,7 @@
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[IMG-05] {ex.Message}"); }
     }
 
-    void Logout() { State.SignOut(); Nav.NavigateTo("/login"); }
+    void Logout() { Nav.NavigateTo("/login", replace: true); State.SignOut(); }
     public void Dispose() { }
     private void Go(string r) => Nav.NavigateTo("/" + r);
 }

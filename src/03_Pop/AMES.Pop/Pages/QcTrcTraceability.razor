@@ -111,6 +111,6 @@
     private void Clear() { _input = ""; _nodes = new(); SetStatus("", "dim"); }
     private void SetStatus(string s, string c) { _status = s; _statusCls = c; }
     private void Go(string r) => Nav.NavigateTo("/" + r);
-    private void Logout()      { State.SignOut(); Nav.NavigateTo("/login"); }
+    private void Logout()      { Nav.NavigateTo("/login", replace: true); State.SignOut(); }
     public void Dispose() => _timer?.Dispose();
 }

@@ -138,7 +138,7 @@
         }
     }
 
-    private void Logout() { State.SignOut(); Nav.NavigateTo("/login"); }
+    private void Logout() { Nav.NavigateTo("/login", replace: true); State.SignOut(); }
     public void Dispose() { }
     private void Go(string r) => Nav.NavigateTo("/" + r);
 }
