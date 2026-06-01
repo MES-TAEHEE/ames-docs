@@ -63,7 +63,7 @@
                 Set("× " + (res.Value.Reason ?? "auth failed"), "fail"); _pin = ""; return;
             }
             Auth.SignIn(res.Value.Token, res.Value.Session);
-            Nav.NavigateTo("/dash", replace: true);
+            Nav.NavigateTo("/home", replace: true);
         }
         catch (Exception ex) { Set("× " + ex.Message, "fail"); _pin = ""; }
     }
