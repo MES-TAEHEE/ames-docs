@@ -151,7 +151,7 @@
     }
 
     void OpenDefect() { if (_lastResultId > 0) Nav.NavigateTo($"/inj05?result={_lastResultId}"); }
-    void Logout() { State.SignOut(); Nav.NavigateTo("/login"); }
+    void Logout() { Nav.NavigateTo("/login", replace: true); State.SignOut(); }
     public void Dispose() => _clockTimer?.Dispose();
     private void Go(string r) => Nav.NavigateTo("/" + r);
 }

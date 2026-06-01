@@ -134,7 +134,7 @@
     void Reset() { _scan = ""; _state = ""; _scanned = null; _failBanner = ""; _failReason = ""; }
     void GoDashboard() => Nav.NavigateTo("/img02");
     void GoProdEntry() => Nav.NavigateTo("/img03");
-    void Logout() { State.SignOut(); Nav.NavigateTo("/login"); }
+    void Logout() { Nav.NavigateTo("/login", replace: true); State.SignOut(); }
     public void Dispose() { }
     private void Go(string r) => Nav.NavigateTo("/" + r);
 }

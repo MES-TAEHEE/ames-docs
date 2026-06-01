@@ -133,7 +133,7 @@
         _hourlyMax = _hourly?.Max(h => h.GoodQty + h.DefectQty) ?? 1;
     }
 
-    void Logout() { State.SignOut(); Nav.NavigateTo("/login"); }
+    void Logout() { Nav.NavigateTo("/login", replace: true); State.SignOut(); }
     public void Dispose() => _timer?.Dispose();
     private void Go(string r) => Nav.NavigateTo("/" + r);
 }
