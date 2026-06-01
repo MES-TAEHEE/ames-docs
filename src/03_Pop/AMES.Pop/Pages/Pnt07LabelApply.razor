@@ -1,0 +1,159 @@
+@page "/pnt07"
+@implements IDisposable
+@inject NavigationManager Nav
+@inject AppState State
+
+@*
+    PNT-07 Label Apply — picks a CONFIRMED lot, previews the label,
+    presses APPLY LABEL. Advances PNT_VirtualLot.Status → LABELED.
+*@
+
+<div class="pop-shell pnt">
+    <div class="pop-tbar">
+        <div style="display:flex; align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">PNT-07 · @Session?.TerminalId · @Session?.LineId</span>
+        </div>
+        <div class="pop-tbar-r">
+            <span class="stat-on">● LIVE</span>
+            <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
+            <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
+        </div>
+    </div>
+
+    <div class="pop-bd">
+        <div class="pnt-kpis k4">
+            <div class="pnt-kpi"><div class="lbl">PENDING LABEL</div><div class="val">@_lots.Count</div><div class="sub">confirmed</div></div>
+            <div class="pnt-kpi ok"><div class="lbl">LABELED TODAY</div><div class="val">@_labeledToday</div><div class="sub">EA</div></div>
+            <div class="pnt-kpi"><div class="lbl">SELECTED</div><div class="val">@(_selected == 0 ? "—" : "#" + _selected)</div><div class="sub">@(_selectedItem)</div></div>
+            <div class="pnt-kpi gold" style="border-top-color:#d4a017;"><div class="lbl">LABEL TYPE</div><div class="val" style="font-size:22px; color:#fbbf24;">FG-A4</div><div class="sub">printer Zebra ZT-411</div></div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:16px; flex:1; min-height:0;">
+            <div class="pop-card" style="overflow:auto;">
+                <div class="pop-card-h">▼ CONFIRMED LOTS · 라벨 대기</div>
+                @if (_lots.Count == 0)
+                {
+                    <div class="pnt-empty">No lots awaiting label.</div>
+                }
+                else
+                {
+                    <div class="pnt-lots">
+                        @foreach (var l in _lots)
+                        {
+                            var sel = _selected == l.VirtualLotId;
+                            <div class="pnt-lot @(sel ? "selected" : "confirmed")" @onclick="@(() => SelectLot(l))">
+                                <div class="lh">
+                                    <div class="lid">LOT #@l.VirtualLotId</div>
+                                    <div class="lst">@l.Status</div>
+                                </div>
+                                <div class="item">
+                                    <span class="swatch" style="background:@(l.HexValue ?? "#666");"></span>
+                                    @(l.ItemName ?? l.ItemNo)
+                                </div>
+                                <div class="meta"><span class="l">RAL</span><span class="v">@l.RalColor</span></div>
+                                <div class="meta"><span class="l">GOOD</span><span class="v">@l.ConfirmedQty EA</span></div>
+                                <div class="meta"><span class="l">JIG</span><span class="v">@(l.JigId ?? "—")</span></div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="pop-card">
+                <div class="pop-card-h">▼ LABEL PREVIEW</div>
+                <div style="background:#fff; color:#000; border-radius:8px; padding:24px; font-family:'JetBrains Mono', monospace;">
+                    <div style="font-weight:800; font-size:18px; letter-spacing:2px; border-bottom:2px solid #000; padding-bottom:6px;">SEOYON E-HWA  ·  A-MES</div>
+                    <div style="margin-top:12px; font-size:14px;">
+                        <div>ITEM   : <strong>@(_preview?.ItemNo ?? "—")</strong></div>
+                        <div>NAME   : @(_preview?.ItemName ?? "—")</div>
+                        <div>RAL    : <strong>@(_preview?.RalColor ?? "—")</strong> (@(_preview?.ColorName ?? "—"))</div>
+                        <div>QTY    : <strong>@(_preview?.ConfirmedQty ?? 0) EA</strong></div>
+                        <div>LOT    : VL-@_selected</div>
+                        <div>JIG    : @(_preview?.JigId ?? "—")</div>
+                        <div>LINE   : @Session?.LineId</div>
+                        <div>DATE   : @DateTime.Now.ToString("yyyy-MM-dd HH:mm")</div>
+                        <div>SHIFT  : @Session?.ShiftCode  ·  OP: @Session?.EmployeeNo</div>
+                    </div>
+                    <div style="margin-top:16px; font-size:11px; color:#444;">[barcode area]  ▮▮▯▮▯▯▮▯▮▮▯▮▯▯▮▯▮▮</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pop-card">
+            <div class="pnt-actions">
+                <button class="pnt-btn sec" style="flex:0 0 220px;" @onclick="@(() => { _selected = 0; _preview = null; _selectedItem = string.Empty; })">↺ CLEAR</button>
+                <button class="pnt-btn ok" disabled="@(_selected == 0)" @onclick="Apply">✓ APPLY LABEL &amp; PRINT</button>
+            </div>
+            <div class="@(_statusCls)" style="margin-top:10px; font-size:13px; min-height:20px;">@_status</div>
+        </div>
+    </div>
+
+    <div class="pop-nav" style="--nav-cols:9;">
+        <button class="nav-btn"          @onclick="@(() => Go("pnt01"))">▶ PNT-01<small>Plan</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt02"))">▶ PNT-02<small>Pre-Issue</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt03"))">▶ PNT-03<small>Loading</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt04"))">▶ PNT-04<small>Track Board</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt05"))">▶ PNT-05<small>Oven</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt06"))">▶ PNT-06<small>Unloading</small></button>
+        <button class="nav-btn warn primary" @onclick="@(() => Go("pnt08"))">▶ PNT-08<small>Defect</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt09"))">▶ PNT-09<small>Shift Rpt</small></button>
+        <button class="nav-btn muted"    @onclick="Logout">◀ LOGOUT<small></small></button>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] public PopSessionDto? Session { get; set; }
+
+    private List<PntVirtualLotDto> _lots = new();
+    private PntVirtualLotDto?      _preview;
+    private int    _selected, _labeledToday;
+    private string _selectedItem = "";
+    private string _status = "", _statusCls = "dim";
+    private DateTime _now = DateTime.Now;
+    private System.Threading.Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        Refresh();
+        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DateTime.Now; StateHasChanged(); }),
+                                            null, 4000, 4000);
+    }
+
+    private void Refresh()
+    {
+        try
+        {
+            var lineId = Session?.LineId ?? "LINE-PNT-01";
+            var all = PopServices.Pnt.ListAllTodayLots(lineId);
+            _lots = all.Where(l => l.Status == "CONFIRMED").ToList();
+            _labeledToday = all.Where(l => l.Status is "LABELED" or "CLOSED").Sum(l => l.ConfirmedQty);
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Pnt07] {ex.Message}"); }
+    }
+
+    private void SelectLot(PntVirtualLotDto l)
+    {
+        _selected     = l.VirtualLotId;
+        _selectedItem = (l.ItemName ?? l.ItemNo) + " · " + l.RalColor;
+        _preview      = l;
+    }
+
+    private void Apply()
+    {
+        if (_selected == 0) { SetStatus("Select a confirmed lot.", "fail"); return; }
+        try
+        {
+            PopServices.Pnt.ApplyLabel(_selected, Session?.EmployeeNo ?? "P000");
+            SetStatus($"✓ LOT #{_selected} labeled · sent to FG", "ok");
+            _selected = 0; _preview = null; _selectedItem = "";
+            Refresh();
+        }
+        catch (Exception ex) { SetStatus("× " + ex.Message, "fail"); }
+    }
+
+    private void SetStatus(string s, string c) { _status = s; _statusCls = c; }
+    private void Go(string r) => Nav.NavigateTo("/" + r);
+    private void Logout()      { State.SignOut(); Nav.NavigateTo("/login"); }
+    public void Dispose() => _timer?.Dispose();
+}

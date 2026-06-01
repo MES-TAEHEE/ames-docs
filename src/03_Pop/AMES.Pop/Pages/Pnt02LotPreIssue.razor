@@ -1,0 +1,187 @@
+@page "/pnt02"
+@implements IDisposable
+@inject NavigationManager Nav
+@inject AppState State
+
+@*
+    PNT-02 Lot Pre-Issue (signature screen).
+    Operator picks a plan row → presses ISSUE LOT → a PRE virtual-lot is
+    pre-allocated. Each new lot is added to the "Issued today" grid at
+    the bottom so the floor can see exactly what's been allocated.
+*@
+
+<div class="pop-shell pnt">
+    <div class="pop-tbar">
+        <div style="display:flex; align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">PNT-02 · @Session?.TerminalId · @Session?.LineId</span>
+        </div>
+        <div class="pop-tbar-r">
+            <span class="stat-on">● LIVE</span>
+            <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
+            <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
+        </div>
+    </div>
+
+    <div class="pop-bd">
+        <div class="pnt-kpis k4">
+            <div class="pnt-kpi"><div class="lbl">PLAN ROWS</div><div class="val">@_plan.Count</div><div class="sub">today</div></div>
+            <div class="pnt-kpi warn"><div class="lbl">PRE</div><div class="val">@_preCount</div><div class="sub">awaiting jig</div></div>
+            <div class="pnt-kpi ok"><div class="lbl">BOUND</div><div class="val">@_boundCount</div><div class="sub">to jig</div></div>
+            <div class="pnt-kpi dim"><div class="lbl">CONFIRMED</div><div class="val">@_confirmedCount</div><div class="sub">unloaded</div></div>
+        </div>
+
+        <div class="pop-card" style="flex:1; overflow:auto;">
+            <div class="pop-card-h">▼ SELECT PLAN ROW · 계획 선택</div>
+            @if (_plan.Count == 0)
+            {
+                <div class="pnt-empty">No plan rows ready for issue.</div>
+            }
+            else
+            {
+                <div class="pnt-lots">
+                    @foreach (var p in _plan)
+                    {
+                        var sel = _selectedPlan == p.PlanId;
+                        var remaining = Math.Max(0, p.LotsRequired - p.LotsIssued);
+                        <div class="pnt-lot @(sel ? "selected" : "")" @onclick="@(() => SelectPlan(p.PlanId))">
+                            <div class="lh">
+                                <div class="lid">PLAN #@p.PlanId</div>
+                                <div class="lst">@p.RalColor</div>
+                            </div>
+                            <div class="item">
+                                <span class="swatch" style="background:@(p.HexValue ?? "#666");"></span>
+                                @(p.ItemName ?? p.ItemNo)
+                            </div>
+                            <div class="meta"><span class="l">TARGET</span><span class="v">@p.TargetQty EA</span></div>
+                            <div class="meta"><span class="l">ISSUED</span><span class="v">@p.LotsIssued / @p.LotsRequired LOT</span></div>
+                            <div class="meta"><span class="l">REMAIN</span><span class="v" style="color:@(remaining>0?"#fbbf24":"#22c55e")">@remaining LOT</span></div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="pop-card">
+            <div class="pop-card-h">▼ ISSUE NEW LOT</div>
+            <div style="display:flex; gap:18px; align-items:flex-end;">
+                <div class="pnt-fld" style="flex:1;">
+                    <label>SELECTED PLAN</label>
+                    <input class="pnt-input" disabled value="@(_selectedPlan == 0 ? "(none)" : ("PLAN #" + _selectedPlan + " · " + _selectedItem))" />
+                </div>
+                <div class="pnt-fld" style="width:140px;">
+                    <label>QTY / LOT</label>
+                    <input class="pnt-input" @bind="_qty" @bind:event="oninput" type="number" />
+                </div>
+                <button class="pnt-btn ok" style="flex:0 0 200px;"
+                        disabled="@(_selectedPlan == 0)"
+                        @onclick="IssueLot">✓ ISSUE LOT</button>
+            </div>
+            <div class="@(_statusCls)" style="margin-top:10px; font-size:13px; min-height:20px;">@_status</div>
+        </div>
+
+        <div class="pop-card" style="max-height:240px; overflow:auto;">
+            <div class="pop-card-h">▼ ISSUED TODAY (@_lots.Count)</div>
+            @if (_lots.Count == 0)
+            {
+                <div class="pnt-empty" style="padding:18px;">No lots issued yet.</div>
+            }
+            else
+            {
+                <div class="pnt-lots cols4">
+                    @foreach (var l in _lots.OrderByDescending(x => x.IssuedAt))
+                    {
+                        <div class="pnt-lot @l.Status.ToLowerInvariant()">
+                            <div class="lh">
+                                <div class="lid">LOT #@l.VirtualLotId</div>
+                                <div class="lst">@l.Status</div>
+                            </div>
+                            <div class="item">
+                                <span class="swatch" style="background:@(l.HexValue ?? "#666");"></span>
+                                @(l.ItemName ?? l.ItemNo)
+                            </div>
+                            <div class="meta"><span class="l">QTY</span><span class="v">@l.TargetQty EA</span></div>
+                            <div class="meta"><span class="l">JIG</span><span class="v">@(l.JigId ?? "—")</span></div>
+                            <div class="meta"><span class="l">@l.IssuedAt.ToString("HH:mm:ss")</span><span class="v">@(l.BindAt is null ? "PRE" : "BOUND")</span></div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="pop-nav" style="--nav-cols:9;">
+        <button class="nav-btn"          @onclick="@(() => Go("pnt01"))">▶ PNT-01<small>Plan</small></button>
+        <button class="nav-btn primary"  @onclick="@(() => Go("pnt03"))">▶ PNT-03<small>Loading</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt04"))">▶ PNT-04<small>Track Board</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt05"))">▶ PNT-05<small>Oven</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt06"))">▶ PNT-06<small>Unloading</small></button>
+        <button class="nav-btn gold"     @onclick="@(() => Go("pnt07"))">▶ PNT-07<small>Label</small></button>
+        <button class="nav-btn warn"     @onclick="@(() => Go("pnt08"))">▶ PNT-08<small>Defect</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt09"))">▶ PNT-09<small>Shift Rpt</small></button>
+        <button class="nav-btn muted"    @onclick="Logout">◀ LOGOUT<small></small></button>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] public PopSessionDto? Session { get; set; }
+
+    private List<PntDailyPlanDto>   _plan = new();
+    private List<PntVirtualLotDto>  _lots = new();
+    private int     _selectedPlan;
+    private string  _selectedItem = "";
+    private int     _qty = 32;
+    private int     _preCount, _boundCount, _confirmedCount;
+    private string  _status = "", _statusCls = "dim";
+    private DateTime _now = DateTime.Now;
+    private System.Threading.Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        Refresh();
+        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DateTime.Now; StateHasChanged(); }),
+                                            null, 4000, 4000);
+    }
+
+    private void Refresh()
+    {
+        try
+        {
+            var lineId = Session?.LineId ?? "LINE-PNT-01";
+            _plan = PopServices.Pnt.ListTodayPlan(lineId);
+            _lots = PopServices.Pnt.ListAllTodayLots(lineId);
+            _preCount       = _lots.Count(l => l.Status == "PRE");
+            _boundCount     = _lots.Count(l => l.Status == "BOUND" || l.Status == "LOADED");
+            _confirmedCount = _lots.Count(l => l.Status == "CONFIRMED" || l.Status == "LABELED");
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Pnt02] {ex.Message}"); }
+    }
+
+    private void SelectPlan(int planId)
+    {
+        _selectedPlan = planId;
+        var p = _plan.FirstOrDefault(x => x.PlanId == planId);
+        _selectedItem = p is null ? "" : (p.ItemName ?? p.ItemNo) + " · " + p.RalColor;
+    }
+
+    private void IssueLot()
+    {
+        if (_selectedPlan == 0) { SetStatus("Select a plan row first.", "fail"); return; }
+        if (_qty < 1)            { SetStatus("Qty must be at least 1.", "fail"); return; }
+        try
+        {
+            var p = _plan.First(x => x.PlanId == _selectedPlan);
+            var id = PopServices.Pnt.IssueLot(_selectedPlan, p.ItemNo, p.RalColor, _qty,
+                                              Session?.OperatorId ?? "system",
+                                              Session?.EmployeeNo ?? "P000");
+            SetStatus($"✓ Issued LOT #{id}", "ok");
+            Refresh();
+        }
+        catch (Exception ex) { SetStatus("× " + ex.Message, "fail"); }
+    }
+
+    private void SetStatus(string s, string c) { _status = s; _statusCls = c; }
+    private void Go(string r) => Nav.NavigateTo("/" + r);
+    private void Logout()      { State.SignOut(); Nav.NavigateTo("/login"); }
+    public void Dispose() => _timer?.Dispose();
+}

@@ -1,0 +1,132 @@
+@page "/pnt05"
+@implements IDisposable
+@inject NavigationManager Nav
+@inject AppState State
+
+@*
+    PNT-05 Oven Monitor (signature screen). Live temperature reading,
+    24h min/max stats, 10-minute sample chart pulled from
+    PNT_OvenTempSample. Lots inside count derived from
+    PNT_VirtualLot.Status='OVEN'.
+*@
+
+<div class="pop-shell pnt">
+    <div class="pop-tbar">
+        <div style="display:flex; align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">PNT-05 · @Session?.TerminalId · @Session?.LineId</span>
+        </div>
+        <div class="pop-tbar-r">
+            <span class="@(_inSpec ? "stat-on" : "stat-off")">● @(_inSpec ? "IN SPEC" : "OUT OF SPEC")</span>
+            <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
+            <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
+        </div>
+    </div>
+
+    <div class="pop-bd">
+        <div class="pnt-oven">
+            <div class="pop-card">
+                <div class="pop-card-h">▼ CURRENT TEMPERATURE · @(_oven?.OvenName ?? "—")</div>
+                <div>
+                    <span class="pnt-oven-t @_tempCls">@_oven?.CurrentTemp.ToString("0.0")</span>
+                    <span class="pnt-oven-u">°C</span>
+                </div>
+                <div class="pnt-oven-spec">
+                    Target @(_oven?.TargetTemp)°C  ±@(_oven?.Tolerance)°C  ·  Dwell @(_oven?.DwellSec / 60) min
+                </div>
+                <div class="pnt-kpis k4" style="margin-top:14px;">
+                    <div class="pnt-kpi dim"><div class="lbl">24h MIN</div><div class="val">@_oven?.MinTemp24h.ToString("0.0")</div><div class="sub">°C</div></div>
+                    <div class="pnt-kpi dim"><div class="lbl">24h MAX</div><div class="val">@_oven?.MaxTemp24h.ToString("0.0")</div><div class="sub">°C</div></div>
+                    <div class="pnt-kpi ok"><div class="lbl">JIGS INSIDE</div><div class="val">@_oven?.JigsInside</div><div class="sub">curing</div></div>
+                    <div class="pnt-kpi warn"><div class="lbl">SAMPLES</div><div class="val">@_samples.Count</div><div class="sub">10 min</div></div>
+                </div>
+            </div>
+            <div class="pop-card">
+                <div class="pop-card-h">▼ ZONE STATUS</div>
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                    <div class="pnt-shift-card">
+                        <div class="sh-l">ZONE 1 · ENTRY</div>
+                        <div class="sh-v" style="font-size:48px; color:@(_tempColor);">@_oven?.CurrentTemp.ToString("0.0")°C</div>
+                    </div>
+                    <div class="pnt-shift-card">
+                        <div class="sh-l">ZONE 2 · CRUISE</div>
+                        <div class="sh-v" style="font-size:48px; color:#86efac;">@((_oven?.CurrentTemp ?? 180) + 0.5m)°C</div>
+                    </div>
+                    <div class="pnt-shift-card">
+                        <div class="sh-l">ZONE 3 · EXIT</div>
+                        <div class="sh-v" style="font-size:48px; color:#86efac;">@((_oven?.CurrentTemp ?? 180) - 0.3m)°C</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pop-card" style="flex:1;">
+            <div class="pop-card-h">▼ TEMPERATURE CURVE · 10 min (target line 180°C)</div>
+            <div class="oven-chart">
+                @foreach (var s in _samples)
+                {
+                    var target = _oven?.TargetTemp ?? 180;
+                    var tol    = _oven?.Tolerance  ?? 5;
+                    var diff   = Math.Abs((double)s.TempC - target);
+                    var cls    = diff > tol ? "bad" : diff > tol * 0.6 ? "warn" : "ok";
+                    var height = 30 + (int)Math.Clamp(((double)s.TempC - 170) * 8, 4, 170);
+                    <div class="bar @cls" style="height:@(height)px;" title="@s.TempC °C at @s.SampledAt.ToString("HH:mm:ss")"></div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="pop-nav" style="--nav-cols:9;">
+        <button class="nav-btn"          @onclick="@(() => Go("pnt01"))">▶ PNT-01<small>Plan</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt02"))">▶ PNT-02<small>Pre-Issue</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt03"))">▶ PNT-03<small>Loading</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt04"))">▶ PNT-04<small>Track Board</small></button>
+        <button class="nav-btn primary"  @onclick="@(() => Go("pnt06"))">▶ PNT-06<small>Unloading</small></button>
+        <button class="nav-btn gold"     @onclick="@(() => Go("pnt07"))">▶ PNT-07<small>Label</small></button>
+        <button class="nav-btn warn"     @onclick="@(() => Go("pnt08"))">▶ PNT-08<small>Defect</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt09"))">▶ PNT-09<small>Shift Rpt</small></button>
+        <button class="nav-btn muted"    @onclick="Logout">◀ LOGOUT<small></small></button>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] public PopSessionDto? Session { get; set; }
+
+    private PntOvenStatusDto?       _oven;
+    private List<PntOvenSampleDto>  _samples = new();
+    private string _tempCls = "ok";
+    private string _tempColor = "#22c55e";
+    private bool   _inSpec = true;
+    private DateTime _now = DateTime.Now;
+    private System.Threading.Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        Refresh();
+        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DateTime.Now; StateHasChanged(); }),
+                                            null, 5000, 5000);
+    }
+
+    private void Refresh()
+    {
+        try
+        {
+            var lineId = Session?.LineId ?? "LINE-PNT-01";
+            _oven    = PopServices.Pnt.GetOvenStatus(lineId);
+            if (_oven is not null)
+                _samples = PopServices.Pnt.ListOvenSamples(_oven.OvenId, 10);
+
+            var target = _oven?.TargetTemp ?? 180;
+            var tol    = _oven?.Tolerance  ?? 5;
+            var diff   = Math.Abs((double)(_oven?.CurrentTemp ?? target) - target);
+            _inSpec    = diff <= tol;
+            _tempCls   = diff > tol ? "bad" : diff > tol * 0.6 ? "warn" : "ok";
+            _tempColor = _tempCls == "bad" ? "#fca5a5" : _tempCls == "warn" ? "#fbbf24" : "#22c55e";
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Pnt05] {ex.Message}"); }
+    }
+
+    private void Go(string r) => Nav.NavigateTo("/" + r);
+    private void Logout()      { State.SignOut(); Nav.NavigateTo("/login"); }
+    public void Dispose() => _timer?.Dispose();
+}

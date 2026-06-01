@@ -1,0 +1,157 @@
+@page "/pnt06"
+@implements IDisposable
+@inject NavigationManager Nav
+@inject AppState State
+
+@*
+    PNT-06 Unloading — operator picks a LOADED or OVEN lot, enters
+    Good / Defect counts and confirms. PntRepository.ConfirmUnload
+    advances the lot to CONFIRMED + raises an R3 line event.
+*@
+
+<div class="pop-shell pnt">
+    <div class="pop-tbar">
+        <div style="display:flex; align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">PNT-06 · @Session?.TerminalId · @Session?.LineId</span>
+        </div>
+        <div class="pop-tbar-r">
+            <span class="stat-on">● R3 ONLINE</span>
+            <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
+            <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
+        </div>
+    </div>
+
+    <div class="pop-bd">
+        <div class="pnt-kpis k4">
+            <div class="pnt-kpi warn"><div class="lbl">READY TO UNLOAD</div><div class="val">@_lots.Count</div><div class="sub">LOADED + OVEN</div></div>
+            <div class="pnt-kpi"><div class="lbl">SELECTED LOT</div><div class="val">@(_selected == 0 ? "—" : "#" + _selected)</div><div class="sub">@(_selectedItem)</div></div>
+            <div class="pnt-kpi ok"><div class="lbl">GOOD QTY</div><div class="val">@_goodQty</div><div class="sub">EA</div></div>
+            <div class="pnt-kpi bad"><div class="lbl">DEFECT QTY</div><div class="val">@_defectQty</div><div class="sub">EA</div></div>
+        </div>
+
+        <div class="pop-card" style="flex:1; overflow:auto;">
+            <div class="pop-card-h">▼ LOADED / OVEN LOTS</div>
+            @if (_lots.Count == 0)
+            {
+                <div class="pnt-empty">No lots to unload.</div>
+            }
+            else
+            {
+                <div class="pnt-lots cols4">
+                    @foreach (var l in _lots)
+                    {
+                        var sel = _selected == l.VirtualLotId;
+                        <div class="pnt-lot @(sel ? "selected" : l.Status.ToLowerInvariant())"
+                             @onclick="@(() => SelectLot(l))">
+                            <div class="lh">
+                                <div class="lid">LOT #@l.VirtualLotId</div>
+                                <div class="lst">@l.Status</div>
+                            </div>
+                            <div class="item">
+                                <span class="swatch" style="background:@(l.HexValue ?? "#666");"></span>
+                                @(l.ItemName ?? l.ItemNo)
+                            </div>
+                            <div class="meta"><span class="l">JIG</span><span class="v">@(l.JigId ?? "—")</span></div>
+                            <div class="meta"><span class="l">LOADED</span><span class="v">@l.LoadedQty EA</span></div>
+                            <div class="meta"><span class="l">BIND</span><span class="v">@(l.BindAt?.ToString("HH:mm:ss") ?? "—")</span></div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="pop-card">
+            <div class="pop-card-h">▼ CONFIRM UNLOAD</div>
+            <div style="display:flex; gap:14px; align-items:flex-end;">
+                <div class="pnt-fld" style="flex:1;">
+                    <label>SELECTED LOT</label>
+                    <input class="pnt-input" disabled value="@(_selected == 0 ? "(none)" : ("LOT #" + _selected + " · " + _selectedItem))" />
+                </div>
+                <div class="pnt-fld" style="width:140px;">
+                    <label>GOOD</label>
+                    <input class="pnt-input" @bind="_goodQty" @bind:event="oninput" type="number" />
+                </div>
+                <div class="pnt-fld" style="width:140px;">
+                    <label>DEFECT</label>
+                    <input class="pnt-input" @bind="_defectQty" @bind:event="oninput" type="number" />
+                </div>
+                <button class="pnt-btn ok" style="flex:0 0 240px;"
+                        disabled="@(_selected == 0)"
+                        @onclick="Confirm">✓ CONFIRM UNLOAD</button>
+            </div>
+            <div class="@(_statusCls)" style="margin-top:10px; font-size:13px; min-height:20px;">@_status</div>
+        </div>
+    </div>
+
+    <div class="pop-nav" style="--nav-cols:9;">
+        <button class="nav-btn"          @onclick="@(() => Go("pnt01"))">▶ PNT-01<small>Plan</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt02"))">▶ PNT-02<small>Pre-Issue</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt03"))">▶ PNT-03<small>Loading</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt04"))">▶ PNT-04<small>Track Board</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt05"))">▶ PNT-05<small>Oven</small></button>
+        <button class="nav-btn gold primary" @onclick="@(() => Go("pnt07"))">▶ PNT-07<small>Label</small></button>
+        <button class="nav-btn warn"     @onclick="@(() => Go("pnt08"))">▶ PNT-08<small>Defect</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt09"))">▶ PNT-09<small>Shift Rpt</small></button>
+        <button class="nav-btn muted"    @onclick="Logout">◀ LOGOUT<small></small></button>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] public PopSessionDto? Session { get; set; }
+
+    private List<PntVirtualLotDto> _lots = new();
+    private int    _selected;
+    private string _selectedItem = "";
+    private int    _goodQty;
+    private int    _defectQty;
+    private string _status = "", _statusCls = "dim";
+    private DateTime _now = DateTime.Now;
+    private System.Threading.Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        Refresh();
+        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DateTime.Now; StateHasChanged(); }),
+                                            null, 4000, 4000);
+    }
+
+    private void Refresh()
+    {
+        try
+        {
+            var lineId = Session?.LineId ?? "LINE-PNT-01";
+            _lots = PopServices.Pnt.ListAllTodayLots(lineId)
+                     .Where(l => l.Status is "LOADED" or "OVEN" or "BOUND").ToList();
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Pnt06] {ex.Message}"); }
+    }
+
+    private void SelectLot(PntVirtualLotDto l)
+    {
+        _selected = l.VirtualLotId;
+        _selectedItem = (l.ItemName ?? l.ItemNo) + " · " + l.RalColor;
+        _goodQty   = l.LoadedQty;
+        _defectQty = 0;
+    }
+
+    private void Confirm()
+    {
+        if (_selected == 0) { SetStatus("Select a lot to confirm.", "fail"); return; }
+        try
+        {
+            PopServices.Pnt.ConfirmUnload(_selected, _goodQty, _defectQty,
+                                           Session?.OperatorId ?? "system",
+                                           Session?.EmployeeNo ?? "P000");
+            SetStatus($"✓ LOT #{_selected} confirmed · {_goodQty} OK / {_defectQty} NG", "ok");
+            _selected = 0; _selectedItem = ""; _goodQty = 0; _defectQty = 0;
+            Refresh();
+        }
+        catch (Exception ex) { SetStatus("× " + ex.Message, "fail"); }
+    }
+
+    private void SetStatus(string s, string c) { _status = s; _statusCls = c; }
+    private void Go(string r) => Nav.NavigateTo("/" + r);
+    private void Logout()      { State.SignOut(); Nav.NavigateTo("/login"); }
+    public void Dispose() => _timer?.Dispose();
+}

@@ -890,3 +890,201 @@ body {
     width: 100%; z-index: 1000;
 }
 #blazor-error-ui .dismiss { cursor: pointer; position: absolute; right: 0.75rem; top: 0.5rem; }
+
+/* ============================================================
+   PNT (Painting / Powder Coat) module overrides + extensions
+   ============================================================ */
+
+.pop-shell.pnt .pop-tbar       { background: linear-gradient(135deg, #1a0800, #2d1000); border-bottom-color: rgba(234,88,12,.35); }
+.pop-shell.pnt .pop-tbar-logo  { color: #fdba74; }
+.pop-shell.pnt .pop-tbar-id    { color: rgba(253,186,116,.7); }
+.pop-shell.pnt .pop-bd         { background: radial-gradient(ellipse at 50% 0%, #1a1208 0%, #0a0805 65%); }
+.pop-shell.pnt .pop-card       { background: rgba(255,255,255,.04); border-color: #3a2a14; }
+.pop-shell.pnt .pop-card-h     { color: #fdba74; }
+.pop-shell.pnt .pop-tbar-r .stat-on { color: #86efac; }
+
+/* KPI strip (PNT-01 / PNT-04 / PNT-09) ----------------------- */
+.pnt-kpis      { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.pnt-kpis.k4   { grid-template-columns: repeat(4, 1fr); }
+.pnt-kpi       { background: rgba(255,255,255,.04); border: 1px solid #3a2a14;
+                 border-top: 4px solid var(--pnt); border-radius: 11px;
+                 padding: 14px 18px; }
+.pnt-kpi.ok    { border-top-color: #22c55e; }
+.pnt-kpi.warn  { border-top-color: #fbbf24; }
+.pnt-kpi.bad   { border-top-color: #dc2626; }
+.pnt-kpi.dim   { border-top-color: #a8997f; }
+.pnt-kpi .lbl  { font-family: 'JetBrains Mono', monospace; font-size: 10px;
+                 color: #fdba74; letter-spacing: 1.5px; text-transform: uppercase; }
+.pnt-kpi .val  { font-family: 'JetBrains Mono', monospace; font-size: 44px;
+                 font-weight: 900; color: #fff; line-height: 1; margin-top: 4px; }
+.pnt-kpi.ok .val   { color: #22c55e; }
+.pnt-kpi.warn .val { color: #fbbf24; }
+.pnt-kpi.bad .val  { color: #fca5a5; }
+.pnt-kpi.dim .val  { color: #a8997f; }
+.pnt-kpi .sub  { font-size: 11px; color: #a8997f; margin-top: 4px; }
+
+/* Color swatches (PNT-01) ------------------------------------ */
+.pnt-colors    { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.pnt-color     { background: rgba(0,0,0,.3); border: 1px solid #3a2a14;
+                 border-radius: 8px; padding: 10px; text-align: center; }
+.pnt-color .swatch { width: 100%; height: 36px; border-radius: 5px;
+                     border: 1px solid rgba(255,255,255,.08); }
+.pnt-color .nm  { font-size: 12px; font-weight: 800; color: #fff; margin-top: 8px; }
+.pnt-color .qty { font-family: 'JetBrains Mono', monospace; font-size: 11px;
+                  color: #fbbf24; margin-top: 2px; }
+
+/* Lot tile (PNT-01 / PNT-02 / PNT-06) ------------------------ */
+.pnt-lots    { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.pnt-lots.cols4 { grid-template-columns: repeat(4, 1fr); }
+.pnt-lot     { background: rgba(0,0,0,.3); border: 1px solid #3a2a14;
+               border-left: 4px solid var(--pnt); border-radius: 10px;
+               padding: 12px 14px; cursor: pointer; transition: border-color .15s; }
+.pnt-lot:hover     { border-color: #fdba74; }
+.pnt-lot.bound     { border-left-color: #22c55e; }
+.pnt-lot.pre       { border-left-color: #fbbf24; }
+.pnt-lot.loaded    { border-left-color: #38bdf8; }
+.pnt-lot.oven      { border-left-color: #f97316; }
+.pnt-lot.confirmed { border-left-color: #a78bfa; }
+.pnt-lot.labeled   { border-left-color: #c084fc; }
+.pnt-lot.selected  { background: rgba(234,88,12,.16); border-color: #fdba74; }
+.pnt-lot .lh       { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.pnt-lot .lid      { font-family: 'JetBrains Mono', monospace; font-size: 12px;
+                     font-weight: 800; color: #fff; }
+.pnt-lot .lst      { font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 5px;
+                     background: rgba(234,88,12,.18); color: #fb923c; margin-left: auto;
+                     text-transform: uppercase; letter-spacing: 1px; }
+.pnt-lot .item     { font-size: 14px; font-weight: 800; color: #fff; }
+.pnt-lot .meta     { display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; }
+.pnt-lot .meta .l  { color: #a8997f; }
+.pnt-lot .meta .v  { color: #fff; font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+.pnt-lot .pbar     { height: 6px; background: #1a1208; border-radius: 3px;
+                     overflow: hidden; margin-top: 8px; }
+.pnt-lot .pbar i   { display: block; height: 100%;
+                     background: linear-gradient(90deg, #16a34a, #22c55e); border-radius: 3px; }
+.pnt-lot .swatch   { display: inline-block; width: 14px; height: 14px;
+                     border-radius: 3px; vertical-align: middle;
+                     border: 1px solid rgba(255,255,255,.15); }
+
+/* Jig picker (PNT-03) ---------------------------------------- */
+.pnt-jigs    { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+.pnt-jig     { background: rgba(0,0,0,.3); border: 1px solid #3a2a14;
+               border-radius: 10px; padding: 14px 12px; text-align: center;
+               cursor: pointer; transition: border-color .15s; }
+.pnt-jig:hover           { border-color: #fdba74; }
+.pnt-jig.unavailable     { opacity: .4; cursor: not-allowed; }
+.pnt-jig.selected        { background: rgba(234,88,12,.16); border-color: #fdba74; }
+.pnt-jig .jid    { font-family: 'JetBrains Mono', monospace; font-size: 14px;
+                   font-weight: 800; color: #fff; }
+.pnt-jig .jpct   { font-family: 'JetBrains Mono', monospace; font-size: 22px;
+                   font-weight: 900; color: #22c55e; margin-top: 4px; }
+.pnt-jig.warn .jpct  { color: #fbbf24; }
+.pnt-jig.bad  .jpct  { color: #fca5a5; }
+.pnt-jig .jsub   { font-size: 10px; color: #a8997f; margin-top: 4px; }
+
+/* RFID event stream (PNT-04) --------------------------------- */
+.pnt-events  { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; }
+.pnt-event   { display: grid; grid-template-columns: 90px 60px 1fr 110px;
+               gap: 10px; align-items: center;
+               background: rgba(0,0,0,.3); border: 1px solid #3a2a14;
+               border-left: 3px solid var(--pnt); border-radius: 8px;
+               padding: 8px 12px; font-size: 12px; }
+.pnt-event.r1 { border-left-color: #38bdf8; }
+.pnt-event.r2 { border-left-color: #fbbf24; }
+.pnt-event.r3 { border-left-color: #22c55e; }
+.pnt-event .ts { font-family: 'JetBrains Mono', monospace; color: #fdba74; font-weight: 700; }
+.pnt-event .rd { font-family: 'JetBrains Mono', monospace; color: #fff; font-weight: 800; }
+.pnt-event .jg { color: #e2e8f0; font-family: 'JetBrains Mono', monospace; }
+.pnt-event .gw { color: #a8997f; font-size: 11px; }
+
+/* Reader tile (PNT-04 top bar) -------------------------------- */
+.pnt-readers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.pnt-reader  { background: rgba(255,255,255,.04); border: 1px solid #3a2a14;
+               border-radius: 11px; padding: 14px 18px; }
+.pnt-reader .rd-l { font-family: 'JetBrains Mono', monospace; font-size: 11px;
+                    color: #fdba74; letter-spacing: 1.5px; text-transform: uppercase; }
+.pnt-reader .rd-v { font-family: 'Bebas Neue', sans-serif; font-size: 42px;
+                    color: #fff; margin-top: 6px; letter-spacing: 2px; }
+.pnt-reader .rd-g { display: inline-flex; gap: 6px; margin-top: 6px;
+                    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+                    color: #86efac; font-weight: 700; }
+.pnt-reader .rd-g .led { width: 9px; height: 9px; border-radius: 50%;
+                         background: #22c55e; box-shadow: 0 0 10px #22c55e;
+                         animation: pntBlink 1.5s infinite; }
+@keyframes pntBlink { 50% { opacity: .35; } }
+
+/* Oven monitor (PNT-05) -------------------------------------- */
+.pnt-oven    { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; }
+.pnt-oven-t  { font-family: 'Bebas Neue', sans-serif; font-size: 140px;
+               color: var(--pnt); line-height: .85; letter-spacing: 2px; }
+.pnt-oven-t.ok   { color: #22c55e; }
+.pnt-oven-t.warn { color: #fbbf24; }
+.pnt-oven-t.bad  { color: #fca5a5; }
+.pnt-oven-u  { font-family: 'Bebas Neue', sans-serif; font-size: 64px;
+               color: rgba(255,255,255,.5); margin-left: 12px; }
+.pnt-oven-spec { font-size: 13px; color: #a8997f; margin-top: 10px; }
+
+.oven-chart  { height: 200px; display: flex; align-items: flex-end;
+               gap: 1px; padding: 12px 8px; background: rgba(0,0,0,.4);
+               border-radius: 8px; border: 1px solid #3a2a14; }
+.oven-chart .bar { flex: 1; background: linear-gradient(180deg, var(--pnt), #c2410c);
+                   border-radius: 1px 1px 0 0; min-height: 4px; }
+.oven-chart .bar.ok   { background: linear-gradient(180deg, #22c55e, #16a34a); }
+.oven-chart .bar.warn { background: linear-gradient(180deg, #fbbf24, #d97706); }
+.oven-chart .bar.bad  { background: linear-gradient(180deg, #fca5a5, #b91c1c); }
+
+/* Shift report bars (PNT-09) --------------------------------- */
+.pnt-shift   { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.pnt-shift-card { background: rgba(0,0,0,.3); border: 1px solid #3a2a14;
+                  border-radius: 11px; padding: 18px 22px; }
+.pnt-shift-card .sh-l { font-family: 'JetBrains Mono', monospace; font-size: 12px;
+                        color: #fdba74; letter-spacing: 2px; text-transform: uppercase; }
+.pnt-shift-card .sh-v { font-family: 'Bebas Neue', sans-serif; font-size: 72px;
+                        color: #fff; margin-top: 8px; letter-spacing: 1.5px; }
+
+/* Buttons / action bar --------------------------------------- */
+.pnt-actions { display: flex; gap: 12px; margin-top: 10px; }
+.pnt-btn     { flex: 1; padding: 18px;
+               background: linear-gradient(180deg, var(--pnt), #c2410c);
+               border: none; border-radius: 11px; color: #fff;
+               font-size: 16px; font-weight: 800; letter-spacing: 1.5px;
+               cursor: pointer; box-shadow: 0 4px 0 #7c2d12;
+               font-family: inherit; }
+.pnt-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #7c2d12; }
+.pnt-btn.sec { background: #1a1208; border: 1px solid #3a2a14; color: #fdba74; box-shadow: none; }
+.pnt-btn.ok  { background: linear-gradient(180deg, #22c55e, #15803d); box-shadow: 0 4px 0 #14532d; }
+.pnt-btn.bad { background: linear-gradient(180deg, #dc2626, #991b1b); box-shadow: 0 4px 0 #7f1d1d; }
+.pnt-btn:disabled { opacity: .35; cursor: not-allowed; }
+.pnt-btn.small { padding: 10px 16px; font-size: 12px; }
+
+/* Nav bar — re-skinned for orange theme  --------------------- */
+.pop-shell.pnt .pop-nav { background: linear-gradient(180deg, #1a0800, #0a0805); border-top-color: #3a2a14; }
+.pop-shell.pnt .nav-btn { color: #fdba74; border-color: #3a2a14;
+                          background: rgba(255,255,255,.03); }
+.pop-shell.pnt .nav-btn.primary  { background: linear-gradient(180deg, var(--pnt), #c2410c); color: #fff; border-color: var(--pnt); }
+.pop-shell.pnt .nav-btn.warn     { background: linear-gradient(180deg, #fbbf24, #d97706); color: #1a0800; border-color: #fbbf24; }
+.pop-shell.pnt .nav-btn.alert    { background: linear-gradient(180deg, #dc2626, #991b1b); color: #fff; border-color: #dc2626; }
+.pop-shell.pnt .nav-btn.gold     { background: linear-gradient(180deg, #d4a017, #a07810); color: #fff; border-color: #d4a017; }
+.pop-shell.pnt .nav-btn.muted    { background: rgba(255,255,255,.02); color: #a8997f; }
+
+/* Defect grid (PNT-08) --------------------------------------- */
+.pnt-defgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.pnt-defcard { background: rgba(0,0,0,.3); border: 1px solid #3a2a14;
+               border-radius: 10px; padding: 16px; cursor: pointer; text-align: left; }
+.pnt-defcard:hover    { border-color: #fdba74; }
+.pnt-defcard.selected { background: rgba(234,88,12,.16); border-color: #fdba74; }
+.pnt-defcard .code    { font-family: 'JetBrains Mono', monospace; font-size: 14px;
+                        font-weight: 800; color: #fdba74; }
+.pnt-defcard .en      { font-size: 14px; font-weight: 700; color: #fff; margin-top: 6px; }
+.pnt-defcard .ko      { font-size: 11px; color: #a8997f; margin-top: 4px; }
+
+/* Inputs ---------------------------------------------------- */
+.pnt-input  { background: #0a0805; border: 1px solid #3a2a14; border-radius: 8px;
+              padding: 12px 16px; color: #fff; font-family: 'JetBrains Mono', monospace;
+              font-size: 16px; outline: none; min-width: 120px; }
+.pnt-input:focus { border-color: #fdba74; }
+.pnt-fld    { display: flex; flex-direction: column; gap: 6px; }
+.pnt-fld label { font-family: 'JetBrains Mono', monospace; font-size: 11px;
+                 color: #fdba74; letter-spacing: 1.5px; text-transform: uppercase; }
+
+/* Empty / placeholder text ----------------------------------- */
+.pnt-empty { padding: 36px; text-align: center; color: #a8997f; font-size: 13px; }

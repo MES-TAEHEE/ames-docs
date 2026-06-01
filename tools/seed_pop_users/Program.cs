@@ -41,6 +41,12 @@ internal static class Program
         ("user-i002", "I002", "Han Ji-hye",      "Production", "2345",
             """["LINE-IMG-01"]""",                                            "DAY"),
 
+        // ── PNT operators (분체도장) ───────────────────────────────────
+        ("user-p001", "P001", "Jeong Min-su",    "Production", "1234",
+            """["LINE-PNT-01"]""",                                            "DAY"),
+        ("user-p002", "P002", "Yoon Eun-bi",     "Production", "2345",
+            """["LINE-PNT-01"]""",                                            "DAY"),
+
         // ── Supervisor with access to all lines ────────────────────────
         ("user-s001", "S001", "Supervisor Choi", "Production", "9999",
             null /* all lines */,                                             "DAY"),

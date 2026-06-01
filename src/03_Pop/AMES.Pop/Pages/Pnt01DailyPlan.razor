@@ -1,0 +1,143 @@
+@page "/pnt01"
+@implements IDisposable
+@inject NavigationManager Nav
+@inject AppState State
+
+@*
+    PNT-01 Daily Plan — supervisor's view of today's plan rows on
+    LINE-PNT-01. KPI strip + color sequence + per-plan progress.
+*@
+
+<div class="pop-shell pnt">
+    <div class="pop-tbar">
+        <div style="display:flex; align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">PNT-01 · @Session?.TerminalId · @Session?.LineId</span>
+        </div>
+        <div class="pop-tbar-r">
+            <span class="stat-on">● LIVE</span>
+            <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
+            <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
+        </div>
+    </div>
+
+    <div class="pop-bd">
+        <div class="pnt-kpis">
+            <div class="pnt-kpi"><div class="lbl">PLAN ROWS</div><div class="val">@_plan.Count</div><div class="sub">today</div></div>
+            <div class="pnt-kpi ok"><div class="lbl">LOTS ISSUED</div><div class="val">@_lotsIssued</div><div class="sub">virtual</div></div>
+            <div class="pnt-kpi warn"><div class="lbl">LOTS BOUND</div><div class="val">@_lotsBound</div><div class="sub">to jig</div></div>
+            <div class="pnt-kpi dim"><div class="lbl">REMAINING</div><div class="val">@_remaining</div><div class="sub">qty</div></div>
+            <div class="pnt-kpi bad"><div class="lbl">JIGS REQ</div><div class="val">@_jigsReq</div><div class="sub">today</div></div>
+        </div>
+
+        <div class="pop-card">
+            <div class="pop-card-h">▼ COLOR SEQUENCE · 컬러 순서</div>
+            <div class="pnt-colors">
+                @foreach (var c in _colors)
+                {
+                    <div class="pnt-color">
+                        <div class="swatch" style="background:@(c.HexValue ?? "#666");"></div>
+                        <div class="nm">@(c.ColorName ?? c.RalCode)</div>
+                        <div class="qty">@(_plan.Where(p => p.RalColor == c.RalCode).Sum(p => p.TargetQty)) EA</div>
+                    </div>
+                }
+                @if (_colors.Count == 0)
+                {
+                    <div class="pnt-empty" style="grid-column:1/-1;">No RAL colors loaded.</div>
+                }
+            </div>
+            <div style="font-size:11px; color:#a8997f; margin-top:10px;">
+                ▸ Color changeover requires booth cleaning + nozzle swap (~15 min).
+            </div>
+        </div>
+
+        <div class="pop-card" style="flex:1; overflow:auto;">
+            <div class="pop-card-h">▼ TODAY'S PLAN ROWS (@_plan.Count)</div>
+            @if (_plan.Count == 0)
+            {
+                <div class="pnt-empty">No plan rows for today on @Session?.LineId.</div>
+            }
+            else
+            {
+                <div class="pnt-lots">
+                    @foreach (var p in _plan)
+                    {
+                        var pct = p.TargetQty == 0 ? 0 : Math.Clamp(p.LotsBound * 100 / Math.Max(1, p.LotsRequired), 0, 100);
+                        <div class="pnt-lot @(p.LotsBound >= p.LotsRequired ? "bound" : "pre")">
+                            <div class="lh">
+                                <div class="lid">PLAN #@p.PlanId</div>
+                                <div class="lst">@(p.ReadyFlag ? "READY" : "DRAFT")</div>
+                            </div>
+                            <div class="item">
+                                <span class="swatch" style="background:@(p.HexValue ?? "#666");"></span>
+                                @(p.ItemName ?? p.ItemNo)
+                            </div>
+                            <div class="meta">
+                                <span class="l">RAL</span>
+                                <span class="v">@(p.ColorName ?? p.RalColor)</span>
+                            </div>
+                            <div class="meta">
+                                <span class="l">START</span><span class="v">@(p.StartTime ?? "—")</span>
+                            </div>
+                            <div class="meta">
+                                <span class="l">QTY</span><span class="v">@p.TargetQty EA · @p.LotsBound/@p.LotsRequired LOT</span>
+                            </div>
+                            <div class="pbar"><i style="width:@pct%;"></i></div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="pop-nav" style="--nav-cols:9;">
+        <button class="nav-btn"          @onclick="@(() => Go("pnt02"))">▶ PNT-02<small>Pre-Issue</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt03"))">▶ PNT-03<small>Loading</small></button>
+        <button class="nav-btn primary"  @onclick="@(() => Go("pnt04"))">▶ PNT-04<small>Track Board</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt05"))">▶ PNT-05<small>Oven</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt06"))">▶ PNT-06<small>Unloading</small></button>
+        <button class="nav-btn gold"     @onclick="@(() => Go("pnt07"))">▶ PNT-07<small>Label</small></button>
+        <button class="nav-btn warn"     @onclick="@(() => Go("pnt08"))">▶ PNT-08<small>Defect</small></button>
+        <button class="nav-btn"          @onclick="@(() => Go("pnt09"))">▶ PNT-09<small>Shift Rpt</small></button>
+        <button class="nav-btn muted"    @onclick="Logout">◀ LOGOUT<small></small></button>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] public PopSessionDto? Session { get; set; }
+
+    private List<PntDailyPlanDto>  _plan   = new();
+    private List<PntRalColorDto>   _colors = new();
+    private int _lotsIssued, _lotsBound, _remaining, _jigsReq;
+    private DateTime _now = DateTime.Now;
+    private System.Threading.Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        Refresh();
+        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DateTime.Now; StateHasChanged(); }),
+                                            null, 5000, 5000);
+    }
+
+    private void Refresh()
+    {
+        try
+        {
+            var lineId = Session?.LineId ?? "LINE-PNT-01";
+            _plan       = PopServices.Pnt.ListTodayPlan(lineId);
+            _colors     = PopServices.Pnt.ListRalColors();
+            _lotsIssued = _plan.Sum(p => p.LotsIssued);
+            _lotsBound  = _plan.Sum(p => p.LotsBound);
+            _remaining  = _plan.Sum(p => Math.Max(0, p.LotsRequired - p.LotsBound));
+            _jigsReq    = _plan.Sum(p => p.JigsRequired);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Pnt01] {ex.Message}");
+        }
+    }
+
+    private void Go(string r) => Nav.NavigateTo("/" + r);
+    private void Logout()      { State.SignOut(); Nav.NavigateTo("/login"); }
+    public void Dispose() => _timer?.Dispose();
+}

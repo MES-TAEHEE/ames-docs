@@ -28,6 +28,7 @@ internal static class PopServices
     public static MasterDataRepository   Master            { get; private set; } = null!;
     public static FabricRepository       Fabric            { get; private set; } = null!;
     public static BondRepository         Bond              { get; private set; } = null!;
+    public static PntRepository          Pnt               { get; private set; } = null!;
 
     public static void Initialize()
     {
@@ -46,5 +47,6 @@ internal static class PopServices
         Master            = new MasterDataRepository(ConnectionFactory);
         Fabric            = new FabricRepository    (ConnectionFactory);
         Bond              = new BondRepository      (ConnectionFactory);
+        Pnt               = new PntRepository       (ConnectionFactory);
     }
 }
