@@ -1,0 +1,64 @@
+@page "/mnt/downtime"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MntRepository Mnt
+
+<PageTitle>MNT-06 Downtime Log · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MNT-06</div>
+    <div class="ames-page-t">Downtime Log</div>
+    <div class="ames-page-sub">라인 다운타임 이벤트 — 최근 7일</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">EVENTS</div>
+        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">last 7d</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">TOTAL MIN</div>
+        <div class="ames-kpi-v">@_totMin.ToString("N0")</div><div class="ames-kpi-s">minutes lost</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">AVG MIN/EV</div>
+        <div class="ames-kpi-v">@_avgMin.ToString("0")</div><div class="ames-kpi-s">avg per event</div></div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">OPEN</div>
+        <div class="ames-kpi-v">@_open</div><div class="ames-kpi-s">EndTS = null</div></div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">Downtime events</div>
+    <table class="ames-table">
+        <thead>
+            <tr>
+                <th>DT #</th><th>Line</th><th>Start</th><th>End</th>
+                <th class="num">Min</th><th>Reason</th><th>Cause</th><th>Comment</th><th>WO</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var d in _rows)
+            {
+                <tr>
+                    <td class="code">@d.DowntimeId</td>
+                    <td>@(d.LineId ?? "—")</td>
+                    <td class="dim">@(d.StartTs?.ToString("MM-dd HH:mm") ?? "—")</td>
+                    <td class="dim">@(d.EndTs?.ToString("MM-dd HH:mm") ?? "—")</td>
+                    <td class="num">@(d.DurationMin?.ToString() ?? "—")</td>
+                    <td><span class="pill info">@(d.ReasonCode ?? "—")</span></td>
+                    <td class="dim">@(d.CauseCode ?? "—")</td>
+                    <td class="dim">@(d.Comment ?? "—")</td>
+                    <td class="dim">@(d.WoId?.ToString() ?? "—")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (_rows.Count == 0) { <div class="ames-empty">No downtime events.</div> }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.MntRepository.DowntimeRow> _rows = new();
+    int _totMin, _avgMin, _open;
+
+    protected override void OnInitialized()
+    {
+        try { _rows = Mnt.ListDowntime(); } catch { }
+        _totMin = _rows.Sum(r => r.DurationMin ?? 0);
+        _avgMin = _rows.Count > 0 ? _totMin / _rows.Count : 0;
+        _open   = _rows.Count(r => r.EndTs is null);
+    }
+}

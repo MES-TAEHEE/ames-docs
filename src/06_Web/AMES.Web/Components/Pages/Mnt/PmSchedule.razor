@@ -1,0 +1,70 @@
+@page "/mnt/pm-schedule"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MntRepository Mnt
+
+<PageTitle>MNT-05 PM Schedule · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MNT-05</div>
+    <div class="ames-page-t">PM Schedule</div>
+    <div class="ames-page-sub">예방정비 일정 — 향후 30일 + 지난 7일</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi bad"><div class="ames-kpi-l">OVERDUE</div>
+        <div class="ames-kpi-v">@_over</div><div class="ames-kpi-s">due date passed</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">DUE ≤ 3D</div>
+        <div class="ames-kpi-v">@_dueSoon</div><div class="ames-kpi-s">urgent</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">DUE ≤ 7D</div>
+        <div class="ames-kpi-v">@_dueWeek</div><div class="ames-kpi-s">this week</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">SCHEDULED</div>
+        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">total in window</div></div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">PM tasks</div>
+    <table class="ames-table">
+        <thead>
+            <tr>
+                <th>PM #</th><th>Equip</th><th>Type</th>
+                <th>Basis</th><th class="num">Cycle</th>
+                <th>Last PM</th><th>Next due</th><th class="num">Days</th>
+                <th>Status</th><th>Active MWO</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in _rows)
+            {
+                <tr>
+                    <td class="code">@(p.PmPlanNumber ?? $"PM#{p.PmScheduleId}")</td>
+                    <td>@(p.EquipId ?? "—")</td>
+                    <td>@(p.PmType ?? "—")</td>
+                    <td class="dim">@(p.CycleBasis ?? "—")</td>
+                    <td class="num">@(p.CycleValue?.ToString() ?? "—")</td>
+                    <td class="dim">@(p.LastPmDate?.ToString("MM-dd") ?? "—")</td>
+                    <td class="dim">@(p.NextDueDate?.ToString("MM-dd") ?? "—")</td>
+                    <td class="num"><span class="@DueColor(p.DaysToDue)">@p.DaysToDue</span></td>
+                    <td><span class="pill @StClass(p.Status)">@(p.Status ?? "—")</span></td>
+                    <td class="dim">@(p.ActiveWoId?.ToString() ?? "—")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (_rows.Count == 0) { <div class="ames-empty">No PM rows.</div> }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.MntRepository.PmRow> _rows = new();
+    int _over, _dueSoon, _dueWeek;
+
+    protected override void OnInitialized()
+    {
+        try { _rows = Mnt.ListPmSchedule(); } catch { }
+        _over    = _rows.Count(r => r.DaysToDue < 0);
+        _dueSoon = _rows.Count(r => r.DaysToDue >= 0 && r.DaysToDue <= 3);
+        _dueWeek = _rows.Count(r => r.DaysToDue >= 0 && r.DaysToDue <= 7);
+    }
+    static string DueColor(int d) => d < 0 ? "" : "";    // colour pill instead
+    static string StClass(string? s) => s switch
+    { "OVERDUE" => "bad", "DUE" => "warn", "OK" => "ok", _ => "info" };
+}

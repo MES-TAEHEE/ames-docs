@@ -1,71 +1,110 @@
 @page "/mnt/dashboard"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.EquipmentRepository Equip
+@inject AMES.Data.Repositories.MntRepository Mnt
 
 <PageTitle>MNT-09 Dashboard · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MNT-09</div>
     <div class="ames-page-t">Maintenance Dashboard</div>
-    <div class="ames-page-sub">설비 상태 + 가동률 + 최근 알람</div>
+    <div class="ames-page-sub">설비 · 고장 · PM · 자재 통합 현황</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi ok"><div class="ames-kpi-l">RUNNING</div><div class="ames-kpi-v">@_running</div><div class="ames-kpi-s">equipment</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">IDLE</div><div class="ames-kpi-v">@_idle</div><div class="ames-kpi-s">idle</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">STOPPED</div><div class="ames-kpi-v">@_stopped</div><div class="ames-kpi-s">down</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">TOTAL</div><div class="ames-kpi-v">@_total</div><div class="ames-kpi-s">equipment</div></div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">RUNNING</div>
+        <div class="ames-kpi-v">@_k.EquipRun</div>
+        <div class="ames-kpi-s">of @_k.EquipTotal equip total</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">IDLE</div>
+        <div class="ames-kpi-v">@_k.EquipIdle</div>
+        <div class="ames-kpi-s">setup / ready</div>
+    </div>
+    <div class="ames-kpi bad">
+        <div class="ames-kpi-l">DOWN</div>
+        <div class="ames-kpi-v">@_k.EquipDown</div>
+        <div class="ames-kpi-s">failure / fault</div>
+    </div>
+    <div class="ames-kpi @(_k.AvgOeeToday >= 85 ? "ok" : _k.AvgOeeToday >= 75 ? "warn" : "bad")">
+        <div class="ames-kpi-l">AVG OEE TODAY</div>
+        <div class="ames-kpi-v">@_k.AvgOeeToday.ToString("0.0")%</div>
+        <div class="ames-kpi-s">all equip, today</div>
+    </div>
 </div>
 
-<div class="ames-card">
-    <div class="ames-card-h">▼ EQUIPMENT STATUS BY LINE</div>
-    @if (_rows.Count == 0)
-    {
-        <div class="ames-empty">No equipment registered.</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead><tr><th>Line</th><th>Equipment</th><th>Name</th><th>Status</th><th>Uptime</th></tr></thead>
-            <tbody>
-                @foreach (var r in _rows)
-                {
-                    <tr>
-                        <td>@r.LineId</td>
-                        <td class="code">@r.EquipId</td>
-                        <td class="dim">@r.EquipName</td>
-                        <td>@r.Status</td>
-                        <td class="num dim">
-                            @(r.Uptime is null ? "—"
-                              : $"{(int)r.Uptime.Value.TotalHours:00}:{r.Uptime.Value.Minutes:00}")
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    }
+<div class="ames-kpis">
+    <div class="ames-kpi bad">
+        <div class="ames-kpi-l">OPEN FAILURES</div>
+        <div class="ames-kpi-v">@_k.OpenFailures</div>
+        <div class="ames-kpi-s">awaiting response</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">OPEN MWO</div>
+        <div class="ames-kpi-v">@_k.OpenWos</div>
+        <div class="ames-kpi-s">work orders in flight</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">PM DUE 7D</div>
+        <div class="ames-kpi-v">@_k.PmDueIn7d</div>
+        <div class="ames-kpi-s">preventive maint.</div>
+    </div>
+    <div class="ames-kpi bad">
+        <div class="ames-kpi-l">LOW STOCK</div>
+        <div class="ames-kpi-v">@_k.LowStockParts</div>
+        <div class="ames-kpi-s">parts ≤ reorder pt.</div>
+    </div>
+</div>
+
+<div class="ames-tiles">
+    <a class="ames-tile mnt" href="mnt/equipment-card">
+        <div class="ames-tile-ic">🏭</div>
+        <div class="ames-tile-h">EQUIPMENT</div>
+        <div class="ames-tile-sub">@_k.EquipTotal units · @_k.EquipRun running</div>
+    </a>
+    <a class="ames-tile mnt" href="mnt/failure">
+        <div class="ames-tile-ic">🚨</div>
+        <div class="ames-tile-h">FAILURES</div>
+        <div class="ames-tile-sub">@_k.OpenFailures open · register</div>
+    </a>
+    <a class="ames-tile mnt" href="mnt/work-order">
+        <div class="ames-tile-ic">🔧</div>
+        <div class="ames-tile-h">MWO</div>
+        <div class="ames-tile-sub">@_k.OpenWos open · maintenance work orders</div>
+    </a>
+    <a class="ames-tile mnt" href="mnt/pm-schedule">
+        <div class="ames-tile-ic">📅</div>
+        <div class="ames-tile-h">PM SCHEDULE</div>
+        <div class="ames-tile-sub">@_k.PmDueIn7d due in 7 days</div>
+    </a>
+    <a class="ames-tile mnt" href="mnt/spare-parts">
+        <div class="ames-tile-ic">📦</div>
+        <div class="ames-tile-h">SPARE PARTS</div>
+        <div class="ames-tile-sub">@_k.LowStockParts below reorder point</div>
+    </a>
+    <a class="ames-tile mnt" href="mnt/oee-analysis">
+        <div class="ames-tile-ic">📊</div>
+        <div class="ames-tile-h">OEE ANALYSIS</div>
+        <div class="ames-tile-sub">avg @_k.AvgOeeToday.ToString("0.0")% today</div>
+    </a>
+    <a class="ames-tile mnt" href="mnt/downtime">
+        <div class="ames-tile-ic">⏱️</div>
+        <div class="ames-tile-h">DOWNTIME</div>
+        <div class="ames-tile-sub">@_k.DowntimeMin24h min lost in last 24h</div>
+    </a>
+    <a class="ames-tile mnt" href="mnt/mold">
+        <div class="ames-tile-ic">🧊</div>
+        <div class="ames-tile-h">MOLD</div>
+        <div class="ames-tile-sub">shot counters · refurbish thresholds</div>
+    </a>
 </div>
 
 @code {
-    List<AMES.Contracts.Dto.EquipmentDto> _rows = new();
-    int _running, _idle, _stopped, _total;
+    AMES.Data.Repositories.MntRepository.DashboardKpi _k =
+        new(0, 0, 0, 0, 0, 0, 0, 0, 0m, 0);
 
     protected override void OnInitialized()
     {
-        try
-        {
-            var lines = new[] { "LINE-INJ-01","LINE-INJ-02","LINE-IMG-01","LINE-PNT-01","LINE-QC-01" };
-            _rows = lines.SelectMany(l =>
-            {
-                var e = Equip.GetPrimaryForLine(l);
-                return e is null ? Array.Empty<AMES.Contracts.Dto.EquipmentDto>() : new[] { e };
-            }).ToList();
-
-            _total   = _rows.Count;
-            _running = _rows.Count(r => (r.Status ?? "").Equals("RUN", StringComparison.OrdinalIgnoreCase));
-            _idle    = _rows.Count(r => (r.Status ?? "").Equals("IDLE", StringComparison.OrdinalIgnoreCase));
-            _stopped = _rows.Count(r => (r.Status ?? "").Equals("STOP", StringComparison.OrdinalIgnoreCase));
-        }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MNT-09] {ex.Message}"); }
+        try { _k = Mnt.GetDashboardKpis(); } catch { }
     }
 }
