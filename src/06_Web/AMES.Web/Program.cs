@@ -61,6 +61,7 @@ builder.Services.AddSingleton(sp => new QcRepository(factory));
 builder.Services.AddSingleton(sp => new PpRepository(factory));
 builder.Services.AddSingleton(sp => new MntRepository(factory));
 builder.Services.AddSingleton(sp => new RptRepository(factory));
+builder.Services.AddSingleton(sp => new SysRepository(factory));
 
 var app = builder.Build();
 

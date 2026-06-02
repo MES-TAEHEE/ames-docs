@@ -1,54 +1,69 @@
 @page "/sys/users"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.AuthRepository Auth
+@inject AMES.Data.Repositories.SysRepository Sys
 
 <PageTitle>SYS-01 User Management · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">SYS-01</div>
     <div class="ames-page-t">User Management</div>
-    <div class="ames-page-sub">전 사용자 — 사번 · 이름 · 부서 · 배정 라인</div>
+    <div class="ames-page-sub">ASP.NET Identity 사용자 + SYS_UserProfile 조인</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">TOTAL USERS</div><div class="ames-kpi-v">@_rows.Count</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">PRODUCTION</div><div class="ames-kpi-v">@_rows.Count(u => u.Department == "Production")</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">QUALITY</div><div class="ames-kpi-v">@_rows.Count(u => u.Department == "Quality")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">USERS</div>
+        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">total</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">CONFIRMED</div>
+        <div class="ames-kpi-v">@_conf</div><div class="ames-kpi-s">email confirmed</div></div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">LOCKED</div>
+        <div class="ames-kpi-v">@_lock</div><div class="ames-kpi-s">lockout active</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">RECENT LOGIN</div>
+        <div class="ames-kpi-v">@_recent</div><div class="ames-kpi-s">last 24h</div></div>
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">▼ ALL USERS</div>
-    @if (_rows.Count == 0)
-    {
-        <div class="ames-empty">No users.</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr><th>Emp No</th><th>Name</th><th>Department</th><th>Shift</th><th>Assigned Lines</th></tr>
-            </thead>
-            <tbody>
-                @foreach (var u in _rows.OrderBy(x => x.EmployeeNo))
-                {
-                    <tr>
-                        <td class="code">@u.EmployeeNo</td>
-                        <td>@u.EmployeeName</td>
-                        <td class="dim">@u.Department</td>
-                        <td class="dim">@u.DefaultShift</td>
-                        <td class="dim">@(u.AssignedLinesJson ?? "(all)")</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    }
+    <div class="ames-card-h">Users · @_rows.Count rows</div>
+    <table class="ames-table">
+        <thead>
+            <tr>
+                <th>Username</th><th>Email</th><th>Emp #</th><th>Name</th>
+                <th>Dept</th><th>Status</th><th>Roles</th>
+                <th class="num">Fails</th><th>Last login</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var u in _rows)
+            {
+                <tr>
+                    <td class="code">@(u.UserName ?? "—")</td>
+                    <td class="dim">@(u.Email ?? "—")</td>
+                    <td class="dim">@(u.EmployeeNo ?? "—")</td>
+                    <td>@(u.EmployeeName ?? "—")</td>
+                    <td class="dim">@(u.Department ?? "—")</td>
+                    <td>
+                        @if (u.LockedOut) { <span class="pill bad">LOCKED</span> }
+                        else if (!u.EmailConfirmed) { <span class="pill warn">UNVERIFIED</span> }
+                        else { <span class="pill ok">@(u.AccountStatus ?? "ACTIVE")</span> }
+                    </td>
+                    <td class="dim">@(u.RolesCsv ?? "—")</td>
+                    <td class="num">@u.AccessFailedCount</td>
+                    <td class="dim">@(u.LastLoginTs?.ToString("MM-dd HH:mm") ?? "—")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (_rows.Count == 0) { <div class="ames-empty">No users.</div> }
 </div>
 
 @code {
-    List<AMES.Contracts.Dto.EmployeeProfileDto> _rows = new();
+    List<AMES.Data.Repositories.SysRepository.UserRow> _rows = new();
+    int _conf, _lock, _recent;
     protected override void OnInitialized()
     {
-        try { _rows = Auth.ListAllProfiles(); }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[SYS-01] {ex.Message}"); }
+        try { _rows = Sys.ListUsers(); } catch { }
+        _conf   = _rows.Count(r => r.EmailConfirmed);
+        _lock   = _rows.Count(r => r.LockedOut);
+        _recent = _rows.Count(r => r.LastLoginTs.HasValue
+                    && (DateTime.Now - r.LastLoginTs.Value).TotalHours <= 24);
     }
 }

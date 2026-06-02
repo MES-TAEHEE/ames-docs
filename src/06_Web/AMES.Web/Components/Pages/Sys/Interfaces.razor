@@ -1,0 +1,72 @@
+@page "/sys/interfaces"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.SysRepository Sys
+
+<PageTitle>SYS-04 Interface Monitor · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">SYS-04</div>
+    <div class="ames-page-t">Interface Monitor</div>
+    <div class="ames-page-sub">SAP / PLC / WMS / EDI 연결 상태</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">INTERFACES</div>
+        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">total registered</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">OK</div>
+        <div class="ames-kpi-v">@_ok</div><div class="ames-kpi-s">healthy</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">WARN</div>
+        <div class="ames-kpi-v">@_warn</div><div class="ames-kpi-s">approaching gap</div></div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">DOWN</div>
+        <div class="ames-kpi-v">@_down</div><div class="ames-kpi-s">unreachable</div></div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">Interface monitor table</div>
+    <table class="ames-table">
+        <thead>
+            <tr>
+                <th>Code</th><th>Name</th><th>Dir</th><th>Endpoint</th>
+                <th>Proto</th><th>Status</th>
+                <th>Last sync</th><th class="num">Mins ago</th>
+                <th class="num">Last rows</th><th class="num">Retry</th><th>Error</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var i in _rows)
+            {
+                <tr>
+                    <td class="code">@(i.InterfaceCode ?? "—")</td>
+                    <td>@(i.InterfaceName ?? "—")</td>
+                    <td class="dim">@(i.Direction ?? "—")</td>
+                    <td class="dim" style="font-family:'JetBrains Mono',monospace;font-size:11px;overflow:hidden;text-overflow:ellipsis;max-width:280px;display:inline-block;">@(i.Endpoint ?? "—")</td>
+                    <td class="dim">@(i.Protocol ?? "—")</td>
+                    <td><span class="pill @StClass(i.ConnStatus)">@(i.ConnStatus ?? "—")</span></td>
+                    <td class="dim">@(i.LastSyncTs?.ToString("MM-dd HH:mm") ?? "—")</td>
+                    <td class="num">@i.MinutesSinceSync</td>
+                    <td class="num">@(i.LastRecordCount?.ToString() ?? "—")</td>
+                    <td class="num">@(i.RetryCount?.ToString() ?? "—")</td>
+                    <td class="dim">@(i.LastErrorMsg ?? "—")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (_rows.Count == 0) { <div class="ames-empty">No interfaces registered.</div> }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.SysRepository.InterfaceRow> _rows = new();
+    int _ok, _warn, _down;
+    protected override void OnInitialized()
+    {
+        try { _rows = Sys.ListInterfaces(); } catch { }
+        _ok   = _rows.Count(r => r.ConnStatus is "OK" or "UP");
+        _warn = _rows.Count(r => r.ConnStatus is "WARN" or "DEGRADED");
+        _down = _rows.Count(r => r.ConnStatus is "DOWN" or "ERROR" or "FAULT");
+    }
+    static string StClass(string? s) => s switch
+    { "OK" or "UP"             => "ok",
+      "WARN" or "DEGRADED"     => "warn",
+      "DOWN" or "ERROR" or "FAULT" => "bad",
+      _                         => "info" };
+}

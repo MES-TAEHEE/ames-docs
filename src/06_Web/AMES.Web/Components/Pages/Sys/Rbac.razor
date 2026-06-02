@@ -1,0 +1,76 @@
+@page "/sys/rbac"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.SysRepository Sys
+
+<PageTitle>SYS-02 RBAC Permissions · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">SYS-02</div>
+    <div class="ames-page-t">RBAC Permissions</div>
+    <div class="ames-page-sub">역할 × 화면 권한 매트릭스</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">ROLES</div>
+        <div class="ames-kpi-v">@_roles.Count</div><div class="ames-kpi-s">defined</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">PERMISSIONS</div>
+        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">role × screen</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">SCREENS</div>
+        <div class="ames-kpi-v">@_screens</div><div class="ames-kpi-s">distinct screens</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">USERS WITH ROLE</div>
+        <div class="ames-kpi-v">@_users</div><div class="ames-kpi-s">total assignments</div></div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">Roles</div>
+    <table class="ames-table">
+        <thead><tr><th>Role</th><th class="num">Users</th><th>Role ID</th></tr></thead>
+        <tbody>
+            @foreach (var r in _roles)
+            {
+                <tr>
+                    <td><span class="pill info">@r.RoleName</span></td>
+                    <td class="num">@r.UserCount</td>
+                    <td class="code dim">@r.RoleId</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (_roles.Count == 0) { <div class="ames-empty">No roles defined.</div> }
+</div>
+
+@foreach (var grp in _rows.GroupBy(r => r.RoleName).OrderBy(g => g.Key))
+{
+    <div class="ames-card">
+        <div class="ames-card-h">▼ @grp.Key  ·  @grp.Count() permissions</div>
+        <table class="ames-table">
+            <thead><tr><th>Module</th><th>Screen</th><th>Level</th><th>System role?</th></tr></thead>
+            <tbody>
+                @foreach (var p in grp.OrderBy(x => x.ModuleCode).ThenBy(x => x.ScreenCode))
+                {
+                    <tr>
+                        <td><span class="pill info">@(p.ModuleCode ?? "—")</span></td>
+                        <td class="code">@(p.ScreenCode ?? "—")</td>
+                        <td><span class="pill @LvlClass(p.PermissionLevel)">@(p.PermissionLevel ?? "—")</span></td>
+                        <td class="dim">@(p.IsSystemRole ? "yes" : "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    List<AMES.Data.Repositories.SysRepository.RolePermRow> _rows = new();
+    List<(string RoleId, string RoleName, int UserCount)> _roles = new();
+    int _screens, _users;
+    protected override void OnInitialized()
+    {
+        try { _rows = Sys.ListRolePermissions(); } catch { }
+        try { _roles = Sys.ListRoles(); } catch { }
+        _screens = _rows.Select(r => r.ScreenCode).Distinct().Count();
+        _users   = _roles.Sum(r => r.UserCount);
+    }
+    static string LvlClass(string? l) => l switch
+    { "FULL" => "bad", "EDIT" => "warn", "VIEW" => "ok", _ => "info" };
+}

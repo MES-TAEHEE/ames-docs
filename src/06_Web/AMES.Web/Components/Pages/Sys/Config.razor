@@ -1,0 +1,63 @@
+@page "/sys/config"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.SysRepository Sys
+
+<PageTitle>SYS-07 System Config · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">SYS-07</div>
+    <div class="ames-page-t">System Config</div>
+    <div class="ames-page-sub">환경설정 (Key-Value) — 카테고리별</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">KEYS</div>
+        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">total config keys</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">ACTIVE</div>
+        <div class="ames-kpi-v">@_active</div><div class="ames-kpi-s">IsActive=true</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">CATEGORIES</div>
+        <div class="ames-kpi-v">@_cat</div><div class="ames-kpi-s">distinct categories</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">SECURITY</div>
+        <div class="ames-kpi-v">@_sec</div><div class="ames-kpi-s">security keys</div></div>
+</div>
+
+@foreach (var grp in _rows.GroupBy(r => r.Category ?? "Other").OrderBy(g => g.Key))
+{
+    <div class="ames-card">
+        <div class="ames-card-h">▼ @grp.Key  ·  @grp.Count() keys</div>
+        <table class="ames-table">
+            <thead><tr><th>Key</th><th>Description</th><th>Value</th><th>Unit</th><th>Type</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var c in grp.OrderBy(x => x.SortOrder ?? 999).ThenBy(x => x.ConfigKey))
+                {
+                    <tr>
+                        <td class="code">@(c.ConfigKey ?? "—")</td>
+                        <td class="dim">@(c.CodeName ?? "—")</td>
+                        <td class="code"><span style="color:#fff">@(c.ConfigValue ?? "—")</span></td>
+                        <td class="dim">@(c.Unit ?? "")</td>
+                        <td class="dim">@(c.ConfigType ?? "—")</td>
+                        <td>@(c.IsActive ? (MarkupString)"<span class=\"pill ok\">ACTIVE</span>"
+                                          : (MarkupString)"<span class=\"pill warn\">DISABLED</span>")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (_rows.Count == 0)
+{
+    <div class="ames-card"><div class="ames-empty">No config keys defined.</div></div>
+}
+
+@code {
+    List<AMES.Data.Repositories.SysRepository.ConfigRow> _rows = new();
+    int _active, _cat, _sec;
+    protected override void OnInitialized()
+    {
+        try { _rows = Sys.ListConfig(); } catch { }
+        _active = _rows.Count(r => r.IsActive);
+        _cat    = _rows.Select(r => r.Category).Distinct().Count();
+        _sec    = _rows.Count(r => r.Category == "Security");
+    }
+}
