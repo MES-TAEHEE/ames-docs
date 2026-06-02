@@ -1,0 +1,49 @@
+@page "/pp/downtime"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.PpRepository Pp
+
+<PageTitle>PP-DTL Downtime Log · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">PP-DTL</div>
+    <div class="ames-page-t">Downtime Log</div>
+    <div class="ames-page-sub">비가동 사유 입력 — 최근 7일</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">EVENTS</div><div class="ames-kpi-v">@_rows.Count</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">TOTAL MIN</div><div class="ames-kpi-v">@_rows.Sum(r => r.DurationMin)</div></div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">UNRESOLVED</div><div class="ames-kpi-v">@_rows.Count(r => r.EndTs is null)</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">LINES</div><div class="ames-kpi-v">@_rows.Select(r => r.LineId).Distinct().Count()</div></div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">▼ DOWNTIME EVENTS</div>
+    @if (_rows.Count == 0) { <div class="ames-empty">No downtime events.</div> }
+    else
+    {
+        <table class="ames-table">
+            <thead><tr><th>Line</th><th>Start</th><th>End</th><th class="num">Min</th><th>Reason</th><th>Cause</th><th>WO</th><th>Comment</th></tr></thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr>
+                        <td>@r.LineId</td>
+                        <td class="dim">@(r.StartTs?.ToString("MM-dd HH:mm") ?? "—")</td>
+                        <td class="dim">@(r.EndTs?.ToString("MM-dd HH:mm") ?? "—")</td>
+                        <td class="num">@r.DurationMin</td>
+                        <td>@r.ReasonCode</td>
+                        <td class="dim">@r.CauseCode</td>
+                        <td class="code">@r.WoId</td>
+                        <td class="dim">@r.Comment</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.PpRepository.DowntimeRow> _rows = new();
+    protected override void OnInitialized() { try { _rows = Pp.ListDowntime(); } catch { } }
+}

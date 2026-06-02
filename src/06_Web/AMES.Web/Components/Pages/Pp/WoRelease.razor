@@ -1,0 +1,54 @@
+@page "/pp/wo-release"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.PpRepository Pp
+
+<PageTitle>PP-07 WO Release · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">PP-07</div>
+    <div class="ames-page-t">WO Release</div>
+    <div class="ames-page-sub">Draft/Planned WO → 현장으로 Release</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi warn"><div class="ames-kpi-l">DRAFT/PLANNED</div><div class="ames-kpi-v">@_rows.Count(r => r.Status is "Draft" or "Planned")</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">RELEASED</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "Released")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">IN PROGRESS</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "InProgress")</div></div>
+    <div class="ames-kpi dim"><div class="ames-kpi-l">CLOSED</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "Closed")</div></div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">▼ WORK ORDERS</div>
+    @if (_rows.Count == 0) { <div class="ames-empty">No WOs.</div> }
+    else
+    {
+        <table class="ames-table">
+            <thead><tr><th>WO</th><th>Item</th><th>Line</th><th class="num">Qty</th><th>Due</th><th>Status</th><th>Released</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var w in _rows)
+                {
+                    <tr>
+                        <td class="code">@w.WoNumber</td>
+                        <td>@(w.ItemName ?? w.ItemNo)</td>
+                        <td>@w.LineId</td>
+                        <td class="num">@w.OrderQty.ToString("0")</td>
+                        <td class="dim">@(w.DueDate?.ToString("yyyy-MM-dd") ?? "—")</td>
+                        <td>@w.Status</td>
+                        <td class="dim">@(w.ReleasedAt?.ToString("MM-dd HH:mm") ?? "—")</td>
+                        <td>
+                            @if (w.Status is "Draft" or "Planned")
+                            {
+                                <button class="ames-btn">▶ Release</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.PpRepository.WoLite> _rows = new();
+    protected override void OnInitialized() { try { _rows = Pp.ListReleasable(); } catch { } }
+}

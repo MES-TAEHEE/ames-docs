@@ -1,0 +1,45 @@
+@page "/pp/plan-confirm"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.PpRepository Pp
+
+<PageTitle>PP-03 Plan Confirm · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">PP-03</div>
+    <div class="ames-page-t">Plan Confirm</div>
+    <div class="ames-page-sub">월별 공급계획 헤더 + 라인 수 + 확정</div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">▼ SUPPLY PLANS (@_rows.Count)</div>
+    @if (_rows.Count == 0) { <div class="ames-empty">No supply plans.</div> }
+    else
+    {
+        <table class="ames-table">
+            <thead><tr><th>Code</th><th>Period</th><th>Status</th><th class="num">Lines</th><th class="num">Total Qty</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr>
+                        <td class="code">@r.PlanCode</td>
+                        <td>@(r.PlanPeriod?.ToString("yyyy-MM") ?? "—")</td>
+                        <td>@r.Status</td>
+                        <td class="num">@r.LineCount</td>
+                        <td class="num">@r.TotalPlannedQty.ToString("0")</td>
+                        <td>
+                            @if (r.Status != "Confirmed")
+                            {
+                                <button class="ames-btn">✓ Confirm</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.PpRepository.SupplyPlanRow> _rows = new();
+    protected override void OnInitialized() { try { _rows = Pp.ListSupplyPlans(); } catch { } }
+}

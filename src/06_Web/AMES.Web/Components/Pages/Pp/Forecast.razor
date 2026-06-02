@@ -1,0 +1,51 @@
+@page "/pp/forecast"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.PpRepository Pp
+
+<PageTitle>PP-01 Forecast · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">PP-01</div>
+    <div class="ames-page-t">Forecast</div>
+    <div class="ames-page-sub">월별 고객 × 품목 수요 예측 · 6개월 전후</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">ROWS</div><div class="ames-kpi-v">@_rows.Count</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">CUSTOMERS</div><div class="ames-kpi-v">@_rows.Select(r => r.CustomerId).Distinct().Count()</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">ITEMS</div><div class="ames-kpi-v">@_rows.Select(r => r.ItemNo).Distinct().Count()</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">TOTAL QTY</div><div class="ames-kpi-v">@_rows.Sum(r => r.ForecastQty).ToString("0")</div></div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">▼ FORECAST ROWS</div>
+    @if (_rows.Count == 0) { <div class="ames-empty">No forecast data.</div> }
+    else
+    {
+        <table class="ames-table">
+            <thead><tr><th>Month</th><th>Customer</th><th>Item</th><th class="num">Qty</th><th>Confidence</th><th>Source</th><th>Batch</th></tr></thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr>
+                        <td class="code">@(r.ForecastMonth?.ToString("yyyy-MM") ?? "—")</td>
+                        <td>@r.CustomerId</td>
+                        <td>@(r.ItemName ?? r.ItemNo)</td>
+                        <td class="num">@r.ForecastQty.ToString("0")</td>
+                        <td class="dim">@r.Confidence</td>
+                        <td class="dim">@r.Source</td>
+                        <td class="dim">@r.Batch</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.PpRepository.ForecastRow> _rows = new();
+    protected override void OnInitialized()
+    {
+        try { _rows = Pp.ListForecast(); } catch { }
+    }
+}

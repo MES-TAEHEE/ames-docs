@@ -1,0 +1,45 @@
+@page "/pp/line-schedule"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.PpRepository Pp
+
+<PageTitle>PP-LSB Line Schedule · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">PP-LSB</div>
+    <div class="ames-page-t">Line Schedule Board</div>
+    <div class="ames-page-sub">라인별 분단위 스케줄 — 향후 7일</div>
+</div>
+
+@foreach (var line in _rows.GroupBy(r => r.LineId).OrderBy(g => g.Key))
+{
+    <div class="ames-card">
+        <div class="ames-card-h">▼ @line.Key  ·  @line.Count() slots</div>
+        <table class="ames-table">
+            <thead><tr><th>Date</th><th>Start</th><th>End</th><th>WO</th><th class="num">Planned</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var s in line.OrderBy(x => x.ScheduleDate).ThenBy(x => x.StartMin))
+                {
+                    <tr>
+                        <td class="dim">@(s.ScheduleDate?.ToString("MM-dd ddd") ?? "—")</td>
+                        <td class="code">@MinToTime(s.StartMin)</td>
+                        <td class="code">@MinToTime(s.EndMin)</td>
+                        <td>@(s.WoNumber ?? $"#{s.WoId}")</td>
+                        <td class="num">@s.PlannedQty.ToString("0")</td>
+                        <td>@s.Status</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (_rows.Count == 0)
+{
+    <div class="ames-card"><div class="ames-empty">No schedule rows.</div></div>
+}
+
+@code {
+    List<AMES.Data.Repositories.PpRepository.ScheduleRow> _rows = new();
+    protected override void OnInitialized() { try { _rows = Pp.ListSchedule(); } catch { } }
+    static string MinToTime(int? m) => m is null ? "—" : $"{m.Value / 60:00}:{m.Value % 60:00}";
+}

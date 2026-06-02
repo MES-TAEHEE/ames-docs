@@ -1,0 +1,50 @@
+@page "/pp/mrp"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.PpRepository Pp
+
+<PageTitle>PP-05 MRP · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">PP-05</div>
+    <div class="ames-page-t">MRP</div>
+    <div class="ames-page-sub">자재소요량 계산 실행 이력</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">RUNS</div><div class="ames-kpi-v">@_rows.Count</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">WOS LAST RUN</div><div class="ames-kpi-v">@(_rows.FirstOrDefault()?.WosConsidered ?? 0)</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">PRS LAST RUN</div><div class="ames-kpi-v">@(_rows.FirstOrDefault()?.PrsCreated ?? 0)</div></div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">SHORTAGES</div><div class="ames-kpi-v">@(_rows.FirstOrDefault()?.ShortageCount ?? 0)</div></div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">▼ MRP RUNS</div>
+    <p style="margin-bottom:14px;"><button class="ames-btn">▶ Run MRP Now</button></p>
+    @if (_rows.Count == 0) { <div class="ames-empty">No MRP runs.</div> }
+    else
+    {
+        <table class="ames-table">
+            <thead><tr><th>Run #</th><th>Run At</th><th>Horizon</th><th class="num">WOs</th><th class="num">PRs</th><th class="num">Shortages</th><th class="num">Duration</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr>
+                        <td class="code">@r.MrpRunId</td>
+                        <td class="dim">@(r.RunAt?.ToString("MM-dd HH:mm") ?? "—")</td>
+                        <td class="dim">@(r.HorizonStart?.ToString("yyyy-MM-dd")) ~ @(r.HorizonEnd?.ToString("yyyy-MM-dd"))</td>
+                        <td class="num">@r.WosConsidered</td>
+                        <td class="num">@r.PrsCreated</td>
+                        <td class="num">@r.ShortageCount</td>
+                        <td class="num">@r.DurationMs ms</td>
+                        <td>@r.Status</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.PpRepository.MrpRunRow> _rows = new();
+    protected override void OnInitialized() { try { _rows = Pp.ListMrpRuns(); } catch { } }
+}

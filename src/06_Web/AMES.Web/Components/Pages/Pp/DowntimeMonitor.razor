@@ -1,0 +1,48 @@
+@page "/pp/downtime-monitor"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.PpRepository Pp
+
+<PageTitle>PP-ODM Downtime Monitor · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">PP-ODM</div>
+    <div class="ames-page-t">Operating · Downtime Monitor</div>
+    <div class="ames-page-sub">라인 상태 분단위 — 최근 4시간</div>
+</div>
+
+@foreach (var line in _rows.GroupBy(r => r.LineId).OrderBy(g => g.Key))
+{
+    var states = line.OrderByDescending(x => x.MinuteTs).ToList();
+    var runMin = states.Count(s => s.RunFlag);
+    var downMin = states.Count - runMin;
+    var availPct = states.Count == 0 ? 0 : runMin * 100m / states.Count;
+    <div class="ames-card">
+        <div class="ames-card-h">▼ @line.Key  ·  @states.Count samples  ·  @availPct.ToString("0.0")% running</div>
+        <table class="ames-table">
+            <thead><tr><th>Minute</th><th>State</th><th>Plan</th><th>Run</th><th>WO</th></tr></thead>
+            <tbody>
+                @foreach (var s in states.Take(30))
+                {
+                    var cls = s.RunFlag ? "code" : "dim";
+                    <tr>
+                        <td class="@cls">@(s.MinuteTs?.ToString("HH:mm") ?? "—")</td>
+                        <td>@s.State</td>
+                        <td class="dim">@s.PlanState</td>
+                        <td>@(s.RunFlag ? "✓" : "—")</td>
+                        <td class="code">@s.WoId</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (_rows.Count == 0)
+{
+    <div class="ames-card"><div class="ames-empty">No state samples in the last 4 hours.</div></div>
+}
+
+@code {
+    List<AMES.Data.Repositories.PpRepository.LineStateRow> _rows = new();
+    protected override void OnInitialized() { try { _rows = Pp.ListLineStates(); } catch { } }
+}
