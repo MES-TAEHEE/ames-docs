@@ -1,32 +1,82 @@
 @page "/"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.PpRepository Pp
+@inject AMES.Data.Repositories.WorkOrderRepository Wo
+
 <PageTitle>A-MES Office Web</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">HOME</div>
     <div class="ames-page-t">A-MES Office Web</div>
-    <div class="ames-page-sub">@DateTime.Now.ToString("yyyy-MM-dd ddd HH:mm")</div>
+    <div class="ames-page-sub">@DateTime.Now.ToString("yyyy-MM-dd ddd · HH:mm")</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">RELEASABLE WO</div>
+        <div class="ames-kpi-v">@_kpiReleasable</div>
+        <div class="ames-kpi-s">work orders ready to release</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">SCHEDULED 7D</div>
+        <div class="ames-kpi-v">@_kpiSchedule</div>
+        <div class="ames-kpi-s">line schedule slots next 7d</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">DOWNTIME 7D</div>
+        <div class="ames-kpi-v">@_kpiDt</div>
+        <div class="ames-kpi-s">downtime events last 7d</div>
+    </div>
+    <div class="ames-kpi @(_kpiOtdPct >= 95 ? "ok" : _kpiOtdPct >= 85 ? "warn" : "bad")">
+        <div class="ames-kpi-l">ON-TIME 30D</div>
+        <div class="ames-kpi-v">@_kpiOtdPct.ToString("0.0")%</div>
+        <div class="ames-kpi-s">delivery performance</div>
+    </div>
 </div>
 
 <div class="ames-tiles">
     <a class="ames-tile pp" href="pp/work-order">
         <div class="ames-tile-ic">📅</div>
         <div class="ames-tile-h">PP · PRODUCTION PLAN</div>
-        <div class="ames-tile-sub">13 screens · forecast · work orders · MRP · OEE</div>
+        <div class="ames-tile-sub">13 screens · forecast · work orders · MRP · OEE · OTD</div>
     </a>
     <a class="ames-tile mnt" href="mnt/dashboard">
         <div class="ames-tile-ic">🔧</div>
         <div class="ames-tile-h">MNT · MAINTENANCE</div>
-        <div class="ames-tile-sub">9 screens · equipment · PM · spare parts</div>
+        <div class="ames-tile-sub">9 screens · equipment · PM · spare parts · failures</div>
     </a>
     <a class="ames-tile rpt" href="rpt/daily-production">
         <div class="ames-tile-ic">📊</div>
         <div class="ames-tile-h">RPT · REPORTS</div>
-        <div class="ames-tile-sub">10 screens · KPI · pareto · OTD · custom</div>
+        <div class="ames-tile-sub">10 screens · KPI · pareto · OTD · custom builder</div>
     </a>
     <a class="ames-tile sys" href="sys/users">
         <div class="ames-tile-ic">⚙️</div>
         <div class="ames-tile-h">SYS · SYSTEM</div>
-        <div class="ames-tile-sub">8 screens · users · RBAC · audit · config</div>
+        <div class="ames-tile-sub">8 screens · users · RBAC · audit · config · health</div>
     </a>
 </div>
+
+@code {
+    int _kpiReleasable;
+    int _kpiSchedule;
+    int _kpiDt;
+    double _kpiOtdPct;
+
+    protected override void OnInitialized()
+    {
+        try { _kpiReleasable = Pp.ListReleasable(200).Count; } catch {}
+        try { _kpiSchedule = Pp.ListSchedule(7).Count; } catch {}
+        try { _kpiDt = Pp.ListDowntime(7).Count; } catch {}
+        try
+        {
+            var otd = Pp.ListOtd(30);
+            if (otd.Count > 0)
+            {
+                var ok = otd.Count(r => r.DaysLate <= 0);
+                _kpiOtdPct = (double)ok / otd.Count * 100.0;
+            }
+        }
+        catch {}
+    }
+}

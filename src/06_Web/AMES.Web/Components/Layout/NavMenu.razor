@@ -1,20 +1,27 @@
 @implements IDisposable
 @inject NavigationManager Nav
 
-@*  AMES Office Web side-nav. Four module groups + identity row at top.
-    Each NavLink target falls back to a "soon" stub until the matching
-    page lands; the route hierarchy is fixed so the order doesn't shift
-    between modules. *@
+@*  AMES Office Web side-nav — branded header, user avatar card,
+    module-coloured section bars, screen-id badges per link. *@
 
 <div class="ames-brand">
-    <span class="ames-brand-logo">A-MES</span>
-    <span class="ames-brand-sub">OFFICE WEB</span>
+    <div class="ames-brand-row">
+        <span class="ames-brand-mark">⬢</span>
+        <div>
+            <div class="ames-brand-logo">A-MES</div>
+            <div class="ames-brand-sub">OFFICE WEB</div>
+        </div>
+    </div>
 </div>
 
 <AuthorizeView>
     <Authorized>
         <div class="ames-user">
-            <span class="ames-user-name">@context.User.Identity?.Name</span>
+            <div class="ames-user-av">@(context.User.Identity?.Name?.Substring(0,1).ToUpper() ?? "?")</div>
+            <div class="ames-user-info">
+                <div class="ames-user-name">@context.User.Identity?.Name</div>
+                <div class="ames-user-role">Administrator</div>
+            </div>
             <form action="Account/Logout" method="post" style="display:inline;">
                 <AntiforgeryToken />
                 <input type="hidden" name="ReturnUrl" value="@_url" />
@@ -23,60 +30,81 @@
         </div>
     </Authorized>
     <NotAuthorized>
-        <div class="ames-user dim">not signed in</div>
+        <div class="ames-user dim">
+            <div class="ames-user-av">?</div>
+            <div class="ames-user-info"><div class="ames-user-name">Not signed in</div></div>
+        </div>
     </NotAuthorized>
 </AuthorizeView>
 
 <div class="ames-nav">
-    <NavLink class="ames-nav-home" href="" Match="NavLinkMatch.All">⌂ Home</NavLink>
+    <NavLink class="ames-nav-home" href="" Match="NavLinkMatch.All">
+        <span class="ames-nav-ic">⌂</span><span>Home</span>
+    </NavLink>
 
-    <div class="ames-nav-section">▼ PP · PRODUCTION PLAN</div>
-    <NavLink class="ames-nav-link" href="pp/forecast">PP-01 Forecast</NavLink>
-    <NavLink class="ames-nav-link" href="pp/sap-import">PP-02 SAP Import</NavLink>
-    <NavLink class="ames-nav-link" href="pp/plan-confirm">PP-03 Plan Confirm</NavLink>
-    <NavLink class="ames-nav-link" href="pp/work-order">PP-04 Work Order</NavLink>
-    <NavLink class="ames-nav-link" href="pp/mrp">PP-05 MRP</NavLink>
-    <NavLink class="ames-nav-link" href="pp/purchase-req">PP-06 Purchase Req</NavLink>
-    <NavLink class="ames-nav-link" href="pp/wo-release">PP-07 WO Release</NavLink>
-    <NavLink class="ames-nav-link" href="pp/calendar">PP-CAL Calendar</NavLink>
-    <NavLink class="ames-nav-link" href="pp/line-schedule">PP-LSB Line Schedule</NavLink>
-    <NavLink class="ames-nav-link" href="pp/oee">PP-OEE Line OEE</NavLink>
-    <NavLink class="ames-nav-link" href="pp/downtime">PP-DTL Downtime Log</NavLink>
-    <NavLink class="ames-nav-link" href="pp/downtime-monitor">PP-ODM Downtime Monitor</NavLink>
-    <NavLink class="ames-nav-link" href="pp/delivery">PP-OTD On-Time Delivery</NavLink>
+    <div class="ames-nav-section pp">
+        <span class="ames-nav-section-ic">📅</span>
+        <span class="ames-nav-section-t">PP · PRODUCTION PLAN</span>
+        <span class="ames-nav-section-n">13</span>
+    </div>
+    <NavLink class="ames-nav-link" href="pp/forecast">         <span class="lid">PP-01</span> Forecast</NavLink>
+    <NavLink class="ames-nav-link" href="pp/sap-import">       <span class="lid">PP-02</span> SAP Import</NavLink>
+    <NavLink class="ames-nav-link" href="pp/plan-confirm">     <span class="lid">PP-03</span> Plan Confirm</NavLink>
+    <NavLink class="ames-nav-link" href="pp/work-order">       <span class="lid">PP-04</span> Work Order</NavLink>
+    <NavLink class="ames-nav-link" href="pp/mrp">              <span class="lid">PP-05</span> MRP</NavLink>
+    <NavLink class="ames-nav-link" href="pp/purchase-req">     <span class="lid">PP-06</span> Purchase Req</NavLink>
+    <NavLink class="ames-nav-link" href="pp/wo-release">       <span class="lid">PP-07</span> WO Release</NavLink>
+    <NavLink class="ames-nav-link" href="pp/calendar">         <span class="lid">CAL</span>   Calendar</NavLink>
+    <NavLink class="ames-nav-link" href="pp/line-schedule">    <span class="lid">LSB</span>   Line Schedule</NavLink>
+    <NavLink class="ames-nav-link" href="pp/oee">              <span class="lid">OEE</span>   Line OEE</NavLink>
+    <NavLink class="ames-nav-link" href="pp/downtime">         <span class="lid">DTL</span>   Downtime Log</NavLink>
+    <NavLink class="ames-nav-link" href="pp/downtime-monitor"> <span class="lid">ODM</span>   Downtime Monitor</NavLink>
+    <NavLink class="ames-nav-link" href="pp/delivery">         <span class="lid">OTD</span>   On-Time Delivery</NavLink>
 
-    <div class="ames-nav-section">▼ MNT · MAINTENANCE</div>
-    <NavLink class="ames-nav-link" href="mnt/equipment-card">MNT-01 Equipment Card</NavLink>
-    <NavLink class="ames-nav-link" href="mnt/failure">MNT-02 Failure Register</NavLink>
-    <NavLink class="ames-nav-link" href="mnt/oee-analysis">MNT-03 OEE Analysis</NavLink>
-    <NavLink class="ames-nav-link" href="mnt/mold">MNT-04 Mold Management</NavLink>
-    <NavLink class="ames-nav-link" href="mnt/pm-schedule">MNT-05 PM Schedule</NavLink>
-    <NavLink class="ames-nav-link" href="mnt/downtime">MNT-06 Downtime Log</NavLink>
-    <NavLink class="ames-nav-link" href="mnt/work-order">MNT-07 Work Order</NavLink>
-    <NavLink class="ames-nav-link" href="mnt/spare-parts">MNT-08 Spare Parts</NavLink>
-    <NavLink class="ames-nav-link" href="mnt/dashboard">MNT-09 Dashboard</NavLink>
+    <div class="ames-nav-section mnt">
+        <span class="ames-nav-section-ic">🔧</span>
+        <span class="ames-nav-section-t">MNT · MAINTENANCE</span>
+        <span class="ames-nav-section-n">9</span>
+    </div>
+    <NavLink class="ames-nav-link" href="mnt/equipment-card">  <span class="lid">MNT-01</span> Equipment Card</NavLink>
+    <NavLink class="ames-nav-link" href="mnt/failure">         <span class="lid">MNT-02</span> Failure Register</NavLink>
+    <NavLink class="ames-nav-link" href="mnt/oee-analysis">    <span class="lid">MNT-03</span> OEE Analysis</NavLink>
+    <NavLink class="ames-nav-link" href="mnt/mold">            <span class="lid">MNT-04</span> Mold Management</NavLink>
+    <NavLink class="ames-nav-link" href="mnt/pm-schedule">     <span class="lid">MNT-05</span> PM Schedule</NavLink>
+    <NavLink class="ames-nav-link" href="mnt/downtime">        <span class="lid">MNT-06</span> Downtime Log</NavLink>
+    <NavLink class="ames-nav-link" href="mnt/work-order">      <span class="lid">MNT-07</span> Work Order</NavLink>
+    <NavLink class="ames-nav-link" href="mnt/spare-parts">     <span class="lid">MNT-08</span> Spare Parts</NavLink>
+    <NavLink class="ames-nav-link" href="mnt/dashboard">       <span class="lid">MNT-09</span> Dashboard</NavLink>
 
-    <div class="ames-nav-section">▼ RPT · REPORTS</div>
-    <NavLink class="ames-nav-link" href="rpt/daily-production">RPT-01 Daily Production</NavLink>
-    <NavLink class="ames-nav-link" href="rpt/defect-pareto">RPT-02 Defect Pareto</NavLink>
-    <NavLink class="ames-nav-link" href="rpt/daily-shipment">RPT-03 Daily Shipment</NavLink>
-    <NavLink class="ames-nav-link" href="rpt/on-time">RPT-04 On-Time Delivery</NavLink>
-    <NavLink class="ames-nav-link" href="rpt/inventory">RPT-05 Inventory Status</NavLink>
-    <NavLink class="ames-nav-link" href="rpt/equipment-oee">RPT-06 Equipment OEE</NavLink>
-    <NavLink class="ames-nav-link" href="rpt/monthly-kpi">RPT-07 Monthly KPI</NavLink>
-    <NavLink class="ames-nav-link" href="rpt/schedule-adherence">RPT-08 Schedule Adherence</NavLink>
-    <NavLink class="ames-nav-link" href="rpt/report-center">RPT-09 Report Center</NavLink>
-    <NavLink class="ames-nav-link" href="rpt/report-builder">RPT-10 Report Builder</NavLink>
+    <div class="ames-nav-section rpt">
+        <span class="ames-nav-section-ic">📊</span>
+        <span class="ames-nav-section-t">RPT · REPORTS</span>
+        <span class="ames-nav-section-n">10</span>
+    </div>
+    <NavLink class="ames-nav-link" href="rpt/daily-production">  <span class="lid">RPT-01</span> Daily Production</NavLink>
+    <NavLink class="ames-nav-link" href="rpt/defect-pareto">     <span class="lid">RPT-02</span> Defect Pareto</NavLink>
+    <NavLink class="ames-nav-link" href="rpt/daily-shipment">    <span class="lid">RPT-03</span> Daily Shipment</NavLink>
+    <NavLink class="ames-nav-link" href="rpt/on-time">           <span class="lid">RPT-04</span> On-Time Delivery</NavLink>
+    <NavLink class="ames-nav-link" href="rpt/inventory">         <span class="lid">RPT-05</span> Inventory Status</NavLink>
+    <NavLink class="ames-nav-link" href="rpt/equipment-oee">     <span class="lid">RPT-06</span> Equipment OEE</NavLink>
+    <NavLink class="ames-nav-link" href="rpt/monthly-kpi">       <span class="lid">RPT-07</span> Monthly KPI</NavLink>
+    <NavLink class="ames-nav-link" href="rpt/schedule-adherence"><span class="lid">RPT-08</span> Schedule Adherence</NavLink>
+    <NavLink class="ames-nav-link" href="rpt/report-center">     <span class="lid">RPT-09</span> Report Center</NavLink>
+    <NavLink class="ames-nav-link" href="rpt/report-builder">    <span class="lid">RPT-10</span> Report Builder</NavLink>
 
-    <div class="ames-nav-section">▼ SYS · SYSTEM</div>
-    <NavLink class="ames-nav-link" href="sys/users">SYS-01 User Management</NavLink>
-    <NavLink class="ames-nav-link" href="sys/rbac">SYS-02 RBAC Permissions</NavLink>
-    <NavLink class="ames-nav-link" href="sys/calendar">SYS-03 Factory Calendar</NavLink>
-    <NavLink class="ames-nav-link" href="sys/interfaces">SYS-04 Interface Monitor</NavLink>
-    <NavLink class="ames-nav-link" href="sys/audit">SYS-05 Audit Log</NavLink>
-    <NavLink class="ames-nav-link" href="sys/notifications">SYS-06 Notifications</NavLink>
-    <NavLink class="ames-nav-link" href="sys/config">SYS-07 System Config</NavLink>
-    <NavLink class="ames-nav-link" href="sys/health">SYS-08 System Health</NavLink>
+    <div class="ames-nav-section sys">
+        <span class="ames-nav-section-ic">⚙️</span>
+        <span class="ames-nav-section-t">SYS · SYSTEM</span>
+        <span class="ames-nav-section-n">8</span>
+    </div>
+    <NavLink class="ames-nav-link" href="sys/users">        <span class="lid">SYS-01</span> User Management</NavLink>
+    <NavLink class="ames-nav-link" href="sys/rbac">         <span class="lid">SYS-02</span> RBAC Permissions</NavLink>
+    <NavLink class="ames-nav-link" href="sys/calendar">     <span class="lid">SYS-03</span> Factory Calendar</NavLink>
+    <NavLink class="ames-nav-link" href="sys/interfaces">   <span class="lid">SYS-04</span> Interface Monitor</NavLink>
+    <NavLink class="ames-nav-link" href="sys/audit">        <span class="lid">SYS-05</span> Audit Log</NavLink>
+    <NavLink class="ames-nav-link" href="sys/notifications"><span class="lid">SYS-06</span> Notifications</NavLink>
+    <NavLink class="ames-nav-link" href="sys/config">       <span class="lid">SYS-07</span> System Config</NavLink>
+    <NavLink class="ames-nav-link" href="sys/health">       <span class="lid">SYS-08</span> System Health</NavLink>
 </div>
 
 @code {
