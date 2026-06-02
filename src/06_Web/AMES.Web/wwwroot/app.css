@@ -1,0 +1,222 @@
+/*  AMES Office Web — desktop layout
+    Side-nav (260px) + main content area, dark theme to match POP/PDA. */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; }
+body { font-family: 'Inter', sans-serif; background: #0b1220; color: #e5edf7; font-size: 14px; }
+a { color: #93c5fd; text-decoration: none; }
+a:hover { color: #c4dafe; }
+
+.ames-shell { display: grid; grid-template-columns: 260px 1fr; height: 100vh; }
+
+/* ── Sidebar ──────────────────────────────────────────────── */
+.ames-side {
+    background: #0a1424;
+    border-right: 1px solid rgba(255,255,255,.08);
+    overflow-y: auto;
+    display: flex; flex-direction: column;
+}
+.ames-brand {
+    padding: 18px 22px 12px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    display: flex; flex-direction: column;
+}
+.ames-brand-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px; letter-spacing: 3px;
+    color: #93c5fd;
+}
+.ames-brand-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 2px;
+    color: rgba(147,197,253,.55); margin-top: 2px;
+}
+.ames-user {
+    padding: 10px 22px;
+    background: rgba(147,197,253,.06);
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px;
+}
+.ames-user.dim { color: rgba(255,255,255,.4); }
+.ames-user-name {
+    font-family: 'JetBrains Mono', monospace;
+    color: #fff; font-weight: 700; flex: 1;
+}
+.ames-user-out {
+    background: rgba(252,165,165,.12);
+    border: 1px solid rgba(252,165,165,.35);
+    color: #fca5a5;
+    padding: 3px 10px; border-radius: 5px;
+    font-size: 14px; cursor: pointer;
+}
+
+.ames-nav { padding: 8px 0 24px; }
+.ames-nav-home {
+    display: block; padding: 10px 22px;
+    color: #fff; font-weight: 700; font-size: 13px;
+}
+.ames-nav-section {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 1.5px;
+    color: #fbbf24; padding: 14px 22px 6px;
+    text-transform: uppercase;
+}
+.ames-nav-link {
+    display: block; padding: 6px 22px;
+    color: rgba(255,255,255,.65);
+    font-size: 12px;
+    border-left: 2px solid transparent;
+}
+.ames-nav-link:hover { color: #fff; background: rgba(255,255,255,.03); }
+.ames-nav-link.active {
+    color: #fff; font-weight: 700;
+    border-left-color: #93c5fd;
+    background: rgba(147,197,253,.08);
+}
+
+/* ── Main content ─────────────────────────────────────────── */
+.ames-main { overflow-y: auto; background: #0b1220; }
+.ames-content { padding: 28px 32px 60px; }
+
+.ames-page-h {
+    display: flex; align-items: baseline; gap: 14px;
+    margin-bottom: 22px; padding-bottom: 14px;
+    border-bottom: 2px solid rgba(147,197,253,.25);
+}
+.ames-page-id {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px; letter-spacing: 2px;
+    color: #93c5fd; line-height: 1;
+}
+.ames-page-t {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px; letter-spacing: 1px;
+    color: #fff; line-height: 1;
+}
+.ames-page-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,.55);
+    margin-left: auto;
+}
+
+/* ── Cards / tiles ────────────────────────────────────────── */
+.ames-tiles {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+.ames-tile {
+    background: linear-gradient(160deg, #15263e, #0f1d33);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 12px; padding: 24px;
+    color: #fff; cursor: pointer;
+    display: flex; flex-direction: column; gap: 8px;
+    transition: transform .12s, border-color .12s;
+}
+.ames-tile:hover { transform: translateY(-2px); border-color: #93c5fd; color: #fff; }
+.ames-tile.pp { border-top: 4px solid #93c5fd; }
+.ames-tile.mnt{ border-top: 4px solid #c084fc; }
+.ames-tile.rpt{ border-top: 4px solid #86efac; }
+.ames-tile.sys{ border-top: 4px solid #fbbf24; }
+.ames-tile-ic { font-size: 32px; line-height: 1; }
+.ames-tile-h  { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 1.5px; }
+.ames-tile-sub{ font-family: 'JetBrains Mono', monospace; font-size: 11px;
+                color: rgba(255,255,255,.55); letter-spacing: 1px; }
+
+.ames-card {
+    background: #0f1d33;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin-bottom: 16px;
+}
+.ames-card-h {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; letter-spacing: 1.5px;
+    color: #93c5fd; text-transform: uppercase;
+    margin-bottom: 12px;
+}
+
+/* ── KPI strip ────────────────────────────────────────────── */
+.ames-kpis {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px; margin-bottom: 18px;
+}
+.ames-kpi {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.1);
+    border-top: 4px solid #93c5fd;
+    border-radius: 10px;
+    padding: 14px 16px;
+}
+.ames-kpi.ok   { border-top-color: #22c55e; }
+.ames-kpi.warn { border-top-color: #fbbf24; }
+.ames-kpi.bad  { border-top-color: #fca5a5; }
+.ames-kpi-l { font-family: 'JetBrains Mono', monospace; font-size: 10px;
+              color: #93c5fd; letter-spacing: 1.2px; }
+.ames-kpi-v { font-family: 'Bebas Neue', sans-serif; font-size: 32px;
+              color: #fff; line-height: 1; margin-top: 6px; }
+.ames-kpi-s { font-size: 11px; color: rgba(255,255,255,.5); margin-top: 4px; }
+
+/* ── Tables ───────────────────────────────────────────────── */
+.ames-table {
+    width: 100%; border-collapse: collapse;
+    background: #0f1d33; border-radius: 10px; overflow: hidden;
+    margin-bottom: 16px;
+}
+.ames-table th {
+    background: rgba(147,197,253,.08);
+    color: #93c5fd; font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+    padding: 10px 14px; text-align: left;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.ames-table td {
+    padding: 10px 14px; color: #fff; font-size: 13px;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+}
+.ames-table tr:last-child td { border-bottom: none; }
+.ames-table tr:hover td { background: rgba(147,197,253,.05); }
+.ames-table td.code { font-family: 'JetBrains Mono', monospace; color: #93c5fd; font-weight: 700; }
+.ames-table td.num  { font-family: 'JetBrains Mono', monospace; text-align: right; }
+.ames-table td.dim  { color: rgba(255,255,255,.5); font-size: 12px; }
+
+.ames-empty {
+    padding: 36px; text-align: center;
+    color: rgba(255,255,255,.4); font-size: 13px;
+}
+
+/* ── Forms ────────────────────────────────────────────────── */
+.ames-form { display: flex; flex-direction: column; gap: 12px; }
+.ames-form label { font-family: 'JetBrains Mono', monospace; font-size: 11px;
+                   color: #93c5fd; letter-spacing: 1px; text-transform: uppercase; }
+.ames-form input, .ames-form select, .ames-form textarea {
+    background: #050a13; border: 1px solid rgba(255,255,255,.12);
+    color: #fff; padding: 9px 12px; border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    outline: none; min-width: 220px;
+}
+.ames-form input:focus, .ames-form select:focus, .ames-form textarea:focus { border-color: #93c5fd; }
+
+.ames-btn {
+    background: #2563eb; border: none;
+    color: #fff; padding: 10px 22px; border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; font-weight: 700; letter-spacing: 1.5px;
+    cursor: pointer;
+}
+.ames-btn:hover { background: #1e40af; }
+.ames-btn.ghost { background: transparent; border: 1px solid rgba(255,255,255,.18); }
+.ames-btn.ghost:hover { background: rgba(255,255,255,.06); }
+.ames-btn.bad { background: #dc2626; }
+.ames-btn.bad:hover { background: #991b1b; }
+
+/* ── Error overlay ────────────────────────────────────────── */
+#blazor-error-ui {
+    background: #dc2626; color: #fff;
+    position: fixed; bottom: 0; left: 0; right: 0;
+    padding: 12px 22px; z-index: 9999; display: none;
+}
+#blazor-error-ui .dismiss { float: right; cursor: pointer; }

@@ -1,0 +1,71 @@
+@page "/mnt/dashboard"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.EquipmentRepository Equip
+
+<PageTitle>MNT-09 Dashboard · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MNT-09</div>
+    <div class="ames-page-t">Maintenance Dashboard</div>
+    <div class="ames-page-sub">설비 상태 + 가동률 + 최근 알람</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi ok"><div class="ames-kpi-l">RUNNING</div><div class="ames-kpi-v">@_running</div><div class="ames-kpi-s">equipment</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">IDLE</div><div class="ames-kpi-v">@_idle</div><div class="ames-kpi-s">idle</div></div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">STOPPED</div><div class="ames-kpi-v">@_stopped</div><div class="ames-kpi-s">down</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">TOTAL</div><div class="ames-kpi-v">@_total</div><div class="ames-kpi-s">equipment</div></div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">▼ EQUIPMENT STATUS BY LINE</div>
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">No equipment registered.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead><tr><th>Line</th><th>Equipment</th><th>Name</th><th>Status</th><th>Uptime</th></tr></thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr>
+                        <td>@r.LineId</td>
+                        <td class="code">@r.EquipId</td>
+                        <td class="dim">@r.EquipName</td>
+                        <td>@r.Status</td>
+                        <td class="num dim">
+                            @(r.Uptime is null ? "—"
+                              : $"{(int)r.Uptime.Value.TotalHours:00}:{r.Uptime.Value.Minutes:00}")
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    List<AMES.Contracts.Dto.EquipmentDto> _rows = new();
+    int _running, _idle, _stopped, _total;
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            var lines = new[] { "LINE-INJ-01","LINE-INJ-02","LINE-IMG-01","LINE-PNT-01","LINE-QC-01" };
+            _rows = lines.SelectMany(l =>
+            {
+                var e = Equip.GetPrimaryForLine(l);
+                return e is null ? Array.Empty<AMES.Contracts.Dto.EquipmentDto>() : new[] { e };
+            }).ToList();
+
+            _total   = _rows.Count;
+            _running = _rows.Count(r => (r.Status ?? "").Equals("RUN", StringComparison.OrdinalIgnoreCase));
+            _idle    = _rows.Count(r => (r.Status ?? "").Equals("IDLE", StringComparison.OrdinalIgnoreCase));
+            _stopped = _rows.Count(r => (r.Status ?? "").Equals("STOP", StringComparison.OrdinalIgnoreCase));
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MNT-09] {ex.Message}"); }
+    }
+}
