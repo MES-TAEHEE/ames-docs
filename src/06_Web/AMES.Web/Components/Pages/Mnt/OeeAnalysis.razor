@@ -1,0 +1,93 @@
+@page "/mnt/oee-analysis"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MntRepository Mnt
+
+<PageTitle>MNT-03 OEE Analysis · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MNT-03</div>
+    <div class="ames-page-t">OEE Analysis</div>
+    <div class="ames-page-sub">설비×Shift OEE — 최근 14일</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi @KpiClass(_avgOee, 75, 85)">
+        <div class="ames-kpi-l">AVG OEE</div>
+        <div class="ames-kpi-v">@_avgOee.ToString("0.0")%</div>
+        <div class="ames-kpi-s">14d, all equip</div>
+    </div>
+    <div class="ames-kpi @KpiClass(_avgAvail, 80, 90)">
+        <div class="ames-kpi-l">AVAILABILITY</div>
+        <div class="ames-kpi-v">@_avgAvail.ToString("0.0")%</div>
+        <div class="ames-kpi-s">A</div>
+    </div>
+    <div class="ames-kpi @KpiClass(_avgPerf, 80, 90)">
+        <div class="ames-kpi-l">PERFORMANCE</div>
+        <div class="ames-kpi-v">@_avgPerf.ToString("0.0")%</div>
+        <div class="ames-kpi-s">P</div>
+    </div>
+    <div class="ames-kpi @KpiClass(_avgQual, 95, 99)">
+        <div class="ames-kpi-l">QUALITY</div>
+        <div class="ames-kpi-v">@_avgQual.ToString("0.0")%</div>
+        <div class="ames-kpi-s">Q</div>
+    </div>
+</div>
+
+@foreach (var eq in _rows.GroupBy(r => r.EquipId).OrderBy(g => g.Key))
+{
+    <div class="ames-card">
+        <div class="ames-card-h">▼ @eq.Key  ·  @eq.Count() rows  ·  avg OEE @(eq.Average(x => x.Oee ?? 0m).ToString("0.0"))%</div>
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>Date</th><th>Shift</th><th>Line</th>
+                    <th class="num">Plan min</th><th class="num">Down min</th>
+                    <th class="num">A%</th><th class="num">P%</th><th class="num">Q%</th><th class="num">OEE%</th>
+                    <th class="num">Good</th><th class="num">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in eq.OrderByDescending(x => x.AggDate).ThenBy(x => x.ShiftCode))
+                {
+                    <tr>
+                        <td class="dim">@(r.AggDate?.ToString("MM-dd") ?? "—")</td>
+                        <td class="code">@(r.ShiftCode ?? "—")</td>
+                        <td class="dim">@(r.LineId ?? "—")</td>
+                        <td class="num">@(r.PlannedTimeMin?.ToString() ?? "—")</td>
+                        <td class="num">@(r.DowntimeMin?.ToString() ?? "—")</td>
+                        <td class="num">@(r.Availability?.ToString("0.0") ?? "—")</td>
+                        <td class="num">@(r.Performance?.ToString("0.0") ?? "—")</td>
+                        <td class="num">@(r.Quality?.ToString("0.0") ?? "—")</td>
+                        <td class="num">@(r.Oee?.ToString("0.0") ?? "—")</td>
+                        <td class="num">@(r.GoodQty?.ToString("0") ?? "—")</td>
+                        <td class="num">@(r.TotalQty?.ToString("0") ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (_rows.Count == 0)
+{
+    <div class="ames-card"><div class="ames-empty">No OEE rows.</div></div>
+}
+
+@code {
+    List<AMES.Data.Repositories.MntRepository.OeeRow> _rows = new();
+    decimal _avgOee, _avgAvail, _avgPerf, _avgQual;
+
+    protected override void OnInitialized()
+    {
+        try { _rows = Mnt.ListOee(); } catch { }
+        if (_rows.Count > 0)
+        {
+            _avgOee   = _rows.Average(r => r.Oee          ?? 0m);
+            _avgAvail = _rows.Average(r => r.Availability ?? 0m);
+            _avgPerf  = _rows.Average(r => r.Performance  ?? 0m);
+            _avgQual  = _rows.Average(r => r.Quality      ?? 0m);
+        }
+    }
+    static string KpiClass(decimal v, decimal warn, decimal ok)
+        => v >= ok ? "ok" : v >= warn ? "warn" : "bad";
+}

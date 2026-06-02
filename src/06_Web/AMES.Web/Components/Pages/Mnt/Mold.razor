@@ -1,0 +1,74 @@
+@page "/mnt/mold"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MntRepository Mnt
+
+<PageTitle>MNT-04 Mold Management · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MNT-04</div>
+    <div class="ames-page-t">Mold Management</div>
+    <div class="ames-page-sub">금형 쇼트 카운터 + Refurbish 임계</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">TOTAL MOLDS</div>
+        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">registered</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">WARNING</div>
+        <div class="ames-kpi-v">@_warn</div><div class="ames-kpi-s">>70% lifetime</div></div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">CRITICAL</div>
+        <div class="ames-kpi-v">@_crit</div><div class="ames-kpi-s">>90% — refurbish</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">TOTAL SHOTS</div>
+        <div class="ames-kpi-v">@_totShots.ToString("N0")</div><div class="ames-kpi-s">all molds, current</div></div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">Mold register</div>
+    <table class="ames-table">
+        <thead>
+            <tr>
+                <th>Mold</th><th>Name</th><th class="num">Cavities</th><th class="num">Tonnage</th>
+                <th class="num">Current shots</th><th class="num">Lifetime</th>
+                <th class="num">Usage %</th><th>Threshold</th>
+                <th>Status</th><th>Mounted on</th><th>Last maint.</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var m in _rows)
+            {
+                var lifetime = m.LifetimeShots ?? m.RatedShots ?? 0;
+                var pct = lifetime > 0 && m.CurrentShots.HasValue
+                    ? (decimal)m.CurrentShots.Value / lifetime * 100m : 0m;
+                <tr>
+                    <td class="code">@m.MoldId</td>
+                    <td>@(m.MoldName ?? "—")</td>
+                    <td class="num">@(m.CavityCount?.ToString() ?? "—")</td>
+                    <td class="num">@(m.Tonnage?.ToString() ?? "—")</td>
+                    <td class="num">@(m.CurrentShots?.ToString("N0") ?? "—")</td>
+                    <td class="num">@(lifetime > 0 ? lifetime.ToString("N0") : "—")</td>
+                    <td class="num">@pct.ToString("0.0")%</td>
+                    <td><span class="pill @ThrClass(m.ThresholdLevel)">@(m.ThresholdLevel ?? "—")</span></td>
+                    <td class="dim">@(m.Status ?? "—")</td>
+                    <td class="dim">@(m.MountedEquipId ?? "—")</td>
+                    <td class="dim">@(m.LastMaintDate?.ToString("MM-dd") ?? "—")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (_rows.Count == 0) { <div class="ames-empty">No mold records.</div> }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.MntRepository.MoldRow> _rows = new();
+    int _warn, _crit;
+    long _totShots;
+
+    protected override void OnInitialized()
+    {
+        try { _rows = Mnt.ListMolds(); } catch { }
+        _warn = _rows.Count(m => m.ThresholdLevel == "WARNING");
+        _crit = _rows.Count(m => m.ThresholdLevel == "CRITICAL");
+        _totShots = _rows.Sum(m => (long?)m.CurrentShots ?? 0L);
+    }
+    static string ThrClass(string? t) => t switch
+    { "CRITICAL" => "bad", "WARNING" => "warn", "OK" => "ok", _ => "info" };
+}

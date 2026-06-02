@@ -1,0 +1,89 @@
+@page "/mnt/equipment-card"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MntRepository Mnt
+
+<PageTitle>MNT-01 Equipment Card · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MNT-01</div>
+    <div class="ames-page-t">Equipment Card</div>
+    <div class="ames-page-sub">설비별 실시간 상태 카드</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">RUNNING</div>
+        <div class="ames-kpi-v">@_running</div>
+        <div class="ames-kpi-s">live RUN state</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">IDLE / SETUP</div>
+        <div class="ames-kpi-v">@_idle</div>
+        <div class="ames-kpi-s">stopped, no failure</div>
+    </div>
+    <div class="ames-kpi bad">
+        <div class="ames-kpi-l">DOWN</div>
+        <div class="ames-kpi-v">@_down</div>
+        <div class="ames-kpi-s">failure / fault</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">AVG OEE</div>
+        <div class="ames-kpi-v">@_avgOee.ToString("0.0")%</div>
+        <div class="ames-kpi-s">today, all equip</div>
+    </div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">Equipment list — @_rows.Count units</div>
+    <table class="ames-table">
+        <thead>
+            <tr>
+                <th>Equip</th><th>Name</th><th>Line</th><th>Type</th>
+                <th>Status</th><th class="num">OEE</th><th class="num">Runtime h</th>
+                <th class="num">Cycles</th><th>Next PM</th><th>Open WO</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var e in _rows)
+            {
+                <tr>
+                    <td class="code">@e.EquipId</td>
+                    <td>@(e.EquipName ?? "—")</td>
+                    <td class="dim">@(e.LineId ?? "—")</td>
+                    <td class="dim">@(e.EquipType ?? "—")</td>
+                    <td><span class="pill @StatusClass(e.Status)">@(e.Status ?? "—")</span></td>
+                    <td class="num">@(e.TodayOee?.ToString("0.0") ?? "—")</td>
+                    <td class="num">@(e.RuntimeHours?.ToString("0") ?? "—")</td>
+                    <td class="num">@(e.CycleCount?.ToString("N0") ?? "—")</td>
+                    <td class="dim">@(e.NextPmDate?.ToString("MM-dd") ?? "—")</td>
+                    <td class="dim">@(e.OpenWoId?.ToString() ?? "—")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (_rows.Count == 0) { <div class="ames-empty">No equipment rows.</div> }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.MntRepository.EquipCardRow> _rows = new();
+    int _running, _idle, _down;
+    decimal _avgOee;
+
+    protected override void OnInitialized()
+    {
+        try { _rows = Mnt.ListEquipment(); } catch { }
+        _running = _rows.Count(r => r.Status is "RUN" or "RUNNING" or "OPERATING");
+        _idle    = _rows.Count(r => r.Status is "IDLE" or "SETUP" or "READY");
+        _down    = _rows.Count(r => r.Status is "DOWN" or "STOP" or "FAULT");
+        var withOee = _rows.Where(r => r.TodayOee.HasValue).Select(r => r.TodayOee!.Value).ToList();
+        _avgOee = withOee.Count > 0 ? withOee.Average() : 0m;
+    }
+
+    static string StatusClass(string? s) => s switch
+    {
+        "RUN" or "RUNNING" or "OPERATING" => "ok",
+        "DOWN" or "STOP" or "FAULT"       => "bad",
+        "IDLE" or "SETUP" or "READY"      => "warn",
+        _                                  => "info"
+    };
+}

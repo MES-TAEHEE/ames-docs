@@ -1,0 +1,104 @@
+@page "/mnt/spare-parts"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MntRepository Mnt
+
+<PageTitle>MNT-08 Spare Parts · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MNT-08</div>
+    <div class="ames-page-t">Spare Parts</div>
+    <div class="ames-page-sub">예비품 마스터 + 최근 입출고</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">PARTS</div>
+        <div class="ames-kpi-v">@_parts.Count</div><div class="ames-kpi-s">active SKUs</div></div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">LOW STOCK</div>
+        <div class="ames-kpi-v">@_low</div><div class="ames-kpi-s">≤ reorder point</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">ON HAND VAL</div>
+        <div class="ames-kpi-v">$@_value.ToString("N0")</div><div class="ames-kpi-s">inventory $ approx.</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">RECENT TXN</div>
+        <div class="ames-kpi-v">@_txns.Count</div><div class="ames-kpi-s">last 50 movements</div></div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">Parts master</div>
+    <table class="ames-table">
+        <thead>
+            <tr>
+                <th>Part #</th><th>Name</th><th>Cat</th>
+                <th class="num">On hand</th><th class="num">Safety</th>
+                <th class="num">Reorder</th><th class="num">Lead d</th>
+                <th>Loc</th><th>Supplier</th><th>Flag</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in _parts)
+            {
+                var low = p.OnHand <= (p.ReorderPoint ?? 0);
+                <tr>
+                    <td class="code">@p.PartNo</td>
+                    <td>@(p.PartName ?? "—")</td>
+                    <td class="dim">@(p.Category ?? "—")</td>
+                    <td class="num">@p.OnHand</td>
+                    <td class="num">@(p.SafetyStock?.ToString() ?? "—")</td>
+                    <td class="num">@(p.ReorderPoint?.ToString() ?? "—")</td>
+                    <td class="num">@(p.LeadTimeDays?.ToString() ?? "—")</td>
+                    <td class="dim">@(p.StorageLoc ?? "—")</td>
+                    <td class="dim">@(p.SupplierId ?? "—")</td>
+                    <td>@(low ? (MarkupString)"<span class=\"pill bad\">LOW</span>"
+                              : (MarkupString)"<span class=\"pill ok\">OK</span>")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (_parts.Count == 0) { <div class="ames-empty">No spare parts.</div> }
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">Recent stock txns — last 50</div>
+    <table class="ames-table">
+        <thead>
+            <tr>
+                <th>Txn #</th><th>Part</th><th>Type</th>
+                <th class="num">Qty</th><th class="num">Balance</th>
+                <th>Ref</th><th>When</th><th>Note</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var t in _txns)
+            {
+                <tr>
+                    <td class="code">@t.SparePartsTxnId</td>
+                    <td>@(t.PartNo ?? "—") <span class="dim">@(t.PartName ?? "")</span></td>
+                    <td><span class="pill @(t.MoveType == "IN" ? "ok" : "warn")">@(t.MoveType ?? "—")</span></td>
+                    <td class="num">@(t.Qty?.ToString() ?? "—")</td>
+                    <td class="num">@(t.BalanceAfter?.ToString() ?? "—")</td>
+                    <td class="dim">@(t.RefType ?? "—") @(t.RefId ?? "")</td>
+                    <td class="dim">@(t.TxnAt?.ToString("MM-dd HH:mm") ?? "—")</td>
+                    <td class="dim">@(t.Note ?? "—")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (_txns.Count == 0) { <div class="ames-empty">No transactions.</div> }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.MntRepository.SparePartRow> _parts = new();
+    List<AMES.Data.Repositories.MntRepository.SparePartsTxnRow> _txns = new();
+    int _low;
+    decimal _value;
+
+    protected override void OnInitialized()
+    {
+        try { _parts = Mnt.ListSpareParts(); } catch { }
+        try { _txns  = Mnt.ListSparePartsTxn(); } catch { }
+        _low = _parts.Count(p => p.OnHand <= (p.ReorderPoint ?? 0));
+        // approx value = OnHand × last seen UnitPrice (look up from txn)
+        var priceLookup = _txns.GroupBy(t => t.PartNo ?? "")
+                               .ToDictionary(g => g.Key, g => g.First().UnitPrice ?? 0m);
+        _value = _parts.Sum(p =>
+            p.OnHand * (priceLookup.GetValueOrDefault(p.PartNo, 0m)));
+    }
+}

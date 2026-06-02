@@ -1,0 +1,73 @@
+@page "/mnt/failure"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MntRepository Mnt
+
+<PageTitle>MNT-02 Failure Register · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MNT-02</div>
+    <div class="ames-page-t">Failure Register</div>
+    <div class="ames-page-sub">고장 등록 — 최근 100건</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi bad"><div class="ames-kpi-l">OPEN</div>
+        <div class="ames-kpi-v">@_open</div><div class="ames-kpi-s">신규 고장</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">IN PROGRESS</div>
+        <div class="ames-kpi-v">@_prog</div><div class="ames-kpi-s">정비 중</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">RESOLVED</div>
+        <div class="ames-kpi-v">@_res</div><div class="ames-kpi-s">완료</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">URGENT</div>
+        <div class="ames-kpi-v">@_urg</div><div class="ames-kpi-s">긴급 / 중대</div></div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">Failure events</div>
+    <table class="ames-table">
+        <thead>
+            <tr>
+                <th>FAIL #</th><th>Equip</th><th>Type</th><th>Symptom</th>
+                <th>Urgency</th><th>Source</th><th>Status</th>
+                <th>Reported</th><th>Resolved</th><th>MWO</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var f in _rows)
+            {
+                <tr>
+                    <td class="code">@(f.FailureNumber ?? $"F#{f.FailureId}")</td>
+                    <td>@(f.EquipId ?? "—")</td>
+                    <td class="dim">@(f.FailureType ?? "—")</td>
+                    <td>@(f.Symptom ?? "—")</td>
+                    <td><span class="pill @UrgencyClass(f.Urgency)">@(f.Urgency ?? "—")</span></td>
+                    <td class="dim">@(f.Source ?? "—")</td>
+                    <td><span class="pill @StatusClass(f.Status)">@(f.Status ?? "—")</span></td>
+                    <td class="dim">@(f.ReportedAt?.ToString("MM-dd HH:mm") ?? "—")</td>
+                    <td class="dim">@(f.ResolvedAt?.ToString("MM-dd HH:mm") ?? "—")</td>
+                    <td class="dim">@(f.WorkOrderId?.ToString() ?? "—")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (_rows.Count == 0) { <div class="ames-empty">No failure records.</div> }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.MntRepository.FailureRow> _rows = new();
+    int _open, _prog, _res, _urg;
+
+    protected override void OnInitialized()
+    {
+        try { _rows = Mnt.ListFailures(); } catch { }
+        _open = _rows.Count(r => r.Status is "OPEN" or "REGISTERED");
+        _prog = _rows.Count(r => r.Status == "IN_PROGRESS");
+        _res  = _rows.Count(r => r.Status is "RESOLVED" or "CLOSED");
+        _urg  = _rows.Count(r => r.Urgency is "URGENT" or "HIGH");
+    }
+    static string UrgencyClass(string? u) => u switch
+    { "URGENT" or "HIGH" => "bad", "MED" => "warn", "LOW" => "info", _ => "info" };
+    static string StatusClass(string? s) => s switch
+    { "OPEN" or "REGISTERED" => "bad",
+      "IN_PROGRESS"          => "warn",
+      "RESOLVED" or "CLOSED" => "ok", _ => "info" };
+}
