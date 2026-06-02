@@ -1,0 +1,94 @@
+@page "/sys/notifications"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.SysRepository Sys
+
+<PageTitle>SYS-06 Notifications · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">SYS-06</div>
+    <div class="ames-page-t">Notifications</div>
+    <div class="ames-page-sub">알림 규칙 + 발송 이력</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">RULES</div>
+        <div class="ames-kpi-v">@_rules.Count</div><div class="ames-kpi-s">configured</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">ENABLED</div>
+        <div class="ames-kpi-v">@_enabled</div><div class="ames-kpi-s">active rules</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">SENT 24H</div>
+        <div class="ames-kpi-v">@_sent</div><div class="ames-kpi-s">delivered</div></div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">FAILED 24H</div>
+        <div class="ames-kpi-v">@_failed</div><div class="ames-kpi-s">delivery errors</div></div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">▼ Rules</div>
+    <table class="ames-table">
+        <thead>
+            <tr><th>Code</th><th>Event</th><th>Module</th><th>Status</th><th>Channels</th><th>Recipient roles</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var r in _rules)
+            {
+                <tr>
+                    <td class="code">@(r.EventTypeCode ?? "—")</td>
+                    <td>@(r.EventName ?? "—")</td>
+                    <td><span class="pill info">@(r.SourceModule ?? "—")</span></td>
+                    <td>@(r.IsEnabled ? (MarkupString)"<span class=\"pill ok\">ON</span>"
+                                       : (MarkupString)"<span class=\"pill warn\">OFF</span>")</td>
+                    <td class="dim code" style="font-size:11px">@(r.ChannelsJson ?? "—")</td>
+                    <td class="dim code" style="font-size:11px">@(r.RecipientRolesJson ?? "—")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (_rules.Count == 0) { <div class="ames-empty">No rules defined.</div> }
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">▼ Recent history (top 100)</div>
+    <table class="ames-table">
+        <thead>
+            <tr>
+                <th>Sent</th><th>Event</th><th>Recipient</th><th>Channel</th>
+                <th>Subject</th><th>Status</th><th class="num">Retry</th><th>Error</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var h in _hist)
+            {
+                <tr>
+                    <td class="dim">@(h.SentAt?.ToString("MM-dd HH:mm") ?? "—")</td>
+                    <td class="code">@(h.EventTypeCode ?? "—")</td>
+                    <td class="dim" style="font-family:'JetBrains Mono',monospace;font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;display:inline-block;">@(h.RecipientUserId ?? "—")</td>
+                    <td><span class="pill info">@(h.Channel ?? "—")</span></td>
+                    <td>@(h.Subject ?? "—")</td>
+                    <td>
+                        @if (h.Status == "SENT")   { <span class="pill ok">SENT</span> }
+                        else if (h.Status == "FAILED") { <span class="pill bad">FAILED</span> }
+                        else { <span class="pill warn">@(h.Status ?? "—")</span> }
+                    </td>
+                    <td class="num">@(h.RetryCount?.ToString() ?? "—")</td>
+                    <td class="dim">@(h.ErrorMsg ?? "—")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (_hist.Count == 0) { <div class="ames-empty">No notification history.</div> }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.SysRepository.NotifRuleRow> _rules = new();
+    List<AMES.Data.Repositories.SysRepository.NotifHistoryRow> _hist = new();
+    int _enabled, _sent, _failed;
+    protected override void OnInitialized()
+    {
+        try { _rules = Sys.ListNotificationRules(); } catch { }
+        try { _hist  = Sys.ListNotificationHistory(); } catch { }
+        _enabled = _rules.Count(r => r.IsEnabled);
+        var recent = _hist.Where(h => h.SentAt.HasValue
+                        && (DateTime.Now - h.SentAt.Value).TotalHours <= 24).ToList();
+        _sent   = recent.Count(h => h.Status == "SENT");
+        _failed = recent.Count(h => h.Status == "FAILED");
+    }
+}

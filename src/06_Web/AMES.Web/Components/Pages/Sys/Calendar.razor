@@ -1,0 +1,74 @@
+@page "/sys/calendar"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.SysRepository Sys
+
+<PageTitle>SYS-03 Factory Calendar · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">SYS-03</div>
+    <div class="ames-page-t">Factory Calendar</div>
+    <div class="ames-page-sub">교대 인스턴스 (-7d / +30d)</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">DAYS</div>
+        <div class="ames-kpi-v">@_days</div><div class="ames-kpi-s">distinct calendar dates</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">WORKDAYS</div>
+        <div class="ames-kpi-v">@_work</div><div class="ames-kpi-s">production days</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">WEEKENDS</div>
+        <div class="ames-kpi-v">@_wknd</div><div class="ames-kpi-s">closed</div></div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">HOLIDAYS</div>
+        <div class="ames-kpi-v">@_hol</div><div class="ames-kpi-s">in window</div></div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">Calendar entries · @_rows.Count rows</div>
+    <table class="ames-table">
+        <thead>
+            <tr>
+                <th>Date</th><th>Day type</th><th>Holiday</th>
+                <th>Shift</th><th>Start</th><th>End</th>
+                <th class="num">Break</th><th class="num">Net h</th><th>Plant</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var c in _rows)
+            {
+                <tr>
+                    <td class="dim">@(c.CalendarDate?.ToString("MM-dd ddd") ?? "—")</td>
+                    <td>
+                        @switch (c.DayType)
+                        {
+                            case "WORKDAY": <span class="pill ok">WORKDAY</span> break;
+                            case "WEEKEND": <span class="pill warn">WEEKEND</span> break;
+                            case "HOLIDAY": <span class="pill bad">HOLIDAY</span> break;
+                            default:        <span class="pill info">@(c.DayType ?? "—")</span> break;
+                        }
+                    </td>
+                    <td class="dim">@(c.HolidayName ?? "—")</td>
+                    <td class="code">@(c.ShiftCode ?? "—")</td>
+                    <td class="dim">@(c.StartTime?.ToString(@"hh\:mm") ?? "—")</td>
+                    <td class="dim">@(c.EndTime?.ToString(@"hh\:mm") ?? "—")</td>
+                    <td class="num">@(c.BreakMinutes?.ToString() ?? "—")</td>
+                    <td class="num">@(c.NetWorkHours?.ToString("0.0") ?? "—")</td>
+                    <td class="dim">@(c.Plant ?? "—")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (_rows.Count == 0) { <div class="ames-empty">No calendar entries.</div> }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.SysRepository.CalendarRow> _rows = new();
+    int _days, _work, _wknd, _hol;
+    protected override void OnInitialized()
+    {
+        try { _rows = Sys.ListCalendar(); } catch { }
+        var byDay = _rows.GroupBy(r => r.CalendarDate);
+        _days = byDay.Count();
+        _work = byDay.Count(g => g.Any(x => x.DayType == "WORKDAY"));
+        _wknd = byDay.Count(g => g.All(x => x.DayType == "WEEKEND"));
+        _hol  = byDay.Count(g => g.All(x => x.DayType == "HOLIDAY"));
+    }
+}

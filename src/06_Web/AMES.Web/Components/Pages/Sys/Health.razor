@@ -1,0 +1,99 @@
+@page "/sys/health"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.SysRepository Sys
+
+<PageTitle>SYS-08 System Health · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">SYS-08</div>
+    <div class="ames-page-t">System Health</div>
+    <div class="ames-page-sub">전체 시스템 KPI · 알림 큐 · DB 현황</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">USERS</div>
+        <div class="ames-kpi-v">@_k.Users</div><div class="ames-kpi-s">accounts</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">ROLES</div>
+        <div class="ames-kpi-v">@_k.Roles</div><div class="ames-kpi-s">RBAC</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">IF OK</div>
+        <div class="ames-kpi-v">@_k.InterfacesOk</div><div class="ames-kpi-s">healthy connections</div></div>
+    <div class="ames-kpi @(_k.InterfacesDown == 0 ? "ok" : "bad")">
+        <div class="ames-kpi-l">IF DOWN</div>
+        <div class="ames-kpi-v">@_k.InterfacesDown</div>
+        <div class="ames-kpi-s">degraded / unreachable</div></div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">AUDIT 24H</div>
+        <div class="ames-kpi-v">@_k.AuditLast24h</div><div class="ames-kpi-s">events logged</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">NOTIF 24H</div>
+        <div class="ames-kpi-v">@_k.NotifLast24h</div><div class="ames-kpi-s">alerts sent</div></div>
+    <div class="ames-kpi @(_k.NotifFailedLast24h == 0 ? "ok" : "bad")">
+        <div class="ames-kpi-l">NOTIF FAIL</div>
+        <div class="ames-kpi-v">@_k.NotifFailedLast24h</div>
+        <div class="ames-kpi-s">delivery errors 24h</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">CONFIG</div>
+        <div class="ames-kpi-v">@_k.ConfigKeys</div><div class="ames-kpi-s">active config keys</div></div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">▼ Database — approximate row count</div>
+    <div style="display:flex;align-items:baseline;gap:14px;padding:6px 0 16px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:56px;color:#fff;letter-spacing:2px;">
+            @_k.DbRowsApprox.ToString("N0")
+        </div>
+        <div style="color:rgba(255,255,255,.55);font-size:13px;font-family:'JetBrains Mono',monospace;">
+            rows across all user tables
+        </div>
+    </div>
+    <div style="color:rgba(255,255,255,.5);font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.5px;">
+        SOURCE: sys.partitions(index_id IN (0,1)) JOIN sys.tables — 통계 기반 추정치
+    </div>
+</div>
+
+<div class="ames-tiles">
+    <a class="ames-tile sys" href="sys/users">
+        <div class="ames-tile-ic">👤</div>
+        <div class="ames-tile-h">USERS</div>
+        <div class="ames-tile-sub">@_k.Users accounts</div>
+    </a>
+    <a class="ames-tile sys" href="sys/rbac">
+        <div class="ames-tile-ic">🛡️</div>
+        <div class="ames-tile-h">RBAC</div>
+        <div class="ames-tile-sub">@_k.Roles roles defined</div>
+    </a>
+    <a class="ames-tile sys" href="sys/interfaces">
+        <div class="ames-tile-ic">🔌</div>
+        <div class="ames-tile-h">INTERFACES</div>
+        <div class="ames-tile-sub">@_k.InterfacesOk OK · @_k.InterfacesDown DOWN</div>
+    </a>
+    <a class="ames-tile sys" href="sys/audit">
+        <div class="ames-tile-ic">📜</div>
+        <div class="ames-tile-h">AUDIT LOG</div>
+        <div class="ames-tile-sub">@_k.AuditLast24h events in last 24h</div>
+    </a>
+    <a class="ames-tile sys" href="sys/notifications">
+        <div class="ames-tile-ic">🔔</div>
+        <div class="ames-tile-h">NOTIFICATIONS</div>
+        <div class="ames-tile-sub">@_k.NotifLast24h sent · @_k.NotifFailedLast24h failed</div>
+    </a>
+    <a class="ames-tile sys" href="sys/config">
+        <div class="ames-tile-ic">⚙</div>
+        <div class="ames-tile-h">CONFIG</div>
+        <div class="ames-tile-sub">@_k.ConfigKeys active keys</div>
+    </a>
+    <a class="ames-tile sys" href="sys/calendar">
+        <div class="ames-tile-ic">📅</div>
+        <div class="ames-tile-h">CALENDAR</div>
+        <div class="ames-tile-sub">factory shift instances</div>
+    </a>
+</div>
+
+@code {
+    AMES.Data.Repositories.SysRepository.HealthKpi _k =
+        new(0, 0, 0, 0, 0, 0, 0, 0, 0L);
+    protected override void OnInitialized()
+    {
+        try { _k = Sys.GetHealth(); } catch { }
+    }
+}

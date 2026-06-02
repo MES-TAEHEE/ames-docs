@@ -1,0 +1,75 @@
+@page "/sys/audit"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.SysRepository Sys
+
+<PageTitle>SYS-05 Audit Log · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">SYS-05</div>
+    <div class="ames-page-t">Audit Log</div>
+    <div class="ames-page-sub">감사 로그 — 최근 200건 (append-only)</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">EVENTS</div>
+        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">recent entries</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">SUCCESS</div>
+        <div class="ames-kpi-v">@_ok</div><div class="ames-kpi-s">Result = OK</div></div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">FAILURES</div>
+        <div class="ames-kpi-v">@_fail</div><div class="ames-kpi-s">Result = FAIL</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">LAST 24H</div>
+        <div class="ames-kpi-v">@_day</div><div class="ames-kpi-s">events</div></div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">Recent events</div>
+    <table class="ames-table">
+        <thead>
+            <tr>
+                <th>When</th><th>Actor</th><th>Module</th><th>Screen</th>
+                <th>Action</th><th>Entity</th><th>Target</th>
+                <th>Result</th><th>IP</th><th>Note</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var a in _rows)
+            {
+                <tr>
+                    <td class="dim">@(a.EventTs?.ToString("MM-dd HH:mm:ss") ?? "—")</td>
+                    <td class="dim" style="font-family:'JetBrains Mono',monospace;font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;display:inline-block;">@(a.ActorUserId ?? "—")</td>
+                    <td><span class="pill info">@(a.ModuleCode ?? "—")</span></td>
+                    <td class="code">@(a.ScreenCode ?? "—")</td>
+                    <td><span class="pill @ActClass(a.ActionType)">@(a.ActionType ?? "—")</span></td>
+                    <td class="dim">@(a.TargetEntity ?? "—")</td>
+                    <td class="code dim">@(a.TargetId ?? "—")</td>
+                    <td>
+                        @if (a.Result == "OK")     { <span class="pill ok">OK</span> }
+                        else if (a.Result == "FAIL") { <span class="pill bad">FAIL</span> }
+                        else { <span class="dim">@(a.Result ?? "—")</span> }
+                    </td>
+                    <td class="dim code">@(a.IpAddress ?? "—")</td>
+                    <td class="dim">@(a.Note ?? "—")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (_rows.Count == 0) { <div class="ames-empty">No audit events.</div> }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.SysRepository.AuditRow> _rows = new();
+    int _ok, _fail, _day;
+    protected override void OnInitialized()
+    {
+        try { _rows = Sys.ListAudit(); } catch { }
+        _ok   = _rows.Count(r => r.Result == "OK");
+        _fail = _rows.Count(r => r.Result == "FAIL");
+        _day  = _rows.Count(r => r.EventTs.HasValue
+                    && (DateTime.Now - r.EventTs.Value).TotalHours <= 24);
+    }
+    static string ActClass(string? a) => a switch
+    { "DELETE" => "bad", "REJECT" => "bad",
+      "CREATE" or "UPDATE" or "APPROVE" => "warn",
+      "LOGIN" or "LOGOUT" => "info",
+      _ => "info" };
+}
