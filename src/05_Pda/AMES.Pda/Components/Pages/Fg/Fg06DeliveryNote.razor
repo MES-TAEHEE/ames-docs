@@ -1,0 +1,34 @@
+@page "/fg/06"
+@inject PdaApi Api
+@inject NavigationManager Nav
+
+<div class="pda-shell fg">
+    <div class="pda-tbar">
+        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/fg"))'>←</button>
+        <span class="pda-tbar-brand">FG-06 DELIVERY NOTE</span>
+    </div>
+    <div class="pda-bd">
+        <div class="pda-card">
+            <div class="pda-card-h">▼ ISSUE DELIVERY NOTE / BOL</div>
+            <div class="pda-fld"><label>SHIPMENT ORDER ID</label><input class="pda-input" type="number" @bind="_so" /></div>
+            <div class="pda-fld"><label>LOADING ID (optional)</label><input class="pda-input" type="number" @bind="_ld" /></div>
+        </div>
+        <div class="pda-status @_cls">@_msg</div>
+        <button class="pda-btn-pri" @onclick="Submit" disabled="@(_so == 0)">✓ ISSUE DN</button>
+    </div>
+</div>
+
+@code {
+    int _so, _ld;
+    string _msg = " ", _cls = "dim";
+    async Task Submit()
+    {
+        try
+        {
+            var r = await Api.FgDeliveryAsync(new PdaApi.FgDeliveryReq(_so, _ld == 0 ? null : _ld));
+            if (r.IsSuccessStatusCode) { _msg = "✓ DN issued · sent to customer EDI"; _cls = "ok"; }
+            else                       { _msg = $"× HTTP {(int)r.StatusCode}"; _cls = "fail"; }
+        }
+        catch (Exception ex) { _msg = "× " + ex.Message; _cls = "fail"; }
+    }
+}

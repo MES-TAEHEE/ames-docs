@@ -36,5 +36,6 @@ app.UseBearerAuth(tokens);
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", at = DateTime.UtcNow }));
 app.MapAuth(app.Services.GetRequiredService<PopAuthService>(), tokens);
 app.MapWh(factory);
+app.MapFg(factory);
 
 app.Run();

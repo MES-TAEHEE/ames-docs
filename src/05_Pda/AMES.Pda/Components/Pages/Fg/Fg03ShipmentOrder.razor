@@ -1,0 +1,53 @@
+@page "/fg/03"
+@inject PdaApi Api
+@inject NavigationManager Nav
+
+<div class="pda-shell fg">
+    <div class="pda-tbar">
+        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/fg"))'>←</button>
+        <span class="pda-tbar-brand">FG-03 ORDERS</span>
+    </div>
+    <div class="pda-bd">
+        <div class="pda-card">
+            <div class="pda-card-h">▼ SHIPMENT ORDERS (@_rows.Count)</div>
+            @if (_rows.Count == 0) { <div class="pda-empty">@_msg</div> }
+            else
+            {
+                @foreach (var r in _rows)
+                {
+                    var cls = r.Status switch
+                    {
+                        "Shipped" => "ok", "Ready" => "warn", _ => ""
+                    };
+                    <div class="pda-row3 @cls">
+                        <div class="r3-l">
+                            <div class="r3-code">@r.ShipOrderNumber</div>
+                            <div class="r3-sub">@r.CustomerCode · PO @(r.CustomerPo ?? "")</div>
+                        </div>
+                        <div class="r3-m">
+                            <div>@(r.CarrierCode ?? "—")</div>
+                            <div class="r3-sub">@(r.DestPlant ?? "")</div>
+                        </div>
+                        <div class="r3-r">
+                            <div>@(r.ShipDate?.ToString("MM-dd") ?? "—")</div>
+                            <div class="r3-sub">@r.LineCount lines · @r.Status</div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+        <button class="pda-btn-pri" @onclick="Load">↻ REFRESH</button>
+    </div>
+</div>
+
+@code {
+    List<PdaApi.FgOrderRow> _rows = new();
+    string _msg = "Loading…";
+    protected override async Task OnInitializedAsync() => await Load();
+    async Task Load()
+    {
+        _msg = "Loading…";
+        _rows = await Api.FgOrdersAsync();
+        if (_rows.Count == 0) _msg = "No shipment orders.";
+    }
+}

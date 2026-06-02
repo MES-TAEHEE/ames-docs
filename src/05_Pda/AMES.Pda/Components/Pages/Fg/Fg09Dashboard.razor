@@ -1,0 +1,27 @@
+@page "/fg/09"
+@inject PdaApi Api
+@inject NavigationManager Nav
+
+<div class="pda-shell fg">
+    <div class="pda-tbar">
+        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/fg"))'>←</button>
+        <span class="pda-tbar-brand">FG-09 DASHBOARD</span>
+    </div>
+    <div class="pda-bd">
+        <div class="pda-kpi-grid">
+            <div class="pda-kpi"><div class="lbl">OPEN ORDERS</div><div class="val">@_d.OpenOrders</div></div>
+            <div class="pda-kpi warn"><div class="lbl">READY TO SHIP</div><div class="val">@_d.ReadyToShip</div></div>
+            <div class="pda-kpi ok"><div class="lbl">IN TRANSIT</div><div class="val">@_d.InTransit</div></div>
+            <div class="pda-kpi ok"><div class="lbl">DELIVERED TODAY</div><div class="val">@_d.DeliveredToday</div></div>
+            <div class="pda-kpi bad"><div class="lbl">PENDING RETURNS</div><div class="val">@_d.PendingReturns</div></div>
+            <div class="pda-kpi"><div class="lbl">STOCK ON HAND</div><div class="val">@_d.StockOnHand.ToString("0")</div></div>
+        </div>
+        <button class="pda-btn-pri" @onclick="Load">↻ REFRESH</button>
+    </div>
+</div>
+
+@code {
+    PdaApi.FgDashboard _d = new(0,0,0,0,0,0);
+    protected override async Task OnInitializedAsync() => await Load();
+    async Task Load() { _d = await Api.FgDashboardAsync(); }
+}

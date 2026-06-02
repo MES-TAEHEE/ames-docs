@@ -223,3 +223,26 @@ body { font-family: 'Inter', sans-serif; background: #0c1320; color: #e8eef7; fo
 .pda-status.ok   { color: #86efac; }
 .pda-status.fail { color: #fca5a5; }
 .pda-status.dim  { color: rgba(255,255,255,.35); }
+
+/* ── KPI grid (FG-09) ──────────────────────────────────────── */
+.pda-kpi-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+.pda-kpi {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.1);
+    border-top: 4px solid #93c5fd;
+    border-radius: 10px; padding: 14px 12px;
+    text-align: center;
+}
+.pda-kpi.ok   { border-top-color: #22c55e; }
+.pda-kpi.warn { border-top-color: #fbbf24; }
+.pda-kpi.bad  { border-top-color: #fca5a5; }
+.pda-kpi .lbl { font-family: 'JetBrains Mono', monospace; font-size: 10px;
+                color: #93c5fd; letter-spacing: 1px; }
+.pda-kpi.ok   .lbl { color: #86efac; }
+.pda-kpi.warn .lbl { color: #fbbf24; }
+.pda-kpi.bad  .lbl { color: #fca5a5; }
+.pda-kpi .val { font-family: 'Bebas Neue', sans-serif; font-size: 36px;
+                color: #fff; line-height: 1; margin-top: 6px; }

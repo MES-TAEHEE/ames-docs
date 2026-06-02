@@ -1,0 +1,37 @@
+@page "/fg/05"
+@inject PdaApi Api
+@inject NavigationManager Nav
+
+<div class="pda-shell fg">
+    <div class="pda-tbar">
+        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/fg"))'>←</button>
+        <span class="pda-tbar-brand">FG-05 LOADING</span>
+    </div>
+    <div class="pda-bd">
+        <div class="pda-card">
+            <div class="pda-card-h">▼ CONFIRM TRUCK LOAD</div>
+            <div class="pda-fld"><label>SHIPMENT ORDER ID</label><input class="pda-input" type="number" @bind="_so" /></div>
+            <div class="pda-fld"><label>LICENSE PLATE</label><input class="pda-input" @bind="_lp" placeholder="AL-2026-X9" /></div>
+            <div class="pda-fld"><label>DRIVER NAME</label><input class="pda-input" @bind="_dn" /></div>
+            <div class="pda-fld"><label>DOCK NO</label><input class="pda-input" @bind="_dk" placeholder="DOCK-1" /></div>
+            <div class="pda-fld"><label>SEAL NO</label><input class="pda-input" @bind="_seal" placeholder="optional" /></div>
+        </div>
+        <div class="pda-status @_cls">@_msg</div>
+        <button class="pda-btn-pri" @onclick="Submit" disabled="@(_so == 0 || string.IsNullOrWhiteSpace(_lp))">✓ CONFIRM LOAD</button>
+    </div>
+</div>
+
+@code {
+    int _so; string _lp = "", _dn = "", _dk = "DOCK-1", _seal = "";
+    string _msg = " ", _cls = "dim";
+    async Task Submit()
+    {
+        try
+        {
+            var r = await Api.FgLoadingAsync(new PdaApi.FgLoadingReq(_so, _lp.Trim(), _dn.Trim(), _dk.Trim(), string.IsNullOrWhiteSpace(_seal) ? null : _seal.Trim()));
+            if (r.IsSuccessStatusCode) { _msg = "✓ Loaded · order Shipped"; _cls = "ok"; }
+            else                       { _msg = $"× HTTP {(int)r.StatusCode}"; _cls = "fail"; }
+        }
+        catch (Exception ex) { _msg = "× " + ex.Message; _cls = "fail"; }
+    }
+}

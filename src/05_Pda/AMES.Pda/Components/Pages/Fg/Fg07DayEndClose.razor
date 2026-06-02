@@ -1,0 +1,41 @@
+@page "/fg/07"
+@inject PdaApi Api
+@inject NavigationManager Nav
+
+<div class="pda-shell fg">
+    <div class="pda-tbar">
+        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/fg"))'>←</button>
+        <span class="pda-tbar-brand">FG-07 DAY END</span>
+    </div>
+    <div class="pda-bd">
+        <div class="pda-card">
+            <div class="pda-card-h">▼ CLOSE TODAY</div>
+            <div class="pda-fld">
+                <label>CLOSE MODE</label>
+                <select class="pda-input" @bind="_mode">
+                    <option>Auto</option><option>Manual</option><option>Forced</option>
+                </select>
+            </div>
+            <div class="pda-fld">
+                <label>NOTE</label>
+                <input class="pda-input" @bind="_note" placeholder="optional reason" />
+            </div>
+        </div>
+        <div class="pda-status @_cls">@_msg</div>
+        <button class="pda-btn-pri" @onclick="Submit">🌅 CLOSE DAY</button>
+    </div>
+</div>
+
+@code {
+    string _mode = "Auto", _note = "", _msg = " ", _cls = "dim";
+    async Task Submit()
+    {
+        try
+        {
+            var r = await Api.FgDayEndAsync(new PdaApi.FgDayEndReq(_mode, string.IsNullOrWhiteSpace(_note) ? null : _note));
+            if (r.IsSuccessStatusCode) { _msg = "✓ Day closed · snapshot to ERP"; _cls = "ok"; }
+            else                       { _msg = $"× HTTP {(int)r.StatusCode}"; _cls = "fail"; }
+        }
+        catch (Exception ex) { _msg = "× " + ex.Message; _cls = "fail"; }
+    }
+}
