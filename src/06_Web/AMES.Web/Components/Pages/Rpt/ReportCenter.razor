@@ -1,0 +1,51 @@
+@page "/rpt/report-center"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.RptRepository Rpt
+
+<PageTitle>RPT-09 Report Center · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">RPT-09</div>
+    <div class="ames-page-t">Report Center</div>
+    <div class="ames-page-sub">전체 리포트 카탈로그 — 카테고리별</div>
+</div>
+
+@foreach (var grp in _entries.GroupBy(e => e.Category).OrderBy(g => CatOrder(g.Key)))
+{
+    <div class="ames-card">
+        <div class="ames-card-h">▼ @grp.Key  ·  @grp.Count() reports</div>
+        <div class="ames-tiles">
+            @foreach (var e in grp)
+            {
+                <a class="ames-tile rpt" href="@e.Path">
+                    <div class="ames-tile-ic">@CatIcon(e.Category)</div>
+                    <div class="ames-tile-h">@e.Key · @e.Title</div>
+                    <div class="ames-tile-sub">@e.Description</div>
+                </a>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    List<AMES.Data.Repositories.RptRepository.ReportCatalogEntry> _entries = new();
+    protected override void OnInitialized() => _entries = Rpt.ListReportCatalog();
+
+    static int CatOrder(string c) => c switch
+    {
+        "Production" => 1, "Quality" => 2, "Logistics" => 3,
+        "Maintenance" => 4, "Executive" => 5,
+        "Hub" => 6, "Advanced" => 7, _ => 9
+    };
+    static string CatIcon(string c) => c switch
+    {
+        "Production"  => "🏭",
+        "Quality"     => "🔬",
+        "Logistics"   => "🚚",
+        "Maintenance" => "🔧",
+        "Executive"   => "📈",
+        "Hub"         => "🗂",
+        "Advanced"    => "⚡",
+        _             => "📄"
+    };
+}

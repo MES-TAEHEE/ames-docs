@@ -1,0 +1,87 @@
+@page "/rpt/report-builder"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+<PageTitle>RPT-10 Report Builder · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">RPT-10</div>
+    <div class="ames-page-t">Report Builder</div>
+    <div class="ames-page-sub">Ad-hoc 리포트 빌더 — preview / 다음 마일스톤</div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">▼ Builder preview</div>
+    <p style="color:rgba(255,255,255,.7);font-size:13px;line-height:1.6;margin-bottom:18px">
+        Report Builder는 SQL 지식 없이도 드래그·드롭으로 데이터 소스 / 차원 / 측정값을
+        선택해 사용자 정의 리포트를 만들 수 있는 화면입니다. 다음 마일스톤에 구현 예정.
+    </p>
+
+    <div class="ames-form" style="max-width:520px">
+        <label>DATA SOURCE</label>
+        <select disabled>
+            <option>PR_ProductionResult — 생산 실적</option>
+            <option>FG_ShipmentOrder   — 출하 주문</option>
+            <option>MNT_OEELog         — 설비 OEE</option>
+            <option>QC_Inspection      — 품질 검사</option>
+            <option>PP_LineSchedule    — 라인 스케줄</option>
+        </select>
+
+        <label>DIMENSIONS</label>
+        <select disabled multiple style="height:90px">
+            <option selected>Day</option>
+            <option>Line</option>
+            <option>Shift</option>
+            <option>Equip</option>
+            <option>Item</option>
+            <option>Customer</option>
+        </select>
+
+        <label>MEASURES</label>
+        <select disabled multiple style="height:90px">
+            <option selected>SUM(GoodQty)</option>
+            <option>COUNT(*)</option>
+            <option>AVG(OEE)</option>
+            <option>SUM(DefectQty)</option>
+        </select>
+
+        <label>DATE RANGE</label>
+        <select disabled>
+            <option>Last 7 days</option>
+            <option selected>Last 14 days</option>
+            <option>Last 30 days</option>
+            <option>Custom...</option>
+        </select>
+
+        <div style="display:flex;gap:10px;margin-top:14px">
+            <button class="ames-btn" disabled>RUN QUERY</button>
+            <button class="ames-btn ghost" disabled>SAVE TEMPLATE</button>
+            <button class="ames-btn ghost" disabled>EXPORT CSV</button>
+        </div>
+    </div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">▼ Template gallery (sample)</div>
+    <div class="ames-tiles">
+        <a class="ames-tile rpt" href="rpt/daily-production">
+            <div class="ames-tile-ic">📈</div>
+            <div class="ames-tile-h">DAILY PROD BY LINE</div>
+            <div class="ames-tile-sub">RPT-01 ·  ready-made template</div>
+        </a>
+        <a class="ames-tile rpt" href="rpt/defect-pareto">
+            <div class="ames-tile-ic">📉</div>
+            <div class="ames-tile-h">TOP-20 DEFECT</div>
+            <div class="ames-tile-sub">RPT-02 ·  pareto chart</div>
+        </a>
+        <a class="ames-tile rpt" href="rpt/equipment-oee">
+            <div class="ames-tile-ic">⚙</div>
+            <div class="ames-tile-h">EQUIPMENT OEE</div>
+            <div class="ames-tile-sub">RPT-06 ·  30d ranking</div>
+        </a>
+        <a class="ames-tile rpt" href="rpt/on-time">
+            <div class="ames-tile-ic">🚚</div>
+            <div class="ames-tile-h">OTD TREND</div>
+            <div class="ames-tile-sub">RPT-04 ·  daily on-time %</div>
+        </a>
+    </div>
+</div>

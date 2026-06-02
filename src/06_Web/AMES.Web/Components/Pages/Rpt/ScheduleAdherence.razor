@@ -1,0 +1,69 @@
+@page "/rpt/schedule-adherence"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.RptRepository Rpt
+
+<PageTitle>RPT-08 Schedule Adherence · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">RPT-08</div>
+    <div class="ames-page-t">Schedule Adherence</div>
+    <div class="ames-page-sub">계획 vs 실생산 — 최근 14일</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">ROWS</div>
+        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">day × line</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">PLANNED</div>
+        <div class="ames-kpi-v">@_plan.ToString("N0")</div><div class="ames-kpi-s">total planned qty</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">PRODUCED</div>
+        <div class="ames-kpi-v">@_prod.ToString("N0")</div><div class="ames-kpi-s">total actual qty</div></div>
+    <div class="ames-kpi @(_adh >= 95m ? "ok" : _adh >= 85m ? "warn" : "bad")">
+        <div class="ames-kpi-l">ADHERENCE</div>
+        <div class="ames-kpi-v">@_adh.ToString("0.0")%</div>
+        <div class="ames-kpi-s">overall</div></div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">Adherence by day × line</div>
+    <table class="ames-table">
+        <thead>
+            <tr>
+                <th>Day</th><th>Line</th>
+                <th class="num">Planned</th><th class="num">Produced</th>
+                <th class="num">Adherence %</th><th>Bar</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in _rows)
+            {
+                <tr>
+                    <td class="dim">@r.Day.ToString("MM-dd ddd")</td>
+                    <td>@(r.LineId ?? "—")</td>
+                    <td class="num">@r.PlannedQty.ToString("N0")</td>
+                    <td class="num">@r.ProducedQty.ToString("N0")</td>
+                    <td class="num"><span class="pill @(r.AdherencePct >= 95m ? "ok" : r.AdherencePct >= 85m ? "warn" : "bad")">@r.AdherencePct.ToString("0.0")%</span></td>
+                    <td>
+                        <div style="background:@(r.AdherencePct >= 95m ? "rgba(134,239,172,.25)" : r.AdherencePct >= 85m ? "rgba(251,191,36,.25)" : "rgba(252,165,165,.25)");
+                                    border:1px solid rgba(255,255,255,.15);
+                                    height:14px;
+                                    width:@(Math.Min(r.AdherencePct, 120m).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture))%;
+                                    border-radius:4px;"></div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (_rows.Count == 0) { <div class="ames-empty">No schedule or production data in the last 14 days.</div> }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.RptRepository.ScheduleAdherenceRow> _rows = new();
+    decimal _plan, _prod, _adh;
+    protected override void OnInitialized()
+    {
+        try { _rows = Rpt.ListScheduleAdherence(); } catch { }
+        _plan = _rows.Sum(r => r.PlannedQty);
+        _prod = _rows.Sum(r => r.ProducedQty);
+        _adh  = _plan > 0 ? _prod / _plan * 100m : 0m;
+    }
+}

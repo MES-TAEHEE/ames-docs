@@ -1,59 +1,65 @@
 @page "/rpt/daily-production"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.ProductionRepository Prod
+@inject AMES.Data.Repositories.RptRepository Rpt
 
 <PageTitle>RPT-01 Daily Production · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">RPT-01</div>
     <div class="ames-page-t">Daily Production</div>
-    <div class="ames-page-sub">금일 시간별 생산 — 라인별</div>
+    <div class="ames-page-sub">일별·라인별 생산량 / 양품률 — 최근 14일</div>
 </div>
 
-@foreach (var line in _lines)
-{
-    var rows = _hourly.TryGetValue(line, out var v) ? v : new List<AMES.Contracts.Dto.HourlyOutputDto>();
-    var good = rows.Sum(r => r.GoodQty);
-    var def  = rows.Sum(r => r.DefectQty);
-    var pct  = good + def == 0 ? 0 : def * 100m / (good + def);
-    <div class="ames-card">
-        <div class="ames-card-h">▼ @line  ·  GOOD @good  ·  DEFECT @def  (@pct.ToString("0.0")%)</div>
-        @if (rows.Count == 0)
-        {
-            <div class="ames-empty">No production today.</div>
-        }
-        else
-        {
-            <table class="ames-table">
-                <thead><tr><th>Hour</th><th class="num">Good</th><th class="num">Defect</th><th class="num">%</th></tr></thead>
-                <tbody>
-                    @foreach (var h in rows.Where(r => r.GoodQty > 0 || r.DefectQty > 0))
-                    {
-                        var hPct = (h.GoodQty + h.DefectQty) == 0 ? 0 : h.DefectQty * 100m / (h.GoodQty + h.DefectQty);
-                        <tr>
-                            <td class="code">@h.Hour.ToString("00") :00</td>
-                            <td class="num">@h.GoodQty</td>
-                            <td class="num">@h.DefectQty</td>
-                            <td class="num">@hPct.ToString("0.0")</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        }
-    </div>
-}
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">DAYS</div>
+        <div class="ames-kpi-v">@_days</div><div class="ames-kpi-s">distinct days</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">GOOD QTY</div>
+        <div class="ames-kpi-v">@_good.ToString("N0")</div><div class="ames-kpi-s">14d total</div></div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">DEFECT EVTS</div>
+        <div class="ames-kpi-v">@_def.ToString("N0")</div><div class="ames-kpi-s">flagged entries</div></div>
+    <div class="ames-kpi @(_yld >= 99m ? "ok" : _yld >= 95m ? "warn" : "bad")">
+        <div class="ames-kpi-l">YIELD %</div>
+        <div class="ames-kpi-v">@_yld.ToString("0.00")%</div>
+        <div class="ames-kpi-s">good / total</div></div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">Daily breakdown</div>
+    <table class="ames-table">
+        <thead>
+            <tr>
+                <th>Day</th><th>Line</th><th class="num">Entries</th>
+                <th class="num">Good</th><th class="num">Defect evts</th><th class="num">Yield %</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in _rows)
+            {
+                <tr>
+                    <td class="dim">@r.Day.ToString("MM-dd ddd")</td>
+                    <td>@(r.LineId ?? "—")</td>
+                    <td class="num">@r.Entries</td>
+                    <td class="num">@r.GoodQty.ToString("N0")</td>
+                    <td class="num">@r.DefectQty</td>
+                    <td class="num"><span class="pill @(r.YieldPct >= 99m ? "ok" : r.YieldPct >= 95m ? "warn" : "bad")">@r.YieldPct.ToString("0.00")%</span></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (_rows.Count == 0) { <div class="ames-empty">No production entries in the last 14 days.</div> }
+</div>
 
 @code {
-    readonly string[] _lines = { "LINE-INJ-01", "LINE-INJ-02", "LINE-IMG-01" };
-    Dictionary<string, List<AMES.Contracts.Dto.HourlyOutputDto>> _hourly = new();
-
+    List<AMES.Data.Repositories.RptRepository.DailyProdRow> _rows = new();
+    int _days; long _good, _def;
+    decimal _yld;
     protected override void OnInitialized()
     {
-        try
-        {
-            foreach (var l in _lines)
-                _hourly[l] = Prod.GetHourlyToday(l).ToList();
-        }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[RPT-01] {ex.Message}"); }
+        try { _rows = Rpt.ListDailyProduction(); } catch { }
+        _days = _rows.Select(r => r.Day).Distinct().Count();
+        _good = _rows.Sum(r => (long)r.GoodQty);
+        _def  = _rows.Sum(r => (long)r.DefectQty);
+        var tot = _good + _def;
+        _yld = tot > 0 ? (decimal)_good / tot * 100m : 0m;
     }
 }
