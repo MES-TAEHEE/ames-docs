@@ -1,0 +1,32 @@
+@page "/"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+<PageTitle>A-MES Office Web</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">HOME</div>
+    <div class="ames-page-t">A-MES Office Web</div>
+    <div class="ames-page-sub">@DateTime.Now.ToString("yyyy-MM-dd ddd HH:mm")</div>
+</div>
+
+<div class="ames-tiles">
+    <a class="ames-tile pp" href="pp/work-order">
+        <div class="ames-tile-ic">📅</div>
+        <div class="ames-tile-h">PP · PRODUCTION PLAN</div>
+        <div class="ames-tile-sub">13 screens · forecast · work orders · MRP · OEE</div>
+    </a>
+    <a class="ames-tile mnt" href="mnt/dashboard">
+        <div class="ames-tile-ic">🔧</div>
+        <div class="ames-tile-h">MNT · MAINTENANCE</div>
+        <div class="ames-tile-sub">9 screens · equipment · PM · spare parts</div>
+    </a>
+    <a class="ames-tile rpt" href="rpt/daily-production">
+        <div class="ames-tile-ic">📊</div>
+        <div class="ames-tile-h">RPT · REPORTS</div>
+        <div class="ames-tile-sub">10 screens · KPI · pareto · OTD · custom</div>
+    </a>
+    <a class="ames-tile sys" href="sys/users">
+        <div class="ames-tile-ic">⚙️</div>
+        <div class="ames-tile-h">SYS · SYSTEM</div>
+        <div class="ames-tile-sub">8 screens · users · RBAC · audit · config</div>
+    </a>
+</div>

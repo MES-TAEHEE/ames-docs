@@ -1,0 +1,31 @@
+@page "/pp/{*Path}"
+@page "/mnt/{*Path}"
+@page "/rpt/{*Path}"
+@page "/sys/{*Path}"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+<PageTitle>Coming soon — @Path</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">SOON</div>
+    <div class="ames-page-t">@Path</div>
+    <div class="ames-page-sub">module screen lands in the next batch</div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">▼ STATUS</div>
+    <p style="font-size:14px; line-height:1.7; color:rgba(255,255,255,.7);">
+        This screen is part of the Office Web build (Phase B–E). The Phase A
+        infrastructure is live — layout, navigation, auth, shared data layer,
+        and one sample screen per module are working. The remaining 36 screens
+        land in module batches.
+    </p>
+    <p style="margin-top:12px; font-size:12px; color:rgba(255,255,255,.5);">
+        Implemented samples: <a href="pp/work-order">PP-04</a> · <a href="mnt/dashboard">MNT-09</a>
+        · <a href="rpt/daily-production">RPT-01</a> · <a href="sys/users">SYS-01</a>.
+    </p>
+</div>
+
+@code {
+    [Parameter] public string? Path { get; set; }
+}

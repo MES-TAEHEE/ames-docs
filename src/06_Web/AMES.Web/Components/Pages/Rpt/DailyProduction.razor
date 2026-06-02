@@ -1,0 +1,59 @@
+@page "/rpt/daily-production"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.ProductionRepository Prod
+
+<PageTitle>RPT-01 Daily Production · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">RPT-01</div>
+    <div class="ames-page-t">Daily Production</div>
+    <div class="ames-page-sub">금일 시간별 생산 — 라인별</div>
+</div>
+
+@foreach (var line in _lines)
+{
+    var rows = _hourly.TryGetValue(line, out var v) ? v : new List<AMES.Contracts.Dto.HourlyOutputDto>();
+    var good = rows.Sum(r => r.GoodQty);
+    var def  = rows.Sum(r => r.DefectQty);
+    var pct  = good + def == 0 ? 0 : def * 100m / (good + def);
+    <div class="ames-card">
+        <div class="ames-card-h">▼ @line  ·  GOOD @good  ·  DEFECT @def  (@pct.ToString("0.0")%)</div>
+        @if (rows.Count == 0)
+        {
+            <div class="ames-empty">No production today.</div>
+        }
+        else
+        {
+            <table class="ames-table">
+                <thead><tr><th>Hour</th><th class="num">Good</th><th class="num">Defect</th><th class="num">%</th></tr></thead>
+                <tbody>
+                    @foreach (var h in rows.Where(r => r.GoodQty > 0 || r.DefectQty > 0))
+                    {
+                        var hPct = (h.GoodQty + h.DefectQty) == 0 ? 0 : h.DefectQty * 100m / (h.GoodQty + h.DefectQty);
+                        <tr>
+                            <td class="code">@h.Hour.ToString("00") :00</td>
+                            <td class="num">@h.GoodQty</td>
+                            <td class="num">@h.DefectQty</td>
+                            <td class="num">@hPct.ToString("0.0")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+}
+
+@code {
+    readonly string[] _lines = { "LINE-INJ-01", "LINE-INJ-02", "LINE-IMG-01" };
+    Dictionary<string, List<AMES.Contracts.Dto.HourlyOutputDto>> _hourly = new();
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            foreach (var l in _lines)
+                _hourly[l] = Prod.GetHourlyToday(l).ToList();
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[RPT-01] {ex.Message}"); }
+    }
+}
