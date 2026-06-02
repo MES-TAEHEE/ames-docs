@@ -1,0 +1,37 @@
+@page "/fg/01"
+@inject PdaApi Api
+@inject NavigationManager Nav
+
+<div class="pda-shell fg">
+    <div class="pda-tbar">
+        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/fg"))'>←</button>
+        <span class="pda-tbar-brand">FG-01 STOCKING</span>
+    </div>
+    <div class="pda-bd">
+        <div class="pda-card">
+            <div class="pda-card-h">▼ PUT AWAY FG</div>
+            <div class="pda-fld"><label>WO ID</label><input class="pda-input" type="number" @bind="_wo" /></div>
+            <div class="pda-fld"><label>ITEM NO</label><input class="pda-input" @bind="_item" placeholder="DR-TRM-LH-A1" /></div>
+            <div class="pda-fld"><label>QTY</label><input class="pda-input" type="number" @bind="_qty" /></div>
+            <div class="pda-fld"><label>LOCATION</label><input class="pda-input" @bind="_loc" placeholder="FG-A-01" /></div>
+            <div class="pda-fld"><label>PALLETS</label><input class="pda-input" type="number" @bind="_pal" /></div>
+        </div>
+        <div class="pda-status @_cls">@_msg</div>
+        <button class="pda-btn-pri" @onclick="Submit" disabled="@(_wo == 0 || string.IsNullOrWhiteSpace(_item))">✓ PUT AWAY</button>
+    </div>
+</div>
+
+@code {
+    int _wo, _pal = 1; string _item = "DR-TRM-LH-A1", _loc = "FG-A-01"; decimal _qty = 32;
+    string _msg = " ", _cls = "dim";
+    async Task Submit()
+    {
+        try
+        {
+            var r = await Api.FgPutAwayAsync(new PdaApi.FgPutAwayReq(_wo, _item.Trim(), _qty, _loc.Trim(), _pal));
+            if (r.IsSuccessStatusCode) { _msg = "✓ Stocked"; _cls = "ok"; }
+            else                       { _msg = $"× HTTP {(int)r.StatusCode}"; _cls = "fail"; }
+        }
+        catch (Exception ex) { _msg = "× " + ex.Message; _cls = "fail"; }
+    }
+}

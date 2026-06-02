@@ -1,0 +1,25 @@
+@page "/fg"
+@inject AuthState Auth
+@inject NavigationManager Nav
+
+<div class="pda-shell fg">
+    <div class="pda-tbar">
+        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/home"))'>←</button>
+        <span class="pda-tbar-brand">FINISHED GOODS</span>
+        <span class="pda-tbar-emp">@Auth.Session?.EmployeeNo</span>
+    </div>
+    <div class="pda-bd">
+        <div class="pda-tile-grid">
+            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/fg/01"))'><div class="pda-tile-ic">📥</div><div class="pda-tile-cap">FG-01</div><div class="pda-tile-sub">Stocking</div></button>
+            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/fg/02"))'><div class="pda-tile-ic">📊</div><div class="pda-tile-cap">FG-02</div><div class="pda-tile-sub">Inventory</div></button>
+            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/fg/03"))'><div class="pda-tile-ic">📋</div><div class="pda-tile-cap">FG-03</div><div class="pda-tile-sub">Shipment Orders</div></button>
+            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/fg/04"))'><div class="pda-tile-ic">🎯</div><div class="pda-tile-cap">FG-04</div><div class="pda-tile-sub">FIFO Picking</div></button>
+            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/fg/05"))'><div class="pda-tile-ic">🚛</div><div class="pda-tile-cap">FG-05</div><div class="pda-tile-sub">Loading</div></button>
+            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/fg/06"))'><div class="pda-tile-ic">📄</div><div class="pda-tile-cap">FG-06</div><div class="pda-tile-sub">Delivery Note</div></button>
+            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/fg/07"))'><div class="pda-tile-ic">🌅</div><div class="pda-tile-cap">FG-07</div><div class="pda-tile-sub">Day End Close</div></button>
+            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/fg/08"))'><div class="pda-tile-ic">📜</div><div class="pda-tile-cap">FG-08</div><div class="pda-tile-sub">Shipment History</div></button>
+            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/fg/09"))'><div class="pda-tile-ic">📈</div><div class="pda-tile-cap">FG-09</div><div class="pda-tile-sub">Dashboard</div></button>
+            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/fg/rtn"))'><div class="pda-tile-ic">↩️</div><div class="pda-tile-cap">FG-RTN</div><div class="pda-tile-sub">Customer Return</div></button>
+        </div>
+    </div>
+</div>

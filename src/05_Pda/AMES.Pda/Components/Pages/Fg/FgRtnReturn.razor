@@ -1,0 +1,47 @@
+@page "/fg/rtn"
+@inject PdaApi Api
+@inject NavigationManager Nav
+
+<div class="pda-shell fg">
+    <div class="pda-tbar">
+        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/fg"))'>←</button>
+        <span class="pda-tbar-brand">FG-RTN RETURN</span>
+    </div>
+    <div class="pda-bd">
+        <div class="pda-card">
+            <div class="pda-card-h">▼ CUSTOMER RETURN (RMA)</div>
+            <div class="pda-fld"><label>CUSTOMER</label><input class="pda-input" @bind="_cust" placeholder="SAV / GEO" /></div>
+            <div class="pda-fld"><label>ORIGINAL SO ID (optional)</label><input class="pda-input" type="number" @bind="_so" /></div>
+            <div class="pda-fld"><label>ITEM NO</label><input class="pda-input" @bind="_item" /></div>
+            <div class="pda-fld"><label>QTY</label><input class="pda-input" type="number" @bind="_qty" /></div>
+            <div class="pda-fld">
+                <label>RETURN REASON</label>
+                <select class="pda-input" @bind="_reason">
+                    <option>Defect — adhesion</option>
+                    <option>Defect — paint</option>
+                    <option>Wrong item</option>
+                    <option>Damaged in transit</option>
+                    <option>Customer change</option>
+                </select>
+            </div>
+        </div>
+        <div class="pda-status @_cls">@_msg</div>
+        <button class="pda-btn-pri" @onclick="Submit" disabled="@(string.IsNullOrWhiteSpace(_cust) || string.IsNullOrWhiteSpace(_item))">↩️ OPEN RMA</button>
+    </div>
+</div>
+
+@code {
+    string _cust = "SAV", _item = "DR-TRM-LH-A1", _reason = "Defect — adhesion";
+    int _so; decimal _qty = 1;
+    string _msg = " ", _cls = "dim";
+    async Task Submit()
+    {
+        try
+        {
+            var r = await Api.FgReturnAsync(new PdaApi.FgReturnReq(_cust.Trim(), _so == 0 ? null : _so, _reason, _qty, _item.Trim()));
+            if (r.IsSuccessStatusCode) { _msg = "✓ RMA opened"; _cls = "ok"; }
+            else                       { _msg = $"× HTTP {(int)r.StatusCode}"; _cls = "fail"; }
+        }
+        catch (Exception ex) { _msg = "× " + ex.Message; _cls = "fail"; }
+    }
+}

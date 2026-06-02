@@ -1,0 +1,67 @@
+@page "/fg/04"
+@inject PdaApi Api
+@inject NavigationManager Nav
+
+<div class="pda-shell fg">
+    <div class="pda-tbar">
+        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/fg"))'>←</button>
+        <span class="pda-tbar-brand">FG-04 FIFO PICK</span>
+    </div>
+    <div class="pda-bd">
+        <div class="pda-card">
+            <div class="pda-card-h">▼ FIFO PICK FOR SO</div>
+            <div class="pda-fld"><label>SHIPMENT ORDER ID</label><input class="pda-input" type="number" @bind="_so" /></div>
+            <div class="pda-fld"><label>STOCK ID (oldest available)</label><input class="pda-input" type="number" @bind="_stock" /></div>
+            <div class="pda-fld"><label>QTY</label><input class="pda-input" type="number" @bind="_qty" /></div>
+        </div>
+        <div class="pda-status @_cls">@_msg</div>
+        <button class="pda-btn-pri" @onclick="Submit" disabled="@(_so == 0 || _stock == 0)">✓ PICK</button>
+        <div class="pda-card" style="margin-top:14px;">
+            <div class="pda-card-h">▼ STOCK SUGGESTIONS (oldest first)</div>
+            @if (_avail.Count == 0) { <div class="pda-empty">Loading…</div> }
+            else
+            {
+                @foreach (var s in _avail.Take(5))
+                {
+                    <div class="pda-row3" @onclick="@(() => _stock = s.StockId)" style="cursor:pointer;">
+                        <div class="r3-l">
+                            <div class="r3-code">#@s.StockId</div>
+                            <div class="r3-sub">@(s.ItemName ?? s.ItemNo)</div>
+                        </div>
+                        <div class="r3-m">
+                            <div>@(s.Location ?? "—")</div>
+                            <div class="r3-sub">@(s.CustomerCode ?? "")</div>
+                        </div>
+                        <div class="r3-r">
+                            <div class="big">@s.Qty.ToString("0")</div>
+                            <div class="r3-sub">@(s.StockTs?.ToString("MM-dd HH:mm") ?? "")</div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    int _so, _stock; decimal _qty = 32;
+    string _msg = " ", _cls = "dim";
+    List<PdaApi.FgStockRow> _avail = new();
+    protected override async Task OnInitializedAsync()
+    {
+        var all = await Api.FgInventoryAsync();
+        _avail = all.Where(s => s.Status == "Available")
+                    .OrderBy(s => s.StockTs)
+                    .ToList();
+    }
+    async Task Submit()
+    {
+        try
+        {
+            var r = await Api.FgPickAsync(new PdaApi.FgPickReq(_so, _stock, _qty));
+            if (r.IsSuccessStatusCode) { _msg = "✓ Picked"; _cls = "ok"; }
+            else                       { _msg = $"× HTTP {(int)r.StatusCode}"; _cls = "fail"; }
+        }
+        catch (Exception ex) { _msg = "× " + ex.Message; _cls = "fail"; }
+    }
+}

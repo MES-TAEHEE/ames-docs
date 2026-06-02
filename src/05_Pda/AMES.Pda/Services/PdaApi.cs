@@ -110,6 +110,47 @@ public sealed class PdaApi
     public Task<HttpResponseMessage> WhAdjustAsync (AdjustReq  body) => Post("/api/wh/inventory/adjust", body);
     public Task<HttpResponseMessage> WhPickAsync   (PickReq    body) => Post("/api/wh/release/pick",      body);
 
+    // ── FG ───────────────────────────────────────────────────────────────
+    public sealed record FgStockRow(int StockId, string? StockNumber, string ItemNo, string? ItemName,
+        int? LotId, string? CustomerCode, decimal Qty, string? Location, string? Status, DateTime? StockTs);
+    public sealed record FgOrderRow(int ShipmentOrderId, string? ShipOrderNumber, string? CustomerCode,
+        string? CustomerPo, DateTime? ShipDate, string? CarrierCode, string? DestPlant, string? Status, int LineCount);
+    public sealed record FgHistoryRow(int LoadingId, string? LoadingNumber, int? ShipmentOrderId,
+        string? ShipOrderNumber, string? CustomerCode, string? LicensePlate, string? DriverName,
+        DateTime? DepartureTs, string? OTDStatus);
+    public sealed record FgDashboard(int OpenOrders, int ReadyToShip, int InTransit, int DeliveredToday,
+        int PendingReturns, decimal StockOnHand);
+
+    public sealed record FgPutAwayReq(int WoId, string ItemNo, decimal Qty, string ActualLoc, int PalletCount);
+    public sealed record FgPickReq(int ShipmentOrderId, int StockId, decimal Qty);
+    public sealed record FgLoadingReq(int ShipmentOrderId, string LicensePlate, string DriverName, string DockNo, string? SealNo);
+    public sealed record FgDeliveryReq(int ShipmentOrderId, int? LoadingId);
+    public sealed record FgDayEndReq(string CloseMode, string? Note);
+    public sealed record FgReturnReq(string CustomerCode, int? OriginalShipmentOrderId, string ReturnReason, decimal Qty, string ItemNo);
+
+    public Task<List<FgStockRow>>   FgInventoryAsync(string? q = null)
+        => Get<List<FgStockRow>>("/api/fg/inventory" + (string.IsNullOrEmpty(q) ? "" : $"?q={Uri.EscapeDataString(q)}"));
+    public Task<List<FgOrderRow>>   FgOrdersAsync()  => Get<List<FgOrderRow>>("/api/fg/orders");
+    public Task<List<FgHistoryRow>> FgHistoryAsync() => Get<List<FgHistoryRow>>("/api/fg/history");
+    public async Task<FgDashboard>  FgDashboardAsync()
+    {
+        Authorize();
+        try
+        {
+            var r = await _http.GetAsync("/api/fg/dashboard");
+            if (!r.IsSuccessStatusCode) return new FgDashboard(0,0,0,0,0,0);
+            return await r.Content.ReadFromJsonAsync<FgDashboard>() ?? new FgDashboard(0,0,0,0,0,0);
+        }
+        catch { return new FgDashboard(0,0,0,0,0,0); }
+    }
+
+    public Task<HttpResponseMessage> FgPutAwayAsync (FgPutAwayReq body)  => Post("/api/fg/putaway",  body);
+    public Task<HttpResponseMessage> FgPickAsync    (FgPickReq    body)  => Post("/api/fg/pick",     body);
+    public Task<HttpResponseMessage> FgLoadingAsync (FgLoadingReq body)  => Post("/api/fg/loading",  body);
+    public Task<HttpResponseMessage> FgDeliveryAsync(FgDeliveryReq body) => Post("/api/fg/delivery", body);
+    public Task<HttpResponseMessage> FgDayEndAsync  (FgDayEndReq  body)  => Post("/api/fg/dayend",   body);
+    public Task<HttpResponseMessage> FgReturnAsync  (FgReturnReq  body)  => Post("/api/fg/return",   body);
+
     // ── private HTTP helpers ────────────────────────────────────────────
     private async Task<T> Get<T>(string url) where T : new()
     {
