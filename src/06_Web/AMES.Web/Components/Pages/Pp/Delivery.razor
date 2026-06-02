@@ -1,0 +1,63 @@
+@page "/pp/delivery"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.PpRepository Pp
+
+<PageTitle>PP-OTD On-Time Delivery · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">PP-OTD</div>
+    <div class="ames-page-t">On-Time Delivery</div>
+    <div class="ames-page-sub">고객 주문별 약속일 vs 실 출하 — 30일</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi ok"><div class="ames-kpi-l">ON TIME</div><div class="ames-kpi-v">@_rows.Count(r => r.DaysLate <= 0 && r.ShippedQty >= r.OrderQty)</div></div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">LATE</div><div class="ames-kpi-v">@_rows.Count(r => r.DaysLate > 0)</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">OPEN</div><div class="ames-kpi-v">@_rows.Count(r => r.ShippedQty < r.OrderQty)</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">OTD %</div><div class="ames-kpi-v">@_otdPct.ToString("0.0")%</div></div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">▼ SHIPMENT VS PROMISE</div>
+    @if (_rows.Count == 0) { <div class="ames-empty">No orders in window.</div> }
+    else
+    {
+        <table class="ames-table">
+            <thead><tr><th>SO</th><th>Customer</th><th>Item</th><th class="num">Order</th><th class="num">Ship</th><th>Requested</th><th>Promised</th><th class="num">Days Late</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr>
+                        <td class="code">@r.SoNumber</td>
+                        <td>@r.CustomerId</td>
+                        <td>@r.ItemNo</td>
+                        <td class="num">@r.OrderQty.ToString("0")</td>
+                        <td class="num">@r.ShippedQty.ToString("0")</td>
+                        <td class="dim">@(r.RequestedDeliveryDate?.ToString("yyyy-MM-dd") ?? "—")</td>
+                        <td class="dim">@(r.PromisedDate?.ToString("yyyy-MM-dd") ?? "—")</td>
+                        <td class="num">@(r.DaysLate > 0 ? "+" + r.DaysLate : (r.DaysLate < 0 ? r.DaysLate.ToString() : "0"))</td>
+                        <td>@r.Status</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.PpRepository.OtdRow> _rows = new();
+    decimal _otdPct;
+    protected override void OnInitialized()
+    {
+        try
+        {
+            _rows = Pp.ListOtd();
+            if (_rows.Count > 0)
+            {
+                var onTime = _rows.Count(r => r.DaysLate <= 0 && r.ShippedQty >= r.OrderQty);
+                _otdPct = onTime * 100m / _rows.Count;
+            }
+        }
+        catch { }
+    }
+}

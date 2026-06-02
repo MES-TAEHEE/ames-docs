@@ -1,0 +1,48 @@
+@page "/pp/purchase-req"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.PpRepository Pp
+
+<PageTitle>PP-06 Purchase Req · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">PP-06</div>
+    <div class="ames-page-t">Purchase Request</div>
+    <div class="ames-page-sub">MRP 결과 → 구매 요청 → SAP PO 변환</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">TOTAL</div><div class="ames-kpi-v">@_rows.Count</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">PENDING</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "Pending")</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">APPROVED</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "Approved")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">SENT TO SAP</div><div class="ames-kpi-v">@_rows.Count(r => r.SapPoNumber != null)</div></div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">▼ PURCHASE REQUESTS</div>
+    @if (_rows.Count == 0) { <div class="ames-empty">No PR rows.</div> }
+    else
+    {
+        <table class="ames-table">
+            <thead><tr><th>PR No</th><th>Item</th><th>Vendor</th><th class="num">Qty</th><th>Required</th><th>Status</th><th>SAP PO</th></tr></thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr>
+                        <td class="code">@r.PrNumber</td>
+                        <td>@(r.ItemName ?? r.ItemNo)</td>
+                        <td class="dim">@r.VendorId</td>
+                        <td class="num">@r.RequiredQty.ToString("0")</td>
+                        <td class="dim">@(r.RequiredDate?.ToString("yyyy-MM-dd") ?? "—")</td>
+                        <td>@r.Status</td>
+                        <td class="code">@r.SapPoNumber</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.PpRepository.PrRow> _rows = new();
+    protected override void OnInitialized() { try { _rows = Pp.ListPurchaseRequests(); } catch { } }
+}

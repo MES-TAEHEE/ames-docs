@@ -1,0 +1,41 @@
+@page "/pp/calendar"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.PpRepository Pp
+
+<PageTitle>PP-CAL Calendar · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">PP-CAL</div>
+    <div class="ames-page-t">Production Calendar</div>
+    <div class="ames-page-sub">생산 캘린더 오버라이드 — 휴일·잔업·라인별 변경</div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">▼ CALENDAR OVERRIDES (next 30 days · last 7 days)</div>
+    @if (_rows.Count == 0) { <div class="ames-empty">No overrides scheduled.</div> }
+    else
+    {
+        <table class="ames-table">
+            <thead><tr><th>Date</th><th>Line</th><th>Day Type</th><th>Pattern</th><th class="num">Capacity</th><th>Reason</th></tr></thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    var dayCls = r.OverrideDate?.Date == DateTime.Today ? "code" : "dim";
+                    <tr>
+                        <td class="@dayCls">@(r.OverrideDate?.ToString("yyyy-MM-dd ddd") ?? "—")</td>
+                        <td>@(r.LineId ?? "(all)")</td>
+                        <td>@r.DayType</td>
+                        <td class="dim">@r.PatternId</td>
+                        <td class="num">@(r.CapacityFactor?.ToString("0.00") ?? "—")</td>
+                        <td>@r.Reason</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.PpRepository.CalendarRow> _rows = new();
+    protected override void OnInitialized() { try { _rows = Pp.ListCalendarOverrides(); } catch { } }
+}
