@@ -179,23 +179,135 @@
       <table class="ddl-tbl">
         <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
         <tbody>
-          <tr><td class="col">VendorID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>거래선 코드 (SUP-/CUS- 접두어).</td></tr>
-          <tr><td class="col">VendorName</td><td class="typ">VARCHAR(80)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>거래선 명칭.</td></tr>
-          <tr><td class="col">VendorType</td><td class="typ">VARCHAR(10)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>유형 — CK: SUPPLIER·CUSTOMER.</td></tr>
-          <tr><td class="col">VendorCategory</td><td class="typ">VARCHAR(30)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>분류 (수지·원단·도료 공급사 / 완성차).</td></tr>
-          <tr><td class="col">BizRegNo</td><td class="typ">VARCHAR(20)</td><td class="nn nn-n">N</td><td><span class="kbadge k-uk">UK</span></td><td class="typ">NULL</td><td>사업자 등록번호.</td></tr>
-          <tr><td class="col">ContactPerson</td><td class="typ">VARCHAR(40)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>담당자.</td></tr>
-          <tr><td class="col">Phone · Email</td><td class="typ">VARCHAR</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>연락처 / 이메일.</td></tr>
-          <tr><td class="col">ScmURL</td><td class="typ">VARCHAR(255)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>SCM 연동 엔드포인트 (고객사).</td></tr>
-          <tr><td class="col">EdiFlag</td><td class="typ">BOOLEAN</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">FALSE</td><td>EDI 전자거래 사용 여부.</td></tr>
-          <tr><td class="col">OtdTargetRate</td><td class="typ">DECIMAL(5,2)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">98.00</td><td>납기 이행율 목표 (고객사, RPT-04).</td></tr>
-          <tr><td class="col">PaymentTerms</td><td class="typ">VARCHAR(30)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>결제 조건 (월말 60일 등).</td></tr>
-          <tr><td class="col">ActiveFlag</td><td class="typ">BOOLEAN</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">TRUE</td><td>거래 활성 여부.</td></tr>
-          <tr><td class="col">CreatedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>생성자.</td></tr>
-          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
-          <tr><td class="col">ModifiedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정자.</td></tr>
-          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
-        </tbody>
+<tr>
+  <td class="col">VendorID</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-y">Y</td>
+  <td><span class="kbadge k-pk">PK</span></td>
+  <td class="typ">—</td>
+  <td>거래선 코드 (SUP-/CUS- 접두어).</td>
+</tr>
+<tr>
+  <td class="col">VendorName</td>
+  <td class="typ">NVARCHAR(80)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>거래선 명칭.</td>
+</tr>
+<tr>
+  <td class="col">VendorType</td>
+  <td class="typ">VARCHAR(10)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>유형 — CK: SUPPLIER·CUSTOMER.</td>
+</tr>
+<tr>
+  <td class="col">VendorCategory</td>
+  <td class="typ">NVARCHAR(30)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>분류 (수지·원단·도료 공급사 / 완성차).</td>
+</tr>
+<tr>
+  <td class="col">BizRegNo</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-uk">UK</span></td>
+  <td class="typ">NULL</td>
+  <td>사업자 등록번호.</td>
+</tr>
+<tr>
+  <td class="col">ContactPerson</td>
+  <td class="typ">NVARCHAR(40)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>담당자.</td>
+</tr>
+<tr>
+  <td class="col">Phone</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td></td>
+  <td>—</td>
+  <td><em>TODO — column added since L3 doc; describe purpose.</em></td>
+</tr>
+<tr>
+  <td class="col">Email</td>
+  <td class="typ">VARCHAR(60)</td>
+  <td class="nn nn-n">N</td>
+  <td></td>
+  <td>—</td>
+  <td><em>TODO — column added since L3 doc; describe purpose.</em></td>
+</tr>
+<tr>
+  <td class="col">ScmURL</td>
+  <td class="typ">VARCHAR(255)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>SCM 연동 엔드포인트 (고객사).</td>
+</tr>
+<tr>
+  <td class="col">EdiFlag</td>
+  <td class="typ">BIT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">FALSE</td>
+  <td>EDI 전자거래 사용 여부.</td>
+</tr>
+<tr>
+  <td class="col">OtdTargetRate</td>
+  <td class="typ">DECIMAL(5,2)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">98.00</td>
+  <td>납기 이행율 목표 (고객사, RPT-04).</td>
+</tr>
+<tr>
+  <td class="col">PaymentTerms</td>
+  <td class="typ">VARCHAR(30)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>결제 조건 (월말 60일 등).</td>
+</tr>
+<tr>
+  <td class="col">ActiveFlag</td>
+  <td class="typ">BIT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">TRUE</td>
+  <td>거래 활성 여부.</td>
+</tr>
+<tr>
+  <td class="col">CreatedBy</td>
+  <td class="typ">VARCHAR(50)</td>
+  <td class="nn nn-y">Y</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>생성자.</td>
+</tr>
+<tr>
+  <td class="col">CreatedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NOW()</td>
+  <td>생성 시각.</td>
+</tr>
+<tr>
+  <td class="col">ModifiedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최종 수정 시각.</td>
+</tr>
+</tbody>
       </table>
     </div>
 

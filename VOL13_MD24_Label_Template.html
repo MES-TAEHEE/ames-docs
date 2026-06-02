@@ -182,21 +182,119 @@
       <table class="ddl-tbl">
         <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
         <tbody>
-          <tr><td class="col">LabelTemplateID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>라벨 템플릿 관리 ID.</td></tr>
-          <tr><td class="col">TemplateName</td><td class="typ">VARCHAR(60)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>템플릿 명칭.</td></tr>
-          <tr><td class="col">LabelType</td><td class="typ">VARCHAR(12)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>라벨 유형 — CK: PART·BOX·PALLET·SHIPPING.</td></tr>
-          <tr><td class="col">PaperSize</td><td class="typ">VARCHAR(12)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>용지 규격 (예: 100x150mm).</td></tr>
-          <tr><td class="col">BarcodeType</td><td class="typ">VARCHAR(12)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">QR</td><td>바코드 유형 — CK: QR·CODE128·DATAMATRIX·EAN13.</td></tr>
-          <tr><td class="col">LayoutZPL</td><td class="typ">TEXT</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>ZPL 레이아웃 본문.</td></tr>
-          <tr><td class="col">FieldMapJSON</td><td class="typ">JSON</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>영역 → A-MES 데이터 필드 매핑.</td></tr>
-          <tr><td class="col">CustomerID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-n">N</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">NULL</td><td>전용 고객사 → MD_Customer (NULL=공용).</td></tr>
-          <tr><td class="col">Version</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">1</td><td>템플릿 버전 — CK: ≥ 1.</td></tr>
-          <tr><td class="col">PrinterModel</td><td class="typ">VARCHAR(30)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>대상 프린터 모델.</td></tr>
-          <tr><td class="col">Status</td><td class="typ">VARCHAR(8)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">ACTIVE</td><td>상태 — CK: ACTIVE·INACTIVE.</td></tr>
-          <tr><td class="col">CreatedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>생성자.</td></tr>
-          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
-          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
-        </tbody>
+<tr>
+  <td class="col">LabelTemplateID</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-y">Y</td>
+  <td><span class="kbadge k-pk">PK</span></td>
+  <td class="typ">—</td>
+  <td>라벨 템플릿 관리 ID.</td>
+</tr>
+<tr>
+  <td class="col">TemplateName</td>
+  <td class="typ">NVARCHAR(60)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>템플릿 명칭.</td>
+</tr>
+<tr>
+  <td class="col">LabelType</td>
+  <td class="typ">VARCHAR(12)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>라벨 유형 — CK: PART·BOX·PALLET·SHIPPING.</td>
+</tr>
+<tr>
+  <td class="col">PaperSize</td>
+  <td class="typ">VARCHAR(12)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>용지 규격 (예: 100x150mm).</td>
+</tr>
+<tr>
+  <td class="col">BarcodeType</td>
+  <td class="typ">VARCHAR(12)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">QR</td>
+  <td>바코드 유형 — CK: QR·CODE128·DATAMATRIX·EAN13.</td>
+</tr>
+<tr>
+  <td class="col">LayoutZPL</td>
+  <td class="typ">NVARCHAR(MAX)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>ZPL 레이아웃 본문.</td>
+</tr>
+<tr>
+  <td class="col">FieldMapJSON</td>
+  <td class="typ">NVARCHAR(MAX)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>영역 → A-MES 데이터 필드 매핑.</td>
+</tr>
+<tr>
+  <td class="col">CustomerID</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-fk">FK</span></td>
+  <td class="typ">NULL</td>
+  <td>전용 고객사 → MD_Customer (NULL=공용).</td>
+</tr>
+<tr>
+  <td class="col">Version</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">1</td>
+  <td>템플릿 버전 — CK: ≥ 1.</td>
+</tr>
+<tr>
+  <td class="col">PrinterModel</td>
+  <td class="typ">VARCHAR(30)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>대상 프린터 모델.</td>
+</tr>
+<tr>
+  <td class="col">Status</td>
+  <td class="typ">VARCHAR(8)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">ACTIVE</td>
+  <td>상태 — CK: ACTIVE·INACTIVE.</td>
+</tr>
+<tr>
+  <td class="col">CreatedBy</td>
+  <td class="typ">VARCHAR(50)</td>
+  <td class="nn nn-y">Y</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>생성자.</td>
+</tr>
+<tr>
+  <td class="col">CreatedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NOW()</td>
+  <td>생성 시각.</td>
+</tr>
+<tr>
+  <td class="col">ModifiedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최종 수정 시각.</td>
+</tr>
+</tbody>
       </table>
     </div>
 

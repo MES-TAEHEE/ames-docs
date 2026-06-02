@@ -179,20 +179,111 @@
       <table class="ddl-tbl">
         <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
         <tbody>
-          <tr><td class="col">MoldID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>금형 코드.</td></tr>
-          <tr><td class="col">MoldName</td><td class="typ">VARCHAR(50)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>금형 명칭.</td></tr>
-          <tr><td class="col">CompatItemsJSON</td><td class="typ">JSON</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>호환 품목 ID 목록 → MD_Item.</td></tr>
-          <tr><td class="col">RatedShots</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>정격 쇼트 수명.</td></tr>
-          <tr><td class="col">CurrentShots</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">0</td><td>누적 쇼트수 (INJ 자동 증가) — 90%/100% 임계 산정.</td></tr>
-          <tr><td class="col">CavityCount</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">1</td><td>캐비티 수 (1쇼트당 산출 수량).</td></tr>
-          <tr><td class="col">Tonnage</td><td class="typ">INT</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>필요 형체력 (톤) — 설비 호환 판정.</td></tr>
-          <tr><td class="col">StorageLoc</td><td class="typ">VARCHAR(20)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>금형 보관 위치.</td></tr>
-          <tr><td class="col">LastMaintDate</td><td class="typ">DATE</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최근 금형 정비일.</td></tr>
-          <tr><td class="col">Status</td><td class="typ">VARCHAR(10)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">ACTIVE</td><td>상태 — CK: ACTIVE·MAINT·RETIRED.</td></tr>
-          <tr><td class="col">CreatedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>생성자.</td></tr>
-          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
-          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
-        </tbody>
+<tr>
+  <td class="col">MoldID</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-y">Y</td>
+  <td><span class="kbadge k-pk">PK</span></td>
+  <td class="typ">—</td>
+  <td>금형 코드.</td>
+</tr>
+<tr>
+  <td class="col">MoldName</td>
+  <td class="typ">NVARCHAR(50)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>금형 명칭.</td>
+</tr>
+<tr>
+  <td class="col">CompatItemsJSON</td>
+  <td class="typ">NVARCHAR(MAX)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>호환 품목 ID 목록 → MD_Item.</td>
+</tr>
+<tr>
+  <td class="col">RatedShots</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>정격 쇼트 수명.</td>
+</tr>
+<tr>
+  <td class="col">CurrentShots</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">0</td>
+  <td>누적 쇼트수 (INJ 자동 증가) — 90%/100% 임계 산정.</td>
+</tr>
+<tr>
+  <td class="col">CavityCount</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">1</td>
+  <td>캐비티 수 (1쇼트당 산출 수량).</td>
+</tr>
+<tr>
+  <td class="col">Tonnage</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>필요 형체력 (톤) — 설비 호환 판정.</td>
+</tr>
+<tr>
+  <td class="col">StorageLoc</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>금형 보관 위치.</td>
+</tr>
+<tr>
+  <td class="col">LastMaintDate</td>
+  <td class="typ">DATE</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최근 금형 정비일.</td>
+</tr>
+<tr>
+  <td class="col">Status</td>
+  <td class="typ">VARCHAR(10)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">ACTIVE</td>
+  <td>상태 — CK: ACTIVE·MAINT·RETIRED.</td>
+</tr>
+<tr>
+  <td class="col">CreatedBy</td>
+  <td class="typ">VARCHAR(50)</td>
+  <td class="nn nn-y">Y</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>생성자.</td>
+</tr>
+<tr>
+  <td class="col">CreatedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NOW()</td>
+  <td>생성 시각.</td>
+</tr>
+<tr>
+  <td class="col">ModifiedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최종 수정 시각.</td>
+</tr>
+</tbody>
       </table>
     </div>
 

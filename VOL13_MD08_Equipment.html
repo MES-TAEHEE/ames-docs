@@ -180,24 +180,135 @@
       <table class="ddl-tbl">
         <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
         <tbody>
-          <tr><td class="col">EquipID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>설비 코드 (INJ-M-001 등).</td></tr>
-          <tr><td class="col">EquipName</td><td class="typ">VARCHAR(50)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>설비 명칭.</td></tr>
-          <tr><td class="col">EquipType</td><td class="typ">VARCHAR(16)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>유형 — CK: INJ_MACHINE·WRAP_PRESS·PNT_ROBOT·SPRAY_BOOTH·OVEN_UNIT.</td></tr>
-          <tr><td class="col">LineID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-n">N</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">NULL</td><td>소속 라인 → MD_Line(LineID).</td></tr>
-          <tr><td class="col">WCID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-n">N</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">NULL</td><td>소속 작업장 → MD_WorkCenter(WCID).</td></tr>
-          <tr><td class="col">MakerModel</td><td class="typ">VARCHAR(60)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>제조사·모델명.</td></tr>
-          <tr><td class="col">InstallDate</td><td class="typ">DATE</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>설치일.</td></tr>
-          <tr><td class="col">TheoreticalCycle</td><td class="typ">DECIMAL(8,2)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>이론 사이클 타임 (초) — OEE 성능 분모.</td></tr>
-          <tr><td class="col">TargetOEE</td><td class="typ">DECIMAL(5,2)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">85.00</td><td>OEE 목표 (%) — RPT-06.</td></tr>
-          <tr><td class="col">MoldCompatJSON</td><td class="typ">JSON</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>호환 금형 ID 목록 → MD_Mold.</td></tr>
-          <tr><td class="col">PlcAddress</td><td class="typ">VARCHAR(40)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>PLC 신호 주소 (MNT-01 실시간 상태).</td></tr>
-          <tr><td class="col">Status</td><td class="typ">VARCHAR(8)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">IDLE</td><td>현재 상태 — CK: RUN·IDLE·DOWN·PM.</td></tr>
-          <tr><td class="col">ActiveFlag</td><td class="typ">BOOLEAN</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">TRUE</td><td>운영 여부 (폐기 시 FALSE).</td></tr>
-          <tr><td class="col">CreatedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>생성자.</td></tr>
-          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
-          <tr><td class="col">ModifiedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정자.</td></tr>
-          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
-        </tbody>
+<tr>
+  <td class="col">EquipID</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-y">Y</td>
+  <td><span class="kbadge k-pk">PK</span></td>
+  <td class="typ">—</td>
+  <td>설비 코드 (INJ-M-001 등).</td>
+</tr>
+<tr>
+  <td class="col">EquipName</td>
+  <td class="typ">NVARCHAR(50)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>설비 명칭.</td>
+</tr>
+<tr>
+  <td class="col">EquipType</td>
+  <td class="typ">VARCHAR(16)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>유형 — CK: INJ_MACHINE·WRAP_PRESS·PNT_ROBOT·SPRAY_BOOTH·OVEN_UNIT.</td>
+</tr>
+<tr>
+  <td class="col">LineID</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-fk">FK</span></td>
+  <td class="typ">NULL</td>
+  <td>소속 라인 → MD_Line(LineID).</td>
+</tr>
+<tr>
+  <td class="col">WCID</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-fk">FK</span></td>
+  <td class="typ">NULL</td>
+  <td>소속 작업장 → MD_WorkCenter(WCID).</td>
+</tr>
+<tr>
+  <td class="col">MakerModel</td>
+  <td class="typ">NVARCHAR(60)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>제조사·모델명.</td>
+</tr>
+<tr>
+  <td class="col">InstallDate</td>
+  <td class="typ">DATE</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>설치일.</td>
+</tr>
+<tr>
+  <td class="col">TheoreticalCycle</td>
+  <td class="typ">DECIMAL(8,2)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>이론 사이클 타임 (초) — OEE 성능 분모.</td>
+</tr>
+<tr>
+  <td class="col">TargetOEE</td>
+  <td class="typ">DECIMAL(5,2)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">85.00</td>
+  <td>OEE 목표 (%) — RPT-06.</td>
+</tr>
+<tr>
+  <td class="col">MoldCompatJSON</td>
+  <td class="typ">NVARCHAR(MAX)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>호환 금형 ID 목록 → MD_Mold.</td>
+</tr>
+<tr>
+  <td class="col">PlcAddress</td>
+  <td class="typ">VARCHAR(40)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>PLC 신호 주소 (MNT-01 실시간 상태).</td>
+</tr>
+<tr>
+  <td class="col">Status</td>
+  <td class="typ">VARCHAR(8)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">IDLE</td>
+  <td>현재 상태 — CK: RUN·IDLE·DOWN·PM.</td>
+</tr>
+<tr>
+  <td class="col">ActiveFlag</td>
+  <td class="typ">BIT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">TRUE</td>
+  <td>운영 여부 (폐기 시 FALSE).</td>
+</tr>
+<tr>
+  <td class="col">CreatedBy</td>
+  <td class="typ">VARCHAR(50)</td>
+  <td class="nn nn-y">Y</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>생성자.</td>
+</tr>
+<tr>
+  <td class="col">CreatedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NOW()</td>
+  <td>생성 시각.</td>
+</tr>
+<tr>
+  <td class="col">ModifiedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최종 수정 시각.</td>
+</tr>
+</tbody>
       </table>
     </div>
 

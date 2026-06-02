@@ -182,23 +182,135 @@
       <table class="ddl-tbl">
         <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
         <tbody>
-          <tr><td class="col">PartNo</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>부품 번호 (SP-{category}-{nnnn}).</td></tr>
-          <tr><td class="col">PartName</td><td class="typ">VARCHAR(60)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>부품 명칭.</td></tr>
-          <tr><td class="col">Category</td><td class="typ">VARCHAR(16)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>분류 — CK: HYDRAULIC·ELECTRICAL·MECHANICAL·CONSUMABLE.</td></tr>
-          <tr><td class="col">CompatEquipJSON</td><td class="typ">JSON</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>호환 설비 ID 목록 → MD_Equipment.</td></tr>
-          <tr><td class="col">UnitCost</td><td class="typ">DECIMAL(12,2)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">0</td><td>부품 단가.</td></tr>
-          <tr><td class="col">UOM</td><td class="typ">VARCHAR(10)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">EA</td><td>관리 단위 → MD_UOM(UOMCode).</td></tr>
-          <tr><td class="col">SafetyStock</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">0</td><td>안전 재고 수준.</td></tr>
-          <tr><td class="col">ReorderPoint</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">0</td><td>재발주점 — 미달 시 MNT-08 자동 재발주.</td></tr>
-          <tr><td class="col">ReorderQty</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">0</td><td>표준 발주 수량.</td></tr>
-          <tr><td class="col">LeadTimeDays</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">0</td><td>조달 리드타임 (일).</td></tr>
-          <tr><td class="col">SupplierID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-n">N</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">NULL</td><td>공급 거래선 → MD_Vendor(VendorID).</td></tr>
-          <tr><td class="col">StorageLoc</td><td class="typ">VARCHAR(20)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>정비 창고 보관 위치.</td></tr>
-          <tr><td class="col">ActiveFlag</td><td class="typ">BOOLEAN</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">TRUE</td><td>사용 여부.</td></tr>
-          <tr><td class="col">CreatedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>생성자.</td></tr>
-          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
-          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
-        </tbody>
+<tr>
+  <td class="col">PartNo</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-y">Y</td>
+  <td><span class="kbadge k-pk">PK</span></td>
+  <td class="typ">—</td>
+  <td>부품 번호 (SP-{category}-{nnnn}).</td>
+</tr>
+<tr>
+  <td class="col">PartName</td>
+  <td class="typ">NVARCHAR(60)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>부품 명칭.</td>
+</tr>
+<tr>
+  <td class="col">Category</td>
+  <td class="typ">VARCHAR(16)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>분류 — CK: HYDRAULIC·ELECTRICAL·MECHANICAL·CONSUMABLE.</td>
+</tr>
+<tr>
+  <td class="col">CompatEquipJSON</td>
+  <td class="typ">NVARCHAR(MAX)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>호환 설비 ID 목록 → MD_Equipment.</td>
+</tr>
+<tr>
+  <td class="col">UnitCost</td>
+  <td class="typ">DECIMAL(12,2)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">0</td>
+  <td>부품 단가.</td>
+</tr>
+<tr>
+  <td class="col">UOM</td>
+  <td class="typ">VARCHAR(10)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-fk">FK</span></td>
+  <td class="typ">EA</td>
+  <td>관리 단위 → MD_UOM(UOMCode).</td>
+</tr>
+<tr>
+  <td class="col">SafetyStock</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">0</td>
+  <td>안전 재고 수준.</td>
+</tr>
+<tr>
+  <td class="col">ReorderPoint</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">0</td>
+  <td>재발주점 — 미달 시 MNT-08 자동 재발주.</td>
+</tr>
+<tr>
+  <td class="col">ReorderQty</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">0</td>
+  <td>표준 발주 수량.</td>
+</tr>
+<tr>
+  <td class="col">LeadTimeDays</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">0</td>
+  <td>조달 리드타임 (일).</td>
+</tr>
+<tr>
+  <td class="col">SupplierID</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-fk">FK</span></td>
+  <td class="typ">NULL</td>
+  <td>공급 거래선 → MD_Vendor(VendorID).</td>
+</tr>
+<tr>
+  <td class="col">StorageLoc</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>정비 창고 보관 위치.</td>
+</tr>
+<tr>
+  <td class="col">ActiveFlag</td>
+  <td class="typ">BIT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">TRUE</td>
+  <td>사용 여부.</td>
+</tr>
+<tr>
+  <td class="col">CreatedBy</td>
+  <td class="typ">VARCHAR(50)</td>
+  <td class="nn nn-y">Y</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>생성자.</td>
+</tr>
+<tr>
+  <td class="col">CreatedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NOW()</td>
+  <td>생성 시각.</td>
+</tr>
+<tr>
+  <td class="col">ModifiedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최종 수정 시각.</td>
+</tr>
+</tbody>
       </table>
     </div>
 

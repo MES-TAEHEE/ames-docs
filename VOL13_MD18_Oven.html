@@ -180,20 +180,111 @@
       <table class="ddl-tbl">
         <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
         <tbody>
-          <tr><td class="col">OvenID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>오븐 코드.</td></tr>
-          <tr><td class="col">OvenName</td><td class="typ">VARCHAR(50)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>오븐 명칭.</td></tr>
-          <tr><td class="col">LineID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">—</td><td>소속 PAINTING 라인 → MD_Line(LineID).</td></tr>
-          <tr><td class="col">ZoneCount</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>온도 zone 수.</td></tr>
-          <tr><td class="col">TargetTemp</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>목표 경화 온도 (°C) — CK: 150~200.</td></tr>
-          <tr><td class="col">Tolerance</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">5</td><td>허용 공차 (±°C) — 이탈 시 PNT-05 경보.</td></tr>
-          <tr><td class="col">DwellSec</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>체류 시간 (초) — CK: 300~1800 (5~30분).</td></tr>
-          <tr><td class="col">ConveyorSpeed</td><td class="typ">DECIMAL(6,2)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>컨베이어 속도 (m/min).</td></tr>
-          <tr><td class="col">MaxLoadKg</td><td class="typ">DECIMAL(8,1)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최대 적재 중량 (kg).</td></tr>
-          <tr><td class="col">Status</td><td class="typ">VARCHAR(8)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">IDLE</td><td>상태 — CK: RUN·IDLE·DOWN.</td></tr>
-          <tr><td class="col">CreatedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>생성자.</td></tr>
-          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
-          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
-        </tbody>
+<tr>
+  <td class="col">OvenID</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-y">Y</td>
+  <td><span class="kbadge k-pk">PK</span></td>
+  <td class="typ">—</td>
+  <td>오븐 코드.</td>
+</tr>
+<tr>
+  <td class="col">OvenName</td>
+  <td class="typ">NVARCHAR(50)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>오븐 명칭.</td>
+</tr>
+<tr>
+  <td class="col">LineID</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-fk">FK</span></td>
+  <td class="typ">—</td>
+  <td>소속 PAINTING 라인 → MD_Line(LineID).</td>
+</tr>
+<tr>
+  <td class="col">ZoneCount</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>온도 zone 수.</td>
+</tr>
+<tr>
+  <td class="col">TargetTemp</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>목표 경화 온도 (°C) — CK: 150~200.</td>
+</tr>
+<tr>
+  <td class="col">Tolerance</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">5</td>
+  <td>허용 공차 (±°C) — 이탈 시 PNT-05 경보.</td>
+</tr>
+<tr>
+  <td class="col">DwellSec</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>체류 시간 (초) — CK: 300~1800 (5~30분).</td>
+</tr>
+<tr>
+  <td class="col">ConveyorSpeed</td>
+  <td class="typ">DECIMAL(6,2)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>컨베이어 속도 (m/min).</td>
+</tr>
+<tr>
+  <td class="col">MaxLoadKg</td>
+  <td class="typ">DECIMAL(8,1)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최대 적재 중량 (kg).</td>
+</tr>
+<tr>
+  <td class="col">Status</td>
+  <td class="typ">VARCHAR(8)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">IDLE</td>
+  <td>상태 — CK: RUN·IDLE·DOWN.</td>
+</tr>
+<tr>
+  <td class="col">CreatedBy</td>
+  <td class="typ">VARCHAR(50)</td>
+  <td class="nn nn-y">Y</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>생성자.</td>
+</tr>
+<tr>
+  <td class="col">CreatedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NOW()</td>
+  <td>생성 시각.</td>
+</tr>
+<tr>
+  <td class="col">ModifiedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최종 수정 시각.</td>
+</tr>
+</tbody>
       </table>
     </div>
 

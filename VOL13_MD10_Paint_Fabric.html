@@ -177,22 +177,127 @@
       <table class="ddl-tbl">
         <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
         <tbody>
-          <tr><td class="col">MatLotID</td><td class="typ">VARCHAR(24)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>자재 로트 관리 ID.</td></tr>
-          <tr><td class="col">MatCode</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>자재 코드.</td></tr>
-          <tr><td class="col">MatName</td><td class="typ">VARCHAR(60)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>자재 명칭.</td></tr>
-          <tr><td class="col">MatType</td><td class="typ">VARCHAR(14)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>유형 — CK: LIQUID_PAINT·POWDER·FABRIC·ADHESIVE.</td></tr>
-          <tr><td class="col">LotNo</td><td class="typ">VARCHAR(24)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>공급사 로트 번호.</td></tr>
-          <tr><td class="col">SupplierID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">—</td><td>공급사 → MD_Vendor(VendorID).</td></tr>
-          <tr><td class="col">UOM</td><td class="typ">VARCHAR(10)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">—</td><td>관리 단위 → MD_UOM(UOMCode).</td></tr>
-          <tr><td class="col">QtyOnHand</td><td class="typ">DECIMAL(12,3)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">0</td><td>현재 재고 수량.</td></tr>
-          <tr><td class="col">ReceiptDate</td><td class="typ">DATE</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>입고일.</td></tr>
-          <tr><td class="col">ExpDate</td><td class="typ">DATE</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>유효기한 (FEFO 기준).</td></tr>
-          <tr><td class="col">StorageReq</td><td class="typ">VARCHAR(40)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>보관 요건 (온도·습도·차광).</td></tr>
-          <tr><td class="col">Status</td><td class="typ">VARCHAR(10)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">AVAILABLE</td><td>상태 — CK: AVAILABLE·EXPIRED·CONSUMED.</td></tr>
-          <tr><td class="col">CreatedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>생성자.</td></tr>
-          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
-          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
-        </tbody>
+<tr>
+  <td class="col">MatLotID</td>
+  <td class="typ">VARCHAR(24)</td>
+  <td class="nn nn-y">Y</td>
+  <td><span class="kbadge k-pk">PK</span></td>
+  <td class="typ">—</td>
+  <td>자재 로트 관리 ID.</td>
+</tr>
+<tr>
+  <td class="col">MatCode</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>자재 코드.</td>
+</tr>
+<tr>
+  <td class="col">MatName</td>
+  <td class="typ">NVARCHAR(60)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>자재 명칭.</td>
+</tr>
+<tr>
+  <td class="col">MatType</td>
+  <td class="typ">VARCHAR(14)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>유형 — CK: LIQUID_PAINT·POWDER·FABRIC·ADHESIVE.</td>
+</tr>
+<tr>
+  <td class="col">LotNo</td>
+  <td class="typ">VARCHAR(24)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>공급사 로트 번호.</td>
+</tr>
+<tr>
+  <td class="col">SupplierID</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-fk">FK</span></td>
+  <td class="typ">—</td>
+  <td>공급사 → MD_Vendor(VendorID).</td>
+</tr>
+<tr>
+  <td class="col">UOM</td>
+  <td class="typ">VARCHAR(10)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-fk">FK</span></td>
+  <td class="typ">—</td>
+  <td>관리 단위 → MD_UOM(UOMCode).</td>
+</tr>
+<tr>
+  <td class="col">QtyOnHand</td>
+  <td class="typ">DECIMAL(12,3)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">0</td>
+  <td>현재 재고 수량.</td>
+</tr>
+<tr>
+  <td class="col">ReceiptDate</td>
+  <td class="typ">DATE</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>입고일.</td>
+</tr>
+<tr>
+  <td class="col">ExpDate</td>
+  <td class="typ">DATE</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>유효기한 (FEFO 기준).</td>
+</tr>
+<tr>
+  <td class="col">StorageReq</td>
+  <td class="typ">NVARCHAR(40)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>보관 요건 (온도·습도·차광).</td>
+</tr>
+<tr>
+  <td class="col">Status</td>
+  <td class="typ">VARCHAR(10)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">AVAILABLE</td>
+  <td>상태 — CK: AVAILABLE·EXPIRED·CONSUMED.</td>
+</tr>
+<tr>
+  <td class="col">CreatedBy</td>
+  <td class="typ">VARCHAR(50)</td>
+  <td class="nn nn-y">Y</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>생성자.</td>
+</tr>
+<tr>
+  <td class="col">CreatedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NOW()</td>
+  <td>생성 시각.</td>
+</tr>
+<tr>
+  <td class="col">ModifiedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최종 수정 시각.</td>
+</tr>
+</tbody>
       </table>
     </div>
 

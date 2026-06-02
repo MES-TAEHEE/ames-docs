@@ -179,22 +179,119 @@
       <table class="ddl-tbl">
         <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
         <tbody>
-          <tr><td class="col">JigID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>지그 코드.</td></tr>
-          <tr><td class="col">JigName</td><td class="typ">VARCHAR(50)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>지그 명칭.</td></tr>
-          <tr><td class="col">HangerCount</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>행거 수 (사이클당 적재 캐파).</td></tr>
-          <tr><td class="col">CompatItemsJSON</td><td class="typ">JSON</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>호환 품목 ID 목록 → MD_Item.</td></tr>
-          <tr><td class="col">RatedCycle</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>정격 열사이클 수명.</td></tr>
-          <tr><td class="col">CycleCount</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">0</td><td>누적 오븐 통과 사이클 (자동 증가).</td></tr>
-          <tr><td class="col">ReadFailRate</td><td class="typ">DECIMAL(5,2)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">0.00</td><td>RFID 인식 실패율 (%).</td></tr>
-          <tr><td class="col">HealthStatus</td><td class="typ">VARCHAR(8)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">GOOD</td><td>헬스 상태 — CK: GOOD·WARN·SERVICE.</td></tr>
-          <tr><td class="col">LastServiceDate</td><td class="typ">DATE</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최근 점검·정비일.</td></tr>
-          <tr><td class="col">LastUsedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최근 사용 시각.</td></tr>
-          <tr><td class="col">ActiveFlag</td><td class="typ">BOOLEAN</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">TRUE</td><td>사용 여부.</td></tr>
-          <tr><td class="col">CreatedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>생성자.</td></tr>
-          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
-          <tr><td class="col">ModifiedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정자.</td></tr>
-          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
-        </tbody>
+<tr>
+  <td class="col">JigID</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-y">Y</td>
+  <td><span class="kbadge k-pk">PK</span></td>
+  <td class="typ">—</td>
+  <td>지그 코드.</td>
+</tr>
+<tr>
+  <td class="col">JigName</td>
+  <td class="typ">NVARCHAR(50)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>지그 명칭.</td>
+</tr>
+<tr>
+  <td class="col">HangerCount</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>행거 수 (사이클당 적재 캐파).</td>
+</tr>
+<tr>
+  <td class="col">CompatItemsJSON</td>
+  <td class="typ">NVARCHAR(MAX)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>호환 품목 ID 목록 → MD_Item.</td>
+</tr>
+<tr>
+  <td class="col">RatedCycle</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>정격 열사이클 수명.</td>
+</tr>
+<tr>
+  <td class="col">CycleCount</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">0</td>
+  <td>누적 오븐 통과 사이클 (자동 증가).</td>
+</tr>
+<tr>
+  <td class="col">ReadFailRate</td>
+  <td class="typ">DECIMAL(5,2)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">0.00</td>
+  <td>RFID 인식 실패율 (%).</td>
+</tr>
+<tr>
+  <td class="col">HealthStatus</td>
+  <td class="typ">VARCHAR(8)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">GOOD</td>
+  <td>헬스 상태 — CK: GOOD·WARN·SERVICE.</td>
+</tr>
+<tr>
+  <td class="col">LastServiceDate</td>
+  <td class="typ">DATE</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최근 점검·정비일.</td>
+</tr>
+<tr>
+  <td class="col">LastUsedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최근 사용 시각.</td>
+</tr>
+<tr>
+  <td class="col">ActiveFlag</td>
+  <td class="typ">BIT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">TRUE</td>
+  <td>사용 여부.</td>
+</tr>
+<tr>
+  <td class="col">CreatedBy</td>
+  <td class="typ">VARCHAR(50)</td>
+  <td class="nn nn-y">Y</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>생성자.</td>
+</tr>
+<tr>
+  <td class="col">CreatedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NOW()</td>
+  <td>생성 시각.</td>
+</tr>
+<tr>
+  <td class="col">ModifiedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최종 수정 시각.</td>
+</tr>
+</tbody>
       </table>
     </div>
 

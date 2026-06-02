@@ -177,20 +177,103 @@
       <table class="ddl-tbl">
         <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
         <tbody>
-          <tr><td class="col">UOMCode</td><td class="typ">VARCHAR(10)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>단위 코드 (EA·KG·L·M·ROLL·BOX...).</td></tr>
-          <tr><td class="col">UOMName</td><td class="typ">VARCHAR(30)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>단위 명칭 (개·킬로그램·미터...).</td></tr>
-          <tr><td class="col">UOMCategory</td><td class="typ">VARCHAR(10)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>단위 분류 — CK: QTY·WEIGHT·LENGTH·VOLUME·AREA·TIME.</td></tr>
-          <tr><td class="col">BaseFlag</td><td class="typ">BOOLEAN</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">FALSE</td><td>카테고리 기본 단위 여부 (카테고리당 1개).</td></tr>
-          <tr><td class="col">BaseUOM</td><td class="typ">VARCHAR(10)</td><td class="nn nn-n">N</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">NULL</td><td>환산 기준 기본 단위 → MD_UOM(UOMCode) 자기참조.</td></tr>
-          <tr><td class="col">ConvFactor</td><td class="typ">DECIMAL(18,8)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">1</td><td>기본 단위 대비 환산 계수 (1 단위 = ConvFactor 기본단위).</td></tr>
-          <tr><td class="col">DecimalPrec</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">2</td><td>표시 소수점 자릿수.</td></tr>
-          <tr><td class="col">Symbol</td><td class="typ">VARCHAR(8)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>표시 기호 (㎏·㎖ 등).</td></tr>
-          <tr><td class="col">ActiveFlag</td><td class="typ">BOOLEAN</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">TRUE</td><td>사용 여부.</td></tr>
-          <tr><td class="col">CreatedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>생성자.</td></tr>
-          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
-          <tr><td class="col">ModifiedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정자.</td></tr>
-          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
-        </tbody>
+<tr>
+  <td class="col">UOMCode</td>
+  <td class="typ">VARCHAR(10)</td>
+  <td class="nn nn-y">Y</td>
+  <td><span class="kbadge k-pk">PK</span></td>
+  <td class="typ">—</td>
+  <td>단위 코드 (EA·KG·L·M·ROLL·BOX...).</td>
+</tr>
+<tr>
+  <td class="col">UOMName</td>
+  <td class="typ">NVARCHAR(30)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>단위 명칭 (개·킬로그램·미터...).</td>
+</tr>
+<tr>
+  <td class="col">UOMCategory</td>
+  <td class="typ">VARCHAR(10)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>단위 분류 — CK: QTY·WEIGHT·LENGTH·VOLUME·AREA·TIME.</td>
+</tr>
+<tr>
+  <td class="col">BaseFlag</td>
+  <td class="typ">BIT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">FALSE</td>
+  <td>카테고리 기본 단위 여부 (카테고리당 1개).</td>
+</tr>
+<tr>
+  <td class="col">BaseUOM</td>
+  <td class="typ">VARCHAR(10)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-fk">FK</span></td>
+  <td class="typ">NULL</td>
+  <td>환산 기준 기본 단위 → MD_UOM(UOMCode) 자기참조.</td>
+</tr>
+<tr>
+  <td class="col">ConvFactor</td>
+  <td class="typ">DECIMAL(18,8)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">1</td>
+  <td>기본 단위 대비 환산 계수 (1 단위 = ConvFactor 기본단위).</td>
+</tr>
+<tr>
+  <td class="col">DecimalPrec</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">2</td>
+  <td>표시 소수점 자릿수.</td>
+</tr>
+<tr>
+  <td class="col">Symbol</td>
+  <td class="typ">NVARCHAR(8)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>표시 기호 (㎏·㎖ 등).</td>
+</tr>
+<tr>
+  <td class="col">ActiveFlag</td>
+  <td class="typ">BIT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">TRUE</td>
+  <td>사용 여부.</td>
+</tr>
+<tr>
+  <td class="col">CreatedBy</td>
+  <td class="typ">VARCHAR(50)</td>
+  <td class="nn nn-y">Y</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>생성자.</td>
+</tr>
+<tr>
+  <td class="col">CreatedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NOW()</td>
+  <td>생성 시각.</td>
+</tr>
+<tr>
+  <td class="col">ModifiedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최종 수정 시각.</td>
+</tr>
+</tbody>
       </table>
     </div>
 

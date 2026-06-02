@@ -182,22 +182,127 @@
       <table class="ddl-tbl">
         <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
         <tbody>
-          <tr><td class="col">PackSpecID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>포장사양 관리 ID.</td></tr>
-          <tr><td class="col">ItemID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">—</td><td>대상 품목 → MD_Item(ItemID).</td></tr>
-          <tr><td class="col">PackType</td><td class="typ">VARCHAR(12)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">BOX</td><td>포장 형태 — CK: BOX·PALLET·CRATE·RETURNABLE.</td></tr>
-          <tr><td class="col">QtyPerInner</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">1</td><td>내포장당 제품 수량 — CK: ≥ 1.</td></tr>
-          <tr><td class="col">InnerPerOuter</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">1</td><td>외박스당 내포장 수 — CK: ≥ 1.</td></tr>
-          <tr><td class="col">OuterPerPallet</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">1</td><td>팔레트당 외박스 수 — CK: ≥ 1.</td></tr>
-          <tr><td class="col">NetWeightKg</td><td class="typ">DECIMAL(8,3)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>외박스 정미 중량 (kg).</td></tr>
-          <tr><td class="col">GrossWeightKg</td><td class="typ">DECIMAL(8,3)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>외박스 총중량 (kg).</td></tr>
-          <tr><td class="col">DimLxWxH</td><td class="typ">VARCHAR(30)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>외박스 치수 (L×W×H mm).</td></tr>
-          <tr><td class="col">ReturnableFlag</td><td class="typ">BOOLEAN</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">FALSE</td><td>회수용기 사용 여부.</td></tr>
-          <tr><td class="col">LabelTemplateID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-n">N</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">NULL</td><td>박스 라벨 템플릿 → MD_LabelTemplate.</td></tr>
-          <tr><td class="col">Status</td><td class="typ">VARCHAR(8)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">ACTIVE</td><td>상태 — CK: ACTIVE·INACTIVE.</td></tr>
-          <tr><td class="col">CreatedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>생성자.</td></tr>
-          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
-          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
-        </tbody>
+<tr>
+  <td class="col">PackSpecID</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-y">Y</td>
+  <td><span class="kbadge k-pk">PK</span></td>
+  <td class="typ">—</td>
+  <td>포장사양 관리 ID.</td>
+</tr>
+<tr>
+  <td class="col">ItemID</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-fk">FK</span></td>
+  <td class="typ">—</td>
+  <td>대상 품목 → MD_Item(ItemID).</td>
+</tr>
+<tr>
+  <td class="col">PackType</td>
+  <td class="typ">VARCHAR(12)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">BOX</td>
+  <td>포장 형태 — CK: BOX·PALLET·CRATE·RETURNABLE.</td>
+</tr>
+<tr>
+  <td class="col">QtyPerInner</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">1</td>
+  <td>내포장당 제품 수량 — CK: ≥ 1.</td>
+</tr>
+<tr>
+  <td class="col">InnerPerOuter</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">1</td>
+  <td>외박스당 내포장 수 — CK: ≥ 1.</td>
+</tr>
+<tr>
+  <td class="col">OuterPerPallet</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">1</td>
+  <td>팔레트당 외박스 수 — CK: ≥ 1.</td>
+</tr>
+<tr>
+  <td class="col">NetWeightKg</td>
+  <td class="typ">DECIMAL(8,3)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>외박스 정미 중량 (kg).</td>
+</tr>
+<tr>
+  <td class="col">GrossWeightKg</td>
+  <td class="typ">DECIMAL(8,3)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>외박스 총중량 (kg).</td>
+</tr>
+<tr>
+  <td class="col">DimLxWxH</td>
+  <td class="typ">VARCHAR(30)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>외박스 치수 (L×W×H mm).</td>
+</tr>
+<tr>
+  <td class="col">ReturnableFlag</td>
+  <td class="typ">BIT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">FALSE</td>
+  <td>회수용기 사용 여부.</td>
+</tr>
+<tr>
+  <td class="col">LabelTemplateID</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-fk">FK</span></td>
+  <td class="typ">NULL</td>
+  <td>박스 라벨 템플릿 → MD_LabelTemplate.</td>
+</tr>
+<tr>
+  <td class="col">Status</td>
+  <td class="typ">VARCHAR(8)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">ACTIVE</td>
+  <td>상태 — CK: ACTIVE·INACTIVE.</td>
+</tr>
+<tr>
+  <td class="col">CreatedBy</td>
+  <td class="typ">VARCHAR(50)</td>
+  <td class="nn nn-y">Y</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>생성자.</td>
+</tr>
+<tr>
+  <td class="col">CreatedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NOW()</td>
+  <td>생성 시각.</td>
+</tr>
+<tr>
+  <td class="col">ModifiedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최종 수정 시각.</td>
+</tr>
+</tbody>
       </table>
     </div>
 

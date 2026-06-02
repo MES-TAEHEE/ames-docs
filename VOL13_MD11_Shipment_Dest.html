@@ -182,21 +182,119 @@
       <table class="ddl-tbl">
         <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
         <tbody>
-          <tr><td class="col">ShipDestID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>출하처 관리 ID.</td></tr>
-          <tr><td class="col">CustomerID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">—</td><td>소속 고객사 → MD_Customer(CustomerID).</td></tr>
-          <tr><td class="col">DestName</td><td class="typ">VARCHAR(80)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>출하처 명칭.</td></tr>
-          <tr><td class="col">DestType</td><td class="typ">VARCHAR(10)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">PLANT</td><td>유형 — CK: PLANT·WAREHOUSE·PORT·DC.</td></tr>
-          <tr><td class="col">Address</td><td class="typ">VARCHAR(200)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>전체 주소.</td></tr>
-          <tr><td class="col">Country</td><td class="typ">CHAR(3)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">KOR</td><td>국가 코드 (ISO 3166-1 alpha-3).</td></tr>
-          <tr><td class="col">DeliveryDock</td><td class="typ">VARCHAR(20)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>지정 입고 도크·게이트.</td></tr>
-          <tr><td class="col">LeadTimeDays</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">1</td><td>운송 리드타임 (일) — CK: ≥ 0.</td></tr>
-          <tr><td class="col">DefaultCarrier</td><td class="typ">VARCHAR(40)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>기본 운송사.</td></tr>
-          <tr><td class="col">DeliveryWindow</td><td class="typ">VARCHAR(40)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>납품 가능 시간창 (예: 08:00–12:00).</td></tr>
-          <tr><td class="col">Status</td><td class="typ">VARCHAR(8)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">ACTIVE</td><td>상태 — CK: ACTIVE·INACTIVE.</td></tr>
-          <tr><td class="col">CreatedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>생성자.</td></tr>
-          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
-          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
-        </tbody>
+<tr>
+  <td class="col">ShipDestID</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-y">Y</td>
+  <td><span class="kbadge k-pk">PK</span></td>
+  <td class="typ">—</td>
+  <td>출하처 관리 ID.</td>
+</tr>
+<tr>
+  <td class="col">CustomerID</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-fk">FK</span></td>
+  <td class="typ">—</td>
+  <td>소속 고객사 → MD_Customer(CustomerID).</td>
+</tr>
+<tr>
+  <td class="col">DestName</td>
+  <td class="typ">NVARCHAR(80)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>출하처 명칭.</td>
+</tr>
+<tr>
+  <td class="col">DestType</td>
+  <td class="typ">VARCHAR(10)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">PLANT</td>
+  <td>유형 — CK: PLANT·WAREHOUSE·PORT·DC.</td>
+</tr>
+<tr>
+  <td class="col">Address</td>
+  <td class="typ">NVARCHAR(200)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>전체 주소.</td>
+</tr>
+<tr>
+  <td class="col">Country</td>
+  <td class="typ">CHAR(3)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">KOR</td>
+  <td>국가 코드 (ISO 3166-1 alpha-3).</td>
+</tr>
+<tr>
+  <td class="col">DeliveryDock</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>지정 입고 도크·게이트.</td>
+</tr>
+<tr>
+  <td class="col">LeadTimeDays</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">1</td>
+  <td>운송 리드타임 (일) — CK: ≥ 0.</td>
+</tr>
+<tr>
+  <td class="col">DefaultCarrier</td>
+  <td class="typ">NVARCHAR(40)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>기본 운송사.</td>
+</tr>
+<tr>
+  <td class="col">DeliveryWindow</td>
+  <td class="typ">VARCHAR(40)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>납품 가능 시간창 (예: 08:00–12:00).</td>
+</tr>
+<tr>
+  <td class="col">Status</td>
+  <td class="typ">VARCHAR(8)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">ACTIVE</td>
+  <td>상태 — CK: ACTIVE·INACTIVE.</td>
+</tr>
+<tr>
+  <td class="col">CreatedBy</td>
+  <td class="typ">VARCHAR(50)</td>
+  <td class="nn nn-y">Y</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>생성자.</td>
+</tr>
+<tr>
+  <td class="col">CreatedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NOW()</td>
+  <td>생성 시각.</td>
+</tr>
+<tr>
+  <td class="col">ModifiedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최종 수정 시각.</td>
+</tr>
+</tbody>
       </table>
     </div>
 

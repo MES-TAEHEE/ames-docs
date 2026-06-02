@@ -182,22 +182,119 @@
       <table class="ddl-tbl">
         <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
         <tbody>
-          <tr><td class="col">VersionID</td><td class="typ">VARCHAR(24)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>BOM 버전 ID (BV-{rootItem}-{nn}).</td></tr>
-          <tr><td class="col">RootItemNo</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">—</td><td>버전 대상 루트 품목 → MD_Item(ItemNo).</td></tr>
-          <tr><td class="col">VersionNo</td><td class="typ">VARCHAR(10)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>버전 번호 (v1.0, v1.1, v2.0...).</td></tr>
-          <tr><td class="col">EffFrom</td><td class="typ">DATE</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>발효 시작일.</td></tr>
-          <tr><td class="col">EffTo</td><td class="typ">DATE</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>발효 종료일 (NULL = 무기한 유효).</td></tr>
-          <tr><td class="col">ChangeType</td><td class="typ">VARCHAR(16)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>변경 유형 — CK: DESIGN·LOCALIZE·COST_DOWN·ERROR_FIX·INITIAL.</td></tr>
-          <tr><td class="col">ChangeReason</td><td class="typ">VARCHAR(200)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>변경 사유 서술.</td></tr>
-          <tr><td class="col">RequestedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>변경 요청자 → SYS_User.</td></tr>
-          <tr><td class="col">ApprovedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>승인자 (요청자 ≠ 승인자).</td></tr>
-          <tr><td class="col">ApprovedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>승인 시각.</td></tr>
-          <tr><td class="col">Status</td><td class="typ">VARCHAR(12)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">DRAFT</td><td>상태 — CK: DRAFT·ACTIVE·SUPERSEDED.</td></tr>
-          <tr><td class="col">CreatedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>생성자.</td></tr>
-          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
-          <tr><td class="col">ModifiedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정자.</td></tr>
-          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
-        </tbody>
+<tr>
+  <td class="col">VersionID</td>
+  <td class="typ">VARCHAR(24)</td>
+  <td class="nn nn-y">Y</td>
+  <td><span class="kbadge k-pk">PK</span></td>
+  <td class="typ">—</td>
+  <td>BOM 버전 ID (BV-{rootItem}-{nn}).</td>
+</tr>
+<tr>
+  <td class="col">RootItemNo</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-fk">FK</span></td>
+  <td class="typ">—</td>
+  <td>버전 대상 루트 품목 → MD_Item(ItemNo).</td>
+</tr>
+<tr>
+  <td class="col">VersionNo</td>
+  <td class="typ">VARCHAR(10)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>버전 번호 (v1.0, v1.1, v2.0...).</td>
+</tr>
+<tr>
+  <td class="col">EffFrom</td>
+  <td class="typ">DATE</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>발효 시작일.</td>
+</tr>
+<tr>
+  <td class="col">EffTo</td>
+  <td class="typ">DATE</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>발효 종료일 (NULL = 무기한 유효).</td>
+</tr>
+<tr>
+  <td class="col">ChangeType</td>
+  <td class="typ">VARCHAR(16)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>변경 유형 — CK: DESIGN·LOCALIZE·COST_DOWN·ERROR_FIX·INITIAL.</td>
+</tr>
+<tr>
+  <td class="col">ChangeReason</td>
+  <td class="typ">NVARCHAR(200)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>변경 사유 서술.</td>
+</tr>
+<tr>
+  <td class="col">RequestedBy</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>변경 요청자 → SYS_User.</td>
+</tr>
+<tr>
+  <td class="col">ApprovedBy</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>승인자 (요청자 ≠ 승인자).</td>
+</tr>
+<tr>
+  <td class="col">ApprovedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>승인 시각.</td>
+</tr>
+<tr>
+  <td class="col">Status</td>
+  <td class="typ">VARCHAR(12)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">DRAFT</td>
+  <td>상태 — CK: DRAFT·ACTIVE·SUPERSEDED.</td>
+</tr>
+<tr>
+  <td class="col">CreatedBy</td>
+  <td class="typ">VARCHAR(50)</td>
+  <td class="nn nn-y">Y</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>생성자.</td>
+</tr>
+<tr>
+  <td class="col">CreatedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NOW()</td>
+  <td>생성 시각.</td>
+</tr>
+<tr>
+  <td class="col">ModifiedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최종 수정 시각.</td>
+</tr>
+</tbody>
       </table>
     </div>
 

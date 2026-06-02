@@ -182,22 +182,103 @@
       <table class="ddl-tbl">
         <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
         <tbody>
-          <tr><td class="col">PMTemplateID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>PM 템플릿 ID.</td></tr>
-          <tr><td class="col">TemplateName</td><td class="typ">VARCHAR(60)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>템플릿 명칭.</td></tr>
-          <tr><td class="col">EquipType</td><td class="typ">VARCHAR(16)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>적용 설비 유형 — MD_Equipment.EquipType 정합.</td></tr>
-          <tr><td class="col">ChecklistJSON</td><td class="typ">JSON</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>점검 항목 목록 [{seq, item, criteria}].</td></tr>
-          <tr><td class="col">CycleBasis</td><td class="typ">VARCHAR(10)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">CALENDAR</td><td>주기 기준 — CK: CALENDAR·RUNTIME·COUNTER.</td></tr>
-          <tr><td class="col">IntervalValue</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>주기 간격 수치.</td></tr>
-          <tr><td class="col">IntervalUnit</td><td class="typ">VARCHAR(8)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>간격 단위 — CK: DAY·HOUR·SHOT·COUNT.</td></tr>
-          <tr><td class="col">RequiredPartsJSON</td><td class="typ">JSON</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>소요 정비자재 [{partNo, qty}] → MD_SparePart.</td></tr>
-          <tr><td class="col">StdDurationMin</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>표준 작업 소요 시간 (분).</td></tr>
-          <tr><td class="col">SafetyLOTOFlag</td><td class="typ">BOOLEAN</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">FALSE</td><td>LOTO(잠금·표지) 안전 절차 필요 여부.</td></tr>
-          <tr><td class="col">ActiveFlag</td><td class="typ">BOOLEAN</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">TRUE</td><td>사용 여부.</td></tr>
-          <tr><td class="col">CreatedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>생성자.</td></tr>
-          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
-          <tr><td class="col">ModifiedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정자.</td></tr>
-          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
-        </tbody>
+<tr>
+  <td class="col">PMTemplateID</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-y">Y</td>
+  <td><span class="kbadge k-pk">PK</span></td>
+  <td class="typ">—</td>
+  <td>PM 템플릿 ID.</td>
+</tr>
+<tr>
+  <td class="col">TemplateName</td>
+  <td class="typ">NVARCHAR(60)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>템플릿 명칭.</td>
+</tr>
+<tr>
+  <td class="col">EquipType</td>
+  <td class="typ">VARCHAR(16)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>적용 설비 유형 — MD_Equipment.EquipType 정합.</td>
+</tr>
+<tr>
+  <td class="col">CycleBasis</td>
+  <td class="typ">VARCHAR(10)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">CALENDAR</td>
+  <td>주기 기준 — CK: CALENDAR·RUNTIME·COUNTER.</td>
+</tr>
+<tr>
+  <td class="col">IntervalValue</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>주기 간격 수치.</td>
+</tr>
+<tr>
+  <td class="col">IntervalUnit</td>
+  <td class="typ">VARCHAR(8)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>간격 단위 — CK: DAY·HOUR·SHOT·COUNT.</td>
+</tr>
+<tr>
+  <td class="col">StdDurationMin</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>표준 작업 소요 시간 (분).</td>
+</tr>
+<tr>
+  <td class="col">SafetyLOTOFlag</td>
+  <td class="typ">BIT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">FALSE</td>
+  <td>LOTO(잠금·표지) 안전 절차 필요 여부.</td>
+</tr>
+<tr>
+  <td class="col">ActiveFlag</td>
+  <td class="typ">BIT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">TRUE</td>
+  <td>사용 여부.</td>
+</tr>
+<tr>
+  <td class="col">CreatedBy</td>
+  <td class="typ">VARCHAR(50)</td>
+  <td class="nn nn-y">Y</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>생성자.</td>
+</tr>
+<tr>
+  <td class="col">CreatedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NOW()</td>
+  <td>생성 시각.</td>
+</tr>
+<tr>
+  <td class="col">ModifiedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최종 수정 시각.</td>
+</tr>
+</tbody>
       </table>
     </div>
 
