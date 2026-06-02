@@ -1,0 +1,82 @@
+@page "/rpt/equipment-oee"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.RptRepository Rpt
+
+<PageTitle>RPT-06 Equipment OEE · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">RPT-06</div>
+    <div class="ames-page-t">Equipment OEE</div>
+    <div class="ames-page-sub">설비별 A·P·Q·OEE 평균 — 최근 30일</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">EQUIP</div>
+        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">distinct units</div></div>
+    <div class="ames-kpi @(_a >= 85 ? "ok" : _a >= 75 ? "warn" : "bad")">
+        <div class="ames-kpi-l">AVG A</div>
+        <div class="ames-kpi-v">@_a.ToString("0.0")%</div>
+        <div class="ames-kpi-s">availability</div></div>
+    <div class="ames-kpi @(_p >= 85 ? "ok" : _p >= 75 ? "warn" : "bad")">
+        <div class="ames-kpi-l">AVG P</div>
+        <div class="ames-kpi-v">@_p.ToString("0.0")%</div>
+        <div class="ames-kpi-s">performance</div></div>
+    <div class="ames-kpi @(_oee >= 85 ? "ok" : _oee >= 75 ? "warn" : "bad")">
+        <div class="ames-kpi-l">AVG OEE</div>
+        <div class="ames-kpi-v">@_oee.ToString("0.0")%</div>
+        <div class="ames-kpi-s">overall</div></div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">Equipment ranking</div>
+    <table class="ames-table">
+        <thead>
+            <tr>
+                <th>Rank</th><th>Equip</th><th>Line</th>
+                <th class="num">A%</th><th class="num">P%</th>
+                <th class="num">Q%</th><th class="num">OEE%</th>
+                <th class="num">Days</th><th>Bar</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (int i = 0; i < _rows.Count; i++)
+            {
+                var r = _rows[i];
+                <tr>
+                    <td class="code">#@(i + 1)</td>
+                    <td>@(r.EquipId ?? "—")</td>
+                    <td class="dim">@(r.LineId ?? "—")</td>
+                    <td class="num">@r.AvgAvailability.ToString("0.0")</td>
+                    <td class="num">@r.AvgPerformance.ToString("0.0")</td>
+                    <td class="num">@r.AvgQuality.ToString("0.0")</td>
+                    <td class="num"><span class="pill @(r.AvgOee >= 85 ? "ok" : r.AvgOee >= 75 ? "warn" : "bad")">@r.AvgOee.ToString("0.0")%</span></td>
+                    <td class="num dim">@r.Days</td>
+                    <td>
+                        <div style="background:rgba(147,197,253,.25);
+                                    border:1px solid rgba(147,197,253,.5);
+                                    height:14px;
+                                    width:@(r.AvgOee.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture))%;
+                                    border-radius:4px;"></div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (_rows.Count == 0) { <div class="ames-empty">No OEE data in the last 30 days.</div> }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.RptRepository.EquipmentOeeRow> _rows = new();
+    decimal _a, _p, _q, _oee;
+    protected override void OnInitialized()
+    {
+        try { _rows = Rpt.ListEquipmentOee(); } catch { }
+        if (_rows.Count > 0)
+        {
+            _a   = _rows.Average(r => r.AvgAvailability);
+            _p   = _rows.Average(r => r.AvgPerformance);
+            _q   = _rows.Average(r => r.AvgQuality);
+            _oee = _rows.Average(r => r.AvgOee);
+        }
+    }
+}

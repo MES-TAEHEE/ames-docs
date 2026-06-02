@@ -1,0 +1,68 @@
+@page "/rpt/monthly-kpi"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.RptRepository Rpt
+
+<PageTitle>RPT-07 Monthly KPI · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">RPT-07</div>
+    <div class="ames-page-t">Monthly KPI</div>
+    <div class="ames-page-sub">월간 통합 지표 — 최근 6개월</div>
+</div>
+
+@if (_rows.Count > 0)
+{
+    var cur = _rows[^1];
+    <div class="ames-kpis">
+        <div class="ames-kpi ok"><div class="ames-kpi-l">GOOD QTY</div>
+            <div class="ames-kpi-v">@cur.ProductionGoodQty.ToString("N0")</div>
+            <div class="ames-kpi-s">@cur.Year-@cur.Month.ToString("00")</div></div>
+        <div class="ames-kpi @(cur.YieldPct >= 99m ? "ok" : cur.YieldPct >= 95m ? "warn" : "bad")">
+            <div class="ames-kpi-l">YIELD %</div>
+            <div class="ames-kpi-v">@cur.YieldPct.ToString("0.0")%</div>
+            <div class="ames-kpi-s">current month</div></div>
+        <div class="ames-kpi"><div class="ames-kpi-l">ORDERS</div>
+            <div class="ames-kpi-v">@cur.ShipmentOrders</div>
+            <div class="ames-kpi-s">shipped</div></div>
+        <div class="ames-kpi bad"><div class="ames-kpi-l">FAILURES</div>
+            <div class="ames-kpi-v">@cur.FailureCount</div>
+            <div class="ames-kpi-s">MNT events</div></div>
+    </div>
+}
+
+<div class="ames-card">
+    <div class="ames-card-h">6-month roll-up</div>
+    <table class="ames-table">
+        <thead>
+            <tr>
+                <th>Period</th>
+                <th class="num">Good qty</th><th class="num">Defect</th>
+                <th class="num">Yield %</th><th class="num">Ship orders</th>
+                <th class="num">Failures</th><th class="num">Avg OEE %</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in _rows)
+            {
+                <tr>
+                    <td class="code">@r.Year-@r.Month.ToString("00")</td>
+                    <td class="num">@r.ProductionGoodQty.ToString("N0")</td>
+                    <td class="num">@r.DefectQty</td>
+                    <td class="num"><span class="pill @(r.YieldPct >= 99m ? "ok" : r.YieldPct >= 95m ? "warn" : "bad")">@r.YieldPct.ToString("0.0")%</span></td>
+                    <td class="num">@r.ShipmentOrders</td>
+                    <td class="num">@r.FailureCount</td>
+                    <td class="num">@(r.AvgOee > 0m ? r.AvgOee.ToString("0.0") : "—")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (_rows.Count == 0) { <div class="ames-empty">No monthly data available.</div> }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.RptRepository.MonthlyKpiRow> _rows = new();
+    protected override void OnInitialized()
+    {
+        try { _rows = Rpt.ListMonthlyKpi(); } catch { }
+    }
+}
