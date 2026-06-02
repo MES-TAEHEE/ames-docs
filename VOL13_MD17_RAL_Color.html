@@ -177,20 +177,111 @@
       <table class="ddl-tbl">
         <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
         <tbody>
-          <tr><td class="col">RALCode</td><td class="typ">VARCHAR(12)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>RAL 컬러 코드 (예: RAL9005).</td></tr>
-          <tr><td class="col">ColorName</td><td class="typ">VARCHAR(40)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>컬러 명칭.</td></tr>
-          <tr><td class="col">HexValue</td><td class="typ">VARCHAR(7)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>화면 표시용 HEX 색상값.</td></tr>
-          <tr><td class="col">CurrentPowderLot</td><td class="typ">VARCHAR(24)</td><td class="nn nn-n">N</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">NULL</td><td>현재 사용 분체 로트 → MD_Material(MatLotID).</td></tr>
-          <tr><td class="col">CureTemp</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">180</td><td>경화 온도 (°C) — CK: 140~220.</td></tr>
-          <tr><td class="col">CureDuration</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">20</td><td>경화 시간 (분).</td></tr>
-          <tr><td class="col">ElectroV</td><td class="typ">INT</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>정전 도장 전압 (kV).</td></tr>
-          <tr><td class="col">ParticleUm</td><td class="typ">DECIMAL(5,1)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>목표 분체 입자 크기 (µm).</td></tr>
-          <tr><td class="col">CustomerMapJSON</td><td class="typ">JSON</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>OEM 부품 컬러코드 → RAL 매핑.</td></tr>
-          <tr><td class="col">ActiveFlag</td><td class="typ">BOOLEAN</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">TRUE</td><td>활성 여부 (FALSE는 스케줄링 불가).</td></tr>
-          <tr><td class="col">CreatedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>생성자.</td></tr>
-          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
-          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
-        </tbody>
+<tr>
+  <td class="col">RALCode</td>
+  <td class="typ">VARCHAR(12)</td>
+  <td class="nn nn-y">Y</td>
+  <td><span class="kbadge k-pk">PK</span></td>
+  <td class="typ">—</td>
+  <td>RAL 컬러 코드 (예: RAL9005).</td>
+</tr>
+<tr>
+  <td class="col">ColorName</td>
+  <td class="typ">NVARCHAR(40)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>컬러 명칭.</td>
+</tr>
+<tr>
+  <td class="col">HexValue</td>
+  <td class="typ">VARCHAR(7)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>화면 표시용 HEX 색상값.</td>
+</tr>
+<tr>
+  <td class="col">CurrentPowderLot</td>
+  <td class="typ">VARCHAR(24)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-fk">FK</span></td>
+  <td class="typ">NULL</td>
+  <td>현재 사용 분체 로트 → MD_Material(MatLotID).</td>
+</tr>
+<tr>
+  <td class="col">CureTemp</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">180</td>
+  <td>경화 온도 (°C) — CK: 140~220.</td>
+</tr>
+<tr>
+  <td class="col">CureDuration</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">20</td>
+  <td>경화 시간 (분).</td>
+</tr>
+<tr>
+  <td class="col">ElectroV</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>정전 도장 전압 (kV).</td>
+</tr>
+<tr>
+  <td class="col">ParticleUm</td>
+  <td class="typ">DECIMAL(5,1)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>목표 분체 입자 크기 (µm).</td>
+</tr>
+<tr>
+  <td class="col">CustomerMapJSON</td>
+  <td class="typ">NVARCHAR(MAX)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>OEM 부품 컬러코드 → RAL 매핑.</td>
+</tr>
+<tr>
+  <td class="col">ActiveFlag</td>
+  <td class="typ">BIT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">TRUE</td>
+  <td>활성 여부 (FALSE는 스케줄링 불가).</td>
+</tr>
+<tr>
+  <td class="col">CreatedBy</td>
+  <td class="typ">VARCHAR(50)</td>
+  <td class="nn nn-y">Y</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>생성자.</td>
+</tr>
+<tr>
+  <td class="col">CreatedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NOW()</td>
+  <td>생성 시각.</td>
+</tr>
+<tr>
+  <td class="col">ModifiedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최종 수정 시각.</td>
+</tr>
+</tbody>
       </table>
     </div>
 

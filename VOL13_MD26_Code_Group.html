@@ -182,20 +182,71 @@
       <table class="ddl-tbl">
         <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
         <tbody>
-          <tr><td class="col">CodeID</td><td class="typ">VARCHAR(24)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>공통코드 관리 ID.</td></tr>
-          <tr><td class="col">GroupCode</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>코드 그룹 (예: PROCESS_CODE).</td></tr>
-          <tr><td class="col">CodeValue</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>코드값 (그룹 내 식별자).</td></tr>
-          <tr><td class="col">CodeName</td><td class="typ">VARCHAR(60)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>코드명 (한글).</td></tr>
-          <tr><td class="col">CodeNameEn</td><td class="typ">VARCHAR(60)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>코드명 (영문).</td></tr>
-          <tr><td class="col">ParentCodeID</td><td class="typ">VARCHAR(24)</td><td class="nn nn-n">N</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">NULL</td><td>상위 코드 → self(CodeID), 2단계 그룹.</td></tr>
-          <tr><td class="col">SortOrder</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">0</td><td>그룹 내 표시 순서.</td></tr>
-          <tr><td class="col">Attribute1</td><td class="typ">VARCHAR(40)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>그룹별 범용 확장 속성.</td></tr>
-          <tr><td class="col">UseFlag</td><td class="typ">BOOLEAN</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">TRUE</td><td>사용 여부 (FALSE는 드롭다운 제외).</td></tr>
-          <tr><td class="col">Description</td><td class="typ">VARCHAR(120)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>코드 부가 설명.</td></tr>
-          <tr><td class="col">CreatedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>생성자.</td></tr>
-          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
-          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
-        </tbody>
+<tr>
+  <td class="col">GroupCode</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-y">Y</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>코드 그룹 (예: PROCESS_CODE).</td>
+</tr>
+<tr>
+  <td class="col">GroupName</td>
+  <td class="typ">NVARCHAR(60)</td>
+  <td class="nn nn-n">N</td>
+  <td></td>
+  <td>—</td>
+  <td><em>TODO — column added since L3 doc; describe purpose.</em></td>
+</tr>
+<tr>
+  <td class="col">GroupNameEn</td>
+  <td class="typ">NVARCHAR(60)</td>
+  <td class="nn nn-n">N</td>
+  <td></td>
+  <td>—</td>
+  <td><em>TODO — column added since L3 doc; describe purpose.</em></td>
+</tr>
+<tr>
+  <td class="col">Description</td>
+  <td class="typ">NVARCHAR(200)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>코드 부가 설명.</td>
+</tr>
+<tr>
+  <td class="col">UseFlag</td>
+  <td class="typ">BIT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">TRUE</td>
+  <td>사용 여부 (FALSE는 드롭다운 제외).</td>
+</tr>
+<tr>
+  <td class="col">CreatedBy</td>
+  <td class="typ">VARCHAR(50)</td>
+  <td class="nn nn-y">Y</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>생성자.</td>
+</tr>
+<tr>
+  <td class="col">CreatedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NOW()</td>
+  <td>생성 시각.</td>
+</tr>
+<tr>
+  <td class="col">ModifiedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최종 수정 시각.</td>
+</tr>
+</tbody>
       </table>
     </div>
 

@@ -177,21 +177,119 @@
       <table class="ddl-tbl">
         <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
         <tbody>
-          <tr><td class="col">ReaderID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>리더 관리 ID.</td></tr>
-          <tr><td class="col">ReaderName</td><td class="typ">VARCHAR(50)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>리더 명칭.</td></tr>
-          <tr><td class="col">GateLocation</td><td class="typ">VARCHAR(4)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>게이트 위치 — CK: R1·R2·R3.</td></tr>
-          <tr><td class="col">LineID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">—</td><td>설치 라인 → MD_Line(LineID).</td></tr>
-          <tr><td class="col">AntennaCount</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">2</td><td>연결 안테나 수 — CK: 1~4.</td></tr>
-          <tr><td class="col">PowerDbm</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">25</td><td>RF 송신 출력 (dBm) — CK: 10~33.</td></tr>
-          <tr><td class="col">PeTriggerFlag</td><td class="typ">BOOLEAN</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">TRUE</td><td>광전(PE) 트리거 사용 여부.</td></tr>
-          <tr><td class="col">WindowMs</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">800</td><td>디바운스 인식 윈도우 (ms).</td></tr>
-          <tr><td class="col">IpAddress</td><td class="typ">VARCHAR(45)</td><td class="nn nn-n">N</td><td><span class="kbadge k-uk">UK</span></td><td class="typ">NULL</td><td>리더 네트워크 IP 주소.</td></tr>
-          <tr><td class="col">FirmwareVer</td><td class="typ">VARCHAR(16)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>리더 펌웨어 버전.</td></tr>
-          <tr><td class="col">Status</td><td class="typ">VARCHAR(8)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">ONLINE</td><td>상태 — CK: ONLINE·OFFLINE·ERROR.</td></tr>
-          <tr><td class="col">CreatedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>생성자.</td></tr>
-          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
-          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
-        </tbody>
+<tr>
+  <td class="col">ReaderID</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-y">Y</td>
+  <td><span class="kbadge k-pk">PK</span></td>
+  <td class="typ">—</td>
+  <td>리더 관리 ID.</td>
+</tr>
+<tr>
+  <td class="col">ReaderName</td>
+  <td class="typ">NVARCHAR(50)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>리더 명칭.</td>
+</tr>
+<tr>
+  <td class="col">GateLocation</td>
+  <td class="typ">VARCHAR(4)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>게이트 위치 — CK: R1·R2·R3.</td>
+</tr>
+<tr>
+  <td class="col">LineID</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-fk">FK</span></td>
+  <td class="typ">—</td>
+  <td>설치 라인 → MD_Line(LineID).</td>
+</tr>
+<tr>
+  <td class="col">AntennaCount</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">2</td>
+  <td>연결 안테나 수 — CK: 1~4.</td>
+</tr>
+<tr>
+  <td class="col">PowerDbm</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">25</td>
+  <td>RF 송신 출력 (dBm) — CK: 10~33.</td>
+</tr>
+<tr>
+  <td class="col">PeTriggerFlag</td>
+  <td class="typ">BIT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">TRUE</td>
+  <td>광전(PE) 트리거 사용 여부.</td>
+</tr>
+<tr>
+  <td class="col">WindowMs</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">800</td>
+  <td>디바운스 인식 윈도우 (ms).</td>
+</tr>
+<tr>
+  <td class="col">IpAddress</td>
+  <td class="typ">VARCHAR(45)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-uk">UK</span></td>
+  <td class="typ">NULL</td>
+  <td>리더 네트워크 IP 주소.</td>
+</tr>
+<tr>
+  <td class="col">FirmwareVer</td>
+  <td class="typ">VARCHAR(16)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>리더 펌웨어 버전.</td>
+</tr>
+<tr>
+  <td class="col">Status</td>
+  <td class="typ">VARCHAR(8)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">ONLINE</td>
+  <td>상태 — CK: ONLINE·OFFLINE·ERROR.</td>
+</tr>
+<tr>
+  <td class="col">CreatedBy</td>
+  <td class="typ">VARCHAR(50)</td>
+  <td class="nn nn-y">Y</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>생성자.</td>
+</tr>
+<tr>
+  <td class="col">CreatedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NOW()</td>
+  <td>생성 시각.</td>
+</tr>
+<tr>
+  <td class="col">ModifiedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최종 수정 시각.</td>
+</tr>
+</tbody>
       </table>
     </div>
 

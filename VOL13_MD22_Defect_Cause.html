@@ -182,20 +182,111 @@
       <table class="ddl-tbl">
         <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
         <tbody>
-          <tr><td class="col">CauseCode</td><td class="typ">VARCHAR(16)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>불량원인 코드.</td></tr>
-          <tr><td class="col">CauseName</td><td class="typ">VARCHAR(60)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>원인 명칭.</td></tr>
-          <tr><td class="col">CauseCategory</td><td class="typ">VARCHAR(9)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>4M1E 분류 — CK: MAN·MACHINE·MATERIAL·METHOD·ENV.</td></tr>
-          <tr><td class="col">ParentCauseCode</td><td class="typ">VARCHAR(16)</td><td class="nn nn-n">N</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">NULL</td><td>상위 원인 → self(CauseCode), 계층 구성.</td></tr>
-          <tr><td class="col">ProcessCode</td><td class="typ">VARCHAR(10)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>적용 공정 — CK: INJ·IMG·PNT·ASSY·FINAL·ALL.</td></tr>
-          <tr><td class="col">RootCauseFlag</td><td class="typ">BOOLEAN</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">FALSE</td><td>근본원인 말단 여부 (TRUE만 최종 선택 가능).</td></tr>
-          <tr><td class="col">CorrectiveGuide</td><td class="typ">VARCHAR(200)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>시정조치 가이드.</td></tr>
-          <tr><td class="col">ResponsibleDept</td><td class="typ">VARCHAR(30)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>책임 부서.</td></tr>
-          <tr><td class="col">SortOrder</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">0</td><td>화면 표시 순서.</td></tr>
-          <tr><td class="col">Status</td><td class="typ">VARCHAR(8)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">ACTIVE</td><td>상태 — CK: ACTIVE·INACTIVE.</td></tr>
-          <tr><td class="col">CreatedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>생성자.</td></tr>
-          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
-          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
-        </tbody>
+<tr>
+  <td class="col">CauseCode</td>
+  <td class="typ">VARCHAR(16)</td>
+  <td class="nn nn-y">Y</td>
+  <td><span class="kbadge k-pk">PK</span></td>
+  <td class="typ">—</td>
+  <td>불량원인 코드.</td>
+</tr>
+<tr>
+  <td class="col">CauseName</td>
+  <td class="typ">NVARCHAR(60)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>원인 명칭.</td>
+</tr>
+<tr>
+  <td class="col">CauseCategory</td>
+  <td class="typ">VARCHAR(9)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>4M1E 분류 — CK: MAN·MACHINE·MATERIAL·METHOD·ENV.</td>
+</tr>
+<tr>
+  <td class="col">ParentCauseCode</td>
+  <td class="typ">VARCHAR(16)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-fk">FK</span></td>
+  <td class="typ">NULL</td>
+  <td>상위 원인 → self(CauseCode), 계층 구성.</td>
+</tr>
+<tr>
+  <td class="col">ProcessCode</td>
+  <td class="typ">VARCHAR(10)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>적용 공정 — CK: INJ·IMG·PNT·ASSY·FINAL·ALL.</td>
+</tr>
+<tr>
+  <td class="col">RootCauseFlag</td>
+  <td class="typ">BIT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">FALSE</td>
+  <td>근본원인 말단 여부 (TRUE만 최종 선택 가능).</td>
+</tr>
+<tr>
+  <td class="col">CorrectiveGuide</td>
+  <td class="typ">NVARCHAR(200)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>시정조치 가이드.</td>
+</tr>
+<tr>
+  <td class="col">ResponsibleDept</td>
+  <td class="typ">NVARCHAR(30)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>책임 부서.</td>
+</tr>
+<tr>
+  <td class="col">SortOrder</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">0</td>
+  <td>화면 표시 순서.</td>
+</tr>
+<tr>
+  <td class="col">Status</td>
+  <td class="typ">VARCHAR(8)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">ACTIVE</td>
+  <td>상태 — CK: ACTIVE·INACTIVE.</td>
+</tr>
+<tr>
+  <td class="col">CreatedBy</td>
+  <td class="typ">VARCHAR(50)</td>
+  <td class="nn nn-y">Y</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>생성자.</td>
+</tr>
+<tr>
+  <td class="col">CreatedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NOW()</td>
+  <td>생성 시각.</td>
+</tr>
+<tr>
+  <td class="col">ModifiedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최종 수정 시각.</td>
+</tr>
+</tbody>
       </table>
     </div>
 

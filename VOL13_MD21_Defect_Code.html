@@ -182,21 +182,119 @@
       <table class="ddl-tbl">
         <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
         <tbody>
-          <tr><td class="col">DefectCode</td><td class="typ">VARCHAR(16)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>불량 코드.</td></tr>
-          <tr><td class="col">DefectName</td><td class="typ">VARCHAR(60)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>불량명 (한글).</td></tr>
-          <tr><td class="col">DefectNameEn</td><td class="typ">VARCHAR(60)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>불량명 (영문).</td></tr>
-          <tr><td class="col">ProcessCode</td><td class="typ">VARCHAR(10)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>발생 공정 — CK: INJ·IMG·PNT·ASSY·FINAL.</td></tr>
-          <tr><td class="col">DefectCategory</td><td class="typ">VARCHAR(14)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>분류 — CK: DIMENSIONAL·APPEARANCE·FUNCTIONAL·MATERIAL.</td></tr>
-          <tr><td class="col">SeverityLevel</td><td class="typ">VARCHAR(8)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">MINOR</td><td>심각도 — CK: CRITICAL·MAJOR·MINOR.</td></tr>
-          <tr><td class="col">DispositionDefault</td><td class="typ">VARCHAR(10)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">REWORK</td><td>기본 처리 — CK: SCRAP·REWORK·USE_AS_IS.</td></tr>
-          <tr><td class="col">DefaultCauseCode</td><td class="typ">VARCHAR(16)</td><td class="nn nn-n">N</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">NULL</td><td>기본 원인코드 → MD_DefectCause(CauseCode).</td></tr>
-          <tr><td class="col">ParetoFlag</td><td class="typ">BOOLEAN</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">TRUE</td><td>RPT-02 파레토 차트 포함 여부.</td></tr>
-          <tr><td class="col">ImageRef</td><td class="typ">VARCHAR(120)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>불량 예시 이미지 경로.</td></tr>
-          <tr><td class="col">Status</td><td class="typ">VARCHAR(8)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">ACTIVE</td><td>상태 — CK: ACTIVE·INACTIVE.</td></tr>
-          <tr><td class="col">CreatedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>생성자.</td></tr>
-          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
-          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
-        </tbody>
+<tr>
+  <td class="col">DefectCode</td>
+  <td class="typ">VARCHAR(16)</td>
+  <td class="nn nn-y">Y</td>
+  <td><span class="kbadge k-pk">PK</span></td>
+  <td class="typ">—</td>
+  <td>불량 코드.</td>
+</tr>
+<tr>
+  <td class="col">DefectName</td>
+  <td class="typ">NVARCHAR(60)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>불량명 (한글).</td>
+</tr>
+<tr>
+  <td class="col">DefectNameEn</td>
+  <td class="typ">NVARCHAR(60)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>불량명 (영문).</td>
+</tr>
+<tr>
+  <td class="col">ProcessCode</td>
+  <td class="typ">VARCHAR(10)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>발생 공정 — CK: INJ·IMG·PNT·ASSY·FINAL.</td>
+</tr>
+<tr>
+  <td class="col">DefectCategory</td>
+  <td class="typ">VARCHAR(14)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>분류 — CK: DIMENSIONAL·APPEARANCE·FUNCTIONAL·MATERIAL.</td>
+</tr>
+<tr>
+  <td class="col">SeverityLevel</td>
+  <td class="typ">VARCHAR(8)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">MINOR</td>
+  <td>심각도 — CK: CRITICAL·MAJOR·MINOR.</td>
+</tr>
+<tr>
+  <td class="col">DispositionDefault</td>
+  <td class="typ">VARCHAR(10)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">REWORK</td>
+  <td>기본 처리 — CK: SCRAP·REWORK·USE_AS_IS.</td>
+</tr>
+<tr>
+  <td class="col">DefaultCauseCode</td>
+  <td class="typ">VARCHAR(16)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-fk">FK</span></td>
+  <td class="typ">NULL</td>
+  <td>기본 원인코드 → MD_DefectCause(CauseCode).</td>
+</tr>
+<tr>
+  <td class="col">ParetoFlag</td>
+  <td class="typ">BIT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">TRUE</td>
+  <td>RPT-02 파레토 차트 포함 여부.</td>
+</tr>
+<tr>
+  <td class="col">ImageRef</td>
+  <td class="typ">VARCHAR(120)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>불량 예시 이미지 경로.</td>
+</tr>
+<tr>
+  <td class="col">Status</td>
+  <td class="typ">VARCHAR(8)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">ACTIVE</td>
+  <td>상태 — CK: ACTIVE·INACTIVE.</td>
+</tr>
+<tr>
+  <td class="col">CreatedBy</td>
+  <td class="typ">VARCHAR(50)</td>
+  <td class="nn nn-y">Y</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>생성자.</td>
+</tr>
+<tr>
+  <td class="col">CreatedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NOW()</td>
+  <td>생성 시각.</td>
+</tr>
+<tr>
+  <td class="col">ModifiedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최종 수정 시각.</td>
+</tr>
+</tbody>
       </table>
     </div>
 

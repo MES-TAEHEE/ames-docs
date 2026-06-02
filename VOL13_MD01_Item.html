@@ -180,26 +180,151 @@
       <table class="ddl-tbl">
         <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
         <tbody>
-          <tr><td class="col">ItemNo</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>품목 코드 (유형 접두어 + 시퀀스, 예: FIN-000123).</td></tr>
-          <tr><td class="col">ItemName</td><td class="typ">VARCHAR(80)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>품목명 (국문).</td></tr>
-          <tr><td class="col">ItemNameEN</td><td class="typ">VARCHAR(80)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>품목명 (영문).</td></tr>
-          <tr><td class="col">ItemType</td><td class="typ">VARCHAR(10)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>품목 유형 — CK 제약: RAW·FABRIC·POWDER·PAINT·SEMI·FINISHED.</td></tr>
-          <tr><td class="col">ItemCategory</td><td class="typ">VARCHAR(30)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>품목 분류 (도어트림·콘솔·범퍼 등).</td></tr>
-          <tr><td class="col">DefaultUOM</td><td class="typ">VARCHAR(10)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">—</td><td>기본 단위 → MD_UOM(UOMCode).</td></tr>
-          <tr><td class="col">RoutingType</td><td class="typ">CHAR(1)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>BOP 라우팅 — A(감싸기)/B(분체도장). SEMI·FINISHED만 값 보유.</td></tr>
-          <tr><td class="col">MinStock</td><td class="typ">DECIMAL(14,4)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">0</td><td>최소 재고 수준.</td></tr>
-          <tr><td class="col">MaxStock</td><td class="typ">DECIMAL(14,4)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최대 재고 수준.</td></tr>
-          <tr><td class="col">SafetyStock</td><td class="typ">DECIMAL(14,4)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">0</td><td>안전 재고 — WH 재고 부족 경보 기준.</td></tr>
-          <tr><td class="col">UnitCost</td><td class="typ">DECIMAL(14,2)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>표준 단가 (ERP Cost Sync 동기).</td></tr>
-          <tr><td class="col">CustItemNoSAV</td><td class="typ">VARCHAR(30)</td><td class="nn nn-n">N</td><td><span class="kbadge k-uk">UK</span></td><td class="typ">NULL</td><td>SAV 고객사 품번 매핑.</td></tr>
-          <tr><td class="col">CustItemNoGEO</td><td class="typ">VARCHAR(30)</td><td class="nn nn-n">N</td><td><span class="kbadge k-uk">UK</span></td><td class="typ">NULL</td><td>GEO 고객사 품번 매핑.</td></tr>
-          <tr><td class="col">DrawingNo</td><td class="typ">VARCHAR(30)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>도면 번호.</td></tr>
-          <tr><td class="col">ActiveFlag</td><td class="typ">BOOLEAN</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">TRUE</td><td>사용 여부 — 단종 시 FALSE (물리 삭제 금지).</td></tr>
-          <tr><td class="col">CreatedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>생성자 (SYS_User).</td></tr>
-          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
-          <tr><td class="col">ModifiedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정자.</td></tr>
-          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
-        </tbody>
+<tr>
+  <td class="col">ItemNo</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-y">Y</td>
+  <td><span class="kbadge k-pk">PK</span></td>
+  <td class="typ">—</td>
+  <td>품목 코드 (유형 접두어 + 시퀀스, 예: FIN-000123).</td>
+</tr>
+<tr>
+  <td class="col">ItemName</td>
+  <td class="typ">NVARCHAR(80)</td>
+  <td class="nn nn-y">Y</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>품목명 (국문).</td>
+</tr>
+<tr>
+  <td class="col">ItemNameEN</td>
+  <td class="typ">NVARCHAR(80)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>품목명 (영문).</td>
+</tr>
+<tr>
+  <td class="col">ItemType</td>
+  <td class="typ">VARCHAR(10)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>품목 유형 — CK 제약: RAW·FABRIC·POWDER·PAINT·SEMI·FINISHED.</td>
+</tr>
+<tr>
+  <td class="col">ItemCategory</td>
+  <td class="typ">VARCHAR(30)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>품목 분류 (도어트림·콘솔·범퍼 등).</td>
+</tr>
+<tr>
+  <td class="col">DefaultUOM</td>
+  <td class="typ">VARCHAR(10)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-fk">FK</span></td>
+  <td class="typ">—</td>
+  <td>기본 단위 → MD_UOM(UOMCode).</td>
+</tr>
+<tr>
+  <td class="col">RoutingType</td>
+  <td class="typ">CHAR(1)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>BOP 라우팅 — A(감싸기)/B(분체도장). SEMI·FINISHED만 값 보유.</td>
+</tr>
+<tr>
+  <td class="col">MinStock</td>
+  <td class="typ">DECIMAL(14,4)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">0</td>
+  <td>최소 재고 수준.</td>
+</tr>
+<tr>
+  <td class="col">MaxStock</td>
+  <td class="typ">DECIMAL(14,4)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최대 재고 수준.</td>
+</tr>
+<tr>
+  <td class="col">SafetyStock</td>
+  <td class="typ">DECIMAL(14,4)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">0</td>
+  <td>안전 재고 — WH 재고 부족 경보 기준.</td>
+</tr>
+<tr>
+  <td class="col">UnitCost</td>
+  <td class="typ">DECIMAL(14,2)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>표준 단가 (ERP Cost Sync 동기).</td>
+</tr>
+<tr>
+  <td class="col">CustItemNoSAV</td>
+  <td class="typ">VARCHAR(30)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-uk">UK</span></td>
+  <td class="typ">NULL</td>
+  <td>SAV 고객사 품번 매핑.</td>
+</tr>
+<tr>
+  <td class="col">CustItemNoGEO</td>
+  <td class="typ">VARCHAR(30)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-uk">UK</span></td>
+  <td class="typ">NULL</td>
+  <td>GEO 고객사 품번 매핑.</td>
+</tr>
+<tr>
+  <td class="col">DrawingNo</td>
+  <td class="typ">VARCHAR(30)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>도면 번호.</td>
+</tr>
+<tr>
+  <td class="col">ActiveFlag</td>
+  <td class="typ">BIT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">TRUE</td>
+  <td>사용 여부 — 단종 시 FALSE (물리 삭제 금지).</td>
+</tr>
+<tr>
+  <td class="col">CreatedBy</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-y">Y</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>생성자 (SYS_User).</td>
+</tr>
+<tr>
+  <td class="col">CreatedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NOW()</td>
+  <td>생성 시각.</td>
+</tr>
+<tr>
+  <td class="col">ModifiedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최종 수정 시각.</td>
+</tr>
+</tbody>
       </table>
       <div class="alert alert-i" style="margin-top:10px;"><div><span class="alert-title">📌 NN = NOT NULL</span>Y = 필수 입력 · N = 선택 (NULL 허용). 전 마스터 테이블은 CreatedBy/TS·ModifiedBy/TS 감사 컬럼 4종을 공통 보유한다. · All master tables share the 4 audit columns CreatedBy/TS · ModifiedBy/TS.</div></div>
     </div>

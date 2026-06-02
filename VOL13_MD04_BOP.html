@@ -176,22 +176,119 @@
       <table class="ddl-tbl">
         <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
         <tbody>
-          <tr><td class="col">BOPID</td><td class="typ">VARCHAR(24)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>BOP 단계 ID (BOP-{seq}).</td></tr>
-          <tr><td class="col">ItemNo</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">—</td><td>대상 품목 → MD_Item(ItemNo).</td></tr>
-          <tr><td class="col">RoutingType</td><td class="typ">CHAR(1)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>라우팅 유형 — CK: A(Wrapping)·B(Powder Paint).</td></tr>
-          <tr><td class="col">StepSeq</td><td class="typ">INT</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>공정 단계 순서 (10·20·30 — 10단위 부여).</td></tr>
-          <tr><td class="col">ProcessCode</td><td class="typ">VARCHAR(10)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>공정 코드 — CK: INJ·IMG·PNT·QC·FG.</td></tr>
-          <tr><td class="col">WorkCenterID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-fk">FK</span></td><td class="typ">—</td><td>수행 작업장 → MD_WorkCenter(WCID).</td></tr>
-          <tr><td class="col">StdCycleTime</td><td class="typ">DECIMAL(8,2)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>표준 사이클 타임 (초/단위).</td></tr>
-          <tr><td class="col">StdSetupTime</td><td class="typ">DECIMAL(8,2)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">0</td><td>표준 셋업 시간 (분).</td></tr>
-          <tr><td class="col">QcRequiredFlag</td><td class="typ">BOOLEAN</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">FALSE</td><td>단계 후 QC 검사 필요 여부.</td></tr>
-          <tr><td class="col">StepDescription</td><td class="typ">VARCHAR(120)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>공정 단계 설명.</td></tr>
-          <tr><td class="col">ActiveFlag</td><td class="typ">BOOLEAN</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">TRUE</td><td>사용 여부.</td></tr>
-          <tr><td class="col">CreatedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>생성자.</td></tr>
-          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
-          <tr><td class="col">ModifiedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정자.</td></tr>
-          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
-        </tbody>
+<tr>
+  <td class="col">BOPID</td>
+  <td class="typ">VARCHAR(24)</td>
+  <td class="nn nn-y">Y</td>
+  <td><span class="kbadge k-pk">PK</span></td>
+  <td class="typ">—</td>
+  <td>BOP 단계 ID (BOP-{seq}).</td>
+</tr>
+<tr>
+  <td class="col">ItemNo</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-fk">FK</span></td>
+  <td class="typ">—</td>
+  <td>대상 품목 → MD_Item(ItemNo).</td>
+</tr>
+<tr>
+  <td class="col">RoutingType</td>
+  <td class="typ">CHAR(1)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>라우팅 유형 — CK: A(Wrapping)·B(Powder Paint).</td>
+</tr>
+<tr>
+  <td class="col">StepSeq</td>
+  <td class="typ">INT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>공정 단계 순서 (10·20·30 — 10단위 부여).</td>
+</tr>
+<tr>
+  <td class="col">ProcessCode</td>
+  <td class="typ">VARCHAR(10)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>공정 코드 — CK: INJ·IMG·PNT·QC·FG.</td>
+</tr>
+<tr>
+  <td class="col">WorkCenterID</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-fk">FK</span></td>
+  <td class="typ">—</td>
+  <td>수행 작업장 → MD_WorkCenter(WCID).</td>
+</tr>
+<tr>
+  <td class="col">StdCycleTime</td>
+  <td class="typ">DECIMAL(8,2)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>표준 사이클 타임 (초/단위).</td>
+</tr>
+<tr>
+  <td class="col">StdSetupTime</td>
+  <td class="typ">DECIMAL(8,2)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">0</td>
+  <td>표준 셋업 시간 (분).</td>
+</tr>
+<tr>
+  <td class="col">QcRequiredFlag</td>
+  <td class="typ">BIT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">FALSE</td>
+  <td>단계 후 QC 검사 필요 여부.</td>
+</tr>
+<tr>
+  <td class="col">StepDescription</td>
+  <td class="typ">NVARCHAR(120)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>공정 단계 설명.</td>
+</tr>
+<tr>
+  <td class="col">ActiveFlag</td>
+  <td class="typ">BIT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">TRUE</td>
+  <td>사용 여부.</td>
+</tr>
+<tr>
+  <td class="col">CreatedBy</td>
+  <td class="typ">VARCHAR(50)</td>
+  <td class="nn nn-y">Y</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>생성자.</td>
+</tr>
+<tr>
+  <td class="col">CreatedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NOW()</td>
+  <td>생성 시각.</td>
+</tr>
+<tr>
+  <td class="col">ModifiedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최종 수정 시각.</td>
+</tr>
+</tbody>
       </table>
     </div>
 

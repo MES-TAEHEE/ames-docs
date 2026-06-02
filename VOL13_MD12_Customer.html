@@ -182,23 +182,135 @@
       <table class="ddl-tbl">
         <thead><tr><th style="width:19%;">Column</th><th style="width:15%;">Data Type</th><th style="width:5%;">NN</th><th style="width:9%;">Key</th><th style="width:14%;">Default</th><th>Description · 설명</th></tr></thead>
         <tbody>
-          <tr><td class="col">CustomerID</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-pk">PK</span></td><td class="typ">—</td><td>고객사 관리 ID.</td></tr>
-          <tr><td class="col">CustomerCode</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td><span class="kbadge k-uk">UK</span></td><td class="typ">—</td><td>고객 코드 (대외 식별).</td></tr>
-          <tr><td class="col">CustomerName</td><td class="typ">VARCHAR(80)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>고객사명 (한글).</td></tr>
-          <tr><td class="col">CustomerNameEn</td><td class="typ">VARCHAR(80)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>고객사명 (영문).</td></tr>
-          <tr><td class="col">CustomerType</td><td class="typ">VARCHAR(12)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>유형 — CK: OEM·TIER1·AFTERMARKET.</td></tr>
-          <tr><td class="col">BizRegNo</td><td class="typ">VARCHAR(20)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>사업자등록번호.</td></tr>
-          <tr><td class="col">Country</td><td class="typ">CHAR(3)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">KOR</td><td>국가 코드 (ISO 3166-1 alpha-3).</td></tr>
-          <tr><td class="col">ContactPerson</td><td class="typ">VARCHAR(40)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>담당자명.</td></tr>
-          <tr><td class="col">ContactPhone</td><td class="typ">VARCHAR(20)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>담당자 연락처.</td></tr>
-          <tr><td class="col">ContactEmail</td><td class="typ">VARCHAR(60)</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>담당자 이메일.</td></tr>
-          <tr><td class="col">EDIFlag</td><td class="typ">BOOLEAN</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">FALSE</td><td>EDI 전자주문 교환 사용 여부.</td></tr>
-          <tr><td class="col">CurrencyCode</td><td class="typ">CHAR(3)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">KRW</td><td>기본 거래 통화 (ISO 4217).</td></tr>
-          <tr><td class="col">Status</td><td class="typ">VARCHAR(8)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">ACTIVE</td><td>상태 — CK: ACTIVE·INACTIVE.</td></tr>
-          <tr><td class="col">CreatedBy</td><td class="typ">VARCHAR(20)</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">—</td><td>생성자.</td></tr>
-          <tr><td class="col">CreatedTS</td><td class="typ">DATETIME</td><td class="nn nn-y">Y</td><td>—</td><td class="typ">NOW()</td><td>생성 시각.</td></tr>
-          <tr><td class="col">ModifiedTS</td><td class="typ">DATETIME</td><td class="nn nn-n">N</td><td>—</td><td class="typ">NULL</td><td>최종 수정 시각.</td></tr>
-        </tbody>
+<tr>
+  <td class="col">CustomerID</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-y">Y</td>
+  <td><span class="kbadge k-pk">PK</span></td>
+  <td class="typ">—</td>
+  <td>고객사 관리 ID.</td>
+</tr>
+<tr>
+  <td class="col">CustomerCode</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td><span class="kbadge k-uk">UK</span></td>
+  <td class="typ">—</td>
+  <td>고객 코드 (대외 식별).</td>
+</tr>
+<tr>
+  <td class="col">CustomerName</td>
+  <td class="typ">NVARCHAR(80)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>고객사명 (한글).</td>
+</tr>
+<tr>
+  <td class="col">CustomerNameEn</td>
+  <td class="typ">NVARCHAR(80)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>고객사명 (영문).</td>
+</tr>
+<tr>
+  <td class="col">CustomerType</td>
+  <td class="typ">VARCHAR(12)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>유형 — CK: OEM·TIER1·AFTERMARKET.</td>
+</tr>
+<tr>
+  <td class="col">BizRegNo</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>사업자등록번호.</td>
+</tr>
+<tr>
+  <td class="col">Country</td>
+  <td class="typ">CHAR(3)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">KOR</td>
+  <td>국가 코드 (ISO 3166-1 alpha-3).</td>
+</tr>
+<tr>
+  <td class="col">ContactPerson</td>
+  <td class="typ">NVARCHAR(40)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>담당자명.</td>
+</tr>
+<tr>
+  <td class="col">ContactPhone</td>
+  <td class="typ">VARCHAR(20)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>담당자 연락처.</td>
+</tr>
+<tr>
+  <td class="col">ContactEmail</td>
+  <td class="typ">VARCHAR(60)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>담당자 이메일.</td>
+</tr>
+<tr>
+  <td class="col">EDIFlag</td>
+  <td class="typ">BIT</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">FALSE</td>
+  <td>EDI 전자주문 교환 사용 여부.</td>
+</tr>
+<tr>
+  <td class="col">CurrencyCode</td>
+  <td class="typ">CHAR(3)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">KRW</td>
+  <td>기본 거래 통화 (ISO 4217).</td>
+</tr>
+<tr>
+  <td class="col">Status</td>
+  <td class="typ">VARCHAR(8)</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">ACTIVE</td>
+  <td>상태 — CK: ACTIVE·INACTIVE.</td>
+</tr>
+<tr>
+  <td class="col">CreatedBy</td>
+  <td class="typ">VARCHAR(50)</td>
+  <td class="nn nn-y">Y</td>
+  <td>—</td>
+  <td class="typ">—</td>
+  <td>생성자.</td>
+</tr>
+<tr>
+  <td class="col">CreatedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NOW()</td>
+  <td>생성 시각.</td>
+</tr>
+<tr>
+  <td class="col">ModifiedTS</td>
+  <td class="typ">DATETIME2</td>
+  <td class="nn nn-n">N</td>
+  <td>—</td>
+  <td class="typ">NULL</td>
+  <td>최종 수정 시각.</td>
+</tr>
+</tbody>
       </table>
     </div>
 
