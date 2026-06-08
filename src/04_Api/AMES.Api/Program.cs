@@ -37,5 +37,9 @@ app.MapGet("/api/health", () => Results.Ok(new { status = "ok", at = DateTime.Ut
 app.MapAuth(app.Services.GetRequiredService<PopAuthService>(), tokens);
 app.MapWh(factory);
 app.MapFg(factory);
+app.MapPp(factory);
+app.MapMnt(factory);
+app.MapRpt(factory);
+app.MapSys(factory);
 
 app.Run();
