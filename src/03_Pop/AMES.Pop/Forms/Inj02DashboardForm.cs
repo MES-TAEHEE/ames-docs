@@ -384,7 +384,7 @@ public sealed class Inj02DashboardForm : PopForm
 
     private void CloseSessionBestEffort()
     {
-        try { PopServices.Sessions.CloseSession(_session.SessionId, "ManualLogout"); }
+        try { PopServices.Sessions.CloseSession(_session.SessionId, "ManualLogout", _session.OperatorId); }
         catch { /* offline-safe */ }
     }
 

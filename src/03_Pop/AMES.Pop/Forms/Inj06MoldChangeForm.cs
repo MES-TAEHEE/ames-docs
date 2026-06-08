@@ -186,7 +186,7 @@ public sealed class Inj06MoldChangeForm : PopForm
         try
         {
             var newMoldId = _available[Math.Max(0, _cboReplacement.SelectedIndex)].MoldId;
-            PopServices.Molds.CompleteChange(_openChangeId, _current?.MoldId, newMoldId);
+            PopServices.Molds.CompleteChange(_openChangeId, _current?.MoldId, newMoldId, _session.OperatorId);
             var equipId = PopServices.Equipment.GetPrimaryForLine(_session.LineId)?.EquipId ?? "UNKNOWN";
             PopServices.Equipment.LogStatus(equipId, _session.LineId, "RUN", "RESUMED", _wo?.WoId, _session.EmployeeNo);
             _lblStatus.Text      = $"Change #{_openChangeId} completed. New mold shots reset to 0.";

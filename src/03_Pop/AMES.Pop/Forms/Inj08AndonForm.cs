@@ -201,7 +201,7 @@ public sealed class Inj08AndonForm : PopForm
         if (_openAndonId == 0) return;
         try
         {
-            PopServices.Andon.Resume(_openAndonId);
+            PopServices.Andon.Resume(_openAndonId, _session.OperatorId);
             var equipId = PopServices.Equipment.GetPrimaryForLine(_session.LineId)?.EquipId;
             if (!string.IsNullOrEmpty(equipId))
                 PopServices.Equipment.LogStatus(equipId, _session.LineId, "RUN", "RESUMED", null, _session.EmployeeNo);
@@ -253,7 +253,7 @@ public sealed class Inj08AndonForm : PopForm
             return (null, "");
         }
         // close that throwaway session immediately
-        try { PopServices.Sessions.CloseSession(outcome.Session!.SessionId, "AndonAck"); } catch { }
+        try { PopServices.Sessions.CloseSession(outcome.Session!.SessionId, "AndonAck", outcome.Session.OperatorId); } catch { }
         return (outcome.Session!.OperatorId, outcome.Session!.EmployeeName);
     }
 

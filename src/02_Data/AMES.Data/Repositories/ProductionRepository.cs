@@ -91,13 +91,15 @@ public sealed class ProductionRepository
                                             THEN 'Closed' ELSE Status END,
                        ActualEnd    = CASE WHEN ISNULL(CompletedQty,0) + @Q >= ISNULL(OrderQty,0)
                                             THEN SYSDATETIME() ELSE ActualEnd END,
+                       ModifiedBy   = @ModBy,
                        ModifiedTS   = SYSDATETIME()
                 OUTPUT INSERTED.CompletedQty
                 WHERE  WoID = @WoID;
                 """, conn, tx))
             {
-                cmd.Parameters.Add("@WoID", SqlDbType.Int).Value = woId;
-                cmd.Parameters.Add("@Q",    SqlDbType.Int).Value = goodQty;
+                cmd.Parameters.Add("@WoID",  SqlDbType.Int            ).Value = woId;
+                cmd.Parameters.Add("@Q",     SqlDbType.Int            ).Value = goodQty;
+                cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = operatorId;
                 newCompleted = (decimal)(cmd.ExecuteScalar() ?? 0m);
             }
 
@@ -107,10 +109,12 @@ public sealed class ProductionRepository
                 using var cmd = new SqlCommand("""
                     UPDATE dbo.MD_Mold
                     SET    CurrentShots = ISNULL(CurrentShots,0) + 1,
+                           ModifiedBy   = @ModBy,
                            ModifiedTS   = SYSDATETIME()
                     WHERE  MoldID = @Mold;
                     """, conn, tx);
-                cmd.Parameters.Add("@Mold", SqlDbType.VarChar, 20).Value = moldId;
+                cmd.Parameters.Add("@Mold",  SqlDbType.VarChar,  20   ).Value = moldId;
+                cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = operatorId;
                 cmd.ExecuteNonQuery();
             }
 

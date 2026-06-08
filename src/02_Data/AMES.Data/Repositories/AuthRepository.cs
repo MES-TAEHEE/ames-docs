@@ -110,6 +110,7 @@ public sealed class AuthRepository
         const string sql = """
             UPDATE dbo.SYS_UserProfile
             SET    FailedLoginCount = ISNULL(FailedLoginCount, 0) + 1,
+                   ModifiedBy       = @UserID,
                    ModifiedTS       = SYSDATETIME()
             WHERE  UserID = @UserID;
             """;
@@ -129,6 +130,7 @@ public sealed class AuthRepository
             UPDATE dbo.SYS_UserProfile
             SET    FailedLoginCount = 0,
                    LastLoginTS      = SYSDATETIME(),
+                   ModifiedBy       = @UserID,
                    ModifiedTS       = SYSDATETIME()
             WHERE  UserID = @UserID;
             """;

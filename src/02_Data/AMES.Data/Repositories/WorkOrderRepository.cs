@@ -106,12 +106,14 @@ public sealed class WorkOrderRepository
                     SET    Status       = 'In Progress',
                            TerminalLock = @TerminalID,
                            ActualStart  = ISNULL(ActualStart, SYSDATETIME()),
+                           ModifiedBy   = @ModBy,
                            ModifiedTS   = SYSDATETIME()
                     WHERE  WoID = @WoID;
                     """, conn, tx))
                 {
                     upd.Parameters.Add("@WoID",       SqlDbType.Int        ).Value = woId;
                     upd.Parameters.Add("@TerminalID", SqlDbType.VarChar, 20).Value = terminalId;
+                    upd.Parameters.Add("@ModBy",      SqlDbType.NVarChar, 450).Value = operatorId;
                     upd.ExecuteNonQuery();
                 }
 
@@ -125,7 +127,7 @@ public sealed class WorkOrderRepository
     /// <summary>
     /// Bumps CompletedQty + closes the WO when target met. Returns new CompletedQty.
     /// </summary>
-    public decimal AddCompletedQty(int woId, int qty)
+    public decimal AddCompletedQty(int woId, int qty, string? userId = null)
     {
         const string sql = """
             UPDATE dbo.PP_WorkOrder
@@ -134,6 +136,7 @@ public sealed class WorkOrderRepository
                                        THEN 'Closed' ELSE Status END,
                    ActualEnd    = CASE WHEN ISNULL(CompletedQty,0) + @Qty >= ISNULL(OrderQty,0)
                                        THEN SYSDATETIME() ELSE ActualEnd END,
+                   ModifiedBy   = @ModBy,
                    ModifiedTS   = SYSDATETIME()
             OUTPUT INSERTED.CompletedQty
             WHERE  WoID = @WoID;
@@ -141,8 +144,9 @@ public sealed class WorkOrderRepository
 
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@WoID", SqlDbType.Int).Value = woId;
-        cmd.Parameters.Add("@Qty",  SqlDbType.Int).Value = qty;
+        cmd.Parameters.Add("@WoID",  SqlDbType.Int           ).Value = woId;
+        cmd.Parameters.Add("@Qty",   SqlDbType.Int           ).Value = qty;
+        cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450 ).Value = (object?)userId ?? DBNull.Value;
         return (decimal)(cmd.ExecuteScalar() ?? 0m);
     }
 

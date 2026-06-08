@@ -135,7 +135,7 @@ public static class FgEndpoints
                         0, 0, @Q, @Q, 'Picked', 'pda', SYSDATETIME());
 
                 UPDATE dbo.FG_Stock
-                SET    Status='Reserved', ModifiedTS=SYSDATETIME()
+                SET    Status='Reserved', ModifiedBy=@Op, ModifiedTS=SYSDATETIME()
                 WHERE  StockID = @Stk;
                 """, conn);
             cmd.Parameters.AddWithValue("@So",  body.ShipmentOrderId);
@@ -161,7 +161,7 @@ public static class FgEndpoints
                         @So, @Lp, @Dn, @Dk, SYSDATETIME(), SYSDATETIME(),
                         @Sl, 'OnTime', @Op, SYSDATETIME(), 'pda', SYSDATETIME());
 
-                UPDATE dbo.FG_ShipmentOrder SET Status='Shipped', ModifiedTS=SYSDATETIME()
+                UPDATE dbo.FG_ShipmentOrder SET Status='Shipped', ModifiedBy=@Op, ModifiedTS=SYSDATETIME()
                 WHERE  ShipmentOrderID = @So;
                 """, conn);
             cmd.Parameters.AddWithValue("@So", body.ShipmentOrderId);

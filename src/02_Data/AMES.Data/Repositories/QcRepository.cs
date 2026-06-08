@@ -82,7 +82,8 @@ public sealed class QcRepository
     {
         const string sql = """
             UPDATE dbo.QC_Inspection
-            SET    Verdict = @V, InsEndTS = SYSDATETIME(), ApproverID = @A, ModifiedTS = SYSDATETIME()
+            SET    Verdict = @V, InsEndTS = SYSDATETIME(), ApproverID = @A,
+                   ModifiedBy = @A, ModifiedTS = SYSDATETIME()
             WHERE  InspectionID = @I;
             """;
         using var conn = _factory.OpenConnection();
@@ -219,12 +220,14 @@ public sealed class QcRepository
             using (var upd = new SqlCommand("""
                 UPDATE dbo.QC_Hold
                 SET    Status = CASE WHEN @A IN ('USE-AS-IS','REWORK') THEN 'Released' ELSE 'Rejected' END,
+                       ModifiedBy = @By,
                        ModifiedTS = SYSDATETIME()
                 WHERE  HoldID = @H;
                 """, conn, tx))
             {
-                upd.Parameters.Add("@H", SqlDbType.Int).Value          = holdId;
-                upd.Parameters.Add("@A", SqlDbType.VarChar, 15).Value  = action;
+                upd.Parameters.Add("@H",  SqlDbType.Int            ).Value = holdId;
+                upd.Parameters.Add("@A",  SqlDbType.VarChar, 15    ).Value = action;
+                upd.Parameters.Add("@By", SqlDbType.NVarChar, 450  ).Value = releasedBy;
                 upd.ExecuteNonQuery();
             }
 

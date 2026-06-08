@@ -77,12 +77,13 @@ public sealed class PopSessionRepository
     /// Marks the session as logged out. Called from Dashboard's Logout button
     /// and from idle / shift-end watchers (future).
     /// </summary>
-    public void CloseSession(int sessionId, string reason)
+    public void CloseSession(int sessionId, string reason, string? userId = null)
     {
         const string sql = """
             UPDATE dbo.PR_PopSession
             SET    LoggedOutAt   = SYSDATETIME(),
                    LogoutReason  = @Reason,
+                   ModifiedBy    = @ModBy,
                    ModifiedTS    = SYSDATETIME()
             WHERE  SessionID     = @SessionID
               AND  LoggedOutAt IS NULL;
@@ -90,8 +91,9 @@ public sealed class PopSessionRepository
 
         using var conn = _connFactory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@SessionID", SqlDbType.Int           ).Value = sessionId;
-        cmd.Parameters.Add("@Reason",    SqlDbType.VarChar, 20   ).Value = reason;
+        cmd.Parameters.Add("@SessionID", SqlDbType.Int            ).Value = sessionId;
+        cmd.Parameters.Add("@Reason",    SqlDbType.VarChar,  20   ).Value = reason;
+        cmd.Parameters.Add("@ModBy",     SqlDbType.NVarChar, 450  ).Value = (object?)userId ?? DBNull.Value;
         cmd.ExecuteNonQuery();
     }
 

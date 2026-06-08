@@ -142,7 +142,7 @@
             var (resultId, _, _) = PopServices.Production.RecordCycle(
                 _wo.WoId, _wo.ItemNo, _wo.LineId, qty, _cycle, moldId: null,
                 Session.OperatorId, Session.SessionId, Session.EmployeeNo, defectFlag: false);
-            PopServices.Fabric.DeductFromRoll(_roll.LotId, required, resultId, Session.EmployeeNo);
+            PopServices.Fabric.DeductFromRoll(_roll.LotId, required, resultId, Session.EmployeeNo, Session.OperatorId);
             if (_bond is not null)
                 PopServices.Bond.LogCycle(resultId, _bond.BondSetupId,
                     _bond.PressureSp, _bond.TempSp, _bond.HoldSecSp,

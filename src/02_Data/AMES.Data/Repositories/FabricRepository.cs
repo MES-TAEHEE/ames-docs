@@ -121,11 +121,13 @@ public sealed class FabricRepository
                 UPDATE dbo.PR_FabricIssue
                 SET    DismountedAt = SYSDATETIME(),
                        FinalRemainingM = (SELECT RemainingQty FROM dbo.tbl_Lot WHERE LotID = FabricRollLotID),
+                       ModifiedBy = @ModBy,
                        ModifiedTS = SYSDATETIME()
                 WHERE  LineID = @L AND DismountedAt IS NULL;
                 """, conn, tx))
             {
-                d.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
+                d.Parameters.Add("@L",     SqlDbType.VarChar,  20  ).Value = lineId;
+                d.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450 ).Value = operatorId;
                 d.ExecuteNonQuery();
             }
 
@@ -155,7 +157,8 @@ public sealed class FabricRepository
     /// Deduct fabric meters from a roll's RemainingQty + write the audit log.
     /// Returns the new RemainingQty.
     /// </summary>
-    public decimal DeductFromRoll(int rollLotId, decimal consumedM, int resultId, string employeeNo)
+    public decimal DeductFromRoll(int rollLotId, decimal consumedM, int resultId,
+                                  string employeeNo, string? userId = null)
     {
         using var conn = _factory.OpenConnection();
         using var tx   = conn.BeginTransaction();
@@ -174,12 +177,14 @@ public sealed class FabricRepository
                 UPDATE dbo.tbl_Lot
                 SET    RemainingQty = @After,
                        Status       = CASE WHEN @After <= 0 THEN 'EXHAUSTED' ELSE Status END,
+                       ModifiedBy   = @ModBy,
                        ModifiedTS   = SYSDATETIME()
                 WHERE  LotID = @L;
                 """, conn, tx))
             {
-                upd.Parameters.Add("@After", SqlDbType.Decimal).Value = after;
-                upd.Parameters.Add("@L",     SqlDbType.Int).Value     = rollLotId;
+                upd.Parameters.Add("@After", SqlDbType.Decimal        ).Value = after;
+                upd.Parameters.Add("@L",     SqlDbType.Int            ).Value = rollLotId;
+                upd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = (object?)userId ?? DBNull.Value;
                 upd.ExecuteNonQuery();
             }
 

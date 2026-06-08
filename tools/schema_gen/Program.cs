@@ -162,6 +162,15 @@ static void EmitCreateTable(StringBuilder sb, string tname, string tko, List<(st
     sb.AppendLine($"-- ── {tname}  ({tko})");
     sb.AppendLine($"CREATE TABLE dbo.{tname} (");
 
+    // Auto-inject ModifiedBy after CreatedBy if missing (kept beside the audit columns)
+    if (cols.Any(c => c.Name == "CreatedBy") && !cols.Any(c => c.Name == "ModifiedBy")) {
+        // place it after ModifiedTS if present, else after CreatedTS, else at the end
+        int insertAt = cols.FindIndex(c => c.Name == "ModifiedTS");
+        if (insertAt < 0) insertAt = cols.FindIndex(c => c.Name == "CreatedTS");
+        if (insertAt < 0) insertAt = cols.Count - 1;
+        cols.Insert(insertAt + 1, ("ModifiedBy", "NVARCHAR(450)", ""));
+    }
+
     var pkCols = cols.Where(c => c.Flag == "PK").Select(c => c.Name).ToList();
 
     for (int i = 0; i < cols.Count; i++) {

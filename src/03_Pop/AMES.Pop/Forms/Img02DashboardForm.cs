@@ -335,7 +335,7 @@ public sealed class Img02DashboardForm : PopForm
     }
     private void CloseSessionBestEffort()
     {
-        try { PopServices.Sessions.CloseSession(_session.SessionId, "ManualLogout"); } catch { }
+        try { PopServices.Sessions.CloseSession(_session.SessionId, "ManualLogout", _session.OperatorId); } catch { }
     }
 
     protected override void Dispose(bool disposing)

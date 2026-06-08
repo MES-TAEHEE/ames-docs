@@ -67,6 +67,7 @@ public sealed class AndonRepository
                    ReasonCode        = @R,
                    CorrectiveAction  = @C,
                    Status            = 'ACKED',
+                   ModifiedBy        = @U,
                    ModifiedTS        = SYSDATETIME()
             WHERE  AndonID = @ID AND AckedAt IS NULL;
             """;
@@ -80,19 +81,21 @@ public sealed class AndonRepository
     }
 
     /// <summary>Resume production — closes the andon and stamps downtime seconds.</summary>
-    public void Resume(int andonId)
+    public void Resume(int andonId, string? userId = null)
     {
         const string sql = """
             UPDATE dbo.PR_AndonCall
             SET    ResumedAt   = SYSDATETIME(),
                    DowntimeSec = DATEDIFF(SECOND, TriggeredAt, SYSDATETIME()),
                    Status      = 'RESUMED',
+                   ModifiedBy  = @ModBy,
                    ModifiedTS  = SYSDATETIME()
             WHERE  AndonID = @ID;
             """;
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@ID", SqlDbType.Int).Value = andonId;
+        cmd.Parameters.Add("@ID",    SqlDbType.Int           ).Value = andonId;
+        cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450 ).Value = (object?)userId ?? DBNull.Value;
         cmd.ExecuteNonQuery();
     }
 }

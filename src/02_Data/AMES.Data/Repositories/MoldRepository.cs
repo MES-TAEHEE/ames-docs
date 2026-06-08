@@ -78,7 +78,8 @@ public sealed class MoldRepository
     /// Closes the change: stamps CompletedAt + DowntimeMin, resets new mold shots to 0,
     /// marks old mold as Maintenance and new mold as Mounted.
     /// </summary>
-    public void CompleteChange(int moldChangeId, string? oldMoldId, string newMoldId)
+    public void CompleteChange(int moldChangeId, string? oldMoldId, string newMoldId,
+                               string? userId = null)
     {
         using var conn = _factory.OpenConnection();
         using var tx   = conn.BeginTransaction();
@@ -88,28 +89,32 @@ public sealed class MoldRepository
                 UPDATE dbo.PR_MoldChange
                 SET    CompletedAt = SYSDATETIME(),
                        DowntimeMin = DATEDIFF(MINUTE, StartedAt, SYSDATETIME()),
+                       ModifiedBy  = @ModBy,
                        ModifiedTS  = SYSDATETIME()
                 WHERE  MoldChangeID = @ID;
                 """, conn, tx))
             {
-                cmd.Parameters.Add("@ID", SqlDbType.Int).Value = moldChangeId;
+                cmd.Parameters.Add("@ID",    SqlDbType.Int            ).Value = moldChangeId;
+                cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = (object?)userId ?? DBNull.Value;
                 cmd.ExecuteNonQuery();
             }
             using (var cmd = new SqlCommand("""
                 UPDATE dbo.MD_Mold SET CurrentShots = 0, Status = 'Mounted',
-                       ModifiedTS = SYSDATETIME() WHERE MoldID = @M;
+                       ModifiedBy = @ModBy, ModifiedTS = SYSDATETIME() WHERE MoldID = @M;
                 """, conn, tx))
             {
-                cmd.Parameters.Add("@M", SqlDbType.VarChar, 20).Value = newMoldId;
+                cmd.Parameters.Add("@M",     SqlDbType.VarChar,  20   ).Value = newMoldId;
+                cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = (object?)userId ?? DBNull.Value;
                 cmd.ExecuteNonQuery();
             }
             if (!string.IsNullOrEmpty(oldMoldId))
             {
                 using var cmd = new SqlCommand("""
                     UPDATE dbo.MD_Mold SET Status = 'Maintenance',
-                           ModifiedTS = SYSDATETIME() WHERE MoldID = @M;
+                           ModifiedBy = @ModBy, ModifiedTS = SYSDATETIME() WHERE MoldID = @M;
                     """, conn, tx);
-                cmd.Parameters.Add("@M", SqlDbType.VarChar, 20).Value = oldMoldId;
+                cmd.Parameters.Add("@M",     SqlDbType.VarChar,  20   ).Value = oldMoldId;
+                cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = (object?)userId ?? DBNull.Value;
                 cmd.ExecuteNonQuery();
             }
             tx.Commit();

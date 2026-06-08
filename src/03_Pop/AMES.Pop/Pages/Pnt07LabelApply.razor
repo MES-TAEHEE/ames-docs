@@ -148,7 +148,7 @@
         if (_selected == 0) { SetStatus("Select a confirmed lot.", "fail"); return; }
         try
         {
-            PopServices.Pnt.ApplyLabel(_selected, Session?.EmployeeNo ?? "P000");
+            PopServices.Pnt.ApplyLabel(_selected, Session?.EmployeeNo ?? "P000", Session?.OperatorId);
             SetStatus($"✓ LOT #{_selected} labeled · sent to FG", "ok");
             _selected = 0; _preview = null; _selectedItem = "";
             Refresh();
