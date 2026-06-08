@@ -171,7 +171,10 @@ static void EmitCreateTable(StringBuilder sb, string tname, string tko, List<(st
         string defaultClause = GetDefault(name, type);
         string fkComment = flag.StartsWith("FK:") ? $"  -- FK -> {flag.Substring(3)}" : "";
         string comma = (i == cols.Count - 1 && pkCols.Count == 0) ? "" : ",";
-        sb.AppendLine($"  [{name,-25}] {sqlType,-20} {nullable}{defaultClause}{comma}{fkComment}");
+        // ⚠ pad OUTSIDE the brackets — `{name,-25}` inside `[...]` would make the
+        // trailing whitespace part of the actual SQL Server identifier.
+        string colRef = $"[{name}]";
+        sb.AppendLine($"  {colRef,-27} {sqlType,-20} {nullable}{defaultClause}{comma}{fkComment}");
     }
 
     if (pkCols.Count > 0) {
