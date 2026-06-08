@@ -1,6 +1,6 @@
 -- ════════════════════════════════════════════════════════════════════════
 -- A-MES Database Schema (Auto-generated)
--- Generated: 2026-06-08 15:58:03
+-- Generated: 2026-06-08 16:33:54
 -- Source: AMES_ERD_data.js
 -- Total tables: 149
 -- Engine: SQL Server 2022/2025
@@ -194,6 +194,7 @@ CREATE TABLE dbo.MD_Item (
   [CreatedBy]                 VARCHAR(20)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_Item PRIMARY KEY CLUSTERED ([ItemNo])
 );
 GO
@@ -214,6 +215,7 @@ CREATE TABLE dbo.MD_Bom (
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_Bom PRIMARY KEY CLUSTERED ([BOMID])
 );
 GO
@@ -234,6 +236,7 @@ CREATE TABLE dbo.MD_BomVersion (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_BomVersion PRIMARY KEY CLUSTERED ([VersionID])
 );
 GO
@@ -254,6 +257,7 @@ CREATE TABLE dbo.MD_Bop (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_Bop PRIMARY KEY CLUSTERED ([BOPID])
 );
 GO
@@ -272,6 +276,7 @@ CREATE TABLE dbo.MD_WorkCenter (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_WorkCenter PRIMARY KEY CLUSTERED ([WCID])
 );
 GO
@@ -295,6 +300,7 @@ CREATE TABLE dbo.MD_InspectionStandard (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_InspectionStandard PRIMARY KEY CLUSTERED ([InspStdID])
 );
 GO
@@ -317,6 +323,7 @@ CREATE TABLE dbo.MD_Vendor (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_Vendor PRIMARY KEY CLUSTERED ([VendorID])
 );
 GO
@@ -339,6 +346,7 @@ CREATE TABLE dbo.MD_Equipment (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_Equipment PRIMARY KEY CLUSTERED ([EquipID])
 );
 GO
@@ -358,6 +366,7 @@ CREATE TABLE dbo.MD_Mold (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_Mold PRIMARY KEY CLUSTERED ([MoldID])
 );
 GO
@@ -379,6 +388,7 @@ CREATE TABLE dbo.MD_PaintFabric (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_PaintFabric PRIMARY KEY CLUSTERED ([MatLotID])
 );
 GO
@@ -399,6 +409,7 @@ CREATE TABLE dbo.MD_ShipmentDest (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_ShipmentDest PRIMARY KEY CLUSTERED ([ShipDestID])
 );
 GO
@@ -421,6 +432,7 @@ CREATE TABLE dbo.MD_Customer (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_Customer PRIMARY KEY CLUSTERED ([CustomerID])
 );
 GO
@@ -439,6 +451,7 @@ CREATE TABLE dbo.MD_Uom (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_Uom PRIMARY KEY CLUSTERED ([UOMCode])
 );
 GO
@@ -457,6 +470,7 @@ CREATE TABLE dbo.MD_Calendar (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_Calendar PRIMARY KEY CLUSTERED ([PlantID], [CalendarDate])
 );
 GO
@@ -477,6 +491,7 @@ CREATE TABLE dbo.MD_Jig (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_Jig PRIMARY KEY CLUSTERED ([JigID])
 );
 GO
@@ -496,6 +511,7 @@ CREATE TABLE dbo.MD_RfidTag (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_RfidTag PRIMARY KEY CLUSTERED ([TagID])
 );
 GO
@@ -515,6 +531,7 @@ CREATE TABLE dbo.MD_RalColor (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_RalColor PRIMARY KEY CLUSTERED ([RALCode])
 );
 GO
@@ -534,6 +551,7 @@ CREATE TABLE dbo.MD_Oven (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_Oven PRIMARY KEY CLUSTERED ([OvenID])
 );
 GO
@@ -554,6 +572,7 @@ CREATE TABLE dbo.MD_RfidReader (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_RfidReader PRIMARY KEY CLUSTERED ([ReaderID])
 );
 GO
@@ -572,6 +591,7 @@ CREATE TABLE dbo.MD_Line (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_Line PRIMARY KEY CLUSTERED ([LineID])
 );
 GO
@@ -592,6 +612,7 @@ CREATE TABLE dbo.MD_DefectCode (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_DefectCode PRIMARY KEY CLUSTERED ([DefectCode])
 );
 GO
@@ -611,6 +632,7 @@ CREATE TABLE dbo.MD_DefectCause (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_DefectCause PRIMARY KEY CLUSTERED ([CauseCode])
 );
 GO
@@ -632,6 +654,7 @@ CREATE TABLE dbo.MD_PackagingSpec (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_PackagingSpec PRIMARY KEY CLUSTERED ([PackSpecID])
 );
 GO
@@ -652,6 +675,7 @@ CREATE TABLE dbo.MD_LabelTemplate (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_LabelTemplate PRIMARY KEY CLUSTERED ([LabelTemplateID])
 );
 GO
@@ -670,6 +694,7 @@ CREATE TABLE dbo.MD_ReasonCode (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_ReasonCode PRIMARY KEY CLUSTERED ([ReasonCode])
 );
 GO
@@ -684,6 +709,7 @@ CREATE TABLE dbo.MD_CodeGroup (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_CodeGroup PRIMARY KEY CLUSTERED ([GroupCode])
 );
 GO
@@ -703,6 +729,7 @@ CREATE TABLE dbo.MD_CodeItem (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_CodeItem PRIMARY KEY CLUSTERED ([CodeID])
 );
 GO
@@ -725,6 +752,7 @@ CREATE TABLE dbo.MD_SparePart (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_SparePart PRIMARY KEY CLUSTERED ([PartNo])
 );
 GO
@@ -743,6 +771,7 @@ CREATE TABLE dbo.MD_PmTemplate (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_PmTemplate PRIMARY KEY CLUSTERED ([PMTemplateID])
 );
 GO
@@ -760,6 +789,7 @@ CREATE TABLE dbo.MD_PmTemplateStep (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_PmTemplateStep PRIMARY KEY CLUSTERED ([PMStepID])
 );
 GO
@@ -780,6 +810,7 @@ CREATE TABLE dbo.MD_LineTimePattern (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_LineTimePattern PRIMARY KEY CLUSTERED ([PatternID])
 );
 GO
@@ -798,6 +829,7 @@ CREATE TABLE dbo.MD_LineTimeSegment (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_LineTimeSegment PRIMARY KEY CLUSTERED ([SegmentID])
 );
 GO
@@ -817,6 +849,7 @@ CREATE TABLE dbo.MD_Location (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_Location PRIMARY KEY CLUSTERED ([LocationID])
 );
 GO
@@ -835,6 +868,7 @@ CREATE TABLE dbo.MD_Recipe (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_Recipe PRIMARY KEY CLUSTERED ([RecipeID])
 );
 GO
@@ -862,6 +896,7 @@ CREATE TABLE dbo.WH_PurchaseOrder (
   [CreatedAt]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_WH_PurchaseOrder PRIMARY KEY CLUSTERED ([PoID])
 );
 GO
@@ -884,6 +919,7 @@ CREATE TABLE dbo.WH_Receiving (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_WH_Receiving PRIMARY KEY CLUSTERED ([ReceivingID])
 );
 GO
@@ -903,6 +939,7 @@ CREATE TABLE dbo.WH_Inventory (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_WH_Inventory PRIMARY KEY CLUSTERED ([InventoryID])
 );
 GO
@@ -920,6 +957,7 @@ CREATE TABLE dbo.WH_InventorySnapshot (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_WH_InventorySnapshot PRIMARY KEY CLUSTERED ([SnapshotID])
 );
 GO
@@ -942,6 +980,7 @@ CREATE TABLE dbo.WH_InventoryAdjust (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_WH_InventoryAdjust PRIMARY KEY CLUSTERED ([AdjustID])
 );
 GO
@@ -959,6 +998,7 @@ CREATE TABLE dbo.WH_ReleaseSchedule (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_WH_ReleaseSchedule PRIMARY KEY CLUSTERED ([ReleaseScheduleID])
 );
 GO
@@ -983,6 +1023,7 @@ CREATE TABLE dbo.WH_ReleasePicking (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_WH_ReleasePicking PRIMARY KEY CLUSTERED ([PickingID])
 );
 GO
@@ -1007,6 +1048,7 @@ CREATE TABLE dbo.WH_TransactionHistory (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_WH_TransactionHistory PRIMARY KEY CLUSTERED ([TxnID])
 );
 GO
@@ -1030,6 +1072,7 @@ CREATE TABLE dbo.PP_Forecast (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PP_Forecast PRIMARY KEY CLUSTERED ([ForecastID])
 );
 GO
@@ -1046,6 +1089,7 @@ CREATE TABLE dbo.PP_ForecastHistory (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PP_ForecastHistory PRIMARY KEY CLUSTERED ([HistoryID])
 );
 GO
@@ -1067,6 +1111,7 @@ CREATE TABLE dbo.PP_CustomerOrder (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PP_CustomerOrder PRIMARY KEY CLUSTERED ([SoID])
 );
 GO
@@ -1083,6 +1128,7 @@ CREATE TABLE dbo.PP_SupplyPlan (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PP_SupplyPlan PRIMARY KEY CLUSTERED ([PlanID])
 );
 GO
@@ -1099,6 +1145,7 @@ CREATE TABLE dbo.PP_SupplyPlanDetail (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PP_SupplyPlanDetail PRIMARY KEY CLUSTERED ([PlanDetailID])
 );
 GO
@@ -1133,6 +1180,7 @@ CREATE TABLE dbo.PP_WorkOrder (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PP_WorkOrder PRIMARY KEY CLUSTERED ([WoID])
 );
 GO
@@ -1152,6 +1200,7 @@ CREATE TABLE dbo.PP_WorkOrderRouting (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PP_WorkOrderRouting PRIMARY KEY CLUSTERED ([RoutingLineID])
 );
 GO
@@ -1169,6 +1218,7 @@ CREATE TABLE dbo.PP_MaterialReservation (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PP_MaterialReservation PRIMARY KEY CLUSTERED ([ReservationID])
 );
 GO
@@ -1189,6 +1239,7 @@ CREATE TABLE dbo.PP_PurchaseRequest (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PP_PurchaseRequest PRIMARY KEY CLUSTERED ([PrID])
 );
 GO
@@ -1207,6 +1258,7 @@ CREATE TABLE dbo.PP_PRSendLog (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PP_PRSendLog PRIMARY KEY CLUSTERED ([SendLogID])
 );
 GO
@@ -1226,6 +1278,7 @@ CREATE TABLE dbo.PP_MRPLog (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PP_MRPLog PRIMARY KEY CLUSTERED ([MrpRunID])
 );
 GO
@@ -1246,6 +1299,7 @@ CREATE TABLE dbo.PP_LineSchedule (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PP_LineSchedule PRIMARY KEY CLUSTERED ([ScheduleID])
 );
 GO
@@ -1263,6 +1317,7 @@ CREATE TABLE dbo.PP_LineStateLog (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PP_LineStateLog PRIMARY KEY CLUSTERED ([StateLogID])
 );
 GO
@@ -1283,6 +1338,7 @@ CREATE TABLE dbo.PP_LineDowntimeLog (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PP_LineDowntimeLog PRIMARY KEY CLUSTERED ([DowntimeID])
 );
 GO
@@ -1306,6 +1362,7 @@ CREATE TABLE dbo.PP_LineOEE (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PP_LineOEE PRIMARY KEY CLUSTERED ([OeeSnapshotID])
 );
 GO
@@ -1324,6 +1381,7 @@ CREATE TABLE dbo.PP_ProductionCalendarOverride (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PP_ProductionCalendarOverride PRIMARY KEY CLUSTERED ([OverrideID])
 );
 GO
@@ -1351,6 +1409,7 @@ CREATE TABLE dbo.tbl_Lot (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_tbl_Lot PRIMARY KEY CLUSTERED ([LotID])
 );
 GO
@@ -1370,6 +1429,7 @@ CREATE TABLE dbo.PR_PopSession (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PR_PopSession PRIMARY KEY CLUSTERED ([SessionID])
 );
 GO
@@ -1386,6 +1446,7 @@ CREATE TABLE dbo.PR_PopAuthLog (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PR_PopAuthLog PRIMARY KEY CLUSTERED ([AuthLogID])
 );
 GO
@@ -1402,6 +1463,7 @@ CREATE TABLE dbo.PR_WoAcceptance (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PR_WoAcceptance PRIMARY KEY CLUSTERED ([AcceptID])
 );
 GO
@@ -1428,6 +1490,7 @@ CREATE TABLE dbo.PR_ProductionResult (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PR_ProductionResult PRIMARY KEY CLUSTERED ([ResultID])
 );
 GO
@@ -1451,6 +1514,7 @@ CREATE TABLE dbo.PR_DefectDetail (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PR_DefectDetail PRIMARY KEY CLUSTERED ([DefectID])
 );
 GO
@@ -1467,6 +1531,7 @@ CREATE TABLE dbo.PR_DefectAutoLink (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PR_DefectAutoLink PRIMARY KEY CLUSTERED ([LinkID])
 );
 GO
@@ -1482,6 +1547,7 @@ CREATE TABLE dbo.PR_CycleAnomalyLog (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PR_CycleAnomalyLog PRIMARY KEY CLUSTERED ([AnomalyID])
 );
 GO
@@ -1504,6 +1570,7 @@ CREATE TABLE dbo.PR_MoldChange (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PR_MoldChange PRIMARY KEY CLUSTERED ([MoldChangeID])
 );
 GO
@@ -1521,6 +1588,7 @@ CREATE TABLE dbo.PR_ShotCount (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PR_ShotCount PRIMARY KEY CLUSTERED ([ShotCountID])
 );
 GO
@@ -1538,6 +1606,7 @@ CREATE TABLE dbo.PR_EquipStatusLog (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PR_EquipStatusLog PRIMARY KEY CLUSTERED ([EquipStatusLogID])
 );
 GO
@@ -1561,6 +1630,7 @@ CREATE TABLE dbo.PR_AndonCall (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PR_AndonCall PRIMARY KEY CLUSTERED ([AndonID])
 );
 GO
@@ -1577,6 +1647,7 @@ CREATE TABLE dbo.PR_AndonPush (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PR_AndonPush PRIMARY KEY CLUSTERED ([PushID])
 );
 GO
@@ -1592,6 +1663,7 @@ CREATE TABLE dbo.PR_PlcInterlock (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PR_PlcInterlock PRIMARY KEY CLUSTERED ([InterlockID])
 );
 GO
@@ -1611,6 +1683,7 @@ CREATE TABLE dbo.PR_ShiftHandover (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PR_ShiftHandover PRIMARY KEY CLUSTERED ([HandoverID])
 );
 GO
@@ -1624,6 +1697,7 @@ CREATE TABLE dbo.PR_DashTileCache (
   [TtlSec]                    INT                      NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PR_DashTileCache PRIMARY KEY CLUSTERED ([LineID], [TileID])
 );
 GO
@@ -1637,6 +1711,7 @@ CREATE TABLE dbo.PR_DefectRateCache (
   [UpdatedAt]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PR_DefectRateCache PRIMARY KEY CLUSTERED ([WoID])
 );
 GO
@@ -1657,6 +1732,7 @@ CREATE TABLE dbo.PR_FabricIssue (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PR_FabricIssue PRIMARY KEY CLUSTERED ([FabricIssueID])
 );
 GO
@@ -1674,6 +1750,7 @@ CREATE TABLE dbo.PR_FabricIssueAttempt (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PR_FabricIssueAttempt PRIMARY KEY CLUSTERED ([AttemptID])
 );
 GO
@@ -1690,6 +1767,7 @@ CREATE TABLE dbo.PR_FabricDeductionLog (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PR_FabricDeductionLog PRIMARY KEY CLUSTERED ([DeductionID])
 );
 GO
@@ -1710,6 +1788,7 @@ CREATE TABLE dbo.PR_BondSetup (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PR_BondSetup PRIMARY KEY CLUSTERED ([BondSetupID])
 );
 GO
@@ -1728,6 +1807,7 @@ CREATE TABLE dbo.PR_BondCycleLog (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PR_BondCycleLog PRIMARY KEY CLUSTERED ([BondCycleID])
 );
 GO
@@ -1746,6 +1826,7 @@ CREATE TABLE dbo.PR_BondSetupAudit (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PR_BondSetupAudit PRIMARY KEY CLUSTERED ([AuditID])
 );
 GO
@@ -1771,6 +1852,7 @@ CREATE TABLE dbo.PNT_DailyPlan (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PNT_DailyPlan PRIMARY KEY CLUSTERED ([PlanID])
 );
 GO
@@ -1796,6 +1878,7 @@ CREATE TABLE dbo.PNT_VirtualLot (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PNT_VirtualLot PRIMARY KEY CLUSTERED ([VirtualLotID])
 );
 GO
@@ -1812,6 +1895,7 @@ CREATE TABLE dbo.PNT_JigBindingLog (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PNT_JigBindingLog PRIMARY KEY CLUSTERED ([BindingLogID])
 );
 GO
@@ -1824,6 +1908,7 @@ CREATE TABLE dbo.PNT_SeqAllocator (
   [UpdatedAt]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PNT_SeqAllocator PRIMARY KEY CLUSTERED ([PlanDate], [LineID])
 );
 GO
@@ -1842,6 +1927,7 @@ CREATE TABLE dbo.PNT_JigLoad (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PNT_JigLoad PRIMARY KEY CLUSTERED ([LoadID])
 );
 GO
@@ -1862,6 +1948,7 @@ CREATE TABLE dbo.PNT_LineEvent (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PNT_LineEvent PRIMARY KEY CLUSTERED ([EventID])
 );
 GO
@@ -1878,6 +1965,7 @@ CREATE TABLE dbo.PNT_TagFailureLog (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PNT_TagFailureLog PRIMARY KEY CLUSTERED ([FailureID])
 );
 GO
@@ -1899,6 +1987,7 @@ CREATE TABLE dbo.PNT_OvenLog (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PNT_OvenLog PRIMARY KEY CLUSTERED ([OvenLogID])
 );
 GO
@@ -1913,6 +2002,7 @@ CREATE TABLE dbo.PNT_OvenTempSample (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PNT_OvenTempSample PRIMARY KEY CLUSTERED ([SampleID])
 );
 GO
@@ -1930,6 +2020,7 @@ CREATE TABLE dbo.PNT_OvenDeviationLog (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PNT_OvenDeviationLog PRIMARY KEY CLUSTERED ([DeviationID])
 );
 GO
@@ -1944,6 +2035,7 @@ CREATE TABLE dbo.PNT_OvenSpikeLog (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PNT_OvenSpikeLog PRIMARY KEY CLUSTERED ([SpikeID])
 );
 GO
@@ -1962,6 +2054,7 @@ CREATE TABLE dbo.PNT_JigUnload (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PNT_JigUnload PRIMARY KEY CLUSTERED ([UnloadID])
 );
 GO
@@ -1978,6 +2071,7 @@ CREATE TABLE dbo.PNT_PartLossLog (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PNT_PartLossLog PRIMARY KEY CLUSTERED ([LossID])
 );
 GO
@@ -1991,6 +2085,7 @@ CREATE TABLE dbo.PNT_StationStatsCache (
   [UpdatedAt]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PNT_StationStatsCache PRIMARY KEY CLUSTERED ([StationID])
 );
 GO
@@ -2009,6 +2104,7 @@ CREATE TABLE dbo.PNT_LotLabel (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PNT_LotLabel PRIMARY KEY CLUSTERED ([LabelID])
 );
 GO
@@ -2026,6 +2122,7 @@ CREATE TABLE dbo.PNT_LabelPrintJob (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PNT_LabelPrintJob PRIMARY KEY CLUSTERED ([JobID])
 );
 GO
@@ -2042,6 +2139,7 @@ CREATE TABLE dbo.PNT_LabelScanLog (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PNT_LabelScanLog PRIMARY KEY CLUSTERED ([ScanID])
 );
 GO
@@ -2068,6 +2166,7 @@ CREATE TABLE dbo.PNT_ShiftReport (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PNT_ShiftReport PRIMARY KEY CLUSTERED ([ReportID])
 );
 GO
@@ -2087,6 +2186,7 @@ CREATE TABLE dbo.PNT_ShiftReportLineItem (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PNT_ShiftReportLineItem PRIMARY KEY CLUSTERED ([LineItemID])
 );
 GO
@@ -2104,6 +2204,7 @@ CREATE TABLE dbo.PNT_ShiftReportAudit (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PNT_ShiftReportAudit PRIMARY KEY CLUSTERED ([AuditID])
 );
 GO
@@ -2121,6 +2222,7 @@ CREATE TABLE dbo.PNT_DailyReport (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PNT_DailyReport PRIMARY KEY CLUSTERED ([DailyID])
 );
 GO
@@ -2136,6 +2238,7 @@ CREATE TABLE dbo.PNT_QcQueue (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_PNT_QcQueue PRIMARY KEY CLUSTERED ([QueueID])
 );
 GO
@@ -2176,6 +2279,7 @@ CREATE TABLE dbo.QC_Inspection (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_QC_Inspection PRIMARY KEY CLUSTERED ([InspectionID])
 );
 GO
@@ -2193,6 +2297,7 @@ CREATE TABLE dbo.QC_InspectionItem (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_QC_InspectionItem PRIMARY KEY CLUSTERED ([InspectionItemID])
 );
 GO
@@ -2219,6 +2324,7 @@ CREATE TABLE dbo.QC_InspectionStd (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_QC_InspectionStd PRIMARY KEY CLUSTERED ([StdID])
 );
 GO
@@ -2249,6 +2355,7 @@ CREATE TABLE dbo.QC_NCR (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_QC_NCR PRIMARY KEY CLUSTERED ([NcrID])
 );
 GO
@@ -2265,6 +2372,7 @@ CREATE TABLE dbo.QC_NCR_Action (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_QC_NCR_Action PRIMARY KEY CLUSTERED ([ActionID])
 );
 GO
@@ -2289,6 +2397,7 @@ CREATE TABLE dbo.QC_Hold (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_QC_Hold PRIMARY KEY CLUSTERED ([HoldID])
 );
 GO
@@ -2308,6 +2417,7 @@ CREATE TABLE dbo.QC_HoldRelease (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_QC_HoldRelease PRIMARY KEY CLUSTERED ([ReleaseID])
 );
 GO
@@ -2336,6 +2446,7 @@ CREATE TABLE dbo.QC_CAPA (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_QC_CAPA PRIMARY KEY CLUSTERED ([CapaID])
 );
 GO
@@ -2358,6 +2469,7 @@ CREATE TABLE dbo.QC_CAPA_Action (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_QC_CAPA_Action PRIMARY KEY CLUSTERED ([CapaActionID])
 );
 GO
@@ -2378,6 +2490,7 @@ CREATE TABLE dbo.QC_Disposition (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_QC_Disposition PRIMARY KEY CLUSTERED ([DispositionID])
 );
 GO
@@ -2405,6 +2518,7 @@ CREATE TABLE dbo.FG_Stock (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_FG_Stock PRIMARY KEY CLUSTERED ([StockID])
 );
 GO
@@ -2427,6 +2541,7 @@ CREATE TABLE dbo.FG_PutAway (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_FG_PutAway PRIMARY KEY CLUSTERED ([PutAwayID])
 );
 GO
@@ -2452,6 +2567,7 @@ CREATE TABLE dbo.FG_ShipmentOrder (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_FG_ShipmentOrder PRIMARY KEY CLUSTERED ([ShipmentOrderID])
 );
 GO
@@ -2473,6 +2589,7 @@ CREATE TABLE dbo.FG_ShipmentOrderLine (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_FG_ShipmentOrderLine PRIMARY KEY CLUSTERED ([ShipmentOrderLineID])
 );
 GO
@@ -2497,6 +2614,7 @@ CREATE TABLE dbo.FG_PickingFifo (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_FG_PickingFifo PRIMARY KEY CLUSTERED ([PickID])
 );
 GO
@@ -2526,6 +2644,7 @@ CREATE TABLE dbo.FG_LoadingConfirm (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_FG_LoadingConfirm PRIMARY KEY CLUSTERED ([LoadingID])
 );
 GO
@@ -2550,6 +2669,7 @@ CREATE TABLE dbo.FG_DeliveryNote (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_FG_DeliveryNote PRIMARY KEY CLUSTERED ([DeliveryNoteID])
 );
 GO
@@ -2571,6 +2691,7 @@ CREATE TABLE dbo.FG_DayEndClose (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_FG_DayEndClose PRIMARY KEY CLUSTERED ([DayEndCloseID])
 );
 GO
@@ -2596,6 +2717,7 @@ CREATE TABLE dbo.FG_CustomerReturn (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_FG_CustomerReturn PRIMARY KEY CLUSTERED ([ReturnID])
 );
 GO
@@ -2616,6 +2738,7 @@ CREATE TABLE dbo.FG_ReturnDisposition (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_FG_ReturnDisposition PRIMARY KEY CLUSTERED ([ReturnDispositionID])
 );
 GO
@@ -2641,6 +2764,7 @@ CREATE TABLE dbo.MNT_EquipmentStatus (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MNT_EquipmentStatus PRIMARY KEY CLUSTERED ([EquipStatusID])
 );
 GO
@@ -2665,6 +2789,7 @@ CREATE TABLE dbo.MNT_FailureRegister (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MNT_FailureRegister PRIMARY KEY CLUSTERED ([FailureID])
 );
 GO
@@ -2681,6 +2806,7 @@ CREATE TABLE dbo.MNT_FailureAction (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MNT_FailureAction PRIMARY KEY CLUSTERED ([FailureActionID])
 );
 GO
@@ -2706,6 +2832,7 @@ CREATE TABLE dbo.MNT_OEELog (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MNT_OEELog PRIMARY KEY CLUSTERED ([OEELogID])
 );
 GO
@@ -2727,6 +2854,7 @@ CREATE TABLE dbo.MNT_PMSchedule (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MNT_PMSchedule PRIMARY KEY CLUSTERED ([PMScheduleID])
 );
 GO
@@ -2744,6 +2872,7 @@ CREATE TABLE dbo.MNT_PMExecution (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MNT_PMExecution PRIMARY KEY CLUSTERED ([PMExecutionID])
 );
 GO
@@ -2772,6 +2901,7 @@ CREATE TABLE dbo.MNT_WorkOrder (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MNT_WorkOrder PRIMARY KEY CLUSTERED ([WorkOrderID])
 );
 GO
@@ -2791,6 +2921,7 @@ CREATE TABLE dbo.MNT_WorkOrderTask (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MNT_WorkOrderTask PRIMARY KEY CLUSTERED ([WorkOrderTaskID])
 );
 GO
@@ -2815,6 +2946,7 @@ CREATE TABLE dbo.MNT_SparePartsTxn (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MNT_SparePartsTxn PRIMARY KEY CLUSTERED ([SparePartsTxnID])
 );
 GO
@@ -2836,6 +2968,7 @@ CREATE TABLE dbo.MNT_MoldShotCount (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MNT_MoldShotCount PRIMARY KEY CLUSTERED ([MoldShotCountID])
 );
 GO
@@ -2860,6 +2993,7 @@ CREATE TABLE dbo.SYS_UserProfile (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_SYS_UserProfile PRIMARY KEY CLUSTERED ([UserProfileID])
 );
 GO
@@ -2900,6 +3034,7 @@ CREATE TABLE dbo.SYS_AuditLog (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_SYS_AuditLog PRIMARY KEY CLUSTERED ([LogID])
 );
 GO
@@ -2935,6 +3070,7 @@ CREATE TABLE dbo.SYS_NotificationChannel (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_SYS_NotificationChannel PRIMARY KEY CLUSTERED ([NotificationChannelID])
 );
 GO
@@ -2959,6 +3095,7 @@ CREATE TABLE dbo.SYS_NotificationHistory (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_SYS_NotificationHistory PRIMARY KEY CLUSTERED ([NotificationHistoryID])
 );
 GO
@@ -3001,6 +3138,7 @@ CREATE TABLE dbo.SYS_InterfaceMonitor (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_SYS_InterfaceMonitor PRIMARY KEY CLUSTERED ([InterfaceMonitorID])
 );
 GO
@@ -3022,6 +3160,7 @@ CREATE TABLE dbo.SYS_FactoryCalendar (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_SYS_FactoryCalendar PRIMARY KEY CLUSTERED ([FactoryCalendarID])
 );
 GO

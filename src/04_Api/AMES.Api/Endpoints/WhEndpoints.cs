@@ -202,9 +202,10 @@ public static class WhEndpoints
                         @Q, SYSDATETIME(), @By, @T, 'pda', SYSDATETIME());
 
                 UPDATE dbo.WH_ReleaseSchedule
-                SET    PickedQty = ISNULL(PickedQty,0) + @Q,
-                       Status    = CASE WHEN ISNULL(PickedQty,0) + @Q >= ISNULL(DemandQty,0) THEN 'Picked' ELSE 'Partial' END,
-                       ModifiedTS= SYSDATETIME()
+                SET    PickedQty  = ISNULL(PickedQty,0) + @Q,
+                       Status     = CASE WHEN ISNULL(PickedQty,0) + @Q >= ISNULL(DemandQty,0) THEN 'Picked' ELSE 'Partial' END,
+                       ModifiedBy = @By,
+                       ModifiedTS = SYSDATETIME()
                 WHERE  ReleaseScheduleID = @S;
                 """, conn);
             cmd.Parameters.AddWithValue("@S",  body.ReleaseScheduleId);

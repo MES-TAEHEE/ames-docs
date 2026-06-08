@@ -137,7 +137,7 @@
         if (_openChangeId == 0) return;
         try
         {
-            PopServices.Molds.CompleteChange(_openChangeId, _current?.MoldId, _selectedReplacement);
+            PopServices.Molds.CompleteChange(_openChangeId, _current?.MoldId, _selectedReplacement, Session?.OperatorId);
             var equipId = PopServices.Equipment.GetPrimaryForLine(Session.LineId)?.EquipId ?? "UNKNOWN";
             PopServices.Equipment.LogStatus(equipId, Session.LineId, "RUN", "RESUMED", _wo?.WoId, Session.EmployeeNo);
             _openChangeId = 0;

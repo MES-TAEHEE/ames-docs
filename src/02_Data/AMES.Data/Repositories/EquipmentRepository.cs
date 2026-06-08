@@ -60,7 +60,7 @@ public sealed class EquipmentRepository
                 (EquipID, LineID, Status, ReasonCode, WoID, StartedAt, CreatedBy, CreatedTS)
             VALUES (@E, @L, @S, @R, @W, SYSDATETIME(), @By, SYSDATETIME());
 
-            UPDATE dbo.MD_Equipment SET Status = @S, ModifiedTS = SYSDATETIME() WHERE EquipID = @E;
+            UPDATE dbo.MD_Equipment SET Status = @S, ModifiedBy = @By, ModifiedTS = SYSDATETIME() WHERE EquipID = @E;
             """;
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);

@@ -288,7 +288,7 @@ public sealed class Img03ProductionEntryForm : PopForm
                 _session.OperatorId, _session.SessionId, _session.EmployeeNo, defectFlag: false);
 
             // fabric deduction
-            var newRemaining = PopServices.Fabric.DeductFromRoll(_roll.LotId, requiredM, resultId, _session.EmployeeNo);
+            var newRemaining = PopServices.Fabric.DeductFromRoll(_roll.LotId, requiredM, resultId, _session.EmployeeNo, _session.OperatorId);
 
             // bond cycle PLC log (mocked — uses setpoint values as the "average")
             if (_bond is not null)

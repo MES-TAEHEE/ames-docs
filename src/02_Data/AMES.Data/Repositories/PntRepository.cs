@@ -191,13 +191,15 @@ public sealed class PntRepository
                        Status    = 'LOADED',
                        BindAt    = ISNULL(BindAt, SYSDATETIME()),
                        BindReason= ISNULL(BindReason, 'PDA'),
+                       ModifiedBy= @ModBy,
                        ModifiedTS= SYSDATETIME()
                 WHERE  VirtualLotID = @V;
                 """, conn, tx))
             {
-                upd.Parameters.Add("@V", SqlDbType.Int).Value         = virtualLotId;
-                upd.Parameters.Add("@J", SqlDbType.VarChar, 20).Value = jigId;
-                upd.Parameters.Add("@Q", SqlDbType.Int).Value         = loadedQty;
+                upd.Parameters.Add("@V",     SqlDbType.Int            ).Value = virtualLotId;
+                upd.Parameters.Add("@J",     SqlDbType.VarChar,  20   ).Value = jigId;
+                upd.Parameters.Add("@Q",     SqlDbType.Int            ).Value = loadedQty;
+                upd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = operatorId;
                 upd.ExecuteNonQuery();
             }
 
@@ -345,13 +347,15 @@ public sealed class PntRepository
                 SET    ConfirmedQty = @G,
                        DefectQty    = @D,
                        Status       = 'CONFIRMED',
+                       ModifiedBy   = @ModBy,
                        ModifiedTS   = SYSDATETIME()
                 WHERE  VirtualLotID = @V;
                 """, conn, tx))
             {
-                upd.Parameters.Add("@V", SqlDbType.Int).Value = virtualLotId;
-                upd.Parameters.Add("@G", SqlDbType.Int).Value = goodQty;
-                upd.Parameters.Add("@D", SqlDbType.Int).Value = defectQty;
+                upd.Parameters.Add("@V",     SqlDbType.Int            ).Value = virtualLotId;
+                upd.Parameters.Add("@G",     SqlDbType.Int            ).Value = goodQty;
+                upd.Parameters.Add("@D",     SqlDbType.Int            ).Value = defectQty;
+                upd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = operatorId;
                 upd.ExecuteNonQuery();
             }
 
@@ -375,16 +379,17 @@ public sealed class PntRepository
     }
 
     // ── PNT-07 (Label Apply) ──────────────────────────────────────────────
-    public void ApplyLabel(int virtualLotId, string employeeNo)
+    public void ApplyLabel(int virtualLotId, string employeeNo, string? userId = null)
     {
         const string sql = """
             UPDATE dbo.PNT_VirtualLot
-            SET    Status='LABELED', ModifiedTS=SYSDATETIME()
+            SET    Status='LABELED', ModifiedBy=@ModBy, ModifiedTS=SYSDATETIME()
             WHERE  VirtualLotID = @V;
             """;
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@V", SqlDbType.Int).Value = virtualLotId;
+        cmd.Parameters.Add("@V",     SqlDbType.Int            ).Value = virtualLotId;
+        cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = (object?)userId ?? DBNull.Value;
         cmd.ExecuteNonQuery();
     }
 
@@ -418,13 +423,15 @@ public sealed class PntRepository
         const string sql = """
             UPDATE dbo.PNT_VirtualLot
             SET    DefectQty = ISNULL(DefectQty,0) + @Q,
+                   ModifiedBy = @ModBy,
                    ModifiedTS = SYSDATETIME()
             WHERE  VirtualLotID = @V;
             """;
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@V", SqlDbType.Int).Value = virtualLotId;
-        cmd.Parameters.Add("@Q", SqlDbType.Int).Value = qty;
+        cmd.Parameters.Add("@V",     SqlDbType.Int            ).Value = virtualLotId;
+        cmd.Parameters.Add("@Q",     SqlDbType.Int            ).Value = qty;
+        cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = operatorId;
         cmd.ExecuteNonQuery();
     }
 

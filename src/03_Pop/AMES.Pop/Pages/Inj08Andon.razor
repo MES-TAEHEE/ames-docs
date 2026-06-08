@@ -129,7 +129,7 @@
         if (_openId == 0) return;
         try
         {
-            PopServices.Andon.Resume(_openId);
+            PopServices.Andon.Resume(_openId, Session.OperatorId);
             var equipId = PopServices.Equipment.GetPrimaryForLine(Session.LineId)?.EquipId;
             if (!string.IsNullOrEmpty(equipId))
                 PopServices.Equipment.LogStatus(equipId, Session.LineId, "RUN", "RESUMED", null, Session.EmployeeNo);
