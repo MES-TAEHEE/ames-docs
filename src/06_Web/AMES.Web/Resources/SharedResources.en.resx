@@ -1,0 +1,553 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <!-- ── Common Buttons ── -->
+  <data name="Btn.Search"><value>Search</value></data>
+  <data name="Btn.Create"><value>Create</value></data>
+  <data name="Btn.Save"><value>Save</value></data>
+  <data name="Btn.Cancel"><value>Cancel</value></data>
+  <data name="Btn.Delete"><value>Delete</value></data>
+  <data name="Btn.Edit"><value>Edit</value></data>
+  <data name="Btn.Approve"><value>Approve</value></data>
+  <data name="Btn.Reject"><value>Reject</value></data>
+  <data name="Btn.Close"><value>Close</value></data>
+  <data name="Btn.Reload"><value>Reload</value></data>
+
+  <!-- ── Common Labels ── -->
+  <data name="Lbl.Total"><value>Total</value></data>
+  <data name="Lbl.Active"><value>Active</value></data>
+  <data name="Lbl.Inactive"><value>Inactive</value></data>
+  <data name="Lbl.Items"><value>items</value></data>
+  <data name="Lbl.TotalOf"><value>total</value></data>
+
+  <!-- ── Common Filters ── -->
+  <data name="Filter.All"><value>All</value></data>
+  <data name="Filter.AllTypes"><value>All Types</value></data>
+  <data name="Filter.AllStatus"><value>All Status</value></data>
+  <data name="Filter.AllLines"><value>All Lines</value></data>
+  <data name="Filter.AllCategories"><value>All Categories</value></data>
+  <data name="Filter.AllModules"><value>All Modules</value></data>
+  <data name="Filter.AllSections"><value>All Sections</value></data>
+
+  <!-- ── Common Columns ── -->
+  <data name="Col.Code"><value>Code</value></data>
+  <data name="Col.Name"><value>Name</value></data>
+  <data name="Col.Status"><value>Status</value></data>
+  <data name="Col.Type"><value>Type</value></data>
+  <data name="Col.Line"><value>Line</value></data>
+  <data name="Col.LineId"><value>Line ID</value></data>
+  <data name="Col.Equip"><value>Equip</value></data>
+  <data name="Col.Note"><value>Note</value></data>
+  <data name="Col.Date"><value>Date</value></data>
+  <data name="Col.From"><value>From</value></data>
+  <data name="Col.To"><value>To</value></data>
+  <data name="Col.CreatedBy"><value>Created By</value></data>
+  <data name="Col.CreatedTs"><value>Created</value></data>
+  <data name="Col.ModifiedBy"><value>Modified By</value></data>
+  <data name="Col.ModifiedTs"><value>Modified</value></data>
+  <data name="Col.Count"><value>Count</value></data>
+  <data name="Col.Desc"><value>Description</value></data>
+  <data name="Col.Seq"><value>Seq</value></data>
+  <data name="Col.ItemNo"><value>Item No</value></data>
+  <data name="Col.ItemName"><value>Item Name</value></data>
+
+  <!-- ── Lbl.Period ── -->
+  <data name="Lbl.Period"><value>Period</value></data>
+  <data name="Lbl.Recent"><value>Recent</value></data>
+  <data name="Lbl.Future"><value>Ahead</value></data>
+  <data name="Lbl.Past"><value>Back</value></data>
+  <data name="Lbl.Days"><value>days</value></data>
+  <data name="Lbl.Months"><value>months</value></data>
+  <data name="Lbl.Rank"><value>Rank</value></data>
+
+  <!-- ── Common Messages ── -->
+  <data name="Msg.NoData"><value>No results found.</value></data>
+  <data name="Msg.Saving"><value>Saving…</value></data>
+  <data name="Msg.Deleting"><value>Deleting…</value></data>
+  <data name="Msg.Confirm.Delete"><value>Are you sure you want to delete?</value></data>
+  <data name="Msg.Yes"><value>Yes, Delete</value></data>
+  <data name="Msg.No"><value>No</value></data>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- MNT — Maintenance -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+
+  <!-- MNT.Dashboard -->
+  <data name="MNT.Dashboard.Title"><value>Maintenance Dashboard</value></data>
+  <data name="MNT.Dashboard.Sub"><value>Equipment · Failure · PM · Parts Overview</value></data>
+
+  <!-- MNT.EquipmentCard -->
+  <data name="MNT.EquipmentCard.Title"><value>Equipment Card</value></data>
+  <data name="MNT.EquipmentCard.Sub"><value>Real-time equipment status cards</value></data>
+  <data name="MNT.EquipmentCard.List"><value>Equipment List</value></data>
+  <data name="MNT.EquipmentCard.Empty"><value>No equipment data for the selected criteria.</value></data>
+  <data name="MNT.EquipmentCard.Ph.Line"><value>Search line</value></data>
+  <data name="MNT.EquipmentCard.Ph.Name"><value>Search equipment name</value></data>
+
+  <!-- MNT.WorkOrder -->
+  <data name="MNT.WorkOrder.Title"><value>Maintenance Work Orders</value></data>
+  <data name="MNT.WorkOrder.Sub"><value>Maintenance work orders — in-progress / completed</value></data>
+  <data name="MNT.WorkOrder.List"><value>Maintenance Work Orders</value></data>
+  <data name="MNT.WorkOrder.Empty"><value>No work orders for the selected criteria.</value></data>
+  <data name="MNT.WorkOrder.Filter.AllStatus"><value>All Status</value></data>
+  <data name="MNT.WorkOrder.InProgress"><value>In Progress</value></data>
+  <data name="MNT.WorkOrder.Completed"><value>Completed</value></data>
+
+  <!-- MNT.PmSchedule -->
+  <data name="MNT.PmSchedule.Title"><value>PM Schedule</value></data>
+  <data name="MNT.PmSchedule.Sub"><value>Preventive maintenance schedule</value></data>
+  <data name="MNT.PmSchedule.List"><value>PM Schedule</value></data>
+  <data name="MNT.PmSchedule.Empty"><value>No PM schedules in the selected period.</value></data>
+
+  <!-- MNT.Downtime -->
+  <data name="MNT.Downtime.Title"><value>Downtime History</value></data>
+  <data name="MNT.Downtime.Sub"><value>Line downtime event log</value></data>
+  <data name="MNT.Downtime.List"><value>Downtime Events</value></data>
+  <data name="MNT.Downtime.Empty"><value>No downtime data in the selected period.</value></data>
+  <data name="MNT.Downtime.Ph.Line"><value>Search line</value></data>
+
+  <!-- MNT.Failure -->
+  <data name="MNT.Failure.Title"><value>Failure Register</value></data>
+  <data name="MNT.Failure.Sub"><value>Failure event log and registration</value></data>
+  <data name="MNT.Failure.List"><value>Failure Events</value></data>
+  <data name="MNT.Failure.Empty"><value>No failure events for the selected criteria.</value></data>
+  <data name="MNT.Failure.Filter.AllStatus"><value>All Status</value></data>
+  <data name="MNT.Failure.InProgress"><value>In Progress</value></data>
+  <data name="MNT.Failure.Resolved"><value>Resolved</value></data>
+  <data name="MNT.Failure.Kpi.Open"><value>New Failure</value></data>
+  <data name="MNT.Failure.Kpi.Prog"><value>Under Repair</value></data>
+  <data name="MNT.Failure.Kpi.Res"><value>Completed</value></data>
+  <data name="MNT.Failure.Kpi.Urg"><value>Urgent / Critical</value></data>
+
+  <!-- MNT.Mold -->
+  <data name="MNT.Mold.Title"><value>Mold Management</value></data>
+  <data name="MNT.Mold.Sub"><value>Mold shot counter + refurbish threshold</value></data>
+  <data name="MNT.Mold.List"><value>Mold List</value></data>
+  <data name="MNT.Mold.Empty"><value>No mold data for the selected criteria.</value></data>
+  <data name="MNT.Mold.Ph.Name"><value>Search mold name</value></data>
+
+  <!-- MNT.OeeAnalysis -->
+  <data name="MNT.OeeAnalysis.Title"><value>OEE Analysis</value></data>
+  <data name="MNT.OeeAnalysis.Sub"><value>Equipment × Shift OEE aggregation</value></data>
+  <data name="MNT.OeeAnalysis.List"><value>OEE Data</value></data>
+  <data name="MNT.OeeAnalysis.Empty"><value>No OEE data in the selected period.</value></data>
+  <data name="MNT.OeeAnalysis.Ph.Equip"><value>Search equipment</value></data>
+
+  <!-- MNT.SpareParts -->
+  <data name="MNT.SpareParts.Title"><value>Spare Parts</value></data>
+  <data name="MNT.SpareParts.Sub"><value>Spare parts master + recent transactions</value></data>
+  <data name="MNT.SpareParts.List"><value>Spare Parts Master</value></data>
+  <data name="MNT.SpareParts.Empty"><value>No spare parts for the selected criteria.</value></data>
+  <data name="MNT.SpareParts.TxnList"><value>Recent Transactions</value></data>
+  <data name="MNT.SpareParts.TxnEmpty"><value>No transaction data.</value></data>
+  <data name="MNT.SpareParts.Ph.Part"><value>Part No / Name</value></data>
+  <data name="MNT.SpareParts.Ph.Cat"><value>Category</value></data>
+  <data name="MNT.SpareParts.Ph.TxnPart"><value>Part No filter</value></data>
+  <data name="MNT.SpareParts.LowOnly"><value>Low stock only</value></data>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- RPT — Reports -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+
+  <!-- RPT.DailyProduction -->
+  <data name="RPT.DailyProduction.Title"><value>Daily Production Results</value></data>
+  <data name="RPT.DailyProduction.Sub"><value>Daily / line production qty and yield rate</value></data>
+  <data name="RPT.DailyProduction.List"><value>Daily Aggregation</value></data>
+  <data name="RPT.DailyProduction.Empty"><value>No results found.</value></data>
+  <data name="RPT.DailyProduction.Ph.Line"><value>Search line</value></data>
+  <data name="RPT.DailyProduction.Kpi.Days"><value>Days</value></data>
+  <data name="RPT.DailyProduction.Kpi.Good"><value>Good Qty</value></data>
+  <data name="RPT.DailyProduction.Kpi.Defect"><value>Defect Entries</value></data>
+  <data name="RPT.DailyProduction.Kpi.Yield"><value>Yield Rate</value></data>
+  <data name="RPT.DailyProduction.Col.Day"><value>Date</value></data>
+  <data name="RPT.DailyProduction.Col.Entries"><value>Entries</value></data>
+  <data name="RPT.DailyProduction.Col.Good"><value>Good</value></data>
+  <data name="RPT.DailyProduction.Col.Defect"><value>Defect</value></data>
+  <data name="RPT.DailyProduction.Col.Yield"><value>Yield%</value></data>
+
+  <!-- RPT.DefectPareto -->
+  <data name="RPT.DefectPareto.Title"><value>Defect Pareto</value></data>
+  <data name="RPT.DefectPareto.Sub"><value>Defect code Pareto analysis</value></data>
+  <data name="RPT.DefectPareto.List"><value>Pareto Ranking</value></data>
+  <data name="RPT.DefectPareto.Empty"><value>No defect data in the selected period.</value></data>
+  <data name="RPT.DefectPareto.Kpi.Codes"><value>Defect Codes</value></data>
+  <data name="RPT.DefectPareto.Kpi.Total"><value>Total Defects</value></data>
+  <data name="RPT.DefectPareto.Kpi.Events"><value>Events</value></data>
+  <data name="RPT.DefectPareto.Kpi.Top"><value>Top Code</value></data>
+  <data name="RPT.DefectPareto.Col.Rank"><value>Rank</value></data>
+  <data name="RPT.DefectPareto.Col.DefectCode"><value>Defect Code</value></data>
+  <data name="RPT.DefectPareto.Col.Qty"><value>Qty</value></data>
+  <data name="RPT.DefectPareto.Col.Events"><value>Events</value></data>
+  <data name="RPT.DefectPareto.Col.Pct"><value>Share%</value></data>
+  <data name="RPT.DefectPareto.Col.CumPct"><value>Cumulative</value></data>
+  <data name="RPT.DefectPareto.Col.Bar"><value>Bar</value></data>
+
+  <!-- RPT.DailyShipment -->
+  <data name="RPT.DailyShipment.Title"><value>Daily Shipment Status</value></data>
+  <data name="RPT.DailyShipment.Sub"><value>Shipment orders / qty / customer count</value></data>
+  <data name="RPT.DailyShipment.List"><value>Daily Shipment Aggregation</value></data>
+  <data name="RPT.DailyShipment.Empty"><value>No shipment data in the selected period.</value></data>
+  <data name="RPT.DailyShipment.Kpi.Days"><value>Ship Days</value></data>
+  <data name="RPT.DailyShipment.Kpi.Orders"><value>Orders</value></data>
+  <data name="RPT.DailyShipment.Kpi.OrderQty"><value>Order Qty</value></data>
+  <data name="RPT.DailyShipment.Kpi.AllocQty"><value>Allocated Qty</value></data>
+  <data name="RPT.DailyShipment.Col.Orders"><value>Orders</value></data>
+  <data name="RPT.DailyShipment.Col.OrderQty"><value>Order Qty</value></data>
+  <data name="RPT.DailyShipment.Col.AllocQty"><value>Allocated Qty</value></data>
+  <data name="RPT.DailyShipment.Col.FillRate"><value>Fill Rate</value></data>
+  <data name="RPT.DailyShipment.Col.Customers"><value>Customers</value></data>
+
+  <!-- RPT.OnTime -->
+  <data name="RPT.OnTime.Title"><value>On-Time Delivery (OTD)</value></data>
+  <data name="RPT.OnTime.Sub"><value>Daily On-Time Delivery % analysis</value></data>
+  <data name="RPT.OnTime.List"><value>Daily OTD</value></data>
+  <data name="RPT.OnTime.Empty"><value>No shipment data in the selected period.</value></data>
+  <data name="RPT.OnTime.Kpi.Total"><value>Total Orders</value></data>
+  <data name="RPT.OnTime.Kpi.OnTime"><value>On Time</value></data>
+  <data name="RPT.OnTime.Kpi.Late"><value>Late</value></data>
+  <data name="RPT.OnTime.Col.Total"><value>Total Orders</value></data>
+  <data name="RPT.OnTime.Col.OnTime"><value>On Time</value></data>
+  <data name="RPT.OnTime.Col.Late"><value>Late</value></data>
+  <data name="RPT.OnTime.Col.Trend"><value>Trend</value></data>
+
+  <!-- RPT.Inventory -->
+  <data name="RPT.Inventory.Title"><value>Inventory Status</value></data>
+  <data name="RPT.Inventory.Sub"><value>Finished goods inventory — item × location</value></data>
+  <data name="RPT.Inventory.List"><value>Inventory Aggregation</value></data>
+  <data name="RPT.Inventory.Empty"><value>No inventory data.</value></data>
+  <data name="RPT.Inventory.Ph.Item"><value>Search item number</value></data>
+  <data name="RPT.Inventory.Kpi.Count"><value>Result Count</value></data>
+  <data name="RPT.Inventory.Kpi.Qty"><value>Total Stock</value></data>
+  <data name="RPT.Inventory.Kpi.HoldQty"><value>Hold Qty</value></data>
+  <data name="RPT.Inventory.Kpi.HoldPct"><value>Hold Rate</value></data>
+  <data name="RPT.Inventory.Col.ItemNo"><value>Item No</value></data>
+  <data name="RPT.Inventory.Col.Location"><value>Location</value></data>
+  <data name="RPT.Inventory.Col.Lots"><value>Lot Count</value></data>
+  <data name="RPT.Inventory.Col.Qty"><value>Qty</value></data>
+  <data name="RPT.Inventory.Col.HoldLots"><value>Hold Lots</value></data>
+  <data name="RPT.Inventory.Col.HoldQty"><value>Hold Qty</value></data>
+  <data name="RPT.Inventory.Col.HoldPct"><value>Hold%</value></data>
+
+  <!-- RPT.EquipmentOee -->
+  <data name="RPT.EquipmentOee.Title"><value>Equipment OEE</value></data>
+  <data name="RPT.EquipmentOee.Sub"><value>Availability · Performance · Quality · OEE by equipment</value></data>
+  <data name="RPT.EquipmentOee.List"><value>Equipment Ranking</value></data>
+  <data name="RPT.EquipmentOee.Empty"><value>No OEE data in the selected period.</value></data>
+  <data name="RPT.EquipmentOee.Ph.Line"><value>Search line</value></data>
+  <data name="RPT.EquipmentOee.Kpi.EquipCount"><value>Equipment</value></data>
+  <data name="RPT.EquipmentOee.Kpi.AvgA"><value>Avg A</value></data>
+  <data name="RPT.EquipmentOee.Kpi.AvgP"><value>Avg P</value></data>
+  <data name="RPT.EquipmentOee.Kpi.AvgOee"><value>Avg OEE</value></data>
+  <data name="RPT.EquipmentOee.Col.Days"><value>Days</value></data>
+  <data name="RPT.EquipmentOee.Col.Bar"><value>Bar</value></data>
+
+  <!-- RPT.MonthlyKpi -->
+  <data name="RPT.MonthlyKpi.Title"><value>Monthly KPI</value></data>
+  <data name="RPT.MonthlyKpi.Sub"><value>Monthly integrated KPIs — Production / Shipment / Maintenance / OEE</value></data>
+  <data name="RPT.MonthlyKpi.List"><value>Monthly Aggregation</value></data>
+  <data name="RPT.MonthlyKpi.ListSuffix"><value>months</value></data>
+  <data name="RPT.MonthlyKpi.Empty"><value>No monthly data.</value></data>
+  <data name="RPT.MonthlyKpi.Kpi.GoodQty"><value>Good Qty</value></data>
+  <data name="RPT.MonthlyKpi.Kpi.Yield"><value>Yield Rate</value></data>
+  <data name="RPT.MonthlyKpi.Kpi.ShipOrders"><value>Shipment Orders</value></data>
+  <data name="RPT.MonthlyKpi.Kpi.Failures"><value>Failures</value></data>
+  <data name="RPT.MonthlyKpi.Col.Period"><value>Period</value></data>
+  <data name="RPT.MonthlyKpi.Col.GoodQty"><value>Good Qty</value></data>
+  <data name="RPT.MonthlyKpi.Col.DefectQty"><value>Defect Qty</value></data>
+  <data name="RPT.MonthlyKpi.Col.Yield"><value>Yield%</value></data>
+  <data name="RPT.MonthlyKpi.Col.ShipOrders"><value>Shipments</value></data>
+  <data name="RPT.MonthlyKpi.Col.Failures"><value>Failures</value></data>
+  <data name="RPT.MonthlyKpi.Col.AvgOee"><value>Avg OEE</value></data>
+
+  <!-- RPT.ScheduleAdherence -->
+  <data name="RPT.ScheduleAdherence.Title"><value>Schedule Adherence</value></data>
+  <data name="RPT.ScheduleAdherence.Sub"><value>Actual vs. planned production — daily by line</value></data>
+  <data name="RPT.ScheduleAdherence.List"><value>Daily Aggregation</value></data>
+  <data name="RPT.ScheduleAdherence.Empty"><value>No plan or production data in the selected period.</value></data>
+  <data name="RPT.ScheduleAdherence.Ph.Line"><value>Search line</value></data>
+  <data name="RPT.ScheduleAdherence.Kpi.Count"><value>Result Count</value></data>
+  <data name="RPT.ScheduleAdherence.Kpi.Plan"><value>Planned Qty</value></data>
+  <data name="RPT.ScheduleAdherence.Kpi.Prod"><value>Actual Qty</value></data>
+  <data name="RPT.ScheduleAdherence.Kpi.Adh"><value>Adherence Rate</value></data>
+  <data name="RPT.ScheduleAdherence.Col.Plan"><value>Planned Qty</value></data>
+  <data name="RPT.ScheduleAdherence.Col.Prod"><value>Actual Qty</value></data>
+  <data name="RPT.ScheduleAdherence.Col.Adh"><value>Adherence%</value></data>
+  <data name="RPT.ScheduleAdherence.Col.Bar"><value>Bar</value></data>
+
+  <!-- RPT.ReportCenter -->
+  <data name="RPT.ReportCenter.Title"><value>Report Center</value></data>
+  <data name="RPT.ReportCenter.Sub"><value>Full report catalog — by category</value></data>
+
+  <!-- RPT.ReportBuilder -->
+  <data name="RPT.ReportBuilder.Title"><value>Report Builder</value></data>
+  <data name="RPT.ReportBuilder.Sub"><value>Ad-hoc report builder — preview / next milestone</value></data>
+  <data name="RPT.ReportBuilder.Preview"><value>Builder Preview</value></data>
+  <data name="RPT.ReportBuilder.Desc"><value>Report Builder allows you to create custom reports by drag-and-drop selection of data sources, dimensions, and measures — no SQL knowledge required. Planned for the next milestone.</value></data>
+  <data name="RPT.ReportBuilder.Gallery"><value>Template Gallery (sample)</value></data>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- SYS — System Administration -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+
+  <!-- SYS.Users -->
+  <data name="SYS.Users.Title"><value>User Management</value></data>
+  <data name="SYS.Users.Sub"><value>ASP.NET Identity users + SYS_UserProfile join</value></data>
+  <data name="SYS.Users.List"><value>User List</value></data>
+  <data name="SYS.Users.Kpi.Users"><value>Users</value></data>
+  <data name="SYS.Users.Kpi.Verified"><value>Verified</value></data>
+  <data name="SYS.Users.Kpi.Locked"><value>Locked</value></data>
+  <data name="SYS.Users.Kpi.RecentLogin"><value>Recent Login</value></data>
+  <data name="SYS.Users.Ph.UserName"><value>Username</value></data>
+  <data name="SYS.Users.Ph.Name"><value>Full name</value></data>
+  <data name="SYS.Users.Ph.Dept"><value>Department</value></data>
+  <data name="SYS.Users.Col.UserName"><value>Username</value></data>
+  <data name="SYS.Users.Col.Email"><value>Email</value></data>
+  <data name="SYS.Users.Col.EmployeeNo"><value>Employee No</value></data>
+  <data name="SYS.Users.Col.EmployeeName"><value>Name</value></data>
+  <data name="SYS.Users.Col.Dept"><value>Department</value></data>
+  <data name="SYS.Users.Col.Roles"><value>Roles</value></data>
+  <data name="SYS.Users.Col.FailCount"><value>Login Failures</value></data>
+  <data name="SYS.Users.Col.LastLogin"><value>Last Login</value></data>
+  <data name="SYS.Users.Modal.Create"><value>New User</value></data>
+  <data name="SYS.Users.Modal.Edit"><value>Edit User</value></data>
+  <data name="SYS.Users.Lbl.EmployeeNo"><value>Employee No *</value></data>
+  <data name="SYS.Users.Lbl.EmployeeName"><value>Name *</value></data>
+  <data name="SYS.Users.Lbl.Dept"><value>Department</value></data>
+  <data name="SYS.Users.Lbl.DefaultShift"><value>Default Shift</value></data>
+  <data name="SYS.Users.Lbl.Role"><value>Role</value></data>
+  <data name="SYS.Users.Lbl.Lines"><value>Assigned Lines</value></data>
+  <data name="SYS.Users.Lbl.NoLines"><value>No active lines</value></data>
+  <data name="SYS.Users.Lbl.AccountStatus"><value>Account Status</value></data>
+  <data name="SYS.Users.Lbl.NewPassword"><value>New Password (leave blank to keep)</value></data>
+  <data name="SYS.Users.Unlock"><value>Unlock Account</value></data>
+
+  <!-- SYS.Roles -->
+  <data name="SYS.Roles.Title"><value>Role Management</value></data>
+  <data name="SYS.Roles.Sub"><value>ASP.NET Identity role management</value></data>
+  <data name="SYS.Roles.List"><value>Role List</value></data>
+  <data name="SYS.Roles.Kpi.Roles"><value>Roles</value></data>
+  <data name="SYS.Roles.Kpi.Assigned"><value>Assigned</value></data>
+  <data name="SYS.Roles.Kpi.Unused"><value>Unused</value></data>
+  <data name="SYS.Roles.Col.RoleName"><value>Role Name</value></data>
+  <data name="SYS.Roles.Col.UserCount"><value>Users</value></data>
+  <data name="SYS.Roles.Modal.Create"><value>New Role</value></data>
+  <data name="SYS.Roles.Lbl.RoleName"><value>Role Name *</value></data>
+
+  <!-- SYS.Rbac -->
+  <data name="SYS.Rbac.Title"><value>Role / Permission Management (RBAC)</value></data>
+  <data name="SYS.Rbac.Sub"><value>Role × screen permission matrix</value></data>
+  <data name="SYS.Rbac.List"><value>Permission List</value></data>
+  <data name="SYS.Rbac.Kpi.Roles"><value>Roles</value></data>
+  <data name="SYS.Rbac.Kpi.Perms"><value>Permissions</value></data>
+  <data name="SYS.Rbac.Kpi.Screens"><value>Screens</value></data>
+  <data name="SYS.Rbac.Kpi.Users"><value>Role Users</value></data>
+  <data name="SYS.Rbac.Col.Module"><value>Module</value></data>
+  <data name="SYS.Rbac.Col.Screen"><value>Screen</value></data>
+  <data name="SYS.Rbac.Col.Level"><value>Level</value></data>
+  <data name="SYS.Rbac.Col.System"><value>System</value></data>
+  <data name="SYS.Rbac.Modal.Create"><value>Create Permission</value></data>
+  <data name="SYS.Rbac.Lbl.Role"><value>Role *</value></data>
+  <data name="SYS.Rbac.Lbl.Module"><value>Module *</value></data>
+  <data name="SYS.Rbac.Lbl.Screen"><value>Screen Code *</value></data>
+  <data name="SYS.Rbac.Lbl.Level"><value>Permission Level *</value></data>
+  <data name="SYS.Rbac.Lbl.IsSystem"><value>System Role</value></data>
+
+  <!-- SYS.Menu -->
+  <data name="SYS.Menu.Title"><value>Menu Management</value></data>
+  <data name="SYS.Menu.Sub"><value>MD_Menu / MD_MenuRole — visibility and role-based access</value></data>
+  <data name="SYS.Menu.List"><value>Menu List</value></data>
+  <data name="SYS.Menu.Empty"><value>No menu items to display.</value></data>
+  <data name="SYS.Menu.Ph.Search"><value>Code / menu name / path</value></data>
+  <data name="SYS.Menu.Kpi.All"><value>Total Menus</value></data>
+  <data name="SYS.Menu.Kpi.Visible"><value>Visible</value></data>
+  <data name="SYS.Menu.Kpi.Hidden"><value>Hidden</value></data>
+  <data name="SYS.Menu.Kpi.Restricted"><value>Role Restricted</value></data>
+  <data name="SYS.Menu.Col.Code"><value>Code</value></data>
+  <data name="SYS.Menu.Col.Section"><value>Section</value></data>
+  <data name="SYS.Menu.Col.NameKo"><value>Menu Name (KO)</value></data>
+  <data name="SYS.Menu.Col.NameEn"><value>Menu Name (EN)</value></data>
+  <data name="SYS.Menu.Col.Path"><value>Path</value></data>
+  <data name="SYS.Menu.Col.Visible"><value>Visible</value></data>
+  <data name="SYS.Menu.Col.Roles"><value>Roles</value></data>
+  <data name="SYS.Menu.Filter.AllSections"><value>All Sections</value></data>
+  <data name="SYS.Menu.Filter.Visible"><value>Visible</value></data>
+  <data name="SYS.Menu.Filter.Hidden"><value>Hidden</value></data>
+
+  <!-- SYS.Calendar -->
+  <data name="SYS.Calendar.Title"><value>Factory Calendar</value></data>
+  <data name="SYS.Calendar.Sub"><value>Factory calendar — shift × date management</value></data>
+  <data name="SYS.Calendar.Kpi.Days"><value>Days</value></data>
+  <data name="SYS.Calendar.Kpi.Work"><value>Work Days</value></data>
+  <data name="SYS.Calendar.Kpi.Weekend"><value>Weekends</value></data>
+  <data name="SYS.Calendar.Kpi.Holiday"><value>Holidays</value></data>
+  <data name="SYS.Calendar.Tab.List"><value>List</value></data>
+  <data name="SYS.Calendar.Tab.Calendar"><value>Calendar</value></data>
+  <data name="SYS.Calendar.Btn.Create"><value>+ Generate Schedule</value></data>
+  <data name="SYS.Calendar.Empty"><value>No data in the selected period. Use 'Generate Schedule' to add entries.</value></data>
+  <data name="SYS.Calendar.Col.Date"><value>Date</value></data>
+  <data name="SYS.Calendar.Col.DayType"><value>Type</value></data>
+  <data name="SYS.Calendar.Col.HolidayName"><value>Holiday Name</value></data>
+  <data name="SYS.Calendar.Legend.Work"><value>Work Day</value></data>
+  <data name="SYS.Calendar.Legend.Weekend"><value>Weekend</value></data>
+  <data name="SYS.Calendar.Legend.Holiday"><value>Holiday</value></data>
+  <data name="SYS.Calendar.Badge.Holiday"><value>Holiday</value></data>
+  <data name="SYS.Calendar.Badge.Weekend"><value>Weekend</value></data>
+  <data name="SYS.Calendar.Modal.Generate"><value>Auto-Generate Schedule</value></data>
+
+  <!-- SYS.Interfaces -->
+  <data name="SYS.Interfaces.Title"><value>Interface Monitor</value></data>
+  <data name="SYS.Interfaces.Sub"><value>SAP / PLC / WMS / EDI connection status</value></data>
+  <data name="SYS.Interfaces.List"><value>Interface List</value></data>
+  <data name="SYS.Interfaces.Empty"><value>No interfaces registered.</value></data>
+  <data name="SYS.Interfaces.Kpi.All"><value>Interfaces</value></data>
+  <data name="SYS.Interfaces.Kpi.Ok"><value>OK</value></data>
+  <data name="SYS.Interfaces.Kpi.Warn"><value>Warning</value></data>
+  <data name="SYS.Interfaces.Kpi.Down"><value>Down</value></data>
+  <data name="SYS.Interfaces.Col.Code"><value>Code</value></data>
+  <data name="SYS.Interfaces.Col.Name"><value>Name</value></data>
+  <data name="SYS.Interfaces.Col.Dir"><value>Direction</value></data>
+  <data name="SYS.Interfaces.Col.Endpoint"><value>Endpoint</value></data>
+  <data name="SYS.Interfaces.Col.Protocol"><value>Protocol</value></data>
+  <data name="SYS.Interfaces.Col.LastSync"><value>Last Sync</value></data>
+  <data name="SYS.Interfaces.Col.Elapsed"><value>Elapsed (min)</value></data>
+  <data name="SYS.Interfaces.Col.LastCount"><value>Last Row Count</value></data>
+  <data name="SYS.Interfaces.Col.Retry"><value>Retries</value></data>
+  <data name="SYS.Interfaces.Col.Error"><value>Error</value></data>
+
+  <!-- SYS.Audit -->
+  <data name="SYS.Audit.Title"><value>Audit Log</value></data>
+  <data name="SYS.Audit.Sub"><value>Audit log — last 200 entries (append-only)</value></data>
+  <data name="SYS.Audit.List"><value>Recent Audit Events</value></data>
+  <data name="SYS.Audit.Empty"><value>No audit events found.</value></data>
+  <data name="SYS.Audit.Kpi.Events"><value>Events</value></data>
+  <data name="SYS.Audit.Kpi.Ok"><value>Success</value></data>
+  <data name="SYS.Audit.Kpi.Fail"><value>Failure</value></data>
+  <data name="SYS.Audit.Kpi.Last24h"><value>Last 24H</value></data>
+  <data name="SYS.Audit.Col.Time"><value>Time</value></data>
+  <data name="SYS.Audit.Col.Actor"><value>Actor</value></data>
+  <data name="SYS.Audit.Col.Module"><value>Module</value></data>
+  <data name="SYS.Audit.Col.Screen"><value>Screen</value></data>
+  <data name="SYS.Audit.Col.Action"><value>Action</value></data>
+  <data name="SYS.Audit.Col.Entity"><value>Entity</value></data>
+  <data name="SYS.Audit.Col.TargetId"><value>Target ID</value></data>
+  <data name="SYS.Audit.Col.Result"><value>Result</value></data>
+  <data name="SYS.Audit.Col.Ip"><value>IP</value></data>
+  <data name="SYS.Audit.Col.Note"><value>Note</value></data>
+
+  <!-- SYS.Notifications -->
+  <data name="SYS.Notifications.Title"><value>Notification Management</value></data>
+  <data name="SYS.Notifications.Sub"><value>Notification rules · Channel settings · Send history</value></data>
+  <data name="SYS.Notifications.Kpi.Rules"><value>Rules</value></data>
+  <data name="SYS.Notifications.Kpi.ActiveRules"><value>Active Rules</value></data>
+  <data name="SYS.Notifications.Kpi.Channels"><value>Channels</value></data>
+  <data name="SYS.Notifications.Kpi.Sent"><value>Sent 24H</value></data>
+  <data name="SYS.Notifications.Kpi.Failed"><value>Failed 24H</value></data>
+  <data name="SYS.Notifications.Tab.Rules"><value>Notification Rules</value></data>
+  <data name="SYS.Notifications.Tab.Channels"><value>Channel Settings</value></data>
+  <data name="SYS.Notifications.Tab.History"><value>Send History</value></data>
+  <data name="SYS.Notifications.Rules.List"><value>Notification Rules</value></data>
+  <data name="SYS.Notifications.Rules.Empty"><value>No notification rules registered. Please create a rule.</value></data>
+  <data name="SYS.Notifications.Channels.List"><value>Channel Settings</value></data>
+  <data name="SYS.Notifications.Channels.Empty"><value>No channels registered.</value></data>
+  <data name="SYS.Notifications.History.List"><value>Send History (last 100)</value></data>
+  <data name="SYS.Notifications.History.Empty"><value>No send history.</value></data>
+  <data name="SYS.Notifications.Ph.RuleSearch"><value>Code / event name</value></data>
+  <data name="SYS.Notifications.Ph.ChSearch"><value>User / address</value></data>
+  <data name="SYS.Notifications.Filter.AllModules"><value>All Modules</value></data>
+  <data name="SYS.Notifications.Filter.AllChannels"><value>All Channels</value></data>
+  <data name="SYS.Notifications.Filter.AllEnabled"><value>All</value></data>
+  <data name="SYS.Notifications.Filter.Active"><value>Active</value></data>
+  <data name="SYS.Notifications.Filter.Inactive"><value>Inactive</value></data>
+  <data name="SYS.Notifications.Btn.Apply"><value>Apply</value></data>
+
+  <!-- SYS.Config -->
+  <data name="SYS.Config.Title"><value>System Configuration</value></data>
+  <data name="SYS.Config.Sub"><value>Configuration (Key-Value) — by category</value></data>
+  <data name="SYS.Config.Empty"><value>No configuration keys found.</value></data>
+  <data name="SYS.Config.Kpi.Keys"><value>Keys</value></data>
+  <data name="SYS.Config.Kpi.Active"><value>Active</value></data>
+  <data name="SYS.Config.Kpi.Categories"><value>Categories</value></data>
+  <data name="SYS.Config.Kpi.Security"><value>Security</value></data>
+  <data name="SYS.Config.Col.Key"><value>Key</value></data>
+  <data name="SYS.Config.Col.Desc"><value>Description</value></data>
+  <data name="SYS.Config.Col.Value"><value>Value</value></data>
+  <data name="SYS.Config.Col.Unit"><value>Unit</value></data>
+  <data name="SYS.Config.Col.Type"><value>Type</value></data>
+  <data name="SYS.Config.Active"><value>Active</value></data>
+  <data name="SYS.Config.Inactive"><value>Inactive</value></data>
+
+  <!-- SYS.Health -->
+  <data name="SYS.Health.Title"><value>System Health</value></data>
+  <data name="SYS.Health.Sub"><value>System KPIs · Notification queue · DB status</value></data>
+  <data name="SYS.Health.Kpi.Users"><value>Users</value></data>
+  <data name="SYS.Health.Kpi.Roles"><value>Roles</value></data>
+  <data name="SYS.Health.Kpi.IfOk"><value>Interfaces OK</value></data>
+  <data name="SYS.Health.Kpi.IfDown"><value>Interfaces Down</value></data>
+  <data name="SYS.Health.Kpi.Audit"><value>Audit 24H</value></data>
+  <data name="SYS.Health.Kpi.Notif"><value>Notif 24H</value></data>
+  <data name="SYS.Health.Kpi.NotifFail"><value>Notif Failed</value></data>
+  <data name="SYS.Health.Kpi.Config"><value>Config Keys</value></data>
+  <data name="SYS.Health.Db.Title"><value>Database — Row Count Estimate</value></data>
+  <data name="SYS.Health.Db.Desc"><value>Total across all user tables</value></data>
+  <data name="SYS.Health.Tile.Users"><value>Users</value></data>
+  <data name="SYS.Health.Tile.Rbac"><value>RBAC</value></data>
+  <data name="SYS.Health.Tile.Interfaces"><value>Interfaces</value></data>
+  <data name="SYS.Health.Tile.Audit"><value>Audit Log</value></data>
+  <data name="SYS.Health.Tile.Notif"><value>Notifications</value></data>
+  <data name="SYS.Health.Tile.Config"><value>System Config</value></data>
+  <data name="SYS.Health.Tile.Calendar"><value>Factory Calendar</value></data>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- MD — Master Data -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+
+  <!-- MD.Line -->
+  <data name="MD.Line.Title"><value>Factory / Line Master</value></data>
+  <data name="MD.Line.Sub"><value>MD_Line master — line type, daily capacity, shift pattern, RFID</value></data>
+  <data name="MD.Line.List"><value>Production Line List</value></data>
+  <data name="MD.Line.Empty"><value>No production lines registered.</value></data>
+  <data name="MD.Line.Ph.Search"><value>Line ID / name</value></data>
+  <data name="MD.Line.Filter.AllTypes"><value>All Types</value></data>
+  <data name="MD.Line.Filter.AllStatus"><value>All Status</value></data>
+  <data name="MD.Line.Kpi.Total"><value>Total</value></data>
+  <data name="MD.Line.Kpi.Active"><value>Active</value></data>
+  <data name="MD.Line.Kpi.Rfid"><value>RFID Active</value></data>
+  <data name="MD.Line.Kpi.Plants"><value>Plants</value></data>
+  <data name="MD.Line.Col.LineId"><value>Line ID</value></data>
+  <data name="MD.Line.Col.LineName"><value>Line Name</value></data>
+  <data name="MD.Line.Col.Type"><value>Type</value></data>
+  <data name="MD.Line.Col.Plant"><value>Plant</value></data>
+  <data name="MD.Line.Col.DefaultWc"><value>Default WC</value></data>
+  <data name="MD.Line.Col.DailyCap"><value>Daily Cap</value></data>
+  <data name="MD.Line.Col.ShiftPattern"><value>Shift Pattern</value></data>
+  <data name="MD.Line.Modal.Create"><value>New Production Line</value></data>
+  <data name="MD.Line.Lbl.LineId"><value>Line ID *</value></data>
+  <data name="MD.Line.Lbl.LineName"><value>Line Name *</value></data>
+  <data name="MD.Line.Lbl.LineType"><value>Line Type</value></data>
+  <data name="MD.Line.Lbl.PlantId"><value>Plant ID</value></data>
+  <data name="MD.Line.Lbl.DefaultWcid"><value>Default Work Center (WCID)</value></data>
+  <data name="MD.Line.Lbl.DailyCap"><value>Daily Capacity (EA)</value></data>
+  <data name="MD.Line.Lbl.ShiftPattern"><value>Shift Pattern</value></data>
+  <data name="MD.Line.Lbl.RfidEnabled"><value>RFID Active</value></data>
+
+</root>

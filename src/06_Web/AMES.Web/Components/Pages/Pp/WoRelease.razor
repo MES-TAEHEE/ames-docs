@@ -1,13 +1,14 @@
-@page "/pp/wo-release"
+﻿@page "/pp/wo-release"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>PP-07 WO Release · AMES</PageTitle>
+<PageTitle>@L["PP.WoRelease.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">PP-07</div>
-    <div class="ames-page-t">WO Release</div>
-    <div class="ames-page-sub">Draft/Planned WO → 현장으로 Release</div>
+    <div class="ames-page-t">@L["PP.WoRelease.Title"]</div>
+    <div class="ames-page-sub">@L["PP.WoRelease.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
@@ -19,7 +20,7 @@
 
 <div class="ames-card">
     <div class="ames-card-h">▼ WORK ORDERS</div>
-    @if (_rows.Count == 0) { <div class="ames-empty">No WOs.</div> }
+    @if (_rows.Count == 0) { <div class="ames-empty">@L["PP.WoRelease.Empty"]</div> }
     else
     {
         <table class="ames-table">

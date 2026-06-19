@@ -1,14 +1,15 @@
-@page "/md/line-time-pattern"
+﻿@page "/md/line-time-pattern"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MD-029 라인 시간 패턴 관리 · AMES</PageTitle>
+<PageTitle>@L["MD.LinePat.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MD-029</div>
-    <div class="ames-page-t">라인 시간 패턴 관리</div>
-    <div class="ames-page-sub">MD_LineTimePattern 마스터 — 교대·요일별 운전시간 세그먼트 설정</div>
+    <div class="ames-page-t">@L["MD.LinePat.Title"]</div>
+    <div class="ames-page-sub">@L["MD.LinePat.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
@@ -17,7 +18,7 @@
         <div class="ames-kpi-v">@_allRows.Count</div>
     </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-l">@L["Lbl.Active"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "ACTIVE")</div>
     </div>
     <div class="ames-kpi">
@@ -32,24 +33,24 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ 시간 패턴 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.LinePat.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:140px;padding:4px 8px;"
                    placeholder="패턴ID / 패턴명" @bind="_fSearch" autocomplete="off" />
             <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fLine">
-                <option value="">라인 전체</option>
+                <option value="">@L["Filter.AllLines"]</option>
                 @foreach (var l in _allRows.Select(r => r.LineID).Where(x => x != null).Distinct().OrderBy(x => x))
                 {
                     <option value="@l">@l</option>
                 }
             </select>
-            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
         </div>
     </div>
 
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">등록된 시간 패턴이 없습니다.</div>
+        <div class="ames-empty">@L["MD.LinePat.Empty"]</div>
     }
     else
     {
@@ -60,7 +61,7 @@
                     <th>요일 유형</th><th>교대 모델</th>
                     <th>적용 시작</th><th>적용 종료</th>
                     <th class="num">운전 시간(분)</th><th class="num">계획 비가동(분)</th>
-                    <th>상태</th><th>세그먼트</th>
+                    <th>@L["Col.Status"]</th><th>세그먼트</th>
                 </tr>
             </thead>
             <tbody>
@@ -87,7 +88,7 @@
                                     <thead>
                                         <tr>
                                             <th class="num">순서</th><th class="num">시작(분)</th><th class="num">종료(분)</th>
-                                            <th>상태</th><th>교대</th><th>사유코드</th><th>설명</th>
+                                            <th>@L["Col.Status"]</th><th>교대</th><th>사유코드</th><th>설명</th>
                                         </tr>
                                     </thead>
                                     <tbody>

@@ -1,15 +1,16 @@
-@page "/sys/menu"
+﻿@page "/sys/menu"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
 @inject AuthenticationStateProvider Auth
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>SYS-004 메뉴 관리 · AMES</PageTitle>
+<PageTitle>@L["SYS.Menu.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">SYS-004</div>
-    <div class="ames-page-t">메뉴 관리</div>
-    <div class="ames-page-sub">MD_Menu / MD_MenuRole — 메뉴 가시성 · 역할별 권한 (VIEW / EDIT / APPROVE) 설정</div>
+    <div class="ames-page-t">@L["SYS.Menu.Title"]</div>
+    <div class="ames-page-sub">@L["SYS.Menu.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
@@ -38,7 +39,7 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ 메뉴 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["SYS.Menu.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:160px;padding:4px 8px;"
                    placeholder="코드 / 메뉴명 / 경로" @bind="_fSearch" autocomplete="off" />
@@ -55,13 +56,13 @@
                 <option value="Y">표시</option>
                 <option value="N">숨김</option>
             </select>
-            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
         </div>
     </div>
 
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">표시할 메뉴 항목이 없습니다.</div>
+        <div class="ames-empty">@L["SYS.Menu.Empty"]</div>
     }
     else
     {
@@ -150,7 +151,7 @@
                                 </td>
                                 <td>
                                     <button class="ames-btn bad" style="padding:2px 8px;font-size:.78rem;"
-                                            @onclick="() => DeleteRole(rr.MenuRoleId)">삭제</button>
+                                            @onclick="() => DeleteRole(rr.MenuRoleId)">@L["Btn.Delete"]</button>
                                 </td>
                             </tr>
                         }
@@ -184,7 +185,7 @@
 
             <div class="ames-modal-footer">
                 <button class="ames-btn ok" @onclick="SaveBasic" disabled="@_busy">@(_busy ? "저장 중…" : "기본 설정 저장")</button>
-                <button class="ames-btn"    @onclick="CloseModal">닫기</button>
+                <button class="ames-btn"    @onclick="CloseModal">@L["Btn.Close"]</button>
             </div>
         </div>
     </div>

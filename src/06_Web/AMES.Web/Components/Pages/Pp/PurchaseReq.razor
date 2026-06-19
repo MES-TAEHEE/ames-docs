@@ -1,13 +1,14 @@
-@page "/pp/purchase-req"
+﻿@page "/pp/purchase-req"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>PP-06 Purchase Req · AMES</PageTitle>
+<PageTitle>@L["PP.PurchaseReq.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">PP-06</div>
-    <div class="ames-page-t">Purchase Request</div>
-    <div class="ames-page-sub">MRP 결과 → 구매 요청 → SAP PO 변환</div>
+    <div class="ames-page-t">@L["PP.PurchaseReq.Title"]</div>
+    <div class="ames-page-sub">@L["PP.PurchaseReq.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
@@ -19,7 +20,7 @@
 
 <div class="ames-card">
     <div class="ames-card-h">▼ PURCHASE REQUESTS</div>
-    @if (_rows.Count == 0) { <div class="ames-empty">No PR rows.</div> }
+    @if (_rows.Count == 0) { <div class="ames-empty">@L["PP.PurchaseReq.Empty"]</div> }
     else
     {
         <table class="ames-table">

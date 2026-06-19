@@ -2,21 +2,22 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.RptRepository Rpt
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>RPT-04 납기 준수율 · AMES</PageTitle>
+<PageTitle>RPT-04 @L["RPT.OnTime.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">RPT-04</div>
-    <div class="ames-page-t">납기 준수율 (OTD)</div>
-    <div class="ames-page-sub">일별 On-Time Delivery % 분석</div>
+    <div class="ames-page-t">@L["RPT.OnTime.Title"]</div>
+    <div class="ames-page-sub">@L["RPT.OnTime.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">총 주문</div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.OnTime.Kpi.Total"]</div>
         <div class="ames-kpi-v">@_total</div><div class="ames-kpi-s">total shipped</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">납기 준수</div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["RPT.OnTime.Kpi.OnTime"]</div>
         <div class="ames-kpi-v">@_ok</div><div class="ames-kpi-s">on schedule</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">납기 지연</div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">@L["RPT.OnTime.Kpi.Late"]</div>
         <div class="ames-kpi-v">@_late</div><div class="ames-kpi-s">missed date</div></div>
     <div class="ames-kpi @(_pct >= 95 ? "ok" : _pct >= 85 ? "warn" : "bad")">
         <div class="ames-kpi-l">OTD%</div>
@@ -26,32 +27,32 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ 일별 OTD · @_rows.Count 건</span>
+        <span style="white-space:nowrap;">▼ @L["RPT.OnTime.List"] · @_rows.Count @L["Lbl.Items"]</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">조회 기간</label>
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Period"]</label>
             <select class="ames-input" style="width:80px;padding:4px 8px;" @bind="_daysBack">
-                <option value="7">7일</option>
-                <option value="14">14일</option>
-                <option value="30">30일</option>
-                <option value="60">60일</option>
-                <option value="90">90일</option>
+                <option value="7">7@L["Lbl.Days"]</option>
+                <option value="14">14@L["Lbl.Days"]</option>
+                <option value="30">30@L["Lbl.Days"]</option>
+                <option value="60">60@L["Lbl.Days"]</option>
+                <option value="90">90@L["Lbl.Days"]</option>
             </select>
-            <button class="ames-btn ok" @onclick="Reload">조회</button>
+            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
         </div>
     </div>
 
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">해당 기간에 출하 데이터가 없습니다.</div>
+        <div class="ames-empty">@L["RPT.OnTime.Empty"]</div>
     }
     else
     {
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>날짜</th><th class="num">총 주문</th>
-                    <th class="num">납기 준수</th><th class="num">납기 지연</th>
-                    <th class="num">OTD%</th><th>트렌드</th>
+                    <th>@L["Col.Date"]</th><th class="num">@L["RPT.OnTime.Kpi.Total"]</th>
+                    <th class="num">@L["RPT.OnTime.Kpi.OnTime"]</th><th class="num">@L["RPT.OnTime.Kpi.Late"]</th>
+                    <th class="num">OTD%</th><th>@L["RPT.OnTime.Col.Trend"]</th>
                 </tr>
             </thead>
             <tbody>

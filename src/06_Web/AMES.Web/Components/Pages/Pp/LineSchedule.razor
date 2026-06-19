@@ -1,13 +1,14 @@
-@page "/pp/line-schedule"
+﻿@page "/pp/line-schedule"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>PP-LSB Line Schedule · AMES</PageTitle>
+<PageTitle>@L["PP.LineSchedule.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">PP-LSB</div>
-    <div class="ames-page-t">Line Schedule Board</div>
-    <div class="ames-page-sub">라인별 분단위 스케줄 — 향후 7일</div>
+    <div class="ames-page-t">@L["PP.LineSchedule.Title"]</div>
+    <div class="ames-page-sub">@L["PP.LineSchedule.Sub"]</div>
 </div>
 
 @foreach (var line in _rows.GroupBy(r => r.LineId).OrderBy(g => g.Key))
@@ -35,7 +36,7 @@
 
 @if (_rows.Count == 0)
 {
-    <div class="ames-card"><div class="ames-empty">No schedule rows.</div></div>
+    <div class="ames-card"><div class="ames-empty">@L["PP.LineSchedule.Empty"]</div></div>
 }
 
 @code {

@@ -1,13 +1,14 @@
-@page "/pp/downtime-monitor"
+﻿@page "/pp/downtime-monitor"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>PP-ODM Downtime Monitor · AMES</PageTitle>
+<PageTitle>@L["PP.DowntimeMonitor.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">PP-ODM</div>
-    <div class="ames-page-t">Operating · Downtime Monitor</div>
-    <div class="ames-page-sub">라인 상태 분단위 — 최근 4시간</div>
+    <div class="ames-page-t">@L["PP.DowntimeMonitor.Title"]</div>
+    <div class="ames-page-sub">@L["PP.DowntimeMonitor.Sub"]</div>
 </div>
 
 @foreach (var line in _rows.GroupBy(r => r.LineId).OrderBy(g => g.Key))
@@ -39,7 +40,7 @@
 
 @if (_rows.Count == 0)
 {
-    <div class="ames-card"><div class="ames-empty">No state samples in the last 4 hours.</div></div>
+    <div class="ames-card"><div class="ames-empty">@L["PP.DowntimeMonitor.Empty"]</div></div>
 }
 
 @code {

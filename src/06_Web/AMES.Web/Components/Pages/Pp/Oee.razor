@@ -1,13 +1,14 @@
-@page "/pp/oee"
+﻿@page "/pp/oee"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>PP-OEE Line OEE · AMES</PageTitle>
+<PageTitle>@L["PP.Oee.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">PP-OEE</div>
-    <div class="ames-page-t">Line OEE</div>
-    <div class="ames-page-sub">라인 × 교대별 OEE — A × P × Q (14일)</div>
+    <div class="ames-page-t">@L["PP.Oee.Title"]</div>
+    <div class="ames-page-sub">@L["PP.Oee.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
@@ -19,7 +20,7 @@
 
 <div class="ames-card">
     <div class="ames-card-h">▼ OEE SNAPSHOTS</div>
-    @if (_rows.Count == 0) { <div class="ames-empty">No OEE snapshots.</div> }
+    @if (_rows.Count == 0) { <div class="ames-empty">@L["PP.Oee.Empty"]</div> }
     else
     {
         <table class="ames-table">

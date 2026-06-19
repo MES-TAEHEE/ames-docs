@@ -1,23 +1,24 @@
-@page "/md/pm-template"
+﻿@page "/md/pm-template"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MD-028 PM 템플릿 관리 · AMES</PageTitle>
+<PageTitle>@L["MD.PmTemplate.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MD-028</div>
-    <div class="ames-page-t">PM 템플릿 관리</div>
-    <div class="ames-page-sub">MD_PmTemplate 마스터 — 예방보전 점검 항목·주기·LOTO 안전 설정</div>
+    <div class="ames-page-t">@L["MD.PmTemplate.Title"]</div>
+    <div class="ames-page-sub">@L["MD.PmTemplate.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
     <div class="ames-kpi">
-        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-l">@L["Lbl.Total"]</div>
         <div class="ames-kpi-v">@_allRows.Count</div>
     </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-l">@L["Lbl.Active"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.ActiveFlag)</div>
     </div>
     <div class="ames-kpi warn">
@@ -32,7 +33,7 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ PM 템플릿 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.PmTemplate.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:150px;padding:4px 8px;"
                    placeholder="템플릿ID / 템플릿명" @bind="_fSearch" autocomplete="off" />
@@ -48,13 +49,13 @@
                 <option value="Y">활성</option>
                 <option value="N">비활성</option>
             </select>
-            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
         </div>
     </div>
 
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">등록된 PM 템플릿이 없습니다.</div>
+        <div class="ames-empty">@L["MD.PmTemplate.Empty"]</div>
     }
     else
     {
@@ -63,7 +64,7 @@
                 <tr>
                     <th>템플릿 ID</th><th>템플릿명</th><th>설비 유형</th>
                     <th>주기 기준</th><th class="num">주기값</th><th>단위</th>
-                    <th class="num">표준 소요(분)</th><th>LOTO</th><th>상태</th><th>점검 항목</th>
+                    <th class="num">표준 소요(분)</th><th>LOTO</th><th>@L["Col.Status"]</th><th>점검 항목</th>
                 </tr>
             </thead>
             <tbody>

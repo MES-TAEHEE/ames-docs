@@ -3,33 +3,34 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
 @inject AuthenticationStateProvider Auth
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>SYS-005 공장 캘린더 · AMES</PageTitle>
+<PageTitle>SYS-005 @L["SYS.Calendar.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">SYS-005</div>
-    <div class="ames-page-t">공장 캘린더</div>
-    <div class="ames-page-sub">공장 달력 — 교대 × 일자 관리</div>
+    <div class="ames-page-t">@L["SYS.Calendar.Title"]</div>
+    <div class="ames-page-sub">@L["SYS.Calendar.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
     <div class="ames-kpi">
-        <div class="ames-kpi-l">일수</div>
+        <div class="ames-kpi-l">@L["SYS.Calendar.Kpi.Days"]</div>
         <div class="ames-kpi-v">@_days</div>
         <div class="ames-kpi-s">조회 기간 내</div>
     </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">작업일</div>
+        <div class="ames-kpi-l">@L["SYS.Calendar.Kpi.Work"]</div>
         <div class="ames-kpi-v">@_work</div>
         <div class="ames-kpi-s">생산일</div>
     </div>
     <div class="ames-kpi warn">
-        <div class="ames-kpi-l">주말</div>
+        <div class="ames-kpi-l">@L["SYS.Calendar.Kpi.Weekend"]</div>
         <div class="ames-kpi-v">@_wknd</div>
         <div class="ames-kpi-s">주말</div>
     </div>
     <div class="ames-kpi bad">
-        <div class="ames-kpi-l">공휴일</div>
+        <div class="ames-kpi-l">@L["SYS.Calendar.Kpi.Holiday"]</div>
         <div class="ames-kpi-v">@_hol</div>
         <div class="ames-kpi-s">공휴일</div>
     </div>
@@ -43,14 +44,14 @@
 @* ── Tab bar ──────────────────────────────────────────────────────── *@
 <div class="ames-cal-tabs">
     <button class="ames-cal-tab @(_view == "list" ? "active" : "")" @onclick='() => SwitchView("list")'>
-        ≡ 목록
+        ≡ @L["SYS.Calendar.Tab.List"]
     </button>
     <button class="ames-cal-tab @(_view == "calendar" ? "active" : "")" @onclick='() => SwitchView("calendar")'>
-        ▦ 달력
+        ▦ @L["SYS.Calendar.Tab.Calendar"]
     </button>
     <div style="flex:1;"></div>
-    <button class="ames-btn ok" @onclick="Reload" style="align-self:center;">조회</button>
-    <button class="ames-btn ok" @onclick="OpenCreate" style="align-self:center;">+ 일정 생성</button>
+    <button class="ames-btn ok" @onclick="Reload" style="align-self:center;">@L["Btn.Reload"]</button>
+    <button class="ames-btn ok" @onclick="OpenCreate" style="align-self:center;">+ @L["SYS.Calendar.Btn.Create"]</button>
 </div>
 
 @* ══════════════════════════════════════════════════════════════════ *@
@@ -60,7 +61,7 @@
 {
     <div class="ames-card">
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-            <span>▼ CALENDAR · @_byDay.Count 일</span>
+            <span>▼ @L["SYS.Calendar.Tab.List"] · @_byDay.Count @L["Lbl.Days"]</span>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                 <input type="date" class="ames-input" style="width:150px"
                        value="@_filterFrom.ToString("yyyy-MM-dd")"
@@ -69,22 +70,22 @@
                 <input type="date" class="ames-input" style="width:150px"
                        value="@_filterTo.ToString("yyyy-MM-dd")"
                        @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) _filterTo = d; }" />
-                <button class="ames-btn" @onclick="Load">조회</button>
+                <button class="ames-btn" @onclick="Load">@L["Btn.Search"]</button>
             </div>
         </div>
 
         @if (_byDay.Count == 0)
         {
-            <div class="ames-empty">조회 기간 내 데이터가 없습니다. '일정 생성'으로 추가하세요.</div>
+            <div class="ames-empty">@L["SYS.Calendar.Empty"]</div>
         }
         else
         {
             <table class="ames-table">
                 <thead>
                     <tr>
-                        <th>날짜</th>
-                        <th>구분</th>
-                        <th>공휴일명</th>
+                        <th>@L["SYS.Calendar.Col.Date"]</th>
+                        <th>@L["SYS.Calendar.Col.DayType"]</th>
+                        <th>@L["SYS.Calendar.Col.HolidayName"]</th>
                         <th class="num">Sh-A</th>
                         <th class="num">Sh-B</th>
                         <th class="num">Sh-C</th>
@@ -131,7 +132,7 @@
                 </span>
                 <button class="ames-btn" style="padding:6px 14px;" @onclick="NextMonth">›</button>
             </div>
-            <button class="ames-btn" style="padding:6px 14px;" @onclick="GoToday">오늘</button>
+            <button class="ames-btn" style="padding:6px 14px;" @onclick="GoToday">@L["SYS.Calendar.Btn.Today"]</button>
         </div>
 
         @{
@@ -191,7 +192,7 @@
                         {
                             @if (sample.DayType == "HOLIDAY")
                             {
-                                <div class="ames-cal-badge ames-cal-badge--holiday">공휴일</div>
+                                <div class="ames-cal-badge ames-cal-badge--holiday">@L["SYS.Calendar.Badge.Holiday"]</div>
                                 @if (!string.IsNullOrWhiteSpace(sample.HolidayName))
                                 {
                                     <div class="ames-cal-hname">@sample.HolidayName</div>
@@ -199,7 +200,7 @@
                             }
                             else if (sample.DayType == "WEEKEND")
                             {
-                                <div class="ames-cal-badge ames-cal-badge--weekend">주말</div>
+                                <div class="ames-cal-badge ames-cal-badge--weekend">@L["SYS.Calendar.Badge.Weekend"]</div>
                             }
                         }
 
@@ -218,12 +219,12 @@
 
         @* Legend *@
         <div class="ames-cal-legend">
-            <span class="ames-cal-sh sh-a">A</span> A교대
-            <span class="ames-cal-sh sh-b" style="margin-left:10px;">B</span> B교대
-            <span class="ames-cal-sh sh-c" style="margin-left:10px;">C</span> C교대
-            <span class="pill ok"  style="margin-left:16px;">작업일</span>
-            <span class="pill warn">주말</span>
-            <span class="pill bad">공휴일</span>
+            <span class="ames-cal-sh sh-a">A</span> @L["SYS.Calendar.Legend.ShiftA"]
+            <span class="ames-cal-sh sh-b" style="margin-left:10px;">B</span> @L["SYS.Calendar.Legend.ShiftB"]
+            <span class="ames-cal-sh sh-c" style="margin-left:10px;">C</span> @L["SYS.Calendar.Legend.ShiftC"]
+            <span class="pill ok"  style="margin-left:16px;">@L["SYS.Calendar.Legend.Work"]</span>
+            <span class="pill warn">@L["SYS.Calendar.Legend.Weekend"]</span>
+            <span class="pill bad">@L["SYS.Calendar.Legend.Holiday"]</span>
         </div>
     </div>
 }
@@ -233,11 +234,11 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" style="max-width:780px;" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">일정 자동 생성</div>
+            <div class="ames-modal-h">@L["SYS.Calendar.Modal.Generate"]</div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>
-                    <label>시작일 *</label>
+                    <label>@L["Col.From"] *</label>
                     <input type="date" class="ames-input"
                            value="@_genFrom.ToString("yyyy-MM-dd")"
                            @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) _genFrom = d; }" />

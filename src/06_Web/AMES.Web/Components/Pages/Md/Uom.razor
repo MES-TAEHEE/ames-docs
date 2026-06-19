@@ -1,23 +1,24 @@
-@page "/md/uom"
+﻿@page "/md/uom"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MD-019 단위 관리 · AMES</PageTitle>
+<PageTitle>@L["MD.Uom.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MD-019</div>
-    <div class="ames-page-t">단위 관리</div>
-    <div class="ames-page-sub">MD_Uom 마스터 — 측정 단위·변환 계수·카테고리 설정</div>
+    <div class="ames-page-t">@L["MD.Uom.Title"]</div>
+    <div class="ames-page-sub">@L["MD.Uom.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
     <div class="ames-kpi">
-        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-l">@L["Lbl.Total"]</div>
         <div class="ames-kpi-v">@_allRows.Count</div>
     </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-l">@L["Lbl.Active"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.ActiveFlag)</div>
     </div>
     <div class="ames-kpi">
@@ -32,12 +33,12 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ 단위 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.Uom.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:140px;padding:4px 8px;"
                    placeholder="단위코드 / 단위명" @bind="_fSearch" autocomplete="off" />
             <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fCat">
-                <option value="">카테고리 전체</option>
+                <option value="">@L["Filter.AllCategories"]</option>
                 @foreach (var c in _allRows.Select(r => r.UOMCategory).Where(x => x != null).Distinct().OrderBy(x => x))
                 {
                     <option value="@c">@c</option>
@@ -48,13 +49,13 @@
                 <option value="Y">활성</option>
                 <option value="N">비활성</option>
             </select>
-            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
         </div>
     </div>
 
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">등록된 단위가 없습니다.</div>
+        <div class="ames-empty">@L["MD.Uom.Empty"]</div>
     }
     else
     {
@@ -63,7 +64,7 @@
                 <tr>
                     <th>단위 코드</th><th>단위명</th><th>카테고리</th><th>기호</th>
                     <th>기준단위</th><th>기준UOM</th><th class="num">변환계수</th>
-                    <th class="num">소수점</th><th>상태</th>
+                    <th class="num">소수점</th><th>@L["Col.Status"]</th>
                 </tr>
             </thead>
             <tbody>

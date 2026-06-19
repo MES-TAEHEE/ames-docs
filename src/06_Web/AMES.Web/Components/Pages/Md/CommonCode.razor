@@ -1,15 +1,16 @@
-@page "/md/common-code"
+﻿@page "/md/common-code"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject MasterDataRepository Md
 @inject AuthenticationStateProvider Auth
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MD-025 코드 기준정보 관리 · AMES</PageTitle>
+<PageTitle>@L["MD.CommonCode.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MD-025</div>
-    <div class="ames-page-t">코드 기준정보 관리</div>
-    <div class="ames-page-sub">코드 그룹 × 코드 항목</div>
+    <div class="ames-page-t">@L["MD.CommonCode.Title"]</div>
+    <div class="ames-page-sub">@L["MD.CommonCode.Sub"]</div>
 </div>
 
 @if (!string.IsNullOrEmpty(_msg))
@@ -24,7 +25,7 @@
         <div class="ames-card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
                 <span style="font-weight:600;font-size:1em;">코드 그룹</span>
-                <button class="ames-btn ok" @onclick="OpenGroupCreate">+ 등록</button>
+                <button class="ames-btn ok" @onclick="OpenGroupCreate">@L["Btn.Create"]</button>
             </div>
             <table class="ames-table" style="table-layout:fixed;width:100%;">
                 <thead>
@@ -74,7 +75,7 @@
                         @_selGroup.GroupName
                         <span class="dim" style="font-weight:400;margin-left:6px;">@(_items.Count)개 항목</span>
                     </span>
-                    <button class="ames-btn ok" @onclick="OpenItemCreate">+ 등록</button>
+                    <button class="ames-btn ok" @onclick="OpenItemCreate">@L["Btn.Create"]</button>
                 </div>
                 <table class="ames-table">
                     <thead>
@@ -144,7 +145,7 @@
                 <button class="ames-btn ok" @onclick="SaveGroupCreate" disabled="@_busy">
                     @(_busy ? "저장 중…" : "등록")
                 </button>
-                <button class="ames-btn" @onclick="CloseModal">취소</button>
+                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -193,8 +194,8 @@
                 <button class="ames-btn ok" @onclick="SaveGroupEdit" disabled="@_busy">
                     @(_busy ? "저장 중…" : "수정")
                 </button>
-                <button class="ames-btn bad" @onclick='() => { _grpConfirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
-                <button class="ames-btn" @onclick="CloseModal">취소</button>
+                <button class="ames-btn bad" @onclick='() => { _grpConfirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
+                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -257,7 +258,7 @@
                 <button class="ames-btn ok" @onclick="SaveItemCreate" disabled="@_busy">
                     @(_busy ? "저장 중…" : "등록")
                 </button>
-                <button class="ames-btn" @onclick="CloseModal">취소</button>
+                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -321,8 +322,8 @@
                 <button class="ames-btn ok" @onclick="SaveItemEdit" disabled="@_busy">
                     @(_busy ? "저장 중…" : "수정")
                 </button>
-                <button class="ames-btn bad" @onclick='() => { _itemConfirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
-                <button class="ames-btn" @onclick="CloseModal">취소</button>
+                <button class="ames-btn bad" @onclick='() => { _itemConfirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
+                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>

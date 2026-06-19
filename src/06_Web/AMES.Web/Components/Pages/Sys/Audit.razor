@@ -1,37 +1,38 @@
 @page "/sys/audit"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>SYS-007 감사 로그 · AMES</PageTitle>
+<PageTitle>SYS-007 @L["SYS.Audit.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">SYS-007</div>
-    <div class="ames-page-t">감사 로그</div>
-    <div class="ames-page-sub">감사 로그 — 최근 200건 (append-only)</div>
+    <div class="ames-page-t">@L["SYS.Audit.Title"]</div>
+    <div class="ames-page-sub">@L["SYS.Audit.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">이벤트</div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Audit.Kpi.Events"]</div>
         <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">최근 항목</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">성공</div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["SYS.Audit.Kpi.Ok"]</div>
         <div class="ames-kpi-v">@_ok</div><div class="ames-kpi-s">결과 OK</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">실패</div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">@L["SYS.Audit.Kpi.Fail"]</div>
         <div class="ames-kpi-v">@_fail</div><div class="ames-kpi-s">결과 FAIL</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">최근 24H</div>
-        <div class="ames-kpi-v">@_day</div><div class="ames-kpi-s">건</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["SYS.Audit.Kpi.Last24h"]</div>
+        <div class="ames-kpi-v">@_day</div><div class="ames-kpi-s">@L["Lbl.Items"]</div></div>
 </div>
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
-        <span>▼ 최근 감사 이벤트</span>
-        <button class="ames-btn ok" @onclick="Reload">조회</button>
+        <span>▼ @L["SYS.Audit.List"]</span>
+        <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
     </div>
     <table class="ames-table">
         <thead>
             <tr>
-                <th>시각</th><th>처리자</th><th>모듈</th><th>화면</th>
-                <th>액션</th><th>엔티티</th><th>대상 ID</th>
-                <th>결과</th><th>IP</th><th>비고</th>
+                <th>@L["SYS.Audit.Col.Time"]</th><th>@L["SYS.Audit.Col.Actor"]</th><th>@L["SYS.Audit.Col.Module"]</th><th>@L["SYS.Audit.Col.Screen"]</th>
+                <th>@L["SYS.Audit.Col.Action"]</th><th>@L["SYS.Audit.Col.Entity"]</th><th>@L["SYS.Audit.Col.TargetId"]</th>
+                <th>@L["SYS.Audit.Col.Result"]</th><th>@L["SYS.Audit.Col.Ip"]</th><th>@L["SYS.Audit.Col.Note"]</th>
             </tr>
         </thead>
         <tbody>
@@ -56,7 +57,7 @@
             }
         </tbody>
     </table>
-    @if (_rows.Count == 0) { <div class="ames-empty">감사 이벤트가 없습니다.</div> }
+    @if (_rows.Count == 0) { <div class="ames-empty">@L["SYS.Audit.Empty"]</div> }
 </div>
 
 @code {

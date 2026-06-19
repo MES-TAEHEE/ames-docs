@@ -2,24 +2,25 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.RptRepository Rpt
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>RPT-02 불량 파레토 · AMES</PageTitle>
+<PageTitle>RPT-02 @L["RPT.DefectPareto.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">RPT-02</div>
-    <div class="ames-page-t">불량 파레토</div>
-    <div class="ames-page-sub">불량 코드 파레토 분석</div>
+    <div class="ames-page-t">@L["RPT.DefectPareto.Title"]</div>
+    <div class="ames-page-sub">@L["RPT.DefectPareto.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">불량 코드</div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.DefectPareto.Kpi.Codes"]</div>
         <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">distinct codes</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">총 불량 수</div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">@L["RPT.DefectPareto.Kpi.Total"]</div>
         <div class="ames-kpi-v">@_total.ToString("N0")</div><div class="ames-kpi-s">defect units</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">발생 건</div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["RPT.DefectPareto.Kpi.Events"]</div>
         <div class="ames-kpi-v">@_evts.ToString("N0")</div><div class="ames-kpi-s">log rows</div></div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">1위 코드</div>
+        <div class="ames-kpi-l">@L["RPT.DefectPareto.Kpi.Top"]</div>
         <div class="ames-kpi-v">@(_rows.Count > 0 ? _rows[0].DefectCode ?? "—" : "—")</div>
         <div class="ames-kpi-s">@(_rows.Count > 0 ? _rows[0].PercentOfTotal.ToString("0.0") + "% 점유" : "no data")</div>
     </div>
@@ -27,15 +28,15 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ 파레토 순위 · @_rows.Count 건</span>
+        <span style="white-space:nowrap;">▼ @L["RPT.DefectPareto.List"] · @_rows.Count @L["Lbl.Items"]</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">조회 기간</label>
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Period"]</label>
             <select class="ames-input" style="width:80px;padding:4px 8px;" @bind="_daysBack">
-                <option value="7">7일</option>
-                <option value="14">14일</option>
-                <option value="30">30일</option>
-                <option value="60">60일</option>
-                <option value="90">90일</option>
+                <option value="7">7@L["Lbl.Days"]</option>
+                <option value="14">14@L["Lbl.Days"]</option>
+                <option value="30">30@L["Lbl.Days"]</option>
+                <option value="60">60@L["Lbl.Days"]</option>
+                <option value="90">90@L["Lbl.Days"]</option>
             </select>
             <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">Top</label>
             <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_topN">
@@ -43,23 +44,23 @@
                 <option value="20">20</option>
                 <option value="50">50</option>
             </select>
-            <button class="ames-btn ok" @onclick="Reload">조회</button>
+            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
         </div>
     </div>
 
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">해당 기간에 불량 데이터가 없습니다.</div>
+        <div class="ames-empty">@L["RPT.DefectPareto.Empty"]</div>
     }
     else
     {
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>순위</th><th>불량 코드</th>
-                    <th class="num">수량</th><th class="num">건수</th>
-                    <th class="num">점유율</th><th class="num">누적</th>
-                    <th>비율 바</th>
+                    <th>@L["RPT.DefectPareto.Col.Rank"]</th><th>@L["RPT.DefectPareto.Col.DefectCode"]</th>
+                    <th class="num">@L["RPT.DefectPareto.Col.Qty"]</th><th class="num">@L["RPT.DefectPareto.Col.Events"]</th>
+                    <th class="num">@L["RPT.DefectPareto.Col.Pct"]</th><th class="num">@L["RPT.DefectPareto.Col.CumPct"]</th>
+                    <th>@L["RPT.DefectPareto.Col.Bar"]</th>
                 </tr>
             </thead>
             <tbody>

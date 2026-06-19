@@ -2,63 +2,64 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.RptRepository Rpt
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>RPT-06 설비 OEE · AMES</PageTitle>
+<PageTitle>RPT-06 @L["RPT.EquipmentOee.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">RPT-06</div>
-    <div class="ames-page-t">설비 OEE</div>
-    <div class="ames-page-sub">설비별 가동률(A) · 성능률(P) · 품질률(Q) · OEE 집계</div>
+    <div class="ames-page-t">@L["RPT.EquipmentOee.Title"]</div>
+    <div class="ames-page-sub">@L["RPT.EquipmentOee.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">설비 수</div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.EquipmentOee.Kpi.EquipCount"]</div>
         <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">distinct units</div></div>
     <div class="ames-kpi @(_a >= 85 ? "ok" : _a >= 75 ? "warn" : "bad")">
-        <div class="ames-kpi-l">평균 A</div>
+        <div class="ames-kpi-l">@L["RPT.EquipmentOee.Kpi.AvgA"]</div>
         <div class="ames-kpi-v">@_a.ToString("0.0")%</div>
         <div class="ames-kpi-s">availability</div></div>
     <div class="ames-kpi @(_p >= 85 ? "ok" : _p >= 75 ? "warn" : "bad")">
-        <div class="ames-kpi-l">평균 P</div>
+        <div class="ames-kpi-l">@L["RPT.EquipmentOee.Kpi.AvgP"]</div>
         <div class="ames-kpi-v">@_p.ToString("0.0")%</div>
         <div class="ames-kpi-s">performance</div></div>
     <div class="ames-kpi @(_oee >= 85 ? "ok" : _oee >= 75 ? "warn" : "bad")">
-        <div class="ames-kpi-l">평균 OEE</div>
+        <div class="ames-kpi-l">@L["RPT.EquipmentOee.Kpi.AvgOee"]</div>
         <div class="ames-kpi-v">@_oee.ToString("0.0")%</div>
         <div class="ames-kpi-s">overall</div></div>
 </div>
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ 설비 순위 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["RPT.EquipmentOee.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:120px;padding:4px 8px;"
-                   placeholder="라인 검색" @bind="_fLine" autocomplete="off" />
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">조회 기간</label>
+                   placeholder="@L["RPT.EquipmentOee.Ph.Line"]" @bind="_fLine" autocomplete="off" />
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Period"]</label>
             <select class="ames-input" style="width:80px;padding:4px 8px;" @bind="_daysBack">
-                <option value="7">7일</option>
-                <option value="14">14일</option>
-                <option value="30">30일</option>
-                <option value="60">60일</option>
-                <option value="90">90일</option>
+                <option value="7">7@L["Lbl.Days"]</option>
+                <option value="14">14@L["Lbl.Days"]</option>
+                <option value="30">30@L["Lbl.Days"]</option>
+                <option value="60">60@L["Lbl.Days"]</option>
+                <option value="90">90@L["Lbl.Days"]</option>
             </select>
-            <button class="ames-btn ok" @onclick="Reload">조회</button>
+            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
         </div>
     </div>
 
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">해당 기간에 OEE 데이터가 없습니다.</div>
+        <div class="ames-empty">@L["RPT.EquipmentOee.Empty"]</div>
     }
     else
     {
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>순위</th><th>설비</th><th>라인</th>
+                    <th>@L["RPT.DefectPareto.Col.Rank"]</th><th>@L["Col.Equip"]</th><th>@L["Col.Line"]</th>
                     <th class="num">A%</th><th class="num">P%</th>
                     <th class="num">Q%</th><th class="num">OEE%</th>
-                    <th class="num">일수</th><th>비율 바</th>
+                    <th class="num">@L["RPT.EquipmentOee.Col.Days"]</th><th>@L["RPT.EquipmentOee.Col.Bar"]</th>
                 </tr>
             </thead>
             <tbody>

@@ -1,13 +1,14 @@
-@page "/pp/mrp"
+﻿@page "/pp/mrp"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>PP-05 MRP · AMES</PageTitle>
+<PageTitle>@L["PP.Mrp.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">PP-05</div>
-    <div class="ames-page-t">MRP</div>
-    <div class="ames-page-sub">자재소요량 계산 실행 이력</div>
+    <div class="ames-page-t">@L["PP.Mrp.Title"]</div>
+    <div class="ames-page-sub">@L["PP.Mrp.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
@@ -20,7 +21,7 @@
 <div class="ames-card">
     <div class="ames-card-h">▼ MRP RUNS</div>
     <p style="margin-bottom:14px;"><button class="ames-btn">▶ Run MRP Now</button></p>
-    @if (_rows.Count == 0) { <div class="ames-empty">No MRP runs.</div> }
+    @if (_rows.Count == 0) { <div class="ames-empty">@L["PP.Mrp.Empty"]</div> }
     else
     {
         <table class="ames-table">

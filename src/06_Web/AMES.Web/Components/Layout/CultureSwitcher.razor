@@ -1,0 +1,11 @@
+@inject NavigationManager Nav
+@inject IStringLocalizer<SharedResources> L
+
+<div class="culture-switcher" style="display:flex;gap:4px;padding:6px 12px;">
+    @foreach (var (code, label) in new[] { ("ko", "한국어"), ("en", "English") })
+    {
+        var isCurrent = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == code;
+        <a href="/culture/set?culture=@(code)&redirectUri=@Uri.EscapeDataString(Nav.Uri)"
+           style="font-size:.78em;color:@(isCurrent ? "#38bdf8" : "#94a3b8");font-weight:@(isCurrent ? "700" : "400");text-decoration:none;">@label</a>
+    }
+</div>

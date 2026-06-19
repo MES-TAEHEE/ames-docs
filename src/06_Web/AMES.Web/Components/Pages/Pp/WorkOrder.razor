@@ -1,20 +1,21 @@
-@page "/pp/work-order"
+﻿@page "/pp/work-order"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.WorkOrderRepository Wos
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>PP-04 Work Order · AMES</PageTitle>
+<PageTitle>@L["PP.WorkOrder.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">PP-04</div>
-    <div class="ames-page-t">Work Order</div>
-    <div class="ames-page-sub">생산 작업 지시 · 라인별 진행률</div>
+    <div class="ames-page-t">@L["PP.WorkOrder.Title"]</div>
+    <div class="ames-page-sub">@L["PP.WorkOrder.Sub"]</div>
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">▼ ALL WORK ORDERS (@_rows.Count)</div>
+    <div class="ames-card-h">▼ @L["PP.WorkOrder.List"] (@_rows.Count)</div>
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">No work orders.</div>
+        <div class="ames-empty">@L["PP.WorkOrder.Empty"]</div>
     }
     else
     {

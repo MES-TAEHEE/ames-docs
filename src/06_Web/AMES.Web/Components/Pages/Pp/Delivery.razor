@@ -1,13 +1,14 @@
-@page "/pp/delivery"
+﻿@page "/pp/delivery"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>PP-OTD On-Time Delivery · AMES</PageTitle>
+<PageTitle>@L["PP.Delivery.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">PP-OTD</div>
-    <div class="ames-page-t">On-Time Delivery</div>
-    <div class="ames-page-sub">고객 주문별 약속일 vs 실 출하 — 30일</div>
+    <div class="ames-page-t">@L["PP.Delivery.Title"]</div>
+    <div class="ames-page-sub">@L["PP.Delivery.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
@@ -19,7 +20,7 @@
 
 <div class="ames-card">
     <div class="ames-card-h">▼ SHIPMENT VS PROMISE</div>
-    @if (_rows.Count == 0) { <div class="ames-empty">No orders in window.</div> }
+    @if (_rows.Count == 0) { <div class="ames-empty">@L["PP.Delivery.Empty"]</div> }
     else
     {
         <table class="ames-table">

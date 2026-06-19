@@ -2,13 +2,14 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MntRepository Mnt
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MNT-08 예비 부품 · AMES</PageTitle>
+<PageTitle>MNT-08 @L["MNT.SpareParts.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MNT-08</div>
-    <div class="ames-page-t">예비 부품</div>
-    <div class="ames-page-sub">예비품 마스터 + 최근 입출고</div>
+    <div class="ames-page-t">@L["MNT.SpareParts.Title"]</div>
+    <div class="ames-page-sub">@L["MNT.SpareParts.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
@@ -24,22 +25,22 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ 예비품 마스터 · @_parts.Count 건@(_parts.Count < _allParts.Count ? $" / 전체 {_allParts.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MNT.SpareParts.List"] · @_parts.Count @L["Lbl.Items"]@(_parts.Count < _allParts.Count ? $" / {L["Lbl.TotalOf"]} {_allParts.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:120px;padding:4px 8px;"
-                   placeholder="품번/품명" @bind="_fPart" autocomplete="off" />
+                   placeholder="@L["MNT.SpareParts.Ph.Part"]" @bind="_fPart" autocomplete="off" />
             <input class="ames-input" style="width:100px;padding:4px 8px;"
-                   placeholder="카테고리" @bind="_fCat" autocomplete="off" />
+                   placeholder="@L["MNT.SpareParts.Ph.Cat"]" @bind="_fCat" autocomplete="off" />
             <label style="display:flex;align-items:center;gap:4px;font-size:.85rem;color:#64748b;cursor:pointer;">
-                <input type="checkbox" @bind="_fLowOnly" />부족만
+                <input type="checkbox" @bind="_fLowOnly" />@L["MNT.SpareParts.LowOnly"]
             </label>
-            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Reload"]</button>
         </div>
     </div>
 
     @if (_parts.Count == 0)
     {
-        <div class="ames-empty">해당 조건에 예비품이 없습니다.</div>
+        <div class="ames-empty">@L["MNT.SpareParts.Empty"]</div>
     }
     else
     {
@@ -77,23 +78,23 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ 최근 입출고 · @_txns.Count 건</span>
+        <span style="white-space:nowrap;">▼ @L["MNT.SpareParts.TxnList"] · @_txns.Count @L["Lbl.Items"]</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:120px;padding:4px 8px;"
-                   placeholder="품번 필터" @bind="_fTxnPart" autocomplete="off" />
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">최근</label>
+                   placeholder="@L["MNT.SpareParts.Ph.TxnPart"]" @bind="_fTxnPart" autocomplete="off" />
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Recent"]</label>
             <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_txnTopN">
-                <option value="50">50건</option>
-                <option value="100">100건</option>
-                <option value="200">200건</option>
+                <option value="50">50@L["Lbl.Items"]</option>
+                <option value="100">100@L["Lbl.Items"]</option>
+                <option value="200">200@L["Lbl.Items"]</option>
             </select>
-            <button class="ames-btn ok" @onclick="ReloadTxn">조회</button>
+            <button class="ames-btn ok" @onclick="ReloadTxn">@L["Btn.Reload"]</button>
         </div>
     </div>
 
     @if (_txns.Count == 0)
     {
-        <div class="ames-empty">입출고 데이터가 없습니다.</div>
+        <div class="ames-empty">@L["MNT.SpareParts.TxnEmpty"]</div>
     }
     else
     {

@@ -1,23 +1,24 @@
-@page "/md/reason-code"
+﻿@page "/md/reason-code"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MD-026 사유 코드 관리 · AMES</PageTitle>
+<PageTitle>@L["MD.ReasonCode.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MD-026</div>
-    <div class="ames-page-t">사유 코드 관리</div>
-    <div class="ames-page-sub">MD_ReasonCode 마스터 — 비가동·조정·불량 등 사유 코드 공통 관리</div>
+    <div class="ames-page-t">@L["MD.ReasonCode.Title"]</div>
+    <div class="ames-page-sub">@L["MD.ReasonCode.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
     <div class="ames-kpi">
-        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-l">@L["Lbl.Total"]</div>
         <div class="ames-kpi-v">@_allRows.Count</div>
     </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-l">@L["Lbl.Active"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "ACTIVE")</div>
     </div>
     <div class="ames-kpi">
@@ -32,31 +33,31 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ 사유 코드 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.ReasonCode.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:140px;padding:4px 8px;"
                    placeholder="사유코드 / 사유명" @bind="_fSearch" autocomplete="off" />
             <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fType">
-                <option value="">유형 전체</option>
+                <option value="">@L["Filter.AllTypes"]</option>
                 @foreach (var t in _allRows.Select(r => r.ReasonType).Where(x => x != null).Distinct().OrderBy(x => x))
                 {
                     <option value="@t">@t</option>
                 }
             </select>
             <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fModule">
-                <option value="">모듈 전체</option>
+                <option value="">@L["Filter.AllModules"]</option>
                 @foreach (var m in _allRows.Select(r => r.AppliesToModule).Where(x => x != null).Distinct().OrderBy(x => x))
                 {
                     <option value="@m">@m</option>
                 }
             </select>
-            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
         </div>
     </div>
 
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">등록된 사유 코드가 없습니다.</div>
+        <div class="ames-empty">@L["MD.ReasonCode.Empty"]</div>
     }
     else
     {
@@ -65,7 +66,7 @@
                 <tr>
                     <th class="num">순서</th><th>사유 코드</th><th>사유명</th>
                     <th>사유 유형</th><th>적용 모듈</th>
-                    <th>계획</th><th>비고 필수</th><th>설명</th><th>상태</th>
+                    <th>계획</th><th>비고 필수</th><th>설명</th><th>@L["Col.Status"]</th>
                 </tr>
             </thead>
             <tbody>

@@ -1,13 +1,14 @@
-@page "/pp/downtime"
+﻿@page "/pp/downtime"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>PP-DTL Downtime Log · AMES</PageTitle>
+<PageTitle>@L["PP.Downtime.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">PP-DTL</div>
-    <div class="ames-page-t">Downtime Log</div>
-    <div class="ames-page-sub">비가동 사유 입력 — 최근 7일</div>
+    <div class="ames-page-t">@L["PP.Downtime.Title"]</div>
+    <div class="ames-page-sub">@L["PP.Downtime.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
@@ -19,7 +20,7 @@
 
 <div class="ames-card">
     <div class="ames-card-h">▼ DOWNTIME EVENTS</div>
-    @if (_rows.Count == 0) { <div class="ames-empty">No downtime events.</div> }
+    @if (_rows.Count == 0) { <div class="ames-empty">@L["PP.Downtime.Empty"]</div> }
     else
     {
         <table class="ames-table">

@@ -2,13 +2,14 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MntRepository Mnt
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MNT-05 PM 일정 · AMES</PageTitle>
+<PageTitle>MNT-05 @L["MNT.PmSchedule.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MNT-05</div>
-    <div class="ames-page-t">PM 일정</div>
-    <div class="ames-page-sub">예방정비 일정 — 조회 기간 설정</div>
+    <div class="ames-page-t">@L["MNT.PmSchedule.Title"]</div>
+    <div class="ames-page-sub">@L["MNT.PmSchedule.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
@@ -24,30 +25,30 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ PM 일정 · @_rows.Count 건</span>
+        <span style="white-space:nowrap;">▼ @L["MNT.PmSchedule.List"] · @_rows.Count @L["Lbl.Items"]</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">향후</label>
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Future"]</label>
             <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_daysAhead">
-                <option value="7">7일</option>
-                <option value="14">14일</option>
-                <option value="30">30일</option>
-                <option value="60">60일</option>
-                <option value="90">90일</option>
+                <option value="7">7@L["Lbl.Days"]</option>
+                <option value="14">14@L["Lbl.Days"]</option>
+                <option value="30">30@L["Lbl.Days"]</option>
+                <option value="60">60@L["Lbl.Days"]</option>
+                <option value="90">90@L["Lbl.Days"]</option>
             </select>
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">과거</label>
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Past"]</label>
             <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_daysBack">
-                <option value="0">0일</option>
-                <option value="7">7일</option>
-                <option value="14">14일</option>
-                <option value="30">30일</option>
+                <option value="0">0@L["Lbl.Days"]</option>
+                <option value="7">7@L["Lbl.Days"]</option>
+                <option value="14">14@L["Lbl.Days"]</option>
+                <option value="30">30@L["Lbl.Days"]</option>
             </select>
-            <button class="ames-btn ok" @onclick="Reload">조회</button>
+            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
         </div>
     </div>
 
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">해당 기간에 PM 일정이 없습니다.</div>
+        <div class="ames-empty">@L["MNT.PmSchedule.Empty"]</div>
     }
     else
     {

@@ -2,30 +2,31 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.RptRepository Rpt
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>RPT-07 월간 KPI · AMES</PageTitle>
+<PageTitle>RPT-07 @L["RPT.MonthlyKpi.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">RPT-07</div>
-    <div class="ames-page-t">월간 KPI</div>
-    <div class="ames-page-sub">월간 통합 지표 — 생산·출하·보전·OEE</div>
+    <div class="ames-page-t">@L["RPT.MonthlyKpi.Title"]</div>
+    <div class="ames-page-sub">@L["RPT.MonthlyKpi.Sub"]</div>
 </div>
 
 @if (_rows.Count > 0)
 {
     var cur = _rows[^1];
     <div class="ames-kpis">
-        <div class="ames-kpi ok"><div class="ames-kpi-l">양품 수</div>
+        <div class="ames-kpi ok"><div class="ames-kpi-l">@L["RPT.MonthlyKpi.Kpi.GoodQty"]</div>
             <div class="ames-kpi-v">@cur.ProductionGoodQty.ToString("N0")</div>
             <div class="ames-kpi-s">@cur.Year-@cur.Month.ToString("00")</div></div>
         <div class="ames-kpi @(cur.YieldPct >= 99m ? "ok" : cur.YieldPct >= 95m ? "warn" : "bad")">
-            <div class="ames-kpi-l">양품률</div>
+            <div class="ames-kpi-l">@L["RPT.MonthlyKpi.Kpi.Yield"]</div>
             <div class="ames-kpi-v">@cur.YieldPct.ToString("0.0")%</div>
             <div class="ames-kpi-s">current month</div></div>
-        <div class="ames-kpi"><div class="ames-kpi-l">출하 주문</div>
+        <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.MonthlyKpi.Kpi.ShipOrders"]</div>
             <div class="ames-kpi-v">@cur.ShipmentOrders</div>
             <div class="ames-kpi-s">shipped</div></div>
-        <div class="ames-kpi bad"><div class="ames-kpi-l">고장 건</div>
+        <div class="ames-kpi bad"><div class="ames-kpi-l">@L["RPT.MonthlyKpi.Kpi.Failures"]</div>
             <div class="ames-kpi-v">@cur.FailureCount</div>
             <div class="ames-kpi-s">MNT events</div></div>
     </div>
@@ -33,41 +34,41 @@
 else
 {
     <div class="ames-kpis">
-        <div class="ames-kpi"><div class="ames-kpi-l">양품 수</div><div class="ames-kpi-v">—</div></div>
-        <div class="ames-kpi"><div class="ames-kpi-l">양품률</div><div class="ames-kpi-v">—</div></div>
-        <div class="ames-kpi"><div class="ames-kpi-l">출하 주문</div><div class="ames-kpi-v">—</div></div>
-        <div class="ames-kpi"><div class="ames-kpi-l">고장 건</div><div class="ames-kpi-v">—</div></div>
+        <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.MonthlyKpi.Kpi.GoodQty"]</div><div class="ames-kpi-v">—</div></div>
+        <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.MonthlyKpi.Kpi.Yield"]</div><div class="ames-kpi-v">—</div></div>
+        <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.MonthlyKpi.Kpi.ShipOrders"]</div><div class="ames-kpi-v">—</div></div>
+        <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.MonthlyKpi.Kpi.Failures"]</div><div class="ames-kpi-v">—</div></div>
     </div>
 }
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ 월간 집계 · @_rows.Count 개월</span>
+        <span style="white-space:nowrap;">▼ @L["RPT.MonthlyKpi.List"] · @_rows.Count @L["RPT.MonthlyKpi.ListSuffix"]</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">조회 기간</label>
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Period"]</label>
             <select class="ames-input" style="width:80px;padding:4px 8px;" @bind="_monthsBack">
-                <option value="3">3개월</option>
-                <option value="6">6개월</option>
-                <option value="12">12개월</option>
-                <option value="24">24개월</option>
+                <option value="3">3@L["RPT.MonthlyKpi.ListSuffix"]</option>
+                <option value="6">6@L["RPT.MonthlyKpi.ListSuffix"]</option>
+                <option value="12">12@L["RPT.MonthlyKpi.ListSuffix"]</option>
+                <option value="24">24@L["RPT.MonthlyKpi.ListSuffix"]</option>
             </select>
-            <button class="ames-btn ok" @onclick="Reload">조회</button>
+            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
         </div>
     </div>
 
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">월간 데이터가 없습니다.</div>
+        <div class="ames-empty">@L["RPT.MonthlyKpi.Empty"]</div>
     }
     else
     {
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>기간</th>
-                    <th class="num">양품 수</th><th class="num">불량 수</th>
-                    <th class="num">양품률</th><th class="num">출하 주문</th>
-                    <th class="num">고장 건</th><th class="num">평균 OEE</th>
+                    <th>@L["RPT.MonthlyKpi.Col.Period"]</th>
+                    <th class="num">@L["RPT.MonthlyKpi.Col.GoodQty"]</th><th class="num">@L["RPT.MonthlyKpi.Col.DefectQty"]</th>
+                    <th class="num">@L["RPT.MonthlyKpi.Col.Yield"]</th><th class="num">@L["RPT.MonthlyKpi.Col.ShipOrders"]</th>
+                    <th class="num">@L["RPT.MonthlyKpi.Col.Failures"]</th><th class="num">@L["RPT.MonthlyKpi.Col.AvgOee"]</th>
                 </tr>
             </thead>
             <tbody>

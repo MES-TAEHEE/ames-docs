@@ -1,15 +1,16 @@
-@page "/md/bop"
+﻿@page "/md/bop"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject MasterDataRepository Md
 @inject AuthenticationStateProvider Auth
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MD-005 BOP 관리 · AMES</PageTitle>
+<PageTitle>@L["MD.Bop.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MD-005</div>
-    <div class="ames-page-t">BOP 관리</div>
-    <div class="ames-page-sub">MD_Bop — 품목별 공정 순서 및 작업장 정의</div>
+    <div class="ames-page-t">@L["MD.Bop.Title"]</div>
+    <div class="ames-page-sub">@L["MD.Bop.Sub"]</div>
 </div>
 
 @if (!string.IsNullOrEmpty(_msg))
@@ -27,7 +28,7 @@
                    @bind="_search" @bind:event="oninput"
                    @onkeydown="OnKeyDown" />
             <button class="ames-btn ok" style="width:100%;margin-bottom:8px;padding:6px;font-size:.83em;flex-shrink:0;"
-                    @onclick="LoadItems">조회</button>
+                    @onclick="LoadItems">@L["Btn.Search"]</button>
             <div style="overflow-y:auto;flex:1;">
                 @foreach (var item in _items)
                 {
@@ -177,7 +178,7 @@
             @if (!string.IsNullOrEmpty(_modalErr)) {<div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div>}
             <div class="ames-modal-footer">
                 <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "추가")</button>
-                <button class="ames-btn" @onclick="CloseModal">취소</button>
+                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -205,8 +206,8 @@
             @if (!string.IsNullOrEmpty(_modalErr)) {<div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div>}
             <div class="ames-modal-footer">
                 <button class="ames-btn ok" @onclick="SaveEdit" disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
-                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
-                <button class="ames-btn" @onclick="CloseModal">취소</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
+                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>

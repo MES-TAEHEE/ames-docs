@@ -1,24 +1,25 @@
-@page "/md/line"
+﻿@page "/md/line"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
 @inject AuthenticationStateProvider Auth
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MD-001 공장/라인 기준정보 관리 · AMES</PageTitle>
+<PageTitle>@L["MD.Line.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MD-001</div>
-    <div class="ames-page-t">공장/라인 기준정보 관리</div>
-    <div class="ames-page-sub">MD_Line 마스터 — 라인 유형·일생산능력·교대패턴·RFID 설정</div>
+    <div class="ames-page-t">@L["MD.Line.Title"]</div>
+    <div class="ames-page-sub">@L["MD.Line.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
     <div class="ames-kpi">
-        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-l">@L["Lbl.Total"]</div>
         <div class="ames-kpi-v">@_allRows.Count</div>
     </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-l">@L["Lbl.Active"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Active")</div>
     </div>
     <div class="ames-kpi warn">
@@ -38,28 +39,28 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ 생산 라인 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.Line.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:120px;padding:4px 8px;"
                    placeholder="라인 ID / 명칭" @bind="_fSearch" autocomplete="off" />
             <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fType">
-                <option value="">유형 전체</option>
+                <option value="">@L["Filter.AllTypes"]</option>
                 <option>INJ</option><option>IMG</option><option>PNT</option>
                 <option>QC</option><option>WH</option><option>FG</option>
                 <option>ASM</option><option>MNT</option>
             </select>
             <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fStatus">
-                <option value="">상태 전체</option>
+                <option value="">@L["Filter.AllStatus"]</option>
                 <option>Active</option><option>Inactive</option>
             </select>
-            <button class="ames-btn" @onclick="OpenCreate">+ 등록</button>
-            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
         </div>
     </div>
 
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">등록된 생산 라인이 없습니다.</div>
+        <div class="ames-empty">@L["MD.Line.Empty"]</div>
     }
     else
     {
@@ -68,7 +69,7 @@
                 <tr>
                     <th>라인 ID</th><th>라인명</th><th>유형</th><th>공장</th>
                     <th>기준 WC</th><th class="num">일생산능력</th><th>교대패턴</th>
-                    <th>RFID</th><th>상태</th>
+                    <th>RFID</th><th>@L["Col.Status"]</th>
                 </tr>
             </thead>
             <tbody>
@@ -148,7 +149,7 @@
 
             <div class="ames-modal-footer">
                 <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
-                <button class="ames-btn" @onclick="CloseModal">취소</button>
+                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -211,8 +212,8 @@
 
             <div class="ames-modal-footer">
                 <button class="ames-btn ok"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
-                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
-                <button class="ames-btn"     @onclick="CloseModal">취소</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
+                <button class="ames-btn"     @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>

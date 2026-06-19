@@ -1,18 +1,19 @@
-@page "/pp/calendar"
+﻿@page "/pp/calendar"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>PP-CAL Calendar · AMES</PageTitle>
+<PageTitle>@L["PP.Calendar.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">PP-CAL</div>
-    <div class="ames-page-t">Production Calendar</div>
-    <div class="ames-page-sub">생산 캘린더 오버라이드 — 휴일·잔업·라인별 변경</div>
+    <div class="ames-page-t">@L["PP.Calendar.Title"]</div>
+    <div class="ames-page-sub">@L["PP.Calendar.Sub"]</div>
 </div>
 
 <div class="ames-card">
     <div class="ames-card-h">▼ CALENDAR OVERRIDES (next 30 days · last 7 days)</div>
-    @if (_rows.Count == 0) { <div class="ames-empty">No overrides scheduled.</div> }
+    @if (_rows.Count == 0) { <div class="ames-empty">@L["PP.Calendar.Empty"]</div> }
     else
     {
         <table class="ames-table">

@@ -2,58 +2,59 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.RptRepository Rpt
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>RPT-08 계획 준수율 · AMES</PageTitle>
+<PageTitle>RPT-08 @L["RPT.ScheduleAdherence.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">RPT-08</div>
-    <div class="ames-page-t">계획 준수율</div>
-    <div class="ames-page-sub">생산 계획 대비 실생산 — 일별·라인별</div>
+    <div class="ames-page-t">@L["RPT.ScheduleAdherence.Title"]</div>
+    <div class="ames-page-sub">@L["RPT.ScheduleAdherence.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">집계 건수</div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.ScheduleAdherence.Kpi.Count"]</div>
         <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">day × line</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">계획 수량</div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.ScheduleAdherence.Kpi.Plan"]</div>
         <div class="ames-kpi-v">@_plan.ToString("N0")</div><div class="ames-kpi-s">planned qty</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">실생산</div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["RPT.ScheduleAdherence.Kpi.Prod"]</div>
         <div class="ames-kpi-v">@_prod.ToString("N0")</div><div class="ames-kpi-s">actual qty</div></div>
     <div class="ames-kpi @(_adh >= 95m ? "ok" : _adh >= 85m ? "warn" : "bad")">
-        <div class="ames-kpi-l">계획 준수율</div>
+        <div class="ames-kpi-l">@L["RPT.ScheduleAdherence.Kpi.Adh"]</div>
         <div class="ames-kpi-v">@_adh.ToString("0.0")%</div>
         <div class="ames-kpi-s">overall</div></div>
 </div>
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ 일별 집계 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["RPT.ScheduleAdherence.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:120px;padding:4px 8px;"
-                   placeholder="라인 검색" @bind="_fLine" autocomplete="off" />
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">조회 기간</label>
+                   placeholder="@L["RPT.ScheduleAdherence.Ph.Line"]" @bind="_fLine" autocomplete="off" />
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Period"]</label>
             <select class="ames-input" style="width:80px;padding:4px 8px;" @bind="_daysBack">
-                <option value="7">7일</option>
-                <option value="14">14일</option>
-                <option value="30">30일</option>
-                <option value="60">60일</option>
-                <option value="90">90일</option>
+                <option value="7">7@L["Lbl.Days"]</option>
+                <option value="14">14@L["Lbl.Days"]</option>
+                <option value="30">30@L["Lbl.Days"]</option>
+                <option value="60">60@L["Lbl.Days"]</option>
+                <option value="90">90@L["Lbl.Days"]</option>
             </select>
-            <button class="ames-btn ok" @onclick="Reload">조회</button>
+            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
         </div>
     </div>
 
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">해당 기간에 계획 또는 생산 데이터가 없습니다.</div>
+        <div class="ames-empty">@L["RPT.ScheduleAdherence.Empty"]</div>
     }
     else
     {
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>날짜</th><th>라인</th>
-                    <th class="num">계획 수량</th><th class="num">실생산</th>
-                    <th class="num">준수율</th><th>비율 바</th>
+                    <th>@L["Col.Date"]</th><th>@L["Col.Line"]</th>
+                    <th class="num">@L["RPT.ScheduleAdherence.Col.Plan"]</th><th class="num">@L["RPT.ScheduleAdherence.Col.Prod"]</th>
+                    <th class="num">@L["RPT.ScheduleAdherence.Col.Adh"]</th><th>@L["RPT.ScheduleAdherence.Col.Bar"]</th>
                 </tr>
             </thead>
             <tbody>

@@ -1,24 +1,25 @@
-@page "/md/jig"
+﻿@page "/md/jig"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
 @inject AuthenticationStateProvider Auth
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MD-016 지그 기준정보 관리 · AMES</PageTitle>
+<PageTitle>@L["MD.Jig.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MD-016</div>
-    <div class="ames-page-t">지그 기준정보 관리</div>
-    <div class="ames-page-sub">MD_Jig 마스터 — 행거 수·정격사이클·건강상태·최근 정비일 설정</div>
+    <div class="ames-page-t">@L["MD.Jig.Title"]</div>
+    <div class="ames-page-sub">@L["MD.Jig.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
     <div class="ames-kpi">
-        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-l">@L["Lbl.Total"]</div>
         <div class="ames-kpi-v">@_allRows.Count</div>
     </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-l">@L["Lbl.Active"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.ActiveFlag)</div>
     </div>
     <div class="ames-kpi warn">
@@ -44,7 +45,7 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ 지그 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.Jig.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:160px;padding:4px 8px;"
                    placeholder="지그 ID / 명칭" @bind="_fSearch" autocomplete="off" />
@@ -60,14 +61,14 @@
                 <option value="Y">활성</option>
                 <option value="N">비활성</option>
             </select>
-            <button class="ames-btn" @onclick="OpenCreate">+ 등록</button>
-            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
         </div>
     </div>
 
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">등록된 지그가 없습니다.</div>
+        <div class="ames-empty">@L["MD.Jig.Empty"]</div>
     }
     else
     {
@@ -170,7 +171,7 @@
 
             <div class="ames-modal-footer">
                 <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
-                <button class="ames-btn" @onclick="CloseModal">취소</button>
+                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -228,8 +229,8 @@
 
             <div class="ames-modal-footer">
                 <button class="ames-btn ok"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
-                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
-                <button class="ames-btn"     @onclick="CloseModal">취소</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
+                <button class="ames-btn"     @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>

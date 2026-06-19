@@ -1,13 +1,14 @@
-@page "/pp/forecast"
+﻿@page "/pp/forecast"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>PP-01 Forecast · AMES</PageTitle>
+<PageTitle>@L["PP.Forecast.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">PP-01</div>
-    <div class="ames-page-t">Forecast</div>
-    <div class="ames-page-sub">월별 고객 × 품목 수요 예측 · 6개월 전후</div>
+    <div class="ames-page-t">@L["PP.Forecast.Title"]</div>
+    <div class="ames-page-sub">@L["PP.Forecast.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
@@ -19,7 +20,7 @@
 
 <div class="ames-card">
     <div class="ames-card-h">▼ FORECAST ROWS</div>
-    @if (_rows.Count == 0) { <div class="ames-empty">No forecast data.</div> }
+    @if (_rows.Count == 0) { <div class="ames-empty">@L["PP.Forecast.Empty"]</div> }
     else
     {
         <table class="ames-table">

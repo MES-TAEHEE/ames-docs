@@ -2,57 +2,58 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.RptRepository Rpt
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>RPT-01 일별 생산 실적 · AMES</PageTitle>
+<PageTitle>RPT-01 @L["RPT.DailyProduction.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">RPT-01</div>
-    <div class="ames-page-t">일별 생산 실적</div>
-    <div class="ames-page-sub">일별·라인별 생산량 / 양품률</div>
+    <div class="ames-page-t">@L["RPT.DailyProduction.Title"]</div>
+    <div class="ames-page-sub">@L["RPT.DailyProduction.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">집계 일수</div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.DailyProduction.Kpi.Days"]</div>
         <div class="ames-kpi-v">@_days</div><div class="ames-kpi-s">distinct days</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">양품 수</div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["RPT.DailyProduction.Kpi.Good"]</div>
         <div class="ames-kpi-v">@_good.ToString("N0")</div><div class="ames-kpi-s">good qty</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">불량 건</div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">@L["RPT.DailyProduction.Kpi.Defect"]</div>
         <div class="ames-kpi-v">@_def.ToString("N0")</div><div class="ames-kpi-s">defect entries</div></div>
     <div class="ames-kpi @(_yld >= 99m ? "ok" : _yld >= 95m ? "warn" : "bad")">
-        <div class="ames-kpi-l">양품률</div>
+        <div class="ames-kpi-l">@L["RPT.DailyProduction.Kpi.Yield"]</div>
         <div class="ames-kpi-v">@_yld.ToString("0.00")%</div>
         <div class="ames-kpi-s">good / total</div></div>
 </div>
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ 일별 집계 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["RPT.DailyProduction.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:120px;padding:4px 8px;"
-                   placeholder="라인 검색" @bind="_fLine" autocomplete="off" />
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">조회 기간</label>
+                   placeholder="@L["RPT.DailyProduction.Ph.Line"]" @bind="_fLine" autocomplete="off" />
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Period"]</label>
             <select class="ames-input" style="width:80px;padding:4px 8px;" @bind="_daysBack">
-                <option value="7">7일</option>
-                <option value="14">14일</option>
-                <option value="30">30일</option>
-                <option value="60">60일</option>
-                <option value="90">90일</option>
+                <option value="7">7@L["Lbl.Days"]</option>
+                <option value="14">14@L["Lbl.Days"]</option>
+                <option value="30">30@L["Lbl.Days"]</option>
+                <option value="60">60@L["Lbl.Days"]</option>
+                <option value="90">90@L["Lbl.Days"]</option>
             </select>
-            <button class="ames-btn ok" @onclick="Reload">조회</button>
+            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
         </div>
     </div>
 
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">조회 결과가 없습니다.</div>
+        <div class="ames-empty">@L["RPT.DailyProduction.Empty"]</div>
     }
     else
     {
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>날짜</th><th>라인</th><th class="num">건수</th>
-                    <th class="num">양품</th><th class="num">불량 건</th><th class="num">양품률</th>
+                    <th>@L["Col.Date"]</th><th>@L["Col.Line"]</th><th class="num">@L["RPT.DailyProduction.Col.Entries"]</th>
+                    <th class="num">@L["RPT.DailyProduction.Col.Good"]</th><th class="num">@L["RPT.DailyProduction.Col.Defect"]</th><th class="num">@L["RPT.DailyProduction.Col.Yield"]</th>
                 </tr>
             </thead>
             <tbody>

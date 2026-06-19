@@ -1,13 +1,14 @@
-@page "/pp/sap-import"
+﻿@page "/pp/sap-import"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>PP-02 SAP Import · AMES</PageTitle>
+<PageTitle>@L["PP.SapImport.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">PP-02</div>
-    <div class="ames-page-t">SAP Import</div>
-    <div class="ames-page-sub">SAP에서 가져온 고객 주문 — 최근 30일</div>
+    <div class="ames-page-t">@L["PP.SapImport.Title"]</div>
+    <div class="ames-page-sub">@L["PP.SapImport.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
@@ -19,7 +20,7 @@
 
 <div class="ames-card">
     <div class="ames-card-h">▼ SAP ORDERS</div>
-    @if (_rows.Count == 0) { <div class="ames-empty">No SAP imports.</div> }
+    @if (_rows.Count == 0) { <div class="ames-empty">@L["PP.SapImport.Empty"]</div> }
     else
     {
         <table class="ames-table">

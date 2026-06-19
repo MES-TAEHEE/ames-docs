@@ -1,15 +1,16 @@
-@page "/md/bom"
+﻿@page "/md/bom"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject MasterDataRepository Md
 @inject AuthenticationStateProvider Auth
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MD-004 BOM 관리 · AMES</PageTitle>
+<PageTitle>@L["MD.Bom.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MD-004</div>
-    <div class="ames-page-t">BOM 관리</div>
-    <div class="ames-page-sub">자재명세서 버전 관리 및 결재 워크플로</div>
+    <div class="ames-page-t">@L["MD.Bom.Title"]</div>
+    <div class="ames-page-sub">@L["MD.Bom.Sub"]</div>
 </div>
 
 @if (!string.IsNullOrEmpty(_msg))
@@ -29,20 +30,20 @@
                        placeholder="버전ID · 품목 검색…"
                        @bind="_search" />
                 <button class="ames-btn ok" @onclick="OpenVersionCreate"
-                        style="padding:7px 12px;font-size:.85em;white-space:nowrap;">+ 등록</button>
+                        style="padding:7px 12px;font-size:.85em;white-space:nowrap;">@L["Btn.Create"]</button>
             </div>
 
             @* 결재 상태 필터 + 조회 *@
             <div style="display:flex;gap:6px;margin-bottom:8px;flex-shrink:0;align-items:center;">
                 <select class="ames-input" style="flex:1;padding:6px 10px;font-size:.85em;" @bind="_statusFilter">
-                    <option value="">상태 전체</option>
+                    <option value="">@L["Filter.AllStatus"]</option>
                     <option value="DRAFT">DRAFT</option>
                     <option value="PENDING">PENDING</option>
                     <option value="APPROVED">APPROVED</option>
                     <option value="REJECTED">REJECTED</option>
                 </select>
                 <button class="ames-btn ok" @onclick="LoadVersions"
-                        style="padding:7px 12px;font-size:.85em;white-space:nowrap;">조회</button>
+                        style="padding:7px 12px;font-size:.85em;white-space:nowrap;">@L["Btn.Search"]</button>
             </div>
 
             @* 버전 카드 목록 *@
@@ -152,11 +153,11 @@
                             @if (_selVer.Status == "DRAFT")
                             {
                                 <button class="ames-btn ok"   @onclick="OpenLineCreate"              disabled="@_busy" style="padding:6px 12px;font-size:.82em;">+ 라인</button>
-                                <button class="ames-btn"      @onclick="() => OpenVersionEdit(_selVer)" disabled="@_busy" style="padding:6px 12px;font-size:.82em;">수정</button>
+                                <button class="ames-btn"      @onclick="() => OpenVersionEdit(_selVer)" disabled="@_busy" style="padding:6px 12px;font-size:.82em;">@L["Btn.Edit"]</button>
                                 <button class="ames-btn warn" @onclick="DoRequestApproval"           disabled="@_busy" style="padding:6px 12px;font-size:.82em;">승인 요청</button>
                                 @if (!_verDelConfirm)
                                 {
-                                    <button class="ames-btn bad" @onclick='() => _verDelConfirm = true' disabled="@_busy" style="padding:6px 12px;font-size:.82em;">삭제</button>
+                                    <button class="ames-btn bad" @onclick='() => _verDelConfirm = true' disabled="@_busy" style="padding:6px 12px;font-size:.82em;">@L["Btn.Delete"]</button>
                                 }
                             }
                             @if (_selVer.Status == "PENDING")
@@ -164,8 +165,8 @@
                                 <button class="ames-btn" @onclick="DoApprove"
                                         disabled="@(_busy || _lines.Count == 0)"
                                         title="@(_lines.Count == 0 ? "BOM 라인을 최소 1개 등록해야 승인할 수 있습니다" : "")"
-                                        style="padding:6px 12px;font-size:.82em;color:#86efac;border:1px solid rgba(134,239,172,.4);">승인</button>
-                                <button class="ames-btn bad" @onclick="DoReject" disabled="@_busy" style="padding:6px 12px;font-size:.82em;">반려</button>
+                                        style="padding:6px 12px;font-size:.82em;color:#86efac;border:1px solid rgba(134,239,172,.4);">@L["Btn.Approve"]</button>
+                                <button class="ames-btn bad" @onclick="DoReject" disabled="@_busy" style="padding:6px 12px;font-size:.82em;">@L["Btn.Reject"]</button>
                             }
                             @if (_selVer.Status == "REJECTED")
                             {
@@ -210,7 +211,7 @@
                                 <th style="width:46px;">단위</th>
                                 <th style="width:60px;text-align:right;">불량율%</th>
                                 <th style="width:40px;text-align:center;">순서</th>
-                                <th>비고</th>
+                                <th>@L["Col.Note"]</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -262,7 +263,7 @@
             @if (!string.IsNullOrEmpty(_modalErr)) {<div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div>}
             <div class="ames-modal-footer">
                 <button class="ames-btn ok" @onclick="SaveVersionCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
-                <button class="ames-btn" @onclick="CloseModal">취소</button>
+                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -278,7 +279,7 @@
             @if (!string.IsNullOrEmpty(_modalErr)) {<div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div>}
             <div class="ames-modal-footer">
                 <button class="ames-btn ok" @onclick="SaveVersionEdit" disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
-                <button class="ames-btn" @onclick="CloseModal">닫기</button>
+                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Close"]</button>
             </div>
         </div>
     </div>
@@ -294,7 +295,7 @@
             @if (!string.IsNullOrEmpty(_modalErr)) {<div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div>}
             <div class="ames-modal-footer">
                 <button class="ames-btn ok" @onclick="SaveLineCreate" disabled="@_busy">@(_busy ? "저장 중…" : "추가")</button>
-                <button class="ames-btn" @onclick="CloseModal">취소</button>
+                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -318,8 +319,8 @@
             @if (!string.IsNullOrEmpty(_modalErr)) {<div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div>}
             <div class="ames-modal-footer">
                 <button class="ames-btn ok" @onclick="SaveLineEdit" disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
-                <button class="ames-btn bad" @onclick='() => { _lineConfirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
-                <button class="ames-btn" @onclick="CloseModal">닫기</button>
+                <button class="ames-btn bad" @onclick='() => { _lineConfirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
+                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Close"]</button>
             </div>
         </div>
     </div>

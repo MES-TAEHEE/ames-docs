@@ -1,23 +1,24 @@
-@page "/md/spare-part"
+﻿@page "/md/spare-part"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MD-027 예비품 마스터 · AMES</PageTitle>
+<PageTitle>@L["MD.SparePart.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MD-027</div>
-    <div class="ames-page-t">예비품 마스터</div>
-    <div class="ames-page-sub">MD_SparePart 마스터 — 설비 예비품·재주문점·공급업체·보관 위치 설정</div>
+    <div class="ames-page-t">@L["MD.SparePart.Title"]</div>
+    <div class="ames-page-sub">@L["MD.SparePart.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
     <div class="ames-kpi">
-        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-l">@L["Lbl.Total"]</div>
         <div class="ames-kpi-v">@_allRows.Count</div>
     </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-l">@L["Lbl.Active"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.ActiveFlag)</div>
     </div>
     <div class="ames-kpi">
@@ -32,12 +33,12 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ 예비품 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.SparePart.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:140px;padding:4px 8px;"
                    placeholder="품번 / 품명" @bind="_fSearch" autocomplete="off" />
             <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fCat">
-                <option value="">카테고리 전체</option>
+                <option value="">@L["Filter.AllCategories"]</option>
                 @foreach (var c in _allRows.Select(r => r.Category).Where(x => x != null).Distinct().OrderBy(x => x))
                 {
                     <option value="@c">@c</option>
@@ -48,13 +49,13 @@
                 <option value="Y">활성</option>
                 <option value="N">비활성</option>
             </select>
-            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
         </div>
     </div>
 
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">등록된 예비품이 없습니다.</div>
+        <div class="ames-empty">@L["MD.SparePart.Empty"]</div>
     }
     else
     {
@@ -64,7 +65,7 @@
                     <th>품번</th><th>품명</th><th>카테고리</th><th>UOM</th>
                     <th class="num">단가</th><th class="num">안전재고</th>
                     <th class="num">재주문점</th><th class="num">재주문량</th>
-                    <th class="num">조달 일수</th><th>공급업체</th><th>보관 위치</th><th>상태</th>
+                    <th class="num">조달 일수</th><th>공급업체</th><th>보관 위치</th><th>@L["Col.Status"]</th>
                 </tr>
             </thead>
             <tbody>

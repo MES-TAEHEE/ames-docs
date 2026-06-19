@@ -1,0 +1,553 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <!-- ── 공통 버튼 ── -->
+  <data name="Btn.Search"><value>조회</value></data>
+  <data name="Btn.Create"><value>등록</value></data>
+  <data name="Btn.Save"><value>저장</value></data>
+  <data name="Btn.Cancel"><value>취소</value></data>
+  <data name="Btn.Delete"><value>삭제</value></data>
+  <data name="Btn.Edit"><value>수정</value></data>
+  <data name="Btn.Approve"><value>승인</value></data>
+  <data name="Btn.Reject"><value>반려</value></data>
+  <data name="Btn.Close"><value>닫기</value></data>
+  <data name="Btn.Reload"><value>조회</value></data>
+
+  <!-- ── 공통 레이블 ── -->
+  <data name="Lbl.Total"><value>전체</value></data>
+  <data name="Lbl.Active"><value>활성</value></data>
+  <data name="Lbl.Inactive"><value>비활성</value></data>
+  <data name="Lbl.Items"><value>건</value></data>
+  <data name="Lbl.TotalOf"><value>전체</value></data>
+
+  <!-- ── 공통 필터 ── -->
+  <data name="Filter.All"><value>전체</value></data>
+  <data name="Filter.AllTypes"><value>유형 전체</value></data>
+  <data name="Filter.AllStatus"><value>상태 전체</value></data>
+  <data name="Filter.AllLines"><value>라인 전체</value></data>
+  <data name="Filter.AllCategories"><value>카테고리 전체</value></data>
+  <data name="Filter.AllModules"><value>모듈 전체</value></data>
+  <data name="Filter.AllSections"><value>섹션 전체</value></data>
+
+  <!-- ── 공통 컬럼 ── -->
+  <data name="Col.Code"><value>코드</value></data>
+  <data name="Col.Name"><value>명칭</value></data>
+  <data name="Col.Status"><value>상태</value></data>
+  <data name="Col.Type"><value>유형</value></data>
+  <data name="Col.Line"><value>라인</value></data>
+  <data name="Col.LineId"><value>라인 ID</value></data>
+  <data name="Col.Equip"><value>설비</value></data>
+  <data name="Col.Note"><value>비고</value></data>
+  <data name="Col.Date"><value>날짜</value></data>
+  <data name="Col.From"><value>시작</value></data>
+  <data name="Col.To"><value>종료</value></data>
+  <data name="Col.CreatedBy"><value>등록자</value></data>
+  <data name="Col.CreatedTs"><value>등록일시</value></data>
+  <data name="Col.ModifiedBy"><value>수정자</value></data>
+  <data name="Col.ModifiedTs"><value>수정일시</value></data>
+  <data name="Col.Count"><value>건수</value></data>
+  <data name="Col.Desc"><value>설명</value></data>
+  <data name="Col.Seq"><value>순서</value></data>
+  <data name="Col.ItemNo"><value>품목 번호</value></data>
+  <data name="Col.ItemName"><value>품목명</value></data>
+
+  <!-- ── Lbl.Period ── -->
+  <data name="Lbl.Period"><value>조회 기간</value></data>
+  <data name="Lbl.Recent"><value>최근</value></data>
+  <data name="Lbl.Future"><value>향후</value></data>
+  <data name="Lbl.Past"><value>과거</value></data>
+  <data name="Lbl.Days"><value>일</value></data>
+  <data name="Lbl.Months"><value>개월</value></data>
+  <data name="Lbl.Rank"><value>순위</value></data>
+
+  <!-- ── 공통 메시지 ── -->
+  <data name="Msg.NoData"><value>조회 결과가 없습니다.</value></data>
+  <data name="Msg.Saving"><value>저장 중…</value></data>
+  <data name="Msg.Deleting"><value>삭제 중…</value></data>
+  <data name="Msg.Confirm.Delete"><value>정말 삭제하시겠습니까?</value></data>
+  <data name="Msg.Yes"><value>예, 삭제</value></data>
+  <data name="Msg.No"><value>아니오</value></data>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- MNT — 설비보전 -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+
+  <!-- MNT.Dashboard -->
+  <data name="MNT.Dashboard.Title"><value>설비 보전 대시보드</value></data>
+  <data name="MNT.Dashboard.Sub"><value>설비 · 고장 · PM · 자재 통합 현황</value></data>
+
+  <!-- MNT.EquipmentCard -->
+  <data name="MNT.EquipmentCard.Title"><value>설비 카드</value></data>
+  <data name="MNT.EquipmentCard.Sub"><value>설비별 실시간 상태 카드</value></data>
+  <data name="MNT.EquipmentCard.List"><value>설비 목록</value></data>
+  <data name="MNT.EquipmentCard.Empty"><value>해당 조건에 설비 데이터가 없습니다.</value></data>
+  <data name="MNT.EquipmentCard.Ph.Line"><value>라인 검색</value></data>
+  <data name="MNT.EquipmentCard.Ph.Name"><value>설비명 검색</value></data>
+
+  <!-- MNT.WorkOrder -->
+  <data name="MNT.WorkOrder.Title"><value>정비 작업지시</value></data>
+  <data name="MNT.WorkOrder.Sub"><value>정비 작업지시 — 진행/완료</value></data>
+  <data name="MNT.WorkOrder.List"><value>정비 작업지시</value></data>
+  <data name="MNT.WorkOrder.Empty"><value>해당 조건에 작업지시가 없습니다.</value></data>
+  <data name="MNT.WorkOrder.Filter.AllStatus"><value>전체 상태</value></data>
+  <data name="MNT.WorkOrder.InProgress"><value>진행 중</value></data>
+  <data name="MNT.WorkOrder.Completed"><value>완료</value></data>
+
+  <!-- MNT.PmSchedule -->
+  <data name="MNT.PmSchedule.Title"><value>PM 일정</value></data>
+  <data name="MNT.PmSchedule.Sub"><value>예방정비 일정 — 조회 기간 설정</value></data>
+  <data name="MNT.PmSchedule.List"><value>PM 일정</value></data>
+  <data name="MNT.PmSchedule.Empty"><value>해당 기간에 PM 일정이 없습니다.</value></data>
+
+  <!-- MNT.Downtime -->
+  <data name="MNT.Downtime.Title"><value>비가동 이력</value></data>
+  <data name="MNT.Downtime.Sub"><value>라인 다운타임 이벤트 조회</value></data>
+  <data name="MNT.Downtime.List"><value>비가동 이벤트</value></data>
+  <data name="MNT.Downtime.Empty"><value>해당 기간에 비가동 데이터가 없습니다.</value></data>
+  <data name="MNT.Downtime.Ph.Line"><value>라인 검색</value></data>
+
+  <!-- MNT.Failure -->
+  <data name="MNT.Failure.Title"><value>고장 등록</value></data>
+  <data name="MNT.Failure.Sub"><value>고장 이벤트 조회 및 등록</value></data>
+  <data name="MNT.Failure.List"><value>고장 이벤트</value></data>
+  <data name="MNT.Failure.Empty"><value>해당 조건에 고장 이벤트가 없습니다.</value></data>
+  <data name="MNT.Failure.Filter.AllStatus"><value>전체 상태</value></data>
+  <data name="MNT.Failure.InProgress"><value>진행 중</value></data>
+  <data name="MNT.Failure.Resolved"><value>해결</value></data>
+  <data name="MNT.Failure.Kpi.Open"><value>신규 고장</value></data>
+  <data name="MNT.Failure.Kpi.Prog"><value>정비 중</value></data>
+  <data name="MNT.Failure.Kpi.Res"><value>완료</value></data>
+  <data name="MNT.Failure.Kpi.Urg"><value>긴급 / 중대</value></data>
+
+  <!-- MNT.Mold -->
+  <data name="MNT.Mold.Title"><value>금형 관리</value></data>
+  <data name="MNT.Mold.Sub"><value>금형 쇼트 카운터 + Refurbish 임계</value></data>
+  <data name="MNT.Mold.List"><value>금형 목록</value></data>
+  <data name="MNT.Mold.Empty"><value>해당 조건에 금형 데이터가 없습니다.</value></data>
+  <data name="MNT.Mold.Ph.Name"><value>금형명 검색</value></data>
+
+  <!-- MNT.OeeAnalysis -->
+  <data name="MNT.OeeAnalysis.Title"><value>OEE 분석</value></data>
+  <data name="MNT.OeeAnalysis.Sub"><value>설비×Shift OEE 집계</value></data>
+  <data name="MNT.OeeAnalysis.List"><value>OEE 데이터</value></data>
+  <data name="MNT.OeeAnalysis.Empty"><value>해당 기간에 OEE 데이터가 없습니다.</value></data>
+  <data name="MNT.OeeAnalysis.Ph.Equip"><value>설비 검색</value></data>
+
+  <!-- MNT.SpareParts -->
+  <data name="MNT.SpareParts.Title"><value>예비 부품</value></data>
+  <data name="MNT.SpareParts.Sub"><value>예비품 마스터 + 최근 입출고</value></data>
+  <data name="MNT.SpareParts.List"><value>예비품 마스터</value></data>
+  <data name="MNT.SpareParts.Empty"><value>해당 조건에 예비품이 없습니다.</value></data>
+  <data name="MNT.SpareParts.TxnList"><value>최근 입출고</value></data>
+  <data name="MNT.SpareParts.TxnEmpty"><value>입출고 데이터가 없습니다.</value></data>
+  <data name="MNT.SpareParts.Ph.Part"><value>품번/품명</value></data>
+  <data name="MNT.SpareParts.Ph.Cat"><value>카테고리</value></data>
+  <data name="MNT.SpareParts.Ph.TxnPart"><value>품번 필터</value></data>
+  <data name="MNT.SpareParts.LowOnly"><value>부족만</value></data>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- RPT — 보고서 -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+
+  <!-- RPT.DailyProduction -->
+  <data name="RPT.DailyProduction.Title"><value>일별 생산 실적</value></data>
+  <data name="RPT.DailyProduction.Sub"><value>일별·라인별 생산량 / 양품률</value></data>
+  <data name="RPT.DailyProduction.List"><value>일별 집계</value></data>
+  <data name="RPT.DailyProduction.Empty"><value>조회 결과가 없습니다.</value></data>
+  <data name="RPT.DailyProduction.Ph.Line"><value>라인 검색</value></data>
+  <data name="RPT.DailyProduction.Kpi.Days"><value>집계 일수</value></data>
+  <data name="RPT.DailyProduction.Kpi.Good"><value>양품 수</value></data>
+  <data name="RPT.DailyProduction.Kpi.Defect"><value>불량 건</value></data>
+  <data name="RPT.DailyProduction.Kpi.Yield"><value>양품률</value></data>
+  <data name="RPT.DailyProduction.Col.Day"><value>날짜</value></data>
+  <data name="RPT.DailyProduction.Col.Entries"><value>건수</value></data>
+  <data name="RPT.DailyProduction.Col.Good"><value>양품</value></data>
+  <data name="RPT.DailyProduction.Col.Defect"><value>불량 건</value></data>
+  <data name="RPT.DailyProduction.Col.Yield"><value>양품률</value></data>
+
+  <!-- RPT.DefectPareto -->
+  <data name="RPT.DefectPareto.Title"><value>불량 파레토</value></data>
+  <data name="RPT.DefectPareto.Sub"><value>불량 코드 파레토 분석</value></data>
+  <data name="RPT.DefectPareto.List"><value>파레토 순위</value></data>
+  <data name="RPT.DefectPareto.Empty"><value>해당 기간에 불량 데이터가 없습니다.</value></data>
+  <data name="RPT.DefectPareto.Kpi.Codes"><value>불량 코드</value></data>
+  <data name="RPT.DefectPareto.Kpi.Total"><value>총 불량 수</value></data>
+  <data name="RPT.DefectPareto.Kpi.Events"><value>발생 건</value></data>
+  <data name="RPT.DefectPareto.Kpi.Top"><value>1위 코드</value></data>
+  <data name="RPT.DefectPareto.Col.Rank"><value>순위</value></data>
+  <data name="RPT.DefectPareto.Col.DefectCode"><value>불량 코드</value></data>
+  <data name="RPT.DefectPareto.Col.Qty"><value>수량</value></data>
+  <data name="RPT.DefectPareto.Col.Events"><value>건수</value></data>
+  <data name="RPT.DefectPareto.Col.Pct"><value>점유율</value></data>
+  <data name="RPT.DefectPareto.Col.CumPct"><value>누적</value></data>
+  <data name="RPT.DefectPareto.Col.Bar"><value>비율 바</value></data>
+
+  <!-- RPT.DailyShipment -->
+  <data name="RPT.DailyShipment.Title"><value>일별 출하 현황</value></data>
+  <data name="RPT.DailyShipment.Sub"><value>출하 주문 / 수량 / 고객 수</value></data>
+  <data name="RPT.DailyShipment.List"><value>일별 출하 집계</value></data>
+  <data name="RPT.DailyShipment.Empty"><value>해당 기간에 출하 데이터가 없습니다.</value></data>
+  <data name="RPT.DailyShipment.Kpi.Days"><value>출하일</value></data>
+  <data name="RPT.DailyShipment.Kpi.Orders"><value>주문 수</value></data>
+  <data name="RPT.DailyShipment.Kpi.OrderQty"><value>주문 수량</value></data>
+  <data name="RPT.DailyShipment.Kpi.AllocQty"><value>배정 수량</value></data>
+  <data name="RPT.DailyShipment.Col.Orders"><value>주문 수</value></data>
+  <data name="RPT.DailyShipment.Col.OrderQty"><value>주문 수량</value></data>
+  <data name="RPT.DailyShipment.Col.AllocQty"><value>배정 수량</value></data>
+  <data name="RPT.DailyShipment.Col.FillRate"><value>충족률</value></data>
+  <data name="RPT.DailyShipment.Col.Customers"><value>고객 수</value></data>
+
+  <!-- RPT.OnTime -->
+  <data name="RPT.OnTime.Title"><value>납기 준수율 (OTD)</value></data>
+  <data name="RPT.OnTime.Sub"><value>일별 On-Time Delivery % 분석</value></data>
+  <data name="RPT.OnTime.List"><value>일별 OTD</value></data>
+  <data name="RPT.OnTime.Empty"><value>해당 기간에 출하 데이터가 없습니다.</value></data>
+  <data name="RPT.OnTime.Kpi.Total"><value>총 주문</value></data>
+  <data name="RPT.OnTime.Kpi.OnTime"><value>납기 준수</value></data>
+  <data name="RPT.OnTime.Kpi.Late"><value>납기 지연</value></data>
+  <data name="RPT.OnTime.Col.Total"><value>총 주문</value></data>
+  <data name="RPT.OnTime.Col.OnTime"><value>납기 준수</value></data>
+  <data name="RPT.OnTime.Col.Late"><value>납기 지연</value></data>
+  <data name="RPT.OnTime.Col.Trend"><value>트렌드</value></data>
+
+  <!-- RPT.Inventory -->
+  <data name="RPT.Inventory.Title"><value>재고 현황</value></data>
+  <data name="RPT.Inventory.Sub"><value>완제품 재고 — 품목 × 위치 집계</value></data>
+  <data name="RPT.Inventory.List"><value>재고 집계</value></data>
+  <data name="RPT.Inventory.Empty"><value>재고 데이터가 없습니다.</value></data>
+  <data name="RPT.Inventory.Ph.Item"><value>품목 번호 검색</value></data>
+  <data name="RPT.Inventory.Kpi.Count"><value>조회 건수</value></data>
+  <data name="RPT.Inventory.Kpi.Qty"><value>총 재고</value></data>
+  <data name="RPT.Inventory.Kpi.HoldQty"><value>홀드 수량</value></data>
+  <data name="RPT.Inventory.Kpi.HoldPct"><value>홀드율</value></data>
+  <data name="RPT.Inventory.Col.ItemNo"><value>품목 번호</value></data>
+  <data name="RPT.Inventory.Col.Location"><value>위치</value></data>
+  <data name="RPT.Inventory.Col.Lots"><value>로트 수</value></data>
+  <data name="RPT.Inventory.Col.Qty"><value>수량</value></data>
+  <data name="RPT.Inventory.Col.HoldLots"><value>홀드 로트</value></data>
+  <data name="RPT.Inventory.Col.HoldQty"><value>홀드 수량</value></data>
+  <data name="RPT.Inventory.Col.HoldPct"><value>홀드율</value></data>
+
+  <!-- RPT.EquipmentOee -->
+  <data name="RPT.EquipmentOee.Title"><value>설비 OEE</value></data>
+  <data name="RPT.EquipmentOee.Sub"><value>설비별 가동률(A) · 성능률(P) · 품질률(Q) · OEE 집계</value></data>
+  <data name="RPT.EquipmentOee.List"><value>설비 순위</value></data>
+  <data name="RPT.EquipmentOee.Empty"><value>해당 기간에 OEE 데이터가 없습니다.</value></data>
+  <data name="RPT.EquipmentOee.Ph.Line"><value>라인 검색</value></data>
+  <data name="RPT.EquipmentOee.Kpi.EquipCount"><value>설비 수</value></data>
+  <data name="RPT.EquipmentOee.Kpi.AvgA"><value>평균 A</value></data>
+  <data name="RPT.EquipmentOee.Kpi.AvgP"><value>평균 P</value></data>
+  <data name="RPT.EquipmentOee.Kpi.AvgOee"><value>평균 OEE</value></data>
+  <data name="RPT.EquipmentOee.Col.Days"><value>일수</value></data>
+  <data name="RPT.EquipmentOee.Col.Bar"><value>비율 바</value></data>
+
+  <!-- RPT.MonthlyKpi -->
+  <data name="RPT.MonthlyKpi.Title"><value>월간 KPI</value></data>
+  <data name="RPT.MonthlyKpi.Sub"><value>월간 통합 지표 — 생산·출하·보전·OEE</value></data>
+  <data name="RPT.MonthlyKpi.List"><value>월간 집계</value></data>
+  <data name="RPT.MonthlyKpi.ListSuffix"><value>개월</value></data>
+  <data name="RPT.MonthlyKpi.Empty"><value>월간 데이터가 없습니다.</value></data>
+  <data name="RPT.MonthlyKpi.Kpi.GoodQty"><value>양품 수</value></data>
+  <data name="RPT.MonthlyKpi.Kpi.Yield"><value>양품률</value></data>
+  <data name="RPT.MonthlyKpi.Kpi.ShipOrders"><value>출하 주문</value></data>
+  <data name="RPT.MonthlyKpi.Kpi.Failures"><value>고장 건</value></data>
+  <data name="RPT.MonthlyKpi.Col.Period"><value>기간</value></data>
+  <data name="RPT.MonthlyKpi.Col.GoodQty"><value>양품 수</value></data>
+  <data name="RPT.MonthlyKpi.Col.DefectQty"><value>불량 수</value></data>
+  <data name="RPT.MonthlyKpi.Col.Yield"><value>양품률</value></data>
+  <data name="RPT.MonthlyKpi.Col.ShipOrders"><value>출하 주문</value></data>
+  <data name="RPT.MonthlyKpi.Col.Failures"><value>고장 건</value></data>
+  <data name="RPT.MonthlyKpi.Col.AvgOee"><value>평균 OEE</value></data>
+
+  <!-- RPT.ScheduleAdherence -->
+  <data name="RPT.ScheduleAdherence.Title"><value>계획 준수율</value></data>
+  <data name="RPT.ScheduleAdherence.Sub"><value>생산 계획 대비 실생산 — 일별·라인별</value></data>
+  <data name="RPT.ScheduleAdherence.List"><value>일별 집계</value></data>
+  <data name="RPT.ScheduleAdherence.Empty"><value>해당 기간에 계획 또는 생산 데이터가 없습니다.</value></data>
+  <data name="RPT.ScheduleAdherence.Ph.Line"><value>라인 검색</value></data>
+  <data name="RPT.ScheduleAdherence.Kpi.Count"><value>집계 건수</value></data>
+  <data name="RPT.ScheduleAdherence.Kpi.Plan"><value>계획 수량</value></data>
+  <data name="RPT.ScheduleAdherence.Kpi.Prod"><value>실생산</value></data>
+  <data name="RPT.ScheduleAdherence.Kpi.Adh"><value>계획 준수율</value></data>
+  <data name="RPT.ScheduleAdherence.Col.Plan"><value>계획 수량</value></data>
+  <data name="RPT.ScheduleAdherence.Col.Prod"><value>실생산</value></data>
+  <data name="RPT.ScheduleAdherence.Col.Adh"><value>준수율</value></data>
+  <data name="RPT.ScheduleAdherence.Col.Bar"><value>비율 바</value></data>
+
+  <!-- RPT.ReportCenter -->
+  <data name="RPT.ReportCenter.Title"><value>Report Center</value></data>
+  <data name="RPT.ReportCenter.Sub"><value>전체 리포트 카탈로그 — 카테고리별</value></data>
+
+  <!-- RPT.ReportBuilder -->
+  <data name="RPT.ReportBuilder.Title"><value>Report Builder</value></data>
+  <data name="RPT.ReportBuilder.Sub"><value>Ad-hoc 리포트 빌더 — preview / 다음 마일스톤</value></data>
+  <data name="RPT.ReportBuilder.Preview"><value>Builder preview</value></data>
+  <data name="RPT.ReportBuilder.Desc"><value>Report Builder는 SQL 지식 없이도 드래그·드롭으로 데이터 소스 / 차원 / 측정값을 선택해 사용자 정의 리포트를 만들 수 있는 화면입니다. 다음 마일스톤에 구현 예정.</value></data>
+  <data name="RPT.ReportBuilder.Gallery"><value>Template gallery (sample)</value></data>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- SYS — 시스템 관리 -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+
+  <!-- SYS.Users -->
+  <data name="SYS.Users.Title"><value>사용자 관리</value></data>
+  <data name="SYS.Users.Sub"><value>ASP.NET Identity 사용자 + SYS_UserProfile 조인</value></data>
+  <data name="SYS.Users.List"><value>사용자 목록</value></data>
+  <data name="SYS.Users.Kpi.Users"><value>사용자</value></data>
+  <data name="SYS.Users.Kpi.Verified"><value>인증 완료</value></data>
+  <data name="SYS.Users.Kpi.Locked"><value>잠금</value></data>
+  <data name="SYS.Users.Kpi.RecentLogin"><value>최근 로그인</value></data>
+  <data name="SYS.Users.Ph.UserName"><value>사용자명</value></data>
+  <data name="SYS.Users.Ph.Name"><value>성명</value></data>
+  <data name="SYS.Users.Ph.Dept"><value>부서</value></data>
+  <data name="SYS.Users.Col.UserName"><value>사용자명</value></data>
+  <data name="SYS.Users.Col.Email"><value>이메일</value></data>
+  <data name="SYS.Users.Col.EmployeeNo"><value>사번</value></data>
+  <data name="SYS.Users.Col.EmployeeName"><value>성명</value></data>
+  <data name="SYS.Users.Col.Dept"><value>부서</value></data>
+  <data name="SYS.Users.Col.Roles"><value>역할</value></data>
+  <data name="SYS.Users.Col.FailCount"><value>로그인 실패</value></data>
+  <data name="SYS.Users.Col.LastLogin"><value>최근 로그인</value></data>
+  <data name="SYS.Users.Modal.Create"><value>신규 사용자 등록</value></data>
+  <data name="SYS.Users.Modal.Edit"><value>사용자 수정</value></data>
+  <data name="SYS.Users.Lbl.EmployeeNo"><value>사원번호 *</value></data>
+  <data name="SYS.Users.Lbl.EmployeeName"><value>성명 *</value></data>
+  <data name="SYS.Users.Lbl.Dept"><value>부서</value></data>
+  <data name="SYS.Users.Lbl.DefaultShift"><value>기본 교대조</value></data>
+  <data name="SYS.Users.Lbl.Role"><value>역할</value></data>
+  <data name="SYS.Users.Lbl.Lines"><value>담당 라인</value></data>
+  <data name="SYS.Users.Lbl.NoLines"><value>활성 라인 없음</value></data>
+  <data name="SYS.Users.Lbl.AccountStatus"><value>계정 상태</value></data>
+  <data name="SYS.Users.Lbl.NewPassword"><value>새 비밀번호 (변경 시만 입력)</value></data>
+  <data name="SYS.Users.Unlock"><value>잠금 해제</value></data>
+
+  <!-- SYS.Roles -->
+  <data name="SYS.Roles.Title"><value>역할 관리</value></data>
+  <data name="SYS.Roles.Sub"><value>ASP.NET Identity 역할 관리</value></data>
+  <data name="SYS.Roles.List"><value>역할 목록</value></data>
+  <data name="SYS.Roles.Kpi.Roles"><value>역할</value></data>
+  <data name="SYS.Roles.Kpi.Assigned"><value>배정됨</value></data>
+  <data name="SYS.Roles.Kpi.Unused"><value>미사용</value></data>
+  <data name="SYS.Roles.Col.RoleName"><value>역할명</value></data>
+  <data name="SYS.Roles.Col.UserCount"><value>사용자 수</value></data>
+  <data name="SYS.Roles.Modal.Create"><value>신규 역할 등록</value></data>
+  <data name="SYS.Roles.Lbl.RoleName"><value>역할 이름 *</value></data>
+
+  <!-- SYS.Rbac -->
+  <data name="SYS.Rbac.Title"><value>역할/권한 관리 (RBAC)</value></data>
+  <data name="SYS.Rbac.Sub"><value>역할 × 화면 권한 매트릭스</value></data>
+  <data name="SYS.Rbac.List"><value>권한 목록</value></data>
+  <data name="SYS.Rbac.Kpi.Roles"><value>역할</value></data>
+  <data name="SYS.Rbac.Kpi.Perms"><value>권한</value></data>
+  <data name="SYS.Rbac.Kpi.Screens"><value>화면</value></data>
+  <data name="SYS.Rbac.Kpi.Users"><value>역할 사용자</value></data>
+  <data name="SYS.Rbac.Col.Module"><value>모듈</value></data>
+  <data name="SYS.Rbac.Col.Screen"><value>화면</value></data>
+  <data name="SYS.Rbac.Col.Level"><value>수준</value></data>
+  <data name="SYS.Rbac.Col.System"><value>시스템</value></data>
+  <data name="SYS.Rbac.Modal.Create"><value>권한 등록</value></data>
+  <data name="SYS.Rbac.Lbl.Role"><value>역할 *</value></data>
+  <data name="SYS.Rbac.Lbl.Module"><value>모듈 *</value></data>
+  <data name="SYS.Rbac.Lbl.Screen"><value>화면 코드 *</value></data>
+  <data name="SYS.Rbac.Lbl.Level"><value>권한 수준 *</value></data>
+  <data name="SYS.Rbac.Lbl.IsSystem"><value>시스템 역할</value></data>
+
+  <!-- SYS.Menu -->
+  <data name="SYS.Menu.Title"><value>메뉴 관리</value></data>
+  <data name="SYS.Menu.Sub"><value>MD_Menu / MD_MenuRole — 메뉴 가시성 · 역할별 권한 설정</value></data>
+  <data name="SYS.Menu.List"><value>메뉴 목록</value></data>
+  <data name="SYS.Menu.Empty"><value>표시할 메뉴 항목이 없습니다.</value></data>
+  <data name="SYS.Menu.Ph.Search"><value>코드 / 메뉴명 / 경로</value></data>
+  <data name="SYS.Menu.Kpi.All"><value>전체 메뉴</value></data>
+  <data name="SYS.Menu.Kpi.Visible"><value>표시</value></data>
+  <data name="SYS.Menu.Kpi.Hidden"><value>숨김</value></data>
+  <data name="SYS.Menu.Kpi.Restricted"><value>역할 제한</value></data>
+  <data name="SYS.Menu.Col.Code"><value>코드</value></data>
+  <data name="SYS.Menu.Col.Section"><value>섹션</value></data>
+  <data name="SYS.Menu.Col.NameKo"><value>메뉴명 (한국어)</value></data>
+  <data name="SYS.Menu.Col.NameEn"><value>영문명</value></data>
+  <data name="SYS.Menu.Col.Path"><value>경로</value></data>
+  <data name="SYS.Menu.Col.Visible"><value>표시</value></data>
+  <data name="SYS.Menu.Col.Roles"><value>역할</value></data>
+  <data name="SYS.Menu.Filter.AllSections"><value>섹션 전체</value></data>
+  <data name="SYS.Menu.Filter.Visible"><value>표시</value></data>
+  <data name="SYS.Menu.Filter.Hidden"><value>숨김</value></data>
+
+  <!-- SYS.Calendar -->
+  <data name="SYS.Calendar.Title"><value>공장 캘린더</value></data>
+  <data name="SYS.Calendar.Sub"><value>공장 달력 — 교대 × 일자 관리</value></data>
+  <data name="SYS.Calendar.Kpi.Days"><value>일수</value></data>
+  <data name="SYS.Calendar.Kpi.Work"><value>작업일</value></data>
+  <data name="SYS.Calendar.Kpi.Weekend"><value>주말</value></data>
+  <data name="SYS.Calendar.Kpi.Holiday"><value>공휴일</value></data>
+  <data name="SYS.Calendar.Tab.List"><value>목록</value></data>
+  <data name="SYS.Calendar.Tab.Calendar"><value>달력</value></data>
+  <data name="SYS.Calendar.Btn.Create"><value>+ 일정 생성</value></data>
+  <data name="SYS.Calendar.Empty"><value>조회 기간 내 데이터가 없습니다. '일정 생성'으로 추가하세요.</value></data>
+  <data name="SYS.Calendar.Col.Date"><value>날짜</value></data>
+  <data name="SYS.Calendar.Col.DayType"><value>구분</value></data>
+  <data name="SYS.Calendar.Col.HolidayName"><value>공휴일명</value></data>
+  <data name="SYS.Calendar.Legend.Work"><value>작업일</value></data>
+  <data name="SYS.Calendar.Legend.Weekend"><value>주말</value></data>
+  <data name="SYS.Calendar.Legend.Holiday"><value>공휴일</value></data>
+  <data name="SYS.Calendar.Badge.Holiday"><value>공휴일</value></data>
+  <data name="SYS.Calendar.Badge.Weekend"><value>주말</value></data>
+  <data name="SYS.Calendar.Modal.Generate"><value>일정 자동 생성</value></data>
+
+  <!-- SYS.Interfaces -->
+  <data name="SYS.Interfaces.Title"><value>인터페이스 모니터</value></data>
+  <data name="SYS.Interfaces.Sub"><value>SAP / PLC / WMS / EDI 연결 상태</value></data>
+  <data name="SYS.Interfaces.List"><value>인터페이스 목록</value></data>
+  <data name="SYS.Interfaces.Empty"><value>등록된 인터페이스가 없습니다.</value></data>
+  <data name="SYS.Interfaces.Kpi.All"><value>인터페이스</value></data>
+  <data name="SYS.Interfaces.Kpi.Ok"><value>정상</value></data>
+  <data name="SYS.Interfaces.Kpi.Warn"><value>경고</value></data>
+  <data name="SYS.Interfaces.Kpi.Down"><value>비정상</value></data>
+  <data name="SYS.Interfaces.Col.Code"><value>코드</value></data>
+  <data name="SYS.Interfaces.Col.Name"><value>명칭</value></data>
+  <data name="SYS.Interfaces.Col.Dir"><value>방향</value></data>
+  <data name="SYS.Interfaces.Col.Endpoint"><value>엔드포인트</value></data>
+  <data name="SYS.Interfaces.Col.Protocol"><value>프로토콜</value></data>
+  <data name="SYS.Interfaces.Col.LastSync"><value>최근 동기화</value></data>
+  <data name="SYS.Interfaces.Col.Elapsed"><value>경과(분)</value></data>
+  <data name="SYS.Interfaces.Col.LastCount"><value>마지막 행수</value></data>
+  <data name="SYS.Interfaces.Col.Retry"><value>재시도</value></data>
+  <data name="SYS.Interfaces.Col.Error"><value>오류</value></data>
+
+  <!-- SYS.Audit -->
+  <data name="SYS.Audit.Title"><value>감사 로그</value></data>
+  <data name="SYS.Audit.Sub"><value>감사 로그 — 최근 200건 (append-only)</value></data>
+  <data name="SYS.Audit.List"><value>최근 감사 이벤트</value></data>
+  <data name="SYS.Audit.Empty"><value>감사 이벤트가 없습니다.</value></data>
+  <data name="SYS.Audit.Kpi.Events"><value>이벤트</value></data>
+  <data name="SYS.Audit.Kpi.Ok"><value>성공</value></data>
+  <data name="SYS.Audit.Kpi.Fail"><value>실패</value></data>
+  <data name="SYS.Audit.Kpi.Last24h"><value>최근 24H</value></data>
+  <data name="SYS.Audit.Col.Time"><value>시각</value></data>
+  <data name="SYS.Audit.Col.Actor"><value>처리자</value></data>
+  <data name="SYS.Audit.Col.Module"><value>모듈</value></data>
+  <data name="SYS.Audit.Col.Screen"><value>화면</value></data>
+  <data name="SYS.Audit.Col.Action"><value>액션</value></data>
+  <data name="SYS.Audit.Col.Entity"><value>엔티티</value></data>
+  <data name="SYS.Audit.Col.TargetId"><value>대상 ID</value></data>
+  <data name="SYS.Audit.Col.Result"><value>결과</value></data>
+  <data name="SYS.Audit.Col.Ip"><value>IP</value></data>
+  <data name="SYS.Audit.Col.Note"><value>비고</value></data>
+
+  <!-- SYS.Notifications -->
+  <data name="SYS.Notifications.Title"><value>알림 관리</value></data>
+  <data name="SYS.Notifications.Sub"><value>알림 규칙 · 채널 설정 · 발송 이력</value></data>
+  <data name="SYS.Notifications.Kpi.Rules"><value>규칙</value></data>
+  <data name="SYS.Notifications.Kpi.ActiveRules"><value>활성 규칙</value></data>
+  <data name="SYS.Notifications.Kpi.Channels"><value>채널</value></data>
+  <data name="SYS.Notifications.Kpi.Sent"><value>발송 24H</value></data>
+  <data name="SYS.Notifications.Kpi.Failed"><value>실패 24H</value></data>
+  <data name="SYS.Notifications.Tab.Rules"><value>알림 규칙</value></data>
+  <data name="SYS.Notifications.Tab.Channels"><value>채널 설정</value></data>
+  <data name="SYS.Notifications.Tab.History"><value>발송 이력</value></data>
+  <data name="SYS.Notifications.Rules.List"><value>알림 규칙</value></data>
+  <data name="SYS.Notifications.Rules.Empty"><value>등록된 알림 규칙이 없습니다. 규칙을 등록하세요.</value></data>
+  <data name="SYS.Notifications.Channels.List"><value>채널 설정</value></data>
+  <data name="SYS.Notifications.Channels.Empty"><value>등록된 채널이 없습니다.</value></data>
+  <data name="SYS.Notifications.History.List"><value>발송 이력 (최근 100건)</value></data>
+  <data name="SYS.Notifications.History.Empty"><value>발송 이력이 없습니다.</value></data>
+  <data name="SYS.Notifications.Ph.RuleSearch"><value>코드 / 이벤트명</value></data>
+  <data name="SYS.Notifications.Ph.ChSearch"><value>사용자 / 주소</value></data>
+  <data name="SYS.Notifications.Filter.AllModules"><value>모듈 전체</value></data>
+  <data name="SYS.Notifications.Filter.AllChannels"><value>채널 전체</value></data>
+  <data name="SYS.Notifications.Filter.AllEnabled"><value>전체</value></data>
+  <data name="SYS.Notifications.Filter.Active"><value>활성</value></data>
+  <data name="SYS.Notifications.Filter.Inactive"><value>비활성</value></data>
+  <data name="SYS.Notifications.Btn.Apply"><value>적용</value></data>
+
+  <!-- SYS.Config -->
+  <data name="SYS.Config.Title"><value>시스템 설정</value></data>
+  <data name="SYS.Config.Sub"><value>환경설정 (Key-Value) — 카테고리별</value></data>
+  <data name="SYS.Config.Empty"><value>설정 키가 없습니다.</value></data>
+  <data name="SYS.Config.Kpi.Keys"><value>키</value></data>
+  <data name="SYS.Config.Kpi.Active"><value>활성</value></data>
+  <data name="SYS.Config.Kpi.Categories"><value>카테고리</value></data>
+  <data name="SYS.Config.Kpi.Security"><value>보안</value></data>
+  <data name="SYS.Config.Col.Key"><value>키</value></data>
+  <data name="SYS.Config.Col.Desc"><value>설명</value></data>
+  <data name="SYS.Config.Col.Value"><value>값</value></data>
+  <data name="SYS.Config.Col.Unit"><value>단위</value></data>
+  <data name="SYS.Config.Col.Type"><value>유형</value></data>
+  <data name="SYS.Config.Active"><value>활성</value></data>
+  <data name="SYS.Config.Inactive"><value>비활성</value></data>
+
+  <!-- SYS.Health -->
+  <data name="SYS.Health.Title"><value>시스템 상태</value></data>
+  <data name="SYS.Health.Sub"><value>전체 시스템 KPI · 알림 큐 · DB 현황</value></data>
+  <data name="SYS.Health.Kpi.Users"><value>사용자</value></data>
+  <data name="SYS.Health.Kpi.Roles"><value>역할</value></data>
+  <data name="SYS.Health.Kpi.IfOk"><value>인터페이스 정상</value></data>
+  <data name="SYS.Health.Kpi.IfDown"><value>인터페이스 오류</value></data>
+  <data name="SYS.Health.Kpi.Audit"><value>감사 24H</value></data>
+  <data name="SYS.Health.Kpi.Notif"><value>알림 24H</value></data>
+  <data name="SYS.Health.Kpi.NotifFail"><value>알림 실패</value></data>
+  <data name="SYS.Health.Kpi.Config"><value>시스템 설정</value></data>
+  <data name="SYS.Health.Db.Title"><value>데이터베이스 — 행 수 추정치</value></data>
+  <data name="SYS.Health.Db.Desc"><value>전체 사용자 테이블 합산</value></data>
+  <data name="SYS.Health.Tile.Users"><value>사용자</value></data>
+  <data name="SYS.Health.Tile.Rbac"><value>RBAC</value></data>
+  <data name="SYS.Health.Tile.Interfaces"><value>인터페이스</value></data>
+  <data name="SYS.Health.Tile.Audit"><value>감사 로그</value></data>
+  <data name="SYS.Health.Tile.Notif"><value>알림</value></data>
+  <data name="SYS.Health.Tile.Config"><value>시스템 설정</value></data>
+  <data name="SYS.Health.Tile.Calendar"><value>공장 캘린더</value></data>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- MD — 마스터 데이터 -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+
+  <!-- MD.Line -->
+  <data name="MD.Line.Title"><value>공장/라인 기준정보 관리</value></data>
+  <data name="MD.Line.Sub"><value>MD_Line 마스터 — 라인 유형·일생산능력·교대패턴·RFID 설정</value></data>
+  <data name="MD.Line.List"><value>생산 라인 목록</value></data>
+  <data name="MD.Line.Empty"><value>등록된 생산 라인이 없습니다.</value></data>
+  <data name="MD.Line.Ph.Search"><value>라인 ID / 명칭</value></data>
+  <data name="MD.Line.Filter.AllTypes"><value>유형 전체</value></data>
+  <data name="MD.Line.Filter.AllStatus"><value>상태 전체</value></data>
+  <data name="MD.Line.Kpi.Total"><value>전체</value></data>
+  <data name="MD.Line.Kpi.Active"><value>활성</value></data>
+  <data name="MD.Line.Kpi.Rfid"><value>RFID 활성</value></data>
+  <data name="MD.Line.Kpi.Plants"><value>공장 수</value></data>
+  <data name="MD.Line.Col.LineId"><value>라인 ID</value></data>
+  <data name="MD.Line.Col.LineName"><value>라인명</value></data>
+  <data name="MD.Line.Col.Type"><value>유형</value></data>
+  <data name="MD.Line.Col.Plant"><value>공장</value></data>
+  <data name="MD.Line.Col.DefaultWc"><value>기준 WC</value></data>
+  <data name="MD.Line.Col.DailyCap"><value>일생산능력</value></data>
+  <data name="MD.Line.Col.ShiftPattern"><value>교대패턴</value></data>
+  <data name="MD.Line.Modal.Create"><value>신규 생산 라인 등록</value></data>
+  <data name="MD.Line.Lbl.LineId"><value>라인 ID *</value></data>
+  <data name="MD.Line.Lbl.LineName"><value>라인명 *</value></data>
+  <data name="MD.Line.Lbl.LineType"><value>라인 유형</value></data>
+  <data name="MD.Line.Lbl.PlantId"><value>공장 ID</value></data>
+  <data name="MD.Line.Lbl.DefaultWcid"><value>기준 작업장 (WCID)</value></data>
+  <data name="MD.Line.Lbl.DailyCap"><value>일 생산 능력 (EA)</value></data>
+  <data name="MD.Line.Lbl.ShiftPattern"><value>교대 패턴</value></data>
+  <data name="MD.Line.Lbl.RfidEnabled"><value>RFID 활성</value></data>
+
+</root>

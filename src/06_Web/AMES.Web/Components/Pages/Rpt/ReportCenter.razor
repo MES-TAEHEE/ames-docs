@@ -1,13 +1,14 @@
 @page "/rpt/report-center"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.RptRepository Rpt
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>RPT-09 Report Center · AMES</PageTitle>
+<PageTitle>RPT-09 @L["RPT.ReportCenter.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">RPT-09</div>
-    <div class="ames-page-t">Report Center</div>
-    <div class="ames-page-sub">전체 리포트 카탈로그 — 카테고리별</div>
+    <div class="ames-page-t">@L["RPT.ReportCenter.Title"]</div>
+    <div class="ames-page-sub">@L["RPT.ReportCenter.Sub"]</div>
 </div>
 
 @foreach (var grp in _entries.GroupBy(e => e.Category).OrderBy(g => CatOrder(g.Key)))

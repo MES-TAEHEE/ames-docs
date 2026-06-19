@@ -3,30 +3,31 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
 @inject AuthenticationStateProvider Auth
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>SYS-003 역할/권한 관리 (RBAC) · AMES</PageTitle>
+<PageTitle>SYS-003 @L["SYS.Rbac.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">SYS-003</div>
-    <div class="ames-page-t">역할/권한 관리 (RBAC)</div>
-    <div class="ames-page-sub">역할 × 화면 권한 매트릭스</div>
+    <div class="ames-page-t">@L["SYS.Rbac.Title"]</div>
+    <div class="ames-page-sub">@L["SYS.Rbac.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
     <div class="ames-kpi">
-        <div class="ames-kpi-l">역할</div>
+        <div class="ames-kpi-l">@L["SYS.Rbac.Kpi.Roles"]</div>
         <div class="ames-kpi-v">@_roles.Count</div>
     </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">권한</div>
+        <div class="ames-kpi-l">@L["SYS.Rbac.Kpi.Perms"]</div>
         <div class="ames-kpi-v">@_rows.Count</div>
     </div>
     <div class="ames-kpi warn">
-        <div class="ames-kpi-l">화면</div>
+        <div class="ames-kpi-l">@L["SYS.Rbac.Kpi.Screens"]</div>
         <div class="ames-kpi-v">@_rows.Select(r => r.ScreenCode).Distinct().Count()</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">역할 사용자</div>
+        <div class="ames-kpi-l">@L["SYS.Rbac.Kpi.Users"]</div>
         <div class="ames-kpi-v">@_roles.Sum(r => r.UserCount)</div>
     </div>
 </div>
@@ -38,10 +39,10 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
-        <span>▼ 권한 목록 · @_rows.Count 건</span>
+        <span>▼ @L["SYS.Rbac.List"] · @_rows.Count @L["Lbl.Items"]</span>
         <div style="display:flex;gap:6px;">
-            <button class="ames-btn" @onclick="OpenCreate">+ 등록</button>
-            <button class="ames-btn ok" @onclick="Reload">조회</button>
+            <button class="ames-btn" @onclick="OpenCreate">+ @L["Btn.Create"]</button>
+            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Search"]</button>
         </div>
     </div>
 
@@ -61,7 +62,7 @@
                 <table class="ames-table">
                     <thead>
                         <tr>
-                            <th>모듈</th><th>화면</th><th>수준</th><th>시스템</th>
+                            <th>@L["SYS.Rbac.Col.Module"]</th><th>@L["SYS.Rbac.Col.Screen"]</th><th>@L["SYS.Rbac.Col.Level"]</th><th>@L["SYS.Rbac.Col.System"]</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -86,9 +87,9 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">권한 등록</div>
+            <div class="ames-modal-h">@L["SYS.Rbac.Modal.Create"]</div>
 
-            <label>역할 *</label>
+            <label>@L["SYS.Rbac.Lbl.Role"]</label>
             <select class="ames-input"
                     value="@_f.RoleName"
                     @onchange="e => _f.RoleName = e.Value?.ToString() ?? string.Empty">
@@ -96,7 +97,7 @@
                 @foreach (var r in _roles) { <option value="@r.RoleName">@r.RoleName</option> }
             </select>
 
-            <label>모듈 *</label>
+            <label>@L["SYS.Rbac.Lbl.Module"]</label>
             <select class="ames-input"
                     value="@_f.ModuleCode"
                     @onchange="e => _f.ModuleCode = e.Value?.ToString() ?? string.Empty">
@@ -104,10 +105,10 @@
                 @foreach (var m in _modules) { <option value="@m">@m</option> }
             </select>
 
-            <label>화면 코드 *</label>
+            <label>@L["SYS.Rbac.Lbl.Screen"]</label>
             <input class="ames-input" @bind="_f.ScreenCode" placeholder="예: SYS-01, PP-04" autocomplete="off" />
 
-            <label>권한 수준 *</label>
+            <label>@L["SYS.Rbac.Lbl.Level"]</label>
             <select class="ames-input"
                     value="@_f.PermissionLevel"
                     @onchange="e => _f.PermissionLevel = e.Value?.ToString() ?? string.Empty">
@@ -120,7 +121,7 @@
 
             <label class="ames-line-item" style="flex-direction:row;gap:8px;margin-top:4px;">
                 <input type="checkbox" @bind="_f.IsSystemRole" style="accent-color:#60a5fa;width:14px;height:14px;" />
-                <span>시스템 역할</span>
+                <span>@L["SYS.Rbac.Lbl.IsSystem"]</span>
             </label>
 
             @if (!string.IsNullOrEmpty(_modalErr))
@@ -128,9 +129,9 @@
 
             <div class="ames-modal-footer">
                 <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">
-                    @(_busy ? "저장 중…" : "등록")
+                    @(_busy ? @L["Msg.Saving"] : @L["Btn.Create"])
                 </button>
-                <button class="ames-btn" @onclick="CloseModal">취소</button>
+                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -141,9 +142,9 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">권한 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.RoleName · @_sel.ScreenCode</span></div>
+            <div class="ames-modal-h">@L["Btn.Edit"] — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.RoleName · @_sel.ScreenCode</span></div>
 
-            <label>역할 *</label>
+            <label>@L["SYS.Rbac.Lbl.Role"]</label>
             <select class="ames-input"
                     value="@_f.RoleName"
                     @onchange="e => _f.RoleName = e.Value?.ToString() ?? string.Empty">
@@ -151,7 +152,7 @@
                 @foreach (var r in _roles) { <option value="@r.RoleName">@r.RoleName</option> }
             </select>
 
-            <label>모듈 *</label>
+            <label>@L["SYS.Rbac.Lbl.Module"]</label>
             <select class="ames-input"
                     value="@_f.ModuleCode"
                     @onchange="e => _f.ModuleCode = e.Value?.ToString() ?? string.Empty">
@@ -159,10 +160,10 @@
                 @foreach (var m in _modules) { <option value="@m">@m</option> }
             </select>
 
-            <label>화면 코드 *</label>
+            <label>@L["SYS.Rbac.Lbl.Screen"]</label>
             <input class="ames-input" @bind="_f.ScreenCode" autocomplete="off" />
 
-            <label>권한 수준 *</label>
+            <label>@L["SYS.Rbac.Lbl.Level"]</label>
             <select class="ames-input"
                     value="@_f.PermissionLevel"
                     @onchange="e => _f.PermissionLevel = e.Value?.ToString() ?? string.Empty">
@@ -175,16 +176,16 @@
 
             <label class="ames-line-item" style="flex-direction:row;gap:8px;margin-top:4px;">
                 <input type="checkbox" @bind="_f.IsSystemRole" style="accent-color:#60a5fa;width:14px;height:14px;" />
-                <span>시스템 역할</span>
+                <span>@L["SYS.Rbac.Lbl.IsSystem"]</span>
             </label>
 
             @if (_confirmDelete)
             {
                 <div class="ames-delete-confirm">
-                    <span>정말 삭제하시겠습니까?</span>
-                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
                     <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">
-                        @(_busy ? "삭제 중…" : "예, 삭제")
+                        @(_busy ? @L["Msg.Deleting"] : @L["Msg.Yes"])
                     </button>
                 </div>
             }
@@ -194,10 +195,10 @@
 
             <div class="ames-modal-footer">
                 <button class="ames-btn ok" @onclick="SaveEdit" disabled="@_busy">
-                    @(_busy ? "저장 중…" : "수정")
+                    @(_busy ? @L["Msg.Saving"] : @L["Btn.Save"])
                 </button>
-                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
-                <button class="ames-btn" @onclick="CloseModal">취소</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
+                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>

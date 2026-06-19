@@ -1,18 +1,19 @@
-@page "/pp/plan-confirm"
+﻿@page "/pp/plan-confirm"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>PP-03 Plan Confirm · AMES</PageTitle>
+<PageTitle>@L["PP.PlanConfirm.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">PP-03</div>
-    <div class="ames-page-t">Plan Confirm</div>
-    <div class="ames-page-sub">월별 공급계획 헤더 + 라인 수 + 확정</div>
+    <div class="ames-page-t">@L["PP.PlanConfirm.Title"]</div>
+    <div class="ames-page-sub">@L["PP.PlanConfirm.Sub"]</div>
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">▼ SUPPLY PLANS (@_rows.Count)</div>
-    @if (_rows.Count == 0) { <div class="ames-empty">No supply plans.</div> }
+    <div class="ames-card-h">▼ @L["PP.PlanConfirm.List"] (@_rows.Count)</div>
+    @if (_rows.Count == 0) { <div class="ames-empty">@L["PP.PlanConfirm.Empty"]</div> }
     else
     {
         <table class="ames-table">

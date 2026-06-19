@@ -3,42 +3,43 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
 @inject AuthenticationStateProvider Auth
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>SYS-008 알림 관리 · AMES</PageTitle>
+<PageTitle>SYS-008 @L["SYS.Notifications.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">SYS-008</div>
-    <div class="ames-page-t">알림 관리</div>
-    <div class="ames-page-sub">알림 규칙 · 채널 설정 · 발송 이력</div>
+    <div class="ames-page-t">@L["SYS.Notifications.Title"]</div>
+    <div class="ames-page-sub">@L["SYS.Notifications.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">규칙</div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Notifications.Kpi.Rules"]</div>
         <div class="ames-kpi-v">@_rules.Count</div><div class="ames-kpi-s">전체 규칙</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">활성 규칙</div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["SYS.Notifications.Kpi.ActiveRules"]</div>
         <div class="ames-kpi-v">@_rules.Count(r => r.IsEnabled)</div><div class="ames-kpi-s">활성</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">채널</div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Notifications.Kpi.Channels"]</div>
         <div class="ames-kpi-v">@_channels.Count</div><div class="ames-kpi-s">등록된 채널</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">발송 24H</div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["SYS.Notifications.Kpi.Sent"]</div>
         <div class="ames-kpi-v">@_sent</div><div class="ames-kpi-s">발송 완료</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">실패 24H</div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">@L["SYS.Notifications.Kpi.Failed"]</div>
         <div class="ames-kpi-v">@_failed</div><div class="ames-kpi-s">발송 오류</div></div>
 </div>
 
 @* ── 탭 헤더 (Calendar 스타일) ── *@
 <div class="ames-cal-tabs">
-    <button class="ames-cal-tab @(_tab=="rules"?"active":"")"    @onclick='() => _tab="rules"'>알림 규칙</button>
-    <button class="ames-cal-tab @(_tab=="channels"?"active":"")" @onclick='() => _tab="channels"'>채널 설정</button>
-    <button class="ames-cal-tab @(_tab=="history"?"active":"")"  @onclick='() => _tab="history"'>발송 이력</button>
+    <button class="ames-cal-tab @(_tab=="rules"?"active":"")"    @onclick='() => _tab="rules"'>@L["SYS.Notifications.Tab.Rules"]</button>
+    <button class="ames-cal-tab @(_tab=="channels"?"active":"")" @onclick='() => _tab="channels"'>@L["SYS.Notifications.Tab.Channels"]</button>
+    <button class="ames-cal-tab @(_tab=="history"?"active":"")"  @onclick='() => _tab="history"'>@L["SYS.Notifications.Tab.History"]</button>
     <div style="flex:1;"></div>
-    <button class="ames-btn ok" @onclick="Reload" style="align-self:center;">조회</button>
+    <button class="ames-btn ok" @onclick="Reload" style="align-self:center;">@L["Btn.Reload"]</button>
     @if (_tab == "rules")
     {
-        <button class="ames-btn" @onclick="OpenRuleCreate" style="align-self:center;">+ 규칙 등록</button>
+        <button class="ames-btn" @onclick="OpenRuleCreate" style="align-self:center;">+ @L["Btn.Create"]</button>
     }
     @if (_tab == "channels")
     {
-        <button class="ames-btn" @onclick="OpenChCreate" style="align-self:center;">+ 채널 등록</button>
+        <button class="ames-btn" @onclick="OpenChCreate" style="align-self:center;">+ @L["Btn.Create"]</button>
     }
 </div>
 
@@ -47,12 +48,12 @@
 {
     <div class="ames-card">
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-            <span>▼ 알림 규칙 · @_ruleRows.Count 건@(_ruleRows.Count < _rules.Count ? $" / 전체 {_rules.Count}" : "")</span>
+            <span>▼ @L["SYS.Notifications.Rules.List"] · @_ruleRows.Count @L["Lbl.Items"]@(_ruleRows.Count < _rules.Count ? $" / {L["Lbl.TotalOf"]} {_rules.Count}" : "")</span>
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                 <input class="ames-input" style="width:150px;padding:4px 8px;"
-                       placeholder="코드 / 이벤트명" @bind="_fRuleSearch" autocomplete="off" />
+                       placeholder="@L["SYS.Notifications.Ph.RuleSearch"]" @bind="_fRuleSearch" autocomplete="off" />
                 <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fRuleModule">
-                    <option value="">모듈 전체</option>
+                    <option value="">@L["SYS.Notifications.Filter.AllModules"]</option>
                     <option value="PP">PP</option>
                     <option value="MNT">MNT</option>
                     <option value="QC">QC</option>
@@ -61,17 +62,17 @@
                     <option value="SYS">SYS</option>
                 </select>
                 <select class="ames-input" style="width:90px;padding:4px 8px;" @bind="_fRuleEnabled">
-                    <option value="">전체</option>
-                    <option value="Y">활성</option>
-                    <option value="N">비활성</option>
+                    <option value="">@L["SYS.Notifications.Filter.AllEnabled"]</option>
+                    <option value="Y">@L["SYS.Notifications.Filter.Active"]</option>
+                    <option value="N">@L["SYS.Notifications.Filter.Inactive"]</option>
                 </select>
-                <button class="ames-btn ok" @onclick="ApplyRuleFilter">적용</button>
+                <button class="ames-btn ok" @onclick="ApplyRuleFilter">@L["SYS.Notifications.Btn.Apply"]</button>
             </div>
         </div>
 
         @if (_ruleRows.Count == 0)
         {
-            <div class="ames-empty">등록된 알림 규칙이 없습니다. 규칙을 등록하세요.</div>
+            <div class="ames-empty">@L["SYS.Notifications.Rules.Empty"]</div>
         }
         else
         {
@@ -109,29 +110,29 @@
 {
     <div class="ames-card">
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-            <span style="white-space:nowrap;">▼ 채널 설정 · @_chRows.Count 건@(_chRows.Count < _channels.Count ? $" / 전체 {_channels.Count}" : "")</span>
+            <span style="white-space:nowrap;">▼ @L["SYS.Notifications.Channels.List"] · @_chRows.Count @L["Lbl.Items"]@(_chRows.Count < _channels.Count ? $" / {L["Lbl.TotalOf"]} {_channels.Count}" : "")</span>
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                 <input class="ames-input" style="width:160px;padding:4px 8px;"
-                       placeholder="사용자 / 주소" @bind="_fChSearch" autocomplete="off" />
+                       placeholder="@L["SYS.Notifications.Ph.ChSearch"]" @bind="_fChSearch" autocomplete="off" />
                 <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fChType">
-                    <option value="">채널 전체</option>
+                    <option value="">@L["SYS.Notifications.Filter.AllChannels"]</option>
                     <option value="EMAIL">EMAIL</option>
                     <option value="SMS">SMS</option>
                     <option value="KAKAO">KAKAO</option>
                     <option value="SLACK">SLACK</option>
                 </select>
                 <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fChEnabled">
-                    <option value="">전체</option>
-                    <option value="Y">활성</option>
-                    <option value="N">비활성</option>
+                    <option value="">@L["SYS.Notifications.Filter.AllEnabled"]</option>
+                    <option value="Y">@L["SYS.Notifications.Filter.Active"]</option>
+                    <option value="N">@L["SYS.Notifications.Filter.Inactive"]</option>
                 </select>
-                <button class="ames-btn ok" @onclick="ApplyChFilter">적용</button>
+                <button class="ames-btn ok" @onclick="ApplyChFilter">@L["SYS.Notifications.Btn.Apply"]</button>
             </div>
         </div>
 
         @if (_chRows.Count == 0)
         {
-            <div class="ames-empty">등록된 채널이 없습니다.</div>
+            <div class="ames-empty">@L["SYS.Notifications.Channels.Empty"]</div>
         }
         else
         {
@@ -166,11 +167,11 @@
 {
     <div class="ames-card">
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
-            <span>▼ 발송 이력 (최근 100건)</span>
+            <span>▼ @L["SYS.Notifications.History.List"]</span>
         </div>
         @if (_hist.Count == 0)
         {
-            <div class="ames-empty">발송 이력이 없습니다.</div>
+            <div class="ames-empty">@L["SYS.Notifications.History.Empty"]</div>
         }
         else
         {
@@ -248,8 +249,8 @@
             { <div class="ames-alert bad">@_ruleModalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok" @onclick="SaveRuleCreate" disabled="@_ruleBusy">@(_ruleBusy ? "저장 중…" : "등록")</button>
-                <button class="ames-btn"    @onclick="CloseRuleModal">취소</button>
+                <button class="ames-btn ok" @onclick="SaveRuleCreate" disabled="@_ruleBusy">@(_ruleBusy ? @L["Msg.Saving"] : @L["Btn.Create"])</button>
+                <button class="ames-btn"    @onclick="CloseRuleModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -296,9 +297,9 @@
             @if (_ruleConfirmDelete)
             {
                 <div class="ames-delete-confirm">
-                    <span>정말 삭제하시겠습니까?</span>
-                    <button class="ames-btn" @onclick='() => _ruleConfirmDelete = false'>아니오</button>
-                    <button class="ames-btn bad" @onclick="SaveRuleDelete" disabled="@_ruleBusy">@(_ruleBusy ? "삭제 중…" : "예, 삭제")</button>
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <button class="ames-btn" @onclick='() => _ruleConfirmDelete = false'>@L["Msg.No"]</button>
+                    <button class="ames-btn bad" @onclick="SaveRuleDelete" disabled="@_ruleBusy">@(_ruleBusy ? @L["Msg.Deleting"] : @L["Msg.Yes"])</button>
                 </div>
             }
 
@@ -306,9 +307,9 @@
             { <div class="ames-alert bad">@_ruleModalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok"  @onclick="SaveRuleEdit"   disabled="@_ruleBusy">@(_ruleBusy ? "저장 중…" : "수정")</button>
-                <button class="ames-btn bad" @onclick='() => { _ruleConfirmDelete = true; _ruleModalErr = ""; }' disabled="@_ruleBusy">삭제</button>
-                <button class="ames-btn"     @onclick="CloseRuleModal">취소</button>
+                <button class="ames-btn ok"  @onclick="SaveRuleEdit"   disabled="@_ruleBusy">@(_ruleBusy ? @L["Msg.Saving"] : @L["Btn.Save"])</button>
+                <button class="ames-btn bad" @onclick='() => { _ruleConfirmDelete = true; _ruleModalErr = ""; }' disabled="@_ruleBusy">@L["Btn.Delete"]</button>
+                <button class="ames-btn"     @onclick="CloseRuleModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -356,8 +357,8 @@
             { <div class="ames-alert bad">@_chModalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok" @onclick="SaveChCreate" disabled="@_chBusy">@(_chBusy ? "저장 중…" : "등록")</button>
-                <button class="ames-btn" @onclick="CloseChModal">취소</button>
+                <button class="ames-btn ok" @onclick="SaveChCreate" disabled="@_chBusy">@(_chBusy ? @L["Msg.Saving"] : @L["Btn.Create"])</button>
+                <button class="ames-btn" @onclick="CloseChModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -395,9 +396,9 @@
             @if (_chConfirmDelete)
             {
                 <div class="ames-delete-confirm">
-                    <span>정말 삭제하시겠습니까?</span>
-                    <button class="ames-btn" @onclick='() => _chConfirmDelete = false'>아니오</button>
-                    <button class="ames-btn bad" @onclick="SaveChDelete" disabled="@_chBusy">@(_chBusy ? "삭제 중…" : "예, 삭제")</button>
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <button class="ames-btn" @onclick='() => _chConfirmDelete = false'>@L["Msg.No"]</button>
+                    <button class="ames-btn bad" @onclick="SaveChDelete" disabled="@_chBusy">@(_chBusy ? @L["Msg.Deleting"] : @L["Msg.Yes"])</button>
                 </div>
             }
 
@@ -405,9 +406,9 @@
             { <div class="ames-alert bad">@_chModalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok"  @onclick="SaveChEdit"   disabled="@_chBusy">@(_chBusy ? "저장 중…" : "수정")</button>
-                <button class="ames-btn bad" @onclick='() => { _chConfirmDelete = true; _chModalErr = ""; }' disabled="@_chBusy">삭제</button>
-                <button class="ames-btn"     @onclick="CloseChModal">취소</button>
+                <button class="ames-btn ok"  @onclick="SaveChEdit"   disabled="@_chBusy">@(_chBusy ? @L["Msg.Saving"] : @L["Btn.Save"])</button>
+                <button class="ames-btn bad" @onclick='() => { _chConfirmDelete = true; _chModalErr = ""; }' disabled="@_chBusy">@L["Btn.Delete"]</button>
+                <button class="ames-btn"     @onclick="CloseChModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>

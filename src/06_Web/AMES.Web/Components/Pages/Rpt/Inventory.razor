@@ -2,57 +2,58 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.RptRepository Rpt
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>RPT-05 재고 현황 · AMES</PageTitle>
+<PageTitle>RPT-05 @L["RPT.Inventory.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">RPT-05</div>
-    <div class="ames-page-t">재고 현황</div>
-    <div class="ames-page-sub">완제품 재고 — 품목 × 위치 집계</div>
+    <div class="ames-page-t">@L["RPT.Inventory.Title"]</div>
+    <div class="ames-page-sub">@L["RPT.Inventory.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">조회 건수</div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.Inventory.Kpi.Count"]</div>
         <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">item × location</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">총 재고</div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["RPT.Inventory.Kpi.Qty"]</div>
         <div class="ames-kpi-v">@_qty.ToString("N0")</div><div class="ames-kpi-s">on hand</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">홀드 수량</div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">@L["RPT.Inventory.Kpi.HoldQty"]</div>
         <div class="ames-kpi-v">@_hold.ToString("N0")</div><div class="ames-kpi-s">QC hold</div></div>
     <div class="ames-kpi @(_holdPct < 5 ? "ok" : _holdPct < 15 ? "warn" : "bad")">
-        <div class="ames-kpi-l">홀드율</div>
+        <div class="ames-kpi-l">@L["RPT.Inventory.Kpi.HoldPct"]</div>
         <div class="ames-kpi-v">@_holdPct.ToString("0.0")%</div>
         <div class="ames-kpi-s">of on hand</div></div>
 </div>
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ 재고 집계 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["RPT.Inventory.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:140px;padding:4px 8px;"
-                   placeholder="품목 번호 검색" @bind="_fItem" autocomplete="off" />
+                   placeholder="@L["RPT.Inventory.Ph.Item"]" @bind="_fItem" autocomplete="off" />
             <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">Top</label>
             <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_topN">
                 <option value="50">50</option>
                 <option value="100">100</option>
                 <option value="200">200</option>
             </select>
-            <button class="ames-btn ok" @onclick="Reload">조회</button>
+            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
         </div>
     </div>
 
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">재고 데이터가 없습니다.</div>
+        <div class="ames-empty">@L["RPT.Inventory.Empty"]</div>
     }
     else
     {
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>품목 번호</th><th>위치</th>
-                    <th class="num">로트 수</th><th class="num">수량</th>
-                    <th class="num">홀드 로트</th><th class="num">홀드 수량</th>
-                    <th class="num">홀드율</th>
+                    <th>@L["RPT.Inventory.Col.ItemNo"]</th><th>@L["RPT.Inventory.Col.Location"]</th>
+                    <th class="num">@L["RPT.Inventory.Col.Lots"]</th><th class="num">@L["RPT.Inventory.Col.Qty"]</th>
+                    <th class="num">@L["RPT.Inventory.Col.HoldLots"]</th><th class="num">@L["RPT.Inventory.Col.HoldQty"]</th>
+                    <th class="num">@L["RPT.Inventory.Kpi.HoldPct"]</th>
                 </tr>
             </thead>
             <tbody>

@@ -1,23 +1,24 @@
 @page "/sys/config"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>SYS-009 시스템 설정 · AMES</PageTitle>
+<PageTitle>SYS-009 @L["SYS.Config.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">SYS-009</div>
-    <div class="ames-page-t">시스템 설정</div>
-    <div class="ames-page-sub">환경설정 (Key-Value) — 카테고리별</div>
+    <div class="ames-page-t">@L["SYS.Config.Title"]</div>
+    <div class="ames-page-sub">@L["SYS.Config.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">키</div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Config.Kpi.Keys"]</div>
         <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">전체 설정 키</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">활성</div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["SYS.Config.Kpi.Active"]</div>
         <div class="ames-kpi-v">@_active</div><div class="ames-kpi-s">IsActive=true</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">카테고리</div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Config.Kpi.Categories"]</div>
         <div class="ames-kpi-v">@_cat</div><div class="ames-kpi-s">구분 수</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">보안</div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["SYS.Config.Kpi.Security"]</div>
         <div class="ames-kpi-v">@_sec</div><div class="ames-kpi-s">보안 키</div></div>
 </div>
 
@@ -26,7 +27,7 @@
     <div class="ames-card">
         <div class="ames-card-h">▼ @grp.Key  ·  @grp.Count()개</div>
         <table class="ames-table">
-            <thead><tr><th>키</th><th>설명</th><th>값</th><th>단위</th><th>유형</th><th>상태</th></tr></thead>
+            <thead><tr><th>@L["SYS.Config.Col.Key"]</th><th>@L["SYS.Config.Col.Desc"]</th><th>@L["SYS.Config.Col.Value"]</th><th>@L["SYS.Config.Col.Unit"]</th><th>@L["SYS.Config.Col.Type"]</th><th>@L["Col.Status"]</th></tr></thead>
             <tbody>
                 @foreach (var c in grp.OrderBy(x => x.SortOrder ?? 999).ThenBy(x => x.ConfigKey))
                 {
@@ -36,8 +37,8 @@
                         <td class="code"><span style="color:#fff">@(c.ConfigValue ?? "—")</span></td>
                         <td class="dim">@(c.Unit ?? "")</td>
                         <td class="dim">@(c.ConfigType ?? "—")</td>
-                        <td>@(c.IsActive ? (MarkupString)"<span class=\"pill ok\">활성</span>"
-                                          : (MarkupString)"<span class=\"pill warn\">비활성</span>")</td>
+                        <td>@(c.IsActive ? (MarkupString)$"<span class=\"pill ok\">{L["SYS.Config.Active"]}</span>"
+                                          : (MarkupString)$"<span class=\"pill warn\">{L["SYS.Config.Inactive"]}</span>")</td>
                     </tr>
                 }
             </tbody>
@@ -47,7 +48,7 @@
 
 @if (_rows.Count == 0)
 {
-    <div class="ames-card"><div class="ames-empty">설정 키가 없습니다.</div></div>
+    <div class="ames-card"><div class="ames-empty">@L["SYS.Config.Empty"]</div></div>
 }
 
 @code {

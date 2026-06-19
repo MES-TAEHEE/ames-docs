@@ -1,24 +1,25 @@
-@page "/md/items"
+﻿@page "/md/items"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject MasterDataRepository Md
 @inject AuthenticationStateProvider Auth
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MD-003 제품 기준정보 관리 · AMES</PageTitle>
+<PageTitle>@L["MD.Items.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MD-003</div>
-    <div class="ames-page-t">제품 기준정보 관리</div>
-    <div class="ames-page-sub">MD_Item — 원자재·반제품·완제품</div>
+    <div class="ames-page-t">@L["MD.Items.Title"]</div>
+    <div class="ames-page-sub">@L["MD.Items.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
     <div class="ames-kpi">
-        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-l">@L["Lbl.Total"]</div>
         <div class="ames-kpi-v">@_allItems.Count</div>
     </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-l">@L["Lbl.Active"]</div>
         <div class="ames-kpi-v">@_allItems.Count(r => r.ActiveFlag)</div>
     </div>
     <div class="ames-kpi warn">
@@ -38,12 +39,12 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ 품목 목록 · @_items.Count 건@(_items.Count < _allItems.Count ? $" / 전체 {_allItems.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.Items.List"] · @_items.Count @L["Lbl.Items"]@(_items.Count < _allItems.Count ? $" / 전체 {_allItems.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:200px;padding:4px 8px;"
                    placeholder="품목번호·품목명·영문명 검색" @bind="_fSearch" autocomplete="off" />
             <select class="ames-input" style="width:130px;padding:4px 8px;" @bind="_fTypeFilter">
-                <option value="">유형 전체</option>
+                <option value="">@L["Filter.AllTypes"]</option>
                 @foreach (var t in _allItems.Select(r => r.ItemType).Where(t => t != null).Distinct().OrderBy(t => t))
                 {
                     <option value="@t">@t</option>
@@ -54,14 +55,14 @@
                 <option value="Y">사용</option>
                 <option value="N">미사용</option>
             </select>
-            <button class="ames-btn" @onclick="OpenCreate">+ 등록</button>
-            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
         </div>
     </div>
 
     @if (_items.Count == 0)
     {
-        <div class="ames-empty">등록된 품목이 없습니다.</div>
+        <div class="ames-empty">@L["MD.Items.Empty"]</div>
     }
     else
     {
@@ -136,7 +137,7 @@
                 <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">
                     @(_busy ? "저장 중…" : "등록")
                 </button>
-                <button class="ames-btn" @onclick="CloseModal">취소</button>
+                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -180,8 +181,8 @@
                 <button class="ames-btn ok" @onclick="SaveEdit" disabled="@_busy">
                     @(_busy ? "저장 중…" : "수정")
                 </button>
-                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
-                <button class="ames-btn" @onclick="CloseModal">취소</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
+                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>

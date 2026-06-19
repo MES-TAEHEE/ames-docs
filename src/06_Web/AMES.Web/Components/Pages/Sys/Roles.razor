@@ -1,15 +1,16 @@
-@page "/sys/roles"
+﻿@page "/sys/roles"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject RoleManager<IdentityRole> RoleMgr
 @inject AMES.Data.Repositories.SysRepository Sys
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>SYS-002 역할 관리 · AMES</PageTitle>
+<PageTitle>@L["SYS.Roles.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">SYS-002</div>
-    <div class="ames-page-t">역할 관리</div>
-    <div class="ames-page-sub">ASP.NET Identity 역할 관리</div>
+    <div class="ames-page-t">@L["SYS.Roles.Title"]</div>
+    <div class="ames-page-sub">@L["SYS.Roles.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
@@ -34,16 +35,16 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
-        <span>▼ 역할 목록 · @_rows.Count 건</span>
+        <span>▼ @L["SYS.Roles.List"] · @_rows.Count @L["Lbl.Items"]</span>
         <div style="display:flex;gap:6px;">
-            <button class="ames-btn" @onclick="OpenCreate">+ 등록</button>
-            <button class="ames-btn ok" @onclick="Reload">조회</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
+            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Search"]</button>
         </div>
     </div>
 
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">No roles.</div>
+        <div class="ames-empty">@L["SYS.Roles.Empty"]</div>
     }
     else
     {
@@ -89,7 +90,7 @@
                 <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">
                     @(_busy ? "저장 중…" : "등록")
                 </button>
-                <button class="ames-btn" @onclick="CloseModal">취소</button>
+                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -138,8 +139,8 @@
                 <button class="ames-btn ok"  @onclick="SaveEdit" disabled="@_busy">
                     @(_busy ? "저장 중…" : "수정")
                 </button>
-                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
-                <button class="ames-btn" @onclick="CloseModal">취소</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
+                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>

@@ -2,54 +2,55 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.RptRepository Rpt
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>RPT-03 일별 출하 현황 · AMES</PageTitle>
+<PageTitle>RPT-03 @L["RPT.DailyShipment.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">RPT-03</div>
-    <div class="ames-page-t">일별 출하 현황</div>
-    <div class="ames-page-sub">출하 주문 / 수량 / 고객 수</div>
+    <div class="ames-page-t">@L["RPT.DailyShipment.Title"]</div>
+    <div class="ames-page-sub">@L["RPT.DailyShipment.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">출하일</div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.DailyShipment.Kpi.Days"]</div>
         <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">distinct ship days</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">주문 수</div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["RPT.DailyShipment.Kpi.Orders"]</div>
         <div class="ames-kpi-v">@_orders.ToString("N0")</div><div class="ames-kpi-s">shipment orders</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">주문 수량</div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.DailyShipment.Kpi.OrderQty"]</div>
         <div class="ames-kpi-v">@_ord.ToString("N0")</div><div class="ames-kpi-s">total ordered</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">배정 수량</div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["RPT.DailyShipment.Kpi.AllocQty"]</div>
         <div class="ames-kpi-v">@_alloc.ToString("N0")</div><div class="ames-kpi-s">total allocated</div></div>
 </div>
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ 일별 출하 집계 · @_rows.Count 건</span>
+        <span style="white-space:nowrap;">▼ @L["RPT.DailyShipment.List"] · @_rows.Count @L["Lbl.Items"]</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">조회 기간</label>
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Period"]</label>
             <select class="ames-input" style="width:80px;padding:4px 8px;" @bind="_daysBack">
-                <option value="7">7일</option>
-                <option value="14">14일</option>
-                <option value="30">30일</option>
-                <option value="60">60일</option>
-                <option value="90">90일</option>
+                <option value="7">7@L["Lbl.Days"]</option>
+                <option value="14">14@L["Lbl.Days"]</option>
+                <option value="30">30@L["Lbl.Days"]</option>
+                <option value="60">60@L["Lbl.Days"]</option>
+                <option value="90">90@L["Lbl.Days"]</option>
             </select>
-            <button class="ames-btn ok" @onclick="Reload">조회</button>
+            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
         </div>
     </div>
 
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">해당 기간에 출하 데이터가 없습니다.</div>
+        <div class="ames-empty">@L["RPT.DailyShipment.Empty"]</div>
     }
     else
     {
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>날짜</th><th class="num">주문 수</th>
-                    <th class="num">주문 수량</th><th class="num">배정 수량</th>
-                    <th class="num">충족률</th><th class="num">고객 수</th>
+                    <th>@L["Col.Date"]</th><th class="num">@L["RPT.DailyShipment.Col.Orders"]</th>
+                    <th class="num">@L["RPT.DailyShipment.Col.OrderQty"]</th><th class="num">@L["RPT.DailyShipment.Col.AllocQty"]</th>
+                    <th class="num">@L["RPT.DailyShipment.Col.FillRate"]</th><th class="num">@L["RPT.DailyShipment.Col.Customers"]</th>
                 </tr>
             </thead>
             <tbody>

@@ -5,23 +5,24 @@
 @inject UserManager<ApplicationUser> UserMgr
 @inject RoleManager<IdentityRole> RoleMgr
 @inject AuthenticationStateProvider Auth
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>SYS-001 사용자 관리 · AMES</PageTitle>
+<PageTitle>SYS-001 @L["SYS.Users.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">SYS-001</div>
-    <div class="ames-page-t">사용자 관리</div>
-    <div class="ames-page-sub">ASP.NET Identity 사용자 + SYS_UserProfile 조인</div>
+    <div class="ames-page-t">@L["SYS.Users.Title"]</div>
+    <div class="ames-page-sub">@L["SYS.Users.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">사용자</div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Users.Kpi.Users"]</div>
         <div class="ames-kpi-v">@_allRows.Count</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">인증 완료</div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["SYS.Users.Kpi.Verified"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.EmailConfirmed)</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">잠금</div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">@L["SYS.Users.Kpi.Locked"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.LockedOut)</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">최근 로그인</div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["SYS.Users.Kpi.RecentLogin"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.LastLoginTs.HasValue && (DateTime.Now - r.LastLoginTs.Value).TotalHours <= 24)</div></div>
 </div>
 
@@ -32,24 +33,24 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ 사용자 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["SYS.Users.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:130px;padding:4px 8px;"
-                   placeholder="사용자명" @bind="_fUserName" autocomplete="off" />
+                   placeholder="@L["SYS.Users.Ph.UserName"]" @bind="_fUserName" autocomplete="off" />
             <input class="ames-input" style="width:110px;padding:4px 8px;"
-                   placeholder="성명" @bind="_fName" autocomplete="off" />
+                   placeholder="@L["SYS.Users.Ph.Name"]" @bind="_fName" autocomplete="off" />
             <input class="ames-input" style="width:100px;padding:4px 8px;"
-                   placeholder="부서" @bind="_fDept" autocomplete="off" />
+                   placeholder="@L["SYS.Users.Ph.Dept"]" @bind="_fDept" autocomplete="off" />
             <select class="ames-input" style="width:120px;padding:4px 8px;" @bind="_fStatus">
-                <option value="">상태 전체</option>
+                <option value="">@L["Filter.AllStatus"]</option>
                 <option>Active</option>
                 <option>Inactive</option>
                 <option>Suspended</option>
                 <option value="Locked">Locked</option>
                 <option value="Unverified">Unverified</option>
             </select>
-            <button class="ames-btn" @onclick="OpenCreate">+ 등록</button>
-            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+            <button class="ames-btn" @onclick="OpenCreate">+ @L["Btn.Create"]</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
         </div>
     </div>
 
@@ -62,9 +63,9 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>사용자명</th><th>이메일</th><th>사번</th><th>성명</th>
-                    <th>부서</th><th>상태</th><th>역할</th>
-                    <th class="num">로그인 실패</th><th>최근 로그인</th>
+                    <th>@L["SYS.Users.Col.UserName"]</th><th>@L["SYS.Users.Col.Email"]</th><th>@L["SYS.Users.Col.EmployeeNo"]</th><th>@L["SYS.Users.Col.EmployeeName"]</th>
+                    <th>@L["SYS.Users.Col.Dept"]</th><th>@L["Col.Status"]</th><th>@L["SYS.Users.Col.Roles"]</th>
+                    <th class="num">@L["SYS.Users.Col.FailCount"]</th><th>@L["SYS.Users.Col.LastLogin"]</th>
                 </tr>
             </thead>
             <tbody>
@@ -96,7 +97,7 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">신규 사용자 등록</div>
+            <div class="ames-modal-h">@L["SYS.Users.Modal.Create"]</div>
 
             @* Chrome 자동완성/비밀번호 관리자 억제용 더미 필드 *@
             <input type="text"     style="display:none" autocomplete="username" />
@@ -108,25 +109,25 @@
             <label>Password *</label>
             <input class="ames-input" type="password" @bind="_f.Password" placeholder="6자 이상, 숫자 포함" autocomplete="new-password" />
 
-            <label>사원번호 *</label>
+            <label>@L["SYS.Users.Lbl.EmployeeNo"]</label>
             <input class="ames-input" @bind="_f.EmployeeNo" placeholder="EMP001" autocomplete="off" />
 
-            <label>성명 *</label>
+            <label>@L["SYS.Users.Lbl.EmployeeName"]</label>
             <input class="ames-input" @bind="_f.EmployeeName" placeholder="홍길동" autocomplete="off" />
 
-            <label>부서</label>
+            <label>@L["SYS.Users.Lbl.Dept"]</label>
             <input class="ames-input" @bind="_f.Department" placeholder="생산팀" autocomplete="off" />
 
             <label>Plant</label>
             <input class="ames-input" @bind="_f.Plant" placeholder="P1" autocomplete="off" />
 
-            <label>기본 교대조</label>
+            <label>@L["SYS.Users.Lbl.DefaultShift"]</label>
             <select class="ames-input" @bind="_f.DefaultShift">
                 <option value="">— 선택 —</option>
                 <option>A</option><option>B</option><option>C</option>
             </select>
 
-            <label>역할</label>
+            <label>@L["SYS.Users.Lbl.Role"]</label>
             <select class="ames-input"
                     value="@_f.Role"
                     @onchange="e => _f.Role = e.Value?.ToString() ?? string.Empty">
@@ -134,10 +135,10 @@
                 @foreach (var r in _roles) { <option value="@r">@r</option> }
             </select>
 
-            <label>담당 라인 <span style="font-weight:400;color:#64748b;">(미선택 = 전 라인 허용)</span></label>
+            <label>@L["SYS.Users.Lbl.Lines"] <span style="font-weight:400;color:#64748b;">(미선택 = 전 라인 허용)</span></label>
             <div class="ames-line-picker">
                 @if (_lines.Count == 0)
-                { <span class="dim" style="font-size:.8em;">활성 라인 없음</span> }
+                { <span class="dim" style="font-size:.8em;">@L["SYS.Users.Lbl.NoLines"]</span> }
                 @foreach (var ln in _lines)
                 {
                     <label class="ames-line-item">
@@ -155,9 +156,9 @@
 
             <div class="ames-modal-footer">
                 <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">
-                    @(_busy ? "저장 중…" : "등록")
+                    @(_busy ? @L["Msg.Saving"] : @L["Btn.Create"])
                 </button>
-                <button class="ames-btn" @onclick="CloseModal">취소</button>
+                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -168,38 +169,38 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">사용자 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.Email</span></div>
+            <div class="ames-modal-h">@L["SYS.Users.Modal.Edit"] — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.Email</span></div>
 
             @* Chrome 자동완성/비밀번호 관리자 억제용 더미 필드 *@
             <input type="text"     style="display:none" autocomplete="username" />
             <input type="password" style="display:none" autocomplete="new-password" />
 
-            <label>사원번호 *</label>
+            <label>@L["SYS.Users.Lbl.EmployeeNo"]</label>
             <input class="ames-input" @bind="_f.EmployeeNo" autocomplete="off" />
 
-            <label>성명 *</label>
+            <label>@L["SYS.Users.Lbl.EmployeeName"]</label>
             <input class="ames-input" @bind="_f.EmployeeName" autocomplete="off" />
 
-            <label>부서</label>
+            <label>@L["SYS.Users.Lbl.Dept"]</label>
             <input class="ames-input" @bind="_f.Department" autocomplete="off" />
 
             <label>Plant</label>
             <input class="ames-input" @bind="_f.Plant" autocomplete="off" />
 
-            <label>기본 교대조</label>
+            <label>@L["SYS.Users.Lbl.DefaultShift"]</label>
             <select class="ames-input" @bind="_f.DefaultShift">
                 <option value="">— 선택 —</option>
                 <option>A</option><option>B</option><option>C</option>
             </select>
 
-            <label>계정 상태</label>
+            <label>@L["SYS.Users.Lbl.AccountStatus"]</label>
             <select class="ames-input" @bind="_f.AccountStatus">
                 <option>Active</option>
                 <option>Inactive</option>
                 <option>Suspended</option>
             </select>
 
-            <label>역할</label>
+            <label>@L["SYS.Users.Lbl.Role"]</label>
             <select class="ames-input"
                     value="@_f.Role"
                     @onchange="e => _f.Role = e.Value?.ToString() ?? string.Empty">
@@ -207,10 +208,10 @@
                 @foreach (var r in _roles) { <option value="@r">@r</option> }
             </select>
 
-            <label>담당 라인 <span style="font-weight:400;color:#64748b;">(미선택 = 전 라인 허용)</span></label>
+            <label>@L["SYS.Users.Lbl.Lines"] <span style="font-weight:400;color:#64748b;">(미선택 = 전 라인 허용)</span></label>
             <div class="ames-line-picker">
                 @if (_lines.Count == 0)
-                { <span class="dim" style="font-size:.8em;">활성 라인 없음</span> }
+                { <span class="dim" style="font-size:.8em;">@L["SYS.Users.Lbl.NoLines"]</span> }
                 @foreach (var ln in _lines)
                 {
                     <label class="ames-line-item">
@@ -223,13 +224,13 @@
                 }
             </div>
 
-            <label>새 비밀번호 (변경 시만 입력)</label>
+            <label>@L["SYS.Users.Lbl.NewPassword"]</label>
             <input class="ames-input" type="password" @bind="_f.Password" placeholder="비워두면 변경 안 함" autocomplete="new-password" />
 
             @if (_sel.LockedOut)
             {
                 <div style="margin-top:6px;">
-                    <button class="ames-btn warn" @onclick="UnlockUser">🔓 잠금 해제</button>
+                    <button class="ames-btn warn" @onclick="UnlockUser">🔓 @L["SYS.Users.Unlock"]</button>
                 </div>
             }
 
@@ -237,10 +238,10 @@
             @if (_confirmDelete)
             {
                 <div class="ames-delete-confirm">
-                    <span>정말 삭제하시겠습니까?</span>
-                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
                     <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">
-                        @(_busy ? "삭제 중…" : "예, 삭제")
+                        @(_busy ? @L["Msg.Deleting"] : @L["Msg.Yes"])
                     </button>
                 </div>
             }
@@ -250,10 +251,10 @@
 
             <div class="ames-modal-footer">
                 <button class="ames-btn ok"  @onclick="SaveEdit" disabled="@_busy">
-                    @(_busy ? "저장 중…" : "수정")
+                    @(_busy ? @L["Msg.Saving"] : @L["Btn.Save"])
                 </button>
-                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
-                <button class="ames-btn" @onclick="CloseModal">취소</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
+                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>

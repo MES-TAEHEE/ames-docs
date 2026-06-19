@@ -2,13 +2,14 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MntRepository Mnt
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MNT-07 정비 작업지시 · AMES</PageTitle>
+<PageTitle>MNT-07 @L["MNT.WorkOrder.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MNT-07</div>
-    <div class="ames-page-t">정비 작업지시</div>
-    <div class="ames-page-sub">정비 작업지시 — 진행/완료</div>
+    <div class="ames-page-t">@L["MNT.WorkOrder.Title"]</div>
+    <div class="ames-page-sub">@L["MNT.WorkOrder.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
@@ -24,27 +25,27 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ 정비 작업지시 · @_rows.Count 건</span>
+        <span style="white-space:nowrap;">▼ @L["MNT.WorkOrder.List"] · @_rows.Count @L["Lbl.Items"]</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_statusFilter">
-                <option value="">전체 상태</option>
+                <option value="">@L["MNT.WorkOrder.Filter.AllStatus"]</option>
                 <option value="OPEN">OPEN</option>
-                <option value="IN_PROGRESS">진행 중</option>
-                <option value="COMPLETED">완료</option>
+                <option value="IN_PROGRESS">@L["MNT.WorkOrder.InProgress"]</option>
+                <option value="COMPLETED">@L["MNT.WorkOrder.Completed"]</option>
             </select>
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">최근</label>
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Recent"]</label>
             <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_topN">
-                <option value="50">50건</option>
-                <option value="100">100건</option>
-                <option value="200">200건</option>
+                <option value="50">50@L["Lbl.Items"]</option>
+                <option value="100">100@L["Lbl.Items"]</option>
+                <option value="200">200@L["Lbl.Items"]</option>
             </select>
-            <button class="ames-btn ok" @onclick="Reload">조회</button>
+            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
         </div>
     </div>
 
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">해당 조건에 작업지시가 없습니다.</div>
+        <div class="ames-empty">@L["MNT.WorkOrder.Empty"]</div>
     }
     else
     {

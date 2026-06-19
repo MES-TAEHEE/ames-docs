@@ -1,23 +1,24 @@
-@page "/md/ral-color"
+﻿@page "/md/ral-color"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MD-021 RAL 색상 관리 · AMES</PageTitle>
+<PageTitle>@L["MD.RalColor.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MD-021</div>
-    <div class="ames-page-t">RAL 색상 관리</div>
-    <div class="ames-page-sub">MD_RalColor 마스터 — 도장 색상 코드·경화 조건·분체 분말 설정</div>
+    <div class="ames-page-t">@L["MD.RalColor.Title"]</div>
+    <div class="ames-page-sub">@L["MD.RalColor.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
     <div class="ames-kpi">
-        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-l">@L["Lbl.Total"]</div>
         <div class="ames-kpi-v">@_allRows.Count</div>
     </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-l">@L["Lbl.Active"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.ActiveFlag)</div>
     </div>
     <div class="ames-kpi">
@@ -32,7 +33,7 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ RAL 색상 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.RalColor.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:140px;padding:4px 8px;"
                    placeholder="RAL코드 / 색상명" @bind="_fSearch" autocomplete="off" />
@@ -41,13 +42,13 @@
                 <option value="Y">활성</option>
                 <option value="N">비활성</option>
             </select>
-            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
         </div>
     </div>
 
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">등록된 RAL 색상이 없습니다.</div>
+        <div class="ames-empty">@L["MD.RalColor.Empty"]</div>
     }
     else
     {
@@ -56,7 +57,7 @@
                 <tr>
                     <th>RAL 코드</th><th>색상명</th><th>HEX</th><th>현재 분말 로트</th>
                     <th class="num">경화 온도(°C)</th><th class="num">경화 시간(s)</th>
-                    <th class="num">정전압(V)</th><th class="num">입자(μm)</th><th>상태</th>
+                    <th class="num">정전압(V)</th><th class="num">입자(μm)</th><th>@L["Col.Status"]</th>
                 </tr>
             </thead>
             <tbody>

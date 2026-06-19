@@ -1,19 +1,19 @@
 @page "/rpt/report-builder"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>RPT-10 Report Builder · AMES</PageTitle>
+<PageTitle>RPT-10 @L["RPT.ReportBuilder.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">RPT-10</div>
-    <div class="ames-page-t">Report Builder</div>
-    <div class="ames-page-sub">Ad-hoc 리포트 빌더 — preview / 다음 마일스톤</div>
+    <div class="ames-page-t">@L["RPT.ReportBuilder.Title"]</div>
+    <div class="ames-page-sub">@L["RPT.ReportBuilder.Sub"]</div>
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">▼ Builder preview</div>
+    <div class="ames-card-h">▼ @L["RPT.ReportBuilder.Preview"]</div>
     <p style="color:rgba(255,255,255,.7);font-size:13px;line-height:1.6;margin-bottom:18px">
-        Report Builder는 SQL 지식 없이도 드래그·드롭으로 데이터 소스 / 차원 / 측정값을
-        선택해 사용자 정의 리포트를 만들 수 있는 화면입니다. 다음 마일스톤에 구현 예정.
+        @L["RPT.ReportBuilder.Desc"]
     </p>
 
     <div class="ames-form" style="max-width:520px">
@@ -61,7 +61,7 @@
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">▼ Template gallery (sample)</div>
+    <div class="ames-card-h">▼ @L["RPT.ReportBuilder.Gallery"]</div>
     <div class="ames-tiles">
         <a class="ames-tile rpt" href="rpt/daily-production">
             <div class="ames-tile-ic">📈</div>

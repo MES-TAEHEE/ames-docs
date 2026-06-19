@@ -1,24 +1,25 @@
-@page "/md/inspection-standard"
+﻿@page "/md/inspection-standard"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
 @inject AuthenticationStateProvider Auth
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MD-017 검사기준 기준정보 관리 · AMES</PageTitle>
+<PageTitle>@L["MD.InspStd.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MD-017</div>
-    <div class="ames-page-t">검사기준 기준정보 관리</div>
-    <div class="ames-page-sub">MD_InspectionStandard 마스터 — 공정별 검사항목·규격값·샘플링계획 설정</div>
+    <div class="ames-page-t">@L["MD.InspStd.Title"]</div>
+    <div class="ames-page-sub">@L["MD.InspStd.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
     <div class="ames-kpi">
-        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-l">@L["Lbl.Total"]</div>
         <div class="ames-kpi-v">@_allRows.Count</div>
     </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-l">@L["Lbl.Active"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Active")</div>
     </div>
     <div class="ames-kpi warn">
@@ -38,7 +39,7 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ 검사기준 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.InspStd.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:180px;padding:4px 8px;"
                    placeholder="기준 ID / 특성명 / 품목 ID" @bind="_fSearch" autocomplete="off" />
@@ -57,18 +58,18 @@
                 }
             </select>
             <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fStatus">
-                <option value="">상태 전체</option>
+                <option value="">@L["Filter.AllStatus"]</option>
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
             </select>
-            <button class="ames-btn" @onclick="OpenCreate">+ 등록</button>
-            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
         </div>
     </div>
 
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">등록된 검사기준이 없습니다.</div>
+        <div class="ames-empty">@L["MD.InspStd.Empty"]</div>
     }
     else
     {
@@ -81,7 +82,7 @@
                     <th style="text-align:right;">USL</th>
                     <th>단위</th><th>샘플링계획</th><th>검사방법</th>
                     <th style="text-align:center;">CTQ</th>
-                    <th>유효일</th><th>상태</th>
+                    <th>유효일</th><th>@L["Col.Status"]</th>
                 </tr>
             </thead>
             <tbody>
@@ -173,7 +174,7 @@
 
             <div class="ames-modal-footer">
                 <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
-                <button class="ames-btn" @onclick="CloseModal">취소</button>
+                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -244,8 +245,8 @@
 
             <div class="ames-modal-footer">
                 <button class="ames-btn ok"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
-                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
-                <button class="ames-btn"     @onclick="CloseModal">취소</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
+                <button class="ames-btn"     @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
