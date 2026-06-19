@@ -1,11 +1,25 @@
+@rendermode InteractiveServer
 @inject NavigationManager Nav
-@inject IStringLocalizer<SharedResources> L
 
-<div class="culture-switcher" style="display:flex;gap:4px;padding:6px 12px;">
-    @foreach (var (code, label) in new[] { ("ko", "한국어"), ("en", "English") })
-    {
-        var isCurrent = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == code;
-        <a href="/culture/set?culture=@(code)&redirectUri=@Uri.EscapeDataString(Nav.Uri)"
-           style="font-size:.78em;color:@(isCurrent ? "#38bdf8" : "#94a3b8");font-weight:@(isCurrent ? "700" : "400");text-decoration:none;">@label</a>
-    }
+<div class="culture-switcher" style="display:flex;gap:4px;align-items:center;padding:6px 12px;">
+    <button @onclick='() => SetCulture("ko")'
+            style="font-size:.78em;background:none;border:none;cursor:pointer;padding:2px 4px;
+                   color:@(IsCurrent("ko") ? "#38bdf8" : "#94a3b8");
+                   font-weight:@(IsCurrent("ko") ? "700" : "400");">한국어</button>
+    <span style="color:#475569;font-size:.75em;">|</span>
+    <button @onclick='() => SetCulture("en")'
+            style="font-size:.78em;background:none;border:none;cursor:pointer;padding:2px 4px;
+                   color:@(IsCurrent("en") ? "#38bdf8" : "#94a3b8");
+                   font-weight:@(IsCurrent("en") ? "700" : "400");">English</button>
 </div>
+
+@code {
+    private bool IsCurrent(string code) =>
+        System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == code;
+
+    private void SetCulture(string culture)
+    {
+        var localPath = Uri.EscapeDataString(new Uri(Nav.Uri).PathAndQuery);
+        Nav.NavigateTo($"/culture/set?culture={culture}&redirectUri={localPath}", forceLoad: true);
+    }
+}
