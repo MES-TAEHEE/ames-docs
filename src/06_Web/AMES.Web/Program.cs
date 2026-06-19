@@ -174,7 +174,9 @@ app.MapGet("/culture/set", (string culture, string redirectUri, HttpContext ctx)
         Microsoft.AspNetCore.Localization.CookieRequestCultureProvider.MakeCookieValue(
             new Microsoft.AspNetCore.Localization.RequestCulture(culture)),
         new CookieOptions { Expires = DateTimeOffset.UtcNow.AddYears(1), IsEssential = true });
-    return Results.LocalRedirect(redirectUri);
+    // Nav.Uri returns absolute URL — extract local path only for LocalRedirect
+    var localPath = Uri.TryCreate(redirectUri, UriKind.Absolute, out var u) ? u.PathAndQuery : "/";
+    return Results.LocalRedirect(localPath);
 });
 
 app.Run();
