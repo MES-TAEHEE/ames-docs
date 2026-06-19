@@ -1,8 +1,6 @@
 @implements IDisposable
+@rendermode InteractiveServer
 @inject NavigationManager Nav
-
-@*  AMES Office Web side-nav — branded header, user avatar card,
-    module-coloured section bars, screen-id badges per link. *@
 
 <div class="ames-brand">
     <div class="ames-brand-row">
@@ -39,85 +37,178 @@
 
 <div class="ames-nav">
     <NavLink class="ames-nav-home" href="" Match="NavLinkMatch.All">
-        <span class="ames-nav-ic">⌂</span><span>Home</span>
+        <span class="ames-nav-ic">⌂</span>
+        <span>홈 <span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Home</span></span>
     </NavLink>
 
-    <div class="ames-nav-section pp">
+    @* ── PP ── *@
+    <div class="ames-nav-section pp" @onclick='() => Toggle("pp")'>
         <span class="ames-nav-section-ic">📅</span>
-        <span class="ames-nav-section-t">PP · PRODUCTION PLAN</span>
+        <span class="ames-nav-section-t">PP · 생산 계획</span>
         <span class="ames-nav-section-n">13</span>
+        <span class="ames-nav-chevron">@Chev("pp")</span>
     </div>
-    <NavLink class="ames-nav-link" href="pp/forecast">         <span class="lid">PP-01</span> Forecast</NavLink>
-    <NavLink class="ames-nav-link" href="pp/sap-import">       <span class="lid">PP-02</span> SAP Import</NavLink>
-    <NavLink class="ames-nav-link" href="pp/plan-confirm">     <span class="lid">PP-03</span> Plan Confirm</NavLink>
-    <NavLink class="ames-nav-link" href="pp/work-order">       <span class="lid">PP-04</span> Work Order</NavLink>
-    <NavLink class="ames-nav-link" href="pp/mrp">              <span class="lid">PP-05</span> MRP</NavLink>
-    <NavLink class="ames-nav-link" href="pp/purchase-req">     <span class="lid">PP-06</span> Purchase Req</NavLink>
-    <NavLink class="ames-nav-link" href="pp/wo-release">       <span class="lid">PP-07</span> WO Release</NavLink>
-    <NavLink class="ames-nav-link" href="pp/calendar">         <span class="lid">CAL</span>   Calendar</NavLink>
-    <NavLink class="ames-nav-link" href="pp/line-schedule">    <span class="lid">LSB</span>   Line Schedule</NavLink>
-    <NavLink class="ames-nav-link" href="pp/oee">              <span class="lid">OEE</span>   Line OEE</NavLink>
-    <NavLink class="ames-nav-link" href="pp/downtime">         <span class="lid">DTL</span>   Downtime Log</NavLink>
-    <NavLink class="ames-nav-link" href="pp/downtime-monitor"> <span class="lid">ODM</span>   Downtime Monitor</NavLink>
-    <NavLink class="ames-nav-link" href="pp/delivery">         <span class="lid">OTD</span>   On-Time Delivery</NavLink>
+    @if (IsOpen("pp"))
+    {
+        <NavLink class="ames-nav-link" href="pp/forecast">         <span class="lid">PP-01</span> <span>수요 예측<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Forecast</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="pp/sap-import">       <span class="lid">PP-02</span> <span>SAP 연동<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">SAP Import</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="pp/plan-confirm">     <span class="lid">PP-03</span> <span>계획 확정<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Plan Confirm</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="pp/work-order">       <span class="lid">PP-04</span> <span>작업 지시<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Work Order</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="pp/mrp">              <span class="lid">PP-05</span> <span>MRP<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">MRP</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="pp/purchase-req">     <span class="lid">PP-06</span> <span>구매 요청<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Purchase Req</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="pp/wo-release">       <span class="lid">PP-07</span> <span>작업 지시 릴리스<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">WO Release</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="pp/calendar">         <span class="lid">CAL</span>   <span>캘린더<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Calendar</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="pp/line-schedule">    <span class="lid">LSB</span>   <span>라인 일정<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Line Schedule</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="pp/oee">              <span class="lid">OEE</span>   <span>라인 OEE<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Line OEE</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="pp/downtime">         <span class="lid">DTL</span>   <span>비가동 이력<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Downtime Log</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="pp/downtime-monitor"> <span class="lid">ODM</span>   <span>비가동 모니터<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Downtime Monitor</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="pp/delivery">         <span class="lid">OTD</span>   <span>납기 준수율<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">On-Time Delivery</span></span></NavLink>
+    }
 
-    <div class="ames-nav-section mnt">
+    @* ── MNT ── *@
+    <div class="ames-nav-section mnt" @onclick='() => Toggle("mnt")'>
         <span class="ames-nav-section-ic">🔧</span>
-        <span class="ames-nav-section-t">MNT · MAINTENANCE</span>
+        <span class="ames-nav-section-t">MNT · 설비 보전</span>
         <span class="ames-nav-section-n">9</span>
+        <span class="ames-nav-chevron">@Chev("mnt")</span>
     </div>
-    <NavLink class="ames-nav-link" href="mnt/equipment-card">  <span class="lid">MNT-01</span> Equipment Card</NavLink>
-    <NavLink class="ames-nav-link" href="mnt/failure">         <span class="lid">MNT-02</span> Failure Register</NavLink>
-    <NavLink class="ames-nav-link" href="mnt/oee-analysis">    <span class="lid">MNT-03</span> OEE Analysis</NavLink>
-    <NavLink class="ames-nav-link" href="mnt/mold">            <span class="lid">MNT-04</span> Mold Management</NavLink>
-    <NavLink class="ames-nav-link" href="mnt/pm-schedule">     <span class="lid">MNT-05</span> PM Schedule</NavLink>
-    <NavLink class="ames-nav-link" href="mnt/downtime">        <span class="lid">MNT-06</span> Downtime Log</NavLink>
-    <NavLink class="ames-nav-link" href="mnt/work-order">      <span class="lid">MNT-07</span> Work Order</NavLink>
-    <NavLink class="ames-nav-link" href="mnt/spare-parts">     <span class="lid">MNT-08</span> Spare Parts</NavLink>
-    <NavLink class="ames-nav-link" href="mnt/dashboard">       <span class="lid">MNT-09</span> Dashboard</NavLink>
+    @if (IsOpen("mnt"))
+    {
+        <NavLink class="ames-nav-link" href="mnt/equipment-card">  <span class="lid">MNT-01</span> <span>설비 카드<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Equipment Card</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="mnt/failure">         <span class="lid">MNT-02</span> <span>고장 등록<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Failure Register</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="mnt/oee-analysis">    <span class="lid">MNT-03</span> <span>OEE 분석<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">OEE Analysis</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="mnt/mold">            <span class="lid">MNT-04</span> <span>금형 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Mold Management</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="mnt/pm-schedule">     <span class="lid">MNT-05</span> <span>PM 일정<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">PM Schedule</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="mnt/downtime">        <span class="lid">MNT-06</span> <span>비가동 이력<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Downtime Log</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="mnt/work-order">      <span class="lid">MNT-07</span> <span>작업 지시<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Work Order</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="mnt/spare-parts">     <span class="lid">MNT-08</span> <span>예비 부품<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Spare Parts</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="mnt/dashboard">       <span class="lid">MNT-09</span> <span>대시보드<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Dashboard</span></span></NavLink>
+    }
 
-    <div class="ames-nav-section rpt">
+    @* ── RPT ── *@
+    <div class="ames-nav-section rpt" @onclick='() => Toggle("rpt")'>
         <span class="ames-nav-section-ic">📊</span>
-        <span class="ames-nav-section-t">RPT · REPORTS</span>
+        <span class="ames-nav-section-t">RPT · 보고서</span>
         <span class="ames-nav-section-n">10</span>
+        <span class="ames-nav-chevron">@Chev("rpt")</span>
     </div>
-    <NavLink class="ames-nav-link" href="rpt/daily-production">  <span class="lid">RPT-01</span> Daily Production</NavLink>
-    <NavLink class="ames-nav-link" href="rpt/defect-pareto">     <span class="lid">RPT-02</span> Defect Pareto</NavLink>
-    <NavLink class="ames-nav-link" href="rpt/daily-shipment">    <span class="lid">RPT-03</span> Daily Shipment</NavLink>
-    <NavLink class="ames-nav-link" href="rpt/on-time">           <span class="lid">RPT-04</span> On-Time Delivery</NavLink>
-    <NavLink class="ames-nav-link" href="rpt/inventory">         <span class="lid">RPT-05</span> Inventory Status</NavLink>
-    <NavLink class="ames-nav-link" href="rpt/equipment-oee">     <span class="lid">RPT-06</span> Equipment OEE</NavLink>
-    <NavLink class="ames-nav-link" href="rpt/monthly-kpi">       <span class="lid">RPT-07</span> Monthly KPI</NavLink>
-    <NavLink class="ames-nav-link" href="rpt/schedule-adherence"><span class="lid">RPT-08</span> Schedule Adherence</NavLink>
-    <NavLink class="ames-nav-link" href="rpt/report-center">     <span class="lid">RPT-09</span> Report Center</NavLink>
-    <NavLink class="ames-nav-link" href="rpt/report-builder">    <span class="lid">RPT-10</span> Report Builder</NavLink>
+    @if (IsOpen("rpt"))
+    {
+        <NavLink class="ames-nav-link" href="rpt/daily-production">  <span class="lid">RPT-01</span> <span>일별 생산 실적<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Daily Production</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="rpt/defect-pareto">     <span class="lid">RPT-02</span> <span>불량 파레토<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Defect Pareto</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="rpt/daily-shipment">    <span class="lid">RPT-03</span> <span>일별 출하 현황<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Daily Shipment</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="rpt/on-time">           <span class="lid">RPT-04</span> <span>납기 준수율<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">On-Time Delivery</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="rpt/inventory">         <span class="lid">RPT-05</span> <span>재고 현황<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Inventory Status</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="rpt/equipment-oee">     <span class="lid">RPT-06</span> <span>설비 OEE<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Equipment OEE</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="rpt/monthly-kpi">       <span class="lid">RPT-07</span> <span>월간 KPI<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Monthly KPI</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="rpt/schedule-adherence"><span class="lid">RPT-08</span> <span>계획 준수율<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Schedule Adherence</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="rpt/report-center">     <span class="lid">RPT-09</span> <span>리포트 센터<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Report Center</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="rpt/report-builder">    <span class="lid">RPT-10</span> <span>리포트 빌더<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Report Builder</span></span></NavLink>
+    }
 
-    <div class="ames-nav-section sys">
-        <span class="ames-nav-section-ic">⚙️</span>
-        <span class="ames-nav-section-t">SYS · SYSTEM</span>
-        <span class="ames-nav-section-n">8</span>
+    @* ── MD ── *@
+    <div class="ames-nav-section md" @onclick='() => Toggle("md")'>
+        <span class="ames-nav-section-ic">🗂️</span>
+        <span class="ames-nav-section-t">MD · 마스터 데이터</span>
+        <span class="ames-nav-section-n">30</span>
+        <span class="ames-nav-chevron">@Chev("md")</span>
     </div>
-    <NavLink class="ames-nav-link" href="sys/users">        <span class="lid">SYS-01</span> User Management</NavLink>
-    <NavLink class="ames-nav-link" href="sys/rbac">         <span class="lid">SYS-02</span> RBAC Permissions</NavLink>
-    <NavLink class="ames-nav-link" href="sys/calendar">     <span class="lid">SYS-03</span> Factory Calendar</NavLink>
-    <NavLink class="ames-nav-link" href="sys/interfaces">   <span class="lid">SYS-04</span> Interface Monitor</NavLink>
-    <NavLink class="ames-nav-link" href="sys/audit">        <span class="lid">SYS-05</span> Audit Log</NavLink>
-    <NavLink class="ames-nav-link" href="sys/notifications"><span class="lid">SYS-06</span> Notifications</NavLink>
-    <NavLink class="ames-nav-link" href="sys/config">       <span class="lid">SYS-07</span> System Config</NavLink>
-    <NavLink class="ames-nav-link" href="sys/health">       <span class="lid">SYS-08</span> System Health</NavLink>
+    @if (IsOpen("md"))
+    {
+        <NavLink class="ames-nav-link" href="md/line">                <span class="lid">MD-001</span> <span>공장/라인 기준정보 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Factory / Line Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/station">             <span class="lid">MD-002</span> <span>공정 기준정보 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Process / Station Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/items">               <span class="lid">MD-003</span> <span>제품 기준정보 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Product Item Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/bom">                 <span class="lid">MD-004</span> <span>BOM 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">BOM Management</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/bop">                 <span class="lid">MD-005</span> <span>BOP 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">BOP Management</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/work-center">         <span class="lid">MD-006</span> <span>Work Center 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Work Center Management</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/mold">                <span class="lid">MD-007</span> <span>금형 기준정보 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Mold Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/paint-fabric">        <span class="lid">MD-008</span> <span>원부자재 기준정보 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Paint &amp; Fabric Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/vendor">              <span class="lid">MD-009</span> <span>공급업체 기준정보 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Vendor Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/customer">            <span class="lid">MD-010</span> <span>고객사 기준정보 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Customer Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/shipment-dest">       <span class="lid">MD-011</span> <span>출하처 기준정보 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Shipment Destination Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/defect-code">         <span class="lid">MD-012</span> <span>불량유형 기준정보 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Defect Code Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/defect-cause">        <span class="lid">MD-013</span> <span>불량원인 기준정보 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Defect Cause Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/equipment">           <span class="lid">MD-014</span> <span>설비 기준정보 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Equipment Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/oven">                <span class="lid">MD-015</span> <span>건조로 기준정보 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Oven Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/jig">                 <span class="lid">MD-016</span> <span>지그 기준정보 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Jig Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/inspection-standard"> <span class="lid">MD-017</span> <span>검사기준 기준정보 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Inspection Standard Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/location">            <span class="lid">MD-018</span> <span>창고/로케이션 기준정보 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Warehouse Location Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/uom">                 <span class="lid">MD-019</span> <span>단위 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">UOM Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/rfid-tag">            <span class="lid">MD-020</span> <span>RFID 태그 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">RFID Tag Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/ral-color">           <span class="lid">MD-021</span> <span>RAL 색상 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">RAL Color Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/rfid-reader">         <span class="lid">MD-022</span> <span>RFID 리더 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">RFID Reader Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/packaging-spec">      <span class="lid">MD-023</span> <span>포장 사양 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Packaging Spec Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/label-template">      <span class="lid">MD-024</span> <span>라벨 템플릿 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Label Template Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/common-code">         <span class="lid">MD-025</span> <span>코드 기준정보 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Common Code Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/reason-code">         <span class="lid">MD-026</span> <span>사유 코드 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Reason Code Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/spare-part">          <span class="lid">MD-027</span> <span>예비품 마스터<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Spare Part Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/pm-template">         <span class="lid">MD-028</span> <span>PM 템플릿 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">PM Template Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/line-time-pattern">   <span class="lid">MD-029</span> <span>라인 시간 패턴 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Line Time Pattern Master</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="md/recipe">              <span class="lid">MD-030</span> <span>레시피 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Recipe Master</span></span></NavLink>
+    }
+
+    @* ── SYS ── *@
+    <div class="ames-nav-section sys" @onclick='() => Toggle("sys")'>
+        <span class="ames-nav-section-ic">⚙️</span>
+        <span class="ames-nav-section-t">SYS · 시스템</span>
+        <span class="ames-nav-section-n">10</span>
+        <span class="ames-nav-chevron">@Chev("sys")</span>
+    </div>
+    @if (IsOpen("sys"))
+    {
+        <NavLink class="ames-nav-link" href="sys/users">        <span class="lid">SYS-001</span> <span>사용자 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">User Management</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="sys/roles">        <span class="lid">SYS-002</span> <span>역할 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Role Management</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="sys/rbac">         <span class="lid">SYS-003</span> <span>역할/권한 관리 (RBAC)<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Role &amp; Permission (RBAC)</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="sys/menu">         <span class="lid">SYS-004</span> <span>메뉴 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Menu Management</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="sys/calendar">     <span class="lid">SYS-005</span> <span>공장 캘린더<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Factory Calendar</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="sys/interfaces">   <span class="lid">SYS-006</span> <span>인터페이스 모니터<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Interface Monitor</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="sys/audit">        <span class="lid">SYS-007</span> <span>감사 로그<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Audit Log</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="sys/notifications"><span class="lid">SYS-008</span> <span>알림 관리<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">Notification Management</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="sys/config">       <span class="lid">SYS-009</span> <span>시스템 설정<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">System Configuration</span></span></NavLink>
+        <NavLink class="ames-nav-link" href="sys/health">       <span class="lid">SYS-010</span> <span>시스템 상태<span style="display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;">System Health</span></span></NavLink>
+    }
 </div>
 
 @code {
-    private string? _url;
+    string?          _url;
+    HashSet<string>  _open = new();
+
+    static readonly Dictionary<string, string> _prefixMap = new()
+    {
+        ["pp/"]  = "pp",  ["mnt/"] = "mnt", ["rpt/"] = "rpt",
+        ["md/"]  = "md",  ["sys/"] = "sys",
+    };
+
     protected override void OnInitialized()
     {
         _url = Nav.ToBaseRelativePath(Nav.Uri);
+        OpenCurrentSection();
         Nav.LocationChanged += OnLocChanged;
     }
-    private void OnLocChanged(object? sender, LocationChangedEventArgs e)
+
+    void OpenCurrentSection()
+    {
+        var url = _url ?? "";
+        foreach (var (prefix, key) in _prefixMap)
+            if (url.StartsWith(prefix)) { _open.Add(key); return; }
+    }
+
+    void OnLocChanged(object? sender, LocationChangedEventArgs e)
     {
         _url = Nav.ToBaseRelativePath(e.Location);
+        foreach (var (prefix, key) in _prefixMap)
+            if (_url.StartsWith(prefix)) { _open.Add(key); break; }
         StateHasChanged();
     }
+
+    void Toggle(string key)
+    {
+        if (_open.Contains(key)) _open.Remove(key);
+        else { _open.Clear(); _open.Add(key); }
+    }
+
+    bool IsOpen(string key) => _open.Contains(key);
+    string Chev(string key) => _open.Contains(key) ? "▾" : "▸";
+
     public void Dispose() => Nav.LocationChanged -= OnLocChanged;
 }

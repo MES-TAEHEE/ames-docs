@@ -1,68 +1,102 @@
 @page "/rpt/defect-pareto"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.RptRepository Rpt
 
-<PageTitle>RPT-02 Defect Pareto · AMES</PageTitle>
+<PageTitle>RPT-02 불량 파레토 · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">RPT-02</div>
-    <div class="ames-page-t">Defect Pareto</div>
-    <div class="ames-page-sub">불량 코드 파레토 — 최근 30일, top 20</div>
+    <div class="ames-page-t">불량 파레토</div>
+    <div class="ames-page-sub">불량 코드 파레토 분석</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">CODES</div>
-        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">distinct defect codes</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">TOTAL QTY</div>
+    <div class="ames-kpi"><div class="ames-kpi-l">불량 코드</div>
+        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">distinct codes</div></div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">총 불량 수</div>
         <div class="ames-kpi-v">@_total.ToString("N0")</div><div class="ames-kpi-s">defect units</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">EVENTS</div>
-        <div class="ames-kpi-v">@_evts.ToString("N0")</div><div class="ames-kpi-s">defect log rows</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">TOP CODE</div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">발생 건</div>
+        <div class="ames-kpi-v">@_evts.ToString("N0")</div><div class="ames-kpi-s">log rows</div></div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">1위 코드</div>
         <div class="ames-kpi-v">@(_rows.Count > 0 ? _rows[0].DefectCode ?? "—" : "—")</div>
-        <div class="ames-kpi-s">@(_rows.Count > 0 ? _rows[0].PercentOfTotal.ToString("0.0") + "% share" : "no data")</div></div>
+        <div class="ames-kpi-s">@(_rows.Count > 0 ? _rows[0].PercentOfTotal.ToString("0.0") + "% 점유" : "no data")</div>
+    </div>
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">Pareto table</div>
-    <table class="ames-table">
-        <thead>
-            <tr>
-                <th>Rank</th><th>Defect code</th>
-                <th class="num">Qty</th><th class="num">Events</th>
-                <th class="num">% share</th><th class="num">Cumulative %</th>
-                <th>Bar</th>
-            </tr>
-        </thead>
-        <tbody>
-            @for (int i = 0; i < _rows.Count; i++)
-            {
-                var r = _rows[i];
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 파레토 순위 · @_rows.Count 건</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">조회 기간</label>
+            <select class="ames-input" style="width:80px;padding:4px 8px;" @bind="_daysBack">
+                <option value="7">7일</option>
+                <option value="14">14일</option>
+                <option value="30">30일</option>
+                <option value="60">60일</option>
+                <option value="90">90일</option>
+            </select>
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">Top</label>
+            <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_topN">
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+            </select>
+            <button class="ames-btn ok" @onclick="Reload">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">해당 기간에 불량 데이터가 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
                 <tr>
-                    <td class="code">#@(i + 1)</td>
-                    <td><span class="pill bad">@(r.DefectCode ?? "—")</span></td>
-                    <td class="num">@r.TotalQty.ToString("N0")</td>
-                    <td class="num">@r.EventCount</td>
-                    <td class="num">@r.PercentOfTotal.ToString("0.0")%</td>
-                    <td class="num">@r.CumulativePct.ToString("0.0")%</td>
-                    <td>
-                        <div style="background:rgba(252,165,165,.25);
-                                    border:1px solid rgba(252,165,165,.5);
-                                    height:14px;width:@(Math.Min(r.PercentOfTotal * 3m, 100m).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture))%;
-                                    border-radius:4px;"></div>
-                    </td>
+                    <th>순위</th><th>불량 코드</th>
+                    <th class="num">수량</th><th class="num">건수</th>
+                    <th class="num">점유율</th><th class="num">누적</th>
+                    <th>비율 바</th>
                 </tr>
-            }
-        </tbody>
-    </table>
-    @if (_rows.Count == 0) { <div class="ames-empty">No defects logged in the last 30 days.</div> }
+            </thead>
+            <tbody>
+                @for (int i = 0; i < _rows.Count; i++)
+                {
+                    var r = _rows[i];
+                    <tr>
+                        <td class="code">#@(i + 1)</td>
+                        <td><span class="pill bad">@(r.DefectCode ?? "—")</span></td>
+                        <td class="num">@r.TotalQty.ToString("N0")</td>
+                        <td class="num">@r.EventCount</td>
+                        <td class="num">@r.PercentOfTotal.ToString("0.0")%</td>
+                        <td class="num">@r.CumulativePct.ToString("0.0")%</td>
+                        <td>
+                            <div style="background:rgba(252,165,165,.25);border:1px solid rgba(252,165,165,.5);
+                                        height:14px;border-radius:4px;
+                                        width:@(Math.Min(r.PercentOfTotal * 3m, 100m).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture))%;"></div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 </div>
 
 @code {
     List<AMES.Data.Repositories.RptRepository.DefectParetoRow> _rows = new();
-    long _total, _evts;
-    protected override void OnInitialized()
+
+    int     _daysBack = 30;
+    int     _topN     = 20;
+    long    _total, _evts;
+
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
     {
-        try { _rows = Rpt.ListDefectPareto(); } catch { }
+        try { _rows = Rpt.ListDefectPareto(_daysBack, _topN); } catch { _rows = new(); }
         _total = _rows.Sum(r => (long)r.TotalQty);
         _evts  = _rows.Sum(r => (long)r.EventCount);
     }

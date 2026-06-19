@@ -1,0 +1,338 @@
+@page "/md/work-center"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AuthenticationStateProvider Auth
+
+<PageTitle>MD-006 Work Center 관리 · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MD-006</div>
+    <div class="ames-page-t">Work Center 관리</div>
+    <div class="ames-page-sub">MD_WorkCenter 마스터 — 작업장 생산능력·공정유형·원가센터 설정</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.ActiveFlag)</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">라인 수</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.LineID).Where(l => l != null).Distinct().Count()</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">공정유형 수</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.ProcessType).Where(t => t != null).Distinct().Count()</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ Work Center 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:140px;padding:4px 8px;"
+                   placeholder="WC ID / 명칭" @bind="_fSearch" autocomplete="off" />
+            <select class="ames-input" style="width:130px;padding:4px 8px;" @bind="_fLine">
+                <option value="">라인 전체</option>
+                @foreach (var l in _allRows.Select(r => r.LineID).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@l">@l</option>
+                }
+            </select>
+            <select class="ames-input" style="width:130px;padding:4px 8px;" @bind="_fType">
+                <option value="">공정유형 전체</option>
+                @foreach (var t in _allRows.Select(r => r.ProcessType).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@t">@t</option>
+                }
+            </select>
+            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fActive">
+                <option value="">전체</option>
+                <option value="Y">활성</option>
+                <option value="N">비활성</option>
+            </select>
+            <button class="ames-btn" @onclick="OpenCreate">+ 등록</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">등록된 Work Center가 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>WC ID</th><th>명칭</th><th>공정유형</th><th>라인</th>
+                    <th style="text-align:right;">일생산능력</th>
+                    <th style="text-align:right;">표준인원</th>
+                    <th>원가센터</th><th>위치</th><th>활성</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
+                        <td class="code">@r.WCID</td>
+                        <td>@(r.WCName ?? "—")</td>
+                        <td><span class="pill">@(r.ProcessType ?? "—")</span></td>
+                        <td class="dim">@(r.LineID ?? "—")</td>
+                        <td style="text-align:right;">@(r.DailyCapacity?.ToString("N0") ?? "—")</td>
+                        <td style="text-align:right;">@(r.StdManpower?.ToString() ?? "—")</td>
+                        <td class="dim">@(r.CostCenterCode ?? "—")</td>
+                        <td class="dim">@(r.LocationDesc ?? "—")</td>
+                        <td>
+                            @if (r.ActiveFlag) { <span class="pill ok">활성</span> }
+                            else { <span class="pill bad">비활성</span> }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@* ── Create Modal ─────────────────────────────────────────────────── *@
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">신규 Work Center 등록</div>
+
+            <label>WC ID * <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: WC-INJ-01)</span></label>
+            <input class="ames-input" @bind="_f.WCID" placeholder="WC-INJ-01" autocomplete="off" />
+
+            <label>명칭 *</label>
+            <input class="ames-input" @bind="_f.WCName" placeholder="사출 작업장 1" autocomplete="off" />
+
+            <label>공정유형</label>
+            <input class="ames-input" @bind="_f.ProcessType" placeholder="INJ, ASM, PNT 등" maxlength="16" autocomplete="off" />
+
+            <label>라인 ID</label>
+            <input class="ames-input" @bind="_f.LineID" placeholder="INJ-L01" autocomplete="off" />
+
+            <label>일 생산능력 (EA)</label>
+            <input class="ames-input" type="number" @bind="_f.DailyCapacity" placeholder="1000" min="0" autocomplete="off" />
+
+            <label>표준 인원</label>
+            <input class="ames-input" type="number" @bind="_f.StdManpower" placeholder="3" min="0" autocomplete="off" />
+
+            <label>원가센터 코드</label>
+            <input class="ames-input" @bind="_f.CostCenterCode" placeholder="CC-INJ-01" maxlength="20" autocomplete="off" />
+
+            <label>위치 설명</label>
+            <input class="ames-input" @bind="_f.LocationDesc" placeholder="2공장 1층 A구역" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.ActiveFlag" />
+                <span>활성</span>
+            </label>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
+                <button class="ames-btn" @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Edit Modal ───────────────────────────────────────────────────── *@
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">Work Center 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.WCID</span></div>
+
+            <label>명칭 *</label>
+            <input class="ames-input" @bind="_f.WCName" autocomplete="off" />
+
+            <label>공정유형</label>
+            <input class="ames-input" @bind="_f.ProcessType" maxlength="16" autocomplete="off" />
+
+            <label>라인 ID</label>
+            <input class="ames-input" @bind="_f.LineID" autocomplete="off" />
+
+            <label>일 생산능력 (EA)</label>
+            <input class="ames-input" type="number" @bind="_f.DailyCapacity" min="0" autocomplete="off" />
+
+            <label>표준 인원</label>
+            <input class="ames-input" type="number" @bind="_f.StdManpower" min="0" autocomplete="off" />
+
+            <label>원가센터 코드</label>
+            <input class="ames-input" @bind="_f.CostCenterCode" maxlength="20" autocomplete="off" />
+
+            <label>위치 설명</label>
+            <input class="ames-input" @bind="_f.LocationDesc" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.ActiveFlag" />
+                <span>활성</span>
+            </label>
+
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>정말 삭제하시겠습니까?</span>
+                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? "삭제 중…" : "예, 삭제")</button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
+                <button class="ames-btn"     @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    List<AMES.Data.Repositories.MasterDataRepository.WorkCenterRow> _allRows = new();
+    List<AMES.Data.Repositories.MasterDataRepository.WorkCenterRow> _rows    = new();
+    AMES.Data.Repositories.MasterDataRepository.WorkCenterRow? _sel;
+
+    string _fSearch = "", _fLine = "", _fType = "", _fActive = "";
+
+    string _modal = "";
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _msg = "", _modalErr = "";
+    bool _isErr;
+    string _actor = "system";
+    FormModel _f = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        Reload();
+    }
+
+    void Reload() { _allRows = Md.ListWorkCenters(); ApplyFilter(); }
+
+    void ApplyFilter() => _rows = _allRows.Where(r =>
+        (string.IsNullOrEmpty(_fSearch) ||
+            r.WCID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.WCName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fLine)   || r.LineID      == _fLine) &&
+        (string.IsNullOrEmpty(_fType)   || r.ProcessType == _fType) &&
+        (string.IsNullOrEmpty(_fActive) || (_fActive == "Y" ? r.ActiveFlag : !r.ActiveFlag))
+    ).ToList();
+
+    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+
+    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.WorkCenterRow r)
+    {
+        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _f = new()
+        {
+            WCID           = r.WCID,
+            WCName         = r.WCName         ?? "",
+            ProcessType    = r.ProcessType    ?? "",
+            LineID         = r.LineID         ?? "",
+            DailyCapacity  = r.DailyCapacity,
+            StdManpower    = r.StdManpower,
+            CostCenterCode = r.CostCenterCode ?? "",
+            LocationDesc   = r.LocationDesc   ?? "",
+            ActiveFlag     = r.ActiveFlag,
+        };
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.WCID))   { _modalErr = "WC ID를 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.WCName))  { _modalErr = "명칭을 입력하세요."; return; }
+        if (Md.WorkCenterExists(_f.WCID.Trim()))   { _modalErr = $"WC ID '{_f.WCID.Trim()}' 이 이미 존재합니다."; return; }
+        _busy = true;
+        try
+        {
+            Md.InsertWorkCenter(_f.WCID.Trim(), _f.WCName, NE(_f.ProcessType),
+                NE(_f.LineID), _f.DailyCapacity, _f.StdManpower,
+                NE(_f.CostCenterCode), NE(_f.LocationDesc), _f.ActiveFlag, _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{_f.WCName} 등록 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.WCName)) { _modalErr = "명칭을 입력하세요."; return; }
+        _busy = true;
+        try
+        {
+            Md.UpdateWorkCenter(_sel.WCID, _f.WCName, NE(_f.ProcessType),
+                NE(_f.LineID), _f.DailyCapacity, _f.StdManpower,
+                NE(_f.CostCenterCode), NE(_f.LocationDesc), _f.ActiveFlag, _actor);
+            var name = _f.WCName;
+            CloseModal(); Reload();
+            ShowMsg($"{name} 수정 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            var name = _sel.WCName ?? _sel.WCID;
+            Md.DeleteWorkCenter(_sel.WCID);
+            CloseModal(); Reload();
+            ShowMsg($"{name} 삭제 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    class FormModel
+    {
+        public string WCID           { get; set; } = "";
+        public string WCName         { get; set; } = "";
+        public string ProcessType    { get; set; } = "";
+        public string LineID         { get; set; } = "";
+        public int?   DailyCapacity  { get; set; }
+        public int?   StdManpower    { get; set; }
+        public string CostCenterCode { get; set; } = "";
+        public string LocationDesc   { get; set; } = "";
+        public bool   ActiveFlag     { get; set; } = true;
+    }
+}

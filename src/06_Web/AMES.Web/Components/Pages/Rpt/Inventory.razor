@@ -1,64 +1,109 @@
 @page "/rpt/inventory"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.RptRepository Rpt
 
-<PageTitle>RPT-05 Inventory Status · AMES</PageTitle>
+<PageTitle>RPT-05 재고 현황 · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">RPT-05</div>
-    <div class="ames-page-t">Inventory Status</div>
-    <div class="ames-page-sub">완제품 재고 — 품목×위치 집계 (top 100)</div>
+    <div class="ames-page-t">재고 현황</div>
+    <div class="ames-page-sub">완제품 재고 — 품목 × 위치 집계</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">ROWS</div>
+    <div class="ames-kpi"><div class="ames-kpi-l">조회 건수</div>
         <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">item × location</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">TOTAL QTY</div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">총 재고</div>
         <div class="ames-kpi-v">@_qty.ToString("N0")</div><div class="ames-kpi-s">on hand</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">HOLD QTY</div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">홀드 수량</div>
         <div class="ames-kpi-v">@_hold.ToString("N0")</div><div class="ames-kpi-s">QC hold</div></div>
     <div class="ames-kpi @(_holdPct < 5 ? "ok" : _holdPct < 15 ? "warn" : "bad")">
-        <div class="ames-kpi-l">HOLD %</div>
+        <div class="ames-kpi-l">홀드율</div>
         <div class="ames-kpi-v">@_holdPct.ToString("0.0")%</div>
         <div class="ames-kpi-s">of on hand</div></div>
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">Inventory by item × location</div>
-    <table class="ames-table">
-        <thead>
-            <tr>
-                <th>Item</th><th>Location</th>
-                <th class="num">Lots</th><th class="num">Qty</th>
-                <th class="num">Hold lots</th><th class="num">Hold qty</th>
-                <th class="num">Hold %</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var r in _rows)
-            {
-                var hp = r.Qty > 0 ? r.HoldQty / r.Qty * 100m : 0m;
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 재고 집계 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:140px;padding:4px 8px;"
+                   placeholder="품목 번호 검색" @bind="_fItem" autocomplete="off" />
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">Top</label>
+            <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_topN">
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="200">200</option>
+            </select>
+            <button class="ames-btn ok" @onclick="Reload">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">재고 데이터가 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
                 <tr>
-                    <td class="code">@(r.ItemNo ?? "—")</td>
-                    <td class="dim">@(r.Location ?? "—")</td>
-                    <td class="num">@r.LotCount</td>
-                    <td class="num">@r.Qty.ToString("N0")</td>
-                    <td class="num">@r.HoldLots</td>
-                    <td class="num">@r.HoldQty.ToString("N0")</td>
-                    <td class="num">@(hp > 0m ? (MarkupString)$"<span class=\"pill {(hp < 5m ? "ok" : hp < 15m ? "warn" : "bad")}\">{hp:0.0}%</span>" : (MarkupString)"<span class=\"dim\">—</span>")</td>
+                    <th>품목 번호</th><th>위치</th>
+                    <th class="num">로트 수</th><th class="num">수량</th>
+                    <th class="num">홀드 로트</th><th class="num">홀드 수량</th>
+                    <th class="num">홀드율</th>
                 </tr>
-            }
-        </tbody>
-    </table>
-    @if (_rows.Count == 0) { <div class="ames-empty">No FG stock records.</div> }
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    var hp = r.Qty > 0 ? r.HoldQty / r.Qty * 100m : 0m;
+                    <tr>
+                        <td class="code">@(r.ItemNo ?? "—")</td>
+                        <td class="dim">@(r.Location ?? "—")</td>
+                        <td class="num">@r.LotCount</td>
+                        <td class="num">@r.Qty.ToString("N0")</td>
+                        <td class="num">@r.HoldLots</td>
+                        <td class="num">@r.HoldQty.ToString("N0")</td>
+                        <td class="num">
+                            @if (hp > 0m)
+                            {
+                                <span class="pill @(hp < 5m ? "ok" : hp < 15m ? "warn" : "bad")">@hp.ToString("0.0")%</span>
+                            }
+                            else
+                            {
+                                <span class="dim">—</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 </div>
 
 @code {
-    List<AMES.Data.Repositories.RptRepository.InventoryRow> _rows = new();
+    List<AMES.Data.Repositories.RptRepository.InventoryRow> _allRows = new();
+    List<AMES.Data.Repositories.RptRepository.InventoryRow> _rows    = new();
+
+    int     _topN  = 100;
+    string  _fItem = "";
     decimal _qty, _hold, _holdPct;
-    protected override void OnInitialized()
+
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
     {
-        try { _rows = Rpt.ListInventory(); } catch { }
+        try { _allRows = Rpt.ListInventory(_topN); } catch { _allRows = new(); }
+        ApplyFilter();
+    }
+
+    void ApplyFilter()
+    {
+        _rows = string.IsNullOrWhiteSpace(_fItem)
+            ? _allRows
+            : _allRows.Where(r => (r.ItemNo ?? "").Contains(_fItem, StringComparison.OrdinalIgnoreCase)).ToList();
         _qty  = _rows.Sum(r => r.Qty);
         _hold = _rows.Sum(r => r.HoldQty);
         _holdPct = _qty > 0 ? _hold / _qty * 100m : 0m;

@@ -2,34 +2,37 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
 
-<PageTitle>SYS-04 Interface Monitor · AMES</PageTitle>
+<PageTitle>SYS-006 인터페이스 모니터 · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">SYS-04</div>
-    <div class="ames-page-t">Interface Monitor</div>
+    <div class="ames-page-id">SYS-006</div>
+    <div class="ames-page-t">인터페이스 모니터</div>
     <div class="ames-page-sub">SAP / PLC / WMS / EDI 연결 상태</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">INTERFACES</div>
-        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">total registered</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">OK</div>
-        <div class="ames-kpi-v">@_ok</div><div class="ames-kpi-s">healthy</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">WARN</div>
-        <div class="ames-kpi-v">@_warn</div><div class="ames-kpi-s">approaching gap</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">DOWN</div>
-        <div class="ames-kpi-v">@_down</div><div class="ames-kpi-s">unreachable</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">인터페이스</div>
+        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">전체 등록</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">정상</div>
+        <div class="ames-kpi-v">@_ok</div><div class="ames-kpi-s">연결 OK</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">경고</div>
+        <div class="ames-kpi-v">@_warn</div><div class="ames-kpi-s">지연 위험</div></div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">비정상</div>
+        <div class="ames-kpi-v">@_down</div><div class="ames-kpi-s">연결 불가</div></div>
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">Interface monitor table</div>
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>▼ 인터페이스 목록</span>
+        <button class="ames-btn ok" @onclick="Reload">조회</button>
+    </div>
     <table class="ames-table">
         <thead>
             <tr>
-                <th>Code</th><th>Name</th><th>Dir</th><th>Endpoint</th>
-                <th>Proto</th><th>Status</th>
-                <th>Last sync</th><th class="num">Mins ago</th>
-                <th class="num">Last rows</th><th class="num">Retry</th><th>Error</th>
+                <th>코드</th><th>명칭</th><th>방향</th><th>엔드포인트</th>
+                <th>프로토콜</th><th>상태</th>
+                <th>최근 동기화</th><th class="num">경과(분)</th>
+                <th class="num">마지막 행수</th><th class="num">재시도</th><th>오류</th>
             </tr>
         </thead>
         <tbody>
@@ -51,13 +54,15 @@
             }
         </tbody>
     </table>
-    @if (_rows.Count == 0) { <div class="ames-empty">No interfaces registered.</div> }
+    @if (_rows.Count == 0) { <div class="ames-empty">등록된 인터페이스가 없습니다.</div> }
 </div>
 
 @code {
     List<AMES.Data.Repositories.SysRepository.InterfaceRow> _rows = new();
     int _ok, _warn, _down;
-    protected override void OnInitialized()
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
     {
         try { _rows = Sys.ListInterfaces(); } catch { }
         _ok   = _rows.Count(r => r.ConnStatus is "OK" or "UP");

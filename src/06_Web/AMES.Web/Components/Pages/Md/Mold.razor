@@ -1,0 +1,379 @@
+@page "/md/mold"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AuthenticationStateProvider Auth
+
+<PageTitle>MD-007 금형 기준정보 관리 · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MD-007</div>
+    <div class="ames-page-t">금형 기준정보 관리</div>
+    <div class="ames-page-sub">MD_Mold 마스터 — 금형 Shot 관리·보관위치·정비이력</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Active")</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">정비 필요</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.RatedShots.HasValue && r.CurrentShots.HasValue && r.CurrentShots >= r.RatedShots)</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">보관위치 수</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.StorageLoc).Where(l => l != null).Distinct().Count()</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 금형 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:140px;padding:4px 8px;"
+                   placeholder="금형 ID / 명칭" @bind="_fSearch" autocomplete="off" />
+            <select class="ames-input" style="width:120px;padding:4px 8px;" @bind="_fStatus">
+                <option value="">상태 전체</option>
+                @foreach (var s in _allRows.Select(r => r.Status).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@s">@s</option>
+                }
+            </select>
+            <select class="ames-input" style="width:120px;padding:4px 8px;" @bind="_fLoc">
+                <option value="">보관위치 전체</option>
+                @foreach (var l in _allRows.Select(r => r.StorageLoc).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@l">@l</option>
+                }
+            </select>
+            <button class="ames-btn" @onclick="OpenCreate">+ 등록</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">등록된 금형이 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>금형 ID</th><th>금형명</th>
+                    <th style="text-align:right;">공동수</th>
+                    <th style="text-align:right;">톤수(T)</th>
+                    <th style="text-align:right;">정격 Shot</th>
+                    <th style="text-align:right;">현재 Shot</th>
+                    <th style="text-align:right;">소진율(%)</th>
+                    <th>보관위치</th>
+                    <th>최근 정비일</th>
+                    <th>상태</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    var pct = r.RatedShots.HasValue && r.RatedShots > 0 && r.CurrentShots.HasValue
+                        ? (double)r.CurrentShots.Value / r.RatedShots.Value * 100
+                        : (double?)null;
+                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
+                        <td class="code">@r.MoldID</td>
+                        <td>@(r.MoldName ?? "—")</td>
+                        <td style="text-align:right;">@(r.CavityCount?.ToString() ?? "—")</td>
+                        <td style="text-align:right;">@(r.Tonnage?.ToString("N0") ?? "—")</td>
+                        <td style="text-align:right;">@(r.RatedShots?.ToString("N0") ?? "—")</td>
+                        <td style="text-align:right;">@(r.CurrentShots?.ToString("N0") ?? "—")</td>
+                        <td style="text-align:right;">
+                            @if (pct.HasValue)
+                            {
+                                var cls = pct >= 100 ? "bad" : pct >= 80 ? "warn" : "ok";
+                                <span class="pill @cls">@pct.Value.ToString("N1")%</span>
+                            }
+                            else { <span class="dim">—</span> }
+                        </td>
+                        <td class="dim">@(r.StorageLoc ?? "—")</td>
+                        <td class="dim">@(r.LastMaintDate?.ToString("yyyy-MM-dd") ?? "—")</td>
+                        <td>
+                            @{
+                                var scls = r.Status switch { "Active" => "ok", "MAINT" => "warn", _ => "bad" };
+                            }
+                            <span class="pill @scls">@(r.Status ?? "—")</span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@* ── Create Modal ─────────────────────────────────────────────────── *@
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">신규 금형 등록</div>
+
+            <label>금형 ID * <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: MLD-INJ-001)</span></label>
+            <input class="ames-input" @bind="_f.MoldID" placeholder="MLD-INJ-001" autocomplete="off" />
+
+            <label>금형명 *</label>
+            <input class="ames-input" @bind="_f.MoldName" placeholder="범퍼 금형 A" autocomplete="off" />
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div>
+                    <label>공동수 (Cavity)</label>
+                    <input class="ames-input" type="number" @bind="_f.CavityCount" min="1" autocomplete="off" />
+                </div>
+                <div>
+                    <label>톤수 (T)</label>
+                    <input class="ames-input" type="number" @bind="_f.Tonnage" min="0" autocomplete="off" />
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+                <div>
+                    <label>정격 Shot 수</label>
+                    <input class="ames-input" type="number" @bind="_f.RatedShots" min="0" autocomplete="off" />
+                </div>
+                <div>
+                    <label>현재 Shot 수</label>
+                    <input class="ames-input" type="number" @bind="_f.CurrentShots" min="0" autocomplete="off" />
+                </div>
+            </div>
+
+            <label style="margin-top:6px;">보관 위치</label>
+            <input class="ames-input" @bind="_f.StorageLoc" placeholder="창고 A-3" maxlength="20" autocomplete="off" />
+
+            <label>최근 정비일</label>
+            <input type="date" class="ames-input"
+                   value="@(_f.LastMaintDate?.ToString("yyyy-MM-dd"))"
+                   @oninput="e => _f.LastMaintDate = ParseDate(e.Value?.ToString())" />
+
+            <label>상태</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option>Active</option>
+                <option>MAINT</option>
+                <option>Inactive</option>
+            </select>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
+                <button class="ames-btn" @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Edit Modal ───────────────────────────────────────────────────── *@
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">금형 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.MoldID</span></div>
+
+            <label>금형명 *</label>
+            <input class="ames-input" @bind="_f.MoldName" autocomplete="off" />
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div>
+                    <label>공동수 (Cavity)</label>
+                    <input class="ames-input" type="number" @bind="_f.CavityCount" min="1" autocomplete="off" />
+                </div>
+                <div>
+                    <label>톤수 (T)</label>
+                    <input class="ames-input" type="number" @bind="_f.Tonnage" min="0" autocomplete="off" />
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+                <div>
+                    <label>정격 Shot 수</label>
+                    <input class="ames-input" type="number" @bind="_f.RatedShots" min="0" autocomplete="off" />
+                </div>
+                <div>
+                    <label>현재 Shot 수</label>
+                    <input class="ames-input" type="number" @bind="_f.CurrentShots" min="0" autocomplete="off" />
+                </div>
+            </div>
+
+            <label style="margin-top:6px;">보관 위치</label>
+            <input class="ames-input" @bind="_f.StorageLoc" maxlength="20" autocomplete="off" />
+
+            <label>최근 정비일</label>
+            <input type="date" class="ames-input"
+                   value="@(_f.LastMaintDate?.ToString("yyyy-MM-dd"))"
+                   @oninput="e => _f.LastMaintDate = ParseDate(e.Value?.ToString())" />
+
+            <label>상태</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option>Active</option>
+                <option>MAINT</option>
+                <option>Inactive</option>
+            </select>
+
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>정말 삭제하시겠습니까?</span>
+                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? "삭제 중…" : "예, 삭제")</button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
+                <button class="ames-btn"     @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    List<AMES.Data.Repositories.MasterDataRepository.MoldRow> _allRows = new();
+    List<AMES.Data.Repositories.MasterDataRepository.MoldRow> _rows    = new();
+    AMES.Data.Repositories.MasterDataRepository.MoldRow? _sel;
+
+    string _fSearch = "", _fStatus = "", _fLoc = "";
+
+    string _modal = "";
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _msg = "", _modalErr = "";
+    bool _isErr;
+    string _actor = "system";
+    FormModel _f = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        Reload();
+    }
+
+    void Reload() { _allRows = Md.ListMolds(); ApplyFilter(); }
+
+    void ApplyFilter() => _rows = _allRows.Where(r =>
+        (string.IsNullOrEmpty(_fSearch) ||
+            r.MoldID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.MoldName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fStatus) || r.Status    == _fStatus) &&
+        (string.IsNullOrEmpty(_fLoc)    || r.StorageLoc == _fLoc)
+    ).ToList();
+
+    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+
+    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.MoldRow r)
+    {
+        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _f = new()
+        {
+            MoldID       = r.MoldID,
+            MoldName     = r.MoldName     ?? "",
+            RatedShots   = r.RatedShots,
+            CurrentShots = r.CurrentShots,
+            CavityCount  = r.CavityCount,
+            Tonnage      = r.Tonnage,
+            StorageLoc   = r.StorageLoc   ?? "",
+            LastMaintDate = r.LastMaintDate,
+            Status       = r.Status       ?? "Active",
+        };
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+    static DateOnly? ParseDate(string? s) => DateOnly.TryParse(s, out var d) ? d : null;
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.MoldID))   { _modalErr = "금형 ID를 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.MoldName))  { _modalErr = "금형명을 입력하세요."; return; }
+        if (Md.MoldExists(_f.MoldID.Trim()))         { _modalErr = $"금형 ID '{_f.MoldID.Trim()}' 이 이미 존재합니다."; return; }
+        _busy = true;
+        try
+        {
+            Md.InsertMold(_f.MoldID.Trim(), _f.MoldName,
+                _f.RatedShots, _f.CurrentShots, _f.CavityCount, _f.Tonnage,
+                NE(_f.StorageLoc), _f.LastMaintDate, _f.Status, _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{_f.MoldName} 등록 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.MoldName)) { _modalErr = "금형명을 입력하세요."; return; }
+        _busy = true;
+        try
+        {
+            Md.UpdateMold(_sel.MoldID, _f.MoldName,
+                _f.RatedShots, _f.CurrentShots, _f.CavityCount, _f.Tonnage,
+                NE(_f.StorageLoc), _f.LastMaintDate, _f.Status, _actor);
+            var name = _f.MoldName;
+            CloseModal(); Reload();
+            ShowMsg($"{name} 수정 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            var name = _sel.MoldName ?? _sel.MoldID;
+            Md.DeleteMold(_sel.MoldID);
+            CloseModal(); Reload();
+            ShowMsg($"{name} 삭제 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    class FormModel
+    {
+        public string   MoldID        { get; set; } = "";
+        public string   MoldName      { get; set; } = "";
+        public int?     RatedShots    { get; set; }
+        public int?     CurrentShots  { get; set; }
+        public int?     CavityCount   { get; set; }
+        public int?     Tonnage       { get; set; }
+        public string   StorageLoc    { get; set; } = "";
+        public DateOnly? LastMaintDate { get; set; }
+        public string   Status        { get; set; } = "Active";
+    }
+}

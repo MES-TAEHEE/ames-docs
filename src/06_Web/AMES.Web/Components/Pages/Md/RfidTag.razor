@@ -1,0 +1,109 @@
+@page "/md/rfid-tag"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MasterDataRepository Md
+
+<PageTitle>MD-020 RFID 태그 관리 · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MD-020</div>
+    <div class="ames-page-t">RFID 태그 관리</div>
+    <div class="ames-page-sub">MD_RfidTag 마스터 — 태그 EPC·지그 연결·교체 주기 설정</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "ACTIVE")</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">교체 필요</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.ReplaceSchedule.HasValue && r.ReplaceSchedule.Value <= DateOnly.FromDateTime(DateTime.Today))</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">지그 연결</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.JigID != null)</div>
+    </div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ RFID 태그 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:140px;padding:4px 8px;"
+                   placeholder="TagID / EPC" @bind="_fSearch" autocomplete="off" />
+            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fStatus">
+                <option value="">상태 전체</option>
+                @foreach (var s in _allRows.Select(r => r.Status).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@s">@s</option>
+                }
+            </select>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">등록된 RFID 태그가 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>Tag ID</th><th>EPC</th><th>태그 역할</th><th>지그 ID</th>
+                    <th>장착 위치</th><th class="num">내열 등급</th>
+                    <th class="num">사이클</th><th>설치일</th><th>교체 예정</th><th>상태</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    var needReplace = r.ReplaceSchedule.HasValue && r.ReplaceSchedule.Value <= DateOnly.FromDateTime(DateTime.Today);
+                    <tr>
+                        <td class="code">@r.TagID</td>
+                        <td class="dim">@(r.EPC ?? "—")</td>
+                        <td>@(r.TagRole ?? "—")</td>
+                        <td class="dim">@(r.JigID ?? "—")</td>
+                        <td class="dim">@(r.MountPos ?? "—")</td>
+                        <td class="num">@(r.HeatRating?.ToString() ?? "—")</td>
+                        <td class="num">@(r.CycleCount?.ToString("N0") ?? "—")</td>
+                        <td class="dim">@(r.InstallDate?.ToString("yy-MM-dd") ?? "—")</td>
+                        <td class="@(needReplace ? "bad" : "dim")">@(r.ReplaceSchedule?.ToString("yy-MM-dd") ?? "—")</td>
+                        <td><span class="pill @(r.Status == "ACTIVE" ? "ok" : "warn")">@(r.Status ?? "—")</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.MasterDataRepository.RfidTagRow> _allRows = new();
+    List<AMES.Data.Repositories.MasterDataRepository.RfidTagRow> _rows    = new();
+    string _fSearch = "", _fStatus = "";
+
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
+    {
+        try { _allRows = Md.ListRfidTags(); } catch { _allRows = new(); }
+        ApplyFilter();
+    }
+
+    void ApplyFilter()
+    {
+        _rows = _allRows;
+        if (!string.IsNullOrWhiteSpace(_fSearch))
+            _rows = _rows.Where(r =>
+                r.TagID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+                (r.EPC ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (!string.IsNullOrWhiteSpace(_fStatus))
+            _rows = _rows.Where(r => r.Status == _fStatus).ToList();
+    }
+}

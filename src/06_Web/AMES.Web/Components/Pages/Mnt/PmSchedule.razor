@@ -1,13 +1,14 @@
 @page "/mnt/pm-schedule"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MntRepository Mnt
 
-<PageTitle>MNT-05 PM Schedule · AMES</PageTitle>
+<PageTitle>MNT-05 PM 일정 · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MNT-05</div>
-    <div class="ames-page-t">PM Schedule</div>
-    <div class="ames-page-sub">예방정비 일정 — 향후 30일 + 지난 7일</div>
+    <div class="ames-page-t">PM 일정</div>
+    <div class="ames-page-sub">예방정비 일정 — 조회 기간 설정</div>
 </div>
 
 <div class="ames-kpis">
@@ -22,49 +23,79 @@
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">PM tasks</div>
-    <table class="ames-table">
-        <thead>
-            <tr>
-                <th>PM #</th><th>Equip</th><th>Type</th>
-                <th>Basis</th><th class="num">Cycle</th>
-                <th>Last PM</th><th>Next due</th><th class="num">Days</th>
-                <th>Status</th><th>Active MWO</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var p in _rows)
-            {
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ PM 일정 · @_rows.Count 건</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">향후</label>
+            <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_daysAhead">
+                <option value="7">7일</option>
+                <option value="14">14일</option>
+                <option value="30">30일</option>
+                <option value="60">60일</option>
+                <option value="90">90일</option>
+            </select>
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">과거</label>
+            <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_daysBack">
+                <option value="0">0일</option>
+                <option value="7">7일</option>
+                <option value="14">14일</option>
+                <option value="30">30일</option>
+            </select>
+            <button class="ames-btn ok" @onclick="Reload">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">해당 기간에 PM 일정이 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
                 <tr>
-                    <td class="code">@(p.PmPlanNumber ?? $"PM#{p.PmScheduleId}")</td>
-                    <td>@(p.EquipId ?? "—")</td>
-                    <td>@(p.PmType ?? "—")</td>
-                    <td class="dim">@(p.CycleBasis ?? "—")</td>
-                    <td class="num">@(p.CycleValue?.ToString() ?? "—")</td>
-                    <td class="dim">@(p.LastPmDate?.ToString("MM-dd") ?? "—")</td>
-                    <td class="dim">@(p.NextDueDate?.ToString("MM-dd") ?? "—")</td>
-                    <td class="num"><span class="@DueColor(p.DaysToDue)">@p.DaysToDue</span></td>
-                    <td><span class="pill @StClass(p.Status)">@(p.Status ?? "—")</span></td>
-                    <td class="dim">@(p.ActiveWoId?.ToString() ?? "—")</td>
+                    <th>PM #</th><th>Equip</th><th>Type</th>
+                    <th>Basis</th><th class="num">Cycle</th>
+                    <th>Last PM</th><th>Next due</th><th class="num">Days</th>
+                    <th>Status</th><th>Active MWO</th>
                 </tr>
-            }
-        </tbody>
-    </table>
-    @if (_rows.Count == 0) { <div class="ames-empty">No PM rows.</div> }
+            </thead>
+            <tbody>
+                @foreach (var p in _rows)
+                {
+                    <tr>
+                        <td class="code">@(p.PmPlanNumber ?? $"PM#{p.PmScheduleId}")</td>
+                        <td>@(p.EquipId ?? "—")</td>
+                        <td>@(p.PmType ?? "—")</td>
+                        <td class="dim">@(p.CycleBasis ?? "—")</td>
+                        <td class="num">@(p.CycleValue?.ToString() ?? "—")</td>
+                        <td class="dim">@(p.LastPmDate?.ToString("MM-dd") ?? "—")</td>
+                        <td class="dim">@(p.NextDueDate?.ToString("MM-dd") ?? "—")</td>
+                        <td class="num"><span class="pill @StClass(p.Status)">@p.DaysToDue</span></td>
+                        <td><span class="pill @StClass(p.Status)">@(p.Status ?? "—")</span></td>
+                        <td class="dim">@(p.ActiveWoId?.ToString() ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 </div>
 
 @code {
     List<AMES.Data.Repositories.MntRepository.PmRow> _rows = new();
     int _over, _dueSoon, _dueWeek;
+    int _daysAhead = 30, _daysBack = 7;
 
-    protected override void OnInitialized()
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
     {
-        try { _rows = Mnt.ListPmSchedule(); } catch { }
+        try { _rows = Mnt.ListPmSchedule(_daysAhead, _daysBack); } catch { _rows = new(); }
         _over    = _rows.Count(r => r.DaysToDue < 0);
         _dueSoon = _rows.Count(r => r.DaysToDue >= 0 && r.DaysToDue <= 3);
         _dueWeek = _rows.Count(r => r.DaysToDue >= 0 && r.DaysToDue <= 7);
     }
-    static string DueColor(int d) => d < 0 ? "" : "";    // colour pill instead
+
     static string StClass(string? s) => s switch
     { "OVERDUE" => "bad", "DUE" => "warn", "OK" => "ok", _ => "info" };
 }

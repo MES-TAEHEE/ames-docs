@@ -1,0 +1,351 @@
+@page "/md/line"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AuthenticationStateProvider Auth
+
+<PageTitle>MD-001 공장/라인 기준정보 관리 · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MD-001</div>
+    <div class="ames-page-t">공장/라인 기준정보 관리</div>
+    <div class="ames-page-sub">MD_Line 마스터 — 라인 유형·일생산능력·교대패턴·RFID 설정</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Active")</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">RFID 활성</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.RfidEnabledFlag)</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">공장 수</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.PlantID).Where(p => p != null).Distinct().Count()</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 생산 라인 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:120px;padding:4px 8px;"
+                   placeholder="라인 ID / 명칭" @bind="_fSearch" autocomplete="off" />
+            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fType">
+                <option value="">유형 전체</option>
+                <option>INJ</option><option>IMG</option><option>PNT</option>
+                <option>QC</option><option>WH</option><option>FG</option>
+                <option>ASM</option><option>MNT</option>
+            </select>
+            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fStatus">
+                <option value="">상태 전체</option>
+                <option>Active</option><option>Inactive</option>
+            </select>
+            <button class="ames-btn" @onclick="OpenCreate">+ 등록</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">등록된 생산 라인이 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>라인 ID</th><th>라인명</th><th>유형</th><th>공장</th>
+                    <th>기준 WC</th><th class="num">일생산능력</th><th>교대패턴</th>
+                    <th>RFID</th><th>상태</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
+                        <td class="code">@r.LineID</td>
+                        <td>@(r.LineName ?? "—")</td>
+                        <td><span class="pill">@(r.LineType ?? "—")</span></td>
+                        <td class="dim">@(r.PlantID ?? "—")</td>
+                        <td class="dim">@(r.DefaultWCID ?? "—")</td>
+                        <td class="num">@(r.DailyCap?.ToString("N0") ?? "—")</td>
+                        <td class="dim">@(r.ShiftPattern ?? "—")</td>
+                        <td>
+                            @if (r.RfidEnabledFlag) { <span class="pill ok">ON</span> }
+                            else { <span class="dim">—</span> }
+                        </td>
+                        <td>
+                            @if (r.Status == "Active") { <span class="pill ok">Active</span> }
+                            else { <span class="pill bad">@(r.Status ?? "—")</span> }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@* ── Create Modal ─────────────────────────────────────────────────── *@
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">신규 생산 라인 등록</div>
+
+            <label>라인 ID * <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: INJ-L01)</span></label>
+            <input class="ames-input" @bind="_f.LineID" placeholder="INJ-L01" autocomplete="off" />
+
+            <label>라인명 *</label>
+            <input class="ames-input" @bind="_f.LineName" placeholder="사출 1라인" autocomplete="off" />
+
+            <label>라인 유형</label>
+            <select class="ames-input" @bind="_f.LineType">
+                <option value="">— 선택 —</option>
+                <option>INJ</option><option>IMG</option><option>PNT</option>
+                <option>QC</option><option>WH</option><option>FG</option>
+                <option>ASM</option><option>MNT</option>
+            </select>
+
+            <label>공장 ID</label>
+            <input class="ames-input" @bind="_f.PlantID" placeholder="P1" autocomplete="off" />
+
+            <label>기준 작업장 (WCID)</label>
+            <input class="ames-input" @bind="_f.DefaultWCID" placeholder="WC-INJ-01" autocomplete="off" />
+
+            <label>일 생산 능력 (EA)</label>
+            <input class="ames-input" type="number" @bind="_f.DailyCap" placeholder="1000" min="0" autocomplete="off" />
+
+            <label>교대 패턴</label>
+            <select class="ames-input" @bind="_f.ShiftPattern">
+                <option value="">— 선택 —</option>
+                <option>1SHIFT</option><option>2SHIFT</option><option>3SHIFT</option>
+            </select>
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.RfidEnabledFlag" />
+                <span>RFID 활성</span>
+            </label>
+
+            <label>상태</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option>Active</option><option>Inactive</option>
+            </select>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
+                <button class="ames-btn" @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Edit Modal ───────────────────────────────────────────────────── *@
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">라인 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.LineID</span></div>
+
+            <label>라인명 *</label>
+            <input class="ames-input" @bind="_f.LineName" autocomplete="off" />
+
+            <label>라인 유형</label>
+            <select class="ames-input" @bind="_f.LineType">
+                <option value="">— 선택 —</option>
+                <option>INJ</option><option>IMG</option><option>PNT</option>
+                <option>QC</option><option>WH</option><option>FG</option>
+                <option>ASM</option><option>MNT</option>
+            </select>
+
+            <label>공장 ID</label>
+            <input class="ames-input" @bind="_f.PlantID" autocomplete="off" />
+
+            <label>기준 작업장 (WCID)</label>
+            <input class="ames-input" @bind="_f.DefaultWCID" autocomplete="off" />
+
+            <label>일 생산 능력 (EA)</label>
+            <input class="ames-input" type="number" @bind="_f.DailyCap" min="0" autocomplete="off" />
+
+            <label>교대 패턴</label>
+            <select class="ames-input" @bind="_f.ShiftPattern">
+                <option value="">— 선택 —</option>
+                <option>1SHIFT</option><option>2SHIFT</option><option>3SHIFT</option>
+            </select>
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.RfidEnabledFlag" />
+                <span>RFID 활성</span>
+            </label>
+
+            <label>상태</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option>Active</option><option>Inactive</option>
+            </select>
+
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>정말 삭제하시겠습니까?</span>
+                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? "삭제 중…" : "예, 삭제")</button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
+                <button class="ames-btn"     @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    List<AMES.Data.Repositories.MasterDataRepository.LineRow> _allRows = new();
+    List<AMES.Data.Repositories.MasterDataRepository.LineRow> _rows    = new();
+    AMES.Data.Repositories.MasterDataRepository.LineRow? _sel;
+
+    string _fSearch = "", _fType = "", _fStatus = "";
+
+    string _modal = "";
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _msg = "", _modalErr = "";
+    bool _isErr;
+    string _actor = "system";
+    FormModel _f = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        Reload();
+    }
+
+    void Reload() { _allRows = Md.ListLines(); ApplyFilter(); }
+
+    void ApplyFilter() => _rows = _allRows.Where(r =>
+        (string.IsNullOrEmpty(_fSearch) || r.LineID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase)
+                                        || (r.LineName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fType)   || r.LineType == _fType) &&
+        (string.IsNullOrEmpty(_fStatus) || r.Status   == _fStatus)
+    ).ToList();
+
+    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+
+    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.LineRow r)
+    {
+        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _f = new()
+        {
+            LineID          = r.LineID,
+            LineName        = r.LineName        ?? "",
+            LineType        = r.LineType        ?? "",
+            PlantID         = r.PlantID         ?? "",
+            DefaultWCID     = r.DefaultWCID     ?? "",
+            DailyCap        = r.DailyCap,
+            ShiftPattern    = r.ShiftPattern    ?? "",
+            RfidEnabledFlag = r.RfidEnabledFlag,
+            Status          = r.Status          ?? "Active",
+        };
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.LineID))   { _modalErr = "라인 ID를 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.LineName)) { _modalErr = "라인명을 입력하세요."; return; }
+        if (Md.LineExists(_f.LineID.Trim()))         { _modalErr = $"라인 ID '{_f.LineID.Trim()}' 이 이미 존재합니다."; return; }
+        _busy = true;
+        try
+        {
+            Md.InsertLine(_f.LineID.Trim(), _f.LineName, NE(_f.LineType),
+                NE(_f.PlantID), NE(_f.DefaultWCID),
+                _f.DailyCap, NE(_f.ShiftPattern),
+                _f.RfidEnabledFlag, _f.Status, _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{_f.LineName} 등록 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.LineName)) { _modalErr = "라인명을 입력하세요."; return; }
+        _busy = true;
+        try
+        {
+            Md.UpdateLine(_sel.LineID, _f.LineName, NE(_f.LineType),
+                NE(_f.PlantID), NE(_f.DefaultWCID),
+                _f.DailyCap, NE(_f.ShiftPattern),
+                _f.RfidEnabledFlag, _f.Status, _actor);
+            var name = _f.LineName;
+            CloseModal(); Reload();
+            ShowMsg($"{name} 수정 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            var name = _sel.LineName ?? _sel.LineID;
+            Md.DeleteLine(_sel.LineID);
+            CloseModal(); Reload();
+            ShowMsg($"{name} 삭제 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    class FormModel
+    {
+        public string LineID          { get; set; } = "";
+        public string LineName        { get; set; } = "";
+        public string LineType        { get; set; } = "";
+        public string PlantID         { get; set; } = "";
+        public string DefaultWCID     { get; set; } = "";
+        public int?   DailyCap        { get; set; }
+        public string ShiftPattern    { get; set; } = "";
+        public bool   RfidEnabledFlag { get; set; } = false;
+        public string Status          { get; set; } = "Active";
+    }
+}

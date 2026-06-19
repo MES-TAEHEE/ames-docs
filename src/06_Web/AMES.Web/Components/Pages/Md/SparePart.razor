@@ -1,0 +1,118 @@
+@page "/md/spare-part"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MasterDataRepository Md
+
+<PageTitle>MD-027 예비품 마스터 · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MD-027</div>
+    <div class="ames-page-t">예비품 마스터</div>
+    <div class="ames-page-sub">MD_SparePart 마스터 — 설비 예비품·재주문점·공급업체·보관 위치 설정</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.ActiveFlag)</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">카테고리 수</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.Category).Where(c => c != null).Distinct().Count()</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">공급업체 수</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.SupplierID).Where(s => s != null).Distinct().Count()</div>
+    </div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 예비품 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:140px;padding:4px 8px;"
+                   placeholder="품번 / 품명" @bind="_fSearch" autocomplete="off" />
+            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fCat">
+                <option value="">카테고리 전체</option>
+                @foreach (var c in _allRows.Select(r => r.Category).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@c">@c</option>
+                }
+            </select>
+            <select class="ames-input" style="width:90px;padding:4px 8px;" @bind="_fActive">
+                <option value="">전체</option>
+                <option value="Y">활성</option>
+                <option value="N">비활성</option>
+            </select>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">등록된 예비품이 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>품번</th><th>품명</th><th>카테고리</th><th>UOM</th>
+                    <th class="num">단가</th><th class="num">안전재고</th>
+                    <th class="num">재주문점</th><th class="num">재주문량</th>
+                    <th class="num">조달 일수</th><th>공급업체</th><th>보관 위치</th><th>상태</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr>
+                        <td class="code">@r.PartNo</td>
+                        <td>@(r.PartName ?? "—")</td>
+                        <td class="dim">@(r.Category ?? "—")</td>
+                        <td class="dim">@(r.UOM ?? "—")</td>
+                        <td class="num">@(r.UnitCost?.ToString("N2") ?? "—")</td>
+                        <td class="num">@(r.SafetyStock?.ToString() ?? "—")</td>
+                        <td class="num">@(r.ReorderPoint?.ToString() ?? "—")</td>
+                        <td class="num">@(r.ReorderQty?.ToString() ?? "—")</td>
+                        <td class="num">@(r.LeadTimeDays?.ToString() ?? "—")</td>
+                        <td class="dim">@(r.SupplierID ?? "—")</td>
+                        <td class="dim">@(r.StorageLoc ?? "—")</td>
+                        <td>@(r.ActiveFlag ? (MarkupString)"<span class=\"pill ok\">활성</span>" : (MarkupString)"<span class=\"pill bad\">비활성</span>")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.MasterDataRepository.SparePartMasterRow> _allRows = new();
+    List<AMES.Data.Repositories.MasterDataRepository.SparePartMasterRow> _rows    = new();
+    string _fSearch = "", _fCat = "", _fActive = "";
+
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
+    {
+        try { _allRows = Md.ListSparePartMasters(); } catch { _allRows = new(); }
+        ApplyFilter();
+    }
+
+    void ApplyFilter()
+    {
+        _rows = _allRows;
+        if (!string.IsNullOrWhiteSpace(_fSearch))
+            _rows = _rows.Where(r =>
+                r.PartNo.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+                (r.PartName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (!string.IsNullOrWhiteSpace(_fCat))
+            _rows = _rows.Where(r => r.Category == _fCat).ToList();
+        if (_fActive == "Y") _rows = _rows.Where(r => r.ActiveFlag).ToList();
+        if (_fActive == "N") _rows = _rows.Where(r => !r.ActiveFlag).ToList();
+    }
+}

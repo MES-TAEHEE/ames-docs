@@ -1,0 +1,115 @@
+@page "/md/recipe"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MasterDataRepository Md
+
+<PageTitle>MD-030 레시피 관리 · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MD-030</div>
+    <div class="ames-page-t">레시피 관리</div>
+    <div class="ames-page-sub">MD_Recipe 마스터 — 공정별 레시피·사이클 타임·파라미터 버전 관리</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "ACTIVE")</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">레시피 유형 수</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.RecipeType).Where(t => t != null).Distinct().Count()</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">평균 사이클(s)</div>
+        <div class="ames-kpi-v">@((_allRows.Where(r => r.CycleTime.HasValue).Select(r => r.CycleTime!.Value) is var cts && cts.Any()) ? $"{cts.Average():0}" : "—")</div>
+    </div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 레시피 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:150px;padding:4px 8px;"
+                   placeholder="레시피ID / 레시피명" @bind="_fSearch" autocomplete="off" />
+            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fType">
+                <option value="">유형 전체</option>
+                @foreach (var t in _allRows.Select(r => r.RecipeType).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@t">@t</option>
+                }
+            </select>
+            <select class="ames-input" style="width:90px;padding:4px 8px;" @bind="_fStatus">
+                <option value="">상태 전체</option>
+                @foreach (var s in _allRows.Select(r => r.Status).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@s">@s</option>
+                }
+            </select>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">등록된 레시피가 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>레시피 ID</th><th>레시피명</th><th>유형</th>
+                    <th>품목 번호</th><th class="num">사이클 타임(s)</th>
+                    <th>버전</th><th>적용 일자</th><th>상태</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr>
+                        <td class="code">@r.RecipeID</td>
+                        <td>@(r.RecipeName ?? "—")</td>
+                        <td>@(r.RecipeType ?? "—")</td>
+                        <td class="dim">@(r.ItemNo ?? "—")</td>
+                        <td class="num">@(r.CycleTime?.ToString() ?? "—")</td>
+                        <td class="dim">@(r.Version ?? "—")</td>
+                        <td class="dim">@(r.EffectiveDate?.ToString("yy-MM-dd") ?? "—")</td>
+                        <td><span class="pill @(r.Status == "ACTIVE" ? "ok" : r.Status == "OBSOLETE" ? "bad" : "warn")">@(r.Status ?? "—")</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.MasterDataRepository.RecipeRow> _allRows = new();
+    List<AMES.Data.Repositories.MasterDataRepository.RecipeRow> _rows    = new();
+    string _fSearch = "", _fType = "", _fStatus = "";
+
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
+    {
+        try { _allRows = Md.ListRecipes(); } catch { _allRows = new(); }
+        ApplyFilter();
+    }
+
+    void ApplyFilter()
+    {
+        _rows = _allRows;
+        if (!string.IsNullOrWhiteSpace(_fSearch))
+            _rows = _rows.Where(r =>
+                r.RecipeID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+                (r.RecipeName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (!string.IsNullOrWhiteSpace(_fType))
+            _rows = _rows.Where(r => r.RecipeType == _fType).ToList();
+        if (!string.IsNullOrWhiteSpace(_fStatus))
+            _rows = _rows.Where(r => r.Status == _fStatus).ToList();
+    }
+}

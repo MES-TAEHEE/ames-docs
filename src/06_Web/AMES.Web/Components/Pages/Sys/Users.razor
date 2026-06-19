@@ -1,69 +1,490 @@
 @page "/sys/users"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
+@inject UserManager<ApplicationUser> UserMgr
+@inject RoleManager<IdentityRole> RoleMgr
+@inject AuthenticationStateProvider Auth
 
-<PageTitle>SYS-01 User Management · AMES</PageTitle>
+<PageTitle>SYS-001 사용자 관리 · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">SYS-01</div>
-    <div class="ames-page-t">User Management</div>
+    <div class="ames-page-id">SYS-001</div>
+    <div class="ames-page-t">사용자 관리</div>
     <div class="ames-page-sub">ASP.NET Identity 사용자 + SYS_UserProfile 조인</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">USERS</div>
-        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">total</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">CONFIRMED</div>
-        <div class="ames-kpi-v">@_conf</div><div class="ames-kpi-s">email confirmed</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">LOCKED</div>
-        <div class="ames-kpi-v">@_lock</div><div class="ames-kpi-s">lockout active</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">RECENT LOGIN</div>
-        <div class="ames-kpi-v">@_recent</div><div class="ames-kpi-s">last 24h</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">사용자</div>
+        <div class="ames-kpi-v">@_allRows.Count</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">인증 완료</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.EmailConfirmed)</div></div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">잠금</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.LockedOut)</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">최근 로그인</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.LastLoginTs.HasValue && (DateTime.Now - r.LastLoginTs.Value).TotalHours <= 24)</div></div>
 </div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
 
 <div class="ames-card">
-    <div class="ames-card-h">Users · @_rows.Count rows</div>
-    <table class="ames-table">
-        <thead>
-            <tr>
-                <th>Username</th><th>Email</th><th>Emp #</th><th>Name</th>
-                <th>Dept</th><th>Status</th><th>Roles</th>
-                <th class="num">Fails</th><th>Last login</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var u in _rows)
-            {
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 사용자 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:130px;padding:4px 8px;"
+                   placeholder="사용자명" @bind="_fUserName" autocomplete="off" />
+            <input class="ames-input" style="width:110px;padding:4px 8px;"
+                   placeholder="성명" @bind="_fName" autocomplete="off" />
+            <input class="ames-input" style="width:100px;padding:4px 8px;"
+                   placeholder="부서" @bind="_fDept" autocomplete="off" />
+            <select class="ames-input" style="width:120px;padding:4px 8px;" @bind="_fStatus">
+                <option value="">상태 전체</option>
+                <option>Active</option>
+                <option>Inactive</option>
+                <option>Suspended</option>
+                <option value="Locked">Locked</option>
+                <option value="Unverified">Unverified</option>
+            </select>
+            <button class="ames-btn" @onclick="OpenCreate">+ 등록</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">No users.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
                 <tr>
-                    <td class="code">@(u.UserName ?? "—")</td>
-                    <td class="dim">@(u.Email ?? "—")</td>
-                    <td class="dim">@(u.EmployeeNo ?? "—")</td>
-                    <td>@(u.EmployeeName ?? "—")</td>
-                    <td class="dim">@(u.Department ?? "—")</td>
-                    <td>
-                        @if (u.LockedOut) { <span class="pill bad">LOCKED</span> }
-                        else if (!u.EmailConfirmed) { <span class="pill warn">UNVERIFIED</span> }
-                        else { <span class="pill ok">@(u.AccountStatus ?? "ACTIVE")</span> }
-                    </td>
-                    <td class="dim">@(u.RolesCsv ?? "—")</td>
-                    <td class="num">@u.AccessFailedCount</td>
-                    <td class="dim">@(u.LastLoginTs?.ToString("MM-dd HH:mm") ?? "—")</td>
+                    <th>사용자명</th><th>이메일</th><th>사번</th><th>성명</th>
+                    <th>부서</th><th>상태</th><th>역할</th>
+                    <th class="num">로그인 실패</th><th>최근 로그인</th>
                 </tr>
-            }
-        </tbody>
-    </table>
-    @if (_rows.Count == 0) { <div class="ames-empty">No users.</div> }
+            </thead>
+            <tbody>
+                @foreach (var u in _rows)
+                {
+                    <tr class="ames-row-link" @onclick="() => OpenEdit(u)">
+                        <td class="code">@(u.UserName ?? "—")</td>
+                        <td class="dim">@(u.Email ?? "—")</td>
+                        <td class="dim">@(u.EmployeeNo ?? "—")</td>
+                        <td>@(u.EmployeeName ?? "—")</td>
+                        <td class="dim">@(u.Department ?? "—")</td>
+                        <td>
+                            @if (u.LockedOut) { <span class="pill bad">LOCKED</span> }
+                            else if (!u.EmailConfirmed) { <span class="pill warn">UNVERIFIED</span> }
+                            else { <span class="pill ok">@(u.AccountStatus ?? "ACTIVE")</span> }
+                        </td>
+                        <td class="dim">@(u.RolesCsv ?? "—")</td>
+                        <td class="num">@u.AccessFailedCount</td>
+                        <td class="dim">@(u.LastLoginTs?.ToString("MM-dd HH:mm") ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 </div>
 
+@* ── Create Modal ─────────────────────────────────────────────────── *@
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">신규 사용자 등록</div>
+
+            @* Chrome 자동완성/비밀번호 관리자 억제용 더미 필드 *@
+            <input type="text"     style="display:none" autocomplete="username" />
+            <input type="password" style="display:none" autocomplete="new-password" />
+
+            <label>Email *</label>
+            <input class="ames-input" @bind="_f.Email" placeholder="user@ames.local" autocomplete="off" />
+
+            <label>Password *</label>
+            <input class="ames-input" type="password" @bind="_f.Password" placeholder="6자 이상, 숫자 포함" autocomplete="new-password" />
+
+            <label>사원번호 *</label>
+            <input class="ames-input" @bind="_f.EmployeeNo" placeholder="EMP001" autocomplete="off" />
+
+            <label>성명 *</label>
+            <input class="ames-input" @bind="_f.EmployeeName" placeholder="홍길동" autocomplete="off" />
+
+            <label>부서</label>
+            <input class="ames-input" @bind="_f.Department" placeholder="생산팀" autocomplete="off" />
+
+            <label>Plant</label>
+            <input class="ames-input" @bind="_f.Plant" placeholder="P1" autocomplete="off" />
+
+            <label>기본 교대조</label>
+            <select class="ames-input" @bind="_f.DefaultShift">
+                <option value="">— 선택 —</option>
+                <option>A</option><option>B</option><option>C</option>
+            </select>
+
+            <label>역할</label>
+            <select class="ames-input"
+                    value="@_f.Role"
+                    @onchange="e => _f.Role = e.Value?.ToString() ?? string.Empty">
+                <option value="">— 없음 —</option>
+                @foreach (var r in _roles) { <option value="@r">@r</option> }
+            </select>
+
+            <label>담당 라인 <span style="font-weight:400;color:#64748b;">(미선택 = 전 라인 허용)</span></label>
+            <div class="ames-line-picker">
+                @if (_lines.Count == 0)
+                { <span class="dim" style="font-size:.8em;">활성 라인 없음</span> }
+                @foreach (var ln in _lines)
+                {
+                    <label class="ames-line-item">
+                        <input type="checkbox"
+                               checked="@_f.SelectedLines.Contains(ln.LineId)"
+                               @onchange="e => ToggleLine(ln.LineId, (bool)e.Value!)" />
+                        <span class="code">@ln.LineId</span>
+                        <span class="dim">@ln.LineName</span>
+                    </label>
+                }
+            </div>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">
+                    @(_busy ? "저장 중…" : "등록")
+                </button>
+                <button class="ames-btn" @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Edit Modal — 행 클릭 시 바로 수정 폼 열림 ───────────────────── *@
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">사용자 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.Email</span></div>
+
+            @* Chrome 자동완성/비밀번호 관리자 억제용 더미 필드 *@
+            <input type="text"     style="display:none" autocomplete="username" />
+            <input type="password" style="display:none" autocomplete="new-password" />
+
+            <label>사원번호 *</label>
+            <input class="ames-input" @bind="_f.EmployeeNo" autocomplete="off" />
+
+            <label>성명 *</label>
+            <input class="ames-input" @bind="_f.EmployeeName" autocomplete="off" />
+
+            <label>부서</label>
+            <input class="ames-input" @bind="_f.Department" autocomplete="off" />
+
+            <label>Plant</label>
+            <input class="ames-input" @bind="_f.Plant" autocomplete="off" />
+
+            <label>기본 교대조</label>
+            <select class="ames-input" @bind="_f.DefaultShift">
+                <option value="">— 선택 —</option>
+                <option>A</option><option>B</option><option>C</option>
+            </select>
+
+            <label>계정 상태</label>
+            <select class="ames-input" @bind="_f.AccountStatus">
+                <option>Active</option>
+                <option>Inactive</option>
+                <option>Suspended</option>
+            </select>
+
+            <label>역할</label>
+            <select class="ames-input"
+                    value="@_f.Role"
+                    @onchange="e => _f.Role = e.Value?.ToString() ?? string.Empty">
+                <option value="">— 없음 —</option>
+                @foreach (var r in _roles) { <option value="@r">@r</option> }
+            </select>
+
+            <label>담당 라인 <span style="font-weight:400;color:#64748b;">(미선택 = 전 라인 허용)</span></label>
+            <div class="ames-line-picker">
+                @if (_lines.Count == 0)
+                { <span class="dim" style="font-size:.8em;">활성 라인 없음</span> }
+                @foreach (var ln in _lines)
+                {
+                    <label class="ames-line-item">
+                        <input type="checkbox"
+                               checked="@_f.SelectedLines.Contains(ln.LineId)"
+                               @onchange="e => ToggleLine(ln.LineId, (bool)e.Value!)" />
+                        <span class="code">@ln.LineId</span>
+                        <span class="dim">@ln.LineName</span>
+                    </label>
+                }
+            </div>
+
+            <label>새 비밀번호 (변경 시만 입력)</label>
+            <input class="ames-input" type="password" @bind="_f.Password" placeholder="비워두면 변경 안 함" autocomplete="new-password" />
+
+            @if (_sel.LockedOut)
+            {
+                <div style="margin-top:6px;">
+                    <button class="ames-btn warn" @onclick="UnlockUser">🔓 잠금 해제</button>
+                </div>
+            }
+
+            @* 삭제 버튼 클릭 후 인라인 확인 *@
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>정말 삭제하시겠습니까?</span>
+                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">
+                        @(_busy ? "삭제 중…" : "예, 삭제")
+                    </button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok"  @onclick="SaveEdit" disabled="@_busy">
+                    @(_busy ? "저장 중…" : "수정")
+                </button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
+                <button class="ames-btn" @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
-    List<AMES.Data.Repositories.SysRepository.UserRow> _rows = new();
-    int _conf, _lock, _recent;
-    protected override void OnInitialized()
+    List<AMES.Data.Repositories.SysRepository.UserRow> _allRows = new();
+    List<AMES.Data.Repositories.SysRepository.UserRow> _rows    = new();
+    List<string> _roles = new();
+    List<AMES.Data.Repositories.SysRepository.LineRow> _lines = new();
+    AMES.Data.Repositories.SysRepository.UserRow? _sel;
+
+    string _fUserName = "", _fName = "", _fDept = "", _fStatus = "";
+
+    string _modal = "";   // "" | "create" | "edit"
+    bool _busy;
+    bool _confirmDelete;
+    bool _bgMouseDownOnSelf;   // backdrop mousedown 발생 위치 추적
+    string _msg = "", _modalErr = "";
+    bool _isErr;
+
+    FormModel _f = new();
+    string _actorEmail = "system";
+
+    protected override async Task OnInitializedAsync()
     {
-        try { _rows = Sys.ListUsers(); } catch { }
-        _conf   = _rows.Count(r => r.EmailConfirmed);
-        _lock   = _rows.Count(r => r.LockedOut);
-        _recent = _rows.Count(r => r.LastLoginTs.HasValue
-                    && (DateTime.Now - r.LastLoginTs.Value).TotalHours <= 24);
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actorEmail = auth.User.Identity?.Name ?? "system";
+        _roles = RoleMgr.Roles.Select(r => r.Name!).OrderBy(n => n).ToList();
+        _lines = Sys.ListActiveLines();
+        Reload();
+    }
+
+    void Reload() { _allRows = Sys.ListUsers(); ApplyFilter(); }
+
+    void ApplyFilter() => _rows = _allRows.Where(r =>
+        (string.IsNullOrEmpty(_fUserName) || (r.UserName      ?? "").Contains(_fUserName, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fName)     || (r.EmployeeName  ?? "").Contains(_fName,     StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fDept)     || (r.Department    ?? "").Contains(_fDept,     StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fStatus)   || MatchStatus(r, _fStatus))
+    ).ToList();
+
+    static bool MatchStatus(AMES.Data.Repositories.SysRepository.UserRow r, string s) => s switch {
+        "Locked"     => r.LockedOut,
+        "Unverified" => !r.EmailConfirmed && !r.LockedOut,
+        _            => !r.LockedOut && r.EmailConfirmed && (r.AccountStatus ?? "Active") == s,
+    };
+
+    void OpenCreate()
+    {
+        _f = new(); _modalErr = ""; _confirmDelete = false;
+        _modal = "create";
+    }
+
+    void OpenEdit(AMES.Data.Repositories.SysRepository.UserRow u)
+    {
+        _sel = u; _modalErr = ""; _confirmDelete = false;
+        List<string> parsedLines = new();
+        if (!string.IsNullOrEmpty(u.AssignedLines))
+        {
+            try { parsedLines = System.Text.Json.JsonSerializer.Deserialize<List<string>>(u.AssignedLines) ?? new(); }
+            catch { parsedLines = new(); }
+        }
+
+        _f = new()
+        {
+            EmployeeNo    = u.EmployeeNo    ?? "",
+            EmployeeName  = u.EmployeeName  ?? "",
+            Department    = u.Department    ?? "",
+            Plant         = "",
+            DefaultShift  = "",
+            AccountStatus = u.AccountStatus ?? "Active",
+            Role          = u.RolesCsv?.Split(',').FirstOrDefault()?.Trim() ?? "",
+            SelectedLines = parsedLines
+        };
+        _modal = "edit";
+    }
+
+    void CloseModal()
+    {
+        _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false;
+    }
+
+    // backdrop에서 mousedown이 시작됐을 때만 click으로 닫힘 허용.
+    // Chrome 자동완성 팝업 닫힘 등 외부 이벤트로 인한 오닫힘 방지.
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick()
+    {
+        if (_bgMouseDownOnSelf) CloseModal();
+        _bgMouseDownOnSelf = false;
+    }
+
+    async Task SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.Email))        { _modalErr = "Email을 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.Password))     { _modalErr = "Password를 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.EmployeeNo))   { _modalErr = "사원번호를 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = "성명을 입력하세요."; return; }
+
+        _busy = true;
+        try
+        {
+            var user = new ApplicationUser { UserName = _f.Email, Email = _f.Email, EmailConfirmed = true };
+            var result = await UserMgr.CreateAsync(user, _f.Password);
+            if (!result.Succeeded)
+            {
+                _modalErr = string.Join(" ", result.Errors.Select(e => e.Description));
+                return;
+            }
+
+            var linesJson = _f.SelectedLines.Count > 0
+                ? System.Text.Json.JsonSerializer.Serialize(_f.SelectedLines)
+                : null;
+            Sys.CreateProfile(user.Id, _f.EmployeeNo, _f.EmployeeName,
+                _f.Department, _f.Plant, _f.DefaultShift, _actorEmail, linesJson);
+
+            if (!string.IsNullOrEmpty(_f.Role))
+                await UserMgr.AddToRoleAsync(user, _f.Role);
+
+            CloseModal(); Reload();
+            ShowMsg($"{_f.Email} 등록 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    async Task SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.EmployeeNo))   { _modalErr = "사원번호를 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = "성명을 입력하세요."; return; }
+
+        _busy = true;
+        try
+        {
+            var linesJson = _f.SelectedLines.Count > 0
+                ? System.Text.Json.JsonSerializer.Serialize(_f.SelectedLines)
+                : null;
+            if (Sys.ProfileExists(_sel.UserId))
+                Sys.UpdateProfile(_sel.UserId, _f.EmployeeNo, _f.EmployeeName,
+                    _f.Department, _f.Plant, _f.DefaultShift, _f.AccountStatus, _actorEmail, linesJson);
+            else
+                Sys.CreateProfile(_sel.UserId, _f.EmployeeNo, _f.EmployeeName,
+                    _f.Department, _f.Plant, _f.DefaultShift, _actorEmail, linesJson);
+
+            if (!string.IsNullOrWhiteSpace(_f.Password))
+            {
+                var u = await UserMgr.FindByIdAsync(_sel.UserId);
+                if (u is not null)
+                {
+                    await UserMgr.RemovePasswordAsync(u);
+                    var pr = await UserMgr.AddPasswordAsync(u, _f.Password);
+                    if (!pr.Succeeded)
+                    {
+                        _modalErr = string.Join(" ", pr.Errors.Select(e => e.Description));
+                        return;
+                    }
+                }
+            }
+
+            var iUser = await UserMgr.FindByIdAsync(_sel.UserId);
+            if (iUser is not null)
+            {
+                var currentRoles = await UserMgr.GetRolesAsync(iUser);
+                await UserMgr.RemoveFromRolesAsync(iUser, currentRoles);
+                if (!string.IsNullOrEmpty(_f.Role))
+                    await UserMgr.AddToRoleAsync(iUser, _f.Role);
+            }
+
+            var email = _sel.Email;
+            CloseModal(); Reload();
+            ShowMsg($"{email} 수정 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    async Task SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            Sys.DeleteProfile(_sel.UserId);
+            var u = await UserMgr.FindByIdAsync(_sel.UserId);
+            if (u is not null) await UserMgr.DeleteAsync(u);
+
+            var email = _sel.Email;
+            CloseModal(); Reload();
+            ShowMsg($"{email} 삭제 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    async Task UnlockUser()
+    {
+        if (_sel is null) return;
+        var u = await UserMgr.FindByIdAsync(_sel.UserId);
+        if (u is null) return;
+        await UserMgr.SetLockoutEndDateAsync(u, null);
+        await UserMgr.ResetAccessFailedCountAsync(u);
+        CloseModal(); Reload();
+        ShowMsg($"{_sel.Email} 잠금 해제 완료.", false);
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    void ToggleLine(string lineId, bool check)
+    {
+        if (check) { if (!_f.SelectedLines.Contains(lineId)) _f.SelectedLines.Add(lineId); }
+        else _f.SelectedLines.Remove(lineId);
+    }
+
+    class FormModel
+    {
+        public string       Email         { get; set; } = "";
+        public string       Password      { get; set; } = "";
+        public string       EmployeeNo    { get; set; } = "";
+        public string       EmployeeName  { get; set; } = "";
+        public string       Department    { get; set; } = "";
+        public string       Plant         { get; set; } = "";
+        public string       DefaultShift  { get; set; } = "";
+        public string       AccountStatus { get; set; } = "Active";
+        public string       Role          { get; set; } = "";
+        public List<string> SelectedLines { get; set; } = new();
     }
 }

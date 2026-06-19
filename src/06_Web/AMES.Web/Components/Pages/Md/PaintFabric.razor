@@ -1,0 +1,396 @@
+@page "/md/paint-fabric"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AuthenticationStateProvider Auth
+
+<PageTitle>MD-008 원부자재 기준정보 관리 · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MD-008</div>
+    <div class="ames-page-t">원부자재 기준정보 관리</div>
+    <div class="ames-page-sub">MD_PaintFabric 마스터 — 도료·원단 LOT별 수량·입고일·유효기한·보관조건 관리</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Active")</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">유효기한 임박</div>
+        @{ var today = DateOnly.FromDateTime(DateTime.Today); }
+        <div class="ames-kpi-v">@_allRows.Count(r => r.ExpDate.HasValue && r.ExpDate.Value >= today && r.ExpDate.Value <= today.AddDays(30))</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">자재유형 수</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.MatType).Where(t => t != null).Distinct().Count()</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 원부자재 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:180px;padding:4px 8px;"
+                   placeholder="LOT ID / 자재코드 / 자재명" @bind="_fSearch" autocomplete="off" />
+            <select class="ames-input" style="width:120px;padding:4px 8px;" @bind="_fType">
+                <option value="">유형 전체</option>
+                @foreach (var t in _allRows.Select(r => r.MatType).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@t">@t</option>
+                }
+            </select>
+            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fStatus">
+                <option value="">상태 전체</option>
+                @foreach (var s in _allRows.Select(r => r.Status).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@s">@s</option>
+                }
+            </select>
+            <button class="ames-btn" @onclick="OpenCreate">+ 등록</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">등록된 원부자재가 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>LOT ID</th><th>자재코드</th><th>자재명</th><th>유형</th><th>LOT번호</th>
+                    <th>공급업체</th><th>단위</th>
+                    <th style="text-align:right;">재고수량</th>
+                    <th>입고일</th><th>유효기한</th>
+                    <th>보관조건</th><th>상태</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    var expCss = r.ExpDate.HasValue
+                        ? (r.ExpDate.Value < today ? "bad"
+                           : r.ExpDate.Value <= today.AddDays(30) ? "warn" : "")
+                        : "";
+
+                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
+                        <td class="code">@r.MatLotID</td>
+                        <td class="code dim">@(r.MatCode ?? "—")</td>
+                        <td>@(r.MatName ?? "—")</td>
+                        <td><span class="pill">@(r.MatType ?? "—")</span></td>
+                        <td class="dim">@(r.LotNo ?? "—")</td>
+                        <td class="dim">@(r.SupplierID ?? "—")</td>
+                        <td class="dim">@(r.UOM ?? "—")</td>
+                        <td style="text-align:right;">@(r.QtyOnHand?.ToString("N3") ?? "—")</td>
+                        <td class="dim">@(r.ReceiptDate?.ToString("yyyy-MM-dd") ?? "—")</td>
+                        <td>
+                            @if (r.ExpDate.HasValue)
+                            {
+                                <span class="@(!string.IsNullOrEmpty(expCss) ? $"pill {expCss}" : "")">@r.ExpDate.Value.ToString("yyyy-MM-dd")</span>
+                            }
+                            else { <span class="dim">—</span> }
+                        </td>
+                        <td class="dim">@(r.StorageReq ?? "—")</td>
+                        <td>
+                            <span class="pill @(r.Status == "Active" ? "ok" : r.Status == "EXPIRED" ? "bad" : "warn")">@(r.Status ?? "—")</span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@* ── Create Modal ─────────────────────────────────────────────────── *@
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">신규 원부자재 등록</div>
+
+            <label>LOT ID * <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: PF-PAINT-20260101-001)</span></label>
+            <input class="ames-input" @bind="_f.MatLotID" placeholder="PF-PAINT-20260101-001" autocomplete="off" />
+
+            <label>자재코드</label>
+            <input class="ames-input" @bind="_f.MatCode" placeholder="MAT-001" maxlength="20" autocomplete="off" />
+
+            <label>자재명 *</label>
+            <input class="ames-input" @bind="_f.MatName" placeholder="흑색 도료 1액형" autocomplete="off" />
+
+            <label>자재유형</label>
+            <select class="ames-input" @bind="_f.MatType">
+                <option value="">선택 안 함</option>
+                <option value="PAINT">PAINT (도료)</option>
+                <option value="FABRIC">FABRIC (원단)</option>
+                <option value="PRIMER">PRIMER (프라이머)</option>
+                <option value="HARDENER">HARDENER (경화제)</option>
+                <option value="THINNER">THINNER (희석제)</option>
+                <option value="OTHER">OTHER</option>
+            </select>
+
+            <label>LOT 번호</label>
+            <input class="ames-input" @bind="_f.LotNo" placeholder="LOT-2026-001" maxlength="24" autocomplete="off" />
+
+            <label>공급업체 ID</label>
+            <input class="ames-input" @bind="_f.SupplierID" placeholder="VEN-001" maxlength="20" autocomplete="off" />
+
+            <label>단위 (UOM)</label>
+            <input class="ames-input" @bind="_f.UOM" placeholder="KG, L, M 등" maxlength="10" autocomplete="off" />
+
+            <label>재고수량</label>
+            <input class="ames-input" type="number" step="0.001" @bind="_f.QtyOnHand" placeholder="0.000" min="0" autocomplete="off" />
+
+            <label>입고일</label>
+            <input class="ames-input" type="date" @bind="_f.ReceiptDate" autocomplete="off" />
+
+            <label>유효기한</label>
+            <input class="ames-input" type="date" @bind="_f.ExpDate" autocomplete="off" />
+
+            <label>보관조건</label>
+            <input class="ames-input" @bind="_f.StorageReq" placeholder="상온 보관, 직사광선 차단" maxlength="40" autocomplete="off" />
+
+            <label>상태</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+                <option value="QUARANTINE">QUARANTINE (격리)</option>
+                <option value="EXPIRED">EXPIRED (만료)</option>
+            </select>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
+                <button class="ames-btn" @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Edit Modal ───────────────────────────────────────────────────── *@
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">원부자재 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.MatLotID</span></div>
+
+            <label>자재코드</label>
+            <input class="ames-input" @bind="_f.MatCode" maxlength="20" autocomplete="off" />
+
+            <label>자재명 *</label>
+            <input class="ames-input" @bind="_f.MatName" autocomplete="off" />
+
+            <label>자재유형</label>
+            <select class="ames-input" @bind="_f.MatType">
+                <option value="">선택 안 함</option>
+                <option value="PAINT">PAINT (도료)</option>
+                <option value="FABRIC">FABRIC (원단)</option>
+                <option value="PRIMER">PRIMER (프라이머)</option>
+                <option value="HARDENER">HARDENER (경화제)</option>
+                <option value="THINNER">THINNER (희석제)</option>
+                <option value="OTHER">OTHER</option>
+            </select>
+
+            <label>LOT 번호</label>
+            <input class="ames-input" @bind="_f.LotNo" maxlength="24" autocomplete="off" />
+
+            <label>공급업체 ID</label>
+            <input class="ames-input" @bind="_f.SupplierID" maxlength="20" autocomplete="off" />
+
+            <label>단위 (UOM)</label>
+            <input class="ames-input" @bind="_f.UOM" maxlength="10" autocomplete="off" />
+
+            <label>재고수량</label>
+            <input class="ames-input" type="number" step="0.001" @bind="_f.QtyOnHand" min="0" autocomplete="off" />
+
+            <label>입고일</label>
+            <input class="ames-input" type="date" @bind="_f.ReceiptDate" autocomplete="off" />
+
+            <label>유효기한</label>
+            <input class="ames-input" type="date" @bind="_f.ExpDate" autocomplete="off" />
+
+            <label>보관조건</label>
+            <input class="ames-input" @bind="_f.StorageReq" maxlength="40" autocomplete="off" />
+
+            <label>상태</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+                <option value="QUARANTINE">QUARANTINE (격리)</option>
+                <option value="EXPIRED">EXPIRED (만료)</option>
+            </select>
+
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>정말 삭제하시겠습니까?</span>
+                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? "삭제 중…" : "예, 삭제")</button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
+                <button class="ames-btn"     @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    List<AMES.Data.Repositories.MasterDataRepository.PaintFabricRow> _allRows = new();
+    List<AMES.Data.Repositories.MasterDataRepository.PaintFabricRow> _rows    = new();
+    AMES.Data.Repositories.MasterDataRepository.PaintFabricRow? _sel;
+
+    string _fSearch = "", _fType = "", _fStatus = "";
+
+    string _modal = "";
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _msg = "", _modalErr = "";
+    bool _isErr;
+    string _actor = "system";
+    FormModel _f = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        Reload();
+    }
+
+    void Reload() { _allRows = Md.ListPaintFabrics(); ApplyFilter(); }
+
+    void ApplyFilter() => _rows = _allRows.Where(r =>
+        (string.IsNullOrEmpty(_fSearch) ||
+            r.MatLotID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.MatCode ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.MatName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fType)   || r.MatType == _fType) &&
+        (string.IsNullOrEmpty(_fStatus) || r.Status  == _fStatus)
+    ).ToList();
+
+    void OpenCreate() { _f = new() { Status = "Active" }; _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+
+    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.PaintFabricRow r)
+    {
+        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _f = new()
+        {
+            MatLotID    = r.MatLotID,
+            MatCode     = r.MatCode     ?? "",
+            MatName     = r.MatName     ?? "",
+            MatType     = r.MatType     ?? "",
+            LotNo       = r.LotNo       ?? "",
+            SupplierID  = r.SupplierID  ?? "",
+            UOM         = r.UOM         ?? "",
+            QtyOnHand   = r.QtyOnHand,
+            ReceiptDate = r.ReceiptDate,
+            ExpDate     = r.ExpDate,
+            StorageReq  = r.StorageReq  ?? "",
+            Status      = r.Status      ?? "Active",
+        };
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.MatLotID)) { _modalErr = "LOT ID를 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.MatName))  { _modalErr = "자재명을 입력하세요."; return; }
+        if (Md.PaintFabricExists(_f.MatLotID.Trim())) { _modalErr = $"LOT ID '{_f.MatLotID.Trim()}' 이 이미 존재합니다."; return; }
+        _busy = true;
+        try
+        {
+            Md.InsertPaintFabric(_f.MatLotID.Trim(), NE(_f.MatCode), _f.MatName,
+                NE(_f.MatType), NE(_f.LotNo), NE(_f.SupplierID), NE(_f.UOM),
+                _f.QtyOnHand, _f.ReceiptDate, _f.ExpDate,
+                NE(_f.StorageReq), NE(_f.Status), _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{_f.MatName} 등록 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.MatName)) { _modalErr = "자재명을 입력하세요."; return; }
+        _busy = true;
+        try
+        {
+            Md.UpdatePaintFabric(_sel.MatLotID, NE(_f.MatCode), _f.MatName,
+                NE(_f.MatType), NE(_f.LotNo), NE(_f.SupplierID), NE(_f.UOM),
+                _f.QtyOnHand, _f.ReceiptDate, _f.ExpDate,
+                NE(_f.StorageReq), NE(_f.Status), _actor);
+            var name = _f.MatName;
+            CloseModal(); Reload();
+            ShowMsg($"{name} 수정 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            var name = _sel.MatName ?? _sel.MatLotID;
+            Md.DeletePaintFabric(_sel.MatLotID);
+            CloseModal(); Reload();
+            ShowMsg($"{name} 삭제 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    class FormModel
+    {
+        public string    MatLotID    { get; set; } = "";
+        public string    MatCode     { get; set; } = "";
+        public string    MatName     { get; set; } = "";
+        public string    MatType     { get; set; } = "";
+        public string    LotNo       { get; set; } = "";
+        public string    SupplierID  { get; set; } = "";
+        public string    UOM         { get; set; } = "";
+        public decimal?  QtyOnHand   { get; set; }
+        public DateOnly? ReceiptDate { get; set; }
+        public DateOnly? ExpDate     { get; set; }
+        public string    StorageReq  { get; set; } = "";
+        public string    Status      { get; set; } = "Active";
+    }
+}

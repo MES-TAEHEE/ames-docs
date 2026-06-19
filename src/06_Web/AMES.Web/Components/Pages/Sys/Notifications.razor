@@ -1,94 +1,695 @@
 @page "/sys/notifications"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
+@inject AuthenticationStateProvider Auth
 
-<PageTitle>SYS-06 Notifications · AMES</PageTitle>
+<PageTitle>SYS-008 알림 관리 · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">SYS-06</div>
-    <div class="ames-page-t">Notifications</div>
-    <div class="ames-page-sub">알림 규칙 + 발송 이력</div>
+    <div class="ames-page-id">SYS-008</div>
+    <div class="ames-page-t">알림 관리</div>
+    <div class="ames-page-sub">알림 규칙 · 채널 설정 · 발송 이력</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">RULES</div>
-        <div class="ames-kpi-v">@_rules.Count</div><div class="ames-kpi-s">configured</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">ENABLED</div>
-        <div class="ames-kpi-v">@_enabled</div><div class="ames-kpi-s">active rules</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">SENT 24H</div>
-        <div class="ames-kpi-v">@_sent</div><div class="ames-kpi-s">delivered</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">FAILED 24H</div>
-        <div class="ames-kpi-v">@_failed</div><div class="ames-kpi-s">delivery errors</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">규칙</div>
+        <div class="ames-kpi-v">@_rules.Count</div><div class="ames-kpi-s">전체 규칙</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">활성 규칙</div>
+        <div class="ames-kpi-v">@_rules.Count(r => r.IsEnabled)</div><div class="ames-kpi-s">활성</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">채널</div>
+        <div class="ames-kpi-v">@_channels.Count</div><div class="ames-kpi-s">등록된 채널</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">발송 24H</div>
+        <div class="ames-kpi-v">@_sent</div><div class="ames-kpi-s">발송 완료</div></div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">실패 24H</div>
+        <div class="ames-kpi-v">@_failed</div><div class="ames-kpi-s">발송 오류</div></div>
 </div>
 
-<div class="ames-card">
-    <div class="ames-card-h">▼ Rules</div>
-    <table class="ames-table">
-        <thead>
-            <tr><th>Code</th><th>Event</th><th>Module</th><th>Status</th><th>Channels</th><th>Recipient roles</th></tr>
-        </thead>
-        <tbody>
-            @foreach (var r in _rules)
-            {
-                <tr>
-                    <td class="code">@(r.EventTypeCode ?? "—")</td>
-                    <td>@(r.EventName ?? "—")</td>
-                    <td><span class="pill info">@(r.SourceModule ?? "—")</span></td>
-                    <td>@(r.IsEnabled ? (MarkupString)"<span class=\"pill ok\">ON</span>"
-                                       : (MarkupString)"<span class=\"pill warn\">OFF</span>")</td>
-                    <td class="dim code" style="font-size:11px">@(r.ChannelsJson ?? "—")</td>
-                    <td class="dim code" style="font-size:11px">@(r.RecipientRolesJson ?? "—")</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-    @if (_rules.Count == 0) { <div class="ames-empty">No rules defined.</div> }
+@* ── 탭 헤더 (Calendar 스타일) ── *@
+<div class="ames-cal-tabs">
+    <button class="ames-cal-tab @(_tab=="rules"?"active":"")"    @onclick='() => _tab="rules"'>알림 규칙</button>
+    <button class="ames-cal-tab @(_tab=="channels"?"active":"")" @onclick='() => _tab="channels"'>채널 설정</button>
+    <button class="ames-cal-tab @(_tab=="history"?"active":"")"  @onclick='() => _tab="history"'>발송 이력</button>
+    <div style="flex:1;"></div>
+    <button class="ames-btn ok" @onclick="Reload" style="align-self:center;">조회</button>
+    @if (_tab == "rules")
+    {
+        <button class="ames-btn" @onclick="OpenRuleCreate" style="align-self:center;">+ 규칙 등록</button>
+    }
+    @if (_tab == "channels")
+    {
+        <button class="ames-btn" @onclick="OpenChCreate" style="align-self:center;">+ 채널 등록</button>
+    }
 </div>
 
-<div class="ames-card">
-    <div class="ames-card-h">▼ Recent history (top 100)</div>
-    <table class="ames-table">
-        <thead>
-            <tr>
-                <th>Sent</th><th>Event</th><th>Recipient</th><th>Channel</th>
-                <th>Subject</th><th>Status</th><th class="num">Retry</th><th>Error</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var h in _hist)
+@* ── 탭 1: 알림 규칙 ── *@
+@if (_tab == "rules")
+{
+    <div class="ames-card">
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span>▼ 알림 규칙 · @_ruleRows.Count 건@(_ruleRows.Count < _rules.Count ? $" / 전체 {_rules.Count}" : "")</span>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                <input class="ames-input" style="width:150px;padding:4px 8px;"
+                       placeholder="코드 / 이벤트명" @bind="_fRuleSearch" autocomplete="off" />
+                <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fRuleModule">
+                    <option value="">모듈 전체</option>
+                    <option value="PP">PP</option>
+                    <option value="MNT">MNT</option>
+                    <option value="QC">QC</option>
+                    <option value="WH">WH</option>
+                    <option value="FG">FG</option>
+                    <option value="SYS">SYS</option>
+                </select>
+                <select class="ames-input" style="width:90px;padding:4px 8px;" @bind="_fRuleEnabled">
+                    <option value="">전체</option>
+                    <option value="Y">활성</option>
+                    <option value="N">비활성</option>
+                </select>
+                <button class="ames-btn ok" @onclick="ApplyRuleFilter">적용</button>
+            </div>
+        </div>
+
+        @if (_ruleRows.Count == 0)
+        {
+            <div class="ames-empty">등록된 알림 규칙이 없습니다. 규칙을 등록하세요.</div>
+        }
+        else
+        {
+            <table class="ames-table">
+                <thead>
+                    <tr>
+                        <th>이벤트 코드</th><th>이벤트명</th><th>모듈</th><th>트리거 조건</th>
+                        <th style="text-align:center;">상태</th><th>채널</th><th>수신 역할</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in _ruleRows)
+                    {
+                        <tr class="ames-row-link" @onclick="() => OpenRuleEdit(r)">
+                            <td class="code">@(r.EventTypeCode ?? "—")</td>
+                            <td>@(r.EventName ?? "—")</td>
+                            <td><span class="pill info">@(r.SourceModule ?? "—")</span></td>
+                            <td class="dim" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">@(r.TriggerCondition ?? "—")</td>
+                            <td style="text-align:center;">
+                                @if (r.IsEnabled) { <span class="pill ok">ON</span> }
+                                else { <span class="pill warn">OFF</span> }
+                            </td>
+                            <td class="dim code" style="font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@(r.ChannelsJson ?? "—")</td>
+                            <td class="dim code" style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@(r.RecipientRolesJson ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+}
+
+@* ── 탭 2: 채널 설정 ── *@
+@if (_tab == "channels")
+{
+    <div class="ames-card">
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="white-space:nowrap;">▼ 채널 설정 · @_chRows.Count 건@(_chRows.Count < _channels.Count ? $" / 전체 {_channels.Count}" : "")</span>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                <input class="ames-input" style="width:160px;padding:4px 8px;"
+                       placeholder="사용자 / 주소" @bind="_fChSearch" autocomplete="off" />
+                <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fChType">
+                    <option value="">채널 전체</option>
+                    <option value="EMAIL">EMAIL</option>
+                    <option value="SMS">SMS</option>
+                    <option value="KAKAO">KAKAO</option>
+                    <option value="SLACK">SLACK</option>
+                </select>
+                <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fChEnabled">
+                    <option value="">전체</option>
+                    <option value="Y">활성</option>
+                    <option value="N">비활성</option>
+                </select>
+                <button class="ames-btn ok" @onclick="ApplyChFilter">적용</button>
+            </div>
+        </div>
+
+        @if (_chRows.Count == 0)
+        {
+            <div class="ames-empty">등록된 채널이 없습니다.</div>
+        }
+        else
+        {
+            <table class="ames-table">
+                <thead>
+                    <tr><th>사용자</th><th>채널</th><th>주소</th><th>수신여부</th><th>방해금지 시작</th><th>방해금지 종료</th><th>인증일시</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in _chRows)
+                    {
+                        <tr class="ames-row-link" @onclick="() => OpenChEdit(c)">
+                            <td class="dim" style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;">@(c.UserName ?? c.UserId ?? "—")</td>
+                            <td><span class="pill info">@(c.Channel ?? "—")</span></td>
+                            <td>@(c.Address ?? "—")</td>
+                            <td>
+                                @if (c.IsEnabled) { <span class="pill ok">ON</span> }
+                                else { <span class="pill bad">OFF</span> }
+                            </td>
+                            <td class="dim">@(c.QuietHoursStart?.ToString(@"hh\:mm") ?? "—")</td>
+                            <td class="dim">@(c.QuietHoursEnd?.ToString(@"hh\:mm") ?? "—")</td>
+                            <td class="dim">@(c.VerifiedAt?.ToString("MM-dd HH:mm") ?? "미인증")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+}
+
+@* ── 탭 3: 발송 이력 ── *@
+@if (_tab == "history")
+{
+    <div class="ames-card">
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>▼ 발송 이력 (최근 100건)</span>
+        </div>
+        @if (_hist.Count == 0)
+        {
+            <div class="ames-empty">발송 이력이 없습니다.</div>
+        }
+        else
+        {
+            <table class="ames-table">
+                <thead>
+                    <tr>
+                        <th>발송시각</th><th>이벤트</th><th>수신자</th><th>채널</th>
+                        <th>제목</th><th>상태</th><th class="num">재시도</th><th>오류</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var h in _hist)
+                    {
+                        <tr>
+                            <td class="dim">@(h.SentAt?.ToString("MM-dd HH:mm") ?? "—")</td>
+                            <td class="code">@(h.EventTypeCode ?? "—")</td>
+                            <td class="dim" style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;">@(h.RecipientUserId ?? "—")</td>
+                            <td><span class="pill info">@(h.Channel ?? "—")</span></td>
+                            <td>@(h.Subject ?? "—")</td>
+                            <td>
+                                @if (h.Status == "SENT")       { <span class="pill ok">SENT</span> }
+                                else if (h.Status == "FAILED") { <span class="pill bad">FAILED</span> }
+                                else { <span class="pill warn">@(h.Status ?? "—")</span> }
+                            </td>
+                            <td class="num">@(h.RetryCount?.ToString() ?? "—")</td>
+                            <td class="dim">@(h.ErrorMsg ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+}
+
+@* ── 알림 규칙 등록 모달 ── *@
+@if (_ruleModal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" style="max-width:540px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">알림 규칙 등록</div>
+
+            <label>이벤트 코드 <span class="dim-label">(예: WO_CREATED, DEFECT_HIGH)</span></label>
+            <input class="ames-input" @bind="_rf.EventTypeCode" placeholder="EVENT_CODE" autocomplete="off" />
+
+            <label>이벤트명</label>
+            <input class="ames-input" @bind="_rf.EventName" placeholder="이벤트 표시명" autocomplete="off" />
+
+            <label>소스 모듈</label>
+            <select class="ames-input" @bind="_rf.SourceModule">
+                <option value="">— 선택 —</option>
+                <option value="PP">PP (생산계획)</option>
+                <option value="MNT">MNT (설비보전)</option>
+                <option value="QC">QC (품질)</option>
+                <option value="WH">WH (창고)</option>
+                <option value="FG">FG (완성품)</option>
+                <option value="SYS">SYS (시스템)</option>
+            </select>
+
+            <label>트리거 조건 <span class="dim-label">(선택)</span></label>
+            <textarea class="ames-input" rows="2" @bind="_rf.TriggerCondition"
+                      placeholder="예: DefectCount > 5" style="resize:vertical;"></textarea>
+
+            <label>채널 JSON <span class="dim-label">(예: [&quot;EMAIL&quot;,&quot;KAKAO&quot;])</span></label>
+            <input class="ames-input" @bind="_rf.ChannelsJson" placeholder='["EMAIL"]' autocomplete="off" />
+
+            <label>수신 역할 JSON <span class="dim-label">(예: [&quot;PP_USER&quot;,&quot;Administrator&quot;])</span></label>
+            <input class="ames-input" @bind="_rf.RecipientRolesJson" placeholder='["Administrator"]' autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:6px;">
+                <input type="checkbox" @bind="_rf.IsEnabled" />
+                <span>활성 (즉시 적용)</span>
+            </label>
+
+            @if (!string.IsNullOrEmpty(_ruleModalErr))
+            { <div class="ames-alert bad">@_ruleModalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveRuleCreate" disabled="@_ruleBusy">@(_ruleBusy ? "저장 중…" : "등록")</button>
+                <button class="ames-btn"    @onclick="CloseRuleModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── 알림 규칙 수정 모달 ── *@
+@if (_ruleModal == "edit" && _ruleSel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" style="max-width:540px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">알림 규칙 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@(_ruleSel.EventTypeCode ?? "—")</span></div>
+
+            <label>이벤트 코드</label>
+            <input class="ames-input" @bind="_rf.EventTypeCode" autocomplete="off" />
+
+            <label>이벤트명</label>
+            <input class="ames-input" @bind="_rf.EventName" autocomplete="off" />
+
+            <label>소스 모듈</label>
+            <select class="ames-input" @bind="_rf.SourceModule">
+                <option value="">— 선택 —</option>
+                <option value="PP">PP (생산계획)</option>
+                <option value="MNT">MNT (설비보전)</option>
+                <option value="QC">QC (품질)</option>
+                <option value="WH">WH (창고)</option>
+                <option value="FG">FG (완성품)</option>
+                <option value="SYS">SYS (시스템)</option>
+            </select>
+
+            <label>트리거 조건</label>
+            <textarea class="ames-input" rows="2" @bind="_rf.TriggerCondition" style="resize:vertical;"></textarea>
+
+            <label>채널 JSON</label>
+            <input class="ames-input" @bind="_rf.ChannelsJson" autocomplete="off" />
+
+            <label>수신 역할 JSON</label>
+            <input class="ames-input" @bind="_rf.RecipientRolesJson" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:6px;">
+                <input type="checkbox" @bind="_rf.IsEnabled" />
+                <span>활성</span>
+            </label>
+
+            @if (_ruleConfirmDelete)
             {
-                <tr>
-                    <td class="dim">@(h.SentAt?.ToString("MM-dd HH:mm") ?? "—")</td>
-                    <td class="code">@(h.EventTypeCode ?? "—")</td>
-                    <td class="dim" style="font-family:'JetBrains Mono',monospace;font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;display:inline-block;">@(h.RecipientUserId ?? "—")</td>
-                    <td><span class="pill info">@(h.Channel ?? "—")</span></td>
-                    <td>@(h.Subject ?? "—")</td>
-                    <td>
-                        @if (h.Status == "SENT")   { <span class="pill ok">SENT</span> }
-                        else if (h.Status == "FAILED") { <span class="pill bad">FAILED</span> }
-                        else { <span class="pill warn">@(h.Status ?? "—")</span> }
-                    </td>
-                    <td class="num">@(h.RetryCount?.ToString() ?? "—")</td>
-                    <td class="dim">@(h.ErrorMsg ?? "—")</td>
-                </tr>
+                <div class="ames-delete-confirm">
+                    <span>정말 삭제하시겠습니까?</span>
+                    <button class="ames-btn" @onclick='() => _ruleConfirmDelete = false'>아니오</button>
+                    <button class="ames-btn bad" @onclick="SaveRuleDelete" disabled="@_ruleBusy">@(_ruleBusy ? "삭제 중…" : "예, 삭제")</button>
+                </div>
             }
-        </tbody>
-    </table>
-    @if (_hist.Count == 0) { <div class="ames-empty">No notification history.</div> }
-</div>
+
+            @if (!string.IsNullOrEmpty(_ruleModalErr))
+            { <div class="ames-alert bad">@_ruleModalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok"  @onclick="SaveRuleEdit"   disabled="@_ruleBusy">@(_ruleBusy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn bad" @onclick='() => { _ruleConfirmDelete = true; _ruleModalErr = ""; }' disabled="@_ruleBusy">삭제</button>
+                <button class="ames-btn"     @onclick="CloseRuleModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── 채널 등록 모달 ── *@
+@if (_chModal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">신규 채널 등록</div>
+
+            <label>사용자</label>
+            <select class="ames-input" value="@_cf.UserId" @onchange="OnCreateUserChanged">
+                <option value="">— 사용자 선택 —</option>
+                @foreach (var u in _userList)
+                {
+                    <option value="@u.Id">@(u.UserName ?? u.Id)@(!string.IsNullOrEmpty(u.Email) ? $"  ({u.Email})" : "")</option>
+                }
+            </select>
+
+            <label>채널</label>
+            <select class="ames-input" value="@_cf.Channel" @onchange="OnCreateChannelChanged">
+                <option value="EMAIL">EMAIL</option>
+                <option value="SMS">SMS</option>
+                <option value="KAKAO">KAKAO</option>
+                <option value="SLACK">SLACK</option>
+            </select>
+
+            <label>주소 <span class="dim-label">(EMAIL·SMS는 사용자 선택 시 자동 입력)</span></label>
+            <input class="ames-input" @bind="_cf.Address" placeholder="이메일 / 전화번호 / 훅 URL" autocomplete="off" />
+
+            <label>방해금지 시작 (HH:mm)</label>
+            <input class="ames-input" type="time" @bind="_cf.QuietStart" />
+
+            <label>방해금지 종료 (HH:mm)</label>
+            <input class="ames-input" type="time" @bind="_cf.QuietEnd" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:4px;">
+                <input type="checkbox" @bind="_cf.IsEnabled" />
+                <span>활성</span>
+            </label>
+
+            @if (!string.IsNullOrEmpty(_chModalErr))
+            { <div class="ames-alert bad">@_chModalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveChCreate" disabled="@_chBusy">@(_chBusy ? "저장 중…" : "등록")</button>
+                <button class="ames-btn" @onclick="CloseChModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── 채널 수정 모달 ── *@
+@if (_chModal == "edit" && _chSel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">채널 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@(_chSel.Channel) · @(_chSel.UserName ?? _chSel.UserId)</span></div>
+
+            <label>채널</label>
+            <select class="ames-input" @bind="_cf.Channel">
+                <option value="EMAIL">EMAIL</option>
+                <option value="SMS">SMS</option>
+                <option value="KAKAO">KAKAO</option>
+                <option value="SLACK">SLACK</option>
+            </select>
+
+            <label>주소</label>
+            <input class="ames-input" @bind="_cf.Address" autocomplete="off" />
+
+            <label>방해금지 시작 (HH:mm)</label>
+            <input class="ames-input" type="time" @bind="_cf.QuietStart" />
+
+            <label>방해금지 종료 (HH:mm)</label>
+            <input class="ames-input" type="time" @bind="_cf.QuietEnd" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:4px;">
+                <input type="checkbox" @bind="_cf.IsEnabled" />
+                <span>활성</span>
+            </label>
+
+            @if (_chConfirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>정말 삭제하시겠습니까?</span>
+                    <button class="ames-btn" @onclick='() => _chConfirmDelete = false'>아니오</button>
+                    <button class="ames-btn bad" @onclick="SaveChDelete" disabled="@_chBusy">@(_chBusy ? "삭제 중…" : "예, 삭제")</button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_chModalErr))
+            { <div class="ames-alert bad">@_chModalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok"  @onclick="SaveChEdit"   disabled="@_chBusy">@(_chBusy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn bad" @onclick='() => { _chConfirmDelete = true; _chModalErr = ""; }' disabled="@_chBusy">삭제</button>
+                <button class="ames-btn"     @onclick="CloseChModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .dim-label { font-weight: 400; color: #64748b; font-size: .85em; }
+</style>
 
 @code {
-    List<AMES.Data.Repositories.SysRepository.NotifRuleRow> _rules = new();
+    string _tab = "rules";
+    bool _bgMouseDownOnSelf;
+    string _actor = "system";
+
+    // ── 알림 규칙 ──────────────────────────────────────────────────────
+    List<AMES.Data.Repositories.SysRepository.NotifRuleRow> _rules    = new();
+    List<AMES.Data.Repositories.SysRepository.NotifRuleRow> _ruleRows = new();
+    AMES.Data.Repositories.SysRepository.NotifRuleRow? _ruleSel;
+
+    string _fRuleSearch = "", _fRuleModule = "", _fRuleEnabled = "";
+    string _ruleModal = "", _ruleModalErr = "";
+    bool _ruleBusy, _ruleConfirmDelete;
+    RuleForm _rf = new();
+
+    // ── 발송 이력 ──────────────────────────────────────────────────────
     List<AMES.Data.Repositories.SysRepository.NotifHistoryRow> _hist = new();
-    int _enabled, _sent, _failed;
-    protected override void OnInitialized()
+    int _sent, _failed;
+
+    // ── 채널 설정 ──────────────────────────────────────────────────────
+    List<AMES.Data.Repositories.SysRepository.UserSelectRow>   _userList = new();
+    List<AMES.Data.Repositories.SysRepository.NotifChannelRow> _channels = new();
+    List<AMES.Data.Repositories.SysRepository.NotifChannelRow> _chRows   = new();
+    AMES.Data.Repositories.SysRepository.NotifChannelRow? _chSel;
+
+    string _fChSearch = "", _fChType = "", _fChEnabled = "";
+    string _chModal = "", _chModalErr = "";
+    bool _chBusy, _chConfirmDelete;
+    ChForm _cf = new();
+
+    protected override async Task OnInitializedAsync()
     {
-        try { _rules = Sys.ListNotificationRules(); } catch { }
-        try { _hist  = Sys.ListNotificationHistory(); } catch { }
-        _enabled = _rules.Count(r => r.IsEnabled);
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        try { _userList = Sys.ListUsersForSelect(); } catch { }
+        Reload();
+    }
+
+    void Reload()
+    {
+        try { _rules    = Sys.ListNotificationRules(); }    catch { }
+        try { _hist     = Sys.ListNotificationHistory(); }  catch { }
+        try { _channels = Sys.ListNotificationChannels(); } catch { }
+
         var recent = _hist.Where(h => h.SentAt.HasValue
                         && (DateTime.Now - h.SentAt.Value).TotalHours <= 24).ToList();
         _sent   = recent.Count(h => h.Status == "SENT");
         _failed = recent.Count(h => h.Status == "FAILED");
+
+        ApplyRuleFilter();
+        ApplyChFilter();
+    }
+
+    // ── 규칙 필터 ──────────────────────────────────────────────────────
+    void ApplyRuleFilter() => _ruleRows = _rules.Where(r =>
+        (string.IsNullOrEmpty(_fRuleSearch) ||
+            (r.EventTypeCode ?? "").Contains(_fRuleSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.EventName     ?? "").Contains(_fRuleSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fRuleModule)  || r.SourceModule == _fRuleModule) &&
+        (string.IsNullOrEmpty(_fRuleEnabled) || (_fRuleEnabled == "Y" ? r.IsEnabled : !r.IsEnabled))
+    ).ToList();
+
+    void OpenRuleCreate()
+    {
+        _rf = new() { IsEnabled = true };
+        _ruleModalErr = ""; _ruleConfirmDelete = false; _ruleModal = "create";
+    }
+
+    void OpenRuleEdit(AMES.Data.Repositories.SysRepository.NotifRuleRow r)
+    {
+        _ruleSel = r; _ruleModalErr = ""; _ruleConfirmDelete = false;
+        _rf = new()
+        {
+            EventTypeCode     = r.EventTypeCode     ?? "",
+            EventName         = r.EventName         ?? "",
+            SourceModule      = r.SourceModule      ?? "",
+            TriggerCondition  = r.TriggerCondition  ?? "",
+            IsEnabled         = r.IsEnabled,
+            ChannelsJson      = r.ChannelsJson      ?? "",
+            RecipientRolesJson= r.RecipientRolesJson ?? "",
+        };
+        _ruleModal = "edit";
+    }
+
+    void CloseRuleModal() { _ruleModal = ""; _ruleSel = null; _ruleModalErr = ""; _ruleConfirmDelete = false; }
+
+    void SaveRuleCreate()
+    {
+        _ruleModalErr = "";
+        if (string.IsNullOrWhiteSpace(_rf.EventTypeCode))
+        { _ruleModalErr = "이벤트 코드를 입력하세요."; return; }
+        _ruleBusy = true;
+        try
+        {
+            Sys.InsertNotificationRule(
+                NE(_rf.EventTypeCode), NE(_rf.EventName), NE(_rf.SourceModule),
+                NE(_rf.TriggerCondition), _rf.IsEnabled,
+                NE(_rf.ChannelsJson), NE(_rf.RecipientRolesJson), _actor);
+            CloseRuleModal(); Reload();
+        }
+        catch (Exception ex) { _ruleModalErr = ex.Message; }
+        finally { _ruleBusy = false; }
+    }
+
+    void SaveRuleEdit()
+    {
+        if (_ruleSel is null) return;
+        _ruleModalErr = "";
+        if (string.IsNullOrWhiteSpace(_rf.EventTypeCode))
+        { _ruleModalErr = "이벤트 코드를 입력하세요."; return; }
+        _ruleBusy = true;
+        try
+        {
+            Sys.UpdateNotificationRule(
+                _ruleSel.NotificationRuleId,
+                NE(_rf.EventTypeCode), NE(_rf.EventName), NE(_rf.SourceModule),
+                NE(_rf.TriggerCondition), _rf.IsEnabled,
+                NE(_rf.ChannelsJson), NE(_rf.RecipientRolesJson), _actor);
+            CloseRuleModal(); Reload();
+        }
+        catch (Exception ex) { _ruleModalErr = ex.Message; }
+        finally { _ruleBusy = false; }
+    }
+
+    void SaveRuleDelete()
+    {
+        if (_ruleSel is null) return;
+        _ruleBusy = true;
+        try
+        {
+            Sys.DeleteNotificationRule(_ruleSel.NotificationRuleId);
+            CloseRuleModal(); Reload();
+        }
+        catch (Exception ex) { _ruleModalErr = ex.Message; _ruleConfirmDelete = false; }
+        finally { _ruleBusy = false; }
+    }
+
+    // ── 채널 필터 ──────────────────────────────────────────────────────
+    void ApplyChFilter() => _chRows = _channels.Where(c =>
+        (string.IsNullOrEmpty(_fChSearch) ||
+            (c.UserName ?? c.UserId ?? "").Contains(_fChSearch, StringComparison.OrdinalIgnoreCase) ||
+            (c.Address  ?? "").Contains(_fChSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fChType)    || c.Channel == _fChType) &&
+        (string.IsNullOrEmpty(_fChEnabled) || (_fChEnabled == "Y" ? c.IsEnabled : !c.IsEnabled))
+    ).ToList();
+
+    void OpenChCreate()
+    {
+        _cf = new() { IsEnabled = true, Channel = "EMAIL" };
+        _chModalErr = ""; _chConfirmDelete = false; _chModal = "create";
+    }
+
+    void OpenChEdit(AMES.Data.Repositories.SysRepository.NotifChannelRow c)
+    {
+        _chSel = c; _chModalErr = ""; _chConfirmDelete = false;
+        _cf = new()
+        {
+            UserId     = c.UserId     ?? "",
+            Channel    = c.Channel    ?? "EMAIL",
+            Address    = c.Address    ?? "",
+            IsEnabled  = c.IsEnabled,
+            QuietStart = c.QuietHoursStart.HasValue ? TimeOnly.FromTimeSpan(c.QuietHoursStart.Value) : null,
+            QuietEnd   = c.QuietHoursEnd.HasValue   ? TimeOnly.FromTimeSpan(c.QuietHoursEnd.Value)   : null,
+        };
+        _chModal = "edit";
+    }
+
+    void CloseChModal() { _chModal = ""; _chSel = null; _chModalErr = ""; _chConfirmDelete = false; }
+
+    void OnCreateUserChanged(ChangeEventArgs e)
+    {
+        _cf.UserId = e.Value?.ToString() ?? "";
+        AutoFillAddress();
+    }
+
+    void OnCreateChannelChanged(ChangeEventArgs e)
+    {
+        _cf.Channel = e.Value?.ToString() ?? "EMAIL";
+        AutoFillAddress();
+    }
+
+    void AutoFillAddress()
+    {
+        if (string.IsNullOrEmpty(_cf.UserId)) return;
+        var u = _userList.FirstOrDefault(x => x.Id == _cf.UserId);
+        if (u is null) return;
+        _cf.Address = _cf.Channel switch
+        {
+            "EMAIL" => u.Email        ?? _cf.Address,
+            "SMS"   => u.PhoneNumber  ?? _cf.Address,
+            _       => _cf.Address,
+        };
+    }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick()
+    {
+        if (!_bgMouseDownOnSelf) { _bgMouseDownOnSelf = false; return; }
+        _bgMouseDownOnSelf = false;
+        CloseRuleModal();
+        CloseChModal();
+    }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    void SaveChCreate()
+    {
+        _chModalErr = "";
+        if (string.IsNullOrWhiteSpace(_cf.Channel))
+        { _chModalErr = "채널을 선택하세요."; return; }
+        _chBusy = true;
+        try
+        {
+            Sys.InsertNotificationChannel(NE(_cf.UserId), _cf.Channel, NE(_cf.Address),
+                _cf.IsEnabled,
+                _cf.QuietStart.HasValue ? _cf.QuietStart.Value.ToTimeSpan() : null,
+                _cf.QuietEnd.HasValue   ? _cf.QuietEnd.Value.ToTimeSpan()   : null,
+                _actor);
+            CloseChModal(); Reload();
+        }
+        catch (Exception ex) { _chModalErr = ex.Message; }
+        finally { _chBusy = false; }
+    }
+
+    void SaveChEdit()
+    {
+        if (_chSel is null) return;
+        _chBusy = true;
+        try
+        {
+            Sys.UpdateNotificationChannel(_chSel.NotificationChannelId,
+                NE(_cf.UserId), _cf.Channel, NE(_cf.Address),
+                _cf.IsEnabled,
+                _cf.QuietStart.HasValue ? _cf.QuietStart.Value.ToTimeSpan() : null,
+                _cf.QuietEnd.HasValue   ? _cf.QuietEnd.Value.ToTimeSpan()   : null,
+                _actor);
+            CloseChModal(); Reload();
+        }
+        catch (Exception ex) { _chModalErr = ex.Message; }
+        finally { _chBusy = false; }
+    }
+
+    void SaveChDelete()
+    {
+        if (_chSel is null) return;
+        _chBusy = true;
+        try
+        {
+            Sys.DeleteNotificationChannel(_chSel.NotificationChannelId);
+            CloseChModal(); Reload();
+        }
+        catch (Exception ex) { _chModalErr = ex.Message; _chConfirmDelete = false; }
+        finally { _chBusy = false; }
+    }
+
+    class RuleForm
+    {
+        public string EventTypeCode      { get; set; } = "";
+        public string EventName          { get; set; } = "";
+        public string SourceModule       { get; set; } = "";
+        public string TriggerCondition   { get; set; } = "";
+        public bool   IsEnabled          { get; set; } = true;
+        public string ChannelsJson       { get; set; } = "";
+        public string RecipientRolesJson { get; set; } = "";
+    }
+
+    class ChForm
+    {
+        public string    UserId     { get; set; } = "";
+        public string    Channel    { get; set; } = "EMAIL";
+        public string    Address    { get; set; } = "";
+        public bool      IsEnabled  { get; set; } = true;
+        public TimeOnly? QuietStart { get; set; }
+        public TimeOnly? QuietEnd   { get; set; }
     }
 }

@@ -1,13 +1,14 @@
 @page "/mnt/failure"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MntRepository Mnt
 
-<PageTitle>MNT-02 Failure Register · AMES</PageTitle>
+<PageTitle>MNT-02 고장 등록 · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MNT-02</div>
-    <div class="ames-page-t">Failure Register</div>
-    <div class="ames-page-sub">고장 등록 — 최근 100건</div>
+    <div class="ames-page-t">고장 등록</div>
+    <div class="ames-page-sub">고장 이벤트 조회 및 등록</div>
 </div>
 
 <div class="ames-kpis">
@@ -22,48 +23,78 @@
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">Failure events</div>
-    <table class="ames-table">
-        <thead>
-            <tr>
-                <th>FAIL #</th><th>Equip</th><th>Type</th><th>Symptom</th>
-                <th>Urgency</th><th>Source</th><th>Status</th>
-                <th>Reported</th><th>Resolved</th><th>MWO</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var f in _rows)
-            {
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 고장 이벤트 · @_rows.Count 건</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_statusFilter">
+                <option value="">전체 상태</option>
+                <option value="OPEN">OPEN</option>
+                <option value="IN_PROGRESS">진행 중</option>
+                <option value="RESOLVED">해결</option>
+            </select>
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">최근</label>
+            <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_topN">
+                <option value="50">50건</option>
+                <option value="100">100건</option>
+                <option value="200">200건</option>
+            </select>
+            <button class="ames-btn ok" @onclick="Reload">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">해당 조건에 고장 이벤트가 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
                 <tr>
-                    <td class="code">@(f.FailureNumber ?? $"F#{f.FailureId}")</td>
-                    <td>@(f.EquipId ?? "—")</td>
-                    <td class="dim">@(f.FailureType ?? "—")</td>
-                    <td>@(f.Symptom ?? "—")</td>
-                    <td><span class="pill @UrgencyClass(f.Urgency)">@(f.Urgency ?? "—")</span></td>
-                    <td class="dim">@(f.Source ?? "—")</td>
-                    <td><span class="pill @StatusClass(f.Status)">@(f.Status ?? "—")</span></td>
-                    <td class="dim">@(f.ReportedAt?.ToString("MM-dd HH:mm") ?? "—")</td>
-                    <td class="dim">@(f.ResolvedAt?.ToString("MM-dd HH:mm") ?? "—")</td>
-                    <td class="dim">@(f.WorkOrderId?.ToString() ?? "—")</td>
+                    <th>FAIL #</th><th>Equip</th><th>Type</th><th>Symptom</th>
+                    <th>Urgency</th><th>Source</th><th>Status</th>
+                    <th>Reported</th><th>Resolved</th><th>MWO</th>
                 </tr>
-            }
-        </tbody>
-    </table>
-    @if (_rows.Count == 0) { <div class="ames-empty">No failure records.</div> }
+            </thead>
+            <tbody>
+                @foreach (var f in _rows)
+                {
+                    <tr>
+                        <td class="code">@(f.FailureNumber ?? $"F#{f.FailureId}")</td>
+                        <td>@(f.EquipId ?? "—")</td>
+                        <td class="dim">@(f.FailureType ?? "—")</td>
+                        <td>@(f.Symptom ?? "—")</td>
+                        <td><span class="pill @UrgencyClass(f.Urgency)">@(f.Urgency ?? "—")</span></td>
+                        <td class="dim">@(f.Source ?? "—")</td>
+                        <td><span class="pill @StatusClass(f.Status)">@(f.Status ?? "—")</span></td>
+                        <td class="dim">@(f.ReportedAt?.ToString("MM-dd HH:mm") ?? "—")</td>
+                        <td class="dim">@(f.ResolvedAt?.ToString("MM-dd HH:mm") ?? "—")</td>
+                        <td class="dim">@(f.WorkOrderId?.ToString() ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 </div>
 
 @code {
     List<AMES.Data.Repositories.MntRepository.FailureRow> _rows = new();
-    int _open, _prog, _res, _urg;
+    int    _open, _prog, _res, _urg;
+    int    _topN = 100;
+    string _statusFilter = "";
 
-    protected override void OnInitialized()
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
     {
-        try { _rows = Mnt.ListFailures(); } catch { }
+        try { _rows = Mnt.ListFailures(_topN, string.IsNullOrWhiteSpace(_statusFilter) ? null : _statusFilter); }
+        catch { _rows = new(); }
         _open = _rows.Count(r => r.Status is "OPEN" or "REGISTERED");
         _prog = _rows.Count(r => r.Status == "IN_PROGRESS");
         _res  = _rows.Count(r => r.Status is "RESOLVED" or "CLOSED");
         _urg  = _rows.Count(r => r.Urgency is "URGENT" or "HIGH");
     }
+
     static string UrgencyClass(string? u) => u switch
     { "URGENT" or "HIGH" => "bad", "MED" => "warn", "LOW" => "info", _ => "info" };
     static string StatusClass(string? s) => s switch

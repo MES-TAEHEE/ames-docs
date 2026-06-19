@@ -1,12 +1,13 @@
 @page "/mnt/work-order"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MntRepository Mnt
 
-<PageTitle>MNT-07 Maintenance WO · AMES</PageTitle>
+<PageTitle>MNT-07 정비 작업지시 · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MNT-07</div>
-    <div class="ames-page-t">Maintenance Work Orders</div>
+    <div class="ames-page-t">정비 작업지시</div>
     <div class="ames-page-sub">정비 작업지시 — 진행/완료</div>
 </div>
 
@@ -22,50 +23,80 @@
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">MWO list</div>
-    <table class="ames-table">
-        <thead>
-            <tr>
-                <th>MWO #</th><th>Type</th><th>Equip</th><th>Priority</th>
-                <th>Source</th><th>Status</th>
-                <th>Issued</th><th>Started</th><th>Completed</th>
-                <th class="num">Labor</th><th class="num">Tasks</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var w in _rows)
-            {
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 정비 작업지시 · @_rows.Count 건</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_statusFilter">
+                <option value="">전체 상태</option>
+                <option value="OPEN">OPEN</option>
+                <option value="IN_PROGRESS">진행 중</option>
+                <option value="COMPLETED">완료</option>
+            </select>
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">최근</label>
+            <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_topN">
+                <option value="50">50건</option>
+                <option value="100">100건</option>
+                <option value="200">200건</option>
+            </select>
+            <button class="ames-btn ok" @onclick="Reload">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">해당 조건에 작업지시가 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
                 <tr>
-                    <td class="code">@(w.WoNumber ?? $"MWO#{w.WorkOrderId}")</td>
-                    <td>@(w.WoType ?? "—")</td>
-                    <td>@(w.EquipId ?? "—")</td>
-                    <td><span class="pill @PrClass(w.Priority)">@(w.Priority ?? "—")</span></td>
-                    <td class="dim">@(w.SourceType ?? "—")</td>
-                    <td><span class="pill @StClass(w.Status)">@(w.Status ?? "—")</span></td>
-                    <td class="dim">@(w.IssuedAt?.ToString("MM-dd HH:mm") ?? "—")</td>
-                    <td class="dim">@(w.StartedAt?.ToString("MM-dd HH:mm") ?? "—")</td>
-                    <td class="dim">@(w.CompletedAt?.ToString("MM-dd HH:mm") ?? "—")</td>
-                    <td class="num">@(w.LaborMinutes?.ToString() ?? "—")</td>
-                    <td class="num">@w.TaskDone / @w.TaskCount</td>
+                    <th>MWO #</th><th>Type</th><th>Equip</th><th>Priority</th>
+                    <th>Source</th><th>Status</th>
+                    <th>Issued</th><th>Started</th><th>Completed</th>
+                    <th class="num">Labor</th><th class="num">Tasks</th>
                 </tr>
-            }
-        </tbody>
-    </table>
-    @if (_rows.Count == 0) { <div class="ames-empty">No maintenance work orders.</div> }
+            </thead>
+            <tbody>
+                @foreach (var w in _rows)
+                {
+                    <tr>
+                        <td class="code">@(w.WoNumber ?? $"MWO#{w.WorkOrderId}")</td>
+                        <td>@(w.WoType ?? "—")</td>
+                        <td>@(w.EquipId ?? "—")</td>
+                        <td><span class="pill @PrClass(w.Priority)">@(w.Priority ?? "—")</span></td>
+                        <td class="dim">@(w.SourceType ?? "—")</td>
+                        <td><span class="pill @StClass(w.Status)">@(w.Status ?? "—")</span></td>
+                        <td class="dim">@(w.IssuedAt?.ToString("MM-dd HH:mm") ?? "—")</td>
+                        <td class="dim">@(w.StartedAt?.ToString("MM-dd HH:mm") ?? "—")</td>
+                        <td class="dim">@(w.CompletedAt?.ToString("MM-dd HH:mm") ?? "—")</td>
+                        <td class="num">@(w.LaborMinutes?.ToString() ?? "—")</td>
+                        <td class="num">@w.TaskDone / @w.TaskCount</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 </div>
 
 @code {
     List<AMES.Data.Repositories.MntRepository.MwoRow> _rows = new();
-    int _open, _prog, _done, _lab;
+    int    _open, _prog, _done, _lab;
+    int    _topN = 100;
+    string _statusFilter = "";
 
-    protected override void OnInitialized()
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
     {
-        try { _rows = Mnt.ListWorkOrders(); } catch { }
+        try { _rows = Mnt.ListWorkOrders(_topN, string.IsNullOrWhiteSpace(_statusFilter) ? null : _statusFilter); }
+        catch { _rows = new(); }
         _open = _rows.Count(r => r.Status is "OPEN" or "ISSUED");
         _prog = _rows.Count(r => r.Status == "IN_PROGRESS");
         _done = _rows.Count(r => r.Status is "COMPLETED" or "CLOSED");
         _lab  = _rows.Sum(r => r.LaborMinutes ?? 0);
     }
+
     static string PrClass(string? p) => p switch
     { "URGENT" or "HIGH" => "bad", "MED" => "warn", "LOW" => "info", _ => "info" };
     static string StClass(string? s) => s switch

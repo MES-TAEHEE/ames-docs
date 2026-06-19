@@ -1,0 +1,343 @@
+@page "/md/location"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AuthenticationStateProvider Auth
+
+<PageTitle>MD-018 창고/로케이션 기준정보 관리 · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MD-018</div>
+    <div class="ames-page-t">창고/로케이션 기준정보 관리</div>
+    <div class="ames-page-sub">MD_Location 마스터 — 구역·통로·베이·슬롯·적재용량 설정</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.ActiveFlag)</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">구역 수</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.ZoneCode).Where(z => z != null).Distinct().Count()</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">공장 수</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.PlantID).Where(p => p != null).Distinct().Count()</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 로케이션 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:160px;padding:4px 8px;"
+                   placeholder="로케이션 ID / 명칭" @bind="_fSearch" autocomplete="off" />
+            <select class="ames-input" style="width:120px;padding:4px 8px;" @bind="_fZone">
+                <option value="">구역 전체</option>
+                @foreach (var z in _allRows.Select(r => r.ZoneCode).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@z">@z</option>
+                }
+            </select>
+            <select class="ames-input" style="width:130px;padding:4px 8px;" @bind="_fType">
+                <option value="">유형 전체</option>
+                @foreach (var t in _allRows.Select(r => r.LocationType).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@t">@t</option>
+                }
+            </select>
+            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fActive">
+                <option value="">전체</option>
+                <option value="Y">활성</option>
+                <option value="N">비활성</option>
+            </select>
+            <button class="ames-btn" @onclick="OpenCreate">+ 등록</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">등록된 로케이션이 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>로케이션 ID</th><th>명칭</th><th>구역</th>
+                    <th>통로</th><th>베이</th><th>슬롯</th>
+                    <th style="text-align:right;">적재용량</th>
+                    <th>유형</th><th>공장</th><th>활성</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
+                        <td class="code">@r.LocationID</td>
+                        <td>@(r.LocationName ?? "—")</td>
+                        <td><span class="pill">@(r.ZoneCode ?? "—")</span></td>
+                        <td class="dim">@(r.Aisle ?? "—")</td>
+                        <td class="dim">@(r.Bay ?? "—")</td>
+                        <td class="dim">@(r.Slot ?? "—")</td>
+                        <td style="text-align:right;">@(r.Capacity?.ToString("N3") ?? "—")</td>
+                        <td><span class="pill">@(r.LocationType ?? "—")</span></td>
+                        <td class="dim">@(r.PlantID ?? "—")</td>
+                        <td>
+                            @if (r.ActiveFlag) { <span class="pill ok">활성</span> }
+                            else { <span class="pill bad">비활성</span> }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@* ── Create Modal ─────────────────────────────────────────────────── *@
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">신규 로케이션 등록</div>
+
+            <label>로케이션 ID * <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: WH-A-01-01)</span></label>
+            <input class="ames-input" @bind="_f.LocationID" placeholder="WH-A-01-01" autocomplete="off" />
+
+            <label>명칭</label>
+            <input class="ames-input" @bind="_f.LocationName" placeholder="창고 A구역 1통로 1번" autocomplete="off" />
+
+            <label>구역코드</label>
+            <input class="ames-input" @bind="_f.ZoneCode" placeholder="A, B, FG 등" maxlength="10" autocomplete="off" />
+
+            <label>통로 (Aisle)</label>
+            <input class="ames-input" @bind="_f.Aisle" placeholder="01" maxlength="5" autocomplete="off" />
+
+            <label>베이 (Bay)</label>
+            <input class="ames-input" @bind="_f.Bay" placeholder="01" maxlength="5" autocomplete="off" />
+
+            <label>슬롯 (Slot)</label>
+            <input class="ames-input" @bind="_f.Slot" placeholder="01" maxlength="5" autocomplete="off" />
+
+            <label>적재용량</label>
+            <input class="ames-input" type="number" step="0.001" @bind="_f.Capacity" placeholder="1000.000" min="0" autocomplete="off" />
+
+            <label>위치유형</label>
+            <input class="ames-input" @bind="_f.LocationType" placeholder="RACK, FLOOR, STAGING 등" maxlength="20" autocomplete="off" />
+
+            <label>공장 ID</label>
+            <input class="ames-input" @bind="_f.PlantID" placeholder="PLANT-01" maxlength="10" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.ActiveFlag" />
+                <span>활성</span>
+            </label>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
+                <button class="ames-btn" @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Edit Modal ───────────────────────────────────────────────────── *@
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">로케이션 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.LocationID</span></div>
+
+            <label>명칭</label>
+            <input class="ames-input" @bind="_f.LocationName" autocomplete="off" />
+
+            <label>구역코드</label>
+            <input class="ames-input" @bind="_f.ZoneCode" maxlength="10" autocomplete="off" />
+
+            <label>통로 (Aisle)</label>
+            <input class="ames-input" @bind="_f.Aisle" maxlength="5" autocomplete="off" />
+
+            <label>베이 (Bay)</label>
+            <input class="ames-input" @bind="_f.Bay" maxlength="5" autocomplete="off" />
+
+            <label>슬롯 (Slot)</label>
+            <input class="ames-input" @bind="_f.Slot" maxlength="5" autocomplete="off" />
+
+            <label>적재용량</label>
+            <input class="ames-input" type="number" step="0.001" @bind="_f.Capacity" min="0" autocomplete="off" />
+
+            <label>위치유형</label>
+            <input class="ames-input" @bind="_f.LocationType" maxlength="20" autocomplete="off" />
+
+            <label>공장 ID</label>
+            <input class="ames-input" @bind="_f.PlantID" maxlength="10" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.ActiveFlag" />
+                <span>활성</span>
+            </label>
+
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>정말 삭제하시겠습니까?</span>
+                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? "삭제 중…" : "예, 삭제")</button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
+                <button class="ames-btn"     @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    List<AMES.Data.Repositories.MasterDataRepository.LocationRow> _allRows = new();
+    List<AMES.Data.Repositories.MasterDataRepository.LocationRow> _rows    = new();
+    AMES.Data.Repositories.MasterDataRepository.LocationRow? _sel;
+
+    string _fSearch = "", _fZone = "", _fType = "", _fActive = "";
+
+    string _modal = "";
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _msg = "", _modalErr = "";
+    bool _isErr;
+    string _actor = "system";
+    FormModel _f = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        Reload();
+    }
+
+    void Reload() { _allRows = Md.ListLocations(); ApplyFilter(); }
+
+    void ApplyFilter() => _rows = _allRows.Where(r =>
+        (string.IsNullOrEmpty(_fSearch) ||
+            r.LocationID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.LocationName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fZone)   || r.ZoneCode     == _fZone) &&
+        (string.IsNullOrEmpty(_fType)   || r.LocationType == _fType) &&
+        (string.IsNullOrEmpty(_fActive) || (_fActive == "Y" ? r.ActiveFlag : !r.ActiveFlag))
+    ).ToList();
+
+    void OpenCreate() { _f = new() { ActiveFlag = true }; _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+
+    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.LocationRow r)
+    {
+        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _f = new()
+        {
+            LocationID   = r.LocationID,
+            LocationName = r.LocationName ?? "",
+            ZoneCode     = r.ZoneCode     ?? "",
+            Aisle        = r.Aisle        ?? "",
+            Bay          = r.Bay          ?? "",
+            Slot         = r.Slot         ?? "",
+            Capacity     = r.Capacity,
+            LocationType = r.LocationType ?? "",
+            PlantID      = r.PlantID      ?? "",
+            ActiveFlag   = r.ActiveFlag,
+        };
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.LocationID)) { _modalErr = "로케이션 ID를 입력하세요."; return; }
+        if (Md.LocationExists(_f.LocationID.Trim()))  { _modalErr = $"로케이션 ID '{_f.LocationID.Trim()}' 이 이미 존재합니다."; return; }
+        _busy = true;
+        try
+        {
+            Md.InsertLocation(_f.LocationID.Trim(), NE(_f.LocationName), NE(_f.ZoneCode),
+                NE(_f.Aisle), NE(_f.Bay), NE(_f.Slot),
+                _f.Capacity, NE(_f.LocationType), NE(_f.PlantID), _f.ActiveFlag, _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{_f.LocationID.Trim()} 등록 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            Md.UpdateLocation(_sel.LocationID, NE(_f.LocationName), NE(_f.ZoneCode),
+                NE(_f.Aisle), NE(_f.Bay), NE(_f.Slot),
+                _f.Capacity, NE(_f.LocationType), NE(_f.PlantID), _f.ActiveFlag, _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{_sel.LocationID} 수정 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            var name = _sel.LocationName ?? _sel.LocationID;
+            Md.DeleteLocation(_sel.LocationID);
+            CloseModal(); Reload();
+            ShowMsg($"{name} 삭제 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    class FormModel
+    {
+        public string   LocationID   { get; set; } = "";
+        public string   LocationName { get; set; } = "";
+        public string   ZoneCode     { get; set; } = "";
+        public string   Aisle        { get; set; } = "";
+        public string   Bay          { get; set; } = "";
+        public string   Slot         { get; set; } = "";
+        public decimal? Capacity     { get; set; }
+        public string   LocationType { get; set; } = "";
+        public string   PlantID      { get; set; } = "";
+        public bool     ActiveFlag   { get; set; } = true;
+    }
+}

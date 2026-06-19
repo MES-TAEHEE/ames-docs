@@ -1,12 +1,13 @@
 @page "/mnt/equipment-card"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MntRepository Mnt
 
-<PageTitle>MNT-01 Equipment Card · AMES</PageTitle>
+<PageTitle>MNT-01 설비 카드 · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MNT-01</div>
-    <div class="ames-page-t">Equipment Card</div>
+    <div class="ames-page-t">설비 카드</div>
     <div class="ames-page-sub">설비별 실시간 상태 카드</div>
 </div>
 
@@ -34,44 +35,73 @@
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">Equipment list — @_rows.Count units</div>
-    <table class="ames-table">
-        <thead>
-            <tr>
-                <th>Equip</th><th>Name</th><th>Line</th><th>Type</th>
-                <th>Status</th><th class="num">OEE</th><th class="num">Runtime h</th>
-                <th class="num">Cycles</th><th>Next PM</th><th>Open WO</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var e in _rows)
-            {
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 설비 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:120px;padding:4px 8px;"
+                   placeholder="라인 검색" @bind="_fLine" autocomplete="off" />
+            <input class="ames-input" style="width:120px;padding:4px 8px;"
+                   placeholder="설비명 검색" @bind="_fName" autocomplete="off" />
+            <button class="ames-btn ok" @onclick="Reload">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">해당 조건에 설비 데이터가 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
                 <tr>
-                    <td class="code">@e.EquipId</td>
-                    <td>@(e.EquipName ?? "—")</td>
-                    <td class="dim">@(e.LineId ?? "—")</td>
-                    <td class="dim">@(e.EquipType ?? "—")</td>
-                    <td><span class="pill @StatusClass(e.Status)">@(e.Status ?? "—")</span></td>
-                    <td class="num">@(e.TodayOee?.ToString("0.0") ?? "—")</td>
-                    <td class="num">@(e.RuntimeHours?.ToString("0") ?? "—")</td>
-                    <td class="num">@(e.CycleCount?.ToString("N0") ?? "—")</td>
-                    <td class="dim">@(e.NextPmDate?.ToString("MM-dd") ?? "—")</td>
-                    <td class="dim">@(e.OpenWoId?.ToString() ?? "—")</td>
+                    <th>Equip</th><th>Name</th><th>Line</th><th>Type</th>
+                    <th>Status</th><th class="num">OEE</th><th class="num">Runtime h</th>
+                    <th class="num">Cycles</th><th>Next PM</th><th>Open WO</th>
                 </tr>
-            }
-        </tbody>
-    </table>
-    @if (_rows.Count == 0) { <div class="ames-empty">No equipment rows.</div> }
+            </thead>
+            <tbody>
+                @foreach (var e in _rows)
+                {
+                    <tr>
+                        <td class="code">@e.EquipId</td>
+                        <td>@(e.EquipName ?? "—")</td>
+                        <td class="dim">@(e.LineId ?? "—")</td>
+                        <td class="dim">@(e.EquipType ?? "—")</td>
+                        <td><span class="pill @StatusClass(e.Status)">@(e.Status ?? "—")</span></td>
+                        <td class="num">@(e.TodayOee?.ToString("0.0") ?? "—")</td>
+                        <td class="num">@(e.RuntimeHours?.ToString("0") ?? "—")</td>
+                        <td class="num">@(e.CycleCount?.ToString("N0") ?? "—")</td>
+                        <td class="dim">@(e.NextPmDate?.ToString("MM-dd") ?? "—")</td>
+                        <td class="dim">@(e.OpenWoId?.ToString() ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 </div>
 
 @code {
-    List<AMES.Data.Repositories.MntRepository.EquipCardRow> _rows = new();
-    int _running, _idle, _down;
+    List<AMES.Data.Repositories.MntRepository.EquipCardRow> _allRows = new();
+    List<AMES.Data.Repositories.MntRepository.EquipCardRow> _rows    = new();
+    int     _running, _idle, _down;
     decimal _avgOee;
+    string  _fLine = "", _fName = "";
 
-    protected override void OnInitialized()
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
     {
-        try { _rows = Mnt.ListEquipment(); } catch { }
+        try { _allRows = Mnt.ListEquipment(string.IsNullOrWhiteSpace(_fLine) ? null : _fLine); }
+        catch { _allRows = new(); }
+        ApplyFilter();
+    }
+
+    void ApplyFilter()
+    {
+        _rows = string.IsNullOrWhiteSpace(_fName)
+            ? _allRows
+            : _allRows.Where(r => (r.EquipName ?? "").Contains(_fName, StringComparison.OrdinalIgnoreCase)).ToList();
         _running = _rows.Count(r => r.Status is "RUN" or "RUNNING" or "OPERATING");
         _idle    = _rows.Count(r => r.Status is "IDLE" or "SETUP" or "READY");
         _down    = _rows.Count(r => r.Status is "DOWN" or "STOP" or "FAULT");

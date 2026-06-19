@@ -1,18 +1,19 @@
 @page "/mnt/downtime"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MntRepository Mnt
 
-<PageTitle>MNT-06 Downtime Log · AMES</PageTitle>
+<PageTitle>MNT-06 비가동 이력 · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MNT-06</div>
-    <div class="ames-page-t">Downtime Log</div>
-    <div class="ames-page-sub">라인 다운타임 이벤트 — 최근 7일</div>
+    <div class="ames-page-t">비가동 이력</div>
+    <div class="ames-page-sub">라인 다운타임 이벤트 조회</div>
 </div>
 
 <div class="ames-kpis">
     <div class="ames-kpi"><div class="ames-kpi-l">EVENTS</div>
-        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">last 7d</div></div>
+        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">filtered</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">TOTAL MIN</div>
         <div class="ames-kpi-v">@_totMin.ToString("N0")</div><div class="ames-kpi-s">minutes lost</div></div>
     <div class="ames-kpi warn"><div class="ames-kpi-l">AVG MIN/EV</div>
@@ -22,41 +23,75 @@
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">Downtime events</div>
-    <table class="ames-table">
-        <thead>
-            <tr>
-                <th>DT #</th><th>Line</th><th>Start</th><th>End</th>
-                <th class="num">Min</th><th>Reason</th><th>Cause</th><th>Comment</th><th>WO</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var d in _rows)
-            {
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 비가동 이벤트 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:110px;padding:4px 8px;"
+                   placeholder="라인 검색" @bind="_fLine" autocomplete="off" />
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">조회 기간</label>
+            <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_daysBack">
+                <option value="7">7일</option>
+                <option value="14">14일</option>
+                <option value="30">30일</option>
+                <option value="60">60일</option>
+            </select>
+            <button class="ames-btn ok" @onclick="Reload">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">해당 기간에 비가동 데이터가 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
                 <tr>
-                    <td class="code">@d.DowntimeId</td>
-                    <td>@(d.LineId ?? "—")</td>
-                    <td class="dim">@(d.StartTs?.ToString("MM-dd HH:mm") ?? "—")</td>
-                    <td class="dim">@(d.EndTs?.ToString("MM-dd HH:mm") ?? "—")</td>
-                    <td class="num">@(d.DurationMin?.ToString() ?? "—")</td>
-                    <td><span class="pill info">@(d.ReasonCode ?? "—")</span></td>
-                    <td class="dim">@(d.CauseCode ?? "—")</td>
-                    <td class="dim">@(d.Comment ?? "—")</td>
-                    <td class="dim">@(d.WoId?.ToString() ?? "—")</td>
+                    <th>DT #</th><th>Line</th><th>Start</th><th>End</th>
+                    <th class="num">Min</th><th>Reason</th><th>Cause</th><th>Comment</th><th>WO</th>
                 </tr>
-            }
-        </tbody>
-    </table>
-    @if (_rows.Count == 0) { <div class="ames-empty">No downtime events.</div> }
+            </thead>
+            <tbody>
+                @foreach (var d in _rows)
+                {
+                    <tr>
+                        <td class="code">@d.DowntimeId</td>
+                        <td>@(d.LineId ?? "—")</td>
+                        <td class="dim">@(d.StartTs?.ToString("MM-dd HH:mm") ?? "—")</td>
+                        <td class="dim">@(d.EndTs?.ToString("MM-dd HH:mm") ?? "—")</td>
+                        <td class="num">@(d.DurationMin?.ToString() ?? "—")</td>
+                        <td><span class="pill info">@(d.ReasonCode ?? "—")</span></td>
+                        <td class="dim">@(d.CauseCode ?? "—")</td>
+                        <td class="dim">@(d.Comment ?? "—")</td>
+                        <td class="dim">@(d.WoId?.ToString() ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 </div>
 
 @code {
-    List<AMES.Data.Repositories.MntRepository.DowntimeRow> _rows = new();
-    int _totMin, _avgMin, _open;
+    List<AMES.Data.Repositories.MntRepository.DowntimeRow> _allRows = new();
+    List<AMES.Data.Repositories.MntRepository.DowntimeRow> _rows    = new();
+    int    _totMin, _avgMin, _open;
+    int    _daysBack = 7;
+    string _fLine    = "";
 
-    protected override void OnInitialized()
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
     {
-        try { _rows = Mnt.ListDowntime(); } catch { }
+        try { _allRows = Mnt.ListDowntime(_daysBack); } catch { _allRows = new(); }
+        ApplyFilter();
+    }
+
+    void ApplyFilter()
+    {
+        _rows = string.IsNullOrWhiteSpace(_fLine)
+            ? _allRows
+            : _allRows.Where(r => (r.LineId ?? "").Contains(_fLine, StringComparison.OrdinalIgnoreCase)).ToList();
         _totMin = _rows.Sum(r => r.DurationMin ?? 0);
         _avgMin = _rows.Count > 0 ? _totMin / _rows.Count : 0;
         _open   = _rows.Count(r => r.EndTs is null);

@@ -1,74 +1,782 @@
 @page "/sys/calendar"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
+@inject AuthenticationStateProvider Auth
 
-<PageTitle>SYS-03 Factory Calendar · AMES</PageTitle>
+<PageTitle>SYS-005 공장 캘린더 · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">SYS-03</div>
-    <div class="ames-page-t">Factory Calendar</div>
-    <div class="ames-page-sub">교대 인스턴스 (-7d / +30d)</div>
+    <div class="ames-page-id">SYS-005</div>
+    <div class="ames-page-t">공장 캘린더</div>
+    <div class="ames-page-sub">공장 달력 — 교대 × 일자 관리</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">DAYS</div>
-        <div class="ames-kpi-v">@_days</div><div class="ames-kpi-s">distinct calendar dates</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">WORKDAYS</div>
-        <div class="ames-kpi-v">@_work</div><div class="ames-kpi-s">production days</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">WEEKENDS</div>
-        <div class="ames-kpi-v">@_wknd</div><div class="ames-kpi-s">closed</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">HOLIDAYS</div>
-        <div class="ames-kpi-v">@_hol</div><div class="ames-kpi-s">in window</div></div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">일수</div>
+        <div class="ames-kpi-v">@_days</div>
+        <div class="ames-kpi-s">조회 기간 내</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">작업일</div>
+        <div class="ames-kpi-v">@_work</div>
+        <div class="ames-kpi-s">생산일</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">주말</div>
+        <div class="ames-kpi-v">@_wknd</div>
+        <div class="ames-kpi-s">주말</div>
+    </div>
+    <div class="ames-kpi bad">
+        <div class="ames-kpi-l">공휴일</div>
+        <div class="ames-kpi-v">@_hol</div>
+        <div class="ames-kpi-s">공휴일</div>
+    </div>
 </div>
 
-<div class="ames-card">
-    <div class="ames-card-h">Calendar entries · @_rows.Count rows</div>
-    <table class="ames-table">
-        <thead>
-            <tr>
-                <th>Date</th><th>Day type</th><th>Holiday</th>
-                <th>Shift</th><th>Start</th><th>End</th>
-                <th class="num">Break</th><th class="num">Net h</th><th>Plant</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var c in _rows)
-            {
-                <tr>
-                    <td class="dim">@(c.CalendarDate?.ToString("MM-dd ddd") ?? "—")</td>
-                    <td>
-                        @switch (c.DayType)
-                        {
-                            case "WORKDAY": <span class="pill ok">WORKDAY</span> break;
-                            case "WEEKEND": <span class="pill warn">WEEKEND</span> break;
-                            case "HOLIDAY": <span class="pill bad">HOLIDAY</span> break;
-                            default:        <span class="pill info">@(c.DayType ?? "—")</span> break;
-                        }
-                    </td>
-                    <td class="dim">@(c.HolidayName ?? "—")</td>
-                    <td class="code">@(c.ShiftCode ?? "—")</td>
-                    <td class="dim">@(c.StartTime?.ToString(@"hh\:mm") ?? "—")</td>
-                    <td class="dim">@(c.EndTime?.ToString(@"hh\:mm") ?? "—")</td>
-                    <td class="num">@(c.BreakMinutes?.ToString() ?? "—")</td>
-                    <td class="num">@(c.NetWorkHours?.ToString("0.0") ?? "—")</td>
-                    <td class="dim">@(c.Plant ?? "—")</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-    @if (_rows.Count == 0) { <div class="ames-empty">No calendar entries.</div> }
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
+@* ── Tab bar ──────────────────────────────────────────────────────── *@
+<div class="ames-cal-tabs">
+    <button class="ames-cal-tab @(_view == "list" ? "active" : "")" @onclick='() => SwitchView("list")'>
+        ≡ 목록
+    </button>
+    <button class="ames-cal-tab @(_view == "calendar" ? "active" : "")" @onclick='() => SwitchView("calendar")'>
+        ▦ 달력
+    </button>
+    <div style="flex:1;"></div>
+    <button class="ames-btn ok" @onclick="Reload" style="align-self:center;">조회</button>
+    <button class="ames-btn ok" @onclick="OpenCreate" style="align-self:center;">+ 일정 생성</button>
 </div>
+
+@* ══════════════════════════════════════════════════════════════════ *@
+@* ── LIST VIEW ────────────────────────────────────────────────────── *@
+@* ══════════════════════════════════════════════════════════════════ *@
+@if (_view == "list")
+{
+    <div class="ames-card">
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <span>▼ CALENDAR · @_byDay.Count 일</span>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <input type="date" class="ames-input" style="width:150px"
+                       value="@_filterFrom.ToString("yyyy-MM-dd")"
+                       @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) _filterFrom = d; }" />
+                <span class="dim">~</span>
+                <input type="date" class="ames-input" style="width:150px"
+                       value="@_filterTo.ToString("yyyy-MM-dd")"
+                       @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) _filterTo = d; }" />
+                <button class="ames-btn" @onclick="Load">조회</button>
+            </div>
+        </div>
+
+        @if (_byDay.Count == 0)
+        {
+            <div class="ames-empty">조회 기간 내 데이터가 없습니다. '일정 생성'으로 추가하세요.</div>
+        }
+        else
+        {
+            <table class="ames-table">
+                <thead>
+                    <tr>
+                        <th>날짜</th>
+                        <th>구분</th>
+                        <th>공휴일명</th>
+                        <th class="num">Sh-A</th>
+                        <th class="num">Sh-B</th>
+                        <th class="num">Sh-C</th>
+                        <th>Plant</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var grp in _byDay)
+                    {
+                        var sample   = grp.Value.First();
+                        var hasA     = grp.Value.Any(r => r.ShiftCode == "A");
+                        var hasB     = grp.Value.Any(r => r.ShiftCode == "B");
+                        var hasC     = grp.Value.Any(r => r.ShiftCode == "C");
+                        var dateKey  = grp.Key;
+                        var shiftsCp = grp.Value;
+                        <tr class="ames-row-link" @onclick="() => OpenEdit(dateKey, shiftsCp)">
+                            <td class="code">@(dateKey.ToString("yyyy-MM-dd ddd"))</td>
+                            <td>@DayTypePill(sample.DayType)</td>
+                            <td class="dim">@(sample.HolidayName ?? "—")</td>
+                            <td class="num"><input type="checkbox" disabled checked="@hasA" style="accent-color:#34d399;" /></td>
+                            <td class="num"><input type="checkbox" disabled checked="@hasB" style="accent-color:#60a5fa;" /></td>
+                            <td class="num"><input type="checkbox" disabled checked="@hasC" style="accent-color:#f472b6;" /></td>
+                            <td class="dim">@(sample.Plant ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+}
+
+@* ══════════════════════════════════════════════════════════════════ *@
+@* ── CALENDAR VIEW ────────────────────────────────────────────────── *@
+@* ══════════════════════════════════════════════════════════════════ *@
+@if (_view == "calendar")
+{
+    <div class="ames-card">
+        @* Month navigation *@
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <button class="ames-btn" style="padding:6px 14px;" @onclick="PrevMonth">‹</button>
+                <span style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fff;">
+                    @(_calYear)년 @(_calMonth.ToString("D2"))월
+                </span>
+                <button class="ames-btn" style="padding:6px 14px;" @onclick="NextMonth">›</button>
+            </div>
+            <button class="ames-btn" style="padding:6px 14px;" @onclick="GoToday">오늘</button>
+        </div>
+
+        @{
+            var firstOfMonth = new DateTime(_calYear, _calMonth, 1);
+            var daysInMonth  = DateTime.DaysInMonth(_calYear, _calMonth);
+            int startOffset  = (int)firstOfMonth.DayOfWeek; // 0=Sun
+            int totalCells   = startOffset + daysInMonth;
+            int rows         = (int)Math.Ceiling(totalCells / 7.0);
+        }
+
+        @* Day-of-week header *@
+        <div class="ames-cal-grid">
+            @foreach (var (label, cls) in new[] { ("일","sun"),("월",""),("화",""),("수",""),("목",""),("금",""),("토","sat") })
+            {
+                <div class="ames-cal-head @cls">@label</div>
+            }
+
+            @* Day cells *@
+            @for (int cell = 0; cell < rows * 7; cell++)
+            {
+                int dayNum = cell - startOffset + 1;
+                if (dayNum < 1 || dayNum > daysInMonth)
+                {
+                    <div class="ames-cal-cell ames-cal-cell--empty"></div>
+                }
+                else
+                {
+                    var date     = new DateTime(_calYear, _calMonth, dayNum);
+                    bool hasData = _byDay.TryGetValue(date.Date, out var ds);
+                    var  sample  = ds?.FirstOrDefault();
+                    int  dow     = (int)date.DayOfWeek;   // 0=Sun, 6=Sat
+                    bool isSun   = dow == 0;
+                    bool isSat   = dow == 6;
+                    bool isToday = date.Date == DateTime.Today;
+                    bool hasA    = ds?.Any(r => r.ShiftCode == "A") ?? false;
+                    bool hasB    = ds?.Any(r => r.ShiftCode == "B") ?? false;
+                    bool hasC    = ds?.Any(r => r.ShiftCode == "C") ?? false;
+
+                    var capDate   = date;
+                    var capShifts = ds;
+
+                    string cellCls = "ames-cal-cell";
+                    if (isToday) cellCls += " ames-cal-cell--today";
+                    if (hasData) cellCls += " ames-cal-cell--data";
+                    if (sample?.DayType == "HOLIDAY")                        cellCls += " ames-cal-cell--holiday";
+                    else if (sample?.DayType == "WEEKEND" || isSat || isSun) cellCls += " ames-cal-cell--weekend";
+
+                    <div class="@cellCls" style="cursor:pointer;"
+                         @onclick="() => OpenEdit(capDate, capShifts)">
+
+                        <div class="ames-cal-daynum @(isSun ? "sun" : isSat ? "sat" : "")">
+                            @dayNum
+                            @if (isToday) { <span class="ames-cal-today-dot"></span> }
+                        </div>
+
+                        @if (sample is not null)
+                        {
+                            @if (sample.DayType == "HOLIDAY")
+                            {
+                                <div class="ames-cal-badge ames-cal-badge--holiday">공휴일</div>
+                                @if (!string.IsNullOrWhiteSpace(sample.HolidayName))
+                                {
+                                    <div class="ames-cal-hname">@sample.HolidayName</div>
+                                }
+                            }
+                            else if (sample.DayType == "WEEKEND")
+                            {
+                                <div class="ames-cal-badge ames-cal-badge--weekend">주말</div>
+                            }
+                        }
+
+                        @if (hasData)
+                        {
+                            <div class="ames-cal-shifts">
+                                <span class="ames-cal-sh @(hasA ? "sh-a" : "sh-off")">A</span>
+                                <span class="ames-cal-sh @(hasB ? "sh-b" : "sh-off")">B</span>
+                                <span class="ames-cal-sh @(hasC ? "sh-c" : "sh-off")">C</span>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+        </div>
+
+        @* Legend *@
+        <div class="ames-cal-legend">
+            <span class="ames-cal-sh sh-a">A</span> A교대
+            <span class="ames-cal-sh sh-b" style="margin-left:10px;">B</span> B교대
+            <span class="ames-cal-sh sh-c" style="margin-left:10px;">C</span> C교대
+            <span class="pill ok"  style="margin-left:16px;">작업일</span>
+            <span class="pill warn">주말</span>
+            <span class="pill bad">공휴일</span>
+        </div>
+    </div>
+}
+
+@* ── Generate Modal ───────────────────────────────────────────────── *@
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" style="max-width:780px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">일정 자동 생성</div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div>
+                    <label>시작일 *</label>
+                    <input type="date" class="ames-input"
+                           value="@_genFrom.ToString("yyyy-MM-dd")"
+                           @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) _genFrom = d; }" />
+                </div>
+                <div>
+                    <label>종료일 *</label>
+                    <input type="date" class="ames-input"
+                           value="@_genTo.ToString("yyyy-MM-dd")"
+                           @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) _genTo = d; }" />
+                </div>
+            </div>
+
+            <label style="margin-top:8px;">Plant</label>
+            <input class="ames-input" @bind="_genPlant" placeholder="예: SAV, TCS" autocomplete="off" />
+
+            <div style="margin-top:12px;font-size:.84em;font-weight:600;color:#94a3b8;letter-spacing:.05em;">교대 설정</div>
+            <table class="ames-table" style="margin-top:4px;">
+                <thead>
+                    <tr>
+                        <th style="width:44px;">활성</th>
+                        <th style="width:56px;">코드</th>
+                        <th style="width:130px;">시작</th>
+                        <th style="width:130px;">종료</th>
+                        <th style="width:90px;">휴식(분)</th>
+                        <th style="width:80px;">순작업h</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int gi = 0; gi < _genShifts.Length; gi++)
+                    {
+                        var i = gi;
+                        <tr>
+                            <td><input type="checkbox" @bind="_genShifts[i].Active" style="accent-color:#60a5fa;" /></td>
+                            <td class="code">@_genShifts[i].Code</td>
+                            <td>
+                                <input type="time" class="ames-input"
+                                       value="@_genShifts[i].Start"
+                                       @onchange="e => _genShifts[i].Start = e.Value?.ToString() ?? _genShifts[i].Start"
+                                       disabled="@(!_genShifts[i].Active)" />
+                            </td>
+                            <td>
+                                <input type="time" class="ames-input"
+                                       value="@_genShifts[i].End"
+                                       @onchange="e => _genShifts[i].End = e.Value?.ToString() ?? _genShifts[i].End"
+                                       disabled="@(!_genShifts[i].Active)" />
+                            </td>
+                            <td>
+                                <input type="number" class="ames-input" min="0" max="120"
+                                       value="@_genShifts[i].BreakMin"
+                                       @onchange="e => { if (int.TryParse(e.Value?.ToString(), out int b)) _genShifts[i].BreakMin = b; }"
+                                       disabled="@(!_genShifts[i].Active)" />
+                            </td>
+                            <td class="num dim">
+                                @(_genShifts[i].Active ? CalcNet(_genShifts[i].Start, _genShifts[i].End, _genShifts[i].BreakMin).ToString("0.0") : "—")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div style="margin-top:14px;">
+                <label class="ames-line-item" style="flex-direction:row;gap:8px;">
+                    <input type="checkbox" @bind="_genSkipExisting" style="accent-color:#60a5fa;width:14px;height:14px;" />
+                    <span>기존 데이터 있으면 건너뜀</span>
+                </label>
+            </div>
+
+            <div style="margin-top:10px;font-size:.84em;font-weight:600;color:#94a3b8;letter-spacing:.05em;">
+                공휴일 <span class="dim" style="font-weight:400;">(등록된 날짜는 HOLIDAY로 자동 분류)</span>
+                <button class="ames-btn" style="font-size:.78em;padding:2px 8px;margin-left:8px;" @onclick="AddHoliday">+ 추가</button>
+            </div>
+            @if (_genHolidays.Count > 0)
+            {
+                <table class="ames-table" style="margin-top:4px;">
+                    <thead><tr><th>날짜</th><th>공휴일명</th><th style="width:32px;"></th></tr></thead>
+                    <tbody>
+                        @for (int hi = 0; hi < _genHolidays.Count; hi++)
+                        {
+                            var hidx = hi;
+                            <tr>
+                                <td>
+                                    <input type="date" class="ames-input"
+                                           value="@_genHolidays[hidx].Date"
+                                           @onchange="e => _genHolidays[hidx].Date = e.Value?.ToString() ?? _genHolidays[hidx].Date" />
+                                </td>
+                                <td>
+                                    <input class="ames-input" placeholder="예: 창립기념일"
+                                           value="@_genHolidays[hidx].Name"
+                                           @onchange="e => _genHolidays[hidx].Name = e.Value?.ToString() ?? _genHolidays[hidx].Name"
+                                           autocomplete="off" />
+                                </td>
+                                <td>
+                                    <button class="ames-btn bad" style="padding:2px 6px;"
+                                            @onclick="() => _genHolidays.RemoveAt(hidx)">×</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="Generate" disabled="@_busy">
+                    @(_busy ? "생성 중…" : "생성")
+                </button>
+                <button class="ames-btn" @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Edit Modal ───────────────────────────────────────────────────── *@
+@if (_modal == "edit" && _selDate.HasValue)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" style="max-width:780px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">
+                @_selDate.Value.ToString("yyyy-MM-dd ddd")
+                <span class="dim" style="font-weight:400;font-size:.85em;margin-left:8px;">일정 수정</span>
+            </div>
+
+            <div style="display:flex;gap:8px;align-items:flex-end;">
+                <div style="flex:0 0 180px;">
+                    <label>구분 *</label>
+                    <select class="ames-input"
+                            value="@_editDayType"
+                            @onchange="e => _editDayType = e.Value?.ToString() ?? _editDayType">
+                        <option value="WORKDAY">WORKDAY</option>
+                        <option value="WEEKEND">WEEKEND</option>
+                        <option value="HOLIDAY">HOLIDAY</option>
+                    </select>
+                </div>
+                @if (_editDayType == "HOLIDAY")
+                {
+                    <div style="flex:1;">
+                        <label>공휴일명</label>
+                        <input class="ames-input" @bind="_editHolidayName" autocomplete="off"
+                               placeholder="공휴일명 입력" />
+                    </div>
+                }
+            </div>
+
+            <div style="margin-top:12px;font-size:.84em;font-weight:600;color:#94a3b8;letter-spacing:.05em;">
+                교대 설정
+                <span class="dim" style="font-weight:400;margin-left:8px;">미선택 시 휴무(ShiftCode NULL)로 저장</span>
+            </div>
+            <table class="ames-table" style="margin-top:4px;">
+                <thead>
+                    <tr>
+                        <th style="width:44px;">활성</th>
+                        <th style="width:56px;">코드</th>
+                        <th style="width:130px;">시작</th>
+                        <th style="width:130px;">종료</th>
+                        <th style="width:90px;">휴식(분)</th>
+                        <th style="width:80px;">순작업h</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int ei = 0; ei < _editShifts.Length; ei++)
+                    {
+                        var i = ei;
+                        var timeDis = !_editShifts[i].Active;
+                        <tr>
+                            <td><input type="checkbox" @bind="_editShifts[i].Active" style="accent-color:#60a5fa;" /></td>
+                            <td class="code">@_editShifts[i].Code</td>
+                            <td>
+                                <input type="time" class="ames-input"
+                                       value="@_editShifts[i].Start"
+                                       @onchange="e => _editShifts[i].Start = e.Value?.ToString() ?? _editShifts[i].Start"
+                                       disabled="@timeDis" />
+                            </td>
+                            <td>
+                                <input type="time" class="ames-input"
+                                       value="@_editShifts[i].End"
+                                       @onchange="e => _editShifts[i].End = e.Value?.ToString() ?? _editShifts[i].End"
+                                       disabled="@timeDis" />
+                            </td>
+                            <td>
+                                <input type="number" class="ames-input" min="0" max="120"
+                                       value="@_editShifts[i].BreakMin"
+                                       @onchange="e => { if (int.TryParse(e.Value?.ToString(), out int b)) _editShifts[i].BreakMin = b; }"
+                                       disabled="@timeDis" />
+                            </td>
+                            <td class="num dim">
+                                @(timeDis ? "—" : CalcNet(_editShifts[i].Start, _editShifts[i].End, _editShifts[i].BreakMin).ToString("0.0"))
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>@_selDate.Value.ToString("yyyy-MM-dd") 의 모든 교대 데이터를 삭제합니까?</span>
+                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">
+                        @(_busy ? "삭제 중…" : "예, 삭제")
+                    </button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveEdit" disabled="@_busy">
+                    @(_busy ? "저장 중…" : "수정")
+                </button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
+                <button class="ames-btn" @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
+    // ── State ────────────────────────────────────────────────────────────
     List<AMES.Data.Repositories.SysRepository.CalendarRow> _rows = new();
+    Dictionary<DateTime, List<AMES.Data.Repositories.SysRepository.CalendarRow>> _byDay = new();
     int _days, _work, _wknd, _hol;
-    protected override void OnInitialized()
+
+    string   _view       = "list";
+    DateTime _filterFrom = DateTime.Today.AddDays(-14);
+    DateTime _filterTo   = DateTime.Today.AddDays(60);
+    int      _calYear    = DateTime.Today.Year;
+    int      _calMonth   = DateTime.Today.Month;
+
+    string _modal = "";
+    bool   _busy, _confirmDelete, _bgMouseDownOnSelf, _isErr;
+    string _msg = "", _modalErr = "";
+    string _actor = "system";
+
+    // ── Edit form ────────────────────────────────────────────────────────
+    DateTime?  _selDate;
+    string     _selPlant        = "";
+    string     _editDayType     = "WORKDAY";
+    string     _editHolidayName = "";
+    ShiftRow[] _editShifts      = Array.Empty<ShiftRow>();
+
+    // ── Generate form ────────────────────────────────────────────────────
+    DateTime      _genFrom         = DateTime.Today;
+    DateTime      _genTo           = DateTime.Today.AddMonths(1).AddDays(-1);
+    string        _genPlant        = "";
+    bool          _genSkipExisting = true;
+    ShiftGenRow[] _genShifts       = new[]
     {
-        try { _rows = Sys.ListCalendar(); } catch { }
-        var byDay = _rows.GroupBy(r => r.CalendarDate);
-        _days = byDay.Count();
-        _work = byDay.Count(g => g.Any(x => x.DayType == "WORKDAY"));
-        _wknd = byDay.Count(g => g.All(x => x.DayType == "WEEKEND"));
-        _hol  = byDay.Count(g => g.All(x => x.DayType == "HOLIDAY"));
+        new ShiftGenRow("A", true,  "08:00", "16:00", 60),
+        new ShiftGenRow("B", true,  "16:00", "00:00", 60),
+        new ShiftGenRow("C", false, "00:00", "08:00", 60),
+    };
+    List<HolidayEntry> _genHolidays = new();
+
+    // ── Init ─────────────────────────────────────────────────────────────
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        Reload();
     }
+
+    void Reload()
+    {
+        try { _rows = Sys.ListCalendarRange(_filterFrom, _filterTo); } catch { _rows = new(); }
+        _byDay = _rows
+            .Where(r => r.CalendarDate.HasValue)
+            .GroupBy(r => r.CalendarDate!.Value.Date)
+            .OrderBy(g => g.Key)
+            .ToDictionary(g => g.Key, g => g.ToList());
+        _days = _byDay.Count;
+        _work = _byDay.Count(g => g.Value.Any(x => x.DayType == "WORKDAY"));
+        _wknd = _byDay.Count(g => g.Value.All(x => x.DayType == "WEEKEND"));
+        _hol  = _byDay.Count(g => g.Value.Any(x => x.DayType == "HOLIDAY"));
+    }
+
+    void Load() => Reload();
+
+    // ── View switching ────────────────────────────────────────────────────
+    void SwitchView(string view)
+    {
+        _view = view;
+        if (view == "calendar") LoadCalendarMonth();
+    }
+
+    void PrevMonth()
+    {
+        var d = new DateTime(_calYear, _calMonth, 1).AddMonths(-1);
+        _calYear = d.Year; _calMonth = d.Month;
+        LoadCalendarMonth();
+    }
+
+    void NextMonth()
+    {
+        var d = new DateTime(_calYear, _calMonth, 1).AddMonths(1);
+        _calYear = d.Year; _calMonth = d.Month;
+        LoadCalendarMonth();
+    }
+
+    void GoToday()
+    {
+        _calYear = DateTime.Today.Year; _calMonth = DateTime.Today.Month;
+        LoadCalendarMonth();
+    }
+
+    void LoadCalendarMonth()
+    {
+        _filterFrom = new DateTime(_calYear, _calMonth, 1);
+        _filterTo   = _filterFrom.AddMonths(1).AddDays(-1);
+        Reload();
+    }
+
+    // ── Modal ─────────────────────────────────────────────────────────────
+    void OpenCreate()
+    {
+        _modalErr = ""; _confirmDelete = false;
+        _genHolidays.Clear();
+        _modal = "create";
+    }
+
+    void OpenEdit(DateTime date, List<AMES.Data.Repositories.SysRepository.CalendarRow>? shifts)
+    {
+        shifts ??= new();
+        _selDate         = date;
+        _selPlant        = shifts.FirstOrDefault()?.Plant ?? "";
+        _editDayType     = shifts.FirstOrDefault()?.DayType
+                           ?? (date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday ? "WEEKEND" : "WORKDAY");
+        _editHolidayName = shifts.FirstOrDefault()?.HolidayName ?? "";
+        _editShifts = new[]
+        {
+            MakeShiftRow("A", "08:00", "16:00", shifts),
+            MakeShiftRow("B", "16:00", "00:00", shifts),
+            MakeShiftRow("C", "00:00", "08:00", shifts),
+        };
+        _confirmDelete = false; _modalErr = "";
+        _modal = "edit";
+    }
+
+    void CloseModal()
+    {
+        _modal = ""; _selDate = null; _modalErr = ""; _confirmDelete = false;
+    }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick()
+    {
+        if (_bgMouseDownOnSelf) CloseModal();
+        _bgMouseDownOnSelf = false;
+    }
+
+    void AddHoliday() => _genHolidays.Add(new HolidayEntry());
+
+    // ── Generate ──────────────────────────────────────────────────────────
+    void Generate()
+    {
+        _modalErr = "";
+        if (_genFrom > _genTo) { _modalErr = "시작일이 종료일보다 늦습니다."; return; }
+        var active = _genShifts.Where(s => s.Active).ToList();
+
+        var holidays = _genHolidays
+            .Where(h => DateTime.TryParse(h.Date, out _) && !string.IsNullOrEmpty(h.Name))
+            .ToDictionary(h => DateTime.Parse(h.Date).Date, h => h.Name.Trim());
+
+        int inserted = 0;
+        _busy = true;
+        try
+        {
+            for (var d = _genFrom.Date; d <= _genTo.Date; d = d.AddDays(1))
+            {
+                if (_genSkipExisting && Sys.CalendarDateExists(d)) continue;
+
+                string dayType; string? holidayName = null;
+                if (d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+                    dayType = "WEEKEND";
+                else if (holidays.TryGetValue(d, out var hname))
+                { dayType = "HOLIDAY"; holidayName = hname; }
+                else
+                    dayType = "WORKDAY";
+
+                if (dayType is "HOLIDAY" or "WEEKEND")
+                {
+                    Sys.InsertCalendarShift(d, dayType, holidayName,
+                        null, null, null, null, null, null, d.Year, _genPlant, _actor);
+                    inserted++;
+                }
+                else if (active.Count > 0)
+                {
+                    foreach (var shift in active)
+                    {
+                        TimeSpan? start = TimeSpan.TryParse(shift.Start, out var ts) ? ts : null;
+                        TimeSpan? end   = TimeSpan.TryParse(shift.End,   out var te) ? te : null;
+                        decimal   net   = CalcNet(shift.Start, shift.End, shift.BreakMin);
+                        Sys.InsertCalendarShift(d, dayType, holidayName, active.Count,
+                            shift.Code, start, end, shift.BreakMin, net, d.Year, _genPlant, _actor);
+                        inserted++;
+                    }
+                }
+                else
+                {
+                    Sys.InsertCalendarShift(d, dayType, holidayName,
+                        null, null, null, null, null, null, d.Year, _genPlant, _actor);
+                    inserted++;
+                }
+            }
+            CloseModal(); Reload();
+            ShowMsg($"{inserted}개 행 생성 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    // ── Save Edit ─────────────────────────────────────────────────────────
+    void SaveEdit()
+    {
+        if (!_selDate.HasValue) return;
+        _modalErr = ""; _busy = true;
+        try
+        {
+            string? actualHoliday = _editDayType == "HOLIDAY"
+                ? (string.IsNullOrWhiteSpace(_editHolidayName) ? null : _editHolidayName.Trim())
+                : null;
+
+            Sys.DeleteCalendarDate(_selDate.Value);
+
+            var active = _editShifts.Where(s => s.Active).ToList();
+            if (active.Count > 0)
+            {
+                foreach (var shift in active)
+                {
+                    TimeSpan? start = TimeSpan.TryParse(shift.Start, out var ts) ? ts : null;
+                    TimeSpan? end   = TimeSpan.TryParse(shift.End,   out var te) ? te : null;
+                    decimal   net   = CalcNet(shift.Start, shift.End, shift.BreakMin);
+                    Sys.InsertCalendarShift(_selDate.Value, _editDayType, actualHoliday,
+                        active.Count, shift.Code, start, end, shift.BreakMin, net,
+                        _selDate.Value.Year, _selPlant, _actor);
+                }
+            }
+            else
+            {
+                Sys.InsertCalendarShift(_selDate.Value, _editDayType, actualHoliday,
+                    null, null, null, null, null, null,
+                    _selDate.Value.Year, _selPlant, _actor);
+            }
+            CloseModal(); Reload();
+            ShowMsg($"{_selDate.Value:yyyy-MM-dd} 일정 수정 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    // ── Save Delete ───────────────────────────────────────────────────────
+    void SaveDelete()
+    {
+        if (!_selDate.HasValue) return;
+        _busy = true;
+        try
+        {
+            Sys.DeleteCalendarDate(_selDate.Value);
+            var d = _selDate.Value;
+            CloseModal(); Reload();
+            ShowMsg($"{d:yyyy-MM-dd} 삭제 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────
+    static decimal CalcNet(string start, string end, int breakMin)
+    {
+        if (!TimeSpan.TryParse(start, out var s) || !TimeSpan.TryParse(end, out var e)) return 0m;
+        var diff = e - s;
+        if (diff < TimeSpan.Zero) diff += TimeSpan.FromHours(24);
+        return Math.Round((decimal)(diff.TotalHours - breakMin / 60.0), 1);
+    }
+
+    static ShiftRow MakeShiftRow(string code, string defStart, string defEnd,
+        List<AMES.Data.Repositories.SysRepository.CalendarRow> existing)
+    {
+        var found = existing.FirstOrDefault(r => r.ShiftCode == code);
+        return found is not null
+            ? new ShiftRow
+            {
+                Code = code, Active = true, ExistingId = found.FactoryCalendarId,
+                Start = found.StartTime?.ToString(@"hh\:mm") ?? defStart,
+                End   = found.EndTime?.ToString(@"hh\:mm")   ?? defEnd,
+                BreakMin = found.BreakMinutes ?? 30
+            }
+            : new ShiftRow { Code = code, Active = false, Start = defStart, End = defEnd, BreakMin = 60 };
+    }
+
+    static Microsoft.AspNetCore.Components.RenderFragment DayTypePill(string? dt) => builder =>
+    {
+        var (cls, text) = dt switch
+        {
+            "WORKDAY" => ("ok",   "WORKDAY"),
+            "WEEKEND" => ("warn", "WEEKEND"),
+            "HOLIDAY" => ("bad",  "HOLIDAY"),
+            _         => ("info", dt ?? "—")
+        };
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "class", $"pill {cls}");
+        builder.AddContent(2, text);
+        builder.CloseElement();
+    };
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    // ── Inner types ───────────────────────────────────────────────────────
+    class ShiftRow
+    {
+        public string Code       { get; set; } = "";
+        public bool   Active     { get; set; }
+        public int?   ExistingId { get; set; }
+        public string Start      { get; set; } = "08:00";
+        public string End        { get; set; } = "16:00";
+        public int    BreakMin   { get; set; } = 30;
+    }
+
+    class ShiftGenRow
+    {
+        public string Code     { get; set; }
+        public bool   Active   { get; set; }
+        public string Start    { get; set; }
+        public string End      { get; set; }
+        public int    BreakMin { get; set; }
+        public ShiftGenRow(string c, bool a, string s, string e, int b)
+        { Code = c; Active = a; Start = s; End = e; BreakMin = b; }
+    }
+
+    class HolidayEntry
+    {
+        public string Date { get; set; } = "";
+        public string Name { get; set; } = "";
+    }
+
 }

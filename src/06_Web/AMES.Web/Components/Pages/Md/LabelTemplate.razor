@@ -1,0 +1,107 @@
+@page "/md/label-template"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MasterDataRepository Md
+
+<PageTitle>MD-024 라벨 템플릿 관리 · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MD-024</div>
+    <div class="ames-page-t">라벨 템플릿 관리</div>
+    <div class="ames-page-sub">MD_LabelTemplate 마스터 — 라벨 유형·용지·바코드·프린터 모델 설정</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "ACTIVE")</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">라벨 유형 수</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.LabelType).Where(t => t != null).Distinct().Count()</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">고객사 지정</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.CustomerID != null)</div>
+    </div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 라벨 템플릿 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:150px;padding:4px 8px;"
+                   placeholder="템플릿ID / 템플릿명" @bind="_fSearch" autocomplete="off" />
+            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fType">
+                <option value="">유형 전체</option>
+                @foreach (var t in _allRows.Select(r => r.LabelType).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@t">@t</option>
+                }
+            </select>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">등록된 라벨 템플릿이 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>템플릿 ID</th><th>템플릿명</th><th>라벨 유형</th>
+                    <th>용지 크기</th><th>바코드 유형</th><th>고객사</th>
+                    <th class="num">버전</th><th>프린터 모델</th><th>상태</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr>
+                        <td class="code">@r.LabelTemplateID</td>
+                        <td>@(r.TemplateName ?? "—")</td>
+                        <td>@(r.LabelType ?? "—")</td>
+                        <td class="dim">@(r.PaperSize ?? "—")</td>
+                        <td class="dim">@(r.BarcodeType ?? "—")</td>
+                        <td class="dim">@(r.CustomerID ?? "—")</td>
+                        <td class="num">@(r.Version?.ToString() ?? "—")</td>
+                        <td class="dim">@(r.PrinterModel ?? "—")</td>
+                        <td><span class="pill @(r.Status == "ACTIVE" ? "ok" : "warn")">@(r.Status ?? "—")</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.MasterDataRepository.LabelTemplateRow> _allRows = new();
+    List<AMES.Data.Repositories.MasterDataRepository.LabelTemplateRow> _rows    = new();
+    string _fSearch = "", _fType = "";
+
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
+    {
+        try { _allRows = Md.ListLabelTemplates(); } catch { _allRows = new(); }
+        ApplyFilter();
+    }
+
+    void ApplyFilter()
+    {
+        _rows = _allRows;
+        if (!string.IsNullOrWhiteSpace(_fSearch))
+            _rows = _rows.Where(r =>
+                r.LabelTemplateID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+                (r.TemplateName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (!string.IsNullOrWhiteSpace(_fType))
+            _rows = _rows.Where(r => r.LabelType == _fType).ToList();
+    }
+}

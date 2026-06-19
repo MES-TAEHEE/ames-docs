@@ -1,0 +1,111 @@
+@page "/md/packaging-spec"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MasterDataRepository Md
+
+<PageTitle>MD-023 포장 사양 관리 · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MD-023</div>
+    <div class="ames-page-t">포장 사양 관리</div>
+    <div class="ames-page-sub">MD_PackagingSpec 마스터 — 품목별 포장 단위·중량·치수·라벨 템플릿 설정</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "ACTIVE")</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">반납용</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.ReturnableFlag)</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">포장 유형 수</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.PackType).Where(t => t != null).Distinct().Count()</div>
+    </div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 포장 사양 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:140px;padding:4px 8px;"
+                   placeholder="스펙ID / 품목ID" @bind="_fSearch" autocomplete="off" />
+            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fType">
+                <option value="">유형 전체</option>
+                @foreach (var t in _allRows.Select(r => r.PackType).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@t">@t</option>
+                }
+            </select>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">등록된 포장 사양이 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>스펙 ID</th><th>품목 ID</th><th>포장 유형</th>
+                    <th class="num">이너수량</th><th class="num">이너/아우터</th><th class="num">아우터/파레트</th>
+                    <th class="num">순중량(kg)</th><th class="num">총중량(kg)</th>
+                    <th>치수(LxWxH)</th><th>반납</th><th>라벨 템플릿</th><th>상태</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr>
+                        <td class="code">@r.PackSpecID</td>
+                        <td class="dim">@(r.ItemID ?? "—")</td>
+                        <td>@(r.PackType ?? "—")</td>
+                        <td class="num">@(r.QtyPerInner?.ToString() ?? "—")</td>
+                        <td class="num">@(r.InnerPerOuter?.ToString() ?? "—")</td>
+                        <td class="num">@(r.OuterPerPallet?.ToString() ?? "—")</td>
+                        <td class="num">@(r.NetWeightKg?.ToString("0.000") ?? "—")</td>
+                        <td class="num">@(r.GrossWeightKg?.ToString("0.000") ?? "—")</td>
+                        <td class="dim">@(r.DimLxWxH ?? "—")</td>
+                        <td>@(r.ReturnableFlag ? (MarkupString)"<span class=\"pill ok\">반납</span>" : (MarkupString)"")</td>
+                        <td class="dim">@(r.LabelTemplateID ?? "—")</td>
+                        <td><span class="pill @(r.Status == "ACTIVE" ? "ok" : "warn")">@(r.Status ?? "—")</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.MasterDataRepository.PackagingSpecRow> _allRows = new();
+    List<AMES.Data.Repositories.MasterDataRepository.PackagingSpecRow> _rows    = new();
+    string _fSearch = "", _fType = "";
+
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
+    {
+        try { _allRows = Md.ListPackagingSpecs(); } catch { _allRows = new(); }
+        ApplyFilter();
+    }
+
+    void ApplyFilter()
+    {
+        _rows = _allRows;
+        if (!string.IsNullOrWhiteSpace(_fSearch))
+            _rows = _rows.Where(r =>
+                r.PackSpecID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+                (r.ItemID ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (!string.IsNullOrWhiteSpace(_fType))
+            _rows = _rows.Where(r => r.PackType == _fType).ToList();
+    }
+}

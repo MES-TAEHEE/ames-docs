@@ -15,6 +15,7 @@ public static class MauiProgram
         "http://10.0.2.2:5210";
 #else
         "http://localhost:5210";
+        //"http://192.168.1.100:5210";
 #endif
 
     public static MauiApp CreateMauiApp()

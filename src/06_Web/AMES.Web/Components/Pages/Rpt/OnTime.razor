@@ -1,68 +1,96 @@
 @page "/rpt/on-time"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.RptRepository Rpt
 
-<PageTitle>RPT-04 On-Time Delivery · AMES</PageTitle>
+<PageTitle>RPT-04 납기 준수율 · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">RPT-04</div>
-    <div class="ames-page-t">On-Time Delivery</div>
-    <div class="ames-page-sub">납기 준수율 (OTD%) — 최근 30일</div>
+    <div class="ames-page-t">납기 준수율 (OTD)</div>
+    <div class="ames-page-sub">일별 On-Time Delivery % 분석</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">ORDERS</div>
+    <div class="ames-kpi"><div class="ames-kpi-l">총 주문</div>
         <div class="ames-kpi-v">@_total</div><div class="ames-kpi-s">total shipped</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">ON TIME</div>
-        <div class="ames-kpi-v">@_ok</div><div class="ames-kpi-s">delivered on schedule</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">LATE</div>
-        <div class="ames-kpi-v">@_late</div><div class="ames-kpi-s">missed promised date</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">납기 준수</div>
+        <div class="ames-kpi-v">@_ok</div><div class="ames-kpi-s">on schedule</div></div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">납기 지연</div>
+        <div class="ames-kpi-v">@_late</div><div class="ames-kpi-s">missed date</div></div>
     <div class="ames-kpi @(_pct >= 95 ? "ok" : _pct >= 85 ? "warn" : "bad")">
-        <div class="ames-kpi-l">OTD 30D</div>
+        <div class="ames-kpi-l">OTD%</div>
         <div class="ames-kpi-v">@_pct.ToString("0.0")%</div>
         <div class="ames-kpi-s">overall</div></div>
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">Daily OTD breakdown</div>
-    <table class="ames-table">
-        <thead>
-            <tr>
-                <th>Day</th><th class="num">Total</th>
-                <th class="num">On time</th><th class="num">Late</th>
-                <th class="num">OTD %</th><th>Trend</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var r in _rows)
-            {
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 일별 OTD · @_rows.Count 건</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">조회 기간</label>
+            <select class="ames-input" style="width:80px;padding:4px 8px;" @bind="_daysBack">
+                <option value="7">7일</option>
+                <option value="14">14일</option>
+                <option value="30">30일</option>
+                <option value="60">60일</option>
+                <option value="90">90일</option>
+            </select>
+            <button class="ames-btn ok" @onclick="Reload">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">해당 기간에 출하 데이터가 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
                 <tr>
-                    <td class="dim">@r.Day.ToString("MM-dd ddd")</td>
-                    <td class="num">@r.TotalOrders</td>
-                    <td class="num">@r.OnTime</td>
-                    <td class="num">@r.Late</td>
-                    <td class="num"><span class="pill @(r.OnTimePct >= 95 ? "ok" : r.OnTimePct >= 85 ? "warn" : "bad")">@r.OnTimePct.ToString("0.0")%</span></td>
-                    <td>
-                        <div style="background:rgba(134,239,172,.25);
-                                    border:1px solid rgba(134,239,172,.5);
-                                    height:14px;
-                                    width:@(r.OnTimePct.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture))%;
-                                    border-radius:4px;"></div>
-                    </td>
+                    <th>날짜</th><th class="num">총 주문</th>
+                    <th class="num">납기 준수</th><th class="num">납기 지연</th>
+                    <th class="num">OTD%</th><th>트렌드</th>
                 </tr>
-            }
-        </tbody>
-    </table>
-    @if (_rows.Count == 0) { <div class="ames-empty">No shipments to evaluate.</div> }
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr>
+                        <td class="dim">@r.Day.ToString("MM-dd (ddd)")</td>
+                        <td class="num">@r.TotalOrders</td>
+                        <td class="num">@r.OnTime</td>
+                        <td class="num">@r.Late</td>
+                        <td class="num">
+                            <span class="pill @(r.OnTimePct >= 95 ? "ok" : r.OnTimePct >= 85 ? "warn" : "bad")">
+                                @r.OnTimePct.ToString("0.0")%
+                            </span>
+                        </td>
+                        <td>
+                            <div style="background:rgba(134,239,172,.25);border:1px solid rgba(134,239,172,.5);
+                                        height:14px;border-radius:4px;
+                                        width:@(r.OnTimePct.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture))%;"></div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 </div>
 
 @code {
     List<AMES.Data.Repositories.RptRepository.OtdRow> _rows = new();
-    int _total, _ok, _late;
+
+    int     _daysBack = 30;
+    int     _total, _ok, _late;
     decimal _pct;
-    protected override void OnInitialized()
+
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
     {
-        try { _rows = Rpt.ListOtd(); } catch { }
+        try { _rows = Rpt.ListOtd(_daysBack); } catch { _rows = new(); }
         _total = _rows.Sum(r => r.TotalOrders);
         _ok    = _rows.Sum(r => r.OnTime);
         _late  = _rows.Sum(r => r.Late);

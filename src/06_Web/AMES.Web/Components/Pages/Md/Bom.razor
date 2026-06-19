@@ -1,0 +1,683 @@
+@page "/md/bom"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject MasterDataRepository Md
+@inject AuthenticationStateProvider Auth
+
+<PageTitle>MD-004 BOM 관리 · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MD-004</div>
+    <div class="ames-page-t">BOM 관리</div>
+    <div class="ames-page-sub">자재명세서 버전 관리 및 결재 워크플로</div>
+</div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")" style="margin-bottom:10px;">@_msg</div>
+}
+
+<div style="display:flex;gap:14px;height:calc(100vh - 200px);">
+
+    @* ── 좌: 버전 목록 ── 290px ─────────────────────────────── *@
+    <div style="flex:0 0 290px;display:flex;flex-direction:column;min-height:0;">
+        <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;padding:14px;">
+
+            @* 검색 + 등록 *@
+            <div style="display:flex;gap:6px;margin-bottom:8px;flex-shrink:0;">
+                <input class="ames-input" style="flex:1;padding:7px 10px;font-size:.88em;"
+                       placeholder="버전ID · 품목 검색…"
+                       @bind="_search" />
+                <button class="ames-btn ok" @onclick="OpenVersionCreate"
+                        style="padding:7px 12px;font-size:.85em;white-space:nowrap;">+ 등록</button>
+            </div>
+
+            @* 결재 상태 필터 + 조회 *@
+            <div style="display:flex;gap:6px;margin-bottom:8px;flex-shrink:0;align-items:center;">
+                <select class="ames-input" style="flex:1;padding:6px 10px;font-size:.85em;" @bind="_statusFilter">
+                    <option value="">상태 전체</option>
+                    <option value="DRAFT">DRAFT</option>
+                    <option value="PENDING">PENDING</option>
+                    <option value="APPROVED">APPROVED</option>
+                    <option value="REJECTED">REJECTED</option>
+                </select>
+                <button class="ames-btn ok" @onclick="LoadVersions"
+                        style="padding:7px 12px;font-size:.85em;white-space:nowrap;">조회</button>
+            </div>
+
+            @* 버전 카드 목록 *@
+            <div style="overflow-y:auto;flex:1;">
+                @foreach (var v in _versions)
+                {
+                    var vCap = v;
+                    <div class="ames-list-item @(_selVer?.VersionID == v.VersionID ? "selected" : "")"
+                         @onclick="() => SelectVersion(vCap)">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+                            <div style="min-width:0;flex:1;">
+                                <div style="font-weight:700;font-size:.9em;">
+                                    @v.RootItemNo
+                                    @if (!string.IsNullOrEmpty(v.VersionNo))
+                                    {
+                                        <span class="dim" style="font-size:.8em;font-weight:400;margin-left:5px;">@v.VersionNo</span>
+                                    }
+                                </div>
+                                @if (!string.IsNullOrEmpty(v.RootItemName))
+                                {
+                                    <div class="dim" style="font-size:.78em;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@v.RootItemName</div>
+                                }
+                                <div style="font-size:.72em;color:#4b5563;margin-top:2px;font-family:'JetBrains Mono',monospace;letter-spacing:.3px;">@v.VersionID</div>
+                            </div>
+                            <span class="pill @StatusCss(v.Status)" style="font-size:.72em;flex-shrink:0;letter-spacing:.5px;">@v.Status</span>
+                        </div>
+                        @if (v.EffFrom.HasValue)
+                        {
+                            <div style="font-size:.72em;color:#475569;margin-top:3px;">
+                                📅 @v.EffFrom?.ToString("yyyy-MM-dd")@(v.EffTo.HasValue ? $" ~ {v.EffTo?.ToString("MM-dd")}" : "")
+                            </div>
+                        }
+                    </div>
+                }
+                @if (_versions.Count == 0)
+                {
+                    <div class="dim" style="text-align:center;padding:28px;font-size:.85em;">등록된 BOM 버전 없음</div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @* ── 우: 버전 상세 + BOM 라인 ──────────────────────────── *@
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;">
+        <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;padding:14px;">
+
+            @if (_selVer is null)
+            {
+                <div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;">
+                    <div style="font-size:2.4em;opacity:.15;">📋</div>
+                    <div class="dim" style="font-size:.9em;">좌측에서 BOM 버전을 선택하면 구성 라인이 표시됩니다</div>
+                </div>
+            }
+            else
+            {
+                @* ─── 선택된 버전 정보 헤더 ─── *@
+                <div class="ames-info-bar">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+
+                        @* 버전 상세 정보 *@
+                        <div style="min-width:0;flex:1;">
+                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                                <span style="font-weight:700;font-size:.95em;">@_selVer.RootItemNo</span>
+                                @if (!string.IsNullOrEmpty(_selVer.RootItemName))
+                                {
+                                    <span class="dim" style="font-size:.85em;">@_selVer.RootItemName</span>
+                                }
+                                <span class="pill @StatusCss(_selVer.Status)">@_selVer.Status</span>
+                                @if (!string.IsNullOrEmpty(_selVer.VersionNo))
+                                {
+                                    <span class="dim" style="font-size:.82em;border:1px solid rgba(255,255,255,.1);padding:1px 7px;border-radius:4px;font-family:'JetBrains Mono',monospace;">@_selVer.VersionNo</span>
+                                }
+                            </div>
+                            <div style="font-size:.79em;color:#4b5563;margin-top:3px;font-family:'JetBrains Mono',monospace;">
+                                @_selVer.VersionID
+                                @if (_selVer.EffFrom.HasValue)
+                                {
+                                    <span style="margin-left:10px;color:#475569;">📅 @_selVer.EffFrom?.ToString("yyyy-MM-dd")@(_selVer.EffTo.HasValue ? $" ~ {_selVer.EffTo?.ToString("yyyy-MM-dd")}" : "")</span>
+                                }
+                            </div>
+                            @if (!string.IsNullOrEmpty(_selVer.ChangeType) || !string.IsNullOrEmpty(_selVer.ChangeReason))
+                            {
+                                <div style="font-size:.78em;color:#64748b;margin-top:2px;">
+                                    @if (!string.IsNullOrEmpty(_selVer.ChangeType))
+                                    {
+                                        <span style="color:#94a3b8;">@_selVer.ChangeType</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(_selVer.ChangeType) && !string.IsNullOrEmpty(_selVer.ChangeReason))
+                                    {
+                                        <span> — </span>
+                                    }
+                                    @_selVer.ChangeReason
+                                </div>
+                            }
+                            @if (_selVer.Status == "PENDING" && !string.IsNullOrEmpty(_selVer.RequestedBy))
+                            {
+                                <div style="font-size:.78em;color:#fbbf24;margin-top:2px;">승인 요청자: @_selVer.RequestedBy</div>
+                            }
+                            @if (_selVer.Status == "APPROVED" && !string.IsNullOrEmpty(_selVer.ApprovedBy))
+                            {
+                                <div style="font-size:.78em;color:#86efac;margin-top:2px;">승인: @_selVer.ApprovedBy  @(_selVer.ApprovedTS?.ToString("yyyy-MM-dd HH:mm"))</div>
+                            }
+                        </div>
+
+                        @* 워크플로 버튼 *@
+                        <div style="display:flex;gap:5px;align-items:flex-start;flex-shrink:0;">
+                            @if (_selVer.Status == "DRAFT")
+                            {
+                                <button class="ames-btn ok"   @onclick="OpenLineCreate"              disabled="@_busy" style="padding:6px 12px;font-size:.82em;">+ 라인</button>
+                                <button class="ames-btn"      @onclick="() => OpenVersionEdit(_selVer)" disabled="@_busy" style="padding:6px 12px;font-size:.82em;">수정</button>
+                                <button class="ames-btn warn" @onclick="DoRequestApproval"           disabled="@_busy" style="padding:6px 12px;font-size:.82em;">승인 요청</button>
+                                @if (!_verDelConfirm)
+                                {
+                                    <button class="ames-btn bad" @onclick='() => _verDelConfirm = true' disabled="@_busy" style="padding:6px 12px;font-size:.82em;">삭제</button>
+                                }
+                            }
+                            @if (_selVer.Status == "PENDING")
+                            {
+                                <button class="ames-btn" @onclick="DoApprove"
+                                        disabled="@(_busy || _lines.Count == 0)"
+                                        title="@(_lines.Count == 0 ? "BOM 라인을 최소 1개 등록해야 승인할 수 있습니다" : "")"
+                                        style="padding:6px 12px;font-size:.82em;color:#86efac;border:1px solid rgba(134,239,172,.4);">승인</button>
+                                <button class="ames-btn bad" @onclick="DoReject" disabled="@_busy" style="padding:6px 12px;font-size:.82em;">반려</button>
+                            }
+                            @if (_selVer.Status == "REJECTED")
+                            {
+                                <button class="ames-btn" @onclick="DoRevive" disabled="@_busy"
+                                        style="padding:6px 12px;font-size:.82em;color:#c084fc;border:1px solid rgba(192,132,252,.4);">재작성 (DRAFT)</button>
+                            }
+                        </div>
+                    </div>
+
+                    @* 삭제 인라인 확인 *@
+                    @if (_verDelConfirm)
+                    {
+                        <div class="ames-delete-confirm" style="margin-top:8px;">
+                            <span>버전 @_selVer.VersionID 및 하위 BOM 라인 전체를 삭제합니까?</span>
+                            <button class="ames-btn" @onclick='() => _verDelConfirm = false' style="padding:4px 10px;font-size:.85em;">아니오</button>
+                            <button class="ames-btn bad" @onclick="DoVersionDelete" disabled="@_busy" style="padding:4px 10px;font-size:.85em;">
+                                @(_busy ? "삭제 중…" : "예, 삭제")
+                            </button>
+                        </div>
+                    }
+                </div>
+
+                @* 라인 카운트 + 읽기 전용 안내 *@
+                <div style="display:flex;align-items:center;gap:10px;padding:4px 0 6px;flex-shrink:0;">
+                    <span class="dim" style="font-size:.82em;">구성 라인 @(_lines.Count)개</span>
+                    @if (_selVer.Status != "DRAFT")
+                    {
+                        <span class="dim" style="font-size:.78em;color:#374151;">— DRAFT 상태에서만 편집 가능</span>
+                    }
+                </div>
+
+                @* BOM 라인 테이블 *@
+                <div style="overflow-y:auto;flex:1;">
+                    @{bool editable = _selVer.Status == "DRAFT";}
+                    <table class="ames-table">
+                        <thead>
+                            <tr>
+                                <th style="width:34px;text-align:center;">Lv</th>
+                                <th style="width:100px;">상위품목</th>
+                                <th>구성품목</th>
+                                <th style="width:76px;text-align:right;">수량</th>
+                                <th style="width:46px;">단위</th>
+                                <th style="width:60px;text-align:right;">불량율%</th>
+                                <th style="width:40px;text-align:center;">순서</th>
+                                <th>비고</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var line in _lines)
+                            {
+                                var lCap = line;
+                                int indent = (line.BOMLevel ?? 0) * 16;
+                                <tr class="@(editable ? "ames-row-link" : "")"
+                                    @onclick="() => { if (editable) OpenLineEdit(lCap); }">
+                                    <td style="text-align:center;"><span class="dim" style="font-size:.82em;">@(line.BOMLevel ?? 0)</span></td>
+                                    <td style="font-family:'JetBrains Mono',monospace;font-size:.8em;color:rgba(255,255,255,.4);">@line.ParentItemNo</td>
+                                    <td>
+                                        @if (indent > 0)
+                                        {<span style="display:inline-block;width:@(indent)px;"></span>}
+                                        @if ((line.BOMLevel ?? 0) > 0)
+                                        {<span class="dim" style="font-size:.78em;">└ </span>}
+                                        <span style="font-family:'JetBrains Mono',monospace;color:#93c5fd;font-size:.88em;font-weight:700;">@line.CompItemNo</span>
+                                        @if (!string.IsNullOrEmpty(line.CompItemName))
+                                        {<span class="dim" style="font-size:.8em;margin-left:5px;">@line.CompItemName</span>}
+                                    </td>
+                                    <td style="font-family:'JetBrains Mono',monospace;text-align:right;font-weight:600;font-size:.9em;">@(line.QtyPer?.ToString("N4"))</td>
+                                    <td class="dim" style="font-size:.83em;">@line.UOM</td>
+                                    <td class="dim" style="font-family:'JetBrains Mono',monospace;text-align:right;font-size:.85em;">@(line.ScrapPct?.ToString("N2"))</td>
+                                    <td class="dim" style="text-align:center;font-size:.85em;">@line.Position</td>
+                                    <td class="dim" style="font-size:.82em;">@line.Note</td>
+                                </tr>
+                            }
+                            @if (_lines.Count == 0)
+                            {
+                                <tr><td colspan="8" class="dim" style="text-align:center;padding:24px;font-size:.85em;">
+                                    구성 라인 없음@(editable ? " — 상단 + 라인 버튼으로 등록하세요" : "")
+                                </td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@* ── BOM 버전 등록 모달 ─────────────────────────────────────────────── *@
+@if (_modal == "ver-create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
+        <div class="ames-modal" style="max-width:520px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">BOM 버전 등록</div>
+            @VersionFormFields()
+            @if (!string.IsNullOrEmpty(_modalErr)) {<div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div>}
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveVersionCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
+                <button class="ames-btn" @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── BOM 버전 수정 모달 (DRAFT only) ────────────────────────────────── *@
+@if (_modal == "ver-edit")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
+        <div class="ames-modal" style="max-width:520px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">BOM 버전 수정 — <span style="font-weight:400;font-size:.9em;">@_fVersionId</span></div>
+            @VersionFormFields()
+            @if (!string.IsNullOrEmpty(_modalErr)) {<div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div>}
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveVersionEdit" disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn" @onclick="CloseModal">닫기</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── BOM 라인 추가 모달 ─────────────────────────────────────────────── *@
+@if (_modal == "line-create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
+        <div class="ames-modal" style="max-width:480px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">BOM 라인 추가 — <span style="font-weight:400;font-size:.9em;">@_selVer!.VersionID</span></div>
+            @LineFormFields()
+            @if (!string.IsNullOrEmpty(_modalErr)) {<div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div>}
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveLineCreate" disabled="@_busy">@(_busy ? "저장 중…" : "추가")</button>
+                <button class="ames-btn" @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── BOM 라인 수정/삭제 모달 ────────────────────────────────────────── *@
+@if (_modal == "line-edit")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
+        <div class="ames-modal" style="max-width:480px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">BOM 라인 수정 — <span style="font-weight:400;font-size:.9em;">@_fCompItemNo</span></div>
+            @LineFormFields()
+            @if (_lineConfirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>@_fCompItemNo 라인을 삭제합니까?</span>
+                    <button class="ames-btn" @onclick='() => _lineConfirmDelete = false' style="padding:4px 10px;">아니오</button>
+                    <button class="ames-btn bad" @onclick="SaveLineDelete" disabled="@_busy" style="padding:4px 10px;">@(_busy ? "삭제 중…" : "예, 삭제")</button>
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(_modalErr)) {<div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div>}
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveLineEdit" disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn bad" @onclick='() => { _lineConfirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
+                <button class="ames-btn" @onclick="CloseModal">닫기</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    // ── State ─────────────────────────────────────────────────────────────
+    List<MasterDataRepository.BomVersionRow> _versions = new();
+    List<MasterDataRepository.BomRow>        _lines    = new();
+    MasterDataRepository.BomVersionRow?      _selVer;
+    string _statusFilter = "";
+    string _search       = "";
+
+    string _modal            = "";
+    string _modalErr         = "";
+    string _msg              = "";
+    bool   _isErr, _busy, _bgDown;
+    bool   _verDelConfirm, _lineConfirmDelete;
+    string _actor            = "system";
+
+
+    // ── Version form fields ───────────────────────────────────────────────
+    string    _fVersionId    = "";
+    string    _fRootItemNo   = "";
+    string    _fVersionNo    = "";
+    DateOnly? _fEffFrom, _fEffTo;
+    string    _fChangeType   = "";
+    string    _fChangeReason = "";
+
+    // ── Line form fields ──────────────────────────────────────────────────
+    string  _fBomId        = "";
+    string  _fParentItemNo = "";
+    string  _fCompItemNo   = "";
+    int     _fBomLevel     = 1;
+    decimal _fQtyPer       = 1;
+    string  _fUom          = "EA";
+    decimal _fScrapPct     = 0;
+    int     _fPosition     = 10;
+    string  _fNote         = "";
+
+    // ── Init ─────────────────────────────────────────────────────────────
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor   = auth.User.Identity?.Name ?? "system";
+        LoadVersions();
+    }
+
+    void LoadVersions()
+    {
+        try
+        {
+            _versions = Md.ListBomVersions(string.IsNullOrEmpty(_statusFilter) ? null : _statusFilter);
+            if (!string.IsNullOrWhiteSpace(_search))
+            {
+                var q = _search.Trim();
+                _versions = _versions
+                    .Where(v => (v.VersionID?.Contains(q, StringComparison.OrdinalIgnoreCase) == true)
+                             || (v.RootItemNo?.Contains(q, StringComparison.OrdinalIgnoreCase) == true)
+                             || (v.RootItemName?.Contains(q, StringComparison.OrdinalIgnoreCase) == true))
+                    .ToList();
+            }
+        }
+        catch { _versions = new(); }
+    }
+
+    void LoadLines() { try { _lines = _selVer is null ? new() : Md.ListBomLines(_selVer.VersionID); } catch { _lines = new(); } }
+
+    void SelectVersion(MasterDataRepository.BomVersionRow v)
+    {
+        _selVer = v; _verDelConfirm = false; LoadLines();
+    }
+
+
+    // ── Modal helpers ─────────────────────────────────────────────────────
+    void CloseModal() { _modal = ""; _modalErr = ""; _lineConfirmDelete = false; }
+    void OnBgDown()   => _bgDown = true;
+    void OnBgClick()  { if (_bgDown) CloseModal(); _bgDown = false; }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    static string StatusCss(string? s) => s switch
+    {
+        "DRAFT"    => "info",
+        "PENDING"  => "warn",
+        "APPROVED" => "ok",
+        "REJECTED" => "bad",
+        _          => ""
+    };
+
+    void RefreshVersion(string versionId)
+    {
+        LoadVersions();
+        _selVer = _versions.FirstOrDefault(v => v.VersionID == versionId);
+        LoadLines();
+    }
+
+    // ── 직접 워크플로 액션 (모달 없음) ───────────────────────────────────
+    void DoRequestApproval()
+    {
+        if (_selVer is null) return;
+        var id = _selVer.VersionID;
+        _busy = true;
+        try { Md.RequestBomApproval(id, _actor); RefreshVersion(id); ShowMsg($"{id} 승인 요청 완료.", false); }
+        catch (Exception ex) { ShowMsg(ex.Message, true); }
+        finally { _busy = false; }
+    }
+
+    void DoApprove()
+    {
+        if (_selVer is null) return;
+        var id = _selVer.VersionID;
+        _busy = true;
+        try { Md.ApproveBomVersion(id, _actor); RefreshVersion(id); ShowMsg($"{id} 승인 완료.", false); }
+        catch (Exception ex) { ShowMsg(ex.Message, true); }
+        finally { _busy = false; }
+    }
+
+    void DoReject()
+    {
+        if (_selVer is null) return;
+        var id = _selVer.VersionID;
+        _busy = true;
+        try { Md.RejectBomVersion(id, _actor); RefreshVersion(id); ShowMsg($"{id} 반려 처리됨.", true); }
+        catch (Exception ex) { ShowMsg(ex.Message, true); }
+        finally { _busy = false; }
+    }
+
+    void DoRevive()
+    {
+        if (_selVer is null) return;
+        var id = _selVer.VersionID;
+        _busy = true;
+        try { Md.ReviveBomVersion(id, _actor); RefreshVersion(id); ShowMsg($"{id} DRAFT로 재활성화.", false); }
+        catch (Exception ex) { ShowMsg(ex.Message, true); }
+        finally { _busy = false; }
+    }
+
+    void DoVersionDelete()
+    {
+        if (_selVer is null) return;
+        var id = _selVer.VersionID;
+        _busy = true;
+        try
+        {
+            Md.DeleteBomVersion(id);
+            _selVer = null; _lines = new(); _verDelConfirm = false;
+            LoadVersions();
+            ShowMsg($"{id} 삭제 완료.", false);
+        }
+        catch (Exception ex) { ShowMsg(ex.Message, true); }
+        finally { _busy = false; }
+    }
+
+    // ── Version CRUD ──────────────────────────────────────────────────────
+    void OpenVersionCreate()
+    {
+        _fVersionId = ""; _fRootItemNo = ""; _fVersionNo = "";
+        _fEffFrom = null; _fEffTo = null; _fChangeType = ""; _fChangeReason = "";
+        _modalErr = ""; _modal = "ver-create";
+    }
+
+    void OpenVersionEdit(MasterDataRepository.BomVersionRow v)
+    {
+        _fVersionId    = v.VersionID;
+        _fRootItemNo   = v.RootItemNo   ?? "";
+        _fVersionNo    = v.VersionNo    ?? "";
+        _fEffFrom      = v.EffFrom;
+        _fEffTo        = v.EffTo;
+        _fChangeType   = v.ChangeType   ?? "";
+        _fChangeReason = v.ChangeReason ?? "";
+        _modalErr = ""; _modal = "ver-edit";
+    }
+
+    void SaveVersionCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_fVersionId))  { _modalErr = "VersionID를 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_fRootItemNo)) { _modalErr = "최상위 품목을 입력하세요."; return; }
+        _busy = true;
+        try
+        {
+            var id = _fVersionId.Trim().ToUpper();
+            if (Md.BomVersionExists(id)) { _modalErr = $"'{id}' 이미 존재합니다."; return; }
+            Md.InsertBomVersion(id, N(_fRootItemNo), N(_fVersionNo),
+                _fEffFrom, _fEffTo, N(_fChangeType), N(_fChangeReason), _actor);
+            LoadVersions();
+            _selVer = _versions.FirstOrDefault(v => v.VersionID == id);
+            LoadLines();
+            CloseModal();
+            ShowMsg($"{id} BOM 버전 등록 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveVersionEdit()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_fRootItemNo)) { _modalErr = "최상위 품목을 입력하세요."; return; }
+        _busy = true;
+        try
+        {
+            Md.UpdateBomVersion(_fVersionId, N(_fRootItemNo), N(_fVersionNo),
+                _fEffFrom, _fEffTo, N(_fChangeType), N(_fChangeReason), _actor);
+            RefreshVersion(_fVersionId);
+            CloseModal();
+            ShowMsg($"{_fVersionId} 수정 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    // ── Line CRUD ─────────────────────────────────────────────────────────
+    void OpenLineCreate()
+    {
+        int nextPos = _lines.Count > 0 ? ((_lines.Max(l => l.Position) ?? 0) + 10) : 10;
+        _fBomId = ""; _fParentItemNo = _selVer!.RootItemNo ?? "";
+        _fCompItemNo = ""; _fBomLevel = 1; _fQtyPer = 1;
+        _fUom = "EA"; _fScrapPct = 0; _fPosition = nextPos; _fNote = "";
+        _lineConfirmDelete = false; _modalErr = ""; _modal = "line-create";
+    }
+
+    void OpenLineEdit(MasterDataRepository.BomRow line)
+    {
+        _fBomId        = line.BOMID;
+        _fParentItemNo = line.ParentItemNo ?? "";
+        _fCompItemNo   = line.CompItemNo   ?? "";
+        _fBomLevel     = line.BOMLevel     ?? 1;
+        _fQtyPer       = line.QtyPer       ?? 1;
+        _fUom          = line.UOM          ?? "EA";
+        _fScrapPct     = line.ScrapPct     ?? 0;
+        _fPosition     = line.Position     ?? 10;
+        _fNote         = line.Note         ?? "";
+        _lineConfirmDelete = false; _modalErr = ""; _modal = "line-edit";
+    }
+
+    void SaveLineCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_fCompItemNo)) { _modalErr = "구성품목을 입력하세요."; return; }
+        if (_fQtyPer <= 0) { _modalErr = "수량은 0보다 커야 합니다."; return; }
+        _busy = true;
+        try
+        {
+            var bomId = "B" + Guid.NewGuid().ToString("N")[..23];
+            Md.InsertBomLine(bomId, N(_fParentItemNo), _fCompItemNo.Trim().ToUpper(),
+                _fBomLevel, _fQtyPer, N(_fUom), _fScrapPct == 0 ? null : _fScrapPct,
+                _selVer!.VersionID, _fPosition, N(_fNote), _actor);
+            LoadLines(); CloseModal(); ShowMsg("BOM 라인 추가 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveLineEdit()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_fCompItemNo)) { _modalErr = "구성품목을 입력하세요."; return; }
+        if (_fQtyPer <= 0) { _modalErr = "수량은 0보다 커야 합니다."; return; }
+        _busy = true;
+        try
+        {
+            Md.UpdateBomLine(_fBomId, N(_fParentItemNo), _fCompItemNo.Trim().ToUpper(),
+                _fBomLevel, _fQtyPer, N(_fUom), _fScrapPct == 0 ? null : _fScrapPct,
+                _fPosition, N(_fNote), _actor);
+            LoadLines(); CloseModal(); ShowMsg("BOM 라인 수정 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveLineDelete()
+    {
+        _busy = true;
+        try { Md.DeleteBomLine(_fBomId); LoadLines(); CloseModal(); ShowMsg("BOM 라인 삭제 완료.", false); }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    // ── Form fragments ────────────────────────────────────────────────────
+    RenderFragment VersionFormFields() =>
+    @<div>
+        <div style="display:grid;grid-template-columns:1fr 100px;gap:8px;">
+            <div>
+                <label>VersionID * <span class="dim" style="font-size:.82em;">(최대 24자)</span></label>
+                <input class="ames-input" @bind="_fVersionId" disabled="@(_modal == "ver-edit")"
+                       placeholder="예: V-PN001-001" maxlength="24" autocomplete="off" />
+            </div>
+            <div>
+                <label>버전번호</label>
+                <input class="ames-input" @bind="_fVersionNo" placeholder="V1.0" maxlength="10" autocomplete="off" />
+            </div>
+        </div>
+        <label style="margin-top:6px;">최상위 품목번호 *</label>
+        <input class="ames-input" @bind="_fRootItemNo" placeholder="MD_Item.ItemNo" maxlength="20" autocomplete="off" />
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+            <div>
+                <label>적용 시작일</label>
+                <input type="date" class="ames-input"
+                       value="@(_fEffFrom?.ToString("yyyy-MM-dd"))"
+                       @oninput="e => _fEffFrom = ParseDate(e.Value?.ToString())" />
+            </div>
+            <div>
+                <label>적용 종료일</label>
+                <input type="date" class="ames-input"
+                       value="@(_fEffTo?.ToString("yyyy-MM-dd"))"
+                       @oninput="e => _fEffTo = ParseDate(e.Value?.ToString())" />
+            </div>
+        </div>
+        <label style="margin-top:6px;">변경 유형</label>
+        <input class="ames-input" @bind="_fChangeType" placeholder="ECO, NPI, REVISION…" maxlength="16" autocomplete="off" />
+        <label style="margin-top:6px;">변경 사유</label>
+        <textarea class="ames-input" rows="2" @bind="_fChangeReason" style="resize:vertical;"></textarea>
+    </div>;
+
+    RenderFragment LineFormFields() =>
+    @<div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div>
+                <label>상위품목 (비워두면 최상위)</label>
+                <input class="ames-input" @bind="_fParentItemNo" maxlength="20" autocomplete="off" />
+            </div>
+            <div>
+                <label>구성품목 *</label>
+                <input class="ames-input" @bind="_fCompItemNo" placeholder="MD_Item.ItemNo" maxlength="20" autocomplete="off" />
+            </div>
+        </div>
+        <div style="display:grid;grid-template-columns:50px 1fr 70px 90px 60px;gap:8px;margin-top:6px;">
+            <div>
+                <label>레벨</label>
+                <input type="number" class="ames-input" @bind="_fBomLevel" min="0" max="9" />
+            </div>
+            <div>
+                <label>수량 *</label>
+                <input type="number" class="ames-input" @bind="_fQtyPer" min="0.0001" step="0.0001" />
+            </div>
+            <div>
+                <label>단위</label>
+                <input class="ames-input" @bind="_fUom" maxlength="10" autocomplete="off" />
+            </div>
+            <div>
+                <label>불량율(%)</label>
+                <input type="number" class="ames-input" @bind="_fScrapPct" min="0" step="0.01" />
+            </div>
+            <div>
+                <label>순서</label>
+                <input type="number" class="ames-input" @bind="_fPosition" min="1" />
+            </div>
+        </div>
+        <label style="margin-top:6px;">비고</label>
+        <input class="ames-input" @bind="_fNote" autocomplete="off" />
+    </div>;
+
+    static DateOnly? ParseDate(string? s) => DateOnly.TryParse(s, out var d) ? d : null;
+    static string? N(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+}

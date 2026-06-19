@@ -1,0 +1,359 @@
+@page "/md/defect-cause"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AuthenticationStateProvider Auth
+
+<PageTitle>MD-013 불량원인 기준정보 관리 · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MD-013</div>
+    <div class="ames-page-t">불량원인 기준정보 관리</div>
+    <div class="ames-page-sub">MD_DefectCause 마스터 — 공정별 불량 원인·담당부서·시정조치 가이드 설정</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Active")</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">근본원인</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.RootCauseFlag)</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">공정 수</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.ProcessCode).Where(p => p != null).Distinct().Count()</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 불량원인 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:160px;padding:4px 8px;"
+                   placeholder="원인코드 / 원인명" @bind="_fSearch" autocomplete="off" />
+            <select class="ames-input" style="width:120px;padding:4px 8px;" @bind="_fCategory">
+                <option value="">분류 전체</option>
+                @foreach (var c in _allRows.Select(r => r.CauseCategory).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@c">@c</option>
+                }
+            </select>
+            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fProcess">
+                <option value="">공정 전체</option>
+                @foreach (var p in _allRows.Select(r => r.ProcessCode).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@p">@p</option>
+                }
+            </select>
+            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fStatus">
+                <option value="">상태 전체</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+            </select>
+            <button class="ames-btn" @onclick="OpenCreate">+ 등록</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">등록된 불량원인이 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>원인코드</th><th>원인명</th><th>분류</th><th>공정</th>
+                    <th>상위원인</th><th>담당부서</th>
+                    <th style="text-align:center;">순번</th>
+                    <th style="text-align:center;">근본원인</th>
+                    <th>상태</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
+                        <td class="code">@r.CauseCode</td>
+                        <td>@(r.CauseName ?? "—")</td>
+                        <td><span class="pill">@(r.CauseCategory ?? "—")</span></td>
+                        <td class="dim">@(r.ProcessCode ?? "—")</td>
+                        <td class="dim">@(r.ParentCauseCode ?? "—")</td>
+                        <td class="dim">@(r.ResponsibleDept ?? "—")</td>
+                        <td style="text-align:center;" class="dim">@(r.SortOrder?.ToString() ?? "—")</td>
+                        <td style="text-align:center;">
+                            @if (r.RootCauseFlag) { <span class="pill ok">Y</span> }
+                            else { <span class="dim">—</span> }
+                        </td>
+                        <td>
+                            <span class="pill @(r.Status == "Active" ? "ok" : "bad")">@(r.Status ?? "—")</span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@* ── Create Modal ─────────────────────────────────────────────────── *@
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">신규 불량원인 등록</div>
+
+            <label>원인코드 * <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: CC-INJ-01)</span></label>
+            <input class="ames-input" @bind="_f.CauseCode" placeholder="CC-INJ-01" autocomplete="off" />
+
+            <label>원인명 *</label>
+            <input class="ames-input" @bind="_f.CauseName" placeholder="금형 마모" autocomplete="off" />
+
+            <label>분류</label>
+            <input class="ames-input" @bind="_f.CauseCategory" placeholder="MACHINE, MAN 등" maxlength="9" autocomplete="off" />
+
+            <label>공정코드</label>
+            <input class="ames-input" @bind="_f.ProcessCode" placeholder="INJ, PNT 등" maxlength="10" autocomplete="off" />
+
+            <label>상위원인코드</label>
+            <input class="ames-input" @bind="_f.ParentCauseCode" placeholder="CC-001" maxlength="16" autocomplete="off" />
+
+            <label>담당부서</label>
+            <input class="ames-input" @bind="_f.ResponsibleDept" placeholder="생산팀" maxlength="30" autocomplete="off" />
+
+            <label>시정조치 가이드</label>
+            <textarea class="ames-input" @bind="_f.CorrectiveGuide" rows="3"
+                      placeholder="시정조치 방법을 입력하세요" style="resize:vertical;"></textarea>
+
+            <label>정렬 순번</label>
+            <input class="ames-input" type="number" @bind="_f.SortOrder" placeholder="10" min="0" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.RootCauseFlag" />
+                <span>근본원인</span>
+            </label>
+
+            <label>상태</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+            </select>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
+                <button class="ames-btn" @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Edit Modal ───────────────────────────────────────────────────── *@
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">불량원인 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.CauseCode</span></div>
+
+            <label>원인명 *</label>
+            <input class="ames-input" @bind="_f.CauseName" autocomplete="off" />
+
+            <label>분류</label>
+            <input class="ames-input" @bind="_f.CauseCategory" maxlength="9" autocomplete="off" />
+
+            <label>공정코드</label>
+            <input class="ames-input" @bind="_f.ProcessCode" maxlength="10" autocomplete="off" />
+
+            <label>상위원인코드</label>
+            <input class="ames-input" @bind="_f.ParentCauseCode" maxlength="16" autocomplete="off" />
+
+            <label>담당부서</label>
+            <input class="ames-input" @bind="_f.ResponsibleDept" maxlength="30" autocomplete="off" />
+
+            <label>시정조치 가이드</label>
+            <textarea class="ames-input" @bind="_f.CorrectiveGuide" rows="3"
+                      style="resize:vertical;"></textarea>
+
+            <label>정렬 순번</label>
+            <input class="ames-input" type="number" @bind="_f.SortOrder" min="0" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.RootCauseFlag" />
+                <span>근본원인</span>
+            </label>
+
+            <label>상태</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+            </select>
+
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>정말 삭제하시겠습니까?</span>
+                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? "삭제 중…" : "예, 삭제")</button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
+                <button class="ames-btn"     @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    List<AMES.Data.Repositories.MasterDataRepository.DefectCauseRow> _allRows = new();
+    List<AMES.Data.Repositories.MasterDataRepository.DefectCauseRow> _rows    = new();
+    AMES.Data.Repositories.MasterDataRepository.DefectCauseRow? _sel;
+
+    string _fSearch = "", _fCategory = "", _fProcess = "", _fStatus = "";
+
+    string _modal = "";
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _msg = "", _modalErr = "";
+    bool _isErr;
+    string _actor = "system";
+    FormModel _f = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        Reload();
+    }
+
+    void Reload() { _allRows = Md.ListDefectCauses(); ApplyFilter(); }
+
+    void ApplyFilter() => _rows = _allRows.Where(r =>
+        (string.IsNullOrEmpty(_fSearch) ||
+            r.CauseCode.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.CauseName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fCategory) || r.CauseCategory == _fCategory) &&
+        (string.IsNullOrEmpty(_fProcess)  || r.ProcessCode   == _fProcess) &&
+        (string.IsNullOrEmpty(_fStatus)   || r.Status        == _fStatus)
+    ).ToList();
+
+    void OpenCreate() { _f = new() { Status = "Active" }; _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+
+    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.DefectCauseRow r)
+    {
+        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _f = new()
+        {
+            CauseCode        = r.CauseCode,
+            CauseName        = r.CauseName        ?? "",
+            CauseCategory    = r.CauseCategory    ?? "",
+            ParentCauseCode  = r.ParentCauseCode  ?? "",
+            ProcessCode      = r.ProcessCode      ?? "",
+            RootCauseFlag    = r.RootCauseFlag,
+            CorrectiveGuide  = r.CorrectiveGuide  ?? "",
+            ResponsibleDept  = r.ResponsibleDept  ?? "",
+            SortOrder        = r.SortOrder,
+            Status           = r.Status           ?? "Active",
+        };
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.CauseCode)) { _modalErr = "원인코드를 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.CauseName)) { _modalErr = "원인명을 입력하세요."; return; }
+        if (Md.DefectCauseExists(_f.CauseCode.Trim())) { _modalErr = $"원인코드 '{_f.CauseCode.Trim()}' 이 이미 존재합니다."; return; }
+        _busy = true;
+        try
+        {
+            Md.InsertDefectCause(_f.CauseCode.Trim(), _f.CauseName, NE(_f.CauseCategory),
+                NE(_f.ParentCauseCode), NE(_f.ProcessCode), _f.RootCauseFlag,
+                NE(_f.CorrectiveGuide), NE(_f.ResponsibleDept), _f.SortOrder,
+                NE(_f.Status), _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{_f.CauseName} 등록 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.CauseName)) { _modalErr = "원인명을 입력하세요."; return; }
+        _busy = true;
+        try
+        {
+            Md.UpdateDefectCause(_sel.CauseCode, _f.CauseName, NE(_f.CauseCategory),
+                NE(_f.ParentCauseCode), NE(_f.ProcessCode), _f.RootCauseFlag,
+                NE(_f.CorrectiveGuide), NE(_f.ResponsibleDept), _f.SortOrder,
+                NE(_f.Status), _actor);
+            var name = _f.CauseName;
+            CloseModal(); Reload();
+            ShowMsg($"{name} 수정 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            var name = _sel.CauseName ?? _sel.CauseCode;
+            Md.DeleteDefectCause(_sel.CauseCode);
+            CloseModal(); Reload();
+            ShowMsg($"{name} 삭제 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    class FormModel
+    {
+        public string CauseCode       { get; set; } = "";
+        public string CauseName       { get; set; } = "";
+        public string CauseCategory   { get; set; } = "";
+        public string ParentCauseCode { get; set; } = "";
+        public string ProcessCode     { get; set; } = "";
+        public bool   RootCauseFlag   { get; set; }
+        public string CorrectiveGuide { get; set; } = "";
+        public string ResponsibleDept { get; set; } = "";
+        public int?   SortOrder       { get; set; }
+        public string Status          { get; set; } = "Active";
+    }
+}

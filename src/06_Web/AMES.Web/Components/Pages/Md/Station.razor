@@ -1,0 +1,315 @@
+@page "/md/station"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AuthenticationStateProvider Auth
+
+<PageTitle>MD-002 공정 기준정보 관리 · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MD-002</div>
+    <div class="ames-page-t">공정 기준정보 관리</div>
+    <div class="ames-page-sub">MD_Station 마스터 — 공정 순서·유형·사이클타임 설정</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Active")</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">라인 수</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.LineID).Where(l => l != null).Distinct().Count()</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">공정유형 수</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.StationType).Where(t => t != null).Distinct().Count()</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 공정 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:140px;padding:4px 8px;"
+                   placeholder="공정 ID / 명칭" @bind="_fSearch" autocomplete="off" />
+            <select class="ames-input" style="width:130px;padding:4px 8px;" @bind="_fLine">
+                <option value="">라인 전체</option>
+                @foreach (var l in _allRows.Select(r => r.LineID).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@l">@l</option>
+                }
+            </select>
+            <select class="ames-input" style="width:130px;padding:4px 8px;" @bind="_fType">
+                <option value="">유형 전체</option>
+                @foreach (var t in _allRows.Select(r => r.StationType).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@t">@t</option>
+                }
+            </select>
+            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fStatus">
+                <option value="">상태 전체</option>
+                <option>Active</option><option>Inactive</option>
+            </select>
+            <button class="ames-btn" @onclick="OpenCreate">+ 등록</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">등록된 공정이 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>공정 ID</th><th>공정명</th><th>라인</th><th>유형</th>
+                    <th>공정코드</th><th style="text-align:right;">순서</th><th>상태</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
+                        <td class="code">@r.StationCode</td>
+                        <td>@(r.StationName ?? "—")</td>
+                        <td class="dim">@(r.LineID ?? "—")</td>
+                        <td><span class="pill">@(r.StationType ?? "—")</span></td>
+                        <td class="dim">@(r.ProcessCode ?? "—")</td>
+                        <td style="text-align:right;">@(r.OrderSeq?.ToString() ?? "—")</td>
+                        <td>
+                            @if (r.Status == "Active") { <span class="pill ok">Active</span> }
+                            else { <span class="pill bad">@(r.Status ?? "—")</span> }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@* ── Create Modal ─────────────────────────────────────────────────── *@
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">신규 공정 등록</div>
+
+            <label>공정 ID * <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: ST-INJ-01)</span></label>
+            <input class="ames-input" @bind="_f.StationCode" placeholder="ST-INJ-01" autocomplete="off" />
+
+            <label>공정명 *</label>
+            <input class="ames-input" @bind="_f.StationName" placeholder="사출 1공정" autocomplete="off" />
+
+            <label>라인 ID</label>
+            <input class="ames-input" @bind="_f.LineID" placeholder="INJ-L01" autocomplete="off" />
+
+            <label>공정유형</label>
+            <input class="ames-input" @bind="_f.StationType" placeholder="INJECTION, ASSEMBLY 등" autocomplete="off" />
+
+            <label>공정코드</label>
+            <input class="ames-input" @bind="_f.ProcessCode" placeholder="INJ" maxlength="10" autocomplete="off" />
+
+            <label>순서 (OrderSeq)</label>
+            <input class="ames-input" type="number" @bind="_f.OrderSeq" placeholder="10" min="1" autocomplete="off" />
+
+            <label>상태</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option>Active</option><option>Inactive</option>
+            </select>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
+                <button class="ames-btn" @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Edit Modal ───────────────────────────────────────────────────── *@
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">공정 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.StationCode</span></div>
+
+            <label>공정명 *</label>
+            <input class="ames-input" @bind="_f.StationName" autocomplete="off" />
+
+            <label>라인 ID</label>
+            <input class="ames-input" @bind="_f.LineID" autocomplete="off" />
+
+            <label>공정유형</label>
+            <input class="ames-input" @bind="_f.StationType" autocomplete="off" />
+
+            <label>공정코드</label>
+            <input class="ames-input" @bind="_f.ProcessCode" maxlength="10" autocomplete="off" />
+
+            <label>순서 (OrderSeq)</label>
+            <input class="ames-input" type="number" @bind="_f.OrderSeq" min="1" autocomplete="off" />
+
+            <label>상태</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option>Active</option><option>Inactive</option>
+            </select>
+
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>정말 삭제하시겠습니까?</span>
+                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? "삭제 중…" : "예, 삭제")</button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
+                <button class="ames-btn"     @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    List<AMES.Data.Repositories.MasterDataRepository.StationRow> _allRows = new();
+    List<AMES.Data.Repositories.MasterDataRepository.StationRow> _rows    = new();
+    AMES.Data.Repositories.MasterDataRepository.StationRow? _sel;
+
+    string _fSearch = "", _fLine = "", _fType = "", _fStatus = "";
+
+    string _modal = "";
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _msg = "", _modalErr = "";
+    bool _isErr;
+    string _actor = "system";
+    FormModel _f = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        Reload();
+    }
+
+    void Reload() { _allRows = Md.ListStations(); ApplyFilter(); }
+
+    void ApplyFilter() => _rows = _allRows.Where(r =>
+        (string.IsNullOrEmpty(_fSearch) ||
+            r.StationCode.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.StationName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fLine)   || r.LineID      == _fLine) &&
+        (string.IsNullOrEmpty(_fType)   || r.StationType == _fType) &&
+        (string.IsNullOrEmpty(_fStatus) || r.Status      == _fStatus)
+    ).ToList();
+
+    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+
+    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.StationRow r)
+    {
+        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _f = new()
+        {
+            StationCode   = r.StationCode,
+            StationName = r.StationName ?? "",
+            LineID      = r.LineID      ?? "",
+            StationType = r.StationType ?? "",
+            ProcessCode = r.ProcessCode ?? "",
+            OrderSeq    = r.OrderSeq,
+            Status      = r.Status      ?? "Active",
+        };
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.StationCode))   { _modalErr = "공정 ID를 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.StationName)) { _modalErr = "공정명을 입력하세요."; return; }
+        if (Md.StationExists(_f.StationCode.Trim()))     { _modalErr = $"공정 ID '{_f.StationCode.Trim()}' 이 이미 존재합니다."; return; }
+        _busy = true;
+        try
+        {
+            Md.InsertStation(_f.StationCode.Trim(), _f.StationName, NE(_f.LineID),
+                NE(_f.StationType), NE(_f.ProcessCode), _f.OrderSeq, _f.Status, _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{_f.StationName} 등록 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.StationName)) { _modalErr = "공정명을 입력하세요."; return; }
+        _busy = true;
+        try
+        {
+            Md.UpdateStation(_sel.StationCode, _f.StationName, NE(_f.LineID),
+                NE(_f.StationType), NE(_f.ProcessCode), _f.OrderSeq, _f.Status, _actor);
+            var name = _f.StationName;
+            CloseModal(); Reload();
+            ShowMsg($"{name} 수정 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            var name = _sel.StationName ?? _sel.StationCode;
+            Md.DeleteStation(_sel.StationCode);
+            CloseModal(); Reload();
+            ShowMsg($"{name} 삭제 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    class FormModel
+    {
+        public string StationCode    { get; set; } = "";
+        public string StationName  { get; set; } = "";
+        public string LineID       { get; set; } = "";
+        public string StationType  { get; set; } = "";
+        public string ProcessCode  { get; set; } = "";
+        public int?   OrderSeq     { get; set; }
+        public string Status       { get; set; } = "Active";
+    }
+}

@@ -2,33 +2,36 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
 
-<PageTitle>SYS-05 Audit Log · AMES</PageTitle>
+<PageTitle>SYS-007 감사 로그 · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">SYS-05</div>
-    <div class="ames-page-t">Audit Log</div>
+    <div class="ames-page-id">SYS-007</div>
+    <div class="ames-page-t">감사 로그</div>
     <div class="ames-page-sub">감사 로그 — 최근 200건 (append-only)</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">EVENTS</div>
-        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">recent entries</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">SUCCESS</div>
-        <div class="ames-kpi-v">@_ok</div><div class="ames-kpi-s">Result = OK</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">FAILURES</div>
-        <div class="ames-kpi-v">@_fail</div><div class="ames-kpi-s">Result = FAIL</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">LAST 24H</div>
-        <div class="ames-kpi-v">@_day</div><div class="ames-kpi-s">events</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">이벤트</div>
+        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">최근 항목</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">성공</div>
+        <div class="ames-kpi-v">@_ok</div><div class="ames-kpi-s">결과 OK</div></div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">실패</div>
+        <div class="ames-kpi-v">@_fail</div><div class="ames-kpi-s">결과 FAIL</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">최근 24H</div>
+        <div class="ames-kpi-v">@_day</div><div class="ames-kpi-s">건</div></div>
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">Recent events</div>
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>▼ 최근 감사 이벤트</span>
+        <button class="ames-btn ok" @onclick="Reload">조회</button>
+    </div>
     <table class="ames-table">
         <thead>
             <tr>
-                <th>When</th><th>Actor</th><th>Module</th><th>Screen</th>
-                <th>Action</th><th>Entity</th><th>Target</th>
-                <th>Result</th><th>IP</th><th>Note</th>
+                <th>시각</th><th>처리자</th><th>모듈</th><th>화면</th>
+                <th>액션</th><th>엔티티</th><th>대상 ID</th>
+                <th>결과</th><th>IP</th><th>비고</th>
             </tr>
         </thead>
         <tbody>
@@ -53,13 +56,15 @@
             }
         </tbody>
     </table>
-    @if (_rows.Count == 0) { <div class="ames-empty">No audit events.</div> }
+    @if (_rows.Count == 0) { <div class="ames-empty">감사 이벤트가 없습니다.</div> }
 </div>
 
 @code {
     List<AMES.Data.Repositories.SysRepository.AuditRow> _rows = new();
     int _ok, _fail, _day;
-    protected override void OnInitialized()
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
     {
         try { _rows = Sys.ListAudit(); } catch { }
         _ok   = _rows.Count(r => r.Result == "OK");

@@ -1,12 +1,13 @@
 @page "/mnt/spare-parts"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MntRepository Mnt
 
-<PageTitle>MNT-08 Spare Parts · AMES</PageTitle>
+<PageTitle>MNT-08 예비 부품 · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MNT-08</div>
-    <div class="ames-page-t">Spare Parts</div>
+    <div class="ames-page-t">예비 부품</div>
     <div class="ames-page-sub">예비품 마스터 + 최근 입출고</div>
 </div>
 
@@ -18,87 +19,149 @@
     <div class="ames-kpi ok"><div class="ames-kpi-l">ON HAND VAL</div>
         <div class="ames-kpi-v">$@_value.ToString("N0")</div><div class="ames-kpi-s">inventory $ approx.</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">RECENT TXN</div>
-        <div class="ames-kpi-v">@_txns.Count</div><div class="ames-kpi-s">last 50 movements</div></div>
+        <div class="ames-kpi-v">@_txns.Count</div><div class="ames-kpi-s">last @_txnTopN</div></div>
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">Parts master</div>
-    <table class="ames-table">
-        <thead>
-            <tr>
-                <th>Part #</th><th>Name</th><th>Cat</th>
-                <th class="num">On hand</th><th class="num">Safety</th>
-                <th class="num">Reorder</th><th class="num">Lead d</th>
-                <th>Loc</th><th>Supplier</th><th>Flag</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var p in _parts)
-            {
-                var low = p.OnHand <= (p.ReorderPoint ?? 0);
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 예비품 마스터 · @_parts.Count 건@(_parts.Count < _allParts.Count ? $" / 전체 {_allParts.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:120px;padding:4px 8px;"
+                   placeholder="품번/품명" @bind="_fPart" autocomplete="off" />
+            <input class="ames-input" style="width:100px;padding:4px 8px;"
+                   placeholder="카테고리" @bind="_fCat" autocomplete="off" />
+            <label style="display:flex;align-items:center;gap:4px;font-size:.85rem;color:#64748b;cursor:pointer;">
+                <input type="checkbox" @bind="_fLowOnly" />부족만
+            </label>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_parts.Count == 0)
+    {
+        <div class="ames-empty">해당 조건에 예비품이 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
                 <tr>
-                    <td class="code">@p.PartNo</td>
-                    <td>@(p.PartName ?? "—")</td>
-                    <td class="dim">@(p.Category ?? "—")</td>
-                    <td class="num">@p.OnHand</td>
-                    <td class="num">@(p.SafetyStock?.ToString() ?? "—")</td>
-                    <td class="num">@(p.ReorderPoint?.ToString() ?? "—")</td>
-                    <td class="num">@(p.LeadTimeDays?.ToString() ?? "—")</td>
-                    <td class="dim">@(p.StorageLoc ?? "—")</td>
-                    <td class="dim">@(p.SupplierId ?? "—")</td>
-                    <td>@(low ? (MarkupString)"<span class=\"pill bad\">LOW</span>"
-                              : (MarkupString)"<span class=\"pill ok\">OK</span>")</td>
+                    <th>Part #</th><th>Name</th><th>Cat</th>
+                    <th class="num">On hand</th><th class="num">Safety</th>
+                    <th class="num">Reorder</th><th class="num">Lead d</th>
+                    <th>Loc</th><th>Supplier</th><th>Flag</th>
                 </tr>
-            }
-        </tbody>
-    </table>
-    @if (_parts.Count == 0) { <div class="ames-empty">No spare parts.</div> }
+            </thead>
+            <tbody>
+                @foreach (var p in _parts)
+                {
+                    var low = p.OnHand <= (p.ReorderPoint ?? 0);
+                    <tr>
+                        <td class="code">@p.PartNo</td>
+                        <td>@(p.PartName ?? "—")</td>
+                        <td class="dim">@(p.Category ?? "—")</td>
+                        <td class="num">@p.OnHand</td>
+                        <td class="num">@(p.SafetyStock?.ToString() ?? "—")</td>
+                        <td class="num">@(p.ReorderPoint?.ToString() ?? "—")</td>
+                        <td class="num">@(p.LeadTimeDays?.ToString() ?? "—")</td>
+                        <td class="dim">@(p.StorageLoc ?? "—")</td>
+                        <td class="dim">@(p.SupplierId ?? "—")</td>
+                        <td>@(low ? (MarkupString)"<span class=\"pill bad\">LOW</span>"
+                                  : (MarkupString)"<span class=\"pill ok\">OK</span>")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">Recent stock txns — last 50</div>
-    <table class="ames-table">
-        <thead>
-            <tr>
-                <th>Txn #</th><th>Part</th><th>Type</th>
-                <th class="num">Qty</th><th class="num">Balance</th>
-                <th>Ref</th><th>When</th><th>Note</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var t in _txns)
-            {
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 최근 입출고 · @_txns.Count 건</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:120px;padding:4px 8px;"
+                   placeholder="품번 필터" @bind="_fTxnPart" autocomplete="off" />
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">최근</label>
+            <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_txnTopN">
+                <option value="50">50건</option>
+                <option value="100">100건</option>
+                <option value="200">200건</option>
+            </select>
+            <button class="ames-btn ok" @onclick="ReloadTxn">조회</button>
+        </div>
+    </div>
+
+    @if (_txns.Count == 0)
+    {
+        <div class="ames-empty">입출고 데이터가 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
                 <tr>
-                    <td class="code">@t.SparePartsTxnId</td>
-                    <td>@(t.PartNo ?? "—") <span class="dim">@(t.PartName ?? "")</span></td>
-                    <td><span class="pill @(t.MoveType == "IN" ? "ok" : "warn")">@(t.MoveType ?? "—")</span></td>
-                    <td class="num">@(t.Qty?.ToString() ?? "—")</td>
-                    <td class="num">@(t.BalanceAfter?.ToString() ?? "—")</td>
-                    <td class="dim">@(t.RefType ?? "—") @(t.RefId ?? "")</td>
-                    <td class="dim">@(t.TxnAt?.ToString("MM-dd HH:mm") ?? "—")</td>
-                    <td class="dim">@(t.Note ?? "—")</td>
+                    <th>Txn #</th><th>Part</th><th>Type</th>
+                    <th class="num">Qty</th><th class="num">Balance</th>
+                    <th>Ref</th><th>When</th><th>Note</th>
                 </tr>
-            }
-        </tbody>
-    </table>
-    @if (_txns.Count == 0) { <div class="ames-empty">No transactions.</div> }
+            </thead>
+            <tbody>
+                @foreach (var t in _txns)
+                {
+                    <tr>
+                        <td class="code">@t.SparePartsTxnId</td>
+                        <td>@(t.PartNo ?? "—") <span class="dim">@(t.PartName ?? "")</span></td>
+                        <td><span class="pill @(t.MoveType == "IN" ? "ok" : "warn")">@(t.MoveType ?? "—")</span></td>
+                        <td class="num">@(t.Qty?.ToString() ?? "—")</td>
+                        <td class="num">@(t.BalanceAfter?.ToString() ?? "—")</td>
+                        <td class="dim">@(t.RefType ?? "—") @(t.RefId ?? "")</td>
+                        <td class="dim">@(t.TxnAt?.ToString("MM-dd HH:mm") ?? "—")</td>
+                        <td class="dim">@(t.Note ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 </div>
 
 @code {
-    List<AMES.Data.Repositories.MntRepository.SparePartRow> _parts = new();
-    List<AMES.Data.Repositories.MntRepository.SparePartsTxnRow> _txns = new();
-    int _low;
+    List<AMES.Data.Repositories.MntRepository.SparePartRow>     _allParts = new();
+    List<AMES.Data.Repositories.MntRepository.SparePartRow>     _parts    = new();
+    List<AMES.Data.Repositories.MntRepository.SparePartsTxnRow> _txns     = new();
+    int     _low;
     decimal _value;
+    string  _fPart = "", _fCat = "", _fTxnPart = "";
+    bool    _fLowOnly;
+    int     _txnTopN = 50;
 
-    protected override void OnInitialized()
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
     {
-        try { _parts = Mnt.ListSpareParts(); } catch { }
-        try { _txns  = Mnt.ListSparePartsTxn(); } catch { }
-        _low = _parts.Count(p => p.OnHand <= (p.ReorderPoint ?? 0));
-        // approx value = OnHand × last seen UnitPrice (look up from txn)
+        try { _allParts = Mnt.ListSpareParts(); } catch { _allParts = new(); }
+        ReloadTxn();
+        ApplyFilter();
+    }
+
+    void ReloadTxn()
+    {
+        try { _txns = Mnt.ListSparePartsTxn(_txnTopN, string.IsNullOrWhiteSpace(_fTxnPart) ? null : _fTxnPart); }
+        catch { _txns = new(); }
         var priceLookup = _txns.GroupBy(t => t.PartNo ?? "")
                                .ToDictionary(g => g.Key, g => g.First().UnitPrice ?? 0m);
-        _value = _parts.Sum(p =>
-            p.OnHand * (priceLookup.GetValueOrDefault(p.PartNo, 0m)));
+        _value = _allParts.Sum(p => p.OnHand * (priceLookup.GetValueOrDefault(p.PartNo, 0m)));
+    }
+
+    void ApplyFilter()
+    {
+        _parts = _allParts;
+        if (!string.IsNullOrWhiteSpace(_fPart))
+            _parts = _parts.Where(p => p.PartNo.Contains(_fPart, StringComparison.OrdinalIgnoreCase) ||
+                                       (p.PartName ?? "").Contains(_fPart, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (!string.IsNullOrWhiteSpace(_fCat))
+            _parts = _parts.Where(p => (p.Category ?? "").Contains(_fCat, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (_fLowOnly)
+            _parts = _parts.Where(p => p.OnHand <= (p.ReorderPoint ?? 0)).ToList();
+        _low = _parts.Count(p => p.OnHand <= (p.ReorderPoint ?? 0));
     }
 }

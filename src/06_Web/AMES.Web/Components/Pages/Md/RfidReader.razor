@@ -1,0 +1,118 @@
+@page "/md/rfid-reader"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MasterDataRepository Md
+
+<PageTitle>MD-022 RFID 리더 관리 · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MD-022</div>
+    <div class="ames-page-t">RFID 리더 관리</div>
+    <div class="ames-page-sub">MD_RfidReader 마스터 — 게이트 리더·라인 연결·IP·펌웨어 설정</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">운영 중</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "ACTIVE")</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">점검 중</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "MAINT")</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">라인 수</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.LineID).Where(l => l != null).Distinct().Count()</div>
+    </div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ RFID 리더 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:140px;padding:4px 8px;"
+                   placeholder="리더ID / 리더명" @bind="_fSearch" autocomplete="off" />
+            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fLine">
+                <option value="">라인 전체</option>
+                @foreach (var l in _allRows.Select(r => r.LineID).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@l">@l</option>
+                }
+            </select>
+            <select class="ames-input" style="width:90px;padding:4px 8px;" @bind="_fStatus">
+                <option value="">상태 전체</option>
+                @foreach (var s in _allRows.Select(r => r.Status).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@s">@s</option>
+                }
+            </select>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">등록된 RFID 리더가 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>리더 ID</th><th>리더명</th><th>라인</th><th>게이트</th>
+                    <th>IP 주소</th><th class="num">안테나</th><th class="num">출력(dBm)</th>
+                    <th class="num">윈도우(ms)</th><th>PE 트리거</th><th>펌웨어</th><th>상태</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr>
+                        <td class="code">@r.ReaderID</td>
+                        <td>@(r.ReaderName ?? "—")</td>
+                        <td class="dim">@(r.LineID ?? "—")</td>
+                        <td class="dim">@(r.GateLocation ?? "—")</td>
+                        <td class="dim">@(r.IpAddress ?? "—")</td>
+                        <td class="num">@(r.AntennaCount?.ToString() ?? "—")</td>
+                        <td class="num">@(r.PowerDbm?.ToString() ?? "—")</td>
+                        <td class="num">@(r.WindowMs?.ToString() ?? "—")</td>
+                        <td>@(r.PeTriggerFlag ? (MarkupString)"<span class=\"pill ok\">ON</span>" : (MarkupString)"<span class=\"pill\">OFF</span>")</td>
+                        <td class="dim">@(r.FirmwareVer ?? "—")</td>
+                        <td><span class="pill @(r.Status == "ACTIVE" ? "ok" : r.Status == "MAINT" ? "warn" : "bad")">@(r.Status ?? "—")</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.MasterDataRepository.RfidReaderRow> _allRows = new();
+    List<AMES.Data.Repositories.MasterDataRepository.RfidReaderRow> _rows    = new();
+    string _fSearch = "", _fLine = "", _fStatus = "";
+
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
+    {
+        try { _allRows = Md.ListRfidReaders(); } catch { _allRows = new(); }
+        ApplyFilter();
+    }
+
+    void ApplyFilter()
+    {
+        _rows = _allRows;
+        if (!string.IsNullOrWhiteSpace(_fSearch))
+            _rows = _rows.Where(r =>
+                r.ReaderID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+                (r.ReaderName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (!string.IsNullOrWhiteSpace(_fLine))
+            _rows = _rows.Where(r => r.LineID == _fLine).ToList();
+        if (!string.IsNullOrWhiteSpace(_fStatus))
+            _rows = _rows.Where(r => r.Status == _fStatus).ToList();
+    }
+}

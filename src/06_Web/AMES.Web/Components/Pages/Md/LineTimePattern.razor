@@ -1,0 +1,151 @@
+@page "/md/line-time-pattern"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MasterDataRepository Md
+
+<PageTitle>MD-029 라인 시간 패턴 관리 · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MD-029</div>
+    <div class="ames-page-t">라인 시간 패턴 관리</div>
+    <div class="ames-page-sub">MD_LineTimePattern 마스터 — 교대·요일별 운전시간 세그먼트 설정</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">전체 패턴</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "ACTIVE")</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">라인 수</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.LineID).Where(l => l != null).Distinct().Count()</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">교대 모델 수</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.ShiftModel).Where(s => s != null).Distinct().Count()</div>
+    </div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 시간 패턴 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:140px;padding:4px 8px;"
+                   placeholder="패턴ID / 패턴명" @bind="_fSearch" autocomplete="off" />
+            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fLine">
+                <option value="">라인 전체</option>
+                @foreach (var l in _allRows.Select(r => r.LineID).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@l">@l</option>
+                }
+            </select>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">등록된 시간 패턴이 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>패턴 ID</th><th>패턴명</th><th>라인</th>
+                    <th>요일 유형</th><th>교대 모델</th>
+                    <th>적용 시작</th><th>적용 종료</th>
+                    <th class="num">운전 시간(분)</th><th class="num">계획 비가동(분)</th>
+                    <th>상태</th><th>세그먼트</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr @onclick="() => ToggleSegments(r.PatternID)" style="cursor:pointer;">
+                        <td class="code">@r.PatternID</td>
+                        <td>@(r.PatternName ?? "—")</td>
+                        <td class="dim">@(r.LineID ?? "—")</td>
+                        <td>@(r.DayType ?? "—")</td>
+                        <td>@(r.ShiftModel ?? "—")</td>
+                        <td class="dim">@(r.EffectiveFrom?.ToString("yy-MM-dd") ?? "—")</td>
+                        <td class="dim">@(r.EffectiveTo?.ToString("yy-MM-dd") ?? "—")</td>
+                        <td class="num">@(r.TotalOperatingMin?.ToString() ?? "—")</td>
+                        <td class="num">@(r.TotalPlannedDownMin?.ToString() ?? "—")</td>
+                        <td><span class="pill @(r.Status == "ACTIVE" ? "ok" : "warn")">@(r.Status ?? "—")</span></td>
+                        <td class="dim">▶ 클릭하여 세그먼트 보기</td>
+                    </tr>
+                    @if (_expandedId == r.PatternID && _segments.Count > 0)
+                    {
+                        <tr>
+                            <td colspan="11" style="padding:0 0 8px 32px;background:#f8fafc;">
+                                <table class="ames-table" style="margin:8px 0;">
+                                    <thead>
+                                        <tr>
+                                            <th class="num">순서</th><th class="num">시작(분)</th><th class="num">종료(분)</th>
+                                            <th>상태</th><th>교대</th><th>사유코드</th><th>설명</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var s in _segments)
+                                        {
+                                            <tr>
+                                                <td class="num">@(s.SeqNo?.ToString() ?? "—")</td>
+                                                <td class="num">@(s.StartMin?.ToString() ?? "—")</td>
+                                                <td class="num">@(s.EndMin?.ToString() ?? "—")</td>
+                                                <td><span class="pill @(s.SegmentState == "PRODUCTION" ? "ok" : s.SegmentState == "BREAK" ? "" : "warn")">@(s.SegmentState ?? "—")</span></td>
+                                                <td class="dim">@(s.ShiftCode ?? "—")</td>
+                                                <td class="dim">@(s.ReasonCode ?? "—")</td>
+                                                <td class="dim">@(s.Description ?? "—")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.MasterDataRepository.LineTimePatternRow>  _allRows  = new();
+    List<AMES.Data.Repositories.MasterDataRepository.LineTimePatternRow>  _rows     = new();
+    List<AMES.Data.Repositories.MasterDataRepository.LineTimeSegmentRow>  _segments = new();
+    string _fSearch = "", _fLine = "";
+    string? _expandedId;
+
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
+    {
+        try { _allRows = Md.ListLineTimePatterns(); } catch { _allRows = new(); }
+        _expandedId = null;
+        _segments   = new();
+        ApplyFilter();
+    }
+
+    void ApplyFilter()
+    {
+        _rows = _allRows;
+        if (!string.IsNullOrWhiteSpace(_fSearch))
+            _rows = _rows.Where(r =>
+                r.PatternID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+                (r.PatternName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (!string.IsNullOrWhiteSpace(_fLine))
+            _rows = _rows.Where(r => r.LineID == _fLine).ToList();
+    }
+
+    void ToggleSegments(string patternId)
+    {
+        if (_expandedId == patternId) { _expandedId = null; _segments = new(); return; }
+        _expandedId = patternId;
+        try { _segments = Md.ListLineTimeSegments(patternId); } catch { _segments = new(); }
+    }
+}

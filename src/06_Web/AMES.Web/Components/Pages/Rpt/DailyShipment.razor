@@ -1,61 +1,91 @@
 @page "/rpt/daily-shipment"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.RptRepository Rpt
 
-<PageTitle>RPT-03 Daily Shipment · AMES</PageTitle>
+<PageTitle>RPT-03 일별 출하 현황 · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">RPT-03</div>
-    <div class="ames-page-t">Daily Shipment</div>
-    <div class="ames-page-sub">출하 주문 / 수량 / 고객 수 — 최근 14일</div>
+    <div class="ames-page-t">일별 출하 현황</div>
+    <div class="ames-page-sub">출하 주문 / 수량 / 고객 수</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">DAYS</div>
+    <div class="ames-kpi"><div class="ames-kpi-l">출하일</div>
         <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">distinct ship days</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">ORDERS</div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">주문 수</div>
         <div class="ames-kpi-v">@_orders.ToString("N0")</div><div class="ames-kpi-s">shipment orders</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">ORDERED QTY</div>
+    <div class="ames-kpi"><div class="ames-kpi-l">주문 수량</div>
         <div class="ames-kpi-v">@_ord.ToString("N0")</div><div class="ames-kpi-s">total ordered</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">ALLOCATED</div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">배정 수량</div>
         <div class="ames-kpi-v">@_alloc.ToString("N0")</div><div class="ames-kpi-s">total allocated</div></div>
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">Daily shipment summary</div>
-    <table class="ames-table">
-        <thead>
-            <tr>
-                <th>Day</th><th class="num">Orders</th>
-                <th class="num">Ordered qty</th><th class="num">Allocated qty</th>
-                <th class="num">Fill %</th><th class="num">Customers</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var r in _rows)
-            {
-                var fill = r.OrderedQty > 0 ? r.AllocatedQty / r.OrderedQty * 100m : 0m;
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 일별 출하 집계 · @_rows.Count 건</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">조회 기간</label>
+            <select class="ames-input" style="width:80px;padding:4px 8px;" @bind="_daysBack">
+                <option value="7">7일</option>
+                <option value="14">14일</option>
+                <option value="30">30일</option>
+                <option value="60">60일</option>
+                <option value="90">90일</option>
+            </select>
+            <button class="ames-btn ok" @onclick="Reload">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">해당 기간에 출하 데이터가 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
                 <tr>
-                    <td class="dim">@r.Day.ToString("MM-dd ddd")</td>
-                    <td class="num">@r.Orders</td>
-                    <td class="num">@r.OrderedQty.ToString("N0")</td>
-                    <td class="num">@r.AllocatedQty.ToString("N0")</td>
-                    <td class="num"><span class="pill @(fill >= 100m ? "ok" : fill >= 90m ? "warn" : "bad")">@fill.ToString("0.0")%</span></td>
-                    <td class="num">@r.CustomerCount</td>
+                    <th>날짜</th><th class="num">주문 수</th>
+                    <th class="num">주문 수량</th><th class="num">배정 수량</th>
+                    <th class="num">충족률</th><th class="num">고객 수</th>
                 </tr>
-            }
-        </tbody>
-    </table>
-    @if (_rows.Count == 0) { <div class="ames-empty">No shipments in the last 14 days.</div> }
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    var fill = r.OrderedQty > 0 ? r.AllocatedQty / r.OrderedQty * 100m : 0m;
+                    <tr>
+                        <td class="dim">@r.Day.ToString("MM-dd (ddd)")</td>
+                        <td class="num">@r.Orders</td>
+                        <td class="num">@r.OrderedQty.ToString("N0")</td>
+                        <td class="num">@r.AllocatedQty.ToString("N0")</td>
+                        <td class="num">
+                            <span class="pill @(fill >= 100m ? "ok" : fill >= 90m ? "warn" : "bad")">
+                                @fill.ToString("0.0")%
+                            </span>
+                        </td>
+                        <td class="num">@r.CustomerCount</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 </div>
 
 @code {
     List<AMES.Data.Repositories.RptRepository.DailyShipmentRow> _rows = new();
-    long _orders;
+
+    int     _daysBack = 14;
+    long    _orders;
     decimal _ord, _alloc;
-    protected override void OnInitialized()
+
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
     {
-        try { _rows = Rpt.ListDailyShipment(); } catch { }
+        try { _rows = Rpt.ListDailyShipment(_daysBack); } catch { _rows = new(); }
         _orders = _rows.Sum(r => (long)r.Orders);
         _ord    = _rows.Sum(r => r.OrderedQty);
         _alloc  = _rows.Sum(r => r.AllocatedQty);

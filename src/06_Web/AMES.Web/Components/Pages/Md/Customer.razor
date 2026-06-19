@@ -1,0 +1,372 @@
+@page "/md/customer"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AuthenticationStateProvider Auth
+
+<PageTitle>MD-010 고객사 기준정보 관리 · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MD-010</div>
+    <div class="ames-page-t">고객사 기준정보 관리</div>
+    <div class="ames-page-sub">MD_Customer 마스터 — 고객 코드·연락처·EDI 설정</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Active")</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">EDI 연동</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.EDIFlag)</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">국내</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Country == "KOR")</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 고객사 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:220px;padding:4px 8px;"
+                   placeholder="고객코드 / 고객명 / 영문명" @bind="_fSearch" autocomplete="off" />
+            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fType">
+                <option value="">유형 전체</option>
+                <option>OEM</option><option>TIER1</option><option>TIER2</option><option>Direct</option>
+            </select>
+            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fStatus">
+                <option value="">상태 전체</option>
+                <option>Active</option><option>Inactive</option>
+            </select>
+            <button class="ames-btn" @onclick="OpenCreate">+ 등록</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">등록된 고객사가 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>고객 ID</th><th>코드</th><th>고객명</th><th>영문명</th>
+                    <th>유형</th><th>국가</th><th>담당자</th><th>전화</th>
+                    <th>EDI</th><th>상태</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
+                        <td class="code">@r.CustomerID</td>
+                        <td class="dim">@(r.CustomerCode ?? "—")</td>
+                        <td>@(r.CustomerName ?? "—")</td>
+                        <td class="dim">@(r.CustomerNameEn ?? "—")</td>
+                        <td><span class="pill">@(r.CustomerType ?? "—")</span></td>
+                        <td class="dim">@(r.Country ?? "—")</td>
+                        <td>@(r.ContactPerson ?? "—")</td>
+                        <td class="dim">@(r.ContactPhone ?? "—")</td>
+                        <td>
+                            @if (r.EDIFlag) { <span class="pill ok">EDI</span> }
+                            else { <span class="dim">—</span> }
+                        </td>
+                        <td>
+                            @if (r.Status == "Active") { <span class="pill ok">Active</span> }
+                            else { <span class="pill bad">@(r.Status ?? "—")</span> }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@* ── Create Modal ─────────────────────────────────────────────────── *@
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">신규 고객사 등록</div>
+
+            <label>고객 코드</label>
+            <input class="ames-input" @bind="_f.CustomerCode" placeholder="예: HYUNDAI" autocomplete="off" />
+
+            <label>고객명 *</label>
+            <input class="ames-input" @bind="_f.CustomerName" placeholder="현대자동차(주)" autocomplete="off" />
+
+            <label>영문명</label>
+            <input class="ames-input" @bind="_f.CustomerNameEn" placeholder="Hyundai Motor Co." autocomplete="off" />
+
+            <label>고객 유형</label>
+            <select class="ames-input" @bind="_f.CustomerType">
+                <option value="">— 선택 —</option>
+                <option>OEM</option><option>TIER1</option><option>TIER2</option><option>Direct</option>
+            </select>
+
+            <label>사업자등록번호</label>
+            <input class="ames-input" @bind="_f.BizRegNo" placeholder="000-00-00000" autocomplete="off" />
+
+            <label>국가코드</label>
+            <input class="ames-input" @bind="_f.Country" placeholder="KOR" maxlength="3" autocomplete="off" />
+
+            <label>담당자</label>
+            <input class="ames-input" @bind="_f.ContactPerson" placeholder="홍길동" autocomplete="off" />
+
+            <label>전화</label>
+            <input class="ames-input" @bind="_f.ContactPhone" placeholder="02-0000-0000" autocomplete="off" />
+
+            <label>이메일</label>
+            <input class="ames-input" @bind="_f.ContactEmail" placeholder="contact@customer.com" autocomplete="off" />
+
+            <label>통화코드</label>
+            <input class="ames-input" @bind="_f.CurrencyCode" placeholder="KRW" maxlength="3" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.EDIFlag" />
+                <span>EDI 연동</span>
+            </label>
+
+            <label>상태</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option>Active</option><option>Inactive</option>
+            </select>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
+                <button class="ames-btn" @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Edit Modal ───────────────────────────────────────────────────── *@
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">고객사 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.CustomerID</span></div>
+
+            <label>고객 코드</label>
+            <input class="ames-input" @bind="_f.CustomerCode" autocomplete="off" />
+
+            <label>고객명 *</label>
+            <input class="ames-input" @bind="_f.CustomerName" autocomplete="off" />
+
+            <label>영문명</label>
+            <input class="ames-input" @bind="_f.CustomerNameEn" autocomplete="off" />
+
+            <label>고객 유형</label>
+            <select class="ames-input" @bind="_f.CustomerType">
+                <option value="">— 선택 —</option>
+                <option>OEM</option><option>TIER1</option><option>TIER2</option><option>Direct</option>
+            </select>
+
+            <label>사업자등록번호</label>
+            <input class="ames-input" @bind="_f.BizRegNo" autocomplete="off" />
+
+            <label>국가코드</label>
+            <input class="ames-input" @bind="_f.Country" maxlength="3" autocomplete="off" />
+
+            <label>담당자</label>
+            <input class="ames-input" @bind="_f.ContactPerson" autocomplete="off" />
+
+            <label>전화</label>
+            <input class="ames-input" @bind="_f.ContactPhone" autocomplete="off" />
+
+            <label>이메일</label>
+            <input class="ames-input" @bind="_f.ContactEmail" autocomplete="off" />
+
+            <label>통화코드</label>
+            <input class="ames-input" @bind="_f.CurrencyCode" maxlength="3" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.EDIFlag" />
+                <span>EDI 연동</span>
+            </label>
+
+            <label>상태</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option>Active</option><option>Inactive</option>
+            </select>
+
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>정말 삭제하시겠습니까?</span>
+                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? "삭제 중…" : "예, 삭제")</button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
+                <button class="ames-btn"     @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    List<AMES.Data.Repositories.MasterDataRepository.CustomerRow> _allRows = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CustomerRow> _rows    = new();
+    AMES.Data.Repositories.MasterDataRepository.CustomerRow? _sel;
+
+    string _fSearch = "", _fType = "", _fStatus = "";
+
+    string _modal = "";
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _msg = "", _modalErr = "";
+    bool _isErr;
+    string _actor = "system";
+    FormModel _f = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        Reload();
+    }
+
+    void Reload() { _allRows = Md.ListCustomers(); ApplyFilter(); }
+
+    void ApplyFilter() => _rows = _allRows.Where(r =>
+        (string.IsNullOrEmpty(_fSearch) ||
+            (r.CustomerCode   ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.CustomerName   ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.CustomerNameEn ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fType)   || r.CustomerType == _fType) &&
+        (string.IsNullOrEmpty(_fStatus) || r.Status       == _fStatus)
+    ).ToList();
+
+    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+
+    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.CustomerRow r)
+    {
+        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _f = new()
+        {
+            CustomerCode   = r.CustomerCode   ?? "",
+            CustomerName   = r.CustomerName   ?? "",
+            CustomerNameEn = r.CustomerNameEn ?? "",
+            CustomerType   = r.CustomerType   ?? "",
+            BizRegNo       = r.BizRegNo       ?? "",
+            Country        = r.Country        ?? "",
+            ContactPerson  = r.ContactPerson  ?? "",
+            ContactPhone   = r.ContactPhone   ?? "",
+            ContactEmail   = r.ContactEmail   ?? "",
+            CurrencyCode   = r.CurrencyCode   ?? "",
+            EDIFlag        = r.EDIFlag,
+            Status         = r.Status         ?? "Active",
+        };
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.CustomerName)) { _modalErr = "고객명을 입력하세요."; return; }
+        _busy = true;
+        try
+        {
+            var newId = "C" + Guid.NewGuid().ToString("N")[..14].ToUpper();
+            Md.InsertCustomer(newId, NE(_f.CustomerCode),
+                _f.CustomerName, NE(_f.CustomerNameEn),
+                NE(_f.CustomerType), NE(_f.BizRegNo),
+                NE(_f.Country), NE(_f.ContactPerson),
+                NE(_f.ContactPhone), NE(_f.ContactEmail),
+                _f.EDIFlag, NE(_f.CurrencyCode), _f.Status, _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{_f.CustomerName} 등록 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.CustomerName)) { _modalErr = "고객명을 입력하세요."; return; }
+        _busy = true;
+        try
+        {
+            Md.UpdateCustomer(_sel.CustomerID,
+                NE(_f.CustomerCode), _f.CustomerName, NE(_f.CustomerNameEn),
+                NE(_f.CustomerType), NE(_f.BizRegNo),
+                NE(_f.Country), NE(_f.ContactPerson),
+                NE(_f.ContactPhone), NE(_f.ContactEmail),
+                _f.EDIFlag, NE(_f.CurrencyCode), _f.Status, _actor);
+            var name = _f.CustomerName;
+            CloseModal(); Reload();
+            ShowMsg($"{name} 수정 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            var name = _sel.CustomerName ?? _sel.CustomerID;
+            Md.DeleteCustomer(_sel.CustomerID);
+            CloseModal(); Reload();
+            ShowMsg($"{name} 삭제 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    class FormModel
+    {
+        public string CustomerCode   { get; set; } = "";
+        public string CustomerName   { get; set; } = "";
+        public string CustomerNameEn { get; set; } = "";
+        public string CustomerType   { get; set; } = "";
+        public string BizRegNo       { get; set; } = "";
+        public string Country        { get; set; } = "KOR";
+        public string ContactPerson  { get; set; } = "";
+        public string ContactPhone   { get; set; } = "";
+        public string ContactEmail   { get; set; } = "";
+        public string CurrencyCode   { get; set; } = "KRW";
+        public bool   EDIFlag        { get; set; } = false;
+        public string Status         { get; set; } = "Active";
+    }
+}

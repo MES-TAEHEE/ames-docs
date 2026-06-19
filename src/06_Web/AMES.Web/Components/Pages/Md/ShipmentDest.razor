@@ -1,0 +1,344 @@
+@page "/md/shipment-dest"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AuthenticationStateProvider Auth
+
+<PageTitle>MD-011 출하처 기준정보 관리 · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MD-011</div>
+    <div class="ames-page-t">출하처 기준정보 관리</div>
+    <div class="ames-page-sub">MD_ShipmentDest 마스터 — 고객별 납품처·리드타임·운송 설정</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Active")</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">국내</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Country == "KOR")</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">해외</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Country != null && r.Country != "KOR")</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 출하처 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:160px;padding:4px 8px;"
+                   placeholder="출하처명 / 고객사" @bind="_fSearch" autocomplete="off" />
+            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fStatus">
+                <option value="">상태 전체</option>
+                <option>Active</option><option>Inactive</option>
+            </select>
+            <button class="ames-btn" @onclick="OpenCreate">+ 등록</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">등록된 출하처가 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>출하처 ID</th><th>고객사</th><th>출하처명</th><th>유형</th>
+                    <th>국가</th><th>도크</th><th class="num">리드타임(일)</th><th>운송사</th><th>상태</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
+                        <td class="code">@r.ShipDestID</td>
+                        <td>@(r.CustomerName ?? r.CustomerID ?? "—")</td>
+                        <td>@(r.DestName ?? "—")</td>
+                        <td><span class="pill">@(r.DestType ?? "—")</span></td>
+                        <td class="dim">@(r.Country ?? "—")</td>
+                        <td class="dim">@(r.DeliveryDock ?? "—")</td>
+                        <td class="num">@(r.LeadTimeDays?.ToString() ?? "—")</td>
+                        <td class="dim">@(r.DefaultCarrier ?? "—")</td>
+                        <td>
+                            @if (r.Status == "Active") { <span class="pill ok">Active</span> }
+                            else { <span class="pill bad">@(r.Status ?? "—")</span> }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@* ── Create Modal ─────────────────────────────────────────────────── *@
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">신규 출하처 등록</div>
+
+            <label>고객사 *</label>
+            <select class="ames-input" @bind="_f.CustomerID">
+                <option value="">— 선택 —</option>
+                @foreach (var c in _customers)
+                { <option value="@c.CustomerID">@(c.CustomerName ?? c.CustomerID)</option> }
+            </select>
+
+            <label>출하처명 *</label>
+            <input class="ames-input" @bind="_f.DestName" placeholder="아산공장 납품처" autocomplete="off" />
+
+            <label>유형</label>
+            <select class="ames-input" @bind="_f.DestType">
+                <option value="">— 선택 —</option>
+                <option>PLANT</option><option>DC</option><option>PORT</option><option>DEALER</option>
+            </select>
+
+            <label>주소</label>
+            <input class="ames-input" @bind="_f.Address" placeholder="충남 아산시 …" autocomplete="off" />
+
+            <label>국가코드</label>
+            <input class="ames-input" @bind="_f.Country" placeholder="KOR" maxlength="3" autocomplete="off" />
+
+            <label>도크</label>
+            <input class="ames-input" @bind="_f.DeliveryDock" placeholder="DOCK-A" autocomplete="off" />
+
+            <label>리드타임 (일)</label>
+            <input class="ames-input" type="number" @bind="_f.LeadTimeDays" placeholder="1" autocomplete="off" />
+
+            <label>기본 운송사</label>
+            <input class="ames-input" @bind="_f.DefaultCarrier" placeholder="CJ대한통운" autocomplete="off" />
+
+            <label>납품 시간대</label>
+            <input class="ames-input" @bind="_f.DeliveryWindow" placeholder="08:00-17:00" autocomplete="off" />
+
+            <label>상태</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option>Active</option><option>Inactive</option>
+            </select>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
+                <button class="ames-btn" @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Edit Modal ───────────────────────────────────────────────────── *@
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">출하처 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.ShipDestID</span></div>
+
+            <label>고객사 *</label>
+            <select class="ames-input" @bind="_f.CustomerID">
+                <option value="">— 선택 —</option>
+                @foreach (var c in _customers)
+                { <option value="@c.CustomerID">@(c.CustomerName ?? c.CustomerID)</option> }
+            </select>
+
+            <label>출하처명 *</label>
+            <input class="ames-input" @bind="_f.DestName" autocomplete="off" />
+
+            <label>유형</label>
+            <select class="ames-input" @bind="_f.DestType">
+                <option value="">— 선택 —</option>
+                <option>PLANT</option><option>DC</option><option>PORT</option><option>DEALER</option>
+            </select>
+
+            <label>주소</label>
+            <input class="ames-input" @bind="_f.Address" autocomplete="off" />
+
+            <label>국가코드</label>
+            <input class="ames-input" @bind="_f.Country" maxlength="3" autocomplete="off" />
+
+            <label>도크</label>
+            <input class="ames-input" @bind="_f.DeliveryDock" autocomplete="off" />
+
+            <label>리드타임 (일)</label>
+            <input class="ames-input" type="number" @bind="_f.LeadTimeDays" autocomplete="off" />
+
+            <label>기본 운송사</label>
+            <input class="ames-input" @bind="_f.DefaultCarrier" autocomplete="off" />
+
+            <label>납품 시간대</label>
+            <input class="ames-input" @bind="_f.DeliveryWindow" autocomplete="off" />
+
+            <label>상태</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option>Active</option><option>Inactive</option>
+            </select>
+
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>정말 삭제하시겠습니까?</span>
+                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? "삭제 중…" : "예, 삭제")</button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
+                <button class="ames-btn"     @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    List<AMES.Data.Repositories.MasterDataRepository.ShipmentDestRow> _allRows = new();
+    List<AMES.Data.Repositories.MasterDataRepository.ShipmentDestRow> _rows    = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CustomerRow> _customers = new();
+    AMES.Data.Repositories.MasterDataRepository.ShipmentDestRow? _sel;
+
+    string _fSearch = "", _fStatus = "";
+    string _modal = "";
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _msg = "", _modalErr = "";
+    bool _isErr;
+    string _actor = "system";
+    FormModel _f = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        _customers = Md.ListCustomers();
+        Reload();
+    }
+
+    void Reload() { _allRows = Md.ListShipmentDests(); ApplyFilter(); }
+
+    void ApplyFilter() => _rows = _allRows.Where(r =>
+        (string.IsNullOrEmpty(_fSearch) ||
+            (r.DestName     ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.CustomerName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fStatus) || r.Status == _fStatus)
+    ).ToList();
+
+    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+
+    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.ShipmentDestRow r)
+    {
+        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _f = new()
+        {
+            CustomerID      = r.CustomerID      ?? "",
+            DestName        = r.DestName        ?? "",
+            DestType        = r.DestType        ?? "",
+            Address         = r.Address         ?? "",
+            Country         = r.Country         ?? "",
+            DeliveryDock    = r.DeliveryDock    ?? "",
+            LeadTimeDays    = r.LeadTimeDays,
+            DefaultCarrier  = r.DefaultCarrier  ?? "",
+            DeliveryWindow  = r.DeliveryWindow  ?? "",
+            Status          = r.Status          ?? "Active",
+        };
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.DestName))    { _modalErr = "출하처명을 입력하세요."; return; }
+        _busy = true;
+        try
+        {
+            var newId = "SD" + Guid.NewGuid().ToString("N")[..13].ToUpper();
+            Md.InsertShipmentDest(newId, NE(_f.CustomerID), _f.DestName, NE(_f.DestType),
+                NE(_f.Address), NE(_f.Country), NE(_f.DeliveryDock), _f.LeadTimeDays,
+                NE(_f.DefaultCarrier), NE(_f.DeliveryWindow), _f.Status, _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{_f.DestName} 등록 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.DestName)) { _modalErr = "출하처명을 입력하세요."; return; }
+        _busy = true;
+        try
+        {
+            Md.UpdateShipmentDest(_sel.ShipDestID, NE(_f.CustomerID), _f.DestName, NE(_f.DestType),
+                NE(_f.Address), NE(_f.Country), NE(_f.DeliveryDock), _f.LeadTimeDays,
+                NE(_f.DefaultCarrier), NE(_f.DeliveryWindow), _f.Status, _actor);
+            var name = _f.DestName;
+            CloseModal(); Reload();
+            ShowMsg($"{name} 수정 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            var name = _sel.DestName ?? _sel.ShipDestID;
+            Md.DeleteShipmentDest(_sel.ShipDestID);
+            CloseModal(); Reload();
+            ShowMsg($"{name} 삭제 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    class FormModel
+    {
+        public string CustomerID     { get; set; } = "";
+        public string DestName       { get; set; } = "";
+        public string DestType       { get; set; } = "";
+        public string Address        { get; set; } = "";
+        public string Country        { get; set; } = "KOR";
+        public string DeliveryDock   { get; set; } = "";
+        public int?   LeadTimeDays   { get; set; }
+        public string DefaultCarrier { get; set; } = "";
+        public string DeliveryWindow { get; set; } = "";
+        public string Status         { get; set; } = "Active";
+    }
+}

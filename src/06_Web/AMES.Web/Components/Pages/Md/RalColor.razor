@@ -1,0 +1,114 @@
+@page "/md/ral-color"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MasterDataRepository Md
+
+<PageTitle>MD-021 RAL 색상 관리 · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MD-021</div>
+    <div class="ames-page-t">RAL 색상 관리</div>
+    <div class="ames-page-sub">MD_RalColor 마스터 — 도장 색상 코드·경화 조건·분체 분말 설정</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.ActiveFlag)</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">분말 로트 등록</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.CurrentPowderLot != null)</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">평균 경화온도</div>
+        <div class="ames-kpi-v">@((_allRows.Where(r => r.CureTemp.HasValue).Select(r => r.CureTemp!.Value) is var temps && temps.Any()) ? $"{temps.Average():0}°C" : "—")</div>
+    </div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ RAL 색상 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:140px;padding:4px 8px;"
+                   placeholder="RAL코드 / 색상명" @bind="_fSearch" autocomplete="off" />
+            <select class="ames-input" style="width:90px;padding:4px 8px;" @bind="_fActive">
+                <option value="">전체</option>
+                <option value="Y">활성</option>
+                <option value="N">비활성</option>
+            </select>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">등록된 RAL 색상이 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>RAL 코드</th><th>색상명</th><th>HEX</th><th>현재 분말 로트</th>
+                    <th class="num">경화 온도(°C)</th><th class="num">경화 시간(s)</th>
+                    <th class="num">정전압(V)</th><th class="num">입자(μm)</th><th>상태</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr>
+                        <td class="code">@r.RALCode</td>
+                        <td>@(r.ColorName ?? "—")</td>
+                        <td>
+                            @if (r.HexValue != null)
+                            {
+                                <span style="display:inline-flex;align-items:center;gap:5px;">
+                                    <span style="width:14px;height:14px;border-radius:3px;background:@r.HexValue;border:1px solid #cbd5e1;display:inline-block;"></span>
+                                    @r.HexValue
+                                </span>
+                            }
+                            else { <span class="dim">—</span> }
+                        </td>
+                        <td class="dim">@(r.CurrentPowderLot ?? "—")</td>
+                        <td class="num">@(r.CureTemp?.ToString() ?? "—")</td>
+                        <td class="num">@(r.CureDuration?.ToString() ?? "—")</td>
+                        <td class="num">@(r.ElectroV?.ToString() ?? "—")</td>
+                        <td class="num">@(r.ParticleUm?.ToString("0.0") ?? "—")</td>
+                        <td>@(r.ActiveFlag ? (MarkupString)"<span class=\"pill ok\">활성</span>" : (MarkupString)"<span class=\"pill bad\">비활성</span>")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.MasterDataRepository.RalColorRow> _allRows = new();
+    List<AMES.Data.Repositories.MasterDataRepository.RalColorRow> _rows    = new();
+    string _fSearch = "", _fActive = "";
+
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
+    {
+        try { _allRows = Md.ListRalColors(); } catch { _allRows = new(); }
+        ApplyFilter();
+    }
+
+    void ApplyFilter()
+    {
+        _rows = _allRows;
+        if (!string.IsNullOrWhiteSpace(_fSearch))
+            _rows = _rows.Where(r =>
+                r.RALCode.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+                (r.ColorName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (_fActive == "Y") _rows = _rows.Where(r => r.ActiveFlag).ToList();
+        if (_fActive == "N") _rows = _rows.Where(r => !r.ActiveFlag).ToList();
+    }
+}

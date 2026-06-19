@@ -2,48 +2,48 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
 
-<PageTitle>SYS-08 System Health · AMES</PageTitle>
+<PageTitle>SYS-010 시스템 상태 · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">SYS-08</div>
-    <div class="ames-page-t">System Health</div>
+    <div class="ames-page-id">SYS-010</div>
+    <div class="ames-page-t">시스템 상태</div>
     <div class="ames-page-sub">전체 시스템 KPI · 알림 큐 · DB 현황</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">USERS</div>
-        <div class="ames-kpi-v">@_k.Users</div><div class="ames-kpi-s">accounts</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">ROLES</div>
+    <div class="ames-kpi"><div class="ames-kpi-l">사용자</div>
+        <div class="ames-kpi-v">@_k.Users</div><div class="ames-kpi-s">계정</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">역할</div>
         <div class="ames-kpi-v">@_k.Roles</div><div class="ames-kpi-s">RBAC</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">IF OK</div>
-        <div class="ames-kpi-v">@_k.InterfacesOk</div><div class="ames-kpi-s">healthy connections</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">인터페이스 정상</div>
+        <div class="ames-kpi-v">@_k.InterfacesOk</div><div class="ames-kpi-s">연결 OK</div></div>
     <div class="ames-kpi @(_k.InterfacesDown == 0 ? "ok" : "bad")">
-        <div class="ames-kpi-l">IF DOWN</div>
+        <div class="ames-kpi-l">인터페이스 오류</div>
         <div class="ames-kpi-v">@_k.InterfacesDown</div>
-        <div class="ames-kpi-s">degraded / unreachable</div></div>
+        <div class="ames-kpi-s">연결 불가</div></div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">AUDIT 24H</div>
-        <div class="ames-kpi-v">@_k.AuditLast24h</div><div class="ames-kpi-s">events logged</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">NOTIF 24H</div>
-        <div class="ames-kpi-v">@_k.NotifLast24h</div><div class="ames-kpi-s">alerts sent</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">감사 24H</div>
+        <div class="ames-kpi-v">@_k.AuditLast24h</div><div class="ames-kpi-s">이벤트 기록</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">알림 24H</div>
+        <div class="ames-kpi-v">@_k.NotifLast24h</div><div class="ames-kpi-s">알림 발송</div></div>
     <div class="ames-kpi @(_k.NotifFailedLast24h == 0 ? "ok" : "bad")">
-        <div class="ames-kpi-l">NOTIF FAIL</div>
+        <div class="ames-kpi-l">알림 실패</div>
         <div class="ames-kpi-v">@_k.NotifFailedLast24h</div>
-        <div class="ames-kpi-s">delivery errors 24h</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">CONFIG</div>
-        <div class="ames-kpi-v">@_k.ConfigKeys</div><div class="ames-kpi-s">active config keys</div></div>
+        <div class="ames-kpi-s">발송 오류 24H</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">시스템 설정</div>
+        <div class="ames-kpi-v">@_k.ConfigKeys</div><div class="ames-kpi-s">활성 키</div></div>
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">▼ Database — approximate row count</div>
+    <div class="ames-card-h">▼ 데이터베이스 — 행 수 추정치</div>
     <div style="display:flex;align-items:baseline;gap:14px;padding:6px 0 16px">
         <div style="font-family:'Bebas Neue',sans-serif;font-size:56px;color:#fff;letter-spacing:2px;">
             @_k.DbRowsApprox.ToString("N0")
         </div>
         <div style="color:rgba(255,255,255,.55);font-size:13px;font-family:'JetBrains Mono',monospace;">
-            rows across all user tables
+            전체 사용자 테이블 합산
         </div>
     </div>
     <div style="color:rgba(255,255,255,.5);font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.5px;">
@@ -54,38 +54,38 @@
 <div class="ames-tiles">
     <a class="ames-tile sys" href="sys/users">
         <div class="ames-tile-ic">👤</div>
-        <div class="ames-tile-h">USERS</div>
-        <div class="ames-tile-sub">@_k.Users accounts</div>
+        <div class="ames-tile-h">사용자</div>
+        <div class="ames-tile-sub">@_k.Users 계정</div>
     </a>
     <a class="ames-tile sys" href="sys/rbac">
         <div class="ames-tile-ic">🛡️</div>
         <div class="ames-tile-h">RBAC</div>
-        <div class="ames-tile-sub">@_k.Roles roles defined</div>
+        <div class="ames-tile-sub">역할 @(_k.Roles)개</div>
     </a>
     <a class="ames-tile sys" href="sys/interfaces">
         <div class="ames-tile-ic">🔌</div>
-        <div class="ames-tile-h">INTERFACES</div>
-        <div class="ames-tile-sub">@_k.InterfacesOk OK · @_k.InterfacesDown DOWN</div>
+        <div class="ames-tile-h">인터페이스</div>
+        <div class="ames-tile-sub">@_k.InterfacesOk 정상 · @_k.InterfacesDown 오류</div>
     </a>
     <a class="ames-tile sys" href="sys/audit">
         <div class="ames-tile-ic">📜</div>
-        <div class="ames-tile-h">AUDIT LOG</div>
-        <div class="ames-tile-sub">@_k.AuditLast24h events in last 24h</div>
+        <div class="ames-tile-h">감사 로그</div>
+        <div class="ames-tile-sub">최근 24H @(_k.AuditLast24h)건</div>
     </a>
     <a class="ames-tile sys" href="sys/notifications">
         <div class="ames-tile-ic">🔔</div>
-        <div class="ames-tile-h">NOTIFICATIONS</div>
-        <div class="ames-tile-sub">@_k.NotifLast24h sent · @_k.NotifFailedLast24h failed</div>
+        <div class="ames-tile-h">알림</div>
+        <div class="ames-tile-sub">발송 @_k.NotifLast24h · 실패 @_k.NotifFailedLast24h</div>
     </a>
     <a class="ames-tile sys" href="sys/config">
         <div class="ames-tile-ic">⚙</div>
-        <div class="ames-tile-h">CONFIG</div>
-        <div class="ames-tile-sub">@_k.ConfigKeys active keys</div>
+        <div class="ames-tile-h">시스템 설정</div>
+        <div class="ames-tile-sub">활성 키 @(_k.ConfigKeys)개</div>
     </a>
     <a class="ames-tile sys" href="sys/calendar">
         <div class="ames-tile-ic">📅</div>
-        <div class="ames-tile-h">CALENDAR</div>
-        <div class="ames-tile-sub">factory shift instances</div>
+        <div class="ames-tile-h">공장 캘린더</div>
+        <div class="ames-tile-sub">교대 인스턴스</div>
     </a>
 </div>
 

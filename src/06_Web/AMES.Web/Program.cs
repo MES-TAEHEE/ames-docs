@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
 using AMES.Web.Components;
 using AMES.Web.Components.Account;
 using AMES.Web.Data;
@@ -47,6 +48,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddDefaultTokenProviders();
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+builder.Services.AddHttpContextAccessor();
 
 // ── Shared data layer (reused from POP) ─────────────────────────────────
 var factory = new AmesConnectionFactory(connectionString);
@@ -83,6 +85,49 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+// ── Role seed: SYS_RolePermission.RoleName → AspNetRoles + RoleID backfill ──
+// Idempotent: skips roles that already exist, skips rows where RoleID is set.
+using (var scope = app.Services.CreateScope())
+{
+    var roleMgr     = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var connFactory = scope.ServiceProvider.GetRequiredService<AmesConnectionFactory>();
+
+    // 1) Collect distinct RoleNames from SYS_RolePermission
+    var roleNames = new List<string>();
+    using (var conn = connFactory.OpenConnection())
+    using (var cmd  = new SqlCommand(
+        "SELECT DISTINCT RoleName FROM dbo.SYS_RolePermission WHERE RoleName IS NOT NULL ORDER BY RoleName", conn))
+    using (var rdr  = cmd.ExecuteReader())
+        while (rdr.Read()) roleNames.Add((string)rdr["RoleName"]);
+
+    // 2) Create missing roles via RoleManager (handles normalization & ConcurrencyStamp)
+    foreach (var name in roleNames)
+    {
+        if (await roleMgr.FindByNameAsync(name) is not null) continue;
+        var res = await roleMgr.CreateAsync(new IdentityRole(name));
+        if (res.Succeeded)
+            app.Logger.LogInformation("Role seeded: {Name}", name);
+        else
+            app.Logger.LogWarning("Role seed failed '{Name}': {Errs}", name,
+                string.Join("; ", res.Errors.Select(e => e.Description)));
+    }
+
+    // 3) Back-fill SYS_RolePermission.RoleID where still NULL
+    using (var conn = connFactory.OpenConnection())
+    using (var cmd  = new SqlCommand("""
+        UPDATE rp
+        SET    rp.RoleID = ar.Id
+        FROM   dbo.SYS_RolePermission rp
+        JOIN   dbo.AspNetRoles         ar ON ar.Name = rp.RoleName
+        WHERE  rp.RoleID IS NULL
+        """, conn))
+    {
+        int updated = cmd.ExecuteNonQuery();
+        if (updated > 0)
+            app.Logger.LogInformation("SYS_RolePermission.RoleID backfilled: {N} rows", updated);
+    }
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -91,11 +136,18 @@ if (app.Environment.IsDevelopment())
 else
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// HTTPS redirect/HSTS only when an HTTPS port is actually configured.
+// IIS sets ANCM_HTTPS_PORT automatically when an HTTPS binding exists.
+// This prevents "Failed to determine the https port" on HTTP-only IIS.
+var httpsPort = app.Configuration.GetValue<int?>("ASPNETCORE_HTTPS_PORT")
+             ?? app.Configuration.GetValue<int?>("ANCM_HTTPS_PORT");
+if (httpsPort.HasValue)
+{
+    app.UseHsts();
+    app.UseHttpsRedirection();
+}
 
 
 app.UseAntiforgery();

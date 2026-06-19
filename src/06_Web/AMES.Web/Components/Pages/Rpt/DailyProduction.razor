@@ -1,61 +1,104 @@
 @page "/rpt/daily-production"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.RptRepository Rpt
 
-<PageTitle>RPT-01 Daily Production · AMES</PageTitle>
+<PageTitle>RPT-01 일별 생산 실적 · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">RPT-01</div>
-    <div class="ames-page-t">Daily Production</div>
-    <div class="ames-page-sub">일별·라인별 생산량 / 양품률 — 최근 14일</div>
+    <div class="ames-page-t">일별 생산 실적</div>
+    <div class="ames-page-sub">일별·라인별 생산량 / 양품률</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">DAYS</div>
+    <div class="ames-kpi"><div class="ames-kpi-l">집계 일수</div>
         <div class="ames-kpi-v">@_days</div><div class="ames-kpi-s">distinct days</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">GOOD QTY</div>
-        <div class="ames-kpi-v">@_good.ToString("N0")</div><div class="ames-kpi-s">14d total</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">DEFECT EVTS</div>
-        <div class="ames-kpi-v">@_def.ToString("N0")</div><div class="ames-kpi-s">flagged entries</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">양품 수</div>
+        <div class="ames-kpi-v">@_good.ToString("N0")</div><div class="ames-kpi-s">good qty</div></div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">불량 건</div>
+        <div class="ames-kpi-v">@_def.ToString("N0")</div><div class="ames-kpi-s">defect entries</div></div>
     <div class="ames-kpi @(_yld >= 99m ? "ok" : _yld >= 95m ? "warn" : "bad")">
-        <div class="ames-kpi-l">YIELD %</div>
+        <div class="ames-kpi-l">양품률</div>
         <div class="ames-kpi-v">@_yld.ToString("0.00")%</div>
         <div class="ames-kpi-s">good / total</div></div>
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">Daily breakdown</div>
-    <table class="ames-table">
-        <thead>
-            <tr>
-                <th>Day</th><th>Line</th><th class="num">Entries</th>
-                <th class="num">Good</th><th class="num">Defect evts</th><th class="num">Yield %</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var r in _rows)
-            {
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 일별 집계 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:120px;padding:4px 8px;"
+                   placeholder="라인 검색" @bind="_fLine" autocomplete="off" />
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">조회 기간</label>
+            <select class="ames-input" style="width:80px;padding:4px 8px;" @bind="_daysBack">
+                <option value="7">7일</option>
+                <option value="14">14일</option>
+                <option value="30">30일</option>
+                <option value="60">60일</option>
+                <option value="90">90일</option>
+            </select>
+            <button class="ames-btn ok" @onclick="Reload">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">조회 결과가 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
                 <tr>
-                    <td class="dim">@r.Day.ToString("MM-dd ddd")</td>
-                    <td>@(r.LineId ?? "—")</td>
-                    <td class="num">@r.Entries</td>
-                    <td class="num">@r.GoodQty.ToString("N0")</td>
-                    <td class="num">@r.DefectQty</td>
-                    <td class="num"><span class="pill @(r.YieldPct >= 99m ? "ok" : r.YieldPct >= 95m ? "warn" : "bad")">@r.YieldPct.ToString("0.00")%</span></td>
+                    <th>날짜</th><th>라인</th><th class="num">건수</th>
+                    <th class="num">양품</th><th class="num">불량 건</th><th class="num">양품률</th>
                 </tr>
-            }
-        </tbody>
-    </table>
-    @if (_rows.Count == 0) { <div class="ames-empty">No production entries in the last 14 days.</div> }
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr>
+                        <td class="dim">@r.Day.ToString("MM-dd (ddd)")</td>
+                        <td>@(r.LineId ?? "—")</td>
+                        <td class="num">@r.Entries</td>
+                        <td class="num">@r.GoodQty.ToString("N0")</td>
+                        <td class="num">@r.DefectQty</td>
+                        <td class="num">
+                            <span class="pill @(r.YieldPct >= 99m ? "ok" : r.YieldPct >= 95m ? "warn" : "bad")">
+                                @r.YieldPct.ToString("0.00")%
+                            </span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 </div>
 
 @code {
-    List<AMES.Data.Repositories.RptRepository.DailyProdRow> _rows = new();
-    int _days; long _good, _def;
+    List<AMES.Data.Repositories.RptRepository.DailyProdRow> _allRows = new();
+    List<AMES.Data.Repositories.RptRepository.DailyProdRow> _rows    = new();
+
+    int     _daysBack = 14;
+    string  _fLine    = "";
+    int     _days;
+    long    _good, _def;
     decimal _yld;
-    protected override void OnInitialized()
+
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
     {
-        try { _rows = Rpt.ListDailyProduction(); } catch { }
+        try { _allRows = Rpt.ListDailyProduction(_daysBack); } catch { _allRows = new(); }
+        ApplyFilter();
+    }
+
+    void ApplyFilter()
+    {
+        _rows = string.IsNullOrWhiteSpace(_fLine)
+            ? _allRows
+            : _allRows.Where(r => (r.LineId ?? "").Contains(_fLine, StringComparison.OrdinalIgnoreCase)).ToList();
         _days = _rows.Select(r => r.Day).Distinct().Count();
         _good = _rows.Sum(r => (long)r.GoodQty);
         _def  = _rows.Sum(r => (long)r.DefectQty);

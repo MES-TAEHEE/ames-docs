@@ -1,0 +1,365 @@
+@page "/md/vendor"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AuthenticationStateProvider Auth
+
+<PageTitle>MD-009 공급업체 기준정보 관리 · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MD-009</div>
+    <div class="ames-page-t">공급업체 기준정보 관리</div>
+    <div class="ames-page-sub">MD_Vendor 마스터 — 협력사·거래처·서비스 공급업체</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.ActiveFlag)</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">EDI 연동</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.EdiFlag)</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">OTD 타겟 설정</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.OtdTargetRate.HasValue)</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 거래선 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:160px;padding:4px 8px;"
+                   placeholder="거래선명 검색" @bind="_fSearch" autocomplete="off" />
+            <select class="ames-input" style="width:120px;padding:4px 8px;" @bind="_fType">
+                <option value="">유형 전체</option>
+                <option>MATERIAL</option><option>TOOLING</option><option>SERVICE</option><option>MRO</option>
+            </select>
+            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fActive">
+                <option value="">활성 전체</option>
+                <option value="Y">활성</option>
+                <option value="N">비활성</option>
+            </select>
+            <button class="ames-btn" @onclick="OpenCreate">+ 등록</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">등록된 거래선이 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>거래선 ID</th><th>거래선명</th><th>유형</th><th>카테고리</th>
+                    <th>담당자</th><th>EDI</th><th class="num">OTD%</th><th>결제조건</th><th>활성</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
+                        <td class="code">@r.VendorID</td>
+                        <td>@(r.VendorName ?? "—")</td>
+                        <td><span class="pill">@(r.VendorType ?? "—")</span></td>
+                        <td class="dim">@(r.VendorCategory ?? "—")</td>
+                        <td>@(r.ContactPerson ?? "—")</td>
+                        <td>
+                            @if (r.EdiFlag) { <span class="pill ok">EDI</span> }
+                            else { <span class="dim">—</span> }
+                        </td>
+                        <td class="num">@(r.OtdTargetRate?.ToString("F1") ?? "—")</td>
+                        <td class="dim">@(r.PaymentTerms ?? "—")</td>
+                        <td>
+                            @if (r.ActiveFlag) { <span class="pill ok">활성</span> }
+                            else { <span class="pill bad">비활성</span> }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@* ── Create Modal ─────────────────────────────────────────────────── *@
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">신규 거래선 등록</div>
+
+            <label>거래선명 *</label>
+            <input class="ames-input" @bind="_f.VendorName" placeholder="(주)ABC공업" autocomplete="off" />
+
+            <label>유형</label>
+            <select class="ames-input" @bind="_f.VendorType">
+                <option value="">— 선택 —</option>
+                <option>MATERIAL</option><option>TOOLING</option><option>SERVICE</option><option>MRO</option>
+            </select>
+
+            <label>카테고리</label>
+            <input class="ames-input" @bind="_f.VendorCategory" placeholder="금속가공, 포장재 등" autocomplete="off" />
+
+            <label>사업자등록번호</label>
+            <input class="ames-input" @bind="_f.BizRegNo" placeholder="000-00-00000" autocomplete="off" />
+
+            <label>담당자</label>
+            <input class="ames-input" @bind="_f.ContactPerson" placeholder="홍길동" autocomplete="off" />
+
+            <label>전화</label>
+            <input class="ames-input" @bind="_f.Phone" placeholder="02-0000-0000" autocomplete="off" />
+
+            <label>이메일</label>
+            <input class="ames-input" @bind="_f.Email" placeholder="vendor@abc.com" autocomplete="off" />
+
+            <label>SCM 포탈 URL</label>
+            <input class="ames-input" @bind="_f.ScmURL" placeholder="https://scm.abc.com" autocomplete="off" />
+
+            <label>OTD 타겟 (%)</label>
+            <input class="ames-input" type="number" @bind="_f.OtdTargetRate" placeholder="95.0" min="0" max="100" step="0.1" autocomplete="off" />
+
+            <label>결제조건</label>
+            <input class="ames-input" @bind="_f.PaymentTerms" placeholder="NET30" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.EdiFlag" />
+                <span>EDI 연동</span>
+            </label>
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.ActiveFlag" />
+                <span>활성</span>
+            </label>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
+                <button class="ames-btn" @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Edit Modal ───────────────────────────────────────────────────── *@
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">거래선 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.VendorID</span></div>
+
+            <label>거래선명 *</label>
+            <input class="ames-input" @bind="_f.VendorName" autocomplete="off" />
+
+            <label>유형</label>
+            <select class="ames-input" @bind="_f.VendorType">
+                <option value="">— 선택 —</option>
+                <option>MATERIAL</option><option>TOOLING</option><option>SERVICE</option><option>MRO</option>
+            </select>
+
+            <label>카테고리</label>
+            <input class="ames-input" @bind="_f.VendorCategory" autocomplete="off" />
+
+            <label>사업자등록번호</label>
+            <input class="ames-input" @bind="_f.BizRegNo" autocomplete="off" />
+
+            <label>담당자</label>
+            <input class="ames-input" @bind="_f.ContactPerson" autocomplete="off" />
+
+            <label>전화</label>
+            <input class="ames-input" @bind="_f.Phone" autocomplete="off" />
+
+            <label>이메일</label>
+            <input class="ames-input" @bind="_f.Email" autocomplete="off" />
+
+            <label>SCM 포탈 URL</label>
+            <input class="ames-input" @bind="_f.ScmURL" autocomplete="off" />
+
+            <label>OTD 타겟 (%)</label>
+            <input class="ames-input" type="number" @bind="_f.OtdTargetRate" min="0" max="100" step="0.1" autocomplete="off" />
+
+            <label>결제조건</label>
+            <input class="ames-input" @bind="_f.PaymentTerms" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.EdiFlag" />
+                <span>EDI 연동</span>
+            </label>
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.ActiveFlag" />
+                <span>활성</span>
+            </label>
+
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>정말 삭제하시겠습니까?</span>
+                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? "삭제 중…" : "예, 삭제")</button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
+                <button class="ames-btn"     @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    List<AMES.Data.Repositories.MasterDataRepository.VendorRow> _allRows = new();
+    List<AMES.Data.Repositories.MasterDataRepository.VendorRow> _rows    = new();
+    AMES.Data.Repositories.MasterDataRepository.VendorRow? _sel;
+
+    string _fSearch = "", _fType = "", _fActive = "";
+    string _modal = "";
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _msg = "", _modalErr = "";
+    bool _isErr;
+    string _actor = "system";
+    FormModel _f = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        Reload();
+    }
+
+    void Reload() { _allRows = Md.ListVendors(); ApplyFilter(); }
+
+    void ApplyFilter() => _rows = _allRows.Where(r =>
+        (string.IsNullOrEmpty(_fSearch) ||
+            (r.VendorName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fType)   || r.VendorType == _fType) &&
+        (string.IsNullOrEmpty(_fActive) ||
+            (_fActive == "Y" ?  r.ActiveFlag : !r.ActiveFlag))
+    ).ToList();
+
+    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+
+    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.VendorRow r)
+    {
+        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _f = new()
+        {
+            VendorName     = r.VendorName     ?? "",
+            VendorType     = r.VendorType     ?? "",
+            VendorCategory = r.VendorCategory ?? "",
+            BizRegNo       = r.BizRegNo       ?? "",
+            ContactPerson  = r.ContactPerson  ?? "",
+            Phone          = r.Phone          ?? "",
+            Email          = r.Email          ?? "",
+            ScmURL         = r.ScmURL         ?? "",
+            EdiFlag        = r.EdiFlag,
+            OtdTargetRate  = r.OtdTargetRate,
+            PaymentTerms   = r.PaymentTerms   ?? "",
+            ActiveFlag     = r.ActiveFlag,
+        };
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.VendorName)) { _modalErr = "거래선명을 입력하세요."; return; }
+        _busy = true;
+        try
+        {
+            var newId = "V" + Guid.NewGuid().ToString("N")[..14].ToUpper();
+            Md.InsertVendor(newId, _f.VendorName, NE(_f.VendorType), NE(_f.VendorCategory),
+                NE(_f.BizRegNo), NE(_f.ContactPerson), NE(_f.Phone), NE(_f.Email),
+                NE(_f.ScmURL), _f.EdiFlag, _f.OtdTargetRate,
+                NE(_f.PaymentTerms), _f.ActiveFlag, _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{_f.VendorName} 등록 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.VendorName)) { _modalErr = "거래선명을 입력하세요."; return; }
+        _busy = true;
+        try
+        {
+            Md.UpdateVendor(_sel.VendorID, _f.VendorName, NE(_f.VendorType), NE(_f.VendorCategory),
+                NE(_f.BizRegNo), NE(_f.ContactPerson), NE(_f.Phone), NE(_f.Email),
+                NE(_f.ScmURL), _f.EdiFlag, _f.OtdTargetRate,
+                NE(_f.PaymentTerms), _f.ActiveFlag, _actor);
+            var name = _f.VendorName;
+            CloseModal(); Reload();
+            ShowMsg($"{name} 수정 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            var name = _sel.VendorName ?? _sel.VendorID;
+            Md.DeleteVendor(_sel.VendorID);
+            CloseModal(); Reload();
+            ShowMsg($"{name} 삭제 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    class FormModel
+    {
+        public string  VendorName     { get; set; } = "";
+        public string  VendorType     { get; set; } = "";
+        public string  VendorCategory { get; set; } = "";
+        public string  BizRegNo       { get; set; } = "";
+        public string  ContactPerson  { get; set; } = "";
+        public string  Phone          { get; set; } = "";
+        public string  Email          { get; set; } = "";
+        public string  ScmURL         { get; set; } = "";
+        public bool    EdiFlag        { get; set; } = false;
+        public decimal? OtdTargetRate { get; set; }
+        public string  PaymentTerms   { get; set; } = "";
+        public bool    ActiveFlag     { get; set; } = true;
+    }
+}

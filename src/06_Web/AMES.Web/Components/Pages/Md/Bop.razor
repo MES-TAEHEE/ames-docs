@@ -1,0 +1,440 @@
+@page "/md/bop"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject MasterDataRepository Md
+@inject AuthenticationStateProvider Auth
+
+<PageTitle>MD-005 BOP 관리 · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MD-005</div>
+    <div class="ames-page-t">BOP 관리</div>
+    <div class="ames-page-sub">MD_Bop — 품목별 공정 순서 및 작업장 정의</div>
+</div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")" style="margin-bottom:10px;">@_msg</div>
+}
+
+<div style="display:flex;gap:14px;height:calc(100vh - 200px);">
+
+    @* ── 좌: 품목 목록 ── 250px ─────────────────────────────── *@
+    <div style="flex:0 0 250px;display:flex;flex-direction:column;min-height:0;">
+        <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;padding:14px;">
+            <input class="ames-input" style="margin-bottom:4px;padding:7px 10px;font-size:.88em;flex-shrink:0;"
+                   placeholder="품목번호 · 품목명 검색…"
+                   @bind="_search" @bind:event="oninput"
+                   @onkeydown="OnKeyDown" />
+            <button class="ames-btn ok" style="width:100%;margin-bottom:8px;padding:6px;font-size:.83em;flex-shrink:0;"
+                    @onclick="LoadItems">조회</button>
+            <div style="overflow-y:auto;flex:1;">
+                @foreach (var item in _items)
+                {
+                    var iCap = item;
+                    <div class="ames-list-item @(_selItem?.ItemNo == item.ItemNo ? "selected" : "")"
+                         @onclick="() => SelectItem(iCap)">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+                            <div style="min-width:0;flex:1;">
+                                <div style="font-family:'JetBrains Mono',monospace;font-size:.88em;font-weight:700;color:#93c5fd;">@item.ItemNo</div>
+                                @if (!string.IsNullOrEmpty(item.ItemName))
+                                {
+                                    <div class="dim" style="font-size:.78em;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@item.ItemName</div>
+                                }
+                            </div>
+                            <span class="pill info" style="font-size:.72em;flex-shrink:0;">@item.StepCount</span>
+                        </div>
+                    </div>
+                }
+                @if (_items.Count == 0)
+                {
+                    <div class="dim" style="text-align:center;padding:28px;font-size:.85em;">품목 없음</div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @* ── 우: 공정 단계 ──────────────────────────────────────── *@
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;">
+        <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;padding:14px;">
+
+            @if (_selItem is null)
+            {
+                <div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;">
+                    <div style="font-size:2.4em;opacity:.15;">⚙️</div>
+                    <div class="dim" style="font-size:.9em;">좌측에서 품목을 선택하면 공정 단계가 표시됩니다</div>
+                </div>
+            }
+            else
+            {
+                @* ─── 품목 정보 바 ─── *@
+                <div class="ames-info-bar">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+                        <div>
+                            <div style="display:flex;align-items:baseline;gap:8px;">
+                                <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:.95em;color:#93c5fd;">@_selItem.ItemNo</span>
+                                @if (!string.IsNullOrEmpty(_selItem.ItemName))
+                                {
+                                    <span style="font-size:.88em;color:rgba(255,255,255,.7);">@_selItem.ItemName</span>
+                                }
+                            </div>
+                            <div class="dim" style="font-size:.8em;margin-top:2px;">
+                                공정 단계 @(_steps.Count)개
+                                @if (_rtFilter != null) {<span> · Routing @_rtFilter 필터 적용 중</span>}
+                            </div>
+                        </div>
+                        <button class="ames-btn ok" @onclick="OpenStepCreate"
+                                style="padding:6px 14px;font-size:.83em;flex-shrink:0;">+ 단계 추가</button>
+                    </div>
+                </div>
+
+                @* ─── 라우팅 타입 필터 ─── *@
+                @if (_routingTypes.Count > 0)
+                {
+                    <div style="display:flex;align-items:center;gap:5px;padding:0 0 8px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.05);">
+                        <span style="font-size:.79em;font-family:'JetBrains Mono',monospace;color:#475569;letter-spacing:.5px;flex-shrink:0;">Routing:</span>
+                        <button class="ames-btn @(_rtFilter == null ? "info" : "")"
+                                style="padding:2px 10px;font-size:.79em;"
+                                @onclick='() => SetRtFilter(null)'>전체</button>
+                        @foreach (var rt in _routingTypes)
+                        {
+                            var rtCap = rt;
+                            <button class="ames-btn @(_rtFilter == rt ? "info" : "")"
+                                    style="padding:2px 10px;font-size:.79em;"
+                                    @onclick="() => SetRtFilter(rtCap)">@rt</button>
+                        }
+                    </div>
+                }
+
+                @* ─── 공정 단계 테이블 ─── *@
+                <div style="overflow-y:auto;flex:1;margin-top:6px;">
+                    <table class="ames-table">
+                        <thead>
+                            <tr>
+                                <th style="width:48px;text-align:center;">Rt</th>
+                                <th style="width:46px;text-align:center;">Seq</th>
+                                <th style="width:190px;">공정 / 작업장</th>
+                                <th style="width:130px;text-align:right;">사이클 / 준비 (s)</th>
+                                <th style="width:64px;text-align:center;">QC · 활성</th>
+                                <th>설명</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var step in _steps)
+                            {
+                                var sCap = step;
+                                <tr class="ames-row-link" @onclick="() => OpenStepEdit(sCap)">
+                                    <td style="text-align:center;">
+                                        <span class="pill info" style="font-size:.76em;">@(step.RoutingType ?? "—")</span>
+                                    </td>
+                                    <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-weight:700;">@step.StepSeq</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(step.ProcessCode))
+                                        {
+                                            <div style="font-family:'JetBrains Mono',monospace;font-size:.88em;font-weight:700;color:#a78bfa;">@step.ProcessCode</div>
+                                        }
+                                        <div style="font-size:.78em;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.35);">
+                                            @step.WorkCenterID
+                                            @if (!string.IsNullOrEmpty(step.WCName))
+                                            {<span style="color:rgba(255,255,255,.5);margin-left:4px;">@step.WCName</span>}
+                                        </div>
+                                    </td>
+                                    <td style="text-align:right;font-family:'JetBrains Mono',monospace;">
+                                        <span style="font-size:.9em;font-weight:600;">@(step.StdCycleTime?.ToString("N1") ?? "—")</span>
+                                        <span class="dim" style="font-size:.82em;"> / @(step.StdSetupTime?.ToString("N1") ?? "—")</span>
+                                    </td>
+                                    <td style="text-align:center;">
+                                        <div style="display:flex;flex-direction:column;gap:3px;align-items:center;">
+                                            @if (step.QcRequiredFlag)
+                                            {<span class="pill ok" style="font-size:.72em;">QC</span>}
+                                            <span class="pill @(step.ActiveFlag ? "ok" : "")" style="font-size:.72em;">@(step.ActiveFlag ? "Y" : "N")</span>
+                                        </div>
+                                    </td>
+                                    <td class="dim" style="font-size:.83em;">@step.StepDescription</td>
+                                </tr>
+                            }
+                            @if (_steps.Count == 0)
+                            {
+                                <tr><td colspan="6" class="dim" style="text-align:center;padding:24px;font-size:.85em;">
+                                    공정 단계 없음 — + 단계 추가 버튼으로 등록하세요
+                                </td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@* ── 공정 단계 추가 모달 ─────────────────────────────────────────────── *@
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
+        <div class="ames-modal" style="max-width:540px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">BOP 단계 추가</div>
+            @StepForm(false)
+            @if (!string.IsNullOrEmpty(_modalErr)) {<div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div>}
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "추가")</button>
+                <button class="ames-btn" @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── 공정 단계 수정/삭제 모달 ───────────────────────────────────────── *@
+@if (_modal == "edit")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
+        <div class="ames-modal" style="max-width:540px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">
+                BOP 단계 수정
+                <span class="pill info" style="margin-left:8px;font-size:.8em;">@_fRoutingType</span>
+                <span class="dim" style="margin-left:6px;font-size:.88em;">Step @_fStepSeq</span>
+            </div>
+            @StepForm(true)
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>@_fItemNo Step @_fStepSeq 을(를) 삭제합니까?</span>
+                    <button class="ames-btn" @onclick='() => _confirmDelete = false' style="padding:4px 10px;">아니오</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy" style="padding:4px 10px;">@(_busy ? "삭제 중…" : "예, 삭제")</button>
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(_modalErr)) {<div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div>}
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveEdit" disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
+                <button class="ames-btn" @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    // ── State ─────────────────────────────────────────────────────────────
+    List<MasterDataRepository.BopItemRow> _items = new();
+    List<MasterDataRepository.BopRow>     _steps = new();
+    MasterDataRepository.BopItemRow?      _selItem;
+    List<string> _routingTypes = new();
+    string? _rtFilter;
+    string  _search = "";
+
+    string _modal     = "";
+    string _modalErr  = "";
+    string _msg       = "";
+    bool   _isErr, _busy, _bgDown, _confirmDelete;
+    string _actor     = "system";
+
+    // ── Form fields ───────────────────────────────────────────────────────
+    string  _fBopId        = "";
+    string  _fItemNo       = "";
+    string  _fRoutingType  = "A";
+    int     _fStepSeq      = 10;
+    string  _fProcessCode  = "";
+    string  _fWorkCenterId = "";
+    decimal _fCycleTime    = 0;
+    decimal _fSetupTime    = 0;
+    bool    _fQcRequired   = false;
+    string  _fStepDesc     = "";
+    bool    _fActiveFlag   = true;
+
+    // ── Init ─────────────────────────────────────────────────────────────
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor   = auth.User.Identity?.Name ?? "system";
+        LoadItems();
+    }
+
+    void LoadItems()
+    {
+        try { _items = Md.ListBopItems(string.IsNullOrWhiteSpace(_search) ? null : _search); }
+        catch { _items = new(); }
+    }
+
+    void LoadSteps()
+    {
+        if (_selItem is null) { _steps = new(); _routingTypes = new(); return; }
+        try
+        {
+            _steps = Md.ListBopSteps(_selItem.ItemNo, _rtFilter);
+            _routingTypes = Md.ListBopSteps(_selItem.ItemNo)
+                .Select(s => s.RoutingType ?? "")
+                .Where(rt => rt.Length > 0)
+                .Distinct().Order().ToList();
+        }
+        catch { _steps = new(); _routingTypes = new(); }
+    }
+
+    void SelectItem(MasterDataRepository.BopItemRow item) { _selItem = item; _rtFilter = null; LoadSteps(); }
+
+    void OnKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") LoadItems(); }
+
+    void SetRtFilter(string? rt) { _rtFilter = rt; LoadSteps(); }
+
+    // ── Modal helpers ─────────────────────────────────────────────────────
+    void CloseModal() { _modal = ""; _modalErr = ""; _confirmDelete = false; }
+    void OnBgDown()   => _bgDown = true;
+    void OnBgClick()  { if (_bgDown) CloseModal(); _bgDown = false; }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    // ── CRUD ─────────────────────────────────────────────────────────────
+    void OpenStepCreate()
+    {
+        int nextSeq = _steps.Count > 0 ? ((_steps.Max(s => s.StepSeq) ?? 0) + 10) : 10;
+        _fBopId = ""; _fItemNo = _selItem?.ItemNo ?? "";
+        _fRoutingType = _rtFilter ?? "A"; _fStepSeq = nextSeq;
+        _fProcessCode = ""; _fWorkCenterId = "";
+        _fCycleTime = 0; _fSetupTime = 0;
+        _fQcRequired = false; _fStepDesc = ""; _fActiveFlag = true;
+        _confirmDelete = false; _modalErr = ""; _modal = "create";
+    }
+
+    void OpenStepEdit(MasterDataRepository.BopRow step)
+    {
+        _fBopId        = step.BOPID;
+        _fItemNo       = step.ItemNo       ?? "";
+        _fRoutingType  = step.RoutingType  ?? "A";
+        _fStepSeq      = step.StepSeq      ?? 10;
+        _fProcessCode  = step.ProcessCode  ?? "";
+        _fWorkCenterId = step.WorkCenterID ?? "";
+        _fCycleTime    = step.StdCycleTime ?? 0;
+        _fSetupTime    = step.StdSetupTime ?? 0;
+        _fQcRequired   = step.QcRequiredFlag;
+        _fStepDesc     = step.StepDescription ?? "";
+        _fActiveFlag   = step.ActiveFlag;
+        _confirmDelete = false; _modalErr = ""; _modal = "edit";
+    }
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_fItemNo))     { _modalErr = "품목번호를 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_fRoutingType)){ _modalErr = "라우팅 유형을 입력하세요."; return; }
+        if (_fStepSeq <= 0)                          { _modalErr = "단계 순서는 1 이상이어야 합니다."; return; }
+        _busy = true;
+        try
+        {
+            var id = "P" + Guid.NewGuid().ToString("N")[..23];
+            Md.InsertBopStep(id, _fItemNo.Trim().ToUpper(),
+                N(_fRoutingType)?.ToUpper(), _fStepSeq,
+                N(_fProcessCode), N(_fWorkCenterId),
+                _fCycleTime == 0 ? null : _fCycleTime,
+                _fSetupTime  == 0 ? null : _fSetupTime,
+                _fQcRequired, N(_fStepDesc), _fActiveFlag, _actor);
+
+            var newItemNo = _fItemNo.Trim().ToUpper();
+            LoadItems();
+            if (_selItem?.ItemNo != newItemNo)
+                _selItem = _items.FirstOrDefault(i => i.ItemNo == newItemNo);
+
+            LoadSteps(); CloseModal();
+            ShowMsg($"{newItemNo} Step {_fStepSeq} 추가 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_fRoutingType)){ _modalErr = "라우팅 유형을 입력하세요."; return; }
+        if (_fStepSeq <= 0)                          { _modalErr = "단계 순서는 1 이상이어야 합니다."; return; }
+        _busy = true;
+        try
+        {
+            Md.UpdateBopStep(_fBopId, N(_fRoutingType)?.ToUpper(), _fStepSeq,
+                N(_fProcessCode), N(_fWorkCenterId),
+                _fCycleTime == 0 ? null : _fCycleTime,
+                _fSetupTime  == 0 ? null : _fSetupTime,
+                _fQcRequired, N(_fStepDesc), _fActiveFlag, _actor);
+            LoadSteps(); CloseModal();
+            ShowMsg($"Step {_fStepSeq} 수정 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        _busy = true;
+        try
+        {
+            Md.DeleteBopStep(_fBopId);
+            LoadItems(); LoadSteps(); CloseModal();
+            ShowMsg($"Step {_fStepSeq} 삭제 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    // ── Step form fragment ────────────────────────────────────────────────
+    RenderFragment StepForm(bool editMode) =>
+    @<div>
+        <div style="display:grid;grid-template-columns:1fr 70px 80px;gap:8px;">
+            <div>
+                <label>품목번호 *</label>
+                <input class="ames-input" @bind="_fItemNo" disabled="@editMode"
+                       placeholder="MD_Item.ItemNo" maxlength="20" autocomplete="off" />
+            </div>
+            <div>
+                <label>Routing *</label>
+                <input class="ames-input" @bind="_fRoutingType"
+                       placeholder="A" maxlength="1" autocomplete="off"
+                       style="text-transform:uppercase;" />
+            </div>
+            <div>
+                <label>Step 순서 *</label>
+                <input type="number" class="ames-input" @bind="_fStepSeq" min="1" step="10" />
+            </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+            <div>
+                <label>공정코드</label>
+                <input class="ames-input" @bind="_fProcessCode"
+                       placeholder="예: INJ, PNT, QC" maxlength="10" autocomplete="off" />
+            </div>
+            <div>
+                <label>작업장 (WorkCenterID)</label>
+                <input class="ames-input" @bind="_fWorkCenterId"
+                       placeholder="MD_WorkCenter.WCID" maxlength="20" autocomplete="off" />
+            </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+            <div>
+                <label>표준 사이클타임 (초)</label>
+                <input type="number" class="ames-input" @bind="_fCycleTime" min="0" step="0.1" />
+            </div>
+            <div>
+                <label>표준 준비시간 (초)</label>
+                <input type="number" class="ames-input" @bind="_fSetupTime" min="0" step="0.1" />
+            </div>
+        </div>
+
+        <label style="margin-top:6px;">공정 설명</label>
+        <input class="ames-input" @bind="_fStepDesc" autocomplete="off"
+               placeholder="이 단계의 작업 내용" />
+
+        <div style="display:flex;gap:24px;margin-top:10px;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_fQcRequired" style="accent-color:#60a5fa;" />
+                QC 검사 필요
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_fActiveFlag" style="accent-color:#60a5fa;" />
+                사용 (활성)
+            </label>
+        </div>
+    </div>;
+
+    static string? N(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+}

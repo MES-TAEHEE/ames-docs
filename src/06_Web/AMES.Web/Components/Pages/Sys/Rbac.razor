@@ -1,76 +1,343 @@
 @page "/sys/rbac"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
+@inject AuthenticationStateProvider Auth
 
-<PageTitle>SYS-02 RBAC Permissions · AMES</PageTitle>
+<PageTitle>SYS-003 역할/권한 관리 (RBAC) · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">SYS-02</div>
-    <div class="ames-page-t">RBAC Permissions</div>
+    <div class="ames-page-id">SYS-003</div>
+    <div class="ames-page-t">역할/권한 관리 (RBAC)</div>
     <div class="ames-page-sub">역할 × 화면 권한 매트릭스</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">ROLES</div>
-        <div class="ames-kpi-v">@_roles.Count</div><div class="ames-kpi-s">defined</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">PERMISSIONS</div>
-        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">role × screen</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">SCREENS</div>
-        <div class="ames-kpi-v">@_screens</div><div class="ames-kpi-s">distinct screens</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">USERS WITH ROLE</div>
-        <div class="ames-kpi-v">@_users</div><div class="ames-kpi-s">total assignments</div></div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">역할</div>
+        <div class="ames-kpi-v">@_roles.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">권한</div>
+        <div class="ames-kpi-v">@_rows.Count</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">화면</div>
+        <div class="ames-kpi-v">@_rows.Select(r => r.ScreenCode).Distinct().Count()</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">역할 사용자</div>
+        <div class="ames-kpi-v">@_roles.Sum(r => r.UserCount)</div>
+    </div>
 </div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
 
 <div class="ames-card">
-    <div class="ames-card-h">Roles</div>
-    <table class="ames-table">
-        <thead><tr><th>Role</th><th class="num">Users</th><th>Role ID</th></tr></thead>
-        <tbody>
-            @foreach (var r in _roles)
-            {
-                <tr>
-                    <td><span class="pill info">@r.RoleName</span></td>
-                    <td class="num">@r.UserCount</td>
-                    <td class="code dim">@r.RoleId</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-    @if (_roles.Count == 0) { <div class="ames-empty">No roles defined.</div> }
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>▼ 권한 목록 · @_rows.Count 건</span>
+        <div style="display:flex;gap:6px;">
+            <button class="ames-btn" @onclick="OpenCreate">+ 등록</button>
+            <button class="ames-btn ok" @onclick="Reload">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">No permissions defined.</div>
+    }
+    else
+    {
+        @foreach (var grp in _rows.GroupBy(r => r.RoleName).OrderBy(g => g.Key))
+        {
+            <div style="margin-top:12px;">
+                <div class="ames-card-h" style="font-size:.8em;padding:6px 12px;">
+                    <span class="pill info">@grp.Key</span>
+                    <span class="dim" style="margin-left:6px;">@grp.Count()건</span>
+                </div>
+                <table class="ames-table">
+                    <thead>
+                        <tr>
+                            <th>모듈</th><th>화면</th><th>수준</th><th>시스템</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in grp.OrderBy(x => x.ModuleCode).ThenBy(x => x.ScreenCode))
+                        {
+                            <tr class="ames-row-link" @onclick="() => OpenEdit(p)">
+                                <td><span class="pill info">@(p.ModuleCode ?? "—")</span></td>
+                                <td class="code">@(p.ScreenCode ?? "—")</td>
+                                <td><span class="pill @LvlClass(p.PermissionLevel)">@(p.PermissionLevel ?? "—")</span></td>
+                                <td class="dim">@(p.IsSystemRole ? "yes" : "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
 </div>
 
-@foreach (var grp in _rows.GroupBy(r => r.RoleName).OrderBy(g => g.Key))
+@* ── Create Modal ─────────────────────────────────────────────────── *@
+@if (_modal == "create")
 {
-    <div class="ames-card">
-        <div class="ames-card-h">▼ @grp.Key  ·  @grp.Count() permissions</div>
-        <table class="ames-table">
-            <thead><tr><th>Module</th><th>Screen</th><th>Level</th><th>System role?</th></tr></thead>
-            <tbody>
-                @foreach (var p in grp.OrderBy(x => x.ModuleCode).ThenBy(x => x.ScreenCode))
-                {
-                    <tr>
-                        <td><span class="pill info">@(p.ModuleCode ?? "—")</span></td>
-                        <td class="code">@(p.ScreenCode ?? "—")</td>
-                        <td><span class="pill @LvlClass(p.PermissionLevel)">@(p.PermissionLevel ?? "—")</span></td>
-                        <td class="dim">@(p.IsSystemRole ? "yes" : "—")</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">권한 등록</div>
+
+            <label>역할 *</label>
+            <select class="ames-input"
+                    value="@_f.RoleName"
+                    @onchange="e => _f.RoleName = e.Value?.ToString() ?? string.Empty">
+                <option value="">— 선택 —</option>
+                @foreach (var r in _roles) { <option value="@r.RoleName">@r.RoleName</option> }
+            </select>
+
+            <label>모듈 *</label>
+            <select class="ames-input"
+                    value="@_f.ModuleCode"
+                    @onchange="e => _f.ModuleCode = e.Value?.ToString() ?? string.Empty">
+                <option value="">— 선택 —</option>
+                @foreach (var m in _modules) { <option value="@m">@m</option> }
+            </select>
+
+            <label>화면 코드 *</label>
+            <input class="ames-input" @bind="_f.ScreenCode" placeholder="예: SYS-01, PP-04" autocomplete="off" />
+
+            <label>권한 수준 *</label>
+            <select class="ames-input"
+                    value="@_f.PermissionLevel"
+                    @onchange="e => _f.PermissionLevel = e.Value?.ToString() ?? string.Empty">
+                <option value="">— 선택 —</option>
+                <option>FULL</option>
+                <option>EDIT</option>
+                <option>VIEW</option>
+                <option>NONE</option>
+            </select>
+
+            <label class="ames-line-item" style="flex-direction:row;gap:8px;margin-top:4px;">
+                <input type="checkbox" @bind="_f.IsSystemRole" style="accent-color:#60a5fa;width:14px;height:14px;" />
+                <span>시스템 역할</span>
+            </label>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">
+                    @(_busy ? "저장 중…" : "등록")
+                </button>
+                <button class="ames-btn" @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Edit Modal ───────────────────────────────────────────────────── *@
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">권한 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.RoleName · @_sel.ScreenCode</span></div>
+
+            <label>역할 *</label>
+            <select class="ames-input"
+                    value="@_f.RoleName"
+                    @onchange="e => _f.RoleName = e.Value?.ToString() ?? string.Empty">
+                <option value="">— 선택 —</option>
+                @foreach (var r in _roles) { <option value="@r.RoleName">@r.RoleName</option> }
+            </select>
+
+            <label>모듈 *</label>
+            <select class="ames-input"
+                    value="@_f.ModuleCode"
+                    @onchange="e => _f.ModuleCode = e.Value?.ToString() ?? string.Empty">
+                <option value="">— 선택 —</option>
+                @foreach (var m in _modules) { <option value="@m">@m</option> }
+            </select>
+
+            <label>화면 코드 *</label>
+            <input class="ames-input" @bind="_f.ScreenCode" autocomplete="off" />
+
+            <label>권한 수준 *</label>
+            <select class="ames-input"
+                    value="@_f.PermissionLevel"
+                    @onchange="e => _f.PermissionLevel = e.Value?.ToString() ?? string.Empty">
+                <option value="">— 선택 —</option>
+                <option>FULL</option>
+                <option>EDIT</option>
+                <option>VIEW</option>
+                <option>NONE</option>
+            </select>
+
+            <label class="ames-line-item" style="flex-direction:row;gap:8px;margin-top:4px;">
+                <input type="checkbox" @bind="_f.IsSystemRole" style="accent-color:#60a5fa;width:14px;height:14px;" />
+                <span>시스템 역할</span>
+            </label>
+
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>정말 삭제하시겠습니까?</span>
+                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">
+                        @(_busy ? "삭제 중…" : "예, 삭제")
+                    </button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveEdit" disabled="@_busy">
+                    @(_busy ? "저장 중…" : "수정")
+                </button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
+                <button class="ames-btn" @onclick="CloseModal">취소</button>
+            </div>
+        </div>
     </div>
 }
 
 @code {
-    List<AMES.Data.Repositories.SysRepository.RolePermRow> _rows = new();
-    List<(string RoleId, string RoleName, int UserCount)> _roles = new();
-    int _screens, _users;
-    protected override void OnInitialized()
+    List<AMES.Data.Repositories.SysRepository.RolePermRow> _rows  = new();
+    List<AMES.Data.Repositories.SysRepository.RoleRow>     _roles = new();
+    AMES.Data.Repositories.SysRepository.RolePermRow?      _sel;
+
+    static readonly string[] _modules =
+        ["PP","MNT","RPT","SYS","INJ","IMG","PNT","QC","WH","FG","AUTH"];
+
+    string _modal = "";   // "" | "create" | "edit"
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _msg = "", _modalErr = "";
+    bool _isErr;
+    string _actorEmail = "system";
+
+    FormModel _f = new();
+
+    protected override async Task OnInitializedAsync()
     {
-        try { _rows = Sys.ListRolePermissions(); } catch { }
-        try { _roles = Sys.ListRoles(); } catch { }
-        _screens = _rows.Select(r => r.ScreenCode).Distinct().Count();
-        _users   = _roles.Sum(r => r.UserCount);
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actorEmail = auth.User.Identity?.Name ?? "system";
+        Reload();
     }
+
+    void Reload()
+    {
+        try { _rows  = Sys.ListRolePermissions(); } catch { }
+        try { _roles = Sys.ListRoles(); } catch { }
+    }
+
+    void OpenCreate()
+    {
+        _f = new(); _modalErr = ""; _confirmDelete = false;
+        _modal = "create";
+    }
+
+    void OpenEdit(AMES.Data.Repositories.SysRepository.RolePermRow p)
+    {
+        _sel = p; _modalErr = ""; _confirmDelete = false;
+        _f = new()
+        {
+            RoleName        = p.RoleName        ?? "",
+            ModuleCode      = p.ModuleCode      ?? "",
+            ScreenCode      = p.ScreenCode      ?? "",
+            PermissionLevel = p.PermissionLevel ?? "",
+            IsSystemRole    = p.IsSystemRole
+        };
+        _modal = "edit";
+    }
+
+    void CloseModal()
+    {
+        _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false;
+    }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick()
+    {
+        if (_bgMouseDownOnSelf) CloseModal();
+        _bgMouseDownOnSelf = false;
+    }
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.RoleName))        { _modalErr = "역할을 선택하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.ModuleCode))      { _modalErr = "모듈을 선택하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.ScreenCode))      { _modalErr = "화면 코드를 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.PermissionLevel)) { _modalErr = "권한 수준을 선택하세요."; return; }
+
+        _busy = true;
+        try
+        {
+            var roleId = _roles.FirstOrDefault(r => r.RoleName == _f.RoleName)?.RoleId;
+            Sys.CreateRolePerm(roleId, _f.RoleName, _f.ModuleCode,
+                _f.ScreenCode.Trim(), _f.PermissionLevel, _f.IsSystemRole, _actorEmail);
+            CloseModal(); Reload();
+            ShowMsg($"{_f.RoleName} · {_f.ScreenCode} 권한 등록 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.RoleName))        { _modalErr = "역할을 선택하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.ModuleCode))      { _modalErr = "모듈을 선택하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.ScreenCode))      { _modalErr = "화면 코드를 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.PermissionLevel)) { _modalErr = "권한 수준을 선택하세요."; return; }
+
+        _busy = true;
+        try
+        {
+            var roleId = _roles.FirstOrDefault(r => r.RoleName == _f.RoleName)?.RoleId
+                         ?? _sel.RoleId;
+            Sys.UpdateRolePerm(_sel.RolePermissionId, roleId, _f.RoleName, _f.ModuleCode,
+                _f.ScreenCode.Trim(), _f.PermissionLevel, _f.IsSystemRole, _actorEmail);
+            CloseModal(); Reload();
+            ShowMsg($"{_f.RoleName} · {_f.ScreenCode} 권한 수정 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            Sys.DeleteRolePerm(_sel.RolePermissionId);
+            var info = $"{_sel.RoleName} · {_sel.ScreenCode}";
+            CloseModal(); Reload();
+            ShowMsg($"{info} 권한 삭제 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
     static string LvlClass(string? l) => l switch
     { "FULL" => "bad", "EDIT" => "warn", "VIEW" => "ok", _ => "info" };
+
+    class FormModel
+    {
+        public string RoleName        { get; set; } = "";
+        public string ModuleCode      { get; set; } = "";
+        public string ScreenCode      { get; set; } = "";
+        public string PermissionLevel { get; set; } = "";
+        public bool   IsSystemRole    { get; set; }
+    }
 }

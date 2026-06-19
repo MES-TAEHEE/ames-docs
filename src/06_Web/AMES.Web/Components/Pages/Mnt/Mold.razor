@@ -1,12 +1,13 @@
 @page "/mnt/mold"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MntRepository Mnt
 
-<PageTitle>MNT-04 Mold Management · AMES</PageTitle>
+<PageTitle>MNT-04 금형 관리 · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MNT-04</div>
-    <div class="ames-page-t">Mold Management</div>
+    <div class="ames-page-t">금형 관리</div>
     <div class="ames-page-sub">금형 쇼트 카운터 + Refurbish 임계</div>
 </div>
 
@@ -22,53 +23,89 @@
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">Mold register</div>
-    <table class="ames-table">
-        <thead>
-            <tr>
-                <th>Mold</th><th>Name</th><th class="num">Cavities</th><th class="num">Tonnage</th>
-                <th class="num">Current shots</th><th class="num">Lifetime</th>
-                <th class="num">Usage %</th><th>Threshold</th>
-                <th>Status</th><th>Mounted on</th><th>Last maint.</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var m in _rows)
-            {
-                var lifetime = m.LifetimeShots ?? m.RatedShots ?? 0;
-                var pct = lifetime > 0 && m.CurrentShots.HasValue
-                    ? (decimal)m.CurrentShots.Value / lifetime * 100m : 0m;
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 금형 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:130px;padding:4px 8px;"
+                   placeholder="금형명 검색" @bind="_fName" autocomplete="off" />
+            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fThreshold">
+                <option value="">전체</option>
+                <option value="CRITICAL">CRITICAL</option>
+                <option value="WARNING">WARNING</option>
+                <option value="OK">OK</option>
+            </select>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">해당 조건에 금형 데이터가 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
                 <tr>
-                    <td class="code">@m.MoldId</td>
-                    <td>@(m.MoldName ?? "—")</td>
-                    <td class="num">@(m.CavityCount?.ToString() ?? "—")</td>
-                    <td class="num">@(m.Tonnage?.ToString() ?? "—")</td>
-                    <td class="num">@(m.CurrentShots?.ToString("N0") ?? "—")</td>
-                    <td class="num">@(lifetime > 0 ? lifetime.ToString("N0") : "—")</td>
-                    <td class="num">@pct.ToString("0.0")%</td>
-                    <td><span class="pill @ThrClass(m.ThresholdLevel)">@(m.ThresholdLevel ?? "—")</span></td>
-                    <td class="dim">@(m.Status ?? "—")</td>
-                    <td class="dim">@(m.MountedEquipId ?? "—")</td>
-                    <td class="dim">@(m.LastMaintDate?.ToString("MM-dd") ?? "—")</td>
+                    <th>Mold</th><th>Name</th><th class="num">Cavities</th><th class="num">Tonnage</th>
+                    <th class="num">Current shots</th><th class="num">Lifetime</th>
+                    <th class="num">Usage %</th><th>Threshold</th>
+                    <th>Status</th><th>Mounted on</th><th>Last maint.</th>
                 </tr>
-            }
-        </tbody>
-    </table>
-    @if (_rows.Count == 0) { <div class="ames-empty">No mold records.</div> }
+            </thead>
+            <tbody>
+                @foreach (var m in _rows)
+                {
+                    var lifetime = m.LifetimeShots ?? m.RatedShots ?? 0;
+                    var pct = lifetime > 0 && m.CurrentShots.HasValue
+                        ? (decimal)m.CurrentShots.Value / lifetime * 100m : 0m;
+                    <tr>
+                        <td class="code">@m.MoldId</td>
+                        <td>@(m.MoldName ?? "—")</td>
+                        <td class="num">@(m.CavityCount?.ToString() ?? "—")</td>
+                        <td class="num">@(m.Tonnage?.ToString() ?? "—")</td>
+                        <td class="num">@(m.CurrentShots?.ToString("N0") ?? "—")</td>
+                        <td class="num">@(lifetime > 0 ? lifetime.ToString("N0") : "—")</td>
+                        <td class="num">@pct.ToString("0.0")%</td>
+                        <td><span class="pill @ThrClass(m.ThresholdLevel)">@(m.ThresholdLevel ?? "—")</span></td>
+                        <td class="dim">@(m.Status ?? "—")</td>
+                        <td class="dim">@(m.MountedEquipId ?? "—")</td>
+                        <td class="dim">@(m.LastMaintDate?.ToString("MM-dd") ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 </div>
 
 @code {
-    List<AMES.Data.Repositories.MntRepository.MoldRow> _rows = new();
-    int _warn, _crit;
-    long _totShots;
+    List<AMES.Data.Repositories.MntRepository.MoldRow> _allRows = new();
+    List<AMES.Data.Repositories.MntRepository.MoldRow> _rows    = new();
+    int    _warn, _crit;
+    long   _totShots;
+    string _fName = "", _fThreshold = "";
 
-    protected override void OnInitialized()
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
     {
-        try { _rows = Mnt.ListMolds(); } catch { }
-        _warn = _rows.Count(m => m.ThresholdLevel == "WARNING");
-        _crit = _rows.Count(m => m.ThresholdLevel == "CRITICAL");
+        try { _allRows = Mnt.ListMolds(); } catch { _allRows = new(); }
+        ApplyFilter();
+    }
+
+    void ApplyFilter()
+    {
+        _rows = _allRows;
+        if (!string.IsNullOrWhiteSpace(_fName))
+            _rows = _rows.Where(m => (m.MoldName ?? "").Contains(_fName, StringComparison.OrdinalIgnoreCase) ||
+                                     m.MoldId.Contains(_fName, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (!string.IsNullOrWhiteSpace(_fThreshold))
+            _rows = _rows.Where(m => m.ThresholdLevel == _fThreshold).ToList();
+        _warn     = _rows.Count(m => m.ThresholdLevel == "WARNING");
+        _crit     = _rows.Count(m => m.ThresholdLevel == "CRITICAL");
         _totShots = _rows.Sum(m => (long?)m.CurrentShots ?? 0L);
     }
+
     static string ThrClass(string? t) => t switch
     { "CRITICAL" => "bad", "WARNING" => "warn", "OK" => "ok", _ => "info" };
 }

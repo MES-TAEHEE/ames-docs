@@ -1,20 +1,21 @@
 @page "/mnt/oee-analysis"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MntRepository Mnt
 
-<PageTitle>MNT-03 OEE Analysis · AMES</PageTitle>
+<PageTitle>MNT-03 OEE 분석 · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MNT-03</div>
-    <div class="ames-page-t">OEE Analysis</div>
-    <div class="ames-page-sub">설비×Shift OEE — 최근 14일</div>
+    <div class="ames-page-t">OEE 분석</div>
+    <div class="ames-page-sub">설비×Shift OEE 집계</div>
 </div>
 
 <div class="ames-kpis">
     <div class="ames-kpi @KpiClass(_avgOee, 75, 85)">
         <div class="ames-kpi-l">AVG OEE</div>
         <div class="ames-kpi-v">@_avgOee.ToString("0.0")%</div>
-        <div class="ames-kpi-s">14d, all equip</div>
+        <div class="ames-kpi-s">@_daysBack d, all equip</div>
     </div>
     <div class="ames-kpi @KpiClass(_avgAvail, 80, 90)">
         <div class="ames-kpi-l">AVAILABILITY</div>
@@ -30,6 +31,24 @@
         <div class="ames-kpi-l">QUALITY</div>
         <div class="ames-kpi-v">@_avgQual.ToString("0.0")%</div>
         <div class="ames-kpi-s">Q</div>
+    </div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ OEE 데이터 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:120px;padding:4px 8px;"
+                   placeholder="설비 검색" @bind="_fEquip" autocomplete="off" />
+            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">조회 기간</label>
+            <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_daysBack">
+                <option value="7">7일</option>
+                <option value="14">14일</option>
+                <option value="30">30일</option>
+                <option value="60">60일</option>
+            </select>
+            <button class="ames-btn ok" @onclick="Reload">조회</button>
+        </div>
     </div>
 </div>
 
@@ -70,16 +89,29 @@
 
 @if (_rows.Count == 0)
 {
-    <div class="ames-card"><div class="ames-empty">No OEE rows.</div></div>
+    <div class="ames-card"><div class="ames-empty">해당 기간에 OEE 데이터가 없습니다.</div></div>
 }
 
 @code {
-    List<AMES.Data.Repositories.MntRepository.OeeRow> _rows = new();
+    List<AMES.Data.Repositories.MntRepository.OeeRow> _allRows = new();
+    List<AMES.Data.Repositories.MntRepository.OeeRow> _rows    = new();
     decimal _avgOee, _avgAvail, _avgPerf, _avgQual;
+    int     _daysBack = 14;
+    string  _fEquip   = "";
 
-    protected override void OnInitialized()
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
     {
-        try { _rows = Mnt.ListOee(); } catch { }
+        try { _allRows = Mnt.ListOee(_daysBack); } catch { _allRows = new(); }
+        ApplyFilter();
+    }
+
+    void ApplyFilter()
+    {
+        _rows = string.IsNullOrWhiteSpace(_fEquip)
+            ? _allRows
+            : _allRows.Where(r => (r.EquipId ?? "").Contains(_fEquip, StringComparison.OrdinalIgnoreCase)).ToList();
         if (_rows.Count > 0)
         {
             _avgOee   = _rows.Average(r => r.Oee          ?? 0m);
@@ -87,7 +119,9 @@
             _avgPerf  = _rows.Average(r => r.Performance  ?? 0m);
             _avgQual  = _rows.Average(r => r.Quality      ?? 0m);
         }
+        else { _avgOee = _avgAvail = _avgPerf = _avgQual = 0m; }
     }
+
     static string KpiClass(decimal v, decimal warn, decimal ok)
         => v >= ok ? "ok" : v >= warn ? "warn" : "bad";
 }

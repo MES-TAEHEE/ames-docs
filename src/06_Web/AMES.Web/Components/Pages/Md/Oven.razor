@@ -1,0 +1,344 @@
+@page "/md/oven"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AuthenticationStateProvider Auth
+
+<PageTitle>MD-015 건조로 기준정보 관리 · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MD-015</div>
+    <div class="ames-page-t">건조로 기준정보 관리</div>
+    <div class="ames-page-sub">MD_Oven 마스터 — 건조로 목표온도·허용오차·체류시간·컨베이어 속도 설정</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Active")</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">라인 수</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.LineID).Where(l => l != null).Distinct().Count()</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">평균 목표온도</div>
+        <div class="ames-kpi-v">@(_allRows.Where(r => r.TargetTemp.HasValue).Select(r => r.TargetTemp!.Value) is { } temps && temps.Any() ? $"{temps.Average():F0}°C" : "—")</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 건조로 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:160px;padding:4px 8px;"
+                   placeholder="건조로 ID / 명칭" @bind="_fSearch" autocomplete="off" />
+            <select class="ames-input" style="width:120px;padding:4px 8px;" @bind="_fLine">
+                <option value="">라인 전체</option>
+                @foreach (var l in _allRows.Select(r => r.LineID).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@l">@l</option>
+                }
+            </select>
+            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fStatus">
+                <option value="">상태 전체</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+            </select>
+            <button class="ames-btn" @onclick="OpenCreate">+ 등록</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">등록된 건조로가 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>건조로 ID</th><th>명칭</th><th>라인</th>
+                    <th style="text-align:right;">Zone 수</th>
+                    <th style="text-align:right;">목표온도(°C)</th>
+                    <th style="text-align:right;">허용오차(±°C)</th>
+                    <th style="text-align:right;">체류시간(s)</th>
+                    <th style="text-align:right;">컨베이어속도</th>
+                    <th style="text-align:right;">최대적재(kg)</th>
+                    <th>상태</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
+                        <td class="code">@r.OvenID</td>
+                        <td>@(r.OvenName ?? "—")</td>
+                        <td class="dim">@(r.LineID ?? "—")</td>
+                        <td style="text-align:right;">@(r.ZoneCount?.ToString() ?? "—")</td>
+                        <td style="text-align:right;">@(r.TargetTemp?.ToString() ?? "—")</td>
+                        <td style="text-align:right;">@(r.Tolerance.HasValue ? $"±{r.Tolerance}" : "—")</td>
+                        <td style="text-align:right;">@(r.DwellSec?.ToString("N0") ?? "—")</td>
+                        <td style="text-align:right;">@(r.ConveyorSpeed?.ToString("F2") ?? "—")</td>
+                        <td style="text-align:right;">@(r.MaxLoadKg?.ToString("F1") ?? "—")</td>
+                        <td>
+                            <span class="pill @(r.Status == "Active" ? "ok" : "bad")">@(r.Status ?? "—")</span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@* ── Create Modal ─────────────────────────────────────────────────── *@
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">신규 건조로 등록</div>
+
+            <label>건조로 ID * <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: OV-PNT-01)</span></label>
+            <input class="ames-input" @bind="_f.OvenID" placeholder="OV-PNT-01" autocomplete="off" />
+
+            <label>명칭 *</label>
+            <input class="ames-input" @bind="_f.OvenName" placeholder="도장 건조로 1호" autocomplete="off" />
+
+            <label>라인 ID</label>
+            <input class="ames-input" @bind="_f.LineID" placeholder="PNT-L01" maxlength="20" autocomplete="off" />
+
+            <label>Zone 수</label>
+            <input class="ames-input" type="number" @bind="_f.ZoneCount" placeholder="5" min="1" autocomplete="off" />
+
+            <label>목표온도 (°C)</label>
+            <input class="ames-input" type="number" @bind="_f.TargetTemp" placeholder="180" min="0" autocomplete="off" />
+
+            <label>허용오차 (±°C)</label>
+            <input class="ames-input" type="number" @bind="_f.Tolerance" placeholder="5" min="0" autocomplete="off" />
+
+            <label>체류시간 (초)</label>
+            <input class="ames-input" type="number" @bind="_f.DwellSec" placeholder="1800" min="0" autocomplete="off" />
+
+            <label>컨베이어 속도 (m/min)</label>
+            <input class="ames-input" type="number" step="0.01" @bind="_f.ConveyorSpeed" placeholder="1.50" min="0" autocomplete="off" />
+
+            <label>최대 적재 중량 (kg)</label>
+            <input class="ames-input" type="number" step="0.1" @bind="_f.MaxLoadKg" placeholder="500.0" min="0" autocomplete="off" />
+
+            <label>상태</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+            </select>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
+                <button class="ames-btn" @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Edit Modal ───────────────────────────────────────────────────── *@
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">건조로 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.OvenID</span></div>
+
+            <label>명칭 *</label>
+            <input class="ames-input" @bind="_f.OvenName" autocomplete="off" />
+
+            <label>라인 ID</label>
+            <input class="ames-input" @bind="_f.LineID" maxlength="20" autocomplete="off" />
+
+            <label>Zone 수</label>
+            <input class="ames-input" type="number" @bind="_f.ZoneCount" min="1" autocomplete="off" />
+
+            <label>목표온도 (°C)</label>
+            <input class="ames-input" type="number" @bind="_f.TargetTemp" min="0" autocomplete="off" />
+
+            <label>허용오차 (±°C)</label>
+            <input class="ames-input" type="number" @bind="_f.Tolerance" min="0" autocomplete="off" />
+
+            <label>체류시간 (초)</label>
+            <input class="ames-input" type="number" @bind="_f.DwellSec" min="0" autocomplete="off" />
+
+            <label>컨베이어 속도 (m/min)</label>
+            <input class="ames-input" type="number" step="0.01" @bind="_f.ConveyorSpeed" min="0" autocomplete="off" />
+
+            <label>최대 적재 중량 (kg)</label>
+            <input class="ames-input" type="number" step="0.1" @bind="_f.MaxLoadKg" min="0" autocomplete="off" />
+
+            <label>상태</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+            </select>
+
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>정말 삭제하시겠습니까?</span>
+                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? "삭제 중…" : "예, 삭제")</button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
+                <button class="ames-btn"     @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    List<AMES.Data.Repositories.MasterDataRepository.OvenRow> _allRows = new();
+    List<AMES.Data.Repositories.MasterDataRepository.OvenRow> _rows    = new();
+    AMES.Data.Repositories.MasterDataRepository.OvenRow? _sel;
+
+    string _fSearch = "", _fLine = "", _fStatus = "";
+
+    string _modal = "";
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _msg = "", _modalErr = "";
+    bool _isErr;
+    string _actor = "system";
+    FormModel _f = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        Reload();
+    }
+
+    void Reload() { _allRows = Md.ListOvens(); ApplyFilter(); }
+
+    void ApplyFilter() => _rows = _allRows.Where(r =>
+        (string.IsNullOrEmpty(_fSearch) ||
+            r.OvenID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.OvenName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fLine)   || r.LineID == _fLine) &&
+        (string.IsNullOrEmpty(_fStatus) || r.Status == _fStatus)
+    ).ToList();
+
+    void OpenCreate() { _f = new() { Status = "Active" }; _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+
+    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.OvenRow r)
+    {
+        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _f = new()
+        {
+            OvenID         = r.OvenID,
+            OvenName       = r.OvenName ?? "",
+            LineID         = r.LineID   ?? "",
+            ZoneCount      = r.ZoneCount,
+            TargetTemp     = r.TargetTemp,
+            Tolerance      = r.Tolerance,
+            DwellSec       = r.DwellSec,
+            ConveyorSpeed  = r.ConveyorSpeed,
+            MaxLoadKg      = r.MaxLoadKg,
+            Status         = r.Status   ?? "Active",
+        };
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.OvenID))   { _modalErr = "건조로 ID를 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.OvenName))  { _modalErr = "명칭을 입력하세요."; return; }
+        if (Md.OvenExists(_f.OvenID.Trim()))          { _modalErr = $"건조로 ID '{_f.OvenID.Trim()}' 이 이미 존재합니다."; return; }
+        _busy = true;
+        try
+        {
+            Md.InsertOven(_f.OvenID.Trim(), _f.OvenName, NE(_f.LineID),
+                _f.ZoneCount, _f.TargetTemp, _f.Tolerance, _f.DwellSec,
+                _f.ConveyorSpeed, _f.MaxLoadKg, NE(_f.Status), _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{_f.OvenName} 등록 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.OvenName)) { _modalErr = "명칭을 입력하세요."; return; }
+        _busy = true;
+        try
+        {
+            Md.UpdateOven(_sel.OvenID, _f.OvenName, NE(_f.LineID),
+                _f.ZoneCount, _f.TargetTemp, _f.Tolerance, _f.DwellSec,
+                _f.ConveyorSpeed, _f.MaxLoadKg, NE(_f.Status), _actor);
+            var name = _f.OvenName;
+            CloseModal(); Reload();
+            ShowMsg($"{name} 수정 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            var name = _sel.OvenName ?? _sel.OvenID;
+            Md.DeleteOven(_sel.OvenID);
+            CloseModal(); Reload();
+            ShowMsg($"{name} 삭제 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    class FormModel
+    {
+        public string   OvenID        { get; set; } = "";
+        public string   OvenName      { get; set; } = "";
+        public string   LineID        { get; set; } = "";
+        public int?     ZoneCount     { get; set; }
+        public int?     TargetTemp    { get; set; }
+        public int?     Tolerance     { get; set; }
+        public int?     DwellSec      { get; set; }
+        public decimal? ConveyorSpeed { get; set; }
+        public decimal? MaxLoadKg     { get; set; }
+        public string   Status        { get; set; } = "Active";
+    }
+}

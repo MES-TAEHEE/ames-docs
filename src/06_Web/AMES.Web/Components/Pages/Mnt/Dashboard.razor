@@ -1,13 +1,18 @@
 @page "/mnt/dashboard"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MntRepository Mnt
 
-<PageTitle>MNT-09 Dashboard · AMES</PageTitle>
+<PageTitle>MNT-09 대시보드 · AMES</PageTitle>
 
 <div class="ames-page-h">
     <div class="ames-page-id">MNT-09</div>
-    <div class="ames-page-t">Maintenance Dashboard</div>
+    <div class="ames-page-t">설비 보전 대시보드</div>
     <div class="ames-page-sub">설비 · 고장 · PM · 자재 통합 현황</div>
+</div>
+
+<div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+    <button class="ames-btn ok" @onclick="Reload">조회</button>
 </div>
 
 <div class="ames-kpis">
@@ -103,7 +108,9 @@
     AMES.Data.Repositories.MntRepository.DashboardKpi _k =
         new(0, 0, 0, 0, 0, 0, 0, 0, 0m, 0);
 
-    protected override void OnInitialized()
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
     {
         try { _k = Mnt.GetDashboardKpis(); } catch { }
     }

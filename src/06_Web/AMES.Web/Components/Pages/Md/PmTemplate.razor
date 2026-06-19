@@ -1,0 +1,154 @@
+@page "/md/pm-template"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MasterDataRepository Md
+
+<PageTitle>MD-028 PM 템플릿 관리 · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MD-028</div>
+    <div class="ames-page-t">PM 템플릿 관리</div>
+    <div class="ames-page-sub">MD_PmTemplate 마스터 — 예방보전 점검 항목·주기·LOTO 안전 설정</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.ActiveFlag)</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">LOTO 필요</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.SafetyLOTOFlag)</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">설비 유형 수</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.EquipType).Where(t => t != null).Distinct().Count()</div>
+    </div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ PM 템플릿 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:150px;padding:4px 8px;"
+                   placeholder="템플릿ID / 템플릿명" @bind="_fSearch" autocomplete="off" />
+            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fEquipType">
+                <option value="">설비유형 전체</option>
+                @foreach (var t in _allRows.Select(r => r.EquipType).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@t">@t</option>
+                }
+            </select>
+            <select class="ames-input" style="width:90px;padding:4px 8px;" @bind="_fActive">
+                <option value="">전체</option>
+                <option value="Y">활성</option>
+                <option value="N">비활성</option>
+            </select>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">등록된 PM 템플릿이 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>템플릿 ID</th><th>템플릿명</th><th>설비 유형</th>
+                    <th>주기 기준</th><th class="num">주기값</th><th>단위</th>
+                    <th class="num">표준 소요(분)</th><th>LOTO</th><th>상태</th><th>점검 항목</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr @onclick="() => ToggleSteps(r.PMTemplateID)" style="cursor:pointer;">
+                        <td class="code">@r.PMTemplateID</td>
+                        <td>@(r.TemplateName ?? "—")</td>
+                        <td class="dim">@(r.EquipType ?? "—")</td>
+                        <td>@(r.CycleBasis ?? "—")</td>
+                        <td class="num">@(r.IntervalValue?.ToString() ?? "—")</td>
+                        <td class="dim">@(r.IntervalUnit ?? "—")</td>
+                        <td class="num">@(r.StdDurationMin?.ToString() ?? "—")</td>
+                        <td>@(r.SafetyLOTOFlag ? (MarkupString)"<span class=\"pill warn\">LOTO</span>" : (MarkupString)"")</td>
+                        <td>@(r.ActiveFlag ? (MarkupString)"<span class=\"pill ok\">활성</span>" : (MarkupString)"<span class=\"pill bad\">비활성</span>")</td>
+                        <td class="dim">▶ 클릭하여 점검 항목 보기</td>
+                    </tr>
+                    @if (_expandedId == r.PMTemplateID && _steps.Count > 0)
+                    {
+                        <tr>
+                            <td colspan="10" style="padding:0 0 8px 32px;background:#f8fafc;">
+                                <table class="ames-table" style="margin:8px 0;">
+                                    <thead>
+                                        <tr>
+                                            <th class="num">순서</th><th>점검 항목</th><th>합격 기준</th>
+                                            <th>필요 부품</th><th class="num">수량</th><th class="num">소요(분)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var s in _steps)
+                                        {
+                                            <tr>
+                                                <td class="num">@(s.StepSeq?.ToString() ?? "—")</td>
+                                                <td>@(s.StepDescription ?? "—")</td>
+                                                <td class="dim">@(s.AcceptanceCriteria ?? "—")</td>
+                                                <td class="dim">@(s.RequiredPartNo ?? "—")</td>
+                                                <td class="num">@(s.RequiredQty?.ToString("0.###") ?? "—")</td>
+                                                <td class="num">@(s.StepDurationMin?.ToString() ?? "—")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    List<AMES.Data.Repositories.MasterDataRepository.PmTemplateRow>     _allRows = new();
+    List<AMES.Data.Repositories.MasterDataRepository.PmTemplateRow>     _rows    = new();
+    List<AMES.Data.Repositories.MasterDataRepository.PmTemplateStepRow> _steps   = new();
+    string _fSearch = "", _fEquipType = "", _fActive = "";
+    string? _expandedId;
+
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
+    {
+        try { _allRows = Md.ListPmTemplates(); } catch { _allRows = new(); }
+        _expandedId = null;
+        _steps      = new();
+        ApplyFilter();
+    }
+
+    void ApplyFilter()
+    {
+        _rows = _allRows;
+        if (!string.IsNullOrWhiteSpace(_fSearch))
+            _rows = _rows.Where(r =>
+                r.PMTemplateID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+                (r.TemplateName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (!string.IsNullOrWhiteSpace(_fEquipType))
+            _rows = _rows.Where(r => r.EquipType == _fEquipType).ToList();
+        if (_fActive == "Y") _rows = _rows.Where(r => r.ActiveFlag).ToList();
+        if (_fActive == "N") _rows = _rows.Where(r => !r.ActiveFlag).ToList();
+    }
+
+    void ToggleSteps(string templateId)
+    {
+        if (_expandedId == templateId) { _expandedId = null; _steps = new(); return; }
+        _expandedId = templateId;
+        try { _steps = Md.ListPmTemplateSteps(templateId); } catch { _steps = new(); }
+    }
+}

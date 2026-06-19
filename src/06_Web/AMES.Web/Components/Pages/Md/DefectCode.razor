@@ -1,0 +1,376 @@
+@page "/md/defect-code"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AuthenticationStateProvider Auth
+
+<PageTitle>MD-012 불량유형 기준정보 관리 · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">MD-012</div>
+    <div class="ames-page-t">불량유형 기준정보 관리</div>
+    <div class="ames-page-sub">MD_DefectCode 마스터 — 공정별 불량 유형·심각도·처리기본값 설정</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">전체</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">활성</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Active")</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">파레토 대상</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.ParetoFlag)</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">공정 수</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.ProcessCode).Where(p => p != null).Distinct().Count()</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ 불량유형 목록 · @_rows.Count 건@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:160px;padding:4px 8px;"
+                   placeholder="불량코드 / 불량명" @bind="_fSearch" autocomplete="off" />
+            <select class="ames-input" style="width:120px;padding:4px 8px;" @bind="_fCategory">
+                <option value="">분류 전체</option>
+                @foreach (var c in _allRows.Select(r => r.DefectCategory).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@c">@c</option>
+                }
+            </select>
+            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fProcess">
+                <option value="">공정 전체</option>
+                @foreach (var p in _allRows.Select(r => r.ProcessCode).Where(x => x != null).Distinct().OrderBy(x => x))
+                {
+                    <option value="@p">@p</option>
+                }
+            </select>
+            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fStatus">
+                <option value="">상태 전체</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+            </select>
+            <button class="ames-btn" @onclick="OpenCreate">+ 등록</button>
+            <button class="ames-btn ok" @onclick="ApplyFilter">조회</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">등록된 불량유형이 없습니다.</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>불량코드</th><th>불량명</th><th>불량명(영문)</th>
+                    <th>공정</th><th>분류</th><th>심각도</th><th>처리기본</th>
+                    <th style="text-align:center;">파레토</th><th>상태</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
+                        <td class="code">@r.DefectCode</td>
+                        <td>@(r.DefectName ?? "—")</td>
+                        <td class="dim">@(r.DefectNameEn ?? "—")</td>
+                        <td class="dim">@(r.ProcessCode ?? "—")</td>
+                        <td><span class="pill">@(r.DefectCategory ?? "—")</span></td>
+                        <td>
+                            @if (r.SeverityLevel is not null)
+                            {
+                                var sc = r.SeverityLevel switch { "CRITICAL" => "bad", "MAJOR" => "warn", _ => "ok" };
+                                <span class="pill @sc">@r.SeverityLevel</span>
+                            }
+                            else { <span class="dim">—</span> }
+                        </td>
+                        <td class="dim">@(r.DispositionDefault ?? "—")</td>
+                        <td style="text-align:center;">
+                            @if (r.ParetoFlag) { <span class="pill ok">Y</span> }
+                            else { <span class="dim">—</span> }
+                        </td>
+                        <td>
+                            @{
+                                var stCss = r.Status == "Active" ? "ok" : "bad";
+                            }
+                            <span class="pill @stCss">@(r.Status ?? "—")</span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@* ── Create Modal ─────────────────────────────────────────────────── *@
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">신규 불량유형 등록</div>
+
+            <label>불량코드 * <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: DC-INJ-01)</span></label>
+            <input class="ames-input" @bind="_f.DefectCode" placeholder="DC-INJ-01" autocomplete="off" />
+
+            <label>불량명 *</label>
+            <input class="ames-input" @bind="_f.DefectName" placeholder="게이트 흔적" autocomplete="off" />
+
+            <label>불량명(영문)</label>
+            <input class="ames-input" @bind="_f.DefectNameEn" placeholder="Gate Mark" autocomplete="off" />
+
+            <label>공정코드</label>
+            <input class="ames-input" @bind="_f.ProcessCode" placeholder="INJ, PNT 등" maxlength="10" autocomplete="off" />
+
+            <label>분류</label>
+            <input class="ames-input" @bind="_f.DefectCategory" placeholder="APPEARANCE, DIMENSION 등" maxlength="14" autocomplete="off" />
+
+            <label>심각도</label>
+            <select class="ames-input" @bind="_f.SeverityLevel">
+                <option value="">선택 안 함</option>
+                <option value="CRITICAL">CRITICAL</option>
+                <option value="MAJOR">MAJOR</option>
+                <option value="MINOR">MINOR</option>
+            </select>
+
+            <label>처리기본값</label>
+            <input class="ames-input" @bind="_f.DispositionDefault" placeholder="REWORK, SCRAP 등" maxlength="10" autocomplete="off" />
+
+            <label>기본 원인코드</label>
+            <input class="ames-input" @bind="_f.DefaultCauseCode" placeholder="CC-001" maxlength="16" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.ParetoFlag" />
+                <span>파레토 대상</span>
+            </label>
+
+            <label>상태</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+            </select>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
+                <button class="ames-btn" @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Edit Modal ───────────────────────────────────────────────────── *@
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">불량유형 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.DefectCode</span></div>
+
+            <label>불량명 *</label>
+            <input class="ames-input" @bind="_f.DefectName" autocomplete="off" />
+
+            <label>불량명(영문)</label>
+            <input class="ames-input" @bind="_f.DefectNameEn" autocomplete="off" />
+
+            <label>공정코드</label>
+            <input class="ames-input" @bind="_f.ProcessCode" maxlength="10" autocomplete="off" />
+
+            <label>분류</label>
+            <input class="ames-input" @bind="_f.DefectCategory" maxlength="14" autocomplete="off" />
+
+            <label>심각도</label>
+            <select class="ames-input" @bind="_f.SeverityLevel">
+                <option value="">선택 안 함</option>
+                <option value="CRITICAL">CRITICAL</option>
+                <option value="MAJOR">MAJOR</option>
+                <option value="MINOR">MINOR</option>
+            </select>
+
+            <label>처리기본값</label>
+            <input class="ames-input" @bind="_f.DispositionDefault" maxlength="10" autocomplete="off" />
+
+            <label>기본 원인코드</label>
+            <input class="ames-input" @bind="_f.DefaultCauseCode" maxlength="16" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.ParetoFlag" />
+                <span>파레토 대상</span>
+            </label>
+
+            <label>상태</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+            </select>
+
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>정말 삭제하시겠습니까?</span>
+                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? "삭제 중…" : "예, 삭제")</button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ok"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
+                <button class="ames-btn"     @onclick="CloseModal">취소</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    List<AMES.Data.Repositories.MasterDataRepository.DefectCodeRow> _allRows = new();
+    List<AMES.Data.Repositories.MasterDataRepository.DefectCodeRow> _rows    = new();
+    AMES.Data.Repositories.MasterDataRepository.DefectCodeRow? _sel;
+
+    string _fSearch = "", _fCategory = "", _fProcess = "", _fStatus = "";
+
+    string _modal = "";
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _msg = "", _modalErr = "";
+    bool _isErr;
+    string _actor = "system";
+    FormModel _f = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        Reload();
+    }
+
+    void Reload() { _allRows = Md.ListDefectCodes(); ApplyFilter(); }
+
+    void ApplyFilter() => _rows = _allRows.Where(r =>
+        (string.IsNullOrEmpty(_fSearch) ||
+            r.DefectCode.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.DefectName   ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.DefectNameEn ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fCategory) || r.DefectCategory == _fCategory) &&
+        (string.IsNullOrEmpty(_fProcess)  || r.ProcessCode    == _fProcess) &&
+        (string.IsNullOrEmpty(_fStatus)   || r.Status         == _fStatus)
+    ).ToList();
+
+    void OpenCreate() { _f = new() { Status = "Active" }; _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+
+    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.DefectCodeRow r)
+    {
+        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _f = new()
+        {
+            DefectCode         = r.DefectCode,
+            DefectName         = r.DefectName         ?? "",
+            DefectNameEn       = r.DefectNameEn       ?? "",
+            ProcessCode        = r.ProcessCode        ?? "",
+            DefectCategory     = r.DefectCategory     ?? "",
+            SeverityLevel      = r.SeverityLevel      ?? "",
+            DispositionDefault = r.DispositionDefault ?? "",
+            DefaultCauseCode   = r.DefaultCauseCode   ?? "",
+            ParetoFlag         = r.ParetoFlag,
+            Status             = r.Status             ?? "Active",
+        };
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.DefectCode)) { _modalErr = "불량코드를 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.DefectName)) { _modalErr = "불량명을 입력하세요."; return; }
+        if (Md.DefectCodeExists(_f.DefectCode.Trim())) { _modalErr = $"불량코드 '{_f.DefectCode.Trim()}' 이 이미 존재합니다."; return; }
+        _busy = true;
+        try
+        {
+            Md.InsertDefectCode(_f.DefectCode.Trim(), _f.DefectName, NE(_f.DefectNameEn),
+                NE(_f.ProcessCode), NE(_f.DefectCategory), NE(_f.SeverityLevel),
+                NE(_f.DispositionDefault), NE(_f.DefaultCauseCode), _f.ParetoFlag,
+                NE(_f.Status), _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{_f.DefectName} 등록 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.DefectName)) { _modalErr = "불량명을 입력하세요."; return; }
+        _busy = true;
+        try
+        {
+            Md.UpdateDefectCode(_sel.DefectCode, _f.DefectName, NE(_f.DefectNameEn),
+                NE(_f.ProcessCode), NE(_f.DefectCategory), NE(_f.SeverityLevel),
+                NE(_f.DispositionDefault), NE(_f.DefaultCauseCode), _f.ParetoFlag,
+                NE(_f.Status), _actor);
+            var name = _f.DefectName;
+            CloseModal(); Reload();
+            ShowMsg($"{name} 수정 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            var name = _sel.DefectName ?? _sel.DefectCode;
+            Md.DeleteDefectCode(_sel.DefectCode);
+            CloseModal(); Reload();
+            ShowMsg($"{name} 삭제 완료.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    class FormModel
+    {
+        public string DefectCode         { get; set; } = "";
+        public string DefectName         { get; set; } = "";
+        public string DefectNameEn       { get; set; } = "";
+        public string ProcessCode        { get; set; } = "";
+        public string DefectCategory     { get; set; } = "";
+        public string SeverityLevel      { get; set; } = "";
+        public string DispositionDefault { get; set; } = "";
+        public string DefaultCauseCode   { get; set; } = "";
+        public bool   ParetoFlag         { get; set; }
+        public string Status             { get; set; } = "Active";
+    }
+}
