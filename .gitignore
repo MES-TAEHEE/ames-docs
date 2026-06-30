@@ -6,6 +6,10 @@ src/**/bin/
 src/**/obj/
 tools/**/bin/
 tools/**/obj/
+publish/
+bin/
+obj/
+*.pdb
 *.user
 .vs/
 
