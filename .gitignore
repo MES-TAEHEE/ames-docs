@@ -10,6 +10,10 @@ publish/
 bin/
 obj/
 *.pdb
+# Ignore Visual Studio publish profiles created per-project
+**/Properties/PublishProfiles/
+# Ignore executable binaries
+*.exe
 *.user
 .vs/
 
