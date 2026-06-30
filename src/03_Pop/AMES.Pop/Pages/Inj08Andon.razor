@@ -101,7 +101,7 @@
         {
             var equipId = PopServices.Equipment.GetPrimaryForLine(Session.LineId)?.EquipId;
             _openId = PopServices.Andon.Raise(Session.LineId, equipId,
-                triggerSource: "MANUAL", ruleId: "INJ-08-MANUAL", severity: "HIGH",
+                triggerSource: "MANUAL", ruleId: "INJ-008-MANUAL", severity: "HIGH",
                 Session.EmployeeNo);
             _triggered   = DateTime.Now;
             _cause       = $"Manual andon by {Session.EmployeeName}";

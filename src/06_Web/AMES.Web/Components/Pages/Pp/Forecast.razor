@@ -1,4 +1,5 @@
 ﻿@page "/pp/forecast"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
 @inject IStringLocalizer<SharedResources> L
@@ -6,7 +7,7 @@
 <PageTitle>@L["PP.Forecast.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">PP-01</div>
+    <div class="ames-page-id">PP-001</div>
     <div class="ames-page-t">@L["PP.Forecast.Title"]</div>
     <div class="ames-page-sub">@L["PP.Forecast.Sub"]</div>
 </div>
@@ -24,9 +25,9 @@
     else
     {
         <table class="ames-table">
-            <thead><tr><th>Month</th><th>Customer</th><th>Item</th><th class="num">Qty</th><th>Confidence</th><th>Source</th><th>Batch</th></tr></thead>
+            <thead><tr><th>@L["Col.Month"]</th><th>@L["Col.Customer"]</th><th>@L["Col.Item"]</th><th class="num">@L["Col.Qty"]</th><th>@L["Col.Confidence"]</th><th>@L["Col.Source"]</th><th>@L["Col.Batch"]</th></tr></thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     <tr>
                         <td class="code">@(r.ForecastMonth?.ToString("yyyy-MM") ?? "—")</td>
@@ -40,11 +41,14 @@
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
 @code {
     List<AMES.Data.Repositories.PpRepository.ForecastRow> _rows = new();
+    int _page = 0;
+    const int _pageSize = 20;
     protected override void OnInitialized()
     {
         try { _rows = Pp.ListForecast(); } catch { }

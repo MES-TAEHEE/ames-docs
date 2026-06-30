@@ -1,4 +1,5 @@
 ﻿@page "/pp/sap-import"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
 @inject IStringLocalizer<SharedResources> L
@@ -6,7 +7,7 @@
 <PageTitle>@L["PP.SapImport.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">PP-02</div>
+    <div class="ames-page-id">PP-002</div>
     <div class="ames-page-t">@L["PP.SapImport.Title"]</div>
     <div class="ames-page-sub">@L["PP.SapImport.Sub"]</div>
 </div>
@@ -24,9 +25,9 @@
     else
     {
         <table class="ames-table">
-            <thead><tr><th>SO</th><th>Line</th><th>Customer</th><th>Item</th><th class="num">Order</th><th class="num">Ship</th><th>Requested</th><th>Promised</th><th>Status</th></tr></thead>
+            <thead><tr><th>@L["Col.SoNo"]</th><th>@L["Col.Line"]</th><th>@L["Col.Customer"]</th><th>@L["Col.Item"]</th><th class="num">@L["Col.Order"]</th><th class="num">@L["Col.Ship"]</th><th>@L["Col.Requested"]</th><th>@L["Col.Promised"]</th><th>@L["Col.Status"]</th></tr></thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     <tr>
                         <td class="code">@r.SoNumber</td>
@@ -42,10 +43,13 @@
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
 @code {
     List<AMES.Data.Repositories.PpRepository.SoRow> _rows = new();
+    int _page = 0;
+    const int _pageSize = 20;
     protected override void OnInitialized() { try { _rows = Pp.ListSapImports(); } catch { } }
 }

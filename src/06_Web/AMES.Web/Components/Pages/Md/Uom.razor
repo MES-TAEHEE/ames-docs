@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AuthenticationStateProvider Auth
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["MD.Uom.Title"] · AMES</PageTitle>
@@ -22,34 +23,42 @@
         <div class="ames-kpi-v">@_allRows.Count(r => r.ActiveFlag)</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">기준단위</div>
+        <div class="ames-kpi-l">@L["MD.Uom.Kpi.BaseUnit"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.BaseFlag)</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">카테고리 수</div>
+        <div class="ames-kpi-l">@L["Kpi.CategoryCount"]</div>
         <div class="ames-kpi-v">@_allRows.Select(r => r.UOMCategory).Where(c => c != null).Distinct().Count()</div>
     </div>
 </div>
 
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MD.Uom.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.Uom.List"] · @_rows.Count @L["Lbl.Items"]@if (_rows.Count < _allRows.Count) { <text> / @L["Lbl.TotalOf"] @_allRows.Count</text> }</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:140px;padding:4px 8px;"
-                   placeholder="단위코드 / 단위명" @bind="_fSearch" autocomplete="off" />
+                   placeholder='@L["MD.Uom.Ph.Search"]' @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Category"]</span>
             <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fCat">
                 <option value="">@L["Filter.AllCategories"]</option>
-                @foreach (var c in _allRows.Select(r => r.UOMCategory).Where(x => x != null).Distinct().OrderBy(x => x))
+                @foreach (var c in _unitCategories.Where(x => x.UseFlag))
                 {
-                    <option value="@c">@c</option>
+                    <option value="@c.CodeValue">[@c.CodeValue] @(MasterDataRepository.LocalName(c))</option>
                 }
             </select>
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
             <select class="ames-input" style="width:90px;padding:4px 8px;" @bind="_fActive">
-                <option value="">전체</option>
-                <option value="Y">활성</option>
-                <option value="N">비활성</option>
+                <option value="">@L["Filter.All"]</option>
+                <option value="Y">@L["Lbl.Active"]</option>
+                <option value="N">@L["Lbl.Inactive"]</option>
             </select>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
         </div>
     </div>
 
@@ -62,37 +71,170 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>단위 코드</th><th>단위명</th><th>카테고리</th><th>기호</th>
-                    <th>기준단위</th><th>기준UOM</th><th class="num">변환계수</th>
-                    <th class="num">소수점</th><th>@L["Col.Status"]</th>
+                    <th>@L["Col.UomCode"]</th><th>@L["Col.UomName"]</th><th>@L["Col.UomCategory"]</th><th>@L["Col.UomSymbol"]</th>
+                    <th>기준</th><th>기준단위</th><th class="num">@L["Col.ConvFactor"]</th>
+                    <th class="num">@L["Col.Decimals"]</th><th>@L["Col.Status"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
-                    <tr>
+                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
                         <td class="code">@r.UOMCode</td>
                         <td>@(r.UOMName ?? "—")</td>
-                        <td class="dim">@(r.UOMCategory ?? "—")</td>
+                        <td class="dim">@(_unitCategories.FirstOrDefault(x => x.CodeValue == r.UOMCategory) is { } _catLf ? MasterDataRepository.LocalName(_catLf) : r.UOMCategory ?? "—")</td>
                         <td class="dim">@(r.Symbol ?? "—")</td>
-                        <td>@(r.BaseFlag ? (MarkupString)"<span class=\"pill ok\">기준</span>" : (MarkupString)"")</td>
+                        <td>@(r.BaseFlag ? (MarkupString)$"<span class=\"pill ok\">{L["MD.Uom.PillBase"]}</span>" : (MarkupString)"")</td>
                         <td class="dim">@(r.BaseUOM ?? "—")</td>
                         <td class="num">@(r.ConvFactor?.ToString("0.########") ?? "—")</td>
                         <td class="num">@(r.DecimalPrec?.ToString() ?? "—")</td>
-                        <td>@(r.ActiveFlag ? (MarkupString)"<span class=\"pill ok\">활성</span>" : (MarkupString)"<span class=\"pill bad\">비활성</span>")</td>
+                        <td>@if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> } else { <span class="pill bad">@L["Lbl.Inactive"]</span> }</td>
                     </tr>
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.Uom.Title"] — @L["Btn.Create"]</div>
+
+            <label>@L["Col.UomCode"]</label>
+            <input class="ames-input" @bind="_f.UOMCode" placeholder="EA" autocomplete="off" />
+
+            <label>@L["Col.UomName"]</label>
+            <input class="ames-input" @bind="_f.UOMName" placeholder='@L["MD.Uom.Ph.UomName"]' autocomplete="off" />
+
+            <label>@L["Col.UomCategory"]</label>
+            <select class="ames-input" @bind="_f.UOMCategory">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var c in _unitCategories.Where(x => x.UseFlag))
+                {
+                    <option value="@c.CodeValue">[@c.CodeValue] @(MasterDataRepository.LocalName(c))</option>
+                }
+            </select>
+
+            <label>@L["Col.UomSymbol"]</label>
+            <input class="ames-input" @bind="_f.Symbol" placeholder="ea" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.BaseFlag" />
+                <span>@L["MD.Uom.BaseUnit"]</span>
+            </label>
+
+            <label>@L["Col.UomCode"]</label>
+            <input class="ames-input" @bind="_f.BaseUOM" placeholder="EA" autocomplete="off" />
+
+            <label>@L["Col.ConvFactor"]</label>
+            <input class="ames-input" type="number" @bind="_f.ConvFactor" placeholder="1.0" step="any" autocomplete="off" />
+
+            <label>@L["Col.Decimals"]</label>
+            <input class="ames-input" type="number" @bind="_f.DecimalPrec" placeholder="0" min="0" max="8" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.ActiveFlag" />
+                <span>@L["Lbl.Active"]</span>
+            </label>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.Uom.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.UOMCode</span></div>
+
+            <label>@L["Col.UomName"]</label>
+            <input class="ames-input" @bind="_f.UOMName" autocomplete="off" />
+
+            <label>@L["Col.UomCategory"]</label>
+            <select class="ames-input" @bind="_f.UOMCategory">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var c in _unitCategories.Where(x => x.UseFlag))
+                {
+                    <option value="@c.CodeValue">[@c.CodeValue] @(MasterDataRepository.LocalName(c))</option>
+                }
+            </select>
+
+            <label>@L["Col.UomSymbol"]</label>
+            <input class="ames-input" @bind="_f.Symbol" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.BaseFlag" />
+                <span>@L["MD.Uom.BaseUnit"]</span>
+            </label>
+
+            <label>@L["Col.UomCode"]</label>
+            <input class="ames-input" @bind="_f.BaseUOM" autocomplete="off" />
+
+            <label>@L["Col.ConvFactor"]</label>
+            <input class="ames-input" type="number" @bind="_f.ConvFactor" step="any" autocomplete="off" />
+
+            <label>@L["Col.Decimals"]</label>
+            <input class="ames-input" type="number" @bind="_f.DecimalPrec" min="0" max="8" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.ActiveFlag" />
+                <span>@L["Lbl.Active"]</span>
+            </label>
+
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)</button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn" @onclick="SaveEdit" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
+    int _page = 0;
+    const int _pageSize = 20;
     List<AMES.Data.Repositories.MasterDataRepository.UomRow> _allRows = new();
     List<AMES.Data.Repositories.MasterDataRepository.UomRow> _rows    = new();
-    string _fSearch = "", _fCat = "", _fActive = "";
+    AMES.Data.Repositories.MasterDataRepository.UomRow? _sel;
 
-    protected override void OnInitialized() => Reload();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _unitCategories = new();
+    string _fSearch = "", _fCat = "", _fActive = "";
+    string _modal = "";
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _msg = "", _modalErr = "";
+    bool _isErr;
+    string _actor = "system";
+    FormModel _f = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        try { _unitCategories = Md.ListCodeItems("UNIT_CATEGORY"); } catch { }
+        Reload();
+    }
 
     void Reload()
     {
@@ -102,6 +244,7 @@
 
     void ApplyFilter()
     {
+        _page = 0;
         _rows = _allRows;
         if (!string.IsNullOrWhiteSpace(_fSearch))
             _rows = _rows.Where(r =>
@@ -111,5 +254,101 @@
             _rows = _rows.Where(r => r.UOMCategory == _fCat).ToList();
         if (_fActive == "Y") _rows = _rows.Where(r => r.ActiveFlag).ToList();
         if (_fActive == "N") _rows = _rows.Where(r => !r.ActiveFlag).ToList();
+    }
+
+    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+
+    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.UomRow r)
+    {
+        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _f = new()
+        {
+            UOMName     = r.UOMName     ?? "",
+            UOMCategory = r.UOMCategory ?? "",
+            BaseFlag    = r.BaseFlag,
+            BaseUOM     = r.BaseUOM     ?? "",
+            ConvFactor  = r.ConvFactor,
+            DecimalPrec = r.DecimalPrec,
+            Symbol      = r.Symbol      ?? "",
+            ActiveFlag  = r.ActiveFlag,
+        };
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.UOMCode)) { _modalErr = L["Err.UomCodeRequired"]; return; }
+        var code = _f.UOMCode.Trim().ToUpper();
+        if (Md.UomExists(code)) { _modalErr = $"'{code}' 코드가 {L["Err.AlreadyExists"]}"; return; }
+        _busy = true;
+        try
+        {
+            Md.InsertUom(code, NE(_f.UOMName), NE(_f.UOMCategory),
+                _f.BaseFlag, NE(_f.BaseUOM), _f.ConvFactor,
+                _f.DecimalPrec, NE(_f.Symbol), _f.ActiveFlag, _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{code} {L["Msg.Created"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        _busy = true;
+        try
+        {
+            Md.UpdateUom(_sel.UOMCode, NE(_f.UOMName), NE(_f.UOMCategory),
+                _f.BaseFlag, NE(_f.BaseUOM), _f.ConvFactor,
+                _f.DecimalPrec, NE(_f.Symbol), _f.ActiveFlag, _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{_sel.UOMCode} {L["Msg.Updated"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            var code = _sel.UOMCode;
+            Md.DeleteUom(_sel.UOMCode);
+            CloseModal(); Reload();
+            ShowMsg($"{code} {L["Msg.Deleted"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    class FormModel
+    {
+        public string   UOMCode     { get; set; } = "";
+        public string   UOMName     { get; set; } = "";
+        public string   UOMCategory { get; set; } = "";
+        public bool     BaseFlag    { get; set; } = false;
+        public string   BaseUOM     { get; set; } = "";
+        public decimal? ConvFactor  { get; set; }
+        public int?     DecimalPrec { get; set; }
+        public string   Symbol      { get; set; } = "";
+        public bool     ActiveFlag  { get; set; } = true;
     }
 }

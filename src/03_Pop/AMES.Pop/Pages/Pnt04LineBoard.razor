@@ -5,7 +5,7 @@
 @inject ConfirmService Confirmer
 
 @*
-    PNT-04 Line Track Board — the floor-wide dashboard. Three reader
+    PNT-004 Line Track Board — the floor-wide dashboard. Three reader
     tiles (R1/R2/R3) up top with live event counts, then a scrolling
     event stream pulled from PNT_LineEvent.
 *@
@@ -14,7 +14,7 @@
     <div class="pop-tbar">
         <div style="display:flex; align-items:center;">
             <span class="pop-tbar-logo">A-MES</span>
-            <span class="pop-tbar-id">PNT-04 · @Session?.TerminalId · @Session?.LineId</span>
+            <span class="pop-tbar-id">PNT-004 · @Session?.TerminalId · @Session?.LineId</span>
         </div>
         <div class="pop-tbar-r">
             <span class="stat-on">● LIVE</span>
@@ -80,15 +80,15 @@
     </div>
 
     <div class="pop-nav" style="--nav-cols:10;">
-        <button class="nav-btn" @onclick="@(() => Go("pnt01"))">PNT-01<small>Plan</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("pnt02"))">PNT-02<small>Pre-Issue</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("pnt03"))">PNT-03<small>Loading</small></button>
-        <button class="nav-btn active" @onclick="@(() => Go("pnt04"))">PNT-04<small>Track Board</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("pnt05"))">PNT-05<small>Oven</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("pnt06"))">PNT-06<small>Unloading</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("pnt07"))">PNT-07<small>Label</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("pnt08"))">PNT-08<small>Defect</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("pnt09"))">PNT-09<small>Shift Rpt</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("pnt01"))">PNT-001<small>Plan</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("pnt02"))">PNT-002<small>Pre-Issue</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("pnt03"))">PNT-003<small>Loading</small></button>
+        <button class="nav-btn active" @onclick="@(() => Go("pnt04"))">PNT-004<small>Track Board</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("pnt05"))">PNT-005<small>Oven</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("pnt06"))">PNT-006<small>Unloading</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("pnt07"))">PNT-007<small>Label</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("pnt08"))">PNT-008<small>Defect</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("pnt09"))">PNT-009<small>Shift Rpt</small></button>
         <button class="nav-btn muted" @onclick="Logout">LOGOUT<small>End shift</small></button>
     </div>
 </div>
@@ -112,7 +112,7 @@
     {
         try
         {
-            var lineId = Session?.LineId ?? "LINE-PNT-01";
+            var lineId = Session?.LineId ?? "LINE-PNT-001";
             _events = PopServices.Pnt.ListRecentEvents(lineId, 30);
             _r1Count = _events.Count(e => (e.ReaderId ?? "").Contains("R1"));
             _r2Count = _events.Count(e => (e.ReaderId ?? "").Contains("R2"));

@@ -23,11 +23,11 @@
         <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Active")</div>
     </div>
     <div class="ames-kpi warn">
-        <div class="ames-kpi-l">파레토 대상</div>
+        <div class="ames-kpi-l">@L["MD.DefectCode.Kpi.Pareto"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.ParetoFlag)</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">공정 수</div>
+        <div class="ames-kpi-l">@L["Kpi.ProcessCount"]</div>
         <div class="ames-kpi-v">@_allRows.Select(r => r.ProcessCode).Where(p => p != null).Distinct().Count()</div>
     </div>
 </div>
@@ -39,31 +39,36 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MD.DefectCode.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.DefectCode.List"] · @_rows.Count @L["Lbl.Items"]@if (_rows.Count < _allRows.Count) { <text> / @L["Lbl.TotalOf"] @_allRows.Count</text> }</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:160px;padding:4px 8px;"
-                   placeholder="불량코드 / 불량명" @bind="_fSearch" autocomplete="off" />
+                   placeholder='@L["MD.DefectCode.Ph.Search"]' @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Category"]</span>
             <select class="ames-input" style="width:120px;padding:4px 8px;" @bind="_fCategory">
-                <option value="">분류 전체</option>
+                <option value="">@L["Filter.AllCategories"]</option>
                 @foreach (var c in _allRows.Select(r => r.DefectCategory).Where(x => x != null).Distinct().OrderBy(x => x))
                 {
                     <option value="@c">@c</option>
                 }
             </select>
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Process"]</span>
             <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fProcess">
-                <option value="">공정 전체</option>
+                <option value="">@L["Filter.AllProcesses"]</option>
                 @foreach (var p in _allRows.Select(r => r.ProcessCode).Where(x => x != null).Distinct().OrderBy(x => x))
                 {
                     <option value="@p">@p</option>
                 }
             </select>
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
             <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fStatus">
                 <option value="">@L["Filter.AllStatus"]</option>
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
+                @foreach (var s in _statusCodes.Where(s => s.UseFlag))
+                {
+                    <option value="@s.CodeValue">@(MasterDataRepository.LocalName(s))</option>
+                }
             </select>
-            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
         </div>
     </div>
 
@@ -76,13 +81,13 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>불량코드</th><th>불량명</th><th>불량명(영문)</th>
-                    <th>공정</th><th>분류</th><th>심각도</th><th>처리기본</th>
-                    <th style="text-align:center;">파레토</th><th>@L["Col.Status"]</th>
+                    <th>@L["Col.DefectCode"]</th><th>@L["Col.DefectName"]</th><th>@L["Col.DefectNameEn"]</th>
+                    <th>@L["Col.ProcessName"]</th><th>@L["Col.Category"]</th><th>@L["Col.Severity"]</th><th>@L["Col.DefaultAction"]</th>
+                    <th style="text-align:center;">@L["Col.Pareto"]</th><th>@L["Col.Status"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
                         <td class="code">@r.DefectCode</td>
@@ -93,8 +98,9 @@
                         <td>
                             @if (r.SeverityLevel is not null)
                             {
-                                var sc = r.SeverityLevel switch { "CRITICAL" => "bad", "MAJOR" => "warn", _ => "ok" };
-                                <span class="pill @sc">@r.SeverityLevel</span>
+                                var sc     = r.SeverityLevel switch { "CRITICAL" => "bad", "MAJOR" => "warn", _ => "ok" };
+                                var svLabel = _severityCodes.FirstOrDefault(s => s.CodeValue == r.SeverityLevel) is { } _svLf ? MasterDataRepository.LocalName(_svLf) : r.SeverityLevel;
+                                <span class="pill @sc">@svLabel</span>
                             }
                             else { <span class="dim">—</span> }
                         </td>
@@ -105,14 +111,16 @@
                         </td>
                         <td>
                             @{
-                                var stCss = r.Status == "Active" ? "ok" : "bad";
+                                var stCss  = r.Status == "ACTIVE" ? "ok" : "bad";
+                                var stLabel = _statusCodes.FirstOrDefault(s => s.CodeValue == r.Status) is { } _stLf ? MasterDataRepository.LocalName(_stLf) : r.Status;
                             }
-                            <span class="pill @stCss">@(r.Status ?? "—")</span>
+                            <span class="pill @stCss">@(stLabel ?? "—")</span>
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
@@ -121,54 +129,64 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">신규 불량유형 등록</div>
+            <div class="ames-modal-h">@L["MD.DefectCode.Title"] — @L["Btn.Create"]</div>
 
-            <label>불량코드 * <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: DC-INJ-01)</span></label>
-            <input class="ames-input" @bind="_f.DefectCode" placeholder="DC-INJ-01" autocomplete="off" />
+            <label>@L["Col.DefectCode"] * <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: DC-INJ-001)</span></label>
+            <input class="ames-input" @bind="_f.DefectCode" placeholder="DC-INJ-001" autocomplete="off" />
 
-            <label>불량명 *</label>
-            <input class="ames-input" @bind="_f.DefectName" placeholder="게이트 흔적" autocomplete="off" />
+            <label>@L["Col.DefectName"] *</label>
+            <input class="ames-input" @bind="_f.DefectName" placeholder='@L["MD.DefectCode.Ph.DefectName"]' autocomplete="off" />
 
-            <label>불량명(영문)</label>
+            <label>@L["Col.DefectNameEn"]</label>
             <input class="ames-input" @bind="_f.DefectNameEn" placeholder="Gate Mark" autocomplete="off" />
 
-            <label>공정코드</label>
+            <label>@L["Col.ProcessCode"]</label>
             <input class="ames-input" @bind="_f.ProcessCode" placeholder="INJ, PNT 등" maxlength="10" autocomplete="off" />
 
-            <label>분류</label>
+            <label>@L["Col.Category"]</label>
             <input class="ames-input" @bind="_f.DefectCategory" placeholder="APPEARANCE, DIMENSION 등" maxlength="14" autocomplete="off" />
 
-            <label>심각도</label>
+            <label>@L["Col.SeverityLevel"]</label>
             <select class="ames-input" @bind="_f.SeverityLevel">
-                <option value="">선택 안 함</option>
-                <option value="CRITICAL">CRITICAL</option>
-                <option value="MAJOR">MAJOR</option>
-                <option value="MINOR">MINOR</option>
+                <option value="">@L["Opt.None"]</option>
+                @foreach (var s in _severityCodes.Where(s => s.UseFlag))
+                {
+                    <option value="@s.CodeValue">[@s.CodeValue] @(MasterDataRepository.LocalName(s))</option>
+                }
             </select>
 
-            <label>처리기본값</label>
+            <label>@L["Col.DispositionDefault"]</label>
             <input class="ames-input" @bind="_f.DispositionDefault" placeholder="REWORK, SCRAP 등" maxlength="10" autocomplete="off" />
 
-            <label>기본 원인코드</label>
-            <input class="ames-input" @bind="_f.DefaultCauseCode" placeholder="CC-001" maxlength="16" autocomplete="off" />
+            <label>@L["Col.DefaultCauseCode"]</label>
+            <select class="ames-input" @bind="_f.DefaultCauseCode">
+                <option value="">@L["Opt.None"]</option>
+                @foreach (var rc in _rootCauses)
+                {
+                    <option value="@rc.CauseCode">[@rc.CauseCode] @(rc.CauseName ?? rc.CauseCode)</option>
+                }
+            </select>
 
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                 <input type="checkbox" @bind="_f.ParetoFlag" />
-                <span>파레토 대상</span>
+                <span>@L["MD.DefectCode.Kpi.Pareto"]</span>
             </label>
 
-            <label>상태</label>
+            <label>@L["Col.Status"]</label>
             <select class="ames-input" @bind="_f.Status">
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var s in _statusCodes.Where(s => s.UseFlag))
+                {
+                    <option value="@s.CodeValue">@(MasterDataRepository.LocalName(s))</option>
+                }
             </select>
 
             @if (!string.IsNullOrEmpty(_modalErr))
             { <div class="ames-alert bad">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
-                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? @L["Msg.Saving"] : @L["Btn.Create"])</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -179,51 +197,61 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">불량유형 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.DefectCode</span></div>
+            <div class="ames-modal-h">@L["MD.DefectCode.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.DefectCode</span></div>
 
-            <label>불량명 *</label>
+            <label>@L["Col.DefectName"] *</label>
             <input class="ames-input" @bind="_f.DefectName" autocomplete="off" />
 
-            <label>불량명(영문)</label>
+            <label>@L["Col.DefectNameEn"]</label>
             <input class="ames-input" @bind="_f.DefectNameEn" autocomplete="off" />
 
-            <label>공정코드</label>
+            <label>@L["Col.ProcessCode"]</label>
             <input class="ames-input" @bind="_f.ProcessCode" maxlength="10" autocomplete="off" />
 
-            <label>분류</label>
+            <label>@L["Col.Category"]</label>
             <input class="ames-input" @bind="_f.DefectCategory" maxlength="14" autocomplete="off" />
 
-            <label>심각도</label>
+            <label>@L["Col.SeverityLevel"]</label>
             <select class="ames-input" @bind="_f.SeverityLevel">
-                <option value="">선택 안 함</option>
-                <option value="CRITICAL">CRITICAL</option>
-                <option value="MAJOR">MAJOR</option>
-                <option value="MINOR">MINOR</option>
+                <option value="">@L["Opt.None"]</option>
+                @foreach (var s in _severityCodes.Where(s => s.UseFlag))
+                {
+                    <option value="@s.CodeValue">[@s.CodeValue] @(MasterDataRepository.LocalName(s))</option>
+                }
             </select>
 
-            <label>처리기본값</label>
+            <label>@L["Col.DispositionDefault"]</label>
             <input class="ames-input" @bind="_f.DispositionDefault" maxlength="10" autocomplete="off" />
 
-            <label>기본 원인코드</label>
-            <input class="ames-input" @bind="_f.DefaultCauseCode" maxlength="16" autocomplete="off" />
+            <label>@L["Col.DefaultCauseCode"]</label>
+            <select class="ames-input" @bind="_f.DefaultCauseCode">
+                <option value="">@L["Opt.None"]</option>
+                @foreach (var rc in _rootCauses)
+                {
+                    <option value="@rc.CauseCode">[@rc.CauseCode] @(rc.CauseName ?? rc.CauseCode)</option>
+                }
+            </select>
 
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                 <input type="checkbox" @bind="_f.ParetoFlag" />
-                <span>파레토 대상</span>
+                <span>@L["MD.DefectCode.Kpi.Pareto"]</span>
             </label>
 
-            <label>상태</label>
+            <label>@L["Col.Status"]</label>
             <select class="ames-input" @bind="_f.Status">
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var s in _statusCodes.Where(s => s.UseFlag))
+                {
+                    <option value="@s.CodeValue">@(MasterDataRepository.LocalName(s))</option>
+                }
             </select>
 
             @if (_confirmDelete)
             {
                 <div class="ames-delete-confirm">
-                    <span>정말 삭제하시겠습니까?</span>
-                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
-                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? "삭제 중…" : "예, 삭제")</button>
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? @L["Msg.Deleting"] : @L["Msg.Yes"])</button>
                 </div>
             }
 
@@ -231,9 +259,9 @@
             { <div class="ames-alert bad">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? @L["Msg.Saving"] : @L["Btn.Edit"])</button>
                 <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn"     @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ghost"     @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -243,7 +271,12 @@
     List<AMES.Data.Repositories.MasterDataRepository.DefectCodeRow> _allRows = new();
     List<AMES.Data.Repositories.MasterDataRepository.DefectCodeRow> _rows    = new();
     AMES.Data.Repositories.MasterDataRepository.DefectCodeRow? _sel;
+    int _page = 0;
+    const int _pageSize = 20;
 
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow>    _severityCodes = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow>    _statusCodes   = new();
+    List<AMES.Data.Repositories.MasterDataRepository.DefectCauseRow> _rootCauses    = new();
     string _fSearch = "", _fCategory = "", _fProcess = "", _fStatus = "";
 
     string _modal = "";
@@ -257,12 +290,15 @@
     {
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
+        try { _severityCodes = Md.ListCodeItems("DEFECT_CODE_SEVERITY"); } catch { }
+        try { _statusCodes   = Md.ListCodeItems("DEFECT_CODE_STATUS");   } catch { }
+        try { _rootCauses    = Md.ListDefectCauses().Where(r => r.RootCauseFlag).OrderBy(r => r.CauseCode).ToList(); } catch { }
         Reload();
     }
 
     void Reload() { _allRows = Md.ListDefectCodes(); ApplyFilter(); }
 
-    void ApplyFilter() => _rows = _allRows.Where(r =>
+    void ApplyFilter() { _page = 0; _rows = _allRows.Where(r =>
         (string.IsNullOrEmpty(_fSearch) ||
             r.DefectCode.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.DefectName   ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
@@ -270,7 +306,7 @@
         (string.IsNullOrEmpty(_fCategory) || r.DefectCategory == _fCategory) &&
         (string.IsNullOrEmpty(_fProcess)  || r.ProcessCode    == _fProcess) &&
         (string.IsNullOrEmpty(_fStatus)   || r.Status         == _fStatus)
-    ).ToList();
+    ).ToList(); }
 
     void OpenCreate() { _f = new() { Status = "Active" }; _modalErr = ""; _confirmDelete = false; _modal = "create"; }
 
@@ -303,9 +339,9 @@
     void SaveCreate()
     {
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_f.DefectCode)) { _modalErr = "불량코드를 입력하세요."; return; }
-        if (string.IsNullOrWhiteSpace(_f.DefectName)) { _modalErr = "불량명을 입력하세요."; return; }
-        if (Md.DefectCodeExists(_f.DefectCode.Trim())) { _modalErr = $"불량코드 '{_f.DefectCode.Trim()}' 이 이미 존재합니다."; return; }
+        if (string.IsNullOrWhiteSpace(_f.DefectCode)) { _modalErr = L["Err.DefectCodeRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.DefectName)) { _modalErr = L["Err.DefectNameRequired"]; return; }
+        if (Md.DefectCodeExists(_f.DefectCode.Trim())) { _modalErr = $"불량코드 '{_f.DefectCode.Trim()}' 이 {L["Err.AlreadyExists"]}"; return; }
         _busy = true;
         try
         {
@@ -314,7 +350,7 @@
                 NE(_f.DispositionDefault), NE(_f.DefaultCauseCode), _f.ParetoFlag,
                 NE(_f.Status), _actor);
             CloseModal(); Reload();
-            ShowMsg($"{_f.DefectName} 등록 완료.", false);
+            ShowMsg($"{_f.DefectName} {L["Msg.Created"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -324,7 +360,7 @@
     {
         if (_sel is null) return;
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_f.DefectName)) { _modalErr = "불량명을 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.DefectName)) { _modalErr = L["Err.DefectNameRequired"]; return; }
         _busy = true;
         try
         {
@@ -334,7 +370,7 @@
                 NE(_f.Status), _actor);
             var name = _f.DefectName;
             CloseModal(); Reload();
-            ShowMsg($"{name} 수정 완료.", false);
+            ShowMsg($"{name} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -349,7 +385,7 @@
             var name = _sel.DefectName ?? _sel.DefectCode;
             Md.DeleteDefectCode(_sel.DefectCode);
             CloseModal(); Reload();
-            ShowMsg($"{name} 삭제 완료.", false);
+            ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
         finally { _busy = false; }

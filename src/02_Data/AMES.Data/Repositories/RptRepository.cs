@@ -43,7 +43,7 @@ public sealed class RptRepository
     public sealed record ReportCatalogEntry(string Key, string Title,
         string Path, string Category, string Description);
 
-    // ── RPT-01 Daily Production ──────────────────────────────────────────
+    // ── RPT-001 Daily Production ─────────────────────────────────────────
     public List<DailyProdRow> ListDailyProduction(int daysBack = 14)
     {
         const string sql = """
@@ -74,7 +74,7 @@ public sealed class RptRepository
         }).ToList();
     }
 
-    // ── RPT-02 Defect Pareto ─────────────────────────────────────────────
+    // ── RPT-002 Defect Pareto ────────────────────────────────────────────
     public List<DefectParetoRow> ListDefectPareto(int daysBack = 30, int topN = 20)
     {
         const string sql = """
@@ -107,7 +107,7 @@ public sealed class RptRepository
         return list;
     }
 
-    // ── RPT-03 Daily Shipment ────────────────────────────────────────────
+    // ── RPT-003 Daily Shipment ───────────────────────────────────────────
     public List<DailyShipmentRow> ListDailyShipment(int daysBack = 14)
     {
         const string sql = """
@@ -130,7 +130,7 @@ public sealed class RptRepository
             ("@D", daysBack));
     }
 
-    // ── RPT-04 OTD (on-time delivery) ────────────────────────────────────
+    // ── RPT-004 OTD (on-time delivery) ───────────────────────────────────
     public List<OtdRow> ListOtd(int daysBack = 30)
     {
         const string sql = """
@@ -156,7 +156,7 @@ public sealed class RptRepository
             x.Tot > 0 ? (decimal)x.On / x.Tot * 100m : 0m)).ToList();
     }
 
-    // ── RPT-05 Inventory Status ──────────────────────────────────────────
+    // ── RPT-005 Inventory Status ─────────────────────────────────────────
     public List<InventoryRow> ListInventory(int topN = 100)
     {
         const string sql = """
@@ -178,7 +178,7 @@ public sealed class RptRepository
             ("@N", topN));
     }
 
-    // ── RPT-06 Equipment OEE ─────────────────────────────────────────────
+    // ── RPT-006 Equipment OEE ────────────────────────────────────────────
     public List<EquipmentOeeRow> ListEquipmentOee(int daysBack = 30)
     {
         const string sql = """
@@ -201,7 +201,7 @@ public sealed class RptRepository
             ("@D", daysBack));
     }
 
-    // ── RPT-07 Monthly KPI ───────────────────────────────────────────────
+    // ── RPT-007 Monthly KPI ──────────────────────────────────────────────
     public List<MonthlyKpiRow> ListMonthlyKpi(int monthsBack = 6)
     {
         const string sql = """
@@ -260,7 +260,7 @@ public sealed class RptRepository
         }, ("@M", monthsBack));
     }
 
-    // ── RPT-08 Schedule Adherence ────────────────────────────────────────
+    // ── RPT-008 Schedule Adherence ───────────────────────────────────────
     public List<ScheduleAdherenceRow> ListScheduleAdherence(int daysBack = 14)
     {
         const string sql = """
@@ -297,19 +297,19 @@ public sealed class RptRepository
         }, ("@D", daysBack));
     }
 
-    // ── RPT-09 Report Catalog (static metadata) ──────────────────────────
+    // ── RPT-009 Report Catalog (static metadata) ─────────────────────────
     public List<ReportCatalogEntry> ListReportCatalog() => new()
     {
-        new("RPT-01", "Daily Production",   "rpt/daily-production",   "Production", "라인별 일생산량 + 양품률"),
-        new("RPT-02", "Defect Pareto",      "rpt/defect-pareto",      "Quality",    "불량 코드 파레토 (30일)"),
-        new("RPT-03", "Daily Shipment",     "rpt/daily-shipment",     "Logistics",  "출하 주문 / 수량 / 고객 수"),
-        new("RPT-04", "On-Time Delivery",   "rpt/on-time",            "Logistics",  "납기 준수율 (OTD%)"),
-        new("RPT-05", "Inventory Status",   "rpt/inventory",          "Logistics",  "품목×위치 재고, Hold 비율"),
-        new("RPT-06", "Equipment OEE",      "rpt/equipment-oee",      "Maintenance","설비별 A·P·Q·OEE"),
-        new("RPT-07", "Monthly KPI",        "rpt/monthly-kpi",        "Executive",  "월간 통합 지표"),
-        new("RPT-08", "Schedule Adherence", "rpt/schedule-adherence", "Production", "계획 vs 실생산"),
-        new("RPT-09", "Report Center",      "rpt/report-center",      "Hub",        "전체 리포트 카탈로그"),
-        new("RPT-10", "Report Builder",     "rpt/report-builder",     "Advanced",   "Ad-hoc 쿼리 빌더 (미리보기)")
+        new("RPT-001", "Daily Production",   "rpt/daily-production",   "Production", "라인별 일생산량 + 양품률"),
+        new("RPT-002", "Defect Pareto",      "rpt/defect-pareto",      "Quality",    "불량 코드 파레토 (30일)"),
+        new("RPT-003", "Daily Shipment",     "rpt/daily-shipment",     "Logistics",  "출하 주문 / 수량 / 고객 수"),
+        new("RPT-004", "On-Time Delivery",   "rpt/on-time",            "Logistics",  "납기 준수율 (OTD%)"),
+        new("RPT-005", "Inventory Status",   "rpt/inventory",          "Logistics",  "품목×위치 재고, Hold 비율"),
+        new("RPT-006", "Equipment OEE",      "rpt/equipment-oee",      "Maintenance","설비별 A·P·Q·OEE"),
+        new("RPT-007", "Monthly KPI",        "rpt/monthly-kpi",        "Executive",  "월간 통합 지표"),
+        new("RPT-008", "Schedule Adherence", "rpt/schedule-adherence", "Production", "계획 vs 실생산"),
+        new("RPT-009", "Report Center",      "rpt/report-center",      "Hub",        "전체 리포트 카탈로그"),
+        new("RPT-010", "Report Builder",     "rpt/report-builder",     "Advanced",   "Ad-hoc 쿼리 빌더 (미리보기)")
     };
 
     // ── helpers ──────────────────────────────────────────────────────────

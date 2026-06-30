@@ -1,12 +1,13 @@
-@page "/rpt/report-center"
+﻿@page "/rpt/report-center"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.RptRepository Rpt
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>RPT-09 @L["RPT.ReportCenter.Title"] · AMES</PageTitle>
+<PageTitle>RPT-009 @L["RPT.ReportCenter.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">RPT-09</div>
+    <div class="ames-page-id">RPT-009</div>
     <div class="ames-page-t">@L["RPT.ReportCenter.Title"]</div>
     <div class="ames-page-sub">@L["RPT.ReportCenter.Sub"]</div>
 </div>

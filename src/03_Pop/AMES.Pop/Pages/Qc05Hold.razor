@@ -5,13 +5,13 @@
 @inject ToastService Toasts
 @inject ConfirmService Confirmer
 
-@*  QC-05 Hold / Quarantine — list held lots + release/reject. *@
+@*  QC-005 Hold / Quarantine — list held lots + release/reject. *@
 
 <div class="pop-shell qc">
     <div class="pop-tbar">
         <div style="display:flex; align-items:center;">
             <span class="pop-tbar-logo">A-MES</span>
-            <span class="pop-tbar-id">QC-05 · @Session?.TerminalId · @Session?.LineId</span>
+            <span class="pop-tbar-id">QC-005 · @Session?.TerminalId · @Session?.LineId</span>
         </div>
         <div class="pop-tbar-r">
             <span class="stat-on">● LIVE</span>
@@ -86,14 +86,14 @@
     </div>
 
     <div class="pop-nav" style="--nav-cols:10;">
-        <button class="nav-btn" @onclick="@(() => Go("qc01"))">QC-01<small>Incoming</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("qc02"))">QC-02<small>In-Process</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("qc03"))">QC-03<small>Final</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("qc04"))">QC-04<small>NCR</small></button>
-        <button class="nav-btn active" @onclick="@(() => Go("qc05"))">QC-05<small>Hold</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("qc06"))">QC-06<small>CAPA</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("qc07"))">QC-07<small>Dashboard</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("qc08"))">QC-08<small>Std</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("qc01"))">QC-001<small>Incoming</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("qc02"))">QC-002<small>In-Process</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("qc03"))">QC-003<small>Final</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("qc04"))">QC-004<small>NCR</small></button>
+        <button class="nav-btn active" @onclick="@(() => Go("qc05"))">QC-005<small>Hold</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("qc06"))">QC-006<small>CAPA</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("qc07"))">QC-007<small>Dashboard</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("qc08"))">QC-008<small>Std</small></button>
         <button class="nav-btn" @onclick="@(() => Go("qctrc"))">QC-TRC<small>Trace</small></button>
         <button class="nav-btn muted" @onclick="Logout">LOGOUT<small>End shift</small></button>
     </div>

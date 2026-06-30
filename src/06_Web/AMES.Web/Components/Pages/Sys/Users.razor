@@ -1,7 +1,9 @@
-@page "/sys/users"
+﻿@page "/sys/users"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
+@inject AMES.Data.Repositories.MasterDataRepository MD
+@inject AMES.Data.Repositories.AuthRepository AuthRepo
 @inject UserManager<ApplicationUser> UserMgr
 @inject RoleManager<IdentityRole> RoleMgr
 @inject AuthenticationStateProvider Auth
@@ -21,7 +23,7 @@
     <div class="ames-kpi ok"><div class="ames-kpi-l">@L["SYS.Users.Kpi.Verified"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.EmailConfirmed)</div></div>
     <div class="ames-kpi bad"><div class="ames-kpi-l">@L["SYS.Users.Kpi.Locked"]</div>
-        <div class="ames-kpi-v">@_allRows.Count(r => r.LockedOut)</div></div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.LockedOut || r.AccountStatus == "LOCKED")</div></div>
     <div class="ames-kpi warn"><div class="ames-kpi-l">@L["SYS.Users.Kpi.RecentLogin"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.LastLoginTs.HasValue && (DateTime.Now - r.LastLoginTs.Value).TotalHours <= 24)</div></div>
 </div>
@@ -35,28 +37,21 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["SYS.Users.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input class="ames-input" style="width:130px;padding:4px 8px;"
-                   placeholder="@L["SYS.Users.Ph.UserName"]" @bind="_fUserName" autocomplete="off" />
-            <input class="ames-input" style="width:110px;padding:4px 8px;"
-                   placeholder="@L["SYS.Users.Ph.Name"]" @bind="_fName" autocomplete="off" />
-            <input class="ames-input" style="width:100px;padding:4px 8px;"
-                   placeholder="@L["SYS.Users.Ph.Dept"]" @bind="_fDept" autocomplete="off" />
+            <input class="ames-input" style="width:300px;padding:4px 8px;"
+                   placeholder="@L["SYS.Users.Ph.UserName"]" @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
             <select class="ames-input" style="width:120px;padding:4px 8px;" @bind="_fStatus">
                 <option value="">@L["Filter.AllStatus"]</option>
-                <option>Active</option>
-                <option>Inactive</option>
-                <option>Suspended</option>
-                <option value="Locked">Locked</option>
-                <option value="Unverified">Unverified</option>
+                @foreach (var s in _statusItems.Where(s => s.UseFlag))
+                { <option value="@s.CodeValue">[@s.CodeValue] @(MasterDataRepository.LocalName(s))</option> }
             </select>
-            <button class="ames-btn" @onclick="OpenCreate">+ @L["Btn.Create"]</button>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
         </div>
     </div>
 
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">No users.</div>
+        <div class="ames-empty">@L["SYS.Users.Empty"]</div>
     }
     else
     {
@@ -69,26 +64,31 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var u in _rows)
+                @foreach (var u in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     <tr class="ames-row-link" @onclick="() => OpenEdit(u)">
                         <td class="code">@(u.UserName ?? "—")</td>
                         <td class="dim">@(u.Email ?? "—")</td>
                         <td class="dim">@(u.EmployeeNo ?? "—")</td>
                         <td>@(u.EmployeeName ?? "—")</td>
-                        <td class="dim">@(u.Department ?? "—")</td>
+                        <td class="dim">@DeptName(u.Department)</td>
                         <td>
-                            @if (u.LockedOut) { <span class="pill bad">LOCKED</span> }
-                            else if (!u.EmailConfirmed) { <span class="pill warn">UNVERIFIED</span> }
-                            else { <span class="pill ok">@(u.AccountStatus ?? "ACTIVE")</span> }
+                            @{
+                                var stEff = EffectiveStatus(u);
+                                var unver = !u.EmailConfirmed && stEff == "Active";
+                                var stCls = unver ? "warn" : stEff switch { "LOCKED" => "bad", "INACTIVE" => "dim", _ => "ok" };
+                                var stLbl = unver ? L["SYS.Users.Status.Unverified"].Value : StatusName(stEff);
+                            }
+                            <span class="pill @stCls">@stLbl</span>
                         </td>
                         <td class="dim">@(u.RolesCsv ?? "—")</td>
-                        <td class="num">@u.AccessFailedCount</td>
+                        <td class="num">@u.FailedLoginCount</td>
                         <td class="dim">@(u.LastLoginTs?.ToString("MM-dd HH:mm") ?? "—")</td>
                     </tr>
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
@@ -106,36 +106,42 @@
             <label>Email *</label>
             <input class="ames-input" @bind="_f.Email" placeholder="user@ames.local" autocomplete="off" />
 
-            <label>Password *</label>
-            <input class="ames-input" type="password" @bind="_f.Password" placeholder="6자 이상, 숫자 포함" autocomplete="new-password" />
+            <label>@L["SYS.Users.Lbl.Password"]</label>
+            <input class="ames-input" type="password" @bind="_f.Password" placeholder="@L["SYS.Users.Ph.Password"]" autocomplete="new-password" />
 
             <label>@L["SYS.Users.Lbl.EmployeeNo"]</label>
             <input class="ames-input" @bind="_f.EmployeeNo" placeholder="EMP001" autocomplete="off" />
 
             <label>@L["SYS.Users.Lbl.EmployeeName"]</label>
-            <input class="ames-input" @bind="_f.EmployeeName" placeholder="홍길동" autocomplete="off" />
+            <input class="ames-input" @bind="_f.EmployeeName" placeholder='@L["SYS.Users.Ph.Name"]' autocomplete="off" />
 
             <label>@L["SYS.Users.Lbl.Dept"]</label>
-            <input class="ames-input" @bind="_f.Department" placeholder="생산팀" autocomplete="off" />
+            <select class="ames-input" @bind="_f.Department">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var o in _deptOptions) { <option value="@o.Value">@o.Display</option> }
+            </select>
 
-            <label>Plant</label>
-            <input class="ames-input" @bind="_f.Plant" placeholder="P1" autocomplete="off" />
+            <label>@L["SYS.Users.Lbl.Plant"]</label>
+            <select class="ames-input" @bind="_f.PlantCode">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var o in _plantOptions) { <option value="@o.Value">@o.Display</option> }
+            </select>
 
             <label>@L["SYS.Users.Lbl.DefaultShift"]</label>
             <select class="ames-input" @bind="_f.DefaultShift">
-                <option value="">— 선택 —</option>
-                <option>A</option><option>B</option><option>C</option>
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var o in _shiftOptions) { <option value="@o.Value">@o.Display</option> }
             </select>
 
             <label>@L["SYS.Users.Lbl.Role"]</label>
             <select class="ames-input"
                     value="@_f.Role"
                     @onchange="e => _f.Role = e.Value?.ToString() ?? string.Empty">
-                <option value="">— 없음 —</option>
+                <option value="">@L["SYS.Users.Opt.NoRole"]</option>
                 @foreach (var r in _roles) { <option value="@r">@r</option> }
             </select>
 
-            <label>@L["SYS.Users.Lbl.Lines"] <span style="font-weight:400;color:#64748b;">(미선택 = 전 라인 허용)</span></label>
+            <label>@L["SYS.Users.Lbl.Lines"] <span style="font-weight:400;color:#64748b;">@L["SYS.Users.Hint.Lines"]</span></label>
             <div class="ames-line-picker">
                 @if (_lines.Count == 0)
                 { <span class="dim" style="font-size:.8em;">@L["SYS.Users.Lbl.NoLines"]</span> }
@@ -155,10 +161,10 @@
             { <div class="ames-alert bad">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">
+                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">
                     @(_busy ? @L["Msg.Saving"] : @L["Btn.Create"])
                 </button>
-                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -182,33 +188,48 @@
             <input class="ames-input" @bind="_f.EmployeeName" autocomplete="off" />
 
             <label>@L["SYS.Users.Lbl.Dept"]</label>
-            <input class="ames-input" @bind="_f.Department" autocomplete="off" />
+            <select class="ames-input" @bind="_f.Department">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var o in _deptOptions) { <option value="@o.Value">@o.Display</option> }
+            </select>
 
-            <label>Plant</label>
-            <input class="ames-input" @bind="_f.Plant" autocomplete="off" />
+            <label>@L["SYS.Users.Lbl.Plant"]</label>
+            <select class="ames-input" @bind="_f.PlantCode">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var o in _plantOptions) { <option value="@o.Value">@o.Display</option> }
+            </select>
 
             <label>@L["SYS.Users.Lbl.DefaultShift"]</label>
             <select class="ames-input" @bind="_f.DefaultShift">
-                <option value="">— 선택 —</option>
-                <option>A</option><option>B</option><option>C</option>
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var o in _shiftOptions) { <option value="@o.Value">@o.Display</option> }
             </select>
 
             <label>@L["SYS.Users.Lbl.AccountStatus"]</label>
+            @if (_sel!.AccountStatus == "LOCKED")
+            {
+                <div class="ames-alert bad" style="padding:5px 10px;margin-bottom:4px;font-size:.85em;">
+                    🔒 @L["SYS.Users.Locked.Domain"] · @L["SYS.Users.Col.FailCount"]: @_sel.FailedLoginCount
+                </div>
+            }
             <select class="ames-input" @bind="_f.AccountStatus">
-                <option>Active</option>
-                <option>Inactive</option>
-                <option>Suspended</option>
+                @if (_sel!.AccountStatus == "LOCKED")
+                {
+                    <option value="LOCKED" disabled>🔒 @StatusName("LOCKED")</option>
+                }
+                @foreach (var s in _statusItems.Where(s => s.UseFlag && (_sel!.AccountStatus != "LOCKED" || s.CodeValue != "LOCKED")))
+                { <option value="@s.CodeValue">[@s.CodeValue] @(MasterDataRepository.LocalName(s))</option> }
             </select>
 
             <label>@L["SYS.Users.Lbl.Role"]</label>
             <select class="ames-input"
                     value="@_f.Role"
                     @onchange="e => _f.Role = e.Value?.ToString() ?? string.Empty">
-                <option value="">— 없음 —</option>
+                <option value="">@L["SYS.Users.Opt.NoRole"]</option>
                 @foreach (var r in _roles) { <option value="@r">@r</option> }
             </select>
 
-            <label>@L["SYS.Users.Lbl.Lines"] <span style="font-weight:400;color:#64748b;">(미선택 = 전 라인 허용)</span></label>
+            <label>@L["SYS.Users.Lbl.Lines"] <span style="font-weight:400;color:#64748b;">@L["SYS.Users.Hint.Lines"]</span></label>
             <div class="ames-line-picker">
                 @if (_lines.Count == 0)
                 { <span class="dim" style="font-size:.8em;">@L["SYS.Users.Lbl.NoLines"]</span> }
@@ -225,12 +246,18 @@
             </div>
 
             <label>@L["SYS.Users.Lbl.NewPassword"]</label>
-            <input class="ames-input" type="password" @bind="_f.Password" placeholder="비워두면 변경 안 함" autocomplete="new-password" />
+            <input class="ames-input" type="password" @bind="_f.Password" placeholder="@L["SYS.Users.Ph.NewPassword"]" autocomplete="new-password" />
 
             @if (_sel.LockedOut)
             {
                 <div style="margin-top:6px;">
                     <button class="ames-btn warn" @onclick="UnlockUser">🔓 @L["SYS.Users.Unlock"]</button>
+                </div>
+            }
+            @if (_sel.AccountStatus == "LOCKED")
+            {
+                <div style="margin-top:6px;">
+                    <button class="ames-btn warn" @onclick="UnlockDomainAccount">🔓 @L["SYS.Users.Unlock.Domain"]</button>
                 </div>
             }
 
@@ -239,7 +266,7 @@
             {
                 <div class="ames-delete-confirm">
                     <span>@L["Msg.Confirm.Delete"]</span>
-                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
+                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
                     <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">
                         @(_busy ? @L["Msg.Deleting"] : @L["Msg.Yes"])
                     </button>
@@ -250,24 +277,31 @@
             { <div class="ames-alert bad">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok"  @onclick="SaveEdit" disabled="@_busy">
+                <button class="ames-btn"  @onclick="SaveEdit" disabled="@_busy">
                     @(_busy ? @L["Msg.Saving"] : @L["Btn.Save"])
                 </button>
                 <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
 }
 
 @code {
+    int _page = 0;
+    const int _pageSize = 20;
     List<AMES.Data.Repositories.SysRepository.UserRow> _allRows = new();
     List<AMES.Data.Repositories.SysRepository.UserRow> _rows    = new();
     List<string> _roles = new();
     List<AMES.Data.Repositories.SysRepository.LineRow> _lines = new();
+    List<CodeOption> _deptOptions  = new();
+    List<CodeOption> _plantOptions = new();
+    List<CodeOption> _shiftOptions = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _statusItems = new();
+    Dictionary<string, string> _deptSearchNames = new(); // dept code → "CodeName CodeNameEn"
     AMES.Data.Repositories.SysRepository.UserRow? _sel;
 
-    string _fUserName = "", _fName = "", _fDept = "", _fStatus = "";
+    string _fSearch = "", _fStatus = "";
 
     string _modal = "";   // "" | "create" | "edit"
     bool _busy;
@@ -285,23 +319,50 @@
         _actorEmail = auth.User.Identity?.Name ?? "system";
         _roles = RoleMgr.Roles.Select(r => r.Name!).OrderBy(n => n).ToList();
         _lines = Sys.ListActiveLines();
+        var deptItems  = MD.ListCodeItems("Department").ToList();
+        _deptOptions   = ToOptions(deptItems);
+        _deptSearchNames = deptItems
+            .Where(c => c.UseFlag && !string.IsNullOrWhiteSpace(c.CodeValue))
+            .ToDictionary(c => c.CodeValue!, c => $"{c.CodeName ?? ""} {c.CodeNameEn ?? ""}");
+        _plantOptions  = ToOptions(MD.ListCodeItems("Plant"));
+        _shiftOptions  = ToOptions(MD.ListCodeItems("WORK_SHIFT"));
+        _statusItems   = MD.ListCodeItems("USER_STATUS");
         Reload();
     }
 
     void Reload() { _allRows = Sys.ListUsers(); ApplyFilter(); }
 
-    void ApplyFilter() => _rows = _allRows.Where(r =>
-        (string.IsNullOrEmpty(_fUserName) || (r.UserName      ?? "").Contains(_fUserName, StringComparison.OrdinalIgnoreCase)) &&
-        (string.IsNullOrEmpty(_fName)     || (r.EmployeeName  ?? "").Contains(_fName,     StringComparison.OrdinalIgnoreCase)) &&
-        (string.IsNullOrEmpty(_fDept)     || (r.Department    ?? "").Contains(_fDept,     StringComparison.OrdinalIgnoreCase)) &&
-        (string.IsNullOrEmpty(_fStatus)   || MatchStatus(r, _fStatus))
-    ).ToList();
+    void ApplyFilter() { _page = 0; _rows = _allRows.Where(r =>
+        (string.IsNullOrEmpty(_fSearch) ||
+            (r.UserName     ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.Email        ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.EmployeeNo   ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.EmployeeName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (_deptSearchNames.GetValueOrDefault(r.Department ?? "") ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fStatus) || MatchStatus(r, _fStatus))
+    ).ToList(); }
 
-    static bool MatchStatus(AMES.Data.Repositories.SysRepository.UserRow r, string s) => s switch {
-        "Locked"     => r.LockedOut,
-        "Unverified" => !r.EmailConfirmed && !r.LockedOut,
-        _            => !r.LockedOut && r.EmailConfirmed && (r.AccountStatus ?? "Active") == s,
-    };
+    static string EffectiveStatus(AMES.Data.Repositories.SysRepository.UserRow r) =>
+        (r.LockedOut || r.AccountStatus == "LOCKED") ? "LOCKED" : (r.AccountStatus ?? "Active");
+
+    static bool MatchStatus(AMES.Data.Repositories.SysRepository.UserRow r, string s) =>
+        EffectiveStatus(r) == s;
+
+    string DeptName(string? code)
+    {
+        if (string.IsNullOrEmpty(code)) return "—";
+        var opt = _deptOptions.FirstOrDefault(o => o.Value == code);
+        if (opt is null) return code;
+        var idx = opt.Display.IndexOf("] ");
+        return idx >= 0 ? opt.Display[(idx + 2)..] : opt.Display;
+    }
+
+    string StatusName(string? code)
+    {
+        if (string.IsNullOrEmpty(code)) return "—";
+        var found = _statusItems.FirstOrDefault(s => s.CodeValue == code);
+        return found is null ? code : MasterDataRepository.LocalName(found);
+    }
 
     void OpenCreate()
     {
@@ -324,8 +385,8 @@
             EmployeeNo    = u.EmployeeNo    ?? "",
             EmployeeName  = u.EmployeeName  ?? "",
             Department    = u.Department    ?? "",
-            Plant         = "",
-            DefaultShift  = "",
+            PlantCode     = u.PlantCode     ?? "",
+            DefaultShift  = u.DefaultShift  ?? "",
             AccountStatus = u.AccountStatus ?? "Active",
             Role          = u.RolesCsv?.Split(',').FirstOrDefault()?.Trim() ?? "",
             SelectedLines = parsedLines
@@ -350,10 +411,10 @@
     async Task SaveCreate()
     {
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_f.Email))        { _modalErr = "Email을 입력하세요."; return; }
-        if (string.IsNullOrWhiteSpace(_f.Password))     { _modalErr = "Password를 입력하세요."; return; }
-        if (string.IsNullOrWhiteSpace(_f.EmployeeNo))   { _modalErr = "사원번호를 입력하세요."; return; }
-        if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = "성명을 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.Email))        { _modalErr = L["SYS.Users.Err.EmailRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.Password))     { _modalErr = L["SYS.Users.Err.PasswordRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.EmployeeNo))   { _modalErr = L["SYS.Users.Err.EmpNoRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = L["SYS.Users.Err.NameRequired"]; return; }
 
         _busy = true;
         try
@@ -370,13 +431,13 @@
                 ? System.Text.Json.JsonSerializer.Serialize(_f.SelectedLines)
                 : null;
             Sys.CreateProfile(user.Id, _f.EmployeeNo, _f.EmployeeName,
-                _f.Department, _f.Plant, _f.DefaultShift, _actorEmail, linesJson);
+                _f.Department, _f.PlantCode, _f.DefaultShift, _actorEmail, linesJson);
 
             if (!string.IsNullOrEmpty(_f.Role))
                 await UserMgr.AddToRoleAsync(user, _f.Role);
 
             CloseModal(); Reload();
-            ShowMsg($"{_f.Email} 등록 완료.", false);
+            ShowMsg(string.Format(L["SYS.Users.Ok.Created"].Value, _f.Email), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -386,8 +447,8 @@
     {
         if (_sel is null) return;
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_f.EmployeeNo))   { _modalErr = "사원번호를 입력하세요."; return; }
-        if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = "성명을 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.EmployeeNo))   { _modalErr = L["SYS.Users.Err.EmpNoRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = L["SYS.Users.Err.NameRequired"]; return; }
 
         _busy = true;
         try
@@ -397,10 +458,10 @@
                 : null;
             if (Sys.ProfileExists(_sel.UserId))
                 Sys.UpdateProfile(_sel.UserId, _f.EmployeeNo, _f.EmployeeName,
-                    _f.Department, _f.Plant, _f.DefaultShift, _f.AccountStatus, _actorEmail, linesJson);
+                    _f.Department, _f.PlantCode, _f.DefaultShift, _f.AccountStatus, _actorEmail, linesJson);
             else
                 Sys.CreateProfile(_sel.UserId, _f.EmployeeNo, _f.EmployeeName,
-                    _f.Department, _f.Plant, _f.DefaultShift, _actorEmail, linesJson);
+                    _f.Department, _f.PlantCode, _f.DefaultShift, _actorEmail, linesJson);
 
             if (!string.IsNullOrWhiteSpace(_f.Password))
             {
@@ -428,7 +489,7 @@
 
             var email = _sel.Email;
             CloseModal(); Reload();
-            ShowMsg($"{email} 수정 완료.", false);
+            ShowMsg(string.Format(L["SYS.Users.Ok.Updated"].Value, email), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -446,7 +507,7 @@
 
             var email = _sel.Email;
             CloseModal(); Reload();
-            ShowMsg($"{email} 삭제 완료.", false);
+            ShowMsg(string.Format(L["SYS.Users.Ok.Deleted"].Value, email), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
         finally { _busy = false; }
@@ -460,7 +521,22 @@
         await UserMgr.SetLockoutEndDateAsync(u, null);
         await UserMgr.ResetAccessFailedCountAsync(u);
         CloseModal(); Reload();
-        ShowMsg($"{_sel.Email} 잠금 해제 완료.", false);
+        ShowMsg(string.Format(L["SYS.Users.Ok.Unlocked"].Value, _sel.Email), false);
+    }
+
+    async Task UnlockDomainAccount()
+    {
+        if (_sel is null) return;
+        AuthRepo.UnlockAccount(_sel.UserId, _actorEmail);
+        var u = await UserMgr.FindByIdAsync(_sel.UserId);
+        if (u is not null)
+        {
+            await UserMgr.SetLockoutEndDateAsync(u, null);
+            await UserMgr.ResetAccessFailedCountAsync(u);
+        }
+        var email = _sel.Email;
+        CloseModal(); Reload();
+        ShowMsg(string.Format(L["SYS.Users.Ok.DomainUnlocked"].Value, email), false);
     }
 
     void ShowMsg(string msg, bool isErr)
@@ -482,10 +558,27 @@
         public string       EmployeeNo    { get; set; } = "";
         public string       EmployeeName  { get; set; } = "";
         public string       Department    { get; set; } = "";
-        public string       Plant         { get; set; } = "";
+        public string       PlantCode     { get; set; } = "";
         public string       DefaultShift  { get; set; } = "";
         public string       AccountStatus { get; set; } = "Active";
         public string       Role          { get; set; } = "";
         public List<string> SelectedLines { get; set; } = new();
     }
+
+    static string OptionName(CodeOption o)
+    {
+        var idx = o.Display.IndexOf("] ");
+        return idx >= 0 ? o.Display[(idx + 2)..] : o.Display;
+    }
+
+    // 현재 UI 언어에 맞게 "[CodeValue] 이름" 형태의 표시 텍스트를 생성
+    static List<CodeOption> ToOptions(IEnumerable<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> rows)
+    {
+        return rows
+            .Where(c => c.UseFlag && !string.IsNullOrWhiteSpace(c.CodeValue))
+            .Select(c => new CodeOption(c.CodeValue!, $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}"))
+            .ToList();
+    }
+
+    record CodeOption(string Value, string Display);
 }

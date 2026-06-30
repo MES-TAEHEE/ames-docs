@@ -1,4 +1,4 @@
-@page "/sys/calendar"
+﻿@page "/sys/calendar"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
@@ -17,22 +17,22 @@
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["SYS.Calendar.Kpi.Days"]</div>
         <div class="ames-kpi-v">@_days</div>
-        <div class="ames-kpi-s">조회 기간 내</div>
+        <div class="ames-kpi-s">@L["SYS.Calendar.Kpi.DaysSub"]</div>
     </div>
     <div class="ames-kpi ok">
         <div class="ames-kpi-l">@L["SYS.Calendar.Kpi.Work"]</div>
         <div class="ames-kpi-v">@_work</div>
-        <div class="ames-kpi-s">생산일</div>
+        <div class="ames-kpi-s">@L["SYS.Calendar.Kpi.WorkSub"]</div>
     </div>
     <div class="ames-kpi warn">
         <div class="ames-kpi-l">@L["SYS.Calendar.Kpi.Weekend"]</div>
         <div class="ames-kpi-v">@_wknd</div>
-        <div class="ames-kpi-s">주말</div>
+        <div class="ames-kpi-s">@L["SYS.Calendar.Kpi.WeekendSub"]</div>
     </div>
     <div class="ames-kpi bad">
         <div class="ames-kpi-l">@L["SYS.Calendar.Kpi.Holiday"]</div>
         <div class="ames-kpi-v">@_hol</div>
-        <div class="ames-kpi-s">공휴일</div>
+        <div class="ames-kpi-s">@L["SYS.Calendar.Kpi.HolidaySub"]</div>
     </div>
 </div>
 
@@ -50,8 +50,7 @@
         ▦ @L["SYS.Calendar.Tab.Calendar"]
     </button>
     <div style="flex:1;"></div>
-    <button class="ames-btn ok" @onclick="Reload" style="align-self:center;">@L["Btn.Reload"]</button>
-    <button class="ames-btn ok" @onclick="OpenCreate" style="align-self:center;">+ @L["SYS.Calendar.Btn.Create"]</button>
+    <button class="ames-btn" @onclick="OpenCreate" style="align-self:center;">@L["SYS.Calendar.Btn.Create"]</button>
 </div>
 
 @* ══════════════════════════════════════════════════════════════════ *@
@@ -86,14 +85,14 @@
                         <th>@L["SYS.Calendar.Col.Date"]</th>
                         <th>@L["SYS.Calendar.Col.DayType"]</th>
                         <th>@L["SYS.Calendar.Col.HolidayName"]</th>
-                        <th class="num">Sh-A</th>
-                        <th class="num">Sh-B</th>
-                        <th class="num">Sh-C</th>
-                        <th>Plant</th>
+                        <th class="num">@L["Col.ShiftA"]</th>
+                        <th class="num">@L["Col.ShiftB"]</th>
+                        <th class="num">@L["Col.ShiftC"]</th>
+                        <th>@L["Col.Plant"]</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var grp in _byDay)
+                    @foreach (var grp in _byDay.Skip(_page * _pageSize).Take(_pageSize))
                     {
                         var sample   = grp.Value.First();
                         var hasA     = grp.Value.Any(r => r.ShiftCode == "A");
@@ -108,11 +107,12 @@
                             <td class="num"><input type="checkbox" disabled checked="@hasA" style="accent-color:#34d399;" /></td>
                             <td class="num"><input type="checkbox" disabled checked="@hasB" style="accent-color:#60a5fa;" /></td>
                             <td class="num"><input type="checkbox" disabled checked="@hasC" style="accent-color:#f472b6;" /></td>
-                            <td class="dim">@(sample.Plant ?? "—")</td>
+                            <td class="dim">@(sample.PlantCode ?? "—")</td>
                         </tr>
                     }
                 </tbody>
             </table>
+            <Pager Page="_page" Total="_byDay.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
         }
     </div>
 }
@@ -128,7 +128,7 @@
             <div style="display:flex;align-items:center;gap:12px;">
                 <button class="ames-btn" style="padding:6px 14px;" @onclick="PrevMonth">‹</button>
                 <span style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fff;">
-                    @(_calYear)년 @(_calMonth.ToString("D2"))월
+                    @string.Format(L["SYS.Calendar.Fmt.YearMonth"].Value, _calYear, _calMonth.ToString("D2"))
                 </span>
                 <button class="ames-btn" style="padding:6px 14px;" @onclick="NextMonth">›</button>
             </div>
@@ -145,7 +145,7 @@
 
         @* Day-of-week header *@
         <div class="ames-cal-grid">
-            @foreach (var (label, cls) in new[] { ("일","sun"),("월",""),("화",""),("수",""),("목",""),("금",""),("토","sat") })
+            @foreach (var (label, cls) in new[] { (L["Day.Sun"].Value,"sun"),(L["Day.Mon"].Value,""),(L["Day.Tue"].Value,""),(L["Day.Wed"].Value,""),(L["Day.Thu"].Value,""),(L["Day.Fri"].Value,""),(L["Day.Sat"].Value,"sat") })
             {
                 <div class="ames-cal-head @cls">@label</div>
             }
@@ -244,26 +244,26 @@
                            @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) _genFrom = d; }" />
                 </div>
                 <div>
-                    <label>종료일 *</label>
+                    <label>@L["SYS.Calendar.Lbl.EndDate"]</label>
                     <input type="date" class="ames-input"
                            value="@_genTo.ToString("yyyy-MM-dd")"
                            @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) _genTo = d; }" />
                 </div>
             </div>
 
-            <label style="margin-top:8px;">Plant</label>
-            <input class="ames-input" @bind="_genPlant" placeholder="예: SAV, TCS" autocomplete="off" />
+            <label style="margin-top:8px;">@L["SYS.Calendar.Lbl.Plant"]</label>
+            <input class="ames-input" @bind="_genPlant" placeholder="@L["SYS.Calendar.Ph.Plant"]" autocomplete="off" />
 
-            <div style="margin-top:12px;font-size:.84em;font-weight:600;color:#94a3b8;letter-spacing:.05em;">교대 설정</div>
+            <div style="margin-top:12px;font-size:.84em;font-weight:600;color:#94a3b8;letter-spacing:.05em;">@L["SYS.Calendar.Lbl.ShiftConfig"]</div>
             <table class="ames-table" style="margin-top:4px;">
                 <thead>
                     <tr>
-                        <th style="width:44px;">활성</th>
-                        <th style="width:56px;">코드</th>
-                        <th style="width:130px;">시작</th>
-                        <th style="width:130px;">종료</th>
-                        <th style="width:90px;">휴식(분)</th>
-                        <th style="width:80px;">순작업h</th>
+                        <th style="width:44px;">@L["Col.Active"]</th>
+                        <th style="width:56px;">@L["Col.Code"]</th>
+                        <th style="width:130px;">@L["Col.Start"]</th>
+                        <th style="width:130px;">@L["Col.End"]</th>
+                        <th style="width:90px;">@L["Col.BreakMin"]</th>
+                        <th style="width:80px;">@L["Col.NetWorkH"]</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -302,18 +302,18 @@
             <div style="margin-top:14px;">
                 <label class="ames-line-item" style="flex-direction:row;gap:8px;">
                     <input type="checkbox" @bind="_genSkipExisting" style="accent-color:#60a5fa;width:14px;height:14px;" />
-                    <span>기존 데이터 있으면 건너뜀</span>
+                    <span>@L["SYS.Calendar.Lbl.SkipExisting"]</span>
                 </label>
             </div>
 
             <div style="margin-top:10px;font-size:.84em;font-weight:600;color:#94a3b8;letter-spacing:.05em;">
-                공휴일 <span class="dim" style="font-weight:400;">(등록된 날짜는 HOLIDAY로 자동 분류)</span>
-                <button class="ames-btn" style="font-size:.78em;padding:2px 8px;margin-left:8px;" @onclick="AddHoliday">+ 추가</button>
+                @L["SYS.Calendar.Lbl.Holidays"] <span class="dim" style="font-weight:400;">@L["SYS.Calendar.Hint.Holidays"]</span>
+                <button class="ames-btn" style="font-size:.78em;padding:2px 8px;margin-left:8px;" @onclick="AddHoliday">@L["Btn.Add"]</button>
             </div>
             @if (_genHolidays.Count > 0)
             {
                 <table class="ames-table" style="margin-top:4px;">
-                    <thead><tr><th>날짜</th><th>공휴일명</th><th style="width:32px;"></th></tr></thead>
+                    <thead><tr><th>@L["Col.Date"]</th><th>@L["Col.HolidayName"]</th><th style="width:32px;"></th></tr></thead>
                     <tbody>
                         @for (int hi = 0; hi < _genHolidays.Count; hi++)
                         {
@@ -325,7 +325,7 @@
                                            @onchange="e => _genHolidays[hidx].Date = e.Value?.ToString() ?? _genHolidays[hidx].Date" />
                                 </td>
                                 <td>
-                                    <input class="ames-input" placeholder="예: 창립기념일"
+                                    <input class="ames-input" placeholder="@L["SYS.Calendar.Ph.HolidayName"]"
                                            value="@_genHolidays[hidx].Name"
                                            @onchange="e => _genHolidays[hidx].Name = e.Value?.ToString() ?? _genHolidays[hidx].Name"
                                            autocomplete="off" />
@@ -344,10 +344,10 @@
             { <div class="ames-alert bad">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok" @onclick="Generate" disabled="@_busy">
-                    @(_busy ? "생성 중…" : "생성")
+                <button class="ames-btn" @onclick="Generate" disabled="@_busy">
+                    @(_busy ? L["Msg.Generating"].Value : L["Btn.Generate"].Value)
                 </button>
-                <button class="ames-btn" @onclick="CloseModal">취소</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -360,12 +360,12 @@
         <div class="ames-modal" style="max-width:780px;" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">
                 @_selDate.Value.ToString("yyyy-MM-dd ddd")
-                <span class="dim" style="font-weight:400;font-size:.85em;margin-left:8px;">일정 수정</span>
+                <span class="dim" style="font-weight:400;font-size:.85em;margin-left:8px;">@L["SYS.Calendar.Lbl.EditTitle"]</span>
             </div>
 
             <div style="display:flex;gap:8px;align-items:flex-end;">
                 <div style="flex:0 0 180px;">
-                    <label>구분 *</label>
+                    <label>@L["SYS.Calendar.Lbl.DayType"]</label>
                     <select class="ames-input"
                             value="@_editDayType"
                             @onchange="e => _editDayType = e.Value?.ToString() ?? _editDayType">
@@ -377,26 +377,26 @@
                 @if (_editDayType == "HOLIDAY")
                 {
                     <div style="flex:1;">
-                        <label>공휴일명</label>
+                        <label>@L["SYS.Calendar.Lbl.HolidayName"]</label>
                         <input class="ames-input" @bind="_editHolidayName" autocomplete="off"
-                               placeholder="공휴일명 입력" />
+                               placeholder="@L["SYS.Calendar.Ph.HolidayNameInput"]" />
                     </div>
                 }
             </div>
 
             <div style="margin-top:12px;font-size:.84em;font-weight:600;color:#94a3b8;letter-spacing:.05em;">
-                교대 설정
-                <span class="dim" style="font-weight:400;margin-left:8px;">미선택 시 휴무(ShiftCode NULL)로 저장</span>
+                @L["SYS.Calendar.Lbl.ShiftConfig"]
+                <span class="dim" style="font-weight:400;margin-left:8px;">@L["SYS.Calendar.Lbl.ShiftNote"]</span>
             </div>
             <table class="ames-table" style="margin-top:4px;">
                 <thead>
                     <tr>
-                        <th style="width:44px;">활성</th>
-                        <th style="width:56px;">코드</th>
-                        <th style="width:130px;">시작</th>
-                        <th style="width:130px;">종료</th>
-                        <th style="width:90px;">휴식(분)</th>
-                        <th style="width:80px;">순작업h</th>
+                        <th style="width:44px;">@L["Col.Active"]</th>
+                        <th style="width:56px;">@L["Col.Code"]</th>
+                        <th style="width:130px;">@L["Col.Start"]</th>
+                        <th style="width:130px;">@L["Col.End"]</th>
+                        <th style="width:90px;">@L["Col.BreakMin"]</th>
+                        <th style="width:80px;">@L["Col.NetWorkH"]</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -436,10 +436,10 @@
             @if (_confirmDelete)
             {
                 <div class="ames-delete-confirm">
-                    <span>@_selDate.Value.ToString("yyyy-MM-dd") 의 모든 교대 데이터를 삭제합니까?</span>
-                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
+                    <span>@string.Format(L["SYS.Calendar.Confirm.Delete"].Value, _selDate.Value.ToString("yyyy-MM-dd"))</span>
+                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
                     <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">
-                        @(_busy ? "삭제 중…" : "예, 삭제")
+                        @(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)
                     </button>
                 </div>
             }
@@ -448,11 +448,11 @@
             { <div class="ames-alert bad">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok" @onclick="SaveEdit" disabled="@_busy">
-                    @(_busy ? "저장 중…" : "수정")
+                <button class="ames-btn" @onclick="SaveEdit" disabled="@_busy">
+                    @(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)
                 </button>
-                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">삭제</button>
-                <button class="ames-btn" @onclick="CloseModal">취소</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -462,6 +462,8 @@
     // ── State ────────────────────────────────────────────────────────────
     List<AMES.Data.Repositories.SysRepository.CalendarRow> _rows = new();
     Dictionary<DateTime, List<AMES.Data.Repositories.SysRepository.CalendarRow>> _byDay = new();
+    int _page = 0;
+    const int _pageSize = 20;
     int _days, _work, _wknd, _hol;
 
     string   _view       = "list";
@@ -505,6 +507,7 @@
 
     void Reload()
     {
+        _page = 0;
         try { _rows = Sys.ListCalendarRange(_filterFrom, _filterTo); } catch { _rows = new(); }
         _byDay = _rows
             .Where(r => r.CalendarDate.HasValue)
@@ -565,7 +568,7 @@
     {
         shifts ??= new();
         _selDate         = date;
-        _selPlant        = shifts.FirstOrDefault()?.Plant ?? "";
+        _selPlant        = shifts.FirstOrDefault()?.PlantCode ?? "";
         _editDayType     = shifts.FirstOrDefault()?.DayType
                            ?? (date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday ? "WEEKEND" : "WORKDAY");
         _editHolidayName = shifts.FirstOrDefault()?.HolidayName ?? "";
@@ -597,7 +600,7 @@
     void Generate()
     {
         _modalErr = "";
-        if (_genFrom > _genTo) { _modalErr = "시작일이 종료일보다 늦습니다."; return; }
+        if (_genFrom > _genTo) { _modalErr = L["SYS.Calendar.Err.DateRange"].Value; return; }
         var active = _genShifts.Where(s => s.Active).ToList();
 
         var holidays = _genHolidays
@@ -646,7 +649,7 @@
                 }
             }
             CloseModal(); Reload();
-            ShowMsg($"{inserted}개 행 생성 완료.", false);
+            ShowMsg(string.Format(L["SYS.Calendar.Ok.Generated"].Value, inserted), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -685,7 +688,7 @@
                     _selDate.Value.Year, _selPlant, _actor);
             }
             CloseModal(); Reload();
-            ShowMsg($"{_selDate.Value:yyyy-MM-dd} 일정 수정 완료.", false);
+            ShowMsg(string.Format(L["SYS.Calendar.Ok.Edited"].Value, _selDate.Value.ToString("yyyy-MM-dd")), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -701,7 +704,7 @@
             Sys.DeleteCalendarDate(_selDate.Value);
             var d = _selDate.Value;
             CloseModal(); Reload();
-            ShowMsg($"{d:yyyy-MM-dd} 삭제 완료.", false);
+            ShowMsg(string.Format(L["SYS.Calendar.Ok.Deleted"].Value, d.ToString("yyyy-MM-dd")), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
         finally { _busy = false; }

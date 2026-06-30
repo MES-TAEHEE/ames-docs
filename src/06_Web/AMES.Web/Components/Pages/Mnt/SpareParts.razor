@@ -4,10 +4,10 @@
 @inject AMES.Data.Repositories.MntRepository Mnt
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MNT-08 @L["MNT.SpareParts.Title"] · AMES</PageTitle>
+<PageTitle>MNT-008 @L["MNT.SpareParts.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">MNT-08</div>
+    <div class="ames-page-id">MNT-008</div>
     <div class="ames-page-t">@L["MNT.SpareParts.Title"]</div>
     <div class="ames-page-sub">@L["MNT.SpareParts.Sub"]</div>
 </div>
@@ -47,14 +47,14 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>Part #</th><th>Name</th><th>Cat</th>
-                    <th class="num">On hand</th><th class="num">Safety</th>
-                    <th class="num">Reorder</th><th class="num">Lead d</th>
-                    <th>Loc</th><th>Supplier</th><th>Flag</th>
+                    <th>@L["Col.PartNo"]</th><th>@L["Col.Name"]</th><th>@L["Col.Cat"]</th>
+                    <th class="num">@L["Col.OnHand"]</th><th class="num">@L["Col.Safety"]</th>
+                    <th class="num">@L["Col.Reorder"]</th><th class="num">@L["Col.LeadDays"]</th>
+                    <th>@L["Col.Loc"]</th><th>@L["Col.Supplier"]</th><th>@L["Col.Flag"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var p in _parts)
+                @foreach (var p in _parts.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     var low = p.OnHand <= (p.ReorderPoint ?? 0);
                     <tr>
@@ -73,6 +73,7 @@
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_parts.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
@@ -83,10 +84,10 @@
             <input class="ames-input" style="width:120px;padding:4px 8px;"
                    placeholder="@L["MNT.SpareParts.Ph.TxnPart"]" @bind="_fTxnPart" autocomplete="off" />
             <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Recent"]</label>
-            <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_txnTopN">
-                <option value="50">50@L["Lbl.Items"]</option>
-                <option value="100">100@L["Lbl.Items"]</option>
-                <option value="200">200@L["Lbl.Items"]</option>
+            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_txnTopN">
+                <option value="50">50@(L["Lbl.Items"])</option>
+                <option value="100">100@(L["Lbl.Items"])</option>
+                <option value="200">200@(L["Lbl.Items"])</option>
             </select>
             <button class="ames-btn ok" @onclick="ReloadTxn">@L["Btn.Reload"]</button>
         </div>
@@ -101,13 +102,13 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>Txn #</th><th>Part</th><th>Type</th>
-                    <th class="num">Qty</th><th class="num">Balance</th>
-                    <th>Ref</th><th>When</th><th>Note</th>
+                    <th>@L["Col.TxnNo"]</th><th>@L["Col.Part"]</th><th>@L["Col.Type"]</th>
+                    <th class="num">@L["Col.Qty"]</th><th class="num">@L["Col.Balance"]</th>
+                    <th>@L["Col.Ref"]</th><th>@L["Col.When"]</th><th>@L["Col.Note"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var t in _txns)
+                @foreach (var t in _txns.Skip(_page2 * _pageSize2).Take(_pageSize2))
                 {
                     <tr>
                         <td class="code">@t.SparePartsTxnId</td>
@@ -122,6 +123,7 @@
                 }
             </tbody>
         </table>
+        <Pager Page="_page2" Total="_txns.Count" PageSize="_pageSize2" OnPageChange="p => _page2 = p" />
     }
 </div>
 
@@ -129,6 +131,10 @@
     List<AMES.Data.Repositories.MntRepository.SparePartRow>     _allParts = new();
     List<AMES.Data.Repositories.MntRepository.SparePartRow>     _parts    = new();
     List<AMES.Data.Repositories.MntRepository.SparePartsTxnRow> _txns     = new();
+    int _page = 0;
+    const int _pageSize = 20;
+    int _page2 = 0;
+    const int _pageSize2 = 20;
     int     _low;
     decimal _value;
     string  _fPart = "", _fCat = "", _fTxnPart = "";
@@ -146,6 +152,7 @@
 
     void ReloadTxn()
     {
+        _page2 = 0;
         try { _txns = Mnt.ListSparePartsTxn(_txnTopN, string.IsNullOrWhiteSpace(_fTxnPart) ? null : _fTxnPart); }
         catch { _txns = new(); }
         var priceLookup = _txns.GroupBy(t => t.PartNo ?? "")
@@ -155,6 +162,7 @@
 
     void ApplyFilter()
     {
+        _page = 0;
         _parts = _allParts;
         if (!string.IsNullOrWhiteSpace(_fPart))
             _parts = _parts.Where(p => p.PartNo.Contains(_fPart, StringComparison.OrdinalIgnoreCase) ||

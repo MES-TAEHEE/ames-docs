@@ -4,10 +4,10 @@
 @inject AMES.Data.Repositories.RptRepository Rpt
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>RPT-05 @L["RPT.Inventory.Title"] · AMES</PageTitle>
+<PageTitle>RPT-005 @L["RPT.Inventory.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">RPT-05</div>
+    <div class="ames-page-id">RPT-005</div>
     <div class="ames-page-t">@L["RPT.Inventory.Title"]</div>
     <div class="ames-page-sub">@L["RPT.Inventory.Sub"]</div>
 </div>
@@ -31,7 +31,7 @@
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:140px;padding:4px 8px;"
                    placeholder="@L["RPT.Inventory.Ph.Item"]" @bind="_fItem" autocomplete="off" />
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">Top</label>
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">Top</span>
             <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_topN">
                 <option value="50">50</option>
                 <option value="100">100</option>
@@ -57,7 +57,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     var hp = r.Qty > 0 ? r.HoldQty / r.Qty * 100m : 0m;
                     <tr>
@@ -81,12 +81,15 @@
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
 @code {
     List<AMES.Data.Repositories.RptRepository.InventoryRow> _allRows = new();
     List<AMES.Data.Repositories.RptRepository.InventoryRow> _rows    = new();
+    int _page = 0;
+    const int _pageSize = 20;
 
     int     _topN  = 100;
     string  _fItem = "";
@@ -102,6 +105,7 @@
 
     void ApplyFilter()
     {
+        _page = 0;
         _rows = string.IsNullOrWhiteSpace(_fItem)
             ? _allRows
             : _allRows.Where(r => (r.ItemNo ?? "").Contains(_fItem, StringComparison.OrdinalIgnoreCase)).ToList();

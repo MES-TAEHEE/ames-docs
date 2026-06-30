@@ -23,11 +23,11 @@
         <div class="ames-kpi-v">@_allRows.Count(r => r.ActiveFlag)</div>
     </div>
     <div class="ames-kpi warn">
-        <div class="ames-kpi-l">정비 필요</div>
+        <div class="ames-kpi-l">@L["Kpi.NeedMaint"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.RatedCycle.HasValue && r.CycleCount.HasValue && r.CycleCount >= r.RatedCycle)</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">평균 소진율</div>
+        <div class="ames-kpi-l">@L["Kpi.AvgUsage"]</div>
         @{
             var validPct = _allRows
                 .Where(r => r.RatedCycle is > 0 && r.CycleCount.HasValue)
@@ -45,24 +45,26 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MD.Jig.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.Jig.List"] · @_rows.Count @L["Lbl.Items"]@if (_rows.Count < _allRows.Count) { <text> / @L["Lbl.TotalOf"] @_allRows.Count</text> }</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:160px;padding:4px 8px;"
-                   placeholder="지그 ID / 명칭" @bind="_fSearch" autocomplete="off" />
+                   placeholder='@L["MD.Jig.Ph.Search"]' @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Health"]</span>
             <select class="ames-input" style="width:120px;padding:4px 8px;" @bind="_fHealth">
-                <option value="">건강상태 전체</option>
+                <option value="">@L["Filter.AllConditions"]</option>
                 @foreach (var h in _allRows.Select(r => r.HealthStatus).Where(x => x != null).Distinct().OrderBy(x => x))
                 {
                     <option value="@h">@h</option>
                 }
             </select>
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Active"]</span>
             <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fActive">
-                <option value="">전체</option>
-                <option value="Y">활성</option>
-                <option value="N">비활성</option>
+                <option value="">@L["Filter.All"]</option>
+                <option value="Y">@L["Lbl.Active"]</option>
+                <option value="N">@L["Lbl.Inactive"]</option>
             </select>
-            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
         </div>
     </div>
 
@@ -75,19 +77,19 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>지그 ID</th><th>명칭</th>
-                    <th style="text-align:right;">행거 수</th>
-                    <th style="text-align:right;">정격사이클</th>
-                    <th style="text-align:right;">현재사이클</th>
-                    <th style="text-align:center;">소진율</th>
-                    <th style="text-align:right;">읽기실패율(%)</th>
-                    <th>건강상태</th>
-                    <th>최근정비일</th>
-                    <th>활성</th>
+                    <th>@L["Col.JigId"]</th><th>@L["Col.Name"]</th>
+                    <th style="text-align:right;">@L["Col.HangerCount"]</th>
+                    <th style="text-align:right;">@L["Col.RatedCycle"]</th>
+                    <th style="text-align:right;">@L["Col.ShotsCurrent"]</th>
+                    <th style="text-align:center;">@L["Col.UsagePct"]</th>
+                    <th style="text-align:right;">@L["Col.ReadFailRate"]</th>
+                    <th>@L["Col.Health"]</th>
+                    <th>@L["Col.LastMaint"]</th>
+                    <th>@L["Col.Active"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     var pct = r.RatedCycle is > 0 && r.CycleCount.HasValue
                         ? (double)r.CycleCount.Value / r.RatedCycle.Value * 100
@@ -115,13 +117,14 @@
                         </td>
                         <td class="dim">@(r.LastServiceDate?.ToString("yyyy-MM-dd") ?? "—")</td>
                         <td>
-                            @if (r.ActiveFlag) { <span class="pill ok">활성</span> }
-                            else { <span class="pill bad">비활성</span> }
+                            @if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
+                            else { <span class="pill bad">@L["Lbl.Inactive"]</span> }
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
@@ -130,48 +133,48 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">신규 지그 등록</div>
+            <div class="ames-modal-h">@L["MD.Jig.Title"] — @L["Btn.Create"]</div>
 
-            <label>지그 ID * <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: JIG-PNT-01)</span></label>
-            <input class="ames-input" @bind="_f.JigID" placeholder="JIG-PNT-01" autocomplete="off" />
+            <label>@L["Col.JigId"] * <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: JIG-PNT-001)</span></label>
+            <input class="ames-input" @bind="_f.JigID" placeholder="JIG-PNT-001" autocomplete="off" />
 
-            <label>명칭 *</label>
-            <input class="ames-input" @bind="_f.JigName" placeholder="도장 지그 1호" autocomplete="off" />
+            <label>@L["Col.JigName"] *</label>
+            <input class="ames-input" @bind="_f.JigName" placeholder='@L["MD.Jig.Ph.JigName"]' autocomplete="off" />
 
-            <label>행거 수</label>
+            <label>@L["Col.HangerCount"]</label>
             <input class="ames-input" type="number" @bind="_f.HangerCount" placeholder="20" min="0" autocomplete="off" />
 
-            <label>정격 사이클</label>
+            <label>@L["Col.RatedCycle"]</label>
             <input class="ames-input" type="number" @bind="_f.RatedCycle" placeholder="10000" min="0" autocomplete="off" />
 
-            <label>현재 사이클</label>
+            <label>@L["Col.CycleCount"]</label>
             <input class="ames-input" type="number" @bind="_f.CycleCount" placeholder="0" min="0" autocomplete="off" />
 
-            <label>읽기 실패율 (%)</label>
+            <label>@L["Col.ReadFailRate"]</label>
             <input class="ames-input" type="number" step="0.01" @bind="_f.ReadFailRate" placeholder="0.00" min="0" max="100" autocomplete="off" />
 
-            <label>건강 상태</label>
+            <label>@L["Col.Health"]</label>
             <select class="ames-input" @bind="_f.HealthStatus">
-                <option value="">선택 안 함</option>
+                <option value="">@L["Opt.None"]</option>
                 <option value="OK">OK</option>
                 <option value="WARN">WARN</option>
                 <option value="FAIL">FAIL</option>
             </select>
 
-            <label>최근 정비일</label>
+            <label>@L["Col.LastService"]</label>
             <input class="ames-input" type="date" @bind="_f.LastServiceDate" autocomplete="off" />
 
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                 <input type="checkbox" @bind="_f.ActiveFlag" />
-                <span>활성</span>
+                <span>@L["Lbl.Active"]</span>
             </label>
 
             @if (!string.IsNullOrEmpty(_modalErr))
             { <div class="ames-alert bad">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
-                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? @L["Msg.Saving"] : @L["Btn.Create"])</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -182,45 +185,45 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">지그 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.JigID</span></div>
+            <div class="ames-modal-h">@L["MD.Jig.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.JigID</span></div>
 
-            <label>명칭 *</label>
+            <label>@L["Col.JigName"] *</label>
             <input class="ames-input" @bind="_f.JigName" autocomplete="off" />
 
-            <label>행거 수</label>
+            <label>@L["Col.HangerCount"]</label>
             <input class="ames-input" type="number" @bind="_f.HangerCount" min="0" autocomplete="off" />
 
-            <label>정격 사이클</label>
+            <label>@L["Col.RatedCycle"]</label>
             <input class="ames-input" type="number" @bind="_f.RatedCycle" min="0" autocomplete="off" />
 
-            <label>현재 사이클</label>
+            <label>@L["Col.CycleCount"]</label>
             <input class="ames-input" type="number" @bind="_f.CycleCount" min="0" autocomplete="off" />
 
-            <label>읽기 실패율 (%)</label>
+            <label>@L["Col.ReadFailRate"]</label>
             <input class="ames-input" type="number" step="0.01" @bind="_f.ReadFailRate" min="0" max="100" autocomplete="off" />
 
-            <label>건강 상태</label>
+            <label>@L["Col.Health"]</label>
             <select class="ames-input" @bind="_f.HealthStatus">
-                <option value="">선택 안 함</option>
+                <option value="">@L["Opt.None"]</option>
                 <option value="OK">OK</option>
                 <option value="WARN">WARN</option>
                 <option value="FAIL">FAIL</option>
             </select>
 
-            <label>최근 정비일</label>
+            <label>@L["Col.LastService"]</label>
             <input class="ames-input" type="date" @bind="_f.LastServiceDate" autocomplete="off" />
 
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                 <input type="checkbox" @bind="_f.ActiveFlag" />
-                <span>활성</span>
+                <span>@L["Lbl.Active"]</span>
             </label>
 
             @if (_confirmDelete)
             {
                 <div class="ames-delete-confirm">
-                    <span>정말 삭제하시겠습니까?</span>
-                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
-                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? "삭제 중…" : "예, 삭제")</button>
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? @L["Msg.Deleting"] : @L["Msg.Yes"])</button>
                 </div>
             }
 
@@ -228,9 +231,9 @@
             { <div class="ames-alert bad">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? @L["Msg.Saving"] : @L["Btn.Edit"])</button>
                 <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn"     @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ghost"     @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -240,6 +243,9 @@
     List<AMES.Data.Repositories.MasterDataRepository.JigRow> _allRows = new();
     List<AMES.Data.Repositories.MasterDataRepository.JigRow> _rows    = new();
     AMES.Data.Repositories.MasterDataRepository.JigRow? _sel;
+
+    int _page = 0;
+    const int _pageSize = 20;
 
     string _fSearch = "", _fHealth = "", _fActive = "";
 
@@ -259,13 +265,13 @@
 
     void Reload() { _allRows = Md.ListJigs(); ApplyFilter(); }
 
-    void ApplyFilter() => _rows = _allRows.Where(r =>
+    void ApplyFilter() { _page = 0; _rows = _allRows.Where(r =>
         (string.IsNullOrEmpty(_fSearch) ||
             r.JigID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.JigName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fHealth) || r.HealthStatus == _fHealth) &&
         (string.IsNullOrEmpty(_fActive) || (_fActive == "Y" ? r.ActiveFlag : !r.ActiveFlag))
-    ).ToList();
+    ).ToList(); }
 
     void OpenCreate() { _f = new() { ActiveFlag = true }; _modalErr = ""; _confirmDelete = false; _modal = "create"; }
 
@@ -297,9 +303,9 @@
     void SaveCreate()
     {
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_f.JigID))   { _modalErr = "지그 ID를 입력하세요."; return; }
-        if (string.IsNullOrWhiteSpace(_f.JigName))  { _modalErr = "명칭을 입력하세요."; return; }
-        if (Md.JigExists(_f.JigID.Trim()))           { _modalErr = $"지그 ID '{_f.JigID.Trim()}' 이 이미 존재합니다."; return; }
+        if (string.IsNullOrWhiteSpace(_f.JigID))   { _modalErr = L["Err.JigIdRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.JigName))  { _modalErr = L["Err.NameRequired"]; return; }
+        if (Md.JigExists(_f.JigID.Trim()))           { _modalErr = $"지그 ID '{_f.JigID.Trim()}' 이 {L["Err.AlreadyExists"]}"; return; }
         _busy = true;
         try
         {
@@ -307,7 +313,7 @@
                 _f.RatedCycle, _f.CycleCount, _f.ReadFailRate,
                 NE(_f.HealthStatus), _f.LastServiceDate, _f.ActiveFlag, _actor);
             CloseModal(); Reload();
-            ShowMsg($"{_f.JigName} 등록 완료.", false);
+            ShowMsg($"{_f.JigName} {L["Msg.Created"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -317,7 +323,7 @@
     {
         if (_sel is null) return;
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_f.JigName)) { _modalErr = "명칭을 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.JigName)) { _modalErr = L["Err.NameRequired"]; return; }
         _busy = true;
         try
         {
@@ -326,7 +332,7 @@
                 NE(_f.HealthStatus), _f.LastServiceDate, _f.ActiveFlag, _actor);
             var name = _f.JigName;
             CloseModal(); Reload();
-            ShowMsg($"{name} 수정 완료.", false);
+            ShowMsg($"{name} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -341,7 +347,7 @@
             var name = _sel.JigName ?? _sel.JigID;
             Md.DeleteJig(_sel.JigID);
             CloseModal(); Reload();
-            ShowMsg($"{name} 삭제 완료.", false);
+            ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
         finally { _busy = false; }

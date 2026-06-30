@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.0" />
@@ -19,5 +20,15 @@
     <ProjectReference Include="..\..\01_Shared\AMES.Contracts\AMES.Contracts.csproj" />
     <ProjectReference Include="..\..\02_Data\AMES.Data\AMES.Data.csproj" />
   </ItemGroup>
+
+
+  <Target Name="DeployToIIS" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+    <!-- app_offline.htm 생성 → ASP.NET Core 앱 종료 + 파일 잠금 해제 -->
+    <WriteLinesToFile File="E:\DEV\publish\ames-web\app_offline.htm" Lines="배포 중..." Overwrite="true" />
+    <Exec Command="powershell -Command &quot;Start-Sleep -Seconds 2&quot;" />
+    <Exec Command="dotnet publish &quot;$(MSBuildProjectFullPath)&quot; -c Debug -o &quot;E:\DEV\publish\ames-web&quot; --no-build" />
+    <!-- app_offline.htm 삭제 → 앱 재시작 -->
+    <Delete Files="E:\DEV\publish\ames-web\app_offline.htm" />
+  </Target>
 
 </Project>

@@ -1,19 +1,81 @@
-﻿@page "/pp/work-order"
+@page "/pp/work-order"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@rendermode InteractiveServer
 @inject AMES.Data.Repositories.WorkOrderRepository Wos
+@inject AMES.Data.Repositories.MasterDataRepository Md
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["PP.WorkOrder.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">PP-04</div>
+    <div class="ames-page-id">PP-004</div>
     <div class="ames-page-t">@L["PP.WorkOrder.Title"]</div>
-    <div class="ames-page-sub">@L["PP.WorkOrder.Sub"]</div>
+    <div class="ames-page-sub">Draft → Released → In Progress → Closed · Routing A/B · D-Day · Phase-0 Gate (BR-PP-001)</div>
 </div>
 
+@* ── KPI strip ─────────────────────────────────────────────────────────── *@
+<div class="ames-kpis">
+    <div class="ames-kpi dim">
+        <div class="ames-kpi-l">DRAFT</div>
+        <div class="ames-kpi-v">@_rows.Count(r => r.Status == "Draft")</div>
+        <div class="ames-kpi-s">@L["PP.WorkOrder.Kpi.Unshipped"]</div>
+    </div>
+    <div class="ames-kpi info">
+        <div class="ames-kpi-l">RELEASED</div>
+        <div class="ames-kpi-v">@_rows.Count(r => r.Status == "Released")</div>
+        <div class="ames-kpi-s">@L["PP.WorkOrder.Kpi.Waiting"]</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">IN PROGRESS</div>
+        <div class="ames-kpi-v">@_rows.Count(r => r.Status == "In Progress")</div>
+        <div class="ames-kpi-s">@L["PP.WorkOrder.Kpi.InProgress"]</div>
+    </div>
+    <div class="ames-kpi dim">
+        <div class="ames-kpi-l">CLOSED</div>
+        <div class="ames-kpi-v">@_rows.Count(r => r.Status == "Closed")</div>
+        <div class="ames-kpi-s">@string.Format(L["PP.WorkOrder.Kpi.ClosedN"].Value, _recentDays)</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
+@* ── card: header(filter) + grid ──────────────────────────────────────── *@
 <div class="ames-card">
-    <div class="ames-card-h">▼ @L["PP.WorkOrder.List"] (@_rows.Count)</div>
-    @if (_rows.Count == 0)
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ @L["PP.WorkOrder.List"] · @_filtered.Count @L["Lbl.Items"]@(_filtered.Count < _rows.Count ? $" / {L["Lbl.TotalOf"]} {_rows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <select class="ames-input" style="width:140px;padding:4px 8px;" @bind="_filterLine">
+                <option value="">@L["Filter.AllLines"]</option>
+                @foreach (var l in _lineList)
+                {
+                    <option value="@l.LineID">@l.LineID@(l.LineName != null ? $" {l.LineName}" : "")</option>
+                }
+            </select>
+            <select class="ames-input" style="width:130px;padding:4px 8px;" @bind="_filterStatus">
+                <option value="">@L["PP.WorkOrder.Filter.AllStatus"]</option>
+                <option value="Draft">Draft</option>
+                <option value="Released">Released</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Closed">Closed</option>
+            </select>
+            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_recentDays" @bind:after="Reload">
+                <option value="7">@L["PP.WorkOrder.Filter.Closed7"]</option>
+                <option value="30">@L["PP.WorkOrder.Filter.Closed30"]</option>
+                <option value="60">@L["PP.WorkOrder.Filter.Closed60"]</option>
+                <option value="90">@L["PP.WorkOrder.Filter.Closed90"]</option>
+            </select>
+            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Search"]</button>
+        </div>
+    </div>
+
+    @if (_err is not null)
+    {
+        <div class="ames-empty bad">@_err</div>
+    }
+    else if (_filtered.Count == 0)
     {
         <div class="ames-empty">@L["PP.WorkOrder.Empty"]</div>
     }
@@ -22,40 +84,107 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>WO No</th><th>Item</th><th>Line</th>
-                    <th class="num">Order</th><th class="num">Done</th><th class="num">%</th>
-                    <th>Due</th><th>Status</th>
+                    <th style="width:120px;">@L["Col.WoNo"]</th>
+                    <th>@L["Col.Item"]</th>
+                    <th style="width:130px;">@L["Col.Line"]</th>
+                    <th style="width:50px;text-align:center;">Route</th>
+                    <th style="width:70px;text-align:right;">@L["Col.Order"]</th>
+                    <th style="width:70px;text-align:right;">@L["Col.Done"]</th>
+                    <th style="width:140px;">@L["Col.Progress"]</th>
+                    <th style="width:70px;text-align:center;">D-Day</th>
+                    <th style="width:90px;">@L["Col.Status"]</th>
+                    <th style="width:40px;text-align:center;" title="@L["PP.Wo.P0Title"]">P0</th>
+                    <th style="width:80px;">SAP B1</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var w in _rows)
+                @foreach (var w in _filtered.Skip(_page * _pageSize).Take(_pageSize))
                 {
-                    <tr>
+                    var pct   = (int)Math.Clamp(w.ProgressPct, 0, 100);
+                    var dday  = w.DaysToDue;
+                    var ddCls = dday is null ? "dim"
+                              : dday < 0    ? "bad"
+                              : dday <= 3   ? "warn"
+                                            : "ok";
+                    var ddTxt = dday is null ? "—"
+                              : dday < 0    ? $"D+{-dday}"
+                              : dday == 0   ? "D-Day"
+                                           : $"D-{dday}";
+                    var stCls = w.Status switch {
+                        "In Progress" => "ok",
+                        "Released"    => "info",
+                        _             => "dim"
+                    };
+                    <tr class="ames-row-link" @onclick="() => { }">
                         <td class="code">@w.WoNumber</td>
-                        <td>@(w.ItemNameEn ?? w.ItemName ?? w.ItemNo)</td>
-                        <td>@w.LineId</td>
-                        <td class="num">@w.OrderQty.ToString("0")</td>
-                        <td class="num">@w.CompletedQty.ToString("0")</td>
-                        <td class="num">@((int)Math.Clamp(w.ProgressPct, 0, 100))</td>
-                        <td class="dim">@(w.DueDate?.ToString("yyyy-MM-dd") ?? "—")</td>
-                        <td>@w.Status</td>
+                        <td title="@w.ItemNo">@(w.ItemNameEn ?? w.ItemName)</td>
+                        <td class="code dim">@w.LineId</td>
+                        <td style="text-align:center;">
+                            @if (w.RoutingType == "A")
+                            { <span class="pill info" title="@L["PP.WorkOrder.Ttl.IMG"]">A</span> }
+                            else if (w.RoutingType == "B")
+                            { <span class="pill warn" title="@L["PP.WorkOrder.Ttl.PNT"]">B</span> }
+                        </td>
+                        <td style="text-align:right;">@w.OrderQty.ToString("N0")</td>
+                        <td style="text-align:right;">@w.CompletedQty.ToString("N0")</td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <div style="flex:1;height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden;">
+                                    <div style="width:@(pct)%;height:8px;border-radius:4px;background:@(pct>=100?"#22c55e":"#3b82f6");transition:width .3s;"></div>
+                                </div>
+                                <span class="dim" style="font-size:11px;white-space:nowrap;min-width:28px;">@(pct)%</span>
+                            </div>
+                        </td>
+                        <td style="text-align:center;"><span class="pill @ddCls">@ddTxt</span></td>
+                        <td><span class="pill @stCls">@w.Status</span></td>
+                        <td style="text-align:center;">
+                            @if (!w.Phase0Complete && w.Status == "Draft")
+                            { <span class="pill bad" title="@L["PP.WorkOrder.Ttl.Phase0Fail"]">🚧</span> }
+                            else
+                            { <span class="pill ok" title="@L["PP.WorkOrder.Ttl.Phase0Pass"]">✓</span> }
+                        </td>
+                        <td class="dim" style="font-size:11px;">@(w.SapRef ?? "—")</td>
                     </tr>
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_filtered.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
 @code {
-    List<AMES.Contracts.Dto.WorkOrderDto> _rows = new();
+    List<AMES.Contracts.Dto.WorkOrderDto> _rows     = [];
+    List<AMES.Contracts.Dto.WorkOrderDto> _filtered = [];
+    int _page = 0;
+    const int _pageSize = 20;
+    List<AMES.Data.Repositories.MasterDataRepository.LineRow> _lineList = [];
+    string  _filterLine   = "";
+    string  _filterStatus = "";
+    int     _recentDays   = 30;
+    string? _err;
+    string  _msg  = "";
+    bool    _isErr;
+
     protected override void OnInitialized()
     {
-        try
-        {
-            // Pull all lines we currently care about.
-            var lines = new[] { "LINE-INJ-01", "LINE-INJ-02", "LINE-IMG-01", "LINE-PNT-01" };
-            _rows = lines.SelectMany(l => Wos.ListForLine(l)).OrderBy(w => w.WoNumber).ToList();
-        }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[PP-04] {ex.Message}"); }
+        try { _lineList = Md.ListLines(); } catch { }
+        Reload();
+    }
+
+    void Reload()
+    {
+        _err = null;
+        try   { _rows = Wos.ListAll(_recentDays); }
+        catch (Exception ex) { _err = string.Format(L["Err.LoadFailed"].Value, ex.Message); _rows = []; }
+        ApplyFilter();
+    }
+
+    void ApplyFilter()
+    {
+        _page = 0;
+        _filtered = _rows
+            .Where(r => string.IsNullOrEmpty(_filterLine) || r.LineId == _filterLine)
+            .Where(r => string.IsNullOrWhiteSpace(_filterStatus) || r.Status == _filterStatus)
+            .ToList();
     }
 }

@@ -1,4 +1,5 @@
-@page "/sys/health"
+﻿@page "/sys/health"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
 @inject IStringLocalizer<SharedResources> L
@@ -13,28 +14,28 @@
 
 <div class="ames-kpis">
     <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Health.Kpi.Users"]</div>
-        <div class="ames-kpi-v">@_k.Users</div><div class="ames-kpi-s">계정</div></div>
+        <div class="ames-kpi-v">@_k.Users</div><div class="ames-kpi-s">@L["SYS.Health.Kpi.UsersSub"]</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Health.Kpi.Roles"]</div>
-        <div class="ames-kpi-v">@_k.Roles</div><div class="ames-kpi-s">RBAC</div></div>
+        <div class="ames-kpi-v">@_k.Roles</div><div class="ames-kpi-s">@L["SYS.Health.Kpi.RolesSub"]</div></div>
     <div class="ames-kpi ok"><div class="ames-kpi-l">@L["SYS.Health.Kpi.IfOk"]</div>
-        <div class="ames-kpi-v">@_k.InterfacesOk</div><div class="ames-kpi-s">연결 OK</div></div>
+        <div class="ames-kpi-v">@_k.InterfacesOk</div><div class="ames-kpi-s">@L["SYS.Health.Kpi.IfOkSub"]</div></div>
     <div class="ames-kpi @(_k.InterfacesDown == 0 ? "ok" : "bad")">
         <div class="ames-kpi-l">@L["SYS.Health.Kpi.IfDown"]</div>
         <div class="ames-kpi-v">@_k.InterfacesDown</div>
-        <div class="ames-kpi-s">연결 불가</div></div>
+        <div class="ames-kpi-s">@L["SYS.Health.Kpi.IfDownSub"]</div></div>
 </div>
 
 <div class="ames-kpis">
     <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Health.Kpi.Audit"]</div>
-        <div class="ames-kpi-v">@_k.AuditLast24h</div><div class="ames-kpi-s">이벤트 기록</div></div>
+        <div class="ames-kpi-v">@_k.AuditLast24h</div><div class="ames-kpi-s">@L["SYS.Health.Kpi.AuditSub"]</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Health.Kpi.Notif"]</div>
-        <div class="ames-kpi-v">@_k.NotifLast24h</div><div class="ames-kpi-s">알림 발송</div></div>
+        <div class="ames-kpi-v">@_k.NotifLast24h</div><div class="ames-kpi-s">@L["SYS.Health.Kpi.NotifSub"]</div></div>
     <div class="ames-kpi @(_k.NotifFailedLast24h == 0 ? "ok" : "bad")">
         <div class="ames-kpi-l">@L["SYS.Health.Kpi.NotifFail"]</div>
         <div class="ames-kpi-v">@_k.NotifFailedLast24h</div>
-        <div class="ames-kpi-s">발송 오류 24H</div></div>
+        <div class="ames-kpi-s">@L["SYS.Health.Kpi.NotifFailSub"]</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Health.Kpi.Config"]</div>
-        <div class="ames-kpi-v">@_k.ConfigKeys</div><div class="ames-kpi-s">활성 키</div></div>
+        <div class="ames-kpi-v">@_k.ConfigKeys</div><div class="ames-kpi-s">@L["SYS.Health.Kpi.ConfigSub"]</div></div>
 </div>
 
 <div class="ames-card">
@@ -48,51 +49,61 @@
         </div>
     </div>
     <div style="color:rgba(255,255,255,.5);font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.5px;">
-        SOURCE: sys.partitions(index_id IN (0,1)) JOIN sys.tables — 통계 기반 추정치
+        @L["SYS.Health.Db.Source"]
     </div>
 </div>
 
 <div class="ames-tiles">
-    <a class="ames-tile sys" href="sys/users">
+    <a class="ames-tile sys" href="/sys/users">
         <div class="ames-tile-ic">👤</div>
         <div class="ames-tile-h">@L["SYS.Health.Tile.Users"]</div>
-        <div class="ames-tile-sub">@_k.Users 계정</div>
+        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.UsersSub"].Value, _k.Users)</div>
     </a>
-    <a class="ames-tile sys" href="sys/rbac">
+    <a class="ames-tile sys" href="/sys/roles">
+        <div class="ames-tile-ic">🎭</div>
+        <div class="ames-tile-h">@L["SYS.Health.Tile.Roles"]</div>
+        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.RolesSub"].Value, _k.Roles)</div>
+    </a>
+    <a class="ames-tile sys" href="/sys/screen">
+        <div class="ames-tile-ic">🖥️</div>
+        <div class="ames-tile-h">@L["SYS.Health.Tile.Screen"]</div>
+        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.ScreenSub"].Value, _k.Screens)</div>
+    </a>
+    <a class="ames-tile sys" href="/sys/rbac">
         <div class="ames-tile-ic">🛡️</div>
         <div class="ames-tile-h">@L["SYS.Health.Tile.Rbac"]</div>
-        <div class="ames-tile-sub">역할 @(_k.Roles)개</div>
+        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.RbacSub"].Value, _k.Permissions)</div>
     </a>
-    <a class="ames-tile sys" href="sys/interfaces">
-        <div class="ames-tile-ic">🔌</div>
-        <div class="ames-tile-h">@L["SYS.Health.Tile.Interfaces"]</div>
-        <div class="ames-tile-sub">@_k.InterfacesOk 정상 · @_k.InterfacesDown 오류</div>
-    </a>
-    <a class="ames-tile sys" href="sys/audit">
-        <div class="ames-tile-ic">📜</div>
-        <div class="ames-tile-h">@L["SYS.Health.Tile.Audit"]</div>
-        <div class="ames-tile-sub">최근 24H @(_k.AuditLast24h)건</div>
-    </a>
-    <a class="ames-tile sys" href="sys/notifications">
-        <div class="ames-tile-ic">🔔</div>
-        <div class="ames-tile-h">@L["SYS.Health.Tile.Notif"]</div>
-        <div class="ames-tile-sub">발송 @_k.NotifLast24h · 실패 @_k.NotifFailedLast24h</div>
-    </a>
-    <a class="ames-tile sys" href="sys/config">
-        <div class="ames-tile-ic">⚙</div>
-        <div class="ames-tile-h">@L["SYS.Health.Tile.Config"]</div>
-        <div class="ames-tile-sub">활성 키 @(_k.ConfigKeys)개</div>
-    </a>
-    <a class="ames-tile sys" href="sys/calendar">
+    <a class="ames-tile sys" href="/sys/calendar">
         <div class="ames-tile-ic">📅</div>
         <div class="ames-tile-h">@L["SYS.Health.Tile.Calendar"]</div>
-        <div class="ames-tile-sub">교대 인스턴스</div>
+        <div class="ames-tile-sub">@L["SYS.Health.Tile.CalendarSub"]</div>
+    </a>
+    <a class="ames-tile sys" href="/sys/interfaces">
+        <div class="ames-tile-ic">🔌</div>
+        <div class="ames-tile-h">@L["SYS.Health.Tile.Interfaces"]</div>
+        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.InterfacesSub"].Value, _k.InterfacesOk, _k.InterfacesDown)</div>
+    </a>
+    <a class="ames-tile sys" href="/sys/audit">
+        <div class="ames-tile-ic">📜</div>
+        <div class="ames-tile-h">@L["SYS.Health.Tile.Audit"]</div>
+        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.AuditSub"].Value, _k.AuditLast24h)</div>
+    </a>
+    <a class="ames-tile sys" href="/sys/notifications">
+        <div class="ames-tile-ic">🔔</div>
+        <div class="ames-tile-h">@L["SYS.Health.Tile.Notif"]</div>
+        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.NotifSub"].Value, _k.NotifLast24h, _k.NotifFailedLast24h)</div>
+    </a>
+    <a class="ames-tile sys" href="/sys/config">
+        <div class="ames-tile-ic">⚙</div>
+        <div class="ames-tile-h">@L["SYS.Health.Tile.Config"]</div>
+        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.ConfigSub"].Value, _k.ConfigKeys)</div>
     </a>
 </div>
 
 @code {
     AMES.Data.Repositories.SysRepository.HealthKpi _k =
-        new(0, 0, 0, 0, 0, 0, 0, 0, 0L);
+        new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0L);
     protected override void OnInitialized()
     {
         try { _k = Sys.GetHealth(); } catch { }

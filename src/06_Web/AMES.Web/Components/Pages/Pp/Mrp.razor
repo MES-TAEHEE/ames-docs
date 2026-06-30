@@ -1,4 +1,5 @@
 ﻿@page "/pp/mrp"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
 @inject IStringLocalizer<SharedResources> L
@@ -6,7 +7,7 @@
 <PageTitle>@L["PP.Mrp.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">PP-05</div>
+    <div class="ames-page-id">PP-005</div>
     <div class="ames-page-t">@L["PP.Mrp.Title"]</div>
     <div class="ames-page-sub">@L["PP.Mrp.Sub"]</div>
 </div>
@@ -25,9 +26,9 @@
     else
     {
         <table class="ames-table">
-            <thead><tr><th>Run #</th><th>Run At</th><th>Horizon</th><th class="num">WOs</th><th class="num">PRs</th><th class="num">Shortages</th><th class="num">Duration</th><th>Status</th></tr></thead>
+            <thead><tr><th>@L["Col.RunNo"]</th><th>@L["Col.RunAt"]</th><th>@L["Col.Horizon"]</th><th class="num">@L["Col.WOs"]</th><th class="num">@L["Col.PRs"]</th><th class="num">@L["Col.Shortages"]</th><th class="num">@L["Col.Duration"]</th><th>@L["Col.Status"]</th></tr></thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     <tr>
                         <td class="code">@r.MrpRunId</td>
@@ -42,10 +43,13 @@
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
 @code {
     List<AMES.Data.Repositories.PpRepository.MrpRunRow> _rows = new();
+    int _page = 0;
+    const int _pageSize = 20;
     protected override void OnInitialized() { try { _rows = Pp.ListMrpRuns(); } catch { } }
 }

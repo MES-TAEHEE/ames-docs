@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AuthenticationStateProvider Auth
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["MD.RalColor.Title"] · AMES</PageTitle>
@@ -22,27 +23,34 @@
         <div class="ames-kpi-v">@_allRows.Count(r => r.ActiveFlag)</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">분말 로트 등록</div>
+        <div class="ames-kpi-l">@L["MD.RalColor.Kpi.PowderLots"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.CurrentPowderLot != null)</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">평균 경화온도</div>
+        <div class="ames-kpi-l">@L["MD.RalColor.Kpi.AvgCureTemp"]</div>
         <div class="ames-kpi-v">@((_allRows.Where(r => r.CureTemp.HasValue).Select(r => r.CureTemp!.Value) is var temps && temps.Any()) ? $"{temps.Average():0}°C" : "—")</div>
     </div>
 </div>
 
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MD.RalColor.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.RalColor.List"] · @_rows.Count @L["Lbl.Items"]@if (_rows.Count < _allRows.Count) { <text> / @L["Lbl.TotalOf"] @_allRows.Count</text> }</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:140px;padding:4px 8px;"
-                   placeholder="RAL코드 / 색상명" @bind="_fSearch" autocomplete="off" />
+                   placeholder='@L["MD.RalColor.Ph.Search"]' @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Active"]</span>
             <select class="ames-input" style="width:90px;padding:4px 8px;" @bind="_fActive">
-                <option value="">전체</option>
-                <option value="Y">활성</option>
-                <option value="N">비활성</option>
+                <option value="">@L["Filter.All"]</option>
+                <option value="Y">@L["Lbl.Active"]</option>
+                <option value="N">@L["Lbl.Inactive"]</option>
             </select>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
         </div>
     </div>
 
@@ -55,19 +63,25 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>RAL 코드</th><th>색상명</th><th>HEX</th><th>현재 분말 로트</th>
-                    <th class="num">경화 온도(°C)</th><th class="num">경화 시간(s)</th>
-                    <th class="num">정전압(V)</th><th class="num">입자(μm)</th><th>@L["Col.Status"]</th>
+                    <th>@L["Col.RalCode"]</th><th>@L["Col.ColorName"]</th><th>@L["Col.Hex"]</th><th>@L["Col.CurrentLot"]</th>
+                    <th class="num">@L["Col.CureTemp"]</th><th class="num">@L["Col.CureTime"]</th>
+                    <th class="num">@L["Col.Voltage"]</th><th class="num">@L["Col.ParticleSize"]</th><th>@L["Col.Status"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
-                    <tr>
+                    var _hex = ValidHex(r.HexValue);
+                    var _fg  = _hex != null ? TextColorFor(_hex) : null;
+                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
                         <td class="code">@r.RALCode</td>
-                        <td>@(r.ColorName ?? "—")</td>
-                        <td>
-                            @if (r.HexValue != null)
+                        <td style="@(_hex != null ? $"background:{_hex};color:{_fg};font-weight:500;" : "")">@(r.ColorName ?? "—")</td>
+                        <td style="@(_hex != null ? $"background:{_hex};color:{_fg};" : "")">
+                            @if (_hex != null)
+                            {
+                                <span>@_hex</span>
+                            }
+                            else if (r.HexValue != null)
                             {
                                 <span style="display:inline-flex;align-items:center;gap:5px;">
                                     <span style="width:14px;height:14px;border-radius:3px;background:@r.HexValue;border:1px solid #cbd5e1;display:inline-block;"></span>
@@ -81,20 +95,134 @@
                         <td class="num">@(r.CureDuration?.ToString() ?? "—")</td>
                         <td class="num">@(r.ElectroV?.ToString() ?? "—")</td>
                         <td class="num">@(r.ParticleUm?.ToString("0.0") ?? "—")</td>
-                        <td>@(r.ActiveFlag ? (MarkupString)"<span class=\"pill ok\">활성</span>" : (MarkupString)"<span class=\"pill bad\">비활성</span>")</td>
+                        <td>@if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> } else { <span class="pill bad">@L["Lbl.Inactive"]</span> }</td>
                     </tr>
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
+
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.RalColor.Title"] — @L["Btn.Create"]</div>
+
+            <label>@L["Col.RalCode"]</label>
+            <input class="ames-input" @bind="_f.RALCode" placeholder="RAL1000" autocomplete="off" />
+
+            <label>@L["Col.ColorName"]</label>
+            <input class="ames-input" @bind="_f.ColorName" placeholder="Green Beige" autocomplete="off" />
+
+            <label>@L["Col.Hex"]</label>
+            <input class="ames-input" @bind="_f.HexValue" placeholder="#CDBA88" autocomplete="off" />
+
+            <label>@L["Col.CurrentLot"]</label>
+            <input class="ames-input" @bind="_f.CurrentPowderLot" placeholder="LOT-2024-001" autocomplete="off" />
+
+            <label>@L["Col.CureTemp"] (°C)</label>
+            <input class="ames-input" type="number" @bind="_f.CureTemp" placeholder="180" autocomplete="off" />
+
+            <label>@L["Col.CureTime"] (분)</label>
+            <input class="ames-input" type="number" @bind="_f.CureDuration" placeholder="20" autocomplete="off" />
+
+            <label>@L["Col.Voltage"] (V)</label>
+            <input class="ames-input" type="number" @bind="_f.ElectroV" placeholder="70" autocomplete="off" />
+
+            <label>@L["Col.ParticleSize"] (μm)</label>
+            <input class="ames-input" type="number" @bind="_f.ParticleUm" placeholder="60.0" step="0.1" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.ActiveFlag" />
+                <span>@L["Lbl.Active"]</span>
+            </label>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.RalColor.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.RALCode</span></div>
+
+            <label>@L["Col.ColorName"]</label>
+            <input class="ames-input" @bind="_f.ColorName" autocomplete="off" />
+
+            <label>@L["Col.Hex"]</label>
+            <input class="ames-input" @bind="_f.HexValue" autocomplete="off" />
+
+            <label>@L["Col.CurrentLot"]</label>
+            <input class="ames-input" @bind="_f.CurrentPowderLot" autocomplete="off" />
+
+            <label>@L["Col.CureTemp"] (°C)</label>
+            <input class="ames-input" type="number" @bind="_f.CureTemp" autocomplete="off" />
+
+            <label>@L["Col.CureTime"] (분)</label>
+            <input class="ames-input" type="number" @bind="_f.CureDuration" autocomplete="off" />
+
+            <label>@L["Col.Voltage"] (V)</label>
+            <input class="ames-input" type="number" @bind="_f.ElectroV" autocomplete="off" />
+
+            <label>@L["Col.ParticleSize"] (μm)</label>
+            <input class="ames-input" type="number" @bind="_f.ParticleUm" step="0.1" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.ActiveFlag" />
+                <span>@L["Lbl.Active"]</span>
+            </label>
+
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)</button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn" @onclick="SaveEdit" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     List<AMES.Data.Repositories.MasterDataRepository.RalColorRow> _allRows = new();
     List<AMES.Data.Repositories.MasterDataRepository.RalColorRow> _rows    = new();
+    AMES.Data.Repositories.MasterDataRepository.RalColorRow? _sel;
+    int _page = 0;
+    const int _pageSize = 20;
     string _fSearch = "", _fActive = "";
+    string _modal = "";
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _msg = "", _modalErr = "";
+    bool _isErr;
+    string _actor = "system";
+    FormModel _f = new();
 
-    protected override void OnInitialized() => Reload();
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        Reload();
+    }
 
     void Reload()
     {
@@ -104,6 +232,7 @@
 
     void ApplyFilter()
     {
+        _page = 0;
         _rows = _allRows;
         if (!string.IsNullOrWhiteSpace(_fSearch))
             _rows = _rows.Where(r =>
@@ -111,5 +240,118 @@
                 (r.ColorName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)).ToList();
         if (_fActive == "Y") _rows = _rows.Where(r => r.ActiveFlag).ToList();
         if (_fActive == "N") _rows = _rows.Where(r => !r.ActiveFlag).ToList();
+    }
+
+    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+
+    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.RalColorRow r)
+    {
+        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _f = new()
+        {
+            ColorName        = r.ColorName        ?? "",
+            HexValue         = r.HexValue         ?? "",
+            CurrentPowderLot = r.CurrentPowderLot ?? "",
+            CureTemp         = r.CureTemp,
+            CureDuration     = r.CureDuration,
+            ElectroV         = r.ElectroV,
+            ParticleUm       = r.ParticleUm,
+            ActiveFlag       = r.ActiveFlag,
+        };
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    static string? ValidHex(string? hex)
+    {
+        if (hex == null) return null;
+        var h = hex.Trim();
+        return System.Text.RegularExpressions.Regex.IsMatch(h, @"^#[0-9A-Fa-f]{3}(?:[0-9A-Fa-f]{3})?$") ? h : null;
+    }
+
+    static string TextColorFor(string hex)
+    {
+        if (hex.Length == 4)
+            hex = $"#{hex[1]}{hex[1]}{hex[2]}{hex[2]}{hex[3]}{hex[3]}";
+        int r = Convert.ToInt32(hex.Substring(1, 2), 16);
+        int g = Convert.ToInt32(hex.Substring(3, 2), 16);
+        int b = Convert.ToInt32(hex.Substring(5, 2), 16);
+        return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.55 ? "#1e293b" : "#ffffff";
+    }
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.RALCode)) { _modalErr = L["Err.RalCodeRequired"]; return; }
+        var code = _f.RALCode.Trim().ToUpper();
+        if (Md.RalColorExists(code)) { _modalErr = $"'{code}' 코드가 {L["Err.AlreadyExists"]}"; return; }
+        _busy = true;
+        try
+        {
+            Md.InsertRalColor(code, NE(_f.ColorName), NE(_f.HexValue),
+                NE(_f.CurrentPowderLot), _f.CureTemp, _f.CureDuration,
+                _f.ElectroV, _f.ParticleUm, _f.ActiveFlag, _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{code} {L["Msg.Created"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        _busy = true;
+        try
+        {
+            Md.UpdateRalColor(_sel.RALCode, NE(_f.ColorName), NE(_f.HexValue),
+                NE(_f.CurrentPowderLot), _f.CureTemp, _f.CureDuration,
+                _f.ElectroV, _f.ParticleUm, _f.ActiveFlag, _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{_sel.RALCode} {L["Msg.Updated"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            var code = _sel.RALCode;
+            Md.DeleteRalColor(_sel.RALCode);
+            CloseModal(); Reload();
+            ShowMsg($"{code} {L["Msg.Deleted"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    class FormModel
+    {
+        public string   RALCode          { get; set; } = "";
+        public string   ColorName        { get; set; } = "";
+        public string   HexValue         { get; set; } = "";
+        public string   CurrentPowderLot { get; set; } = "";
+        public int?     CureTemp         { get; set; }
+        public int?     CureDuration     { get; set; }
+        public int?     ElectroV         { get; set; }
+        public decimal? ParticleUm       { get; set; }
+        public bool     ActiveFlag       { get; set; } = true;
     }
 }

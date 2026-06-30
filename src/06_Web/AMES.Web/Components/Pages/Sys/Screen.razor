@@ -1,0 +1,367 @@
+﻿@page "/sys/screen"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.SysRepository Sys
+@inject AuthenticationStateProvider Auth
+@inject IStringLocalizer<SharedResources> L
+
+<PageTitle>SYS-003 @L["SYS.Screen.Title"] · AMES</PageTitle>
+
+<div class="ames-page-h">
+    <div class="ames-page-id">SYS-003</div>
+    <div class="ames-page-t">@L["SYS.Screen.Title"]</div>
+    <div class="ames-page-sub">@L["SYS.Screen.Sub"]</div>
+</div>
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["SYS.Screen.Kpi.All"]</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">@L["SYS.Screen.Kpi.Visible"]</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.IsVisible)</div>
+    </div>
+    <div class="ames-kpi bad">
+        <div class="ames-kpi-l">@L["SYS.Screen.Kpi.Hidden"]</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => !r.IsVisible)</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">@L["SYS.Screen.Kpi.Restricted"]</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.RoleCount > 0)</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ @L["SYS.Screen.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:160px;padding:4px 8px;"
+                   placeholder="@L["SYS.Screen.Ph.Search"]" @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
+            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fModule">
+                <option value="">@L["SYS.Screen.Filter.AllModules"]</option>
+                <option value="PP">PP</option>
+                <option value="MNT">MNT</option>
+                <option value="RPT">RPT</option>
+                <option value="MD">MD</option>
+                <option value="SYS">SYS</option>
+            </select>
+            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fVisible">
+                <option value="">@L["Filter.All"]</option>
+                <option value="Y">@L["SYS.Screen.Filter.Visible"]</option>
+                <option value="N">@L["SYS.Screen.Filter.Hidden"]</option>
+            </select>
+            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
+            <button class="ames-btn"    @onclick="OpenCreate">@L["Btn.Create"]</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">@L["SYS.Screen.Empty"]</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>@L["SYS.Screen.Col.Code"]</th><th>@L["SYS.Screen.Col.Module"]</th>
+                    <th>@L["SYS.Screen.Col.NameKo"]</th><th>@L["SYS.Screen.Col.NameEn"]</th>
+                    <th>@L["SYS.Screen.Col.Path"]</th><th>@L["SYS.Screen.Col.LidLabel"]</th>
+                    <th style="text-align:center;">@L["SYS.Screen.Col.SortOrder"]</th>
+                    <th style="text-align:center;">@L["SYS.Screen.Col.Visible"]</th>
+                    <th style="text-align:center;">@L["SYS.Screen.Col.Roles"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+                    var prevModule = "";
+                }
+                @foreach (var r in _rows)
+                {
+                    @if (r.ModuleCode != prevModule)
+                    {
+                        prevModule = r.ModuleCode;
+                        <tr style="background:#f8fafc;">
+                            <td colspan="9" style="font-size:.8rem;font-weight:700;color:#64748b;letter-spacing:.05em;padding:6px 10px;">
+                                ── @r.ModuleCode ──────────────────────────────────
+                            </td>
+                        </tr>
+                    }
+                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
+                        <td class="code">@r.ScreenCode</td>
+                        <td><span class="pill info">@r.ModuleCode</span></td>
+                        <td>@r.ScreenName</td>
+                        <td class="dim" style="font-size:12px;">@(r.ScreenNameEn ?? "—")</td>
+                        <td class="dim" style="font-size:12px;font-family:'JetBrains Mono',monospace;">@(r.HRef ?? "—")</td>
+                        <td class="dim code" style="font-size:12px;">@(r.LidLabel ?? "—")</td>
+                        <td style="text-align:center;" class="num dim">@(r.SortOrder?.ToString() ?? "—")</td>
+                        <td style="text-align:center;">
+                            @if (r.IsVisible) { <span class="pill ok">@L["SYS.Screen.Filter.Visible"]</span> }
+                            else { <span class="pill bad">@L["SYS.Screen.Filter.Hidden"]</span> }
+                        </td>
+                        <td style="text-align:center;">
+                            @if (r.RoleCount > 0) { <span class="pill warn">@r.RoleCount @L["SYS.Screen.Col.Roles"]</span> }
+                            else { <span class="pill dim" style="background:#f1f5f9;color:#94a3b8;">@L["Filter.All"]</span> }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@* ── Create Modal ── *@
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" style="max-width:500px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["SYS.Screen.Title"] — @L["Btn.Create"]</div>
+
+            <label>@L["SYS.Screen.Col.Code"] *</label>
+            <input class="ames-input" @bind="_f.ScreenCode" placeholder="@L["SYS.Screen.Ph.Code"]" autocomplete="off" />
+
+            <label>@L["SYS.Screen.Col.Module"] *</label>
+            <select class="ames-input" @bind="_f.ModuleCode">
+                <option value="PP">PP</option>
+                <option value="MNT">MNT</option>
+                <option value="RPT">RPT</option>
+                <option value="MD">MD</option>
+                <option value="SYS">SYS</option>
+            </select>
+
+            <label>@L["SYS.Screen.Col.NameKo"] *</label>
+            <input class="ames-input" @bind="_f.ScreenName" placeholder="@L["SYS.Screen.Ph.NameKo"]" autocomplete="off" />
+
+            <label>@L["SYS.Screen.Col.NameEn"]</label>
+            <input class="ames-input" @bind="_f.ScreenNameEn" placeholder="@L["SYS.Screen.Ph.NameEn"]" autocomplete="off" />
+
+            <label>@L["SYS.Screen.Col.Path"]</label>
+            <input class="ames-input" @bind="_f.HRef" placeholder="@L["SYS.Screen.Ph.HRef"]" autocomplete="off" />
+
+            <label>@L["SYS.Screen.Col.LidLabel"]</label>
+            <input class="ames-input" @bind="_f.LidLabel" placeholder="@L["SYS.Screen.Ph.LidLabel"]" autocomplete="off" />
+
+            <label>@L["SYS.Screen.Col.SortOrder"]</label>
+            <input class="ames-input" type="number" @bind="_f.SortOrderStr" placeholder="@L["SYS.Screen.Ph.SortOrder"]" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:8px;">
+                <input type="checkbox" @bind="_f.IsVisible" />
+                <span>@L["SYS.Screen.Col.Visible"] @L["SYS.Screen.Lbl.NavMenu"]</span>
+            </label>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Edit Modal ── *@
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" style="max-width:500px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["SYS.Screen.Title"] — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.ScreenCode</span></div>
+
+            <label>@L["SYS.Screen.Col.Code"] *</label>
+            <input class="ames-input" @bind="_f.ScreenCode" autocomplete="off" />
+
+            <label>@L["SYS.Screen.Col.Module"] *</label>
+            <select class="ames-input" @bind="_f.ModuleCode">
+                <option value="PP">PP</option>
+                <option value="MNT">MNT</option>
+                <option value="RPT">RPT</option>
+                <option value="MD">MD</option>
+                <option value="SYS">SYS</option>
+            </select>
+
+            <label>@L["SYS.Screen.Col.NameKo"] *</label>
+            <input class="ames-input" @bind="_f.ScreenName" autocomplete="off" />
+
+            <label>@L["SYS.Screen.Col.NameEn"]</label>
+            <input class="ames-input" @bind="_f.ScreenNameEn" placeholder="@L["SYS.Screen.Ph.NameEn"]" autocomplete="off" />
+
+            <label>@L["SYS.Screen.Col.Path"]</label>
+            <input class="ames-input" @bind="_f.HRef" placeholder="@L["SYS.Screen.Ph.HRef"]" autocomplete="off" />
+
+            <label>@L["SYS.Screen.Col.LidLabel"]</label>
+            <input class="ames-input" @bind="_f.LidLabel" placeholder="@L["SYS.Screen.Ph.LidLabelEdit"]" autocomplete="off" />
+
+            <label>@L["SYS.Screen.Col.SortOrder"]</label>
+            <input class="ames-input" type="number" @bind="_f.SortOrderStr" placeholder="@L["SYS.Screen.Ph.SortOrder"]" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:8px;">
+                <input type="checkbox" @bind="_f.IsVisible" />
+                <span>@L["SYS.Screen.Col.Visible"] @L["SYS.Screen.Lbl.NavMenu"]</span>
+            </label>
+
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">
+                        @(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)
+                    </button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn" @onclick="SaveEdit" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Save"].Value)</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    List<AMES.Data.Repositories.SysRepository.ScreenRow> _allRows = new();
+    List<AMES.Data.Repositories.SysRepository.ScreenRow> _rows    = new();
+    AMES.Data.Repositories.SysRepository.ScreenRow? _sel;
+
+    string _fSearch = "", _fModule = "", _fVisible = "";
+    string _modal = "", _modalErr = "", _msg = "";
+    bool _busy, _bgMouseDownOnSelf, _isErr, _confirmDelete;
+    string _actor = "system";
+
+    FormModel _f = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        Reload();
+    }
+
+    void Reload() { _allRows = Sys.ListScreens(); ApplyFilter(); }
+
+    void ApplyFilter() { _rows = _allRows.Where(r =>
+        (string.IsNullOrEmpty(_fSearch) ||
+            r.ScreenCode.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            r.ScreenName.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.ScreenNameEn ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.HRef ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fModule) || r.ModuleCode == _fModule) &&
+        (string.IsNullOrEmpty(_fVisible) || (_fVisible == "Y" ? r.IsVisible : !r.IsVisible))
+    ).ToList(); }
+
+    void OpenCreate()
+    {
+        _f = new() { ModuleCode = "PP", IsVisible = true };
+        _modalErr = ""; _confirmDelete = false;
+        _modal = "create";
+    }
+
+    void OpenEdit(AMES.Data.Repositories.SysRepository.ScreenRow r)
+    {
+        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _f = new()
+        {
+            ScreenCode   = r.ScreenCode,
+            ModuleCode   = r.ModuleCode,
+            ScreenName   = r.ScreenName,
+            ScreenNameEn = r.ScreenNameEn ?? "",
+            HRef         = r.HRef         ?? "",
+            LidLabel     = r.LidLabel     ?? "",
+            SortOrderStr = r.SortOrder?.ToString() ?? "",
+            IsVisible    = r.IsVisible,
+        };
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.ScreenCode))  { _modalErr = L["SYS.Screen.Err.CodeRequired"].Value; return; }
+        if (string.IsNullOrWhiteSpace(_f.ModuleCode))  { _modalErr = L["SYS.Screen.Err.ModuleRequired"].Value; return; }
+        if (string.IsNullOrWhiteSpace(_f.ScreenName))  { _modalErr = L["SYS.Screen.Err.NameRequired"].Value; return; }
+        _busy = true;
+        try
+        {
+            Sys.InsertScreen(
+                _f.ScreenCode.Trim(), _f.ModuleCode.Trim(), _f.ScreenName.Trim(),
+                Nz(_f.ScreenNameEn), Nz(_f.HRef), Nz(_f.LidLabel),
+                _f.SortOrder, _f.IsVisible, _actor);
+            Reload(); CloseModal();
+            ShowMsg(string.Format(L["SYS.Screen.Ok.Created"].Value, _f.ScreenCode), false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.ScreenCode))  { _modalErr = L["SYS.Screen.Err.CodeRequired"].Value; return; }
+        if (string.IsNullOrWhiteSpace(_f.ModuleCode))  { _modalErr = L["SYS.Screen.Err.ModuleRequired"].Value; return; }
+        if (string.IsNullOrWhiteSpace(_f.ScreenName))  { _modalErr = L["SYS.Screen.Err.NameRequired"].Value; return; }
+        _busy = true;
+        try
+        {
+            Sys.UpdateScreen(
+                _sel.ScreenId, _f.ScreenCode.Trim(), _f.ModuleCode.Trim(), _f.ScreenName.Trim(),
+                Nz(_f.ScreenNameEn), Nz(_f.HRef), Nz(_f.LidLabel),
+                _f.SortOrder, _f.IsVisible, _actor);
+            Reload(); CloseModal();
+            ShowMsg(string.Format(L["SYS.Screen.Ok.Updated"].Value, _f.ScreenCode), false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            var code = _sel.ScreenCode;
+            Sys.DeleteScreen(_sel.ScreenId, _actor);
+            Reload(); CloseModal();
+            ShowMsg(string.Format(L["SYS.Screen.Ok.Deleted"].Value, code), false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    static string? Nz(string s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
+    class FormModel
+    {
+        public string ScreenCode   { get; set; } = "";
+        public string ModuleCode   { get; set; } = "PP";
+        public string ScreenName   { get; set; } = "";
+        public string ScreenNameEn { get; set; } = "";
+        public string HRef         { get; set; } = "";
+        public string LidLabel     { get; set; } = "";
+        public string SortOrderStr { get; set; } = "";
+        public bool   IsVisible    { get; set; } = true;
+        public int?   SortOrder    => int.TryParse(SortOrderStr, out var n) ? n : null;
+    }
+}

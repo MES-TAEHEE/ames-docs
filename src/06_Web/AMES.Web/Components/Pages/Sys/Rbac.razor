@@ -1,14 +1,15 @@
-@page "/sys/rbac"
+﻿@page "/sys/rbac"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
+@inject AMES.Data.Repositories.MasterDataRepository Md
 @inject AuthenticationStateProvider Auth
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>SYS-003 @L["SYS.Rbac.Title"] · AMES</PageTitle>
+<PageTitle>SYS-004 @L["SYS.Rbac.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">SYS-003</div>
+    <div class="ames-page-id">SYS-004</div>
     <div class="ames-page-t">@L["SYS.Rbac.Title"]</div>
     <div class="ames-page-sub">@L["SYS.Rbac.Sub"]</div>
 </div>
@@ -41,14 +42,14 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
         <span>▼ @L["SYS.Rbac.List"] · @_rows.Count @L["Lbl.Items"]</span>
         <div style="display:flex;gap:6px;">
-            <button class="ames-btn" @onclick="OpenCreate">+ @L["Btn.Create"]</button>
             <button class="ames-btn ok" @onclick="Reload">@L["Btn.Search"]</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
         </div>
     </div>
 
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">No permissions defined.</div>
+        <div class="ames-empty">@L["SYS.Rbac.Empty"]</div>
     }
     else
     {
@@ -57,7 +58,7 @@
             <div style="margin-top:12px;">
                 <div class="ames-card-h" style="font-size:.8em;padding:6px 12px;">
                     <span class="pill info">@grp.Key</span>
-                    <span class="dim" style="margin-left:6px;">@grp.Count()건</span>
+                    <span class="dim" style="margin-left:6px;">@grp.Count() @L["Lbl.Items"]</span>
                 </div>
                 <table class="ames-table">
                     <thead>
@@ -71,7 +72,11 @@
                             <tr class="ames-row-link" @onclick="() => OpenEdit(p)">
                                 <td><span class="pill info">@(p.ModuleCode ?? "—")</span></td>
                                 <td class="code">@(p.ScreenCode ?? "—")</td>
-                                <td><span class="pill @LvlClass(p.PermissionLevel)">@(p.PermissionLevel ?? "—")</span></td>
+                                @{
+                                    var pl2 = _permLevels.FirstOrDefault(pl => pl.CodeValue == p.PermissionLevel);
+                                    var lvlLbl = pl2 is null ? (p.PermissionLevel ?? "—") : MasterDataRepository.LocalName(pl2);
+                                }
+                                <td><span class="pill @LvlClass(p.PermissionLevel)">@lvlLbl</span></td>
                                 <td class="dim">@(p.IsSystemRole ? "yes" : "—")</td>
                             </tr>
                         }
@@ -93,7 +98,7 @@
             <select class="ames-input"
                     value="@_f.RoleName"
                     @onchange="e => _f.RoleName = e.Value?.ToString() ?? string.Empty">
-                <option value="">— 선택 —</option>
+                <option value="">@L["Opt.Select"]</option>
                 @foreach (var r in _roles) { <option value="@r.RoleName">@r.RoleName</option> }
             </select>
 
@@ -101,22 +106,20 @@
             <select class="ames-input"
                     value="@_f.ModuleCode"
                     @onchange="e => _f.ModuleCode = e.Value?.ToString() ?? string.Empty">
-                <option value="">— 선택 —</option>
-                @foreach (var m in _modules) { <option value="@m">@m</option> }
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var m in _modules) { <option value="@m.CodeValue">[@m.CodeValue] @(MasterDataRepository.LocalName(m))</option> }
             </select>
 
             <label>@L["SYS.Rbac.Lbl.Screen"]</label>
-            <input class="ames-input" @bind="_f.ScreenCode" placeholder="예: SYS-01, PP-04" autocomplete="off" />
+            <input class="ames-input" @bind="_f.ScreenCode" placeholder="@L["SYS.Rbac.Ph.ScreenCode"]" autocomplete="off" />
 
             <label>@L["SYS.Rbac.Lbl.Level"]</label>
             <select class="ames-input"
                     value="@_f.PermissionLevel"
                     @onchange="e => _f.PermissionLevel = e.Value?.ToString() ?? string.Empty">
-                <option value="">— 선택 —</option>
-                <option>FULL</option>
-                <option>EDIT</option>
-                <option>VIEW</option>
-                <option>NONE</option>
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var pl in _permLevels.Where(pl => pl.UseFlag))
+                { <option value="@pl.CodeValue">[@pl.CodeValue] @(MasterDataRepository.LocalName(pl))</option> }
             </select>
 
             <label class="ames-line-item" style="flex-direction:row;gap:8px;margin-top:4px;">
@@ -128,10 +131,10 @@
             { <div class="ames-alert bad">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">
+                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">
                     @(_busy ? @L["Msg.Saving"] : @L["Btn.Create"])
                 </button>
-                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -148,7 +151,7 @@
             <select class="ames-input"
                     value="@_f.RoleName"
                     @onchange="e => _f.RoleName = e.Value?.ToString() ?? string.Empty">
-                <option value="">— 선택 —</option>
+                <option value="">@L["Opt.Select"]</option>
                 @foreach (var r in _roles) { <option value="@r.RoleName">@r.RoleName</option> }
             </select>
 
@@ -156,8 +159,8 @@
             <select class="ames-input"
                     value="@_f.ModuleCode"
                     @onchange="e => _f.ModuleCode = e.Value?.ToString() ?? string.Empty">
-                <option value="">— 선택 —</option>
-                @foreach (var m in _modules) { <option value="@m">@m</option> }
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var m in _modules) { <option value="@m.CodeValue">[@m.CodeValue] @(MasterDataRepository.LocalName(m))</option> }
             </select>
 
             <label>@L["SYS.Rbac.Lbl.Screen"]</label>
@@ -167,11 +170,9 @@
             <select class="ames-input"
                     value="@_f.PermissionLevel"
                     @onchange="e => _f.PermissionLevel = e.Value?.ToString() ?? string.Empty">
-                <option value="">— 선택 —</option>
-                <option>FULL</option>
-                <option>EDIT</option>
-                <option>VIEW</option>
-                <option>NONE</option>
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var pl in _permLevels.Where(pl => pl.UseFlag))
+                { <option value="@pl.CodeValue">[@pl.CodeValue] @(MasterDataRepository.LocalName(pl))</option> }
             </select>
 
             <label class="ames-line-item" style="flex-direction:row;gap:8px;margin-top:4px;">
@@ -183,7 +184,7 @@
             {
                 <div class="ames-delete-confirm">
                     <span>@L["Msg.Confirm.Delete"]</span>
-                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
+                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
                     <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">
                         @(_busy ? @L["Msg.Deleting"] : @L["Msg.Yes"])
                     </button>
@@ -194,23 +195,22 @@
             { <div class="ames-alert bad">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok" @onclick="SaveEdit" disabled="@_busy">
+                <button class="ames-btn" @onclick="SaveEdit" disabled="@_busy">
                     @(_busy ? @L["Msg.Saving"] : @L["Btn.Save"])
                 </button>
                 <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
 }
 
 @code {
-    List<AMES.Data.Repositories.SysRepository.RolePermRow> _rows  = new();
-    List<AMES.Data.Repositories.SysRepository.RoleRow>     _roles = new();
-    AMES.Data.Repositories.SysRepository.RolePermRow?      _sel;
-
-    static readonly string[] _modules =
-        ["PP","MNT","RPT","SYS","INJ","IMG","PNT","QC","WH","FG","AUTH"];
+    List<AMES.Data.Repositories.SysRepository.RolePermRow>       _rows      = new();
+    List<AMES.Data.Repositories.SysRepository.RoleRow>           _roles     = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _modules   = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _permLevels = new();
+    AMES.Data.Repositories.SysRepository.RolePermRow?            _sel;
 
     string _modal = "";   // "" | "create" | "edit"
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
@@ -224,6 +224,8 @@
     {
         var auth = await Auth.GetAuthenticationStateAsync();
         _actorEmail = auth.User.Identity?.Name ?? "system";
+        try { _modules    = Md.ListCodeItems("MODULE"); } catch { }
+        try { _permLevels = Md.ListCodeItems("PERMISSION_LEVEL"); } catch { }
         Reload();
     }
 
@@ -268,10 +270,10 @@
     void SaveCreate()
     {
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_f.RoleName))        { _modalErr = "역할을 선택하세요."; return; }
-        if (string.IsNullOrWhiteSpace(_f.ModuleCode))      { _modalErr = "모듈을 선택하세요."; return; }
-        if (string.IsNullOrWhiteSpace(_f.ScreenCode))      { _modalErr = "화면 코드를 입력하세요."; return; }
-        if (string.IsNullOrWhiteSpace(_f.PermissionLevel)) { _modalErr = "권한 수준을 선택하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.RoleName))        { _modalErr = L["SYS.Rbac.Err.RoleRequired"].Value; return; }
+        if (string.IsNullOrWhiteSpace(_f.ModuleCode))      { _modalErr = L["SYS.Rbac.Err.ModuleRequired"].Value; return; }
+        if (string.IsNullOrWhiteSpace(_f.ScreenCode))      { _modalErr = L["SYS.Rbac.Err.ScreenCodeRequired"].Value; return; }
+        if (string.IsNullOrWhiteSpace(_f.PermissionLevel)) { _modalErr = L["SYS.Rbac.Err.LevelRequired"].Value; return; }
 
         _busy = true;
         try
@@ -280,7 +282,7 @@
             Sys.CreateRolePerm(roleId, _f.RoleName, _f.ModuleCode,
                 _f.ScreenCode.Trim(), _f.PermissionLevel, _f.IsSystemRole, _actorEmail);
             CloseModal(); Reload();
-            ShowMsg($"{_f.RoleName} · {_f.ScreenCode} 권한 등록 완료.", false);
+            ShowMsg(string.Format(L["SYS.Rbac.Ok.Created"].Value, _f.RoleName, _f.ScreenCode), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -290,10 +292,10 @@
     {
         if (_sel is null) return;
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_f.RoleName))        { _modalErr = "역할을 선택하세요."; return; }
-        if (string.IsNullOrWhiteSpace(_f.ModuleCode))      { _modalErr = "모듈을 선택하세요."; return; }
-        if (string.IsNullOrWhiteSpace(_f.ScreenCode))      { _modalErr = "화면 코드를 입력하세요."; return; }
-        if (string.IsNullOrWhiteSpace(_f.PermissionLevel)) { _modalErr = "권한 수준을 선택하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.RoleName))        { _modalErr = L["SYS.Rbac.Err.RoleRequired"].Value; return; }
+        if (string.IsNullOrWhiteSpace(_f.ModuleCode))      { _modalErr = L["SYS.Rbac.Err.ModuleRequired"].Value; return; }
+        if (string.IsNullOrWhiteSpace(_f.ScreenCode))      { _modalErr = L["SYS.Rbac.Err.ScreenCodeRequired"].Value; return; }
+        if (string.IsNullOrWhiteSpace(_f.PermissionLevel)) { _modalErr = L["SYS.Rbac.Err.LevelRequired"].Value; return; }
 
         _busy = true;
         try
@@ -303,7 +305,7 @@
             Sys.UpdateRolePerm(_sel.RolePermissionId, roleId, _f.RoleName, _f.ModuleCode,
                 _f.ScreenCode.Trim(), _f.PermissionLevel, _f.IsSystemRole, _actorEmail);
             CloseModal(); Reload();
-            ShowMsg($"{_f.RoleName} · {_f.ScreenCode} 권한 수정 완료.", false);
+            ShowMsg(string.Format(L["SYS.Rbac.Ok.Updated"].Value, _f.RoleName, _f.ScreenCode), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -318,7 +320,7 @@
             Sys.DeleteRolePerm(_sel.RolePermissionId);
             var info = $"{_sel.RoleName} · {_sel.ScreenCode}";
             CloseModal(); Reload();
-            ShowMsg($"{info} 권한 삭제 완료.", false);
+            ShowMsg(string.Format(L["SYS.Rbac.Ok.Deleted"].Value, _sel.RoleName, _sel.ScreenCode), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
         finally { _busy = false; }

@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AuthenticationStateProvider Auth
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["MD.PackSpec.Title"] · AMES</PageTitle>
@@ -22,29 +23,36 @@
         <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "ACTIVE")</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">반납용</div>
+        <div class="ames-kpi-l">@L["MD.PackSpec.Kpi.Returnable"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.ReturnableFlag)</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">포장 유형 수</div>
+        <div class="ames-kpi-l">@L["MD.PackSpec.Kpi.PackTypes"]</div>
         <div class="ames-kpi-v">@_allRows.Select(r => r.PackType).Where(t => t != null).Distinct().Count()</div>
     </div>
 </div>
 
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MD.PackSpec.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.PackSpec.List"] · @_rows.Count @L["Lbl.Items"]@if (_rows.Count < _allRows.Count) { <text> / @L["Lbl.TotalOf"] @_allRows.Count</text> }</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:140px;padding:4px 8px;"
-                   placeholder="스펙ID / 품목ID" @bind="_fSearch" autocomplete="off" />
+                   placeholder='@L["MD.PackagingSpec.Ph.Search"]' @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Type"]</span>
             <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fType">
                 <option value="">@L["Filter.AllTypes"]</option>
-                @foreach (var t in _allRows.Select(r => r.PackType).Where(x => x != null).Distinct().OrderBy(x => x))
+                @foreach (var t in _packingTypes.Where(x => x.UseFlag))
                 {
-                    <option value="@t">@t</option>
+                    <option value="@t.CodeValue">@(MasterDataRepository.LocalName(t))</option>
                 }
             </select>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
         </div>
     </div>
 
@@ -57,41 +65,201 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>스펙 ID</th><th>품목 ID</th><th>포장 유형</th>
-                    <th class="num">이너수량</th><th class="num">이너/아우터</th><th class="num">아우터/파레트</th>
-                    <th class="num">순중량(kg)</th><th class="num">총중량(kg)</th>
-                    <th>치수(LxWxH)</th><th>반납</th><th>라벨 템플릿</th><th>@L["Col.Status"]</th>
+                    <th>@L["Col.SpecId"]</th><th>@L["Col.ItemNo"]</th><th>@L["Col.PackType"]</th>
+                    <th class="num">@L["Col.InnerQty"]</th><th class="num">@L["Col.InnerPerOuter"]</th><th class="num">@L["Col.OuterPerPallet"]</th>
+                    <th class="num">@L["Col.NetWeight"]</th><th class="num">@L["Col.GrossWeight"]</th>
+                    <th>@L["Col.Dimensions"]</th><th>@L["Col.Returnable"]</th><th>@L["Col.LabelTemplate"]</th><th>@L["Col.Status"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
-                    <tr>
+                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
                         <td class="code">@r.PackSpecID</td>
                         <td class="dim">@(r.ItemID ?? "—")</td>
-                        <td>@(r.PackType ?? "—")</td>
+                        <td>@(_packingTypes.FirstOrDefault(x => x.CodeValue == r.PackType) is { } _ptLf ? MasterDataRepository.LocalName(_ptLf) : r.PackType ?? "—")</td>
                         <td class="num">@(r.QtyPerInner?.ToString() ?? "—")</td>
                         <td class="num">@(r.InnerPerOuter?.ToString() ?? "—")</td>
                         <td class="num">@(r.OuterPerPallet?.ToString() ?? "—")</td>
                         <td class="num">@(r.NetWeightKg?.ToString("0.000") ?? "—")</td>
                         <td class="num">@(r.GrossWeightKg?.ToString("0.000") ?? "—")</td>
                         <td class="dim">@(r.DimLxWxH ?? "—")</td>
-                        <td>@(r.ReturnableFlag ? (MarkupString)"<span class=\"pill ok\">반납</span>" : (MarkupString)"")</td>
+                        <td>@(r.ReturnableFlag ? (MarkupString)$"<span class=\"pill ok\">{L["MD.PackagingSpec.PillReturn"]}</span>" : (MarkupString)"")</td>
                         <td class="dim">@(r.LabelTemplateID ?? "—")</td>
-                        <td><span class="pill @(r.Status == "ACTIVE" ? "ok" : "warn")">@(r.Status ?? "—")</span></td>
+                        <td><span class="pill @(r.Status == "ACTIVE" ? "ok" : "warn")">@(_packStatus.FirstOrDefault(x => x.CodeValue == r.Status) is { } _stLf ? MasterDataRepository.LocalName(_stLf) : r.Status ?? "—")</span></td>
                     </tr>
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
+
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.PackSpec.Title"] — @L["Btn.Create"]</div>
+
+            <label>@L["Col.SpecId"]</label>
+            <input class="ames-input" @bind="_f.PackSpecID" placeholder="PS-001" autocomplete="off" />
+
+            <label>@L["Col.ItemNo"]</label>
+            <input class="ames-input" @bind="_f.ItemID" placeholder="ITEM-001" autocomplete="off" />
+
+            <label>@L["Col.PackType"]</label>
+            <select class="ames-input" @bind="_f.PackType">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var t in _packingTypes.Where(x => x.UseFlag))
+                {
+                    <option value="@t.CodeValue">@(MasterDataRepository.LocalName(t))</option>
+                }
+            </select>
+
+            <label>@L["Col.InnerQty"]</label>
+            <input class="ames-input" type="number" @bind="_f.QtyPerInner" placeholder="10" min="1" autocomplete="off" />
+
+            <label>@L["Col.InnerPerOuter"]</label>
+            <input class="ames-input" type="number" @bind="_f.InnerPerOuter" placeholder="5" min="1" autocomplete="off" />
+
+            <label>@L["Col.OuterPerPallet"]</label>
+            <input class="ames-input" type="number" @bind="_f.OuterPerPallet" placeholder="20" min="1" autocomplete="off" />
+
+            <label>@L["Col.NetWeight"] (kg)</label>
+            <input class="ames-input" type="number" @bind="_f.NetWeightKg" placeholder="0.500" step="0.001" autocomplete="off" />
+
+            <label>@L["Col.GrossWeight"] (kg)</label>
+            <input class="ames-input" type="number" @bind="_f.GrossWeightKg" placeholder="0.600" step="0.001" autocomplete="off" />
+
+            <label>@L["Col.Dimensions"] (L×W×H mm)</label>
+            <input class="ames-input" @bind="_f.DimLxWxH" placeholder="400x300x200" autocomplete="off" />
+
+            <label>@L["Col.LabelTemplate"]</label>
+            <input class="ames-input" @bind="_f.LabelTemplateID" placeholder="LBL-001" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.ReturnableFlag" />
+                <span>@L["Col.Returnable"]</span>
+            </label>
+
+            <label>@L["Col.Status"]</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var s in _packStatus.Where(x => x.UseFlag))
+                {
+                    <option value="@s.CodeValue">@(MasterDataRepository.LocalName(s))</option>
+                }
+            </select>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.PackSpec.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.PackSpecID</span></div>
+
+            <label>@L["Col.ItemNo"]</label>
+            <input class="ames-input" @bind="_f.ItemID" autocomplete="off" />
+
+            <label>@L["Col.PackType"]</label>
+            <select class="ames-input" @bind="_f.PackType">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var t in _packingTypes.Where(x => x.UseFlag))
+                {
+                    <option value="@t.CodeValue">@(MasterDataRepository.LocalName(t))</option>
+                }
+            </select>
+
+            <label>@L["Col.InnerQty"]</label>
+            <input class="ames-input" type="number" @bind="_f.QtyPerInner" min="1" autocomplete="off" />
+
+            <label>@L["Col.InnerPerOuter"]</label>
+            <input class="ames-input" type="number" @bind="_f.InnerPerOuter" min="1" autocomplete="off" />
+
+            <label>@L["Col.OuterPerPallet"]</label>
+            <input class="ames-input" type="number" @bind="_f.OuterPerPallet" min="1" autocomplete="off" />
+
+            <label>@L["Col.NetWeight"] (kg)</label>
+            <input class="ames-input" type="number" @bind="_f.NetWeightKg" step="0.001" autocomplete="off" />
+
+            <label>@L["Col.GrossWeight"] (kg)</label>
+            <input class="ames-input" type="number" @bind="_f.GrossWeightKg" step="0.001" autocomplete="off" />
+
+            <label>@L["Col.Dimensions"]</label>
+            <input class="ames-input" @bind="_f.DimLxWxH" autocomplete="off" />
+
+            <label>@L["Col.LabelTemplate"]</label>
+            <input class="ames-input" @bind="_f.LabelTemplateID" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.ReturnableFlag" />
+                <span>@L["Col.Returnable"]</span>
+            </label>
+
+            <label>@L["Col.Status"]</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var s in _packStatus.Where(x => x.UseFlag))
+                {
+                    <option value="@s.CodeValue">@(MasterDataRepository.LocalName(s))</option>
+                }
+            </select>
+
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)</button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn" @onclick="SaveEdit" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     List<AMES.Data.Repositories.MasterDataRepository.PackagingSpecRow> _allRows = new();
     List<AMES.Data.Repositories.MasterDataRepository.PackagingSpecRow> _rows    = new();
+    AMES.Data.Repositories.MasterDataRepository.PackagingSpecRow? _sel;
+    int _page = 0;
+    const int _pageSize = 20;
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _packingTypes = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _packStatus   = new();
     string _fSearch = "", _fType = "";
+    string _modal = "";
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _msg = "", _modalErr = "";
+    bool _isErr;
+    string _actor = "system";
+    FormModel _f = new();
 
-    protected override void OnInitialized() => Reload();
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        try { _packingTypes = Md.ListCodeItems("PACKING_TYPE"); } catch { }
+        try { _packStatus   = Md.ListCodeItems("PACK_STATUS");  } catch { }
+        Reload();
+    }
 
     void Reload()
     {
@@ -101,6 +269,7 @@
 
     void ApplyFilter()
     {
+        _page = 0;
         _rows = _allRows;
         if (!string.IsNullOrWhiteSpace(_fSearch))
             _rows = _rows.Where(r =>
@@ -108,5 +277,109 @@
                 (r.ItemID ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)).ToList();
         if (!string.IsNullOrWhiteSpace(_fType))
             _rows = _rows.Where(r => r.PackType == _fType).ToList();
+    }
+
+    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+
+    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.PackagingSpecRow r)
+    {
+        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _f = new()
+        {
+            ItemID          = r.ItemID          ?? "",
+            PackType        = r.PackType        ?? "",
+            QtyPerInner     = r.QtyPerInner,
+            InnerPerOuter   = r.InnerPerOuter,
+            OuterPerPallet  = r.OuterPerPallet,
+            NetWeightKg     = r.NetWeightKg,
+            GrossWeightKg   = r.GrossWeightKg,
+            DimLxWxH        = r.DimLxWxH        ?? "",
+            ReturnableFlag  = r.ReturnableFlag,
+            LabelTemplateID = r.LabelTemplateID ?? "",
+            Status          = r.Status          ?? "ACTIVE",
+        };
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.PackSpecID)) { _modalErr = L["Err.SpecIdRequired"]; return; }
+        var id = _f.PackSpecID.Trim();
+        if (Md.PackagingSpecExists(id)) { _modalErr = $"'{id}' ID가 {L["Err.AlreadyExists"]}"; return; }
+        _busy = true;
+        try
+        {
+            Md.InsertPackagingSpec(id, NE(_f.ItemID), NE(_f.PackType),
+                _f.QtyPerInner, _f.InnerPerOuter, _f.OuterPerPallet,
+                _f.NetWeightKg, _f.GrossWeightKg, NE(_f.DimLxWxH),
+                _f.ReturnableFlag, NE(_f.LabelTemplateID), NE(_f.Status), _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{id} {L["Msg.Created"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        _busy = true;
+        try
+        {
+            Md.UpdatePackagingSpec(_sel.PackSpecID, NE(_f.ItemID), NE(_f.PackType),
+                _f.QtyPerInner, _f.InnerPerOuter, _f.OuterPerPallet,
+                _f.NetWeightKg, _f.GrossWeightKg, NE(_f.DimLxWxH),
+                _f.ReturnableFlag, NE(_f.LabelTemplateID), NE(_f.Status), _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{_sel.PackSpecID} {L["Msg.Updated"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            var id = _sel.PackSpecID;
+            Md.DeletePackagingSpec(_sel.PackSpecID);
+            CloseModal(); Reload();
+            ShowMsg($"{id} {L["Msg.Deleted"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    class FormModel
+    {
+        public string   PackSpecID      { get; set; } = "";
+        public string   ItemID          { get; set; } = "";
+        public string   PackType        { get; set; } = "";
+        public int?     QtyPerInner     { get; set; }
+        public int?     InnerPerOuter   { get; set; }
+        public int?     OuterPerPallet  { get; set; }
+        public decimal? NetWeightKg     { get; set; }
+        public decimal? GrossWeightKg   { get; set; }
+        public string   DimLxWxH        { get; set; } = "";
+        public bool     ReturnableFlag  { get; set; } = false;
+        public string   LabelTemplateID { get; set; } = "";
+        public string   Status          { get; set; } = "ACTIVE";
     }
 }

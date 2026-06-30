@@ -1,4 +1,5 @@
-@page "/sys/interfaces"
+﻿@page "/sys/interfaces"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
 @inject IStringLocalizer<SharedResources> L
@@ -13,63 +14,107 @@
 
 <div class="ames-kpis">
     <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Interfaces.Kpi.All"]</div>
-        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">전체 등록</div></div>
+        <div class="ames-kpi-v">@_allRows.Count</div><div class="ames-kpi-s">@L["SYS.Interfaces.Kpi.AllSub"]</div></div>
     <div class="ames-kpi ok"><div class="ames-kpi-l">@L["SYS.Interfaces.Kpi.Ok"]</div>
-        <div class="ames-kpi-v">@_ok</div><div class="ames-kpi-s">연결 OK</div></div>
+        <div class="ames-kpi-v">@_ok</div><div class="ames-kpi-s">@L["SYS.Interfaces.Kpi.OkSub"]</div></div>
     <div class="ames-kpi warn"><div class="ames-kpi-l">@L["SYS.Interfaces.Kpi.Warn"]</div>
-        <div class="ames-kpi-v">@_warn</div><div class="ames-kpi-s">지연 위험</div></div>
+        <div class="ames-kpi-v">@_warn</div><div class="ames-kpi-s">@L["SYS.Interfaces.Kpi.WarnSub"]</div></div>
     <div class="ames-kpi bad"><div class="ames-kpi-l">@L["SYS.Interfaces.Kpi.Down"]</div>
-        <div class="ames-kpi-v">@_down</div><div class="ames-kpi-s">연결 불가</div></div>
+        <div class="ames-kpi-v">@_down</div><div class="ames-kpi-s">@L["SYS.Interfaces.Kpi.DownSub"]</div></div>
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
-        <span>▼ @L["SYS.Interfaces.List"]</span>
-        <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span>▼ @L["SYS.Interfaces.List"] · @_rows.Count @L["Lbl.Items"]</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:160px;padding:4px 8px;"
+                   placeholder="@L["SYS.Interfaces.Ph.Search"]" @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") Reload(); }' autocomplete="off" />
+            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fStatus">
+                <option value="">@L["SYS.Interfaces.Filter.AllStatus"]</option>
+                <option value="OK">OK</option>
+                <option value="WARN">WARN</option>
+                <option value="DOWN">DOWN</option>
+                <option value="ERROR">ERROR</option>
+            </select>
+            <select class="ames-input" style="width:85px;padding:4px 8px;" @bind="_fDir">
+                <option value="">@L["SYS.Interfaces.Filter.AllDir"]</option>
+                <option value="IN">IN</option>
+                <option value="OUT">OUT</option>
+                <option value="BI">BI</option>
+            </select>
+            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Search"]</button>
+        </div>
     </div>
-    <table class="ames-table">
-        <thead>
-            <tr>
-                <th>@L["SYS.Interfaces.Col.Code"]</th><th>@L["SYS.Interfaces.Col.Name"]</th><th>@L["SYS.Interfaces.Col.Dir"]</th><th>@L["SYS.Interfaces.Col.Endpoint"]</th>
-                <th>@L["SYS.Interfaces.Col.Protocol"]</th><th>@L["Col.Status"]</th>
-                <th>@L["SYS.Interfaces.Col.LastSync"]</th><th class="num">@L["SYS.Interfaces.Col.Elapsed"]</th>
-                <th class="num">@L["SYS.Interfaces.Col.LastCount"]</th><th class="num">@L["SYS.Interfaces.Col.Retry"]</th><th>@L["SYS.Interfaces.Col.Error"]</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var i in _rows)
-            {
+    @if (_err is not null)
+    {
+        <div class="ames-empty bad">@_err</div>
+    }
+    else if (_rows.Count == 0)
+    {
+        <div class="ames-empty">@L["SYS.Interfaces.Empty"]</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
                 <tr>
-                    <td class="code">@(i.InterfaceCode ?? "—")</td>
-                    <td>@(i.InterfaceName ?? "—")</td>
-                    <td class="dim">@(i.Direction ?? "—")</td>
-                    <td class="dim" style="font-family:'JetBrains Mono',monospace;font-size:11px;overflow:hidden;text-overflow:ellipsis;max-width:280px;display:inline-block;">@(i.Endpoint ?? "—")</td>
-                    <td class="dim">@(i.Protocol ?? "—")</td>
-                    <td><span class="pill @StClass(i.ConnStatus)">@(i.ConnStatus ?? "—")</span></td>
-                    <td class="dim">@(i.LastSyncTs?.ToString("MM-dd HH:mm") ?? "—")</td>
-                    <td class="num">@i.MinutesSinceSync</td>
-                    <td class="num">@(i.LastRecordCount?.ToString() ?? "—")</td>
-                    <td class="num">@(i.RetryCount?.ToString() ?? "—")</td>
-                    <td class="dim">@(i.LastErrorMsg ?? "—")</td>
+                    <th>@L["SYS.Interfaces.Col.Code"]</th><th>@L["SYS.Interfaces.Col.Name"]</th><th>@L["SYS.Interfaces.Col.Dir"]</th><th>@L["SYS.Interfaces.Col.Endpoint"]</th>
+                    <th>@L["SYS.Interfaces.Col.Protocol"]</th><th>@L["Col.Status"]</th>
+                    <th>@L["SYS.Interfaces.Col.LastSync"]</th><th class="num">@L["SYS.Interfaces.Col.Elapsed"]</th>
+                    <th class="num">@L["SYS.Interfaces.Col.LastCount"]</th><th class="num">@L["SYS.Interfaces.Col.Retry"]</th><th>@L["SYS.Interfaces.Col.Error"]</th>
                 </tr>
-            }
-        </tbody>
-    </table>
-    @if (_rows.Count == 0) { <div class="ames-empty">@L["SYS.Interfaces.Empty"]</div> }
+            </thead>
+            <tbody>
+                @foreach (var i in _rows.Skip(_page * _pageSize).Take(_pageSize))
+                {
+                    <tr>
+                        <td class="code">@(i.InterfaceCode ?? "—")</td>
+                        <td>@(i.InterfaceName ?? "—")</td>
+                        <td class="dim">@(i.Direction ?? "—")</td>
+                        <td class="dim" style="font-family:'JetBrains Mono',monospace;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px;">@(i.Endpoint ?? "—")</td>
+                        <td class="dim">@(i.Protocol ?? "—")</td>
+                        <td><span class="pill @StClass(i.ConnStatus)">@(i.ConnStatus ?? "—")</span></td>
+                        <td class="dim">@(i.LastSyncTs?.ToString("MM-dd HH:mm") ?? "—")</td>
+                        <td class="num">@i.MinutesSinceSync</td>
+                        <td class="num">@(i.LastRecordCount?.ToString() ?? "—")</td>
+                        <td class="num">@(i.RetryCount?.ToString() ?? "—")</td>
+                        <td class="dim">@(i.LastErrorMsg ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
+    }
 </div>
 
 @code {
-    List<AMES.Data.Repositories.SysRepository.InterfaceRow> _rows = new();
+    int _page = 0;
+    const int _pageSize = 20;
+    List<AMES.Data.Repositories.SysRepository.InterfaceRow> _allRows = new();
+    List<AMES.Data.Repositories.SysRepository.InterfaceRow> _rows    = new();
     int _ok, _warn, _down;
+    string _fSearch = "", _fStatus = "", _fDir = "";
+    string? _err;
     protected override void OnInitialized() => Reload();
 
     void Reload()
     {
-        try { _rows = Sys.ListInterfaces(); } catch { }
-        _ok   = _rows.Count(r => r.ConnStatus is "OK" or "UP");
-        _warn = _rows.Count(r => r.ConnStatus is "WARN" or "DEGRADED");
-        _down = _rows.Count(r => r.ConnStatus is "DOWN" or "ERROR" or "FAULT");
+        _err = null;
+        try { _allRows = Sys.ListInterfaces(); }
+        catch (Exception ex) { _err = ex.Message; _allRows = new(); }
+        _ok   = _allRows.Count(r => r.ConnStatus is "OK" or "UP");
+        _warn = _allRows.Count(r => r.ConnStatus is "WARN" or "DEGRADED");
+        _down = _allRows.Count(r => r.ConnStatus is "DOWN" or "ERROR" or "FAULT");
+        ApplyFilter();
     }
+
+    void ApplyFilter() { _page = 0; _rows = _allRows.Where(r =>
+        (string.IsNullOrEmpty(_fSearch) ||
+            (r.InterfaceCode ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.InterfaceName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fStatus) || r.ConnStatus == _fStatus) &&
+        (string.IsNullOrEmpty(_fDir)    || r.Direction  == _fDir)
+    ).ToList(); }
     static string StClass(string? s) => s switch
     { "OK" or "UP"             => "ok",
       "WARN" or "DEGRADED"     => "warn",

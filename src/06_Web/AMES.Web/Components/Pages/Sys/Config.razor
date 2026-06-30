@@ -1,4 +1,5 @@
-@page "/sys/config"
+﻿@page "/sys/config"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
 @inject IStringLocalizer<SharedResources> L
@@ -13,19 +14,19 @@
 
 <div class="ames-kpis">
     <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Config.Kpi.Keys"]</div>
-        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">전체 설정 키</div></div>
+        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">@L["SYS.Config.Kpi.KeysSub"]</div></div>
     <div class="ames-kpi ok"><div class="ames-kpi-l">@L["SYS.Config.Kpi.Active"]</div>
-        <div class="ames-kpi-v">@_active</div><div class="ames-kpi-s">IsActive=true</div></div>
+        <div class="ames-kpi-v">@_active</div><div class="ames-kpi-s">@L["SYS.Config.Kpi.ActiveSub"]</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Config.Kpi.Categories"]</div>
-        <div class="ames-kpi-v">@_cat</div><div class="ames-kpi-s">구분 수</div></div>
+        <div class="ames-kpi-v">@_cat</div><div class="ames-kpi-s">@L["SYS.Config.Kpi.CategoriesSub"]</div></div>
     <div class="ames-kpi warn"><div class="ames-kpi-l">@L["SYS.Config.Kpi.Security"]</div>
-        <div class="ames-kpi-v">@_sec</div><div class="ames-kpi-s">보안 키</div></div>
+        <div class="ames-kpi-v">@_sec</div><div class="ames-kpi-s">@L["SYS.Config.Kpi.SecuritySub"]</div></div>
 </div>
 
-@foreach (var grp in _rows.GroupBy(r => r.Category ?? "기타").OrderBy(g => g.Key))
+@foreach (var grp in _rows.Skip(_page * _pageSize).Take(_pageSize).GroupBy(r => r.Category ?? L["SYS.Config.GroupOther"].Value).OrderBy(g => g.Key))
 {
     <div class="ames-card">
-        <div class="ames-card-h">▼ @grp.Key  ·  @grp.Count()개</div>
+        <div class="ames-card-h">▼ @grp.Key  ·  @grp.Count() @L["Lbl.Count"]</div>
         <table class="ames-table">
             <thead><tr><th>@L["SYS.Config.Col.Key"]</th><th>@L["SYS.Config.Col.Desc"]</th><th>@L["SYS.Config.Col.Value"]</th><th>@L["SYS.Config.Col.Unit"]</th><th>@L["SYS.Config.Col.Type"]</th><th>@L["Col.Status"]</th></tr></thead>
             <tbody>
@@ -45,6 +46,7 @@
         </table>
     </div>
 }
+<Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
 
 @if (_rows.Count == 0)
 {
@@ -53,6 +55,8 @@
 
 @code {
     List<AMES.Data.Repositories.SysRepository.ConfigRow> _rows = new();
+    int _page = 0;
+    const int _pageSize = 20;
     int _active, _cat, _sec;
     protected override void OnInitialized()
     {

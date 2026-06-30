@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AuthenticationStateProvider Auth
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["MD.RfidReader.Title"] · AMES</PageTitle>
@@ -18,40 +19,48 @@
         <div class="ames-kpi-v">@_allRows.Count</div>
     </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">운영 중</div>
+        <div class="ames-kpi-l">@L["MD.RfidReader.Kpi.Online"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "ACTIVE")</div>
     </div>
     <div class="ames-kpi warn">
-        <div class="ames-kpi-l">점검 중</div>
+        <div class="ames-kpi-l">@L["MD.RfidReader.Kpi.Maint"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "MAINT")</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">라인 수</div>
+        <div class="ames-kpi-l">@L["Kpi.LineCount"]</div>
         <div class="ames-kpi-v">@_allRows.Select(r => r.LineID).Where(l => l != null).Distinct().Count()</div>
     </div>
 </div>
 
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MD.RfidReader.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.RfidReader.List"] · @_rows.Count @L["Lbl.Items"]@if (_rows.Count < _allRows.Count) { <text> / @L["Lbl.TotalOf"] @_allRows.Count</text> }</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:140px;padding:4px 8px;"
-                   placeholder="리더ID / 리더명" @bind="_fSearch" autocomplete="off" />
-            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fLine">
+                   placeholder='@L["MD.RfidReader.Ph.Search"]' @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Line"]</span>
+            <select class="ames-input" style="width:130px;padding:4px 8px;" @bind="_fLine">
                 <option value="">@L["Filter.AllLines"]</option>
-                @foreach (var l in _allRows.Select(r => r.LineID).Where(x => x != null).Distinct().OrderBy(x => x))
+                @foreach (var l in _lineList)
                 {
-                    <option value="@l">@l</option>
+                    <option value="@l.LineID">@l.LineID@(l.LineName != null ? $" {l.LineName}" : "")</option>
                 }
             </select>
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
             <select class="ames-input" style="width:90px;padding:4px 8px;" @bind="_fStatus">
                 <option value="">@L["Filter.AllStatus"]</option>
-                @foreach (var s in _allRows.Select(r => r.Status).Where(x => x != null).Distinct().OrderBy(x => x))
+                @foreach (var s in _readerStatus.Where(s => s.UseFlag))
                 {
-                    <option value="@s">@s</option>
+                    <option value="@s.CodeValue">@(MasterDataRepository.LocalName(s))</option>
                 }
             </select>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
         </div>
     </div>
 
@@ -64,15 +73,15 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>리더 ID</th><th>리더명</th><th>라인</th><th>게이트</th>
-                    <th>IP 주소</th><th class="num">안테나</th><th class="num">출력(dBm)</th>
-                    <th class="num">윈도우(ms)</th><th>PE 트리거</th><th>펌웨어</th><th>@L["Col.Status"]</th>
+                    <th>@L["Col.ReaderId"]</th><th>@L["Col.ReaderName"]</th><th>@L["Col.Line"]</th><th>@L["Col.Gate"]</th>
+                    <th>@L["Col.IpAddr"]</th><th class="num">@L["Col.Antenna"]</th><th class="num">@L["Col.OutputDbm"]</th>
+                    <th class="num">@L["Col.WindowMs"]</th><th>@L["Col.PeTrigger"]</th><th>@L["Col.Firmware"]</th><th>@L["Col.Status"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
-                    <tr>
+                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
                         <td class="code">@r.ReaderID</td>
                         <td>@(r.ReaderName ?? "—")</td>
                         <td class="dim">@(r.LineID ?? "—")</td>
@@ -83,20 +92,181 @@
                         <td class="num">@(r.WindowMs?.ToString() ?? "—")</td>
                         <td>@(r.PeTriggerFlag ? (MarkupString)"<span class=\"pill ok\">ON</span>" : (MarkupString)"<span class=\"pill\">OFF</span>")</td>
                         <td class="dim">@(r.FirmwareVer ?? "—")</td>
-                        <td><span class="pill @(r.Status == "ACTIVE" ? "ok" : r.Status == "MAINT" ? "warn" : "bad")">@(r.Status ?? "—")</span></td>
+                        <td>
+                            @{
+                                var scls   = r.Status == "ONLINE" ? "ok" : "bad";
+                                var sLabel = _readerStatus.FirstOrDefault(s => s.CodeValue == r.Status) is { } _lf_ ? MasterDataRepository.LocalName(_lf_) : r.Status;
+                            }
+                            <span class="pill @scls">@(sLabel ?? "—")</span>
+                        </td>
                     </tr>
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.RfidReader.Title"] — @L["Btn.Create"]</div>
+
+            <label>@L["Col.ReaderId"]</label>
+            <input class="ames-input" @bind="_f.ReaderID" placeholder="RDR-001" autocomplete="off" />
+
+            <label>@L["Col.ReaderName"]</label>
+            <input class="ames-input" @bind="_f.ReaderName" placeholder='@L["MD.RfidReader.Ph.ReaderName"]' autocomplete="off" />
+
+            <label>@L["Col.Gate"]</label>
+            <input class="ames-input" @bind="_f.GateLocation" placeholder="GATE-A" autocomplete="off" />
+
+            <label>@L["Col.Line"]</label>
+            <select class="ames-input" @bind="_f.LineID">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var l in _lineList)
+                {
+                    <option value="@l.LineID">[@l.LineID]@(l.LineName != null ? $" {l.LineName}" : "")</option>
+                }
+            </select>
+
+            <label>@L["Col.IpAddr"]</label>
+            <input class="ames-input" @bind="_f.IpAddress" placeholder="192.168.1.100" autocomplete="off" />
+
+            <label>@L["Col.Antenna"]</label>
+            <input class="ames-input" type="number" @bind="_f.AntennaCount" placeholder="4" min="1" autocomplete="off" />
+
+            <label>@L["Col.OutputDbm"]</label>
+            <input class="ames-input" type="number" @bind="_f.PowerDbm" placeholder="27" autocomplete="off" />
+
+            <label>@L["Col.WindowMs"]</label>
+            <input class="ames-input" type="number" @bind="_f.WindowMs" placeholder="500" autocomplete="off" />
+
+            <label>@L["Col.Firmware"]</label>
+            <input class="ames-input" @bind="_f.FirmwareVer" placeholder="v2.1.0" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.PeTriggerFlag" />
+                <span>@L["Col.PeTrigger"]</span>
+            </label>
+
+            <label>@L["Col.Status"]</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var s in _readerStatus.Where(s => s.UseFlag))
+                {
+                    <option value="@s.CodeValue">@(MasterDataRepository.LocalName(s))</option>
+                }
+            </select>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.RfidReader.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.ReaderID</span></div>
+
+            <label>@L["Col.ReaderName"]</label>
+            <input class="ames-input" @bind="_f.ReaderName" autocomplete="off" />
+
+            <label>@L["Col.Gate"]</label>
+            <input class="ames-input" @bind="_f.GateLocation" autocomplete="off" />
+
+            <label>@L["Col.Line"]</label>
+            <select class="ames-input" @bind="_f.LineID">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var l in _lineList)
+                {
+                    <option value="@l.LineID">[@l.LineID]@(l.LineName != null ? $" {l.LineName}" : "")</option>
+                }
+            </select>
+
+            <label>@L["Col.IpAddr"]</label>
+            <input class="ames-input" @bind="_f.IpAddress" autocomplete="off" />
+
+            <label>@L["Col.Antenna"]</label>
+            <input class="ames-input" type="number" @bind="_f.AntennaCount" min="1" autocomplete="off" />
+
+            <label>@L["Col.OutputDbm"]</label>
+            <input class="ames-input" type="number" @bind="_f.PowerDbm" autocomplete="off" />
+
+            <label>@L["Col.WindowMs"]</label>
+            <input class="ames-input" type="number" @bind="_f.WindowMs" autocomplete="off" />
+
+            <label>@L["Col.Firmware"]</label>
+            <input class="ames-input" @bind="_f.FirmwareVer" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.PeTriggerFlag" />
+                <span>@L["Col.PeTrigger"]</span>
+            </label>
+
+            <label>@L["Col.Status"]</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var s in _readerStatus.Where(s => s.UseFlag))
+                {
+                    <option value="@s.CodeValue">@(MasterDataRepository.LocalName(s))</option>
+                }
+            </select>
+
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)</button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn" @onclick="SaveEdit" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
+    int _page = 0;
+    const int _pageSize = 20;
     List<AMES.Data.Repositories.MasterDataRepository.RfidReaderRow> _allRows = new();
     List<AMES.Data.Repositories.MasterDataRepository.RfidReaderRow> _rows    = new();
-    string _fSearch = "", _fLine = "", _fStatus = "";
+    AMES.Data.Repositories.MasterDataRepository.RfidReaderRow? _sel;
 
-    protected override void OnInitialized() => Reload();
+    List<AMES.Data.Repositories.MasterDataRepository.LineRow>     _lineList     = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _readerStatus = new();
+    string _fSearch = "", _fLine = "", _fStatus = "";
+    string _modal = "";
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _msg = "", _modalErr = "";
+    bool _isErr;
+    string _actor = "system";
+    FormModel _f = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        try { _lineList     = Md.ListLines();                        } catch { }
+        try { _readerStatus = Md.ListCodeItems("RFID_READER_STATUS"); } catch { }
+        Reload();
+    }
 
     void Reload()
     {
@@ -106,6 +276,7 @@
 
     void ApplyFilter()
     {
+        _page = 0;
         _rows = _allRows;
         if (!string.IsNullOrWhiteSpace(_fSearch))
             _rows = _rows.Where(r =>
@@ -115,5 +286,105 @@
             _rows = _rows.Where(r => r.LineID == _fLine).ToList();
         if (!string.IsNullOrWhiteSpace(_fStatus))
             _rows = _rows.Where(r => r.Status == _fStatus).ToList();
+    }
+
+    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+
+    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.RfidReaderRow r)
+    {
+        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _f = new()
+        {
+            ReaderName    = r.ReaderName    ?? "",
+            GateLocation  = r.GateLocation  ?? "",
+            LineID        = r.LineID        ?? "",
+            AntennaCount  = r.AntennaCount,
+            PowerDbm      = r.PowerDbm,
+            PeTriggerFlag = r.PeTriggerFlag,
+            WindowMs      = r.WindowMs,
+            IpAddress     = r.IpAddress     ?? "",
+            FirmwareVer   = r.FirmwareVer   ?? "",
+            Status        = r.Status        ?? "ACTIVE",
+        };
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.ReaderID)) { _modalErr = L["Err.ReaderIdRequired"]; return; }
+        var id = _f.ReaderID.Trim();
+        if (Md.RfidReaderExists(id)) { _modalErr = $"'{id}' ID가 {L["Err.AlreadyExists"]}"; return; }
+        _busy = true;
+        try
+        {
+            Md.InsertRfidReader(id, NE(_f.ReaderName), NE(_f.GateLocation),
+                NE(_f.LineID), _f.AntennaCount, _f.PowerDbm, _f.PeTriggerFlag,
+                _f.WindowMs, NE(_f.IpAddress), NE(_f.FirmwareVer), NE(_f.Status), _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{id} {L["Msg.Created"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        _busy = true;
+        try
+        {
+            Md.UpdateRfidReader(_sel.ReaderID, NE(_f.ReaderName), NE(_f.GateLocation),
+                NE(_f.LineID), _f.AntennaCount, _f.PowerDbm, _f.PeTriggerFlag,
+                _f.WindowMs, NE(_f.IpAddress), NE(_f.FirmwareVer), NE(_f.Status), _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{_sel.ReaderID} {L["Msg.Updated"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            var id = _sel.ReaderID;
+            Md.DeleteRfidReader(_sel.ReaderID);
+            CloseModal(); Reload();
+            ShowMsg($"{id} {L["Msg.Deleted"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    class FormModel
+    {
+        public string  ReaderID      { get; set; } = "";
+        public string  ReaderName    { get; set; } = "";
+        public string  GateLocation  { get; set; } = "";
+        public string  LineID        { get; set; } = "";
+        public int?    AntennaCount  { get; set; }
+        public int?    PowerDbm      { get; set; }
+        public bool    PeTriggerFlag { get; set; } = false;
+        public int?    WindowMs      { get; set; }
+        public string  IpAddress     { get; set; } = "";
+        public string  FirmwareVer   { get; set; } = "";
+        public string  Status        { get; set; } = "ACTIVE";
     }
 }

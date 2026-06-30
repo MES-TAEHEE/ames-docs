@@ -1,7 +1,13 @@
 ﻿@page "/pp/line-schedule"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.PpRepository Pp
+@rendermode InteractiveServer
+@inject AMES.Data.Repositories.LineScheduleRepository LSB
+@inject AMES.Data.Repositories.WorkOrderRepository    Wos
 @inject IStringLocalizer<SharedResources> L
+@inject IJSRuntime JS
+@inject AuthenticationStateProvider Auth
+@implements IDisposable
+@using AMES.Contracts.Dto
 
 <PageTitle>@L["PP.LineSchedule.Title"] · AMES</PageTitle>
 
@@ -11,36 +17,605 @@
     <div class="ames-page-sub">@L["PP.LineSchedule.Sub"]</div>
 </div>
 
-@foreach (var line in _rows.GroupBy(r => r.LineId).OrderBy(g => g.Key))
+@* ── KPI ──────────────────────────────────────────────────────────── *@
+<div class="ames-kpis">
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">@L["PP.LineSchedule.Kpi.WorkCap"]</div>
+        <div class="ames-kpi-v">@WorkMin<span style="font-size:14px;margin-left:3px;">min</span></div>
+        <div class="ames-kpi-s">@L["PP.LineSchedule.Kpi.WorkCapSub"]</div>
+    </div>
+    <div class="ames-kpi info">
+        <div class="ames-kpi-l">@L["PP.LineSchedule.Kpi.WoLoad"]</div>
+        <div class="ames-kpi-v">@WoLoadMin<span style="font-size:14px;margin-left:3px;">min</span></div>
+        <div class="ames-kpi-s">@L["PP.LineSchedule.Kpi.WoLoadSub"]</div>
+    </div>
+    <div class="ames-kpi @(RemainMin < 0 ? "bad" : RemainMin < 60 ? "warn" : "")">
+        <div class="ames-kpi-l">@L["PP.LineSchedule.Kpi.Remain"]</div>
+        <div class="ames-kpi-v">@RemainMin<span style="font-size:14px;margin-left:3px;">min</span></div>
+        <div class="ames-kpi-s">@(RemainMin < 0 ? L["PP.LineSchedule.Kpi.Over"].Value : L["PP.LineSchedule.Kpi.Available"].Value)</div>
+    </div>
+    <div class="ames-kpi @(WorkMin > 0 ? (Utilization >= 100 ? "bad" : Utilization >= 80 ? "warn" : "ok") : "")">
+        <div class="ames-kpi-l">@L["PP.LineSchedule.Kpi.Util"]</div>
+        <div class="ames-kpi-v">@Utilization<span style="font-size:14px;margin-left:2px;">%</span></div>
+        <div class="ames-kpi-s">@L["PP.LineSchedule.Kpi.UtilSub"]</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_err))
+{
+    <div class="ames-alert bad">@_err</div>
+}
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert ok">@_msg</div>
+}
+
+@* ── Tab bar + toolbar ────────────────────────────────────────────── *@
+<div class="ames-cal-tabs" style="gap:6px;">
+    <button class="ames-cal-tab @(_tab=="gantt"?"active":"")"
+            @onclick='() => SwitchTab("gantt")'>@L["PP.LineSchedule.Tab.Gantt"]</button>
+    <button class="ames-cal-tab @(_tab=="pattern"?"active":"")"
+            @onclick='() => SwitchTab("pattern")'>@L["PP.LineSchedule.Tab.Pattern"]</button>
+    <div style="flex:1;"></div>
+    <select class="ames-input" style="width:160px;padding:4px 8px;align-self:center;"
+            @bind="_lineId" @bind:after="LoadData">
+        <option value="">@L["PP.LineSchedule.Ph.SelectLine"]</option>
+        @foreach (var l in _lines)
+        {
+            <option value="@l">@l</option>
+        }
+    </select>
+    <input type="date" class="ames-input" style="width:150px;padding:4px 8px;align-self:center;"
+           value="@_date.ToString("yyyy-MM-dd")"
+           @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) { _date = d; LoadData(); } }" />
+    <select class="ames-input" style="width:120px;padding:4px 8px;align-self:center;"
+            @bind="_dayType" @bind:after="LoadData">
+        <option value="WORKDAY">WORKDAY</option>
+        <option value="WEEKEND">WEEKEND</option>
+        <option value="HOLIDAY">HOLIDAY</option>
+    </select>
+    <button class="ames-btn ok" @onclick="LoadData" style="align-self:center;">@L["Btn.Search"]</button>
+</div>
+
+@if (string.IsNullOrEmpty(_lineId))
+{
+    <div class="ames-card"><div class="ames-empty">@L["PP.LineSchedule.Empty.NoLine"]</div></div>
+}
+else
+{
+
+@* ══════════════════════════════════════════════════════════════════ *@
+@* ── GANTT TAB ───────────────────────────────────────────────────── *@
+@* ══════════════════════════════════════════════════════════════════ *@
+@if (_tab == "gantt")
 {
     <div class="ames-card">
-        <div class="ames-card-h">▼ @line.Key  ·  @line.Count() slots</div>
-        <table class="ames-table">
-            <thead><tr><th>Date</th><th>Start</th><th>End</th><th>WO</th><th class="num">Planned</th><th>Status</th></tr></thead>
-            <tbody>
-                @foreach (var s in line.OrderBy(x => x.ScheduleDate).ThenBy(x => x.StartMin))
-                {
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <span>▼ @_lineId · @_date.ToString("yyyy-MM-dd ddd") · @_dayType</span>
+            <div style="display:flex;gap:6px;align-items:center;">
+                <span class="dim" style="font-size:12px;">@L["PP.LineSchedule.Kpi.WorkCap"]</span>
+                <select class="ames-input" style="width:90px;padding:3px 6px;" @bind="_startH"
+                        @bind:after="StateHasChanged">
+                    @for (int h = 0; h <= 22; h++) { <option value="@h">@($"{h:00}"):00</option> }
+                </select>
+                <span class="dim">~</span>
+                <select class="ames-input" style="width:90px;padding:3px 6px;" @bind="_endH"
+                        @bind:after="StateHasChanged">
+                    @for (int h = 1; h <= 24; h++) { <option value="@h">@($"{h:00}"):00</option> }
+                </select>
+                <button class="ames-btn" style="padding:3px 12px;" @onclick="() => _showPlace = !_showPlace">
+                    @(_showPlace ? L["PP.LineSchedule.Btn.WoClose"].Value : L["PP.LineSchedule.Btn.WoOpen"].Value)
+                </button>
+            </div>
+        </div>
+
+        @* WO 배치 패널 *@
+        @if (_showPlace)
+        {
+            var overCap = RemainMin <= 0;
+            <div style="padding:10px 14px;background:rgba(59,130,246,.06);border-bottom:1px solid rgba(255,255,255,.06);
+                        display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;">
+                <div>
+                    <div class="dim" style="font-size:11px;margin-bottom:3px;">@L["PP.LineSchedule.Lbl.WoSelect"]</div>
+                    <select class="ames-input" style="width:220px;padding:4px 8px;" @bind="_placeWoId">
+                        <option value="0">@L["Opt.Select"]</option>
+                        @foreach (var wo in _availableWos)
+                        {
+                            <option value="@wo.WoId">@wo.WoNumber  @(wo.ItemName ?? wo.ItemNo)</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <div class="dim" style="font-size:11px;margin-bottom:3px;">@L["PP.LineSchedule.Lbl.StartTime"]</div>
+                    <input type="time" class="ames-input" style="width:120px;padding:4px 8px;"
+                           @bind="_placeStartTime" />
+                </div>
+                <div>
+                    <div class="dim" style="font-size:11px;margin-bottom:3px;">@L["PP.LineSchedule.Lbl.Duration"]</div>
+                    <input type="number" class="ames-input" style="width:90px;padding:4px 8px;"
+                           min="1" max="1440" @bind="_placeDurMin" />
+                </div>
+                <div>
+                    <div class="dim" style="font-size:11px;margin-bottom:3px;">@L["PP.LineSchedule.Lbl.PlannedQty"]</div>
+                    <input type="number" class="ames-input" style="width:100px;padding:4px 8px;"
+                           min="0" @bind="_placeQty" />
+                </div>
+                <button class="ames-btn" @onclick="PlaceWo"
+                        disabled="@(_placeWoId == 0 || overCap)"
+                        title="@(overCap ? L["PP.LineSchedule.Ttl.CapBlocked"].Value : "")">
+                    @(overCap ? L["PP.LineSchedule.Btn.CapOver"].Value : L["PP.LineSchedule.Btn.Place"].Value)
+                </button>
+            </div>
+        }
+
+        @GanttView(showWo: true, showDragSurface: false)
+
+        @if (_slots.Count > 0)
+        {
+            <table class="ames-table" style="margin-top:8px;">
+                <thead>
                     <tr>
-                        <td class="dim">@(s.ScheduleDate?.ToString("MM-dd ddd") ?? "—")</td>
-                        <td class="code">@MinToTime(s.StartMin)</td>
-                        <td class="code">@MinToTime(s.EndMin)</td>
-                        <td>@(s.WoNumber ?? $"#{s.WoId}")</td>
-                        <td class="num">@s.PlannedQty.ToString("0")</td>
-                        <td>@s.Status</td>
+                        <th style="width:110px;">WO</th>
+                        <th>@L["Col.Item"]</th>
+                        <th style="width:80px;">@L["Col.Start"]</th>
+                        <th style="width:80px;">@L["Col.End"]</th>
+                        <th style="width:70px;text-align:right;">@L["PP.LineSchedule.Lbl.PlannedQty"]</th>
+                        <th style="width:80px;">@L["Col.Status"]</th>
+                        <th style="width:50px;"></th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach (var s in _slots.Skip(_page * _pageSize).Take(_pageSize))
+                    {
+                        var capS = s;
+                        <tr>
+                            <td class="code">@(s.WoNumber ?? $"WO#{s.WoId}")</td>
+                            <td class="dim">@(s.ItemName ?? "—")</td>
+                            <td class="code">@MinToTime(s.StartMin)</td>
+                            <td class="code">@MinToTime(s.EndMin)</td>
+                            <td style="text-align:right;">@s.PlannedQty.ToString("N0")</td>
+                            <td><span class="pill info">@(s.Status ?? "Planned")</span></td>
+                            <td>
+                                <button class="ames-btn bad" style="padding:2px 6px;"
+                                        @onclick="() => RemoveSlot(capS.ScheduleId)">×</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <Pager Page="_page" Total="_slots.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
+        }
     </div>
 }
 
-@if (_rows.Count == 0)
+@* ══════════════════════════════════════════════════════════════════ *@
+@* ── PATTERN TAB ─────────────────────────────────────────────────── *@
+@* ══════════════════════════════════════════════════════════════════ *@
+@if (_tab == "pattern")
 {
-    <div class="ames-card"><div class="ames-empty">@L["PP.LineSchedule.Empty"]</div></div>
+    <div class="ames-card">
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <span>@L["PP.LineSchedule.Tab.Pattern"] — @_lineId / @_dayType</span>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                <span class="dim" style="font-size:12px;">@L["PP.LineSchedule.Lbl.BandType"]</span>
+                @foreach (var (type, key, cls) in new[] {
+                    ("WORK",         "PP.LineSchedule.Band.Work",        "ok"),
+                    ("PLANNED_DOWN", "PP.LineSchedule.Band.PlannedDown", "bad"),
+                    ("BREAK",        "PP.LineSchedule.Band.Break",       "warn") })
+                {
+                    var t = type; var k = key;
+                    <button class="ames-btn @(_bandType == t ? cls : "")"
+                            style="padding:4px 12px;"
+                            @onclick="() => _bandType = t">@L[k]</button>
+                }
+                <span class="dim" style="font-size:11px;margin-left:4px;">@L["PP.LineSchedule.Kpi.WorkCap"]</span>
+                <select class="ames-input" style="width:90px;padding:3px 6px;" @bind="_startH"
+                        @bind:after="ReinitDrag">
+                    @for (int h = 0; h <= 22; h++) { <option value="@h">@($"{h:00}"):00</option> }
+                </select>
+                <span class="dim">~</span>
+                <select class="ames-input" style="width:90px;padding:3px 6px;" @bind="_endH"
+                        @bind:after="ReinitDrag">
+                    @for (int h = 1; h <= 24; h++) { <option value="@h">@($"{h:00}"):00</option> }
+                </select>
+                @if (_lastBandId.HasValue)
+                {
+                    <button class="ames-btn warn" style="padding:4px 12px;" title="@L["PP.LineSchedule.Ttl.Undo"]"
+                            @onclick="UndoLastBand">@L["PP.LineSchedule.Btn.Undo"]</button>
+                }
+                <button class="ames-btn bad" style="padding:4px 12px;"
+                        @onclick="ClearPattern">@L["PP.LineSchedule.Btn.Clear"]</button>
+            </div>
+        </div>
+
+        <div style="padding:6px 14px 2px;font-size:11px;color:#64748b;">
+            ← @L["PP.LineSchedule.DragHint"] &nbsp;·&nbsp;
+            @L["PP.LineSchedule.EscHint"] &nbsp;·&nbsp;
+            @L["PP.LineSchedule.ClickHint"]
+        </div>
+
+        @GanttView(showWo: false, showDragSurface: true)
+
+        <div style="display:flex;gap:20px;padding:10px 14px 4px;font-family:'JetBrains Mono',monospace;font-size:12px;flex-wrap:wrap;">
+            <span style="color:#86efac;">@string.Format(L["PP.LineSchedule.Stat.Work"].Value, _pattern.Where(b=>b.BandType=="WORK").Sum(b=>b.EndMin-b.StartMin))</span>
+            <span style="color:#fca5a5;">@string.Format(L["PP.LineSchedule.Stat.PlannedDown"].Value, _pattern.Where(b=>b.BandType=="PLANNED_DOWN").Sum(b=>b.EndMin-b.StartMin))</span>
+            <span style="color:#fde68a;">@string.Format(L["PP.LineSchedule.Stat.Break"].Value, _pattern.Where(b=>b.BandType=="BREAK").Sum(b=>b.EndMin-b.StartMin))</span>
+            <span class="dim">@string.Format(L["PP.LineSchedule.Stat.BandCount"].Value, _pattern.Count)</span>
+        </div>
+    </div>
+}
+} @* end @if (!string.IsNullOrEmpty(_lineId)) *@
+
+@* ── Delete confirm modal ─────────────────────────────────────────── *@
+@if (_confirmBandId.HasValue)
+{
+    var cb   = _confirmBandId.Value;
+    var band = _pattern.FirstOrDefault(b => b.PatternId == cb);
+    <div class="ames-modal-bg">
+        <div class="ames-modal" style="max-width:340px;">
+            <div class="ames-modal-h">@L["PP.LineSchedule.Modal.DeleteBand"]</div>
+            @if (band is not null)
+            {
+                <div style="margin:8px 0;color:#94a3b8;">
+                    @BandLabel(band.BandType)&nbsp;
+                    @MinToTime(band.StartMin) — @MinToTime(band.EndMin)
+                    (@(band.EndMin - band.StartMin)@L["Lbl.Min"])
+                </div>
+            }
+            <div class="ames-modal-footer">
+                <button class="ames-btn bad"  @onclick="() => ConfirmDeleteBand(cb)">@L["Btn.Delete"]</button>
+                <button class="ames-btn ghost"  @onclick="() => _confirmBandId = null">@L["Btn.Cancel"]</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ══════════════════════════════════════════════════════════════════ *@
+@* ── Render Fragment: Gantt view (% based, full-width) ───────────── *@
+@* ══════════════════════════════════════════════════════════════════ *@
+@code {
+    RenderFragment GanttView(bool showWo, bool showDragSurface) => __b =>
+    {
+        int startMin = _startH * 60;
+        int endMin   = _endH   * 60;
+        int rangeMin = endMin - startMin;
+        if (rangeMin <= 0) return;
+
+        string LeftPct(int m)           => $"{(double)(m - startMin) / rangeMin * 100.0:F4}%";
+        string WidthPct(int lo, int hi) => $"{(double)(hi - lo) / rangeMin * 100.0:F4}%";
+
+        __b.OpenElement(0, "div");
+        __b.AddAttribute(1, "class", "pp-gantt-wrap");
+        __b.AddAttribute(2, "style", "margin-top:6px;");
+
+        __b.OpenElement(3, "div");
+        __b.AddAttribute(4, "class", "pp-gantt-inner");
+
+        // ── ruler row ─────────────────────────────────────────────────
+        __b.OpenElement(10, "div");
+        __b.AddAttribute(11, "class", "pp-gantt-ruler");
+
+        int tickStep = rangeMin <= 120 ? 10 : rangeMin <= 360 ? 30 : 60;
+        for (int m = startMin; m <= endMin; m += tickStep)
+        {
+            bool isHour = m % 60 == 0;
+            string lp   = LeftPct(m);
+
+            __b.OpenElement(20, "div");
+            __b.AddAttribute(21, "class", "pp-gantt-gridline" + (isHour ? " major" : ""));
+            __b.AddAttribute(22, "style", $"left:{lp};height:26px;");
+            __b.CloseElement();
+
+            if (isHour || tickStep < 60)
+            {
+                __b.OpenElement(23, "div");
+                __b.AddAttribute(24, "class", "pp-gantt-tick" + (isHour ? " major" : ""));
+                __b.AddAttribute(25, "style", $"left:{lp};");
+                __b.AddContent(26, $"{m / 60:00}:{m % 60:00}");
+                __b.CloseElement();
+            }
+        }
+        __b.CloseElement(); // ruler
+
+        // ── pattern band row ──────────────────────────────────────────
+        __b.OpenElement(30, "div");
+        __b.AddAttribute(31, "class", "pp-gantt-row");
+        __b.AddAttribute(32, "style", "height:104px;");
+
+        __b.OpenElement(33, "div");
+        __b.AddAttribute(34, "class", "pp-gantt-row-lbl");
+        __b.AddContent(35, L["PP.LineSchedule.Pattern.Lbl"].Value);
+        __b.CloseElement();
+
+        for (int h2 = _startH; h2 <= _endH; h2++)
+        {
+            __b.OpenElement(36, "div");
+            __b.AddAttribute(37, "class", "pp-gantt-gridline major");
+            __b.AddAttribute(38, "style", $"left:{LeftPct(h2 * 60)};");
+            __b.CloseElement();
+        }
+
+        foreach (var band in _pattern)
+        {
+            int lo = Math.Max(startMin, band.StartMin);
+            int hi = Math.Min(endMin,   band.EndMin);
+            if (hi <= lo) continue;
+
+            string cls = band.BandType switch {
+                "PLANNED_DOWN" => "pp-gantt-band pp-gantt-band--down",
+                "BREAK"        => "pp-gantt-band pp-gantt-band--break",
+                _              => "pp-gantt-band pp-gantt-band--work"
+            };
+            var capBand = band;
+            int wMin    = hi - lo;
+
+            __b.OpenElement(40, "div");
+            __b.AddAttribute(41, "class", cls);
+            __b.AddAttribute(42, "style", $"left:{LeftPct(lo)};width:{WidthPct(lo, hi)};");
+            __b.AddAttribute(43, "title",
+                $"{BandLabel(band.BandType)}  {MinToTime(band.StartMin)}–{MinToTime(band.EndMin)}  ({wMin}{L["Lbl.Min"]})");
+            __b.AddAttribute(44, "onclick", EventCallback.Factory.Create(this,
+                () => { if (_tab == "pattern") _confirmBandId = capBand.PatternId; }));
+            if ((double)wMin / rangeMin >= 0.06)
+                __b.AddContent(45, $"{BandLabel(band.BandType)} {wMin}{L["Lbl.Min"]}");
+            __b.CloseElement();
+        }
+
+        if (showDragSurface)
+        {
+            __b.OpenElement(50, "div");
+            __b.AddAttribute(51, "class", "pp-gantt-drag");
+            __b.AddAttribute(52, "id", "gantt-drag-surface");
+            __b.CloseElement();
+        }
+
+        __b.CloseElement(); // pattern row
+
+        // ── WO slot row ───────────────────────────────────────────────
+        if (showWo)
+        {
+            __b.OpenElement(60, "div");
+            __b.AddAttribute(61, "class", "pp-gantt-row");
+            __b.AddAttribute(62, "style", "height:104px;");
+
+            __b.OpenElement(63, "div");
+            __b.AddAttribute(64, "class", "pp-gantt-row-lbl");
+            __b.AddContent(65, "WO");
+            __b.CloseElement();
+
+            foreach (var slot in _slots)
+            {
+                if (slot.StartMin >= slot.EndMin) continue;
+                int lo = Math.Max(startMin, slot.StartMin);
+                int hi = Math.Min(endMin,   slot.EndMin);
+                if (hi <= lo) continue;
+
+                var capSlot = slot;
+                int wMin    = hi - lo;
+
+                __b.OpenElement(70, "div");
+                __b.AddAttribute(71, "class", "pp-gantt-wo");
+                __b.AddAttribute(72, "style", $"left:{LeftPct(lo)};width:{WidthPct(lo, hi)};");
+                __b.AddAttribute(73, "title",
+                    $"{slot.WoNumber}  {slot.ItemName ?? ""}\n{MinToTime(slot.StartMin)}–{MinToTime(slot.EndMin)}  ({slot.EndMin - slot.StartMin}{L["Lbl.Min"]})  {slot.PlannedQty:N0}{L["Lbl.Count"]}");
+                __b.AddAttribute(74, "onclick", EventCallback.Factory.Create(this,
+                    () => RemoveSlot(capSlot.ScheduleId)));
+                if ((double)wMin / rangeMin >= 0.06)
+                    __b.AddContent(75, slot.WoNumber ?? $"#{slot.WoId}");
+                __b.CloseElement();
+            }
+
+            __b.CloseElement(); // WO row
+        }
+
+        __b.CloseElement(); // inner
+        __b.CloseElement(); // wrap
+    };
 }
 
 @code {
-    List<AMES.Data.Repositories.PpRepository.ScheduleRow> _rows = new();
-    protected override void OnInitialized() { try { _rows = Pp.ListSchedule(); } catch { } }
-    static string MinToTime(int? m) => m is null ? "—" : $"{m.Value / 60:00}:{m.Value % 60:00}";
+    // ── State ────────────────────────────────────────────────────────────
+    int _page = 0;
+    const int _pageSize = 20;
+    string   _tab     = "gantt";
+    string   _lineId  = "";
+    DateTime _date    = DateTime.Today;
+    string   _dayType = "WORKDAY";
+    string   _bandType = "WORK";
+    int      _startH  = 6;
+    int      _endH    = 22;
+
+    List<string> _lines   = [];
+    List<AMES.Data.Repositories.LineScheduleRepository.PatternBand> _pattern = [];
+    List<AMES.Data.Repositories.LineScheduleRepository.WoSlot>      _slots   = [];
+    List<WorkOrderDto> _allWos = [];
+
+    bool     _showPlace      = false;
+    int      _placeWoId      = 0;
+    TimeOnly _placeStartTime = new(8, 0);
+    int      _placeDurMin    = 60;
+    decimal  _placeQty       = 0;
+
+    int?   _confirmBandId;
+    int?   _lastBandId;
+    string _err = "";
+    string _msg = "";
+
+    DotNetObjectReference<LineSchedule>? _ref;
+    bool   _jsReady;
+    string _actor = "web";
+
+    // ── Computed ─────────────────────────────────────────────────────────
+    int WorkMin     => _pattern.Where(b => b.BandType == "WORK").Sum(b => b.EndMin - b.StartMin);
+    int WoLoadMin   => _slots.Sum(s => s.EndMin - s.StartMin);
+    int RemainMin   => WorkMin - WoLoadMin;
+    int Utilization => WorkMin > 0 ? Math.Min(999, WoLoadMin * 100 / WorkMin) : 0;
+
+    IEnumerable<WorkOrderDto> _availableWos =>
+        _allWos.Where(w => w.LineId == _lineId && w.Status is "Released" or "In Progress");
+
+    // ── Init ─────────────────────────────────────────────────────────────
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await Auth.GetAuthenticationStateAsync();
+        _actor = authState.User.Identity?.Name ?? "web";
+        try { _lines = LSB.ListLines(); } catch { }
+        if (_lines.Count > 0) { _lineId = _lines[0]; LoadData(); }
+        try { _allWos = Wos.ListAll(90); } catch { }
+    }
+
+    void LoadData()
+    {
+        _page = 0;
+        _err = "";
+        if (string.IsNullOrEmpty(_lineId)) return;
+        try
+        {
+            _pattern = LSB.GetPattern(_lineId, _dayType);
+            _slots   = LSB.GetSlots(_lineId, _date);
+        }
+        catch (Exception ex) { _err = string.Format(L["PP.LineSchedule.Err.Load"].Value, ex.Message); }
+    }
+
+    // ── JS lifecycle ─────────────────────────────────────────────────────
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            _ref = DotNetObjectReference.Create(this);
+
+        if (_tab == "pattern" && !_jsReady && _ref is not null
+            && !string.IsNullOrEmpty(_lineId))
+        {
+            await InitDrag();
+        }
+    }
+
+    async Task InitDrag()
+    {
+        if (_ref is null) return;
+        int rangeMin = (_endH - _startH) * 60;
+        await JS.InvokeVoidAsync("ganttDrag.init", _ref, "gantt-drag-surface",
+                                 _startH * 60, rangeMin);
+        _jsReady = true;
+    }
+
+    async Task SwitchTab(string tab)
+    {
+        if (_tab == tab) return;
+        if (_jsReady)
+        {
+            await JS.InvokeVoidAsync("ganttDrag.destroy");
+            _jsReady = false;
+        }
+        _tab = tab;
+        StateHasChanged();
+    }
+
+    async Task ReinitDrag()
+    {
+        if (_tab != "pattern") return;
+        _jsReady = false;
+        await InitDrag();
+    }
+
+    // ── Drag callback (from JS) ───────────────────────────────────────────
+    [JSInvokable]
+    public async Task OnGanttDrag(int startMin, int endMin)
+    {
+        startMin = Math.Max(0,          Math.Min(1439, startMin));
+        endMin   = Math.Max(startMin+1, Math.Min(1440, endMin));
+        _err     = "";
+        try
+        {
+            _lastBandId = LSB.PaintBand(_lineId, _dayType, startMin, endMin,
+                                        _bandType, null, _actor);
+            LoadData();
+        }
+        catch (Exception ex) { _err = string.Format(L["PP.LineSchedule.Err.BandSave"].Value, ex.Message); }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    // ── Pattern CRUD ──────────────────────────────────────────────────────
+    void ConfirmDeleteBand(int id)
+    {
+        _confirmBandId = null;
+        if (id == _lastBandId) _lastBandId = null;
+        _err = "";
+        try { LSB.DeleteBand(id); LoadData(); }
+        catch (Exception ex) { _err = ex.Message; }
+    }
+
+    void UndoLastBand()
+    {
+        if (_lastBandId is not { } id) return;
+        _lastBandId = null;
+        _err = "";
+        try { LSB.DeleteBand(id); LoadData(); }
+        catch (Exception ex) { _err = ex.Message; }
+    }
+
+    void ClearPattern()
+    {
+        _lastBandId = null;
+        _err = "";
+        try { LSB.ClearPattern(_lineId, _dayType); LoadData(); }
+        catch (Exception ex) { _err = ex.Message; }
+    }
+
+    // ── WO Placement ──────────────────────────────────────────────────────
+    void PlaceWo()
+    {
+        _err = "";
+        if (_placeWoId == 0) { _err = L["PP.LineSchedule.Err.NoWo"]; return; }
+        int startMin = _placeStartTime.Hour * 60 + _placeStartTime.Minute;
+        int endMin   = startMin + _placeDurMin;
+
+        bool inWork = _pattern
+            .Where(b => b.BandType == "WORK")
+            .Any(b => b.StartMin <= startMin && b.EndMin >= endMin);
+        if (!inWork) { _err = L["PP.LineSchedule.Err.NotInWork"]; return; }
+
+        if (RemainMin - _placeDurMin < 0)
+        {
+            _err = string.Format(L["PP.LineSchedule.Err.CapOver"].Value, RemainMin, _placeDurMin);
+            return;
+        }
+
+        try
+        {
+            LSB.PlaceWo(_lineId, _date, _placeWoId, startMin, endMin, _placeQty);
+            ShowMsg(L["PP.LineSchedule.Ok.Placed"]);
+            LoadData();
+        }
+        catch (Exception ex) { _err = ex.Message; }
+    }
+
+    void RemoveSlot(int scheduleId)
+    {
+        _err = "";
+        try { LSB.RemoveSlot(scheduleId); LoadData(); }
+        catch (Exception ex) { _err = ex.Message; }
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────
+    static string MinToTime(int m) => $"{m / 60:00}:{m % 60:00}";
+
+    string BandLabel(string t) => t switch {
+        "WORK"         => L["PP.LineSchedule.Band.Work"].Value,
+        "PLANNED_DOWN" => L["PP.LineSchedule.Band.PlannedDown"].Value,
+        "BREAK"        => L["PP.LineSchedule.Band.Break"].Value,
+        _              => t
+    };
+
+    void ShowMsg(string msg)
+    {
+        _msg = msg;
+        _ = Task.Delay(3500).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    public void Dispose()
+    {
+        _ = JS.InvokeVoidAsync("ganttDrag.destroy");
+        _ref?.Dispose();
+    }
 }

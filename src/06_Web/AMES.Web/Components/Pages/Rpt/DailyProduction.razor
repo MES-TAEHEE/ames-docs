@@ -2,12 +2,13 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.RptRepository Rpt
+@inject AMES.Data.Repositories.MasterDataRepository Md
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>RPT-01 @L["RPT.DailyProduction.Title"] · AMES</PageTitle>
+<PageTitle>RPT-001 @L["RPT.DailyProduction.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">RPT-01</div>
+    <div class="ames-page-id">RPT-001</div>
     <div class="ames-page-t">@L["RPT.DailyProduction.Title"]</div>
     <div class="ames-page-sub">@L["RPT.DailyProduction.Sub"]</div>
 </div>
@@ -29,15 +30,20 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["RPT.DailyProduction.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input class="ames-input" style="width:120px;padding:4px 8px;"
-                   placeholder="@L["RPT.DailyProduction.Ph.Line"]" @bind="_fLine" autocomplete="off" />
+            <select class="ames-input" style="width:140px;padding:4px 8px;" @bind="_fLine">
+                <option value="">@L["Filter.AllLines"]</option>
+                @foreach (var l in _lineList)
+                {
+                    <option value="@l.LineID">@l.LineID@(l.LineName != null ? $" {l.LineName}" : "")</option>
+                }
+            </select>
             <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Period"]</label>
-            <select class="ames-input" style="width:80px;padding:4px 8px;" @bind="_daysBack">
-                <option value="7">7@L["Lbl.Days"]</option>
-                <option value="14">14@L["Lbl.Days"]</option>
-                <option value="30">30@L["Lbl.Days"]</option>
-                <option value="60">60@L["Lbl.Days"]</option>
-                <option value="90">90@L["Lbl.Days"]</option>
+            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_daysBack">
+                <option value="7">7@(L["Lbl.Days"])</option>
+                <option value="14">14@(L["Lbl.Days"])</option>
+                <option value="30">30@(L["Lbl.Days"])</option>
+                <option value="60">60@(L["Lbl.Days"])</option>
+                <option value="90">90@(L["Lbl.Days"])</option>
             </select>
             <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
         </div>
@@ -57,7 +63,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     <tr>
                         <td class="dim">@r.Day.ToString("MM-dd (ddd)")</td>
@@ -74,20 +80,28 @@
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
 @code {
     List<AMES.Data.Repositories.RptRepository.DailyProdRow> _allRows = new();
     List<AMES.Data.Repositories.RptRepository.DailyProdRow> _rows    = new();
+    int _page = 0;
+    const int _pageSize = 20;
 
+    List<AMES.Data.Repositories.MasterDataRepository.LineRow> _lineList = new();
     int     _daysBack = 14;
     string  _fLine    = "";
     int     _days;
     long    _good, _def;
     decimal _yld;
 
-    protected override void OnInitialized() => Reload();
+    protected override void OnInitialized()
+    {
+        try { _lineList = Md.ListLines(); } catch { }
+        Reload();
+    }
 
     void Reload()
     {
@@ -97,9 +111,10 @@
 
     void ApplyFilter()
     {
-        _rows = string.IsNullOrWhiteSpace(_fLine)
+        _page = 0;
+        _rows = string.IsNullOrEmpty(_fLine)
             ? _allRows
-            : _allRows.Where(r => (r.LineId ?? "").Contains(_fLine, StringComparison.OrdinalIgnoreCase)).ToList();
+            : _allRows.Where(r => r.LineId == _fLine).ToList();
         _days = _rows.Select(r => r.Day).Distinct().Count();
         _good = _rows.Sum(r => (long)r.GoodQty);
         _def  = _rows.Sum(r => (long)r.DefectQty);

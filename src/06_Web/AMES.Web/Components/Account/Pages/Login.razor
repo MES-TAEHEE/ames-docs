@@ -7,9 +7,9 @@
 @using AMES.Web.Data
 
 @inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserMgr
+@inject AMES.Data.Repositories.AuthRepository AuthRepo
 @inject ILogger<Login> Logger
-@inject NavigationManager NavigationManager
-@inject IdentityRedirectManager RedirectManager
 
 <PageTitle>Sign in · A-MES</PageTitle>
 
@@ -27,7 +27,8 @@
             <div class="ames-auth-error">✕ @errorMessage</div>
         }
 
-        <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login" class="ames-auth-form">
+        <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login"
+                  class="ames-auth-form" Enhance="false">
             <DataAnnotationsValidator />
 
             <label class="ames-auth-label">EMAIL</label>
@@ -55,7 +56,7 @@
         <div class="ames-auth-meta">
             <a href="Account/ForgotPassword">Forgot password?</a>
             <span>·</span>
-            <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register</a>
+            <a href="/Account/Register@(string.IsNullOrEmpty(ReturnUrl) ? "" : $"?ReturnUrl={Uri.EscapeDataString(ReturnUrl)}")">Register</a>
         </div>
     </div>
 
@@ -74,28 +75,80 @@
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
+    private const string RememberCookie = "ames_remember";
+
     protected override async Task OnInitializedAsync()
     {
         if (HttpMethods.IsGet(HttpContext.Request.Method))
+        {
             await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+
+            // Restore the user's last RememberMe preference
+            if (HttpContext.Request.Cookies.TryGetValue(RememberCookie, out var pref))
+                Input.RememberMe = pref == "1";
+        }
     }
 
     public async Task LoginUser()
     {
+        // Pre-check: if account is LOCKED in SYS_UserProfile, reject before attempting sign-in.
+        var identityUser = await UserMgr.FindByEmailAsync(Input.Email);
+        if (identityUser is not null)
+        {
+            var (accountStatus, _) = AuthRepo.GetProfileStatus(identityUser.Id);
+            if (accountStatus == "LOCKED")
+            {
+                errorMessage = "Account is locked. Contact your administrator.";
+                return;
+            }
+        }
+
         var result = await SignInManager.PasswordSignInAsync(
             Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+
         if (result.Succeeded)
         {
             Logger.LogInformation("User logged in.");
-            RedirectManager.RedirectTo(ReturnUrl);
+
+            if (identityUser is not null)
+                AuthRepo.RecordSuccessfulLogin(identityUser.Id);
+
+            // Persist RememberMe choice for next visit
+            HttpContext.Response.Cookies.Append(RememberCookie, Input.RememberMe ? "1" : "0",
+                new CookieOptions
+                {
+                    Expires  = DateTimeOffset.UtcNow.AddYears(1),
+                    IsEssential = true,
+                    SameSite = SameSiteMode.Lax,
+                });
+
+            var target = string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl;
+            if (!Uri.IsWellFormedUriString(target, UriKind.Relative))
+                target = "/";
+
+            HttpContext.Response.Redirect(target);
         }
         else if (result.RequiresTwoFactor)
-            RedirectManager.RedirectTo("Account/LoginWith2fa",
-                new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
+        {
+            var qs = $"?returnUrl={Uri.EscapeDataString(ReturnUrl ?? "")}&rememberMe={Input.RememberMe.ToString().ToLower()}";
+            HttpContext.Response.Redirect($"/Account/LoginWith2fa{qs}");
+        }
         else if (result.IsLockedOut)
-            RedirectManager.RedirectTo("Account/Lockout");
+            HttpContext.Response.Redirect("/Account/Lockout");
         else
+        {
+            // Increment domain failed counter; lock account on the 5th failure.
+            if (identityUser is not null)
+            {
+                var isNowLocked = AuthRepo.IncrementFailedCount(identityUser.Id);
+                if (isNowLocked)
+                {
+                    errorMessage = "Account locked after 5 failed attempts. Contact your administrator.";
+                    return;
+                }
+            }
             errorMessage = "Invalid email or password.";
+        }
     }
 
     private sealed class InputModel

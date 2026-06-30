@@ -59,7 +59,7 @@ public sealed class PpRepository
         decimal OrderQty, decimal ShippedQty, DateTime? RequestedDeliveryDate,
         DateTime? PromisedDate, int DaysLate, string Status);
 
-    // ── PP-01 Forecast ───────────────────────────────────────────────────
+    // ── PP-001 Forecast ──────────────────────────────────────────────────
     public List<ForecastRow> ListForecast(int monthsBack = 6, int monthsAhead = 6)
     {
         const string sql = """
@@ -82,7 +82,7 @@ public sealed class PpRepository
             ("@B", monthsBack), ("@A", monthsAhead));
     }
 
-    // ── PP-02 SAP Import (customer orders just synced from SAP) ─────────
+    // ── PP-002 SAP Import (customer orders just synced from SAP) ────────
     public List<SoRow> ListSapImports(int daysBack = 30)
     {
         const string sql = """
@@ -100,7 +100,7 @@ public sealed class PpRepository
         return Query(sql, MapSo, ("@D", daysBack));
     }
 
-    // ── PP-03 Plan Confirm — list supply plans with line count rollup ───
+    // ── PP-003 Plan Confirm — list supply plans with line count rollup ──
     public List<SupplyPlanRow> ListSupplyPlans(int topN = 30)
     {
         var sql = $$"""
@@ -116,9 +116,9 @@ public sealed class PpRepository
             r.GetDecimal(r.GetOrdinal("TotalPlannedQty"))));
     }
 
-    // ── PP-04 Work Order: covered by WorkOrderRepository ────────────────
+    // ── PP-004 Work Order: covered by WorkOrderRepository ───────────────
 
-    // ── PP-05 MRP — last N runs ─────────────────────────────────────────
+    // ── PP-005 MRP — last N runs ────────────────────────────────────────
     public List<MrpRunRow> ListMrpRuns(int topN = 20)
     {
         var sql = $$"""
@@ -138,7 +138,7 @@ public sealed class PpRepository
             (int)r["DurationMs"], r["Status"] as string));
     }
 
-    // ── PP-06 Purchase Request ──────────────────────────────────────────
+    // ── PP-006 Purchase Request ─────────────────────────────────────────
     public List<PrRow> ListPurchaseRequests(int topN = 50)
     {
         var sql = $$"""
@@ -157,7 +157,7 @@ public sealed class PpRepository
             r["SapPoNumber"] as string));
     }
 
-    // ── PP-07 WO Release — draft/planned WOs awaiting release ──────────
+    // ── PP-007 WO Release — draft/planned WOs awaiting release ─────────
     public List<WoLite> ListReleasable(int topN = 50)
     {
         var sql = $$"""
@@ -171,6 +171,56 @@ public sealed class PpRepository
                      ISNULL(w.DueDate,'9999-01-01'), w.WoID;
             """;
         return Query(sql, MapWoLite);
+    }
+
+    /// <summary>PP-007 관리 화면용: 전체 상태 WO 조회. Closed는 최근 <paramref name="recentClosedDays"/>일만.</summary>
+    public List<WoLite> ListAllWo(string? lineId = null, string? status = null, int recentClosedDays = 30)
+    {
+        const string sql = """
+            SELECT w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
+                   ISNULL(w.OrderQty,0)     AS OrderQty,
+                   ISNULL(w.CompletedQty,0) AS CompletedQty,
+                   w.LineID, w.DueDate, ISNULL(w.Status,'Draft') AS Status, w.ReleasedAt
+            FROM   dbo.PP_WorkOrder w
+            LEFT JOIN dbo.MD_Item i ON i.ItemNo = w.ItemNo
+            WHERE  (@LineID IS NULL OR w.LineID = @LineID)
+              AND  (@Status IS NULL OR ISNULL(w.Status,'Draft') = @Status)
+              AND  (ISNULL(w.Status,'Draft') <> 'Closed'
+                    OR w.ActualEnd >= DATEADD(day, -@Days, CAST(GETDATE() AS date)))
+            ORDER BY CASE ISNULL(w.Status,'Draft')
+                          WHEN 'Draft'       THEN 0
+                          WHEN 'Planned'     THEN 1
+                          WHEN 'Released'    THEN 2
+                          WHEN 'In Progress' THEN 3
+                          ELSE 4 END,
+                     ISNULL(w.DueDate,'9999-01-01'), w.WoID;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@LineID", SqlDbType.VarChar, 20).Value = (object?)lineId  ?? DBNull.Value;
+        cmd.Parameters.Add("@Status", SqlDbType.VarChar, 20).Value = (object?)status  ?? DBNull.Value;
+        cmd.Parameters.Add("@Days",   SqlDbType.Int          ).Value = recentClosedDays;
+        using var rdr  = cmd.ExecuteReader();
+        var list = new List<WoLite>();
+        while (rdr.Read()) list.Add(MapWoLite(rdr));
+        return list;
+    }
+
+    /// <summary>WO 상태를 Released로 변경하고 ReleasedAt을 기록합니다 (PP-007).</summary>
+    public void ReleaseWo(int woId)
+    {
+        const string sql = """
+            UPDATE dbo.PP_WorkOrder
+            SET    Status     = 'Released',
+                   ReleasedAt = SYSDATETIME(),
+                   ModifiedTS = SYSDATETIME()
+            WHERE  WoID   = @WoID
+              AND  Status IN ('Draft','Planned');
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@WoID", SqlDbType.Int).Value = woId;
+        cmd.ExecuteNonQuery();
     }
 
     // ── PP-CAL Calendar overrides ───────────────────────────────────────
@@ -266,6 +316,105 @@ public sealed class PpRepository
             ("@D", daysBack));
     }
 
+    /// <summary>PP-DTL 필터 조회 — 라인·기간·상태·사유코드 조합.</summary>
+    public List<DowntimeRow> ListDowntimeFiltered(
+        string?  lineId       = null,
+        DateTime? from        = null,
+        DateTime? to          = null,
+        string?  status       = null,   // "open" | "closed" | null=all
+        string?  reasonCode   = null,
+        int      limit        = 500)
+    {
+        var sql = $"""
+            SELECT TOP (@Limit) DowntimeID, LineID, StartTS, EndTS,
+                   ISNULL(DurationMin,0) AS DurationMin,
+                   ReasonCode, CauseCode, Comment, WoID
+            FROM   dbo.PP_LineDowntimeLog
+            WHERE  1=1
+            {(lineId     != null ? "AND LineID     = @LineId "      : "")}
+            {(from       != null ? "AND StartTS   >= @From "        : "")}
+            {(to         != null ? "AND StartTS   <  @To "          : "")}
+            {(status == "open"   ? "AND EndTS     IS NULL "         : "")}
+            {(status == "closed" ? "AND EndTS     IS NOT NULL "     : "")}
+            {(reasonCode != null ? "AND ReasonCode = @ReasonCode "  : "")}
+            ORDER BY StartTS DESC;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Limit", SqlDbType.Int).Value = limit;
+        if (lineId     != null) cmd.Parameters.Add("@LineId",     SqlDbType.VarChar, 20).Value = lineId;
+        if (from       != null) cmd.Parameters.Add("@From",       SqlDbType.DateTime2).Value   = from.Value;
+        if (to         != null) cmd.Parameters.Add("@To",         SqlDbType.DateTime2).Value   = to.Value.Date.AddDays(1);
+        if (reasonCode != null) cmd.Parameters.Add("@ReasonCode", SqlDbType.VarChar, 30).Value = reasonCode;
+        using var rdr = cmd.ExecuteReader();
+        var list = new List<DowntimeRow>();
+        while (rdr.Read())
+            list.Add(new DowntimeRow(
+                (int)rdr["DowntimeID"], rdr["LineID"] as string,
+                rdr["StartTS"] as DateTime?, rdr["EndTS"] as DateTime?,
+                (int)rdr["DurationMin"], rdr["ReasonCode"] as string,
+                rdr["CauseCode"] as string, rdr["Comment"] as string,
+                rdr["WoID"] as int?));
+        return list;
+    }
+
+    /// <summary>PP-ODM 비계획 비가동 확정 시 PP_LineDowntimeLog에 이벤트 기록.</summary>
+    public void AddDowntimeEvent(string lineId, DateTime startTs, DateTime endTs,
+        string? reasonCode, string? causeCode, string? comment, int? woId = null)
+    {
+        const string sql = """
+            INSERT INTO dbo.PP_LineDowntimeLog
+                   (LineID, StartTS, EndTS, DurationMin, ReasonCode, CauseCode, Comment, WoID)
+            VALUES (@LineId, @Start, @End,
+                    DATEDIFF(minute, @Start, @End),
+                    @Reason, @Cause, @Comment, @WoId);
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@LineId",  SqlDbType.VarChar,   20).Value  = lineId;
+        cmd.Parameters.Add("@Start",   SqlDbType.DateTime2).Value      = startTs;
+        cmd.Parameters.Add("@End",     SqlDbType.DateTime2).Value      = endTs;
+        cmd.Parameters.Add("@Reason",  SqlDbType.VarChar,   30).Value  = (object?)reasonCode ?? DBNull.Value;
+        cmd.Parameters.Add("@Cause",   SqlDbType.VarChar,   30).Value  = (object?)causeCode  ?? DBNull.Value;
+        cmd.Parameters.Add("@Comment", SqlDbType.NVarChar, 500).Value  = (object?)comment    ?? DBNull.Value;
+        cmd.Parameters.Add("@WoId",    SqlDbType.Int).Value            = (object?)woId       ?? DBNull.Value;
+        cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>PP-ODM 비가동 사유 수정/보완 (사유 미입력 또는 오기입 수정).</summary>
+    public void UpdateDowntimeReason(int downtimeId, string? reasonCode, string? causeCode, string? comment)
+    {
+        const string sql = """
+            UPDATE dbo.PP_LineDowntimeLog
+            SET ReasonCode = @Reason,
+                CauseCode  = @Cause,
+                Comment    = @Comment
+            WHERE DowntimeID = @Id;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Id",      SqlDbType.Int).Value            = downtimeId;
+        cmd.Parameters.Add("@Reason",  SqlDbType.VarChar,   30).Value  = (object?)reasonCode ?? DBNull.Value;
+        cmd.Parameters.Add("@Cause",   SqlDbType.VarChar,   30).Value  = (object?)causeCode  ?? DBNull.Value;
+        cmd.Parameters.Add("@Comment", SqlDbType.NVarChar, 500).Value  = (object?)comment    ?? DBNull.Value;
+        cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>PP-DTL/ODM 라인 목록 (PP_LineDowntimeLog 기준).</summary>
+    public List<string> ListDowntimeLines()
+    {
+        const string sql = """
+            SELECT DISTINCT LineID FROM dbo.PP_LineDowntimeLog
+            WHERE LineID IS NOT NULL ORDER BY LineID;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        using var rdr  = cmd.ExecuteReader();
+        var list = new List<string>();
+        while (rdr.Read()) list.Add((string)rdr["LineID"]);
+        return list;
+    }
+
     // ── PP-ODM Downtime Monitor (last 4 hours of state log per line) ────
     public List<LineStateRow> ListLineStates(int hoursBack = 4)
     {
@@ -308,6 +457,69 @@ public sealed class PpRepository
             r["PromisedDate"] as DateTime?,
             (int)r["DaysLate"], r["Status"] as string ?? "?"),
             ("@D", daysBack));
+    }
+
+    /// <summary>PP-OTD 필터 조회 — 기간·고객·상태 조합.</summary>
+    public List<OtdRow> ListOtdFiltered(
+        DateTime? from       = null,
+        DateTime? to         = null,
+        string?  customerId  = null,
+        string?  status      = null,   // "ontime" | "late" | "open" | null=all
+        int      limit       = 500)
+    {
+        var sql = $"""
+            SELECT TOP (@Limit)
+                   SoID, SoNumber, CustomerID, ItemNo,
+                   ISNULL(OrderQty,0)   AS OrderQty,
+                   ISNULL(ShippedQty,0) AS ShippedQty,
+                   RequestedDeliveryDate, PromisedDate,
+                   CASE WHEN ShippedQty >= OrderQty AND RequestedDeliveryDate IS NOT NULL
+                        THEN DATEDIFF(day, RequestedDeliveryDate, GETDATE())
+                        ELSE 0 END AS DaysLate,
+                   ISNULL(Status,'?') AS Status
+            FROM   dbo.PP_CustomerOrder
+            WHERE  1=1
+            {(from       != null ? "AND RequestedDeliveryDate >= @From "       : "")}
+            {(to         != null ? "AND RequestedDeliveryDate <  @To "         : "")}
+            {(customerId != null ? "AND CustomerID = @Customer "               : "")}
+            {(status == "ontime" ? "AND ShippedQty >= OrderQty AND DATEDIFF(day, RequestedDeliveryDate, GETDATE()) <= 0 " : "")}
+            {(status == "late"   ? "AND DATEDIFF(day, RequestedDeliveryDate, GETDATE()) > 0 "                            : "")}
+            {(status == "open"   ? "AND ShippedQty < OrderQty "                : "")}
+            ORDER BY RequestedDeliveryDate DESC;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Limit", SqlDbType.Int).Value = limit;
+        if (from       != null) cmd.Parameters.Add("@From",     SqlDbType.Date).Value        = from.Value.Date;
+        if (to         != null) cmd.Parameters.Add("@To",       SqlDbType.Date).Value        = to.Value.Date.AddDays(1);
+        if (customerId != null) cmd.Parameters.Add("@Customer", SqlDbType.VarChar, 30).Value = customerId;
+        using var rdr = cmd.ExecuteReader();
+        var list = new List<OtdRow>();
+        while (rdr.Read())
+            list.Add(new OtdRow(
+                (int)rdr["SoID"], rdr["SoNumber"] as string, rdr["CustomerID"] as string,
+                rdr["ItemNo"] as string ?? "",
+                rdr.GetDecimal(rdr.GetOrdinal("OrderQty")),
+                rdr.GetDecimal(rdr.GetOrdinal("ShippedQty")),
+                rdr["RequestedDeliveryDate"] as DateTime?,
+                rdr["PromisedDate"] as DateTime?,
+                (int)rdr["DaysLate"], rdr["Status"] as string ?? "?"));
+        return list;
+    }
+
+    /// <summary>PP-OTD 고객 목록 (필터 드롭다운용).</summary>
+    public List<string> ListOtdCustomers()
+    {
+        const string sql = """
+            SELECT DISTINCT CustomerID FROM dbo.PP_CustomerOrder
+            WHERE CustomerID IS NOT NULL ORDER BY CustomerID;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        using var rdr  = cmd.ExecuteReader();
+        var list = new List<string>();
+        while (rdr.Read()) list.Add((string)rdr["CustomerID"]);
+        return list;
     }
 
     // ── helpers ──────────────────────────────────────────────────────────

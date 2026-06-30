@@ -23,11 +23,11 @@
         <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Active")</div>
     </div>
     <div class="ames-kpi warn">
-        <div class="ames-kpi-l">CTQ 항목</div>
+        <div class="ames-kpi-l">@L["MD.InspStd.Kpi.Ctq"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.IsCTQ)</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">공정 수</div>
+        <div class="ames-kpi-l">@L["Kpi.ProcessCount"]</div>
         <div class="ames-kpi-v">@_allRows.Select(r => r.ProcessCode).Where(p => p != null).Distinct().Count()</div>
     </div>
 </div>
@@ -39,31 +39,34 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MD.InspStd.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.InspStd.List"] · @_rows.Count @L["Lbl.Items"]@if (_rows.Count < _allRows.Count) { <text> / @L["Lbl.TotalOf"] @_allRows.Count</text> }</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:180px;padding:4px 8px;"
-                   placeholder="기준 ID / 특성명 / 품목 ID" @bind="_fSearch" autocomplete="off" />
+                   placeholder='@L["MD.InspStd.Ph.Search"]' @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Type"]</span>
             <select class="ames-input" style="width:120px;padding:4px 8px;" @bind="_fType">
-                <option value="">검사유형 전체</option>
+                <option value="">@L["Filter.AllInspectionTypes"]</option>
                 @foreach (var t in _allRows.Select(r => r.InspType).Where(x => x != null).Distinct().OrderBy(x => x))
                 {
                     <option value="@t">@t</option>
                 }
             </select>
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Process"]</span>
             <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fProcess">
-                <option value="">공정 전체</option>
+                <option value="">@L["Filter.AllProcesses"]</option>
                 @foreach (var p in _allRows.Select(r => r.ProcessCode).Where(x => x != null).Distinct().OrderBy(x => x))
                 {
                     <option value="@p">@p</option>
                 }
             </select>
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
             <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fStatus">
                 <option value="">@L["Filter.AllStatus"]</option>
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
             </select>
-            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
         </div>
     </div>
 
@@ -76,17 +79,17 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>기준 ID</th><th>품목 ID</th><th>공정</th><th>검사유형</th><th>특성명</th>
-                    <th style="text-align:right;">기준값</th>
-                    <th style="text-align:right;">LSL</th>
-                    <th style="text-align:right;">USL</th>
-                    <th>단위</th><th>샘플링계획</th><th>검사방법</th>
-                    <th style="text-align:center;">CTQ</th>
-                    <th>유효일</th><th>@L["Col.Status"]</th>
+                    <th>@L["Col.StandardId"]</th><th>@L["Col.ItemNo"]</th><th>@L["Col.ProcessName"]</th><th>@L["Col.InspType"]</th><th>@L["Col.CharName"]</th>
+                    <th style="text-align:right;">@L["Col.Nominal"]</th>
+                    <th style="text-align:right;">@L["Col.LSL"]</th>
+                    <th style="text-align:right;">@L["Col.USL"]</th>
+                    <th>@L["Col.Uom"]</th><th>@L["Col.SamplingPlan"]</th><th>@L["Col.InspMethod"]</th>
+                    <th style="text-align:center;">@L["Col.CTQ"]</th>
+                    <th>@L["Col.EffectiveDate"]</th><th>@L["Col.Status"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
                         <td class="code">@r.InspStdID</td>
@@ -112,6 +115,7 @@
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
@@ -120,50 +124,50 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">신규 검사기준 등록</div>
+            <div class="ames-modal-h">@L["MD.InspStd.Title"] — @L["Btn.Create"]</div>
 
-            <label>기준 ID * <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: IS-INJ-001)</span></label>
+            <label>@L["Col.InspStdId"] * <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: IS-INJ-001)</span></label>
             <input class="ames-input" @bind="_f.InspStdID" placeholder="IS-INJ-001" autocomplete="off" />
 
-            <label>품목 ID</label>
+            <label>@L["Col.ItemId"]</label>
             <input class="ames-input" @bind="_f.ItemID" placeholder="ITEM-001" maxlength="20" autocomplete="off" />
 
-            <label>공정코드</label>
+            <label>@L["Col.ProcessCode"]</label>
             <input class="ames-input" @bind="_f.ProcessCode" placeholder="INJ, QC 등" maxlength="10" autocomplete="off" />
 
-            <label>검사유형</label>
+            <label>@L["Col.InspType"]</label>
             <input class="ames-input" @bind="_f.InspType" placeholder="INCOMING, INPROC 등" maxlength="10" autocomplete="off" />
 
-            <label>특성명 *</label>
-            <input class="ames-input" @bind="_f.CharName" placeholder="외관 치수" autocomplete="off" />
+            <label>@L["Col.CharName"] *</label>
+            <input class="ames-input" @bind="_f.CharName" placeholder='@L["MD.InspStd.Ph.CharName"]' autocomplete="off" />
 
-            <label>기준값 (Nominal)</label>
+            <label>@L["Col.Nominal"]</label>
             <input class="ames-input" type="number" step="0.0001" @bind="_f.SpecNominal" placeholder="0.0000" autocomplete="off" />
 
-            <label>하한 (LSL)</label>
+            <label>@L["Col.LSL"]</label>
             <input class="ames-input" type="number" step="0.0001" @bind="_f.SpecLSL" placeholder="0.0000" autocomplete="off" />
 
-            <label>상한 (USL)</label>
+            <label>@L["Col.USL"]</label>
             <input class="ames-input" type="number" step="0.0001" @bind="_f.SpecUSL" placeholder="0.0000" autocomplete="off" />
 
-            <label>단위 (UOM)</label>
+            <label>@L["Col.Uom"]</label>
             <input class="ames-input" @bind="_f.UOM" placeholder="mm, kg 등" maxlength="10" autocomplete="off" />
 
-            <label>샘플링 계획</label>
+            <label>@L["Col.SamplingPlan"]</label>
             <input class="ames-input" @bind="_f.SamplingPlan" placeholder="AQL-1.0" maxlength="20" autocomplete="off" />
 
-            <label>검사방법</label>
-            <input class="ames-input" @bind="_f.InspMethod" placeholder="버니어캘리퍼스" autocomplete="off" />
+            <label>@L["Col.InspMethod"]</label>
+            <input class="ames-input" @bind="_f.InspMethod" placeholder='@L["MD.InspStd.Ph.InspMethod"]' autocomplete="off" />
 
-            <label>유효일</label>
+            <label>@L["Col.EffectiveDate"]</label>
             <input class="ames-input" type="date" @bind="_f.EffectiveDate" autocomplete="off" />
 
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                 <input type="checkbox" @bind="_f.IsCTQ" />
-                <span>CTQ (핵심 품질 특성)</span>
+                <span>@L["MD.InspStd.CtqLabel"]</span>
             </label>
 
-            <label>상태</label>
+            <label>@L["Col.Status"]</label>
             <select class="ames-input" @bind="_f.Status">
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
@@ -173,8 +177,8 @@
             { <div class="ames-alert bad">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
-                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? @L["Msg.Saving"] : @L["Btn.Create"])</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -185,47 +189,47 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">검사기준 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.InspStdID</span></div>
+            <div class="ames-modal-h">@L["MD.InspStd.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.InspStdID</span></div>
 
-            <label>품목 ID</label>
+            <label>@L["Col.ItemId"]</label>
             <input class="ames-input" @bind="_f.ItemID" maxlength="20" autocomplete="off" />
 
-            <label>공정코드</label>
+            <label>@L["Col.ProcessCode"]</label>
             <input class="ames-input" @bind="_f.ProcessCode" maxlength="10" autocomplete="off" />
 
-            <label>검사유형</label>
+            <label>@L["Col.InspType"]</label>
             <input class="ames-input" @bind="_f.InspType" maxlength="10" autocomplete="off" />
 
-            <label>특성명 *</label>
+            <label>@L["Col.CharName"] *</label>
             <input class="ames-input" @bind="_f.CharName" autocomplete="off" />
 
-            <label>기준값 (Nominal)</label>
+            <label>@L["Col.Nominal"]</label>
             <input class="ames-input" type="number" step="0.0001" @bind="_f.SpecNominal" autocomplete="off" />
 
-            <label>하한 (LSL)</label>
+            <label>@L["Col.LSL"]</label>
             <input class="ames-input" type="number" step="0.0001" @bind="_f.SpecLSL" autocomplete="off" />
 
-            <label>상한 (USL)</label>
+            <label>@L["Col.USL"]</label>
             <input class="ames-input" type="number" step="0.0001" @bind="_f.SpecUSL" autocomplete="off" />
 
-            <label>단위 (UOM)</label>
+            <label>@L["Col.Uom"]</label>
             <input class="ames-input" @bind="_f.UOM" maxlength="10" autocomplete="off" />
 
-            <label>샘플링 계획</label>
+            <label>@L["Col.SamplingPlan"]</label>
             <input class="ames-input" @bind="_f.SamplingPlan" maxlength="20" autocomplete="off" />
 
-            <label>검사방법</label>
+            <label>@L["Col.InspMethod"]</label>
             <input class="ames-input" @bind="_f.InspMethod" autocomplete="off" />
 
-            <label>유효일</label>
+            <label>@L["Col.EffectiveDate"]</label>
             <input class="ames-input" type="date" @bind="_f.EffectiveDate" autocomplete="off" />
 
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                 <input type="checkbox" @bind="_f.IsCTQ" />
-                <span>CTQ (핵심 품질 특성)</span>
+                <span>@L["MD.InspStd.CtqLabel"]</span>
             </label>
 
-            <label>상태</label>
+            <label>@L["Col.Status"]</label>
             <select class="ames-input" @bind="_f.Status">
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
@@ -234,9 +238,9 @@
             @if (_confirmDelete)
             {
                 <div class="ames-delete-confirm">
-                    <span>정말 삭제하시겠습니까?</span>
-                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
-                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? "삭제 중…" : "예, 삭제")</button>
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? @L["Msg.Deleting"] : @L["Msg.Yes"])</button>
                 </div>
             }
 
@@ -244,9 +248,9 @@
             { <div class="ames-alert bad">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? @L["Msg.Saving"] : @L["Btn.Edit"])</button>
                 <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn"     @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ghost"     @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -256,6 +260,8 @@
     List<AMES.Data.Repositories.MasterDataRepository.InspectionStandardRow> _allRows = new();
     List<AMES.Data.Repositories.MasterDataRepository.InspectionStandardRow> _rows    = new();
     AMES.Data.Repositories.MasterDataRepository.InspectionStandardRow? _sel;
+    int _page = 0;
+    const int _pageSize = 20;
 
     string _fSearch = "", _fType = "", _fProcess = "", _fStatus = "";
 
@@ -275,7 +281,7 @@
 
     void Reload() { _allRows = Md.ListInspectionStandards(); ApplyFilter(); }
 
-    void ApplyFilter() => _rows = _allRows.Where(r =>
+    void ApplyFilter() { _page = 0; _rows = _allRows.Where(r =>
         (string.IsNullOrEmpty(_fSearch) ||
             r.InspStdID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.CharName   ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
@@ -283,7 +289,7 @@
         (string.IsNullOrEmpty(_fType)    || r.InspType    == _fType) &&
         (string.IsNullOrEmpty(_fProcess) || r.ProcessCode == _fProcess) &&
         (string.IsNullOrEmpty(_fStatus)  || r.Status      == _fStatus)
-    ).ToList();
+    ).ToList(); }
 
     void OpenCreate() { _f = new() { Status = "Active" }; _modalErr = ""; _confirmDelete = false; _modal = "create"; }
 
@@ -320,9 +326,9 @@
     void SaveCreate()
     {
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_f.InspStdID)) { _modalErr = "기준 ID를 입력하세요."; return; }
-        if (string.IsNullOrWhiteSpace(_f.CharName))  { _modalErr = "특성명을 입력하세요."; return; }
-        if (Md.InspectionStandardExists(_f.InspStdID.Trim())) { _modalErr = $"기준 ID '{_f.InspStdID.Trim()}' 이 이미 존재합니다."; return; }
+        if (string.IsNullOrWhiteSpace(_f.InspStdID)) { _modalErr = L["Err.InspStdIdRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.CharName))  { _modalErr = L["Err.CharNameRequired"]; return; }
+        if (Md.InspectionStandardExists(_f.InspStdID.Trim())) { _modalErr = $"기준 ID '{_f.InspStdID.Trim()}' 이 {L["Err.AlreadyExists"]}"; return; }
         _busy = true;
         try
         {
@@ -331,7 +337,7 @@
                 NE(_f.UOM), NE(_f.SamplingPlan), NE(_f.InspMethod), _f.IsCTQ,
                 _f.EffectiveDate, NE(_f.Status), _actor);
             CloseModal(); Reload();
-            ShowMsg($"{_f.CharName} 등록 완료.", false);
+            ShowMsg($"{_f.CharName} {L["Msg.Created"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -341,7 +347,7 @@
     {
         if (_sel is null) return;
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_f.CharName)) { _modalErr = "특성명을 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.CharName)) { _modalErr = L["Err.CharNameRequired"]; return; }
         _busy = true;
         try
         {
@@ -351,7 +357,7 @@
                 _f.EffectiveDate, NE(_f.Status), _actor);
             var name = _f.CharName;
             CloseModal(); Reload();
-            ShowMsg($"{name} 수정 완료.", false);
+            ShowMsg($"{name} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -366,7 +372,7 @@
             var name = _sel.CharName ?? _sel.InspStdID;
             Md.DeleteInspectionStandard(_sel.InspStdID);
             CloseModal(); Reload();
-            ShowMsg($"{name} 삭제 완료.", false);
+            ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
         finally { _busy = false; }

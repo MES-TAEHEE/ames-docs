@@ -2,12 +2,13 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MntRepository Mnt
+@inject AMES.Data.Repositories.MasterDataRepository Md
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MNT-06 @L["MNT.Downtime.Title"] · AMES</PageTitle>
+<PageTitle>MNT-006 @L["MNT.Downtime.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">MNT-06</div>
+    <div class="ames-page-id">MNT-006</div>
     <div class="ames-page-t">@L["MNT.Downtime.Title"]</div>
     <div class="ames-page-sub">@L["MNT.Downtime.Sub"]</div>
 </div>
@@ -27,14 +28,19 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MNT.Downtime.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input class="ames-input" style="width:110px;padding:4px 8px;"
-                   placeholder="@L["MNT.Downtime.Ph.Line"]" @bind="_fLine" autocomplete="off" />
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Period"]</label>
-            <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_daysBack">
-                <option value="7">7@L["Lbl.Days"]</option>
-                <option value="14">14@L["Lbl.Days"]</option>
-                <option value="30">30@L["Lbl.Days"]</option>
-                <option value="60">60@L["Lbl.Days"]</option>
+            <select class="ames-input" style="width:140px;padding:4px 8px;" @bind="_fLine">
+                <option value="">@L["Filter.AllLines"]</option>
+                @foreach (var l in _lineList)
+                {
+                    <option value="@l.LineID">@l.LineID@(l.LineName != null ? $" {l.LineName}" : "")</option>
+                }
+            </select>
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Lbl.Period"]</span>
+            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_daysBack">
+                <option value="7">7@(L["Lbl.Days"])</option>
+                <option value="14">14@(L["Lbl.Days"])</option>
+                <option value="30">30@(L["Lbl.Days"])</option>
+                <option value="60">60@(L["Lbl.Days"])</option>
             </select>
             <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
         </div>
@@ -49,12 +55,12 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>DT #</th><th>Line</th><th>Start</th><th>End</th>
-                    <th class="num">Min</th><th>Reason</th><th>Cause</th><th>Comment</th><th>WO</th>
+                    <th>@L["Col.DtNo"]</th><th>@L["Col.Line"]</th><th>@L["Col.Start"]</th><th>@L["Col.End"]</th>
+                    <th class="num">@L["Col.MinDown"]</th><th>@L["Col.Reason"]</th><th>@L["Col.Cause"]</th><th>@L["Col.Comment"]</th><th>@L["Col.WO"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var d in _rows)
+                @foreach (var d in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     <tr>
                         <td class="code">@d.DowntimeId</td>
@@ -70,17 +76,25 @@
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
 @code {
     List<AMES.Data.Repositories.MntRepository.DowntimeRow> _allRows = new();
     List<AMES.Data.Repositories.MntRepository.DowntimeRow> _rows    = new();
+    int _page = 0;
+    const int _pageSize = 20;
     int    _totMin, _avgMin, _open;
+    List<AMES.Data.Repositories.MasterDataRepository.LineRow> _lineList = new();
     int    _daysBack = 7;
     string _fLine    = "";
 
-    protected override void OnInitialized() => Reload();
+    protected override void OnInitialized()
+    {
+        try { _lineList = Md.ListLines(); } catch { }
+        Reload();
+    }
 
     void Reload()
     {
@@ -90,9 +104,10 @@
 
     void ApplyFilter()
     {
-        _rows = string.IsNullOrWhiteSpace(_fLine)
+        _page = 0;
+        _rows = string.IsNullOrEmpty(_fLine)
             ? _allRows
-            : _allRows.Where(r => (r.LineId ?? "").Contains(_fLine, StringComparison.OrdinalIgnoreCase)).ToList();
+            : _allRows.Where(r => r.LineId == _fLine).ToList();
         _totMin = _rows.Sum(r => r.DurationMin ?? 0);
         _avgMin = _rows.Count > 0 ? _totMin / _rows.Count : 0;
         _open   = _rows.Count(r => r.EndTs is null);

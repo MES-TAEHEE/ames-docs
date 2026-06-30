@@ -20,15 +20,15 @@
     </div>
     <div class="ames-kpi ok">
         <div class="ames-kpi-l">@L["Lbl.Active"]</div>
-        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Active")</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "ACTIVE")</div>
     </div>
     <div class="ames-kpi warn">
-        <div class="ames-kpi-l">RFID 활성</div>
+        <div class="ames-kpi-l">@L["MD.Line.Kpi.Rfid"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.RfidEnabledFlag)</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">공장 수</div>
-        <div class="ames-kpi-v">@_allRows.Select(r => r.PlantID).Where(p => p != null).Distinct().Count()</div>
+        <div class="ames-kpi-l">@L["MD.Line.Kpi.Plants"]</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.PlantCode).Where(p => p != null).Distinct().Count()</div>
     </div>
 </div>
 
@@ -39,22 +39,28 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MD.Line.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.Line.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:120px;padding:4px 8px;"
-                   placeholder="라인 ID / 명칭" @bind="_fSearch" autocomplete="off" />
-            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fType">
+                   placeholder="@L["MD.Line.Ph.Search"]" @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Type"]</span>
+            <select class="ames-input" style="width:120px;padding:4px 8px;" @bind="_fType">
                 <option value="">@L["Filter.AllTypes"]</option>
-                <option>INJ</option><option>IMG</option><option>PNT</option>
-                <option>QC</option><option>WH</option><option>FG</option>
-                <option>ASM</option><option>MNT</option>
+                @foreach (var c in _lineTypeCodes.Where(c => c.UseFlag))
+                {
+                    <option value="@c.CodeValue">[@c.CodeValue]@($" {MasterDataRepository.LocalName(c)}")</option>
+                }
             </select>
-            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fStatus">
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
+            <select class="ames-input" style="width:140px;padding:4px 8px;" @bind="_fStatus">
                 <option value="">@L["Filter.AllStatus"]</option>
-                <option>Active</option><option>Inactive</option>
+                @foreach (var s in _lineStatus.Where(s => s.UseFlag))
+                {
+                    <option value="@s.CodeValue">[@s.CodeValue] @(MasterDataRepository.LocalName(s))</option>
+                }
             </select>
-            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
         </div>
     </div>
 
@@ -67,34 +73,58 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>라인 ID</th><th>라인명</th><th>유형</th><th>공장</th>
-                    <th>기준 WC</th><th class="num">일생산능력</th><th>교대패턴</th>
-                    <th>RFID</th><th>@L["Col.Status"]</th>
+                    <th>@L["Col.LineId"]</th>
+                    <th>@L["Col.LineName"]</th>
+                    <th>@L["Col.LineNameEn"]</th>
+                    <th>@L["Col.Type"]</th>
+                    <th>@L["Col.Plant"]</th>
+                    <th>@L["Col.WcId"]</th>
+                    <th class="num">@L["Col.Capacity"]</th>
+                    <th>@L["Col.Pattern"]</th>
+                    <th style="text-align:center;">@L["Col.RFID"]</th>
+                    <th style="text-align:center;">@L["Col.Status"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
+                    var typeName  = _lineTypeCodes.FirstOrDefault(c2 => c2.CodeValue == r.LineType) is { } _ltf ? MasterDataRepository.LocalName(_ltf) : r.LineType;
+                    var shiftName = _shiftCodes.FirstOrDefault(c2 => c2.CodeValue == r.ShiftPattern) is { } _scf ? MasterDataRepository.LocalName(_scf) : r.ShiftPattern;
                     <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
                         <td class="code">@r.LineID</td>
                         <td>@(r.LineName ?? "—")</td>
-                        <td><span class="pill">@(r.LineType ?? "—")</span></td>
-                        <td class="dim">@(r.PlantID ?? "—")</td>
-                        <td class="dim">@(r.DefaultWCID ?? "—")</td>
-                        <td class="num">@(r.DailyCap?.ToString("N0") ?? "—")</td>
-                        <td class="dim">@(r.ShiftPattern ?? "—")</td>
+                        <td class="dim">@(r.LineNameEn ?? "—")</td>
                         <td>
+                            <span class="pill @TypeClass(r.LineType)">@(r.LineType ?? "—")</span>
+                            @if (typeName != null) { <span class="dim" style="font-size:.8em;margin-left:4px;">@typeName</span> }
+                        </td>
+                        <td class="dim code" style="font-size:12px;">@(r.PlantCode ?? "—")</td>
+                        <td class="dim" style="font-size:12px;">@(r.DefaultWCID ?? "—")</td>
+                        <td class="num">@(r.DailyCap?.ToString("N0") ?? "—")</td>
+                        <td>
+                            @if (r.ShiftPattern != null)
+                            {
+                                <span class="pill info">@r.ShiftPattern</span>
+                                @if (shiftName != null) { <span class="dim" style="font-size:.8em;margin-left:4px;">@shiftName</span> }
+                            }
+                            else { <span class="dim">—</span> }
+                        </td>
+                        <td style="text-align:center;">
                             @if (r.RfidEnabledFlag) { <span class="pill ok">ON</span> }
                             else { <span class="dim">—</span> }
                         </td>
-                        <td>
-                            @if (r.Status == "Active") { <span class="pill ok">Active</span> }
-                            else { <span class="pill bad">@(r.Status ?? "—")</span> }
+                        <td style="text-align:center;">
+                            @{
+                                var scls   = r.Status == "ACTIVE" ? "ok" : "bad";
+                                var sLabel = _lineStatus.FirstOrDefault(s => s.CodeValue == r.Status) is { } _lf_ ? MasterDataRepository.LocalName(_lf_) : r.Status;
+                            }
+                            <span class="pill @scls">@(sLabel ?? "—")</span>
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
@@ -103,53 +133,76 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">신규 생산 라인 등록</div>
+            <div class="ames-modal-h">@L["MD.Line.Modal.Create"]</div>
 
-            <label>라인 ID * <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: INJ-L01)</span></label>
+            <label>@L["MD.Line.Lbl.LineId"] <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: INJ-L01)</span></label>
             <input class="ames-input" @bind="_f.LineID" placeholder="INJ-L01" autocomplete="off" />
 
-            <label>라인명 *</label>
-            <input class="ames-input" @bind="_f.LineName" placeholder="사출 1라인" autocomplete="off" />
+            <label>@L["MD.Line.Lbl.LineName"]</label>
+            <input class="ames-input" @bind="_f.LineName" placeholder='@L["MD.Line.Ph.LineName"]' autocomplete="off" />
 
-            <label>라인 유형</label>
+            <label>@L["MD.Line.Lbl.LineNameEn"]</label>
+            <input class="ames-input" @bind="_f.LineNameEn" placeholder="Injection Line 1" autocomplete="off" />
+
+            <label>@L["MD.Line.Lbl.LineType"]</label>
             <select class="ames-input" @bind="_f.LineType">
-                <option value="">— 선택 —</option>
-                <option>INJ</option><option>IMG</option><option>PNT</option>
-                <option>QC</option><option>WH</option><option>FG</option>
-                <option>ASM</option><option>MNT</option>
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var c in _lineTypeCodes.Where(c => c.UseFlag))
+                {
+                    <option value="@c.CodeValue">[@c.CodeValue]@($" {MasterDataRepository.LocalName(c)}")</option>
+                }
             </select>
 
-            <label>공장 ID</label>
-            <input class="ames-input" @bind="_f.PlantID" placeholder="P1" autocomplete="off" />
+            <label>@L["MD.Line.Lbl.PlantId"]</label>
+            <select class="ames-input" @bind="_f.PlantCode">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var c in _plantCodes.Where(c => c.UseFlag))
+                {
+                    <option value="@c.CodeValue">[@c.CodeValue]@($" {MasterDataRepository.LocalName(c)}")</option>
+                }
+            </select>
 
-            <label>기준 작업장 (WCID)</label>
-            <input class="ames-input" @bind="_f.DefaultWCID" placeholder="WC-INJ-01" autocomplete="off" />
+            <label>@L["MD.Line.Lbl.DefaultWcid"]</label>
+            <select class="ames-input" @bind="_f.DefaultWCID">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var w in _wcList.Where(w => w.ActiveFlag))
+                {
+                    <option value="@w.WCID">[@w.WCID]@(w.WCName != null ? $" {w.WCName}" : "")</option>
+                }
+            </select>
 
-            <label>일 생산 능력 (EA)</label>
+            <label>@L["MD.Line.Lbl.DailyCap"]</label>
             <input class="ames-input" type="number" @bind="_f.DailyCap" placeholder="1000" min="0" autocomplete="off" />
 
-            <label>교대 패턴</label>
+            <label>@L["MD.Line.Lbl.ShiftPattern"]</label>
             <select class="ames-input" @bind="_f.ShiftPattern">
-                <option value="">— 선택 —</option>
-                <option>1SHIFT</option><option>2SHIFT</option><option>3SHIFT</option>
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var c in _shiftCodes.Where(c => c.UseFlag))
+                {
+                    <option value="@c.CodeValue">[@c.CodeValue]@($" {MasterDataRepository.LocalName(c)}")</option>
+                }
             </select>
 
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                 <input type="checkbox" @bind="_f.RfidEnabledFlag" />
-                <span>RFID 활성</span>
+                <span>@L["MD.Line.Lbl.RfidEnabled"]</span>
             </label>
 
-            <label>상태</label>
+            <label>@L["Col.Status"]</label>
             <select class="ames-input" @bind="_f.Status">
-                <option>Active</option><option>Inactive</option>
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var s in _lineStatus.Where(s => s.UseFlag))
+                {
+                    <option value="@s.CodeValue">[@s.CodeValue] @(MasterDataRepository.LocalName(s))</option>
+                }
             </select>
 
             @if (!string.IsNullOrEmpty(_modalErr))
             { <div class="ames-alert bad">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
-                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -160,50 +213,73 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">라인 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.LineID</span></div>
+            <div class="ames-modal-h">@L["MD.Line.Modal.Edit"] — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.LineID</span></div>
 
-            <label>라인명 *</label>
+            <label>@L["MD.Line.Lbl.LineName"]</label>
             <input class="ames-input" @bind="_f.LineName" autocomplete="off" />
 
-            <label>라인 유형</label>
+            <label>@L["MD.Line.Lbl.LineNameEn"]</label>
+            <input class="ames-input" @bind="_f.LineNameEn" autocomplete="off" />
+
+            <label>@L["MD.Line.Lbl.LineType"]</label>
             <select class="ames-input" @bind="_f.LineType">
-                <option value="">— 선택 —</option>
-                <option>INJ</option><option>IMG</option><option>PNT</option>
-                <option>QC</option><option>WH</option><option>FG</option>
-                <option>ASM</option><option>MNT</option>
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var c in _lineTypeCodes.Where(c => c.UseFlag))
+                {
+                    <option value="@c.CodeValue">[@c.CodeValue]@($" {MasterDataRepository.LocalName(c)}")</option>
+                }
             </select>
 
-            <label>공장 ID</label>
-            <input class="ames-input" @bind="_f.PlantID" autocomplete="off" />
+            <label>@L["MD.Line.Lbl.PlantId"]</label>
+            <select class="ames-input" @bind="_f.PlantCode">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var c in _plantCodes.Where(c => c.UseFlag))
+                {
+                    <option value="@c.CodeValue">[@c.CodeValue]@($" {MasterDataRepository.LocalName(c)}")</option>
+                }
+            </select>
 
-            <label>기준 작업장 (WCID)</label>
-            <input class="ames-input" @bind="_f.DefaultWCID" autocomplete="off" />
+            <label>@L["MD.Line.Lbl.DefaultWcid"]</label>
+            <select class="ames-input" @bind="_f.DefaultWCID">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var w in _wcList.Where(w => w.ActiveFlag))
+                {
+                    <option value="@w.WCID">[@w.WCID]@(w.WCName != null ? $" {w.WCName}" : "")</option>
+                }
+            </select>
 
-            <label>일 생산 능력 (EA)</label>
+            <label>@L["MD.Line.Lbl.DailyCap"]</label>
             <input class="ames-input" type="number" @bind="_f.DailyCap" min="0" autocomplete="off" />
 
-            <label>교대 패턴</label>
+            <label>@L["MD.Line.Lbl.ShiftPattern"]</label>
             <select class="ames-input" @bind="_f.ShiftPattern">
-                <option value="">— 선택 —</option>
-                <option>1SHIFT</option><option>2SHIFT</option><option>3SHIFT</option>
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var c in _shiftCodes.Where(c => c.UseFlag))
+                {
+                    <option value="@c.CodeValue">[@c.CodeValue]@($" {MasterDataRepository.LocalName(c)}")</option>
+                }
             </select>
 
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                 <input type="checkbox" @bind="_f.RfidEnabledFlag" />
-                <span>RFID 활성</span>
+                <span>@L["MD.Line.Lbl.RfidEnabled"]</span>
             </label>
 
-            <label>상태</label>
+            <label>@L["Col.Status"]</label>
             <select class="ames-input" @bind="_f.Status">
-                <option>Active</option><option>Inactive</option>
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var s in _lineStatus.Where(s => s.UseFlag))
+                {
+                    <option value="@s.CodeValue">[@s.CodeValue] @(MasterDataRepository.LocalName(s))</option>
+                }
             </select>
 
             @if (_confirmDelete)
             {
                 <div class="ames-delete-confirm">
-                    <span>정말 삭제하시겠습니까?</span>
-                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
-                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? "삭제 중…" : "예, 삭제")</button>
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)</button>
                 </div>
             }
 
@@ -211,18 +287,26 @@
             { <div class="ames-alert bad">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)</button>
                 <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn"     @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ghost"     @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
 }
 
 @code {
-    List<AMES.Data.Repositories.MasterDataRepository.LineRow> _allRows = new();
-    List<AMES.Data.Repositories.MasterDataRepository.LineRow> _rows    = new();
+    List<AMES.Data.Repositories.MasterDataRepository.LineRow>      _allRows       = new();
+    List<AMES.Data.Repositories.MasterDataRepository.LineRow>      _rows          = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow>  _lineTypeCodes = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow>  _lineStatus    = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow>  _plantCodes    = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow>  _shiftCodes    = new();
+    List<AMES.Data.Repositories.MasterDataRepository.WorkCenterRow> _wcList       = new();
     AMES.Data.Repositories.MasterDataRepository.LineRow? _sel;
+
+    int _page = 0;
+    const int _pageSize = 20;
 
     string _fSearch = "", _fType = "", _fStatus = "";
 
@@ -237,17 +321,22 @@
     {
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
+        try { _lineTypeCodes = Md.ListCodeItems("LINE_TYPE");   } catch { }
+        try { _lineStatus    = Md.ListCodeItems("LINE_STATUS"); } catch { }
+        try { _plantCodes    = Md.ListCodeItems("PLANT");       } catch { }
+        try { _shiftCodes    = Md.ListCodeItems("WORK_SHIFT");  } catch { }
+        try { _wcList        = Md.ListWorkCenters();            } catch { }
         Reload();
     }
 
     void Reload() { _allRows = Md.ListLines(); ApplyFilter(); }
 
-    void ApplyFilter() => _rows = _allRows.Where(r =>
+    void ApplyFilter() { _page = 0; _rows = _allRows.Where(r =>
         (string.IsNullOrEmpty(_fSearch) || r.LineID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase)
                                         || (r.LineName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fType)   || r.LineType == _fType) &&
         (string.IsNullOrEmpty(_fStatus) || r.Status   == _fStatus)
-    ).ToList();
+    ).ToList(); }
 
     void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
 
@@ -258,13 +347,14 @@
         {
             LineID          = r.LineID,
             LineName        = r.LineName        ?? "",
+            LineNameEn      = r.LineNameEn      ?? "",
             LineType        = r.LineType        ?? "",
-            PlantID         = r.PlantID         ?? "",
+            PlantCode         = r.PlantCode         ?? "",
             DefaultWCID     = r.DefaultWCID     ?? "",
             DailyCap        = r.DailyCap,
             ShiftPattern    = r.ShiftPattern    ?? "",
             RfidEnabledFlag = r.RfidEnabledFlag,
-            Status          = r.Status          ?? "Active",
+            Status          = r.Status          ?? "ACTIVE",
         };
         _modal = "edit";
     }
@@ -279,18 +369,18 @@
     void SaveCreate()
     {
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_f.LineID))   { _modalErr = "라인 ID를 입력하세요."; return; }
-        if (string.IsNullOrWhiteSpace(_f.LineName)) { _modalErr = "라인명을 입력하세요."; return; }
-        if (Md.LineExists(_f.LineID.Trim()))         { _modalErr = $"라인 ID '{_f.LineID.Trim()}' 이 이미 존재합니다."; return; }
+        if (string.IsNullOrWhiteSpace(_f.LineID))   { _modalErr = L["MD.Line.Err.IDRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.LineName)) { _modalErr = L["MD.Line.Err.NameRequired"]; return; }
+        if (Md.LineExists(_f.LineID.Trim()))         { _modalErr = string.Format(L["MD.Line.Err.IDExists"].Value, _f.LineID.Trim()); return; }
         _busy = true;
         try
         {
-            Md.InsertLine(_f.LineID.Trim(), _f.LineName, NE(_f.LineType),
-                NE(_f.PlantID), NE(_f.DefaultWCID),
+            Md.InsertLine(_f.LineID.Trim(), _f.LineName, NE(_f.LineNameEn), NE(_f.LineType),
+                NE(_f.PlantCode), NE(_f.DefaultWCID),
                 _f.DailyCap, NE(_f.ShiftPattern),
                 _f.RfidEnabledFlag, _f.Status, _actor);
             CloseModal(); Reload();
-            ShowMsg($"{_f.LineName} 등록 완료.", false);
+            ShowMsg(string.Format(L["MD.Line.Ok.Created"].Value, _f.LineName), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -300,17 +390,17 @@
     {
         if (_sel is null) return;
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_f.LineName)) { _modalErr = "라인명을 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.LineName)) { _modalErr = L["MD.Line.Err.NameRequired"]; return; }
         _busy = true;
         try
         {
-            Md.UpdateLine(_sel.LineID, _f.LineName, NE(_f.LineType),
-                NE(_f.PlantID), NE(_f.DefaultWCID),
+            Md.UpdateLine(_sel.LineID, _f.LineName, NE(_f.LineNameEn), NE(_f.LineType),
+                NE(_f.PlantCode), NE(_f.DefaultWCID),
                 _f.DailyCap, NE(_f.ShiftPattern),
                 _f.RfidEnabledFlag, _f.Status, _actor);
             var name = _f.LineName;
             CloseModal(); Reload();
-            ShowMsg($"{name} 수정 완료.", false);
+            ShowMsg(string.Format(L["MD.Line.Ok.Updated"].Value, name), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -325,7 +415,7 @@
             var name = _sel.LineName ?? _sel.LineID;
             Md.DeleteLine(_sel.LineID);
             CloseModal(); Reload();
-            ShowMsg($"{name} 삭제 완료.", false);
+            ShowMsg(string.Format(L["MD.Line.Ok.Deleted"].Value, name), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
         finally { _busy = false; }
@@ -337,16 +427,28 @@
         _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
     }
 
+    static string TypeClass(string? t) => t switch
+    {
+        "INJ" => "info",
+        "IMG" => "warn",
+        "PNT" => "bad",
+        "QC"  => "ok",
+        "WH"  => "",
+        "FG"  => "ok",
+        _     => ""
+    };
+
     class FormModel
     {
         public string LineID          { get; set; } = "";
         public string LineName        { get; set; } = "";
+        public string LineNameEn      { get; set; } = "";
         public string LineType        { get; set; } = "";
-        public string PlantID         { get; set; } = "";
+        public string PlantCode         { get; set; } = "";
         public string DefaultWCID     { get; set; } = "";
         public int?   DailyCap        { get; set; }
         public string ShiftPattern    { get; set; } = "";
         public bool   RfidEnabledFlag { get; set; } = false;
-        public string Status          { get; set; } = "Active";
+        public string Status          { get; set; } = "ACTIVE";
     }
 }

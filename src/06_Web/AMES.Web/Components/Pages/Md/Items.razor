@@ -2,8 +2,11 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject MasterDataRepository Md
+@inject SysRepository Sys
+@inject IHttpContextAccessor HttpCtxAccessor
 @inject AuthenticationStateProvider Auth
 @inject IStringLocalizer<SharedResources> L
+@using System.Text.Json
 
 <PageTitle>@L["MD.Items.Title"] · AMES</PageTitle>
 
@@ -23,11 +26,11 @@
         <div class="ames-kpi-v">@_allItems.Count(r => r.ActiveFlag)</div>
     </div>
     <div class="ames-kpi warn">
-        <div class="ames-kpi-l">완제품(FG)</div>
+        <div class="ames-kpi-l">@L["MD.Items.Kpi.FG"]</div>
         <div class="ames-kpi-v">@_allItems.Count(r => r.ItemType == "FG")</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">반제품(WIP)</div>
+        <div class="ames-kpi-l">@L["MD.Items.Kpi.WIP"]</div>
         <div class="ames-kpi-v">@_allItems.Count(r => r.ItemType == "WIP")</div>
     </div>
 </div>
@@ -42,7 +45,8 @@
         <span style="white-space:nowrap;">▼ @L["MD.Items.List"] · @_items.Count @L["Lbl.Items"]@(_items.Count < _allItems.Count ? $" / 전체 {_allItems.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:200px;padding:4px 8px;"
-                   placeholder="품목번호·품목명·영문명 검색" @bind="_fSearch" autocomplete="off" />
+                   placeholder="@L["MD.Items.Ph.Search"]" @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Type"]</span>
             <select class="ames-input" style="width:130px;padding:4px 8px;" @bind="_fTypeFilter">
                 <option value="">@L["Filter.AllTypes"]</option>
                 @foreach (var t in _allItems.Select(r => r.ItemType).Where(t => t != null).Distinct().OrderBy(t => t))
@@ -50,13 +54,14 @@
                     <option value="@t">@t</option>
                 }
             </select>
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
             <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fActiveOnly">
-                <option value="">전체</option>
-                <option value="Y">사용</option>
-                <option value="N">미사용</option>
+                <option value="">@L["Filter.All"]</option>
+                <option value="Y">@L["Lbl.Use.On"]</option>
+                <option value="N">@L["Lbl.Use.Off"]</option>
             </select>
-            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
         </div>
     </div>
 
@@ -69,22 +74,22 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th style="width:130px;">품목번호</th>
-                    <th>품목명</th>
-                    <th>품목명(영문)</th>
-                    <th style="width:90px;">품목유형</th>
-                    <th style="width:110px;">카테고리</th>
-                    <th style="width:60px;">단위</th>
-                    <th style="width:60px;">Routing</th>
-                    <th style="width:80px;text-align:right;">안전재고</th>
-                    <th style="width:80px;text-align:right;">최소재고</th>
-                    <th style="width:80px;text-align:right;">최대재고</th>
-                    <th style="width:90px;text-align:right;">단가</th>
-                    <th style="width:48px;text-align:center;">사용</th>
+                    <th style="width:130px;">@L["Col.ItemNo"]</th>
+                    <th>@L["Col.ItemName"]</th>
+                    <th>@L["Col.NameEn"]</th>
+                    <th style="width:90px;">@L["Col.Type"]</th>
+                    <th style="width:110px;">@L["Col.Category"]</th>
+                    <th style="width:60px;">@L["Col.Uom"]</th>
+                    <th style="width:60px;">@L["Col.Routing"]</th>
+                    <th style="width:80px;text-align:right;">@L["Col.Safety"]</th>
+                    <th style="width:80px;text-align:right;">@L["Col.MinStock"]</th>
+                    <th style="width:80px;text-align:right;">@L["Col.MaxStock"]</th>
+                    <th style="width:90px;text-align:right;">@L["Col.UnitPrice"]</th>
+                    <th style="width:48px;text-align:center;">@L["Col.Active"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var item in _items)
+                @foreach (var item in _items.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     var cap = item;
                     <tr class="ames-row-link" @onclick="() => OpenEdit(cap)">
@@ -106,6 +111,7 @@
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_items.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
@@ -114,15 +120,15 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
         <div class="ames-modal" style="max-width:680px;" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">품목 등록</div>
+            <div class="ames-modal-h">@L["MD.Items.Modal.Create"]</div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>
-                    <label>품목번호 * <span class="dim" style="font-size:.82em;">(최대 20자)</span></label>
+                    <label>@L["MD.Items.Lbl.ItemNo"] <span class="dim" style="font-size:.82em;">@L["MD.Items.Lbl.ItemNoHint"]</span></label>
                     <input class="ames-input" @bind="_fItemNo" maxlength="20" autocomplete="off" />
                 </div>
                 <div>
-                    <label>단위 <span class="dim" style="font-size:.82em;">(UOM)</span></label>
+                    <label>@L["MD.Items.Lbl.Uom"] <span class="dim" style="font-size:.82em;">(UOM)</span></label>
                     <input class="ames-input" @bind="_fUom" maxlength="10" autocomplete="off"
                            placeholder="예: EA, KG, M" />
                 </div>
@@ -134,10 +140,10 @@
             { <div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">
-                    @(_busy ? "저장 중…" : "등록")
+                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">
+                    @(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)
                 </button>
-                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -148,15 +154,15 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
         <div class="ames-modal" style="max-width:680px;" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">품목 수정 — <span class="code" style="font-weight:400;font-size:.9em;">@_fItemNo</span></div>
+            <div class="ames-modal-h">@L["MD.Items.Modal.Edit"] — <span class="code" style="font-weight:400;font-size:.9em;">@_fItemNo</span></div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>
-                    <label>품목번호</label>
+                    <label>@L["MD.Items.Lbl.ItemNo"]</label>
                     <input class="ames-input" value="@_fItemNo" disabled />
                 </div>
                 <div>
-                    <label>단위 <span class="dim" style="font-size:.82em;">(UOM)</span></label>
+                    <label>@L["MD.Items.Lbl.Uom"] <span class="dim" style="font-size:.82em;">(UOM)</span></label>
                     <input class="ames-input" @bind="_fUom" maxlength="10" autocomplete="off" />
                 </div>
             </div>
@@ -166,10 +172,10 @@
             @if (_confirmDelete)
             {
                 <div class="ames-delete-confirm">
-                    <span>@_fItemNo (@_fItemName) 을 삭제합니까?</span>
-                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
+                    <span>@string.Format(L["MD.Items.ConfirmDelete"].Value, _fItemNo, _fItemName)</span>
+                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
                     <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">
-                        @(_busy ? "삭제 중…" : "예, 삭제")
+                        @(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)
                     </button>
                 </div>
             }
@@ -178,17 +184,19 @@
             { <div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok" @onclick="SaveEdit" disabled="@_busy">
-                    @(_busy ? "저장 중…" : "수정")
+                <button class="ames-btn" @onclick="SaveEdit" disabled="@_busy">
+                    @(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)
                 </button>
                 <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
 }
 
 @code {
+    int _page = 0;
+    const int _pageSize = 20;
     List<MasterDataRepository.ItemRow> _allItems = new();
     List<MasterDataRepository.ItemRow> _items    = new();
     string _fSearch       = "";
@@ -198,7 +206,9 @@
     string _modalErr      = "";
     string _msg           = "";
     bool   _isErr, _busy, _bgDown, _confirmDelete;
-    string _actor         = "system";
+    string _actor     = "system";
+    string _clientIp  = "";
+    MasterDataRepository.ItemRow? _sel;
 
     // ── Form fields ──────────────────────────────────────────────────────
     string  _fItemNo       = "";
@@ -221,19 +231,21 @@
     {
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor   = auth.User.Identity?.Name ?? "system";
+        // HttpContext is available during the prerender (HTTP) phase; null after WebSocket handoff.
+        _clientIp = HttpCtxAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "";
         Reload();
     }
 
     void Reload() { try { _allItems = Md.ListItems(""); } catch { _allItems = new(); } ApplyFilter(); }
 
-    void ApplyFilter() => _items = _allItems.Where(r =>
+    void ApplyFilter() { _page = 0; _items = _allItems.Where(r =>
         (string.IsNullOrEmpty(_fSearch) ||
             r.ItemNo.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             r.ItemName.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.ItemNameEN ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fTypeFilter) || r.ItemType == _fTypeFilter) &&
         (string.IsNullOrEmpty(_fActiveOnly) || (_fActiveOnly == "Y" ? r.ActiveFlag : !r.ActiveFlag))
-    ).ToList();
+    ).ToList(); }
 
     void CloseModal() { _modal = ""; _modalErr = ""; _confirmDelete = false; }
     void OnBgDown()  => _bgDown = true;
@@ -256,6 +268,7 @@
 
     void OpenEdit(MasterDataRepository.ItemRow r)
     {
+        _sel           = r;
         _fItemNo       = r.ItemNo;
         _fItemName     = r.ItemName;
         _fItemNameEn   = r.ItemNameEN      ?? "";
@@ -277,19 +290,25 @@
     void SaveCreate()
     {
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_fItemNo))   { _modalErr = "품목번호를 입력하세요."; return; }
-        if (string.IsNullOrWhiteSpace(_fItemName))  { _modalErr = "품목명을 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_fItemNo))   { _modalErr = L["MD.Items.Err.NoRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_fItemName))  { _modalErr = L["MD.Items.Err.NameRequired"]; return; }
         _busy = true;
         try
         {
             var no = _fItemNo.Trim().ToUpper();
-            if (Md.ItemExists(no)) { _modalErr = $"'{no}' 품목번호가 이미 존재합니다."; return; }
+            if (Md.ItemExists(no)) { _modalErr = $"'{no}' 품목번호가 {L["Err.AlreadyExists"]}"; return; }
             Md.InsertItem(no, _fItemName.Trim(), N(_fItemNameEn), N(_fItemType),
                 N(_fItemCategory), N(_fUom), N(_fRoutingType),
                 Nz(_fMinStock), Nz(_fMaxStock), Nz(_fSafetyStock), Nz(_fUnitCost),
                 N(_fCustSav), N(_fCustGeo), N(_fDrawingNo), _fActiveFlag, _actor);
+            Sys.InsertAuditLog("MD", "MD-003", "CREATE", "MD_Item", no,
+                null, ItemJson(no, _fItemName.Trim(), N(_fItemNameEn), N(_fItemType),
+                    N(_fItemCategory), N(_fUom), _fActiveFlag),
+                _actor, _clientIp,
+                note: $"Created MD_Item '{no}' (ItemName='{_fItemName.Trim()}'" +
+                      $", Type='{N(_fItemType) ?? "-"}', UOM='{N(_fUom) ?? "-"}') by '{_actor}'");
             CloseModal(); Reload();
-            ShowMsg($"{no} 품목 등록 완료.", false);
+            ShowMsg(string.Format(L["MD.Items.Ok.Created"].Value, no), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -298,16 +317,26 @@
     void SaveEdit()
     {
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_fItemName)) { _modalErr = "품목명을 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_fItemName)) { _modalErr = L["MD.Items.Err.NameRequired"]; return; }
         _busy = true;
         try
         {
+            var beforeJson = _sel is null ? null : ItemJson(
+                _sel.ItemNo, _sel.ItemName, _sel.ItemNameEN, _sel.ItemType,
+                _sel.ItemCategory, _sel.DefaultUOM, _sel.ActiveFlag);
             Md.UpdateItem(_fItemNo, _fItemName.Trim(), N(_fItemNameEn), N(_fItemType),
                 N(_fItemCategory), N(_fUom), N(_fRoutingType),
                 Nz(_fMinStock), Nz(_fMaxStock), Nz(_fSafetyStock), Nz(_fUnitCost),
                 N(_fCustSav), N(_fCustGeo), N(_fDrawingNo), _fActiveFlag, _actor);
+            Sys.InsertAuditLog("MD", "MD-003", "UPDATE", "MD_Item", _fItemNo,
+                beforeJson, ItemJson(_fItemNo, _fItemName.Trim(), N(_fItemNameEn), N(_fItemType),
+                    N(_fItemCategory), N(_fUom), _fActiveFlag),
+                _actor, _clientIp,
+                note: $"Updated MD_Item '{_fItemNo}' (ItemName='{_fItemName.Trim()}'" +
+                      $", Type='{N(_fItemType) ?? "-"}', UOM='{N(_fUom) ?? "-"}'," +
+                      $" Active={_fActiveFlag}) by '{_actor}'");
             CloseModal(); Reload();
-            ShowMsg($"{_fItemNo} 품목 수정 완료.", false);
+            ShowMsg(string.Format(L["MD.Items.Ok.Updated"].Value, _fItemNo), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -318,35 +347,56 @@
         _busy = true;
         try
         {
+            var beforeJson = _sel is null ? null : ItemJson(
+                _sel.ItemNo, _sel.ItemName, _sel.ItemNameEN, _sel.ItemType,
+                _sel.ItemCategory, _sel.DefaultUOM, _sel.ActiveFlag);
             Md.DeleteItem(_fItemNo);
+            Sys.InsertAuditLog("MD", "MD-003", "DELETE", "MD_Item", _fItemNo,
+                beforeJson, null,
+                _actor, _clientIp,
+                note: $"Deleted MD_Item '{_fItemNo}'" +
+                      $" (ItemName='{_sel?.ItemName ?? "-"}', Type='{_sel?.ItemType ?? "-"}') by '{_actor}'");
             CloseModal(); Reload();
-            ShowMsg($"{_fItemNo} 삭제 완료.", false);
+            ShowMsg(string.Format(L["MD.Items.Ok.Deleted"].Value, _fItemNo), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
+    static string ItemJson(string itemNo, string itemName, string? itemNameEn,
+        string? itemType, string? itemCategory, string? uom, bool activeFlag)
+        => JsonSerializer.Serialize(new
+        {
+            ItemNo       = itemNo,
+            ItemName     = itemName,
+            ItemNameEN   = itemNameEn,
+            ItemType     = itemType,
+            ItemCategory = itemCategory,
+            DefaultUOM   = uom,
+            ActiveFlag   = activeFlag
+        });
+
     RenderFragment ItemFormFields() =>
     @<div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
             <div>
-                <label>품목명 *</label>
+                <label>@L["MD.Items.Lbl.ItemName"]</label>
                 <input class="ames-input" @bind="_fItemName" autocomplete="off" />
             </div>
             <div>
-                <label>품목명(영문)</label>
+                <label>@L["MD.Items.Lbl.ItemNameEn"]</label>
                 <input class="ames-input" @bind="_fItemNameEn" autocomplete="off" />
             </div>
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;margin-top:6px;">
             <div>
-                <label>품목유형</label>
+                <label>@L["MD.Items.Lbl.ItemType"]</label>
                 <input class="ames-input" @bind="_fItemType" autocomplete="off"
                        placeholder="예: FG, WIP, RM" maxlength="10" />
             </div>
             <div>
-                <label>카테고리</label>
+                <label>@L["MD.Items.Lbl.Category"]</label>
                 <input class="ames-input" @bind="_fItemCategory" autocomplete="off"
                        placeholder="예: BUMPER, DOOR" maxlength="30" />
             </div>
@@ -359,40 +409,40 @@
 
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px;">
             <div>
-                <label>안전재고</label>
+                <label>@L["MD.Items.Lbl.SafetyStock"]</label>
                 <input type="number" class="ames-input" @bind="_fSafetyStock" min="0" step="0.0001" />
             </div>
             <div>
-                <label>최소재고</label>
+                <label>@L["MD.Items.Lbl.MinStock"]</label>
                 <input type="number" class="ames-input" @bind="_fMinStock" min="0" step="0.0001" />
             </div>
             <div>
-                <label>최대재고</label>
+                <label>@L["MD.Items.Lbl.MaxStock"]</label>
                 <input type="number" class="ames-input" @bind="_fMaxStock" min="0" step="0.0001" />
             </div>
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px;">
             <div>
-                <label>단가</label>
+                <label>@L["MD.Items.Lbl.UnitCost"]</label>
                 <input type="number" class="ames-input" @bind="_fUnitCost" min="0" step="0.01" />
             </div>
             <div>
-                <label>고객품번(SAV)</label>
+                <label>@L["MD.Items.Lbl.CustSav"]</label>
                 <input class="ames-input" @bind="_fCustSav" maxlength="30" autocomplete="off" />
             </div>
             <div>
-                <label>고객품번(GEO)</label>
+                <label>@L["MD.Items.Lbl.CustGeo"]</label>
                 <input class="ames-input" @bind="_fCustGeo" maxlength="30" autocomplete="off" />
             </div>
         </div>
 
-        <label style="margin-top:6px;">도면번호</label>
+        <label style="margin-top:6px;">@L["MD.Items.Lbl.DrawingNo"]</label>
         <input class="ames-input" @bind="_fDrawingNo" maxlength="30" autocomplete="off" />
 
         <label style="margin-top:6px;display:flex;align-items:center;gap:8px;cursor:pointer;">
             <input type="checkbox" @bind="_fActiveFlag" style="accent-color:#60a5fa;" />
-            사용
+            @L["Lbl.Use.On"]
         </label>
     </div>;
 

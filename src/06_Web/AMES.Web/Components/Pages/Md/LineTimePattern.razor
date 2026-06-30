@@ -2,19 +2,20 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AuthenticationStateProvider Auth
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["MD.LinePat.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">MD-029</div>
+    <div class="ames-page-id">MD-028</div>
     <div class="ames-page-t">@L["MD.LinePat.Title"]</div>
     <div class="ames-page-sub">@L["MD.LinePat.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
     <div class="ames-kpi">
-        <div class="ames-kpi-l">전체 패턴</div>
+        <div class="ames-kpi-l">@L["MD.LinePat.Kpi.TotalPatterns"]</div>
         <div class="ames-kpi-v">@_allRows.Count</div>
     </div>
     <div class="ames-kpi ok">
@@ -22,29 +23,36 @@
         <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "ACTIVE")</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">라인 수</div>
+        <div class="ames-kpi-l">@L["Kpi.LineCount"]</div>
         <div class="ames-kpi-v">@_allRows.Select(r => r.LineID).Where(l => l != null).Distinct().Count()</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">교대 모델 수</div>
+        <div class="ames-kpi-l">@L["MD.LinePat.Kpi.ShiftModels"]</div>
         <div class="ames-kpi-v">@_allRows.Select(r => r.ShiftModel).Where(s => s != null).Distinct().Count()</div>
     </div>
 </div>
 
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MD.LinePat.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.LinePat.List"] · @_rows.Count @L["Lbl.Items"]@if (_rows.Count < _allRows.Count) { <text> / @L["Lbl.TotalOf"] @_allRows.Count</text> }</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:140px;padding:4px 8px;"
-                   placeholder="패턴ID / 패턴명" @bind="_fSearch" autocomplete="off" />
-            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fLine">
+                   placeholder='@L["MD.LineTimePattern.Ph.Search"]' @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Line"]</span>
+            <select class="ames-input" style="width:130px;padding:4px 8px;" @bind="_fLine">
                 <option value="">@L["Filter.AllLines"]</option>
-                @foreach (var l in _allRows.Select(r => r.LineID).Where(x => x != null).Distinct().OrderBy(x => x))
+                @foreach (var l in _lineList)
                 {
-                    <option value="@l">@l</option>
+                    <option value="@l.LineID">@l.LineID@(l.LineName != null ? $" {l.LineName}" : "")</option>
                 }
             </select>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
         </div>
     </div>
 
@@ -57,17 +65,17 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>패턴 ID</th><th>패턴명</th><th>라인</th>
-                    <th>요일 유형</th><th>교대 모델</th>
-                    <th>적용 시작</th><th>적용 종료</th>
-                    <th class="num">운전 시간(분)</th><th class="num">계획 비가동(분)</th>
-                    <th>@L["Col.Status"]</th><th>세그먼트</th>
+                    <th>@L["Col.PatternId"]</th><th>@L["Col.Pattern"]</th><th>@L["Col.Line"]</th>
+                    <th>@L["Col.DayType"]</th><th>@L["Col.ShiftModel"]</th>
+                    <th>@L["Col.Start"]</th><th>@L["Col.End"]</th>
+                    <th class="num">@L["Col.OperatingMin"]</th><th class="num">@L["Col.MinDT"]</th>
+                    <th>@L["Col.Status"]</th><th>@L["Col.Segment"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
-                    <tr @onclick="() => ToggleSegments(r.PatternID)" style="cursor:pointer;">
+                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
                         <td class="code">@r.PatternID</td>
                         <td>@(r.PatternName ?? "—")</td>
                         <td class="dim">@(r.LineID ?? "—")</td>
@@ -78,7 +86,7 @@
                         <td class="num">@(r.TotalOperatingMin?.ToString() ?? "—")</td>
                         <td class="num">@(r.TotalPlannedDownMin?.ToString() ?? "—")</td>
                         <td><span class="pill @(r.Status == "ACTIVE" ? "ok" : "warn")">@(r.Status ?? "—")</span></td>
-                        <td class="dim">▶ 클릭하여 세그먼트 보기</td>
+                        <td><button class="ames-btn ghost" style="padding:2px 8px;font-size:.8em;" @onclick:stopPropagation @onclick="() => ToggleSegments(r.PatternID)">▶</button></td>
                     </tr>
                     @if (_expandedId == r.PatternID && _segments.Count > 0)
                     {
@@ -87,8 +95,8 @@
                                 <table class="ames-table" style="margin:8px 0;">
                                     <thead>
                                         <tr>
-                                            <th class="num">순서</th><th class="num">시작(분)</th><th class="num">종료(분)</th>
-                                            <th>@L["Col.Status"]</th><th>교대</th><th>사유코드</th><th>설명</th>
+                                            <th class="num">@L["Col.Seq"]</th><th class="num">@L["Col.StartMin"]</th><th class="num">@L["Col.EndMin"]</th>
+                                            <th>@L["Col.Status"]</th><th>@L["Col.Shift"]</th><th>@L["Col.ReasonCode"]</th><th>@L["Col.Description"]</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -112,17 +120,171 @@
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
+
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.LinePat.Title"] — @L["Btn.Create"]</div>
+
+            <label>@L["Col.PatternId"]</label>
+            <input class="ames-input" @bind="_f.PatternID" placeholder="LP-INJ-001" autocomplete="off" />
+
+            <label>@L["Col.Pattern"]</label>
+            <input class="ames-input" @bind="_f.PatternName" placeholder='@L["MD.LineTimePattern.Ph.PatternName"]' autocomplete="off" />
+
+            <label>@L["Col.Line"]</label>
+            <select class="ames-input" @bind="_f.LineID">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var l in _lineList)
+                {
+                    <option value="@l.LineID">[@l.LineID]@(l.LineName != null ? $" {l.LineName}" : "")</option>
+                }
+            </select>
+
+            <label>@L["Col.DayType"]</label>
+            <select class="ames-input" @bind="_f.DayType">
+                <option value="">@L["Opt.Select"]</option>
+                <option value="WEEKDAY">WEEKDAY</option>
+                <option value="SATURDAY">SATURDAY</option>
+                <option value="HOLIDAY">HOLIDAY</option>
+            </select>
+
+            <label>@L["Col.ShiftModel"]</label>
+            <input class="ames-input" @bind="_f.ShiftModel" placeholder="2SHIFT / 3SHIFT" autocomplete="off" />
+
+            <label>@L["Col.StartDate"]</label>
+            <input class="ames-input" type="text" @bind="_f.EffectiveFrom" placeholder="yyyy-MM-dd" autocomplete="off" />
+
+            <label>@L["Col.EndDate"]</label>
+            <input class="ames-input" type="text" @bind="_f.EffectiveTo" placeholder="yyyy-MM-dd" autocomplete="off" />
+
+            <label>@L["Col.OperatingMin"]</label>
+            <input class="ames-input" type="number" @bind="_f.TotalOperatingMin" placeholder="1380" min="0" autocomplete="off" />
+
+            <label>@L["Col.MinDT"]</label>
+            <input class="ames-input" type="number" @bind="_f.TotalPlannedDownMin" placeholder="60" min="0" autocomplete="off" />
+
+            <label>@L["Col.Uom"]</label>
+            <input class="ames-input" @bind="_f.TimeZone" placeholder="Asia/Seoul" autocomplete="off" />
+
+            <label>@L["Col.Status"]</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="DRAFT">DRAFT</option>
+                <option value="INACTIVE">INACTIVE</option>
+            </select>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.LinePat.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.PatternID</span></div>
+
+            <label>@L["Col.Pattern"]</label>
+            <input class="ames-input" @bind="_f.PatternName" autocomplete="off" />
+
+            <label>@L["Col.Line"]</label>
+            <select class="ames-input" @bind="_f.LineID">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var l in _lineList)
+                {
+                    <option value="@l.LineID">[@l.LineID]@(l.LineName != null ? $" {l.LineName}" : "")</option>
+                }
+            </select>
+
+            <label>@L["Col.DayType"]</label>
+            <select class="ames-input" @bind="_f.DayType">
+                <option value="">@L["Opt.Select"]</option>
+                <option value="WEEKDAY">WEEKDAY</option>
+                <option value="SATURDAY">SATURDAY</option>
+                <option value="HOLIDAY">HOLIDAY</option>
+            </select>
+
+            <label>@L["Col.ShiftModel"]</label>
+            <input class="ames-input" @bind="_f.ShiftModel" autocomplete="off" />
+
+            <label>@L["Col.StartDate"]</label>
+            <input class="ames-input" type="text" @bind="_f.EffectiveFrom" placeholder="yyyy-MM-dd" autocomplete="off" />
+
+            <label>@L["Col.EndDate"]</label>
+            <input class="ames-input" type="text" @bind="_f.EffectiveTo" placeholder="yyyy-MM-dd" autocomplete="off" />
+
+            <label>@L["Col.OperatingMin"]</label>
+            <input class="ames-input" type="number" @bind="_f.TotalOperatingMin" min="0" autocomplete="off" />
+
+            <label>@L["Col.MinDT"]</label>
+            <input class="ames-input" type="number" @bind="_f.TotalPlannedDownMin" min="0" autocomplete="off" />
+
+            <label>@L["Col.Uom"]</label>
+            <input class="ames-input" @bind="_f.TimeZone" autocomplete="off" />
+
+            <label>@L["Col.Status"]</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="DRAFT">DRAFT</option>
+                <option value="INACTIVE">INACTIVE</option>
+            </select>
+
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)</button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn" @onclick="SaveEdit" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     List<AMES.Data.Repositories.MasterDataRepository.LineTimePatternRow>  _allRows  = new();
     List<AMES.Data.Repositories.MasterDataRepository.LineTimePatternRow>  _rows     = new();
     List<AMES.Data.Repositories.MasterDataRepository.LineTimeSegmentRow>  _segments = new();
+    AMES.Data.Repositories.MasterDataRepository.LineTimePatternRow? _sel;
+    int _page = 0;
+    const int _pageSize = 20;
+    List<AMES.Data.Repositories.MasterDataRepository.LineRow> _lineList = new();
     string _fSearch = "", _fLine = "";
     string? _expandedId;
+    string _modal = "";
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _msg = "", _modalErr = "";
+    bool _isErr;
+    string _actor = "system";
+    FormModel _f = new();
 
-    protected override void OnInitialized() => Reload();
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        try { _lineList = Md.ListLines(); } catch { }
+        Reload();
+    }
 
     void Reload()
     {
@@ -134,6 +296,7 @@
 
     void ApplyFilter()
     {
+        _page = 0;
         _rows = _allRows;
         if (!string.IsNullOrWhiteSpace(_fSearch))
             _rows = _rows.Where(r =>
@@ -148,5 +311,113 @@
         if (_expandedId == patternId) { _expandedId = null; _segments = new(); return; }
         _expandedId = patternId;
         try { _segments = Md.ListLineTimeSegments(patternId); } catch { _segments = new(); }
+    }
+
+    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+
+    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.LineTimePatternRow r)
+    {
+        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _f = new()
+        {
+            PatternName        = r.PatternName        ?? "",
+            LineID             = r.LineID             ?? "",
+            DayType            = r.DayType            ?? "",
+            ShiftModel         = r.ShiftModel         ?? "",
+            EffectiveFrom      = r.EffectiveFrom?.ToString("yyyy-MM-dd") ?? "",
+            EffectiveTo        = r.EffectiveTo?.ToString("yyyy-MM-dd")   ?? "",
+            TotalOperatingMin  = r.TotalOperatingMin,
+            TotalPlannedDownMin = r.TotalPlannedDownMin,
+            TimeZone           = r.TimeZone           ?? "",
+            Status             = r.Status             ?? "ACTIVE",
+        };
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.PatternID)) { _modalErr = L["Err.PatternIdRequired"]; return; }
+        var id = _f.PatternID.Trim();
+        if (Md.LineTimePatternExists(id)) { _modalErr = $"'{id}' ID가 {L["Err.AlreadyExists"]}"; return; }
+        DateOnly? effFrom = DateOnly.TryParse(_f.EffectiveFrom, out var d1) ? d1 : null;
+        DateOnly? effTo   = DateOnly.TryParse(_f.EffectiveTo,   out var d2) ? d2 : null;
+        _busy = true;
+        try
+        {
+            Md.InsertLineTimePattern(id, NE(_f.LineID), NE(_f.PatternName),
+                NE(_f.DayType), NE(_f.ShiftModel),
+                effFrom, effTo,
+                _f.TotalOperatingMin, _f.TotalPlannedDownMin,
+                NE(_f.TimeZone), NE(_f.Status), _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{id} {L["Msg.Created"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        DateOnly? effFrom = DateOnly.TryParse(_f.EffectiveFrom, out var d1) ? d1 : null;
+        DateOnly? effTo   = DateOnly.TryParse(_f.EffectiveTo,   out var d2) ? d2 : null;
+        _busy = true;
+        try
+        {
+            Md.UpdateLineTimePattern(_sel.PatternID, NE(_f.LineID), NE(_f.PatternName),
+                NE(_f.DayType), NE(_f.ShiftModel),
+                effFrom, effTo,
+                _f.TotalOperatingMin, _f.TotalPlannedDownMin,
+                NE(_f.TimeZone), NE(_f.Status), _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{_sel.PatternID} {L["Msg.Updated"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            var id = _sel.PatternID;
+            Md.DeleteLineTimePattern(_sel.PatternID);
+            CloseModal(); Reload();
+            ShowMsg($"{id} {L["Msg.Deleted"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    class FormModel
+    {
+        public string  PatternID           { get; set; } = "";
+        public string  PatternName         { get; set; } = "";
+        public string  LineID              { get; set; } = "";
+        public string  DayType             { get; set; } = "";
+        public string  ShiftModel          { get; set; } = "";
+        public string  EffectiveFrom       { get; set; } = "";
+        public string  EffectiveTo         { get; set; } = "";
+        public int?    TotalOperatingMin   { get; set; }
+        public int?    TotalPlannedDownMin { get; set; }
+        public string  TimeZone            { get; set; } = "";
+        public string  Status              { get; set; } = "ACTIVE";
     }
 }

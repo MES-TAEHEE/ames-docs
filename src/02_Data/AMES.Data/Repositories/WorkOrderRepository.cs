@@ -14,6 +14,44 @@ public sealed class WorkOrderRepository
     private readonly AmesConnectionFactory _factory;
     public WorkOrderRepository(AmesConnectionFactory f) => _factory = f;
 
+    /// <summary>
+    /// All WOs across all lines for the PP-004 management grid.
+    /// Returns Draft + Released + In Progress always; Closed only within the last <paramref name="recentClosedDays"/> days.
+    /// </summary>
+    public List<WorkOrderDto> ListAll(int recentClosedDays = 30)
+    {
+        const string sql = """
+            SELECT w.WoID, w.WoNumber, w.ItemNo, i.ItemName, i.ItemNameEN,
+                   w.OrderQty, w.OpenQty, w.CompletedQty, w.LineID,
+                   w.MoldID, w.RecipeID, w.DueDate, w.Status, w.TerminalLock,
+                   ISNULL(w.Priority,5) AS Priority,
+                   CASE WHEN w.LineID LIKE 'LINE-IMG%' THEN 'A'
+                        WHEN w.LineID LIKE 'LINE-PNT%' THEN 'B'
+                        ELSE NULL END AS RoutingType,
+                   CAST(
+                       CASE WHEN EXISTS(SELECT 1 FROM dbo.MD_BOM bm WHERE bm.ParentItemNo = w.ItemNo)
+                             AND EXISTS(SELECT 1 FROM dbo.MD_BOP bp WHERE bp.ItemNo        = w.ItemNo)
+                            THEN 1 ELSE 0 END
+                   AS BIT) AS Phase0Complete,
+                   NULL AS SapRef
+            FROM   dbo.PP_WorkOrder w
+            JOIN   dbo.MD_Item      i ON i.ItemNo = w.ItemNo
+            WHERE  w.Status IN ('Draft','Released','In Progress')
+               OR (w.Status = 'Closed'
+                   AND w.ActualEnd >= DATEADD(day, -@Days, CAST(GETDATE() AS date)))
+            ORDER  BY CASE w.Status
+                           WHEN 'In Progress' THEN 0
+                           WHEN 'Released'    THEN 1
+                           WHEN 'Draft'       THEN 2
+                           ELSE 3 END,
+                      ISNULL(w.Priority,5),
+                      ISNULL(w.DueDate,'9999-12-31'),
+                      w.WoID;
+            """;
+
+        return Query(sql, cmd => cmd.Parameters.Add("@Days", SqlDbType.Int).Value = recentClosedDays);
+    }
+
     /// <summary>WOs eligible to be accepted on this line (Status='Released' or 'In Progress').</summary>
     public List<WorkOrderDto> ListForLine(string lineId)
     {
@@ -150,7 +188,32 @@ public sealed class WorkOrderRepository
         return (decimal)(cmd.ExecuteScalar() ?? 0m);
     }
 
+    /// <summary>
+    /// Updates DueDate for a WO (PP-CAL drag reschedule). Ignores Closed WOs.
+    /// </summary>
+    public void UpdateDueDate(int woId, DateTime newDate)
+    {
+        const string sql = """
+            UPDATE dbo.PP_WorkOrder
+               SET DueDate = @DueDate
+             WHERE WoID   = @WoID
+               AND Status NOT IN ('Closed');
+            """;
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@WoID",   SqlDbType.Int).Value          = woId;
+        cmd.Parameters.Add("@DueDate", SqlDbType.Date).Value        = newDate.Date;
+        cmd.ExecuteNonQuery();
+    }
+
     // ── helpers ─────────────────────────────────────────────────────────────
+    private static bool HasColumn(SqlDataReader rdr, string name)
+    {
+        for (int i = 0; i < rdr.FieldCount; i++)
+            if (rdr.GetName(i) == name) return true;
+        return false;
+    }
+
     private List<WorkOrderDto> Query(string sql, Action<SqlCommand> bind)
     {
         using var conn = _factory.OpenConnection();
@@ -162,21 +225,24 @@ public sealed class WorkOrderRepository
         {
             list.Add(new WorkOrderDto
             {
-                WoId         = (int)rdr["WoID"],
-                WoNumber     = rdr["WoNumber"] as string ?? string.Empty,
-                ItemNo       = (string)rdr["ItemNo"],
-                ItemName     = (string)rdr["ItemName"],
-                ItemNameEn   = rdr["ItemNameEN"] as string,
-                OrderQty     = rdr["OrderQty"]     as decimal? ?? 0,
-                OpenQty      = rdr["OpenQty"]      as decimal? ?? 0,
-                CompletedQty = rdr["CompletedQty"] as decimal? ?? 0,
-                LineId       = rdr["LineID"]      as string ?? string.Empty,
-                MoldId       = rdr["MoldID"]      as string,
-                RecipeId     = rdr["RecipeID"]    as string,
-                DueDate      = rdr["DueDate"]     as DateTime?,
-                Status       = rdr["Status"]      as string ?? "Unknown",
-                TerminalLock = rdr["TerminalLock"] as string,
-                Priority     = Convert.ToInt32(rdr["Priority"]),
+                WoId          = (int)rdr["WoID"],
+                WoNumber      = rdr["WoNumber"] as string ?? string.Empty,
+                ItemNo        = (string)rdr["ItemNo"],
+                ItemName      = (string)rdr["ItemName"],
+                ItemNameEn    = rdr["ItemNameEN"] as string,
+                OrderQty      = rdr["OrderQty"]     as decimal? ?? 0,
+                OpenQty       = rdr["OpenQty"]      as decimal? ?? 0,
+                CompletedQty  = rdr["CompletedQty"] as decimal? ?? 0,
+                LineId        = rdr["LineID"]       as string ?? string.Empty,
+                MoldId        = rdr["MoldID"]       as string,
+                RecipeId      = rdr["RecipeID"]     as string,
+                DueDate       = rdr["DueDate"]      as DateTime?,
+                Status        = rdr["Status"]       as string ?? "Unknown",
+                TerminalLock  = rdr["TerminalLock"] as string,
+                Priority      = Convert.ToInt32(rdr["Priority"]),
+                RoutingType   = HasColumn(rdr, "RoutingType")   ? rdr["RoutingType"]   as string  : null,
+                Phase0Complete = HasColumn(rdr, "Phase0Complete") && rdr["Phase0Complete"] is true,
+                SapRef        = HasColumn(rdr, "SapRef")        ? rdr["SapRef"]        as string  : null,
             });
         }
         return list;

@@ -4,10 +4,10 @@
 @inject AMES.Data.Repositories.RptRepository Rpt
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>RPT-04 @L["RPT.OnTime.Title"] · AMES</PageTitle>
+<PageTitle>RPT-004 @L["RPT.OnTime.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">RPT-04</div>
+    <div class="ames-page-id">RPT-004</div>
     <div class="ames-page-t">@L["RPT.OnTime.Title"]</div>
     <div class="ames-page-sub">@L["RPT.OnTime.Sub"]</div>
 </div>
@@ -29,13 +29,13 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["RPT.OnTime.List"] · @_rows.Count @L["Lbl.Items"]</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Period"]</label>
-            <select class="ames-input" style="width:80px;padding:4px 8px;" @bind="_daysBack">
-                <option value="7">7@L["Lbl.Days"]</option>
-                <option value="14">14@L["Lbl.Days"]</option>
-                <option value="30">30@L["Lbl.Days"]</option>
-                <option value="60">60@L["Lbl.Days"]</option>
-                <option value="90">90@L["Lbl.Days"]</option>
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Lbl.Period"]</span>
+            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_daysBack">
+                <option value="7">7@(L["Lbl.Days"])</option>
+                <option value="14">14@(L["Lbl.Days"])</option>
+                <option value="30">30@(L["Lbl.Days"])</option>
+                <option value="60">60@(L["Lbl.Days"])</option>
+                <option value="90">90@(L["Lbl.Days"])</option>
             </select>
             <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
         </div>
@@ -52,11 +52,11 @@
                 <tr>
                     <th>@L["Col.Date"]</th><th class="num">@L["RPT.OnTime.Kpi.Total"]</th>
                     <th class="num">@L["RPT.OnTime.Kpi.OnTime"]</th><th class="num">@L["RPT.OnTime.Kpi.Late"]</th>
-                    <th class="num">OTD%</th><th>@L["RPT.OnTime.Col.Trend"]</th>
+                    <th class="num">@L["Col.OtdPct"]</th><th>@L["RPT.OnTime.Col.Trend"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     <tr>
                         <td class="dim">@r.Day.ToString("MM-dd (ddd)")</td>
@@ -77,11 +77,14 @@
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
 @code {
     List<AMES.Data.Repositories.RptRepository.OtdRow> _rows = new();
+    int _page = 0;
+    const int _pageSize = 20;
 
     int     _daysBack = 30;
     int     _total, _ok, _late;
@@ -91,6 +94,7 @@
 
     void Reload()
     {
+        _page = 0;
         try { _rows = Rpt.ListOtd(_daysBack); } catch { _rows = new(); }
         _total = _rows.Sum(r => r.TotalOrders);
         _ok    = _rows.Sum(r => r.OnTime);

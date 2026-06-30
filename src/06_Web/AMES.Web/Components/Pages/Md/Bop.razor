@@ -24,7 +24,7 @@
     <div style="flex:0 0 250px;display:flex;flex-direction:column;min-height:0;">
         <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;padding:14px;">
             <input class="ames-input" style="margin-bottom:4px;padding:7px 10px;font-size:.88em;flex-shrink:0;"
-                   placeholder="품목번호 · 품목명 검색…"
+                   placeholder='@L["MD.Bop.Ph.Search"]'
                    @bind="_search" @bind:event="oninput"
                    @onkeydown="OnKeyDown" />
             <button class="ames-btn ok" style="width:100%;margin-bottom:8px;padding:6px;font-size:.83em;flex-shrink:0;"
@@ -49,7 +49,7 @@
                 }
                 @if (_items.Count == 0)
                 {
-                    <div class="dim" style="text-align:center;padding:28px;font-size:.85em;">품목 없음</div>
+                    <div class="dim" style="text-align:center;padding:28px;font-size:.85em;">@L["MD.Bop.NoItems"]</div>
                 }
             </div>
         </div>
@@ -63,7 +63,7 @@
             {
                 <div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;">
                     <div style="font-size:2.4em;opacity:.15;">⚙️</div>
-                    <div class="dim" style="font-size:.9em;">좌측에서 품목을 선택하면 공정 단계가 표시됩니다</div>
+                    <div class="dim" style="font-size:.9em;">@L["MD.Bop.SelectItemHint"]</div>
                 </div>
             }
             else
@@ -80,12 +80,12 @@
                                 }
                             </div>
                             <div class="dim" style="font-size:.8em;margin-top:2px;">
-                                공정 단계 @(_steps.Count)개
-                                @if (_rtFilter != null) {<span> · Routing @_rtFilter 필터 적용 중</span>}
+                                @string.Format(L["MD.Bop.StepCount"], _steps.Count)
+                                @if (_rtFilter != null) {<span> · @string.Format(L["MD.Bop.RoutingFilter"], _rtFilter)</span>}
                             </div>
                         </div>
-                        <button class="ames-btn ok" @onclick="OpenStepCreate"
-                                style="padding:6px 14px;font-size:.83em;flex-shrink:0;">+ 단계 추가</button>
+                        <button class="ames-btn" @onclick="OpenStepCreate"
+                                style="padding:6px 14px;font-size:.83em;flex-shrink:0;">@L["MD.Bop.AddStep"]</button>
                     </div>
                 </div>
 
@@ -96,7 +96,7 @@
                         <span style="font-size:.79em;font-family:'JetBrains Mono',monospace;color:#475569;letter-spacing:.5px;flex-shrink:0;">Routing:</span>
                         <button class="ames-btn @(_rtFilter == null ? "info" : "")"
                                 style="padding:2px 10px;font-size:.79em;"
-                                @onclick='() => SetRtFilter(null)'>전체</button>
+                                @onclick='() => SetRtFilter(null)'>@L["Btn.All"]</button>
                         @foreach (var rt in _routingTypes)
                         {
                             var rtCap = rt;
@@ -112,16 +112,16 @@
                     <table class="ames-table">
                         <thead>
                             <tr>
-                                <th style="width:48px;text-align:center;">Rt</th>
-                                <th style="width:46px;text-align:center;">Seq</th>
-                                <th style="width:190px;">공정 / 작업장</th>
-                                <th style="width:130px;text-align:right;">사이클 / 준비 (s)</th>
-                                <th style="width:64px;text-align:center;">QC · 활성</th>
-                                <th>설명</th>
+                                <th style="width:48px;text-align:center;">@L["Col.Routing"]</th>
+                                <th style="width:46px;text-align:center;">@L["Col.Seq"]</th>
+                                <th style="width:190px;">@L["Col.ProcessWC"]</th>
+                                <th style="width:130px;text-align:right;">@L["Col.CycleSetup"]</th>
+                                <th style="width:64px;text-align:center;">@L["Col.QcActive"]</th>
+                                <th>@L["Col.Description"]</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var step in _steps)
+                            @foreach (var step in _steps.Skip(_page * _pageSize).Take(_pageSize))
                             {
                                 var sCap = step;
                                 <tr class="ames-row-link" @onclick="() => OpenStepEdit(sCap)">
@@ -157,11 +157,12 @@
                             @if (_steps.Count == 0)
                             {
                                 <tr><td colspan="6" class="dim" style="text-align:center;padding:24px;font-size:.85em;">
-                                    공정 단계 없음 — + 단계 추가 버튼으로 등록하세요
+                                    @L["MD.Bop.NoSteps"]
                                 </td></tr>
                             }
                         </tbody>
                     </table>
+                    <Pager Page="_page" Total="_steps.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
                 </div>
             }
         </div>
@@ -173,12 +174,12 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
         <div class="ames-modal" style="max-width:540px;" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">BOP 단계 추가</div>
+            <div class="ames-modal-h">@L["MD.Bop.Modal.AddStep"]</div>
             @StepForm(false)
             @if (!string.IsNullOrEmpty(_modalErr)) {<div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div>}
             <div class="ames-modal-footer">
-                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "추가")</button>
-                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? @L["Msg.Saving"] : @L["Btn.Add"])</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -190,7 +191,7 @@
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
         <div class="ames-modal" style="max-width:540px;" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">
-                BOP 단계 수정
+                @L["MD.Bop.Modal.EditStep"]
                 <span class="pill info" style="margin-left:8px;font-size:.8em;">@_fRoutingType</span>
                 <span class="dim" style="margin-left:6px;font-size:.88em;">Step @_fStepSeq</span>
             </div>
@@ -198,16 +199,16 @@
             @if (_confirmDelete)
             {
                 <div class="ames-delete-confirm">
-                    <span>@_fItemNo Step @_fStepSeq 을(를) 삭제합니까?</span>
-                    <button class="ames-btn" @onclick='() => _confirmDelete = false' style="padding:4px 10px;">아니오</button>
-                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy" style="padding:4px 10px;">@(_busy ? "삭제 중…" : "예, 삭제")</button>
+                    <span>@string.Format(L["MD.Bop.ConfirmDeleteStep"], _fItemNo, _fStepSeq)</span>
+                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false' style="padding:4px 10px;">@L["Msg.No"]</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy" style="padding:4px 10px;">@(_busy ? @L["Msg.Deleting"] : @L["Msg.Yes"])</button>
                 </div>
             }
             @if (!string.IsNullOrEmpty(_modalErr)) {<div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div>}
             <div class="ames-modal-footer">
-                <button class="ames-btn ok" @onclick="SaveEdit" disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn" @onclick="SaveEdit" disabled="@_busy">@(_busy ? @L["Msg.Saving"] : @L["Btn.Edit"])</button>
                 <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -215,12 +216,16 @@
 
 @code {
     // ── State ─────────────────────────────────────────────────────────────
-    List<MasterDataRepository.BopItemRow> _items = new();
-    List<MasterDataRepository.BopRow>     _steps = new();
-    MasterDataRepository.BopItemRow?      _selItem;
+    List<MasterDataRepository.BopItemRow>   _items    = new();
+    List<MasterDataRepository.BopRow>       _steps    = new();
+    List<MasterDataRepository.ItemRow>      _itemList = new();
+    List<MasterDataRepository.WorkCenterRow> _wcList  = new();
+    MasterDataRepository.BopItemRow?        _selItem;
     List<string> _routingTypes = new();
     string? _rtFilter;
     string  _search = "";
+    int _page = 0;
+    const int _pageSize = 20;
 
     string _modal     = "";
     string _modalErr  = "";
@@ -246,6 +251,8 @@
     {
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor   = auth.User.Identity?.Name ?? "system";
+        try { _itemList = Md.ListItems();       } catch { }
+        try { _wcList   = Md.ListWorkCenters(); } catch { }
         LoadItems();
     }
 
@@ -257,6 +264,7 @@
 
     void LoadSteps()
     {
+        _page = 0;
         if (_selItem is null) { _steps = new(); _routingTypes = new(); return; }
         try
         {
@@ -317,9 +325,9 @@
     void SaveCreate()
     {
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_fItemNo))     { _modalErr = "품목번호를 입력하세요."; return; }
-        if (string.IsNullOrWhiteSpace(_fRoutingType)){ _modalErr = "라우팅 유형을 입력하세요."; return; }
-        if (_fStepSeq <= 0)                          { _modalErr = "단계 순서는 1 이상이어야 합니다."; return; }
+        if (string.IsNullOrWhiteSpace(_fItemNo))     { _modalErr = L["Err.ItemNoRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_fRoutingType)){ _modalErr = L["Err.RoutingTypeRequired"]; return; }
+        if (_fStepSeq <= 0)                          { _modalErr = L["Err.StepSeqMin1"]; return; }
         _busy = true;
         try
         {
@@ -337,7 +345,7 @@
                 _selItem = _items.FirstOrDefault(i => i.ItemNo == newItemNo);
 
             LoadSteps(); CloseModal();
-            ShowMsg($"{newItemNo} Step {_fStepSeq} 추가 완료.", false);
+            ShowMsg($"{newItemNo} Step {_fStepSeq} {L["Msg.Created"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -346,8 +354,8 @@
     void SaveEdit()
     {
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_fRoutingType)){ _modalErr = "라우팅 유형을 입력하세요."; return; }
-        if (_fStepSeq <= 0)                          { _modalErr = "단계 순서는 1 이상이어야 합니다."; return; }
+        if (string.IsNullOrWhiteSpace(_fRoutingType)){ _modalErr = L["Err.RoutingTypeRequired"]; return; }
+        if (_fStepSeq <= 0)                          { _modalErr = L["Err.StepSeqMin1"]; return; }
         _busy = true;
         try
         {
@@ -357,7 +365,7 @@
                 _fSetupTime  == 0 ? null : _fSetupTime,
                 _fQcRequired, N(_fStepDesc), _fActiveFlag, _actor);
             LoadSteps(); CloseModal();
-            ShowMsg($"Step {_fStepSeq} 수정 완료.", false);
+            ShowMsg($"Step {_fStepSeq} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -370,7 +378,7 @@
         {
             Md.DeleteBopStep(_fBopId);
             LoadItems(); LoadSteps(); CloseModal();
-            ShowMsg($"Step {_fStepSeq} 삭제 완료.", false);
+            ShowMsg($"Step {_fStepSeq} {L["Msg.Deleted"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -381,9 +389,21 @@
     @<div>
         <div style="display:grid;grid-template-columns:1fr 70px 80px;gap:8px;">
             <div>
-                <label>품목번호 *</label>
-                <input class="ames-input" @bind="_fItemNo" disabled="@editMode"
-                       placeholder="MD_Item.ItemNo" maxlength="20" autocomplete="off" />
+                <label>@L["Col.ItemNo"] *</label>
+                @if (editMode)
+                {
+                    <input class="ames-input" value="@_fItemNo" disabled autocomplete="off" />
+                }
+                else
+                {
+                    <select class="ames-input" @bind="_fItemNo">
+                        <option value="">— @L["Opt.SelectItem"] —</option>
+                        @foreach (var item in _itemList)
+                        {
+                            <option value="@item.ItemNo">[@item.ItemNo] @item.ItemName</option>
+                        }
+                    </select>
+                }
             </div>
             <div>
                 <label>Routing *</label>
@@ -392,47 +412,52 @@
                        style="text-transform:uppercase;" />
             </div>
             <div>
-                <label>Step 순서 *</label>
+                <label>@L["Col.StepSeq"] *</label>
                 <input type="number" class="ames-input" @bind="_fStepSeq" min="1" step="10" />
             </div>
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
             <div>
-                <label>공정코드</label>
+                <label>@L["Col.ProcessCode"]</label>
                 <input class="ames-input" @bind="_fProcessCode"
                        placeholder="예: INJ, PNT, QC" maxlength="10" autocomplete="off" />
             </div>
             <div>
-                <label>작업장 (WorkCenterID)</label>
-                <input class="ames-input" @bind="_fWorkCenterId"
-                       placeholder="MD_WorkCenter.WCID" maxlength="20" autocomplete="off" />
+                <label>@L["Col.WCID"]</label>
+                <select class="ames-input" @bind="_fWorkCenterId">
+                    <option value="">@L["Opt.Select"]</option>
+                    @foreach (var wc in _wcList.Where(w => w.ActiveFlag))
+                    {
+                        <option value="@wc.WCID">[@wc.WCID]@(wc.WCName != null ? $" {wc.WCName}" : "")</option>
+                    }
+                </select>
             </div>
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
             <div>
-                <label>표준 사이클타임 (초)</label>
+                <label>@L["Col.StdCycleTime"] (s)</label>
                 <input type="number" class="ames-input" @bind="_fCycleTime" min="0" step="0.1" />
             </div>
             <div>
-                <label>표준 준비시간 (초)</label>
+                <label>@L["Col.StdSetupTime"] (s)</label>
                 <input type="number" class="ames-input" @bind="_fSetupTime" min="0" step="0.1" />
             </div>
         </div>
 
-        <label style="margin-top:6px;">공정 설명</label>
+        <label style="margin-top:6px;">@L["Col.StepDesc"]</label>
         <input class="ames-input" @bind="_fStepDesc" autocomplete="off"
-               placeholder="이 단계의 작업 내용" />
+               placeholder='@L["MD.Bop.Ph.StepDesc"]' />
 
         <div style="display:flex;gap:24px;margin-top:10px;">
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                 <input type="checkbox" @bind="_fQcRequired" style="accent-color:#60a5fa;" />
-                QC 검사 필요
+                @L["MD.Bop.QcRequired"]
             </label>
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                 <input type="checkbox" @bind="_fActiveFlag" style="accent-color:#60a5fa;" />
-                사용 (활성)
+                @L["MD.Bop.ActiveFlag"]
             </label>
         </div>
     </div>;

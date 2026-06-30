@@ -23,11 +23,11 @@
         <div class="ames-kpi-v">@_allRows.Count(r => r.ActiveFlag)</div>
     </div>
     <div class="ames-kpi warn">
-        <div class="ames-kpi-l">라인 수</div>
+        <div class="ames-kpi-l">@L["Kpi.LineCount"]</div>
         <div class="ames-kpi-v">@_allRows.Select(r => r.LineID).Where(l => l != null).Distinct().Count()</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">설비유형 수</div>
+        <div class="ames-kpi-l">@L["MD.Equipment.Kpi.EquipTypes"]</div>
         <div class="ames-kpi-v">@_allRows.Select(r => r.EquipType).Where(t => t != null).Distinct().Count()</div>
     </div>
 </div>
@@ -39,17 +39,19 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MD.Equipment.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.Equipment.List"] · @_rows.Count @L["Lbl.Items"]@if (_rows.Count < _allRows.Count) { <text> / @L["Lbl.TotalOf"] @_allRows.Count</text> }</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:160px;padding:4px 8px;"
-                   placeholder="설비ID / 설비명" @bind="_fSearch" autocomplete="off" />
-            <select class="ames-input" style="width:120px;padding:4px 8px;" @bind="_fLine">
+                   placeholder='@L["MD.Equipment.Ph.Search"]' @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Line"]</span>
+            <select class="ames-input" style="width:130px;padding:4px 8px;" @bind="_fLine">
                 <option value="">@L["Filter.AllLines"]</option>
-                @foreach (var l in _allRows.Select(r => r.LineID).Where(x => x != null).Distinct().OrderBy(x => x))
+                @foreach (var l in _lineList)
                 {
-                    <option value="@l">@l</option>
+                    <option value="@l.LineID">@l.LineID@(l.LineName != null ? $" {l.LineName}" : "")</option>
                 }
             </select>
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Type"]</span>
             <select class="ames-input" style="width:120px;padding:4px 8px;" @bind="_fType">
                 <option value="">@L["Filter.AllTypes"]</option>
                 @foreach (var t in _allRows.Select(r => r.EquipType).Where(x => x != null).Distinct().OrderBy(x => x))
@@ -57,13 +59,14 @@
                     <option value="@t">@t</option>
                 }
             </select>
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Active"]</span>
             <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fActive">
-                <option value="">전체</option>
-                <option value="Y">활성</option>
-                <option value="N">비활성</option>
+                <option value="">@L["Filter.All"]</option>
+                <option value="Y">@L["Lbl.Active"]</option>
+                <option value="N">@L["Lbl.Inactive"]</option>
             </select>
-            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
         </div>
     </div>
 
@@ -76,15 +79,15 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>설비ID</th><th>설비명</th><th>유형</th><th>라인</th><th>Work Center</th>
-                    <th>제조사/모델</th><th>설치일</th>
-                    <th style="text-align:right;">이론사이클(s)</th>
-                    <th style="text-align:right;">목표OEE(%)</th>
-                    <th>PLC주소</th><th>활성</th>
+                    <th>@L["Col.EquipId"]</th><th>@L["Col.EquipName"]</th><th>@L["Col.EquipType"]</th><th>@L["Col.Line"]</th><th>@L["Col.WorkCenter"]</th>
+                    <th>@L["Col.MakerModel"]</th><th>@L["Col.InstallDate"]</th>
+                    <th style="text-align:right;">@L["Col.TheoreticalCycle"]</th>
+                    <th style="text-align:right;">@L["Col.TargetOee"]</th>
+                    <th>@L["Col.PlcAddr"]</th><th>@L["Col.Status"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
                         <td class="code">@r.EquipID</td>
@@ -98,13 +101,17 @@
                         <td style="text-align:right;">@(r.TargetOEE?.ToString("F1") ?? "—")</td>
                         <td class="dim">@(r.PlcAddress ?? "—")</td>
                         <td>
-                            @if (r.ActiveFlag) { <span class="pill ok">활성</span> }
-                            else { <span class="pill bad">비활성</span> }
+                            @{
+                                var scls   = r.Status switch { "ACTIVE" => "ok", "MAINT" => "warn", _ => "bad" };
+                                var sLabel = _equipStatus.FirstOrDefault(s => s.CodeValue == r.Status) is { } _lf_ ? MasterDataRepository.LocalName(_lf_) : r.Status;
+                            }
+                            <span class="pill @scls">@(sLabel ?? "—")</span>
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
@@ -113,56 +120,70 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">신규 설비 등록</div>
+            <div class="ames-modal-h">@L["MD.Equipment.Title"] — @L["Btn.Create"]</div>
 
-            <label>설비ID * <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: EQ-INJ-01)</span></label>
-            <input class="ames-input" @bind="_f.EquipID" placeholder="EQ-INJ-01" autocomplete="off" />
+            <label>@L["Col.EquipId"] * <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: EQ-INJ-001)</span></label>
+            <input class="ames-input" @bind="_f.EquipID" placeholder="EQ-INJ-001" autocomplete="off" />
 
-            <label>설비명 *</label>
-            <input class="ames-input" @bind="_f.EquipName" placeholder="사출기 1호" autocomplete="off" />
+            <label>@L["Col.EquipName"] *</label>
+            <input class="ames-input" @bind="_f.EquipName" placeholder='@L["MD.Equipment.Ph.EquipName"]' autocomplete="off" />
 
-            <label>설비유형</label>
+            <label>@L["Col.EquipType"]</label>
             <input class="ames-input" @bind="_f.EquipType" placeholder="INJECTION, PAINT 등" maxlength="16" autocomplete="off" />
 
-            <label>라인 ID</label>
-            <input class="ames-input" @bind="_f.LineID" placeholder="INJ-L01" maxlength="20" autocomplete="off" />
+            <label>@L["Col.LineId"]</label>
+            <select class="ames-input" @bind="_f.LineID">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var l in _lineList)
+                {
+                    <option value="@l.LineID">[@l.LineID]@(l.LineName != null ? $" {l.LineName}" : "")</option>
+                }
+            </select>
 
             <label>Work Center ID</label>
-            <input class="ames-input" @bind="_f.WCID" placeholder="WC-INJ-01" maxlength="20" autocomplete="off" />
+            <select class="ames-input" @bind="_f.WCID">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var w in _wcList.Where(w => w.ActiveFlag))
+                {
+                    <option value="@w.WCID">[@w.WCID]@(w.WCName != null ? $" {w.WCName}" : "")</option>
+                }
+            </select>
 
-            <label>제조사/모델</label>
-            <input class="ames-input" @bind="_f.MakerModel" placeholder="LG전자 LGI-500T" autocomplete="off" />
+            <label>@L["Col.MakerModel"]</label>
+            <input class="ames-input" @bind="_f.MakerModel" placeholder='@L["MD.Equipment.Ph.MakerModel"]' autocomplete="off" />
 
-            <label>설치일</label>
+            <label>@L["Col.InstallDate"]</label>
             <input class="ames-input" type="date" @bind="_f.InstallDate" autocomplete="off" />
 
-            <label>이론사이클 (초)</label>
+            <label>@L["Col.TheoreticalCycle"]</label>
             <input class="ames-input" type="number" step="0.01" @bind="_f.TheoreticalCycle" placeholder="30.00" min="0" autocomplete="off" />
 
-            <label>목표 OEE (%)</label>
+            <label>@L["Col.TargetOee"]</label>
             <input class="ames-input" type="number" step="0.1" @bind="_f.TargetOEE" placeholder="85.0" min="0" max="100" autocomplete="off" />
 
-            <label>PLC 주소</label>
+            <label>@L["Col.PlcAddr"]</label>
             <input class="ames-input" @bind="_f.PlcAddress" placeholder="192.168.1.10:502" maxlength="40" autocomplete="off" />
 
-            <label>상태</label>
+            <label>@L["Col.Status"]</label>
             <select class="ames-input" @bind="_f.Status">
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-                <option value="MAINT">MAINT</option>
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var s in _equipStatus.Where(s => s.UseFlag))
+                {
+                    <option value="@s.CodeValue">@(MasterDataRepository.LocalName(s))</option>
+                }
             </select>
 
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                 <input type="checkbox" @bind="_f.ActiveFlag" />
-                <span>활성</span>
+                <span>@L["Lbl.Active"]</span>
             </label>
 
             @if (!string.IsNullOrEmpty(_modalErr))
             { <div class="ames-alert bad">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
-                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? @L["Msg.Saving"] : @L["Btn.Create"])</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -173,53 +194,67 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">설비 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.EquipID</span></div>
+            <div class="ames-modal-h">@L["MD.Equipment.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.EquipID</span></div>
 
-            <label>설비명 *</label>
+            <label>@L["Col.EquipName"] *</label>
             <input class="ames-input" @bind="_f.EquipName" autocomplete="off" />
 
-            <label>설비유형</label>
+            <label>@L["Col.EquipType"]</label>
             <input class="ames-input" @bind="_f.EquipType" maxlength="16" autocomplete="off" />
 
-            <label>라인 ID</label>
-            <input class="ames-input" @bind="_f.LineID" maxlength="20" autocomplete="off" />
+            <label>@L["Col.LineId"]</label>
+            <select class="ames-input" @bind="_f.LineID">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var l in _lineList)
+                {
+                    <option value="@l.LineID">[@l.LineID]@(l.LineName != null ? $" {l.LineName}" : "")</option>
+                }
+            </select>
 
             <label>Work Center ID</label>
-            <input class="ames-input" @bind="_f.WCID" maxlength="20" autocomplete="off" />
+            <select class="ames-input" @bind="_f.WCID">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var w in _wcList.Where(w => w.ActiveFlag))
+                {
+                    <option value="@w.WCID">[@w.WCID]@(w.WCName != null ? $" {w.WCName}" : "")</option>
+                }
+            </select>
 
-            <label>제조사/모델</label>
+            <label>@L["Col.MakerModel"]</label>
             <input class="ames-input" @bind="_f.MakerModel" autocomplete="off" />
 
-            <label>설치일</label>
+            <label>@L["Col.InstallDate"]</label>
             <input class="ames-input" type="date" @bind="_f.InstallDate" autocomplete="off" />
 
-            <label>이론사이클 (초)</label>
+            <label>@L["Col.TheoreticalCycle"]</label>
             <input class="ames-input" type="number" step="0.01" @bind="_f.TheoreticalCycle" min="0" autocomplete="off" />
 
-            <label>목표 OEE (%)</label>
+            <label>@L["Col.TargetOee"]</label>
             <input class="ames-input" type="number" step="0.1" @bind="_f.TargetOEE" min="0" max="100" autocomplete="off" />
 
-            <label>PLC 주소</label>
+            <label>@L["Col.PlcAddr"]</label>
             <input class="ames-input" @bind="_f.PlcAddress" maxlength="40" autocomplete="off" />
 
-            <label>상태</label>
+            <label>@L["Col.Status"]</label>
             <select class="ames-input" @bind="_f.Status">
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-                <option value="MAINT">MAINT</option>
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var s in _equipStatus.Where(s => s.UseFlag))
+                {
+                    <option value="@s.CodeValue">@(MasterDataRepository.LocalName(s))</option>
+                }
             </select>
 
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                 <input type="checkbox" @bind="_f.ActiveFlag" />
-                <span>활성</span>
+                <span>@L["Lbl.Active"]</span>
             </label>
 
             @if (_confirmDelete)
             {
                 <div class="ames-delete-confirm">
-                    <span>정말 삭제하시겠습니까?</span>
-                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
-                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? "삭제 중…" : "예, 삭제")</button>
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? @L["Msg.Deleting"] : @L["Msg.Yes"])</button>
                 </div>
             }
 
@@ -227,9 +262,9 @@
             { <div class="ames-alert bad">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? @L["Msg.Saving"] : @L["Btn.Edit"])</button>
                 <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn"     @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ghost"     @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -239,7 +274,12 @@
     List<AMES.Data.Repositories.MasterDataRepository.EquipmentRow> _allRows = new();
     List<AMES.Data.Repositories.MasterDataRepository.EquipmentRow> _rows    = new();
     AMES.Data.Repositories.MasterDataRepository.EquipmentRow? _sel;
+    int _page = 0;
+    const int _pageSize = 20;
 
+    List<AMES.Data.Repositories.MasterDataRepository.LineRow>       _lineList    = new();
+    List<AMES.Data.Repositories.MasterDataRepository.WorkCenterRow> _wcList      = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow>   _equipStatus = new();
     string _fSearch = "", _fLine = "", _fType = "", _fActive = "";
 
     string _modal = "";
@@ -253,19 +293,22 @@
     {
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
+        try { _lineList    = Md.ListLines();                        } catch { }
+        try { _wcList      = Md.ListWorkCenters();                  } catch { }
+        try { _equipStatus = Md.ListCodeItems("EQUIP_STATUS"); } catch { }
         Reload();
     }
 
     void Reload() { _allRows = Md.ListEquipments(); ApplyFilter(); }
 
-    void ApplyFilter() => _rows = _allRows.Where(r =>
+    void ApplyFilter() { _page = 0; _rows = _allRows.Where(r =>
         (string.IsNullOrEmpty(_fSearch) ||
             r.EquipID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.EquipName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fLine)   || r.LineID    == _fLine) &&
         (string.IsNullOrEmpty(_fType)   || r.EquipType == _fType) &&
         (string.IsNullOrEmpty(_fActive) || (_fActive == "Y" ? r.ActiveFlag : !r.ActiveFlag))
-    ).ToList();
+    ).ToList(); }
 
     void OpenCreate() { _f = new() { ActiveFlag = true, Status = "Active" }; _modalErr = ""; _confirmDelete = false; _modal = "create"; }
 
@@ -300,9 +343,9 @@
     void SaveCreate()
     {
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_f.EquipID))   { _modalErr = "설비ID를 입력하세요."; return; }
-        if (string.IsNullOrWhiteSpace(_f.EquipName))  { _modalErr = "설비명을 입력하세요."; return; }
-        if (Md.EquipmentExists(_f.EquipID.Trim()))    { _modalErr = $"설비ID '{_f.EquipID.Trim()}' 이 이미 존재합니다."; return; }
+        if (string.IsNullOrWhiteSpace(_f.EquipID))   { _modalErr = L["Err.EquipIdRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.EquipName))  { _modalErr = L["Err.EquipNameRequired"]; return; }
+        if (Md.EquipmentExists(_f.EquipID.Trim()))    { _modalErr = $"설비ID '{_f.EquipID.Trim()}' 이 {L["Err.AlreadyExists"]}"; return; }
         _busy = true;
         try
         {
@@ -311,7 +354,7 @@
                 _f.InstallDate, _f.TheoreticalCycle, _f.TargetOEE,
                 NE(_f.PlcAddress), NE(_f.Status), _f.ActiveFlag, _actor);
             CloseModal(); Reload();
-            ShowMsg($"{_f.EquipName} 등록 완료.", false);
+            ShowMsg($"{_f.EquipName} {L["Msg.Created"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -321,7 +364,7 @@
     {
         if (_sel is null) return;
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_f.EquipName)) { _modalErr = "설비명을 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.EquipName)) { _modalErr = L["Err.EquipNameRequired"]; return; }
         _busy = true;
         try
         {
@@ -331,7 +374,7 @@
                 NE(_f.PlcAddress), NE(_f.Status), _f.ActiveFlag, _actor);
             var name = _f.EquipName;
             CloseModal(); Reload();
-            ShowMsg($"{name} 수정 완료.", false);
+            ShowMsg($"{name} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -346,7 +389,7 @@
             var name = _sel.EquipName ?? _sel.EquipID;
             Md.DeleteEquipment(_sel.EquipID);
             CloseModal(); Reload();
-            ShowMsg($"{name} 삭제 완료.", false);
+            ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
         finally { _busy = false; }

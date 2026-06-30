@@ -1,5 +1,5 @@
-@*  Per-screen user manual for INJ-02 Dashboard.
-    Layout: a scaled SVG schematic of the INJ-02 screen on the left,
+@*  Per-screen user manual for INJ-002 Dashboard.
+    Layout: a scaled SVG schematic of the INJ-002 screen on the left,
     numbered callouts ①–⑥ pointing at every region, and a bilingual
     KO/EN step list on the right that explains what each numbered
     region does and how the operator interacts with it. *@
@@ -7,7 +7,7 @@
 <div class="help-doc">
     @* ── SVG schematic ──────────────────────────────────────── *@
     <div>
-        <div class="help-h1">INJ-02 · DASHBOARD</div>
+        <div class="help-h1">INJ-002 · DASHBOARD</div>
         <div class="help-sub">사출 라인 실시간 대시보드 · Live Injection-Line Dashboard</div>
 
         <svg class="help-svg" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
@@ -18,7 +18,7 @@
             @* ① Top bar *@
             <rect class="hs-region tbar" x="14" y="14" width="692" height="48" />
             <text class="hs-label" x="34" y="44">A-MES</text>
-            <text class="hs-sub"   x="100" y="44">INJ-02 · STATION · LINE</text>
+            <text class="hs-sub"   x="100" y="44">INJ-002 · STATION · LINE</text>
             <text class="hs-sub"   x="560" y="44" text-anchor="end">EMP · SHIFT · CLOCK</text>
             <circle class="hs-num" cx="640" cy="38" r="14" />
             <text  class="hs-num-tx" x="640" y="38">1</text>
@@ -134,7 +134,7 @@
                 <div class="help-step-body">
                     <div class="help-step-en">Equipment status LED. Green RUN = producing. Yellow IDLE = standby. Red STOP = halted. Grey = offline.</div>
                     <div class="help-step-ko">설비 LED 색: 초록 RUN · 노랑 IDLE · 빨강 STOP · 회색 OFFLINE.</div>
-                    <div class="help-step-hint">If LED is red, check INJ-08 ANDON</div>
+                    <div class="help-step-hint">If LED is red, check INJ-008 ANDON</div>
                 </div>
             </div>
 
@@ -159,8 +159,8 @@
                 <div class="help-step-num">6</div>
                 <div class="help-step-body">
                     <div class="help-step-en">Bottom nav — 7 buttons to the other INJ screens + LOGOUT (rightmost).</div>
-                    <div class="help-step-ko">하단 내비게이션 — INJ-03~08로 이동, 맨 우측은 로그아웃.</div>
-                    <div class="help-step-hint">INJ-04 Production · INJ-05 Defect · INJ-08 Andon are most-used</div>
+                    <div class="help-step-ko">하단 내비게이션 — INJ-003~08로 이동, 맨 우측은 로그아웃.</div>
+                    <div class="help-step-hint">INJ-004 Production · INJ-005 Defect · INJ-008 Andon are most-used</div>
                 </div>
             </div>
         </div>
@@ -171,31 +171,31 @@
             <div class="help-step">
                 <div class="help-step-num">A</div>
                 <div class="help-step-body">
-                    <div class="help-step-en"><strong>Log a finished cycle</strong> — press <kbd>INJ-04 Prod Entry</kbd> in the bottom nav.</div>
-                    <div class="help-step-ko"><strong>사이클 완료 기록</strong> — 하단 INJ-04 버튼.</div>
+                    <div class="help-step-en"><strong>Log a finished cycle</strong> — press <kbd>INJ-004 Prod Entry</kbd> in the bottom nav.</div>
+                    <div class="help-step-ko"><strong>사이클 완료 기록</strong> — 하단 INJ-004 버튼.</div>
                 </div>
             </div>
 
             <div class="help-step bad">
                 <div class="help-step-num">B</div>
                 <div class="help-step-body">
-                    <div class="help-step-en"><strong>Record a defect</strong> — <kbd>INJ-05 Defect</kbd>. Pick the defect code card and qty.</div>
-                    <div class="help-step-ko"><strong>불량 등록</strong> — INJ-05 진입 → 불량 코드 카드 선택 → 수량 입력.</div>
+                    <div class="help-step-en"><strong>Record a defect</strong> — <kbd>INJ-005 Defect</kbd>. Pick the defect code card and qty.</div>
+                    <div class="help-step-ko"><strong>불량 등록</strong> — INJ-005 진입 → 불량 코드 카드 선택 → 수량 입력.</div>
                 </div>
             </div>
 
             <div class="help-step warn">
                 <div class="help-step-num">C</div>
                 <div class="help-step-body">
-                    <div class="help-step-en"><strong>Raise an Andon call</strong> — <kbd>🚨 INJ-08 Andon</kbd> when the line stops or quality drops.</div>
-                    <div class="help-step-ko"><strong>안돈 호출</strong> — 라인 정지 또는 품질 이상 시 INJ-08.</div>
+                    <div class="help-step-en"><strong>Raise an Andon call</strong> — <kbd>🚨 INJ-008 Andon</kbd> when the line stops or quality drops.</div>
+                    <div class="help-step-ko"><strong>안돈 호출</strong> — 라인 정지 또는 품질 이상 시 INJ-008.</div>
                 </div>
             </div>
 
             <div class="help-step dim">
                 <div class="help-step-num">D</div>
                 <div class="help-step-body">
-                    <div class="help-step-en"><strong>Hand-off to next shift</strong> — press <kbd>LOGOUT</kbd>. The next operator scans their badge on INJ-01.</div>
+                    <div class="help-step-en"><strong>Hand-off to next shift</strong> — press <kbd>LOGOUT</kbd>. The next operator scans their badge on INJ-001.</div>
                     <div class="help-step-ko"><strong>교대 인수인계</strong> — 로그아웃 후 다음 작업자가 INJ-01에서 배지 스캔.</div>
                 </div>
             </div>

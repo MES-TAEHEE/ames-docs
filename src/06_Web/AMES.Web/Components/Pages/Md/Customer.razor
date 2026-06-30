@@ -23,11 +23,11 @@
         <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Active")</div>
     </div>
     <div class="ames-kpi warn">
-        <div class="ames-kpi-l">EDI 연동</div>
+        <div class="ames-kpi-l">@L["MD.Customer.Kpi.EDI"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.EDIFlag)</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">국내</div>
+        <div class="ames-kpi-l">@L["MD.Customer.Kpi.Domestic"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.Country == "KOR")</div>
     </div>
 </div>
@@ -39,20 +39,22 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MD.Customer.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.Customer.List"] · @_rows.Count @L["Lbl.Items"]@if (_rows.Count < _allRows.Count) { <text> / @L["Lbl.TotalOf"] @_allRows.Count</text> }</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:220px;padding:4px 8px;"
-                   placeholder="고객코드 / 고객명 / 영문명" @bind="_fSearch" autocomplete="off" />
+                   placeholder="@L["MD.Customer.Ph.Search"]" @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Type"]</span>
             <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fType">
                 <option value="">@L["Filter.AllTypes"]</option>
                 <option>OEM</option><option>TIER1</option><option>TIER2</option><option>Direct</option>
             </select>
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
             <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fStatus">
                 <option value="">@L["Filter.AllStatus"]</option>
                 <option>Active</option><option>Inactive</option>
             </select>
-            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
         </div>
     </div>
 
@@ -65,13 +67,13 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>고객 ID</th><th>코드</th><th>고객명</th><th>영문명</th>
-                    <th>유형</th><th>국가</th><th>담당자</th><th>전화</th>
-                    <th>EDI</th><th>@L["Col.Status"]</th>
+                    <th>@L["Col.CustomerId"]</th><th>@L["Col.Code"]</th><th>@L["Col.CustomerName"]</th><th>@L["Col.NameEn"]</th>
+                    <th>@L["Col.Type"]</th><th>@L["Col.Country"]</th><th>@L["Col.Contact"]</th><th>@L["Col.Phone"]</th>
+                    <th>@L["Col.EDI"]</th><th>@L["Col.Status"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
                         <td class="code">@r.CustomerID</td>
@@ -94,6 +96,7 @@
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
@@ -102,47 +105,47 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">신규 고객사 등록</div>
+            <div class="ames-modal-h">@L["MD.Customer.Modal.Create"]</div>
 
-            <label>고객 코드</label>
+            <label>@L["MD.Customer.Lbl.CustomerCode"]</label>
             <input class="ames-input" @bind="_f.CustomerCode" placeholder="예: HYUNDAI" autocomplete="off" />
 
-            <label>고객명 *</label>
-            <input class="ames-input" @bind="_f.CustomerName" placeholder="현대자동차(주)" autocomplete="off" />
+            <label>@L["MD.Customer.Lbl.CustomerName"]</label>
+            <input class="ames-input" @bind="_f.CustomerName" placeholder='@L["MD.Customer.Ph.CustomerName"]' autocomplete="off" />
 
-            <label>영문명</label>
+            <label>@L["MD.Customer.Lbl.CustomerNameEn"]</label>
             <input class="ames-input" @bind="_f.CustomerNameEn" placeholder="Hyundai Motor Co." autocomplete="off" />
 
-            <label>고객 유형</label>
+            <label>@L["MD.Customer.Lbl.CustomerType"]</label>
             <select class="ames-input" @bind="_f.CustomerType">
-                <option value="">— 선택 —</option>
+                <option value="">@L["Opt.Select"]</option>
                 <option>OEM</option><option>TIER1</option><option>TIER2</option><option>Direct</option>
             </select>
 
-            <label>사업자등록번호</label>
+            <label>@L["MD.Customer.Lbl.BizRegNo"]</label>
             <input class="ames-input" @bind="_f.BizRegNo" placeholder="000-00-00000" autocomplete="off" />
 
-            <label>국가코드</label>
+            <label>@L["MD.Customer.Lbl.Country"]</label>
             <input class="ames-input" @bind="_f.Country" placeholder="KOR" maxlength="3" autocomplete="off" />
 
-            <label>담당자</label>
-            <input class="ames-input" @bind="_f.ContactPerson" placeholder="홍길동" autocomplete="off" />
+            <label>@L["Col.Contact"]</label>
+            <input class="ames-input" @bind="_f.ContactPerson" autocomplete="off" />
 
-            <label>전화</label>
+            <label>@L["Col.Phone"]</label>
             <input class="ames-input" @bind="_f.ContactPhone" placeholder="02-0000-0000" autocomplete="off" />
 
-            <label>이메일</label>
+            <label>@L["MD.Customer.Lbl.Email"]</label>
             <input class="ames-input" @bind="_f.ContactEmail" placeholder="contact@customer.com" autocomplete="off" />
 
-            <label>통화코드</label>
+            <label>@L["MD.Customer.Lbl.Currency"]</label>
             <input class="ames-input" @bind="_f.CurrencyCode" placeholder="KRW" maxlength="3" autocomplete="off" />
 
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                 <input type="checkbox" @bind="_f.EDIFlag" />
-                <span>EDI 연동</span>
+                <span>@L["MD.Customer.Lbl.EDI"]</span>
             </label>
 
-            <label>상태</label>
+            <label>@L["Col.Status"]</label>
             <select class="ames-input" @bind="_f.Status">
                 <option>Active</option><option>Inactive</option>
             </select>
@@ -151,8 +154,8 @@
             { <div class="ames-alert bad">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
-                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -163,47 +166,47 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">고객사 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.CustomerID</span></div>
+            <div class="ames-modal-h">@L["MD.Customer.Modal.Edit"] — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.CustomerID</span></div>
 
-            <label>고객 코드</label>
+            <label>@L["MD.Customer.Lbl.CustomerCode"]</label>
             <input class="ames-input" @bind="_f.CustomerCode" autocomplete="off" />
 
-            <label>고객명 *</label>
+            <label>@L["MD.Customer.Lbl.CustomerName"]</label>
             <input class="ames-input" @bind="_f.CustomerName" autocomplete="off" />
 
-            <label>영문명</label>
+            <label>@L["MD.Customer.Lbl.CustomerNameEn"]</label>
             <input class="ames-input" @bind="_f.CustomerNameEn" autocomplete="off" />
 
-            <label>고객 유형</label>
+            <label>@L["MD.Customer.Lbl.CustomerType"]</label>
             <select class="ames-input" @bind="_f.CustomerType">
-                <option value="">— 선택 —</option>
+                <option value="">@L["Opt.Select"]</option>
                 <option>OEM</option><option>TIER1</option><option>TIER2</option><option>Direct</option>
             </select>
 
-            <label>사업자등록번호</label>
+            <label>@L["MD.Customer.Lbl.BizRegNo"]</label>
             <input class="ames-input" @bind="_f.BizRegNo" autocomplete="off" />
 
-            <label>국가코드</label>
+            <label>@L["MD.Customer.Lbl.Country"]</label>
             <input class="ames-input" @bind="_f.Country" maxlength="3" autocomplete="off" />
 
-            <label>담당자</label>
+            <label>@L["Col.Contact"]</label>
             <input class="ames-input" @bind="_f.ContactPerson" autocomplete="off" />
 
-            <label>전화</label>
+            <label>@L["Col.Phone"]</label>
             <input class="ames-input" @bind="_f.ContactPhone" autocomplete="off" />
 
-            <label>이메일</label>
+            <label>@L["MD.Customer.Lbl.Email"]</label>
             <input class="ames-input" @bind="_f.ContactEmail" autocomplete="off" />
 
-            <label>통화코드</label>
+            <label>@L["MD.Customer.Lbl.Currency"]</label>
             <input class="ames-input" @bind="_f.CurrencyCode" maxlength="3" autocomplete="off" />
 
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                 <input type="checkbox" @bind="_f.EDIFlag" />
-                <span>EDI 연동</span>
+                <span>@L["MD.Customer.Lbl.EDI"]</span>
             </label>
 
-            <label>상태</label>
+            <label>@L["Col.Status"]</label>
             <select class="ames-input" @bind="_f.Status">
                 <option>Active</option><option>Inactive</option>
             </select>
@@ -211,9 +214,9 @@
             @if (_confirmDelete)
             {
                 <div class="ames-delete-confirm">
-                    <span>정말 삭제하시겠습니까?</span>
-                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
-                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? "삭제 중…" : "예, 삭제")</button>
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)</button>
                 </div>
             }
 
@@ -221,9 +224,9 @@
             { <div class="ames-alert bad">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)</button>
                 <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn"     @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ghost"     @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -233,6 +236,8 @@
     List<AMES.Data.Repositories.MasterDataRepository.CustomerRow> _allRows = new();
     List<AMES.Data.Repositories.MasterDataRepository.CustomerRow> _rows    = new();
     AMES.Data.Repositories.MasterDataRepository.CustomerRow? _sel;
+    int _page = 0;
+    const int _pageSize = 20;
 
     string _fSearch = "", _fType = "", _fStatus = "";
 
@@ -252,14 +257,14 @@
 
     void Reload() { _allRows = Md.ListCustomers(); ApplyFilter(); }
 
-    void ApplyFilter() => _rows = _allRows.Where(r =>
+    void ApplyFilter() { _page = 0; _rows = _allRows.Where(r =>
         (string.IsNullOrEmpty(_fSearch) ||
             (r.CustomerCode   ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.CustomerName   ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.CustomerNameEn ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fType)   || r.CustomerType == _fType) &&
         (string.IsNullOrEmpty(_fStatus) || r.Status       == _fStatus)
-    ).ToList();
+    ).ToList(); }
 
     void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
 
@@ -294,7 +299,7 @@
     void SaveCreate()
     {
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_f.CustomerName)) { _modalErr = "고객명을 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.CustomerName)) { _modalErr = L["Err.CustomerNameRequired"]; return; }
         _busy = true;
         try
         {
@@ -306,7 +311,7 @@
                 NE(_f.ContactPhone), NE(_f.ContactEmail),
                 _f.EDIFlag, NE(_f.CurrencyCode), _f.Status, _actor);
             CloseModal(); Reload();
-            ShowMsg($"{_f.CustomerName} 등록 완료.", false);
+            ShowMsg($"{_f.CustomerName} {L["Msg.Created"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -316,7 +321,7 @@
     {
         if (_sel is null) return;
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_f.CustomerName)) { _modalErr = "고객명을 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.CustomerName)) { _modalErr = L["Err.CustomerNameRequired"]; return; }
         _busy = true;
         try
         {
@@ -328,7 +333,7 @@
                 _f.EDIFlag, NE(_f.CurrencyCode), _f.Status, _actor);
             var name = _f.CustomerName;
             CloseModal(); Reload();
-            ShowMsg($"{name} 수정 완료.", false);
+            ShowMsg($"{name} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -343,7 +348,7 @@
             var name = _sel.CustomerName ?? _sel.CustomerID;
             Md.DeleteCustomer(_sel.CustomerID);
             CloseModal(); Reload();
-            ShowMsg($"{name} 삭제 완료.", false);
+            ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
         finally { _busy = false; }

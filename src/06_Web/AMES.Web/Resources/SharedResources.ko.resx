@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:element name="root" msdata:IsDataSet="true">
@@ -31,14 +31,22 @@
   <data name="Btn.Approve"><value>승인</value></data>
   <data name="Btn.Reject"><value>반려</value></data>
   <data name="Btn.Close"><value>닫기</value></data>
+  <data name="Btn.Confirm"><value>확인</value></data>
   <data name="Btn.Reload"><value>조회</value></data>
+  <data name="Btn.Reset"><value>초기화</value></data>
 
   <!-- ── 공통 레이블 ── -->
   <data name="Lbl.Total"><value>전체</value></data>
   <data name="Lbl.Active"><value>활성</value></data>
   <data name="Lbl.Inactive"><value>비활성</value></data>
   <data name="Lbl.Items"><value>건</value></data>
+  <data name="Lbl.Page"><value>페이지</value></data>
+  <data name="Lbl.Loading"><value>조회 중...</value></data>
+  <data name="Lbl.MaxRows"><value>최대 {0}건 표시.</value></data>
+  <data name="Unit.Min"><value>분</value></data>
   <data name="Lbl.TotalOf"><value>전체</value></data>
+  <data name="Ph.LineID"><value>라인 ID</value></data>
+  <data name="Err.LoadFailed"><value>데이터 조회 오류: {0}</value></data>
 
   <!-- ── 공통 필터 ── -->
   <data name="Filter.All"><value>전체</value></data>
@@ -48,6 +56,16 @@
   <data name="Filter.AllCategories"><value>카테고리 전체</value></data>
   <data name="Filter.AllModules"><value>모듈 전체</value></data>
   <data name="Filter.AllSections"><value>섹션 전체</value></data>
+  <data name="Filter.AllProcesses"><value>공정 전체</value></data>
+  <data name="Filter.AllInspectionTypes"><value>검사유형 전체</value></data>
+  <data name="Filter.AllConditions"><value>건강상태 전체</value></data>
+  <data name="Filter.AllZones"><value>구역 전체</value></data>
+  <data name="Filter.AllLocations"><value>보관위치 전체</value></data>
+  <data name="Filter.AllEquipTypes"><value>설비유형 전체</value></data>
+  <data name="Filter.AllProcessTypes"><value>공정유형 전체</value></data>
+  <data name="Opt.None"><value>선택 안 함</value></data>
+  <data name="Opt.Select"><value>— 선택 —</value></data>
+  <data name="Opt.SelectUser"><value>— 사용자 선택 —</value></data>
 
   <!-- ── 공통 컬럼 ── -->
   <data name="Col.Code"><value>코드</value></data>
@@ -93,7 +111,7 @@
   <!-- ════════════════════════════════════════════════════════════ -->
 
   <!-- MNT.Dashboard -->
-  <data name="MNT.Dashboard.Title"><value>설비 보전 대시보드</value></data>
+  <data name="MNT.Dashboard.Title"><value>대시보드</value></data>
   <data name="MNT.Dashboard.Sub"><value>설비 · 고장 · PM · 자재 통합 현황</value></data>
 
   <!-- MNT.EquipmentCard -->
@@ -103,9 +121,10 @@
   <data name="MNT.EquipmentCard.Empty"><value>해당 조건에 설비 데이터가 없습니다.</value></data>
   <data name="MNT.EquipmentCard.Ph.Line"><value>라인 검색</value></data>
   <data name="MNT.EquipmentCard.Ph.Name"><value>설비명 검색</value></data>
+  <data name="MNT.EquipmentCard.Ph.Search"><value>라인 / 설비명 검색</value></data>
 
   <!-- MNT.WorkOrder -->
-  <data name="MNT.WorkOrder.Title"><value>정비 작업지시</value></data>
+  <data name="MNT.WorkOrder.Title"><value>작업 지시</value></data>
   <data name="MNT.WorkOrder.Sub"><value>정비 작업지시 — 진행/완료</value></data>
   <data name="MNT.WorkOrder.List"><value>정비 작업지시</value></data>
   <data name="MNT.WorkOrder.Empty"><value>해당 조건에 작업지시가 없습니다.</value></data>
@@ -194,6 +213,7 @@
   <data name="RPT.DefectPareto.Kpi.Total"><value>총 불량 수</value></data>
   <data name="RPT.DefectPareto.Kpi.Events"><value>발생 건</value></data>
   <data name="RPT.DefectPareto.Kpi.Top"><value>1위 코드</value></data>
+  <data name="RPT.DefectPareto.Kpi.TopPct"><value>% 점유</value></data>
   <data name="RPT.DefectPareto.Col.Rank"><value>순위</value></data>
   <data name="RPT.DefectPareto.Col.DefectCode"><value>불량 코드</value></data>
   <data name="RPT.DefectPareto.Col.Qty"><value>수량</value></data>
@@ -218,7 +238,7 @@
   <data name="RPT.DailyShipment.Col.Customers"><value>고객 수</value></data>
 
   <!-- RPT.OnTime -->
-  <data name="RPT.OnTime.Title"><value>납기 준수율 (OTD)</value></data>
+  <data name="RPT.OnTime.Title"><value>납기 준수율</value></data>
   <data name="RPT.OnTime.Sub"><value>일별 On-Time Delivery % 분석</value></data>
   <data name="RPT.OnTime.List"><value>일별 OTD</value></data>
   <data name="RPT.OnTime.Empty"><value>해당 기간에 출하 데이터가 없습니다.</value></data>
@@ -295,15 +315,20 @@
   <data name="RPT.ScheduleAdherence.Col.Bar"><value>비율 바</value></data>
 
   <!-- RPT.ReportCenter -->
-  <data name="RPT.ReportCenter.Title"><value>Report Center</value></data>
+  <data name="RPT.ReportCenter.Title"><value>리포트 센터</value></data>
   <data name="RPT.ReportCenter.Sub"><value>전체 리포트 카탈로그 — 카테고리별</value></data>
 
   <!-- RPT.ReportBuilder -->
-  <data name="RPT.ReportBuilder.Title"><value>Report Builder</value></data>
+  <data name="RPT.ReportBuilder.Title"><value>리포트 빌더</value></data>
   <data name="RPT.ReportBuilder.Sub"><value>Ad-hoc 리포트 빌더 — preview / 다음 마일스톤</value></data>
   <data name="RPT.ReportBuilder.Preview"><value>Builder preview</value></data>
   <data name="RPT.ReportBuilder.Desc"><value>Report Builder는 SQL 지식 없이도 드래그·드롭으로 데이터 소스 / 차원 / 측정값을 선택해 사용자 정의 리포트를 만들 수 있는 화면입니다. 다음 마일스톤에 구현 예정.</value></data>
   <data name="RPT.ReportBuilder.Gallery"><value>Template gallery (sample)</value></data>
+  <data name="RPT.ReportBuilder.Ds.Production"><value>생산 실적</value></data>
+  <data name="RPT.ReportBuilder.Ds.Shipment"><value>출하 주문</value></data>
+  <data name="RPT.ReportBuilder.Ds.OEE"><value>설비 OEE</value></data>
+  <data name="RPT.ReportBuilder.Ds.QC"><value>품질 검사</value></data>
+  <data name="RPT.ReportBuilder.Ds.LineSchedule"><value>라인 스케줄</value></data>
 
   <!-- ════════════════════════════════════════════════════════════ -->
   <!-- SYS — 시스템 관리 -->
@@ -317,10 +342,10 @@
   <data name="SYS.Users.Kpi.Verified"><value>인증 완료</value></data>
   <data name="SYS.Users.Kpi.Locked"><value>잠금</value></data>
   <data name="SYS.Users.Kpi.RecentLogin"><value>최근 로그인</value></data>
-  <data name="SYS.Users.Ph.UserName"><value>사용자명</value></data>
+  <data name="SYS.Users.Ph.UserName"><value>사용자ID · 이메일 · 사번 · 성명 · 부서</value></data>
   <data name="SYS.Users.Ph.Name"><value>성명</value></data>
   <data name="SYS.Users.Ph.Dept"><value>부서</value></data>
-  <data name="SYS.Users.Col.UserName"><value>사용자명</value></data>
+  <data name="SYS.Users.Col.UserName"><value>사용자ID</value></data>
   <data name="SYS.Users.Col.Email"><value>이메일</value></data>
   <data name="SYS.Users.Col.EmployeeNo"><value>사번</value></data>
   <data name="SYS.Users.Col.EmployeeName"><value>성명</value></data>
@@ -333,13 +358,32 @@
   <data name="SYS.Users.Lbl.EmployeeNo"><value>사원번호 *</value></data>
   <data name="SYS.Users.Lbl.EmployeeName"><value>성명 *</value></data>
   <data name="SYS.Users.Lbl.Dept"><value>부서</value></data>
+  <data name="SYS.Users.Lbl.Plant"><value>공장</value></data>
   <data name="SYS.Users.Lbl.DefaultShift"><value>기본 교대조</value></data>
   <data name="SYS.Users.Lbl.Role"><value>역할</value></data>
   <data name="SYS.Users.Lbl.Lines"><value>담당 라인</value></data>
   <data name="SYS.Users.Lbl.NoLines"><value>활성 라인 없음</value></data>
   <data name="SYS.Users.Lbl.AccountStatus"><value>계정 상태</value></data>
-  <data name="SYS.Users.Lbl.NewPassword"><value>새 비밀번호 (변경 시만 입력)</value></data>
+  <data name="SYS.Users.Lbl.Password"><value>비밀번호 *</value></data>
+  <data name="SYS.Users.Lbl.NewPassword"><value>새 비밀번호</value></data>
+  <data name="SYS.Users.Ph.Password"><value>6자 이상, 숫자 포함</value></data>
+  <data name="SYS.Users.Ph.NewPassword"><value>비워두면 변경 안 함</value></data>
   <data name="SYS.Users.Unlock"><value>잠금 해제</value></data>
+  <data name="SYS.Users.Empty"><value>사용자 없음.</value></data>
+  <data name="SYS.Users.Opt.NoRole"><value>— 없음 —</value></data>
+  <data name="SYS.Users.Hint.Lines"><value>(미선택 = 전 라인 허용)</value></data>
+  <data name="SYS.Users.Err.EmailRequired"><value>Email을 입력하세요.</value></data>
+  <data name="SYS.Users.Err.PasswordRequired"><value>Password를 입력하세요.</value></data>
+  <data name="SYS.Users.Err.EmpNoRequired"><value>사원번호를 입력하세요.</value></data>
+  <data name="SYS.Users.Err.NameRequired"><value>성명을 입력하세요.</value></data>
+  <data name="SYS.Users.Ok.Created"><value>{0} 등록 완료.</value></data>
+  <data name="SYS.Users.Ok.Updated"><value>{0} 수정 완료.</value></data>
+  <data name="SYS.Users.Ok.Deleted"><value>{0} 삭제 완료.</value></data>
+  <data name="SYS.Users.Ok.Unlocked"><value>{0} 잠금 해제 완료.</value></data>
+  <data name="SYS.Users.Locked.Domain"><value>로그인 실패 잠금</value></data>
+  <data name="SYS.Users.Unlock.Domain"><value>로그인 잠금 해제</value></data>
+  <data name="SYS.Users.Ok.DomainUnlocked"><value>{0} 로그인 잠금이 해제되었습니다.</value></data>
+  <data name="SYS.Users.Status.Unverified"><value>미인증</value></data>
 
   <!-- SYS.Roles -->
   <data name="SYS.Roles.Title"><value>역할 관리</value></data>
@@ -352,6 +396,14 @@
   <data name="SYS.Roles.Col.UserCount"><value>사용자 수</value></data>
   <data name="SYS.Roles.Modal.Create"><value>신규 역할 등록</value></data>
   <data name="SYS.Roles.Lbl.RoleName"><value>역할 이름 *</value></data>
+  <data name="SYS.Roles.Modal.Edit"><value>역할 수정</value></data>
+  <data name="SYS.Roles.InUseBy"><value>이 역할을 사용 중인 사용자:</value></data>
+  <data name="SYS.Roles.ConfirmDeleteInUse"><value>사용자 {0}명이 배정된 역할입니다. 정말 삭제하시겠습니까?</value></data>
+  <data name="SYS.Roles.Err.NameRequired"><value>역할 이름을 입력하세요.</value></data>
+  <data name="SYS.Roles.Err.NotFound"><value>역할을 찾을 수 없습니다.</value></data>
+  <data name="SYS.Roles.Ok.Created"><value>'{0}' 역할 등록 완료.</value></data>
+  <data name="SYS.Roles.Ok.Updated"><value>'{0}' 역할 수정 완료.</value></data>
+  <data name="SYS.Roles.Ok.Deleted"><value>'{0}' 역할 삭제 완료.</value></data>
 
   <!-- SYS.Rbac -->
   <data name="SYS.Rbac.Title"><value>역할/권한 관리 (RBAC)</value></data>
@@ -372,26 +424,28 @@
   <data name="SYS.Rbac.Lbl.Level"><value>권한 수준 *</value></data>
   <data name="SYS.Rbac.Lbl.IsSystem"><value>시스템 역할</value></data>
 
-  <!-- SYS.Menu -->
-  <data name="SYS.Menu.Title"><value>메뉴 관리</value></data>
-  <data name="SYS.Menu.Sub"><value>MD_Menu / MD_MenuRole — 메뉴 가시성 · 역할별 권한 설정</value></data>
-  <data name="SYS.Menu.List"><value>메뉴 목록</value></data>
-  <data name="SYS.Menu.Empty"><value>표시할 메뉴 항목이 없습니다.</value></data>
-  <data name="SYS.Menu.Ph.Search"><value>코드 / 메뉴명 / 경로</value></data>
-  <data name="SYS.Menu.Kpi.All"><value>전체 메뉴</value></data>
-  <data name="SYS.Menu.Kpi.Visible"><value>표시</value></data>
-  <data name="SYS.Menu.Kpi.Hidden"><value>숨김</value></data>
-  <data name="SYS.Menu.Kpi.Restricted"><value>역할 제한</value></data>
-  <data name="SYS.Menu.Col.Code"><value>코드</value></data>
-  <data name="SYS.Menu.Col.Section"><value>섹션</value></data>
-  <data name="SYS.Menu.Col.NameKo"><value>메뉴명 (한국어)</value></data>
-  <data name="SYS.Menu.Col.NameEn"><value>영문명</value></data>
-  <data name="SYS.Menu.Col.Path"><value>경로</value></data>
-  <data name="SYS.Menu.Col.Visible"><value>표시</value></data>
-  <data name="SYS.Menu.Col.Roles"><value>역할</value></data>
-  <data name="SYS.Menu.Filter.AllSections"><value>섹션 전체</value></data>
-  <data name="SYS.Menu.Filter.Visible"><value>표시</value></data>
-  <data name="SYS.Menu.Filter.Hidden"><value>숨김</value></data>
+  <!-- SYS.Screen -->
+  <data name="SYS.Screen.Title"><value>화면 관리</value></data>
+  <data name="SYS.Screen.Sub"><value>MD_Screen — 화면 가시성 · 내비게이션 관리</value></data>
+  <data name="SYS.Screen.List"><value>화면 목록</value></data>
+  <data name="SYS.Screen.Empty"><value>표시할 화면 항목이 없습니다.</value></data>
+  <data name="SYS.Screen.Ph.Search"><value>코드 / 화면명 / 경로</value></data>
+  <data name="SYS.Screen.Kpi.All"><value>전체 화면</value></data>
+  <data name="SYS.Screen.Kpi.Visible"><value>표시</value></data>
+  <data name="SYS.Screen.Kpi.Hidden"><value>숨김</value></data>
+  <data name="SYS.Screen.Kpi.Restricted"><value>역할 제한</value></data>
+  <data name="SYS.Screen.Col.Code"><value>코드</value></data>
+  <data name="SYS.Screen.Col.Module"><value>모듈</value></data>
+  <data name="SYS.Screen.Col.NameKo"><value>화면명 (한국어)</value></data>
+  <data name="SYS.Screen.Col.NameEn"><value>영문명</value></data>
+  <data name="SYS.Screen.Col.Path"><value>경로</value></data>
+  <data name="SYS.Screen.Col.Visible"><value>표시</value></data>
+  <data name="SYS.Screen.Col.Roles"><value>역할</value></data>
+  <data name="SYS.Screen.Filter.AllModules"><value>모듈 전체</value></data>
+  <data name="SYS.Screen.Filter.Visible"><value>표시</value></data>
+  <data name="SYS.Screen.Filter.Hidden"><value>숨김</value></data>
+  <data name="SYS.Screen.Btn.Save"><value>저장</value></data>
+  <data name="SYS.Screen.Ok.Saved"><value>{0} 저장 완료.</value></data>
 
   <!-- SYS.Calendar -->
   <data name="SYS.Calendar.Title"><value>공장 캘린더</value></data>
@@ -410,6 +464,11 @@
   <data name="SYS.Calendar.Legend.Work"><value>작업일</value></data>
   <data name="SYS.Calendar.Legend.Weekend"><value>주말</value></data>
   <data name="SYS.Calendar.Legend.Holiday"><value>공휴일</value></data>
+  <data name="SYS.Calendar.Btn.Today"><value>오늘</value></data>
+  <data name="SYS.Calendar.Legend.ShiftA"><value>A교대</value></data>
+  <data name="SYS.Calendar.Legend.ShiftB"><value>B교대</value></data>
+  <data name="SYS.Calendar.Legend.ShiftC"><value>C교대</value></data>
+  <data name="SYS.Roles.Empty"><value>등록된 역할이 없습니다.</value></data>
   <data name="SYS.Calendar.Badge.Holiday"><value>공휴일</value></data>
   <data name="SYS.Calendar.Badge.Weekend"><value>주말</value></data>
   <data name="SYS.Calendar.Modal.Generate"><value>일정 자동 생성</value></data>
@@ -479,6 +538,30 @@
   <data name="SYS.Notifications.Filter.Active"><value>활성</value></data>
   <data name="SYS.Notifications.Filter.Inactive"><value>비활성</value></data>
   <data name="SYS.Notifications.Btn.Apply"><value>적용</value></data>
+  <data name="SYS.Notifications.Kpi.AllRules"><value>전체 규칙</value></data>
+  <data name="SYS.Notifications.Kpi.RegisteredChannels"><value>등록된 채널</value></data>
+  <data name="SYS.Notifications.Kpi.SentToday"><value>발송 완료</value></data>
+  <data name="SYS.Notifications.Kpi.FailedToday"><value>발송 오류</value></data>
+  <data name="SYS.Notifications.Lbl.Unverified"><value>미인증</value></data>
+  <data name="SYS.Notifications.Modal.CreateRule"><value>알림 규칙 등록</value></data>
+  <data name="SYS.Notifications.Lbl.SourceModule"><value>소스 모듈</value></data>
+  <data name="SYS.Notifications.Mod.PP"><value>PP (생산계획)</value></data>
+  <data name="SYS.Notifications.Mod.MNT"><value>MNT (설비보전)</value></data>
+  <data name="SYS.Notifications.Mod.QC"><value>QC (품질)</value></data>
+  <data name="SYS.Notifications.Mod.WH"><value>WH (창고)</value></data>
+  <data name="SYS.Notifications.Mod.FG"><value>FG (완성품)</value></data>
+  <data name="SYS.Notifications.Mod.SYS"><value>SYS (시스템)</value></data>
+  <data name="SYS.Notifications.Lbl.ChannelsJson"><value>채널 JSON</value></data>
+  <data name="SYS.Notifications.Lbl.RecipientRolesJson"><value>수신 역할 JSON</value></data>
+  <data name="SYS.Notifications.Lbl.EnabledImmediate"><value>활성 (즉시 적용)</value></data>
+  <data name="SYS.Notifications.Modal.EditRule"><value>알림 규칙 수정</value></data>
+  <data name="SYS.Notifications.Modal.CreateChannel"><value>신규 채널 등록</value></data>
+  <data name="SYS.Notifications.Hint.AddressAutoFill"><value>EMAIL·SMS는 사용자 선택 시 자동 입력</value></data>
+  <data name="SYS.Notifications.Lbl.DndStart"><value>방해금지 시작 (HH:mm)</value></data>
+  <data name="SYS.Notifications.Lbl.DndEnd"><value>방해금지 종료 (HH:mm)</value></data>
+  <data name="SYS.Notifications.Modal.EditChannel"><value>채널 수정</value></data>
+  <data name="SYS.Notifications.Err.EventCodeRequired"><value>이벤트 코드를 입력하세요.</value></data>
+  <data name="SYS.Notifications.Err.ChannelRequired"><value>채널을 선택하세요.</value></data>
 
   <!-- SYS.Config -->
   <data name="SYS.Config.Title"><value>시스템 설정</value></data>
@@ -516,6 +599,8 @@
   <data name="SYS.Health.Tile.Notif"><value>알림</value></data>
   <data name="SYS.Health.Tile.Config"><value>시스템 설정</value></data>
   <data name="SYS.Health.Tile.Calendar"><value>공장 캘린더</value></data>
+  <data name="SYS.Health.Tile.Roles"><value>역할 관리</value></data>
+  <data name="SYS.Health.Tile.Screen"><value>화면 관리</value></data>
 
   <!-- ════════════════════════════════════════════════════════════ -->
   <!-- MD — 마스터 데이터 -->
@@ -543,11 +628,1271 @@
   <data name="MD.Line.Modal.Create"><value>신규 생산 라인 등록</value></data>
   <data name="MD.Line.Lbl.LineId"><value>라인 ID *</value></data>
   <data name="MD.Line.Lbl.LineName"><value>라인명 *</value></data>
+  <data name="MD.Line.Lbl.LineNameEn"><value>영문 라인명</value></data>
   <data name="MD.Line.Lbl.LineType"><value>라인 유형</value></data>
   <data name="MD.Line.Lbl.PlantId"><value>공장 ID</value></data>
   <data name="MD.Line.Lbl.DefaultWcid"><value>기준 작업장 (WCID)</value></data>
   <data name="MD.Line.Lbl.DailyCap"><value>일 생산 능력 (EA)</value></data>
   <data name="MD.Line.Lbl.ShiftPattern"><value>교대 패턴</value></data>
   <data name="MD.Line.Lbl.RfidEnabled"><value>RFID 활성</value></data>
+  <data name="MD.Line.Modal.Edit"><value>라인 수정</value></data>
+  <data name="MD.Line.Err.IDRequired"><value>라인 ID를 입력하세요.</value></data>
+  <data name="MD.Line.Err.NameRequired"><value>라인명을 입력하세요.</value></data>
+  <data name="MD.Line.Err.IDExists"><value>라인 ID '{0}' 이 이미 존재합니다.</value></data>
+  <data name="MD.Line.Ok.Created"><value>{0} 등록 완료.</value></data>
+  <data name="MD.Line.Ok.Updated"><value>{0} 수정 완료.</value></data>
+  <data name="MD.Line.Ok.Deleted"><value>{0} 삭제 완료.</value></data>
 
+  <!-- MD.Bom -->
+  <data name="MD.Bom.Title"><value>BOM 관리</value></data>
+  <data name="MD.Bom.Sub"><value>자재명세서 — 품목별 구성 자재 관리</value></data>
+  <data name="MD.Bom.List"><value>BOM 목록</value></data>
+  <data name="MD.Bom.Empty"><value>등록된 BOM이 없습니다.</value></data>
+  <!-- MD.Bop -->
+  <data name="MD.Bop.Title"><value>BOP 관리</value></data>
+  <data name="MD.Bop.Sub"><value>생산 작업 순서 (공정 흐름) 관리</value></data>
+  <data name="MD.Bop.List"><value>BOP 목록</value></data>
+  <data name="MD.Bop.Empty"><value>등록된 BOP가 없습니다.</value></data>
+  <!-- MD.CommonCode -->
+  <data name="MD.CommonCode.Title"><value>코드 기준정보 관리</value></data>
+  <data name="MD.CommonCode.Sub"><value>시스템 공통 코드 기준정보</value></data>
+  <data name="MD.CommonCode.List"><value>공통코드 목록</value></data>
+  <data name="MD.CommonCode.Empty"><value>등록된 공통코드가 없습니다.</value></data>
+  <data name="MD.CommonCode.GrpHeader"><value>코드 그룹</value></data>
+  <data name="MD.CommonCode.ItemHint"><value>← 코드 그룹의 ▶ 버튼을 눌러 항목을 조회하세요</value></data>
+  <data name="MD.CommonCode.ItemCount"><value>{0}개 항목</value></data>
+  <data name="MD.CommonCode.Grp.Create"><value>코드 그룹 등록</value></data>
+  <data name="MD.CommonCode.Grp.Edit"><value>코드 그룹 수정</value></data>
+  <data name="MD.CommonCode.Item.Create"><value>코드 항목 등록</value></data>
+  <data name="MD.CommonCode.Item.Edit"><value>코드 항목 수정</value></data>
+  <data name="MD.CommonCode.Lbl.GroupCode"><value>그룹코드 *</value></data>
+  <data name="MD.CommonCode.Lbl.GroupCodeHint"><value>(영문·숫자·밑줄, 최대 20자)</value></data>
+  <data name="MD.CommonCode.Lbl.GroupName"><value>그룹명 *</value></data>
+  <data name="MD.CommonCode.Lbl.GroupNameEn"><value>그룹명(영문)</value></data>
+  <data name="MD.CommonCode.Lbl.Description"><value>설명</value></data>
+  <data name="MD.CommonCode.Lbl.UseFlag"><value>사용</value></data>
+  <data name="MD.CommonCode.Lbl.CodeValue"><value>코드값 *</value></data>
+  <data name="MD.CommonCode.Lbl.CodeValueHint"><value>(최대 20자)</value></data>
+  <data name="MD.CommonCode.Lbl.CodeId"><value>CodeID</value></data>
+  <data name="MD.CommonCode.Lbl.CodeIdHint"><value>(자동생성, 최대 24자)</value></data>
+  <data name="MD.CommonCode.Lbl.CodeName"><value>코드명 *</value></data>
+  <data name="MD.CommonCode.Lbl.CodeNameEn"><value>코드명(영문)</value></data>
+  <data name="MD.CommonCode.Lbl.ParentCode"><value>상위 코드</value></data>
+  <data name="MD.CommonCode.Lbl.ParentCodeOpt"><value>(선택)</value></data>
+  <data name="MD.CommonCode.Lbl.SortOrder"><value>순서</value></data>
+  <data name="MD.CommonCode.Opt.None"><value>(없음)</value></data>
+  <data name="MD.CommonCode.ConfirmGrpDelete"><value>그룹과 하위 항목 {0}개를 삭제합니까?</value></data>
+  <data name="MD.CommonCode.ConfirmItemDelete"><value>{0} ({1}) 을 삭제합니까?</value></data>
+  <!-- MD.Customer -->
+  <data name="MD.Customer.Title"><value>고객사 기준정보 관리</value></data>
+  <data name="MD.Customer.Sub"><value>납품 고객사 기준정보</value></data>
+  <data name="MD.Customer.List"><value>고객사 목록</value></data>
+  <data name="MD.Customer.Empty"><value>등록된 고객사가 없습니다.</value></data>
+  <!-- MD.DefectCause -->
+  <data name="MD.DefectCause.Title"><value>불량원인 기준정보 관리</value></data>
+  <data name="MD.DefectCause.Sub"><value>불량 원인 코드 기준정보</value></data>
+  <data name="MD.DefectCause.List"><value>불량원인 목록</value></data>
+  <data name="MD.DefectCause.Empty"><value>등록된 불량원인이 없습니다.</value></data>
+  <!-- MD.DefectCode -->
+  <data name="MD.DefectCode.Title"><value>불량유형 기준정보 관리</value></data>
+  <data name="MD.DefectCode.Sub"><value>불량 유형 코드 기준정보</value></data>
+  <data name="MD.DefectCode.List"><value>불량코드 목록</value></data>
+  <data name="MD.DefectCode.Empty"><value>등록된 불량코드가 없습니다.</value></data>
+  <!-- MD.Equipment -->
+  <data name="MD.Equipment.Title"><value>설비 기준정보 관리</value></data>
+  <data name="MD.Equipment.Sub"><value>생산 설비 기준정보</value></data>
+  <data name="MD.Equipment.List"><value>설비 목록</value></data>
+  <data name="MD.Equipment.Empty"><value>등록된 설비가 없습니다.</value></data>
+  <!-- MD.InspStd -->
+  <data name="MD.InspStd.Title"><value>검사기준 기준정보 관리</value></data>
+  <data name="MD.InspStd.Sub"><value>품목별 검사 기준정보</value></data>
+  <data name="MD.InspStd.List"><value>검사기준서 목록</value></data>
+  <data name="MD.InspStd.Empty"><value>등록된 검사기준서가 없습니다.</value></data>
+  <!-- MD.Items -->
+  <data name="MD.Items.Title"><value>제품 기준정보 관리</value></data>
+  <data name="MD.Items.Sub"><value>원자재·반제품·완제품 기준정보</value></data>
+  <data name="MD.Items.List"><value>품목 목록</value></data>
+  <data name="MD.Items.Empty"><value>등록된 품목이 없습니다.</value></data>
+  <!-- MD.Jig -->
+  <data name="MD.Jig.Title"><value>지그 기준정보 관리</value></data>
+  <data name="MD.Jig.Sub"><value>생산 지그 및 치공구 기준정보</value></data>
+  <data name="MD.Jig.List"><value>지그 목록</value></data>
+  <data name="MD.Jig.Empty"><value>등록된 지그가 없습니다.</value></data>
+  <!-- MD.LabelTpl -->
+  <data name="MD.LabelTpl.Title"><value>라벨 템플릿 관리</value></data>
+  <data name="MD.LabelTpl.Sub"><value>인쇄 라벨 포맷 기준정보</value></data>
+  <data name="MD.LabelTpl.List"><value>라벨 템플릿 목록</value></data>
+  <data name="MD.LabelTpl.Empty"><value>등록된 라벨 템플릿이 없습니다.</value></data>
+  <!-- MD.LinePat -->
+  <data name="MD.LinePat.Title"><value>라인 시간 패턴 관리</value></data>
+  <data name="MD.LinePat.Sub"><value>라인별 교대·휴식 시간 패턴</value></data>
+  <data name="MD.LinePat.List"><value>시간패턴 목록</value></data>
+  <data name="MD.LinePat.Empty"><value>등록된 시간패턴이 없습니다.</value></data>
+  <!-- MD.Location -->
+  <data name="MD.Location.Title"><value>창고/로케이션 기준정보 관리</value></data>
+  <data name="MD.Location.Sub"><value>창고 위치 기준정보</value></data>
+  <data name="MD.Location.List"><value>위치 목록</value></data>
+  <data name="MD.Location.Empty"><value>등록된 위치가 없습니다.</value></data>
+  <!-- MD.Mold -->
+  <data name="MD.Mold.Title"><value>금형 기준정보 관리</value></data>
+  <data name="MD.Mold.Sub"><value>사출 금형 기준정보</value></data>
+  <data name="MD.Mold.List"><value>금형 목록</value></data>
+  <data name="MD.Mold.Empty"><value>등록된 금형이 없습니다.</value></data>
+  <!-- MD.Oven -->
+  <data name="MD.Oven.Title"><value>건조로 기준정보 관리</value></data>
+  <data name="MD.Oven.Sub"><value>도장 오븐 설비 기준정보</value></data>
+  <data name="MD.Oven.List"><value>오븐 목록</value></data>
+  <data name="MD.Oven.Empty"><value>등록된 오븐이 없습니다.</value></data>
+  <!-- MD.PackSpec -->
+  <data name="MD.PackSpec.Title"><value>포장 사양 관리</value></data>
+  <data name="MD.PackSpec.Sub"><value>포장 규격 기준정보</value></data>
+  <data name="MD.PackSpec.List"><value>포장사양 목록</value></data>
+  <data name="MD.PackSpec.Empty"><value>등록된 포장사양이 없습니다.</value></data>
+  <!-- MD.PaintFabric -->
+  <data name="MD.PaintFabric.Title"><value>원부자재 기준정보 관리</value></data>
+  <data name="MD.PaintFabric.Sub"><value>도료 · 원단 기준정보</value></data>
+  <data name="MD.PaintFabric.List"><value>도장/원단 목록</value></data>
+  <data name="MD.PaintFabric.Empty"><value>등록된 도장/원단이 없습니다.</value></data>
+  <!-- MD.PmTemplate -->
+  <data name="MD.PmTemplate.Title"><value>PM 템플릿 관리</value></data>
+  <data name="MD.PmTemplate.Sub"><value>예방보전 점검 항목 기준정보</value></data>
+  <data name="MD.PmTemplate.List"><value>PM 템플릿 목록</value></data>
+  <data name="MD.PmTemplate.Empty"><value>등록된 PM 템플릿이 없습니다.</value></data>
+  <!-- MD.RalColor -->
+  <data name="MD.RalColor.Title"><value>RAL 색상 관리</value></data>
+  <data name="MD.RalColor.Sub"><value>표준 RAL 색상 기준정보</value></data>
+  <data name="MD.RalColor.List"><value>RAL 색상 목록</value></data>
+  <data name="MD.RalColor.Empty"><value>등록된 RAL 색상이 없습니다.</value></data>
+  <!-- MD.ReasonCode -->
+  <data name="MD.ReasonCode.Title"><value>사유 코드 관리</value></data>
+  <data name="MD.ReasonCode.Sub"><value>정지/불합격 사유 코드 기준정보</value></data>
+  <data name="MD.ReasonCode.List"><value>사유코드 목록</value></data>
+  <data name="MD.ReasonCode.Empty"><value>등록된 사유코드가 없습니다.</value></data>
+  <!-- MD.Recipe -->
+  <data name="MD.Recipe.Title"><value>레시피 관리</value></data>
+  <data name="MD.Recipe.Sub"><value>공정 조건 레시피 기준정보</value></data>
+  <data name="MD.Recipe.List"><value>레시피 목록</value></data>
+  <data name="MD.Recipe.Empty"><value>등록된 레시피가 없습니다.</value></data>
+  <!-- MD.RfidReader -->
+  <data name="MD.RfidReader.Title"><value>RFID 리더 관리</value></data>
+  <data name="MD.RfidReader.Sub"><value>RFID 리더기 기준정보</value></data>
+  <data name="MD.RfidReader.List"><value>RFID 리더기 목록</value></data>
+  <data name="MD.RfidReader.Empty"><value>등록된 RFID 리더기가 없습니다.</value></data>
+  <!-- MD.RfidTag -->
+  <data name="MD.RfidTag.Title"><value>RFID 태그 관리</value></data>
+  <data name="MD.RfidTag.Sub"><value>RFID 태그 기준정보</value></data>
+  <data name="MD.RfidTag.List"><value>RFID 태그 목록</value></data>
+  <data name="MD.RfidTag.Empty"><value>등록된 RFID 태그가 없습니다.</value></data>
+  <!-- MD.ShipDest -->
+  <data name="MD.ShipDest.Title"><value>출하처 기준정보 관리</value></data>
+  <data name="MD.ShipDest.Sub"><value>출하 목적지 기준정보</value></data>
+  <data name="MD.ShipDest.List"><value>출하처 목록</value></data>
+  <data name="MD.ShipDest.Empty"><value>등록된 출하처가 없습니다.</value></data>
+  <!-- MD.SparePart -->
+  <data name="MD.SparePart.Title"><value>예비품 마스터</value></data>
+  <data name="MD.SparePart.Sub"><value>설비 예비부품 기준정보</value></data>
+  <data name="MD.SparePart.List"><value>예비부품 목록</value></data>
+  <data name="MD.SparePart.Empty"><value>등록된 예비부품이 없습니다.</value></data>
+  <!-- MD.Station -->
+  <data name="MD.Station.Title"><value>공정 기준정보 관리</value></data>
+  <data name="MD.Station.Sub"><value>공정별 작업 스테이션 기준정보</value></data>
+  <data name="MD.Station.List"><value>스테이션 목록</value></data>
+  <data name="MD.Station.Empty"><value>등록된 스테이션이 없습니다.</value></data>
+  <data name="MD.Station.Ph.Search"><value>공정 ID / 명칭</value></data>
+  <data name="MD.Station.Kpi.Lines"><value>라인 수</value></data>
+  <data name="MD.Station.Kpi.Types"><value>공정유형 수</value></data>
+  <!-- MD.Uom -->
+  <data name="MD.Uom.Title"><value>단위 관리</value></data>
+  <data name="MD.Uom.Sub"><value>측정 단위 기준정보</value></data>
+  <data name="MD.Uom.List"><value>단위 목록</value></data>
+  <data name="MD.Uom.Empty"><value>등록된 단위가 없습니다.</value></data>
+  <!-- MD.Vendor -->
+  <data name="MD.Vendor.Title"><value>공급업체 기준정보 관리</value></data>
+  <data name="MD.Vendor.Sub"><value>원자재 공급업체 기준정보</value></data>
+  <data name="MD.Vendor.List"><value>협력업체 목록</value></data>
+  <data name="MD.Vendor.Empty"><value>등록된 협력업체가 없습니다.</value></data>
+  <!-- MD.WorkCenter -->
+  <data name="MD.WorkCenter.Title"><value>Work Center 관리</value></data>
+  <data name="MD.WorkCenter.Sub"><value>공정별 작업장 기준정보</value></data>
+  <data name="MD.WorkCenter.List"><value>작업장 목록</value></data>
+  <data name="MD.WorkCenter.Empty"><value>등록된 작업장이 없습니다.</value></data>
+  <data name="MD.WorkCenter.Kpi.Lines"><value>라인 수</value></data>
+  <data name="MD.WorkCenter.Kpi.Types"><value>공정유형 수</value></data>
+  <!-- PP 생산계획 -->
+  <data name="PP.Calendar.Title"><value>캘린더</value></data>
+  <data name="PP.Calendar.Sub"><value>WO 납기 기준 월/주 시각화 · D-3 빨강 강조 · 납기 변경</value></data>
+  <data name="PP.Calendar.Empty"><value>해당 기간에 캘린더 항목이 없습니다.</value></data>
+  <data name="PP.Calendar.Kpi.TotalSub"><value>납기 등록</value></data>
+  <data name="PP.Calendar.Kpi.D3"><value>D-3 경보</value></data>
+  <data name="PP.Calendar.Kpi.D3Sub"><value>납기 임박 (BR-008)</value></data>
+  <data name="PP.Calendar.Kpi.Late"><value>연체</value></data>
+  <data name="PP.Calendar.Kpi.LateSub"><value>납기 초과</value></data>
+  <data name="PP.Calendar.Kpi.InProgSub"><value>생산 중</value></data>
+  <data name="PP.Calendar.Filter.AllRouting"><value>전체 Routing</value></data>
+  <data name="PP.Calendar.Routing.INJ"><value>INJ 사출</value></data>
+  <data name="PP.Calendar.Routing.A"><value>A — IMG 감싸기</value></data>
+  <data name="PP.Calendar.Routing.B"><value>B — PNT 도장</value></data>
+  <data name="PP.Calendar.Tab.Month"><value>▦ 월</value></data>
+  <data name="PP.Calendar.Tab.Week"><value>≡ 주</value></data>
+  <data name="PP.Calendar.Btn.Today"><value>오늘</value></data>
+  <data name="PP.Calendar.Day.Sun"><value>일</value></data>
+  <data name="PP.Calendar.Day.Mon"><value>월</value></data>
+  <data name="PP.Calendar.Day.Tue"><value>화</value></data>
+  <data name="PP.Calendar.Day.Wed"><value>수</value></data>
+  <data name="PP.Calendar.Day.Thu"><value>목</value></data>
+  <data name="PP.Calendar.Day.Fri"><value>금</value></data>
+  <data name="PP.Calendar.Day.Sat"><value>토</value></data>
+  <data name="PP.Calendar.More"><value>+{0} 건 더</value></data>
+  <data name="PP.Calendar.Modal.WoList"><value>WO 목록</value></data>
+  <data name="PP.Calendar.Detail.OrderDone"><value>주문 / 완료</value></data>
+  <data name="PP.Calendar.Detail.Phase0"><value>Phase-0</value></data>
+  <data name="PP.Calendar.Detail.Phase0Done"><value>✓ 완료</value></data>
+  <data name="PP.Calendar.Detail.Phase0Fail"><value>🚧 BOM/BOP 미등록</value></data>
+  <data name="PP.Calendar.Btn.Reschedule"><value>납기 변경</value></data>
+  <data name="PP.Calendar.Btn.WorkOrder"><value>PP-004 →</value></data>
+  <data name="PP.Calendar.Modal.Reschedule"><value>납기 변경 — 라인장 PIN</value></data>
+  <data name="PP.Calendar.Lbl.WoNo"><value>WO:</value></data>
+  <data name="PP.Calendar.Lbl.CurrentDue"><value>현재 납기:</value></data>
+  <data name="PP.Calendar.Lbl.NewDue"><value>새 납기일</value></data>
+  <data name="PP.Calendar.Lbl.Pin"><value>라인장 PIN</value></data>
+  <data name="PP.Calendar.Ph.Pin"><value>4~6자리</value></data>
+  <data name="PP.Calendar.Err.WrongPin"><value>PIN이 올바르지 않습니다.</value></data>
+  <data name="PP.Calendar.Err.Reschedule"><value>변경 오류: {0}</value></data>
+  <data name="PP.Calendar.Legend.Overdue"><value>연체</value></data>
+  <data name="PP.Calendar.Legend.D3"><value>D-3 이내</value></data>
+  <data name="PP.Calendar.Legend.RoutingA"><value>Routing A</value></data>
+  <data name="PP.Calendar.Legend.RoutingB"><value>Routing B</value></data>
+  <data name="PP.Calendar.Legend.Draft"><value>Draft/INJ</value></data>
+  <data name="PP.Calendar.DdTxt.None"><value>납기 없음</value></data>
+  <data name="PP.Calendar.DdTxt.Late"><value>D+{0} 연체</value></data>
+  <data name="PP.Calendar.DdTxt.DDay"><value>D-Day</value></data>
+  <data name="PP.Calendar.DdTxt.DaysTo"><value>D-{0}</value></data>
+  <data name="PP.Calendar.Filter.AllStatus"><value>전체 상태</value></data>
+  <data name="PP.Calendar.Modal.Detail"><value>WO 상세 —</value></data>
+  <data name="PP.Delivery.Title"><value>납기 준수율</value></data>
+  <data name="PP.Delivery.Sub"><value>출하 주문 · 납기 준수 분석</value></data>
+  <data name="PP.Delivery.Empty"><value>해당 조건에 출하 이력이 없습니다.</value></data>
+  <data name="PP.Delivery.Kpi.TotalSub"><value>전체 수주</value></data>
+  <data name="PP.Delivery.Kpi.OnTimeSub"><value>납기 준수</value></data>
+  <data name="PP.Delivery.Kpi.LateSub"><value>납기 지연</value></data>
+  <data name="PP.Delivery.Kpi.OpenSub"><value>미출하</value></data>
+  <data name="PP.Delivery.Kpi.OtdSub"><value>납기율</value></data>
+  <data name="PP.Delivery.Filter.AllCustomer"><value>전체 고객</value></data>
+  <data name="PP.Delivery.Filter.AllStatus"><value>전체</value></data>
+  <data name="PP.Delivery.Status.OnTime"><value>납기 준수</value></data>
+  <data name="PP.Delivery.Status.Late"><value>납기 지연</value></data>
+  <data name="PP.Delivery.Status.Open"><value>미출하</value></data>
+  <data name="PP.Delivery.Col.Progress"><value>진척</value></data>
+  <data name="PP.Delivery.Badge.OnTime"><value>준수</value></data>
+  <data name="PP.Delivery.Badge.Late"><value>지연</value></data>
+  <data name="PP.Delivery.Badge.Open"><value>미출하</value></data>
+  <data name="PP.Delivery.LimitNote"><value>최대 500건 표시. 기간 또는 고객 조건을 좁혀 조회하세요.</value></data>
+  <data name="PP.Downtime.Title"><value>비가동 이력</value></data>
+  <data name="PP.Downtime.Sub"><value>라인 비가동 이벤트 이력</value></data>
+  <data name="PP.Downtime.Empty"><value>해당 조건에 비가동 이력이 없습니다.</value></data>
+  <data name="PP.Downtime.Filter.AllLines"><value>전체 라인</value></data>
+  <data name="PP.Downtime.Filter.AllStatus"><value>전체 상태</value></data>
+  <data name="PP.Downtime.Filter.AllReason"><value>전체 사유</value></data>
+  <data name="PP.Downtime.Status.Open"><value>미해결</value></data>
+  <data name="PP.Downtime.Status.Closed"><value>완료</value></data>
+  <data name="PP.Downtime.LimitNote"><value>최대 500건 표시. 기간을 좁혀 조회하세요.</value></data>
+  <data name="PP.DowntimeMonitor.Title"><value>비가동 모니터</value></data>
+  <data name="PP.DowntimeMonitor.Sub"><value>라인별 실시간 가동 상태</value></data>
+  <data name="PP.DowntimeMonitor.Empty"><value>모니터링 데이터가 없습니다.</value></data>
+  <data name="PP.DowntimeMonitor.Kpi.Lines"><value>모니터링 라인</value></data>
+  <data name="PP.DowntimeMonitor.Kpi.Work"><value>가동</value></data>
+  <data name="PP.DowntimeMonitor.Kpi.Unplan"><value>실제비가동</value></data>
+  <data name="PP.DowntimeMonitor.Kpi.Plan"><value>계획비가동</value></data>
+  <data name="PP.DowntimeMonitor.Kpi.NoReason"><value>사유미입력</value></data>
+  <data name="PP.DowntimeMonitor.Alert.Title"><value>실제비가동 10분 초과</value></data>
+  <data name="PP.DowntimeMonitor.State.Work"><value>가동</value></data>
+  <data name="PP.DowntimeMonitor.State.Unplan"><value>실제비가동</value></data>
+  <data name="PP.DowntimeMonitor.State.Plan"><value>계획비가동</value></data>
+  <data name="PP.DowntimeMonitor.State.Break"><value>휴식</value></data>
+  <data name="PP.DowntimeMonitor.State.Unknown"><value>신호없음</value></data>
+  <data name="PP.DowntimeMonitor.Lbl.Plan"><value>계획:</value></data>
+  <data name="PP.DowntimeMonitor.Lbl.Urgent"><value>사유 입력 필요</value></data>
+  <data name="PP.DowntimeMonitor.Tl.Minus60"><value>-60분</value></data>
+  <data name="PP.DowntimeMonitor.Tl.Minus30"><value>-30분</value></data>
+  <data name="PP.DowntimeMonitor.Tl.Now"><value>현재</value></data>
+  <data name="PP.DowntimeMonitor.Stat.Work"><value>가동 {0}분</value></data>
+  <data name="PP.DowntimeMonitor.Stat.Unplan"><value>실제비가동 {0}분</value></data>
+  <data name="PP.DowntimeMonitor.Stat.Age"><value>{0}분전</value></data>
+  <data name="PP.DowntimeMonitor.Stat.Old"><value>오래됨</value></data>
+  <data name="PP.DowntimeMonitor.Stat.Signal"><value>신호</value></data>
+  <data name="PP.DowntimeMonitor.History.Header"><value>오늘 비가동 이력 — 사유 미입력 시 수정 가능</value></data>
+  <data name="PP.DowntimeMonitor.Filter.AllLines"><value>전체 라인</value></data>
+  <data name="PP.DowntimeMonitor.History.Empty"><value>오늘 비가동 이력이 없습니다.</value></data>
+  <data name="PP.DowntimeMonitor.Col.Duration"><value>시간(분)</value></data>
+  <data name="PP.DowntimeMonitor.Lbl.NotEntered"><value>미입력</value></data>
+  <data name="PP.DowntimeMonitor.Modal.Edit"><value>비가동 사유 수정 —</value></data>
+  <data name="PP.DowntimeMonitor.Reason.Select"><value>선택</value></data>
+  <data name="PP.DowntimeMonitor.Reason.Mech"><value>MECH — 기계 고장</value></data>
+  <data name="PP.DowntimeMonitor.Reason.Elec"><value>ELEC — 전기/전자</value></data>
+  <data name="PP.DowntimeMonitor.Reason.Mat"><value>MAT — 자재 부족</value></data>
+  <data name="PP.DowntimeMonitor.Reason.Oper"><value>OPER — 작업 오류</value></data>
+  <data name="PP.DowntimeMonitor.Reason.Plan"><value>PLAN — 계획 변경</value></data>
+  <data name="PP.DowntimeMonitor.Reason.Other"><value>OTHER — 기타</value></data>
+  <data name="PP.DowntimeMonitor.Lbl.ReasonCode"><value>사유코드</value></data>
+  <data name="PP.DowntimeMonitor.Lbl.Cause"><value>원인</value></data>
+  <data name="PP.DowntimeMonitor.Ph.Cause"><value>원인 코드 또는 설명</value></data>
+  <data name="PP.DowntimeMonitor.Ph.Comment"><value>상세 내용 (선택)</value></data>
+  <data name="PP.DowntimeMonitor.Err.ReasonRequired"><value>사유코드를 선택하세요.</value></data>
+  <data name="PP.DowntimeMonitor.Dur.Hours"><value>{0}시간 {1}분 경과</value></data>
+  <data name="PP.DowntimeMonitor.Dur.Minutes"><value>{0}분 경과</value></data>
+  <data name="PP.DowntimeMonitor.Dur.Now"><value>방금 시작</value></data>
+  <data name="PP.DowntimeMonitor.Lbl.Refresh"><value>갱신:</value></data>
+  <data name="PP.DowntimeMonitor.AutoRefresh"><value>1분 자동갱신</value></data>
+  <data name="PP.DowntimeMonitor.Inprog"><value>진행중</value></data>
+  <data name="PP.Forecast.Title"><value>수요 예측</value></data>
+  <data name="PP.Forecast.Sub"><value>고객별 품목 수요 예측</value></data>
+  <data name="PP.Forecast.Empty"><value>해당 조건에 수요 예측이 없습니다.</value></data>
+  <data name="PP.LineSchedule.Title"><value>라인 일정</value></data>
+  <data name="PP.LineSchedule.Sub"><value>분단위 간트 · 가동/계획비가동 밴드 · WO 배치 · 캐파 초과 차단</value></data>
+  <data name="PP.LineSchedule.Empty"><value>해당 조건에 일정이 없습니다.</value></data>
+  <data name="PP.LineSchedule.Kpi.WorkCap"><value>가동 캐파</value></data>
+  <data name="PP.LineSchedule.Kpi.WorkCapSub"><value>Σ WORK 밴드</value></data>
+  <data name="PP.LineSchedule.Kpi.WoLoad"><value>WO 부하</value></data>
+  <data name="PP.LineSchedule.Kpi.WoLoadSub"><value>배치된 슬롯 합계</value></data>
+  <data name="PP.LineSchedule.Kpi.Remain"><value>잔여 캐파</value></data>
+  <data name="PP.LineSchedule.Kpi.Over"><value>캐파 초과!</value></data>
+  <data name="PP.LineSchedule.Kpi.Available"><value>배치 가능</value></data>
+  <data name="PP.LineSchedule.Kpi.Util"><value>가동률</value></data>
+  <data name="PP.LineSchedule.Kpi.UtilSub"><value>WO부하 / 가동캐파</value></data>
+  <data name="PP.LineSchedule.Ph.SelectLine"><value>라인 선택…</value></data>
+  <data name="PP.LineSchedule.Empty.NoLine"><value>좌측 툴바에서 라인을 선택하세요.</value></data>
+  <data name="PP.LineSchedule.Tab.Gantt"><value>▦ 간트 보드</value></data>
+  <data name="PP.LineSchedule.Tab.Pattern"><value>✏ 패턴 편집</value></data>
+  <data name="PP.LineSchedule.Lbl.WoSelect"><value>WO 선택</value></data>
+  <data name="PP.LineSchedule.Lbl.StartTime"><value>시작 시간</value></data>
+  <data name="PP.LineSchedule.Lbl.Duration"><value>지속 (분)</value></data>
+  <data name="PP.LineSchedule.Lbl.PlannedQty"><value>계획 수량</value></data>
+  <data name="PP.LineSchedule.Ttl.CapBlocked"><value>캐파 초과 — 배치 차단됨</value></data>
+  <data name="PP.LineSchedule.Btn.CapOver"><value>🚫 캐파 초과</value></data>
+  <data name="PP.LineSchedule.Btn.Place"><value>▶ 배치</value></data>
+  <data name="PP.LineSchedule.Btn.WoOpen"><value>▼ WO 배치</value></data>
+  <data name="PP.LineSchedule.Btn.WoClose"><value>▲ WO 배치 닫기</value></data>
+  <data name="PP.LineSchedule.Lbl.BandType"><value>밴드 유형</value></data>
+  <data name="PP.LineSchedule.Band.Work"><value>가동</value></data>
+  <data name="PP.LineSchedule.Band.PlannedDown"><value>계획비가동</value></data>
+  <data name="PP.LineSchedule.Band.Break"><value>휴식</value></data>
+  <data name="PP.LineSchedule.Btn.Undo"><value>↩ 되돌리기</value></data>
+  <data name="PP.LineSchedule.Ttl.Undo"><value>마지막으로 추가한 밴드 삭제</value></data>
+  <data name="PP.LineSchedule.Btn.Clear"><value>초기화</value></data>
+  <data name="PP.LineSchedule.Stat.Work"><value>가동: {0}분</value></data>
+  <data name="PP.LineSchedule.Stat.PlannedDown"><value>계획비가동: {0}분</value></data>
+  <data name="PP.LineSchedule.Stat.Break"><value>휴식: {0}분</value></data>
+  <data name="PP.LineSchedule.Stat.BandCount"><value>밴드 {0} 개</value></data>
+  <data name="PP.LineSchedule.Modal.DeleteBand"><value>밴드 삭제 확인</value></data>
+  <data name="PP.LineSchedule.Pattern.Lbl"><value>패턴</value></data>
+  <data name="PP.LineSchedule.Err.NoWo"><value>WO를 선택하세요.</value></data>
+  <data name="PP.LineSchedule.Err.NotInWork"><value>배치 위치가 WORK 밴드 안에 있어야 합니다.</value></data>
+  <data name="PP.LineSchedule.Err.CapOver"><value>캐파 초과 — 잔여 {0}분, 요청 {1}분.</value></data>
+  <data name="PP.LineSchedule.Err.Load"><value>조회 오류: {0}</value></data>
+  <data name="PP.LineSchedule.Err.BandSave"><value>밴드 저장 오류: {0}</value></data>
+  <data name="PP.LineSchedule.Ok.Placed"><value>WO 배치 완료.</value></data>
+  <data name="PP.Mrp.Title"><value>MRP</value></data>
+  <data name="PP.Mrp.Sub"><value>자재 소요량 계획 실행 이력</value></data>
+  <data name="PP.Mrp.Empty"><value>MRP 실행 이력이 없습니다.</value></data>
+  <data name="PP.Oee.Title"><value>라인 OEE</value></data>
+  <data name="PP.Oee.Sub"><value>시간손실 모델 · A × P × Q → OEE · 기간별 스냅샷 저장</value></data>
+  <data name="PP.Oee.Empty"><value>해당 조건에 OEE 데이터가 없습니다.</value></data>
+  <data name="PP.Oee.Kpi.HistAvg"><value>이력 평균</value></data>
+  <data name="PP.Oee.Kpi.AvgTarget"><value>이력 평균 / 목표 {0}%</value></data>
+  <data name="PP.Oee.Kpi.Availability"><value>가용성 A</value></data>
+  <data name="PP.Oee.Kpi.Performance"><value>성능 P</value></data>
+  <data name="PP.Oee.Kpi.Quality"><value>품질 Q</value></data>
+  <data name="PP.Oee.Ph.SelectLine"><value>라인 선택…</value></data>
+  <data name="PP.Oee.Period.Day"><value>일별 (DAY)</value></data>
+  <data name="PP.Oee.Period.Week"><value>주별 (WEEK)</value></data>
+  <data name="PP.Oee.Period.Month"><value>월별 (MONTH)</value></data>
+  <data name="PP.Oee.Lbl.Target"><value>목표</value></data>
+  <data name="PP.Oee.Btn.Compute"><value>▶ 계산</value></data>
+  <data name="PP.Oee.Btn.SaveSnapshot"><value>💾 스냅샷 저장</value></data>
+  <data name="PP.Oee.Tab.Trend"><value>📈 추세</value></data>
+  <data name="PP.Oee.Tab.Log"><value>📋 상태 로그</value></data>
+  <data name="PP.Oee.Result.LoadMin"><value>부하 {0}분 / 가용 {1}분</value></data>
+  <data name="PP.Oee.Result.Above"><value>▲ 목표달성</value></data>
+  <data name="PP.Oee.Result.Below"><value>▼ 목표({0}%) 미달</value></data>
+  <data name="PP.Oee.Result.LossModel"><value>시간손실 모델 (전체 부하시간 {0}분)</value></data>
+  <data name="PP.Oee.Result.PlannedDown"><value>계획비가동 {0}분</value></data>
+  <data name="PP.Oee.Result.UnplannedDown"><value>비계획비가동 {0}분</value></data>
+  <data name="PP.Oee.Result.Defects"><value>불량 {0}개</value></data>
+  <data name="PP.Oee.Apq.AvailNote"><value>가용 {0}분 / 비가동 {1}분</value></data>
+  <data name="PP.Oee.Apq.PerfNote"><value>실적 {0} / 이론 {1}</value></data>
+  <data name="PP.Oee.Apq.QualNote"><value>양품 {0} / 불량 {1}</value></data>
+  <data name="PP.Oee.Trend.NoLine"><value>라인 미선택</value></data>
+  <data name="PP.Oee.Trend.NoSnap"><value>저장된 스냅샷이 없습니다. 계산 후 스냅샷 저장 버튼으로 기록을 누적하세요.</value></data>
+  <data name="PP.Oee.Trend.LegendAbove"><value>● 목표달성</value></data>
+  <data name="PP.Oee.Trend.LegendBelow"><value>● 미달</value></data>
+  <data name="PP.Oee.Log.Empty"><value>해당 날짜의 상태 로그가 없습니다.</value></data>
+  <data name="PP.Oee.Log.Lbl.Actual"><value>실적수량</value></data>
+  <data name="PP.Oee.Log.Lbl.Good"><value>양품수량</value></data>
+  <data name="PP.Oee.Log.Lbl.Theoretical"><value>이론수량</value></data>
+  <data name="PP.Oee.Log.Btn.Add"><value>+ 추가</value></data>
+  <data name="PP.Oee.Log.State.Load"><value>부하</value></data>
+  <data name="PP.Oee.Log.State.PlannedDown"><value>계획비가동</value></data>
+  <data name="PP.Oee.Log.State.UnplannedDown"><value>비계획비가동</value></data>
+  <data name="PP.Oee.Log.State.Break"><value>휴식</value></data>
+  <data name="PP.Oee.Log.Col.Duration"><value>시간(분)</value></data>
+  <data name="PP.Oee.Log.Col.Actual"><value>실적</value></data>
+  <data name="PP.Oee.Log.Col.Good"><value>양품</value></data>
+  <data name="PP.Oee.Log.Col.Theoretical"><value>이론</value></data>
+  <data name="PP.Oee.Log.Footer.Load"><value>LOAD: {0}분</value></data>
+  <data name="PP.Oee.Log.Footer.Unplanned"><value>비계획비가동: {0}분</value></data>
+  <data name="PP.Oee.Log.Footer.Planned"><value>계획비가동: {0}분</value></data>
+  <data name="PP.Oee.Log.Footer.Total"><value>총 {0}건</value></data>
+  <data name="PP.Oee.Snap.Title"><value>💾 스냅샷 이력</value></data>
+  <data name="PP.Oee.Snap.Col.Period"><value>구분</value></data>
+  <data name="PP.Oee.Snap.Col.Start"><value>기간 시작</value></data>
+  <data name="PP.Oee.Snap.Col.End"><value>기간 종료</value></data>
+  <data name="PP.Oee.Snap.Col.Load"><value>부하(분)</value></data>
+  <data name="PP.Oee.Snap.Col.Avail"><value>가용성</value></data>
+  <data name="PP.Oee.Snap.Col.Perf"><value>성능</value></data>
+  <data name="PP.Oee.Snap.Col.Qual"><value>품질</value></data>
+  <data name="PP.Oee.Snap.Col.SavedAt"><value>저장일시</value></data>
+  <data name="PP.Oee.Err.NoLine"><value>라인을 선택하세요.</value></data>
+  <data name="PP.Oee.Err.DateRange"><value>시작일이 종료일보다 늦습니다.</value></data>
+  <data name="PP.Oee.Err.Compute"><value>계산 오류: {0}</value></data>
+  <data name="PP.Oee.Err.Save"><value>저장 오류: {0}</value></data>
+  <data name="PP.Oee.Err.EndTime"><value>종료 시간이 시작 시간보다 늦어야 합니다.</value></data>
+  <data name="PP.Oee.Ok.Snapshot"><value>스냅샷 저장 완료.</value></data>
+  <data name="PP.Oee.Gauge.Above"><value>▲ 목표 달성</value></data>
+  <data name="PP.Oee.Gauge.Below"><value>▼ {0}% 미달</value></data>
+  <data name="PP.Oee.Loss.OeeRun"><value>OEE 가동</value></data>
+  <data name="PP.Oee.Loss.QualLoss"><value>품질손실</value></data>
+  <data name="PP.Oee.Loss.PerfLoss"><value>성능손실</value></data>
+  <data name="PP.PlanConfirm.Title"><value>계획 확정</value></data>
+  <data name="PP.PlanConfirm.Sub"><value>생산 계획 확정 및 승인</value></data>
+  <data name="PP.PlanConfirm.List"><value>계획 확정 목록</value></data>
+  <data name="PP.PlanConfirm.Empty"><value>해당 조건에 계획 확정이 없습니다.</value></data>
+  <data name="PP.PurchaseReq.Title"><value>구매 요청</value></data>
+  <data name="PP.PurchaseReq.Sub"><value>MRP 생성 구매 요청 관리</value></data>
+  <data name="PP.PurchaseReq.Empty"><value>해당 조건에 구매 요청이 없습니다.</value></data>
+  <data name="PP.SapImport.Title"><value>SAP 연동</value></data>
+  <data name="PP.SapImport.Sub"><value>SAP 납품 오더 연동</value></data>
+  <data name="PP.SapImport.Empty"><value>해당 조건에 SAP 연동 데이터가 없습니다.</value></data>
+  <data name="PP.WoRelease.Title"><value>작업 지시 릴리스</value></data>
+  <data name="PP.WoRelease.Sub"><value>작업 지시 릴리스 · 공정 배정</value></data>
+  <data name="PP.WoRelease.Empty"><value>해당 조건에 작업 지시가 없습니다.</value></data>
+  <data name="PP.WoRelease.Kpi.Pending"><value>출하 대기</value></data>
+  <data name="PP.WoRelease.Btn.Release"><value>▶ 출하</value></data>
+  <data name="PP.WoRelease.Ok.Released"><value>{0} 출하 완료.</value></data>
+  <data name="PP.WorkOrder.Title"><value>작업 지시</value></data>
+  <data name="PP.WorkOrder.Sub"><value>생산 작업 지시 조회</value></data>
+  <data name="PP.WorkOrder.List"><value>작업 지시 목록</value></data>
+  <data name="PP.WorkOrder.Empty"><value>해당 조건에 작업 지시가 없습니다.</value></data>
+  <data name="PP.WorkOrder.Kpi.Unshipped"><value>미출하 작업지시</value></data>
+  <data name="PP.WorkOrder.Kpi.Waiting"><value>터미널 대기</value></data>
+  <data name="PP.WorkOrder.Kpi.InProgress"><value>생산 중</value></data>
+  <data name="PP.WorkOrder.Kpi.ClosedN"><value>완료 (최근 {0}일)</value></data>
+  <data name="PP.WorkOrder.Filter.AllStatus"><value>전체 상태</value></data>
+  <data name="PP.WorkOrder.Filter.Closed7"><value>완료 7일</value></data>
+  <data name="PP.WorkOrder.Filter.Closed30"><value>완료 30일</value></data>
+  <data name="PP.WorkOrder.Filter.Closed60"><value>완료 60일</value></data>
+  <data name="PP.WorkOrder.Filter.Closed90"><value>완료 90일</value></data>
+  <data name="PP.WorkOrder.Ttl.IMG"><value>감싸기 (IMG)</value></data>
+  <data name="PP.WorkOrder.Ttl.PNT"><value>도색 (PNT)</value></data>
+  <data name="PP.WorkOrder.Ttl.Phase0Fail"><value>BOM/BOP 미등록 — 출하 차단</value></data>
+  <data name="PP.WorkOrder.Ttl.Phase0Pass"><value>Phase-0 통과</value></data>
+  <data name="PP.PurchaseReq.Ph.Search"><value>품목번호·품목명·PR번호</value></data>
+
+  <!-- ── Col.* 공통 테이블 헤더 (한국어) ── -->
+  <data name="Col.WoNo"><value>작업지시 번호</value></data>
+  <data name="Col.Item"><value>품목</value></data>
+  <data name="Col.Order"><value>주문</value></data>
+  <data name="Col.Done"><value>완료</value></data>
+  <data name="Col.Due"><value>납기</value></data>
+  <data name="Col.WO"><value>작업지시</value></data>
+  <data name="Col.Qty"><value>수량</value></data>
+  <data name="Col.Released"><value>릴리스</value></data>
+  <data name="Col.DayType"><value>요일유형</value></data>
+  <data name="Col.Pattern"><value>패턴</value></data>
+  <data name="Col.Capacity"><value>능력</value></data>
+  <data name="Col.Reason"><value>사유</value></data>
+  <data name="Col.SoNo"><value>출하오더</value></data>
+  <data name="Col.Customer"><value>고객사</value></data>
+  <data name="Col.Ship"><value>출하</value></data>
+  <data name="Col.Requested"><value>요청일</value></data>
+  <data name="Col.Promised"><value>약속일</value></data>
+  <data name="Col.DaysLate"><value>지연일수</value></data>
+  <data name="Col.Start"><value>시작</value></data>
+  <data name="Col.End"><value>종료</value></data>
+  <data name="Col.MinDown"><value>비가동(분)</value></data>
+  <data name="Col.Cause"><value>원인</value></data>
+  <data name="Col.Comment"><value>비고</value></data>
+  <data name="Col.Minute"><value>분</value></data>
+  <data name="Col.State"><value>상태</value></data>
+  <data name="Col.Plan"><value>계획</value></data>
+  <data name="Col.Run"><value>가동</value></data>
+  <data name="Col.Month"><value>월</value></data>
+  <data name="Col.Confidence"><value>신뢰도</value></data>
+  <data name="Col.Source"><value>출처</value></data>
+  <data name="Col.Batch"><value>배치</value></data>
+  <data name="Col.Planned"><value>계획량</value></data>
+  <data name="Col.RunNo"><value>실행번호</value></data>
+  <data name="Col.RunAt"><value>실행일시</value></data>
+  <data name="Col.Horizon"><value>계획 기간</value></data>
+  <data name="Col.WOs"><value>작업지시수</value></data>
+  <data name="Col.PRs"><value>구매요청수</value></data>
+  <data name="Col.Shortages"><value>부족</value></data>
+  <data name="Col.Duration"><value>소요시간</value></data>
+  <data name="Col.Shift"><value>교대</value></data>
+  <data name="Col.Availability"><value>가용률(%)</value></data>
+  <data name="Col.Performance"><value>성능률(%)</value></data>
+  <data name="Col.Quality"><value>품질률(%)</value></data>
+  <data name="Col.OEE"><value>OEE</value></data>
+  <data name="Col.Good"><value>양품</value></data>
+  <data name="Col.Total"><value>합계</value></data>
+  <data name="Col.Period"><value>기간</value></data>
+  <data name="Col.Lines"><value>라인수</value></data>
+  <data name="Col.TotalQty"><value>합계수량</value></data>
+  <data name="Col.PrNo"><value>구매요청번호</value></data>
+  <data name="Col.Vendor"><value>공급업체</value></data>
+  <data name="Col.Required"><value>소요일</value></data>
+  <data name="Col.SapPo"><value>SAP PO</value></data>
+  <data name="Col.DtNo"><value>비가동번호</value></data>
+  <data name="Col.EquipName"><value>설비명</value></data>
+  <data name="Col.EquipType"><value>설비유형</value></data>
+  <data name="Col.Runtime"><value>가동시간</value></data>
+  <data name="Col.Cycles"><value>사이클수</value></data>
+  <data name="Col.NextPm"><value>다음 PM</value></data>
+  <data name="Col.OpenWo"><value>진행 WO</value></data>
+  <data name="Col.FailNo"><value>고장번호</value></data>
+  <data name="Col.Symptom"><value>증상</value></data>
+  <data name="Col.Priority"><value>우선순위</value></data>
+  <data name="Col.Reported"><value>발생일</value></data>
+  <data name="Col.Resolved"><value>해결일</value></data>
+  <data name="Col.MwoNo"><value>작업지시번호</value></data>
+  <data name="Col.MoldId"><value>금형 ID</value></data>
+  <data name="Col.MoldName"><value>금형명</value></data>
+  <data name="Col.Cavities"><value>캐비티수</value></data>
+  <data name="Col.Tonnage"><value>톤수</value></data>
+  <data name="Col.ShotsCurrent"><value>현재 Shot</value></data>
+  <data name="Col.ShotsLifetime"><value>누적 Shot</value></data>
+  <data name="Col.UsagePct"><value>소진율(%)</value></data>
+  <data name="Col.Flag"><value>플래그</value></data>
+  <data name="Col.MountedOn"><value>장착 설비</value></data>
+  <data name="Col.LastMaint"><value>마지막 정비</value></data>
+  <data name="Col.MinDT"><value>비가동(분)</value></data>
+  <data name="Col.PmNo"><value>PM번호</value></data>
+  <data name="Col.BasisCycle"><value>기준</value></data>
+  <data name="Col.Cycle"><value>주기</value></data>
+  <data name="Col.LastPm"><value>마지막 PM</value></data>
+  <data name="Col.NextDue"><value>다음 예정일</value></data>
+  <data name="Col.Days"><value>일수</value></data>
+  <data name="Col.PartNo"><value>부품번호</value></data>
+  <data name="Col.Cat"><value>분류</value></data>
+  <data name="Col.OnHand"><value>재고</value></data>
+  <data name="Col.Safety"><value>안전재고</value></data>
+  <data name="Col.Reorder"><value>재주문점</value></data>
+  <data name="Col.LeadDays"><value>리드타임(일)</value></data>
+  <data name="Col.Loc"><value>위치</value></data>
+  <data name="Col.Supplier"><value>공급업체</value></data>
+  <data name="Col.Balance"><value>잔량</value></data>
+  <data name="Col.TxnNo"><value>거래번호</value></data>
+  <data name="Col.Part"><value>부품</value></data>
+  <data name="Col.Ref"><value>참조</value></data>
+  <data name="Col.When"><value>일시</value></data>
+  <data name="Col.IssuedDate"><value>발행일</value></data>
+  <data name="Col.StartedDate"><value>시작일</value></data>
+  <data name="Col.CompletedDate"><value>완료일</value></data>
+  <data name="Col.Tasks"><value>작업</value></data>
+  <data name="Col.ShiftA"><value>교대-A</value></data>
+  <data name="Col.ShiftB"><value>교대-B</value></data>
+  <data name="Col.ShiftC"><value>교대-C</value></data>
+  <data name="Col.Plant"><value>공장</value></data>
+  <data name="Col.Active"><value>활성</value></data>
+  <data name="Col.BreakMin"><value>휴식(분)</value></data>
+  <data name="Col.NetWorkH"><value>순작업h</value></data>
+  <data name="Col.HolidayName"><value>공휴일명</value></data>
+  <data name="Col.MenuSection"><value>섹션코드</value></data>
+  <data name="Col.MenuName"><value>메뉴명 (한국어)</value></data>
+  <data name="Col.MenuNameEn"><value>영문명</value></data>
+  <data name="Col.Routing"><value>경로</value></data>
+  <data name="Col.Visible"><value>표시</value></data>
+  <data name="Col.RoleName"><value>역할명</value></data>
+  <data name="Col.Permission"><value>권한</value></data>
+  <data name="Col.EventCode"><value>이벤트 코드</value></data>
+  <data name="Col.EventName"><value>이벤트명</value></data>
+  <data name="Col.Module"><value>모듈</value></data>
+  <data name="Col.TriggerCond"><value>트리거 조건</value></data>
+  <data name="Col.Channel"><value>채널</value></data>
+  <data name="Col.User"><value>사용자</value></data>
+  <data name="Col.Address"><value>주소</value></data>
+  <data name="Col.Subscribe"><value>수신여부</value></data>
+  <data name="Col.DndStart"><value>방해금지 시작</value></data>
+  <data name="Col.DndEnd"><value>방해금지 종료</value></data>
+  <data name="Col.AuthTs"><value>인증일시</value></data>
+  <data name="Col.SentAt"><value>발송시각</value></data>
+  <data name="Col.Recipient"><value>수신자</value></data>
+  <data name="Col.EventCount"><value>이벤트수</value></data>
+  <data name="Col.Error"><value>오류</value></data>
+  <data name="Col.UserCount"><value>사용자 수</value></data>
+  <data name="Col.GroupCode"><value>그룹코드</value></data>
+  <data name="Col.GroupName"><value>그룹명</value></data>
+  <data name="Col.CodeValue"><value>코드값</value></data>
+  <data name="Col.CodeName"><value>코드명</value></data>
+  <data name="Col.Attr1"><value>Attribute1</value></data>
+  <data name="Col.CustomerId"><value>고객 ID</value></data>
+  <data name="Col.CustomerName"><value>고객명</value></data>
+  <data name="Col.NameEn"><value>영문명</value></data>
+  <data name="Col.Country"><value>국가</value></data>
+  <data name="Col.Contact"><value>담당자</value></data>
+  <data name="Col.Phone"><value>전화</value></data>
+  <data name="Col.EDI"><value>EDI</value></data>
+  <data name="Col.CauseCode"><value>원인코드</value></data>
+  <data name="Col.CauseName"><value>원인명</value></data>
+  <data name="Col.Category"><value>카테고리</value></data>
+  <data name="Col.ProcessName"><value>공정명</value></data>
+  <data name="Col.ProcessNameEn"><value>영문 공정명</value></data>
+  <data name="Col.UpperCause"><value>상위원인</value></data>
+  <data name="Col.Dept"><value>담당부서</value></data>
+  <data name="Col.RootCause"><value>근본원인</value></data>
+  <data name="Col.DefectCode"><value>불량코드</value></data>
+  <data name="Col.DefectName"><value>불량명</value></data>
+  <data name="Col.DefectNameEn"><value>불량명(영문)</value></data>
+  <data name="Col.Severity"><value>심각도</value></data>
+  <data name="Col.DefaultAction"><value>처리기본</value></data>
+  <data name="Col.Pareto"><value>파레토</value></data>
+  <data name="Col.EquipId"><value>설비ID</value></data>
+  <data name="Col.WorkCenter"><value>Work Center</value></data>
+  <data name="Col.MakerModel"><value>제조사/모델</value></data>
+  <data name="Col.InstallDate"><value>설치일</value></data>
+  <data name="Col.TheoreticalCycle"><value>이론사이클(s)</value></data>
+  <data name="Col.TargetOee"><value>목표OEE(%)</value></data>
+  <data name="Col.PlcAddr"><value>PLC주소</value></data>
+  <data name="Col.StandardId"><value>기준 ID</value></data>
+  <data name="Col.InspType"><value>검사유형</value></data>
+  <data name="Col.CharName"><value>특성명</value></data>
+  <data name="Col.Nominal"><value>기준값</value></data>
+  <data name="Col.LSL"><value>LSL</value></data>
+  <data name="Col.USL"><value>USL</value></data>
+  <data name="Col.Uom"><value>UOM</value></data>
+  <data name="Col.SamplingPlan"><value>샘플링계획</value></data>
+  <data name="Col.InspMethod"><value>검사방법</value></data>
+  <data name="Col.CTQ"><value>CTQ</value></data>
+  <data name="Col.EffectiveDate"><value>유효일</value></data>
+  <data name="Col.MinStock"><value>최소재고</value></data>
+  <data name="Col.MaxStock"><value>최대재고</value></data>
+  <data name="Col.UnitPrice"><value>단가</value></data>
+  <data name="Col.JigId"><value>지그 ID</value></data>
+  <data name="Col.HangerCount"><value>행거 수</value></data>
+  <data name="Col.RatedCycle"><value>정격사이클</value></data>
+  <data name="Col.ReadFailRate"><value>읽기실패율(%)</value></data>
+  <data name="Col.Health"><value>건강상태</value></data>
+  <data name="Col.TemplateId"><value>템플릿 ID</value></data>
+  <data name="Col.TemplateName"><value>템플릿명</value></data>
+  <data name="Col.LabelType"><value>라벨 유형</value></data>
+  <data name="Col.PaperSize"><value>용지 크기</value></data>
+  <data name="Col.BarcodeType"><value>바코드 유형</value></data>
+  <data name="Col.Version"><value>버전</value></data>
+  <data name="Col.PrinterModel"><value>프린터 모델</value></data>
+  <data name="Col.LineName"><value>라인명</value></data>
+  <data name="Col.LineNameEn"><value>영문 라인명</value></data>
+  <data name="Col.WcId"><value>WC ID</value></data>
+  <data name="Col.RFID"><value>RFID</value></data>
+  <data name="Col.PatternId"><value>패턴 ID</value></data>
+  <data name="Col.ShiftModel"><value>교대 모델</value></data>
+  <data name="Col.OperatingMin"><value>운전 시간(분)</value></data>
+  <data name="Col.Segment"><value>세그먼트</value></data>
+  <data name="Col.StartMin"><value>시작(분)</value></data>
+  <data name="Col.EndMin"><value>종료(분)</value></data>
+  <data name="Col.ShiftCode"><value>교대</value></data>
+  <data name="Col.ReasonCode"><value>사유 코드</value></data>
+  <data name="Col.Description"><value>설명</value></data>
+  <data name="Col.LocationId"><value>로케이션 ID</value></data>
+  <data name="Col.Zone"><value>구역</value></data>
+  <data name="Col.Aisle"><value>통로</value></data>
+  <data name="Col.Bay"><value>베이</value></data>
+  <data name="Col.Slot"><value>슬롯</value></data>
+  <data name="Col.LoadCapacity"><value>적재용량</value></data>
+  <data name="Col.StorageLoc"><value>보관위치</value></data>
+  <data name="Col.Process"><value>공정</value></data>
+  <data name="Col.OvenId"><value>건조로 ID</value></data>
+  <data name="Col.ZoneCount"><value>Zone 수</value></data>
+  <data name="Col.TargetTemp"><value>목표온도(°C)</value></data>
+  <data name="Col.TempTolerance"><value>허용오차(±°C)</value></data>
+  <data name="Col.DwellTime"><value>체류시간(s)</value></data>
+  <data name="Col.ConveyorSpeed"><value>컨베이어속도</value></data>
+  <data name="Col.MaxLoad"><value>최대적재(kg)</value></data>
+  <data name="Col.SpecId"><value>스펙 ID</value></data>
+  <data name="Col.PackType"><value>포장 유형</value></data>
+  <data name="Col.InnerQty"><value>이너수량</value></data>
+  <data name="Col.InnerPerOuter"><value>이너/아우터</value></data>
+  <data name="Col.OuterPerPallet"><value>아우터/파레트</value></data>
+  <data name="Col.NetWeight"><value>순중량(kg)</value></data>
+  <data name="Col.GrossWeight"><value>총중량(kg)</value></data>
+  <data name="Col.Dimensions"><value>치수(LxWxH)</value></data>
+  <data name="Col.Returnable"><value>반납</value></data>
+  <data name="Col.LabelTemplate"><value>라벨 템플릿</value></data>
+  <data name="Col.LotId"><value>LOT ID</value></data>
+  <data name="Col.MaterialCode"><value>자재코드</value></data>
+  <data name="Col.LotNo"><value>LOT번호</value></data>
+  <data name="Col.ReceivedDate"><value>입고일</value></data>
+  <data name="Col.ExpiryDate"><value>유효기한</value></data>
+  <data name="Col.StorageCond"><value>보관조건</value></data>
+  <data name="Col.StdDuration"><value>표준 소요(분)</value></data>
+  <data name="Col.LOTO"><value>LOTO</value></data>
+  <data name="Col.CheckItems"><value>점검 항목</value></data>
+  <data name="Col.CheckItem"><value>점검 항목</value></data>
+  <data name="Col.PassCriteria"><value>합격 기준</value></data>
+  <data name="Col.RequiredPart"><value>필요 부품</value></data>
+  <data name="Col.DurationMin"><value>소요(분)</value></data>
+  <data name="Col.RalCode"><value>RAL 코드</value></data>
+  <data name="Col.ColorName"><value>색상명</value></data>
+  <data name="Col.Hex"><value>HEX</value></data>
+  <data name="Col.CurrentLot"><value>현재 분말 로트</value></data>
+  <data name="Col.CureTemp"><value>경화 온도(°C)</value></data>
+  <data name="Col.CureTime"><value>경화 시간(s)</value></data>
+  <data name="Col.Voltage"><value>정전압(V)</value></data>
+  <data name="Col.ParticleSize"><value>입자(μm)</value></data>
+  <data name="Col.ReasonName"><value>사유명</value></data>
+  <data name="Col.ReasonType"><value>사유 유형</value></data>
+  <data name="Col.NoteRequired"><value>비고 필수</value></data>
+  <data name="Col.RecipeId"><value>레시피 ID</value></data>
+  <data name="Col.RecipeName"><value>레시피명</value></data>
+  <data name="Col.CycleTime"><value>사이클 타임(s)</value></data>
+  <data name="Col.ReaderId"><value>리더 ID</value></data>
+  <data name="Col.ReaderName"><value>리더명</value></data>
+  <data name="Col.Gate"><value>게이트</value></data>
+  <data name="Col.IpAddr"><value>IP 주소</value></data>
+  <data name="Col.Antenna"><value>안테나</value></data>
+  <data name="Col.OutputDbm"><value>출력(dBm)</value></data>
+  <data name="Col.WindowMs"><value>윈도우(ms)</value></data>
+  <data name="Col.PeTrigger"><value>PE 트리거</value></data>
+  <data name="Col.Firmware"><value>펌웨어</value></data>
+  <data name="Col.TagId"><value>Tag ID</value></data>
+  <data name="Col.EPC"><value>EPC</value></data>
+  <data name="Col.TagRole"><value>태그 역할</value></data>
+  <data name="Col.MountLocation"><value>장착 위치</value></data>
+  <data name="Col.HeatRating"><value>내열 등급</value></data>
+  <data name="Col.ReplaceDue"><value>교체 예정</value></data>
+  <data name="Col.ShipDestId"><value>출하처 ID</value></data>
+  <data name="Col.ShipDestName"><value>출하처명</value></data>
+  <data name="Col.Dock"><value>도크</value></data>
+  <data name="Col.Carrier"><value>운송사</value></data>
+  <data name="Col.ReorderQty"><value>재주문량</value></data>
+  <data name="Col.ProcessId"><value>공정 ID</value></data>
+  <data name="Col.UomCode"><value>단위 코드</value></data>
+  <data name="Col.UomName"><value>단위명</value></data>
+  <data name="Col.UomCategory"><value>카테고리</value></data>
+  <data name="Col.UomSymbol"><value>기호</value></data>
+  <data name="Col.BaseUom"><value>기준UOM</value></data>
+  <data name="Col.ConvFactor"><value>변환계수</value></data>
+  <data name="Col.Decimals"><value>소수점</value></data>
+  <data name="Col.VendorId"><value>거래선 ID</value></data>
+  <data name="Col.VendorName"><value>거래선명</value></data>
+  <data name="Col.OtdPct"><value>OTD%</value></data>
+  <data name="Col.PayTerm"><value>결제조건</value></data>
+  <data name="Col.WcName"><value>명칭</value></data>
+  <data name="Col.ProcessType"><value>공정유형</value></data>
+  <data name="Col.StdHeadcount"><value>표준인원</value></data>
+  <data name="Col.CostCenter"><value>원가센터</value></data>
+  <data name="Col.Level"><value>수준</value></data>
+  <data name="Col.ParentItem"><value>상위품목</value></data>
+  <data name="Col.ComponentItem"><value>구성품목</value></data>
+  <data name="Col.ScrapPct"><value>불량율%</value></data>
+  <data name="Col.ProcessWC"><value>공정 / 작업장</value></data>
+  <data name="Col.CycleSetup"><value>사이클 / 준비 (s)</value></data>
+  <data name="Col.QcActive"><value>QC · 활성</value></data>
+  <data name="Col.Progress"><value>진행률</value></data>
+
+  <!-- ── 공통: 사용/미사용 플래그 ── -->
+  <data name="Lbl.Use.On"><value>사용</value></data>
+  <data name="Lbl.Use.Off"><value>미사용</value></data>
+
+  <!-- MD.Items 상세 -->
+  <data name="MD.Items.Kpi.FG"><value>완제품(FG)</value></data>
+  <data name="MD.Items.Kpi.WIP"><value>반제품(WIP)</value></data>
+  <data name="MD.Items.Ph.Search"><value>품목번호·품목명·영문명 검색</value></data>
+  <data name="MD.Items.Modal.Create"><value>품목 등록</value></data>
+  <data name="MD.Items.Modal.Edit"><value>품목 수정</value></data>
+  <data name="MD.Items.Lbl.ItemNo"><value>품목번호 *</value></data>
+  <data name="MD.Items.Lbl.ItemNoHint"><value>(최대 20자)</value></data>
+  <data name="MD.Items.Lbl.Uom"><value>단위</value></data>
+  <data name="MD.Items.Lbl.ItemName"><value>품목명 *</value></data>
+  <data name="MD.Items.Lbl.ItemNameEn"><value>품목명(영문)</value></data>
+  <data name="MD.Items.Lbl.ItemType"><value>품목유형</value></data>
+  <data name="MD.Items.Lbl.Category"><value>카테고리</value></data>
+  <data name="MD.Items.Lbl.SafetyStock"><value>안전재고</value></data>
+  <data name="MD.Items.Lbl.MinStock"><value>최소재고</value></data>
+  <data name="MD.Items.Lbl.MaxStock"><value>최대재고</value></data>
+  <data name="MD.Items.Lbl.UnitCost"><value>단가</value></data>
+  <data name="MD.Items.Lbl.CustSav"><value>고객품번(SAV)</value></data>
+  <data name="MD.Items.Lbl.CustGeo"><value>고객품번(GEO)</value></data>
+  <data name="MD.Items.Lbl.DrawingNo"><value>도면번호</value></data>
+  <data name="MD.Items.ConfirmDelete"><value>{0} ({1}) 을 삭제합니까?</value></data>
+  <data name="MD.Items.Err.NameRequired"><value>품목명을 입력하세요.</value></data>
+  <data name="MD.Items.Err.NoRequired"><value>품목번호를 입력하세요.</value></data>
+  <data name="MD.Items.Ok.Created"><value>{0} 품목 등록 완료.</value></data>
+  <data name="MD.Items.Ok.Updated"><value>{0} 품목 수정 완료.</value></data>
+  <data name="MD.Items.Ok.Deleted"><value>{0} 삭제 완료.</value></data>
+
+  <!-- MD.Customer 상세 -->
+  <data name="MD.Customer.Kpi.EDI"><value>EDI 연동</value></data>
+  <data name="MD.Customer.Kpi.Domestic"><value>국내</value></data>
+  <data name="MD.Customer.Ph.Search"><value>고객코드 / 고객명 / 영문명</value></data>
+  <data name="MD.Customer.Modal.Create"><value>신규 고객사 등록</value></data>
+  <data name="MD.Customer.Modal.Edit"><value>고객사 수정</value></data>
+  <data name="MD.Customer.Lbl.CustomerCode"><value>고객 코드</value></data>
+  <data name="MD.Customer.Lbl.CustomerName"><value>고객명 *</value></data>
+  <data name="MD.Customer.Lbl.CustomerNameEn"><value>영문명</value></data>
+  <data name="MD.Customer.Lbl.CustomerType"><value>고객 유형</value></data>
+  <data name="MD.Customer.Lbl.BizRegNo"><value>사업자등록번호</value></data>
+  <data name="MD.Customer.Lbl.Country"><value>국가코드</value></data>
+  <data name="MD.Customer.Lbl.Email"><value>이메일</value></data>
+  <data name="MD.Customer.Lbl.Currency"><value>통화코드</value></data>
+  <data name="MD.Customer.Lbl.EDI"><value>EDI 연동</value></data>
+
+  <!-- MD.Vendor 상세 -->
+  <data name="MD.Vendor.Kpi.EDI"><value>EDI 연동</value></data>
+  <data name="MD.Vendor.Kpi.OtdSet"><value>OTD 타겟 설정</value></data>
+  <data name="MD.Vendor.Ph.Search"><value>거래선명 검색</value></data>
+  <data name="MD.Vendor.Modal.Create"><value>신규 거래선 등록</value></data>
+  <data name="MD.Vendor.Modal.Edit"><value>거래선 수정</value></data>
+  <data name="MD.Vendor.Lbl.VendorName"><value>거래선명 *</value></data>
+  <data name="MD.Vendor.Lbl.VendorType"><value>유형</value></data>
+  <data name="MD.Vendor.Lbl.VendorCategory"><value>카테고리</value></data>
+  <data name="MD.Vendor.Lbl.BizRegNo"><value>사업자등록번호</value></data>
+  <data name="MD.Vendor.Lbl.Email"><value>이메일</value></data>
+  <data name="MD.Vendor.Lbl.ScmURL"><value>SCM 포탈 URL</value></data>
+  <data name="MD.Vendor.Lbl.OtdTarget"><value>OTD 타겟 (%)</value></data>
+  <data name="MD.Vendor.Lbl.PaymentTerms"><value>결제조건</value></data>
+  <data name="MD.Vendor.Lbl.EDI"><value>EDI 연동</value></data>
+  <data name="MD.Vendor.Err.NameRequired"><value>거래선명을 입력하세요.</value></data>
+  <data name="MD.Vendor.Ok.Created"><value>{0} 등록 완료.</value></data>
+  <data name="MD.Vendor.Ok.Updated"><value>{0} 수정 완료.</value></data>
+  <data name="MD.Vendor.Ok.Deleted"><value>{0} 삭제 완료.</value></data>
+
+  <!-- MD.Location 상세 -->
+  <data name="MD.Location.Kpi.Zones"><value>구역 수</value></data>
+  <data name="MD.Location.Kpi.Plants"><value>공장 수</value></data>
+  <data name="MD.Location.Ph.Search"><value>로케이션 ID / 명칭</value></data>
+  <data name="MD.Location.Modal.Create"><value>신규 로케이션 등록</value></data>
+  <data name="MD.Location.Modal.Edit"><value>로케이션 수정</value></data>
+  <data name="MD.Location.Lbl.LocationID"><value>로케이션 ID *</value></data>
+  <data name="MD.Location.Lbl.LocationName"><value>명칭</value></data>
+  <data name="MD.Location.Lbl.ZoneCode"><value>구역코드</value></data>
+  <data name="MD.Location.Lbl.Aisle"><value>통로 (Aisle)</value></data>
+  <data name="MD.Location.Lbl.Bay"><value>베이 (Bay)</value></data>
+  <data name="MD.Location.Lbl.Slot"><value>슬롯 (Slot)</value></data>
+  <data name="MD.Location.Lbl.Capacity"><value>적재용량</value></data>
+  <data name="MD.Location.Lbl.LocationType"><value>위치유형</value></data>
+  <data name="MD.Location.Lbl.PlantCode"><value>공장코드</value></data>
+  <data name="MD.Location.Err.IDRequired"><value>로케이션 ID를 입력하세요.</value></data>
+  <data name="MD.Location.Err.IDExists"><value>로케이션 ID '{0}' 이 이미 존재합니다.</value></data>
+  <data name="MD.Location.Ok.Created"><value>{0} 등록 완료.</value></data>
+  <data name="MD.Location.Ok.Updated"><value>{0} 수정 완료.</value></data>
+  <data name="MD.Location.Ok.Deleted"><value>{0} 삭제 완료.</value></data>
+
+  <!-- ── 공통 버튼 추가 ── -->
+  <data name="Btn.Generate"><value>생성</value></data>
+  <data name="Btn.Add"><value>추가</value></data>
+
+  <!-- ── 공통 메시지 추가 ── -->
+  <data name="Msg.Generating"><value>생성 중…</value></data>
+
+  <!-- ── 공통 레이블 추가 ── -->
+  <data name="Lbl.Persons"><value>명</value></data>
+  <data name="Lbl.Count"><value>개</value></data>
+
+  <!-- ── 요일 ── -->
+  <data name="Day.Sun"><value>일</value></data>
+  <data name="Day.Mon"><value>월</value></data>
+  <data name="Day.Tue"><value>화</value></data>
+  <data name="Day.Wed"><value>수</value></data>
+  <data name="Day.Thu"><value>목</value></data>
+  <data name="Day.Fri"><value>금</value></data>
+  <data name="Day.Sat"><value>토</value></data>
+
+  <!-- ── SYS.Calendar 추가 ── -->
+  <data name="SYS.Calendar.Fmt.YearMonth"><value>{0}년 {1}월</value></data>
+  <data name="SYS.Calendar.Kpi.DaysSub"><value>조회 기간 내</value></data>
+  <data name="SYS.Calendar.Kpi.WorkSub"><value>생산일</value></data>
+  <data name="SYS.Calendar.Kpi.WeekendSub"><value>주말</value></data>
+  <data name="SYS.Calendar.Kpi.HolidaySub"><value>공휴일</value></data>
+  <data name="SYS.Calendar.Lbl.EndDate"><value>종료일 *</value></data>
+  <data name="SYS.Calendar.Lbl.Plant"><value>Plant</value></data>
+  <data name="SYS.Calendar.Ph.Plant"><value>예: SAV, TCS</value></data>
+  <data name="SYS.Calendar.Lbl.ShiftConfig"><value>교대 설정</value></data>
+  <data name="SYS.Calendar.Lbl.SkipExisting"><value>기존 데이터 있으면 건너뜀</value></data>
+  <data name="SYS.Calendar.Lbl.Holidays"><value>공휴일</value></data>
+  <data name="SYS.Calendar.Hint.Holidays"><value>(등록된 날짜는 HOLIDAY로 자동 분류)</value></data>
+  <data name="SYS.Calendar.Ph.HolidayName"><value>예: 창립기념일</value></data>
+  <data name="SYS.Calendar.Lbl.EditTitle"><value>일정 수정</value></data>
+  <data name="SYS.Calendar.Lbl.DayType"><value>구분 *</value></data>
+  <data name="SYS.Calendar.Lbl.HolidayName"><value>공휴일명</value></data>
+  <data name="SYS.Calendar.Ph.HolidayNameInput"><value>공휴일명 입력</value></data>
+  <data name="SYS.Calendar.Lbl.ShiftNote"><value>미선택 시 휴무(ShiftCode NULL)로 저장</value></data>
+  <data name="SYS.Calendar.Err.DateRange"><value>시작일이 종료일보다 늦습니다.</value></data>
+  <data name="SYS.Calendar.Ok.Generated"><value>{0}개 행 생성 완료.</value></data>
+  <data name="SYS.Calendar.Ok.Edited"><value>{0} 일정 수정 완료.</value></data>
+  <data name="SYS.Calendar.Ok.Deleted"><value>{0} 삭제 완료.</value></data>
+  <data name="SYS.Calendar.Confirm.Delete"><value>{0}의 모든 교대 데이터를 삭제합니까?</value></data>
+
+  <!-- ── SYS.Interfaces 추가 ── -->
+  <data name="SYS.Interfaces.Kpi.AllSub"><value>전체 등록</value></data>
+  <data name="SYS.Interfaces.Kpi.OkSub"><value>연결 OK</value></data>
+  <data name="SYS.Interfaces.Kpi.WarnSub"><value>지연 위험</value></data>
+  <data name="SYS.Interfaces.Kpi.DownSub"><value>연결 불가</value></data>
+  <data name="SYS.Interfaces.Ph.Search"><value>코드/인터페이스명</value></data>
+  <data name="SYS.Interfaces.Filter.AllStatus"><value>전체 상태</value></data>
+  <data name="SYS.Interfaces.Filter.AllDir"><value>전체</value></data>
+
+  <!-- ── SYS.Audit 추가 ── -->
+  <data name="SYS.Audit.Kpi.EventsSub"><value>최근 항목</value></data>
+  <data name="SYS.Audit.Kpi.OkSub"><value>결과 OK</value></data>
+  <data name="SYS.Audit.Kpi.FailSub"><value>결과 FAIL</value></data>
+  <data name="SYS.Audit.Ph.Search"><value>사용자/대상ID/비고</value></data>
+  <data name="SYS.Audit.Filter.AllModules"><value>전체 모듈</value></data>
+  <data name="SYS.Audit.Filter.AllResults"><value>전체</value></data>
+
+  <!-- ── SYS.Config 추가 ── -->
+  <data name="SYS.Config.Kpi.KeysSub"><value>전체 설정 키</value></data>
+  <data name="SYS.Config.Kpi.ActiveSub"><value>IsActive=true</value></data>
+  <data name="SYS.Config.Kpi.CategoriesSub"><value>구분 수</value></data>
+  <data name="SYS.Config.Kpi.SecuritySub"><value>보안 키</value></data>
+  <data name="SYS.Config.GroupOther"><value>기타</value></data>
+
+  <!-- ── SYS.Health 추가 ── -->
+  <data name="SYS.Health.Kpi.UsersSub"><value>계정</value></data>
+  <data name="SYS.Health.Kpi.RolesSub"><value>RBAC</value></data>
+  <data name="SYS.Health.Kpi.IfOkSub"><value>연결 OK</value></data>
+  <data name="SYS.Health.Kpi.IfDownSub"><value>연결 불가</value></data>
+  <data name="SYS.Health.Kpi.AuditSub"><value>이벤트 기록</value></data>
+  <data name="SYS.Health.Kpi.NotifSub"><value>알림 발송</value></data>
+  <data name="SYS.Health.Kpi.NotifFailSub"><value>발송 오류 24H</value></data>
+  <data name="SYS.Health.Kpi.ConfigSub"><value>활성 키</value></data>
+  <data name="SYS.Health.Db.Source"><value>SOURCE: sys.partitions(index_id IN (0,1)) JOIN sys.tables — 통계 기반 추정치</value></data>
+  <data name="SYS.Health.Tile.UsersSub"><value>{0} 계정</value></data>
+  <data name="SYS.Health.Tile.RbacSub"><value>권한 {0}개</value></data>
+  <data name="SYS.Health.Tile.InterfacesSub"><value>{0} 정상 · {1} 오류</value></data>
+  <data name="SYS.Health.Tile.AuditSub"><value>최근 24H {0}건</value></data>
+  <data name="SYS.Health.Tile.NotifSub"><value>발송 {0} · 실패 {1}</value></data>
+  <data name="SYS.Health.Tile.ConfigSub"><value>활성 키 {0}개</value></data>
+  <data name="SYS.Health.Tile.CalendarSub"><value>교대 인스턴스</value></data>
+  <data name="SYS.Health.Tile.RolesSub"><value>역할 {0}개</value></data>
+  <data name="SYS.Health.Tile.ScreenSub"><value>화면 {0}개</value></data>
+
+  <!-- ── SYS.Screen 추가 ── -->
+  <data name="SYS.Screen.Col.LidLabel"><value>LidLabel</value></data>
+  <data name="SYS.Screen.Col.SortOrder"><value>Sort Order</value></data>
+  <data name="SYS.Screen.Ph.Code"><value>예: SYS-010</value></data>
+  <data name="SYS.Screen.Ph.NameKo"><value>화면 명칭 (한국어)</value></data>
+  <data name="SYS.Screen.Ph.NameEn"><value>Screen name (English)</value></data>
+  <data name="SYS.Screen.Ph.HRef"><value>예: sys/screen</value></data>
+  <data name="SYS.Screen.Ph.LidLabel"><value>NavMenu 칩 라벨 (예: SYS-01)</value></data>
+  <data name="SYS.Screen.Ph.LidLabelEdit"><value>NavMenu 칩 라벨</value></data>
+  <data name="SYS.Screen.Ph.SortOrder"><value>표시 순서 (숫자)</value></data>
+  <data name="SYS.Screen.Lbl.NavMenu"><value>(NavMenu)</value></data>
+  <data name="SYS.Screen.Err.CodeRequired"><value>화면 코드는 필수입니다.</value></data>
+  <data name="SYS.Screen.Err.ModuleRequired"><value>모듈 코드는 필수입니다.</value></data>
+  <data name="SYS.Screen.Err.NameRequired"><value>화면 명칭(한국어)은 필수입니다.</value></data>
+  <data name="SYS.Screen.Ok.Created"><value>{0} 등록 완료</value></data>
+  <data name="SYS.Screen.Ok.Updated"><value>{0} 저장 완료</value></data>
+  <data name="SYS.Screen.Ok.Deleted"><value>{0} 삭제 완료</value></data>
+
+  <!-- ── SYS.Rbac 추가 ── -->
+  <data name="SYS.Rbac.Empty"><value>정의된 권한이 없습니다.</value></data>
+  <data name="SYS.Rbac.Ph.ScreenCode"><value>예: SYS-001, PP-004</value></data>
+  <data name="SYS.Rbac.Err.RoleRequired"><value>역할을 선택하세요.</value></data>
+  <data name="SYS.Rbac.Err.ModuleRequired"><value>모듈을 선택하세요.</value></data>
+  <data name="SYS.Rbac.Err.ScreenCodeRequired"><value>화면 코드를 입력하세요.</value></data>
+  <data name="SYS.Rbac.Err.LevelRequired"><value>권한 수준을 선택하세요.</value></data>
+  <data name="SYS.Rbac.Ok.Created"><value>{0} · {1} 권한 등록 완료.</value></data>
+  <data name="SYS.Rbac.Ok.Updated"><value>{0} · {1} 권한 수정 완료.</value></data>
+  <data name="SYS.Rbac.Ok.Deleted"><value>{0} · {1} 권한 삭제 완료.</value></data>
+
+  <!-- ── SYS.Roles 추가 ── -->
+  <data name="SYS.Roles.Ph.RoleName"><value>예: Admin, Manager, Operator</value></data>
+
+  <!-- ── 공통 KPI 라벨 ── -->
+  <data name="Kpi.NeedMaint"><value>정비 필요</value></data>
+  <data name="Kpi.StorageLocs"><value>보관위치 수</value></data>
+  <data name="Kpi.AvgUsage"><value>평균 소진율</value></data>
+  <data name="Kpi.LineCount"><value>라인 수</value></data>
+  <data name="Kpi.TypeCount"><value>유형 수</value></data>
+  <data name="Kpi.ProcessCount"><value>공정 수</value></data>
+  <data name="Kpi.SupplierCount"><value>공급업체 수</value></data>
+  <data name="Kpi.CategoryCount"><value>카테고리 수</value></data>
+  <data name="MD.DefectCause.Kpi.RootCause"><value>근본원인</value></data>
+  <data name="MD.DefectCode.Kpi.Pareto"><value>파레토 대상</value></data>
+  <data name="MD.Equipment.Kpi.EquipTypes"><value>설비유형 수</value></data>
+  <data name="MD.LabelTpl.Kpi.LabelTypes"><value>라벨 유형 수</value></data>
+  <data name="MD.LabelTpl.Kpi.CustomerAssigned"><value>고객사 지정</value></data>
+  <data name="MD.LinePat.Kpi.TotalPatterns"><value>전체 패턴</value></data>
+  <data name="MD.LinePat.Kpi.ShiftModels"><value>교대 모델 수</value></data>
+  <data name="MD.Oven.Kpi.AvgTargetTemp"><value>평균 목표온도</value></data>
+  <data name="MD.PackSpec.Kpi.Returnable"><value>반납용</value></data>
+  <data name="MD.PackSpec.Kpi.PackTypes"><value>포장 유형 수</value></data>
+  <data name="MD.PaintFabric.Kpi.ExpiringSoon"><value>유효기한 임박</value></data>
+  <data name="MD.PaintFabric.Kpi.MatTypes"><value>자재유형 수</value></data>
+  <data name="MD.PmTemplate.Kpi.EquipTypes"><value>설비 유형 수</value></data>
+  <data name="MD.RalColor.Kpi.PowderLots"><value>분말 로트 등록</value></data>
+  <data name="MD.RalColor.Kpi.AvgCureTemp"><value>평균 경화온도</value></data>
+  <data name="MD.ReasonCode.Kpi.PlanReason"><value>계획 사유</value></data>
+  <data name="MD.ReasonCode.Kpi.ReasonTypes"><value>사유 유형 수</value></data>
+  <data name="MD.Recipe.Kpi.RecipeTypes"><value>레시피 유형 수</value></data>
+  <data name="MD.Recipe.Kpi.AvgCycleTime"><value>평균 사이클(s)</value></data>
+  <data name="MD.RfidReader.Kpi.Online"><value>운영 중</value></data>
+  <data name="MD.RfidReader.Kpi.Maint"><value>점검 중</value></data>
+  <data name="MD.RfidTag.Kpi.NeedReplace"><value>교체 필요</value></data>
+  <data name="MD.RfidTag.Kpi.JigLinked"><value>지그 연결</value></data>
+  <data name="MD.ShipDest.Kpi.Domestic"><value>국내</value></data>
+  <data name="MD.ShipDest.Kpi.Export"><value>해외</value></data>
+  <data name="MD.Uom.Kpi.BaseUnit"><value>기준단위</value></data>
+  <data name="MD.InspStd.Kpi.ProcessCount"><value>공정 수</value></data>
+
+  <!-- ── MD 공통 컬럼 ── -->
+  <data name="Col.JigName"><value>지그명</value></data>
+  <data name="Col.CycleCount"><value>현재 사이클</value></data>
+  <data name="Col.LastService"><value>최근 정비일</value></data>
+
+  <!-- ── MD.ShipDest 제목 ── -->
+  <data name="MD.ShipDest.Title"><value>출하처 기준정보 관리</value></data>
+
+  <!-- ── MD.InspStd 제목 ── -->
+  <data name="MD.InspStd.Title"><value>검사기준 관리</value></data>
+
+  <!-- ── MD WorkCenter 컬럼 ── -->
+  <data name="Col.WCID"><value>WC ID</value></data>
+  <data name="Col.DailyCapacity"><value>일 생산능력</value></data>
+  <data name="Col.StdManpower"><value>표준 인원</value></data>
+  <data name="Col.LocationDesc"><value>위치 설명</value></data>
+
+  <!-- ── MD DefectCause / DefectCode / Equipment 추가 컬럼 ── -->
+  <data name="Col.ProcessCode"><value>공정코드</value></data>
+  <data name="Col.SortSeq"><value>정렬 순번</value></data>
+  <data name="Col.CorrectiveGuide"><value>시정조치 가이드</value></data>
+  <data name="Col.SeverityLevel"><value>심각도</value></data>
+  <data name="Col.DispositionDefault"><value>처리기본값</value></data>
+  <data name="Col.DefaultCauseCode"><value>기본 원인코드</value></data>
+
+  <!-- ── MD ShipDest / Station 추가 컬럼 ── -->
+  <data name="Col.CustomerCode"><value>고객사</value></data>
+  <data name="Col.CountryCode"><value>국가코드</value></data>
+  <data name="Col.LeadTimeDays"><value>리드타임(일)</value></data>
+  <data name="Col.DeliveryWindow"><value>납품 시간대</value></data>
+  <data name="Col.StationCode"><value>공정 ID</value></data>
+  <data name="Col.StationName"><value>공정명</value></data>
+  <data name="Col.OrderSeq"><value>순서</value></data>
+
+  <!-- ── MD Oven / PaintFabric 추가 컬럼 ── -->
+  <data name="Col.MaxLoadKg"><value>최대 적재 중량</value></data>
+  <data name="Col.MatCode"><value>자재코드</value></data>
+  <data name="Col.MatName"><value>자재명</value></data>
+  <data name="Col.MatType"><value>자재유형</value></data>
+  <data name="Col.StockQty"><value>재고수량</value></data>
+  <data name="Col.InboundDate"><value>입고일</value></data>
+
+  <!-- ── MD BOM / BOP / InspStd 추가 컬럼 ── -->
+  <data name="Col.VersionNo"><value>버전번호</value></data>
+  <data name="Col.StartDate"><value>시작일</value></data>
+  <data name="Col.EndDate"><value>종료일</value></data>
+  <data name="Col.ParentItem"><value>상위품목</value></data>
+  <data name="Col.CompItem"><value>구성품목</value></data>
+  <data name="Col.ScrapRate"><value>불량율(%)</value></data>
+  <data name="Col.InspStdId"><value>기준 ID</value></data>
+  <data name="Col.ItemId"><value>품목 ID</value></data>
+  <data name="Col.StdCycleTime"><value>표준 사이클타임</value></data>
+  <data name="Col.StdSetupTime"><value>표준 준비시간</value></data>
+
+  <!-- ►► MD 유효성 오류 메시지 ►► -->
+  <data name="Err.NameRequired"><value>명칭을 입력하세요.</value></data>
+  <data name="Err.TemplateIdRequired"><value>템플릿 ID를 입력하세요.</value></data>
+  <data name="Err.RootItemRequired"><value>최상위 품목을 입력하세요.</value></data>
+  <data name="Err.CompItemRequired"><value>구성품목을 입력하세요.</value></data>
+  <data name="Err.QtyGtZero"><value>수량은 0보다 커야 합니다.</value></data>
+  <data name="Err.ItemNoRequired"><value>품목번호를 입력하세요.</value></data>
+  <data name="Err.RoutingTypeRequired"><value>라우팅 유형을 입력하세요.</value></data>
+  <data name="Err.StepSeqMin1"><value>단계 순서는 1 이상이어야 합니다.</value></data>
+  <data name="Err.GroupCodeRequired"><value>그룹코드를 입력하세요.</value></data>
+  <data name="Err.GroupNameRequired"><value>그룹명을 입력하세요.</value></data>
+  <data name="Err.CodeValueRequired"><value>코드값을 입력하세요.</value></data>
+  <data name="Err.CodeNameRequired"><value>코드명을 입력하세요.</value></data>
+  <data name="Err.CustomerNameRequired"><value>고객명을 입력하세요.</value></data>
+  <data name="Err.CauseCodeRequired"><value>원인코드를 입력하세요.</value></data>
+  <data name="Err.CauseNameRequired"><value>원인명을 입력하세요.</value></data>
+  <data name="Err.DefectCodeRequired"><value>불량코드를 입력하세요.</value></data>
+  <data name="Err.DefectNameRequired"><value>불량명을 입력하세요.</value></data>
+  <data name="Err.EquipIdRequired"><value>설비ID를 입력하세요.</value></data>
+  <data name="Err.EquipNameRequired"><value>설비명을 입력하세요.</value></data>
+  <data name="Err.InspStdIdRequired"><value>기준 ID를 입력하세요.</value></data>
+  <data name="Err.CharNameRequired"><value>특성명을 입력하세요.</value></data>
+  <data name="Err.JigIdRequired"><value>지그 ID를 입력하세요.</value></data>
+  <data name="Err.PatternIdRequired"><value>패턴ID를 입력하세요.</value></data>
+  <data name="Err.MoldIdRequired"><value>금형 ID를 입력하세요.</value></data>
+  <data name="Err.MoldNameRequired"><value>금형명을 입력하세요.</value></data>
+  <data name="Err.OvenIdRequired"><value>건조로 ID를 입력하세요.</value></data>
+  <data name="Err.SpecIdRequired"><value>스펙ID를 입력하세요.</value></data>
+  <data name="Err.MatNameRequired"><value>자재명을 입력하세요.</value></data>
+  <data name="Err.ReasonCodeRequired"><value>사유코드를 입력하세요.</value></data>
+  <data name="Err.RecipeIdRequired"><value>레시피 ID를 입력하세요.</value></data>
+  <data name="Err.ReaderIdRequired"><value>리더ID를 입력하세요.</value></data>
+  <data name="Err.DestNameRequired"><value>출하처명을 입력하세요.</value></data>
+  <data name="Err.PartNoRequired"><value>품번을 입력하세요.</value></data>
+  <data name="Err.StationIdRequired"><value>공정 ID를 입력하세요.</value></data>
+  <data name="Err.StationNameRequired"><value>공정명을 입력하세요.</value></data>
+  <data name="Err.UomCodeRequired"><value>단위코드를 입력하세요.</value></data>
+  <!-- ►► Msg 액션 결과 ►► -->
+  <data name="Msg.Created"><value>등록 완료.</value></data>
+  <data name="Msg.Updated"><value>수정 완료.</value></data>
+  <data name="Msg.Deleted"><value>삭제 완료.</value></data>
+  <data name="Msg.GroupDeleted"><value>그룹 삭제 완료.</value></data>
+  <data name="Msg.Approved"><value>승인 완료.</value></data>
+  <data name="Msg.ApprovalRequested"><value>승인 요청 완료.</value></data>
+  <data name="Msg.Rejected"><value>반려 처리됨.</value></data>
+  <data name="Msg.Revived"><value>DRAFT로 재활성화.</value></data>
+  <data name="Msg.BomVersionCreated"><value>BOM 버전 등록 완료.</value></data>
+  <data name="Msg.BomLineAdded"><value>BOM 라인 추가 완료.</value></data>
+  <data name="Msg.BomLineUpdated"><value>BOM 라인 수정 완료.</value></data>
+  <data name="Msg.BomLineDeleted"><value>BOM 라인 삭제 완료.</value></data>
+
+  <!-- ►► Err 추가 유효성 ►► -->
+  <data name="Err.AlreadyExists"><value>이미 존재합니다.</value></data>
+  <data name="Err.VersionIdRequired"><value>VersionID를 입력하세요.</value></data>
+  <data name="Err.CodeIdRequired"><value>CodeID를 입력하세요.</value></data>
+  <data name="Err.CodeIdMax24"><value>CodeID는 24자 이하여야 합니다.</value></data>
+  <data name="Err.RalCodeRequired"><value>RAL코드를 입력하세요.</value></data>
+  <data name="Err.TagIdRequired"><value>TagID를 입력하세요.</value></data>
+  <data name="Err.WcIdRequired"><value>WC ID를 입력하세요.</value></data>
+  <data name="Err.LotIdRequired"><value>LOT ID를 입력하세요.</value></data>
+
+  <!-- ►► MD 검색창 Placeholder ►► -->
+  <data name="MD.Bom.Ph.Search"><value>버전ID · 품목 검색…</value></data>
+  <data name="MD.Bop.Ph.Search"><value>품목번호 · 품목명 검색…</value></data>
+  <data name="MD.DefectCause.Ph.Search"><value>원인코드 / 원인명</value></data>
+  <data name="MD.DefectCode.Ph.Search"><value>불량코드 / 불량명</value></data>
+  <data name="MD.Equipment.Ph.Search"><value>설비ID / 설비명</value></data>
+  <data name="MD.InspStd.Ph.Search"><value>기준 ID / 특성명 / 품목 ID</value></data>
+  <data name="MD.Jig.Ph.Search"><value>지그 ID / 명칭</value></data>
+  <data name="MD.LabelTemplate.Ph.Search"><value>템플릿ID / 템플릿명</value></data>
+  <data name="MD.LineTimePattern.Ph.Search"><value>패턴ID / 패턴명</value></data>
+  <data name="MD.Mold.Ph.Search"><value>금형 ID / 명칭</value></data>
+  <data name="MD.Oven.Ph.Search"><value>건조로 ID / 명칭</value></data>
+  <data name="MD.PackagingSpec.Ph.Search"><value>스펙ID / 품목ID</value></data>
+  <data name="MD.PaintFabric.Ph.Search"><value>LOT ID / 자재코드 / 자재명</value></data>
+  <data name="MD.PmTemplate.Ph.Search"><value>템플릿ID / 템플릿명</value></data>
+  <data name="MD.RalColor.Ph.Search"><value>RAL코드 / 색상명</value></data>
+  <data name="MD.ReasonCode.Ph.Search"><value>사유코드 / 사유명</value></data>
+  <data name="MD.Recipe.Ph.Search"><value>레시피ID / 레시피명</value></data>
+  <data name="MD.RfidReader.Ph.Search"><value>리더ID / 리더명</value></data>
+  <data name="MD.ShipmentDest.Ph.Search"><value>출하처명 / 고객사</value></data>
+  <data name="MD.SparePart.Ph.Search"><value>품번 / 품명</value></data>
+  <data name="MD.Uom.Ph.Search"><value>단위코드 / 단위명</value></data>
+  <data name="MD.WorkCenter.Ph.Search"><value>WC ID / 명칭</value></data>
+
+  <!-- ►► MD 입력필드 예시 Placeholder ►► -->
+  <data name="MD.CommonCode.Ph.GroupName"><value>예: 불량 유형</value></data>
+  <data name="MD.Bop.Ph.StepDesc"><value>이 단계의 작업 내용</value></data>
+  <data name="MD.DefectCause.Ph.CauseName"><value>금형 마모</value></data>
+  <data name="MD.DefectCause.Ph.CorrectiveGuide"><value>시정조치 방법을 입력하세요</value></data>
+  <data name="MD.DefectCode.Ph.DefectName"><value>게이트 흔적</value></data>
+  <data name="MD.Equipment.Ph.EquipName"><value>사출기 1호</value></data>
+  <data name="MD.Equipment.Ph.MakerModel"><value>LG전자 LGI-500T</value></data>
+  <data name="MD.InspStd.Ph.CharName"><value>외관 치수</value></data>
+  <data name="MD.InspStd.Ph.InspMethod"><value>버니어캘리퍼스</value></data>
+  <data name="MD.Jig.Ph.JigName"><value>도장 지그 1호</value></data>
+  <data name="MD.LabelTemplate.Ph.TemplateName"><value>현대 납품 라벨</value></data>
+  <data name="MD.Line.Ph.LineName"><value>사출 1라인</value></data>
+  <data name="MD.LineTimePattern.Ph.PatternName"><value>INJ-01 주간 3교대</value></data>
+  <data name="MD.Location.Ph.LocationName"><value>창고 A구역 1통로 1번</value></data>
+  <data name="MD.Mold.Ph.MoldName"><value>범퍼 금형 A</value></data>
+  <data name="MD.Mold.Ph.StorageLoc"><value>창고 A-3</value></data>
+  <data name="MD.Oven.Ph.OvenName"><value>도장 건조로 1호</value></data>
+  <data name="MD.PaintFabric.Ph.MatName"><value>흑색 도료 1액형</value></data>
+  <data name="MD.PaintFabric.Ph.StorageReq"><value>상온 보관, 직사광선 차단</value></data>
+  <data name="MD.PmTemplate.Ph.TemplateName"><value>사출기 월간 PM</value></data>
+  <data name="MD.ReasonCode.Ph.ReasonName"><value>설비 고장</value></data>
+  <data name="MD.Recipe.Ph.RecipeName"><value>INJ 표준 레시피</value></data>
+  <data name="MD.RfidReader.Ph.ReaderName"><value>INJ라인 게이트A</value></data>
+  <data name="MD.ShipmentDest.Ph.DestName"><value>아산공장 납품처</value></data>
+  <data name="MD.ShipmentDest.Ph.Address"><value>충남 아산시 …</value></data>
+  <data name="MD.ShipmentDest.Ph.DefaultCarrier"><value>CJ대한통운</value></data>
+  <data name="MD.SparePart.Ph.PartName"><value>오일 필터</value></data>
+  <data name="MD.Station.Ph.StationName"><value>사출 1공정</value></data>
+  <data name="MD.Uom.Ph.UomName"><value>개</value></data>
+  <data name="MD.Vendor.Ph.VendorName"><value>(주)ABC공업</value></data>
+  <data name="MD.Vendor.Ph.VendorCategory"><value>금속가공, 포장재 등</value></data>
+  <data name="MD.Vendor.Ph.ContactPerson"><value>홍길동</value></data>
+  <data name="MD.Customer.Ph.CustomerName"><value>현대자동차(주)</value></data>
+  <data name="MD.WorkCenter.Ph.WcName"><value>사출 작업장 1</value></data>
+  <data name="MD.WorkCenter.Ph.LocationDesc"><value>2공장 1층 A구역</value></data>
+
+  <!-- ►► MD BOM 특수 텍스트 ►► -->
+  <data name="MD.Bom.NoVersions"><value>등록된 BOM 버전 없음</value></data>
+  <data name="MD.Bom.SelectVersionHint"><value>좌측에서 BOM 버전을 선택하면 구성 라인이 표시됩니다</value></data>
+  <data name="MD.Bom.ApprovalRequester"><value>승인 요청자</value></data>
+  <data name="MD.Bom.ApprovedBy"><value>승인</value></data>
+  <data name="MD.Bom.AddItem"><value>품목 추가</value></data>
+  <data name="MD.Bom.RequestApproval"><value>승인 요청</value></data>
+  <data name="MD.Bom.ReviveDraft"><value>재작성 (DRAFT)</value></data>
+  <data name="MD.Bom.ConfirmDeleteVersion"><value>버전 {0} 및 하위 BOM 라인 전체를 삭제합니까?</value></data>
+  <data name="MD.Bom.LineCount"><value>구성 라인 {0}개</value></data>
+  <data name="MD.Bom.DraftOnly"><value>— DRAFT 상태에서만 편집 가능</value></data>
+  <data name="MD.Bom.NoLines"><value>구성 라인 없음</value></data>
+  <data name="MD.Bom.NoLinesHint"><value>— 상단 + 라인 버튼으로 등록하세요</value></data>
+  <data name="MD.Bom.Modal.CreateVersion"><value>BOM 버전 등록</value></data>
+  <data name="MD.Bom.Modal.AddLine"><value>BOM 라인 추가</value></data>
+  <data name="MD.Bom.ConfirmDeleteLine"><value>{0} 라인을 삭제합니까?</value></data>
+  <data name="MD.Bom.Max24Chars"><value>최대 24자</value></data>
+  <data name="MD.Bom.NeedApprovalHint"><value>BOM 라인을 최소 1개 등록해야 승인할 수 있습니다</value></data>
+
+  <!-- ►► MD BOP 특수 텍스트 ►► -->
+  <data name="MD.Bop.NoItems"><value>품목 없음</value></data>
+  <data name="MD.Bop.SelectItemHint"><value>좌측에서 품목을 선택하면 공정 단계가 표시됩니다</value></data>
+  <data name="MD.Bop.StepCount"><value>공정 단계 {0}개</value></data>
+  <data name="MD.Bop.RoutingFilter"><value>Routing {0} 필터 적용 중</value></data>
+  <data name="MD.Bop.AddStep"><value>단계 추가</value></data>
+  <data name="MD.Bop.NoSteps"><value>공정 단계 없음 — + 단계 추가 버튼으로 등록하세요</value></data>
+  <data name="MD.Bop.Modal.AddStep"><value>BOP 단계 추가</value></data>
+  <data name="MD.Bop.Modal.EditStep"><value>BOP 단계 수정</value></data>
+  <data name="MD.Bop.ConfirmDeleteStep"><value>{0} Step {1} 을(를) 삭제합니까?</value></data>
+  <data name="Col.StepDesc"><value>공정 설명</value></data>
+  <data name="Col.RootItemNo"><value>최상위 품목번호</value></data>
+  <data name="Col.ChangeType"><value>변경 유형</value></data>
+  <data name="Col.ChangeReason"><value>변경 사유</value></data>
+  <data name="Opt.SelectItem"><value>품목 선택</value></data>
+  <data name="Opt.RootLevel"><value>최상위</value></data>
+  <data name="MD.Bop.QcRequired"><value>QC 검사 필요</value></data>
+  <data name="MD.Bop.ActiveFlag"><value>사용 (활성)</value></data>
+  <data name="Col.StepSeq"><value>Step 순서</value></data>
+  <data name="Btn.All"><value>전체</value></data>
+  <data name="Lbl.Year"><value>년</value></data>
+  <data name="Lbl.Min"><value>분</value></data>
+  <data name="Fmt.CalYearMonth"><value>{0}년 {1:D2}월</value></data>
+
+  <!-- ►► CommonCode 특수 텍스트 ►► -->
+  <data name="MD.CommonCode.Title.ViewItems"><value>항목 보기</value></data>
+
+  <!-- ►► PP LineSchedule 힌트 ►► -->
+  <data name="PP.LineSchedule.DragHint"><value>아래 타임라인에 드래그하여 밴드 추가</value></data>
+  <data name="PP.LineSchedule.EscHint"><value>드래그 중 Esc 또는 우클릭으로 선택 취소</value></data>
+  <data name="PP.LineSchedule.ClickHint"><value>기존 밴드 클릭 시 삭제</value></data>
+
+  <!-- ►► PP WO/Calendar ►► -->
+  <data name="PP.Wo.P0Title"><value>Phase-0: Item·BOM·BOP 완료 (BR-PP-001)</value></data>
+  <data name="PP.Calendar.WoTooltip.Line"><value>라인</value></data>
+  <data name="PP.Calendar.WoTooltip.Order"><value>주문</value></data>
+  <data name="PP.Calendar.WoTooltip.Done"><value>완료</value></data>
+
+  <!-- ►► SYS Notifications placeholder ►► -->
+  <data name="SYS.Notifications.Ph.EventName"><value>이벤트 표시명</value></data>
+  <data name="SYS.Notifications.Ph.Address"><value>이메일 / 전화번호 / 훅 URL</value></data>
+
+  <!-- ►► MD 체크박스/레이블/필 추가 ►► -->
+  <data name="MD.InspStd.Kpi.Ctq"><value>CTQ 항목</value></data>
+  <data name="MD.InspStd.CtqLabel"><value>CTQ (핵심 품질 특성)</value></data>
+  <data name="MD.Mold.StoreLoc"><value>보관 위치</value></data>
+  <data name="MD.Oven.ZoneCount"><value>Zone 수</value></data>
+  <data name="MD.PackagingSpec.PillReturn"><value>반납</value></data>
+  <data name="MD.PaintFabric.LotNo"><value>LOT 번호</value></data>
+  <data name="MD.PmTemplate.Kpi.LoTo"><value>LOTO 필요</value></data>
+  <data name="MD.ReasonCode.PillPlanned"><value>계획</value></data>
+  <data name="MD.ReasonCode.PillRequired"><value>필수</value></data>
+  <data name="MD.Uom.PillBase"><value>기준</value></data>
+  <data name="MD.Uom.BaseUnit"><value>기준단위</value></data>
+  <data name="PP.DowntimeMonitor.Tl.Title"><value>최근 60분 가동 이력 (1칸=1분)</value></data>
+  <data name="SYS.Users.Ph.Name"><value>홍길동</value></data>
 </root>

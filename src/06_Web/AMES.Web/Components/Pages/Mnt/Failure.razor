@@ -4,10 +4,10 @@
 @inject AMES.Data.Repositories.MntRepository Mnt
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MNT-02 @L["MNT.Failure.Title"] · AMES</PageTitle>
+<PageTitle>MNT-002 @L["MNT.Failure.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">MNT-02</div>
+    <div class="ames-page-id">MNT-002</div>
     <div class="ames-page-t">@L["MNT.Failure.Title"]</div>
     <div class="ames-page-sub">@L["MNT.Failure.Sub"]</div>
 </div>
@@ -34,10 +34,10 @@
                 <option value="RESOLVED">@L["MNT.Failure.Resolved"]</option>
             </select>
             <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Recent"]</label>
-            <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_topN">
-                <option value="50">50@L["Lbl.Items"]</option>
-                <option value="100">100@L["Lbl.Items"]</option>
-                <option value="200">200@L["Lbl.Items"]</option>
+            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_topN">
+                <option value="50">50@(L["Lbl.Items"])</option>
+                <option value="100">100@(L["Lbl.Items"])</option>
+                <option value="200">200@(L["Lbl.Items"])</option>
             </select>
             <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
         </div>
@@ -52,13 +52,13 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>FAIL #</th><th>Equip</th><th>Type</th><th>Symptom</th>
-                    <th>Urgency</th><th>Source</th><th>Status</th>
-                    <th>Reported</th><th>Resolved</th><th>MWO</th>
+                    <th>@L["Col.FailNo"]</th><th>@L["Col.Equip"]</th><th>@L["Col.Type"]</th><th>@L["Col.Symptom"]</th>
+                    <th>@L["Col.Priority"]</th><th>@L["Col.Source"]</th><th>@L["Col.Status"]</th>
+                    <th>@L["Col.Reported"]</th><th>@L["Col.Resolved"]</th><th>@L["Col.MwoNo"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var f in _rows)
+                @foreach (var f in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     <tr>
                         <td class="code">@(f.FailureNumber ?? $"F#{f.FailureId}")</td>
@@ -75,11 +75,14 @@
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
 @code {
     List<AMES.Data.Repositories.MntRepository.FailureRow> _rows = new();
+    int _page = 0;
+    const int _pageSize = 20;
     int    _open, _prog, _res, _urg;
     int    _topN = 100;
     string _statusFilter = "";
@@ -88,6 +91,7 @@
 
     void Reload()
     {
+        _page = 0;
         try { _rows = Mnt.ListFailures(_topN, string.IsNullOrWhiteSpace(_statusFilter) ? null : _statusFilter); }
         catch { _rows = new(); }
         _open = _rows.Count(r => r.Status is "OPEN" or "REGISTERED");

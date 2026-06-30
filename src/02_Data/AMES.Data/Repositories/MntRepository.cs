@@ -6,7 +6,7 @@ namespace AMES.Data.Repositories;
 
 /// <summary>
 /// Maintenance (MNT) module queries — used by the Office Web.
-/// One method per MNT-XX screen, plus aggregates for MNT-09 dashboard.
+/// One method per MNT-XXX screen, plus aggregates for MNT-009 dashboard.
 /// </summary>
 public sealed class MntRepository
 {
@@ -57,7 +57,7 @@ public sealed class MntRepository
         int OpenFailures, int OpenWos, int PmDueIn7d, int LowStockParts,
         decimal AvgOeeToday, int DowntimeMin24h);
 
-    // ── MNT-01 Equipment Card ───────────────────────────────────────────
+    // ── MNT-001 Equipment Card ──────────────────────────────────────────
     public List<EquipCardRow> ListEquipment(string? lineId = null)
     {
         const string sql = """
@@ -80,7 +80,7 @@ public sealed class MntRepository
             ("@L", (object?)lineId ?? DBNull.Value));
     }
 
-    // ── MNT-02 Failure Register ─────────────────────────────────────────
+    // ── MNT-002 Failure Register ────────────────────────────────────────
     public List<FailureRow> ListFailures(int topN = 100, string? statusFilter = null)
     {
         const string sql = """
@@ -99,7 +99,7 @@ public sealed class MntRepository
             ("@N", topN), ("@S", (object?)statusFilter ?? DBNull.Value));
     }
 
-    // ── MNT-03 OEE Analysis (equipment level) ───────────────────────────
+    // ── MNT-003 OEE Analysis (equipment level) ──────────────────────────
     public List<OeeRow> ListOee(int daysBack = 14, string? equipId = null)
     {
         const string sql = """
@@ -122,7 +122,7 @@ public sealed class MntRepository
             ("@D", daysBack), ("@E", (object?)equipId ?? DBNull.Value));
     }
 
-    // ── MNT-04 Mold Management ──────────────────────────────────────────
+    // ── MNT-004 Mold Management ─────────────────────────────────────────
     public List<MoldRow> ListMolds()
     {
         const string sql = """
@@ -142,7 +142,7 @@ public sealed class MntRepository
             r["ThresholdLevel"] as string, r["RefurbishCount"] as int?));
     }
 
-    // ── MNT-05 PM Schedule ──────────────────────────────────────────────
+    // ── MNT-005 PM Schedule ─────────────────────────────────────────────
     public List<PmRow> ListPmSchedule(int daysAhead = 30, int daysBack = 7)
     {
         const string sql = """
@@ -165,7 +165,7 @@ public sealed class MntRepository
             ("@A", daysAhead), ("@B", daysBack));
     }
 
-    // ── MNT-06 Downtime Log ─────────────────────────────────────────────
+    // ── MNT-006 Downtime Log ────────────────────────────────────────────
     public List<DowntimeRow> ListDowntime(int daysBack = 7)
     {
         const string sql = """
@@ -183,7 +183,7 @@ public sealed class MntRepository
             ("@D", daysBack));
     }
 
-    // ── MNT-07 Work Order (MWO) ─────────────────────────────────────────
+    // ── MNT-007 Work Order (MWO) ────────────────────────────────────────
     public List<MwoRow> ListWorkOrders(int topN = 100, string? statusFilter = null)
     {
         const string sql = """
@@ -213,7 +213,7 @@ public sealed class MntRepository
             ("@N", topN), ("@S", (object?)statusFilter ?? DBNull.Value));
     }
 
-    // ── MNT-08 Spare Parts ──────────────────────────────────────────────
+    // ── MNT-008 Spare Parts ─────────────────────────────────────────────
     public List<SparePartRow> ListSpareParts()
     {
         // OnHand = last BalanceAfter per part from MNT_SparePartsTxn
@@ -258,7 +258,7 @@ public sealed class MntRepository
             ("@N", topN), ("@P", (object?)partNo ?? DBNull.Value));
     }
 
-    // ── MNT-09 Dashboard ────────────────────────────────────────────────
+    // ── MNT-009 Dashboard ───────────────────────────────────────────────
     public DashboardKpi GetDashboardKpis()
     {
         const string sql = """

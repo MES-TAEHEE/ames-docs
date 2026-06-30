@@ -1,4 +1,5 @@
-﻿@page "/pp/delivery"
+@page "/pp/delivery"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
 @inject IStringLocalizer<SharedResources> L
@@ -11,54 +12,195 @@
     <div class="ames-page-sub">@L["PP.Delivery.Sub"]</div>
 </div>
 
+@* ── KPI 스트립 ── *@
 <div class="ames-kpis">
-    <div class="ames-kpi ok"><div class="ames-kpi-l">ON TIME</div><div class="ames-kpi-v">@_rows.Count(r => r.DaysLate <= 0 && r.ShippedQty >= r.OrderQty)</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">LATE</div><div class="ames-kpi-v">@_rows.Count(r => r.DaysLate > 0)</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">OPEN</div><div class="ames-kpi-v">@_rows.Count(r => r.ShippedQty < r.OrderQty)</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">OTD %</div><div class="ames-kpi-v">@_otdPct.ToString("0.0")%</div></div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">TOTAL</div>
+        <div class="ames-kpi-v">@_rows.Count</div>
+        <div class="ames-kpi-s">@L["PP.Delivery.Kpi.TotalSub"]</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">ON TIME</div>
+        <div class="ames-kpi-v">@_onTime</div>
+        <div class="ames-kpi-s">@L["PP.Delivery.Kpi.OnTimeSub"]</div>
+    </div>
+    <div class="ames-kpi bad">
+        <div class="ames-kpi-l">LATE</div>
+        <div class="ames-kpi-v">@_late</div>
+        <div class="ames-kpi-s">@L["PP.Delivery.Kpi.LateSub"]</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">OPEN</div>
+        <div class="ames-kpi-v">@_open</div>
+        <div class="ames-kpi-s">@L["PP.Delivery.Kpi.OpenSub"]</div>
+    </div>
+    <div class="ames-kpi @(_otdPct >= 95 ? "ok" : _otdPct >= 85 ? "warn" : "bad")">
+        <div class="ames-kpi-l">OTD %</div>
+        <div class="ames-kpi-v">@_otdPct.ToString("0.0")%</div>
+        <div class="ames-kpi-s">@L["PP.Delivery.Kpi.OtdSub"]</div>
+    </div>
 </div>
 
+@* ── 테이블 (필터 포함) ── *@
 <div class="ames-card">
-    <div class="ames-card-h">▼ SHIPMENT VS PROMISE</div>
-    @if (_rows.Count == 0) { <div class="ames-empty">@L["PP.Delivery.Empty"]</div> }
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">
+            ▼ SHIPMENT VS PROMISE · @_rows.Count 건
+        </span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" type="date" style="width:130px;padding:4px 8px;" @bind="_filterFrom" />
+            <span style="color:#64748b;font-size:.8rem;">~</span>
+            <input class="ames-input" type="date" style="width:130px;padding:4px 8px;" @bind="_filterTo" />
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Customer"]</span>
+            <select class="ames-input" style="width:130px;padding:4px 8px;" @bind="_filterCustomer">
+                <option value="">@L["PP.Delivery.Filter.AllCustomer"]</option>
+                @foreach (var c in _customers)
+                { <option value="@c">@c</option> }
+            </select>
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
+            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_filterStatus">
+                <option value="">@L["PP.Delivery.Filter.AllStatus"]</option>
+                <option value="ontime">@L["PP.Delivery.Status.OnTime"]</option>
+                <option value="late">@L["PP.Delivery.Status.Late"]</option>
+                <option value="open">@L["PP.Delivery.Status.Open"]</option>
+            </select>
+            <button class="ames-btn ok"   @onclick="Search">@L["Btn.Search"]</button>
+            <button class="ames-btn ghost" @onclick="Reset">@L["Btn.Reset"]</button>
+        </div>
+    </div>
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">@L["PP.Delivery.Empty"]</div>
+    }
     else
     {
         <table class="ames-table">
-            <thead><tr><th>SO</th><th>Customer</th><th>Item</th><th class="num">Order</th><th class="num">Ship</th><th>Requested</th><th>Promised</th><th class="num">Days Late</th><th>Status</th></tr></thead>
+            <thead>
+                <tr>
+                    <th>@L["Col.SoNo"]</th>
+                    <th>@L["Col.Customer"]</th>
+                    <th>@L["Col.Item"]</th>
+                    <th class="num">@L["Col.Order"]</th>
+                    <th class="num">@L["Col.Ship"]</th>
+                    <th class="num">@L["PP.Delivery.Col.Progress"]</th>
+                    <th>@L["Col.Requested"]</th>
+                    <th>@L["Col.Promised"]</th>
+                    <th class="num">@L["Col.DaysLate"]</th>
+                    <th>@L["Col.Status"]</th>
+                </tr>
+            </thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
-                    <tr>
-                        <td class="code">@r.SoNumber</td>
-                        <td>@r.CustomerId</td>
-                        <td>@r.ItemNo</td>
-                        <td class="num">@r.OrderQty.ToString("0")</td>
-                        <td class="num">@r.ShippedQty.ToString("0")</td>
-                        <td class="dim">@(r.RequestedDeliveryDate?.ToString("yyyy-MM-dd") ?? "—")</td>
-                        <td class="dim">@(r.PromisedDate?.ToString("yyyy-MM-dd") ?? "—")</td>
-                        <td class="num">@(r.DaysLate > 0 ? "+" + r.DaysLate : (r.DaysLate < 0 ? r.DaysLate.ToString() : "0"))</td>
-                        <td>@r.Status</td>
+                    bool isLate   = r.DaysLate > 0;
+                    bool isOnTime = r.ShippedQty >= r.OrderQty && !isLate;
+                    bool isOpen   = r.ShippedQty < r.OrderQty;
+                    decimal progPct = r.OrderQty > 0
+                        ? Math.Min(100m, r.ShippedQty / r.OrderQty * 100m) : 0m;
+                    string rowCls = isLate ? "row-late" : "";
+                    <tr class="@rowCls">
+                        <td class="code">@(r.SoNumber ?? "—")</td>
+                        <td>@(r.CustomerId ?? "—")</td>
+                        <td class="dim">@r.ItemNo</td>
+                        <td class="num">@r.OrderQty.ToString("N0")</td>
+                        <td class="num">@r.ShippedQty.ToString("N0")</td>
+                        <td style="min-width:80px;">
+                            <div style="display:flex;align-items:center;gap:5px;">
+                                <div style="flex:1;height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;">
+                                    <div style="height:100%;border-radius:3px;
+                                                background:@(isLate ? "rgba(239,68,68,.7)" : "rgba(34,197,94,.7)");
+                                                width:@progPct.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)%;"></div>
+                                </div>
+                                <span style="font-size:.72rem;color:#94a3b8;min-width:30px;">@progPct.ToString("0")%</span>
+                            </div>
+                        </td>
+                        <td class="dim">@(r.RequestedDeliveryDate?.ToString("yy-MM-dd") ?? "—")</td>
+                        <td class="dim">@(r.PromisedDate?.ToString("yy-MM-dd") ?? "—")</td>
+                        <td class="num">
+                            @if (r.DaysLate > 0)
+                            { <span style="color:#f87171;">+@(r.DaysLate)@L["Lbl.Days"]</span> }
+                            else if (r.DaysLate < 0)
+                            { <span style="color:#4ade80;">@(r.DaysLate)@L["Lbl.Days"]</span> }
+                            else
+                            { <span style="color:#94a3b8;">0</span> }
+                        </td>
+                        <td>
+                            @if (isOnTime)
+                            { <span class="badge-ok">@L["PP.Delivery.Badge.OnTime"]</span> }
+                            else if (isLate)
+                            { <span class="badge-bad">@L["PP.Delivery.Badge.Late"]</span> }
+                            else if (isOpen)
+                            { <span class="pill warn">@L["PP.Delivery.Badge.Open"]</span> }
+                            else
+                            { <span class="dim">@r.Status</span> }
+                        </td>
                     </tr>
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
+
+        @if (_rows.Count >= 500)
+        {
+            <div style="padding:.5rem 0;font-size:.78rem;color:#64748b;">
+                @L["PP.Delivery.LimitNote"]
+            </div>
+        }
     }
 </div>
 
 @code {
-    List<AMES.Data.Repositories.PpRepository.OtdRow> _rows = new();
+    List<AMES.Data.Repositories.PpRepository.OtdRow> _rows = [];
+    int _page = 0;
+    const int _pageSize = 20;
+    List<string> _customers = [];
+
+    DateTime _filterFrom     = DateTime.Today.AddDays(-30);
+    DateTime _filterTo       = DateTime.Today.AddDays(30);
+    string   _filterCustomer = "";
+    string   _filterStatus   = "";
+
+    int     _onTime, _late, _open;
     decimal _otdPct;
+
     protected override void OnInitialized()
     {
+        try { _customers = Pp.ListOtdCustomers(); } catch { }
+        Search();
+    }
+
+    void Search()
+    {
+        _page = 0;
         try
         {
-            _rows = Pp.ListOtd();
-            if (_rows.Count > 0)
-            {
-                var onTime = _rows.Count(r => r.DaysLate <= 0 && r.ShippedQty >= r.OrderQty);
-                _otdPct = onTime * 100m / _rows.Count;
-            }
+            _rows = Pp.ListOtdFiltered(
+                from:       _filterFrom,
+                to:         _filterTo,
+                customerId: string.IsNullOrEmpty(_filterCustomer) ? null : _filterCustomer,
+                status:     string.IsNullOrEmpty(_filterStatus)   ? null : _filterStatus);
         }
-        catch { }
+        catch { _rows = []; }
+        CalcKpis();
+    }
+
+    void Reset()
+    {
+        _filterFrom     = DateTime.Today.AddDays(-30);
+        _filterTo       = DateTime.Today.AddDays(30);
+        _filterCustomer = "";
+        _filterStatus   = "";
+        Search();
+    }
+
+    void CalcKpis()
+    {
+        _onTime = _rows.Count(r => r.ShippedQty >= r.OrderQty && r.DaysLate <= 0);
+        _late   = _rows.Count(r => r.DaysLate > 0);
+        _open   = _rows.Count(r => r.ShippedQty < r.OrderQty);
+        _otdPct = _rows.Count > 0
+            ? Math.Round((decimal)_onTime / _rows.Count * 100m, 1)
+            : 0m;
     }
 }

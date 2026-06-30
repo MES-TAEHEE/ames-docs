@@ -1,0 +1,33 @@
+@inject IStringLocalizer<SharedResources> L
+
+@if (TotalPages > 1)
+{
+    <div class="ames-pager">
+        <button class="ames-pager-btn" disabled="@(Page == 0)" @onclick='() => Go(0)'>«</button>
+        <button class="ames-pager-btn" disabled="@(Page == 0)" @onclick='() => Go(Page - 1)'>‹</button>
+
+        @for (var i = Math.Max(0, Page - 2); i <= Math.Min(TotalPages - 1, Page + 2); i++)
+        {
+            var pg = i;
+            <button class="ames-pager-btn @(pg == Page ? "active" : "")" @onclick='() => Go(pg)'>@(pg + 1)</button>
+        }
+
+        <button class="ames-pager-btn" disabled="@(Page >= TotalPages - 1)" @onclick='() => Go(Page + 1)'>›</button>
+        <button class="ames-pager-btn" disabled="@(Page >= TotalPages - 1)" @onclick='() => Go(TotalPages - 1)'>»</button>
+
+        <span class="ames-pager-info">
+            @(Page + 1) / @TotalPages @L["Lbl.Page"] &nbsp;·&nbsp; @Total @L["Lbl.Items"]
+        </span>
+    </div>
+}
+
+@code {
+    [Parameter] public int Page     { get; set; }
+    [Parameter] public int Total    { get; set; }
+    [Parameter] public int PageSize { get; set; } = 20;
+    [Parameter] public EventCallback<int> OnPageChange { get; set; }
+
+    int TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)Total / PageSize) : 1;
+
+    void Go(int p) => OnPageChange.InvokeAsync(Math.Clamp(p, 0, TotalPages - 1));
+}

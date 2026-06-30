@@ -1,19 +1,19 @@
-@*  INJ-06 Mold Change user manual. *@
+@*  INJ-006 Mold Change user manual. *@
 
 <div class="help-doc">
     <div>
-        <div class="help-h1">INJ-06 · MOLD CHANGE</div>
+        <div class="help-h1">INJ-006 · MOLD CHANGE</div>
         <div class="help-sub">금형 교체 — SMED 흐름, 시작/완료 로깅</div>
 
         <svg class="help-svg" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
             <rect x="6" y="6" width="708" height="468" rx="10" fill="#000" stroke="rgba(255,255,255,.18)" stroke-width="1.5" />
             <rect class="hs-region tbar" x="14" y="14" width="692" height="42" />
-            <text class="hs-sub" x="34" y="40">INJ-06 · STATION · LINE</text>
+            <text class="hs-sub" x="34" y="40">INJ-006 · STATION · LINE</text>
 
             @* ① Current vs Next *@
             <rect class="hs-region warn" x="14" y="68" width="338" height="160" />
             <text class="hs-sub" x="28" y="88">▼ CURRENT MOLD</text>
-            <text class="hs-label" x="28" y="118" style="font-size:22px;">MOLD-INJ-08</text>
+            <text class="hs-label" x="28" y="118" style="font-size:22px;">MOLD-INJ-008</text>
             <text class="hs-sub" x="28" y="142">8,800 / 10,000 shots · 88% life</text>
             <text class="hs-sub" x="28" y="166">Item: DOOR TRIM LH</text>
             <circle class="hs-num" cx="24" cy="78" r="14" />
@@ -21,7 +21,7 @@
 
             <rect class="hs-region ok" x="368" y="68" width="338" height="160" />
             <text class="hs-sub" x="382" y="88">▼ NEXT MOLD (planned)</text>
-            <text class="hs-label" x="382" y="118" style="font-size:22px;">MOLD-INJ-12</text>
+            <text class="hs-label" x="382" y="118" style="font-size:22px;">MOLD-INJ-012</text>
             <text class="hs-sub" x="382" y="142">320 / 8,000 shots · fresh</text>
             <text class="hs-sub" x="382" y="166">Item: DOOR TRIM RH</text>
             <circle class="hs-num" cx="378" cy="78" r="14" />
@@ -45,7 +45,7 @@
             <text class="hs-num-tx" x="24" y="378">4</text>
 
             <rect class="hs-region nav" x="14" y="432" width="692" height="32" />
-            <text class="hs-sub" x="360" y="450" text-anchor="middle">▶ INJ-02 · 03 · 04 · ... · LOGOUT</text>
+            <text class="hs-sub" x="360" y="450" text-anchor="middle">▶ INJ-002 · 03 · 04 · ... · LOGOUT</text>
         </svg>
     </div>
 
@@ -76,7 +76,7 @@
             <div class="help-step ok">
                 <div class="help-step-num">4</div>
                 <div class="help-step-body">
-                    <div class="help-step-en">START arms the timer; COMPLETE writes PR_MoldChange and resets the shot counter on INJ-02.</div>
+                    <div class="help-step-en">START arms the timer; COMPLETE writes PR_MoldChange and resets the shot counter on INJ-002.</div>
                     <div class="help-step-ko">시작 → 타이머 작동, 완료 → PR_MoldChange 기록, 샷 카운터 리셋.</div>
                 </div>
             </div>

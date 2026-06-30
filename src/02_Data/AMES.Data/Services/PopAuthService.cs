@@ -53,7 +53,14 @@ public sealed class PopAuthService
         {
             if (string.IsNullOrEmpty(req.Pin) || !PinHasher.Verify(req.Pin, profile.PasswordHash))
             {
-                _auth.IncrementFailedCount(profile.UserId);
+                var isNowLocked = _auth.IncrementFailedCount(profile.UserId);
+                if (isNowLocked)
+                {
+                    _sessions.WriteAuthLog(req.TerminalId, req.AttemptedId, req.Method,
+                        AuthResult.InactiveAccount, "LOCKED – 5 pin failures");
+                    return LoginOutcome.Failure(AuthResult.InactiveAccount,
+                        "account LOCKED after 5 failures");
+                }
                 _sessions.WriteAuthLog(req.TerminalId, req.AttemptedId, req.Method,
                     AuthResult.BadCredentials, "bad pin");
                 return LoginOutcome.Failure(AuthResult.BadCredentials, "bad pin");

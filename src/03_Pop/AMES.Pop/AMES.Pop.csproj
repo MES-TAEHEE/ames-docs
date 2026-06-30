@@ -7,6 +7,9 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>AMES.Pop</RootNamespace>
+    <!-- WebView2.Wpf.dll(net5.0-windows)이 WindowsBase 버전 충돌 경고를 발생시키나
+         AMES.Pop은 WinForms 전용이므로 WPF DLL은 사용되지 않아 런타임 영향 없음 -->
+    <NoWarn>$(NoWarn);MSB3277</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

@@ -127,44 +127,49 @@ public sealed class MasterDataRepository
 
     public void InsertCodeItem(string codeId, string groupCode, string? codeValue,
         string? codeName, string? codeNameEn, int sortOrder,
-        string? attribute1, bool useFlag, string? description, string createdBy)
+        string? attribute1, bool useFlag, string? description, string createdBy,
+        string? parentCodeId = null)
         => Exec("""
             INSERT INTO dbo.MD_CodeItem
                    (CodeID,GroupCode,CodeValue,CodeName,CodeNameEn,
-                    SortOrder,Attribute1,UseFlag,Description,CreatedBy,CreatedTS)
+                    SortOrder,Attribute1,UseFlag,Description,ParentCodeID,CreatedBy,CreatedTS)
             VALUES (@ID,@Group,@Val,@Name,@NameEn,
-                    @Sort,@Attr,@UseFlag,@Desc,@By,SYSDATETIME())
+                    @Sort,@Attr,@UseFlag,@Desc,@ParentID,@By,SYSDATETIME())
             """,
-            ("@ID",     codeId),
-            ("@Group",  groupCode),
-            ("@Val",    codeValue),
-            ("@Name",   codeName),
-            ("@NameEn", codeNameEn),
-            ("@Sort",   sortOrder),
-            ("@Attr",   attribute1),
-            ("@UseFlag",useFlag),
-            ("@Desc",   description),
-            ("@By",     createdBy));
+            ("@ID",       codeId),
+            ("@Group",    groupCode),
+            ("@Val",      codeValue),
+            ("@Name",     codeName),
+            ("@NameEn",   codeNameEn),
+            ("@Sort",     sortOrder),
+            ("@Attr",     attribute1),
+            ("@UseFlag",  useFlag),
+            ("@Desc",     description),
+            ("@ParentID", (object?)parentCodeId ?? DBNull.Value),
+            ("@By",       createdBy));
 
     public void UpdateCodeItem(string codeId, string? codeValue, string? codeName,
         string? codeNameEn, int sortOrder, string? attribute1,
-        bool useFlag, string? description, string modifiedBy)
+        bool useFlag, string? description, string modifiedBy,
+        string? parentCodeId = null)
         => Exec("""
             UPDATE dbo.MD_CodeItem
             SET    CodeValue=@Val, CodeName=@Name, CodeNameEn=@NameEn,
                    SortOrder=@Sort, Attribute1=@Attr, UseFlag=@UseFlag,
-                   Description=@Desc, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
+                   Description=@Desc, ParentCodeID=@ParentID,
+                   ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  CodeID=@ID
             """,
-            ("@ID",     codeId),
-            ("@Val",    codeValue),
-            ("@Name",   codeName),
-            ("@NameEn", codeNameEn),
-            ("@Sort",   sortOrder),
-            ("@Attr",   attribute1),
-            ("@UseFlag",useFlag),
-            ("@Desc",   description),
-            ("@By",     modifiedBy));
+            ("@ID",       codeId),
+            ("@Val",      codeValue),
+            ("@Name",     codeName),
+            ("@NameEn",   codeNameEn),
+            ("@Sort",     sortOrder),
+            ("@Attr",     attribute1),
+            ("@UseFlag",  useFlag),
+            ("@Desc",     description),
+            ("@ParentID", (object?)parentCodeId ?? DBNull.Value),
+            ("@By",       modifiedBy));
 
     public void DeleteCodeItem(string codeId)
         => Exec("DELETE dbo.MD_CodeItem WHERE CodeID=@I", ("@I", codeId));
@@ -493,6 +498,12 @@ public sealed class MasterDataRepository
         int? SortOrder, string? Attribute1, bool UseFlag, string? Description,
         string? CreatedBy, DateTime? CreatedTS,
         string? ModifiedBy, DateTime? ModifiedTS);
+
+    /// <summary>현재 UI 문화권(ko/en)에 맞는 CodeName을 반환합니다.</summary>
+    public static string LocalName(CodeItemRow r) =>
+        System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ko"
+            ? (r.CodeName   ?? r.CodeValue ?? "")
+            : (r.CodeNameEn ?? r.CodeName  ?? r.CodeValue ?? "");
 
     // ── MD-04 BOP ────────────────────────────────────────────────────────
     public List<BopItemRow> ListBopItems(string? search = null)
@@ -1274,7 +1285,7 @@ public sealed class MasterDataRepository
     // ╚══════════════════════════════════════════════════════════════════╝
 
     public record StationRow(
-        string StationCode, string? StationName, string? LineID,
+        string StationCode, string? StationName, string? StationNameEn, string? LineID,
         string? StationType, string? ProcessCode,
         int? OrderSeq, string? Status,
         string? CreatedBy, DateTime? CreatedTS,
@@ -1284,7 +1295,7 @@ public sealed class MasterDataRepository
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
-            SELECT StationCode, StationName, LineID,
+            SELECT StationCode, StationName, StationNameEn, LineID,
                    StationType, ProcessCode, OrderSeq, Status,
                    CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
             FROM   dbo.MD_Station
@@ -1295,16 +1306,17 @@ public sealed class MasterDataRepository
         while (r.Read())
             list.Add(new StationRow(
                 (string)r["StationCode"],
-                r["StationName"]  as string,
-                r["LineID"]       as string,
-                r["StationType"]  as string,
-                r["ProcessCode"]  as string,
-                r["OrderSeq"]     is int os ? os : null,
-                r["Status"]       as string,
-                r["CreatedBy"]    as string,
-                r["CreatedTS"]    as DateTime?,
-                r["ModifiedBy"]   as string,
-                r["ModifiedTS"]   as DateTime?));
+                r["StationName"]   as string,
+                r["StationNameEn"] as string,
+                r["LineID"]        as string,
+                r["StationType"]   as string,
+                r["ProcessCode"]   as string,
+                r["OrderSeq"]      is int os ? os : null,
+                r["Status"]        as string,
+                r["CreatedBy"]     as string,
+                r["CreatedTS"]     as DateTime?,
+                r["ModifiedBy"]    as string,
+                r["ModifiedTS"]    as DateTime?));
         return list;
     }
 
@@ -1318,48 +1330,50 @@ public sealed class MasterDataRepository
     }
 
     public void InsertStation(
-        string stationId, string? stationName, string? lineId,
+        string stationId, string? stationName, string? stationNameEn, string? lineId,
         string? stationType, string? processCode,
         int? orderSeq, string? status, string createdBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             INSERT INTO dbo.MD_Station
-              (StationCode, StationName, LineID, StationType, ProcessCode, OrderSeq, Status, CreatedBy, CreatedTS)
+              (StationCode, StationName, StationNameEn, LineID, StationType, ProcessCode, OrderSeq, Status, CreatedBy, CreatedTS)
             VALUES
-              (@ID, @Name, @Line, @Type, @Proc, @Seq, @St, @By, SYSDATETIME());
+              (@ID, @Name, @NameEn, @Line, @Type, @Proc, @Seq, @St, @By, SYSDATETIME());
             """, conn);
-        cmd.Parameters.Add("@ID",   SqlDbType.VarChar,  20).Value = stationId;
-        cmd.Parameters.Add("@Name", SqlDbType.NVarChar, 60).Value = (object?)stationName ?? DBNull.Value;
-        cmd.Parameters.Add("@Line", SqlDbType.VarChar,  20).Value = (object?)lineId       ?? DBNull.Value;
-        cmd.Parameters.Add("@Type", SqlDbType.VarChar,  20).Value = (object?)stationType ?? DBNull.Value;
-        cmd.Parameters.Add("@Proc", SqlDbType.VarChar,  10).Value = (object?)processCode ?? DBNull.Value;
-        cmd.Parameters.Add("@Seq",  SqlDbType.Int).Value          = (object?)orderSeq    ?? DBNull.Value;
-        cmd.Parameters.Add("@St",   SqlDbType.VarChar,  10).Value = (object?)status      ?? DBNull.Value;
-        cmd.Parameters.Add("@By",   SqlDbType.VarChar,  50).Value = createdBy;
+        cmd.Parameters.Add("@ID",    SqlDbType.VarChar,  20).Value = stationId;
+        cmd.Parameters.Add("@Name",  SqlDbType.NVarChar, 60).Value = (object?)stationName   ?? DBNull.Value;
+        cmd.Parameters.Add("@NameEn",SqlDbType.NVarChar, 60).Value = (object?)stationNameEn ?? DBNull.Value;
+        cmd.Parameters.Add("@Line",  SqlDbType.VarChar,  20).Value = (object?)lineId        ?? DBNull.Value;
+        cmd.Parameters.Add("@Type",  SqlDbType.VarChar,  20).Value = (object?)stationType   ?? DBNull.Value;
+        cmd.Parameters.Add("@Proc",  SqlDbType.VarChar,  10).Value = (object?)processCode   ?? DBNull.Value;
+        cmd.Parameters.Add("@Seq",   SqlDbType.Int).Value          = (object?)orderSeq      ?? DBNull.Value;
+        cmd.Parameters.Add("@St",    SqlDbType.VarChar,  10).Value = (object?)status        ?? DBNull.Value;
+        cmd.Parameters.Add("@By",    SqlDbType.VarChar,  50).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
     public void UpdateStation(
-        string stationId, string? stationName, string? lineId,
+        string stationId, string? stationName, string? stationNameEn, string? lineId,
         string? stationType, string? processCode,
         int? orderSeq, string? status, string modifiedBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             UPDATE dbo.MD_Station SET
-              StationName=@Name, LineID=@Line, StationType=@Type, ProcessCode=@Proc,
+              StationName=@Name, StationNameEn=@NameEn, LineID=@Line, StationType=@Type, ProcessCode=@Proc,
               OrderSeq=@Seq, Status=@St, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  StationCode=@ID;
             """, conn);
-        cmd.Parameters.Add("@ID",   SqlDbType.VarChar,   20).Value = stationId;
-        cmd.Parameters.Add("@Name", SqlDbType.NVarChar,  60).Value = (object?)stationName ?? DBNull.Value;
-        cmd.Parameters.Add("@Line", SqlDbType.VarChar,   20).Value = (object?)lineId       ?? DBNull.Value;
-        cmd.Parameters.Add("@Type", SqlDbType.VarChar,   20).Value = (object?)stationType ?? DBNull.Value;
-        cmd.Parameters.Add("@Proc", SqlDbType.VarChar,   10).Value = (object?)processCode ?? DBNull.Value;
-        cmd.Parameters.Add("@Seq",  SqlDbType.Int).Value           = (object?)orderSeq    ?? DBNull.Value;
-        cmd.Parameters.Add("@St",   SqlDbType.VarChar,   10).Value = (object?)status      ?? DBNull.Value;
-        cmd.Parameters.Add("@By",   SqlDbType.NVarChar, 450).Value = modifiedBy;
+        cmd.Parameters.Add("@ID",    SqlDbType.VarChar,   20).Value = stationId;
+        cmd.Parameters.Add("@Name",  SqlDbType.NVarChar,  60).Value = (object?)stationName   ?? DBNull.Value;
+        cmd.Parameters.Add("@NameEn",SqlDbType.NVarChar,  60).Value = (object?)stationNameEn ?? DBNull.Value;
+        cmd.Parameters.Add("@Line",  SqlDbType.VarChar,   20).Value = (object?)lineId        ?? DBNull.Value;
+        cmd.Parameters.Add("@Type",  SqlDbType.VarChar,   20).Value = (object?)stationType   ?? DBNull.Value;
+        cmd.Parameters.Add("@Proc",  SqlDbType.VarChar,   10).Value = (object?)processCode   ?? DBNull.Value;
+        cmd.Parameters.Add("@Seq",   SqlDbType.Int).Value           = (object?)orderSeq      ?? DBNull.Value;
+        cmd.Parameters.Add("@St",    SqlDbType.VarChar,   10).Value = (object?)status        ?? DBNull.Value;
+        cmd.Parameters.Add("@By",    SqlDbType.NVarChar, 450).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -1377,8 +1391,8 @@ public sealed class MasterDataRepository
     // ╚══════════════════════════════════════════════════════════════════╝
 
     public record LineRow(
-        string LineID, string? LineName, string? LineType,
-        string? PlantID, string? DefaultWCID,
+        string LineID, string? LineName, string? LineNameEn, string? LineType,
+        string? PlantCode, string? DefaultWCID,
         int? DailyCap, string? ShiftPattern,
         bool RfidEnabledFlag, string? Status,
         string? CreatedBy, DateTime? CreatedTS,
@@ -1388,7 +1402,7 @@ public sealed class MasterDataRepository
     {
         using var conn = _factory.OpenConnection();
         var sql = """
-            SELECT LineID, LineName, LineType, PlantID, DefaultWCID,
+            SELECT LineID, LineName, LineNameEn, LineType, PlantCode, DefaultWCID,
                    DailyCap, ShiftPattern,
                    ISNULL(RfidEnabledFlag,0) AS RfidEnabledFlag, Status,
                    CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
@@ -1405,16 +1419,17 @@ public sealed class MasterDataRepository
         while (r.Read())
             list.Add(new LineRow(
                 (string)r["LineID"],
-                r["LineName"] as string,
-                r["LineType"] as string,
-                r["PlantID"] as string,
+                r["LineName"]   as string,
+                r["LineNameEn"] as string,
+                r["LineType"]   as string,
+                r["PlantCode"]  as string,
                 r["DefaultWCID"] as string,
                 r["DailyCap"] is int dc ? dc : null,
                 r["ShiftPattern"] as string,
                 (bool)r["RfidEnabledFlag"],
-                r["Status"] as string,
-                r["CreatedBy"] as string,
-                r["CreatedTS"] as DateTime?,
+                r["Status"]     as string,
+                r["CreatedBy"]  as string,
+                r["CreatedTS"]  as DateTime?,
                 r["ModifiedBy"] as string,
                 r["ModifiedTS"] as DateTime?));
         return list;
@@ -1430,61 +1445,63 @@ public sealed class MasterDataRepository
     }
 
     public void InsertLine(
-        string lineId, string? lineName, string? lineType,
-        string? plantId, string? defaultWcId,
+        string lineId, string? lineName, string? lineNameEn, string? lineType,
+        string? plantCode, string? defaultWcId,
         int? dailyCap, string? shiftPattern,
         bool rfidEnabled, string? status, string createdBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             INSERT INTO dbo.MD_Line
-              (LineID,LineName,LineType,PlantID,DefaultWCID,
+              (LineID,LineName,LineNameEn,LineType,PlantCode,DefaultWCID,
                DailyCap,ShiftPattern,RfidEnabledFlag,Status,
                CreatedBy,CreatedTS)
             VALUES
-              (@ID,@Name,@Type,@Plant,@WC,
+              (@ID,@Name,@NameEn,@Type,@Plant,@WC,
                @Cap,@Shift,@Rfid,@St,
                @By,SYSDATETIME());
             """, conn);
-        cmd.Parameters.Add("@ID",   SqlDbType.VarChar,  20).Value = lineId;
-        cmd.Parameters.Add("@Name", SqlDbType.NVarChar, 50).Value = (object?)lineName    ?? DBNull.Value;
-        cmd.Parameters.Add("@Type", SqlDbType.VarChar,  16).Value = (object?)lineType    ?? DBNull.Value;
-        cmd.Parameters.Add("@Plant",SqlDbType.VarChar,  10).Value = (object?)plantId     ?? DBNull.Value;
-        cmd.Parameters.Add("@WC",   SqlDbType.VarChar,  20).Value = (object?)defaultWcId ?? DBNull.Value;
-        cmd.Parameters.Add("@Cap",  SqlDbType.Int).Value          = (object?)dailyCap    ?? DBNull.Value;
-        cmd.Parameters.Add("@Shift",SqlDbType.VarChar,  20).Value = (object?)shiftPattern ?? DBNull.Value;
-        cmd.Parameters.Add("@Rfid", SqlDbType.Bit).Value          = rfidEnabled;
-        cmd.Parameters.Add("@St",   SqlDbType.VarChar,  10).Value = (object?)status      ?? DBNull.Value;
-        cmd.Parameters.Add("@By",   SqlDbType.VarChar,  50).Value = createdBy;
+        cmd.Parameters.Add("@ID",    SqlDbType.VarChar,  20).Value = lineId;
+        cmd.Parameters.Add("@Name",  SqlDbType.NVarChar, 50).Value = (object?)lineName    ?? DBNull.Value;
+        cmd.Parameters.Add("@NameEn",SqlDbType.NVarChar, 50).Value = (object?)lineNameEn  ?? DBNull.Value;
+        cmd.Parameters.Add("@Type",  SqlDbType.VarChar,  16).Value = (object?)lineType    ?? DBNull.Value;
+        cmd.Parameters.Add("@Plant", SqlDbType.VarChar,  20).Value = (object?)plantCode   ?? DBNull.Value;
+        cmd.Parameters.Add("@WC",    SqlDbType.VarChar,  20).Value = (object?)defaultWcId ?? DBNull.Value;
+        cmd.Parameters.Add("@Cap",   SqlDbType.Int).Value          = (object?)dailyCap    ?? DBNull.Value;
+        cmd.Parameters.Add("@Shift", SqlDbType.VarChar,  20).Value = (object?)shiftPattern ?? DBNull.Value;
+        cmd.Parameters.Add("@Rfid",  SqlDbType.Bit).Value          = rfidEnabled;
+        cmd.Parameters.Add("@St",    SqlDbType.VarChar,  10).Value = (object?)status      ?? DBNull.Value;
+        cmd.Parameters.Add("@By",    SqlDbType.VarChar,  50).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
     public void UpdateLine(
-        string lineId, string? lineName, string? lineType,
-        string? plantId, string? defaultWcId,
+        string lineId, string? lineName, string? lineNameEn, string? lineType,
+        string? plantCode, string? defaultWcId,
         int? dailyCap, string? shiftPattern,
         bool rfidEnabled, string? status, string modifiedBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             UPDATE dbo.MD_Line SET
-              LineName=@Name, LineType=@Type,
-              PlantID=@Plant, DefaultWCID=@WC,
+              LineName=@Name, LineNameEn=@NameEn, LineType=@Type,
+              PlantCode=@Plant, DefaultWCID=@WC,
               DailyCap=@Cap, ShiftPattern=@Shift,
               RfidEnabledFlag=@Rfid, Status=@St,
               ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE LineID=@ID;
             """, conn);
-        cmd.Parameters.Add("@ID",   SqlDbType.VarChar,  20).Value = lineId;
-        cmd.Parameters.Add("@Name", SqlDbType.NVarChar, 50).Value = (object?)lineName     ?? DBNull.Value;
-        cmd.Parameters.Add("@Type", SqlDbType.VarChar,  16).Value = (object?)lineType     ?? DBNull.Value;
-        cmd.Parameters.Add("@Plant",SqlDbType.VarChar,  10).Value = (object?)plantId      ?? DBNull.Value;
-        cmd.Parameters.Add("@WC",   SqlDbType.VarChar,  20).Value = (object?)defaultWcId  ?? DBNull.Value;
-        cmd.Parameters.Add("@Cap",  SqlDbType.Int).Value          = (object?)dailyCap     ?? DBNull.Value;
-        cmd.Parameters.Add("@Shift",SqlDbType.VarChar,  20).Value = (object?)shiftPattern ?? DBNull.Value;
-        cmd.Parameters.Add("@Rfid", SqlDbType.Bit).Value          = rfidEnabled;
-        cmd.Parameters.Add("@St",   SqlDbType.VarChar,  10).Value = (object?)status       ?? DBNull.Value;
-        cmd.Parameters.Add("@By",   SqlDbType.NVarChar,450).Value = modifiedBy;
+        cmd.Parameters.Add("@ID",    SqlDbType.VarChar,  20).Value = lineId;
+        cmd.Parameters.Add("@Name",  SqlDbType.NVarChar, 50).Value = (object?)lineName    ?? DBNull.Value;
+        cmd.Parameters.Add("@NameEn",SqlDbType.NVarChar, 50).Value = (object?)lineNameEn  ?? DBNull.Value;
+        cmd.Parameters.Add("@Type",  SqlDbType.VarChar,  16).Value = (object?)lineType    ?? DBNull.Value;
+        cmd.Parameters.Add("@Plant", SqlDbType.VarChar,  20).Value = (object?)plantCode   ?? DBNull.Value;
+        cmd.Parameters.Add("@WC",    SqlDbType.VarChar,  20).Value = (object?)defaultWcId ?? DBNull.Value;
+        cmd.Parameters.Add("@Cap",   SqlDbType.Int).Value          = (object?)dailyCap    ?? DBNull.Value;
+        cmd.Parameters.Add("@Shift", SqlDbType.VarChar,  20).Value = (object?)shiftPattern ?? DBNull.Value;
+        cmd.Parameters.Add("@Rfid",  SqlDbType.Bit).Value          = rfidEnabled;
+        cmd.Parameters.Add("@St",    SqlDbType.VarChar,  10).Value = (object?)status      ?? DBNull.Value;
+        cmd.Parameters.Add("@By",    SqlDbType.NVarChar,450).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -2182,7 +2199,7 @@ public sealed class MasterDataRepository
     public record LocationRow(
         string LocationID, string? LocationName, string? ZoneCode,
         string? Aisle, string? Bay, string? Slot,
-        decimal? Capacity, string? LocationType, string? PlantID, bool ActiveFlag,
+        decimal? Capacity, string? LocationType, string? PlantCode, bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
 
     public List<LocationRow> ListLocations()
@@ -2190,7 +2207,7 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "SELECT LocationID,LocationName,ZoneCode,Aisle,Bay,Slot," +
-            "Capacity,LocationType,PlantID,ISNULL(ActiveFlag,1)," +
+            "Capacity,LocationType,PlantCode,ISNULL(ActiveFlag,1)," +
             "CreatedBy,CreatedTS,ModifiedBy,ModifiedTS " +
             "FROM dbo.MD_Location ORDER BY LocationID;", conn);
         using var rdr = cmd.ExecuteReader();
@@ -2226,14 +2243,14 @@ public sealed class MasterDataRepository
     public void InsertLocation(
         string locationId, string? name, string? zoneCode,
         string? aisle, string? bay, string? slot,
-        decimal? capacity, string? locationType, string? plantId,
+        decimal? capacity, string? locationType, string? plantCode,
         bool activeFlag, string createdBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "INSERT INTO dbo.MD_Location" +
             "(LocationID,LocationName,ZoneCode,Aisle,Bay,Slot," +
-            "Capacity,LocationType,PlantID,ActiveFlag,CreatedBy)" +
+            "Capacity,LocationType,PlantCode,ActiveFlag,CreatedBy)" +
             " VALUES(@I,@N,@Z,@A,@B,@S,@CAP,@LT,@PL,@AF,@CB);", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = locationId;
         cmd.Parameters.Add("@N",   SqlDbType.NVarChar,  60).Value = (object?)name         ?? DBNull.Value;
@@ -2244,7 +2261,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@CAP", SqlDbType.Decimal).Value       = (object?)capacity      ?? DBNull.Value;
         cmd.Parameters["@CAP"].Precision = 10; cmd.Parameters["@CAP"].Scale = 3;
         cmd.Parameters.Add("@LT",  SqlDbType.VarChar,   20).Value = (object?)locationType  ?? DBNull.Value;
-        cmd.Parameters.Add("@PL",  SqlDbType.VarChar,   10).Value = (object?)plantId       ?? DBNull.Value;
+        cmd.Parameters.Add("@PL",  SqlDbType.VarChar,   20).Value = (object?)plantCode     ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
         cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   50).Value = createdBy;
         cmd.ExecuteNonQuery();
@@ -2253,14 +2270,14 @@ public sealed class MasterDataRepository
     public void UpdateLocation(
         string locationId, string? name, string? zoneCode,
         string? aisle, string? bay, string? slot,
-        decimal? capacity, string? locationType, string? plantId,
+        decimal? capacity, string? locationType, string? plantCode,
         bool activeFlag, string modifiedBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_Location SET " +
             "LocationName=@N,ZoneCode=@Z,Aisle=@A,Bay=@B,Slot=@S," +
-            "Capacity=@CAP,LocationType=@LT,PlantID=@PL,ActiveFlag=@AF," +
+            "Capacity=@CAP,LocationType=@LT,PlantCode=@PL,ActiveFlag=@AF," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB " +
             "WHERE LocationID=@I;", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = locationId;
@@ -2272,7 +2289,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@CAP", SqlDbType.Decimal).Value       = (object?)capacity      ?? DBNull.Value;
         cmd.Parameters["@CAP"].Precision = 10; cmd.Parameters["@CAP"].Scale = 3;
         cmd.Parameters.Add("@LT",  SqlDbType.VarChar,   20).Value = (object?)locationType  ?? DBNull.Value;
-        cmd.Parameters.Add("@PL",  SqlDbType.VarChar,   10).Value = (object?)plantId       ?? DBNull.Value;
+        cmd.Parameters.Add("@PL",  SqlDbType.VarChar,   20).Value = (object?)plantCode     ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
         cmd.Parameters.Add("@MB",  SqlDbType.NVarChar, 450).Value = modifiedBy;
         cmd.ExecuteNonQuery();
@@ -2781,4 +2798,725 @@ public sealed class MasterDataRepository
             r2["CreatedTS"]     is DateTime ct  ? ct  : null,
             r2["ModifiedBy"]    as string,
             r2["ModifiedTS"]    is DateTime mt  ? mt  : null));
+
+    // ── MD_Uom CRUD ──────────────────────────────────────────────────
+    public bool UomExists(string code)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("SELECT 1 FROM dbo.MD_Uom WHERE UOMCode=@C;", conn);
+        cmd.Parameters.Add("@C", SqlDbType.VarChar, 20).Value = code;
+        return cmd.ExecuteScalar() is not null;
+    }
+
+    public void InsertUom(string uomCode, string? uomName, string? uomCategory,
+        bool baseFlag, string? baseUOM, decimal? convFactor,
+        int? decimalPrec, string? symbol, bool activeFlag, string createdBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "INSERT INTO dbo.MD_Uom(UOMCode,UOMName,UOMCategory,BaseFlag,BaseUOM," +
+            "ConvFactor,DecimalPrec,Symbol,ActiveFlag,CreatedBy)" +
+            " VALUES(@C,@N,@CAT,@BF,@BU,@CF,@DP,@SY,@AF,@CB);", conn);
+        cmd.Parameters.Add("@C",   SqlDbType.VarChar,  20).Value = uomCode;
+        cmd.Parameters.Add("@N",   SqlDbType.NVarChar, 50).Value = (object?)uomName      ?? DBNull.Value;
+        cmd.Parameters.Add("@CAT", SqlDbType.VarChar,  20).Value = (object?)uomCategory  ?? DBNull.Value;
+        cmd.Parameters.Add("@BF",  SqlDbType.Bit).Value          = baseFlag;
+        cmd.Parameters.Add("@BU",  SqlDbType.VarChar,  20).Value = (object?)baseUOM      ?? DBNull.Value;
+        cmd.Parameters.Add("@CF",  SqlDbType.Decimal).Value      = (object?)convFactor   ?? DBNull.Value;
+        if (convFactor.HasValue) { cmd.Parameters["@CF"].Precision = 18; cmd.Parameters["@CF"].Scale = 6; }
+        cmd.Parameters.Add("@DP",  SqlDbType.Int).Value          = (object?)decimalPrec  ?? DBNull.Value;
+        cmd.Parameters.Add("@SY",  SqlDbType.NVarChar, 10).Value = (object?)symbol       ?? DBNull.Value;
+        cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value          = activeFlag;
+        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,  50).Value = createdBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void UpdateUom(string uomCode, string? uomName, string? uomCategory,
+        bool baseFlag, string? baseUOM, decimal? convFactor,
+        int? decimalPrec, string? symbol, bool activeFlag, string modifiedBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "UPDATE dbo.MD_Uom SET UOMName=@N,UOMCategory=@CAT,BaseFlag=@BF,BaseUOM=@BU," +
+            "ConvFactor=@CF,DecimalPrec=@DP,Symbol=@SY,ActiveFlag=@AF," +
+            "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE UOMCode=@C;", conn);
+        cmd.Parameters.Add("@C",   SqlDbType.VarChar,  20).Value  = uomCode;
+        cmd.Parameters.Add("@N",   SqlDbType.NVarChar, 50).Value  = (object?)uomName     ?? DBNull.Value;
+        cmd.Parameters.Add("@CAT", SqlDbType.VarChar,  20).Value  = (object?)uomCategory ?? DBNull.Value;
+        cmd.Parameters.Add("@BF",  SqlDbType.Bit).Value           = baseFlag;
+        cmd.Parameters.Add("@BU",  SqlDbType.VarChar,  20).Value  = (object?)baseUOM     ?? DBNull.Value;
+        cmd.Parameters.Add("@CF",  SqlDbType.Decimal).Value       = (object?)convFactor  ?? DBNull.Value;
+        if (convFactor.HasValue) { cmd.Parameters["@CF"].Precision = 18; cmd.Parameters["@CF"].Scale = 6; }
+        cmd.Parameters.Add("@DP",  SqlDbType.Int).Value           = (object?)decimalPrec ?? DBNull.Value;
+        cmd.Parameters.Add("@SY",  SqlDbType.NVarChar, 10).Value  = (object?)symbol      ?? DBNull.Value;
+        cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
+        cmd.Parameters.Add("@MB",  SqlDbType.NVarChar, 450).Value = modifiedBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeleteUom(string uomCode)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("DELETE FROM dbo.MD_Uom WHERE UOMCode=@C;", conn);
+        cmd.Parameters.Add("@C", SqlDbType.VarChar, 20).Value = uomCode;
+        cmd.ExecuteNonQuery();
+    }
+
+    // ── MD_RfidTag CRUD ──────────────────────────────────────────────
+    public bool RfidTagExists(string tagId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("SELECT 1 FROM dbo.MD_RfidTag WHERE TagID=@I;", conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 30).Value = tagId;
+        return cmd.ExecuteScalar() is not null;
+    }
+
+    public void InsertRfidTag(string tagId, string? epc, string? jigId, string? tagRole,
+        int? heatRating, string? mountPos,
+        DateOnly? installDate, int? cycleCount, DateOnly? replaceSchedule,
+        string? status, string createdBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "INSERT INTO dbo.MD_RfidTag(TagID,EPC,JigID,TagRole,HeatRating,MountPos," +
+            "InstallDate,CycleCount,ReplaceSchedule,Status,CreatedBy)" +
+            " VALUES(@I,@EP,@JI,@TR,@HR,@MP,@ID,@CC,@RS,@ST,@CB);", conn);
+        cmd.Parameters.Add("@I",  SqlDbType.VarChar,  30).Value = tagId;
+        cmd.Parameters.Add("@EP", SqlDbType.VarChar,  64).Value = (object?)epc            ?? DBNull.Value;
+        cmd.Parameters.Add("@JI", SqlDbType.VarChar,  20).Value = (object?)jigId          ?? DBNull.Value;
+        cmd.Parameters.Add("@TR", SqlDbType.VarChar,  20).Value = (object?)tagRole        ?? DBNull.Value;
+        cmd.Parameters.Add("@HR", SqlDbType.Int).Value          = (object?)heatRating     ?? DBNull.Value;
+        cmd.Parameters.Add("@MP", SqlDbType.VarChar,  20).Value = (object?)mountPos       ?? DBNull.Value;
+        cmd.Parameters.Add("@ID", SqlDbType.Date).Value         = installDate.HasValue    ? (object)installDate.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
+        cmd.Parameters.Add("@CC", SqlDbType.Int).Value          = (object?)cycleCount     ?? DBNull.Value;
+        cmd.Parameters.Add("@RS", SqlDbType.Date).Value         = replaceSchedule.HasValue ? (object)replaceSchedule.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
+        cmd.Parameters.Add("@ST", SqlDbType.VarChar,  10).Value = (object?)status         ?? DBNull.Value;
+        cmd.Parameters.Add("@CB", SqlDbType.VarChar,  50).Value = createdBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void UpdateRfidTag(string tagId, string? epc, string? jigId, string? tagRole,
+        int? heatRating, string? mountPos,
+        DateOnly? installDate, int? cycleCount, DateOnly? replaceSchedule,
+        string? status, string modifiedBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "UPDATE dbo.MD_RfidTag SET EPC=@EP,JigID=@JI,TagRole=@TR,HeatRating=@HR," +
+            "MountPos=@MP,InstallDate=@ID,CycleCount=@CC,ReplaceSchedule=@RS,Status=@ST," +
+            "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE TagID=@I;", conn);
+        cmd.Parameters.Add("@I",  SqlDbType.VarChar,  30).Value  = tagId;
+        cmd.Parameters.Add("@EP", SqlDbType.VarChar,  64).Value  = (object?)epc            ?? DBNull.Value;
+        cmd.Parameters.Add("@JI", SqlDbType.VarChar,  20).Value  = (object?)jigId          ?? DBNull.Value;
+        cmd.Parameters.Add("@TR", SqlDbType.VarChar,  20).Value  = (object?)tagRole        ?? DBNull.Value;
+        cmd.Parameters.Add("@HR", SqlDbType.Int).Value           = (object?)heatRating     ?? DBNull.Value;
+        cmd.Parameters.Add("@MP", SqlDbType.VarChar,  20).Value  = (object?)mountPos       ?? DBNull.Value;
+        cmd.Parameters.Add("@ID", SqlDbType.Date).Value          = installDate.HasValue    ? (object)installDate.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
+        cmd.Parameters.Add("@CC", SqlDbType.Int).Value           = (object?)cycleCount     ?? DBNull.Value;
+        cmd.Parameters.Add("@RS", SqlDbType.Date).Value          = replaceSchedule.HasValue ? (object)replaceSchedule.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
+        cmd.Parameters.Add("@ST", SqlDbType.VarChar,  10).Value  = (object?)status         ?? DBNull.Value;
+        cmd.Parameters.Add("@MB", SqlDbType.NVarChar, 450).Value = modifiedBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeleteRfidTag(string tagId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("DELETE FROM dbo.MD_RfidTag WHERE TagID=@I;", conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 30).Value = tagId;
+        cmd.ExecuteNonQuery();
+    }
+
+    // ── MD_RalColor CRUD ─────────────────────────────────────────────
+    public bool RalColorExists(string ralCode)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("SELECT 1 FROM dbo.MD_RalColor WHERE RALCode=@C;", conn);
+        cmd.Parameters.Add("@C", SqlDbType.VarChar, 10).Value = ralCode;
+        return cmd.ExecuteScalar() is not null;
+    }
+
+    public void InsertRalColor(string ralCode, string? colorName, string? hexValue,
+        string? currentPowderLot, int? cureTemp, int? cureDuration,
+        int? electroV, decimal? particleUm, bool activeFlag, string createdBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "INSERT INTO dbo.MD_RalColor(RALCode,ColorName,HexValue,CurrentPowderLot," +
+            "CureTemp,CureDuration,ElectroV,ParticleUm,ActiveFlag,CreatedBy)" +
+            " VALUES(@C,@CN,@HV,@PL,@CT,@CD,@EV,@PU,@AF,@CB);", conn);
+        cmd.Parameters.Add("@C",  SqlDbType.VarChar,   10).Value = ralCode;
+        cmd.Parameters.Add("@CN", SqlDbType.NVarChar,  50).Value = (object?)colorName        ?? DBNull.Value;
+        cmd.Parameters.Add("@HV", SqlDbType.VarChar,   7).Value  = (object?)hexValue         ?? DBNull.Value;
+        cmd.Parameters.Add("@PL", SqlDbType.VarChar,  30).Value  = (object?)currentPowderLot ?? DBNull.Value;
+        cmd.Parameters.Add("@CT", SqlDbType.Int).Value           = (object?)cureTemp         ?? DBNull.Value;
+        cmd.Parameters.Add("@CD", SqlDbType.Int).Value           = (object?)cureDuration     ?? DBNull.Value;
+        cmd.Parameters.Add("@EV", SqlDbType.Int).Value           = (object?)electroV         ?? DBNull.Value;
+        cmd.Parameters.Add("@PU", SqlDbType.Decimal).Value       = (object?)particleUm       ?? DBNull.Value;
+        if (particleUm.HasValue) { cmd.Parameters["@PU"].Precision = 6; cmd.Parameters["@PU"].Scale = 2; }
+        cmd.Parameters.Add("@AF", SqlDbType.Bit).Value           = activeFlag;
+        cmd.Parameters.Add("@CB", SqlDbType.VarChar,  50).Value  = createdBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void UpdateRalColor(string ralCode, string? colorName, string? hexValue,
+        string? currentPowderLot, int? cureTemp, int? cureDuration,
+        int? electroV, decimal? particleUm, bool activeFlag, string modifiedBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "UPDATE dbo.MD_RalColor SET ColorName=@CN,HexValue=@HV,CurrentPowderLot=@PL," +
+            "CureTemp=@CT,CureDuration=@CD,ElectroV=@EV,ParticleUm=@PU,ActiveFlag=@AF," +
+            "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE RALCode=@C;", conn);
+        cmd.Parameters.Add("@C",  SqlDbType.VarChar,   10).Value  = ralCode;
+        cmd.Parameters.Add("@CN", SqlDbType.NVarChar,  50).Value  = (object?)colorName        ?? DBNull.Value;
+        cmd.Parameters.Add("@HV", SqlDbType.VarChar,   7).Value   = (object?)hexValue         ?? DBNull.Value;
+        cmd.Parameters.Add("@PL", SqlDbType.VarChar,  30).Value   = (object?)currentPowderLot ?? DBNull.Value;
+        cmd.Parameters.Add("@CT", SqlDbType.Int).Value            = (object?)cureTemp         ?? DBNull.Value;
+        cmd.Parameters.Add("@CD", SqlDbType.Int).Value            = (object?)cureDuration     ?? DBNull.Value;
+        cmd.Parameters.Add("@EV", SqlDbType.Int).Value            = (object?)electroV         ?? DBNull.Value;
+        cmd.Parameters.Add("@PU", SqlDbType.Decimal).Value        = (object?)particleUm       ?? DBNull.Value;
+        if (particleUm.HasValue) { cmd.Parameters["@PU"].Precision = 6; cmd.Parameters["@PU"].Scale = 2; }
+        cmd.Parameters.Add("@AF", SqlDbType.Bit).Value            = activeFlag;
+        cmd.Parameters.Add("@MB", SqlDbType.NVarChar, 450).Value  = modifiedBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeleteRalColor(string ralCode)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("DELETE FROM dbo.MD_RalColor WHERE RALCode=@C;", conn);
+        cmd.Parameters.Add("@C", SqlDbType.VarChar, 10).Value = ralCode;
+        cmd.ExecuteNonQuery();
+    }
+
+    // ── MD_RfidReader CRUD ───────────────────────────────────────────
+    public bool RfidReaderExists(string readerId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("SELECT 1 FROM dbo.MD_RfidReader WHERE ReaderID=@I;", conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = readerId;
+        return cmd.ExecuteScalar() is not null;
+    }
+
+    public void InsertRfidReader(string readerId, string? readerName, string? gateLocation,
+        string? lineId, int? antennaCount, int? powerDbm, bool peTrigger,
+        int? windowMs, string? ipAddress, string? firmwareVer, string? status, string createdBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "INSERT INTO dbo.MD_RfidReader(ReaderID,ReaderName,GateLocation,LineID," +
+            "AntennaCount,PowerDbm,PeTriggerFlag,WindowMs,IpAddress,FirmwareVer,Status,CreatedBy)" +
+            " VALUES(@I,@RN,@GL,@LI,@AC,@PD,@PT,@WM,@IP,@FW,@ST,@CB);", conn);
+        cmd.Parameters.Add("@I",  SqlDbType.VarChar,  20).Value = readerId;
+        cmd.Parameters.Add("@RN", SqlDbType.NVarChar, 50).Value = (object?)readerName   ?? DBNull.Value;
+        cmd.Parameters.Add("@GL", SqlDbType.NVarChar, 50).Value = (object?)gateLocation ?? DBNull.Value;
+        cmd.Parameters.Add("@LI", SqlDbType.VarChar,  20).Value = (object?)lineId       ?? DBNull.Value;
+        cmd.Parameters.Add("@AC", SqlDbType.Int).Value          = (object?)antennaCount ?? DBNull.Value;
+        cmd.Parameters.Add("@PD", SqlDbType.Int).Value          = (object?)powerDbm     ?? DBNull.Value;
+        cmd.Parameters.Add("@PT", SqlDbType.Bit).Value          = peTrigger;
+        cmd.Parameters.Add("@WM", SqlDbType.Int).Value          = (object?)windowMs     ?? DBNull.Value;
+        cmd.Parameters.Add("@IP", SqlDbType.VarChar,  20).Value = (object?)ipAddress    ?? DBNull.Value;
+        cmd.Parameters.Add("@FW", SqlDbType.VarChar,  20).Value = (object?)firmwareVer  ?? DBNull.Value;
+        cmd.Parameters.Add("@ST", SqlDbType.VarChar,  10).Value = (object?)status       ?? DBNull.Value;
+        cmd.Parameters.Add("@CB", SqlDbType.VarChar,  50).Value = createdBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void UpdateRfidReader(string readerId, string? readerName, string? gateLocation,
+        string? lineId, int? antennaCount, int? powerDbm, bool peTrigger,
+        int? windowMs, string? ipAddress, string? firmwareVer, string? status, string modifiedBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "UPDATE dbo.MD_RfidReader SET ReaderName=@RN,GateLocation=@GL,LineID=@LI," +
+            "AntennaCount=@AC,PowerDbm=@PD,PeTriggerFlag=@PT,WindowMs=@WM," +
+            "IpAddress=@IP,FirmwareVer=@FW,Status=@ST," +
+            "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE ReaderID=@I;", conn);
+        cmd.Parameters.Add("@I",  SqlDbType.VarChar,   20).Value  = readerId;
+        cmd.Parameters.Add("@RN", SqlDbType.NVarChar,  50).Value  = (object?)readerName   ?? DBNull.Value;
+        cmd.Parameters.Add("@GL", SqlDbType.NVarChar,  50).Value  = (object?)gateLocation ?? DBNull.Value;
+        cmd.Parameters.Add("@LI", SqlDbType.VarChar,   20).Value  = (object?)lineId       ?? DBNull.Value;
+        cmd.Parameters.Add("@AC", SqlDbType.Int).Value            = (object?)antennaCount ?? DBNull.Value;
+        cmd.Parameters.Add("@PD", SqlDbType.Int).Value            = (object?)powerDbm     ?? DBNull.Value;
+        cmd.Parameters.Add("@PT", SqlDbType.Bit).Value            = peTrigger;
+        cmd.Parameters.Add("@WM", SqlDbType.Int).Value            = (object?)windowMs     ?? DBNull.Value;
+        cmd.Parameters.Add("@IP", SqlDbType.VarChar,   20).Value  = (object?)ipAddress    ?? DBNull.Value;
+        cmd.Parameters.Add("@FW", SqlDbType.VarChar,   20).Value  = (object?)firmwareVer  ?? DBNull.Value;
+        cmd.Parameters.Add("@ST", SqlDbType.VarChar,   10).Value  = (object?)status       ?? DBNull.Value;
+        cmd.Parameters.Add("@MB", SqlDbType.NVarChar, 450).Value  = modifiedBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeleteRfidReader(string readerId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("DELETE FROM dbo.MD_RfidReader WHERE ReaderID=@I;", conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = readerId;
+        cmd.ExecuteNonQuery();
+    }
+
+    // ── MD_PackagingSpec CRUD ────────────────────────────────────────
+    public bool PackagingSpecExists(string packSpecId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("SELECT 1 FROM dbo.MD_PackagingSpec WHERE PackSpecID=@I;", conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = packSpecId;
+        return cmd.ExecuteScalar() is not null;
+    }
+
+    public void InsertPackagingSpec(string packSpecId, string? itemId, string? packType,
+        int? qtyPerInner, int? innerPerOuter, int? outerPerPallet,
+        decimal? netWeightKg, decimal? grossWeightKg, string? dimLxWxH,
+        bool returnableFlag, string? labelTemplateId, string? status, string createdBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "INSERT INTO dbo.MD_PackagingSpec(PackSpecID,ItemID,PackType," +
+            "QtyPerInner,InnerPerOuter,OuterPerPallet,NetWeightKg,GrossWeightKg," +
+            "DimLxWxH,ReturnableFlag,LabelTemplateID,Status,CreatedBy)" +
+            " VALUES(@I,@II,@PT,@QI,@IO,@OP,@NW,@GW,@DIM,@RF,@LT,@ST,@CB);", conn);
+        cmd.Parameters.Add("@I",   SqlDbType.VarChar,  20).Value = packSpecId;
+        cmd.Parameters.Add("@II",  SqlDbType.VarChar,  30).Value = (object?)itemId          ?? DBNull.Value;
+        cmd.Parameters.Add("@PT",  SqlDbType.VarChar,  20).Value = (object?)packType        ?? DBNull.Value;
+        cmd.Parameters.Add("@QI",  SqlDbType.Int).Value          = (object?)qtyPerInner     ?? DBNull.Value;
+        cmd.Parameters.Add("@IO",  SqlDbType.Int).Value          = (object?)innerPerOuter   ?? DBNull.Value;
+        cmd.Parameters.Add("@OP",  SqlDbType.Int).Value          = (object?)outerPerPallet  ?? DBNull.Value;
+        cmd.Parameters.Add("@NW",  SqlDbType.Decimal).Value      = (object?)netWeightKg     ?? DBNull.Value;
+        if (netWeightKg.HasValue)   { cmd.Parameters["@NW"].Precision = 8; cmd.Parameters["@NW"].Scale = 3; }
+        cmd.Parameters.Add("@GW",  SqlDbType.Decimal).Value      = (object?)grossWeightKg  ?? DBNull.Value;
+        if (grossWeightKg.HasValue) { cmd.Parameters["@GW"].Precision = 8; cmd.Parameters["@GW"].Scale = 3; }
+        cmd.Parameters.Add("@DIM", SqlDbType.VarChar,  30).Value = (object?)dimLxWxH       ?? DBNull.Value;
+        cmd.Parameters.Add("@RF",  SqlDbType.Bit).Value          = returnableFlag;
+        cmd.Parameters.Add("@LT",  SqlDbType.VarChar,  20).Value = (object?)labelTemplateId ?? DBNull.Value;
+        cmd.Parameters.Add("@ST",  SqlDbType.VarChar,  10).Value = (object?)status          ?? DBNull.Value;
+        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,  50).Value = createdBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void UpdatePackagingSpec(string packSpecId, string? itemId, string? packType,
+        int? qtyPerInner, int? innerPerOuter, int? outerPerPallet,
+        decimal? netWeightKg, decimal? grossWeightKg, string? dimLxWxH,
+        bool returnableFlag, string? labelTemplateId, string? status, string modifiedBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "UPDATE dbo.MD_PackagingSpec SET ItemID=@II,PackType=@PT," +
+            "QtyPerInner=@QI,InnerPerOuter=@IO,OuterPerPallet=@OP," +
+            "NetWeightKg=@NW,GrossWeightKg=@GW,DimLxWxH=@DIM," +
+            "ReturnableFlag=@RF,LabelTemplateID=@LT,Status=@ST," +
+            "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE PackSpecID=@I;", conn);
+        cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value  = packSpecId;
+        cmd.Parameters.Add("@II",  SqlDbType.VarChar,   30).Value  = (object?)itemId          ?? DBNull.Value;
+        cmd.Parameters.Add("@PT",  SqlDbType.VarChar,   20).Value  = (object?)packType        ?? DBNull.Value;
+        cmd.Parameters.Add("@QI",  SqlDbType.Int).Value            = (object?)qtyPerInner     ?? DBNull.Value;
+        cmd.Parameters.Add("@IO",  SqlDbType.Int).Value            = (object?)innerPerOuter   ?? DBNull.Value;
+        cmd.Parameters.Add("@OP",  SqlDbType.Int).Value            = (object?)outerPerPallet  ?? DBNull.Value;
+        cmd.Parameters.Add("@NW",  SqlDbType.Decimal).Value        = (object?)netWeightKg     ?? DBNull.Value;
+        if (netWeightKg.HasValue)   { cmd.Parameters["@NW"].Precision = 8; cmd.Parameters["@NW"].Scale = 3; }
+        cmd.Parameters.Add("@GW",  SqlDbType.Decimal).Value        = (object?)grossWeightKg  ?? DBNull.Value;
+        if (grossWeightKg.HasValue) { cmd.Parameters["@GW"].Precision = 8; cmd.Parameters["@GW"].Scale = 3; }
+        cmd.Parameters.Add("@DIM", SqlDbType.VarChar,   30).Value  = (object?)dimLxWxH       ?? DBNull.Value;
+        cmd.Parameters.Add("@RF",  SqlDbType.Bit).Value            = returnableFlag;
+        cmd.Parameters.Add("@LT",  SqlDbType.VarChar,   20).Value  = (object?)labelTemplateId ?? DBNull.Value;
+        cmd.Parameters.Add("@ST",  SqlDbType.VarChar,   10).Value  = (object?)status          ?? DBNull.Value;
+        cmd.Parameters.Add("@MB",  SqlDbType.NVarChar, 450).Value  = modifiedBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeletePackagingSpec(string packSpecId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("DELETE FROM dbo.MD_PackagingSpec WHERE PackSpecID=@I;", conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = packSpecId;
+        cmd.ExecuteNonQuery();
+    }
+
+    // ── MD_LabelTemplate CRUD ────────────────────────────────────────
+    public bool LabelTemplateExists(string id)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("SELECT 1 FROM dbo.MD_LabelTemplate WHERE LabelTemplateID=@I;", conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = id;
+        return cmd.ExecuteScalar() is not null;
+    }
+
+    public void InsertLabelTemplate(string id, string? templateName, string? labelType,
+        string? paperSize, string? barcodeType, string? customerId,
+        int? version, string? printerModel, string? status, string createdBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "INSERT INTO dbo.MD_LabelTemplate(LabelTemplateID,TemplateName,LabelType," +
+            "PaperSize,BarcodeType,CustomerID,Version,PrinterModel,Status,CreatedBy)" +
+            " VALUES(@I,@TN,@LT,@PS,@BT,@CI,@VER,@PM,@ST,@CB);", conn);
+        cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = id;
+        cmd.Parameters.Add("@TN",  SqlDbType.NVarChar, 100).Value = (object?)templateName ?? DBNull.Value;
+        cmd.Parameters.Add("@LT",  SqlDbType.VarChar,   20).Value = (object?)labelType    ?? DBNull.Value;
+        cmd.Parameters.Add("@PS",  SqlDbType.VarChar,   20).Value = (object?)paperSize    ?? DBNull.Value;
+        cmd.Parameters.Add("@BT",  SqlDbType.VarChar,   20).Value = (object?)barcodeType  ?? DBNull.Value;
+        cmd.Parameters.Add("@CI",  SqlDbType.VarChar,   20).Value = (object?)customerId   ?? DBNull.Value;
+        cmd.Parameters.Add("@VER", SqlDbType.Int).Value           = (object?)version      ?? DBNull.Value;
+        cmd.Parameters.Add("@PM",  SqlDbType.VarChar,   50).Value = (object?)printerModel ?? DBNull.Value;
+        cmd.Parameters.Add("@ST",  SqlDbType.VarChar,   10).Value = (object?)status       ?? DBNull.Value;
+        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   50).Value = createdBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void UpdateLabelTemplate(string id, string? templateName, string? labelType,
+        string? paperSize, string? barcodeType, string? customerId,
+        int? version, string? printerModel, string? status, string modifiedBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "UPDATE dbo.MD_LabelTemplate SET TemplateName=@TN,LabelType=@LT," +
+            "PaperSize=@PS,BarcodeType=@BT,CustomerID=@CI,Version=@VER," +
+            "PrinterModel=@PM,Status=@ST," +
+            "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE LabelTemplateID=@I;", conn);
+        cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value  = id;
+        cmd.Parameters.Add("@TN",  SqlDbType.NVarChar, 100).Value  = (object?)templateName ?? DBNull.Value;
+        cmd.Parameters.Add("@LT",  SqlDbType.VarChar,   20).Value  = (object?)labelType    ?? DBNull.Value;
+        cmd.Parameters.Add("@PS",  SqlDbType.VarChar,   20).Value  = (object?)paperSize    ?? DBNull.Value;
+        cmd.Parameters.Add("@BT",  SqlDbType.VarChar,   20).Value  = (object?)barcodeType  ?? DBNull.Value;
+        cmd.Parameters.Add("@CI",  SqlDbType.VarChar,   20).Value  = (object?)customerId   ?? DBNull.Value;
+        cmd.Parameters.Add("@VER", SqlDbType.Int).Value            = (object?)version      ?? DBNull.Value;
+        cmd.Parameters.Add("@PM",  SqlDbType.VarChar,   50).Value  = (object?)printerModel ?? DBNull.Value;
+        cmd.Parameters.Add("@ST",  SqlDbType.VarChar,   10).Value  = (object?)status       ?? DBNull.Value;
+        cmd.Parameters.Add("@MB",  SqlDbType.NVarChar, 450).Value  = modifiedBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeleteLabelTemplate(string id)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("DELETE FROM dbo.MD_LabelTemplate WHERE LabelTemplateID=@I;", conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = id;
+        cmd.ExecuteNonQuery();
+    }
+
+    // ── MD_ReasonCode CRUD ───────────────────────────────────────────
+    public bool ReasonCodeExists(string code)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("SELECT 1 FROM dbo.MD_ReasonCode WHERE ReasonCode=@C;", conn);
+        cmd.Parameters.Add("@C", SqlDbType.VarChar, 20).Value = code;
+        return cmd.ExecuteScalar() is not null;
+    }
+
+    public void InsertReasonCode(string code, string? reasonName, string? reasonType,
+        string? appliesToModule, bool requiresComment, bool plannedFlag,
+        int? displayOrder, string? description, string? status, string createdBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "INSERT INTO dbo.MD_ReasonCode(ReasonCode,ReasonName,ReasonType," +
+            "AppliesToModule,RequiresComment,PlannedFlag,DisplayOrder,Description,Status,CreatedBy)" +
+            " VALUES(@C,@RN,@RT,@AM,@RC2,@PF,@DO,@DESC,@ST,@CB);", conn);
+        cmd.Parameters.Add("@C",    SqlDbType.VarChar,   20).Value = code;
+        cmd.Parameters.Add("@RN",   SqlDbType.NVarChar, 100).Value = (object?)reasonName      ?? DBNull.Value;
+        cmd.Parameters.Add("@RT",   SqlDbType.VarChar,   20).Value = (object?)reasonType      ?? DBNull.Value;
+        cmd.Parameters.Add("@AM",   SqlDbType.VarChar,   20).Value = (object?)appliesToModule ?? DBNull.Value;
+        cmd.Parameters.Add("@RC2",  SqlDbType.Bit).Value           = requiresComment;
+        cmd.Parameters.Add("@PF",   SqlDbType.Bit).Value           = plannedFlag;
+        cmd.Parameters.Add("@DO",   SqlDbType.Int).Value           = (object?)displayOrder   ?? DBNull.Value;
+        cmd.Parameters.Add("@DESC", SqlDbType.NVarChar, 500).Value = (object?)description    ?? DBNull.Value;
+        cmd.Parameters.Add("@ST",   SqlDbType.VarChar,   10).Value = (object?)status         ?? DBNull.Value;
+        cmd.Parameters.Add("@CB",   SqlDbType.VarChar,   50).Value = createdBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void UpdateReasonCode(string code, string? reasonName, string? reasonType,
+        string? appliesToModule, bool requiresComment, bool plannedFlag,
+        int? displayOrder, string? description, string? status, string modifiedBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "UPDATE dbo.MD_ReasonCode SET ReasonName=@RN,ReasonType=@RT," +
+            "AppliesToModule=@AM,RequiresComment=@RC2,PlannedFlag=@PF," +
+            "DisplayOrder=@DO,Description=@DESC,Status=@ST," +
+            "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE ReasonCode=@C;", conn);
+        cmd.Parameters.Add("@C",    SqlDbType.VarChar,   20).Value  = code;
+        cmd.Parameters.Add("@RN",   SqlDbType.NVarChar, 100).Value  = (object?)reasonName      ?? DBNull.Value;
+        cmd.Parameters.Add("@RT",   SqlDbType.VarChar,   20).Value  = (object?)reasonType      ?? DBNull.Value;
+        cmd.Parameters.Add("@AM",   SqlDbType.VarChar,   20).Value  = (object?)appliesToModule ?? DBNull.Value;
+        cmd.Parameters.Add("@RC2",  SqlDbType.Bit).Value            = requiresComment;
+        cmd.Parameters.Add("@PF",   SqlDbType.Bit).Value            = plannedFlag;
+        cmd.Parameters.Add("@DO",   SqlDbType.Int).Value            = (object?)displayOrder   ?? DBNull.Value;
+        cmd.Parameters.Add("@DESC", SqlDbType.NVarChar, 500).Value  = (object?)description    ?? DBNull.Value;
+        cmd.Parameters.Add("@ST",   SqlDbType.VarChar,   10).Value  = (object?)status         ?? DBNull.Value;
+        cmd.Parameters.Add("@MB",   SqlDbType.NVarChar, 450).Value  = modifiedBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeleteReasonCode(string code)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("DELETE FROM dbo.MD_ReasonCode WHERE ReasonCode=@C;", conn);
+        cmd.Parameters.Add("@C", SqlDbType.VarChar, 20).Value = code;
+        cmd.ExecuteNonQuery();
+    }
+
+    // ── MD_SparePart CRUD ────────────────────────────────────────────
+    public bool SparePartExists(string partNo)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("SELECT 1 FROM dbo.MD_SparePart WHERE PartNo=@P;", conn);
+        cmd.Parameters.Add("@P", SqlDbType.VarChar, 30).Value = partNo;
+        return cmd.ExecuteScalar() is not null;
+    }
+
+    public void InsertSparePart(string partNo, string? partName, string? category,
+        decimal? unitCost, string? uom,
+        int? safetyStock, int? reorderPoint, int? reorderQty, int? leadTimeDays,
+        string? supplierId, string? storageLoc, bool activeFlag, string createdBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "INSERT INTO dbo.MD_SparePart(PartNo,PartName,Category,UnitCost,UOM," +
+            "SafetyStock,ReorderPoint,ReorderQty,LeadTimeDays,SupplierID,StorageLoc,ActiveFlag,CreatedBy)" +
+            " VALUES(@P,@PN,@CAT,@UC,@UOM,@SS,@RP,@RQ,@LT,@SI,@SL,@AF,@CB);", conn);
+        cmd.Parameters.Add("@P",   SqlDbType.VarChar,   30).Value = partNo;
+        cmd.Parameters.Add("@PN",  SqlDbType.NVarChar, 100).Value = (object?)partName    ?? DBNull.Value;
+        cmd.Parameters.Add("@CAT", SqlDbType.VarChar,   20).Value = (object?)category    ?? DBNull.Value;
+        cmd.Parameters.Add("@UC",  SqlDbType.Decimal).Value       = (object?)unitCost    ?? DBNull.Value;
+        if (unitCost.HasValue) { cmd.Parameters["@UC"].Precision = 12; cmd.Parameters["@UC"].Scale = 2; }
+        cmd.Parameters.Add("@UOM", SqlDbType.VarChar,   10).Value = (object?)uom         ?? DBNull.Value;
+        cmd.Parameters.Add("@SS",  SqlDbType.Int).Value           = (object?)safetyStock ?? DBNull.Value;
+        cmd.Parameters.Add("@RP",  SqlDbType.Int).Value           = (object?)reorderPoint ?? DBNull.Value;
+        cmd.Parameters.Add("@RQ",  SqlDbType.Int).Value           = (object?)reorderQty  ?? DBNull.Value;
+        cmd.Parameters.Add("@LT",  SqlDbType.Int).Value           = (object?)leadTimeDays ?? DBNull.Value;
+        cmd.Parameters.Add("@SI",  SqlDbType.VarChar,   20).Value = (object?)supplierId  ?? DBNull.Value;
+        cmd.Parameters.Add("@SL",  SqlDbType.VarChar,   30).Value = (object?)storageLoc  ?? DBNull.Value;
+        cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
+        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   50).Value = createdBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void UpdateSparePart(string partNo, string? partName, string? category,
+        decimal? unitCost, string? uom,
+        int? safetyStock, int? reorderPoint, int? reorderQty, int? leadTimeDays,
+        string? supplierId, string? storageLoc, bool activeFlag, string modifiedBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "UPDATE dbo.MD_SparePart SET PartName=@PN,Category=@CAT,UnitCost=@UC,UOM=@UOM," +
+            "SafetyStock=@SS,ReorderPoint=@RP,ReorderQty=@RQ,LeadTimeDays=@LT," +
+            "SupplierID=@SI,StorageLoc=@SL,ActiveFlag=@AF," +
+            "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE PartNo=@P;", conn);
+        cmd.Parameters.Add("@P",   SqlDbType.VarChar,   30).Value  = partNo;
+        cmd.Parameters.Add("@PN",  SqlDbType.NVarChar, 100).Value  = (object?)partName    ?? DBNull.Value;
+        cmd.Parameters.Add("@CAT", SqlDbType.VarChar,   20).Value  = (object?)category    ?? DBNull.Value;
+        cmd.Parameters.Add("@UC",  SqlDbType.Decimal).Value        = (object?)unitCost    ?? DBNull.Value;
+        if (unitCost.HasValue) { cmd.Parameters["@UC"].Precision = 12; cmd.Parameters["@UC"].Scale = 2; }
+        cmd.Parameters.Add("@UOM", SqlDbType.VarChar,   10).Value  = (object?)uom         ?? DBNull.Value;
+        cmd.Parameters.Add("@SS",  SqlDbType.Int).Value            = (object?)safetyStock ?? DBNull.Value;
+        cmd.Parameters.Add("@RP",  SqlDbType.Int).Value            = (object?)reorderPoint ?? DBNull.Value;
+        cmd.Parameters.Add("@RQ",  SqlDbType.Int).Value            = (object?)reorderQty  ?? DBNull.Value;
+        cmd.Parameters.Add("@LT",  SqlDbType.Int).Value            = (object?)leadTimeDays ?? DBNull.Value;
+        cmd.Parameters.Add("@SI",  SqlDbType.VarChar,   20).Value  = (object?)supplierId  ?? DBNull.Value;
+        cmd.Parameters.Add("@SL",  SqlDbType.VarChar,   30).Value  = (object?)storageLoc  ?? DBNull.Value;
+        cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value            = activeFlag;
+        cmd.Parameters.Add("@MB",  SqlDbType.NVarChar, 450).Value  = modifiedBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeleteSparePart(string partNo)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("DELETE FROM dbo.MD_SparePart WHERE PartNo=@P;", conn);
+        cmd.Parameters.Add("@P", SqlDbType.VarChar, 30).Value = partNo;
+        cmd.ExecuteNonQuery();
+    }
+
+    // ── MD_PmTemplate CRUD ───────────────────────────────────────────
+    public bool PmTemplateExists(string id)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("SELECT 1 FROM dbo.MD_PmTemplate WHERE PMTemplateID=@I;", conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = id;
+        return cmd.ExecuteScalar() is not null;
+    }
+
+    public void InsertPmTemplate(string id, string? templateName, string? equipType,
+        string? cycleBasis, int? intervalValue, string? intervalUnit,
+        int? stdDurationMin, bool safetyLoto, bool activeFlag, string createdBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "INSERT INTO dbo.MD_PmTemplate(PMTemplateID,TemplateName,EquipType," +
+            "CycleBasis,IntervalValue,IntervalUnit,StdDurationMin,SafetyLOTOFlag,ActiveFlag,CreatedBy)" +
+            " VALUES(@I,@TN,@ET,@CB2,@IV,@IU,@SD,@SL,@AF,@CB);", conn);
+        cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = id;
+        cmd.Parameters.Add("@TN",  SqlDbType.NVarChar, 100).Value = (object?)templateName  ?? DBNull.Value;
+        cmd.Parameters.Add("@ET",  SqlDbType.VarChar,   20).Value = (object?)equipType     ?? DBNull.Value;
+        cmd.Parameters.Add("@CB2", SqlDbType.VarChar,   10).Value = (object?)cycleBasis    ?? DBNull.Value;
+        cmd.Parameters.Add("@IV",  SqlDbType.Int).Value           = (object?)intervalValue ?? DBNull.Value;
+        cmd.Parameters.Add("@IU",  SqlDbType.VarChar,   10).Value = (object?)intervalUnit  ?? DBNull.Value;
+        cmd.Parameters.Add("@SD",  SqlDbType.Int).Value           = (object?)stdDurationMin ?? DBNull.Value;
+        cmd.Parameters.Add("@SL",  SqlDbType.Bit).Value           = safetyLoto;
+        cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
+        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   50).Value = createdBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void UpdatePmTemplate(string id, string? templateName, string? equipType,
+        string? cycleBasis, int? intervalValue, string? intervalUnit,
+        int? stdDurationMin, bool safetyLoto, bool activeFlag, string modifiedBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "UPDATE dbo.MD_PmTemplate SET TemplateName=@TN,EquipType=@ET," +
+            "CycleBasis=@CB2,IntervalValue=@IV,IntervalUnit=@IU," +
+            "StdDurationMin=@SD,SafetyLOTOFlag=@SL,ActiveFlag=@AF," +
+            "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE PMTemplateID=@I;", conn);
+        cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value  = id;
+        cmd.Parameters.Add("@TN",  SqlDbType.NVarChar, 100).Value  = (object?)templateName  ?? DBNull.Value;
+        cmd.Parameters.Add("@ET",  SqlDbType.VarChar,   20).Value  = (object?)equipType     ?? DBNull.Value;
+        cmd.Parameters.Add("@CB2", SqlDbType.VarChar,   10).Value  = (object?)cycleBasis    ?? DBNull.Value;
+        cmd.Parameters.Add("@IV",  SqlDbType.Int).Value            = (object?)intervalValue ?? DBNull.Value;
+        cmd.Parameters.Add("@IU",  SqlDbType.VarChar,   10).Value  = (object?)intervalUnit  ?? DBNull.Value;
+        cmd.Parameters.Add("@SD",  SqlDbType.Int).Value            = (object?)stdDurationMin ?? DBNull.Value;
+        cmd.Parameters.Add("@SL",  SqlDbType.Bit).Value            = safetyLoto;
+        cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value            = activeFlag;
+        cmd.Parameters.Add("@MB",  SqlDbType.NVarChar, 450).Value  = modifiedBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeletePmTemplate(string id)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("DELETE FROM dbo.MD_PmTemplate WHERE PMTemplateID=@I;", conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = id;
+        cmd.ExecuteNonQuery();
+    }
+
+    // ── MD_LineTimePattern CRUD ──────────────────────────────────────
+    public bool LineTimePatternExists(string patternId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("SELECT 1 FROM dbo.MD_LineTimePattern WHERE PatternID=@I;", conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = patternId;
+        return cmd.ExecuteScalar() is not null;
+    }
+
+    public void InsertLineTimePattern(string patternId, string? lineId, string? patternName,
+        string? dayType, string? shiftModel,
+        DateOnly? effectiveFrom, DateOnly? effectiveTo,
+        int? totalOperatingMin, int? totalPlannedDownMin,
+        string? timeZone, string? status, string createdBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "INSERT INTO dbo.MD_LineTimePattern(PatternID,LineID,PatternName," +
+            "DayType,ShiftModel,EffectiveFrom,EffectiveTo," +
+            "TotalOperatingMin,TotalPlannedDownMin,TimeZone,Status,CreatedBy)" +
+            " VALUES(@I,@LI,@PN,@DT,@SM,@EF,@ET,@TOM,@TPD,@TZ,@ST,@CB);", conn);
+        cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = patternId;
+        cmd.Parameters.Add("@LI",  SqlDbType.VarChar,   20).Value = (object?)lineId           ?? DBNull.Value;
+        cmd.Parameters.Add("@PN",  SqlDbType.NVarChar, 100).Value = (object?)patternName      ?? DBNull.Value;
+        cmd.Parameters.Add("@DT",  SqlDbType.VarChar,   10).Value = (object?)dayType          ?? DBNull.Value;
+        cmd.Parameters.Add("@SM",  SqlDbType.VarChar,   20).Value = (object?)shiftModel       ?? DBNull.Value;
+        cmd.Parameters.Add("@EF",  SqlDbType.Date).Value          = effectiveFrom.HasValue    ? (object)effectiveFrom.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
+        cmd.Parameters.Add("@ET",  SqlDbType.Date).Value          = effectiveTo.HasValue      ? (object)effectiveTo.Value.ToDateTime(TimeOnly.MinValue)   : DBNull.Value;
+        cmd.Parameters.Add("@TOM", SqlDbType.Int).Value           = (object?)totalOperatingMin   ?? DBNull.Value;
+        cmd.Parameters.Add("@TPD", SqlDbType.Int).Value           = (object?)totalPlannedDownMin  ?? DBNull.Value;
+        cmd.Parameters.Add("@TZ",  SqlDbType.VarChar,   50).Value = (object?)timeZone         ?? DBNull.Value;
+        cmd.Parameters.Add("@ST",  SqlDbType.VarChar,   10).Value = (object?)status           ?? DBNull.Value;
+        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   50).Value = createdBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void UpdateLineTimePattern(string patternId, string? lineId, string? patternName,
+        string? dayType, string? shiftModel,
+        DateOnly? effectiveFrom, DateOnly? effectiveTo,
+        int? totalOperatingMin, int? totalPlannedDownMin,
+        string? timeZone, string? status, string modifiedBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "UPDATE dbo.MD_LineTimePattern SET LineID=@LI,PatternName=@PN," +
+            "DayType=@DT,ShiftModel=@SM,EffectiveFrom=@EF,EffectiveTo=@ET," +
+            "TotalOperatingMin=@TOM,TotalPlannedDownMin=@TPD,TimeZone=@TZ,Status=@ST," +
+            "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE PatternID=@I;", conn);
+        cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value  = patternId;
+        cmd.Parameters.Add("@LI",  SqlDbType.VarChar,   20).Value  = (object?)lineId           ?? DBNull.Value;
+        cmd.Parameters.Add("@PN",  SqlDbType.NVarChar, 100).Value  = (object?)patternName      ?? DBNull.Value;
+        cmd.Parameters.Add("@DT",  SqlDbType.VarChar,   10).Value  = (object?)dayType          ?? DBNull.Value;
+        cmd.Parameters.Add("@SM",  SqlDbType.VarChar,   20).Value  = (object?)shiftModel       ?? DBNull.Value;
+        cmd.Parameters.Add("@EF",  SqlDbType.Date).Value           = effectiveFrom.HasValue    ? (object)effectiveFrom.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
+        cmd.Parameters.Add("@ET",  SqlDbType.Date).Value           = effectiveTo.HasValue      ? (object)effectiveTo.Value.ToDateTime(TimeOnly.MinValue)   : DBNull.Value;
+        cmd.Parameters.Add("@TOM", SqlDbType.Int).Value            = (object?)totalOperatingMin   ?? DBNull.Value;
+        cmd.Parameters.Add("@TPD", SqlDbType.Int).Value            = (object?)totalPlannedDownMin  ?? DBNull.Value;
+        cmd.Parameters.Add("@TZ",  SqlDbType.VarChar,   50).Value  = (object?)timeZone         ?? DBNull.Value;
+        cmd.Parameters.Add("@ST",  SqlDbType.VarChar,   10).Value  = (object?)status           ?? DBNull.Value;
+        cmd.Parameters.Add("@MB",  SqlDbType.NVarChar, 450).Value  = modifiedBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeleteLineTimePattern(string patternId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("DELETE FROM dbo.MD_LineTimePattern WHERE PatternID=@I;", conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = patternId;
+        cmd.ExecuteNonQuery();
+    }
+
+    // ── MD_Recipe CRUD ───────────────────────────────────────────────
+    public bool RecipeExists(string recipeId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("SELECT 1 FROM dbo.MD_Recipe WHERE RecipeID=@I;", conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = recipeId;
+        return cmd.ExecuteScalar() is not null;
+    }
+
+    public void InsertRecipe(string recipeId, string? recipeName, string? recipeType,
+        string? itemNo, int? cycleTime, string? version,
+        DateOnly? effectiveDate, string? status, string createdBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "INSERT INTO dbo.MD_Recipe(RecipeID,RecipeName,RecipeType," +
+            "ItemNo,CycleTime,Version,EffectiveDate,Status,CreatedBy)" +
+            " VALUES(@I,@RN,@RT,@IN,@CT,@VER,@ED,@ST,@CB);", conn);
+        cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = recipeId;
+        cmd.Parameters.Add("@RN",  SqlDbType.NVarChar, 100).Value = (object?)recipeName    ?? DBNull.Value;
+        cmd.Parameters.Add("@RT",  SqlDbType.VarChar,   20).Value = (object?)recipeType    ?? DBNull.Value;
+        cmd.Parameters.Add("@IN",  SqlDbType.VarChar,   30).Value = (object?)itemNo        ?? DBNull.Value;
+        cmd.Parameters.Add("@CT",  SqlDbType.Int).Value           = (object?)cycleTime     ?? DBNull.Value;
+        cmd.Parameters.Add("@VER", SqlDbType.VarChar,   10).Value = (object?)version       ?? DBNull.Value;
+        cmd.Parameters.Add("@ED",  SqlDbType.Date).Value          = effectiveDate.HasValue  ? (object)effectiveDate.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
+        cmd.Parameters.Add("@ST",  SqlDbType.VarChar,   10).Value = (object?)status        ?? DBNull.Value;
+        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   50).Value = createdBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void UpdateRecipe(string recipeId, string? recipeName, string? recipeType,
+        string? itemNo, int? cycleTime, string? version,
+        DateOnly? effectiveDate, string? status, string modifiedBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "UPDATE dbo.MD_Recipe SET RecipeName=@RN,RecipeType=@RT," +
+            "ItemNo=@IN,CycleTime=@CT,Version=@VER,EffectiveDate=@ED,Status=@ST," +
+            "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE RecipeID=@I;", conn);
+        cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value  = recipeId;
+        cmd.Parameters.Add("@RN",  SqlDbType.NVarChar, 100).Value  = (object?)recipeName    ?? DBNull.Value;
+        cmd.Parameters.Add("@RT",  SqlDbType.VarChar,   20).Value  = (object?)recipeType    ?? DBNull.Value;
+        cmd.Parameters.Add("@IN",  SqlDbType.VarChar,   30).Value  = (object?)itemNo        ?? DBNull.Value;
+        cmd.Parameters.Add("@CT",  SqlDbType.Int).Value            = (object?)cycleTime     ?? DBNull.Value;
+        cmd.Parameters.Add("@VER", SqlDbType.VarChar,   10).Value  = (object?)version       ?? DBNull.Value;
+        cmd.Parameters.Add("@ED",  SqlDbType.Date).Value           = effectiveDate.HasValue  ? (object)effectiveDate.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
+        cmd.Parameters.Add("@ST",  SqlDbType.VarChar,   10).Value  = (object?)status        ?? DBNull.Value;
+        cmd.Parameters.Add("@MB",  SqlDbType.NVarChar, 450).Value  = modifiedBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeleteRecipe(string recipeId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("DELETE FROM dbo.MD_Recipe WHERE RecipeID=@I;", conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = recipeId;
+        cmd.ExecuteNonQuery();
+    }
 }

@@ -4,10 +4,10 @@
 @inject AMES.Data.Repositories.RptRepository Rpt
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>RPT-07 @L["RPT.MonthlyKpi.Title"] · AMES</PageTitle>
+<PageTitle>RPT-007 @L["RPT.MonthlyKpi.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">RPT-07</div>
+    <div class="ames-page-id">RPT-007</div>
     <div class="ames-page-t">@L["RPT.MonthlyKpi.Title"]</div>
     <div class="ames-page-sub">@L["RPT.MonthlyKpi.Sub"]</div>
 </div>
@@ -45,12 +45,12 @@ else
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["RPT.MonthlyKpi.List"] · @_rows.Count @L["RPT.MonthlyKpi.ListSuffix"]</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Period"]</label>
-            <select class="ames-input" style="width:80px;padding:4px 8px;" @bind="_monthsBack">
-                <option value="3">3@L["RPT.MonthlyKpi.ListSuffix"]</option>
-                <option value="6">6@L["RPT.MonthlyKpi.ListSuffix"]</option>
-                <option value="12">12@L["RPT.MonthlyKpi.ListSuffix"]</option>
-                <option value="24">24@L["RPT.MonthlyKpi.ListSuffix"]</option>
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Lbl.Period"]</span>
+            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_monthsBack">
+                <option value="3">3@(L["RPT.MonthlyKpi.ListSuffix"])</option>
+                <option value="6">6@(L["RPT.MonthlyKpi.ListSuffix"])</option>
+                <option value="12">12@(L["RPT.MonthlyKpi.ListSuffix"])</option>
+                <option value="24">24@(L["RPT.MonthlyKpi.ListSuffix"])</option>
             </select>
             <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
         </div>
@@ -72,7 +72,7 @@ else
                 </tr>
             </thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     <tr>
                         <td class="code">@r.Year-@r.Month.ToString("00")</td>
@@ -90,17 +90,21 @@ else
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
 @code {
     List<AMES.Data.Repositories.RptRepository.MonthlyKpiRow> _rows = new();
+    int _page = 0;
+    const int _pageSize = 20;
     int _monthsBack = 6;
 
     protected override void OnInitialized() => Reload();
 
     void Reload()
     {
+        _page = 0;
         try { _rows = Rpt.ListMonthlyKpi(_monthsBack); } catch { _rows = new(); }
     }
 }

@@ -4,10 +4,10 @@
 @inject AMES.Data.Repositories.MntRepository Mnt
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MNT-05 @L["MNT.PmSchedule.Title"] · AMES</PageTitle>
+<PageTitle>MNT-005 @L["MNT.PmSchedule.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">MNT-05</div>
+    <div class="ames-page-id">MNT-005</div>
     <div class="ames-page-t">@L["MNT.PmSchedule.Title"]</div>
     <div class="ames-page-sub">@L["MNT.PmSchedule.Sub"]</div>
 </div>
@@ -28,19 +28,19 @@
         <span style="white-space:nowrap;">▼ @L["MNT.PmSchedule.List"] · @_rows.Count @L["Lbl.Items"]</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Future"]</label>
-            <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_daysAhead">
-                <option value="7">7@L["Lbl.Days"]</option>
-                <option value="14">14@L["Lbl.Days"]</option>
-                <option value="30">30@L["Lbl.Days"]</option>
-                <option value="60">60@L["Lbl.Days"]</option>
-                <option value="90">90@L["Lbl.Days"]</option>
+            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_daysAhead">
+                <option value="7">7@(L["Lbl.Days"])</option>
+                <option value="14">14@(L["Lbl.Days"])</option>
+                <option value="30">30@(L["Lbl.Days"])</option>
+                <option value="60">60@(L["Lbl.Days"])</option>
+                <option value="90">90@(L["Lbl.Days"])</option>
             </select>
             <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Past"]</label>
-            <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_daysBack">
-                <option value="0">0@L["Lbl.Days"]</option>
-                <option value="7">7@L["Lbl.Days"]</option>
-                <option value="14">14@L["Lbl.Days"]</option>
-                <option value="30">30@L["Lbl.Days"]</option>
+            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_daysBack">
+                <option value="0">0@(L["Lbl.Days"])</option>
+                <option value="7">7@(L["Lbl.Days"])</option>
+                <option value="14">14@(L["Lbl.Days"])</option>
+                <option value="30">30@(L["Lbl.Days"])</option>
             </select>
             <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
         </div>
@@ -55,14 +55,14 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>PM #</th><th>Equip</th><th>Type</th>
-                    <th>Basis</th><th class="num">Cycle</th>
-                    <th>Last PM</th><th>Next due</th><th class="num">Days</th>
-                    <th>Status</th><th>Active MWO</th>
+                    <th>@L["Col.PmNo"]</th><th>@L["Col.Equip"]</th><th>@L["Col.Type"]</th>
+                    <th>@L["Col.BasisCycle"]</th><th class="num">@L["Col.Cycle"]</th>
+                    <th>@L["Col.LastPm"]</th><th>@L["Col.NextDue"]</th><th class="num">@L["Col.Days"]</th>
+                    <th>@L["Col.Status"]</th><th>@L["Col.OpenWo"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var p in _rows)
+                @foreach (var p in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     <tr>
                         <td class="code">@(p.PmPlanNumber ?? $"PM#{p.PmScheduleId}")</td>
@@ -79,11 +79,14 @@
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
 @code {
     List<AMES.Data.Repositories.MntRepository.PmRow> _rows = new();
+    int _page = 0;
+    const int _pageSize = 20;
     int _over, _dueSoon, _dueWeek;
     int _daysAhead = 30, _daysBack = 7;
 
@@ -91,6 +94,7 @@
 
     void Reload()
     {
+        _page = 0;
         try { _rows = Mnt.ListPmSchedule(_daysAhead, _daysBack); } catch { _rows = new(); }
         _over    = _rows.Count(r => r.DaysToDue < 0);
         _dueSoon = _rows.Count(r => r.DaysToDue >= 0 && r.DaysToDue <= 3);

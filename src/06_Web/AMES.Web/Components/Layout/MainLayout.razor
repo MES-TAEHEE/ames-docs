@@ -1,14 +1,15 @@
 @inherits LayoutComponentBase
 
 <div class="ames-shell">
-    <aside class="ames-side">
+    <TopBar />
+    <div class="ames-body">
         <NavMenu />
-    </aside>
-    <main class="ames-main">
-        <div class="ames-content">
-            @Body
-        </div>
-    </main>
+        <main class="ames-main">
+            <div class="ames-content">
+                @Body
+            </div>
+        </main>
+    </div>
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>

@@ -8,7 +8,7 @@
 <PageTitle>@L["MD.CommonCode.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">MD-025</div>
+    <div class="ames-page-id">MD-030</div>
     <div class="ames-page-t">@L["MD.CommonCode.Title"]</div>
     <div class="ames-page-sub">@L["MD.CommonCode.Sub"]</div>
 </div>
@@ -24,20 +24,20 @@
     <div style="flex:0 0 480px;">
         <div class="ames-card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                <span style="font-weight:600;font-size:1em;">코드 그룹</span>
-                <button class="ames-btn ok" @onclick="OpenGroupCreate">@L["Btn.Create"]</button>
+                <span style="font-weight:600;font-size:1em;">@L["MD.CommonCode.GrpHeader"]</span>
+                <button class="ames-btn" @onclick="OpenGroupCreate">@L["Btn.Create"]</button>
             </div>
             <table class="ames-table" style="table-layout:fixed;width:100%;">
                 <thead>
                     <tr>
-                        <th style="width:160px;">그룹코드</th>
-                        <th>그룹명</th>
-                        <th style="width:48px;text-align:center;">사용</th>
+                        <th style="width:160px;">@L["Col.GroupCode"]</th>
+                        <th>@L["Col.GroupName"]</th>
+                        <th style="width:48px;text-align:center;">@L["Col.Active"]</th>
                         <th style="width:48px;"></th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var g in _groups)
+                    @foreach (var g in _groups.Skip(_page * _pageSize).Take(_pageSize))
                     {
                         var gCap = g;
                         <tr class="ames-row-link @(_selGroup?.GroupCode == g.GroupCode ? "ames-row-selected" : "")"
@@ -49,7 +49,7 @@
                             </td>
                             <td style="text-align:center;">
                                 <button class="ames-btn" style="padding:2px 10px;font-size:.85em;"
-                                        title="항목 보기"
+                                        title="@L["MD.CommonCode.Title.ViewItems"]"
                                         @onclick:stopPropagation
                                         @onclick="() => SelectGroup(gCap)">▶</button>
                             </td>
@@ -57,6 +57,7 @@
                     }
                 </tbody>
             </table>
+            <Pager Page="_page" Total="_groups.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
         </div>
     </div>
 
@@ -65,7 +66,7 @@
         <div class="ames-card">
             @if (_selGroup is null)
             {
-                <div class="dim" style="padding:24px 0;text-align:center;">← 코드 그룹의 ▶ 버튼을 눌러 항목을 조회하세요</div>
+                <div class="dim" style="padding:24px 0;text-align:center;">@L["MD.CommonCode.ItemHint"]</div>
             }
             else
             {
@@ -73,19 +74,19 @@
                     <span style="font-weight:600;font-size:1em;">
                         <span class="code" style="font-size:.9em;margin-right:6px;">@_selGroup.GroupCode</span>
                         @_selGroup.GroupName
-                        <span class="dim" style="font-weight:400;margin-left:6px;">@(_items.Count)개 항목</span>
+                        <span class="dim" style="font-weight:400;margin-left:6px;">@string.Format(L["MD.CommonCode.ItemCount"].Value, _items.Count)</span>
                     </span>
-                    <button class="ames-btn ok" @onclick="OpenItemCreate">@L["Btn.Create"]</button>
+                    <button class="ames-btn" @onclick="OpenItemCreate">@L["Btn.Create"]</button>
                 </div>
                 <table class="ames-table">
                     <thead>
                         <tr>
-                            <th style="width:60px;">순서</th>
-                            <th style="width:120px;">코드값</th>
-                            <th>코드명</th>
-                            <th>코드명(영문)</th>
-                            <th style="width:100px;">Attribute1</th>
-                            <th style="width:44px;text-align:center;">사용</th>
+                            <th style="width:60px;">@L["Col.Seq"]</th>
+                            <th style="width:120px;">@L["Col.CodeValue"]</th>
+                            <th>@L["Col.CodeName"]</th>
+                            <th>@L["Col.NameEn"]</th>
+                            <th style="width:100px;">@L["Col.Attr1"]</th>
+                            <th style="width:44px;text-align:center;">@L["Col.Active"]</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -115,37 +116,37 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
         <div class="ames-modal" style="max-width:500px;" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">코드 그룹 등록</div>
+            <div class="ames-modal-h">@L["MD.CommonCode.Grp.Create"]</div>
 
-            <label>그룹코드 * <span class="dim" style="font-size:.82em;">(영문·숫자·밑줄, 최대 20자)</span></label>
+            <label>@L["MD.CommonCode.Lbl.GroupCode"] <span class="dim" style="font-size:.82em;">@L["MD.CommonCode.Lbl.GroupCodeHint"]</span></label>
             <input class="ames-input" @bind="_fGroupCode" placeholder="예: DEFECT_TYPE" autocomplete="off" maxlength="20" />
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
                 <div>
-                    <label>그룹명 *</label>
-                    <input class="ames-input" @bind="_fGroupName" placeholder="예: 불량 유형" autocomplete="off" />
+                    <label>@L["MD.CommonCode.Lbl.GroupName"]</label>
+                    <input class="ames-input" @bind="_fGroupName" placeholder='@L["MD.CommonCode.Ph.GroupName"]' autocomplete="off" />
                 </div>
                 <div>
-                    <label>그룹명(영문)</label>
+                    <label>@L["MD.CommonCode.Lbl.GroupNameEn"]</label>
                     <input class="ames-input" @bind="_fGroupNameEn" placeholder="예: Defect Type" autocomplete="off" />
                 </div>
             </div>
 
-            <label style="margin-top:6px;">설명</label>
+            <label style="margin-top:6px;">@L["MD.CommonCode.Lbl.Description"]</label>
             <input class="ames-input" @bind="_fDescription" autocomplete="off" />
 
             <label style="margin-top:8px;display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" @bind="_fUseFlag" style="accent-color:#60a5fa;" /> 사용
+                <input type="checkbox" @bind="_fUseFlag" style="accent-color:#60a5fa;" /> @L["MD.CommonCode.Lbl.UseFlag"]
             </label>
 
             @if (!string.IsNullOrEmpty(_modalErr))
             { <div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok" @onclick="SaveGroupCreate" disabled="@_busy">
-                    @(_busy ? "저장 중…" : "등록")
+                <button class="ames-btn" @onclick="SaveGroupCreate" disabled="@_busy">
+                    @(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)
                 </button>
-                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -156,33 +157,33 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
         <div class="ames-modal" style="max-width:500px;" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">코드 그룹 수정 — <span class="code" style="font-weight:400;font-size:.9em;">@_fGroupCode</span></div>
+            <div class="ames-modal-h">@L["MD.CommonCode.Grp.Edit"] — <span class="code" style="font-weight:400;font-size:.9em;">@_fGroupCode</span></div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>
-                    <label>그룹명 *</label>
+                    <label>@L["MD.CommonCode.Lbl.GroupName"]</label>
                     <input class="ames-input" @bind="_fGroupName" autocomplete="off" />
                 </div>
                 <div>
-                    <label>그룹명(영문)</label>
+                    <label>@L["MD.CommonCode.Lbl.GroupNameEn"]</label>
                     <input class="ames-input" @bind="_fGroupNameEn" autocomplete="off" />
                 </div>
             </div>
 
-            <label style="margin-top:6px;">설명</label>
+            <label style="margin-top:6px;">@L["MD.CommonCode.Lbl.Description"]</label>
             <input class="ames-input" @bind="_fDescription" autocomplete="off" />
 
             <label style="margin-top:8px;display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" @bind="_fUseFlag" style="accent-color:#60a5fa;" /> 사용
+                <input type="checkbox" @bind="_fUseFlag" style="accent-color:#60a5fa;" /> @L["MD.CommonCode.Lbl.UseFlag"]
             </label>
 
             @if (_grpConfirmDelete)
             {
                 <div class="ames-delete-confirm">
-                    <span>그룹과 하위 항목 @(_items.Count)개를 삭제합니까?</span>
-                    <button class="ames-btn" @onclick='() => _grpConfirmDelete = false'>아니오</button>
+                    <span>@string.Format(L["MD.CommonCode.ConfirmGrpDelete"].Value, _items.Count)</span>
+                    <button class="ames-btn ghost" @onclick='() => _grpConfirmDelete = false'>@L["Msg.No"]</button>
                     <button class="ames-btn bad" @onclick="SaveGroupDelete" disabled="@_busy">
-                        @(_busy ? "삭제 중…" : "예, 삭제")
+                        @(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)
                     </button>
                 </div>
             }
@@ -191,11 +192,11 @@
             { <div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok" @onclick="SaveGroupEdit" disabled="@_busy">
-                    @(_busy ? "저장 중…" : "수정")
+                <button class="ames-btn" @onclick="SaveGroupEdit" disabled="@_busy">
+                    @(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)
                 </button>
                 <button class="ames-btn bad" @onclick='() => { _grpConfirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -206,59 +207,70 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
         <div class="ames-modal" style="max-width:560px;" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">코드 항목 등록 — <span class="code" style="font-weight:400;font-size:.9em;">@_selGroup.GroupCode</span></div>
+            <div class="ames-modal-h">@L["MD.CommonCode.Item.Create"] — <span class="code" style="font-weight:400;font-size:.9em;">@_selGroup.GroupCode</span></div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>
-                    <label>코드값 * <span class="dim" style="font-size:.82em;">(최대 20자)</span></label>
+                    <label>@L["MD.CommonCode.Lbl.CodeValue"] <span class="dim" style="font-size:.82em;">@L["MD.CommonCode.Lbl.CodeValueHint"]</span></label>
                     <input class="ames-input" value="@_fCodeValue"
                            @oninput="OnCodeValueInput"
                            placeholder="예: SCRAP" autocomplete="off" maxlength="20" />
                 </div>
                 <div>
-                    <label>CodeID <span class="dim" style="font-size:.82em;">(자동생성, 최대 24자)</span></label>
+                    <label>@L["MD.CommonCode.Lbl.CodeId"] <span class="dim" style="font-size:.82em;">@L["MD.CommonCode.Lbl.CodeIdHint"]</span></label>
                     <input class="ames-input" @bind="_fCodeId" autocomplete="off" maxlength="24" />
                 </div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
                 <div>
-                    <label>코드명 *</label>
+                    <label>@L["MD.CommonCode.Lbl.CodeName"]</label>
                     <input class="ames-input" @bind="_fCodeName" autocomplete="off" />
                 </div>
                 <div>
-                    <label>코드명(영문)</label>
+                    <label>@L["MD.CommonCode.Lbl.CodeNameEn"]</label>
                     <input class="ames-input" @bind="_fCodeNameEn" autocomplete="off" />
                 </div>
             </div>
 
+            <div style="margin-top:6px;">
+                <label>@L["MD.CommonCode.Lbl.ParentCode"] <span class="dim" style="font-size:.82em;">@L["MD.CommonCode.Lbl.ParentCodeOpt"]</span></label>
+                <select class="ames-input" @bind="_fParentCodeId">
+                    <option value="">@L["MD.CommonCode.Opt.None"]</option>
+                    @foreach (var p in _items)
+                    {
+                        <option value="@p.CodeID">@p.CodeValue — @p.CodeName</option>
+                    }
+                </select>
+            </div>
+
             <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:8px;margin-top:6px;">
                 <div>
-                    <label>순서</label>
+                    <label>@L["MD.CommonCode.Lbl.SortOrder"]</label>
                     <input type="number" class="ames-input" @bind="_fSortOrder" min="0" />
                 </div>
                 <div>
-                    <label>Attribute1</label>
+                    <label>@L["Col.Attr1"]</label>
                     <input class="ames-input" @bind="_fAttribute1" autocomplete="off" />
                 </div>
                 <div>
-                    <label>설명</label>
+                    <label>@L["MD.CommonCode.Lbl.Description"]</label>
                     <input class="ames-input" @bind="_fItemDescription" autocomplete="off" />
                 </div>
             </div>
 
             <label style="margin-top:8px;display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" @bind="_fItemUseFlag" style="accent-color:#60a5fa;" /> 사용
+                <input type="checkbox" @bind="_fItemUseFlag" style="accent-color:#60a5fa;" /> @L["MD.CommonCode.Lbl.UseFlag"]
             </label>
 
             @if (!string.IsNullOrEmpty(_modalErr))
             { <div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok" @onclick="SaveItemCreate" disabled="@_busy">
-                    @(_busy ? "저장 중…" : "등록")
+                <button class="ames-btn" @onclick="SaveItemCreate" disabled="@_busy">
+                    @(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)
                 </button>
-                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -269,48 +281,67 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
         <div class="ames-modal" style="max-width:560px;" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">코드 항목 수정 — <span class="code" style="font-weight:400;font-size:.9em;">@_fCodeId</span></div>
+            <div class="ames-modal-h">@L["MD.CommonCode.Item.Edit"] — <span class="code" style="font-weight:400;font-size:.9em;">@_fCodeId</span></div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>
-                    <label>코드값 *</label>
+                    <label>@L["MD.CommonCode.Lbl.CodeValue"]</label>
                     <input class="ames-input" @bind="_fCodeValue" autocomplete="off" maxlength="20" />
                 </div>
                 <div>
-                    <label>코드명 *</label>
-                    <input class="ames-input" @bind="_fCodeName" autocomplete="off" />
+                    <label>@L["MD.CommonCode.Lbl.CodeId"]</label>
+                    <input class="ames-input" value="@_fCodeId" disabled style="opacity:.6;cursor:not-allowed;" />
                 </div>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 80px 1fr;gap:8px;margin-top:6px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
                 <div>
-                    <label>코드명(영문)</label>
-                    <input class="ames-input" @bind="_fCodeNameEn" autocomplete="off" />
+                    <label>@L["MD.CommonCode.Lbl.CodeName"]</label>
+                    <input class="ames-input" @bind="_fCodeName" autocomplete="off" />
                 </div>
                 <div>
-                    <label>순서</label>
+                    <label>@L["MD.CommonCode.Lbl.CodeNameEn"]</label>
+                    <input class="ames-input" @bind="_fCodeNameEn" autocomplete="off" />
+                </div>
+            </div>
+
+            <div style="margin-top:6px;">
+                <label>@L["MD.CommonCode.Lbl.ParentCode"] <span class="dim" style="font-size:.82em;">@L["MD.CommonCode.Lbl.ParentCodeOpt"]</span></label>
+                <select class="ames-input" @bind="_fParentCodeId">
+                    <option value="">@L["MD.CommonCode.Opt.None"]</option>
+                    @foreach (var p in _items.Where(i => i.CodeID != _fCodeId))
+                    {
+                        <option value="@p.CodeID">@p.CodeValue — @p.CodeName</option>
+                    }
+                </select>
+            </div>
+
+            <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:8px;margin-top:6px;">
+                <div>
+                    <label>@L["MD.CommonCode.Lbl.SortOrder"]</label>
                     <input type="number" class="ames-input" @bind="_fSortOrder" min="0" />
                 </div>
                 <div>
-                    <label>Attribute1</label>
+                    <label>@L["Col.Attr1"]</label>
                     <input class="ames-input" @bind="_fAttribute1" autocomplete="off" />
+                </div>
+                <div>
+                    <label>@L["MD.CommonCode.Lbl.Description"]</label>
+                    <input class="ames-input" @bind="_fItemDescription" autocomplete="off" />
                 </div>
             </div>
 
-            <label style="margin-top:6px;">설명</label>
-            <input class="ames-input" @bind="_fItemDescription" autocomplete="off" />
-
             <label style="margin-top:8px;display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" @bind="_fItemUseFlag" style="accent-color:#60a5fa;" /> 사용
+                <input type="checkbox" @bind="_fItemUseFlag" style="accent-color:#60a5fa;" /> @L["MD.CommonCode.Lbl.UseFlag"]
             </label>
 
             @if (_itemConfirmDelete)
             {
                 <div class="ames-delete-confirm">
-                    <span>@_fCodeId (@_fCodeName) 을 삭제합니까?</span>
-                    <button class="ames-btn" @onclick='() => _itemConfirmDelete = false'>아니오</button>
+                    <span>@string.Format(L["MD.CommonCode.ConfirmItemDelete"].Value, _fCodeId, _fCodeName)</span>
+                    <button class="ames-btn ghost" @onclick='() => _itemConfirmDelete = false'>@L["Msg.No"]</button>
                     <button class="ames-btn bad" @onclick="SaveItemDelete" disabled="@_busy">
-                        @(_busy ? "삭제 중…" : "예, 삭제")
+                        @(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)
                     </button>
                 </div>
             }
@@ -319,11 +350,11 @@
             { <div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok" @onclick="SaveItemEdit" disabled="@_busy">
-                    @(_busy ? "저장 중…" : "수정")
+                <button class="ames-btn" @onclick="SaveItemEdit" disabled="@_busy">
+                    @(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)
                 </button>
                 <button class="ames-btn bad" @onclick='() => { _itemConfirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -334,6 +365,8 @@
     List<MasterDataRepository.CodeGroupRow> _groups = new();
     List<MasterDataRepository.CodeItemRow>  _items  = new();
     MasterDataRepository.CodeGroupRow?      _selGroup;
+    int _page = 0;
+    const int _pageSize = 20;
 
     string _modal             = "";
     string _modalErr          = "";
@@ -354,6 +387,7 @@
     string _fCodeValue       = "";
     string _fCodeName        = "";
     string _fCodeNameEn      = "";
+    string _fParentCodeId    = "";
     int    _fSortOrder       = 0;
     string _fAttribute1      = "";
     bool   _fItemUseFlag     = true;
@@ -367,7 +401,7 @@
         LoadGroups();
     }
 
-    void LoadGroups() { try { _groups = Md.ListCodeGroups(); } catch { _groups = new(); } }
+    void LoadGroups() { _page = 0; try { _groups = Md.ListCodeGroups(); } catch { _groups = new(); } }
 
     void LoadItems()
     {
@@ -414,16 +448,16 @@
     void SaveGroupCreate()
     {
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_fGroupCode)) { _modalErr = "그룹코드를 입력하세요."; return; }
-        if (string.IsNullOrWhiteSpace(_fGroupName)) { _modalErr = "그룹명을 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_fGroupCode)) { _modalErr = L["Err.GroupCodeRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_fGroupName)) { _modalErr = L["Err.GroupNameRequired"]; return; }
         _busy = true;
         try
         {
             var code = _fGroupCode.Trim().ToUpper();
-            if (Md.CodeGroupExists(code)) { _modalErr = $"'{code}' 이미 존재합니다."; return; }
+            if (Md.CodeGroupExists(code)) { _modalErr = $"'{code}' {L["Err.AlreadyExists"]}"; return; }
             Md.InsertCodeGroup(code, _fGroupName.Trim(), N(_fGroupNameEn), N(_fDescription), _fUseFlag, _actor);
             LoadGroups(); CloseModal();
-            ShowMsg($"{code} 그룹 등록 완료.", false);
+            ShowMsg($"{code} 그룹 {L["Msg.Created"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -432,7 +466,7 @@
     void SaveGroupEdit()
     {
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_fGroupName)) { _modalErr = "그룹명을 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_fGroupName)) { _modalErr = L["Err.GroupNameRequired"]; return; }
         _busy = true;
         try
         {
@@ -441,7 +475,7 @@
             if (_selGroup?.GroupCode == _fGroupCode)
                 _selGroup = _groups.FirstOrDefault(g => g.GroupCode == _fGroupCode);
             CloseModal();
-            ShowMsg($"{_fGroupCode} 수정 완료.", false);
+            ShowMsg($"{_fGroupCode} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -456,7 +490,7 @@
             Md.DeleteCodeGroup(_fGroupCode);
             if (_selGroup?.GroupCode == _fGroupCode) { _selGroup = null; _items = new(); }
             LoadGroups(); CloseModal();
-            ShowMsg("그룹 삭제 완료.", false);
+            ShowMsg($"그룹 {L["Msg.Deleted"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -467,7 +501,8 @@
     {
         int next = _items.Count > 0 ? (_items.Max(i => i.SortOrder ?? 0) + 10) : 10;
         _fCodeId = ""; _fCodeValue = ""; _fCodeName = ""; _fCodeNameEn = "";
-        _fSortOrder = next; _fAttribute1 = ""; _fItemUseFlag = true; _fItemDescription = "";
+        _fParentCodeId = ""; _fSortOrder = next; _fAttribute1 = "";
+        _fItemUseFlag = true; _fItemDescription = "";
         _itemConfirmDelete = false; _modalErr = "";
         _modal = "item-create";
     }
@@ -485,6 +520,7 @@
         _fCodeValue       = item.CodeValue    ?? "";
         _fCodeName        = item.CodeName     ?? "";
         _fCodeNameEn      = item.CodeNameEn   ?? "";
+        _fParentCodeId    = item.ParentCodeID ?? "";
         _fSortOrder       = item.SortOrder    ?? 0;
         _fAttribute1      = item.Attribute1   ?? "";
         _fItemUseFlag     = item.UseFlag;
@@ -496,19 +532,20 @@
     void SaveItemCreate()
     {
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_fCodeValue)) { _modalErr = "코드값을 입력하세요."; return; }
-        if (string.IsNullOrWhiteSpace(_fCodeName))  { _modalErr = "코드명을 입력하세요."; return; }
-        if (string.IsNullOrWhiteSpace(_fCodeId))    { _modalErr = "CodeID를 입력하세요."; return; }
-        if (_fCodeId.Length > 24)                   { _modalErr = "CodeID는 24자 이하여야 합니다."; return; }
+        if (string.IsNullOrWhiteSpace(_fCodeValue)) { _modalErr = L["Err.CodeValueRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_fCodeName))  { _modalErr = L["Err.CodeNameRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_fCodeId))    { _modalErr = L["Err.CodeIdRequired"]; return; }
+        if (_fCodeId.Length > 24)                   { _modalErr = L["Err.CodeIdMax24"]; return; }
         _busy = true;
         try
         {
             var id = _fCodeId.Trim().ToUpper();
-            if (Md.CodeItemExists(id)) { _modalErr = $"CodeID '{id}' 이미 존재합니다."; return; }
+            if (Md.CodeItemExists(id)) { _modalErr = $"CodeID '{id}' {L["Err.AlreadyExists"]}"; return; }
             Md.InsertCodeItem(id, _selGroup!.GroupCode, _fCodeValue.Trim(), _fCodeName.Trim(),
-                N(_fCodeNameEn), _fSortOrder, N(_fAttribute1), _fItemUseFlag, N(_fItemDescription), _actor);
+                N(_fCodeNameEn), _fSortOrder, N(_fAttribute1), _fItemUseFlag, N(_fItemDescription), _actor,
+                N(_fParentCodeId));
             LoadItems(); CloseModal();
-            ShowMsg($"{id} 항목 등록 완료.", false);
+            ShowMsg($"{id} 항목 {L["Msg.Created"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -517,15 +554,16 @@
     void SaveItemEdit()
     {
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_fCodeValue)) { _modalErr = "코드값을 입력하세요."; return; }
-        if (string.IsNullOrWhiteSpace(_fCodeName))  { _modalErr = "코드명을 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_fCodeValue)) { _modalErr = L["Err.CodeValueRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_fCodeName))  { _modalErr = L["Err.CodeNameRequired"]; return; }
         _busy = true;
         try
         {
             Md.UpdateCodeItem(_fCodeId, _fCodeValue.Trim(), _fCodeName.Trim(),
-                N(_fCodeNameEn), _fSortOrder, N(_fAttribute1), _fItemUseFlag, N(_fItemDescription), _actor);
+                N(_fCodeNameEn), _fSortOrder, N(_fAttribute1), _fItemUseFlag, N(_fItemDescription), _actor,
+                N(_fParentCodeId));
             LoadItems(); CloseModal();
-            ShowMsg($"{_fCodeId} 수정 완료.", false);
+            ShowMsg($"{_fCodeId} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -538,7 +576,7 @@
         {
             Md.DeleteCodeItem(_fCodeId);
             LoadItems(); CloseModal();
-            ShowMsg($"{_fCodeId} 삭제 완료.", false);
+            ShowMsg($"{_fCodeId} {L["Msg.Deleted"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }

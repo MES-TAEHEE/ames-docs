@@ -4,10 +4,10 @@
 @inject AMES.Data.Repositories.MntRepository Mnt
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MNT-01 @L["MNT.EquipmentCard.Title"] · AMES</PageTitle>
+<PageTitle>MNT-001 @L["MNT.EquipmentCard.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">MNT-01</div>
+    <div class="ames-page-id">MNT-001</div>
     <div class="ames-page-t">@L["MNT.EquipmentCard.Title"]</div>
     <div class="ames-page-sub">@L["MNT.EquipmentCard.Sub"]</div>
 </div>
@@ -39,10 +39,10 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MNT.EquipmentCard.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input class="ames-input" style="width:120px;padding:4px 8px;"
-                   placeholder="@L["MNT.EquipmentCard.Ph.Line"]" @bind="_fLine" autocomplete="off" />
-            <input class="ames-input" style="width:120px;padding:4px 8px;"
-                   placeholder="@L["MNT.EquipmentCard.Ph.Name"]" @bind="_fName" autocomplete="off" />
+            <input class="ames-input" style="width:220px;padding:4px 8px;"
+                   placeholder="@L["MNT.EquipmentCard.Ph.Search"]"
+                   @bind="_fSearch" @bind:event="oninput" @bind:after="ApplyFilter"
+                   autocomplete="off" />
             <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
         </div>
     </div>
@@ -56,13 +56,13 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>Equip</th><th>Name</th><th>Line</th><th>Type</th>
-                    <th>Status</th><th class="num">OEE</th><th class="num">Runtime h</th>
-                    <th class="num">Cycles</th><th>Next PM</th><th>Open WO</th>
+                    <th>@L["Col.Equip"]</th><th>@L["Col.EquipName"]</th><th>@L["Col.Line"]</th><th>@L["Col.EquipType"]</th>
+                    <th>@L["Col.Status"]</th><th class="num">@L["Col.OEE"]</th><th class="num">@L["Col.Runtime"]</th>
+                    <th class="num">@L["Col.Cycles"]</th><th>@L["Col.NextPm"]</th><th>@L["Col.OpenWo"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var e in _rows)
+                @foreach (var e in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     <tr>
                         <td class="code">@e.EquipId</td>
@@ -79,30 +79,36 @@
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
 @code {
     List<AMES.Data.Repositories.MntRepository.EquipCardRow> _allRows = new();
     List<AMES.Data.Repositories.MntRepository.EquipCardRow> _rows    = new();
+    int     _page = 0;
+    const int _pageSize = 20;
     int     _running, _idle, _down;
     decimal _avgOee;
-    string  _fLine = "", _fName = "";
+    string  _fSearch = "";
 
     protected override void OnInitialized() => Reload();
 
     void Reload()
     {
-        try { _allRows = Mnt.ListEquipment(string.IsNullOrWhiteSpace(_fLine) ? null : _fLine); }
+        try { _allRows = Mnt.ListEquipment(); }
         catch { _allRows = new(); }
         ApplyFilter();
     }
 
     void ApplyFilter()
     {
-        _rows = string.IsNullOrWhiteSpace(_fName)
+        _page = 0;
+        _rows = string.IsNullOrWhiteSpace(_fSearch)
             ? _allRows
-            : _allRows.Where(r => (r.EquipName ?? "").Contains(_fName, StringComparison.OrdinalIgnoreCase)).ToList();
+            : _allRows.Where(r =>
+                (r.LineId   ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+                (r.EquipName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)).ToList();
         _running = _rows.Count(r => r.Status is "RUN" or "RUNNING" or "OPERATING");
         _idle    = _rows.Count(r => r.Status is "IDLE" or "SETUP" or "READY");
         _down    = _rows.Count(r => r.Status is "DOWN" or "STOP" or "FAULT");

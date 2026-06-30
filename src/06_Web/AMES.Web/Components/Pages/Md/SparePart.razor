@@ -2,12 +2,13 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AuthenticationStateProvider Auth
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["MD.SparePart.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">MD-027</div>
+    <div class="ames-page-id">MD-026</div>
     <div class="ames-page-t">@L["MD.SparePart.Title"]</div>
     <div class="ames-page-sub">@L["MD.SparePart.Sub"]</div>
 </div>
@@ -22,21 +23,27 @@
         <div class="ames-kpi-v">@_allRows.Count(r => r.ActiveFlag)</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">카테고리 수</div>
+        <div class="ames-kpi-l">@L["Kpi.CategoryCount"]</div>
         <div class="ames-kpi-v">@_allRows.Select(r => r.Category).Where(c => c != null).Distinct().Count()</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">공급업체 수</div>
+        <div class="ames-kpi-l">@L["Kpi.SupplierCount"]</div>
         <div class="ames-kpi-v">@_allRows.Select(r => r.SupplierID).Where(s => s != null).Distinct().Count()</div>
     </div>
 </div>
 
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MD.SparePart.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.SparePart.List"] · @_rows.Count @L["Lbl.Items"]@if (_rows.Count < _allRows.Count) { <text> / @L["Lbl.TotalOf"] @_allRows.Count</text> }</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:140px;padding:4px 8px;"
-                   placeholder="품번 / 품명" @bind="_fSearch" autocomplete="off" />
+                   placeholder='@L["MD.SparePart.Ph.Search"]' @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Category"]</span>
             <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fCat">
                 <option value="">@L["Filter.AllCategories"]</option>
                 @foreach (var c in _allRows.Select(r => r.Category).Where(x => x != null).Distinct().OrderBy(x => x))
@@ -44,12 +51,14 @@
                     <option value="@c">@c</option>
                 }
             </select>
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
             <select class="ames-input" style="width:90px;padding:4px 8px;" @bind="_fActive">
-                <option value="">전체</option>
-                <option value="Y">활성</option>
-                <option value="N">비활성</option>
+                <option value="">@L["Filter.All"]</option>
+                <option value="Y">@L["Lbl.Active"]</option>
+                <option value="N">@L["Lbl.Inactive"]</option>
             </select>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
         </div>
     </div>
 
@@ -62,16 +71,16 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>품번</th><th>품명</th><th>카테고리</th><th>UOM</th>
-                    <th class="num">단가</th><th class="num">안전재고</th>
-                    <th class="num">재주문점</th><th class="num">재주문량</th>
-                    <th class="num">조달 일수</th><th>공급업체</th><th>보관 위치</th><th>@L["Col.Status"]</th>
+                    <th>@L["Col.PartNo"]</th><th>@L["Col.Name"]</th><th>@L["Col.Category"]</th><th>@L["Col.Uom"]</th>
+                    <th class="num">@L["Col.UnitPrice"]</th><th class="num">@L["Col.Safety"]</th>
+                    <th class="num">@L["Col.Reorder"]</th><th class="num">@L["Col.ReorderQty"]</th>
+                    <th class="num">@L["Col.LeadDays"]</th><th>@L["Col.Supplier"]</th><th>@L["Col.StorageLoc"]</th><th>@L["Col.Status"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
-                    <tr>
+                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
                         <td class="code">@r.PartNo</td>
                         <td>@(r.PartName ?? "—")</td>
                         <td class="dim">@(r.Category ?? "—")</td>
@@ -83,20 +92,153 @@
                         <td class="num">@(r.LeadTimeDays?.ToString() ?? "—")</td>
                         <td class="dim">@(r.SupplierID ?? "—")</td>
                         <td class="dim">@(r.StorageLoc ?? "—")</td>
-                        <td>@(r.ActiveFlag ? (MarkupString)"<span class=\"pill ok\">활성</span>" : (MarkupString)"<span class=\"pill bad\">비활성</span>")</td>
+                        <td>@if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> } else { <span class="pill bad">@L["Lbl.Inactive"]</span> }</td>
                     </tr>
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.SparePart.Title"] — @L["Btn.Create"]</div>
+
+            <label>@L["Col.PartNo"]</label>
+            <input class="ames-input" @bind="_f.PartNo" placeholder="SP-001" autocomplete="off" />
+
+            <label>@L["Col.Name"]</label>
+            <input class="ames-input" @bind="_f.PartName" placeholder='@L["MD.SparePart.Ph.PartName"]' autocomplete="off" />
+
+            <label>@L["Col.Category"]</label>
+            <input class="ames-input" @bind="_f.Category" placeholder="CONSUMABLE / MECHANICAL / ELECTRICAL" autocomplete="off" />
+
+            <label>@L["Col.Uom"]</label>
+            <input class="ames-input" @bind="_f.UOM" placeholder="EA" autocomplete="off" />
+
+            <label>@L["Col.UnitPrice"]</label>
+            <input class="ames-input" type="number" @bind="_f.UnitCost" placeholder="0.00" step="0.01" min="0" autocomplete="off" />
+
+            <label>@L["Col.Safety"]</label>
+            <input class="ames-input" type="number" @bind="_f.SafetyStock" placeholder="5" min="0" autocomplete="off" />
+
+            <label>@L["Col.Reorder"]</label>
+            <input class="ames-input" type="number" @bind="_f.ReorderPoint" placeholder="3" min="0" autocomplete="off" />
+
+            <label>@L["Col.ReorderQty"]</label>
+            <input class="ames-input" type="number" @bind="_f.ReorderQty" placeholder="10" min="1" autocomplete="off" />
+
+            <label>@L["Col.LeadDays"]</label>
+            <input class="ames-input" type="number" @bind="_f.LeadTimeDays" placeholder="7" min="0" autocomplete="off" />
+
+            <label>@L["Col.Supplier"]</label>
+            <input class="ames-input" @bind="_f.SupplierID" placeholder="V001" autocomplete="off" />
+
+            <label>@L["Col.StorageLoc"]</label>
+            <input class="ames-input" @bind="_f.StorageLoc" placeholder="A-01-01" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.ActiveFlag" />
+                <span>@L["Lbl.Active"]</span>
+            </label>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.SparePart.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.PartNo</span></div>
+
+            <label>@L["Col.Name"]</label>
+            <input class="ames-input" @bind="_f.PartName" autocomplete="off" />
+
+            <label>@L["Col.Category"]</label>
+            <input class="ames-input" @bind="_f.Category" autocomplete="off" />
+
+            <label>@L["Col.Uom"]</label>
+            <input class="ames-input" @bind="_f.UOM" autocomplete="off" />
+
+            <label>@L["Col.UnitPrice"]</label>
+            <input class="ames-input" type="number" @bind="_f.UnitCost" step="0.01" min="0" autocomplete="off" />
+
+            <label>@L["Col.Safety"]</label>
+            <input class="ames-input" type="number" @bind="_f.SafetyStock" min="0" autocomplete="off" />
+
+            <label>@L["Col.Reorder"]</label>
+            <input class="ames-input" type="number" @bind="_f.ReorderPoint" min="0" autocomplete="off" />
+
+            <label>@L["Col.ReorderQty"]</label>
+            <input class="ames-input" type="number" @bind="_f.ReorderQty" min="1" autocomplete="off" />
+
+            <label>@L["Col.LeadDays"]</label>
+            <input class="ames-input" type="number" @bind="_f.LeadTimeDays" min="0" autocomplete="off" />
+
+            <label>@L["Col.Supplier"]</label>
+            <input class="ames-input" @bind="_f.SupplierID" autocomplete="off" />
+
+            <label>@L["Col.StorageLoc"]</label>
+            <input class="ames-input" @bind="_f.StorageLoc" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.ActiveFlag" />
+                <span>@L["Lbl.Active"]</span>
+            </label>
+
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)</button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn" @onclick="SaveEdit" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
+    int _page = 0;
+    const int _pageSize = 20;
     List<AMES.Data.Repositories.MasterDataRepository.SparePartMasterRow> _allRows = new();
     List<AMES.Data.Repositories.MasterDataRepository.SparePartMasterRow> _rows    = new();
-    string _fSearch = "", _fCat = "", _fActive = "";
+    AMES.Data.Repositories.MasterDataRepository.SparePartMasterRow? _sel;
 
-    protected override void OnInitialized() => Reload();
+    string _fSearch = "", _fCat = "", _fActive = "";
+    string _modal = "";
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _msg = "", _modalErr = "";
+    bool _isErr;
+    string _actor = "system";
+    FormModel _f = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        Reload();
+    }
 
     void Reload()
     {
@@ -106,6 +248,7 @@
 
     void ApplyFilter()
     {
+        _page = 0;
         _rows = _allRows;
         if (!string.IsNullOrWhiteSpace(_fSearch))
             _rows = _rows.Where(r =>
@@ -115,5 +258,109 @@
             _rows = _rows.Where(r => r.Category == _fCat).ToList();
         if (_fActive == "Y") _rows = _rows.Where(r => r.ActiveFlag).ToList();
         if (_fActive == "N") _rows = _rows.Where(r => !r.ActiveFlag).ToList();
+    }
+
+    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+
+    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.SparePartMasterRow r)
+    {
+        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _f = new()
+        {
+            PartName     = r.PartName     ?? "",
+            Category     = r.Category     ?? "",
+            UOM          = r.UOM          ?? "",
+            UnitCost     = r.UnitCost,
+            SafetyStock  = r.SafetyStock,
+            ReorderPoint = r.ReorderPoint,
+            ReorderQty   = r.ReorderQty,
+            LeadTimeDays = r.LeadTimeDays,
+            SupplierID   = r.SupplierID   ?? "",
+            StorageLoc   = r.StorageLoc   ?? "",
+            ActiveFlag   = r.ActiveFlag,
+        };
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.PartNo)) { _modalErr = L["Err.PartNoRequired"]; return; }
+        var no = _f.PartNo.Trim();
+        if (Md.SparePartExists(no)) { _modalErr = $"'{no}' 품번이 {L["Err.AlreadyExists"]}"; return; }
+        _busy = true;
+        try
+        {
+            Md.InsertSparePart(no, NE(_f.PartName), NE(_f.Category),
+                _f.UnitCost, NE(_f.UOM),
+                _f.SafetyStock, _f.ReorderPoint, _f.ReorderQty, _f.LeadTimeDays,
+                NE(_f.SupplierID), NE(_f.StorageLoc), _f.ActiveFlag, _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{no} {L["Msg.Created"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        _busy = true;
+        try
+        {
+            Md.UpdateSparePart(_sel.PartNo, NE(_f.PartName), NE(_f.Category),
+                _f.UnitCost, NE(_f.UOM),
+                _f.SafetyStock, _f.ReorderPoint, _f.ReorderQty, _f.LeadTimeDays,
+                NE(_f.SupplierID), NE(_f.StorageLoc), _f.ActiveFlag, _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{_sel.PartNo} {L["Msg.Updated"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            var no = _sel.PartNo;
+            Md.DeleteSparePart(_sel.PartNo);
+            CloseModal(); Reload();
+            ShowMsg($"{no} {L["Msg.Deleted"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    class FormModel
+    {
+        public string   PartNo       { get; set; } = "";
+        public string   PartName     { get; set; } = "";
+        public string   Category     { get; set; } = "";
+        public string   UOM          { get; set; } = "";
+        public decimal? UnitCost     { get; set; }
+        public int?     SafetyStock  { get; set; }
+        public int?     ReorderPoint { get; set; }
+        public int?     ReorderQty   { get; set; }
+        public int?     LeadTimeDays { get; set; }
+        public string   SupplierID   { get; set; } = "";
+        public string   StorageLoc   { get; set; } = "";
+        public bool     ActiveFlag   { get; set; } = true;
     }
 }

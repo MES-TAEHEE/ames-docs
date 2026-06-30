@@ -4,10 +4,10 @@
 @inject AMES.Data.Repositories.MntRepository Mnt
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MNT-04 @L["MNT.Mold.Title"] · AMES</PageTitle>
+<PageTitle>MNT-004 @L["MNT.Mold.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">MNT-04</div>
+    <div class="ames-page-id">MNT-004</div>
     <div class="ames-page-t">@L["MNT.Mold.Title"]</div>
     <div class="ames-page-sub">@L["MNT.Mold.Sub"]</div>
 </div>
@@ -48,14 +48,14 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>Mold</th><th>Name</th><th class="num">Cavities</th><th class="num">Tonnage</th>
-                    <th class="num">Current shots</th><th class="num">Lifetime</th>
-                    <th class="num">Usage %</th><th>Threshold</th>
-                    <th>Status</th><th>Mounted on</th><th>Last maint.</th>
+                    <th>@L["Col.MoldId"]</th><th>@L["Col.MoldName"]</th><th class="num">@L["Col.Cavities"]</th><th class="num">@L["Col.Tonnage"]</th>
+                    <th class="num">@L["Col.ShotsCurrent"]</th><th class="num">@L["Col.ShotsLifetime"]</th>
+                    <th class="num">@L["Col.UsagePct"]</th><th>@L["Col.Flag"]</th>
+                    <th>@L["Col.Status"]</th><th>@L["Col.MountedOn"]</th><th>@L["Col.LastMaint"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var m in _rows)
+                @foreach (var m in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     var lifetime = m.LifetimeShots ?? m.RatedShots ?? 0;
                     var pct = lifetime > 0 && m.CurrentShots.HasValue
@@ -76,12 +76,15 @@
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
 @code {
     List<AMES.Data.Repositories.MntRepository.MoldRow> _allRows = new();
     List<AMES.Data.Repositories.MntRepository.MoldRow> _rows    = new();
+    int _page = 0;
+    const int _pageSize = 20;
     int    _warn, _crit;
     long   _totShots;
     string _fName = "", _fThreshold = "";
@@ -96,6 +99,7 @@
 
     void ApplyFilter()
     {
+        _page = 0;
         _rows = _allRows;
         if (!string.IsNullOrWhiteSpace(_fName))
             _rows = _rows.Where(m => (m.MoldName ?? "").Contains(_fName, StringComparison.OrdinalIgnoreCase) ||

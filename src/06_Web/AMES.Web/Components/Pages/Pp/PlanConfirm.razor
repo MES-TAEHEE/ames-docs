@@ -1,4 +1,5 @@
 ﻿@page "/pp/plan-confirm"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
 @inject IStringLocalizer<SharedResources> L
@@ -6,7 +7,7 @@
 <PageTitle>@L["PP.PlanConfirm.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">PP-03</div>
+    <div class="ames-page-id">PP-003</div>
     <div class="ames-page-t">@L["PP.PlanConfirm.Title"]</div>
     <div class="ames-page-sub">@L["PP.PlanConfirm.Sub"]</div>
 </div>
@@ -17,9 +18,9 @@
     else
     {
         <table class="ames-table">
-            <thead><tr><th>Code</th><th>Period</th><th>Status</th><th class="num">Lines</th><th class="num">Total Qty</th><th></th></tr></thead>
+            <thead><tr><th>@L["Col.Code"]</th><th>@L["Col.Period"]</th><th>@L["Col.Status"]</th><th class="num">@L["Col.Lines"]</th><th class="num">@L["Col.TotalQty"]</th><th></th></tr></thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     <tr>
                         <td class="code">@r.PlanCode</td>
@@ -37,10 +38,13 @@
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
 @code {
     List<AMES.Data.Repositories.PpRepository.SupplyPlanRow> _rows = new();
+    int _page = 0;
+    const int _pageSize = 20;
     protected override void OnInitialized() { try { _rows = Pp.ListSupplyPlans(); } catch { } }
 }

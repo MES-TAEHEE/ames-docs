@@ -12,7 +12,7 @@
     <div class="pop-tbar">
         <div style="display:flex; align-items:center;">
             <span class="pop-tbar-logo">A-MES</span>
-            <span class="pop-tbar-id">INJ-01 · @AppConfig.Current.StationId · @AppConfig.Current.LineId</span>
+            <span class="pop-tbar-id">@AppConfig.Current.ModuleCode · @AppConfig.Current.StationId · @AppConfig.Current.LineId</span>
         </div>
         <div class="pop-tbar-r">
             <span class="stat-on">● ONLINE</span>
@@ -145,11 +145,16 @@
         {
             SetStatus($"OK · Welcome, {outcome.Session.EmployeeName}", "ok");
             State.SignIn(outcome.Session);
-            var lineId = outcome.Session.LineId ?? "";
-            var target = lineId.Contains("QC",  StringComparison.OrdinalIgnoreCase) ? "/qc07"
-                       : lineId.Contains("PNT", StringComparison.OrdinalIgnoreCase) ? "/pnt02"
-                       : lineId.Contains("IMG", StringComparison.OrdinalIgnoreCase) ? "/img02"
-                       : "/inj02";
+            // Route to the module configured for this terminal (appsettings.json LineId),
+            // not the session's effectiveLineId which may have been rerouted to the
+            // employee's home line by PopAuthService when AssignedLines don't match.
+            var target = AppConfig.Current.ModuleCode switch
+            {
+                "QC"  => "/qc07",
+                "PNT" => "/pnt02",
+                "IMG" => "/img02",
+                _     => "/inj02"
+            };
             Nav.NavigateTo(target);
             return;
         }

@@ -1,49 +1,123 @@
-﻿@page "/pp/purchase-req"
+@page "/pp/purchase-req"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@rendermode InteractiveServer
 @inject AMES.Data.Repositories.PpRepository Pp
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["PP.PurchaseReq.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">PP-06</div>
+    <div class="ames-page-id">PP-006</div>
     <div class="ames-page-t">@L["PP.PurchaseReq.Title"]</div>
     <div class="ames-page-sub">@L["PP.PurchaseReq.Sub"]</div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">TOTAL</div><div class="ames-kpi-v">@_rows.Count</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">PENDING</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "Pending")</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">APPROVED</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "Approved")</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">SENT TO SAP</div><div class="ames-kpi-v">@_rows.Count(r => r.SapPoNumber != null)</div></div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">TOTAL</div>
+        <div class="ames-kpi-v">@_all.Count</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">PENDING</div>
+        <div class="ames-kpi-v">@_all.Count(r => r.Status == "Pending")</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">APPROVED</div>
+        <div class="ames-kpi-v">@_all.Count(r => r.Status == "Approved")</div>
+    </div>
+    <div class="ames-kpi info">
+        <div class="ames-kpi-l">SENT TO SAP</div>
+        <div class="ames-kpi-v">@_all.Count(r => r.SapPoNumber != null)</div>
+    </div>
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">▼ PURCHASE REQUESTS</div>
-    @if (_rows.Count == 0) { <div class="ames-empty">@L["PP.PurchaseReq.Empty"]</div> }
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ @L["PP.PurchaseReq.Title"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _all.Count ? $" / {L["Lbl.TotalOf"]} {_all.Count}" : "")</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input class="ames-input" style="width:180px;padding:4px 8px;"
+                   placeholder="@L["PP.PurchaseReq.Ph.Search"]" @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") Reload(); }' autocomplete="off" />
+            <select class="ames-input" style="width:120px;padding:4px 8px;" @bind="_fStatus">
+                <option value="">@L["PP.WorkOrder.Filter.AllStatus"]</option>
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Sent">Sent to SAP</option>
+            </select>
+            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Search"]</button>
+        </div>
+    </div>
+
+    @if (_err is not null)
+    {
+        <div class="ames-empty bad">@_err</div>
+    }
+    else if (_rows.Count == 0)
+    {
+        <div class="ames-empty">@L["PP.PurchaseReq.Empty"]</div>
+    }
     else
     {
         <table class="ames-table">
-            <thead><tr><th>PR No</th><th>Item</th><th>Vendor</th><th class="num">Qty</th><th>Required</th><th>Status</th><th>SAP PO</th></tr></thead>
+            <thead>
+                <tr>
+                    <th style="width:120px;">@L["Col.PrNo"]</th>
+                    <th>@L["Col.Item"]</th>
+                    <th style="width:110px;">@L["Col.Vendor"]</th>
+                    <th style="width:80px;text-align:right;">@L["Col.Qty"]</th>
+                    <th style="width:100px;">@L["Col.Required"]</th>
+                    <th style="width:90px;">@L["Col.Status"]</th>
+                    <th style="width:110px;">@L["Col.SapPo"]</th>
+                </tr>
+            </thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
+                    var stCls = r.Status switch {
+                        "Approved" => "ok",
+                        "Pending"  => "warn",
+                        _          => "dim"
+                    };
                     <tr>
                         <td class="code">@r.PrNumber</td>
-                        <td>@(r.ItemName ?? r.ItemNo)</td>
+                        <td title="@r.ItemNo">@(r.ItemName ?? r.ItemNo)</td>
                         <td class="dim">@r.VendorId</td>
-                        <td class="num">@r.RequiredQty.ToString("0")</td>
+                        <td style="text-align:right;">@r.RequiredQty.ToString("N0")</td>
                         <td class="dim">@(r.RequiredDate?.ToString("yyyy-MM-dd") ?? "—")</td>
-                        <td>@r.Status</td>
-                        <td class="code">@r.SapPoNumber</td>
+                        <td><span class="pill @stCls">@r.Status</span></td>
+                        <td class="code dim">@(r.SapPoNumber ?? "—")</td>
                     </tr>
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
 @code {
-    List<AMES.Data.Repositories.PpRepository.PrRow> _rows = new();
-    protected override void OnInitialized() { try { _rows = Pp.ListPurchaseRequests(); } catch { } }
+    List<AMES.Data.Repositories.PpRepository.PrRow> _all  = [];
+    List<AMES.Data.Repositories.PpRepository.PrRow> _rows = [];
+    int _page = 0;
+    const int _pageSize = 20;
+    string  _fSearch = "";
+    string  _fStatus = "";
+    string? _err;
+
+    protected override void OnInitialized() => Reload();
+
+    void Reload()
+    {
+        _page = 0;
+        _err = null;
+        try   { _all = Pp.ListPurchaseRequests(); }
+        catch (Exception ex) { _err = string.Format(L["Err.LoadFailed"].Value, ex.Message); _all = []; }
+
+        _rows = _all
+            .Where(r => string.IsNullOrWhiteSpace(_fSearch) ||
+                        r.PrNumber.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+                        (r.ItemNo   ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+                        (r.ItemName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase))
+            .Where(r => string.IsNullOrWhiteSpace(_fStatus) ||
+                        (_fStatus == "Sent" ? r.SapPoNumber != null : r.Status == _fStatus))
+            .ToList();
+    }
 }

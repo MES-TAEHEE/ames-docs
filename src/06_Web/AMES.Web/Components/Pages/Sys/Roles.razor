@@ -15,15 +15,15 @@
 
 <div class="ames-kpis">
     <div class="ames-kpi">
-        <div class="ames-kpi-l">역할</div>
+        <div class="ames-kpi-l">@L["SYS.Roles.Kpi.Roles"]</div>
         <div class="ames-kpi-v">@_rows.Count</div>
     </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">배정됨</div>
+        <div class="ames-kpi-l">@L["SYS.Roles.Kpi.Assigned"]</div>
         <div class="ames-kpi-v">@_rows.Count(r => r.UserCount > 0)</div>
     </div>
     <div class="ames-kpi warn">
-        <div class="ames-kpi-l">미사용</div>
+        <div class="ames-kpi-l">@L["SYS.Roles.Kpi.Unused"]</div>
         <div class="ames-kpi-v">@_rows.Count(r => r.UserCount == 0)</div>
     </div>
 </div>
@@ -37,8 +37,8 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
         <span>▼ @L["SYS.Roles.List"] · @_rows.Count @L["Lbl.Items"]</span>
         <div style="display:flex;gap:6px;">
-            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
             <button class="ames-btn ok" @onclick="Reload">@L["Btn.Search"]</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
         </div>
     </div>
 
@@ -51,12 +51,12 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>역할명</th>
-                    <th class="num">사용자 수</th>
+                    <th>@L["Col.RoleName"]</th>
+                    <th class="num">@L["Col.UserCount"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
                         <td class="code">@r.RoleName</td>
@@ -70,6 +70,7 @@
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
@@ -78,19 +79,19 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">신규 역할 등록</div>
+            <div class="ames-modal-h">@L["SYS.Roles.Modal.Create"]</div>
 
-            <label>역할 이름 *</label>
-            <input class="ames-input" @bind="_roleName" placeholder="예: Admin, Manager, Operator" autocomplete="off" />
+            <label>@L["SYS.Roles.Lbl.RoleName"]</label>
+            <input class="ames-input" @bind="_roleName" placeholder="@L["SYS.Roles.Ph.RoleName"]" autocomplete="off" />
 
             @if (!string.IsNullOrEmpty(_modalErr))
             { <div class="ames-alert bad">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">
-                    @(_busy ? "저장 중…" : "등록")
+                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">
+                    @(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)
                 </button>
-                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -101,15 +102,15 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">역할 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.RoleName</span></div>
+            <div class="ames-modal-h">@L["SYS.Roles.Modal.Edit"] — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.RoleName</span></div>
 
-            <label>역할 이름 *</label>
+            <label>@L["SYS.Roles.Lbl.RoleName"]</label>
             <input class="ames-input" @bind="_roleName" autocomplete="off" />
 
             @if (_sel.UserCount > 0)
             {
                 <div style="font-size:.82em;color:#94a3b8;margin-top:4px;">
-                    이 역할을 사용 중인 사용자: <strong style="color:#fbbf24;">@_sel.UserCount 명</strong>
+                    @L["SYS.Roles.InUseBy"] <strong style="color:#fbbf24;">@_sel.UserCount @L["Lbl.Persons"]</strong>
                 </div>
             }
 
@@ -119,15 +120,15 @@
                 <div class="ames-delete-confirm">
                     @if (_sel.UserCount > 0)
                     {
-                        <span>사용자 @_sel.UserCount 명이 배정된 역할입니다. 정말 삭제하시겠습니까?</span>
+                        <span>@string.Format(L["SYS.Roles.ConfirmDeleteInUse"].Value, _sel.UserCount)</span>
                     }
                     else
                     {
-                        <span>정말 삭제하시겠습니까?</span>
+                        <span>@L["Msg.Confirm.Delete"]</span>
                     }
-                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
+                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
                     <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">
-                        @(_busy ? "삭제 중…" : "예, 삭제")
+                        @(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)
                     </button>
                 </div>
             }
@@ -136,17 +137,19 @@
             { <div class="ames-alert bad">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok"  @onclick="SaveEdit" disabled="@_busy">
-                    @(_busy ? "저장 중…" : "수정")
+                <button class="ames-btn"  @onclick="SaveEdit" disabled="@_busy">
+                    @(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)
                 </button>
                 <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
 }
 
 @code {
+    int _page = 0;
+    const int _pageSize = 20;
     List<AMES.Data.Repositories.SysRepository.RoleRow> _rows = new();
     AMES.Data.Repositories.SysRepository.RoleRow? _sel;
 
@@ -160,7 +163,7 @@
 
     protected override void OnInitialized() => Reload();
 
-    void Reload() => _rows = Sys.ListRoles();
+    void Reload() { _page = 0; _rows = Sys.ListRoles(); }
 
     void OpenCreate()
     {
@@ -189,7 +192,7 @@
     async Task SaveCreate()
     {
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_roleName)) { _modalErr = "역할 이름을 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_roleName)) { _modalErr = L["SYS.Roles.Err.NameRequired"]; return; }
 
         _busy = true;
         try
@@ -202,7 +205,7 @@
             }
             var name = _roleName.Trim();
             CloseModal(); Reload();
-            ShowMsg($"'{name}' 역할 등록 완료.", false);
+            ShowMsg(string.Format(L["SYS.Roles.Ok.Created"].Value, name), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -212,13 +215,13 @@
     {
         if (_sel is null) return;
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_roleName)) { _modalErr = "역할 이름을 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_roleName)) { _modalErr = L["SYS.Roles.Err.NameRequired"]; return; }
 
         _busy = true;
         try
         {
             var role = await RoleMgr.FindByIdAsync(_sel.RoleId);
-            if (role is null) { _modalErr = "역할을 찾을 수 없습니다."; return; }
+            if (role is null) { _modalErr = L["SYS.Roles.Err.NotFound"]; return; }
 
             role.Name = _roleName.Trim();
             var result = await RoleMgr.UpdateAsync(role);
@@ -229,7 +232,7 @@
             }
             var name = _roleName.Trim();
             CloseModal(); Reload();
-            ShowMsg($"'{name}' 역할 수정 완료.", false);
+            ShowMsg(string.Format(L["SYS.Roles.Ok.Updated"].Value, name), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -246,7 +249,7 @@
 
             var name = _sel.RoleName;
             CloseModal(); Reload();
-            ShowMsg($"'{name}' 역할 삭제 완료.", false);
+            ShowMsg(string.Format(L["SYS.Roles.Ok.Deleted"].Value, name), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
         finally { _busy = false; }

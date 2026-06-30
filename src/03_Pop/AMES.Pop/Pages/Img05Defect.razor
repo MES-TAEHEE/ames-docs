@@ -8,7 +8,7 @@
     <div class="pop-tbar">
         <div style="display:flex; align-items:center;">
             <span class="pop-tbar-logo">A-MES</span>
-            <span class="pop-tbar-id">IMG-05 · DEFECT REGISTER · @Session?.LineId</span>
+            <span class="pop-tbar-id">IMG-005 · DEFECT REGISTER · @Session?.LineId</span>
         </div>
         <div class="pop-tbar-r">
             <span style="color:var(--warn);">⚠ DEFECT MODE</span>
@@ -66,12 +66,12 @@
     </div>
 
     <div class="pop-nav" style="--nav-cols:7;">
-        <button class="nav-btn" @onclick="@(() => Go("img02"))">IMG-02<small>Dashboard</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("img03"))">IMG-03<small>Prod Entry</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("img04"))">IMG-04<small>Fabric</small></button>
-        <button class="nav-btn active" @onclick="@(() => Go("img05"))">IMG-05<small>Defect</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("img06"))">IMG-06<small>Bond Setup</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("img07"))">IMG-07<small>Prod Status</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("img02"))">IMG-002<small>Dashboard</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("img03"))">IMG-003<small>Prod Entry</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("img04"))">IMG-004<small>Fabric</small></button>
+        <button class="nav-btn active" @onclick="@(() => Go("img05"))">IMG-005<small>Defect</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("img06"))">IMG-006<small>Bond Setup</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("img07"))">IMG-007<small>Prod Status</small></button>
         <button class="nav-btn muted" @onclick="Logout">LOGOUT<small>End shift</small></button>
     </div>
 </div>
@@ -118,13 +118,13 @@
             if (pct >= 5)
             {
                 PopServices.Andon.Raise(Session.LineId, equipId: null,
-                    triggerSource: "IMG-05", ruleId: "BR-INJ-03", severity: "HIGH", Session.EmployeeNo);
+                    triggerSource: "IMG-005", ruleId: "BR-INJ-003", severity: "HIGH", Session.EmployeeNo);
                 Nav.NavigateTo("/inj08");
                 return;
             }
             Nav.NavigateTo("/img03");
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[IMG-05] {ex.Message}"); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[IMG-005] {ex.Message}"); }
     }
 
     async Task Logout() { if (!await Confirmer.AskAsync("Log out?", "End your shift and return to the login screen?", "Log out", "Stay", destructive: true)) return; Nav.NavigateTo("/login", replace: true); State.SignOut(); }

@@ -2,12 +2,13 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AuthenticationStateProvider Auth
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["MD.PmTemplate.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">MD-028</div>
+    <div class="ames-page-id">MD-027</div>
     <div class="ames-page-t">@L["MD.PmTemplate.Title"]</div>
     <div class="ames-page-sub">@L["MD.PmTemplate.Sub"]</div>
 </div>
@@ -22,34 +23,42 @@
         <div class="ames-kpi-v">@_allRows.Count(r => r.ActiveFlag)</div>
     </div>
     <div class="ames-kpi warn">
-        <div class="ames-kpi-l">LOTO 필요</div>
+        <div class="ames-kpi-l">@L["MD.PmTemplate.Kpi.LoTo"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.SafetyLOTOFlag)</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">설비 유형 수</div>
+        <div class="ames-kpi-l">@L["MD.PmTemplate.Kpi.EquipTypes"]</div>
         <div class="ames-kpi-v">@_allRows.Select(r => r.EquipType).Where(t => t != null).Distinct().Count()</div>
     </div>
 </div>
 
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MD.PmTemplate.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.PmTemplate.List"] · @_rows.Count @L["Lbl.Items"]@if (_rows.Count < _allRows.Count) { <text> / @L["Lbl.TotalOf"] @_allRows.Count</text> }</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:150px;padding:4px 8px;"
-                   placeholder="템플릿ID / 템플릿명" @bind="_fSearch" autocomplete="off" />
+                   placeholder='@L["MD.LabelTemplate.Ph.Search"]' @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.EquipType"]</span>
             <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fEquipType">
-                <option value="">설비유형 전체</option>
+                <option value="">@L["Filter.AllEquipTypes"]</option>
                 @foreach (var t in _allRows.Select(r => r.EquipType).Where(x => x != null).Distinct().OrderBy(x => x))
                 {
                     <option value="@t">@t</option>
                 }
             </select>
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Active"]</span>
             <select class="ames-input" style="width:90px;padding:4px 8px;" @bind="_fActive">
-                <option value="">전체</option>
-                <option value="Y">활성</option>
-                <option value="N">비활성</option>
+                <option value="">@L["Filter.All"]</option>
+                <option value="Y">@L["Lbl.Active"]</option>
+                <option value="N">@L["Lbl.Inactive"]</option>
             </select>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
         </div>
     </div>
 
@@ -62,15 +71,15 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>템플릿 ID</th><th>템플릿명</th><th>설비 유형</th>
-                    <th>주기 기준</th><th class="num">주기값</th><th>단위</th>
-                    <th class="num">표준 소요(분)</th><th>LOTO</th><th>@L["Col.Status"]</th><th>점검 항목</th>
+                    <th>@L["Col.TemplateId"]</th><th>@L["Col.TemplateName"]</th><th>@L["Col.EquipType"]</th>
+                    <th>@L["Col.BasisCycle"]</th><th class="num">@L["Col.Cycle"]</th><th>@L["Col.Uom"]</th>
+                    <th class="num">@L["Col.StdDuration"]</th><th>@L["Col.LOTO"]</th><th>@L["Col.Status"]</th><th>@L["Col.CheckItems"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
-                    <tr @onclick="() => ToggleSteps(r.PMTemplateID)" style="cursor:pointer;">
+                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
                         <td class="code">@r.PMTemplateID</td>
                         <td>@(r.TemplateName ?? "—")</td>
                         <td class="dim">@(r.EquipType ?? "—")</td>
@@ -79,8 +88,8 @@
                         <td class="dim">@(r.IntervalUnit ?? "—")</td>
                         <td class="num">@(r.StdDurationMin?.ToString() ?? "—")</td>
                         <td>@(r.SafetyLOTOFlag ? (MarkupString)"<span class=\"pill warn\">LOTO</span>" : (MarkupString)"")</td>
-                        <td>@(r.ActiveFlag ? (MarkupString)"<span class=\"pill ok\">활성</span>" : (MarkupString)"<span class=\"pill bad\">비활성</span>")</td>
-                        <td class="dim">▶ 클릭하여 점검 항목 보기</td>
+                        <td>@if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> } else { <span class="pill bad">@L["Lbl.Inactive"]</span> }</td>
+                        <td><button class="ames-btn ghost" style="padding:2px 8px;font-size:.8em;" @onclick:stopPropagation @onclick="() => ToggleSteps(r.PMTemplateID)">▶</button></td>
                     </tr>
                     @if (_expandedId == r.PMTemplateID && _steps.Count > 0)
                     {
@@ -89,8 +98,8 @@
                                 <table class="ames-table" style="margin:8px 0;">
                                     <thead>
                                         <tr>
-                                            <th class="num">순서</th><th>점검 항목</th><th>합격 기준</th>
-                                            <th>필요 부품</th><th class="num">수량</th><th class="num">소요(분)</th>
+                                            <th class="num">@L["Col.Seq"]</th><th>@L["Col.CheckItem"]</th><th>@L["Col.PassCriteria"]</th>
+                                            <th>@L["Col.RequiredPart"]</th><th class="num">@L["Col.Qty"]</th><th class="num">@L["Col.DurationMin"]</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -113,17 +122,145 @@
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
+
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.PmTemplate.Title"] — @L["Btn.Create"]</div>
+
+            <label>@L["Col.TemplateId"]</label>
+            <input class="ames-input" @bind="_f.PMTemplateID" placeholder="PM-001" autocomplete="off" />
+
+            <label>@L["Col.TemplateName"]</label>
+            <input class="ames-input" @bind="_f.TemplateName" placeholder='@L["MD.PmTemplate.Ph.TemplateName"]' autocomplete="off" />
+
+            <label>@L["Col.EquipType"]</label>
+            <input class="ames-input" @bind="_f.EquipType" placeholder="INJECTION / PAINTING / CONVEYOR" autocomplete="off" />
+
+            <label>@L["Col.BasisCycle"]</label>
+            <select class="ames-input" @bind="_f.CycleBasis">
+                <option value="">@L["Opt.Select"]</option>
+                <option value="TIME">TIME</option>
+                <option value="COUNT">COUNT</option>
+                <option value="CALENDAR">CALENDAR</option>
+            </select>
+
+            <label>@L["Col.Cycle"]</label>
+            <input class="ames-input" type="number" @bind="_f.IntervalValue" placeholder="1" min="1" autocomplete="off" />
+
+            <label>@L["Col.Uom"]</label>
+            <input class="ames-input" @bind="_f.IntervalUnit" placeholder="MONTH / WEEK / DAY / SHOT" autocomplete="off" />
+
+            <label>@L["Col.StdDuration"] (분)</label>
+            <input class="ames-input" type="number" @bind="_f.StdDurationMin" placeholder="60" min="0" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.SafetyLOTOFlag" />
+                <span>@L["Col.LOTO"] 필요</span>
+            </label>
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.ActiveFlag" />
+                <span>@L["Lbl.Active"]</span>
+            </label>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.PmTemplate.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.PMTemplateID</span></div>
+
+            <label>@L["Col.TemplateName"]</label>
+            <input class="ames-input" @bind="_f.TemplateName" autocomplete="off" />
+
+            <label>@L["Col.EquipType"]</label>
+            <input class="ames-input" @bind="_f.EquipType" autocomplete="off" />
+
+            <label>@L["Col.BasisCycle"]</label>
+            <select class="ames-input" @bind="_f.CycleBasis">
+                <option value="">@L["Opt.Select"]</option>
+                <option value="TIME">TIME</option>
+                <option value="COUNT">COUNT</option>
+                <option value="CALENDAR">CALENDAR</option>
+            </select>
+
+            <label>@L["Col.Cycle"]</label>
+            <input class="ames-input" type="number" @bind="_f.IntervalValue" min="1" autocomplete="off" />
+
+            <label>@L["Col.Uom"]</label>
+            <input class="ames-input" @bind="_f.IntervalUnit" autocomplete="off" />
+
+            <label>@L["Col.StdDuration"] (분)</label>
+            <input class="ames-input" type="number" @bind="_f.StdDurationMin" min="0" autocomplete="off" />
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.SafetyLOTOFlag" />
+                <span>@L["Col.LOTO"] 필요</span>
+            </label>
+
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" @bind="_f.ActiveFlag" />
+                <span>@L["Lbl.Active"]</span>
+            </label>
+
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)</button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn" @onclick="SaveEdit" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     List<AMES.Data.Repositories.MasterDataRepository.PmTemplateRow>     _allRows = new();
     List<AMES.Data.Repositories.MasterDataRepository.PmTemplateRow>     _rows    = new();
     List<AMES.Data.Repositories.MasterDataRepository.PmTemplateStepRow> _steps   = new();
+    AMES.Data.Repositories.MasterDataRepository.PmTemplateRow? _sel;
+    int _page = 0;
+    const int _pageSize = 20;
     string _fSearch = "", _fEquipType = "", _fActive = "";
     string? _expandedId;
+    string _modal = "";
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _msg = "", _modalErr = "";
+    bool _isErr;
+    string _actor = "system";
+    FormModel _f = new();
 
-    protected override void OnInitialized() => Reload();
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        Reload();
+    }
 
     void Reload()
     {
@@ -135,6 +272,7 @@
 
     void ApplyFilter()
     {
+        _page = 0;
         _rows = _allRows;
         if (!string.IsNullOrWhiteSpace(_fSearch))
             _rows = _rows.Where(r =>
@@ -151,5 +289,101 @@
         if (_expandedId == templateId) { _expandedId = null; _steps = new(); return; }
         _expandedId = templateId;
         try { _steps = Md.ListPmTemplateSteps(templateId); } catch { _steps = new(); }
+    }
+
+    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+
+    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.PmTemplateRow r)
+    {
+        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _f = new()
+        {
+            TemplateName   = r.TemplateName   ?? "",
+            EquipType      = r.EquipType      ?? "",
+            CycleBasis     = r.CycleBasis     ?? "",
+            IntervalValue  = r.IntervalValue,
+            IntervalUnit   = r.IntervalUnit   ?? "",
+            StdDurationMin = r.StdDurationMin,
+            SafetyLOTOFlag = r.SafetyLOTOFlag,
+            ActiveFlag     = r.ActiveFlag,
+        };
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.PMTemplateID)) { _modalErr = L["Err.TemplateIdRequired"]; return; }
+        var id = _f.PMTemplateID.Trim();
+        if (Md.PmTemplateExists(id)) { _modalErr = $"'{id}' ID가 {L["Err.AlreadyExists"]}"; return; }
+        _busy = true;
+        try
+        {
+            Md.InsertPmTemplate(id, NE(_f.TemplateName), NE(_f.EquipType),
+                NE(_f.CycleBasis), _f.IntervalValue, NE(_f.IntervalUnit),
+                _f.StdDurationMin, _f.SafetyLOTOFlag, _f.ActiveFlag, _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{id} {L["Msg.Created"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        _busy = true;
+        try
+        {
+            Md.UpdatePmTemplate(_sel.PMTemplateID, NE(_f.TemplateName), NE(_f.EquipType),
+                NE(_f.CycleBasis), _f.IntervalValue, NE(_f.IntervalUnit),
+                _f.StdDurationMin, _f.SafetyLOTOFlag, _f.ActiveFlag, _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{_sel.PMTemplateID} {L["Msg.Updated"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            var id = _sel.PMTemplateID;
+            Md.DeletePmTemplate(_sel.PMTemplateID);
+            CloseModal(); Reload();
+            ShowMsg($"{id} {L["Msg.Deleted"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    class FormModel
+    {
+        public string  PMTemplateID   { get; set; } = "";
+        public string  TemplateName   { get; set; } = "";
+        public string  EquipType      { get; set; } = "";
+        public string  CycleBasis     { get; set; } = "";
+        public int?    IntervalValue  { get; set; }
+        public string  IntervalUnit   { get; set; } = "";
+        public int?    StdDurationMin { get; set; }
+        public bool    SafetyLOTOFlag { get; set; } = false;
+        public bool    ActiveFlag     { get; set; } = true;
     }
 }

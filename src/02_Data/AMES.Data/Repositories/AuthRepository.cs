@@ -103,21 +103,71 @@ public sealed class AuthRepository
 
     /// <summary>
     /// Bumps SYS_UserProfile.FailedLoginCount by 1.
-    /// AspNetUsers.AccessFailedCount stays untouched (managed by Identity in the web app).
+    /// When the count reaches 5 the AccountStatus is set to 'LOCKED' automatically.
+    /// Returns true if the account is now LOCKED (either just locked or was already LOCKED).
     /// </summary>
-    public void IncrementFailedCount(string userId)
+    public bool IncrementFailedCount(string userId)
     {
         const string sql = """
             UPDATE dbo.SYS_UserProfile
             SET    FailedLoginCount = ISNULL(FailedLoginCount, 0) + 1,
+                   AccountStatus    = CASE
+                                          WHEN ISNULL(FailedLoginCount, 0) + 1 >= 5
+                                          THEN 'LOCKED'
+                                          ELSE ISNULL(AccountStatus, 'Active')
+                                      END,
                    ModifiedBy       = @UserID,
                    ModifiedTS       = SYSDATETIME()
+            WHERE  UserID = @UserID;
+            SELECT ISNULL(AccountStatus, 'Active') FROM dbo.SYS_UserProfile WHERE UserID = @UserID;
+            """;
+
+        using var conn = _connFactory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@UserID", SqlDbType.NVarChar, 450).Value = userId;
+        var result = cmd.ExecuteScalar();
+        return result is string s && s == "LOCKED";
+    }
+
+    /// <summary>
+    /// Returns the current AccountStatus and FailedLoginCount for a user.
+    /// Returns ("Active", 0) when no SYS_UserProfile row exists.
+    /// </summary>
+    public (string AccountStatus, int FailedLoginCount) GetProfileStatus(string userId)
+    {
+        const string sql = """
+            SELECT ISNULL(AccountStatus, 'Active'), ISNULL(FailedLoginCount, 0)
+            FROM   dbo.SYS_UserProfile
             WHERE  UserID = @UserID;
             """;
 
         using var conn = _connFactory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@UserID", SqlDbType.NVarChar, 450).Value = userId;
+        using var rdr = cmd.ExecuteReader();
+        if (!rdr.Read()) return ("Active", 0);
+        return ((string)rdr[0], (int)rdr[1]);
+    }
+
+    /// <summary>
+    /// Resets AccountStatus to 'Active' and clears FailedLoginCount.
+    /// Called by SYS-001 admin unlock action.
+    /// </summary>
+    public void UnlockAccount(string userId, string modifiedBy)
+    {
+        const string sql = """
+            UPDATE dbo.SYS_UserProfile
+            SET    AccountStatus    = 'Active',
+                   FailedLoginCount = 0,
+                   ModifiedBy       = @ModifiedBy,
+                   ModifiedTS       = SYSDATETIME()
+            WHERE  UserID = @UserID;
+            """;
+
+        using var conn = _connFactory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@UserID",     SqlDbType.NVarChar,  450).Value = userId;
+        cmd.Parameters.Add("@ModifiedBy", SqlDbType.VarChar,    50).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 

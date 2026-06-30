@@ -4,10 +4,10 @@
 @inject AMES.Data.Repositories.MntRepository Mnt
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MNT-03 @L["MNT.OeeAnalysis.Title"] · AMES</PageTitle>
+<PageTitle>MNT-003 @L["MNT.OeeAnalysis.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">MNT-03</div>
+    <div class="ames-page-id">MNT-003</div>
     <div class="ames-page-t">@L["MNT.OeeAnalysis.Title"]</div>
     <div class="ames-page-sub">@L["MNT.OeeAnalysis.Sub"]</div>
 </div>
@@ -42,28 +42,28 @@
             <input class="ames-input" style="width:120px;padding:4px 8px;"
                    placeholder="@L["MNT.OeeAnalysis.Ph.Equip"]" @bind="_fEquip" autocomplete="off" />
             <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Period"]</label>
-            <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_daysBack">
-                <option value="7">7@L["Lbl.Days"]</option>
-                <option value="14">14@L["Lbl.Days"]</option>
-                <option value="30">30@L["Lbl.Days"]</option>
-                <option value="60">60@L["Lbl.Days"]</option>
+            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_daysBack">
+                <option value="7">7@(L["Lbl.Days"])</option>
+                <option value="14">14@(L["Lbl.Days"])</option>
+                <option value="30">30@(L["Lbl.Days"])</option>
+                <option value="60">60@(L["Lbl.Days"])</option>
             </select>
             <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
         </div>
     </div>
 </div>
 
-@foreach (var eq in _rows.GroupBy(r => r.EquipId).OrderBy(g => g.Key))
+@foreach (var eq in _rows.GroupBy(r => r.EquipId).OrderBy(g => g.Key).Skip(_page * _pageSize).Take(_pageSize))
 {
     <div class="ames-card">
         <div class="ames-card-h">▼ @eq.Key  ·  @eq.Count() rows  ·  avg OEE @(eq.Average(x => x.Oee ?? 0m).ToString("0.0"))%</div>
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>Date</th><th>Shift</th><th>Line</th>
-                    <th class="num">Plan min</th><th class="num">Down min</th>
-                    <th class="num">A%</th><th class="num">P%</th><th class="num">Q%</th><th class="num">OEE%</th>
-                    <th class="num">Good</th><th class="num">Total</th>
+                    <th>@L["Col.Date"]</th><th>@L["Col.Shift"]</th><th>@L["Col.Line"]</th>
+                    <th class="num">@L["Col.Plan"]</th><th class="num">@L["Col.MinDT"]</th>
+                    <th class="num">@L["Col.Availability"]</th><th class="num">@L["Col.Performance"]</th><th class="num">@L["Col.Quality"]</th><th class="num">@L["Col.OEE"]</th>
+                    <th class="num">@L["Col.Good"]</th><th class="num">@L["Col.Total"]</th>
                 </tr>
             </thead>
             <tbody>
@@ -88,6 +88,10 @@
     </div>
 }
 
+@if (_rows.Count > 0)
+{
+    <Pager Page="_page" Total="_rows.GroupBy(r => r.EquipId).Count()" PageSize="_pageSize" OnPageChange="p => _page = p" />
+}
 @if (_rows.Count == 0)
 {
     <div class="ames-card"><div class="ames-empty">@L["MNT.OeeAnalysis.Empty"]</div></div>
@@ -96,6 +100,8 @@
 @code {
     List<AMES.Data.Repositories.MntRepository.OeeRow> _allRows = new();
     List<AMES.Data.Repositories.MntRepository.OeeRow> _rows    = new();
+    int _page = 0;
+    const int _pageSize = 20;
     decimal _avgOee, _avgAvail, _avgPerf, _avgQual;
     int     _daysBack = 14;
     string  _fEquip   = "";
@@ -110,6 +116,7 @@
 
     void ApplyFilter()
     {
+        _page = 0;
         _rows = string.IsNullOrWhiteSpace(_fEquip)
             ? _allRows
             : _allRows.Where(r => (r.EquipId ?? "").Contains(_fEquip, StringComparison.OrdinalIgnoreCase)).ToList();

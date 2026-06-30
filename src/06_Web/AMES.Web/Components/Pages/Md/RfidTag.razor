@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AuthenticationStateProvider Auth
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["MD.RfidTag.Title"] · AMES</PageTitle>
@@ -22,29 +23,36 @@
         <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "ACTIVE")</div>
     </div>
     <div class="ames-kpi warn">
-        <div class="ames-kpi-l">교체 필요</div>
+        <div class="ames-kpi-l">@L["MD.RfidTag.Kpi.NeedReplace"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.ReplaceSchedule.HasValue && r.ReplaceSchedule.Value <= DateOnly.FromDateTime(DateTime.Today))</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">지그 연결</div>
+        <div class="ames-kpi-l">@L["MD.RfidTag.Kpi.JigLinked"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.JigID != null)</div>
     </div>
 </div>
 
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MD.RfidTag.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.RfidTag.List"] · @_rows.Count @L["Lbl.Items"]@if (_rows.Count < _allRows.Count) { <text> / @L["Lbl.TotalOf"] @_allRows.Count</text> }</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:140px;padding:4px 8px;"
-                   placeholder="TagID / EPC" @bind="_fSearch" autocomplete="off" />
+                   placeholder="TagID / EPC" @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
             <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fStatus">
                 <option value="">@L["Filter.AllStatus"]</option>
-                @foreach (var s in _allRows.Select(r => r.Status).Where(x => x != null).Distinct().OrderBy(x => x))
+                @foreach (var s in _rfidStatus.Where(x => x.UseFlag))
                 {
-                    <option value="@s">@s</option>
+                    <option value="@s.CodeValue">@(MasterDataRepository.LocalName(s))</option>
                 }
             </select>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
         </div>
     </div>
 
@@ -57,16 +65,16 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>Tag ID</th><th>EPC</th><th>태그 역할</th><th>지그 ID</th>
-                    <th>장착 위치</th><th class="num">내열 등급</th>
-                    <th class="num">사이클</th><th>설치일</th><th>교체 예정</th><th>@L["Col.Status"]</th>
+                    <th>@L["Col.TagId"]</th><th>@L["Col.EPC"]</th><th>@L["Col.TagRole"]</th><th>@L["Col.JigId"]</th>
+                    <th>@L["Col.MountLocation"]</th><th class="num">@L["Col.HeatRating"]</th>
+                    <th class="num">@L["Col.Cycles"]</th><th>@L["Col.InstallDate"]</th><th>@L["Col.ReplaceDue"]</th><th>@L["Col.Status"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     var needReplace = r.ReplaceSchedule.HasValue && r.ReplaceSchedule.Value <= DateOnly.FromDateTime(DateTime.Today);
-                    <tr>
+                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
                         <td class="code">@r.TagID</td>
                         <td class="dim">@(r.EPC ?? "—")</td>
                         <td>@(r.TagRole ?? "—")</td>
@@ -76,20 +84,151 @@
                         <td class="num">@(r.CycleCount?.ToString("N0") ?? "—")</td>
                         <td class="dim">@(r.InstallDate?.ToString("yy-MM-dd") ?? "—")</td>
                         <td class="@(needReplace ? "bad" : "dim")">@(r.ReplaceSchedule?.ToString("yy-MM-dd") ?? "—")</td>
-                        <td><span class="pill @(r.Status == "ACTIVE" ? "ok" : "warn")">@(r.Status ?? "—")</span></td>
+                        <td><span class="pill @(r.Status == "ACTIVE" ? "ok" : "warn")">@(_rfidStatus.FirstOrDefault(x => x.CodeValue == r.Status) is { } _stLf ? MasterDataRepository.LocalName(_stLf) : r.Status ?? "—")</span></td>
                     </tr>
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.RfidTag.Title"] — @L["Btn.Create"]</div>
+
+            <label>@L["Col.TagId"]</label>
+            <input class="ames-input" @bind="_f.TagID" placeholder="TAG-001" autocomplete="off" />
+
+            <label>@L["Col.EPC"]</label>
+            <input class="ames-input" @bind="_f.EPC" placeholder="E200..." autocomplete="off" />
+
+            <label>@L["Col.TagRole"]</label>
+            <input class="ames-input" @bind="_f.TagRole" placeholder="JIG / CARRIER" autocomplete="off" />
+
+            <label>@L["Col.JigId"]</label>
+            <input class="ames-input" @bind="_f.JigID" placeholder="JIG-001" autocomplete="off" />
+
+            <label>@L["Col.MountLocation"]</label>
+            <input class="ames-input" @bind="_f.MountPos" placeholder="TOP" autocomplete="off" />
+
+            <label>@L["Col.HeatRating"]</label>
+            <input class="ames-input" type="number" @bind="_f.HeatRating" placeholder="200" autocomplete="off" />
+
+            <label>@L["Col.Cycles"]</label>
+            <input class="ames-input" type="number" @bind="_f.CycleCount" placeholder="0" min="0" autocomplete="off" />
+
+            <label>@L["Col.InstallDate"]</label>
+            <input class="ames-input" type="text" @bind="_f.InstallDate" placeholder="yyyy-MM-dd" autocomplete="off" />
+
+            <label>@L["Col.ReplaceDue"]</label>
+            <input class="ames-input" type="text" @bind="_f.ReplaceSchedule" placeholder="yyyy-MM-dd" autocomplete="off" />
+
+            <label>@L["Col.Status"]</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var s in _rfidStatus.Where(x => x.UseFlag))
+                {
+                    <option value="@s.CodeValue">@(MasterDataRepository.LocalName(s))</option>
+                }
+            </select>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.RfidTag.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.TagID</span></div>
+
+            <label>@L["Col.EPC"]</label>
+            <input class="ames-input" @bind="_f.EPC" autocomplete="off" />
+
+            <label>@L["Col.TagRole"]</label>
+            <input class="ames-input" @bind="_f.TagRole" autocomplete="off" />
+
+            <label>@L["Col.JigId"]</label>
+            <input class="ames-input" @bind="_f.JigID" autocomplete="off" />
+
+            <label>@L["Col.MountLocation"]</label>
+            <input class="ames-input" @bind="_f.MountPos" autocomplete="off" />
+
+            <label>@L["Col.HeatRating"]</label>
+            <input class="ames-input" type="number" @bind="_f.HeatRating" autocomplete="off" />
+
+            <label>@L["Col.Cycles"]</label>
+            <input class="ames-input" type="number" @bind="_f.CycleCount" min="0" autocomplete="off" />
+
+            <label>@L["Col.InstallDate"]</label>
+            <input class="ames-input" type="text" @bind="_f.InstallDate" placeholder="yyyy-MM-dd" autocomplete="off" />
+
+            <label>@L["Col.ReplaceDue"]</label>
+            <input class="ames-input" type="text" @bind="_f.ReplaceSchedule" placeholder="yyyy-MM-dd" autocomplete="off" />
+
+            <label>@L["Col.Status"]</label>
+            <select class="ames-input" @bind="_f.Status">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var s in _rfidStatus.Where(x => x.UseFlag))
+                {
+                    <option value="@s.CodeValue">@(MasterDataRepository.LocalName(s))</option>
+                }
+            </select>
+
+            @if (_confirmDelete)
+            {
+                <div class="ames-delete-confirm">
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)</button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn" @onclick="SaveEdit" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)</button>
+                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
+    int _page = 0;
+    const int _pageSize = 20;
     List<AMES.Data.Repositories.MasterDataRepository.RfidTagRow> _allRows = new();
     List<AMES.Data.Repositories.MasterDataRepository.RfidTagRow> _rows    = new();
-    string _fSearch = "", _fStatus = "";
+    AMES.Data.Repositories.MasterDataRepository.RfidTagRow? _sel;
 
-    protected override void OnInitialized() => Reload();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _rfidStatus = new();
+    string _fSearch = "", _fStatus = "";
+    string _modal = "";
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _msg = "", _modalErr = "";
+    bool _isErr;
+    string _actor = "system";
+    FormModel _f = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        try { _rfidStatus = Md.ListCodeItems("RFID_STATUS"); } catch { }
+        Reload();
+    }
 
     void Reload()
     {
@@ -99,6 +238,7 @@
 
     void ApplyFilter()
     {
+        _page = 0;
         _rows = _allRows;
         if (!string.IsNullOrWhiteSpace(_fSearch))
             _rows = _rows.Where(r =>
@@ -106,5 +246,109 @@
                 (r.EPC ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)).ToList();
         if (!string.IsNullOrWhiteSpace(_fStatus))
             _rows = _rows.Where(r => r.Status == _fStatus).ToList();
+    }
+
+    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+
+    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.RfidTagRow r)
+    {
+        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _f = new()
+        {
+            EPC             = r.EPC       ?? "",
+            JigID           = r.JigID     ?? "",
+            TagRole         = r.TagRole   ?? "",
+            HeatRating      = r.HeatRating,
+            MountPos        = r.MountPos  ?? "",
+            InstallDate     = r.InstallDate?.ToString("yyyy-MM-dd") ?? "",
+            CycleCount      = r.CycleCount,
+            ReplaceSchedule = r.ReplaceSchedule?.ToString("yyyy-MM-dd") ?? "",
+            Status          = r.Status    ?? "ACTIVE",
+        };
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.TagID)) { _modalErr = L["Err.TagIdRequired"]; return; }
+        var id = _f.TagID.Trim();
+        if (Md.RfidTagExists(id)) { _modalErr = $"'{id}' TagID가 {L["Err.AlreadyExists"]}"; return; }
+        DateOnly? installDate     = DateOnly.TryParse(_f.InstallDate, out var d1)     ? d1 : null;
+        DateOnly? replaceSchedule = DateOnly.TryParse(_f.ReplaceSchedule, out var d2) ? d2 : null;
+        _busy = true;
+        try
+        {
+            Md.InsertRfidTag(id, NE(_f.EPC), NE(_f.JigID), NE(_f.TagRole),
+                _f.HeatRating, NE(_f.MountPos),
+                installDate, _f.CycleCount, replaceSchedule,
+                NE(_f.Status), _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{id} {L["Msg.Created"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        DateOnly? installDate     = DateOnly.TryParse(_f.InstallDate, out var d1)     ? d1 : null;
+        DateOnly? replaceSchedule = DateOnly.TryParse(_f.ReplaceSchedule, out var d2) ? d2 : null;
+        _busy = true;
+        try
+        {
+            Md.UpdateRfidTag(_sel.TagID, NE(_f.EPC), NE(_f.JigID), NE(_f.TagRole),
+                _f.HeatRating, NE(_f.MountPos),
+                installDate, _f.CycleCount, replaceSchedule,
+                NE(_f.Status), _actor);
+            CloseModal(); Reload();
+            ShowMsg($"{_sel.TagID} {L["Msg.Updated"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            var id = _sel.TagID;
+            Md.DeleteRfidTag(_sel.TagID);
+            CloseModal(); Reload();
+            ShowMsg($"{id} {L["Msg.Deleted"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    class FormModel
+    {
+        public string  TagID           { get; set; } = "";
+        public string  EPC             { get; set; } = "";
+        public string  JigID           { get; set; } = "";
+        public string  TagRole         { get; set; } = "";
+        public int?    HeatRating      { get; set; }
+        public string  MountPos        { get; set; } = "";
+        public string  InstallDate     { get; set; } = "";
+        public int?    CycleCount      { get; set; }
+        public string  ReplaceSchedule { get; set; } = "";
+        public string  Status          { get; set; } = "ACTIVE";
     }
 }

@@ -15,12 +15,12 @@
 ## 솔루션 구조
 
 ```
-01_Shared/AMES.Contracts   ← DTO + Enum, 의존성 없음 (net9.0)
-02_Data/AMES.Data          ← Repository 20개, ADO.NET + SqlClient (net9.0)
-03_Pop/AMES.Pop            ← WinForms + BlazorWebView 하이브리드, 공장 터미널 (net9.0-windows)
-04_Api/AMES.Api            ← Minimal API, PDA REST 서버 (net9.0)
-05_Pda/AMES.Pda            ← .NET MAUI Blazor Hybrid, 핸디 스캐너 (net9.0-android/windows)
-06_Web/AMES.Web            ← Blazor Server + ASP.NET Identity, 사무실 포탈 (net9.0)
+01_Shared/AMES.Contracts   ← DTO + Enum, 의존성 없음 (net10.0)
+02_Data/AMES.Data          ← Repository 20개, ADO.NET + SqlClient (net10.0)
+03_Pop/AMES.Pop            ← WinForms + BlazorWebView 하이브리드, 공장 터미널 (net10.0-windows)
+04_Api/AMES.Api            ← Minimal API, PDA REST 서버 (net10.0)
+05_Pda/AMES.Pda            ← .NET MAUI Blazor Hybrid, 핸디 스캐너 (net10.0-android/windows)
+06_Web/AMES.Web            ← Blazor Server + ASP.NET Identity, 사무실 포탈 (net10.0)
 ```
 
 ### 의존성 방향
@@ -36,11 +36,11 @@ Pda              →  Api (HTTP)
 
 | 항목 | 내용 |
 |------|------|
-| .NET | 9.0 |
+| .NET | 10.0 |
 | C# | nullable enable, implicit usings |
 | DB 접근 | ADO.NET (raw SqlCommand) — ORM 없음 (operational data) |
-| ORM | EF Core 9.0.16 — AMES.Web Identity 테이블 전용 |
-| WinForms UI | `Microsoft.AspNetCore.Components.WebView.WindowsForms` 9.0.0 |
+| ORM | EF Core 10.0.0 — AMES.Web Identity 테이블 전용 |
+| WinForms UI | `Microsoft.AspNetCore.Components.WebView.WindowsForms` 10.0.0 |
 | API | ASP.NET Minimal API (`MapGroup` 패턴) |
 | MAUI | `Microsoft.Maui.Controls` + `Microsoft.AspNetCore.Components.WebView.Maui` |
 | 인증 | Pop: PIN 기반 커스텀 / Web: ASP.NET Identity 쿠키 / API: Bearer Token (`TokenStore`) |

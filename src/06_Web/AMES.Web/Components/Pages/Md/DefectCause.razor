@@ -23,11 +23,11 @@
         <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Active")</div>
     </div>
     <div class="ames-kpi warn">
-        <div class="ames-kpi-l">근본원인</div>
+        <div class="ames-kpi-l">@L["MD.DefectCause.Kpi.RootCause"]</div>
         <div class="ames-kpi-v">@_allRows.Count(r => r.RootCauseFlag)</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">공정 수</div>
+        <div class="ames-kpi-l">@L["Kpi.ProcessCount"]</div>
         <div class="ames-kpi-v">@_allRows.Select(r => r.ProcessCode).Where(p => p != null).Distinct().Count()</div>
     </div>
 </div>
@@ -39,31 +39,36 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MD.DefectCause.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / 전체 {_allRows.Count}" : "")</span>
+        <span style="white-space:nowrap;">▼ @L["MD.DefectCause.List"] · @_rows.Count @L["Lbl.Items"]@if (_rows.Count < _allRows.Count) { <text> / @L["Lbl.TotalOf"] @_allRows.Count</text> }</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:160px;padding:4px 8px;"
-                   placeholder="원인코드 / 원인명" @bind="_fSearch" autocomplete="off" />
+                   placeholder='@L["MD.DefectCause.Ph.Search"]' @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Category"]</span>
             <select class="ames-input" style="width:120px;padding:4px 8px;" @bind="_fCategory">
-                <option value="">분류 전체</option>
+                <option value="">@L["Filter.AllCategories"]</option>
                 @foreach (var c in _allRows.Select(r => r.CauseCategory).Where(x => x != null).Distinct().OrderBy(x => x))
                 {
                     <option value="@c">@c</option>
                 }
             </select>
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Process"]</span>
             <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fProcess">
-                <option value="">공정 전체</option>
+                <option value="">@L["Filter.AllProcesses"]</option>
                 @foreach (var p in _allRows.Select(r => r.ProcessCode).Where(x => x != null).Distinct().OrderBy(x => x))
                 {
                     <option value="@p">@p</option>
                 }
             </select>
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
             <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fStatus">
                 <option value="">@L["Filter.AllStatus"]</option>
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
+                @foreach (var s in _causeStatus.Where(s => s.UseFlag))
+                {
+                    <option value="@s.CodeValue">@(MasterDataRepository.LocalName(s))</option>
+                }
             </select>
-            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
+            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
         </div>
     </div>
 
@@ -76,15 +81,15 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>원인코드</th><th>원인명</th><th>분류</th><th>공정</th>
-                    <th>상위원인</th><th>담당부서</th>
-                    <th style="text-align:center;">순번</th>
-                    <th style="text-align:center;">근본원인</th>
+                    <th>@L["Col.CauseCode"]</th><th>@L["Col.CauseName"]</th><th>@L["Col.Category"]</th><th>@L["Col.ProcessName"]</th>
+                    <th>@L["Col.UpperCause"]</th><th>@L["Col.Dept"]</th>
+                    <th style="text-align:center;">@L["Col.Seq"]</th>
+                    <th style="text-align:center;">@L["Col.RootCause"]</th>
                     <th>@L["Col.Status"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
                     <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
                         <td class="code">@r.CauseCode</td>
@@ -92,19 +97,24 @@
                         <td><span class="pill">@(r.CauseCategory ?? "—")</span></td>
                         <td class="dim">@(r.ProcessCode ?? "—")</td>
                         <td class="dim">@(r.ParentCauseCode ?? "—")</td>
-                        <td class="dim">@(r.ResponsibleDept ?? "—")</td>
+                        <td class="dim">@(_deptCodes.FirstOrDefault(d => d.CodeValue == r.ResponsibleDept) is { } _dLf ? MasterDataRepository.LocalName(_dLf) : r.ResponsibleDept ?? "—")</td>
                         <td style="text-align:center;" class="dim">@(r.SortOrder?.ToString() ?? "—")</td>
                         <td style="text-align:center;">
                             @if (r.RootCauseFlag) { <span class="pill ok">Y</span> }
                             else { <span class="dim">—</span> }
                         </td>
                         <td>
-                            <span class="pill @(r.Status == "Active" ? "ok" : "bad")">@(r.Status ?? "—")</span>
+                            @{
+                                var scls   = r.Status == "ACTIVE" ? "ok" : "bad";
+                                var sLabel = _causeStatus.FirstOrDefault(s => s.CodeValue == r.Status) is { } _stLf ? MasterDataRepository.LocalName(_stLf) : r.Status;
+                            }
+                            <span class="pill @scls">@(sLabel ?? "—")</span>
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
@@ -113,50 +123,69 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">신규 불량원인 등록</div>
+            <div class="ames-modal-h">@L["MD.DefectCause.Title"] — @L["Btn.Create"]</div>
 
-            <label>원인코드 * <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: CC-INJ-01)</span></label>
-            <input class="ames-input" @bind="_f.CauseCode" placeholder="CC-INJ-01" autocomplete="off" />
+            <label>@L["Col.CauseCode"] * <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: CC-INJ-001)</span></label>
+            <input class="ames-input" @bind="_f.CauseCode" placeholder="CC-INJ-001" autocomplete="off" />
 
-            <label>원인명 *</label>
-            <input class="ames-input" @bind="_f.CauseName" placeholder="금형 마모" autocomplete="off" />
+            <label>@L["Col.CauseName"] *</label>
+            <input class="ames-input" @bind="_f.CauseName" placeholder='@L["MD.DefectCause.Ph.CauseName"]' autocomplete="off" />
 
-            <label>분류</label>
+            <label>@L["Col.Category"]</label>
             <input class="ames-input" @bind="_f.CauseCategory" placeholder="MACHINE, MAN 등" maxlength="9" autocomplete="off" />
 
-            <label>공정코드</label>
+            <label>@L["Col.ProcessCode"]</label>
             <input class="ames-input" @bind="_f.ProcessCode" placeholder="INJ, PNT 등" maxlength="10" autocomplete="off" />
 
-            <label>상위원인코드</label>
-            <input class="ames-input" @bind="_f.ParentCauseCode" placeholder="CC-001" maxlength="16" autocomplete="off" />
-
-            <label>담당부서</label>
-            <input class="ames-input" @bind="_f.ResponsibleDept" placeholder="생산팀" maxlength="30" autocomplete="off" />
-
-            <label>시정조치 가이드</label>
-            <textarea class="ames-input" @bind="_f.CorrectiveGuide" rows="3"
-                      placeholder="시정조치 방법을 입력하세요" style="resize:vertical;"></textarea>
-
-            <label>정렬 순번</label>
-            <input class="ames-input" type="number" @bind="_f.SortOrder" placeholder="10" min="0" autocomplete="off" />
-
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" @bind="_f.RootCauseFlag" />
-                <span>근본원인</span>
+                <input type="checkbox" checked="@_f.RootCauseFlag"
+                       @onchange="e => { _f.RootCauseFlag = (bool)e.Value!; if (_f.RootCauseFlag) _f.ParentCauseCode = string.Empty; }" />
+                <span>@L["Col.RootCause"]</span>
             </label>
 
-            <label>상태</label>
+            @if (!_f.RootCauseFlag)
+            {
+                <label>@L["Col.DefaultCauseCode"]</label>
+                <select class="ames-input" @bind="_f.ParentCauseCode">
+                    <option value="">@L["Opt.None"]</option>
+                    @foreach (var rc in _allRows.Where(r => r.RootCauseFlag).OrderBy(r => r.CauseCode))
+                    {
+                        <option value="@rc.CauseCode">[@rc.CauseCode] @(rc.CauseName ?? rc.CauseCode)</option>
+                    }
+                </select>
+            }
+
+            <label>@L["Col.Dept"]</label>
+            <select class="ames-input" @bind="_f.ResponsibleDept">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var d in _deptCodes.Where(d => d.UseFlag))
+                {
+                    <option value="@d.CodeValue">@(MasterDataRepository.LocalName(d))</option>
+                }
+            </select>
+
+            <label>@L["Col.CorrectiveGuide"]</label>
+            <textarea class="ames-input" @bind="_f.CorrectiveGuide" rows="3"
+                      placeholder='@L["MD.DefectCause.Ph.CorrectiveGuide"]' style="resize:vertical;"></textarea>
+
+            <label>@L["Col.SortSeq"]</label>
+            <input class="ames-input" type="number" @bind="_f.SortOrder" placeholder="10" min="0" autocomplete="off" />
+
+            <label>@L["Col.Status"]</label>
             <select class="ames-input" @bind="_f.Status">
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var s in _causeStatus.Where(s => s.UseFlag))
+                {
+                    <option value="@s.CodeValue">@(MasterDataRepository.LocalName(s))</option>
+                }
             </select>
 
             @if (!string.IsNullOrEmpty(_modalErr))
             { <div class="ames-alert bad">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok" @onclick="SaveCreate" disabled="@_busy">@(_busy ? "저장 중…" : "등록")</button>
-                <button class="ames-btn" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? @L["Msg.Saving"] : @L["Btn.Create"])</button>
+                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -167,47 +196,66 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">불량원인 수정 — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.CauseCode</span></div>
+            <div class="ames-modal-h">@L["MD.DefectCause.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.CauseCode</span></div>
 
-            <label>원인명 *</label>
+            <label>@L["Col.CauseName"] *</label>
             <input class="ames-input" @bind="_f.CauseName" autocomplete="off" />
 
-            <label>분류</label>
+            <label>@L["Col.Category"]</label>
             <input class="ames-input" @bind="_f.CauseCategory" maxlength="9" autocomplete="off" />
 
-            <label>공정코드</label>
+            <label>@L["Col.ProcessCode"]</label>
             <input class="ames-input" @bind="_f.ProcessCode" maxlength="10" autocomplete="off" />
 
-            <label>상위원인코드</label>
-            <input class="ames-input" @bind="_f.ParentCauseCode" maxlength="16" autocomplete="off" />
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" checked="@_f.RootCauseFlag"
+                       @onchange="e => { _f.RootCauseFlag = (bool)e.Value!; if (_f.RootCauseFlag) _f.ParentCauseCode = string.Empty; }" />
+                <span>@L["Col.RootCause"]</span>
+            </label>
 
-            <label>담당부서</label>
-            <input class="ames-input" @bind="_f.ResponsibleDept" maxlength="30" autocomplete="off" />
+            @if (!_f.RootCauseFlag)
+            {
+                <label>@L["Col.DefaultCauseCode"]</label>
+                <select class="ames-input" @bind="_f.ParentCauseCode">
+                    <option value="">@L["Opt.None"]</option>
+                    @foreach (var rc in _allRows.Where(r => r.RootCauseFlag && r.CauseCode != _sel!.CauseCode).OrderBy(r => r.CauseCode))
+                    {
+                        <option value="@rc.CauseCode">[@rc.CauseCode] @(rc.CauseName ?? rc.CauseCode)</option>
+                    }
+                </select>
+            }
 
-            <label>시정조치 가이드</label>
+            <label>@L["Col.Dept"]</label>
+            <select class="ames-input" @bind="_f.ResponsibleDept">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var d in _deptCodes.Where(d => d.UseFlag))
+                {
+                    <option value="@d.CodeValue">@(MasterDataRepository.LocalName(d))</option>
+                }
+            </select>
+
+            <label>@L["Col.CorrectiveGuide"]</label>
             <textarea class="ames-input" @bind="_f.CorrectiveGuide" rows="3"
                       style="resize:vertical;"></textarea>
 
-            <label>정렬 순번</label>
+            <label>@L["Col.SortSeq"]</label>
             <input class="ames-input" type="number" @bind="_f.SortOrder" min="0" autocomplete="off" />
 
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" @bind="_f.RootCauseFlag" />
-                <span>근본원인</span>
-            </label>
-
-            <label>상태</label>
+            <label>@L["Col.Status"]</label>
             <select class="ames-input" @bind="_f.Status">
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var s in _causeStatus.Where(s => s.UseFlag))
+                {
+                    <option value="@s.CodeValue">@(MasterDataRepository.LocalName(s))</option>
+                }
             </select>
 
             @if (_confirmDelete)
             {
                 <div class="ames-delete-confirm">
-                    <span>정말 삭제하시겠습니까?</span>
-                    <button class="ames-btn" @onclick='() => _confirmDelete = false'>아니오</button>
-                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? "삭제 중…" : "예, 삭제")</button>
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
+                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? @L["Msg.Deleting"] : @L["Msg.Yes"])</button>
                 </div>
             }
 
@@ -215,9 +263,9 @@
             { <div class="ames-alert bad">@_modalErr</div> }
 
             <div class="ames-modal-footer">
-                <button class="ames-btn ok"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? "저장 중…" : "수정")</button>
+                <button class="ames-btn"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? @L["Msg.Saving"] : @L["Btn.Edit"])</button>
                 <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn"     @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ghost"     @onclick="CloseModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -227,7 +275,11 @@
     List<AMES.Data.Repositories.MasterDataRepository.DefectCauseRow> _allRows = new();
     List<AMES.Data.Repositories.MasterDataRepository.DefectCauseRow> _rows    = new();
     AMES.Data.Repositories.MasterDataRepository.DefectCauseRow? _sel;
+    int _page = 0;
+    const int _pageSize = 20;
 
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _deptCodes   = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _causeStatus = new();
     string _fSearch = "", _fCategory = "", _fProcess = "", _fStatus = "";
 
     string _modal = "";
@@ -241,19 +293,21 @@
     {
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
+        try { _deptCodes   = Md.ListCodeItems("DEPARTMENT");         } catch { }
+        try { _causeStatus = Md.ListCodeItems("DEFECT_CAUSE_STATUS"); } catch { }
         Reload();
     }
 
     void Reload() { _allRows = Md.ListDefectCauses(); ApplyFilter(); }
 
-    void ApplyFilter() => _rows = _allRows.Where(r =>
+    void ApplyFilter() { _page = 0; _rows = _allRows.Where(r =>
         (string.IsNullOrEmpty(_fSearch) ||
             r.CauseCode.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.CauseName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fCategory) || r.CauseCategory == _fCategory) &&
         (string.IsNullOrEmpty(_fProcess)  || r.ProcessCode   == _fProcess) &&
         (string.IsNullOrEmpty(_fStatus)   || r.Status        == _fStatus)
-    ).ToList();
+    ).ToList(); }
 
     void OpenCreate() { _f = new() { Status = "Active" }; _modalErr = ""; _confirmDelete = false; _modal = "create"; }
 
@@ -265,7 +319,7 @@
             CauseCode        = r.CauseCode,
             CauseName        = r.CauseName        ?? "",
             CauseCategory    = r.CauseCategory    ?? "",
-            ParentCauseCode  = r.ParentCauseCode  ?? "",
+            ParentCauseCode  = r.RootCauseFlag ? "" : (r.ParentCauseCode ?? ""),
             ProcessCode      = r.ProcessCode      ?? "",
             RootCauseFlag    = r.RootCauseFlag,
             CorrectiveGuide  = r.CorrectiveGuide  ?? "",
@@ -286,9 +340,9 @@
     void SaveCreate()
     {
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_f.CauseCode)) { _modalErr = "원인코드를 입력하세요."; return; }
-        if (string.IsNullOrWhiteSpace(_f.CauseName)) { _modalErr = "원인명을 입력하세요."; return; }
-        if (Md.DefectCauseExists(_f.CauseCode.Trim())) { _modalErr = $"원인코드 '{_f.CauseCode.Trim()}' 이 이미 존재합니다."; return; }
+        if (string.IsNullOrWhiteSpace(_f.CauseCode)) { _modalErr = L["Err.CauseCodeRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.CauseName)) { _modalErr = L["Err.CauseNameRequired"]; return; }
+        if (Md.DefectCauseExists(_f.CauseCode.Trim())) { _modalErr = $"원인코드 '{_f.CauseCode.Trim()}' 이 {L["Err.AlreadyExists"]}"; return; }
         _busy = true;
         try
         {
@@ -297,7 +351,7 @@
                 NE(_f.CorrectiveGuide), NE(_f.ResponsibleDept), _f.SortOrder,
                 NE(_f.Status), _actor);
             CloseModal(); Reload();
-            ShowMsg($"{_f.CauseName} 등록 완료.", false);
+            ShowMsg($"{_f.CauseName} {L["Msg.Created"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -307,7 +361,7 @@
     {
         if (_sel is null) return;
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_f.CauseName)) { _modalErr = "원인명을 입력하세요."; return; }
+        if (string.IsNullOrWhiteSpace(_f.CauseName)) { _modalErr = L["Err.CauseNameRequired"]; return; }
         _busy = true;
         try
         {
@@ -317,7 +371,7 @@
                 NE(_f.Status), _actor);
             var name = _f.CauseName;
             CloseModal(); Reload();
-            ShowMsg($"{name} 수정 완료.", false);
+            ShowMsg($"{name} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -332,7 +386,7 @@
             var name = _sel.CauseName ?? _sel.CauseCode;
             Md.DeleteDefectCause(_sel.CauseCode);
             CloseModal(); Reload();
-            ShowMsg($"{name} 삭제 완료.", false);
+            ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
         finally { _busy = false; }

@@ -1,4 +1,5 @@
-﻿@page "/pp/downtime"
+@page "/pp/downtime"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
 @inject IStringLocalizer<SharedResources> L
@@ -11,40 +12,169 @@
     <div class="ames-page-sub">@L["PP.Downtime.Sub"]</div>
 </div>
 
+@* ── KPI 스트립 ── *@
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">EVENTS</div><div class="ames-kpi-v">@_rows.Count</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">TOTAL MIN</div><div class="ames-kpi-v">@_rows.Sum(r => r.DurationMin)</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">UNRESOLVED</div><div class="ames-kpi-v">@_rows.Count(r => r.EndTs is null)</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">LINES</div><div class="ames-kpi-v">@_rows.Select(r => r.LineId).Distinct().Count()</div></div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">EVENTS</div>
+        <div class="ames-kpi-v">@_rows.Count</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">TOTAL MIN</div>
+        <div class="ames-kpi-v">@_rows.Sum(r => r.DurationMin)</div>
+    </div>
+    <div class="ames-kpi bad">
+        <div class="ames-kpi-l">UNRESOLVED</div>
+        <div class="ames-kpi-v">@_rows.Count(r => r.EndTs is null)</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">LINES</div>
+        <div class="ames-kpi-v">@_rows.Select(r => r.LineId).Distinct().Count()</div>
+    </div>
+    <div class="ames-kpi @(_avgDuration > 30 ? "bad" : "")">
+        <div class="ames-kpi-l">AVG MIN</div>
+        <div class="ames-kpi-v">@_avgDuration.ToString("0.0")</div>
+    </div>
 </div>
 
+@* ── 데이터 테이블 (필터 포함) ── *@
 <div class="ames-card">
-    <div class="ames-card-h">▼ DOWNTIME EVENTS</div>
-    @if (_rows.Count == 0) { <div class="ames-empty">@L["PP.Downtime.Empty"]</div> }
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">
+            ▼ DOWNTIME EVENTS · @_rows.Count 건
+        </span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Line"]</span>
+            <select class="ames-input" style="width:120px;padding:4px 8px;" @bind="_filterLine">
+                <option value="">@L["PP.Downtime.Filter.AllLines"]</option>
+                @foreach (var l in _lines)
+                { <option value="@l">@l</option> }
+            </select>
+            <input class="ames-input" type="date" style="width:130px;padding:4px 8px;" @bind="_filterFrom" />
+            <input class="ames-input" type="date" style="width:130px;padding:4px 8px;" @bind="_filterTo" />
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
+            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_filterStatus">
+                <option value="">@L["PP.Downtime.Filter.AllStatus"]</option>
+                <option value="open">@L["PP.Downtime.Status.Open"]</option>
+                <option value="closed">@L["PP.Downtime.Status.Closed"]</option>
+            </select>
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Reason"]</span>
+            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_filterReason">
+                <option value="">@L["PP.Downtime.Filter.AllReason"]</option>
+                <option value="MECH">MECH</option>
+                <option value="ELEC">ELEC</option>
+                <option value="MAT">MAT</option>
+                <option value="OPER">OPER</option>
+                <option value="PLAN">PLAN</option>
+                <option value="OTHER">OTHER</option>
+            </select>
+            <button class="ames-btn ok" @onclick="Search">@L["Btn.Search"]</button>
+            <button class="ames-btn ghost" @onclick="Reset">@L["Btn.Reset"]</button>
+        </div>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="ames-empty">@L["Lbl.Loading"]</div>
+    }
+    else if (_rows.Count == 0)
+    {
+        <div class="ames-empty">@L["PP.Downtime.Empty"]</div>
+    }
     else
     {
         <table class="ames-table">
-            <thead><tr><th>Line</th><th>Start</th><th>End</th><th class="num">Min</th><th>Reason</th><th>Cause</th><th>WO</th><th>Comment</th></tr></thead>
+            <thead>
+                <tr>
+                    <th>@L["Col.Line"]</th>
+                    <th>@L["Col.Start"]</th>
+                    <th>@L["Col.End"]</th>
+                    <th class="num">@L["Col.MinDown"]</th>
+                    <th>@L["Col.Reason"]</th>
+                    <th>@L["Col.Cause"]</th>
+                    <th>@L["Col.WO"]</th>
+                    <th>@L["Col.Status"]</th>
+                    <th>@L["Col.Comment"]</th>
+                </tr>
+            </thead>
             <tbody>
-                @foreach (var r in _rows)
+                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
                 {
+                    var isOpen = r.EndTs is null;
                     <tr>
-                        <td>@r.LineId</td>
+                        <td class="code">@r.LineId</td>
                         <td class="dim">@(r.StartTs?.ToString("MM-dd HH:mm") ?? "—")</td>
                         <td class="dim">@(r.EndTs?.ToString("MM-dd HH:mm") ?? "—")</td>
-                        <td class="num">@r.DurationMin</td>
-                        <td>@r.ReasonCode</td>
-                        <td class="dim">@r.CauseCode</td>
-                        <td class="code">@r.WoId</td>
+                        <td class="num @(r.DurationMin > 30 ? "bad" : "")">@r.DurationMin</td>
+                        <td>@(r.ReasonCode ?? "—")</td>
+                        <td class="dim">@(r.CauseCode ?? "—")</td>
+                        <td class="code">@(r.WoId?.ToString() ?? "—")</td>
+                        <td>
+                            @if (isOpen)
+                            { <span class="badge-bad">@L["PP.Downtime.Status.Open"]</span> }
+                            else
+                            { <span class="badge-ok">@L["PP.Downtime.Status.Closed"]</span> }
+                        </td>
                         <td class="dim">@r.Comment</td>
                     </tr>
                 }
             </tbody>
         </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
+
+        @if (_rows.Count >= 500)
+        {
+            <div style="padding:.5rem 0;font-size:.78rem;color:#64748b;">
+                @L["PP.Downtime.LimitNote"]
+            </div>
+        }
     }
 </div>
 
 @code {
-    List<AMES.Data.Repositories.PpRepository.DowntimeRow> _rows = new();
-    protected override void OnInitialized() { try { _rows = Pp.ListDowntime(); } catch { } }
+    List<AMES.Data.Repositories.PpRepository.DowntimeRow> _rows = [];
+    int _page = 0;
+    const int _pageSize = 20;
+    List<string> _lines = [];
+
+    string   _filterLine   = "";
+    DateTime _filterFrom   = DateTime.Today.AddDays(-7);
+    DateTime _filterTo     = DateTime.Today;
+    string   _filterStatus = "";
+    string   _filterReason = "";
+    bool     _loading      = false;
+
+    double _avgDuration => _rows.Count > 0 ? _rows.Average(r => (double)r.DurationMin) : 0.0;
+
+    protected override void OnInitialized()
+    {
+        try { _lines = Pp.ListDowntimeLines(); } catch { }
+        Search();
+    }
+
+    void Search()
+    {
+        _page = 0;
+        _loading = true;
+        try
+        {
+            _rows = Pp.ListDowntimeFiltered(
+                lineId:     string.IsNullOrEmpty(_filterLine)   ? null : _filterLine,
+                from:       _filterFrom,
+                to:         _filterTo,
+                status:     string.IsNullOrEmpty(_filterStatus) ? null : _filterStatus,
+                reasonCode: string.IsNullOrEmpty(_filterReason) ? null : _filterReason);
+        }
+        catch { _rows = []; }
+        finally { _loading = false; }
+    }
+
+    void Reset()
+    {
+        _filterLine   = "";
+        _filterFrom   = DateTime.Today.AddDays(-7);
+        _filterTo     = DateTime.Today;
+        _filterStatus = "";
+        _filterReason = "";
+        Search();
+    }
 }

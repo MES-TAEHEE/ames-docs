@@ -8,7 +8,7 @@
     <div class="pop-tbar">
         <div style="display:flex; align-items:center;">
             <span class="pop-tbar-logo">A-MES</span>
-            <span class="pop-tbar-id">IMG-02 · @Session?.TerminalId · @Session?.LineId</span>
+            <span class="pop-tbar-id">IMG-002 · @Session?.TerminalId · @Session?.LineId</span>
         </div>
         <div class="pop-tbar-r">
             <span class="@_eqClass">● @_eqStatus</span>
@@ -103,12 +103,12 @@
     </div>
 
     <div class="pop-nav" style="--nav-cols:7;">
-        <button class="nav-btn active" @onclick="@(() => Go("img02"))">IMG-02<small>Dashboard</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("img03"))">IMG-03<small>Prod Entry</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("img04"))">IMG-04<small>Fabric</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("img05"))">IMG-05<small>Defect</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("img06"))">IMG-06<small>Bond Setup</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("img07"))">IMG-07<small>Prod Status</small></button>
+        <button class="nav-btn active" @onclick="@(() => Go("img02"))">IMG-002<small>Dashboard</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("img03"))">IMG-003<small>Prod Entry</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("img04"))">IMG-004<small>Fabric</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("img05"))">IMG-005<small>Defect</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("img06"))">IMG-006<small>Bond Setup</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("img07"))">IMG-007<small>Prod Status</small></button>
         <button class="nav-btn muted" @onclick="Logout">LOGOUT<small>End shift</small></button>
     </div>
 </div>
@@ -193,7 +193,7 @@
         else
         {
             _fabricMText = "— m"; _fabricText = "no roll"; _fabricColor = "—";
-            _fabricRoll  = "IMG-04 required"; _fabricClass = "alert";
+            _fabricRoll  = "IMG-004 required"; _fabricClass = "alert";
         }
 
         _hourly = PopServices.Production.GetHourlyToday(Session.LineId);

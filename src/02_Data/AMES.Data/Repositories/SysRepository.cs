@@ -17,8 +17,9 @@ public sealed class SysRepository
     public sealed record UserRow(string UserId, string? UserName, string? Email,
         bool EmailConfirmed, bool LockedOut, int AccessFailedCount,
         string? EmployeeNo, string? EmployeeName, string? Department,
+        string? PlantCode, string? DefaultShift,
         string? AccountStatus, DateTime? LastLoginTs, string? RolesCsv,
-        string? AssignedLines);
+        string? AssignedLines, int FailedLoginCount);
 
     public sealed record LineRow(string LineId, string LineName);
 
@@ -30,7 +31,7 @@ public sealed class SysRepository
     public sealed record CalendarRow(int FactoryCalendarId, DateTime? CalendarDate,
         string? DayType, string? HolidayName, int? ShiftCount, string? ShiftCode,
         TimeSpan? StartTime, TimeSpan? EndTime, int? BreakMinutes,
-        decimal? NetWorkHours, string? Plant);
+        decimal? NetWorkHours, string? PlantCode);
 
     public sealed record InterfaceRow(int InterfaceMonitorId, string? InterfaceCode,
         string? InterfaceName, string? Direction, string? Endpoint, string? Protocol,
@@ -53,12 +54,9 @@ public sealed class SysRepository
         string? UserName, string? Channel, string? Address, bool IsEnabled,
         TimeSpan? QuietHoursStart, TimeSpan? QuietHoursEnd, DateTime? VerifiedAt);
 
-    public sealed record MenuRow(int MenuId, string MenuCode, string SectionCode,
-        string MenuName, string? MenuNameEn, string? HRef, string? LidLabel,
+    public sealed record ScreenRow(int ScreenId, string ScreenCode, string ModuleCode,
+        string ScreenName, string? ScreenNameEn, string? HRef, string? LidLabel,
         int? SortOrder, bool IsVisible, int RoleCount);
-
-    public sealed record MenuRoleRow(int MenuRoleId, int MenuId,
-        string RoleName, string PermType);
 
     public sealed record ConfigRow(int ConfigId, string? ConfigKey, string? ConfigType,
         string? Category, string? ConfigValue, string? CodeName, string? Unit,
@@ -66,7 +64,7 @@ public sealed class SysRepository
 
     public sealed record HealthKpi(int Users, int Roles, int InterfacesOk, int InterfacesDown,
         int AuditLast24h, int NotifLast24h, int NotifFailedLast24h, int ConfigKeys,
-        long DbRowsApprox);
+        int Screens, int Permissions, long DbRowsApprox);
 
     public sealed record UserSelectRow(string Id, string? UserName, string? Email, string? PhoneNumber);
 
@@ -78,8 +76,10 @@ public sealed class SysRepository
                    u.Id, u.UserName, u.Email, u.EmailConfirmed, u.AccessFailedCount,
                    CASE WHEN u.LockoutEnd IS NOT NULL AND u.LockoutEnd > SYSDATETIMEOFFSET()
                         THEN CAST(1 AS BIT) ELSE CAST(0 AS BIT) END AS LockedOut,
-                   p.EmployeeNo, p.EmployeeName, p.Department, p.AccountStatus, p.LastLoginTS,
+                   p.EmployeeNo, p.EmployeeName, p.Department, p.PlantCode, p.DefaultShift,
+                   p.AccountStatus, p.LastLoginTS,
                    p.AssignedLines,
+                   ISNULL(p.FailedLoginCount, 0) AS FailedLoginCount,
                    STUFF((SELECT ', ' + r.Name
                           FROM   dbo.AspNetUserRoles ur
                           JOIN   dbo.AspNetRoles r ON r.Id = ur.RoleId
@@ -93,8 +93,10 @@ public sealed class SysRepository
             (string)r["Id"], r["UserName"] as string, r["Email"] as string,
             (bool)r["EmailConfirmed"], (bool)r["LockedOut"], (int)r["AccessFailedCount"],
             r["EmployeeNo"] as string, r["EmployeeName"] as string, r["Department"] as string,
+            r["PlantCode"] as string, r["DefaultShift"] as string,
             r["AccountStatus"] as string, r["LastLoginTS"] as DateTime?,
-            r["RolesCsv"] as string, r["AssignedLines"] as string),
+            r["RolesCsv"] as string, r["AssignedLines"] as string,
+            Convert.ToInt32(r["FailedLoginCount"])),
             ("@N", topN));
     }
 
@@ -196,7 +198,7 @@ public sealed class SysRepository
         const string sql = """
             SELECT  FactoryCalendarID, CalendarDate, DayType, HolidayName,
                     ShiftCount, ShiftCode, StartTime, EndTime, BreakMinutes,
-                    NetWorkHours, Plant
+                    NetWorkHours, PlantCode
             FROM    dbo.SYS_FactoryCalendar
             WHERE   CalendarDate BETWEEN DATEADD(DAY, -@B, CAST(SYSDATETIME() AS DATE))
                                      AND DATEADD(DAY,  @A, CAST(SYSDATETIME() AS DATE))
@@ -208,7 +210,7 @@ public sealed class SysRepository
             r["ShiftCount"] as int?, r["ShiftCode"] as string,
             r["StartTime"] as TimeSpan?, r["EndTime"] as TimeSpan?,
             r["BreakMinutes"] as int?, r["NetWorkHours"] as decimal?,
-            r["Plant"] as string),
+            r["PlantCode"] as string),
             ("@A", daysAhead), ("@B", daysBack));
     }
 
@@ -217,7 +219,7 @@ public sealed class SysRepository
         const string sql = """
             SELECT  FactoryCalendarID, CalendarDate, DayType, HolidayName,
                     ShiftCount, ShiftCode, StartTime, EndTime, BreakMinutes,
-                    NetWorkHours, Plant
+                    NetWorkHours, PlantCode
             FROM    dbo.SYS_FactoryCalendar
             WHERE   CalendarDate BETWEEN CAST(@From AS DATE) AND CAST(@To AS DATE)
             ORDER   BY CalendarDate, ShiftCode;
@@ -228,19 +230,19 @@ public sealed class SysRepository
             r["ShiftCount"] as int?, r["ShiftCode"] as string,
             r["StartTime"] as TimeSpan?, r["EndTime"] as TimeSpan?,
             r["BreakMinutes"] as int?, r["NetWorkHours"] as decimal?,
-            r["Plant"] as string),
+            r["PlantCode"] as string),
             ("@From", from.Date), ("@To", to.Date));
     }
 
     public void InsertCalendarShift(DateTime date, string dayType, string? holidayName,
         int? shiftCount, string? shiftCode, TimeSpan? start, TimeSpan? end,
-        int? breakMin, decimal? netHours, int calendarYear, string plant, string createdBy)
+        int? breakMin, decimal? netHours, int calendarYear, string plantCode, string createdBy)
     {
         const string sql = """
             INSERT INTO dbo.SYS_FactoryCalendar
                    (CalendarDate, DayType, HolidayName, ShiftCount, ShiftCode,
                     StartTime, EndTime, BreakMinutes, NetWorkHours,
-                    CalendarYear, Plant, CreatedBy, CreatedTS)
+                    CalendarYear, PlantCode, CreatedBy, CreatedTS)
             VALUES (CAST(@Date AS DATE), @DayType, @HolidayName, @ShiftCount, @ShiftCode,
                     @Start, @End, @Break, @Net,
                     @Year, @Plant, @CreatedBy, SYSDATETIME())
@@ -256,7 +258,7 @@ public sealed class SysRepository
             ("@Break",       (object?)breakMin ?? DBNull.Value),
             ("@Net",         (object?)netHours ?? DBNull.Value),
             ("@Year",        calendarYear),
-            ("@Plant",       string.IsNullOrWhiteSpace(plant) ? (object)DBNull.Value : plant),
+            ("@Plant",       string.IsNullOrWhiteSpace(plantCode) ? (object)DBNull.Value : plantCode),
             ("@CreatedBy",   createdBy));
     }
 
@@ -341,6 +343,37 @@ public sealed class SysRepository
     }
 
     // ── SYS-05 Audit Log ────────────────────────────────────────────────
+    public void InsertAuditLog(
+        string? moduleCode, string? screenCode,
+        string actionType, string? targetEntity, string? targetId,
+        string? beforeJson, string? afterJson,
+        string actorUserId, string? ipAddress = null,
+        string result = "OK", string? note = null)
+    {
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand("""
+            INSERT INTO dbo.SYS_AuditLog
+                   (EventTS, ActorUserID, ModuleCode, ScreenCode, ActionType,
+                    TargetEntity, TargetID, BeforeValueJSON, AfterValueJSON,
+                    IPAddress, Result, Note, CreatedBy, CreatedTS)
+            VALUES (SYSDATETIME(), @Actor, @Mod, @Scr, @Act,
+                    @Ent, @TID, @Before, @After,
+                    @IP, @Res, @Note, @Actor, SYSDATETIME())
+            """, conn);
+        cmd.Parameters.AddWithValue("@Actor",  actorUserId);
+        cmd.Parameters.AddWithValue("@Mod",    (object?)moduleCode   ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@Scr",    (object?)screenCode   ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@Act",    actionType);
+        cmd.Parameters.AddWithValue("@Ent",    (object?)targetEntity ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@TID",    (object?)targetId     ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@Before", (object?)beforeJson   ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@After",  (object?)afterJson    ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@IP",     (object?)ipAddress    ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@Res",    result);
+        cmd.Parameters.AddWithValue("@Note",   (object?)note         ?? DBNull.Value);
+        cmd.ExecuteNonQuery();
+    }
+
     public List<AuditRow> ListAudit(int topN = 200)
     {
         const string sql = """
@@ -453,88 +486,85 @@ public sealed class SysRepository
             ("@N", topN));
     }
 
-    // ── SYS-04 Menu Management ─────────────────────────────────────────
-    public List<MenuRow> ListMenus(string? sectionCode = null)
+    // ── SYS-03 Screen Management ───────────────────────────────────────
+    public List<ScreenRow> ListScreens(string? moduleCode = null)
     {
         const string sql = """
-            SELECT  m.MenuID, m.MenuCode, m.SectionCode, m.MenuName, m.MenuNameEn,
+            SELECT  m.ScreenID, m.ScreenCode, m.ModuleCode, m.ScreenName, m.ScreenNameEn,
                     m.HRef, m.LidLabel, m.SortOrder,
                     ISNULL(m.IsVisible, 1) AS IsVisible,
-                    (SELECT COUNT(*) FROM dbo.MD_MenuRole mr WHERE mr.MenuID = m.MenuID) AS RoleCount
-            FROM    dbo.MD_Menu m
+                    (SELECT COUNT(DISTINCT rp.RoleName) FROM dbo.SYS_RolePermission rp WHERE rp.ScreenCode = m.ScreenCode) AS RoleCount
+            FROM    dbo.SYS_Screen m
             {WHERE}
-            ORDER   BY m.SectionCode, ISNULL(m.SortOrder, 999), m.MenuCode;
+            ORDER   BY m.ModuleCode, ISNULL(m.SortOrder, 999), m.ScreenCode;
             """;
-        var where = sectionCode is null ? "" : "WHERE m.SectionCode = @Section";
+        var where = moduleCode is null ? "" : "WHERE m.ModuleCode = @Module";
         var query = sql.Replace("{WHERE}", where);
-        return sectionCode is null
-            ? Query(query, MapMenu)
-            : Query(query, MapMenu, ("@Section", sectionCode));
+        return moduleCode is null
+            ? Query(query, MapScreen)
+            : Query(query, MapScreen, ("@Module", moduleCode));
     }
 
-    public List<MenuRoleRow> ListMenuRoles(int menuId)
+    public void InsertScreen(string screenCode, string moduleCode,
+        string screenName, string? screenNameEn, string? href, string? lidLabel,
+        int? sortOrder, bool isVisible, string createdBy)
     {
         const string sql = """
-            SELECT  MenuRoleID, MenuID, RoleName, PermType
-            FROM    dbo.MD_MenuRole
-            WHERE   MenuID = @MenuID
-            ORDER   BY RoleName, PermType;
-            """;
-        return Query(sql, r => new MenuRoleRow(
-            (int)r["MenuRoleID"], (int)r["MenuID"],
-            (string)r["RoleName"], (string)r["PermType"]),
-            ("@MenuID", menuId));
-    }
-
-    public void UpdateMenuBasic(int menuId, string? menuNameEn, bool isVisible, string modifiedBy)
-    {
-        const string sql = """
-            UPDATE dbo.MD_Menu
-            SET    MenuNameEn  = @NameEn,
-                   IsVisible   = @Visible,
-                   ModifiedBy  = @ModifiedBy,
-                   ModifiedTS  = SYSDATETIME()
-            WHERE  MenuID = @Id
+            INSERT INTO dbo.SYS_Screen
+                   (ScreenCode, ModuleCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy)
+            VALUES (@Code, @Module, @Name, @NameEn, @HRef, @Lid, @Sort, @Visible, @CreatedBy)
             """;
         Exec(sql,
-            ("@Id",         menuId),
-            ("@NameEn",     (object?)menuNameEn ?? DBNull.Value),
+            ("@Code",      screenCode),
+            ("@Module",    moduleCode),
+            ("@Name",      screenName),
+            ("@NameEn",    (object?)screenNameEn ?? DBNull.Value),
+            ("@HRef",      (object?)href         ?? DBNull.Value),
+            ("@Lid",       (object?)lidLabel      ?? DBNull.Value),
+            ("@Sort",      (object?)sortOrder     ?? DBNull.Value),
+            ("@Visible",   isVisible),
+            ("@CreatedBy", createdBy));
+    }
+
+    public void UpdateScreen(int screenId, string screenCode, string moduleCode,
+        string screenName, string? screenNameEn, string? href, string? lidLabel,
+        int? sortOrder, bool isVisible, string modifiedBy)
+    {
+        const string sql = """
+            UPDATE dbo.SYS_Screen
+            SET    ScreenCode   = @Code,
+                   ModuleCode   = @Module,
+                   ScreenName   = @Name,
+                   ScreenNameEn = @NameEn,
+                   HRef         = @HRef,
+                   LidLabel     = @Lid,
+                   SortOrder    = @Sort,
+                   IsVisible    = @Visible,
+                   ModifiedBy   = @ModifiedBy,
+                   ModifiedTS   = SYSDATETIME()
+            WHERE  ScreenID = @Id
+            """;
+        Exec(sql,
+            ("@Id",         screenId),
+            ("@Code",       screenCode),
+            ("@Module",     moduleCode),
+            ("@Name",       screenName),
+            ("@NameEn",     (object?)screenNameEn ?? DBNull.Value),
+            ("@HRef",       (object?)href         ?? DBNull.Value),
+            ("@Lid",        (object?)lidLabel      ?? DBNull.Value),
+            ("@Sort",       (object?)sortOrder     ?? DBNull.Value),
             ("@Visible",    isVisible),
             ("@ModifiedBy", modifiedBy));
     }
 
-    public void InsertMenuRole(int menuId, string roleName, string permType, string createdBy)
+    public void DeleteScreen(int screenId, string deletedBy)
     {
-        const string sql = """
-            INSERT INTO dbo.MD_MenuRole (MenuID, RoleName, PermType, CreatedBy)
-            VALUES (@MenuID, @Role, @Perm, @CreatedBy)
-            """;
-        Exec(sql,
-            ("@MenuID",    menuId),
-            ("@Role",      roleName),
-            ("@Perm",      permType),
-            ("@CreatedBy", createdBy));
+        Exec("DELETE FROM dbo.SYS_Screen WHERE ScreenID = @Id", ("@Id", screenId));
     }
 
-    public void DeleteMenuRole(int menuRoleId)
-    {
-        Exec("DELETE dbo.MD_MenuRole WHERE MenuRoleID = @Id", ("@Id", menuRoleId));
-    }
-
-    public bool MenuRoleExists(int menuId, string roleName, string permType)
-    {
-        using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand(
-            "SELECT COUNT(1) FROM dbo.MD_MenuRole WHERE MenuID=@M AND RoleName=@R AND PermType=@P", conn);
-        cmd.Parameters.AddWithValue("@M", menuId);
-        cmd.Parameters.AddWithValue("@R", roleName);
-        cmd.Parameters.AddWithValue("@P", permType);
-        return (int)cmd.ExecuteScalar()! > 0;
-    }
-
-    private static MenuRow MapMenu(IDataReader r) => new(
-        (int)r["MenuID"], (string)r["MenuCode"], (string)r["SectionCode"],
-        (string)r["MenuName"], r["MenuNameEn"] as string,
+    private static ScreenRow MapScreen(IDataReader r) => new(
+        (int)r["ScreenID"], (string)r["ScreenCode"], (string)r["ModuleCode"],
+        (string)r["ScreenName"], r["ScreenNameEn"] as string,
         r["HRef"] as string, r["LidLabel"] as string,
         r["SortOrder"] as int?, (bool)r["IsVisible"], (int)r["RoleCount"]);
 
@@ -633,7 +663,7 @@ public sealed class SysRepository
             r["Unit"] as string, (bool)r["IsActive"], r["SortOrder"] as int?));
     }
 
-    // ── SYS-08 System Health ────────────────────────────────────────────
+    // ── SYS-010 System Health ───────────────────────────────────────────
     public HealthKpi GetHealth()
     {
         const string sql = """
@@ -647,6 +677,8 @@ public sealed class SysRepository
               (SELECT COUNT(*) FROM dbo.SYS_NotificationHistory WHERE SentAt >= DATEADD(HOUR,-24,SYSDATETIME())
                                                                   AND Status IN ('FAILED','ERROR')) AS NotifFail,
               (SELECT COUNT(*) FROM dbo.SYS_Config WHERE ISNULL(IsActive,1)=1)                 AS Cfg,
+              (SELECT COUNT(*) FROM dbo.SYS_Screen WHERE ISNULL(IsVisible,1)=1)                AS Screens,
+              (SELECT COUNT(*) FROM dbo.SYS_RolePermission)                                    AS Perms,
               ISNULL((SELECT SUM(p.rows)
                       FROM   sys.partitions p
                       JOIN   sys.tables     t ON t.object_id = p.object_id
@@ -657,23 +689,24 @@ public sealed class SysRepository
         using var cmd  = new SqlCommand(sql, conn);
         using var rdr  = cmd.ExecuteReader();
         if (!rdr.Read())
-            return new HealthKpi(0, 0, 0, 0, 0, 0, 0, 0, 0L);
+            return new HealthKpi(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0L);
         return new HealthKpi(
             (int)rdr["Users"], (int)rdr["Roles"],
             (int)rdr["IfOk"], (int)rdr["IfDown"],
             (int)rdr["AuditDay"], (int)rdr["NotifDay"],
             (int)rdr["NotifFail"], (int)rdr["Cfg"],
+            (int)rdr["Screens"], (int)rdr["Perms"],
             rdr["RowsApprox"] as long? ?? 0L);
     }
 
     // ── SYS-01 User Profile Write ───────────────────────────────────────
     public void CreateProfile(string userId, string employeeNo, string employeeName,
-        string? department, string? plant, string? defaultShift, string createdBy,
+        string? department, string? plantCode, string? defaultShift, string createdBy,
         string? assignedLinesJson = null)
     {
         const string sql = """
             INSERT INTO dbo.SYS_UserProfile
-                (UserID, EmployeeNo, EmployeeName, Department, Plant, DefaultShift,
+                (UserID, EmployeeNo, EmployeeName, Department, PlantCode, DefaultShift,
                  AccountStatus, FailedLoginCount, AssignedLines, CreatedBy, CreatedTS)
             VALUES
                 (@UserID, @EmpNo, @EmpName, @Dept, @Plant, @Shift,
@@ -684,27 +717,28 @@ public sealed class SysRepository
             ("@EmpNo",     employeeNo),
             ("@EmpName",   employeeName),
             ("@Dept",      (object?)department       ?? DBNull.Value),
-            ("@Plant",     (object?)plant             ?? DBNull.Value),
+            ("@Plant",     (object?)plantCode         ?? DBNull.Value),
             ("@Shift",     (object?)defaultShift      ?? DBNull.Value),
             ("@Lines",     (object?)assignedLinesJson ?? DBNull.Value),
             ("@CreatedBy", createdBy));
     }
 
     public void UpdateProfile(string userId, string employeeNo, string employeeName,
-        string? department, string? plant, string? defaultShift,
+        string? department, string? plantCode, string? defaultShift,
         string accountStatus, string modifiedBy, string? assignedLinesJson = null)
     {
         const string sql = """
             UPDATE dbo.SYS_UserProfile
-            SET    EmployeeNo    = @EmpNo,
-                   EmployeeName  = @EmpName,
-                   Department    = @Dept,
-                   Plant         = @Plant,
-                   DefaultShift  = @Shift,
-                   AccountStatus = @Status,
-                   AssignedLines = @Lines,
-                   ModifiedBy    = @ModifiedBy,
-                   ModifiedTS    = SYSDATETIME()
+            SET    EmployeeNo       = @EmpNo,
+                   EmployeeName     = @EmpName,
+                   Department       = @Dept,
+                   PlantCode        = @Plant,
+                   DefaultShift     = @Shift,
+                   AccountStatus    = @Status,
+                   FailedLoginCount = CASE WHEN @Status = 'Active' THEN 0 ELSE FailedLoginCount END,
+                   AssignedLines    = @Lines,
+                   ModifiedBy       = @ModifiedBy,
+                   ModifiedTS       = SYSDATETIME()
             WHERE  UserID = @UserID
             """;
         Exec(sql,
@@ -712,7 +746,7 @@ public sealed class SysRepository
             ("@EmpNo",      employeeNo),
             ("@EmpName",    employeeName),
             ("@Dept",       (object?)department       ?? DBNull.Value),
-            ("@Plant",      (object?)plant             ?? DBNull.Value),
+            ("@Plant",      (object?)plantCode         ?? DBNull.Value),
             ("@Shift",      (object?)defaultShift      ?? DBNull.Value),
             ("@Status",     accountStatus),
             ("@Lines",      (object?)assignedLinesJson ?? DBNull.Value),

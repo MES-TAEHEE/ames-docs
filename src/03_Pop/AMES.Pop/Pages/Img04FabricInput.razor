@@ -8,7 +8,7 @@
     <div class="pop-tbar">
         <div style="display:flex; align-items:center;">
             <span class="pop-tbar-logo">A-MES</span>
-            <span class="pop-tbar-id">IMG-04 · FABRIC INPUT · @Session?.LineId</span>
+            <span class="pop-tbar-id">IMG-004 · FABRIC INPUT · @Session?.LineId</span>
         </div>
         <div class="pop-tbar-r">
             <span style="color:#a78bfa;">⚡ SIGNATURE</span>
@@ -56,12 +56,12 @@
     </div>
 
     <div class="pop-nav" style="--nav-cols:7;">
-        <button class="nav-btn" @onclick="@(() => Go("img02"))">IMG-02<small>Dashboard</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("img03"))">IMG-03<small>Prod Entry</small></button>
-        <button class="nav-btn active" @onclick="@(() => Go("img04"))">IMG-04<small>Fabric</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("img05"))">IMG-05<small>Defect</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("img06"))">IMG-06<small>Bond Setup</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("img07"))">IMG-07<small>Prod Status</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("img02"))">IMG-002<small>Dashboard</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("img03"))">IMG-003<small>Prod Entry</small></button>
+        <button class="nav-btn active" @onclick="@(() => Go("img04"))">IMG-004<small>Fabric</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("img05"))">IMG-005<small>Defect</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("img06"))">IMG-006<small>Bond Setup</small></button>
+        <button class="nav-btn" @onclick="@(() => Go("img07"))">IMG-007<small>Prod Status</small></button>
         <button class="nav-btn muted" @onclick="Logout">LOGOUT<small>End shift</small></button>
     </div>
 </div>
@@ -129,7 +129,7 @@
                 _scanned.RemainingM, Session.LineId, Session.OperatorId, Session.SessionId, Session.EmployeeNo);
             Nav.NavigateTo("/img03");
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[IMG-04 Confirm] {ex.Message}"); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[IMG-004 Confirm] {ex.Message}"); }
     }
 
     void Reset() { _scan = ""; _state = ""; _scanned = null; _failBanner = ""; _failReason = ""; }

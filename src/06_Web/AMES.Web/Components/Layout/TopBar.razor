@@ -1,0 +1,50 @@
+@rendermode InteractiveServer
+@inject NavigationManager Nav
+
+<header class="ames-topbar">
+    <div class="ames-brand">
+        <div class="ames-brand-row">
+            <span class="ames-brand-mark">⬢</span>
+            <div style="display:flex;align-items:baseline;gap:10px;">
+                <div class="ames-brand-logo">A-MES</div>
+                <div class="ames-brand-sub">OFFICE WEB</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="ames-topbar-spacer"></div>
+
+    <CultureSwitcher />
+
+    <AuthorizeView>
+        <Authorized>
+            <div class="ames-user">
+                <div class="ames-user-av">@(context.User.Identity?.Name?.Substring(0,1).ToUpper() ?? "?")</div>
+                <div class="ames-user-info">
+                    <div class="ames-user-name">@context.User.Identity?.Name</div>
+                    <div class="ames-user-role">Administrator</div>
+                </div>
+                <form action="Account/Logout" method="post" style="display:inline;">
+                    <AntiforgeryToken />
+                    <input type="hidden" name="ReturnUrl" value="@_url" />
+                    <button type="submit" class="ames-user-out" title="Sign out">⏻</button>
+                </form>
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            <div class="ames-user dim">
+                <div class="ames-user-av">?</div>
+                <div class="ames-user-info"><div class="ames-user-name">Not signed in</div></div>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+</header>
+
+@code {
+    string? _url;
+
+    protected override void OnInitialized()
+    {
+        _url = Nav.ToBaseRelativePath(Nav.Uri);
+    }
+}
