@@ -1290,7 +1290,6 @@
   <data name="Col.PrinterModel"><value>Printer Model</value></data>
   <data name="Col.LineName"><value>Line Name</value></data>
   <data name="Col.LineNameEn"><value>Line Name (EN)</value></data>
-  <data name="Col.WcId"><value>WC ID</value></data>
   <data name="Col.RFID"><value>RFID</value></data>
   <data name="Col.PatternId"><value>Pattern ID</value></data>
   <data name="Col.ShiftModel"><value>Shift Model</value></data>
@@ -1649,12 +1648,6 @@
   <data name="Col.CycleCount"><value>Cycle Count</value></data>
   <data name="Col.LastService"><value>Last Service</value></data>
 
-  <!-- MD.ShipDest title -->
-  <data name="MD.ShipDest.Title"><value>Shipment Destination</value></data>
-
-  <!-- MD.InspStd title -->
-  <data name="MD.InspStd.Title"><value>Inspection Standard</value></data>
-
   <!-- MD WorkCenter columns -->
   <data name="Col.WCID"><value>WC ID</value></data>
   <data name="Col.DailyCapacity"><value>Daily Capacity</value></data>
@@ -1690,7 +1683,6 @@
   <data name="Col.VersionNo"><value>Version No.</value></data>
   <data name="Col.StartDate"><value>Start Date</value></data>
   <data name="Col.EndDate"><value>End Date</value></data>
-  <data name="Col.ParentItem"><value>Parent Item</value></data>
   <data name="Col.CompItem"><value>Component Item</value></data>
   <data name="Col.ScrapRate"><value>Scrap Rate (%)</value></data>
   <data name="Col.InspStdId"><value>Std. ID</value></data>
@@ -1894,5 +1886,4 @@
   <data name="MD.Uom.PillBase"><value>Base</value></data>
   <data name="MD.Uom.BaseUnit"><value>Base Unit</value></data>
   <data name="PP.DowntimeMonitor.Tl.Title"><value>Last 60-min history (1 cell=1min)</value></data>
-  <data name="SYS.Users.Ph.Name"><value>John Doe</value></data>
 </root>

@@ -1290,7 +1290,6 @@
   <data name="Col.PrinterModel"><value>프린터 모델</value></data>
   <data name="Col.LineName"><value>라인명</value></data>
   <data name="Col.LineNameEn"><value>영문 라인명</value></data>
-  <data name="Col.WcId"><value>WC ID</value></data>
   <data name="Col.RFID"><value>RFID</value></data>
   <data name="Col.PatternId"><value>패턴 ID</value></data>
   <data name="Col.ShiftModel"><value>교대 모델</value></data>
@@ -1649,11 +1648,6 @@
   <data name="Col.CycleCount"><value>현재 사이클</value></data>
   <data name="Col.LastService"><value>최근 정비일</value></data>
 
-  <!-- ── MD.ShipDest 제목 ── -->
-  <data name="MD.ShipDest.Title"><value>출하처 기준정보 관리</value></data>
-
-  <!-- ── MD.InspStd 제목 ── -->
-  <data name="MD.InspStd.Title"><value>검사기준 관리</value></data>
 
   <!-- ── MD WorkCenter 컬럼 ── -->
   <data name="Col.WCID"><value>WC ID</value></data>
@@ -1690,7 +1684,6 @@
   <data name="Col.VersionNo"><value>버전번호</value></data>
   <data name="Col.StartDate"><value>시작일</value></data>
   <data name="Col.EndDate"><value>종료일</value></data>
-  <data name="Col.ParentItem"><value>상위품목</value></data>
   <data name="Col.CompItem"><value>구성품목</value></data>
   <data name="Col.ScrapRate"><value>불량율(%)</value></data>
   <data name="Col.InspStdId"><value>기준 ID</value></data>
@@ -1894,5 +1887,4 @@
   <data name="MD.Uom.PillBase"><value>기준</value></data>
   <data name="MD.Uom.BaseUnit"><value>기준단위</value></data>
   <data name="PP.DowntimeMonitor.Tl.Title"><value>최근 60분 가동 이력 (1칸=1분)</value></data>
-  <data name="SYS.Users.Ph.Name"><value>홍길동</value></data>
 </root>
