@@ -122,7 +122,7 @@
 
     void Confirm()
     {
-        if (_wo is null || _selected is null) return;
+        if (_wo is null || _selected is null || Session is null) return;
         if (!int.TryParse(_buf.ToString(), out var qty) || qty <= 0) return;
         try
         {

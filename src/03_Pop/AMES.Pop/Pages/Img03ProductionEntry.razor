@@ -133,7 +133,7 @@
 
     void Confirm()
     {
-        if (_wo is null || _roll is null) return;
+        if (_wo is null || _roll is null || Session is null) return;
         if (!int.TryParse(_buf.ToString(), out var qty) || qty <= 0) return;
         var required = qty * MetresPerUnit;
         if (_roll.RemainingM < required) return;

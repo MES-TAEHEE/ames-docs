@@ -113,7 +113,7 @@
 
         _rows = _all
             .Where(r => string.IsNullOrWhiteSpace(_fSearch) ||
-                        r.PrNumber.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+                        (r.PrNumber ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
                         (r.ItemNo   ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
                         (r.ItemName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase))
             .Where(r => string.IsNullOrWhiteSpace(_fStatus) ||

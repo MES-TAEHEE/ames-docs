@@ -121,7 +121,7 @@
 
     private void Accept()
     {
-        if (_selected is null) return;
+        if (_selected is null || Session is null) return;
         try
         {
             var checks = System.Text.Json.JsonSerializer.Serialize(new

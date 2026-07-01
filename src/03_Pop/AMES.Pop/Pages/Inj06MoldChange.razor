@@ -119,7 +119,7 @@
 
     void StartChange()
     {
-        if (_wo is null || string.IsNullOrEmpty(_selectedReplacement)) return;
+        if (_wo is null || string.IsNullOrEmpty(_selectedReplacement) || Session is null) return;
         try
         {
             var equipId = PopServices.Equipment.GetPrimaryForLine(Session.LineId)?.EquipId ?? "UNKNOWN";
@@ -134,10 +134,10 @@
 
     void Complete()
     {
-        if (_openChangeId == 0) return;
+        if (_openChangeId == 0 || Session is null) return;
         try
         {
-            PopServices.Molds.CompleteChange(_openChangeId, _current?.MoldId, _selectedReplacement, Session?.OperatorId);
+            PopServices.Molds.CompleteChange(_openChangeId, _current?.MoldId, _selectedReplacement, Session.OperatorId);
             var equipId = PopServices.Equipment.GetPrimaryForLine(Session.LineId)?.EquipId ?? "UNKNOWN";
             PopServices.Equipment.LogStatus(equipId, Session.LineId, "RUN", "RESUMED", _wo?.WoId, Session.EmployeeNo);
             _openChangeId = 0;

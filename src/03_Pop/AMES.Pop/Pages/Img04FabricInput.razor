@@ -104,6 +104,7 @@
         var code = _scan.Trim();
         if (string.IsNullOrEmpty(code)) return;
         _scanned = PopServices.Fabric.GetRollByCode(code);
+        if (Session is null) return;
         if (_scanned is null)
         {
             _state = "mismatch"; _failBanner = "Unknown roll"; _failReason = "UNKNOWN_ROLL"; return;
@@ -122,7 +123,7 @@
 
     void Confirm()
     {
-        if (_scanned is null || _wo is null) return;
+        if (_scanned is null || _wo is null || Session is null) return;
         try
         {
             PopServices.Fabric.MountRoll(_wo.WoId, _scanned.LotId, _scanned.ColorCode ?? "",

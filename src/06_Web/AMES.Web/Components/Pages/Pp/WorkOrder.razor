@@ -39,7 +39,7 @@
 
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+    <div class="ames-alert @(_err != null ? "bad" : "ok")">@_msg</div>
 }
 
 @* ── card: header(filter) + grid ──────────────────────────────────────── *@
@@ -163,7 +163,6 @@
     int     _recentDays   = 30;
     string? _err;
     string  _msg  = "";
-    bool    _isErr;
 
     protected override void OnInitialized()
     {
