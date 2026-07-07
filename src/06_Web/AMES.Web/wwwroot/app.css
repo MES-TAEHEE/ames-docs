@@ -115,15 +115,12 @@ a:hover { color: #c4dafe; }
 .ames-side-toggle {
     display: flex;
     align-items: center; justify-content: center;
-    align-self: flex-end;
-    width: 26px; height: 26px;
-    margin: 10px 10px 0 auto;
+    width: 34px; flex-shrink: 0;
     background: rgba(255,255,255,.06);
     border: 1px solid rgba(255,255,255,.1);
     color: rgba(255,255,255,.5);
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 10px; cursor: pointer;
-    flex-shrink: 0;
     transition: background .12s, color .12s;
 }
 .ames-side-toggle:hover { background: rgba(255,255,255,.14); color: #fff; }
@@ -131,7 +128,8 @@ a:hover { color: #c4dafe; }
 /* ── Collapsed state (76px — just wide enough for .lid badges) */
 .ames-side--collapsed { flex-basis: 76px; }
 
-.ames-side--collapsed .ames-side-toggle { margin: 10px auto 0; }
+.ames-side--collapsed .ames-nav-top { justify-content: center; }
+.ames-side--collapsed .ames-side-toggle { height: 34px; margin: 0 auto; }
 
 .ames-side--collapsed .ames-nav { padding: 4px 4px 24px; }
 
@@ -304,6 +302,83 @@ a:hover { color: #c4dafe; }
     border-color: rgba(147,197,253,.35);
     color: #93c5fd;
 }
+
+/* ── Nav search box + sidebar toggle row ───────────────────── */
+.ames-nav-top {
+    display: flex; align-items: stretch; gap: 6px;
+    margin: 4px 2px 6px;
+}
+.ames-nav-search {
+    flex: 1; min-width: 0;
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 8px;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px;
+    transition: border-color .12s, background .12s;
+}
+.ames-nav-search:focus-within {
+    border-color: rgba(147,197,253,.5);
+    background: rgba(147,197,253,.06);
+}
+.ames-nav-search-ic { font-size: 13px; opacity: .6; }
+.ames-nav-search input {
+    flex: 1; min-width: 0;
+    background: transparent; border: 0; outline: 0;
+    color: #e5edf7; font-size: 13px;
+    padding: 8px 0;
+}
+.ames-nav-search input::placeholder { color: rgba(255,255,255,.4); }
+.ames-nav-search-x {
+    background: transparent; border: 0; cursor: pointer;
+    color: rgba(255,255,255,.5); font-size: 12px;
+    padding: 2px 4px; line-height: 1;
+    transition: color .12s;
+}
+.ames-nav-search-x:hover { color: #fff; }
+
+/* ── Search results / empty ────────────────────────────────── */
+.ames-nav-results { padding-top: 2px; }
+.ames-nav-empty {
+    padding: 16px 12px;
+    color: rgba(255,255,255,.4);
+    font-size: 13px; text-align: center;
+}
+/* Section-colored id badge (favorites + search rows) */
+.ames-nav-link .lid.pp  { color: #93c5fd; border-color: rgba(147,197,253,.3); }
+.ames-nav-link .lid.mnt { color: #c084fc; border-color: rgba(192,132,252,.3); }
+.ames-nav-link .lid.rpt { color: #86efac; border-color: rgba(134,239,172,.3); }
+.ames-nav-link .lid.md  { color: #a78bfa; border-color: rgba(167,139,250,.3); }
+.ames-nav-link .lid.sys { color: #fbbf24; border-color: rgba(251,191,36,.3); }
+
+/* ── Nav row (link + favorite star) ────────────────────────── */
+.ames-nav-row { position: relative; display: flex; align-items: stretch; }
+.ames-nav-row .ames-nav-link { flex: 1; min-width: 0; }
+.ames-nav-star {
+    flex: 0 0 auto;
+    background: transparent; border: 0; cursor: pointer;
+    width: 30px;
+    color: rgba(255,255,255,.35);
+    font-size: 15px; line-height: 1;
+    opacity: 0;
+    transition: opacity .12s, color .12s, transform .1s;
+}
+.ames-nav-row:hover .ames-nav-star { opacity: 1; }
+.ames-nav-star:hover { color: #fbbf24; transform: scale(1.15); }
+.ames-nav-row.is-fav .ames-nav-star { opacity: 1; color: #fbbf24; }
+
+/* ── Favorites section header ──────────────────────────────── */
+.ames-nav-fav { color: #fbbf24; }
+.ames-nav-fav .ames-nav-section-n { background: rgba(251,191,36,.14); color: #fbbf24; }
+.ames-nav-fav:hover { color: #fcd34d; }
+
+/* ── Collapsed state: hide search / star / favorites text ──── */
+.ames-side--collapsed .ames-nav-search,
+.ames-side--collapsed .ames-nav-star { display: none; }
+.ames-side--collapsed .ames-nav-fav { justify-content: center; padding: 12px 8px; }
+.ames-side--collapsed .ames-nav-fav .ames-nav-section-t,
+.ames-side--collapsed .ames-nav-fav .ames-nav-section-n { display: none; }
+.ames-side--collapsed .ames-nav-row .ames-nav-link { justify-content: center; }
 
 /* ── Main content ─────────────────────────────────────────── */
 .ames-main { flex: 1; min-width: 0; overflow-y: auto; }
