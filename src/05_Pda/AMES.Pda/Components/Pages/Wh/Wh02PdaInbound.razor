@@ -634,8 +634,7 @@
         yield return ("Item Status", ItemStatusLabel);
         yield return ("PO No", Text(_scan.PoNo));
         yield return ("PO Seq", _scan.PoSeq?.ToString() ?? "-");
-        yield return ("Qty", $"{_scan.Qty:N0}");
-        yield return ("Unit", Text(_scan.Unit));
+        yield return ("Qty", QuantityText(_scan.Qty, _scan.Unit));
         yield return ("Vendor", Text(_scan.VendorName ?? _scan.VendorId));
         if (AlreadyReceived)
             yield return ("Current Loc", Text(_scan.ReceivedLocation));
@@ -854,6 +853,9 @@
     }
 
     private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private static string QuantityText(decimal value, string? unit)
+        => string.IsNullOrWhiteSpace(unit) ? value.ToString("N0") : $"{value:N0} {unit}";
+
     private static string JoinCodeName(string? code, string? name)
     {
         if (string.IsNullOrWhiteSpace(code)) return Text(name);
