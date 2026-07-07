@@ -947,6 +947,7 @@
   <data name="PP.Forecast.Title"><value>Forecast</value></data>
   <data name="PP.Forecast.Sub"><value>Customer Item Demand Forecast</value></data>
   <data name="PP.Forecast.Empty"><value>No forecast data matches the conditions.</value></data>
+  <data name="Pager.Summary"><value>Page {0} / {1} · {2} total</value></data>
   <data name="PP.Forecast.Upload.Title"><value>Weekly Purchase Plan Upload (SRM)</value></data>
   <data name="PP.Forecast.Upload.Hint"><value>ZMM30004 .xls file · max 10 MB</value></data>
   <data name="PP.Forecast.Err.NoCustomer"><value>Select a customer first.</value></data>

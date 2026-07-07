@@ -1,0 +1,110 @@
+@inject AMES.Data.Repositories.PpRepository Pp
+@inject AuthenticationStateProvider Auth
+@inject DialogService Dialog
+@inject IStringLocalizer<SharedResources> L
+@using AMES.Web.Services
+
+<div style="display:flex;flex-direction:column;gap:6px;min-width:440px;">
+    <label>① @L["Col.Customer"]</label>
+    <RadzenDropDown Data="Customers" TextProperty="CustomerName" ValueProperty="CustomerID"
+                    @bind-Value="_upCustomer" Disabled="_busy" AllowClear="true"
+                    Placeholder="—" Style="width:100%" />
+
+    <label>② @L["PP.Forecast.Upload.File"]</label>
+    <InputFile OnChange="OnFile" accept=".xls" disabled="@_busy" />
+    <span class="dim" style="font-size:.8em;">@L["PP.Forecast.Upload.Hint"]</span>
+
+    <label>③ @L["PP.Forecast.Upload.ParseResult"]</label>
+    <div style="border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:12px;font-size:.9em;min-height:56px;">
+        @if (_preview is null)
+        {
+            <span class="dim">@L["PP.Forecast.Upload.NoFile"]</span>
+        }
+        else
+        {
+            <div>✔ @string.Format(L["PP.Forecast.Preview.Summary"].Value,
+                _preview.Items.Count, _preview.WeekStarts.Count,
+                _preview.WeekStarts.Min(), _preview.WeekStarts.Max())</div>
+            @if (_unmatched.Count > 0)
+            {
+                <div style="color:#f87171;margin-top:6px;">
+                    ⚠ @string.Format(L["PP.Forecast.Preview.Unmatched"].Value, _unmatched.Count)<br />
+                    <span class="dim" style="font-size:.85em;">@string.Join(", ", _unmatched.Take(5))@(_unmatched.Count > 5 ? " …" : "")</span>
+                </div>
+            }
+        }
+    </div>
+    @if (!string.IsNullOrEmpty(_modalErr))
+    {
+        <div class="ames-alert bad">@_modalErr</div>
+    }
+
+    <div class="ames-modal-footer">
+        <RadzenButton Text="@L["Btn.Cancel"]" ButtonStyle="ButtonStyle.Light" Disabled="_busy"
+                      Click="@(() => Dialog.Close(null))" />
+        <RadzenButton Text="@(_busy ? L["Lbl.Loading"].Value : L["PP.Forecast.Btn.RunUpload"].Value)"
+                      Disabled="@(_busy || _preview is null || string.IsNullOrEmpty(_upCustomer))"
+                      Click="DoUpload" />
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<MasterDataRepository.CustomerRow> Customers { get; set; } = new();
+
+    const long MaxBytes = 10 * 1024 * 1024;
+
+    string _upCustomer = "";
+    string _modalErr   = "";
+    bool   _busy;
+    WeeklyPlanParser.Plan? _preview;
+    HashSet<string> _unmatched = new();
+
+    async Task OnFile(InputFileChangeEventArgs e)
+    {
+        _modalErr = ""; _preview = null; _unmatched = new();
+        try
+        {
+            using var ms = new MemoryStream();
+            await using (var s = e.File.OpenReadStream(MaxBytes))
+                await s.CopyToAsync(ms);
+            ms.Position = 0;
+            var plan = WeeklyPlanParser.Parse(ms);
+
+            var tooLong = plan.Items.FirstOrDefault(i => i.PartNo.Length > 20);
+            if (tooLong is not null)
+                throw new FormatException(string.Format(L["PP.Forecast.Err.ItemNoLen"].Value, tooLong.PartNo));
+
+            var found  = Pp.ListExistingItemNos(plan.Items.Select(i => i.PartNo));
+            _unmatched = plan.Items.Where(i => !found.Contains(i.PartNo))
+                                   .Select(i => i.PartNo).ToHashSet();
+            _preview = plan;
+        }
+        catch (IOException)        { _modalErr = L["PP.Forecast.Err.TooLarge"]; }
+        catch (FormatException fx) { _modalErr = $"{L["PP.Forecast.Err.Parse"]} — {fx.Message}"; }
+        catch (Exception ex)       { _modalErr = ex.Message; }
+    }
+
+    async Task DoUpload()
+    {
+        if (_preview is null || string.IsNullOrEmpty(_upCustomer)) return;
+        _busy = true;
+        try
+        {
+            var auth  = await Auth.GetAuthenticationStateAsync();
+            var actor = auth.User.Identity?.Name ?? "system";
+            var batch = "WK" + DateTime.Now.ToString("yyyyMMddHHmmss");
+            var rows  = _preview.Items.SelectMany(it => _preview.WeekStarts.Select((w, k) =>
+                new PpRepository.WeeklyImportRow(it.PartNo, Trunc(it.PartName, 100), Trunc(it.Unit, 10),
+                    it.BaseInv, w, Trunc(_preview.WeekLabels[k], 10), it.Qty[k]))).ToList();
+
+            var (ins, upd, chg) = Pp.UpsertWeeklyForecast(_upCustomer, batch, rows, actor);
+            Dialog.Close(new Result(ins, upd, chg, _upCustomer,
+                _preview.WeekStarts.Min(), _preview.WeekStarts.Max()));
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _busy = false; }
+    }
+
+    static string Trunc(string s, int max) => s.Length <= max ? s : s[..max];
+
+    public record Result(int Ins, int Upd, int Chg, string CustomerId, DateTime From, DateTime To);
+}

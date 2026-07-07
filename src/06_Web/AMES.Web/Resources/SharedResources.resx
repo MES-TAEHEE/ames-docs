@@ -947,6 +947,7 @@
   <data name="PP.Forecast.Title"><value>수요 예측</value></data>
   <data name="PP.Forecast.Sub"><value>고객별 품목 수요 예측</value></data>
   <data name="PP.Forecast.Empty"><value>해당 조건에 수요 예측이 없습니다.</value></data>
+  <data name="Pager.Summary"><value>{0} / {1} 페이지 · 총 {2}건</value></data>
   <data name="PP.Forecast.Upload.Title"><value>주간 구매계획 업로드 (SRM)</value></data>
   <data name="PP.Forecast.Upload.Hint"><value>ZMM30004 .xls 파일 · 최대 10MB</value></data>
   <data name="PP.Forecast.Err.NoCustomer"><value>고객사를 먼저 선택하세요.</value></data>
