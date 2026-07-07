@@ -2,51 +2,372 @@
 @inject PdaApi Api
 @inject NavigationManager Nav
 
-<div class="pda-shell wh">
+<div class="pda-shell wh wh03-shell">
     <div class="pda-tbar">
-        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/wh"))'>←</button>
-        <span class="pda-tbar-brand">WH-003 INVENTORY</span>
-    </div>
-    <div class="pda-bd">
-        <div class="pda-card">
-            <input class="pda-input" @bind="_q" @bind:event="oninput" @onkeypress="OnKey" placeholder="Search item or name…" />
+        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/wh"))' Text="&lt;" />
+        <div class="wh03-tbar-title">
+            <span class="pda-tbar-brand">WH-003 INVENTORY</span>
+            <span class="wh03-last-updated">Last Updated @LastUpdatedText</span>
         </div>
-        <div class="pda-card">
-            <div class="pda-card-h">▼ STOCK (@_rows.Count)</div>
-            @if (_rows.Count == 0) { <div class="pda-empty">@_msg</div> }
-            else
-            {
-                @foreach (var r in _rows)
+        <RadzenButton class="wh03-refresh" Click="@Load" Disabled="@_isLoading" Text="REFRESH" />
+    </div>
+
+    <div class="pda-bd wh03-body">
+        <RadzenCard class="wh03-search-card">
+            <div class="pda-fld">
+                <label>MATERIAL SEARCH</label>
+                <RadzenTextBox class="pda-input wh03-search-input"
+                               Value="@_q"
+                               @oninput="OnSearchInput"
+                               @onkeydown="OnKey"
+                               Placeholder="Search material, name, or car" />
+            </div>
+            <RadzenButton class="wh03-search-btn" Click="@Load" Disabled="@_isLoading" Text="SEARCH" />
+        </RadzenCard>
+
+        <RadzenCard class="wh03-date-card">
+            <div class="pda-fld">
+                <label>STOCK DATE FROM</label>
+                <input class="pda-input wh03-date-input" type="text" inputmode="numeric"
+                       value="@_dateFrom" @onchange="OnDateFromChanged" placeholder="YYYY-MM-DD" />
+            </div>
+            <div class="pda-fld">
+                <label>STOCK DATE TO</label>
+                <input class="pda-input wh03-date-input" type="text" inputmode="numeric"
+                       value="@_dateTo" @onchange="OnDateToChanged" placeholder="YYYY-MM-DD" />
+            </div>
+            <div class="wh03-date-actions">
+                <RadzenButton class="wh03-date-clear" Click="@ClearDateFilter" Disabled="@_isLoading" Text="CLEAR" />
+                <RadzenButton class="wh03-date-apply" Click="@Load" Disabled="@_isLoading" Text="APPLY" />
+            </div>
+        </RadzenCard>
+
+        <RadzenCard class="wh03-head">
+            <div class="pda-card-h">MATERIAL STOCK STATUS</div>
+            <div class="wh03-summary">
+                <button type="button" class='@SummaryClass("ALL")' @onclick='@(() => SetFilter("ALL"))'>
+                    <span>Total</span>
+                    <strong>@_rows.Count</strong>
+                </button>
+                <button type="button" class='@SummaryClass("BELOW_MIN")' @onclick='@(() => SetFilter("BELOW_MIN"))'>
+                    <span>Below Min</span>
+                    <strong>@CountStatus("BELOW_MIN")</strong>
+                </button>
+                <button type="button" class='@SummaryClass("LOW_STOCK")' @onclick='@(() => SetFilter("LOW_STOCK"))'>
+                    <span>Low Stock</span>
+                    <strong>@CountStatus("LOW_STOCK")</strong>
+                </button>
+                <button type="button" class='@SummaryClass("OVER_MAX")' @onclick='@(() => SetFilter("OVER_MAX"))'>
+                    <span>Over Max</span>
+                    <strong>@CountStatus("OVER_MAX")</strong>
+                </button>
+                <button type="button" class='@SummaryClass("NORMAL")' @onclick='@(() => SetFilter("NORMAL"))'>
+                    <span>Normal</span>
+                    <strong>@CountStatus("NORMAL")</strong>
+                </button>
+            </div>
+        </RadzenCard>
+
+        @if (VisibleRows.Count == 0)
+        {
+            <div class="pda-empty">@EmptyMessage</div>
+        }
+        else
+        {
+            <div class="wh03-list">
+                @foreach (var row in VisibleRows)
                 {
-                    <div class="pda-row3">
-                        <div class="r3-l">
-                            <div class="r3-code">@r.ItemNo</div>
-                            <div class="r3-sub">@(r.ItemName ?? "—")</div>
+                    <RadzenCard class="@($"wh03-stock-card {StatusClass(row)}")">
+                        <div class="wh03-card-top">
+                            <div class="wh03-part-main">
+                                <div class="wh03-part-no">@Text(row.ItemNo)</div>
+                                <div class="wh03-part-name">@Text(row.ItemName)</div>
+                                <div class="wh03-part-sub">CAR @Text(row.CarCode) / UNIT @Unit(row.Unit)</div>
+                            </div>
+                            <RadzenBadge class="@($"wh03-status-badge {StatusClass(row)}")" Text="@StatusText(row)" />
                         </div>
-                        <div class="r3-m">
-                            <div>@r.LocationId</div>
-                            <div class="r3-sub">@(r.ExpiryDate?.ToString("yyyy-MM-dd") ?? "")</div>
+
+                        <div class="wh03-onhand">
+                            <span>On Hand</span>
+                            <strong>@Qty(row.OnHandQty, row.Unit)</strong>
                         </div>
-                        <div class="r3-r">
-                            <div class="big">@r.OnHandQty.ToString("0.#")</div>
-                            <div class="r3-sub">res @r.ReservedQty.ToString("0.#")</div>
+
+                        <div class="wh03-threshold-grid">
+                            <div class="wh03-threshold">
+                                <span>Min Qty</span>
+                                <strong>@Qty(row.MinQty, row.Unit)</strong>
+                                <em>@Days(row.MinDays)</em>
+                            </div>
+                            <div class="wh03-threshold">
+                                <span>Max Qty</span>
+                                <strong>@Qty(row.MaxQty, row.Unit)</strong>
+                                <em>@Days(row.MaxDays)</em>
+                            </div>
                         </div>
+
+                        <div class="wh03-meta-grid">
+                            <div>
+                                <span>Main Location</span>
+                                <strong>@Text(row.LocationId)</strong>
+                            </div>
+                            <button class="wh03-location-link" @onclick="@(() => OpenLocations(row))">
+                                <span>Locations</span>
+                                <strong>@row.LocationCount</strong>
+                                <em>View Detail</em>
+                            </button>
+                        </div>
+                    </RadzenCard>
+                }
+            </div>
+        }
+    </div>
+
+    @if (_locationModalOpen)
+    {
+        <div class="wh-modal-backdrop" @onclick="CloseLocations">
+            <RadzenCard class="wh-modal-card wh03-location-modal" @onclick:stopPropagation="true">
+                <div class="wh03-location-modal-head">
+                    <div>
+                        <span>LOCATION DETAIL</span>
+                        <strong>@Text(_locationItem?.ItemNo)</strong>
+                        <em>@Text(_locationItem?.ItemName)</em>
+                    </div>
+                    <RadzenButton class="wh03-location-close" Click="@CloseLocations" Text="CLOSE" />
+                </div>
+
+                @if (_locationsLoading)
+                {
+                    <div class="wh03-location-empty">Loading...</div>
+                }
+                else if (_locationRows.Count == 0)
+                {
+                    <div class="wh03-location-empty">No location stock found.</div>
+                }
+                else
+                {
+                    <div class="wh03-location-detail-list">
+                        @foreach (var loc in _locationRows)
+                        {
+                            <div class="wh03-location-detail-card">
+                                <div class="wh03-location-detail-top">
+                                    <strong>@Text(loc.LocationId)</strong>
+                                    <span>@Qty(loc.Qty, _locationItem?.Unit)</span>
+                                </div>
+                                <div class="wh03-location-detail-name">@Text(loc.LocationName ?? loc.ZoneName ?? loc.ZoneCode)</div>
+                                <div class="wh03-location-detail-grid">
+                                    <div>
+                                        <span>Warehouse</span>
+                                        <strong>@CodeName(loc.WarehouseCode, loc.WarehouseName)</strong>
+                                    </div>
+                                    <div>
+                                        <span>Zone</span>
+                                        <strong>@CodeName(loc.ZoneCode, loc.ZoneName)</strong>
+                                    </div>
+                                    <div>
+                                        <span>Area</span>
+                                        <strong>@CodeName(loc.AreaCode, loc.AreaName)</strong>
+                                    </div>
+                                    <div>
+                                        <span>Rack</span>
+                                        <strong>@Rack(loc)</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        }
                     </div>
                 }
-            }
+            </RadzenCard>
         </div>
-    </div>
+    }
 </div>
 
 @code {
-    string _q = "", _msg = "Type to search.";
-    List<PdaApi.InventoryRow> _rows = new();
-    void OnKey(KeyboardEventArgs e) { if (e.Key == "Enter") _ = Load(); }
-    async Task Load()
-    {
-        _msg = "Loading…";
-        _rows = await Api.WhInventoryAsync(_q);
-        if (_rows.Count == 0) _msg = "No stock matches.";
-    }
+    private string _q = "";
+    private string _dateFrom = "";
+    private string _dateTo = "";
+    private string _statusFilter = "ALL";
+    private string _msg = "Loading...";
+    private bool _isLoading;
+    private bool _locationsLoading;
+    private bool _locationModalOpen;
+    private DateTime? _lastSyncAt;
+    private List<PdaApi.InventoryRow> _rows = new();
+    private List<PdaApi.InventoryLocationRow> _locationRows = new();
+    private PdaApi.InventoryRow? _locationItem;
+
+    private string LastUpdatedText => _lastSyncAt?.ToString("HH:mm:ss") ?? "-";
+    private string EmptyMessage => _rows.Count == 0 ? _msg : "No items in this status.";
+    private DateTime? DateFrom => TryDate(_dateFrom);
+    private DateTime? DateTo => TryDate(_dateTo);
+
+    private List<PdaApi.InventoryRow> VisibleRows
+        => _statusFilter == "ALL"
+            ? _rows
+            : _rows.Where(row => string.Equals(row.Status, _statusFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+
     protected override async Task OnInitializedAsync() => await Load();
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        _q = Convert.ToString(e.Value) ?? "";
+    }
+
+    private void OnDateFromChanged(ChangeEventArgs e)
+    {
+        _dateFrom = Convert.ToString(e.Value) ?? "";
+    }
+
+    private void OnDateToChanged(ChangeEventArgs e)
+    {
+        _dateTo = Convert.ToString(e.Value) ?? "";
+    }
+
+    private async Task OnKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await Load();
+        }
+    }
+
+    private async Task Load()
+    {
+        if (_isLoading) return;
+
+        _isLoading = true;
+        try
+        {
+            _msg = "Loading...";
+
+            if (HasInvalidDate)
+            {
+                _rows = new();
+                _msg = "Date format must be YYYY-MM-DD.";
+                return;
+            }
+
+            if (DateFrom.HasValue && DateTo.HasValue && DateFrom.Value > DateTo.Value)
+            {
+                _rows = new();
+                _msg = "Date range is invalid.";
+                return;
+            }
+
+            _rows = await Api.WhInventoryAsync(_q, DateFrom, DateTo);
+            _lastSyncAt = DateTime.Now;
+            if (_rows.Count == 0) _msg = "No inventory matches.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void SetFilter(string status)
+    {
+        _statusFilter = status;
+    }
+
+    private async Task ClearDateFilter()
+    {
+        _dateFrom = "";
+        _dateTo = "";
+        await Load();
+    }
+
+    private async Task OpenLocations(PdaApi.InventoryRow row)
+    {
+        _locationItem = row;
+        _locationRows = new();
+        _locationModalOpen = true;
+        _locationsLoading = true;
+
+        try
+        {
+            _locationRows = await Api.WhInventoryLocationsAsync(row.ItemNo, DateFrom, DateTo);
+        }
+        finally
+        {
+            _locationsLoading = false;
+        }
+    }
+
+    private void CloseLocations()
+    {
+        _locationModalOpen = false;
+        _locationsLoading = false;
+        _locationRows = new();
+        _locationItem = null;
+    }
+
+    private int CountStatus(string status)
+        => _rows.Count(row => string.Equals(row.Status, status, StringComparison.OrdinalIgnoreCase));
+
+    private string SummaryClass(string status)
+        => $"wh03-stat {StatusClass(status)} {(string.Equals(_statusFilter, status, StringComparison.OrdinalIgnoreCase) ? "on" : "")}";
+
+    private static string StatusText(PdaApi.InventoryRow row)
+        => string.IsNullOrWhiteSpace(row.StatusName) ? StatusText(row.Status) : row.StatusName;
+
+    private static string StatusText(string? status)
+        => (status ?? "").ToUpperInvariant() switch
+        {
+            "BELOW_MIN" => "Below Min",
+            "LOW_STOCK" => "Low Stock",
+            "OVER_MAX" => "Over Max",
+            "NO_BASELINE" => "No Baseline",
+            "NORMAL" => "Normal",
+            _ => "Normal"
+        };
+
+    private static string StatusClass(PdaApi.InventoryRow row) => StatusClass(row.Status);
+
+    private static string StatusClass(string? status)
+        => (status ?? "").ToUpperInvariant() switch
+        {
+            "ALL" => "all",
+            "BELOW_MIN" => "below",
+            "LOW_STOCK" => "low",
+            "OVER_MAX" => "over",
+            "NO_BASELINE" => "baseline",
+            "NORMAL" => "normal",
+            _ => "normal"
+        };
+
+    private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+
+    private static DateTime? TryDate(string? value)
+        => DateTime.TryParseExact(value, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out var parsed)
+            ? parsed.Date
+            : null;
+
+    private bool HasInvalidDate
+        => (!string.IsNullOrWhiteSpace(_dateFrom) && !DateFrom.HasValue)
+           || (!string.IsNullOrWhiteSpace(_dateTo) && !DateTo.HasValue);
+
+    private static string Unit(string? value) => string.IsNullOrWhiteSpace(value) ? "EA" : value;
+
+    private static string Qty(decimal value, string? unit) => $"{value:N0} {Unit(unit)}";
+
+    private static string Qty(decimal? value, string? unit)
+        => value.HasValue ? $"{value.Value:N0} {Unit(unit)}" : "-";
+
+    private static string Days(decimal? value)
+        => value.HasValue ? $"{value.Value:N0} days" : "-";
+
+    private static string CodeName(string? code, string? name)
+    {
+        if (string.IsNullOrWhiteSpace(code)) return Text(name);
+        if (string.IsNullOrWhiteSpace(name)) return code;
+        return $"{code} / {name}";
+    }
+
+    private static string Rack(PdaApi.InventoryLocationRow row)
+    {
+        var rack = new[] { row.RackX, row.RackY, row.RackZ }
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .ToArray();
+
+        return rack.Length == 0 ? "-" : string.Join("-", rack);
+    }
 }

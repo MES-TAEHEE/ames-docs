@@ -102,7 +102,13 @@ public sealed class PdaApi
         DateTime? ArrivalDate, DateTime? ShipDate, DateTime? PackDate, string? ReceivedLocation,
         string? ReceivedStatus);
     public sealed record InventoryRow(int InventoryId, string ItemNo, string? ItemName, string LocationId,
-        int? LotId, decimal OnHandQty, decimal ReservedQty, DateTime? ExpiryDate);
+        int? LotId, decimal OnHandQty, decimal ReservedQty, DateTime? ExpiryDate,
+        string? CarCode = null, string? Unit = null, decimal? MinDays = null, decimal? MinQty = null,
+        decimal? MaxDays = null, decimal? MaxQty = null, int LotCount = 0, int LocationCount = 0,
+        string? Status = null, string? StatusName = null, DateTime? LastReceivedDate = null);
+    public sealed record InventoryLocationRow(int RowNo, string ItemNo, string LocationId, string? LocationName,
+        string? WarehouseCode, string? WarehouseName, string? AreaCode, string? AreaName,
+        string? ZoneCode, string? ZoneName, string? RackX, string? RackY, string? RackZ, decimal Qty);
     public sealed record LocationRow(string LocationId, string? LocationName, string? Zone, int LineCount, decimal TotalQty,
         string? WarehouseCode = null, string? WarehouseName = null, string? AreaCode = null, string? AreaName = null,
         string? ZoneName = null, string? X = null, string? Y = null, string? Z = null,
@@ -139,8 +145,28 @@ public sealed class PdaApi
         var query = args.Count == 0 ? "" : "?" + string.Join("&", args);
         return await Get<List<InboundScheduleRow>>("/api/wh/inbound/schedule" + query);
     }
-    public Task<List<InventoryRow>>       WhInventoryAsync(string? q = null)
-        => Get<List<InventoryRow>>("/api/wh/inventory" + (string.IsNullOrEmpty(q) ? "" : $"?q={Uri.EscapeDataString(q)}"));
+    public async Task<List<InventoryRow>> WhInventoryAsync(string? q = null, DateTime? dateFrom = null, DateTime? dateTo = null)
+    {
+        try
+        {
+            return await QueryWhInventoryDbAsync(q, dateFrom, dateTo);
+        }
+        catch
+        {
+            return await Get<List<InventoryRow>>("/api/wh/inventory" + (string.IsNullOrEmpty(q) ? "" : $"?q={Uri.EscapeDataString(q)}"));
+        }
+    }
+    public async Task<List<InventoryLocationRow>> WhInventoryLocationsAsync(string itemNo, DateTime? dateFrom = null, DateTime? dateTo = null)
+    {
+        try
+        {
+            return await QueryWhInventoryLocationsDbAsync(itemNo, dateFrom, dateTo);
+        }
+        catch
+        {
+            return new List<InventoryLocationRow>();
+        }
+    }
     public async Task<List<LocationRow>> WhLocationsAsync()
     {
         try
@@ -488,6 +514,61 @@ public sealed class PdaApi
         return rows;
     }
 
+    private async Task<List<InventoryRow>> QueryWhInventoryDbAsync(string? q, DateTime? dateFrom, DateTime? dateTo)
+    {
+        await using var conn = _db.CreateConnection();
+        await conn.OpenAsync();
+        await using var cmd = new SqlCommand("[SIS_TEST].[PDA_WH03_INVENTORY_STATUS]", conn)
+        {
+            CommandType = CommandType.StoredProcedure
+        };
+        cmd.Parameters.Add("@IN_CORCD", SqlDbType.NVarChar, 10).Value = WhLocationCorcd;
+        cmd.Parameters.Add("@IN_BIZCD", SqlDbType.NVarChar, 10).Value = WhLocationBizcd;
+        cmd.Parameters.Add("@IN_Q", SqlDbType.NVarChar, 80).Value =
+            string.IsNullOrWhiteSpace(q) ? DBNull.Value : q.Trim();
+        cmd.Parameters.Add("@IN_DATE_FROM", SqlDbType.Date).Value =
+            dateFrom.HasValue ? dateFrom.Value.Date : (object)DBNull.Value;
+        cmd.Parameters.Add("@IN_DATE_TO", SqlDbType.Date).Value =
+            dateTo.HasValue ? dateTo.Value.Date : (object)DBNull.Value;
+        cmd.Parameters.Add("@IN_LANG_SET", SqlDbType.NVarChar, 10).Value = "EN";
+
+        await using var rdr = await cmd.ExecuteReaderAsync();
+        var rows = new List<InventoryRow>();
+        while (await rdr.ReadAsync())
+        {
+            rows.Add(ReadInventoryRow(rdr));
+        }
+
+        return rows;
+    }
+
+    private async Task<List<InventoryLocationRow>> QueryWhInventoryLocationsDbAsync(string itemNo, DateTime? dateFrom, DateTime? dateTo)
+    {
+        await using var conn = _db.CreateConnection();
+        await conn.OpenAsync();
+        await using var cmd = new SqlCommand("[SIS_TEST].[PDA_WH03_INVENTORY_LOCATIONS]", conn)
+        {
+            CommandType = CommandType.StoredProcedure
+        };
+        cmd.Parameters.Add("@IN_CORCD", SqlDbType.NVarChar, 10).Value = WhLocationCorcd;
+        cmd.Parameters.Add("@IN_BIZCD", SqlDbType.NVarChar, 10).Value = WhLocationBizcd;
+        cmd.Parameters.Add("@IN_PARTNO", SqlDbType.NVarChar, 40).Value = itemNo.Trim();
+        cmd.Parameters.Add("@IN_DATE_FROM", SqlDbType.Date).Value =
+            dateFrom.HasValue ? dateFrom.Value.Date : (object)DBNull.Value;
+        cmd.Parameters.Add("@IN_DATE_TO", SqlDbType.Date).Value =
+            dateTo.HasValue ? dateTo.Value.Date : (object)DBNull.Value;
+        cmd.Parameters.Add("@IN_LANG_SET", SqlDbType.NVarChar, 10).Value = "EN";
+
+        await using var rdr = await cmd.ExecuteReaderAsync();
+        var rows = new List<InventoryLocationRow>();
+        while (await rdr.ReadAsync())
+        {
+            rows.Add(ReadInventoryLocationRow(rdr));
+        }
+
+        return rows;
+    }
+
     private async Task<LocationRow?> QueryWhLocationDbAsync(string locationId)
     {
         await using var conn = _db.CreateConnection();
@@ -609,6 +690,49 @@ public sealed class PdaApi
             GetString(rdr, "PlantCode"),
             GetString(rdr, "LocationType"),
             GetNullableDecimal(rdr, "Capacity"));
+    }
+
+    private static InventoryRow ReadInventoryRow(SqlDataReader rdr)
+    {
+        return new InventoryRow(
+            GetInt(rdr, "INVENTORY_ID") ?? 0,
+            GetString(rdr, "PARTNO") ?? "",
+            GetString(rdr, "PARTNM"),
+            GetString(rdr, "PRIMARY_LOCATION") ?? "-",
+            null,
+            GetDecimal(rdr, "SUM_QTY"),
+            GetDecimal(rdr, "RESERVED_QTY"),
+            GetDate(rdr, "LAST_RECEIVED_DATE"),
+            GetString(rdr, "VINCD"),
+            GetString(rdr, "UNIT"),
+            GetNullableDecimal(rdr, "MIN_INV_DAY"),
+            GetNullableDecimal(rdr, "MIN_INV_QTY"),
+            GetNullableDecimal(rdr, "MAX_INV_DAY"),
+            GetNullableDecimal(rdr, "MAX_INV_QTY"),
+            GetInt(rdr, "LOT_COUNT") ?? 0,
+            GetInt(rdr, "LOCATION_COUNT") ?? 0,
+            GetString(rdr, "STATUS"),
+            GetString(rdr, "STATUSNM"),
+            GetDate(rdr, "LAST_RECEIVED_DATE"));
+    }
+
+    private static InventoryLocationRow ReadInventoryLocationRow(SqlDataReader rdr)
+    {
+        return new InventoryLocationRow(
+            GetInt(rdr, "ROW_NO") ?? 0,
+            GetString(rdr, "PARTNO") ?? "",
+            GetString(rdr, "LOCATION_NO") ?? "-",
+            GetString(rdr, "LOCATION_NM"),
+            GetString(rdr, "WHCD"),
+            GetString(rdr, "WHNM"),
+            GetString(rdr, "AREACD"),
+            GetString(rdr, "AREANM"),
+            GetString(rdr, "ZONECD"),
+            GetString(rdr, "ZONENM"),
+            GetString(rdr, "RACK_X"),
+            GetString(rdr, "RACK_Y"),
+            GetString(rdr, "RACK_Z"),
+            GetDecimal(rdr, "SUM_QTY"));
     }
 
     private static bool HasColumn(SqlDataReader rdr, string name)
