@@ -1,51 +1,180 @@
 @page "/wh/01"
+@implements IDisposable
 @inject PdaApi Api
 @inject NavigationManager Nav
 @inject AuthState Auth
 
-<div class="pda-shell wh">
+<div class="pda-shell wh wh01-shell">
     <div class="pda-tbar">
-        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/wh"))'>←</button>
-        <span class="pda-tbar-brand">WH-001 INBOUND</span>
+        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/wh"))'>&lt;</button>
+        <div class="wh01-tbar-title">
+            <span class="pda-tbar-brand">WH-001 INBOUND</span>
+            <span class="wh01-last-updated">Last Updated @LastUpdatedText</span>
+        </div>
+        <button class="wh01-tbar-refresh" @onclick="Load" disabled="@_isLoading">REFRESH</button>
     </div>
-    <div class="pda-bd">
-        <div class="pda-card">
-            <div class="pda-card-h">▼ INBOUND SCHEDULE (@_rows.Count)</div>
-            @if (_rows.Count == 0) { <div class="pda-empty">@_msg</div> }
-            else
-            {
-                @foreach (var r in _rows)
+    <div class="pda-bd wh01-body">
+        <div class="wh01-head">
+            <div class="pda-card-h">PO RECEIPT STATUS</div>
+            <div class="wh01-summary">
+                <div class="wh01-stat">
+                    <span>Total</span>
+                    <strong>@TotalCount</strong>
+                </div>
+                <div class="wh01-stat progress">
+                    <span>In Progress</span>
+                    <strong>@InProgressCount</strong>
+                </div>
+                <div class="wh01-stat complete">
+                    <span>Complete</span>
+                    <strong>@CompleteCount</strong>
+                </div>
+                <div class="wh01-stat late">
+                    <span>Late</span>
+                    <strong>@LateCount</strong>
+                </div>
+            </div>
+        </div>
+
+        @if (_rows.Count == 0)
+        {
+            <div class="pda-empty">@_msg</div>
+        }
+        else
+        {
+            <div class="wh01-list">
+                @foreach (var row in _rows)
                 {
-                    var late = r.DueDate.HasValue && r.DueDate.Value.Date < DateTime.Today;
-                    <div class="pda-row3 @(late ? "bad" : "")">
-                        <div class="r3-l">
-                            <div class="r3-code">@r.PoNumber #@r.PoLineNo</div>
-                            <div class="r3-sub">@(r.ItemName ?? r.ItemNo)</div>
+                    <div class="wh01-po-card @RowClass(row)">
+                        <div class="wh01-card-top">
+                            <div class="wh01-po-main">
+                                <div class="wh01-po-no">@row.PoNumber</div>
+                                <div class="wh01-po-sub">UNIT @(row.Unit ?? "-")</div>
+                            </div>
+                            <div class="wh01-card-tags">
+                                <div class="wh01-dday @DdayClass(row)">@DdayText(row)</div>
+                                <div class="wh01-status @RowClass(row)">@StatusText(row)</div>
+                            </div>
                         </div>
-                        <div class="r3-m">
-                            <div>@r.ReceivedQty.ToString("0") / @r.OrderQty.ToString("0")</div>
-                            <div class="r3-sub">@(r.VendorId ?? "—")</div>
+
+                        <div class="wh01-material">
+                            <div class="wh01-part">@(row.ItemNo ?? "-")</div>
+                            <div class="wh01-desc">@(row.ItemName ?? "-")</div>
+                            <div class="wh01-car-line">CAR @(row.CarCode ?? "-")</div>
                         </div>
-                        <div class="r3-r">
-                            <div>@(r.DueDate?.ToString("MM-dd") ?? "—")</div>
-                            <div class="r3-sub">@(r.Status ?? "")</div>
+
+                        <div class="wh01-qty-grid">
+                            <div class="wh01-qty">
+                                <span>PO Qty</span>
+                                <strong>@row.OrderQty.ToString("N0")</strong>
+                            </div>
+                            <div class="wh01-qty">
+                                <span>GR Qty</span>
+                                <strong>@row.ReceivedQty.ToString("N0")</strong>
+                            </div>
                         </div>
                     </div>
                 }
-            }
-        </div>
-        <button class="pda-btn-pri" @onclick="Load">↻ REFRESH</button>
+            </div>
+        }
     </div>
+    <button type="button" class="wh01-scan-fixed" @onclick='@(() => Nav.NavigateTo("/wh/02"))'>RECEIVE</button>
 </div>
 
 @code {
-    List<PdaApi.InboundScheduleRow> _rows = new();
-    string _msg = "Loading…";
-    protected override async Task OnInitializedAsync() => await Load();
-    async Task Load()
+    private List<PdaApi.InboundScheduleRow> _rows = new();
+    private string _msg = "Loading...";
+    private DateTime? _lastSyncAt;
+    private System.Threading.Timer? _autoSyncTimer;
+    private bool _isLoading;
+    private static readonly TimeSpan AutoSyncInterval = TimeSpan.FromHours(1);
+
+    private int TotalCount => _rows.Count;
+    private int InProgressCount => _rows.Count(IsInProgress);
+    private int CompleteCount => _rows.Count(IsComplete);
+    private int LateCount => _rows.Count(IsLate);
+    private string LastUpdatedText => _lastSyncAt?.ToString("HH:mm:ss") ?? "-";
+
+    protected override async Task OnInitializedAsync()
     {
-        _msg = "Loading…";
-        _rows = await Api.WhInboundScheduleAsync();
-        if (_rows.Count == 0) _msg = "No inbound scheduled.";
+        await Load();
+        _autoSyncTimer = new System.Threading.Timer(_ =>
+        {
+            _ = InvokeAsync(async () =>
+            {
+                await Load();
+                StateHasChanged();
+            });
+        }, null, AutoSyncInterval, AutoSyncInterval);
+    }
+
+    private async Task Load()
+    {
+        if (_isLoading) return;
+
+        _isLoading = true;
+        try
+        {
+            _msg = "Loading...";
+            _rows = await Api.WhInboundScheduleAsync();
+            _lastSyncAt = DateTime.Now;
+            if (_rows.Count == 0) _msg = "No inbound scheduled.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private static bool IsComplete(PdaApi.InboundScheduleRow row) => row.NonDeliverQty <= 0;
+
+    private static bool IsLate(PdaApi.InboundScheduleRow row)
+        => !IsComplete(row) && row.DueDate.HasValue && row.DueDate.Value.Date < DateTime.Today;
+
+    private static bool IsInProgress(PdaApi.InboundScheduleRow row)
+        => !IsComplete(row) && !IsLate(row);
+
+    private static string RowClass(PdaApi.InboundScheduleRow row)
+    {
+        if (IsComplete(row)) return "complete";
+        if (IsLate(row)) return "late";
+        return "progress";
+    }
+
+    private static string StatusText(PdaApi.InboundScheduleRow row)
+    {
+        if (IsComplete(row)) return "Complete";
+        if (IsLate(row)) return "Late";
+        return "In Progress";
+    }
+
+    private static int? EtaDays(PdaApi.InboundScheduleRow row)
+        => row.DueDate.HasValue ? (row.DueDate.Value.Date - DateTime.Today).Days : null;
+
+    private static string DdayText(PdaApi.InboundScheduleRow row)
+    {
+        if (IsComplete(row)) return "Done";
+
+        var days = EtaDays(row);
+        if (!days.HasValue) return "No ETA";
+        if (days.Value == 0) return "D-0";
+        if (days.Value > 0) return $"D-{days.Value}";
+        return $"D+{Math.Abs(days.Value)}";
+    }
+
+    private static string DdayClass(PdaApi.InboundScheduleRow row)
+    {
+        if (IsComplete(row)) return "complete";
+
+        var days = EtaDays(row);
+        if (!days.HasValue) return "";
+        if (days.Value <= 0) return "urgent";
+        if (days.Value <= 3) return "warn";
+        return "";
+    }
+
+    public void Dispose()
+    {
+        _autoSyncTimer?.Dispose();
     }
 }

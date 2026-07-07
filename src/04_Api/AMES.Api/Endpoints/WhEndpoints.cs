@@ -1,5 +1,6 @@
 using AMES.Api.Auth;
 using AMES.Data.Connection;
+using System.Data;
 using Microsoft.Data.SqlClient;
 
 namespace AMES.Api.Endpoints;
@@ -8,7 +9,8 @@ public static class WhEndpoints
 {
     // ── DTOs ─────────────────────────────────────────────────────────────
     public sealed record InboundScheduleRow(int PoId, string PoNumber, int? PoLineNo, string? VendorId,
-        string? ItemNo, string? ItemName, decimal OrderQty, decimal ReceivedQty, DateTime? DueDate, string? Status);
+        string? ItemNo, string? ItemName, string? CarCode, string? Unit, decimal OrderQty, decimal ReceivedQty,
+        decimal NonDeliverQty, DateTime? DueDate, DateTime? PoCreateDate, string? Status);
 
     public sealed record InventoryRow(int InventoryId, string ItemNo, string? ItemName, string LocationId,
         int? LotId, decimal OnHandQty, decimal ReservedQty, DateTime? ExpiryDate);
@@ -31,24 +33,60 @@ public static class WhEndpoints
         var g = app.MapGroup("/api/wh").WithTags("Warehouse");
 
         // WH-01 Inbound Schedule
-        g.MapGet("/inbound/schedule", (HttpContext ctx) =>
+        g.MapGet("/inbound/schedule", (HttpContext ctx, int? year, int? quarter, string? vendorId, string? lang) =>
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
-            const string sql = """
-                SELECT TOP 50 p.PoID, p.PoNumber, p.PoLineNo, p.VendorID,
-                       p.ItemNo, i.ItemName,
-                       ISNULL(p.OrderQty,0)    AS OrderQty,
-                       ISNULL(p.ReceivedQty,0) AS ReceivedQty,
-                       p.DueDate, ISNULL(p.Status,'Open') AS Status
-                FROM   dbo.WH_PurchaseOrder p
-                LEFT JOIN dbo.MD_Item i ON i.ItemNo = p.ItemNo
-                ORDER BY ISNULL(p.DueDate, CAST('9999-01-01' AS DATE)), p.PoID;
-                """;
-            return Query(factory, sql, r => new InboundScheduleRow(
-                (int)r["PoID"], r["PoNumber"] as string ?? "", r["PoLineNo"] as int?,
-                r["VendorID"] as string, r["ItemNo"] as string, r["ItemName"] as string,
-                r.GetDecimal(r.GetOrdinal("OrderQty")), r.GetDecimal(r.GetOrdinal("ReceivedQty")),
-                r["DueDate"] as DateTime?, r["Status"] as string));
+
+            var today = DateTime.Today;
+            var queryYear = year ?? today.Year;
+            var queryQuarter = quarter ?? ((today.Month - 1) / 3) + 1;
+            var language = string.IsNullOrWhiteSpace(lang) ? "EN" : lang;
+
+            using var conn = factory.OpenConnection();
+            using var cmd = new SqlCommand("[SIS_TEST].[APG_WM40120_INQUERY_VENDER_BACK_ORDER]", conn)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            cmd.Parameters.AddWithValue("@IN_CORCD", "1000");
+            cmd.Parameters.AddWithValue("@IN_BIZCD", "5011");
+            cmd.Parameters.AddWithValue("@IN_YYYY", queryYear.ToString());
+            cmd.Parameters.AddWithValue("@IN_QUATER", queryQuarter.ToString());
+            cmd.Parameters.AddWithValue("@IN_VENDCD", string.IsNullOrWhiteSpace(vendorId) ? DBNull.Value : vendorId);
+            cmd.Parameters.AddWithValue("@IN_LANG_SET", language);
+
+            using var rdr = cmd.ExecuteReader();
+            var rows = new List<InboundScheduleRow>();
+            var poId = 1;
+            while (rdr.Read())
+            {
+                var orderQty = GetDecimal(rdr, "PO_QTY");
+                var receivedQty = GetDecimal(rdr, "GRN_QTY");
+                var remainQty = GetDecimal(rdr, "NON_DELI_QTY");
+                var dueDate = GetDate(rdr, "PO_DELI_DATE");
+                var poCreateDate = GetDate(rdr, "PO_DATE");
+                var status = remainQty <= 0
+                    ? "Complete"
+                    : dueDate.HasValue && dueDate.Value.Date < today ? "Late"
+                    : "In Progress";
+
+                rows.Add(new InboundScheduleRow(
+                    poId++,
+                    GetString(rdr, "PONO") ?? "",
+                    GetInt(rdr, "PONO_SEQ"),
+                    GetString(rdr, "VENDNM") ?? GetString(rdr, "VENDCD"),
+                    GetString(rdr, "PARTNO"),
+                    GetString(rdr, "PARTNM"),
+                    GetString(rdr, "VINCD"),
+                    GetString(rdr, "PO_UNIT"),
+                    orderQty,
+                    receivedQty,
+                    remainQty,
+                    dueDate,
+                    poCreateDate,
+                    status));
+            }
+
+            return Results.Ok(rows);
         });
 
         // Today's inbound (kept from earlier sample)
@@ -267,5 +305,45 @@ public static class WhEndpoints
         var list = new List<T>();
         while (rdr.Read()) list.Add(map(rdr));
         return Results.Ok(list);
+    }
+
+    private static bool HasColumn(SqlDataReader rdr, string name)
+    {
+        for (var i = 0; i < rdr.FieldCount; i++)
+        {
+            if (string.Equals(rdr.GetName(i), name, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
+    }
+
+    private static string? GetString(SqlDataReader rdr, string name)
+    {
+        if (!HasColumn(rdr, name)) return null;
+        var value = rdr[name];
+        return value == DBNull.Value ? null : Convert.ToString(value);
+    }
+
+    private static int? GetInt(SqlDataReader rdr, string name)
+    {
+        if (!HasColumn(rdr, name)) return null;
+        var value = rdr[name];
+        return value == DBNull.Value ? null : Convert.ToInt32(value);
+    }
+
+    private static decimal GetDecimal(SqlDataReader rdr, string name)
+    {
+        if (!HasColumn(rdr, name)) return 0;
+        var value = rdr[name];
+        return value == DBNull.Value ? 0 : Convert.ToDecimal(value);
+    }
+
+    private static DateTime? GetDate(SqlDataReader rdr, string name)
+    {
+        if (!HasColumn(rdr, name)) return null;
+        var value = rdr[name];
+        if (value == DBNull.Value) return null;
+        if (value is DateTime dt) return dt;
+        return DateTime.TryParse(Convert.ToString(value), out var parsed) ? parsed : null;
     }
 }

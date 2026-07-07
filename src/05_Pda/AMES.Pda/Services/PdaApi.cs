@@ -85,7 +85,8 @@ public sealed class PdaApi
     public sealed record InboundRow(int LotId, string LotCode, string? ItemNo, string? ItemName,
         decimal Qty, string? Vendor, DateTime? ArrivedAt);
     public sealed record InboundScheduleRow(int PoId, string PoNumber, int? PoLineNo, string? VendorId,
-        string? ItemNo, string? ItemName, decimal OrderQty, decimal ReceivedQty, DateTime? DueDate, string? Status);
+        string? ItemNo, string? ItemName, string? CarCode, string? Unit, decimal OrderQty, decimal ReceivedQty,
+        decimal NonDeliverQty, DateTime? DueDate, DateTime? PoCreateDate, string? Status);
     public sealed record InventoryRow(int InventoryId, string ItemNo, string? ItemName, string LocationId,
         int? LotId, decimal OnHandQty, decimal ReservedQty, DateTime? ExpiryDate);
     public sealed record LocationRow(string LocationId, string? LocationName, string? Zone, int LineCount, decimal TotalQty);
