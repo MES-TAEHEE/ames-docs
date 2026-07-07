@@ -27,7 +27,8 @@
     <div class="ames-kpi @(UnmatchedCount > 0 ? "bad" : "")"><div class="ames-kpi-l">UNMATCHED</div><div class="ames-kpi-v">@UnmatchedCount</div></div>
 </div>
 
-<div class="ames-card">
+<AmesTabs>
+    <AmesTab Title="@L["PP.Forecast.Tab.Status"].Value">
     <div class="ames-card-h" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span class="dim" style="font-size:.82em;white-space:nowrap;margin-left:12px;">@L["Col.Customer"]</span>
         <RadzenDropDown Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
@@ -92,7 +93,51 @@
             </Columns>
         </RadzenDataGrid>
     }
-</div>
+    </AmesTab>
+
+    <AmesTab Title="@L["PP.Forecast.Tab.History"].Value">
+        @if (_batches.Count == 0)
+        {
+            <div class="ames-empty">@L["PP.Forecast.Hist.Empty"]</div>
+        }
+        else
+        {
+            <RadzenDataGrid Data="_batches" TItem="PpRepository.WeeklyImportBatch"
+                            AllowPaging="true" PageSize="_pageSize" AllowSorting="true"
+                            AllowColumnResize="true" Density="Density.Compact"
+                            class="ames-rz-grid" PagerHorizontalAlign="HorizontalAlign.Left"
+                            ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"].Value">
+                <Columns>
+                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Property="CustomerId"
+                                          Title="@L["Col.Customer"].Value" Width="120px" />
+                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Property="Batch"
+                                          Title="@L["PP.Forecast.Hist.Batch"].Value" Width="160px">
+                        <Template Context="b"><span class="code">@b.Batch</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Property="Rows"
+                                          Title="@L["PP.Forecast.Hist.Rows"].Value" TextAlign="TextAlign.Right" Width="90px">
+                        <Template Context="b">@b.Rows.ToString("#,0")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Property="Items"
+                                          Title="@L["PP.Forecast.Hist.Items"].Value" TextAlign="TextAlign.Right" Width="90px">
+                        <Template Context="b">@b.Items.ToString("#,0")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Title="@L["PP.Forecast.Hist.Period"].Value"
+                                          Sortable="false" Width="210px">
+                        <Template Context="b">@(b.WeekFrom?.ToString("yyyy-MM-dd") ?? "—") ~ @(b.WeekTo?.ToString("yyyy-MM-dd") ?? "—")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Property="ImportedBy"
+                                          Title="@L["PP.Forecast.Hist.By"].Value" Width="140px" />
+                                          <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Property="ImportedAt"
+                                          Title="@L["PP.Forecast.Hist.Uploaded"].Value" Width="160px"
+                                          SortOrder="SortOrder.Descending">
+                        <Template Context="b">@(b.ImportedAt?.ToString("yyyy-MM-dd HH:mm") ?? "—")</Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        }
+    </AmesTab>
+</AmesTabs>
 
 @code {
     const int _pageSize = 20;
@@ -111,6 +156,7 @@
     List<DateTime> _weeks = new();
     List<string>   _weekLabels = new();
     List<ItemVm>   _items = new();
+    List<PpRepository.WeeklyImportBatch> _batches = new();
 
     string _msg = "";
     bool   _isErr;
@@ -192,6 +238,9 @@
                 g.ToDictionary(c => c.WeekStartDate, c => c.Qty)))
             .OrderBy(i => i.CustomerId).ThenBy(i => i.ItemNo)
             .ToList();
+
+        try   { _batches = Pp.ListWeeklyImportBatches(_fCustomer ?? ""); }
+        catch { _batches = new(); }
     }
 
     void ShowMsg(string msg, bool isErr)

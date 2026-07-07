@@ -371,6 +371,34 @@ a:hover { color: #c4dafe; }
     display: flex; align-items: center;
 }
 
+/* ── 공통 탭 모듈 (AmesTabs/AmesTab) ───────────────────────── */
+.ames-tabstrip { display: flex; gap: 4px; }
+.ames-tab {
+    padding: 8px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; letter-spacing: 1px; font-weight: 600;
+    color: #93a4bd;
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.06);
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+}
+.ames-tab:hover { color: #e5edf7; }
+.ames-tab.on {
+    color: #fff;
+    background: linear-gradient(180deg, rgba(15,29,51,.95), rgba(10,20,38,.95));
+    box-shadow: inset 0 -2px 0 #2563eb;
+}
+.ames-tabpanel {
+    background: linear-gradient(180deg, rgba(15,29,51,.95), rgba(10,20,38,.95));
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 0 12px 12px 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 12px -8px rgba(0,0,0,.6);
+}
+
 /* ── KPI strip ────────────────────────────────────────────── */
 .ames-kpis {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

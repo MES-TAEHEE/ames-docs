@@ -1,0 +1,21 @@
+@* 공통 탭 모듈의 개별 탭. 반드시 <AmesTabs> 안에 위치. *@
+@if (Parent.IsActive(this))
+{
+    @ChildContent
+}
+
+@code {
+    [CascadingParameter] public AmesTabs Parent { get; set; } = default!;
+
+    /// <summary>탭 스트립에 표시되는 제목.</summary>
+    [Parameter] public string Title { get; set; } = "";
+
+    [Parameter] public RenderFragment ChildContent { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        if (Parent is null)
+            throw new InvalidOperationException($"{nameof(AmesTab)}는 {nameof(AmesTabs)} 안에서만 사용할 수 있습니다.");
+        Parent.AddTab(this);
+    }
+}
