@@ -1,5 +1,7 @@
 @rendermode InteractiveServer
+@implements IDisposable
 @inject NavigationManager Nav
+@inject PageHeaderState Header
 
 <header class="ames-topbar">
     <div class="ames-brand">
@@ -11,6 +13,17 @@
             </div>
         </div>
     </div>
+
+    @if (!string.IsNullOrEmpty(Header.Code) || !string.IsNullOrEmpty(Header.Title))
+    {
+        <div class="ames-topbar-loc">
+            @if (!string.IsNullOrEmpty(Header.Code))
+            {
+                <span class="ames-loc-code">@Header.Code</span>
+            }
+            <span class="ames-loc-name">@Header.Title</span>
+        </div>
+    }
 
     <div class="ames-topbar-spacer"></div>
 
@@ -46,5 +59,10 @@
     protected override void OnInitialized()
     {
         _url = Nav.ToBaseRelativePath(Nav.Uri);
+        Header.OnChanged += OnHeaderChanged;
     }
+
+    void OnHeaderChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Header.OnChanged -= OnHeaderChanged;
 }

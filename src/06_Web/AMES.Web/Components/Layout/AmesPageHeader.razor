@@ -1,0 +1,24 @@
+@using AMES.Web.Services
+@inject IStringLocalizer<SharedResources> L
+@inject PageHeaderState State
+
+@* 화면엔 아무것도 렌더링하지 않는다 — 경로/이름은 TopBar 브레드크럼에 표시된다. *@
+
+@code {
+    /// <summary>경로 코드 (예: PP-004, MD-010).</summary>
+    [Parameter] public string? Code { get; set; }
+
+    /// <summary>현지화 리소스 키 (예: PP.WorkOrder.Title). Title이 있으면 무시된다.</summary>
+    [Parameter] public string? TitleKey { get; set; }
+
+    /// <summary>리소스를 거치지 않는 직접 지정 이름. 지정 시 TitleKey보다 우선.</summary>
+    [Parameter] public string? Title { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        var name = !string.IsNullOrEmpty(Title)    ? Title
+                 : !string.IsNullOrEmpty(TitleKey) ? L[TitleKey].Value
+                 : null;
+        State.Set(Code, name);
+    }
+}
