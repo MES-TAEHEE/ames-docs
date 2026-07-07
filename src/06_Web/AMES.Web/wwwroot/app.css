@@ -399,6 +399,14 @@ a:hover { color: #c4dafe; }
     box-shadow: 0 4px 12px -8px rgba(0,0,0,.6);
 }
 
+/* ── 라벨 필드 (입력 위 라벨) ──────────────────────────────── */
+.ames-fld { display: flex; flex-direction: column; gap: 4px; }
+.ames-fld > label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; font-weight: 700; letter-spacing: .5px;
+    text-transform: uppercase; color: #93a4bd;
+}
+
 /* ── KPI strip ────────────────────────────────────────────── */
 .ames-kpis {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

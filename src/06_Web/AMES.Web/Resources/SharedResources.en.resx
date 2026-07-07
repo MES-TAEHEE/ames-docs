@@ -957,6 +957,8 @@
   <data name="PP.Forecast.Hist.Period"><value>Period</value></data>
   <data name="PP.Forecast.Hist.By"><value>Uploaded By</value></data>
   <data name="PP.Forecast.Hist.Empty"><value>No upload history.</value></data>
+  <data name="PP.Forecast.Fld.Period"><value>Period</value></data>
+  <data name="PP.Forecast.Fld.PartNoPh"><value>Item code or name...</value></data>
   <data name="PP.Forecast.Upload.Title"><value>Weekly Purchase Plan Upload (SRM)</value></data>
   <data name="PP.Forecast.Upload.Hint"><value>ZMM30004 .xls file · max 10 MB</value></data>
   <data name="PP.Forecast.Err.NoCustomer"><value>Select a customer first.</value></data>

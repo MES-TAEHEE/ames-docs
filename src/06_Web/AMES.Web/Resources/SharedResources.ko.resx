@@ -957,6 +957,8 @@
   <data name="PP.Forecast.Hist.Period"><value>기간</value></data>
   <data name="PP.Forecast.Hist.By"><value>업로더</value></data>
   <data name="PP.Forecast.Hist.Empty"><value>업로드 이력이 없습니다.</value></data>
+  <data name="PP.Forecast.Fld.Period"><value>기간</value></data>
+  <data name="PP.Forecast.Fld.PartNoPh"><value>품번 또는 품명...</value></data>
   <data name="PP.Forecast.Upload.Title"><value>주간 구매계획 업로드 (SRM)</value></data>
   <data name="PP.Forecast.Upload.Hint"><value>ZMM30004 .xls 파일 · 최대 10MB</value></data>
   <data name="PP.Forecast.Err.NoCustomer"><value>고객사를 먼저 선택하세요.</value></data>
