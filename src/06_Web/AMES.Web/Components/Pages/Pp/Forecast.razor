@@ -20,21 +20,35 @@
     <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
 }
 
-<div class="ames-kpis">
+<div class="ames-kpis compact">
     <div class="ames-kpi"><div class="ames-kpi-l">ITEMS</div><div class="ames-kpi-v">@_items.Count</div></div>
     <div class="ames-kpi ok"><div class="ames-kpi-l">WEEKS</div><div class="ames-kpi-v">@_weeks.Count</div></div>
     <div class="ames-kpi warn"><div class="ames-kpi-l">TOTAL QTY</div><div class="ames-kpi-v">@_items.Sum(i => i.Qty.Values.Sum()).ToString("#,0")</div></div>
     <div class="ames-kpi @(UnmatchedCount > 0 ? "bad" : "")"><div class="ames-kpi-l">UNMATCHED</div><div class="ames-kpi-v">@UnmatchedCount</div></div>
 </div>
 
-<div class="ames-card">
-    <div class="ames-card-h" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span class="dim" style="font-size:.82em;white-space:nowrap;margin-left:12px;">@L["Col.Customer"]</span>
-        <RadzenDropDown Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
-                        @bind-Value="_fCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
-                        Style="width:220px" />
-        <RadzenDatePicker @bind-Value="_fFrom" DateFormat="yyyy-MM-dd" Style="width:140px" />
-        <RadzenDatePicker @bind-Value="_fTo" DateFormat="yyyy-MM-dd" Style="width:140px" />
+<AmesTabs>
+    <AmesTab Title="@L["PP.Forecast.Tab.Status"].Value">
+    <div class="ames-card-h" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;text-transform:none;">
+        <div class="ames-fld">
+            <label>@L["Col.Customer"]</label>
+            <RadzenDropDown Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
+                            @bind-Value="_fCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
+                            Style="width:200px" />
+        </div>
+        <div class="ames-fld">
+            <label>@L["PP.Forecast.Fld.Period"]</label>
+            <div style="display:flex;align-items:center;gap:6px;">
+                <RadzenDatePicker @bind-Value="_fFrom" DateFormat="MM/dd/yyyy" Style="width:165px" />
+                <span class="dim">~</span>
+                <RadzenDatePicker @bind-Value="_fTo" DateFormat="MM/dd/yyyy" Style="width:165px" />
+            </div>
+        </div>
+        <div class="ames-fld">
+            <label>@L["Col.PartNo"]</label>
+            <RadzenTextBox @bind-Value="_fPartNo" @bind-Value:after="ApplyPartNo"
+                           Placeholder="@L["PP.Forecast.Fld.PartNoPh"].Value" Style="width:200px" />
+        </div>
         <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" Click="Search" />
             <RadzenButton Text="@L["PP.Forecast.Btn.ExcelUpload"].Value" Icon="upload"
@@ -50,7 +64,7 @@
     }
     else
     {
-        <RadzenDataGrid Data="_items" TItem="ItemVm" AllowPaging="true" PageSize="_pageSize"
+        <RadzenDataGrid Data="_view" TItem="ItemVm" AllowPaging="true" PageSize="_pageSize"
                         AllowSorting="true" AllowColumnResize="true" Density="Density.Compact"
                         AllowFiltering="true" FilterMode="FilterMode.CheckBoxList"
                         FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
@@ -92,17 +106,89 @@
             </Columns>
         </RadzenDataGrid>
     }
-</div>
+    </AmesTab>
+
+    <AmesTab Title="@L["PP.Forecast.Tab.History"].Value">
+        <div class="ames-card-h" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;text-transform:none;">
+            <div class="ames-fld">
+                <label>@L["Col.Customer"]</label>
+                <RadzenDropDown Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
+                                @bind-Value="_hCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
+                                Style="width:200px" />
+            </div>
+            <div class="ames-fld">
+                <label>@L["PP.Forecast.Fld.Period"]</label>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <RadzenDatePicker @bind-Value="_hFrom" DateFormat="MM/dd/yyyy" AllowClear="true"
+                                      Placeholder="—" Style="width:165px" />
+                    <span class="dim">~</span>
+                    <RadzenDatePicker @bind-Value="_hTo" DateFormat="MM/dd/yyyy" AllowClear="true"
+                                      Placeholder="—" Style="width:165px" />
+                </div>
+            </div>
+            <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+                <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" Click="SearchHistory" />
+            </div>
+        </div>
+
+        @if (_batches.Count == 0)
+        {
+            <div class="ames-empty">@L["PP.Forecast.Hist.Empty"]</div>
+        }
+        else
+        {
+            <RadzenDataGrid Data="_batches" TItem="PpRepository.WeeklyImportBatch"
+                            AllowPaging="true" PageSize="_pageSize" AllowSorting="true"
+                            AllowColumnResize="true" Density="Density.Compact"
+                            class="ames-rz-grid" PagerHorizontalAlign="HorizontalAlign.Left"
+                            ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"].Value">
+                <Columns>
+                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Property="CustomerId"
+                                          Title="@L["Col.Customer"].Value" Width="120px" />
+                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Property="Batch"
+                                          Title="@L["PP.Forecast.Hist.Batch"].Value" Width="160px">
+                        <Template Context="b"><span class="code">@b.Batch</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Property="Rows"
+                                          Title="@L["PP.Forecast.Hist.Rows"].Value" TextAlign="TextAlign.Right" Width="90px">
+                        <Template Context="b">@b.Rows.ToString("#,0")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Property="Items"
+                                          Title="@L["PP.Forecast.Hist.Items"].Value" TextAlign="TextAlign.Right" Width="90px">
+                        <Template Context="b">@b.Items.ToString("#,0")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Title="@L["PP.Forecast.Hist.Period"].Value"
+                                          Sortable="false" Width="210px">
+                        <Template Context="b">@(b.WeekFrom?.ToString("yyyy-MM-dd") ?? "—") ~ @(b.WeekTo?.ToString("yyyy-MM-dd") ?? "—")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Property="ImportedBy"
+                                          Title="@L["PP.Forecast.Hist.By"].Value" Width="140px" />
+                                          <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Property="ImportedAt"
+                                          Title="@L["PP.Forecast.Hist.Uploaded"].Value" Width="160px"
+                                          SortOrder="SortOrder.Descending">
+                        <Template Context="b">@(b.ImportedAt?.ToString("yyyy-MM-dd HH:mm") ?? "—")</Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        }
+    </AmesTab>
+</AmesTabs>
 
 @code {
     const int _pageSize = 20;
 
     List<MasterDataRepository.CustomerRow> _customers = new();
 
-    // 조회 필터
+    // 예측 현황 조회 필터
     string   _fCustomer = "";
+    string   _fPartNo   = "";
     DateTime _fFrom = DateTime.Today;
     DateTime _fTo   = DateTime.Today.AddDays(154);   // 22주
+
+    // 업로드 이력 조회 필터 (업로드 일시 기준, null = 무제한)
+    string    _hCustomer = "";
+    DateTime? _hFrom;
+    DateTime? _hTo;
 
     // 피벗 표시 모델. CustomerId는 전체 고객 조회에서만 표시.
     record ItemVm(string? CustomerId, string ItemNo, string Name, decimal? BaseInv, bool ItemExists,
@@ -111,6 +197,8 @@
     List<DateTime> _weeks = new();
     List<string>   _weekLabels = new();
     List<ItemVm>   _items = new();
+    List<ItemVm>   _view  = new();   // Part No 검색 적용된 표시용
+    List<PpRepository.WeeklyImportBatch> _batches = new();
 
     string _msg = "";
     bool   _isErr;
@@ -121,6 +209,14 @@
     {
         try { _customers = Md.ListCustomers(); } catch { }
         Search();
+        SearchHistory();
+    }
+
+    // 업로드 이력 조회 — 자체 필터(고객사·업로드 일시)로 로드.
+    void SearchHistory()
+    {
+        try   { _batches = Pp.ListWeeklyImportBatches(_hCustomer ?? "", _hFrom, _hTo); }
+        catch { _batches = new(); }
     }
 
     // ── 업로드 다이얼로그 ────────────────────────────────────────
@@ -137,6 +233,11 @@
             _fFrom = r.From;
             _fTo   = r.To;
             Search();
+
+            // 방금 업로드한 배치가 이력에 바로 보이도록 이력 필터도 해당 고객으로 맞춰 재조회
+            _hCustomer = r.CustomerId;
+            _hFrom = null; _hTo = null;
+            SearchHistory();
         }
     }
 
@@ -192,6 +293,18 @@
                 g.ToDictionary(c => c.WeekStartDate, c => c.Qty)))
             .OrderBy(i => i.CustomerId).ThenBy(i => i.ItemNo)
             .ToList();
+        ApplyPartNo();
+    }
+
+    // Part No 검색 — 이미 로드된 _items에 대해 클라이언트 필터. 품번/품명 부분일치.
+    void ApplyPartNo()
+    {
+        _view = string.IsNullOrWhiteSpace(_fPartNo)
+            ? _items
+            : _items.Where(i =>
+                  i.ItemNo.Contains(_fPartNo, StringComparison.OrdinalIgnoreCase) ||
+                  (i.Name?.Contains(_fPartNo, StringComparison.OrdinalIgnoreCase) ?? false))
+              .ToList();
     }
 
     void ShowMsg(string msg, bool isErr)

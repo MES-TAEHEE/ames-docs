@@ -1,0 +1,44 @@
+@* 공통 탭 모듈 — 탭 스트립 + 활성 패널. 자식 <AmesTab>가 등록/조건부 렌더. *@
+<div class="ames-tabstrip">
+    @foreach (var tab in _tabs)
+    {
+        <button type="button" class="ames-tab @(IsActive(tab) ? "on" : "")"
+                @onclick="() => Activate(tab)">
+            @tab.Title
+        </button>
+    }
+</div>
+<div class="ames-tabpanel @PanelClass">
+    <CascadingValue Value="this" IsFixed="true">
+        @ChildContent
+    </CascadingValue>
+</div>
+
+@code {
+    [Parameter] public RenderFragment ChildContent { get; set; } = default!;
+
+    /// <summary>패널에 추가할 CSS 클래스(선택).</summary>
+    [Parameter] public string? PanelClass { get; set; }
+
+    /// <summary>탭 전환 시 발생. 인자는 0-based 활성 탭 인덱스.</summary>
+    [Parameter] public EventCallback<int> ActiveIndexChanged { get; set; }
+
+    private readonly List<AmesTab> _tabs = new();
+    private AmesTab? _active;
+
+    internal void AddTab(AmesTab tab)
+    {
+        _tabs.Add(tab);
+        _active ??= tab;
+        StateHasChanged();
+    }
+
+    internal bool IsActive(AmesTab tab) => ReferenceEquals(tab, _active);
+
+    private async Task Activate(AmesTab tab)
+    {
+        if (ReferenceEquals(tab, _active)) return;
+        _active = tab;
+        await ActiveIndexChanged.InvokeAsync(_tabs.IndexOf(tab));
+    }
+}

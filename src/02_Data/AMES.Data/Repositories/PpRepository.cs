@@ -25,6 +25,9 @@ public sealed class PpRepository
     public sealed record WeeklyImportRow(string ItemNo, string PartName, string Unit,
         decimal BaseInv, DateTime WeekStartDate, string WeekLabel, decimal Qty);
 
+    public sealed record WeeklyImportBatch(string Batch, string? CustomerId, DateTime? ImportedAt,
+        string? ImportedBy, int Rows, int Items, DateTime? WeekFrom, DateTime? WeekTo);
+
     public sealed record SoRow(int SoId, string? SoNumber, int? SoLineNo, string? CustomerId,
         string ItemNo, string? ItemName, decimal OrderQty, decimal ShippedQty,
         DateTime? OrderDate, DateTime? RequestedDeliveryDate, DateTime? PromisedDate, string? Status);
@@ -118,6 +121,49 @@ public sealed class PpRepository
                 rdr["WeekLabel"] as string,
                 rdr.GetDecimal(rdr.GetOrdinal("Qty")),
                 (int)rdr["ItemExists"] == 1));
+        return list;
+    }
+
+    /// <summary>PP-001 주간 구매계획 업로드 이력 — ForecastBatch(=업로드 1건) 단위 집계.
+    /// customerId null/빈값 = 전체. uploadedFrom/To(업로드 일시) null = 무제한.</summary>
+    public List<WeeklyImportBatch> ListWeeklyImportBatches(string? customerId,
+        DateTime? uploadedFrom = null, DateTime? uploadedTo = null, int take = 100)
+    {
+        const string sql = """
+            SELECT TOP (@Take)
+                   f.ForecastBatch          AS Batch,
+                   MAX(f.CustomerID)        AS CustomerID,
+                   MAX(f.ImportedAt)        AS ImportedAt,
+                   MAX(f.ImportedBy)        AS ImportedBy,
+                   COUNT(*)                 AS Rows,
+                   COUNT(DISTINCT f.ItemNo) AS Items,
+                   MIN(f.WeekStartDate)     AS WeekFrom,
+                   MAX(f.WeekStartDate)     AS WeekTo
+            FROM   dbo.PP_Forecast f
+            WHERE  f.Source = 'SRM_WEEKLY' AND f.ForecastBatch IS NOT NULL
+              AND  (@Cust IS NULL OR f.CustomerID = @Cust)
+              AND  (@From IS NULL OR f.ImportedAt >= @From)
+              AND  (@To   IS NULL OR f.ImportedAt <  DATEADD(day, 1, @To))
+            GROUP BY f.ForecastBatch
+            ORDER BY MAX(f.ImportedAt) DESC;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Take", SqlDbType.Int).Value = take;
+        cmd.Parameters.Add("@Cust", SqlDbType.VarChar, 20).Value =
+            string.IsNullOrEmpty(customerId) ? DBNull.Value : customerId;
+        cmd.Parameters.Add("@From", SqlDbType.DateTime2).Value = (object?)uploadedFrom?.Date ?? DBNull.Value;
+        cmd.Parameters.Add("@To",   SqlDbType.DateTime2).Value = (object?)uploadedTo?.Date   ?? DBNull.Value;
+        using var rdr = cmd.ExecuteReader();
+        var list = new List<WeeklyImportBatch>();
+        while (rdr.Read())
+            list.Add(new WeeklyImportBatch(
+                rdr["Batch"] as string ?? "",
+                rdr["CustomerID"] as string,
+                rdr["ImportedAt"] as DateTime?,
+                rdr["ImportedBy"] as string,
+                (int)rdr["Rows"], (int)rdr["Items"],
+                rdr["WeekFrom"] as DateTime?, rdr["WeekTo"] as DateTime?));
         return list;
     }
 
