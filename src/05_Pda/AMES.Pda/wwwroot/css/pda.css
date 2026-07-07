@@ -1621,3 +1621,195 @@ body:has(.wh02-shell) {
     background: #f8fafc;
     color: #334155;
 }
+
+/* PDA Radzen component overrides */
+#app > .pda-boot-loader {
+    width: 100%;
+    height: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: #f6f8fb;
+    color: #475569;
+    font-family: inherit;
+}
+
+.pda-boot-spinner {
+    width: 42px;
+    height: 42px;
+    border: 4px solid #dbe3ef;
+    border-top-color: #0f6ab7;
+    border-radius: 999px;
+    animation: pda-boot-spin .8s linear infinite;
+}
+
+.pda-boot-text {
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+@keyframes pda-boot-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.pda-shell.wh .rz-button {
+    min-width: 0;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.pda-shell.wh .rz-button .rz-button-text {
+    color: inherit;
+    font-family: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+}
+
+.pda-shell.wh.wh01-shell .pda-tbar-back.rz-button,
+.pda-shell.wh.wh02-shell .pda-tbar-back.rz-button {
+    border: 1px solid #d7dee9 !important;
+    background: #f8fafc !important;
+    color: #334155 !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.wh01-shell .wh01-tbar-refresh.rz-button {
+    border: 1px solid #bfdbfe !important;
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.wh01-shell .wh01-scan-fixed.rz-button {
+    border: 1px solid #0f6ab7 !important;
+    background: #0f6ab7 !important;
+    color: #fff !important;
+    box-shadow: 0 10px 24px rgba(15,106,183,.26) !important;
+}
+
+.pda-shell.wh.wh02-shell .wh02-mode-btn.rz-button {
+    min-height: 42px;
+    border: 1px solid transparent !important;
+    background: transparent !important;
+    color: #64748b !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.wh02-shell .wh02-mode-btn.rz-button:hover {
+    background: #f8fafc !important;
+    color: #334155 !important;
+}
+
+.pda-shell.wh.wh02-shell .wh02-mode-btn.on.rz-button {
+    border-color: #d7dee9 !important;
+    background: #fff !important;
+    color: #172033 !important;
+    box-shadow: 0 2px 8px rgba(15,23,42,.10) !important;
+}
+
+.pda-shell.wh.wh02-shell .wh02-scan-btn.rz-button,
+.pda-shell.wh.wh02-shell .wh02-location-scan-btn.rz-button {
+    border: 1px solid #0f6ab7 !important;
+    background: #0f6ab7 !important;
+    color: #fff !important;
+    box-shadow: 0 6px 14px rgba(15,106,183,.20) !important;
+}
+
+.pda-shell.wh.wh02-shell .wh02-scan-btn.rz-button:disabled,
+.pda-shell.wh.wh02-shell .wh02-location-scan-btn.rz-button:disabled,
+.pda-shell.wh.wh02-shell .wh02-scan-btn.rz-state-disabled,
+.pda-shell.wh.wh02-shell .wh02-location-scan-btn.rz-state-disabled {
+    border-color: #d7dee9 !important;
+    background: #edf2f7 !important;
+    color: #94a3b8 !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+}
+
+.pda-shell.wh.wh02-shell .wh02-clear-btn.rz-button {
+    border: 1px solid #d7dee9 !important;
+    background: #fff !important;
+    color: #475569 !important;
+    box-shadow: 0 4px 12px rgba(15,23,42,.06) !important;
+}
+
+.pda-shell.wh.wh02-shell .wh02-clear-btn.rz-button:disabled,
+.pda-shell.wh.wh02-shell .wh02-clear-btn.rz-state-disabled {
+    border-color: #e2e8f0 !important;
+    background: #f8fafc !important;
+    color: #cbd5e1 !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+}
+
+.pda-shell.wh.wh02-shell .wh02-receive-action-btn.ready.rz-button {
+    border-color: #16a34a !important;
+    background: #16a34a !important;
+    color: #fff !important;
+    box-shadow: 0 8px 18px rgba(22,163,74,.22) !important;
+}
+
+.pda-shell.wh.wh02-shell .wh02-confirm-btn.ready.rz-button {
+    border-color: #0f6ab7 !important;
+    background: #0f6ab7 !important;
+    color: #fff !important;
+    box-shadow: 0 8px 18px rgba(15,106,183,.20) !important;
+}
+
+.pda-shell.wh.wh02-shell .wh02-change-btn.ready.rz-button {
+    border-color: #d97706 !important;
+    background: #f59e0b !important;
+    color: #fff !important;
+    box-shadow: 0 8px 18px rgba(245,158,11,.20) !important;
+}
+
+.pda-shell.wh.wh02-shell .wh02-receive-btn.blocked.rz-button,
+.pda-shell.wh.wh02-shell .wh02-receive-btn.rz-button:disabled,
+.pda-shell.wh.wh02-shell .wh02-receive-btn.rz-state-disabled {
+    border-color: #d7dee9 !important;
+    background: #edf2f7 !important;
+    color: #94a3b8 !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+}
+
+.pda-shell.wh.wh02-shell .wh02-cancel-btn.rz-button {
+    border: 1px solid #fecaca !important;
+    background: #fff !important;
+    color: #b91c1c !important;
+    box-shadow: 0 4px 12px rgba(185,28,28,.06) !important;
+}
+
+.pda-shell.wh.wh02-shell .wh02-cancel-btn.rz-button:disabled,
+.pda-shell.wh.wh02-shell .wh02-cancel-btn.rz-state-disabled {
+    border-color: #e2e8f0 !important;
+    background: #f8fafc !important;
+    color: #cbd5e1 !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+}
+
+.wh-modal-btn.primary.rz-button {
+    border: 1px solid #0f6ab7 !important;
+    background: #0f6ab7 !important;
+    color: #fff !important;
+}
+
+.wh-modal-card.danger .wh-modal-btn.primary.rz-button {
+    border-color: #dc2626 !important;
+    background: #dc2626 !important;
+}
+
+.wh-modal-btn.secondary.rz-button {
+    border: 1px solid #d7dee9 !important;
+    background: #fff !important;
+    color: #475569 !important;
+}

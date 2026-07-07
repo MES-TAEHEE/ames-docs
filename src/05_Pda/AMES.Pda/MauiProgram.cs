@@ -1,6 +1,7 @@
 using AMES.Data.Connection;
 using AMES.Pda.Services;
 using Microsoft.Extensions.Logging;
+using Radzen;
 
 namespace AMES.Pda;
 
@@ -29,6 +30,7 @@ public static class MauiProgram
             });
 
         builder.Services.AddMauiBlazorWebView();
+        builder.Services.AddRadzenComponents();
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();

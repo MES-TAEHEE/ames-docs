@@ -6,35 +6,35 @@
 
 <div class="pda-shell wh wh01-shell">
     <div class="pda-tbar">
-        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/wh"))'>&lt;</button>
+        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/wh"))' Text="&lt;" />
         <div class="wh01-tbar-title">
             <span class="pda-tbar-brand">WH-001 INBOUND</span>
             <span class="wh01-last-updated">Last Updated @LastUpdatedText</span>
         </div>
-        <button class="wh01-tbar-refresh" @onclick="Load" disabled="@_isLoading">REFRESH</button>
+        <RadzenButton class="wh01-tbar-refresh" Click="@Load" Disabled="@_isLoading" Text="REFRESH" />
     </div>
     <div class="pda-bd wh01-body">
-        <div class="wh01-head">
+        <RadzenCard class="wh01-head">
             <div class="pda-card-h">PO RECEIPT STATUS</div>
             <div class="wh01-summary">
-                <div class="wh01-stat">
+                <RadzenCard class="wh01-stat">
                     <span>Total</span>
                     <strong>@TotalCount</strong>
-                </div>
-                <div class="wh01-stat progress">
+                </RadzenCard>
+                <RadzenCard class="wh01-stat progress">
                     <span>In Progress</span>
                     <strong>@InProgressCount</strong>
-                </div>
-                <div class="wh01-stat complete">
+                </RadzenCard>
+                <RadzenCard class="wh01-stat complete">
                     <span>Complete</span>
                     <strong>@CompleteCount</strong>
-                </div>
-                <div class="wh01-stat late">
+                </RadzenCard>
+                <RadzenCard class="wh01-stat late">
                     <span>Late</span>
                     <strong>@LateCount</strong>
-                </div>
+                </RadzenCard>
             </div>
-        </div>
+        </RadzenCard>
 
         @if (_rows.Count == 0)
         {
@@ -45,15 +45,15 @@
             <div class="wh01-list">
                 @foreach (var row in _rows)
                 {
-                    <div class="wh01-po-card @RowClass(row)">
+                    <RadzenCard class="@($"wh01-po-card {RowClass(row)}")">
                         <div class="wh01-card-top">
                             <div class="wh01-po-main">
                                 <div class="wh01-po-no">@row.PoNumber</div>
                                 <div class="wh01-po-sub">UNIT @(row.Unit ?? "-")</div>
                             </div>
                             <div class="wh01-card-tags">
-                                <div class="wh01-dday @DdayClass(row)">@DdayText(row)</div>
-                                <div class="wh01-status @RowClass(row)">@StatusText(row)</div>
+                                <RadzenBadge class="@($"wh01-dday {DdayClass(row)}")" Text="@DdayText(row)" />
+                                <RadzenBadge class="@($"wh01-status {RowClass(row)}")" Text="@StatusText(row)" />
                             </div>
                         </div>
 
@@ -73,12 +73,12 @@
                                 <strong>@row.ReceivedQty.ToString("N0")</strong>
                             </div>
                         </div>
-                    </div>
+                    </RadzenCard>
                 }
             </div>
         }
     </div>
-    <button type="button" class="wh01-scan-fixed" @onclick='@(() => Nav.NavigateTo("/wh/02"))'>RECEIVE</button>
+    <RadzenButton class="wh01-scan-fixed" Click='@(() => Nav.NavigateTo("/wh/02"))' Text="RECEIVE" />
 </div>
 
 @code {

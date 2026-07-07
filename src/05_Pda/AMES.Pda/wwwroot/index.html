@@ -5,13 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>A-MES PDA</title>
     <base href="/" />
+    <link rel="stylesheet" href="_content/Radzen.Blazor/css/material-base.css" />
     <link rel="stylesheet" href="css/pda.css" />
     <link rel="icon" href="data:,">
 </head>
 
 <body>
 
-    <div id="app">Loading...</div>
+    <div id="app">
+        <div class="pda-boot-loader" role="status" aria-live="polite">
+            <div class="pda-boot-spinner"></div>
+            <div class="pda-boot-text">Loading...</div>
+        </div>
+    </div>
 
     <div id="blazor-error-ui">
         An unhandled error has occurred.
@@ -19,6 +25,7 @@
         <a class="dismiss">🗙</a>
     </div>
 
+    <script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>
     <script src="_framework/blazor.webview.js"></script>
 
 </body>

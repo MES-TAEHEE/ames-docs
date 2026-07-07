@@ -4,39 +4,39 @@
 
 <div class="pda-shell wh wh02-shell">
     <div class="pda-tbar">
-        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/wh"))'>&lt;</button>
+        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/wh"))' Text="&lt;" />
         <span class="pda-tbar-brand">WH-002 RECEIVE</span>
     </div>
 
     <div class="pda-bd wh02-body">
         <div class="wh02-mode">
-            <button type="button" class='wh02-mode-btn @ModeClass("LOCAL")' @onclick='@(() => SetMode("LOCAL"))'>LOCAL</button>
-            <button type="button" class='wh02-mode-btn @ModeClass("CKD")' @onclick='@(() => SetMode("CKD"))'>CKD</button>
+            <RadzenButton class="@($"wh02-mode-btn {ModeClass("LOCAL")}")" Click='@(() => SetMode("LOCAL"))' Text="LOCAL" />
+            <RadzenButton class="@($"wh02-mode-btn {ModeClass("CKD")}")" Click='@(() => SetMode("CKD"))' Text="CKD" />
         </div>
 
-        <section class="wh02-panel wh02-scan-panel">
+        <RadzenCard class="wh02-panel wh02-scan-panel">
             <div class="pda-fld">
                 <label>LOT NO SCAN</label>
-                <input class="pda-input wh02-barcode-input"
-                       @bind="_barcode"
-                       @bind:event="oninput"
-                       @onkeydown="OnKey"
-                       placeholder="@BarcodePlaceholder" />
+                <RadzenTextBox class="pda-input wh02-barcode-input"
+                               Value="@_barcode"
+                               @oninput="OnBarcodeInput"
+                               @onkeydown="OnKey"
+                               Placeholder="@BarcodePlaceholder" />
             </div>
-            <button type="button" class="wh02-scan-btn" @onclick="Scan" disabled="@DisableScan">SCAN</button>
-        </section>
+            <RadzenButton class="wh02-scan-btn" Click="@Scan" Disabled="@DisableScan" Text="SCAN" />
+        </RadzenCard>
 
         @if (_scan is not null && !_isLocationChangeMode)
         {
-            <section class='wh02-lot-card @(AlreadyReceived ? "received" : "ready")'>
+            <RadzenCard class="@($"wh02-lot-card {(AlreadyReceived ? "received" : "ready")}")">
                 <div class="wh02-lot-top">
                     <div class="wh02-lot-main">
                         <span>LOT NO</span>
                         <strong>@Text(_scan.LotNo)</strong>
                     </div>
                     <div class="wh02-lot-tags">
-                        <span class="wh02-type-chip">@_scan.ReceiveType</span>
-                        <span class="wh02-status-chip @StatusChipClass">@ItemStatusLabel</span>
+                        <RadzenBadge class="wh02-type-chip" Text="@_scan.ReceiveType" />
+                        <RadzenBadge class="@($"wh02-status-chip {StatusChipClass}")" Text="@ItemStatusLabel" />
                     </div>
                 </div>
 
@@ -65,12 +65,12 @@
                         </div>
                     }
                 </div>
-            </section>
+            </RadzenCard>
         }
 
         @if (_isLocationChangeMode)
         {
-            <section class="wh02-location-card current">
+            <RadzenCard class="wh02-location-card current">
                 <div class="wh02-location-card-top">
                     <span>CURRENT LOCATION</span>
                     <strong>@Text(_changeFromLocation)</strong>
@@ -88,25 +88,25 @@
                         }
                     </div>
                 }
-            </section>
+            </RadzenCard>
         }
 
-        <section class='wh02-panel wh02-location-panel @(LocationEntryDisabled ? "disabled" : "")'>
+        <RadzenCard class="@($"wh02-panel wh02-location-panel {(LocationEntryDisabled ? "disabled" : "")}")">
             <div class="pda-fld">
                 <label>@LocationScanLabel</label>
-                <input class="pda-input wh02-location-input"
-                       value="@_loc"
-                       @oninput="OnLocationInput"
-                       @onkeydown="OnLocationKey"
-                       placeholder="A0000"
-                       disabled="@LocationEntryDisabled" />
+                <RadzenTextBox class="pda-input wh02-location-input"
+                               Value="@_loc"
+                               @oninput="OnLocationInput"
+                               @onkeydown="OnLocationKey"
+                               Placeholder="A0000"
+                               Disabled="@LocationEntryDisabled" />
             </div>
-            <button type="button" class="wh02-location-scan-btn" @onclick="ScanLocation" disabled="@DisableLocationScan">SCAN</button>
-        </section>
+            <RadzenButton class="wh02-location-scan-btn" Click="@ScanLocation" Disabled="@DisableLocationScan" Text="SCAN" />
+        </RadzenCard>
 
         @if (_selectedLocation is not null && (!_isLocationChangeMode || !IsSameAsCurrentLocation(_selectedLocation.LocationId)))
         {
-            <section class="wh02-location-card">
+            <RadzenCard class="wh02-location-card">
                 <div class="wh02-location-card-top">
                     <span>@(_isLocationChangeMode ? "NEW LOCATION NO" : "LOCATION NO")</span>
                     <strong>@_selectedLocation.LocationId</strong>
@@ -121,7 +121,7 @@
                         </div>
                     }
                 </div>
-            </section>
+            </RadzenCard>
         }
 
         @if (!string.IsNullOrWhiteSpace(_msg))
@@ -132,18 +132,18 @@
         <div class='wh02-action-bar @ActionBarClass'>
             @if (_isLocationChangeMode)
             {
-                <button class="wh02-clear-btn" @onclick="ResetForm" disabled="@IsBusy">CLEAR</button>
-                <button class="pda-btn-pri wh02-receive-btn @ConfirmMoveButtonClass" @onclick="ConfirmLocationChange" disabled="@IsBusy">CONFIRM</button>
+                <RadzenButton class="wh02-clear-btn" Click="@ResetForm" Disabled="@IsBusy" Text="CLEAR" />
+                <RadzenButton class="@($"pda-btn-pri wh02-receive-btn wh02-confirm-btn {ConfirmMoveButtonClass}")" Click="@ConfirmLocationChange" Disabled="@IsBusy" Text="CONFIRM" />
             }
             else if (AlreadyReceived)
             {
-                <button class="wh02-cancel-btn" @onclick="CancelIncoming" disabled="@DisableCancel">CANCEL INCOMING</button>
-                <button class="pda-btn-pri wh02-receive-btn @ChangeButtonClass" @onclick="StartLocationChange" disabled="@IsBusy">CHANGE LOCATION</button>
+                <RadzenButton class="wh02-cancel-btn" Click="@CancelIncoming" Disabled="@DisableCancel" Text="CANCEL INCOMING" />
+                <RadzenButton class="@($"pda-btn-pri wh02-receive-btn wh02-change-btn {ChangeButtonClass}")" Click="@StartLocationChange" Disabled="@IsBusy" Text="CHANGE LOCATION" />
             }
             else
             {
-                <button class="wh02-clear-btn" @onclick="ResetForm" disabled="@IsBusy">CLEAR</button>
-                <button class="pda-btn-pri wh02-receive-btn @ReceiveButtonClass" @onclick="Receive" disabled="@IsBusy">RECEIVE</button>
+                <RadzenButton class="wh02-clear-btn" Click="@ResetForm" Disabled="@IsBusy" Text="CLEAR" />
+                <RadzenButton class="@($"pda-btn-pri wh02-receive-btn wh02-receive-action-btn {ReceiveButtonClass}")" Click="@Receive" Disabled="@IsBusy" Text="RECEIVE" />
             }
         </div>
     </div>
@@ -151,18 +151,18 @@
     @if (_modalOpen)
     {
         <div class="wh-modal-backdrop" @onclick="DismissModal">
-            <section class="wh-modal-card @_modalKind" @onclick:stopPropagation="true">
+            <RadzenCard class="@($"wh-modal-card {_modalKind}")" @onclick:stopPropagation="true">
                 <div class="wh-modal-mark">@ModalMark</div>
                 <div class="wh-modal-title">@_modalTitle</div>
                 <div class="wh-modal-message">@_modalMessage</div>
                 <div class="wh-modal-actions">
                     @if (_modalConfirm)
                     {
-                        <button type="button" class="wh-modal-btn secondary" @onclick="DismissModal">CANCEL</button>
+                        <RadzenButton class="wh-modal-btn secondary" Click="@DismissModal" Text="CANCEL" />
                     }
-                    <button type="button" class="wh-modal-btn primary" @onclick="ModalPrimary">OK</button>
+                    <RadzenButton class="wh-modal-btn primary" Click="@ModalPrimary" Text="OK" />
                 </div>
-            </section>
+            </RadzenCard>
         </div>
     }
 </div>
@@ -335,6 +335,11 @@
     {
         if (e.Key == "Enter")
             await Scan();
+    }
+
+    private void OnBarcodeInput(ChangeEventArgs e)
+    {
+        _barcode = e.Value?.ToString() ?? "";
     }
 
     private void OnLocationInput(ChangeEventArgs e)
