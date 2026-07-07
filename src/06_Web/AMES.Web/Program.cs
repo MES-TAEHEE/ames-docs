@@ -8,6 +8,9 @@ using AMES.Web.Data;
 using AMES.Data.Connection;
 using AMES.Data.Repositories;
 
+// EUC-KR(cp51949) — SRM 주간 구매계획(.xls=HTML) 디코딩용
+System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorComponents()

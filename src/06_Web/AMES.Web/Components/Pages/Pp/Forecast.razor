@@ -2,7 +2,11 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
+@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AuthenticationStateProvider Auth
+@inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
+@using AMES.Web.Services
 
 <PageTitle>@L["PP.Forecast.Title"] · AMES</PageTitle>
 
@@ -12,45 +16,295 @@
     <div class="ames-page-sub">@L["PP.Forecast.Sub"]</div>
 </div>
 
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">ROWS</div><div class="ames-kpi-v">@_rows.Count</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">CUSTOMERS</div><div class="ames-kpi-v">@_rows.Select(r => r.CustomerId).Distinct().Count()</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">ITEMS</div><div class="ames-kpi-v">@_rows.Select(r => r.ItemNo).Distinct().Count()</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">TOTAL QTY</div><div class="ames-kpi-v">@_rows.Sum(r => r.ForecastQty).ToString("0")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">ITEMS</div><div class="ames-kpi-v">@_items.Count</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">WEEKS</div><div class="ames-kpi-v">@_weeks.Count</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">TOTAL QTY</div><div class="ames-kpi-v">@_items.Sum(i => i.Qty.Values.Sum()).ToString("#,0")</div></div>
+    <div class="ames-kpi @(UnmatchedCount > 0 ? "bad" : "")"><div class="ames-kpi-l">UNMATCHED</div><div class="ames-kpi-v">@UnmatchedCount</div></div>
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">▼ FORECAST ROWS</div>
-    @if (_rows.Count == 0) { <div class="ames-empty">@L["PP.Forecast.Empty"]</div> }
+    <div class="ames-card-h" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ FORECAST · @_items.Count @L["Lbl.Items"]</span>
+        <span class="dim" style="font-size:.82em;white-space:nowrap;margin-left:12px;">@L["Col.Customer"]</span>
+        <select class="ames-input" style="width:200px;padding:4px 8px;" @bind="_fCustomer">
+            <option value="">@L["Filter.All"]</option>
+            @foreach (var c in _customers)
+            { <option value="@c.CustomerID">@c.CustomerName (@c.CustomerID)</option> }
+        </select>
+        <input class="ames-input" type="date" style="width:130px;padding:4px 8px;" @bind="_fFrom" />
+        <input class="ames-input" type="date" style="width:130px;padding:4px 8px;" @bind="_fTo" />
+        <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+            <button class="ames-btn ok" @onclick="Search">@L["Btn.Search"]</button>
+            <button class="ames-btn ok" @onclick="OpenUpload">📤 @L["PP.Forecast.Btn.ExcelUpload"]</button>
+            <button class="ames-btn ghost" @onclick="ExportCsv">📥 @L["PP.Forecast.Btn.Export"]</button>
+        </div>
+    </div>
+
+    @if (_items.Count == 0)
+    {
+        <div class="ames-empty">@L["PP.Forecast.Empty"]</div>
+    }
     else
     {
-        <table class="ames-table">
-            <thead><tr><th>@L["Col.Month"]</th><th>@L["Col.Customer"]</th><th>@L["Col.Item"]</th><th class="num">@L["Col.Qty"]</th><th>@L["Col.Confidence"]</th><th>@L["Col.Source"]</th><th>@L["Col.Batch"]</th></tr></thead>
-            <tbody>
-                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
+        <div style="overflow-x:auto;">
+            <table class="ames-table" style="min-width:@((380 + (_showCustomerCol ? 110 : 0) + _weeks.Count * 72))px;">
+                <thead>
                     <tr>
-                        <td class="code">@(r.ForecastMonth?.ToString("yyyy-MM") ?? "—")</td>
-                        <td>@r.CustomerId</td>
-                        <td>@(r.ItemName ?? r.ItemNo)</td>
-                        <td class="num">@r.ForecastQty.ToString("0")</td>
-                        <td class="dim">@r.Confidence</td>
-                        <td class="dim">@r.Source</td>
-                        <td class="dim">@r.Batch</td>
+                        @if (_showCustomerCol)
+                        { <th style="position:sticky;left:0;z-index:1;">@L["Col.Customer"]</th> }
+                        <th style="@(_showCustomerCol ? "" : "position:sticky;left:0;z-index:1;")">@L["Col.PartNo"]</th>
+                        <th>@L["Col.PartName"]</th>
+                        <th class="num">@L["Col.BaseInv"]</th>
+                        @for (var k = 0; k < _weeks.Count; k++)
+                        {
+                            var w = _weeks[k];
+                            var label = k < _weekLabels.Count ? _weekLabels[k] : w.ToString("yyyy-MM-dd");
+                            <th class="num" title="@($"{w:yyyy-MM-dd} {label}")">@w.ToString("MM/dd")</th>
+                        }
                     </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
+                </thead>
+                <tbody>
+                    @foreach (var it in _items.Skip(_page * _pageSize).Take(_pageSize))
+                    {
+                        <tr>
+                            @if (_showCustomerCol)
+                            { <td class="dim" style="position:sticky;left:0;z-index:1;white-space:nowrap;">@it.CustomerId</td> }
+                            <td class="code" style="@(_showCustomerCol ? "" : "position:sticky;left:0;z-index:1;")white-space:nowrap;">
+                                @it.ItemNo
+                                @if (!it.ItemExists)
+                                { <span class="badge-bad">@L["PP.Forecast.Badge.NoItem"]</span> }
+                            </td>
+                            <td style="white-space:nowrap;">@it.Name</td>
+                            <td class="num dim">@(it.BaseInv?.ToString("#,0") ?? "—")</td>
+                            @foreach (var w in _weeks)
+                            {
+                                <td class="num">@(it.Qty.TryGetValue(w, out var q) ? q.ToString("#,0") : "—")</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <Pager Page="_page" Total="_items.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
+@if (_showUpload)
+{
+    <div class="ames-modal-bg">
+        <div class="ames-modal">
+            <div class="ames-modal-h">📤 @L["PP.Forecast.Upload.Title"]</div>
+
+            <label>① @L["Col.Customer"]</label>
+            <select class="ames-input" @bind="_upCustomer" disabled="@_busy">
+                <option value="">—</option>
+                @foreach (var c in _customers)
+                { <option value="@c.CustomerID">@c.CustomerName (@c.CustomerID)</option> }
+            </select>
+
+            <label>② @L["PP.Forecast.Upload.File"]</label>
+            <InputFile OnChange="OnFile" accept=".xls" disabled="@_busy" />
+            <span class="dim" style="font-size:.8em;">@L["PP.Forecast.Upload.Hint"]</span>
+
+            <label>③ @L["PP.Forecast.Upload.ParseResult"]</label>
+            <div style="border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:12px;font-size:.9em;min-height:56px;">
+                @if (_preview is null)
+                {
+                    <span class="dim">@L["PP.Forecast.Upload.NoFile"]</span>
+                }
+                else
+                {
+                    <div>✔ @string.Format(L["PP.Forecast.Preview.Summary"].Value,
+                        _preview.Items.Count, _preview.WeekStarts.Count,
+                        _preview.WeekStarts.Min(), _preview.WeekStarts.Max())</div>
+                    @if (_unmatched.Count > 0)
+                    {
+                        <div style="color:#f87171;margin-top:6px;">
+                            ⚠ @string.Format(L["PP.Forecast.Preview.Unmatched"].Value, _unmatched.Count)<br />
+                            <span class="dim" style="font-size:.85em;">@string.Join(", ", _unmatched.Take(5))@(_unmatched.Count > 5 ? " …" : "")</span>
+                        </div>
+                    }
+                }
+            </div>
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <div class="ames-alert bad">@_modalErr</div> }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ghost" disabled="@_busy" @onclick="CloseUpload">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ok" disabled="@(_busy || _preview is null || string.IsNullOrEmpty(_upCustomer))" @onclick="DoUpload">
+                    @(_busy ? L["Lbl.Loading"] : L["PP.Forecast.Btn.RunUpload"])
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
-    List<AMES.Data.Repositories.PpRepository.ForecastRow> _rows = new();
-    int _page = 0;
-    const int _pageSize = 20;
+    const int  _pageSize = 20;
+    const long MaxBytes  = 10 * 1024 * 1024;
+
+    List<MasterDataRepository.CustomerRow> _customers = new();
+
+    // 업로드 모달
+    bool   _showUpload;
+    string _upCustomer = "";
+    string _modalErr   = "";
+    WeeklyPlanParser.Plan? _preview;
+    HashSet<string> _unmatched = new();
+
+    // 조회 필터
+    string   _fCustomer = "";
+    DateTime _fFrom = DateTime.Today;
+    DateTime _fTo   = DateTime.Today.AddDays(154);   // 22주
+
+    // 피벗 표시 모델. CustomerId는 전체 고객 조회에서만 표시.
+    record ItemVm(string? CustomerId, string ItemNo, string Name, decimal? BaseInv, bool ItemExists,
+                  Dictionary<DateTime, decimal> Qty);
+    bool _showCustomerCol;   // 조회 시점 스냅샷 (드롭다운만 바꾸고 조회 안 한 상태와 분리)
+    List<DateTime> _weeks = new();
+    List<string>   _weekLabels = new();
+    List<ItemVm>   _items = new();
+
+    int    _page  = 0;
+    bool   _busy;
+    string _msg   = "";
+    bool   _isErr;
+
+    int UnmatchedCount => _items.Count(i => !i.ItemExists);
+
     protected override void OnInitialized()
     {
-        try { _rows = Pp.ListForecast(); } catch { }
+        try { _customers = Md.ListCustomers(); } catch { }
+        Search();
+    }
+
+    // ── 업로드 모달 ──────────────────────────────────────────────
+    void OpenUpload()
+    {
+        _preview = null; _unmatched = new(); _modalErr = "";
+        _showUpload = true;
+    }
+
+    void CloseUpload() => _showUpload = false;
+
+    async Task OnFile(InputFileChangeEventArgs e)
+    {
+        _modalErr = ""; _preview = null; _unmatched = new();
+        try
+        {
+            using var ms = new MemoryStream();
+            await using (var s = e.File.OpenReadStream(MaxBytes))
+                await s.CopyToAsync(ms);
+            ms.Position = 0;
+            var plan = WeeklyPlanParser.Parse(ms);
+
+            var tooLong = plan.Items.FirstOrDefault(i => i.PartNo.Length > 20);
+            if (tooLong is not null)
+                throw new FormatException(string.Format(L["PP.Forecast.Err.ItemNoLen"].Value, tooLong.PartNo));
+
+            var found  = Pp.ListExistingItemNos(plan.Items.Select(i => i.PartNo));
+            _unmatched = plan.Items.Where(i => !found.Contains(i.PartNo))
+                                   .Select(i => i.PartNo).ToHashSet();
+            _preview = plan;
+        }
+        catch (IOException)        { _modalErr = L["PP.Forecast.Err.TooLarge"]; }
+        catch (FormatException fx) { _modalErr = $"{L["PP.Forecast.Err.Parse"]} — {fx.Message}"; }
+        catch (Exception ex)       { _modalErr = ex.Message; }
+    }
+
+    async Task DoUpload()
+    {
+        if (_preview is null || string.IsNullOrEmpty(_upCustomer)) return;
+        _busy = true;
+        try
+        {
+            var auth  = await Auth.GetAuthenticationStateAsync();
+            var actor = auth.User.Identity?.Name ?? "system";
+            var batch = "WK" + DateTime.Now.ToString("yyyyMMddHHmmss");
+            var rows  = _preview.Items.SelectMany(it => _preview.WeekStarts.Select((w, k) =>
+                new PpRepository.WeeklyImportRow(it.PartNo, Trunc(it.PartName, 100), Trunc(it.Unit, 10),
+                    it.BaseInv, w, Trunc(_preview.WeekLabels[k], 10), it.Qty[k]))).ToList();
+
+            var (ins, upd, chg) = Pp.UpsertWeeklyForecast(_upCustomer, batch, rows, actor);
+            ShowMsg(string.Format(L["PP.Forecast.Ok.Imported"].Value, ins, upd, chg), false);
+
+            _fCustomer = _upCustomer;
+            _fFrom = _preview.WeekStarts.Min();
+            _fTo   = _preview.WeekStarts.Max();
+            _showUpload = false;
+            _preview = null;
+            Search();
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    // ── CSV 내보내기 ─────────────────────────────────────────────
+    async Task ExportCsv()
+    {
+        if (_items.Count == 0) { ShowMsg(L["PP.Forecast.Err.NoExport"], true); return; }
+
+        var sb = new System.Text.StringBuilder();
+        var head = new List<string>();
+        if (_showCustomerCol) head.Add(L["Col.Customer"]);
+        head.Add(L["Col.PartNo"]); head.Add(L["Col.PartName"]); head.Add(L["Col.BaseInv"]);
+        head.AddRange(_weeks.Select(w => w.ToString("yyyy-MM-dd")));
+        sb.AppendLine(string.Join(",", head.Select(Csv)));
+
+        foreach (var it in _items)
+        {
+            var row = new List<string>();
+            if (_showCustomerCol) row.Add(it.CustomerId ?? "");
+            row.Add(it.ItemNo); row.Add(it.Name); row.Add(it.BaseInv?.ToString("0.###") ?? "");
+            row.AddRange(_weeks.Select(w => it.Qty.TryGetValue(w, out var q) ? q.ToString("0.###") : ""));
+            sb.AppendLine(string.Join(",", row.Select(Csv)));
+        }
+
+        // UTF-8 BOM — Excel에서 한글 품명 정상 표시
+        var bytes = System.Text.Encoding.UTF8.GetPreamble()
+            .Concat(System.Text.Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
+        var name = $"Forecast_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+        await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes), "text/csv");
+        ShowMsg(string.Format(L["PP.Forecast.Ok.Exported"].Value, _items.Count), false);
+    }
+
+    static string Csv(string s) =>
+        s.Contains(',') || s.Contains('"') || s.Contains('\n') ? $"\"{s.Replace("\"", "\"\"")}\"" : s;
+
+    // ── 조회 ─────────────────────────────────────────────────────
+    void Search()
+    {
+        _page = 0;
+        _weekLabels = new();
+        List<PpRepository.WeeklyCell> cells;
+        try   { cells = Pp.ListWeeklyForecast(_fCustomer, _fFrom, _fTo); }
+        catch { cells = new(); }
+
+        _showCustomerCol = string.IsNullOrEmpty(_fCustomer);
+        _weeks = cells.Select(c => c.WeekStartDate).Distinct().Order().ToList();
+        _weekLabels = _weeks
+            .Select(w => cells.FirstOrDefault(c => c.WeekStartDate == w && c.WeekLabel != null)?.WeekLabel ?? "")
+            .ToList();
+        _items = cells.GroupBy(c => (c.CustomerId, c.ItemNo))
+            .Select(g => new ItemVm(g.Key.CustomerId, g.Key.ItemNo,
+                g.First().ItemName ?? g.First().PartName ?? g.Key.ItemNo,
+                g.First().BaseInv, g.First().ItemExists,
+                g.ToDictionary(c => c.WeekStartDate, c => c.Qty)))
+            .OrderBy(i => i.CustomerId).ThenBy(i => i.ItemNo)
+            .ToList();
+    }
+
+    static string Trunc(string s, int max) => s.Length <= max ? s : s[..max];
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
     }
 }
