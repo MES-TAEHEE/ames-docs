@@ -1,146 +1,94 @@
 @implements IDisposable
 @rendermode InteractiveServer
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 @using System.Globalization
 @using System.Net
+@using System.Text.Json
 
 <aside class="ames-side @(_collapsed ? "ames-side--collapsed" : "")">
-<button class="ames-side-toggle" @onclick="ToggleSide"
-        title="@(_collapsed ? "메뉴 펼치기" : "메뉴 접기")">
-    @(_collapsed ? "▶" : "◀")
-</button>
-
 <div class="ames-nav">
+    @* ── 검색 + 사이드바 토글 ── *@
+    <div class="ames-nav-top">
+        <div class="ames-nav-search">
+            <span class="ames-nav-search-ic">🔍</span>
+            <input type="text" value="@_query"
+                   @oninput="OnQueryInput" @onkeydown="OnQueryKeydown"
+                   placeholder="@SL("화면 검색…", "Search screens…")"
+                   aria-label="@SL("화면 검색", "Search screens")" />
+            @if (!string.IsNullOrEmpty(_query))
+            {
+                <button class="ames-nav-search-x" @onclick="ClearQuery"
+                        title="@SL("지우기", "Clear")" aria-label="@SL("지우기", "Clear")">✕</button>
+            }
+        </div>
+        <button class="ames-side-toggle" @onclick="ToggleSide"
+                title="@(_collapsed ? "메뉴 펼치기" : "메뉴 접기")">
+            @(_collapsed ? "▶" : "◀")
+        </button>
+    </div>
+
     <NavLink class="ames-nav-home" href="" Match="NavLinkMatch.All">
         <span class="ames-nav-ic">⌂</span>
         <span>@NL("홈", "Home")</span>
     </NavLink>
 
-    @* ── PP ── *@
-    <div class="ames-nav-section pp" @onclick='() => Toggle("pp")'>
-        <span class="ames-nav-section-ic">📅</span>
-        <span class="ames-nav-section-t">PP · @SL("생산 계획", "Production Planning")</span>
-        <span class="ames-nav-section-n">13</span>
-        <span class="ames-nav-chevron">@Chev("pp")</span>
-    </div>
-    @if (IsOpen("pp"))
+    @if (!string.IsNullOrWhiteSpace(_query))
     {
-        <NavLink class="ames-nav-link" href="pp/forecast">         <span class="lid">PP-001</span> <span>@NL("수요 예측", "Forecast")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/sap-import">       <span class="lid">PP-002</span> <span>@NL("SAP 연동", "SAP Import")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/plan-confirm">     <span class="lid">PP-003</span> <span>@NL("계획 확정", "Plan Confirm")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/work-order">       <span class="lid">PP-004</span> <span>@NL("작업 지시", "Work Order")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/mrp">              <span class="lid">PP-005</span> <span>@NL("MRP", "MRP")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/purchase-req">     <span class="lid">PP-006</span> <span>@NL("구매 요청", "Purchase Req")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/wo-release">       <span class="lid">PP-007</span> <span>@NL("작업 지시 릴리스", "WO Release")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/calendar">         <span class="lid">CAL</span>   <span>@NL("캘린더", "Calendar")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/line-schedule">    <span class="lid">LSB</span>   <span>@NL("라인 일정", "Line Schedule")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/oee">              <span class="lid">OEE</span>   <span>@NL("라인 OEE", "Line OEE")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/downtime">         <span class="lid">DTL</span>   <span>@NL("비가동 이력", "Downtime Log")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/downtime-monitor"> <span class="lid">ODM</span>   <span>@NL("비가동 모니터", "Downtime Monitor")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/delivery">         <span class="lid">OTD</span>   <span>@NL("납기 준수율", "On-Time Delivery")</span></NavLink>
+        @* ── 검색 결과 (섹션 교차, 플랫) ── *@
+        var results = Search(_query);
+        if (results.Count == 0)
+        {
+            <div class="ames-nav-empty">@SL("결과 없음", "No results")</div>
+        }
+        else
+        {
+            <div class="ames-nav-results">
+                @foreach (var it in results)
+                {
+                    @RenderRow(it, showTag: true)
+                }
+            </div>
+        }
     }
-
-    @* ── MNT ── *@
-    <div class="ames-nav-section mnt" @onclick='() => Toggle("mnt")'>
-        <span class="ames-nav-section-ic">🔧</span>
-        <span class="ames-nav-section-t">MNT · @SL("설비 보전", "Maintenance")</span>
-        <span class="ames-nav-section-n">9</span>
-        <span class="ames-nav-chevron">@Chev("mnt")</span>
-    </div>
-    @if (IsOpen("mnt"))
+    else
     {
-        <NavLink class="ames-nav-link" href="mnt/equipment-card">  <span class="lid">MNT-001</span> <span>@NL("설비 카드", "Equipment Card")</span></NavLink>
-        <NavLink class="ames-nav-link" href="mnt/failure">         <span class="lid">MNT-002</span> <span>@NL("고장 등록", "Failure Register")</span></NavLink>
-        <NavLink class="ames-nav-link" href="mnt/oee-analysis">    <span class="lid">MNT-003</span> <span>@NL("OEE 분석", "OEE Analysis")</span></NavLink>
-        <NavLink class="ames-nav-link" href="mnt/mold">            <span class="lid">MNT-004</span> <span>@NL("금형 관리", "Mold Management")</span></NavLink>
-        <NavLink class="ames-nav-link" href="mnt/pm-schedule">     <span class="lid">MNT-005</span> <span>@NL("PM 일정", "PM Schedule")</span></NavLink>
-        <NavLink class="ames-nav-link" href="mnt/downtime">        <span class="lid">MNT-006</span> <span>@NL("비가동 이력", "Downtime Log")</span></NavLink>
-        <NavLink class="ames-nav-link" href="mnt/work-order">      <span class="lid">MNT-007</span> <span>@NL("작업 지시", "Work Order")</span></NavLink>
-        <NavLink class="ames-nav-link" href="mnt/spare-parts">     <span class="lid">MNT-008</span> <span>@NL("예비 부품", "Spare Parts")</span></NavLink>
-        <NavLink class="ames-nav-link" href="mnt/dashboard">       <span class="lid">MNT-009</span> <span>@NL("대시보드", "Dashboard")</span></NavLink>
-    }
+        @* ── 즐겨찾기 ── *@
+        @if (_favorites.Count > 0)
+        {
+            var favs = _items.Where(i => _favorites.Contains(i.Href)).ToList();
+            <div class="ames-nav-section ames-nav-fav" @onclick="ToggleFav">
+                <span class="ames-nav-section-ic">⭐</span>
+                <span class="ames-nav-section-t">@SL("즐겨찾기", "Favorites")</span>
+                <span class="ames-nav-section-n">@favs.Count</span>
+                <span class="ames-nav-chevron">@(_favOpen ? "▾" : "▸")</span>
+            </div>
+            @if (_favOpen)
+            {
+                @foreach (var it in favs)
+                {
+                    @RenderRow(it, showTag: true)
+                }
+            }
+        }
 
-    @* ── RPT ── *@
-    <div class="ames-nav-section rpt" @onclick='() => Toggle("rpt")'>
-        <span class="ames-nav-section-ic">📊</span>
-        <span class="ames-nav-section-t">RPT · @SL("보고서", "Reports")</span>
-        <span class="ames-nav-section-n">10</span>
-        <span class="ames-nav-chevron">@Chev("rpt")</span>
-    </div>
-    @if (IsOpen("rpt"))
-    {
-        <NavLink class="ames-nav-link" href="rpt/daily-production">  <span class="lid">RPT-001</span> <span>@NL("일별 생산 실적", "Daily Production")</span></NavLink>
-        <NavLink class="ames-nav-link" href="rpt/defect-pareto">     <span class="lid">RPT-002</span> <span>@NL("불량 파레토", "Defect Pareto")</span></NavLink>
-        <NavLink class="ames-nav-link" href="rpt/daily-shipment">    <span class="lid">RPT-003</span> <span>@NL("일별 출하 현황", "Daily Shipment")</span></NavLink>
-        <NavLink class="ames-nav-link" href="rpt/on-time">           <span class="lid">RPT-004</span> <span>@NL("납기 준수율", "On-Time Delivery")</span></NavLink>
-        <NavLink class="ames-nav-link" href="rpt/inventory">         <span class="lid">RPT-005</span> <span>@NL("재고 현황", "Inventory Status")</span></NavLink>
-        <NavLink class="ames-nav-link" href="rpt/equipment-oee">     <span class="lid">RPT-006</span> <span>@NL("설비 OEE", "Equipment OEE")</span></NavLink>
-        <NavLink class="ames-nav-link" href="rpt/monthly-kpi">       <span class="lid">RPT-007</span> <span>@NL("월간 KPI", "Monthly KPI")</span></NavLink>
-        <NavLink class="ames-nav-link" href="rpt/schedule-adherence"><span class="lid">RPT-008</span> <span>@NL("계획 준수율", "Schedule Adherence")</span></NavLink>
-        <NavLink class="ames-nav-link" href="rpt/report-center">     <span class="lid">RPT-009</span> <span>@NL("리포트 센터", "Report Center")</span></NavLink>
-        <NavLink class="ames-nav-link" href="rpt/report-builder">    <span class="lid">RPT-010</span> <span>@NL("리포트 빌더", "Report Builder")</span></NavLink>
-    }
-
-    @* ── MD ── *@
-    <div class="ames-nav-section md" @onclick='() => Toggle("md")'>
-        <span class="ames-nav-section-ic">🗂️</span>
-        <span class="ames-nav-section-t">MD · @SL("마스터 데이터", "Master Data")</span>
-        <span class="ames-nav-section-n">30</span>
-        <span class="ames-nav-chevron">@Chev("md")</span>
-    </div>
-    @if (IsOpen("md"))
-    {
-        <NavLink class="ames-nav-link" href="md/line">                <span class="lid">MD-001</span> <span>@NL("공장/라인 기준정보 관리", "Factory / Line Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/station">             <span class="lid">MD-002</span> <span>@NL("공정 기준정보 관리", "Process / Station Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/items">               <span class="lid">MD-003</span> <span>@NL("제품 기준정보 관리", "Product Item Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/bom">                 <span class="lid">MD-004</span> <span>@NL("BOM 관리", "BOM Management")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/bop">                 <span class="lid">MD-005</span> <span>@NL("BOP 관리", "BOP Management")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/work-center">         <span class="lid">MD-006</span> <span>@NL("Work Center 관리", "Work Center Management")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/mold">                <span class="lid">MD-007</span> <span>@NL("금형 기준정보 관리", "Mold Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/paint-fabric">        <span class="lid">MD-008</span> <span>@NL("원부자재 기준정보 관리", "Paint & Fabric Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/vendor">              <span class="lid">MD-009</span> <span>@NL("공급업체 기준정보 관리", "Vendor Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/customer">            <span class="lid">MD-010</span> <span>@NL("고객사 기준정보 관리", "Customer Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/shipment-dest">       <span class="lid">MD-011</span> <span>@NL("출하처 기준정보 관리", "Shipment Destination Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/defect-code">         <span class="lid">MD-012</span> <span>@NL("불량유형 기준정보 관리", "Defect Code Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/defect-cause">        <span class="lid">MD-013</span> <span>@NL("불량원인 기준정보 관리", "Defect Cause Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/equipment">           <span class="lid">MD-014</span> <span>@NL("설비 기준정보 관리", "Equipment Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/oven">                <span class="lid">MD-015</span> <span>@NL("건조로 기준정보 관리", "Oven Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/jig">                 <span class="lid">MD-016</span> <span>@NL("지그 기준정보 관리", "Jig Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/inspection-standard"> <span class="lid">MD-017</span> <span>@NL("검사기준 기준정보 관리", "Inspection Standard Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/location">            <span class="lid">MD-018</span> <span>@NL("창고/로케이션 기준정보 관리", "Warehouse Location Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/uom">                 <span class="lid">MD-019</span> <span>@NL("단위 관리", "UOM Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/rfid-tag">            <span class="lid">MD-020</span> <span>@NL("RFID 태그 관리", "RFID Tag Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/ral-color">           <span class="lid">MD-021</span> <span>@NL("RAL 색상 관리", "RAL Color Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/rfid-reader">         <span class="lid">MD-022</span> <span>@NL("RFID 리더 관리", "RFID Reader Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/packaging-spec">      <span class="lid">MD-023</span> <span>@NL("포장 사양 관리", "Packaging Spec Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/label-template">      <span class="lid">MD-024</span> <span>@NL("라벨 템플릿 관리", "Label Template Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/reason-code">         <span class="lid">MD-025</span> <span>@NL("사유 코드 관리", "Reason Code Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/spare-part">          <span class="lid">MD-026</span> <span>@NL("예비품 마스터", "Spare Part Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/pm-template">         <span class="lid">MD-027</span> <span>@NL("PM 템플릿 관리", "PM Template Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/line-time-pattern">   <span class="lid">MD-028</span> <span>@NL("라인 시간 패턴 관리", "Line Time Pattern Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/recipe">              <span class="lid">MD-029</span> <span>@NL("레시피 관리", "Recipe Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/common-code">         <span class="lid">MD-030</span> <span>@NL("코드 기준정보 관리", "Common Code Master")</span></NavLink>
-    }
-
-    @* ── SYS ── *@
-    <div class="ames-nav-section sys" @onclick='() => Toggle("sys")'>
-        <span class="ames-nav-section-ic">⚙️</span>
-        <span class="ames-nav-section-t">SYS · @SL("시스템", "System")</span>
-        <span class="ames-nav-section-n">10</span>
-        <span class="ames-nav-chevron">@Chev("sys")</span>
-    </div>
-    @if (IsOpen("sys"))
-    {
-        <NavLink class="ames-nav-link" href="sys/users">        <span class="lid">SYS-001</span> <span>@NL("사용자 관리", "User Management")</span></NavLink>
-        <NavLink class="ames-nav-link" href="sys/roles">        <span class="lid">SYS-002</span> <span>@NL("역할 관리", "Role Management")</span></NavLink>
-        <NavLink class="ames-nav-link" href="sys/screen">        <span class="lid">SYS-003</span> <span>@NL("화면 관리", "Screen Management")</span></NavLink>
-        <NavLink class="ames-nav-link" href="sys/rbac">         <span class="lid">SYS-004</span> <span>@NL("역할/권한 관리 (RBAC)", "Role & Permission (RBAC)")</span></NavLink>
-        <NavLink class="ames-nav-link" href="sys/calendar">     <span class="lid">SYS-005</span> <span>@NL("공장 캘린더", "Factory Calendar")</span></NavLink>
-        <NavLink class="ames-nav-link" href="sys/interfaces">   <span class="lid">SYS-006</span> <span>@NL("인터페이스 모니터", "Interface Monitor")</span></NavLink>
-        <NavLink class="ames-nav-link" href="sys/audit">        <span class="lid">SYS-007</span> <span>@NL("감사 로그", "Audit Log")</span></NavLink>
-        <NavLink class="ames-nav-link" href="sys/notifications"><span class="lid">SYS-008</span> <span>@NL("알림 관리", "Notification Management")</span></NavLink>
-        <NavLink class="ames-nav-link" href="sys/config">       <span class="lid">SYS-009</span> <span>@NL("시스템 설정", "System Configuration")</span></NavLink>
-        <NavLink class="ames-nav-link" href="sys/health">       <span class="lid">SYS-010</span> <span>@NL("시스템 상태", "System Health")</span></NavLink>
+        @* ── 섹션 아코디언 ── *@
+        @foreach (var sec in _sections)
+        {
+            <div class="ames-nav-section @sec.Key" @onclick="() => Toggle(sec.Key)">
+                <span class="ames-nav-section-ic">@sec.Icon</span>
+                <span class="ames-nav-section-t">@sec.Key.ToUpperInvariant() · @SL(sec.Ko, sec.En)</span>
+                <span class="ames-nav-section-n">@_items.Count(i => i.Section == sec.Key)</span>
+                <span class="ames-nav-chevron">@Chev(sec.Key)</span>
+            </div>
+            @if (IsOpen(sec.Key))
+            {
+                @foreach (var it in _items.Where(i => i.Section == sec.Key))
+                {
+                    @RenderRow(it, showTag: false)
+                }
+            }
+        }
     }
 </div>
 </aside>
@@ -149,9 +97,161 @@
     bool            _collapsed;
     string?         _url;
     HashSet<string> _open = new();
+    HashSet<string> _favorites = new();
     string          _lang = "ko";
+    string          _query = "";
+    bool            _favOpen = true;   // 즐겨찾기 섹션: 기본 펼침
+    bool            _loaded;   // localStorage 복원 완료 전엔 저장 스킵
 
-    void ToggleSide() => _collapsed = !_collapsed;
+    const string KeyOpen      = "ames.nav.open";
+    const string KeyCollapsed = "ames.nav.collapsed";
+    const string KeyFavorites = "ames.nav.favorites";
+    const string KeyFavOpen   = "ames.nav.favopen";
+
+    record NavSection(string Key, string Icon, string Ko, string En);
+    record NavItem(string Section, string Href, string Lid, string Ko, string En);
+
+    static readonly NavSection[] _sections =
+    {
+        new("pp",  "📅", "생산 계획",   "Production Planning"),
+        new("mnt", "🔧", "설비 보전",   "Maintenance"),
+        new("rpt", "📊", "보고서",      "Reports"),
+        new("md",  "🗂️", "마스터 데이터", "Master Data"),
+        new("sys", "⚙️", "시스템",      "System"),
+    };
+
+    static readonly NavItem[] _items =
+    {
+        // ── PP ──
+        new("pp", "pp/forecast",         "PP-001", "수요 예측",        "Forecast"),
+        new("pp", "pp/sap-import",       "PP-002", "SAP 연동",         "SAP Import"),
+        new("pp", "pp/plan-confirm",     "PP-003", "계획 확정",        "Plan Confirm"),
+        new("pp", "pp/work-order",       "PP-004", "작업 지시",        "Work Order"),
+        new("pp", "pp/mrp",              "PP-005", "MRP",             "MRP"),
+        new("pp", "pp/purchase-req",     "PP-006", "구매 요청",        "Purchase Req"),
+        new("pp", "pp/wo-release",       "PP-007", "작업 지시 릴리스",  "WO Release"),
+        new("pp", "pp/calendar",         "CAL",    "캘린더",          "Calendar"),
+        new("pp", "pp/line-schedule",    "LSB",    "라인 일정",        "Line Schedule"),
+        new("pp", "pp/oee",              "OEE",    "라인 OEE",        "Line OEE"),
+        new("pp", "pp/downtime",         "DTL",    "비가동 이력",      "Downtime Log"),
+        new("pp", "pp/downtime-monitor", "ODM",    "비가동 모니터",    "Downtime Monitor"),
+        new("pp", "pp/delivery",         "OTD",    "납기 준수율",      "On-Time Delivery"),
+
+        // ── MNT ──
+        new("mnt", "mnt/equipment-card", "MNT-001", "설비 카드",   "Equipment Card"),
+        new("mnt", "mnt/failure",        "MNT-002", "고장 등록",   "Failure Register"),
+        new("mnt", "mnt/oee-analysis",   "MNT-003", "OEE 분석",   "OEE Analysis"),
+        new("mnt", "mnt/mold",           "MNT-004", "금형 관리",   "Mold Management"),
+        new("mnt", "mnt/pm-schedule",    "MNT-005", "PM 일정",    "PM Schedule"),
+        new("mnt", "mnt/downtime",       "MNT-006", "비가동 이력", "Downtime Log"),
+        new("mnt", "mnt/work-order",     "MNT-007", "작업 지시",   "Work Order"),
+        new("mnt", "mnt/spare-parts",    "MNT-008", "예비 부품",   "Spare Parts"),
+        new("mnt", "mnt/dashboard",      "MNT-009", "대시보드",    "Dashboard"),
+
+        // ── RPT ──
+        new("rpt", "rpt/daily-production",   "RPT-001", "일별 생산 실적", "Daily Production"),
+        new("rpt", "rpt/defect-pareto",      "RPT-002", "불량 파레토",    "Defect Pareto"),
+        new("rpt", "rpt/daily-shipment",     "RPT-003", "일별 출하 현황", "Daily Shipment"),
+        new("rpt", "rpt/on-time",            "RPT-004", "납기 준수율",    "On-Time Delivery"),
+        new("rpt", "rpt/inventory",          "RPT-005", "재고 현황",      "Inventory Status"),
+        new("rpt", "rpt/equipment-oee",      "RPT-006", "설비 OEE",      "Equipment OEE"),
+        new("rpt", "rpt/monthly-kpi",        "RPT-007", "월간 KPI",      "Monthly KPI"),
+        new("rpt", "rpt/schedule-adherence", "RPT-008", "계획 준수율",    "Schedule Adherence"),
+        new("rpt", "rpt/report-center",      "RPT-009", "리포트 센터",    "Report Center"),
+        new("rpt", "rpt/report-builder",     "RPT-010", "리포트 빌더",    "Report Builder"),
+
+        // ── MD ──
+        new("md", "md/line",                "MD-001", "공장/라인 기준정보 관리", "Factory / Line Master"),
+        new("md", "md/station",             "MD-002", "공정 기준정보 관리",     "Process / Station Master"),
+        new("md", "md/items",               "MD-003", "제품 기준정보 관리",     "Product Item Master"),
+        new("md", "md/bom",                 "MD-004", "BOM 관리",             "BOM Management"),
+        new("md", "md/bop",                 "MD-005", "BOP 관리",             "BOP Management"),
+        new("md", "md/work-center",         "MD-006", "Work Center 관리",     "Work Center Management"),
+        new("md", "md/mold",                "MD-007", "금형 기준정보 관리",     "Mold Master"),
+        new("md", "md/paint-fabric",        "MD-008", "원부자재 기준정보 관리",  "Paint & Fabric Master"),
+        new("md", "md/vendor",              "MD-009", "공급업체 기준정보 관리",  "Vendor Master"),
+        new("md", "md/customer",            "MD-010", "고객사 기준정보 관리",    "Customer Master"),
+        new("md", "md/shipment-dest",       "MD-011", "출하처 기준정보 관리",    "Shipment Destination Master"),
+        new("md", "md/defect-code",         "MD-012", "불량유형 기준정보 관리",  "Defect Code Master"),
+        new("md", "md/defect-cause",        "MD-013", "불량원인 기준정보 관리",  "Defect Cause Master"),
+        new("md", "md/equipment",           "MD-014", "설비 기준정보 관리",     "Equipment Master"),
+        new("md", "md/oven",                "MD-015", "건조로 기준정보 관리",    "Oven Master"),
+        new("md", "md/jig",                 "MD-016", "지그 기준정보 관리",     "Jig Master"),
+        new("md", "md/inspection-standard", "MD-017", "검사기준 기준정보 관리",  "Inspection Standard Master"),
+        new("md", "md/location",            "MD-018", "창고/로케이션 기준정보 관리", "Warehouse Location Master"),
+        new("md", "md/uom",                 "MD-019", "단위 관리",             "UOM Master"),
+        new("md", "md/rfid-tag",            "MD-020", "RFID 태그 관리",        "RFID Tag Master"),
+        new("md", "md/ral-color",           "MD-021", "RAL 색상 관리",         "RAL Color Master"),
+        new("md", "md/rfid-reader",         "MD-022", "RFID 리더 관리",        "RFID Reader Master"),
+        new("md", "md/packaging-spec",      "MD-023", "포장 사양 관리",         "Packaging Spec Master"),
+        new("md", "md/label-template",      "MD-024", "라벨 템플릿 관리",       "Label Template Master"),
+        new("md", "md/reason-code",         "MD-025", "사유 코드 관리",         "Reason Code Master"),
+        new("md", "md/spare-part",          "MD-026", "예비품 마스터",          "Spare Part Master"),
+        new("md", "md/pm-template",         "MD-027", "PM 템플릿 관리",        "PM Template Master"),
+        new("md", "md/line-time-pattern",   "MD-028", "라인 시간 패턴 관리",     "Line Time Pattern Master"),
+        new("md", "md/recipe",              "MD-029", "레시피 관리",           "Recipe Master"),
+        new("md", "md/common-code",         "MD-030", "코드 기준정보 관리",     "Common Code Master"),
+
+        // ── SYS ──
+        new("sys", "sys/users",         "SYS-001", "사용자 관리",         "User Management"),
+        new("sys", "sys/roles",         "SYS-002", "역할 관리",           "Role Management"),
+        new("sys", "sys/screen",        "SYS-003", "화면 관리",           "Screen Management"),
+        new("sys", "sys/rbac",          "SYS-004", "역할/권한 관리 (RBAC)", "Role & Permission (RBAC)"),
+        new("sys", "sys/calendar",      "SYS-005", "공장 캘린더",         "Factory Calendar"),
+        new("sys", "sys/interfaces",    "SYS-006", "인터페이스 모니터",     "Interface Monitor"),
+        new("sys", "sys/audit",         "SYS-007", "감사 로그",           "Audit Log"),
+        new("sys", "sys/notifications", "SYS-008", "알림 관리",           "Notification Management"),
+        new("sys", "sys/config",        "SYS-009", "시스템 설정",         "System Configuration"),
+        new("sys", "sys/health",        "SYS-010", "시스템 상태",         "System Health"),
+    };
+
+    RenderFragment RenderRow(NavItem it, bool showTag) => __builder =>
+    {
+        var isFav = _favorites.Contains(it.Href);
+        <div class="ames-nav-row @(isFav ? "is-fav" : "")">
+            <NavLink class="ames-nav-link" href="@it.Href">
+                @if (showTag)
+                {
+                    <span class="lid @it.Section">@it.Lid</span>
+                }
+                else
+                {
+                    <span class="lid">@it.Lid</span>
+                }
+                <span>@NL(it.Ko, it.En)</span>
+            </NavLink>
+            <button class="ames-nav-star" @onclick="() => ToggleFavorite(it.Href)"
+                    title="@SL(isFav ? "즐겨찾기 해제" : "즐겨찾기 추가", isFav ? "Remove favorite" : "Add favorite")"
+                    aria-label="@SL("즐겨찾기", "Favorite")">@(isFav ? "★" : "☆")</button>
+        </div>
+    };
+
+    void ToggleSide()
+    {
+        _collapsed = !_collapsed;
+        _ = PersistCollapsed();
+    }
+
+    List<NavItem> Search(string q)
+    {
+        bool Has(string s) => s.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0;
+        return _items.Where(i => Has(i.Ko) || Has(i.En) || Has(i.Lid)).ToList();
+    }
+
+    void OnQueryInput(ChangeEventArgs e) => _query = e.Value?.ToString() ?? "";
+
+    void OnQueryKeydown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape") _query = "";
+    }
+
+    void ClearQuery() => _query = "";
+
+    void ToggleFavorite(string href)
+    {
+        if (!_favorites.Remove(href)) _favorites.Add(href);
+        _ = PersistFavorites();
+    }
 
     static readonly Dictionary<string, string> _prefixMap = new()
     {
@@ -167,6 +267,39 @@
         Nav.LocationChanged += OnLocChanged;
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        try
+        {
+            var favJson = await JS.InvokeAsync<string?>("localStorage.getItem", KeyFavorites);
+            if (!string.IsNullOrWhiteSpace(favJson))
+                _favorites = JsonSerializer.Deserialize<HashSet<string>>(favJson) ?? new();
+
+            var collapsed = await JS.InvokeAsync<string?>("localStorage.getItem", KeyCollapsed);
+            if (collapsed is not null) _collapsed = collapsed == "1";
+
+            var favOpen = await JS.InvokeAsync<string?>("localStorage.getItem", KeyFavOpen);
+            if (favOpen is not null) _favOpen = favOpen == "1";
+
+            var openJson = await JS.InvokeAsync<string?>("localStorage.getItem", KeyOpen);
+            if (!string.IsNullOrWhiteSpace(openJson))
+            {
+                var stored = JsonSerializer.Deserialize<HashSet<string>>(openJson);
+                if (stored is not null)
+                {
+                    _open = stored;
+                    OpenCurrentSection();   // 저장값 위에 현재 URL 섹션도 열어둠
+                }
+            }
+        }
+        catch (JsonException) { /* 손상된 값 무시 — 기본 상태 유지 */ }
+
+        _loaded = true;
+        StateHasChanged();
+    }
+
     void OpenCurrentSection()
     {
         var url = _url ?? "";
@@ -179,17 +312,36 @@
         _url = Nav.ToBaseRelativePath(e.Location);
         foreach (var (prefix, key) in _prefixMap)
             if (_url.StartsWith(prefix)) { _open.Add(key); break; }
+        _ = PersistOpen();
         StateHasChanged();
     }
 
     void Toggle(string key)
     {
-        if (_open.Contains(key)) _open.Remove(key);
-        else { _open.Clear(); _open.Add(key); }
+        if (!_open.Remove(key)) _open.Add(key);   // 다중-오픈: 다른 섹션 유지
+        _ = PersistOpen();
+    }
+
+    void ToggleFav()
+    {
+        _favOpen = !_favOpen;
+        _ = PersistFavOpen();
     }
 
     bool   IsOpen(string key) => _open.Contains(key);
     string Chev(string key)   => _open.Contains(key) ? "▾" : "▸";
+
+    Task PersistOpen()      => Save(KeyOpen, JsonSerializer.Serialize(_open));
+    Task PersistFavorites() => Save(KeyFavorites, JsonSerializer.Serialize(_favorites));
+    Task PersistCollapsed() => Save(KeyCollapsed, _collapsed ? "1" : "0");
+    Task PersistFavOpen()   => Save(KeyFavOpen, _favOpen ? "1" : "0");
+
+    async Task Save(string key, string value)
+    {
+        if (!_loaded) return;   // 초기 복원 전엔 기본값으로 덮어쓰지 않음
+        try { await JS.InvokeVoidAsync("localStorage.setItem", key, value); }
+        catch (JSException) { /* 프리렌더/연결 끊김 무시 */ }
+    }
 
     // Section header: single language (no secondary)
     string SL(string ko, string en) => _lang == "en" ? en : ko;
