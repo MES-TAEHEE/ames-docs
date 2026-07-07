@@ -25,3 +25,11 @@ COMMIT_MSG.tmp
 Thumbs.db
 *.swp
 *.swo
+
+.codex/run-logs/ames-web.err.log
+
+.codex/run-logs/ames-web.out.log
+
+src/04_Api/AMES.Api/logs/ames-api-release.err.log
+
+src/04_Api/AMES.Api/logs/ames-api-release.out.log
