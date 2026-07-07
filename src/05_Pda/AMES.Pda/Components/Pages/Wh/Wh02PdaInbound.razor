@@ -2,44 +2,858 @@
 @inject PdaApi Api
 @inject NavigationManager Nav
 
-<div class="pda-shell wh">
+<div class="pda-shell wh wh02-shell">
     <div class="pda-tbar">
-        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/wh"))'>←</button>
+        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/wh"))'>&lt;</button>
         <span class="pda-tbar-brand">WH-002 RECEIVE</span>
     </div>
-    <div class="pda-bd">
-        <div class="pda-card">
-            <div class="pda-card-h">▼ SCAN LOT &amp; RECEIVE</div>
-            <div class="pda-fld">
-                <label>LOT CODE</label>
-                <input class="pda-input" @bind="_lot" @bind:event="oninput" @onkeypress="OnKey" placeholder="scan barcode" />
-            </div>
-            <div class="pda-fld">
-                <label>QTY</label>
-                <input class="pda-input" type="number" @bind="_qty" />
-            </div>
-            <div class="pda-fld">
-                <label>LOCATION</label>
-                <input class="pda-input" @bind="_loc" placeholder="WH-A-01" />
-            </div>
+
+    <div class="pda-bd wh02-body">
+        <div class="wh02-mode">
+            <button type="button" class='wh02-mode-btn @ModeClass("LOCAL")' @onclick='@(() => SetMode("LOCAL"))'>LOCAL</button>
+            <button type="button" class='wh02-mode-btn @ModeClass("CKD")' @onclick='@(() => SetMode("CKD"))'>CKD</button>
         </div>
-        <div class="pda-status @_cls">@_msg</div>
-        <button class="pda-btn-pri" @onclick="Submit" disabled="@(string.IsNullOrWhiteSpace(_lot))">✓ RECEIVE</button>
+
+        <section class="wh02-panel wh02-scan-panel">
+            <div class="pda-fld">
+                <label>LOT NO SCAN</label>
+                <input class="pda-input wh02-barcode-input"
+                       @bind="_barcode"
+                       @bind:event="oninput"
+                       @onkeydown="OnKey"
+                       placeholder="@BarcodePlaceholder" />
+            </div>
+            <button type="button" class="wh02-scan-btn" @onclick="Scan" disabled="@DisableScan">SCAN</button>
+        </section>
+
+        @if (_scan is not null && !_isLocationChangeMode)
+        {
+            <section class='wh02-lot-card @(AlreadyReceived ? "received" : "ready")'>
+                <div class="wh02-lot-top">
+                    <div class="wh02-lot-main">
+                        <span>LOT NO</span>
+                        <strong>@Text(_scan.LotNo)</strong>
+                    </div>
+                    <div class="wh02-lot-tags">
+                        <span class="wh02-type-chip">@_scan.ReceiveType</span>
+                        <span class="wh02-status-chip @StatusChipClass">@ItemStatusLabel</span>
+                    </div>
+                </div>
+
+                <div class="wh02-part">
+                    <div class="wh02-part-no">@Text(_scan.PartNo)</div>
+                    <div class="wh02-part-name">@Text(_scan.PartName)</div>
+                </div>
+
+                <div class="wh02-info-grid">
+                    @foreach (var field in CommonFields())
+                    {
+                        <div class="wh02-info">
+                            <span>@field.Label</span>
+                            <strong>@field.Value</strong>
+                        </div>
+                    }
+                </div>
+
+                <div class="wh02-section-title">@_scan.ReceiveType DETAIL</div>
+                <div class="wh02-info-grid">
+                    @foreach (var field in ModeFields())
+                    {
+                        <div class="wh02-info">
+                            <span>@field.Label</span>
+                            <strong>@field.Value</strong>
+                        </div>
+                    }
+                </div>
+            </section>
+        }
+
+        @if (_isLocationChangeMode)
+        {
+            <section class="wh02-location-card current">
+                <div class="wh02-location-card-top">
+                    <span>CURRENT LOCATION</span>
+                    <strong>@Text(_changeFromLocation)</strong>
+                    <em>@Text(_currentLocation?.LocationName ?? _currentLocation?.ZoneName ?? _currentLocation?.Zone)</em>
+                </div>
+                @if (_currentLocation is not null)
+                {
+                    <div class="wh02-location-list">
+                        @foreach (var field in CurrentLocationFields())
+                        {
+                            <div class="wh02-location-row">
+                                <span>@field.Label</span>
+                                <strong>@field.Value</strong>
+                            </div>
+                        }
+                    </div>
+                }
+            </section>
+        }
+
+        <section class='wh02-panel wh02-location-panel @(LocationEntryDisabled ? "disabled" : "")'>
+            <div class="pda-fld">
+                <label>@LocationScanLabel</label>
+                <input class="pda-input wh02-location-input"
+                       value="@_loc"
+                       @oninput="OnLocationInput"
+                       @onkeydown="OnLocationKey"
+                       placeholder="A0000"
+                       disabled="@LocationEntryDisabled" />
+            </div>
+            <button type="button" class="wh02-location-scan-btn" @onclick="ScanLocation" disabled="@DisableLocationScan">SCAN</button>
+        </section>
+
+        @if (_selectedLocation is not null && (!_isLocationChangeMode || !IsSameAsCurrentLocation(_selectedLocation.LocationId)))
+        {
+            <section class="wh02-location-card">
+                <div class="wh02-location-card-top">
+                    <span>@(_isLocationChangeMode ? "NEW LOCATION NO" : "LOCATION NO")</span>
+                    <strong>@_selectedLocation.LocationId</strong>
+                    <em>@Text(_selectedLocation.LocationName ?? _selectedLocation.ZoneName ?? _selectedLocation.Zone)</em>
+                </div>
+                <div class="wh02-location-list">
+                    @foreach (var field in LocationFields())
+                    {
+                        <div class="wh02-location-row">
+                            <span>@field.Label</span>
+                            <strong>@field.Value</strong>
+                        </div>
+                    }
+                </div>
+            </section>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_msg))
+        {
+            <div class="pda-status @_cls">@_msg</div>
+        }
+
+        <div class='wh02-action-bar @ActionBarClass'>
+            @if (_isLocationChangeMode)
+            {
+                <button class="wh02-clear-btn" @onclick="ResetForm" disabled="@IsBusy">CLEAR</button>
+                <button class="pda-btn-pri wh02-receive-btn @ConfirmMoveButtonClass" @onclick="ConfirmLocationChange" disabled="@IsBusy">CONFIRM</button>
+            }
+            else if (AlreadyReceived)
+            {
+                <button class="wh02-cancel-btn" @onclick="CancelIncoming" disabled="@DisableCancel">CANCEL INCOMING</button>
+                <button class="pda-btn-pri wh02-receive-btn @ChangeButtonClass" @onclick="StartLocationChange" disabled="@IsBusy">CHANGE LOCATION</button>
+            }
+            else
+            {
+                <button class="wh02-clear-btn" @onclick="ResetForm" disabled="@IsBusy">CLEAR</button>
+                <button class="pda-btn-pri wh02-receive-btn @ReceiveButtonClass" @onclick="Receive" disabled="@IsBusy">RECEIVE</button>
+            }
+        </div>
     </div>
+
+    @if (_modalOpen)
+    {
+        <div class="wh-modal-backdrop" @onclick="DismissModal">
+            <section class="wh-modal-card @_modalKind" @onclick:stopPropagation="true">
+                <div class="wh-modal-mark">@ModalMark</div>
+                <div class="wh-modal-title">@_modalTitle</div>
+                <div class="wh-modal-message">@_modalMessage</div>
+                <div class="wh-modal-actions">
+                    @if (_modalConfirm)
+                    {
+                        <button type="button" class="wh-modal-btn secondary" @onclick="DismissModal">CANCEL</button>
+                    }
+                    <button type="button" class="wh-modal-btn primary" @onclick="ModalPrimary">OK</button>
+                </div>
+            </section>
+        </div>
+    }
 </div>
 
 @code {
-    string _lot = "", _loc = "WH-A-01", _msg = " ", _cls = "dim";
-    decimal _qty = 1;
-    void OnKey(KeyboardEventArgs e) { if (e.Key == "Enter") _ = Submit(); }
-    async Task Submit()
+    private sealed class ModeState
     {
+        public string Barcode { get; set; } = "";
+        public string Location { get; set; } = "";
+        public string Message { get; set; } = "";
+        public string MessageClass { get; set; } = "dim";
+        public bool IsLocationChangeMode { get; set; }
+        public string? ChangeFromLocation { get; set; }
+        public PdaApi.LocationRow? CurrentLocation { get; set; }
+        public PdaApi.LocationRow? SelectedLocation { get; set; }
+        public PdaApi.InboundScanRow? Scan { get; set; }
+    }
+
+    private readonly Dictionary<string, ModeState> _modeStates = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["LOCAL"] = new(),
+        ["CKD"] = new()
+    };
+
+    private string _mode = "LOCAL";
+    private string _barcode = "";
+    private string _loc = "";
+    private string _msg = "";
+    private string _cls = "dim";
+    private bool _isScanning;
+    private bool _isLocationScanning;
+    private bool _isReceiving;
+    private bool _isMoving;
+    private bool _isCanceling;
+    private bool _isLocationChangeMode;
+    private bool _modalOpen;
+    private bool _modalConfirm;
+    private string _modalTitle = "";
+    private string _modalMessage = "";
+    private string _modalKind = "info";
+    private Func<Task>? _modalPrimaryAction;
+    private Func<Task>? _modalAfterCloseAction;
+    private string? _changeFromLocation;
+    private PdaApi.LocationRow? _currentLocation;
+    private PdaApi.LocationRow? _selectedLocation;
+    private PdaApi.InboundScanRow? _scan;
+
+    private bool IsBusy => _isScanning || _isLocationScanning || _isReceiving || _isMoving || _isCanceling;
+    private string BarcodePlaceholder => _mode == "CKD" ? "Scan CKD lot no" : "Scan local lot no";
+    private string LocationScanLabel => _isLocationChangeMode
+        ? "NEW LOCATION NO SCAN"
+        : AlreadyReceived ? "CURRENT LOCATION" : "LOCATION NO SCAN";
+    private bool LocationEntryDisabled => _scan is null || IsBusy || (AlreadyReceived && !_isLocationChangeMode);
+    private bool DisableScan => IsBusy || string.IsNullOrWhiteSpace(_barcode);
+    private bool DisableLocationScan => LocationEntryDisabled || string.IsNullOrWhiteSpace(_loc);
+    private bool AlreadyReceived => string.Equals(_scan?.Yn, "N", StringComparison.OrdinalIgnoreCase);
+    private bool TargetMatchesCurrent => AlreadyReceived
+        && !string.IsNullOrWhiteSpace(_scan?.ReceivedLocation)
+        && _selectedLocation is not null
+        && string.Equals(_selectedLocation.LocationId, _scan.ReceivedLocation, StringComparison.OrdinalIgnoreCase);
+    private bool DisableReceive => IsBusy || _scan is null || AlreadyReceived || _selectedLocation is null
+        || !string.Equals(_selectedLocation.LocationId, _loc.Trim(), StringComparison.OrdinalIgnoreCase);
+    private bool DisableCancel => IsBusy || _scan is null || !AlreadyReceived;
+    private string ActionBarClass => _isLocationChangeMode || !AlreadyReceived ? "has-reset" : "has-secondary";
+    private string ReceiveButtonClass => DisableReceive ? "blocked" : "ready";
+    private string ConfirmMoveButtonClass => _isLocationChangeMode && !string.IsNullOrWhiteSpace(_loc) ? "ready" : "blocked";
+    private string ChangeButtonClass => IsBusy ? "blocked" : "ready";
+    private string StatusChipClass => AlreadyReceived ? "received" : "ready";
+    private string ModalMark => _modalKind switch
+    {
+        "danger" => "!",
+        "warn" => "!",
+        "success" => "OK",
+        _ => "i"
+    };
+    private string ItemStatusLabel => _scan is null
+        ? "-"
+        : AlreadyReceived
+            ? $"Incoming {Text(_scan.ReceivedStatus)}"
+            : "PO Ready";
+
+    private void SetMode(string mode)
+    {
+        if (string.Equals(_mode, mode, StringComparison.OrdinalIgnoreCase)) return;
+
+        SaveModeState(_mode);
+        _mode = mode;
+        LoadModeState(mode);
+    }
+
+    private void SaveModeState(string mode)
+    {
+        if (!_modeStates.TryGetValue(mode, out var state))
+        {
+            state = new ModeState();
+            _modeStates[mode] = state;
+        }
+
+        state.Barcode = _barcode;
+        state.Location = _loc;
+        state.Message = _msg;
+        state.MessageClass = _cls;
+        state.IsLocationChangeMode = _isLocationChangeMode;
+        state.ChangeFromLocation = _changeFromLocation;
+        state.CurrentLocation = _currentLocation;
+        state.SelectedLocation = _selectedLocation;
+        state.Scan = _scan;
+    }
+
+    private void LoadModeState(string mode)
+    {
+        if (!_modeStates.TryGetValue(mode, out var state))
+        {
+            state = new ModeState();
+            _modeStates[mode] = state;
+        }
+
+        _barcode = state.Barcode;
+        _loc = state.Location;
+        _msg = state.Message;
+        _cls = state.MessageClass;
+        _isLocationChangeMode = state.IsLocationChangeMode;
+        _changeFromLocation = state.ChangeFromLocation;
+        _currentLocation = state.CurrentLocation;
+        _selectedLocation = state.SelectedLocation;
+        _scan = state.Scan;
+    }
+
+    private void ResetForm()
+    {
+        ResetCurrentFields();
+        SaveModeState(_mode);
+    }
+
+    private void ResetCurrentFields()
+    {
+        _scan = null;
+        _barcode = "";
+        _loc = "";
+        _selectedLocation = null;
+        _currentLocation = null;
+        _isLocationChangeMode = false;
+        _changeFromLocation = null;
+        _msg = "";
+        _cls = "dim";
+    }
+
+    private void ResetAllForms()
+    {
+        ResetCurrentFields();
+        _modeStates["LOCAL"] = new();
+        _modeStates["CKD"] = new();
+    }
+
+    private Task ResetFormAsync()
+    {
+        ResetForm();
+        return Task.CompletedTask;
+    }
+
+    private Task ResetAllFormsAsync()
+    {
+        ResetAllForms();
+        return Task.CompletedTask;
+    }
+
+    private string ModeClass(string mode) => _mode == mode ? "on" : "";
+
+    private async Task OnKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await Scan();
+    }
+
+    private void OnLocationInput(ChangeEventArgs e)
+    {
+        _loc = e.Value?.ToString() ?? "";
+        if (!string.Equals(_selectedLocation?.LocationId, _loc.Trim(), StringComparison.OrdinalIgnoreCase))
+            _selectedLocation = null;
+    }
+
+    private async Task OnLocationKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await ScanLocation();
+    }
+
+    private async Task Scan()
+    {
+        if (DisableScan) return;
+
+        _isScanning = true;
+        _scan = null;
+        _loc = "";
+        _selectedLocation = null;
+        _currentLocation = null;
+        _isLocationChangeMode = false;
+        _changeFromLocation = null;
+        _msg = "Scanning...";
+        _cls = "dim";
+
         try
         {
-            var r = await Api.WhReceiveAsync(new PdaApi.ReceiveReq(_lot.Trim(), _qty, _loc.Trim()));
-            if (r.IsSuccessStatusCode) { _msg = "✓ Received"; _cls = "ok"; _lot = ""; }
-            else                       { _msg = $"× HTTP {(int)r.StatusCode}"; _cls = "fail"; }
+            var row = await Api.WhScanInboundAsync(_mode, _barcode.Trim());
+            if (row is null)
+            {
+                _msg = "LOT is not in the PO list.";
+                _cls = "fail";
+                ShowAlert("LOT Not Found", _msg, "warn");
+                return;
+            }
+
+            _scan = row;
+            _barcode = row.Barcode;
+
+            if (AlreadyReceived && !string.IsNullOrWhiteSpace(row.ReceivedLocation))
+            {
+                _loc = row.ReceivedLocation;
+                _changeFromLocation = row.ReceivedLocation;
+                _selectedLocation = await Api.WhScanLocationAsync(row.ReceivedLocation);
+                _currentLocation = _selectedLocation;
+            }
+
+            _msg = AlreadyReceived
+                ? "Already incoming. Tap Change Location or Cancel Incoming."
+                : "PO matched. Scan the location and receive.";
+            _cls = AlreadyReceived ? "warn" : "ok";
         }
-        catch (Exception ex) { _msg = "× " + ex.Message; _cls = "fail"; }
+        catch (Exception ex)
+        {
+            _msg = ex.Message;
+            _cls = "fail";
+            ShowAlert("Scan Failed", ex.Message, "danger");
+        }
+        finally
+        {
+            _isScanning = false;
+        }
     }
+
+    private async Task ScanLocation()
+    {
+        if (DisableLocationScan) return;
+
+        var locationNo = _loc.Trim();
+        if (_isLocationChangeMode && IsSameAsCurrentLocation(locationNo))
+        {
+            _selectedLocation = null;
+            _msg = "This LOT is already in the selected location.";
+            _cls = "fail";
+            ShowAlert("Same Location", _msg, "warn");
+            return;
+        }
+
+        _isLocationScanning = true;
+        _msg = "Scanning location...";
+        _cls = "dim";
+
+        try
+        {
+            var location = await Api.WhScanLocationAsync(locationNo);
+            if (location is null)
+            {
+                _selectedLocation = null;
+                _msg = "Location not found.";
+                _cls = "fail";
+                ShowAlert("Location Not Found", _msg, "warn");
+                return;
+            }
+
+            _selectedLocation = location;
+            _loc = location.LocationId;
+
+            if (_isLocationChangeMode && IsSameAsCurrentLocation(location.LocationId))
+            {
+                _selectedLocation = null;
+                _msg = "This LOT is already in the selected location.";
+                _cls = "fail";
+                ShowAlert("Same Location", _msg, "warn");
+                return;
+            }
+
+            _msg = _isLocationChangeMode ? "New location loaded. Tap Confirm." : "";
+            _cls = _isLocationChangeMode ? "ok" : "dim";
+        }
+        catch (Exception ex)
+        {
+            _selectedLocation = null;
+            _msg = ex.Message;
+            _cls = "fail";
+            ShowAlert("Location Scan Failed", ex.Message, "danger");
+        }
+        finally
+        {
+            _isLocationScanning = false;
+        }
+    }
+
+    private async Task Receive()
+    {
+        if (IsBusy) return;
+
+        var validation = ReceiveValidationMessage();
+        if (validation is not null)
+        {
+            _msg = validation;
+            _cls = "fail";
+            ShowAlert("Receive Check", validation, "warn");
+            return;
+        }
+
+        if (_scan is null || _selectedLocation is null) return;
+
+        _isReceiving = true;
+        _msg = "Receiving...";
+        _cls = "dim";
+
+        try
+        {
+            var result = await Api.WhReceiveInboundAsync(new PdaApi.InboundReceiveReq(_mode, _scan.Barcode, _selectedLocation.LocationId));
+            if (!result.Success)
+            {
+                _msg = result.Message;
+                _cls = "fail";
+                ShowAlert("Receive Failed", result.Message, "danger");
+                return;
+            }
+
+            _msg = "Receive complete.";
+            _cls = "ok";
+            ShowAlert("Receive Complete", "The LOT was received successfully.", "success", ResetFormAsync);
+        }
+        finally
+        {
+            _isReceiving = false;
+        }
+    }
+
+    private async Task StartLocationChange()
+    {
+        if (IsBusy) return;
+
+        if (_scan is null)
+        {
+            ShowAlert("LOT Required", "Scan a LOT No first.", "warn");
+            return;
+        }
+
+        if (!AlreadyReceived)
+        {
+            ShowAlert("Incoming Required", "This LOT has not been received yet.", "warn");
+            return;
+        }
+
+        _changeFromLocation = _scan.ReceivedLocation;
+        _currentLocation = _selectedLocation ?? _currentLocation;
+        if (_currentLocation is null && !string.IsNullOrWhiteSpace(_changeFromLocation))
+        {
+            _currentLocation = await Api.WhScanLocationAsync(_changeFromLocation);
+        }
+
+        _loc = "";
+        _selectedLocation = null;
+        _isLocationChangeMode = true;
+        _msg = "Scan the new location.";
+        _cls = "dim";
+    }
+
+    private async Task ConfirmLocationChange()
+    {
+        if (IsBusy) return;
+
+        var validation = MoveValidationMessage();
+        if (validation is not null)
+        {
+            _msg = validation;
+            _cls = "fail";
+            ShowAlert("Location Change Check", validation, "warn");
+            return;
+        }
+
+        if (!await EnsureMoveLocationLoadedAsync())
+            return;
+
+        if (_scan is null || _selectedLocation is null) return;
+
+        _isMoving = true;
+        _msg = "Changing location...";
+        _cls = "dim";
+        var fromLocation = _changeFromLocation ?? _scan.ReceivedLocation;
+        var toLocation = _selectedLocation.LocationId;
+
+        try
+        {
+            var result = await Api.WhMoveInboundLocationAsync(new PdaApi.InboundReceiveReq(_mode, _scan.Barcode, toLocation));
+            if (!result.Success)
+            {
+                _msg = result.Message;
+                _cls = "fail";
+                ShowAlert("Location Change Failed", result.Message, "danger");
+                return;
+            }
+
+            _msg = "Location changed.";
+            _cls = "ok";
+            ShowAlert(
+                "Location Changed",
+                $"Previous Location: {Text(fromLocation)}\nNew Location: {Text(toLocation)}",
+                "success",
+                ResetFormAsync);
+        }
+        finally
+        {
+            _isMoving = false;
+        }
+    }
+
+    private async Task CancelIncoming()
+    {
+        if (DisableCancel || _scan is null) return;
+
+        ShowConfirm("Cancel Incoming", "Cancel incoming for this LOT?", CancelIncomingConfirmed);
+        await Task.CompletedTask;
+    }
+
+    private async Task CancelIncomingConfirmed()
+    {
+        if (DisableCancel || _scan is null) return;
+
+        _isCanceling = true;
+        _msg = "Canceling incoming...";
+        _cls = "dim";
+
+        try
+        {
+            var result = await Api.WhCancelInboundAsync(new PdaApi.InboundCancelReq(_mode, _scan.Barcode));
+            if (!result.Success)
+            {
+                _msg = result.Message;
+                _cls = "fail";
+                ShowAlert("Cancel Failed", result.Message, "danger");
+                return;
+            }
+
+            _scan = result.Row ?? await Api.WhScanInboundAsync(_mode, _scan.Barcode);
+            _loc = "";
+            _selectedLocation = null;
+            _isLocationChangeMode = false;
+            _changeFromLocation = null;
+            _msg = "Incoming canceled.";
+            _cls = "ok";
+            ShowAlert("Incoming Canceled", "Incoming was canceled successfully.", "success");
+        }
+        finally
+        {
+            _isCanceling = false;
+        }
+    }
+
+    private IEnumerable<(string Label, string Value)> CommonFields()
+    {
+        if (_scan is null) yield break;
+
+        yield return ("Item Status", ItemStatusLabel);
+        yield return ("PO No", Text(_scan.PoNo));
+        yield return ("PO Seq", _scan.PoSeq?.ToString() ?? "-");
+        yield return ("Qty", $"{_scan.Qty:N0}");
+        yield return ("Unit", Text(_scan.Unit));
+        yield return ("Vendor", Text(_scan.VendorName ?? _scan.VendorId));
+        if (AlreadyReceived)
+            yield return ("Current Loc", Text(_scan.ReceivedLocation));
+    }
+
+    private IEnumerable<(string Label, string Value)> LocationFields()
+    {
+        if (_selectedLocation is null) yield break;
+
+        foreach (var field in LocationFieldsFor(_selectedLocation))
+            yield return field;
+    }
+
+    private IEnumerable<(string Label, string Value)> CurrentLocationFields()
+    {
+        if (_currentLocation is null) yield break;
+
+        foreach (var field in LocationFieldsFor(_currentLocation))
+            yield return field;
+    }
+
+    private static IEnumerable<(string Label, string Value)> LocationFieldsFor(PdaApi.LocationRow location)
+    {
+        yield return ("WH", JoinCodeName(location.WarehouseCode, location.WarehouseName));
+        yield return ("AREA", JoinCodeName(location.AreaCode, location.AreaName));
+        yield return ("ZONE", JoinCodeName(location.Zone, location.ZoneName));
+        yield return ("RACK X", Text(location.X));
+        yield return ("RACK Y", Text(location.Y));
+        yield return ("RACK Z", Text(location.Z));
+        yield return ("STOCK LINES", location.LineCount.ToString("N0"));
+        yield return ("STOCK QTY", location.TotalQty.ToString("N0"));
+    }
+
+    private IEnumerable<(string Label, string Value)> ModeFields()
+    {
+        if (_scan is null) yield break;
+
+        if (_scan.ReceiveType == "CKD")
+        {
+            yield return ("Case Barcode", Text(_scan.CaseBarcode));
+            yield return ("Case No", Text(_scan.CaseNo));
+            yield return ("Invoice", Text(_scan.InvoiceNo));
+            yield return ("Container", Text(_scan.ContainerNo));
+            yield return ("Ship Date", DateText(_scan.ShipDate));
+            yield return ("Pack Date", DateText(_scan.PackDate));
+            yield break;
+        }
+
+        yield return ("Delivery Note", Text(_scan.NoteNo));
+        yield return ("Prod Date", DateText(_scan.ProductionDate));
+        yield return ("Delivery Date", DateText(_scan.DeliveryDate));
+        yield return ("Arrival Date", DateText(_scan.ArrivalDate));
+    }
+
+    private string? ReceiveValidationMessage()
+    {
+        if (string.IsNullOrWhiteSpace(_barcode))
+            return "Enter or scan a LOT No first.";
+        if (_scan is null)
+            return "Tap LOT No SCAN to load the PO information first.";
+        if (AlreadyReceived)
+            return "This LOT is already incoming. Choose Change Location or Cancel Incoming.";
+        if (string.IsNullOrWhiteSpace(_loc))
+            return "Enter or scan a Location No first.";
+        if (_selectedLocation is null)
+            return "Tap Location No SCAN to load the location information first.";
+        if (!string.Equals(_selectedLocation.LocationId, _loc.Trim(), StringComparison.OrdinalIgnoreCase))
+            return "The entered Location No does not match the loaded location. Scan the Location No again.";
+
+        return null;
+    }
+
+    private string? MoveValidationMessage()
+    {
+        if (string.IsNullOrWhiteSpace(_barcode))
+            return "Enter or scan a LOT No first.";
+        if (_scan is null)
+            return "Tap LOT No SCAN to load the item information first.";
+        if (!AlreadyReceived)
+            return "This LOT has not been received yet. Receive it first.";
+        if (!_isLocationChangeMode)
+            return "Tap Change Location first.";
+        if (string.IsNullOrWhiteSpace(_loc))
+            return "Enter or scan the new Location No first.";
+        if (IsSameAsCurrentLocation(_loc))
+            return "This LOT is already in the selected location.";
+        if (_selectedLocation is not null && !string.Equals(_selectedLocation.LocationId, _loc.Trim(), StringComparison.OrdinalIgnoreCase))
+            return "The entered Location No does not match the loaded location. Scan the Location No again.";
+        if (TargetMatchesCurrent)
+            return "This LOT is already in the selected location.";
+
+        return null;
+    }
+
+    private async Task<bool> EnsureMoveLocationLoadedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_loc))
+            return false;
+
+        if (IsSameAsCurrentLocation(_loc))
+        {
+            _selectedLocation = null;
+            _msg = "This LOT is already in the selected location.";
+            _cls = "fail";
+            ShowAlert("Same Location", _msg, "warn");
+            return false;
+        }
+
+        if (_selectedLocation is not null
+            && string.Equals(_selectedLocation.LocationId, _loc.Trim(), StringComparison.OrdinalIgnoreCase)
+            && !IsSameAsCurrentLocation(_selectedLocation.LocationId))
+        {
+            return true;
+        }
+
+        _isLocationScanning = true;
+        _msg = "Loading new location...";
+        _cls = "dim";
+
+        try
+        {
+            var location = await Api.WhScanLocationAsync(_loc.Trim());
+            if (location is null)
+            {
+                _selectedLocation = null;
+                _msg = "Location not found.";
+                _cls = "fail";
+                ShowAlert("Location Not Found", _msg, "warn");
+                return false;
+            }
+
+            if (IsSameAsCurrentLocation(location.LocationId))
+            {
+                _selectedLocation = null;
+                _loc = location.LocationId;
+                _msg = "This LOT is already in the selected location.";
+                _cls = "fail";
+                ShowAlert("Same Location", _msg, "warn");
+                return false;
+            }
+
+            _selectedLocation = location;
+            _loc = location.LocationId;
+            _msg = "New location loaded. Tap Confirm.";
+            _cls = "ok";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _selectedLocation = null;
+            _msg = ex.Message;
+            _cls = "fail";
+            ShowAlert("Location Load Failed", ex.Message, "danger");
+            return false;
+        }
+        finally
+        {
+            _isLocationScanning = false;
+        }
+    }
+
+    private bool IsSameAsCurrentLocation(string? locationId)
+    {
+        if (string.IsNullOrWhiteSpace(locationId)) return false;
+
+        var current = _changeFromLocation ?? _scan?.ReceivedLocation;
+        return !string.IsNullOrWhiteSpace(current)
+            && string.Equals(locationId.Trim(), current.Trim(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void ShowAlert(string title, string message, string kind = "info", Func<Task>? afterClose = null)
+    {
+        _modalTitle = title;
+        _modalMessage = message;
+        _modalKind = kind;
+        _modalConfirm = false;
+        _modalPrimaryAction = null;
+        _modalAfterCloseAction = afterClose;
+        _modalOpen = true;
+    }
+
+    private void ShowConfirm(string title, string message, Func<Task> action)
+    {
+        _modalTitle = title;
+        _modalMessage = message;
+        _modalKind = "danger";
+        _modalConfirm = true;
+        _modalPrimaryAction = action;
+        _modalAfterCloseAction = null;
+        _modalOpen = true;
+    }
+
+    private async Task DismissModal()
+    {
+        var afterClose = !_modalConfirm ? _modalAfterCloseAction : null;
+        _modalOpen = false;
+        _modalPrimaryAction = null;
+        _modalAfterCloseAction = null;
+
+        if (afterClose is not null)
+            await afterClose();
+    }
+
+    private async Task ModalPrimary()
+    {
+        var action = _modalPrimaryAction;
+        var afterClose = _modalAfterCloseAction;
+        _modalOpen = false;
+        _modalPrimaryAction = null;
+        _modalAfterCloseAction = null;
+
+        if (action is not null)
+            await action();
+        else if (afterClose is not null)
+            await afterClose();
+    }
+
+    private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private static string JoinCodeName(string? code, string? name)
+    {
+        if (string.IsNullOrWhiteSpace(code)) return Text(name);
+        if (string.IsNullOrWhiteSpace(name)) return code;
+        return $"{code} / {name}";
+    }
+    private static string DateText(DateTime? value) => value?.ToString("yyyy-MM-dd") ?? "-";
 }
