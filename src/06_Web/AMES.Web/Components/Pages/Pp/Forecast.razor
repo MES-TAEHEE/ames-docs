@@ -20,7 +20,7 @@
     <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
 }
 
-<div class="ames-kpis">
+<div class="ames-kpis compact">
     <div class="ames-kpi"><div class="ames-kpi-l">ITEMS</div><div class="ames-kpi-v">@_items.Count</div></div>
     <div class="ames-kpi ok"><div class="ames-kpi-l">WEEKS</div><div class="ames-kpi-v">@_weeks.Count</div></div>
     <div class="ames-kpi warn"><div class="ames-kpi-l">TOTAL QTY</div><div class="ames-kpi-v">@_items.Sum(i => i.Qty.Values.Sum()).ToString("#,0")</div></div>
