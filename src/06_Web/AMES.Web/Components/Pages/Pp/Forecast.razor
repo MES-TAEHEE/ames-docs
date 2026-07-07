@@ -1,7 +1,10 @@
-﻿@page "/pp/forecast"
+@page "/pp/forecast"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
+@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject DialogService Dialog
+@inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["PP.Forecast.Title"] · AMES</PageTitle>
@@ -12,45 +15,188 @@
     <div class="ames-page-sub">@L["PP.Forecast.Sub"]</div>
 </div>
 
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">ROWS</div><div class="ames-kpi-v">@_rows.Count</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">CUSTOMERS</div><div class="ames-kpi-v">@_rows.Select(r => r.CustomerId).Distinct().Count()</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">ITEMS</div><div class="ames-kpi-v">@_rows.Select(r => r.ItemNo).Distinct().Count()</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">TOTAL QTY</div><div class="ames-kpi-v">@_rows.Sum(r => r.ForecastQty).ToString("0")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">ITEMS</div><div class="ames-kpi-v">@_items.Count</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">WEEKS</div><div class="ames-kpi-v">@_weeks.Count</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">TOTAL QTY</div><div class="ames-kpi-v">@_items.Sum(i => i.Qty.Values.Sum()).ToString("#,0")</div></div>
+    <div class="ames-kpi @(UnmatchedCount > 0 ? "bad" : "")"><div class="ames-kpi-l">UNMATCHED</div><div class="ames-kpi-v">@UnmatchedCount</div></div>
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">▼ FORECAST ROWS</div>
-    @if (_rows.Count == 0) { <div class="ames-empty">@L["PP.Forecast.Empty"]</div> }
+    <div class="ames-card-h" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span class="dim" style="font-size:.82em;white-space:nowrap;margin-left:12px;">@L["Col.Customer"]</span>
+        <RadzenDropDown Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
+                        @bind-Value="_fCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
+                        Style="width:220px" />
+        <RadzenDatePicker @bind-Value="_fFrom" DateFormat="yyyy-MM-dd" Style="width:140px" />
+        <RadzenDatePicker @bind-Value="_fTo" DateFormat="yyyy-MM-dd" Style="width:140px" />
+        <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+            <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" Click="Search" />
+            <RadzenButton Text="@L["PP.Forecast.Btn.ExcelUpload"].Value" Icon="upload"
+                          ButtonStyle="ButtonStyle.Secondary" Click="OpenUpload" />
+            <RadzenButton Text="@L["PP.Forecast.Btn.Export"].Value" Icon="download"
+                          ButtonStyle="ButtonStyle.Light" Click="ExportCsv" />
+        </div>
+    </div>
+
+    @if (_items.Count == 0)
+    {
+        <div class="ames-empty">@L["PP.Forecast.Empty"]</div>
+    }
     else
     {
-        <table class="ames-table">
-            <thead><tr><th>@L["Col.Month"]</th><th>@L["Col.Customer"]</th><th>@L["Col.Item"]</th><th class="num">@L["Col.Qty"]</th><th>@L["Col.Confidence"]</th><th>@L["Col.Source"]</th><th>@L["Col.Batch"]</th></tr></thead>
-            <tbody>
-                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
+        <RadzenDataGrid Data="_items" TItem="ItemVm" AllowPaging="true" PageSize="_pageSize"
+                        AllowSorting="true" AllowColumnResize="true" Density="Density.Compact"
+                        AllowFiltering="true" FilterMode="FilterMode.CheckBoxList"
+                        FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                        class="ames-rz-grid" PagerHorizontalAlign="HorizontalAlign.Left"
+                        ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"].Value">
+            <Columns>
+                @if (_showCustomerCol)
                 {
-                    <tr>
-                        <td class="code">@(r.ForecastMonth?.ToString("yyyy-MM") ?? "—")</td>
-                        <td>@r.CustomerId</td>
-                        <td>@(r.ItemName ?? r.ItemNo)</td>
-                        <td class="num">@r.ForecastQty.ToString("0")</td>
-                        <td class="dim">@r.Confidence</td>
-                        <td class="dim">@r.Source</td>
-                        <td class="dim">@r.Batch</td>
-                    </tr>
+                    <RadzenDataGridColumn TItem="ItemVm" Property="CustomerId" Title="@L["Col.Customer"].Value"
+                                          Frozen="true" Width="120px" />
                 }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
+                <RadzenDataGridColumn TItem="ItemVm" Property="ItemNo" Title="@L["Col.PartNo"].Value"
+                                      Frozen="true" Width="170px">
+                    <Template Context="it">
+                        <span class="code">@it.ItemNo</span>
+                        @if (!it.ItemExists)
+                        {
+                            <span class="badge-bad">@L["PP.Forecast.Badge.NoItem"]</span>
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ItemVm" Property="Name" Title="@L["Col.PartName"].Value" Width="200px" />
+                <RadzenDataGridColumn TItem="ItemVm" Property="BaseInv" Title="@L["Col.BaseInv"].Value"
+                                      Filterable="false" TextAlign="TextAlign.Right" Width="100px">
+                    <Template Context="it">@(it.BaseInv?.ToString("#,0") ?? "—")</Template>
+                </RadzenDataGridColumn>
+                @foreach (var w in _weeks)
+                {
+                    var week  = w;
+                    var label = _weeks.IndexOf(w) is var k && k < _weekLabels.Count ? _weekLabels[k] : "";
+                    <RadzenDataGridColumn TItem="ItemVm" Title="@week.ToString("MM/dd")" Sortable="false"
+                                          Filterable="false" TextAlign="TextAlign.Right" Width="80px">
+                        <HeaderTemplate>
+                            <span title="@($"{week:yyyy-MM-dd} {label}")">@week.ToString("MM/dd")</span>
+                        </HeaderTemplate>
+                        <Template Context="it">@(it.Qty.TryGetValue(week, out var q) ? q.ToString("#,0") : "—")</Template>
+                    </RadzenDataGridColumn>
+                }
+            </Columns>
+        </RadzenDataGrid>
     }
 </div>
 
 @code {
-    List<AMES.Data.Repositories.PpRepository.ForecastRow> _rows = new();
-    int _page = 0;
     const int _pageSize = 20;
+
+    List<MasterDataRepository.CustomerRow> _customers = new();
+
+    // 조회 필터
+    string   _fCustomer = "";
+    DateTime _fFrom = DateTime.Today;
+    DateTime _fTo   = DateTime.Today.AddDays(154);   // 22주
+
+    // 피벗 표시 모델. CustomerId는 전체 고객 조회에서만 표시.
+    record ItemVm(string? CustomerId, string ItemNo, string Name, decimal? BaseInv, bool ItemExists,
+                  Dictionary<DateTime, decimal> Qty);
+    bool _showCustomerCol;   // 조회 시점 스냅샷 (드롭다운만 바꾸고 조회 안 한 상태와 분리)
+    List<DateTime> _weeks = new();
+    List<string>   _weekLabels = new();
+    List<ItemVm>   _items = new();
+
+    string _msg = "";
+    bool   _isErr;
+
+    int UnmatchedCount => _items.Count(i => !i.ItemExists);
+
     protected override void OnInitialized()
     {
-        try { _rows = Pp.ListForecast(); } catch { }
+        try { _customers = Md.ListCustomers(); } catch { }
+        Search();
+    }
+
+    // ── 업로드 다이얼로그 ────────────────────────────────────────
+    async Task OpenUpload()
+    {
+        var result = await Dialog.OpenAsync<ForecastUploadDialog>(
+            L["PP.Forecast.Upload.Title"].Value,
+            new Dictionary<string, object?> { ["Customers"] = _customers });
+
+        if (result is ForecastUploadDialog.Result r)
+        {
+            ShowMsg(string.Format(L["PP.Forecast.Ok.Imported"].Value, r.Ins, r.Upd, r.Chg), false);
+            _fCustomer = r.CustomerId;
+            _fFrom = r.From;
+            _fTo   = r.To;
+            Search();
+        }
+    }
+
+    // ── CSV 내보내기 ─────────────────────────────────────────────
+    async Task ExportCsv()
+    {
+        if (_items.Count == 0) { ShowMsg(L["PP.Forecast.Err.NoExport"], true); return; }
+
+        var sb = new System.Text.StringBuilder();
+        var head = new List<string>();
+        if (_showCustomerCol) head.Add(L["Col.Customer"]);
+        head.Add(L["Col.PartNo"]); head.Add(L["Col.PartName"]); head.Add(L["Col.BaseInv"]);
+        head.AddRange(_weeks.Select(w => w.ToString("yyyy-MM-dd")));
+        sb.AppendLine(string.Join(",", head.Select(Csv)));
+
+        foreach (var it in _items)
+        {
+            var row = new List<string>();
+            if (_showCustomerCol) row.Add(it.CustomerId ?? "");
+            row.Add(it.ItemNo); row.Add(it.Name); row.Add(it.BaseInv?.ToString("0.###") ?? "");
+            row.AddRange(_weeks.Select(w => it.Qty.TryGetValue(w, out var q) ? q.ToString("0.###") : ""));
+            sb.AppendLine(string.Join(",", row.Select(Csv)));
+        }
+
+        // UTF-8 BOM — Excel에서 한글 품명 정상 표시
+        var bytes = System.Text.Encoding.UTF8.GetPreamble()
+            .Concat(System.Text.Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
+        var name = $"Forecast_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+        await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes), "text/csv");
+        ShowMsg(string.Format(L["PP.Forecast.Ok.Exported"].Value, _items.Count), false);
+    }
+
+    static string Csv(string s) =>
+        s.Contains(',') || s.Contains('"') || s.Contains('\n') ? $"\"{s.Replace("\"", "\"\"")}\"" : s;
+
+    // ── 조회 ─────────────────────────────────────────────────────
+    void Search()
+    {
+        _weekLabels = new();
+        List<PpRepository.WeeklyCell> cells;
+        try   { cells = Pp.ListWeeklyForecast(_fCustomer ?? "", _fFrom, _fTo); }
+        catch { cells = new(); }
+
+        _showCustomerCol = string.IsNullOrEmpty(_fCustomer);
+        _weeks = cells.Select(c => c.WeekStartDate).Distinct().Order().ToList();
+        _weekLabels = _weeks
+            .Select(w => cells.FirstOrDefault(c => c.WeekStartDate == w && c.WeekLabel != null)?.WeekLabel ?? "")
+            .ToList();
+        _items = cells.GroupBy(c => (c.CustomerId, c.ItemNo))
+            .Select(g => new ItemVm(g.Key.CustomerId, g.Key.ItemNo,
+                g.First().ItemName ?? g.First().PartName ?? g.Key.ItemNo,
+                g.First().BaseInv, g.First().ItemExists,
+                g.ToDictionary(c => c.WeekStartDate, c => c.Qty)))
+            .OrderBy(i => i.CustomerId).ThenBy(i => i.ItemNo)
+            .ToList();
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
     }
 }

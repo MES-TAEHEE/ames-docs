@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Radzen.Blazor" Version="11.1.2" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
@@ -22,13 +23,18 @@
   </ItemGroup>
 
 
-  <Target Name="DeployToIIS" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+  <PropertyGroup>
+    <IisDeployDir>E:\DEV\publish\ames-web</IisDeployDir>
+  </PropertyGroup>
+
+  <!-- 배포 머신(E: 드라이브 존재)에서만 실행 — 다른 개발 PC에서는 스킵 -->
+  <Target Name="DeployToIIS" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug' AND Exists('E:\DEV\publish')">
     <!-- app_offline.htm 생성 → ASP.NET Core 앱 종료 + 파일 잠금 해제 -->
-    <WriteLinesToFile File="E:\DEV\publish\ames-web\app_offline.htm" Lines="배포 중..." Overwrite="true" />
+    <WriteLinesToFile File="$(IisDeployDir)\app_offline.htm" Lines="배포 중..." Overwrite="true" />
     <Exec Command="powershell -Command &quot;Start-Sleep -Seconds 2&quot;" />
-    <Exec Command="dotnet publish &quot;$(MSBuildProjectFullPath)&quot; -c Debug -o &quot;E:\DEV\publish\ames-web&quot; --no-build" />
+    <Exec Command="dotnet publish &quot;$(MSBuildProjectFullPath)&quot; -c Debug -o &quot;$(IisDeployDir)&quot; --no-build" />
     <!-- app_offline.htm 삭제 → 앱 재시작 -->
-    <Delete Files="E:\DEV\publish\ames-web\app_offline.htm" />
+    <Delete Files="$(IisDeployDir)\app_offline.htm" />
   </Target>
 
 </Project>
