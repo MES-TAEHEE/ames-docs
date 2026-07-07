@@ -9,14 +9,11 @@
 
 <PageTitle>@L["PP.DowntimeMonitor.Title"] · AMES</PageTitle>
 
-<div class="ames-page-h">
-    <div class="ames-page-id">PP-ODM</div>
-    <div class="ames-page-t">@L["PP.DowntimeMonitor.Title"]</div>
-    <div class="ames-page-sub">@L["PP.DowntimeMonitor.Sub"]</div>
-    <div style="margin-left:auto;font-size:.75rem;color:var(--c-dim);">
-        @L["PP.DowntimeMonitor.Lbl.Refresh"] @_lastRefresh.ToString("HH:mm:ss")
-        &nbsp;·&nbsp;<span style="color:var(--c-accent);">@L["PP.DowntimeMonitor.AutoRefresh"]</span>
-    </div>
+<AmesPageHeader Code="PP-ODM" TitleKey="PP.DowntimeMonitor.Title" />
+
+<div style="display:flex;justify-content:flex-end;font-size:.75rem;color:var(--c-dim);margin-bottom:12px;">
+    @L["PP.DowntimeMonitor.Lbl.Refresh"] @_lastRefresh.ToString("HH:mm:ss")
+    &nbsp;·&nbsp;<span style="color:var(--c-accent);">@L["PP.DowntimeMonitor.AutoRefresh"]</span>
 </div>
 
 @* ── KPI 스트립 ── *@

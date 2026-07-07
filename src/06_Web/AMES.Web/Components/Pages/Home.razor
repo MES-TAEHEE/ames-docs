@@ -1,15 +1,12 @@
 @page "/"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
 @inject AMES.Data.Repositories.WorkOrderRepository Wo
 
 <PageTitle>A-MES Office Web</PageTitle>
 
-<div class="ames-page-h">
-    <div class="ames-page-id">HOME</div>
-    <div class="ames-page-t">A-MES Office Web</div>
-    <div class="ames-page-sub">@DateTime.Now.ToString("yyyy-MM-dd ddd · HH:mm")</div>
-</div>
+<AmesPageHeader Code="HOME" Title="A-MES Office Web" />
 
 <div class="ames-kpis">
     <div class="ames-kpi ok">

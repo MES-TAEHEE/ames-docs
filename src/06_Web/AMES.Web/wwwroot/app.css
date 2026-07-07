@@ -70,6 +70,26 @@ a:hover { color: #c4dafe; }
 }
 .ames-topbar-spacer { flex: 1; }
 
+/* ── 현재 화면 경로/이름 (브랜드 우측 브레드크럼) ─────────────── */
+.ames-topbar-loc {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 22px; height: 100%; min-width: 0;
+}
+.ames-loc-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 1px;
+    color: #93c5fd; line-height: 1;
+    padding: 4px 9px; border-radius: 6px;
+    background: rgba(147,197,253,.1);
+    border: 1px solid rgba(147,197,253,.22);
+    flex-shrink: 0;
+}
+.ames-loc-name {
+    font-size: 15px; font-weight: 600; letter-spacing: .3px;
+    color: #e5edf7;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
 /* ── Shell body (side + main) ─────────────────────────────── */
 .ames-body {
     display: flex;
@@ -289,39 +309,8 @@ a:hover { color: #c4dafe; }
 .ames-main { flex: 1; min-width: 0; overflow-y: auto; }
 .ames-content { padding: 30px 36px 60px; }
 
-.ames-page-h {
-    display: flex; align-items: flex-end; gap: 16px;
-    margin-bottom: 24px; padding: 22px 26px;
-    background: linear-gradient(135deg, rgba(37,99,235,.18), rgba(124,58,237,.1) 60%, transparent);
-    border: 1px solid rgba(147,197,253,.18);
-    border-radius: 14px;
-    position: relative; overflow: hidden;
-}
-.ames-page-h::before {
-    content: ''; position: absolute; top: 0; right: 0;
-    width: 280px; height: 100%;
-    background: radial-gradient(circle at 80% 40%, rgba(147,197,253,.18), transparent 70%);
-    pointer-events: none;
-}
-.ames-page-id {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 43px; letter-spacing: 2px;
-    color: #93c5fd; line-height: 1;
-    text-shadow: 0 0 24px rgba(147,197,253,.4);
-}
-.ames-page-t {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 36px; letter-spacing: 1px;
-    color: #fff; line-height: 1;
-}
-.ames-page-sub {
-    font-size: 14px;
-    color: rgba(255,255,255,.6);
-    margin-left: auto;
-    font-family: 'JetBrains Mono', monospace;
-    letter-spacing: .8px;
-    z-index: 1;
-}
+/* 화면 경로/이름은 TopBar 브레드크럼(.ames-topbar-loc)에 표시된다.
+   과거 페이지 상단 헤더(.ames-page-h/-id/-t/-sub)는 제거됨. */
 
 /* ── Tiles (module / home) ────────────────────────────────── */
 .ames-tiles {

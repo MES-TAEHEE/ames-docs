@@ -6,11 +6,7 @@
 
 <PageTitle>RPT-009 @L["RPT.ReportCenter.Title"] · AMES</PageTitle>
 
-<div class="ames-page-h">
-    <div class="ames-page-id">RPT-009</div>
-    <div class="ames-page-t">@L["RPT.ReportCenter.Title"]</div>
-    <div class="ames-page-sub">@L["RPT.ReportCenter.Sub"]</div>
-</div>
+<AmesPageHeader Code="RPT-009" TitleKey="RPT.ReportCenter.Title" />
 
 @foreach (var grp in _entries.GroupBy(e => e.Category).OrderBy(g => CatOrder(g.Key)))
 {

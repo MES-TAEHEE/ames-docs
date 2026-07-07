@@ -2,15 +2,12 @@
 @page "/mnt/{*Path}"
 @page "/rpt/{*Path}"
 @page "/sys/{*Path}"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
 <PageTitle>Coming soon — @Path</PageTitle>
 
-<div class="ames-page-h">
-    <div class="ames-page-id">SOON</div>
-    <div class="ames-page-t">@Path</div>
-    <div class="ames-page-sub">module screen lands in the next batch</div>
-</div>
+<AmesPageHeader Code="SOON" Title="@Path" />
 
 <div class="ames-card">
     <div class="ames-card-h">▼ STATUS</div>

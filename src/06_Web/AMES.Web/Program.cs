@@ -21,6 +21,8 @@ builder.Services.AddRadzenComponents();
 
 builder.Services.AddLocalization();
 
+builder.Services.AddScoped<AMES.Web.Services.PageHeaderState>();
+
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
