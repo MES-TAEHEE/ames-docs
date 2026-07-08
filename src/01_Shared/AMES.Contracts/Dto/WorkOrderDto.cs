@@ -25,6 +25,8 @@ public sealed class WorkOrderDto
     public bool              Phase0Complete { get; init; }
     /// <summary>SAP B1 supply order reference — null until SAP integration live.</summary>
     public string?           SapRef        { get; init; }
+    /// <summary>Source sales order number (via PP_CustomerOrder.SoID), when WO was created from a plan.</summary>
+    public string?           SoNumber      { get; init; }
 
     /// <summary>0–100 % of CompletedQty / OrderQty.</summary>
     public double ProgressPct =>

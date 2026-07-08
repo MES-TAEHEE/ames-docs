@@ -33,9 +33,11 @@ public sealed class WorkOrderRepository
                              AND EXISTS(SELECT 1 FROM dbo.MD_BOP bp WHERE bp.ItemNo        = w.ItemNo)
                             THEN 1 ELSE 0 END
                    AS BIT) AS Phase0Complete,
-                   NULL AS SapRef
+                   NULL AS SapRef,
+                   so.SoNumber AS SoNumber
             FROM   dbo.PP_WorkOrder w
-            JOIN   dbo.MD_Item      i ON i.ItemNo = w.ItemNo
+            JOIN   dbo.MD_Item      i  ON i.ItemNo = w.ItemNo
+            LEFT JOIN dbo.PP_CustomerOrder so ON so.SoID = w.SoID
             WHERE  w.Status IN ('Draft','Released','In Progress')
                OR (w.Status = 'Closed'
                    AND w.ActualEnd >= DATEADD(day, -@Days, CAST(GETDATE() AS date)))
@@ -206,6 +208,93 @@ public sealed class WorkOrderRepository
         cmd.ExecuteNonQuery();
     }
 
+    // ── PP-004 lifecycle actions ─────────────────────────────────────────────
+
+    /// <summary>WO를 Released로 전환 (Draft/Planned만). 변경 행수 반환.</summary>
+    public int ReleaseWo(int woId, string actor)
+    {
+        const string sql = """
+            UPDATE dbo.PP_WorkOrder
+               SET Status     = 'Released',
+                   ReleasedAt = SYSDATETIME(),
+                   ReleasedBy = @Actor,
+                   ModifiedTS = SYSDATETIME(),
+                   ModifiedBy = @Actor
+             WHERE WoID   = @WoID
+               AND Status IN ('Draft','Planned');
+            """;
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@WoID",  SqlDbType.Int).Value          = woId;
+        cmd.Parameters.Add("@Actor", SqlDbType.NVarChar, 450).Value = actor;
+        return cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>WO를 Cancelled로 전환 (Draft/Planned/Released만). 변경 행수 반환.</summary>
+    public int CancelWo(int woId, string actor)
+    {
+        const string sql = """
+            UPDATE dbo.PP_WorkOrder
+               SET Status     = 'Cancelled',
+                   ModifiedTS = SYSDATETIME(),
+                   ModifiedBy = @Actor
+             WHERE WoID   = @WoID
+               AND Status IN ('Draft','Planned','Released');
+            """;
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@WoID",  SqlDbType.Int).Value          = woId;
+        cmd.Parameters.Add("@Actor", SqlDbType.NVarChar, 450).Value = actor;
+        return cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>
+    /// 수동 Draft WO 생성 (SO 미연계). WoNumber = WO-yyyyMMdd-NNN.
+    /// 품목마스터에 존재하는 품번만 생성. 생성된 WoNumber 반환(실패 시 빈 문자열).
+    /// </summary>
+    public string CreateManualWo(string itemNo, decimal qty, DateTime? due, string actor)
+    {
+        var prefix = $"WO-{DateTime.Today:yyyyMMdd}-";
+        const string insSql = """
+            INSERT INTO dbo.PP_WorkOrder
+                   (WoNumber, ItemNo, OrderQty, OpenQty, DueDate, Status, CreatedBy, CreatedTS)
+            SELECT @Wo, i.ItemNo, @Qty, @Qty, @Due, 'Draft', @Actor, SYSDATETIME()
+            FROM   dbo.MD_Item i
+            WHERE  i.ItemNo = @ItemNo;
+            """;
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            int seq;
+            using (var cnt = new SqlCommand(
+                "SELECT COUNT(*) FROM dbo.PP_WorkOrder WHERE WoNumber LIKE @P + '%'", conn, tx))
+            {
+                cnt.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = prefix;
+                seq = (int)cnt.ExecuteScalar();
+            }
+
+            var wo = $"{prefix}{(seq + 1):D3}";
+            using var ins = new SqlCommand(insSql, conn, tx);
+            ins.Parameters.Add("@Wo",     SqlDbType.VarChar, 20).Value = wo;
+            ins.Parameters.Add("@ItemNo", SqlDbType.VarChar, 20).Value = itemNo;
+            ins.Parameters.Add("@Qty",    SqlDbType.Decimal).Precision = 14;
+            ins.Parameters["@Qty"].Scale = 3;
+            ins.Parameters["@Qty"].Value  = qty;
+            ins.Parameters.Add("@Due",    SqlDbType.Date).Value        = (object?)due?.Date ?? DBNull.Value;
+            ins.Parameters.Add("@Actor",  SqlDbType.NVarChar, 450).Value = actor;
+
+            var affected = ins.ExecuteNonQuery();
+            tx.Commit();
+            return affected == 1 ? wo : string.Empty;
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
+    }
+
     // ── helpers ─────────────────────────────────────────────────────────────
     private static bool HasColumn(SqlDataReader rdr, string name)
     {
@@ -243,6 +332,7 @@ public sealed class WorkOrderRepository
                 RoutingType   = HasColumn(rdr, "RoutingType")   ? rdr["RoutingType"]   as string  : null,
                 Phase0Complete = HasColumn(rdr, "Phase0Complete") && rdr["Phase0Complete"] is true,
                 SapRef        = HasColumn(rdr, "SapRef")        ? rdr["SapRef"]        as string  : null,
+                SoNumber      = HasColumn(rdr, "SoNumber")      ? rdr["SoNumber"]      as string  : null,
             });
         }
         return list;
