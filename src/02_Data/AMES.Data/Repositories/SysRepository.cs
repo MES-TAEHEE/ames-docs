@@ -39,11 +39,11 @@ public sealed class SysRepository
         int? RetryCount, string? LastErrorMsg, bool IsEnabled, int MinutesSinceSync);
 
     public sealed record AuditRow(long LogId, DateTime? EventTs, string? ActorUserId,
-        string? ModuleCode, string? ScreenCode, string? ActionType,
+        string? ModuleCode, string? ScreenCode, string? ProcessCode, string? ActionType,
         string? TargetEntity, string? TargetId, string? Result, string? IpAddress, string? Note);
 
     public sealed record NotifRuleRow(int NotificationRuleId, string? EventTypeCode,
-        string? EventName, string? SourceModule, string? TriggerCondition, bool IsEnabled,
+        string? EventName, string? ModuleCode, string? ProcessCode, string? TriggerCondition, bool IsEnabled,
         string? ChannelsJson, string? RecipientRolesJson);
 
     public sealed record NotifHistoryRow(long NotificationHistoryId, DateTime? SentAt,
@@ -55,7 +55,7 @@ public sealed class SysRepository
         TimeSpan? QuietHoursStart, TimeSpan? QuietHoursEnd, DateTime? VerifiedAt);
 
     public sealed record ScreenRow(int ScreenId, string ScreenCode, string ModuleCode,
-        string ScreenName, string? ScreenNameEn, string? HRef, string? LidLabel,
+        string? ProcessCode, string ScreenName, string? ScreenNameEn, string? HRef, string? LidLabel,
         int? SortOrder, bool IsVisible, int RoleCount);
 
     public sealed record ConfigRow(int ConfigId, string? ConfigKey, string? ConfigType,
@@ -378,7 +378,7 @@ public sealed class SysRepository
     {
         const string sql = """
             SELECT TOP (@N)
-                   LogID, EventTS, ActorUserID, ModuleCode, ScreenCode,
+                   LogID, EventTS, ActorUserID, ModuleCode, ScreenCode, ProcessCode,
                    ActionType, TargetEntity, TargetID, Result, IPAddress, Note
             FROM   dbo.SYS_AuditLog
             ORDER  BY LogID DESC;
@@ -386,7 +386,8 @@ public sealed class SysRepository
         return Query(sql, r => new AuditRow(
             (long)r["LogID"], r["EventTS"] as DateTime?,
             r["ActorUserID"] as string, r["ModuleCode"] as string,
-            r["ScreenCode"] as string, r["ActionType"] as string,
+            r["ScreenCode"] as string, r["ProcessCode"] as string,
+            r["ActionType"] as string,
             r["TargetEntity"] as string, r["TargetID"] as string,
             r["Result"] as string, r["IPAddress"] as string,
             r["Note"] as string),
@@ -397,36 +398,38 @@ public sealed class SysRepository
     public List<NotifRuleRow> ListNotificationRules()
     {
         const string sql = """
-            SELECT  NotificationRuleID, EventTypeCode, EventName, SourceModule,
+            SELECT  NotificationRuleID, EventTypeCode, EventName, ModuleCode, ProcessCode,
                     TriggerCondition, ISNULL(IsEnabled, 1) AS IsEnabled,
                     ChannelsJSON, RecipientRolesJSON
             FROM    dbo.SYS_NotificationRule
-            ORDER   BY SourceModule, EventTypeCode;
+            ORDER   BY ModuleCode, EventTypeCode;
             """;
         return Query(sql, r => new NotifRuleRow(
             (int)r["NotificationRuleID"], r["EventTypeCode"] as string,
-            r["EventName"] as string, r["SourceModule"] as string,
+            r["EventName"] as string, r["ModuleCode"] as string,
+            r["ProcessCode"] as string,
             r["TriggerCondition"] as string,
             (bool)r["IsEnabled"],
             r["ChannelsJSON"] as string, r["RecipientRolesJSON"] as string));
     }
 
     public void InsertNotificationRule(string? eventTypeCode, string? eventName,
-        string? sourceModule, string? triggerCondition, bool isEnabled,
+        string? moduleCode, string? processCode, string? triggerCondition, bool isEnabled,
         string? channelsJson, string? recipientRolesJson, string createdBy)
     {
         const string sql = """
             INSERT INTO dbo.SYS_NotificationRule
-                (EventTypeCode, EventName, SourceModule, TriggerCondition,
+                (EventTypeCode, EventName, ModuleCode, ProcessCode, TriggerCondition,
                  IsEnabled, ChannelsJSON, RecipientRolesJSON, CreatedBy, CreatedTS)
             VALUES
-                (@EventTypeCode, @EventName, @SourceModule, @TriggerCondition,
+                (@EventTypeCode, @EventName, @ModuleCode, @ProcessCode, @TriggerCondition,
                  @IsEnabled, @ChannelsJSON, @RecipientRolesJSON, @CreatedBy, SYSDATETIME());
             """;
         Exec(sql,
             ("@EventTypeCode",     (object?)eventTypeCode      ?? DBNull.Value),
             ("@EventName",         (object?)eventName          ?? DBNull.Value),
-            ("@SourceModule",      (object?)sourceModule       ?? DBNull.Value),
+            ("@ModuleCode",        (object?)moduleCode         ?? DBNull.Value),
+            ("@ProcessCode",       (object?)processCode        ?? DBNull.Value),
             ("@TriggerCondition",  (object?)triggerCondition   ?? DBNull.Value),
             ("@IsEnabled",         isEnabled),
             ("@ChannelsJSON",      (object?)channelsJson       ?? DBNull.Value),
@@ -435,14 +438,15 @@ public sealed class SysRepository
     }
 
     public void UpdateNotificationRule(int id, string? eventTypeCode, string? eventName,
-        string? sourceModule, string? triggerCondition, bool isEnabled,
+        string? moduleCode, string? processCode, string? triggerCondition, bool isEnabled,
         string? channelsJson, string? recipientRolesJson, string modifiedBy)
     {
         const string sql = """
             UPDATE dbo.SYS_NotificationRule SET
                 EventTypeCode     = @EventTypeCode,
                 EventName         = @EventName,
-                SourceModule      = @SourceModule,
+                ModuleCode        = @ModuleCode,
+                ProcessCode       = @ProcessCode,
                 TriggerCondition  = @TriggerCondition,
                 IsEnabled         = @IsEnabled,
                 ChannelsJSON      = @ChannelsJSON,
@@ -455,7 +459,8 @@ public sealed class SysRepository
             ("@Id",                id),
             ("@EventTypeCode",     (object?)eventTypeCode      ?? DBNull.Value),
             ("@EventName",         (object?)eventName          ?? DBNull.Value),
-            ("@SourceModule",      (object?)sourceModule       ?? DBNull.Value),
+            ("@ModuleCode",        (object?)moduleCode         ?? DBNull.Value),
+            ("@ProcessCode",       (object?)processCode        ?? DBNull.Value),
             ("@TriggerCondition",  (object?)triggerCondition   ?? DBNull.Value),
             ("@IsEnabled",         isEnabled),
             ("@ChannelsJSON",      (object?)channelsJson       ?? DBNull.Value),
@@ -490,7 +495,7 @@ public sealed class SysRepository
     public List<ScreenRow> ListScreens(string? moduleCode = null)
     {
         const string sql = """
-            SELECT  m.ScreenID, m.ScreenCode, m.ModuleCode, m.ScreenName, m.ScreenNameEn,
+            SELECT  m.ScreenID, m.ScreenCode, m.ModuleCode, m.ProcessCode, m.ScreenName, m.ScreenNameEn,
                     m.HRef, m.LidLabel, m.SortOrder,
                     ISNULL(m.IsVisible, 1) AS IsVisible,
                     (SELECT COUNT(DISTINCT rp.RoleName) FROM dbo.SYS_RolePermission rp WHERE rp.ScreenCode = m.ScreenCode) AS RoleCount
@@ -505,18 +510,19 @@ public sealed class SysRepository
             : Query(query, MapScreen, ("@Module", moduleCode));
     }
 
-    public void InsertScreen(string screenCode, string moduleCode,
+    public void InsertScreen(string screenCode, string moduleCode, string? processCode,
         string screenName, string? screenNameEn, string? href, string? lidLabel,
         int? sortOrder, bool isVisible, string createdBy)
     {
         const string sql = """
             INSERT INTO dbo.SYS_Screen
-                   (ScreenCode, ModuleCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy)
-            VALUES (@Code, @Module, @Name, @NameEn, @HRef, @Lid, @Sort, @Visible, @CreatedBy)
+                   (ScreenCode, ModuleCode, ProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy)
+            VALUES (@Code, @Module, @Process, @Name, @NameEn, @HRef, @Lid, @Sort, @Visible, @CreatedBy)
             """;
         Exec(sql,
             ("@Code",      screenCode),
             ("@Module",    moduleCode),
+            ("@Process",   (object?)processCode  ?? DBNull.Value),
             ("@Name",      screenName),
             ("@NameEn",    (object?)screenNameEn ?? DBNull.Value),
             ("@HRef",      (object?)href         ?? DBNull.Value),
@@ -526,7 +532,7 @@ public sealed class SysRepository
             ("@CreatedBy", createdBy));
     }
 
-    public void UpdateScreen(int screenId, string screenCode, string moduleCode,
+    public void UpdateScreen(int screenId, string screenCode, string moduleCode, string? processCode,
         string screenName, string? screenNameEn, string? href, string? lidLabel,
         int? sortOrder, bool isVisible, string modifiedBy)
     {
@@ -534,6 +540,7 @@ public sealed class SysRepository
             UPDATE dbo.SYS_Screen
             SET    ScreenCode   = @Code,
                    ModuleCode   = @Module,
+                   ProcessCode  = @Process,
                    ScreenName   = @Name,
                    ScreenNameEn = @NameEn,
                    HRef         = @HRef,
@@ -548,6 +555,7 @@ public sealed class SysRepository
             ("@Id",         screenId),
             ("@Code",       screenCode),
             ("@Module",     moduleCode),
+            ("@Process",    (object?)processCode ?? DBNull.Value),
             ("@Name",       screenName),
             ("@NameEn",     (object?)screenNameEn ?? DBNull.Value),
             ("@HRef",       (object?)href         ?? DBNull.Value),
@@ -564,6 +572,7 @@ public sealed class SysRepository
 
     private static ScreenRow MapScreen(IDataReader r) => new(
         (int)r["ScreenID"], (string)r["ScreenCode"], (string)r["ModuleCode"],
+        r["ProcessCode"] as string,
         (string)r["ScreenName"], r["ScreenNameEn"] as string,
         r["HRef"] as string, r["LidLabel"] as string,
         r["SortOrder"] as int?, (bool)r["IsVisible"], (int)r["RoleCount"]);
@@ -661,6 +670,74 @@ public sealed class SysRepository
             r["ConfigType"] as string, r["Category"] as string,
             r["ConfigValue"] as string, r["CodeName"] as string,
             r["Unit"] as string, (bool)r["IsActive"], r["SortOrder"] as int?));
+    }
+
+    public void SetConfig(int configId, string? value, bool isActive)
+    {
+        const string sql = """
+            UPDATE dbo.SYS_Config
+            SET    ConfigValue = @Value,
+                   IsActive    = @IsActive,
+                   ModifiedTS  = SYSDATETIME()
+            WHERE  ConfigID = @Id
+            """;
+        Exec(sql,
+            ("@Id",       configId),
+            ("@Value",    (object?)value ?? DBNull.Value),
+            ("@IsActive", isActive));
+    }
+
+    public void SetRolePermission(string roleId, string roleName,
+        string moduleCode, string? processCode, string screenCode,
+        string? permLevel, string modifiedBy)
+    {
+        if (string.IsNullOrEmpty(permLevel))
+        {
+            Exec("DELETE dbo.SYS_RolePermission WHERE RoleID = @RoleID AND ScreenCode = @Screen",
+                ("@RoleID", roleId),
+                ("@Screen", screenCode));
+            return;
+        }
+        const string sql = """
+            MERGE dbo.SYS_RolePermission AS tgt
+            USING (SELECT @RoleID AS RoleID, @Screen AS ScreenCode) AS src
+                  ON tgt.RoleID = src.RoleID AND tgt.ScreenCode = src.ScreenCode
+            WHEN MATCHED THEN
+                UPDATE SET PermissionLevel = @Level,
+                           ModuleCode      = @Module,
+                           ModifiedBy      = @ModifiedBy,
+                           ModifiedTS      = SYSDATETIME()
+            WHEN NOT MATCHED THEN
+                INSERT (RoleID, RoleName, ModuleCode, ScreenCode, PermissionLevel,
+                        IsSystemRole, EffectiveTS, CreatedBy, CreatedTS)
+                VALUES (@RoleID, @RoleName, @Module, @Screen, @Level,
+                        0, SYSDATETIME(), @ModifiedBy, SYSDATETIME());
+            """;
+        Exec(sql,
+            ("@RoleID",     roleId),
+            ("@RoleName",   roleName),
+            ("@Module",     moduleCode),
+            ("@Screen",     screenCode),
+            ("@Level",      permLevel),
+            ("@ModifiedBy", modifiedBy));
+    }
+
+    public (bool Ok, int Ms, string? Host) PingDatabase()
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        try
+        {
+            using var conn = _f.OpenConnection();
+            using var cmd  = new SqlCommand("SELECT @@SERVERNAME", conn);
+            var host = cmd.ExecuteScalar() as string;
+            sw.Stop();
+            return (true, (int)sw.ElapsedMilliseconds, host);
+        }
+        catch
+        {
+            sw.Stop();
+            return (false, (int)sw.ElapsedMilliseconds, null);
+        }
     }
 
     // ── SYS-010 System Health ───────────────────────────────────────────

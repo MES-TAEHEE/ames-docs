@@ -2,9 +2,12 @@
 @rendermode InteractiveServer
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@inject AMES.Data.Repositories.SysRepository Sys
+@inject AMES.Web.Services.PermissionService Perm
 @using System.Globalization
 @using System.Net
 @using System.Text.Json
+@using Microsoft.AspNetCore.Components.Authorization
 
 <aside class="ames-side @(_collapsed ? "ames-side--collapsed" : "")">
 <div class="ames-nav">
@@ -54,9 +57,9 @@
     else
     {
         @* ── 즐겨찾기 ── *@
-        @if (_favorites.Count > 0)
+        var favs = _items.Where(i => _favorites.Contains(i.Href) && V(i.Href)).ToList();
+        @if (favs.Count > 0)
         {
-            var favs = _items.Where(i => _favorites.Contains(i.Href)).ToList();
             <div class="ames-nav-section ames-nav-fav" @onclick="ToggleFav">
                 <span class="ames-nav-section-ic">⭐</span>
                 <span class="ames-nav-section-t">@SL("즐겨찾기", "Favorites")</span>
@@ -75,15 +78,17 @@
         @* ── 섹션 아코디언 ── *@
         @foreach (var sec in _sections)
         {
+            var secItems = _items.Where(i => i.Section == sec.Key && V(i.Href)).ToList();
+            if (secItems.Count == 0) { continue; }
             <div class="ames-nav-section @sec.Key" @onclick="() => Toggle(sec.Key)">
                 <span class="ames-nav-section-ic">@sec.Icon</span>
                 <span class="ames-nav-section-t">@sec.Key.ToUpperInvariant() · @SL(sec.Ko, sec.En)</span>
-                <span class="ames-nav-section-n">@_items.Count(i => i.Section == sec.Key)</span>
+                <span class="ames-nav-section-n">@secItems.Count</span>
                 <span class="ames-nav-chevron">@Chev(sec.Key)</span>
             </div>
             @if (IsOpen(sec.Key))
             {
-                @foreach (var it in _items.Where(i => i.Section == sec.Key))
+                @foreach (var it in secItems)
                 {
                     @RenderRow(it, showTag: false)
                 }
@@ -94,6 +99,8 @@
 </aside>
 
 @code {
+    [CascadingParameter] Task<AuthenticationState>? AuthState { get; set; }
+
     bool            _collapsed;
     string?         _url;
     HashSet<string> _open = new();
@@ -102,6 +109,7 @@
     string          _query = "";
     bool            _favOpen = true;   // 즐겨찾기 섹션: 기본 펼침
     bool            _loaded;   // localStorage 복원 완료 전엔 저장 스킵
+    bool            _usingFallback;    // DB 로딩 실패 시 정적 목록 사용 → 권한 필터 미적용
 
     const string KeyOpen      = "ames.nav.open";
     const string KeyCollapsed = "ames.nav.collapsed";
@@ -120,7 +128,11 @@
         new("sys", "⚙️", "시스템",      "System"),
     };
 
-    static readonly NavItem[] _items =
+    // 메뉴 항목은 SYS_Screen(ModuleCode='WEB')에서 동적으로 로딩된다.
+    // DB 조회 실패/빈 결과 시 아래 정적 목록으로 폴백(권한 필터 미적용).
+    List<NavItem> _items = new();
+
+    static readonly NavItem[] _fallbackItems =
     {
         // ── PP ──
         new("pp", "pp/forecast",         "PP-001", "수요 예측",        "Forecast"),
@@ -160,37 +172,37 @@
         new("rpt", "rpt/report-center",      "RPT-009", "리포트 센터",    "Report Center"),
         new("rpt", "rpt/report-builder",     "RPT-010", "리포트 빌더",    "Report Builder"),
 
-        // ── MD ──
-        new("md", "md/line",                "MD-001", "공장/라인 기준정보 관리", "Factory / Line Master"),
-        new("md", "md/station",             "MD-002", "공정 기준정보 관리",     "Process / Station Master"),
-        new("md", "md/items",               "MD-003", "제품 기준정보 관리",     "Product Item Master"),
-        new("md", "md/bom",                 "MD-004", "BOM 관리",             "BOM Management"),
-        new("md", "md/bop",                 "MD-005", "BOP 관리",             "BOP Management"),
-        new("md", "md/work-center",         "MD-006", "Work Center 관리",     "Work Center Management"),
-        new("md", "md/mold",                "MD-007", "금형 기준정보 관리",     "Mold Master"),
+        // ── MD (main의 Fd/Re/Rp 폴더 이동 경로 반영) ──
+        new("md", "md/rp/line",             "MD-001", "공장/라인 기준정보 관리", "Factory / Line Master"),
+        new("md", "md/rp/station",          "MD-002", "공정 기준정보 관리",     "Process / Station Master"),
+        new("md", "md/fd/items",            "MD-003", "제품 기준정보 관리",     "Product Item Master"),
+        new("md", "md/fd/bom",              "MD-004", "BOM 관리",             "BOM Management"),
+        new("md", "md/rp/bop",              "MD-005", "BOP 관리",             "BOP Management"),
+        new("md", "md/rp/work-center",      "MD-006", "Work Center 관리",     "Work Center Management"),
+        new("md", "md/re/mold",             "MD-007", "금형 기준정보 관리",     "Mold Master"),
         new("md", "md/paint-fabric",        "MD-008", "원부자재 기준정보 관리",  "Paint & Fabric Master"),
-        new("md", "md/vendor",              "MD-009", "공급업체 기준정보 관리",  "Vendor Master"),
+        new("md", "md/re/vendor",           "MD-009", "공급업체 기준정보 관리",  "Vendor Master"),
         new("md", "md/customer",            "MD-010", "고객사 기준정보 관리",    "Customer Master"),
         new("md", "md/shipment-dest",       "MD-011", "출하처 기준정보 관리",    "Shipment Destination Master"),
         new("md", "md/defect-code",         "MD-012", "불량유형 기준정보 관리",  "Defect Code Master"),
         new("md", "md/defect-cause",        "MD-013", "불량원인 기준정보 관리",  "Defect Cause Master"),
-        new("md", "md/equipment",           "MD-014", "설비 기준정보 관리",     "Equipment Master"),
-        new("md", "md/oven",                "MD-015", "건조로 기준정보 관리",    "Oven Master"),
-        new("md", "md/jig",                 "MD-016", "지그 기준정보 관리",     "Jig Master"),
+        new("md", "md/re/equipment",        "MD-014", "설비 기준정보 관리",     "Equipment Master"),
+        new("md", "md/re/oven",             "MD-015", "건조로 기준정보 관리",    "Oven Master"),
+        new("md", "md/re/jig",              "MD-016", "지그 기준정보 관리",     "Jig Master"),
         new("md", "md/inspection-standard", "MD-017", "검사기준 기준정보 관리",  "Inspection Standard Master"),
         new("md", "md/location",            "MD-018", "창고/로케이션 기준정보 관리", "Warehouse Location Master"),
-        new("md", "md/uom",                 "MD-019", "단위 관리",             "UOM Master"),
+        new("md", "md/fd/uom",              "MD-019", "단위 관리",             "UOM Master"),
         new("md", "md/rfid-tag",            "MD-020", "RFID 태그 관리",        "RFID Tag Master"),
         new("md", "md/ral-color",           "MD-021", "RAL 색상 관리",         "RAL Color Master"),
         new("md", "md/rfid-reader",         "MD-022", "RFID 리더 관리",        "RFID Reader Master"),
         new("md", "md/packaging-spec",      "MD-023", "포장 사양 관리",         "Packaging Spec Master"),
         new("md", "md/label-template",      "MD-024", "라벨 템플릿 관리",       "Label Template Master"),
-        new("md", "md/reason-code",         "MD-025", "사유 코드 관리",         "Reason Code Master"),
-        new("md", "md/spare-part",          "MD-026", "예비품 마스터",          "Spare Part Master"),
-        new("md", "md/pm-template",         "MD-027", "PM 템플릿 관리",        "PM Template Master"),
-        new("md", "md/line-time-pattern",   "MD-028", "라인 시간 패턴 관리",     "Line Time Pattern Master"),
-        new("md", "md/recipe",              "MD-029", "레시피 관리",           "Recipe Master"),
-        new("md", "md/common-code",         "MD-030", "코드 기준정보 관리",     "Common Code Master"),
+        new("md", "md/re/reason-code",      "MD-026", "사유 코드 관리",         "Reason Code Master"),
+        new("md", "md/re/spare-part",       "MD-027", "예비품 마스터",          "Spare Part Master"),
+        new("md", "md/rp/pm-template",      "MD-028", "PM 템플릿 관리",        "PM Template Master"),
+        new("md", "md/rp/line-time-pattern","MD-029", "라인 시간 패턴 관리",     "Line Time Pattern Master"),
+        new("md", "md/recipe",              "MD-030", "레시피 관리",           "Recipe Master"),
+        new("md", "md/common-code",         "MD-031", "코드 기준정보 관리",     "Common Code Master"),
 
         // ── SYS ──
         new("sys", "sys/users",         "SYS-001", "사용자 관리",         "User Management"),
@@ -235,7 +247,7 @@
     List<NavItem> Search(string q)
     {
         bool Has(string s) => s.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0;
-        return _items.Where(i => Has(i.Ko) || Has(i.En) || Has(i.Lid)).ToList();
+        return _items.Where(i => V(i.Href) && (Has(i.Ko) || Has(i.En) || Has(i.Lid))).ToList();
     }
 
     void OnQueryInput(ChangeEventArgs e) => _query = e.Value?.ToString() ?? "";
@@ -259,12 +271,47 @@
         ["md/"]  = "md",  ["sys/"] = "sys",
     };
 
-    protected override void OnInitialized()
+    // 권한 필터: DB 로딩 시 PermissionService 기준, 폴백 시 전부 표시
+    bool V(string href) => _usingFallback || Perm.IsVisible(href);
+
+    protected override async Task OnInitializedAsync()
     {
         _lang = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
         _url  = Nav.ToBaseRelativePath(Nav.Uri);
+
+        LoadItems();
+
+        if (AuthState is not null)
+        {
+            try { await Perm.EnsureAsync(AuthState); }
+            catch { /* 권한 로딩 실패 — GetLevel 미초기화 시 전부 허용 */ }
+        }
+
         OpenCurrentSection();
         Nav.LocationChanged += OnLocChanged;
+    }
+
+    void LoadItems()
+    {
+        try
+        {
+            var rows = Sys.ListScreens("WEB")
+                .Where(s => !string.IsNullOrEmpty(s.ProcessCode) && !string.IsNullOrEmpty(s.HRef))
+                .OrderBy(s => s.SortOrder ?? 999).ThenBy(s => s.ScreenCode)
+                .Select(s => new NavItem(
+                    s.ProcessCode!.ToLowerInvariant(),
+                    s.HRef!.TrimStart('/'),
+                    s.LidLabel ?? s.ScreenCode,
+                    s.ScreenName,
+                    s.ScreenNameEn ?? s.ScreenName))
+                .ToList();
+
+            if (rows.Count > 0) { _items = rows; _usingFallback = false; return; }
+        }
+        catch { /* fall through to fallback */ }
+
+        _items = _fallbackItems.ToList();
+        _usingFallback = true;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

@@ -3,9 +3,12 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject RoleManager<IdentityRole> RoleMgr
 @inject AMES.Data.Repositories.SysRepository Sys
+@inject AuthenticationStateProvider Auth
+@inject AMES.Web.Services.PermissionService Perm
 @inject IStringLocalizer<SharedResources> L
+@using Radzen
 
-<PageTitle>@L["SYS.Roles.Title"] · AMES</PageTitle>
+<PageTitle>SYS-002 @L["SYS.Roles.Title"] · AMES</PageTitle>
 
 <AmesPageHeader Code="SYS-002" TitleKey="SYS.Roles.Title" />
 
@@ -34,7 +37,7 @@
         <span>▼ @L["SYS.Roles.List"] · @_rows.Count @L["Lbl.Items"]</span>
         <div style="display:flex;gap:6px;">
             <button class="ames-btn ok" @onclick="Reload">@L["Btn.Search"]</button>
-            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
+            @if (_canEdit) { <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button> }
         </div>
     </div>
 
@@ -44,29 +47,31 @@
     }
     else
     {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["Col.RoleName"]</th>
-                    <th class="num">@L["Col.UserCount"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
-                        <td class="code">@r.RoleName</td>
-                        <td class="num">
+        <RadzenStack Gap="1rem">
+            <RadzenDataGrid TItem="AMES.Data.Repositories.SysRepository.RoleRow" Data="@_rows" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                            PageSizeOptions="@pageSizeOptions" ShowPagingSummary="@showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" Class="ames-rz-grid">
+                <Columns>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.RoleRow" Property="RoleName" Title="@L["Col.RoleName"]">
+                        <Template Context="r">
+                            <span class="code">@(r.RoleName ?? "—")</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.RoleRow" Property="UserCount" Title="@L["Col.UserCount"]" TextAlign="TextAlign.Right">
+                        <Template Context="r">
                             @if (r.UserCount > 0)
-                            { <span class="pill ok">@r.UserCount</span> }
+                            {
+                                <span class="pill ok">@r.UserCount</span>
+                            }
                             else
-                            { <span class="dim">0</span> }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
+                            {
+
+                                <span class="dim">0</span>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenStack>
     }
 </div>
 
@@ -144,8 +149,8 @@
 }
 
 @code {
-    int _page = 0;
-    const int _pageSize = 20;
+    IEnumerable<int> pageSizeOptions = new int[] { 10, 15, 20, 30, 50, 100 };
+    bool showPagerSummary = true;
     List<AMES.Data.Repositories.SysRepository.RoleRow> _rows = new();
     AMES.Data.Repositories.SysRepository.RoleRow? _sel;
 
@@ -154,12 +159,18 @@
     bool _busy;
     bool _confirmDelete;
     bool _bgMouseDownOnSelf;
+    bool _canEdit;
     string _msg = "", _modalErr = "";
     bool _isErr;
 
-    protected override void OnInitialized() => Reload();
+    protected override async Task OnInitializedAsync()
+    {
+        await Perm.EnsureAsync(Auth);
+        _canEdit = Perm.CanEdit("sys/roles");
+        Reload();
+    }
 
-    void Reload() { _page = 0; _rows = Sys.ListRoles(); }
+    void Reload() { _rows = Sys.ListRoles(); }
 
     void OpenCreate()
     {
@@ -167,8 +178,19 @@
         _modal = "create";
     }
 
+    void RowRender(RowRenderEventArgs<AMES.Data.Repositories.SysRepository.RoleRow> args)
+    {
+        args.Attributes["class"] = "ames-row-link";
+    }
+
+    void OnRowClick(DataGridRowMouseEventArgs<AMES.Data.Repositories.SysRepository.RoleRow> args)
+    {
+        if (args.Data is not null) OpenEdit(args.Data);
+    }
+
     void OpenEdit(AMES.Data.Repositories.SysRepository.RoleRow r)
     {
+        if (!_canEdit) return;
         _sel = r; _roleName = r.RoleName; _modalErr = ""; _confirmDelete = false;
         _modal = "edit";
     }

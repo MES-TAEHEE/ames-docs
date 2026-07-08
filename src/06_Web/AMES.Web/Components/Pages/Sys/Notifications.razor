@@ -1,9 +1,11 @@
-﻿@page "/sys/notifications"
+@page "/sys/notifications"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
 @inject AMES.Data.Repositories.MasterDataRepository Md
+@inject RoleManager<IdentityRole> RoleMgr
 @inject AuthenticationStateProvider Auth
+@inject AMES.Web.Services.PermissionService Perm
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>SYS-008 @L["SYS.Notifications.Title"] · AMES</PageTitle>
@@ -11,47 +13,84 @@
 <AmesPageHeader Code="SYS-008" TitleKey="SYS.Notifications.Title" />
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Notifications.Kpi.Rules"]</div>
-        <div class="ames-kpi-v">@_rules.Count</div><div class="ames-kpi-s">@L["SYS.Notifications.Kpi.AllRules"]</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["SYS.Notifications.Kpi.ActiveRules"]</div>
-        <div class="ames-kpi-v">@_rules.Count(r => r.IsEnabled)</div><div class="ames-kpi-s">@L["Lbl.Active"]</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Notifications.Kpi.Channels"]</div>
-        <div class="ames-kpi-v">@_channels.Count</div><div class="ames-kpi-s">@L["SYS.Notifications.Kpi.RegisteredChannels"]</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["SYS.Notifications.Kpi.Sent"]</div>
-        <div class="ames-kpi-v">@_sent</div><div class="ames-kpi-s">@L["SYS.Notifications.Kpi.SentToday"]</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">@L["SYS.Notifications.Kpi.Failed"]</div>
-        <div class="ames-kpi-v">@_failed</div><div class="ames-kpi-s">@L["SYS.Notifications.Kpi.FailedToday"]</div></div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["SYS.Notifications.Kpi.Rules"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_rules.Count</div>
+            <div class="ames-kpi-s">@L["SYS.Notifications.Kpi.AllRules"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">@L["SYS.Notifications.Kpi.ActiveRules"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_rules.Count(r => r.IsEnabled)</div>
+            <div class="ames-kpi-s">@L["Lbl.Active"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["SYS.Notifications.Kpi.Channels"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_channels.Count</div>
+            <div class="ames-kpi-s">@L["SYS.Notifications.Kpi.RegisteredChannels"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">@L["SYS.Notifications.Kpi.Sent"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_sent</div>
+            <div class="ames-kpi-s">@L["SYS.Notifications.Kpi.SentToday"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi bad">
+        <div class="ames-kpi-l">@L["SYS.Notifications.Kpi.Failed"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_failed</div>
+            <div class="ames-kpi-s">@L["SYS.Notifications.Kpi.FailedToday"]</div>
+        </div>
+    </div>
 </div>
 
-@* ── 탭 헤더 (Calendar 스타일) ── *@
+@* ── 탭 헤더 ── *@
 <div class="ames-cal-tabs">
-    <button class="ames-cal-tab @(_tab=="rules"?"active":"")"    @onclick='() => _tab="rules"'>@L["SYS.Notifications.Tab.Rules"]</button>
-    <button class="ames-cal-tab @(_tab=="channels"?"active":"")" @onclick='() => _tab="channels"'>@L["SYS.Notifications.Tab.Channels"]</button>
-    <button class="ames-cal-tab @(_tab=="history"?"active":"")"  @onclick='() => _tab="history"'>@L["SYS.Notifications.Tab.History"]</button>
+    <div class="ames-cal-tab-group">
+        <button class="ames-cal-tab @(_tab == "rules"    ? "active" : "")" @onclick='() => _tab = "rules"'>@L["SYS.Notifications.Tab.Rules"]</button>
+        <button class="ames-cal-tab @(_tab == "channels" ? "active" : "")" @onclick='() => _tab = "channels"'>@L["SYS.Notifications.Tab.Channels"]</button>
+        <button class="ames-cal-tab @(_tab == "history"  ? "active" : "")" @onclick='() => _tab = "history"'>@L["SYS.Notifications.Tab.History"]</button>
+    </div>
     <div style="flex:1;"></div>
     <button class="ames-btn ok" @onclick="Reload" style="align-self:center;">@L["Btn.Reload"]</button>
 </div>
 
-@* ── 탭 1: 알림 규칙 ── *@
+@* ══════════════════ 탭 1: 알림 규칙 ══════════════════ *@
 @if (_tab == "rules")
 {
     <div class="ames-card">
-        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-            <span>▼ @L["SYS.Notifications.Rules.List"] · @_ruleRows.Count @L["Lbl.Items"]@(_ruleRows.Count < _rules.Count ? $" / {L["Lbl.TotalOf"]} {_rules.Count}" : "")</span>
+        <div class="ames-card-h" style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                <span>▼ @L["SYS.Notifications.Rules.List"] · @_ruleRows.Count @L["Lbl.Items"]@(_ruleRows.Count < _rules.Count ? $" / {L["Lbl.TotalOf"]} {_rules.Count}" : "")</span>
+                @if (_canEdit) { <button class="ames-btn" @onclick="OpenRuleCreate">@L["Btn.Create"]</button> }
+            </div>
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                 <input class="ames-input" style="width:150px;padding:4px 8px;"
-                       placeholder="@L["SYS.Notifications.Ph.RuleSearch"]" @bind="_fRuleSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyRuleFilter(); }' autocomplete="off" />
-                <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fRuleModule">
+                       placeholder="@L["SYS.Notifications.Ph.RuleSearch"]" @bind="_fRuleSearch" @bind:event="oninput"
+                       @onkeydown='e => { if (e.Key == "Enter") ApplyRuleFilter(); }' autocomplete="off" />
+                <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Module"]</span>
+                <select class="ames-input" style="width:130px;" @bind="_fRuleModule">
                     <option value="">@L["SYS.Notifications.Filter.AllModules"]</option>
-                    @foreach (var m in _modules) { <option value="@m.CodeValue">[@m.CodeValue] @(MasterDataRepository.LocalName(m))</option> }
+                    @foreach (var m in _modules.Where(m => m.UseFlag))
+                    { <option value="@m.CodeValue">[@m.CodeValue] @MasterDataRepository.LocalName(m)</option> }
                 </select>
-                <select class="ames-input" style="width:90px;padding:4px 8px;" @bind="_fRuleEnabled">
+                <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.ProcessCode"]</span>
+                <input class="ames-input" style="width:110px;padding:4px 8px;"
+                       placeholder="@L["SYS.Audit.Ph.Process"]" @bind="_fRuleProcess" @bind:event="oninput"
+                       @onkeydown='e => { if (e.Key == "Enter") ApplyRuleFilter(); }' autocomplete="off" />
+                <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
+                <select class="ames-input" style="width:130px;" @bind="_fRuleStatus">
                     <option value="">@L["SYS.Notifications.Filter.AllEnabled"]</option>
-                    <option value="Y">@L["SYS.Notifications.Filter.Active"]</option>
-                    <option value="N">@L["SYS.Notifications.Filter.Inactive"]</option>
+                    @foreach (var s in _notifStatusItems.Where(s => s.UseFlag))
+                    { <option value="@s.CodeValue">[@s.CodeValue] @MasterDataRepository.LocalName(s)</option> }
                 </select>
                 <button class="ames-btn ok" @onclick="ApplyRuleFilter">@L["Btn.Search"]</button>
-                <button class="ames-btn" @onclick="OpenRuleCreate">@L["Btn.Create"]</button>
             </div>
         </div>
 
@@ -64,8 +103,10 @@
             <table class="ames-table">
                 <thead>
                     <tr>
-                        <th>@L["Col.EventCode"]</th><th>@L["Col.EventName"]</th><th>@L["Col.Module"]</th><th>@L["Col.TriggerCond"]</th>
-                        <th style="text-align:center;">@L["Col.Status"]</th><th>@L["Col.Channel"]</th><th>@L["Col.RoleName"]</th>
+                        <th>@L["Col.EventCode"]</th><th>@L["Col.EventName"]</th>
+                        <th>@L["Col.Module"]</th><th>@L["Col.ProcessCode"]</th>
+                        <th>@L["Col.TriggerCond"]</th><th style="text-align:center;">@L["Col.Status"]</th>
+                        <th>@L["Col.Channel"]</th><th>@L["Col.RoleName"]</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -74,14 +115,15 @@
                         <tr class="ames-row-link" @onclick="() => OpenRuleEdit(r)">
                             <td class="code">@(r.EventTypeCode ?? "—")</td>
                             <td>@(r.EventName ?? "—")</td>
-                            <td><span class="pill info">@(r.SourceModule ?? "—")</span></td>
+                            <td><span class="pill info">@(r.ModuleCode ?? "—")</span></td>
+                            <td class="code dim" style="font-size:13px;">@(r.ProcessCode ?? "—")</td>
                             <td class="dim" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">@(r.TriggerCondition ?? "—")</td>
                             <td style="text-align:center;">
-                                @if (r.IsEnabled) { <span class="pill ok">ON</span> }
-                                else { <span class="pill warn">OFF</span> }
+                                @if (r.IsEnabled) { <span class="pill ok">@NotifStatusName("ACTIVE")</span> }
+                                else              { <span class="pill warn">@NotifStatusName("INACTIVE")</span> }
                             </td>
-                            <td class="dim code" style="font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@(r.ChannelsJson ?? "—")</td>
-                            <td class="dim code" style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@(r.RecipientRolesJson ?? "—")</td>
+                            <td>@ChipList(ParseJsonList(r.ChannelsJson))</td>
+                            <td>@ChipList(ParseJsonList(r.RecipientRolesJson))</td>
                         </tr>
                     }
                 </tbody>
@@ -91,73 +133,32 @@
     </div>
 }
 
-@* ── 탭 2: 채널 설정 ── *@
-@if (_tab == "channels")
-{
-    <div class="ames-card">
-        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-            <span style="white-space:nowrap;">▼ @L["SYS.Notifications.Channels.List"] · @_chRows.Count @L["Lbl.Items"]@(_chRows.Count < _channels.Count ? $" / {L["Lbl.TotalOf"]} {_channels.Count}" : "")</span>
-            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-                <input class="ames-input" style="width:160px;padding:4px 8px;"
-                       placeholder="@L["SYS.Notifications.Ph.ChSearch"]" @bind="_fChSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyChFilter(); }' autocomplete="off" />
-                <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fChType">
-                    <option value="">@L["SYS.Notifications.Filter.AllChannels"]</option>
-                    <option value="EMAIL">EMAIL</option>
-                    <option value="SMS">SMS</option>
-                    <option value="KAKAO">KAKAO</option>
-                    <option value="SLACK">SLACK</option>
-                </select>
-                <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fChEnabled">
-                    <option value="">@L["SYS.Notifications.Filter.AllEnabled"]</option>
-                    <option value="Y">@L["SYS.Notifications.Filter.Active"]</option>
-                    <option value="N">@L["SYS.Notifications.Filter.Inactive"]</option>
-                </select>
-                <button class="ames-btn ok" @onclick="ApplyChFilter">@L["Btn.Search"]</button>
-                <button class="ames-btn" @onclick="OpenChCreate">@L["Btn.Create"]</button>
-            </div>
-        </div>
-
-        @if (_chRows.Count == 0)
-        {
-            <div class="ames-empty">@L["SYS.Notifications.Channels.Empty"]</div>
-        }
-        else
-        {
-            <table class="ames-table">
-                <thead>
-                    <tr><th>@L["Col.User"]</th><th>@L["Col.Channel"]</th><th>@L["Col.Address"]</th><th>@L["Col.Subscribe"]</th><th>@L["Col.DndStart"]</th><th>@L["Col.DndEnd"]</th><th>@L["Col.AuthTs"]</th></tr>
-                </thead>
-                <tbody>
-                    @foreach (var c in _chRows.Skip(_page2 * _pageSize).Take(_pageSize))
-                    {
-                        <tr class="ames-row-link" @onclick="() => OpenChEdit(c)">
-                            <td class="dim" style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;">@(c.UserName ?? c.UserId ?? "—")</td>
-                            <td><span class="pill info">@(c.Channel ?? "—")</span></td>
-                            <td>@(c.Address ?? "—")</td>
-                            <td>
-                                @if (c.IsEnabled) { <span class="pill ok">ON</span> }
-                                else { <span class="pill bad">OFF</span> }
-                            </td>
-                            <td class="dim">@(c.QuietHoursStart?.ToString(@"hh\:mm") ?? "—")</td>
-                            <td class="dim">@(c.QuietHoursEnd?.ToString(@"hh\:mm") ?? "—")</td>
-                            <td class="dim">@(c.VerifiedAt?.ToString("MM-dd HH:mm") ?? L["SYS.Notifications.Lbl.Unverified"].Value)</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-            <Pager Page="_page2" Total="_chRows.Count" PageSize="_pageSize" OnPageChange="p => _page2 = p" />
-        }
-    </div>
-}
-
-@* ── 탭 3: 발송 이력 ── *@
+@* ══════════════════ 탭 2: 발송 이력 ══════════════════ *@
 @if (_tab == "history")
 {
     <div class="ames-card">
-        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
-            <span>▼ @L["SYS.Notifications.History.List"]</span>
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="white-space:nowrap;">▼ @L["SYS.Notifications.History.List"] · @_histRows.Count @L["Lbl.Items"]@(_histRows.Count < _hist.Count ? $" / {L["Lbl.TotalOf"]} {_hist.Count}" : "")</span>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                <input class="ames-input" style="width:150px;padding:4px 8px;"
+                       placeholder="@L["SYS.Notifications.Ph.HistSearch"]" @bind="_fHistSearch" @bind:event="oninput"
+                       @onkeydown='e => { if (e.Key == "Enter") ApplyHistFilter(); }' autocomplete="off" />
+                <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Channel"]</span>
+                <select class="ames-input" style="width:130px;" @bind="_fHistChannel">
+                    <option value="">@L["SYS.Notifications.Filter.AllChannels"]</option>
+                    @foreach (var c in _channelCodes.Where(c => c.UseFlag))
+                    { <option value="@c.CodeValue">[@c.CodeValue] @MasterDataRepository.LocalName(c)</option> }
+                </select>
+                <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
+                <select class="ames-input" style="width:130px;" @bind="_fHistStatus">
+                    <option value="">@L["SYS.Notifications.Filter.AllEnabled"]</option>
+                    @foreach (var s in _deliveryStatusItems.Where(s => s.UseFlag))
+                    { <option value="@s.CodeValue">[@s.CodeValue] @MasterDataRepository.LocalName(s)</option> }
+                </select>
+                <button class="ames-btn ok" @onclick="ApplyHistFilter">@L["Btn.Search"]</button>
+            </div>
         </div>
-        @if (_hist.Count == 0)
+        @if (_histRows.Count == 0)
         {
             <div class="ames-empty">@L["SYS.Notifications.History.Empty"]</div>
         }
@@ -166,12 +167,13 @@
             <table class="ames-table">
                 <thead>
                     <tr>
-                        <th>@L["Col.SentAt"]</th><th>@L["Col.EventName"]</th><th>@L["Col.Recipient"]</th><th>@L["Col.Channel"]</th>
-                        <th>@L["Col.Name"]</th><th>@L["Col.Status"]</th><th class="num">@L["Col.EventCount"]</th><th>@L["Col.Error"]</th>
+                        <th>@L["Col.SentAt"]</th><th>@L["Col.EventName"]</th><th>@L["Col.Recipient"]</th>
+                        <th>@L["Col.Channel"]</th><th>@L["Col.Name"]</th>
+                        <th>@L["Col.Status"]</th><th class="num">@L["Col.EventCount"]</th><th>@L["Col.Error"]</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var h in _hist.Skip(_page3 * _pageSize).Take(_pageSize))
+                    @foreach (var h in _histRows.Skip(_page3 * _pageSize).Take(_pageSize))
                     {
                         <tr>
                             <td class="dim">@(h.SentAt?.ToString("MM-dd HH:mm") ?? "—")</td>
@@ -179,99 +181,244 @@
                             <td class="dim" style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;">@(h.RecipientUserId ?? "—")</td>
                             <td><span class="pill info">@(h.Channel ?? "—")</span></td>
                             <td>@(h.Subject ?? "—")</td>
-                            <td>
-                                @if (h.Status == "SENT")       { <span class="pill ok">SENT</span> }
-                                else if (h.Status == "FAILED") { <span class="pill bad">FAILED</span> }
-                                else { <span class="pill warn">@(h.Status ?? "—")</span> }
-                            </td>
+                            <td>@DeliveryStatusPill(h.Status)</td>
                             <td class="num">@(h.RetryCount?.ToString() ?? "—")</td>
                             <td class="dim">@(h.ErrorMsg ?? "—")</td>
                         </tr>
                     }
                 </tbody>
             </table>
-            <Pager Page="_page3" Total="_hist.Count" PageSize="_pageSize" OnPageChange="p => _page3 = p" />
+            <Pager Page="_page3" Total="_histRows.Count" PageSize="_pageSize" OnPageChange="p => _page3 = p" />
         }
     </div>
 }
 
-@* ── 알림 규칙 등록 모달 ── *@
+@* ══════════════════ 탭 3: 채널 설정 ══════════════════ *@
+@if (_tab == "channels")
+{
+    <div class="ames-card">
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>▼ @L["SYS.Notifications.Channels.List"] · @_channels.Count @L["Lbl.Items"]</span>
+            @if (_canEdit) { <button class="ames-btn" @onclick="OpenChCreate">@L["Btn.Create"]</button> }
+        </div>
+        @if (_channels.Count == 0)
+        {
+            <div class="ames-empty">@L["SYS.Notifications.Channels.Empty"]</div>
+        }
+        else
+        {
+            <table class="ames-table">
+                <thead>
+                    <tr><th>@L["Col.User"]</th><th>@L["Col.Channel"]</th><th>@L["Col.Address"]</th>
+                        <th>@L["Col.Subscribe"]</th><th>@L["Col.DndStart"]</th><th>@L["Col.DndEnd"]</th><th>@L["Col.AuthTs"]</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in _channels.Skip(_page2 * _pageSize).Take(_pageSize))
+                    {
+                        <tr class="ames-row-link" @onclick="() => OpenChEdit(c)">
+                            <td class="dim" style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;">@(c.UserName ?? c.UserId ?? "—")</td>
+                            <td><span class="pill info">@(c.Channel ?? "—")</span></td>
+                            <td>@(c.Address ?? "—")</td>
+                            <td>@if (c.IsEnabled) { <span class="pill ok">ON</span> } else { <span class="pill bad">OFF</span> }</td>
+                            <td class="dim">@(c.QuietHoursStart?.ToString(@"hh\:mm") ?? "—")</td>
+                            <td class="dim">@(c.QuietHoursEnd?.ToString(@"hh\:mm") ?? "—")</td>
+                            <td class="dim">@(c.VerifiedAt?.ToString("MM-dd HH:mm") ?? L["SYS.Notifications.Lbl.Unverified"].Value)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <Pager Page="_page2" Total="_channels.Count" PageSize="_pageSize" OnPageChange="p => _page2 = p" />
+        }
+    </div>
+}
+
+@* ══════════════════ 알림 규칙 등록 모달 ══════════════════ *@
 @if (_ruleModal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" style="max-width:540px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal" style="max-width:600px;" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["SYS.Notifications.Modal.CreateRule"]</div>
 
-            <label>@L["Col.EventCode"] <span class="dim-label">(예: WO_CREATED, DEFECT_HIGH)</span></label>
-            <input class="ames-input" @bind="_rf.EventTypeCode" placeholder="EVENT_CODE" autocomplete="off" />
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div>
+                    <label>@L["Col.EventCode"] *</label>
+                    <input class="ames-input" @bind="_rf.EventTypeCode" placeholder="EVENT_CODE" autocomplete="off" />
+                </div>
+                <div>
+                    <label>@L["Col.EventName"]</label>
+                    <input class="ames-input" @bind="_rf.EventName" placeholder='@L["SYS.Notifications.Ph.EventName"]' autocomplete="off" />
+                </div>
+                <div>
+                    <label>@L["Col.Module"]</label>
+                    <select class="ames-input" @bind="_rf.ModuleCode">
+                        <option value="">@L["Opt.Select"]</option>
+                        @foreach (var m in _modules.Where(m => m.UseFlag))
+                        { <option value="@m.CodeValue">[@m.CodeValue] @MasterDataRepository.LocalName(m)</option> }
+                    </select>
+                </div>
+                <div>
+                    <label>@L["Col.ProcessCode"]</label>
+                    <input class="ames-input" @bind="_rf.ProcessCode" placeholder="INJ / PNT / QC …" autocomplete="off" />
+                </div>
+            </div>
 
-            <label>@L["Col.EventName"]</label>
-            <input class="ames-input" @bind="_rf.EventName" placeholder='@L["SYS.Notifications.Ph.EventName"]' autocomplete="off" />
-
-            <label>@L["SYS.Notifications.Lbl.SourceModule"]</label>
-            <select class="ames-input" @bind="_rf.SourceModule">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var m in _modules) { <option value="@m.CodeValue">[@m.CodeValue] @(MasterDataRepository.LocalName(m))</option> }
-            </select>
-
-            <label>@L["Col.TriggerCond"] <span class="dim-label">(선택)</span></label>
+            <label style="margin-top:6px;">@L["Col.TriggerCond"] <span class="dim-label">(선택)</span></label>
             <textarea class="ames-input" rows="2" @bind="_rf.TriggerCondition"
                       placeholder="예: DefectCount > 5" style="resize:vertical;"></textarea>
 
-            <label>@L["SYS.Notifications.Lbl.ChannelsJson"] <span class="dim-label">(예: [&quot;EMAIL&quot;,&quot;KAKAO&quot;])</span></label>
-            <input class="ames-input" @bind="_rf.ChannelsJson" placeholder='["EMAIL"]' autocomplete="off" />
+            @* 채널 다중 선택 *@
+            <label style="margin-top:8px;">@L["Col.Channel"]</label>
+            @if (_channelCodes.Count == 0)
+            {
+                <span class="dim" style="font-size:.8em;">@L["SYS.Notifications.Lbl.NoChannels"]</span>
+            }
+            else
+            {
+                <div class="ames-line-picker">
+                    @foreach (var ch in _channelCodes.Where(c => c.UseFlag))
+                    {
+                        <label class="ames-line-item">
+                            <input type="checkbox"
+                                   checked="@_rf.SelectedChannels.Contains(ch.CodeValue!)"
+                                   @onchange="e => ToggleChannel(ch.CodeValue!, (bool)e.Value!)" />
+                            <span class="code">@ch.CodeValue</span>
+                            <span class="dim">@MasterDataRepository.LocalName(ch)</span>
+                        </label>
+                    }
+                </div>
+            }
 
-            <label>@L["SYS.Notifications.Lbl.RecipientRolesJson"] <span class="dim-label">(예: [&quot;PP_USER&quot;,&quot;Administrator&quot;])</span></label>
-            <input class="ames-input" @bind="_rf.RecipientRolesJson" placeholder='["Administrator"]' autocomplete="off" />
+            @* 역할 다중 선택 *@
+            <label style="margin-top:8px;">@L["Col.RoleName"]</label>
+            @if (_rolesList.Count == 0)
+            {
+                <span class="dim" style="font-size:.8em;">@L["SYS.Notifications.Lbl.NoRoles"]</span>
+            }
+            else
+            {
+                <div class="ames-line-picker">
+                    @foreach (var role in _rolesList)
+                    {
+                        <label class="ames-line-item">
+                            <input type="checkbox"
+                                   checked="@_rf.SelectedRoles.Contains(role)"
+                                   @onchange="e => ToggleRole(role, (bool)e.Value!)" />
+                            <span class="code">@role</span>
+                        </label>
+                    }
+                </div>
+            }
 
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:6px;">
-                <input type="checkbox" @bind="_rf.IsEnabled" />
-                <span>@L["SYS.Notifications.Lbl.EnabledImmediate"]</span>
-            </label>
+            @* 상태 *@
+            <label style="margin-top:8px;">@L["Col.Status"]</label>
+            <select class="ames-input" @bind="_rf.StatusCode">
+                @foreach (var s in _notifStatusItems.Where(s => s.UseFlag))
+                { <option value="@s.CodeValue">[@s.CodeValue] @MasterDataRepository.LocalName(s)</option> }
+                @if (_notifStatusItems.Count == 0)
+                {
+                    <option value="ACTIVE">@L["Lbl.Active"]</option>
+                    <option value="INACTIVE">@L["SYS.Notifications.Filter.Inactive"]</option>
+                }
+            </select>
 
             @if (!string.IsNullOrEmpty(_ruleModalErr))
             { <div class="ames-alert bad">@_ruleModalErr</div> }
 
             <div class="ames-modal-footer">
                 <button class="ames-btn" @onclick="SaveRuleCreate" disabled="@_ruleBusy">@(_ruleBusy ? @L["Msg.Saving"] : @L["Btn.Create"])</button>
-                <button class="ames-btn ghost"    @onclick="CloseRuleModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ghost" @onclick="CloseRuleModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
 }
 
-@* ── 알림 규칙 수정 모달 ── *@
+@* ══════════════════ 알림 규칙 수정 모달 ══════════════════ *@
 @if (_ruleModal == "edit" && _ruleSel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" style="max-width:540px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal" style="max-width:600px;" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["SYS.Notifications.Modal.EditRule"] — <span class="dim" style="font-weight:400;font-size:.9em;">@(_ruleSel.EventTypeCode ?? "—")</span></div>
 
-            <label>@L["Col.EventCode"]</label>
-            <input class="ames-input" @bind="_rf.EventTypeCode" autocomplete="off" />
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div>
+                    <label>@L["Col.EventCode"] *</label>
+                    <input class="ames-input" @bind="_rf.EventTypeCode" autocomplete="off" />
+                </div>
+                <div>
+                    <label>@L["Col.EventName"]</label>
+                    <input class="ames-input" @bind="_rf.EventName" autocomplete="off" />
+                </div>
+                <div>
+                    <label>@L["Col.Module"]</label>
+                    <select class="ames-input" @bind="_rf.ModuleCode">
+                        <option value="">@L["Opt.Select"]</option>
+                        @foreach (var m in _modules.Where(m => m.UseFlag))
+                        { <option value="@m.CodeValue">[@m.CodeValue] @MasterDataRepository.LocalName(m)</option> }
+                    </select>
+                </div>
+                <div>
+                    <label>@L["Col.ProcessCode"]</label>
+                    <input class="ames-input" @bind="_rf.ProcessCode" autocomplete="off" />
+                </div>
+            </div>
 
-            <label>@L["Col.EventName"]</label>
-            <input class="ames-input" @bind="_rf.EventName" autocomplete="off" />
-
-            <label>@L["SYS.Notifications.Lbl.SourceModule"]</label>
-            <select class="ames-input" @bind="_rf.SourceModule">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var m in _modules) { <option value="@m.CodeValue">[@m.CodeValue] @(MasterDataRepository.LocalName(m))</option> }
-            </select>
-
-            <label>@L["Col.TriggerCond"]</label>
+            <label style="margin-top:6px;">@L["Col.TriggerCond"]</label>
             <textarea class="ames-input" rows="2" @bind="_rf.TriggerCondition" style="resize:vertical;"></textarea>
 
-            <label>@L["SYS.Notifications.Lbl.ChannelsJson"]</label>
-            <input class="ames-input" @bind="_rf.ChannelsJson" autocomplete="off" />
+            @* 채널 다중 선택 *@
+            <label style="margin-top:8px;">@L["Col.Channel"]</label>
+            @if (_channelCodes.Count == 0)
+            {
+                <span class="dim" style="font-size:.8em;">@L["SYS.Notifications.Lbl.NoChannels"]</span>
+            }
+            else
+            {
+                <div class="ames-line-picker">
+                    @foreach (var ch in _channelCodes.Where(c => c.UseFlag))
+                    {
+                        <label class="ames-line-item">
+                            <input type="checkbox"
+                                   checked="@_rf.SelectedChannels.Contains(ch.CodeValue!)"
+                                   @onchange="e => ToggleChannel(ch.CodeValue!, (bool)e.Value!)" />
+                            <span class="code">@ch.CodeValue</span>
+                            <span class="dim">@MasterDataRepository.LocalName(ch)</span>
+                        </label>
+                    }
+                </div>
+            }
 
-            <label>@L["SYS.Notifications.Lbl.RecipientRolesJson"]</label>
-            <input class="ames-input" @bind="_rf.RecipientRolesJson" autocomplete="off" />
+            @* 역할 다중 선택 *@
+            <label style="margin-top:8px;">@L["Col.RoleName"]</label>
+            @if (_rolesList.Count == 0)
+            {
+                <span class="dim" style="font-size:.8em;">@L["SYS.Notifications.Lbl.NoRoles"]</span>
+            }
+            else
+            {
+                <div class="ames-line-picker">
+                    @foreach (var role in _rolesList)
+                    {
+                        <label class="ames-line-item">
+                            <input type="checkbox"
+                                   checked="@_rf.SelectedRoles.Contains(role)"
+                                   @onchange="e => ToggleRole(role, (bool)e.Value!)" />
+                            <span class="code">@role</span>
+                        </label>
+                    }
+                </div>
+            }
 
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:6px;">
-                <input type="checkbox" @bind="_rf.IsEnabled" />
-                <span>@L["Lbl.Active"]</span>
-            </label>
+            @* 상태 *@
+            <label style="margin-top:8px;">@L["Col.Status"]</label>
+            <select class="ames-input" @bind="_rf.StatusCode">
+                @foreach (var s in _notifStatusItems.Where(s => s.UseFlag))
+                { <option value="@s.CodeValue">[@s.CodeValue] @MasterDataRepository.LocalName(s)</option> }
+                @if (_notifStatusItems.Count == 0)
+                {
+                    <option value="ACTIVE">@L["Lbl.Active"]</option>
+                    <option value="INACTIVE">@L["SYS.Notifications.Filter.Inactive"]</option>
+                }
+            </select>
 
             @if (_ruleConfirmDelete)
             {
@@ -281,20 +428,19 @@
                     <button class="ames-btn bad" @onclick="SaveRuleDelete" disabled="@_ruleBusy">@(_ruleBusy ? @L["Msg.Deleting"] : @L["Msg.Yes"])</button>
                 </div>
             }
-
             @if (!string.IsNullOrEmpty(_ruleModalErr))
             { <div class="ames-alert bad">@_ruleModalErr</div> }
 
             <div class="ames-modal-footer">
                 <button class="ames-btn"  @onclick="SaveRuleEdit"   disabled="@_ruleBusy">@(_ruleBusy ? @L["Msg.Saving"] : @L["Btn.Save"])</button>
                 <button class="ames-btn bad" @onclick='() => { _ruleConfirmDelete = true; _ruleModalErr = ""; }' disabled="@_ruleBusy">@L["Btn.Delete"]</button>
-                <button class="ames-btn ghost"     @onclick="CloseRuleModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ghost" @onclick="CloseRuleModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
 }
 
-@* ── 채널 등록 모달 ── *@
+@* ══════════════════ 채널 등록 모달 ══════════════════ *@
 @if (_chModal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
@@ -305,17 +451,20 @@
             <select class="ames-input" value="@_cf.UserId" @onchange="OnCreateUserChanged">
                 <option value="">@L["Opt.SelectUser"]</option>
                 @foreach (var u in _userList)
-                {
-                    <option value="@u.Id">@(u.UserName ?? u.Id)@(!string.IsNullOrEmpty(u.Email) ? $"  ({u.Email})" : "")</option>
-                }
+                { <option value="@u.Id">@(u.UserName ?? u.Id)@(!string.IsNullOrEmpty(u.Email) ? $"  ({u.Email})" : "")</option> }
             </select>
 
             <label>@L["Col.Channel"]</label>
             <select class="ames-input" value="@_cf.Channel" @onchange="OnCreateChannelChanged">
-                <option value="EMAIL">EMAIL</option>
-                <option value="SMS">SMS</option>
-                <option value="KAKAO">KAKAO</option>
-                <option value="SLACK">SLACK</option>
+                @foreach (var ch in _channelCodes.Where(c => c.UseFlag))
+                { <option value="@ch.CodeValue">[@ch.CodeValue] @MasterDataRepository.LocalName(ch)</option> }
+                @if (_channelCodes.Count == 0)
+                {
+                    <option value="EMAIL">EMAIL</option>
+                    <option value="SMS">SMS</option>
+                    <option value="KAKAO">KAKAO</option>
+                    <option value="SLACK">SLACK</option>
+                }
             </select>
 
             <label>@L["Col.Address"] <span class="dim-label">(@L["SYS.Notifications.Hint.AddressAutoFill"])</span></label>
@@ -343,7 +492,7 @@
     </div>
 }
 
-@* ── 채널 수정 모달 ── *@
+@* ══════════════════ 채널 수정 모달 ══════════════════ *@
 @if (_chModal == "edit" && _chSel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
@@ -352,10 +501,15 @@
 
             <label>@L["Col.Channel"]</label>
             <select class="ames-input" @bind="_cf.Channel">
-                <option value="EMAIL">EMAIL</option>
-                <option value="SMS">SMS</option>
-                <option value="KAKAO">KAKAO</option>
-                <option value="SLACK">SLACK</option>
+                @foreach (var ch in _channelCodes.Where(c => c.UseFlag))
+                { <option value="@ch.CodeValue">[@ch.CodeValue] @MasterDataRepository.LocalName(ch)</option> }
+                @if (_channelCodes.Count == 0)
+                {
+                    <option value="EMAIL">EMAIL</option>
+                    <option value="SMS">SMS</option>
+                    <option value="KAKAO">KAKAO</option>
+                    <option value="SLACK">SLACK</option>
+                }
             </select>
 
             <label>@L["Col.Address"]</label>
@@ -380,14 +534,13 @@
                     <button class="ames-btn bad" @onclick="SaveChDelete" disabled="@_chBusy">@(_chBusy ? @L["Msg.Deleting"] : @L["Msg.Yes"])</button>
                 </div>
             }
-
             @if (!string.IsNullOrEmpty(_chModalErr))
             { <div class="ames-alert bad">@_chModalErr</div> }
 
             <div class="ames-modal-footer">
                 <button class="ames-btn"  @onclick="SaveChEdit"   disabled="@_chBusy">@(_chBusy ? @L["Msg.Saving"] : @L["Btn.Save"])</button>
                 <button class="ames-btn bad" @onclick='() => { _chConfirmDelete = true; _chModalErr = ""; }' disabled="@_chBusy">@L["Btn.Delete"]</button>
-                <button class="ames-btn ghost"     @onclick="CloseChModal">@L["Btn.Cancel"]</button>
+                <button class="ames-btn ghost" @onclick="CloseChModal">@L["Btn.Cancel"]</button>
             </div>
         </div>
     </div>
@@ -398,37 +551,38 @@
 </style>
 
 @code {
-    int _page = 0;
-    int _page2 = 0;
-    int _page3 = 0;
+    int _page = 0, _page2 = 0, _page3 = 0;
     const int _pageSize = 20;
     string _tab = "rules";
-    bool _bgMouseDownOnSelf;
+    bool _bgMouseDownOnSelf, _canEdit;
     string _actor = "system";
 
-    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _modules = new();
+    // ── 공통코드 ──────────────────────────────────────────────────────────
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _modules            = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _channelCodes       = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _notifStatusItems   = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _deliveryStatusItems = new();
+    List<string> _rolesList = new();
 
     // ── 알림 규칙 ──────────────────────────────────────────────────────
     List<AMES.Data.Repositories.SysRepository.NotifRuleRow> _rules    = new();
     List<AMES.Data.Repositories.SysRepository.NotifRuleRow> _ruleRows = new();
     AMES.Data.Repositories.SysRepository.NotifRuleRow? _ruleSel;
-
-    string _fRuleSearch = "", _fRuleModule = "", _fRuleEnabled = "";
+    string _fRuleSearch = "", _fRuleModule = "", _fRuleProcess = "", _fRuleStatus = "";
     string _ruleModal = "", _ruleModalErr = "";
     bool _ruleBusy, _ruleConfirmDelete;
     RuleForm _rf = new();
 
     // ── 발송 이력 ──────────────────────────────────────────────────────
-    List<AMES.Data.Repositories.SysRepository.NotifHistoryRow> _hist = new();
+    List<AMES.Data.Repositories.SysRepository.NotifHistoryRow> _hist     = new();
+    List<AMES.Data.Repositories.SysRepository.NotifHistoryRow> _histRows = new();
+    string _fHistSearch = "", _fHistChannel = "", _fHistStatus = "";
     int _sent, _failed;
 
     // ── 채널 설정 ──────────────────────────────────────────────────────
     List<AMES.Data.Repositories.SysRepository.UserSelectRow>   _userList = new();
     List<AMES.Data.Repositories.SysRepository.NotifChannelRow> _channels = new();
-    List<AMES.Data.Repositories.SysRepository.NotifChannelRow> _chRows   = new();
     AMES.Data.Repositories.SysRepository.NotifChannelRow? _chSel;
-
-    string _fChSearch = "", _fChType = "", _fChEnabled = "";
     string _chModal = "", _chModalErr = "";
     bool _chBusy, _chConfirmDelete;
     ChForm _cf = new();
@@ -437,8 +591,15 @@
     {
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
-        try { _modules  = Md.ListCodeItems("MODULE"); }      catch { }
-        try { _userList = Sys.ListUsersForSelect(); }        catch { }
+        await Perm.EnsureAsync(Auth);
+        _canEdit = Perm.CanEdit("sys/notifications");
+
+        try { _modules             = Md.ListCodeItems("MODULE"); }               catch { }
+        try { _channelCodes        = Md.ListCodeItems("NOTIFICATION_CHANNEL"); } catch { }
+        try { _notifStatusItems    = Md.ListCodeItems("NOTIFICATION_STATUS"); }  catch { }
+        try { _deliveryStatusItems = Md.ListCodeItems("DELIVERY_STATUS"); }      catch { }
+        try { _rolesList           = RoleMgr.Roles.Select(r => r.Name!).OrderBy(n => n).ToList(); } catch { }
+        try { _userList            = Sys.ListUsersForSelect(); }                 catch { }
         Reload();
     }
 
@@ -448,27 +609,35 @@
         try { _hist     = Sys.ListNotificationHistory(); }  catch { }
         try { _channels = Sys.ListNotificationChannels(); } catch { }
 
-        var recent = _hist.Where(h => h.SentAt.HasValue
-                        && (DateTime.Now - h.SentAt.Value).TotalHours <= 24).ToList();
+        var recent = _hist.Where(h => h.SentAt.HasValue && (DateTime.Now - h.SentAt.Value).TotalHours <= 24).ToList();
         _sent   = recent.Count(h => h.Status == "SENT");
         _failed = recent.Count(h => h.Status == "FAILED");
 
         ApplyRuleFilter();
-        ApplyChFilter();
+        ApplyHistFilter();
     }
 
     // ── 규칙 필터 ──────────────────────────────────────────────────────
-    void ApplyRuleFilter() { _page = 0; _ruleRows = _rules.Where(r =>
-        (string.IsNullOrEmpty(_fRuleSearch) ||
-            (r.EventTypeCode ?? "").Contains(_fRuleSearch, StringComparison.OrdinalIgnoreCase) ||
-            (r.EventName     ?? "").Contains(_fRuleSearch, StringComparison.OrdinalIgnoreCase)) &&
-        (string.IsNullOrEmpty(_fRuleModule)  || r.SourceModule == _fRuleModule) &&
-        (string.IsNullOrEmpty(_fRuleEnabled) || (_fRuleEnabled == "Y" ? r.IsEnabled : !r.IsEnabled))
-    ).ToList(); }
+    void ApplyRuleFilter()
+    {
+        _page = 0;
+        _ruleRows = _rules.Where(r =>
+            (string.IsNullOrEmpty(_fRuleSearch) ||
+                (r.EventTypeCode ?? "").Contains(_fRuleSearch, StringComparison.OrdinalIgnoreCase) ||
+                (r.EventName     ?? "").Contains(_fRuleSearch, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(_fRuleModule)  || r.ModuleCode  == _fRuleModule) &&
+            (string.IsNullOrEmpty(_fRuleProcess) || (r.ProcessCode ?? "").Contains(_fRuleProcess, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(_fRuleStatus)  || StatusMatches(r.IsEnabled, _fRuleStatus))
+        ).ToList();
+    }
+
+    // NOTIFICATION_STATUS CodeValue → IsEnabled 매핑 (ACTIVE=true, 그 외=false)
+    static bool StatusMatches(bool isEnabled, string statusCode) =>
+        statusCode is "ACTIVE" ? isEnabled : !isEnabled;
 
     void OpenRuleCreate()
     {
-        _rf = new() { IsEnabled = true };
+        _rf = new() { StatusCode = "ACTIVE" };
         _ruleModalErr = ""; _ruleConfirmDelete = false; _ruleModal = "create";
     }
 
@@ -477,18 +646,31 @@
         _ruleSel = r; _ruleModalErr = ""; _ruleConfirmDelete = false;
         _rf = new()
         {
-            EventTypeCode     = r.EventTypeCode     ?? "",
-            EventName         = r.EventName         ?? "",
-            SourceModule      = r.SourceModule      ?? "",
-            TriggerCondition  = r.TriggerCondition  ?? "",
-            IsEnabled         = r.IsEnabled,
-            ChannelsJson      = r.ChannelsJson      ?? "",
-            RecipientRolesJson= r.RecipientRolesJson ?? "",
+            EventTypeCode    = r.EventTypeCode    ?? "",
+            EventName        = r.EventName        ?? "",
+            ModuleCode       = r.ModuleCode       ?? "",
+            ProcessCode      = r.ProcessCode      ?? "",
+            TriggerCondition = r.TriggerCondition ?? "",
+            StatusCode       = r.IsEnabled ? "ACTIVE" : "INACTIVE",
+            SelectedChannels = ParseJsonList(r.ChannelsJson),
+            SelectedRoles    = ParseJsonList(r.RecipientRolesJson),
         };
         _ruleModal = "edit";
     }
 
     void CloseRuleModal() { _ruleModal = ""; _ruleSel = null; _ruleModalErr = ""; _ruleConfirmDelete = false; }
+
+    void ToggleChannel(string code, bool check)
+    {
+        if (check) { if (!_rf.SelectedChannels.Contains(code)) _rf.SelectedChannels.Add(code); }
+        else _rf.SelectedChannels.Remove(code);
+    }
+
+    void ToggleRole(string role, bool check)
+    {
+        if (check) { if (!_rf.SelectedRoles.Contains(role)) _rf.SelectedRoles.Add(role); }
+        else _rf.SelectedRoles.Remove(role);
+    }
 
     void SaveRuleCreate()
     {
@@ -499,8 +681,8 @@
         try
         {
             Sys.InsertNotificationRule(
-                NE(_rf.EventTypeCode), NE(_rf.EventName), NE(_rf.SourceModule),
-                NE(_rf.TriggerCondition), _rf.IsEnabled,
+                NE(_rf.EventTypeCode), NE(_rf.EventName), NE(_rf.ModuleCode),
+                NE(_rf.ProcessCode), NE(_rf.TriggerCondition), _rf.IsEnabled,
                 NE(_rf.ChannelsJson), NE(_rf.RecipientRolesJson), _actor);
             CloseRuleModal(); Reload();
         }
@@ -519,8 +701,8 @@
         {
             Sys.UpdateNotificationRule(
                 _ruleSel.NotificationRuleId,
-                NE(_rf.EventTypeCode), NE(_rf.EventName), NE(_rf.SourceModule),
-                NE(_rf.TriggerCondition), _rf.IsEnabled,
+                NE(_rf.EventTypeCode), NE(_rf.EventName), NE(_rf.ModuleCode),
+                NE(_rf.ProcessCode), NE(_rf.TriggerCondition), _rf.IsEnabled,
                 NE(_rf.ChannelsJson), NE(_rf.RecipientRolesJson), _actor);
             CloseRuleModal(); Reload();
         }
@@ -532,27 +714,29 @@
     {
         if (_ruleSel is null) return;
         _ruleBusy = true;
-        try
-        {
-            Sys.DeleteNotificationRule(_ruleSel.NotificationRuleId);
-            CloseRuleModal(); Reload();
-        }
+        try { Sys.DeleteNotificationRule(_ruleSel.NotificationRuleId); CloseRuleModal(); Reload(); }
         catch (Exception ex) { _ruleModalErr = ex.Message; _ruleConfirmDelete = false; }
         finally { _ruleBusy = false; }
     }
 
-    // ── 채널 필터 ──────────────────────────────────────────────────────
-    void ApplyChFilter() { _page2 = 0; _chRows = _channels.Where(c =>
-        (string.IsNullOrEmpty(_fChSearch) ||
-            (c.UserName ?? c.UserId ?? "").Contains(_fChSearch, StringComparison.OrdinalIgnoreCase) ||
-            (c.Address  ?? "").Contains(_fChSearch, StringComparison.OrdinalIgnoreCase)) &&
-        (string.IsNullOrEmpty(_fChType)    || c.Channel == _fChType) &&
-        (string.IsNullOrEmpty(_fChEnabled) || (_fChEnabled == "Y" ? c.IsEnabled : !c.IsEnabled))
-    ).ToList(); }
+    // ── 발송 이력 필터 ─────────────────────────────────────────────────
+    void ApplyHistFilter()
+    {
+        _page3 = 0;
+        _histRows = _hist.Where(h =>
+            (string.IsNullOrEmpty(_fHistSearch) ||
+                (h.EventTypeCode   ?? "").Contains(_fHistSearch, StringComparison.OrdinalIgnoreCase) ||
+                (h.RecipientUserId ?? "").Contains(_fHistSearch, StringComparison.OrdinalIgnoreCase) ||
+                (h.Subject         ?? "").Contains(_fHistSearch, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(_fHistChannel) || h.Channel == _fHistChannel) &&
+            (string.IsNullOrEmpty(_fHistStatus)  || h.Status  == _fHistStatus)
+        ).ToList();
+    }
 
+    // ── 채널 설정 ──────────────────────────────────────────────────────
     void OpenChCreate()
     {
-        _cf = new() { IsEnabled = true, Channel = "EMAIL" };
+        _cf = new() { IsEnabled = true, Channel = _channelCodes.FirstOrDefault(c => c.UseFlag)?.CodeValue ?? "EMAIL" };
         _chModalErr = ""; _chConfirmDelete = false; _chModal = "create";
     }
 
@@ -561,10 +745,10 @@
         _chSel = c; _chModalErr = ""; _chConfirmDelete = false;
         _cf = new()
         {
-            UserId     = c.UserId     ?? "",
-            Channel    = c.Channel    ?? "EMAIL",
-            Address    = c.Address    ?? "",
-            IsEnabled  = c.IsEnabled,
+            UserId    = c.UserId    ?? "",
+            Channel   = c.Channel   ?? "EMAIL",
+            Address   = c.Address   ?? "",
+            IsEnabled = c.IsEnabled,
             QuietStart = c.QuietHoursStart.HasValue ? TimeOnly.FromTimeSpan(c.QuietHoursStart.Value) : null,
             QuietEnd   = c.QuietHoursEnd.HasValue   ? TimeOnly.FromTimeSpan(c.QuietHoursEnd.Value)   : null,
         };
@@ -573,17 +757,8 @@
 
     void CloseChModal() { _chModal = ""; _chSel = null; _chModalErr = ""; _chConfirmDelete = false; }
 
-    void OnCreateUserChanged(ChangeEventArgs e)
-    {
-        _cf.UserId = e.Value?.ToString() ?? "";
-        AutoFillAddress();
-    }
-
-    void OnCreateChannelChanged(ChangeEventArgs e)
-    {
-        _cf.Channel = e.Value?.ToString() ?? "EMAIL";
-        AutoFillAddress();
-    }
+    void OnCreateUserChanged(ChangeEventArgs e) { _cf.UserId = e.Value?.ToString() ?? ""; AutoFillAddress(); }
+    void OnCreateChannelChanged(ChangeEventArgs e) { _cf.Channel = e.Value?.ToString() ?? "EMAIL"; AutoFillAddress(); }
 
     void AutoFillAddress()
     {
@@ -592,28 +767,16 @@
         if (u is null) return;
         _cf.Address = _cf.Channel switch
         {
-            "EMAIL" => u.Email        ?? _cf.Address,
-            "SMS"   => u.PhoneNumber  ?? _cf.Address,
+            "EMAIL" => u.Email       ?? _cf.Address,
+            "SMS"   => u.PhoneNumber ?? _cf.Address,
             _       => _cf.Address,
         };
     }
 
-    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
-    void OnBgClick()
-    {
-        if (!_bgMouseDownOnSelf) { _bgMouseDownOnSelf = false; return; }
-        _bgMouseDownOnSelf = false;
-        CloseRuleModal();
-        CloseChModal();
-    }
-
-    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
-
     void SaveChCreate()
     {
         _chModalErr = "";
-        if (string.IsNullOrWhiteSpace(_cf.Channel))
-        { _chModalErr = L["SYS.Notifications.Err.ChannelRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_cf.Channel)) { _chModalErr = L["SYS.Notifications.Err.ChannelRequired"]; return; }
         _chBusy = true;
         try
         {
@@ -650,24 +813,81 @@
     {
         if (_chSel is null) return;
         _chBusy = true;
-        try
-        {
-            Sys.DeleteNotificationChannel(_chSel.NotificationChannelId);
-            CloseChModal(); Reload();
-        }
+        try { Sys.DeleteNotificationChannel(_chSel.NotificationChannelId); CloseChModal(); Reload(); }
         catch (Exception ex) { _chModalErr = ex.Message; _chConfirmDelete = false; }
         finally { _chBusy = false; }
     }
 
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick()
+    {
+        if (!_bgMouseDownOnSelf) { _bgMouseDownOnSelf = false; return; }
+        _bgMouseDownOnSelf = false;
+        CloseRuleModal();
+        CloseChModal();
+    }
+
+    // ── 헬퍼 ──────────────────────────────────────────────────────────
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    static List<string> ParseJsonList(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return new();
+        try { return System.Text.Json.JsonSerializer.Deserialize<List<string>>(json) ?? new(); }
+        catch { return new(); }
+    }
+
+    string NotifStatusName(string code)
+    {
+        var item = _notifStatusItems.FirstOrDefault(s => s.CodeValue == code);
+        return item is null ? code : MasterDataRepository.LocalName(item);
+    }
+
+    // 채널/역할 목록을 뱃지로 렌더링
+    Microsoft.AspNetCore.Components.RenderFragment ChipList(List<string> items) => builder =>
+    {
+        if (items.Count == 0) { builder.AddContent(0, "—"); return; }
+        int seq = 0;
+        foreach (var item in items)
+        {
+            builder.OpenElement(seq++, "span");
+            builder.AddAttribute(seq++, "class", "pill info");
+            builder.AddAttribute(seq++, "style", "font-size:11px;margin-right:2px;");
+            builder.AddContent(seq++, item);
+            builder.CloseElement();
+        }
+    };
+
+    // DELIVERY_STATUS 기반 상태 pill
+    Microsoft.AspNetCore.Components.RenderFragment DeliveryStatusPill(string? status) => builder =>
+    {
+        if (status is null) { builder.AddContent(0, "—"); return; }
+        var item = _deliveryStatusItems.FirstOrDefault(s => s.CodeValue == status);
+        var label = item is null ? status : MasterDataRepository.LocalName(item);
+        var cls = status switch { "SENT" => "ok", "FAILED" => "bad", _ => "warn" };
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "class", $"pill {cls}");
+        builder.AddContent(2, label);
+        builder.CloseElement();
+    };
+
+    // ── 내부 클래스 ───────────────────────────────────────────────────
     class RuleForm
     {
-        public string EventTypeCode      { get; set; } = "";
-        public string EventName          { get; set; } = "";
-        public string SourceModule       { get; set; } = "";
-        public string TriggerCondition   { get; set; } = "";
-        public bool   IsEnabled          { get; set; } = true;
-        public string ChannelsJson       { get; set; } = "";
-        public string RecipientRolesJson { get; set; } = "";
+        public string       EventTypeCode    { get; set; } = "";
+        public string       EventName        { get; set; } = "";
+        public string       ModuleCode       { get; set; } = "";
+        public string       ProcessCode      { get; set; } = "";
+        public string       TriggerCondition { get; set; } = "";
+        public string       StatusCode       { get; set; } = "ACTIVE";
+        public List<string> SelectedChannels { get; set; } = new();
+        public List<string> SelectedRoles    { get; set; } = new();
+
+        public bool    IsEnabled          => StatusCode is "ACTIVE" or "";
+        public string? ChannelsJson       => SelectedChannels.Count > 0
+                                              ? System.Text.Json.JsonSerializer.Serialize(SelectedChannels) : null;
+        public string? RecipientRolesJson => SelectedRoles.Count > 0
+                                              ? System.Text.Json.JsonSerializer.Serialize(SelectedRoles) : null;
     }
 
     class ChForm

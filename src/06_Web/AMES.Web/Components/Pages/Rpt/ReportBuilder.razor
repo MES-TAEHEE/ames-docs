@@ -15,7 +15,7 @@
 
     <div class="ames-form" style="max-width:520px">
         <label>DATA SOURCE</label>
-        <select disabled>
+        <select class="ames-input" disabled style="width:100%;">
             <option>PR_ProductionResult — @L["RPT.ReportBuilder.Ds.Production"]</option>
             <option>FG_ShipmentOrder   — @L["RPT.ReportBuilder.Ds.Shipment"]</option>
             <option>MNT_OEELog         — @L["RPT.ReportBuilder.Ds.OEE"]</option>
@@ -24,7 +24,7 @@
         </select>
 
         <label>DIMENSIONS</label>
-        <select disabled multiple style="height:90px">
+        <select class="ames-input" disabled multiple style="width:100%;height:90px;">
             <option selected>Day</option>
             <option>Line</option>
             <option>Shift</option>
@@ -34,7 +34,7 @@
         </select>
 
         <label>MEASURES</label>
-        <select disabled multiple style="height:90px">
+        <select class="ames-input" disabled multiple style="width:100%;height:90px;">
             <option selected>SUM(GoodQty)</option>
             <option>COUNT(*)</option>
             <option>AVG(OEE)</option>
@@ -42,7 +42,7 @@
         </select>
 
         <label>DATE RANGE</label>
-        <select disabled>
+        <select class="ames-input" disabled style="width:100%;">
             <option>Last 7 days</option>
             <option selected>Last 14 days</option>
             <option>Last 30 days</option>

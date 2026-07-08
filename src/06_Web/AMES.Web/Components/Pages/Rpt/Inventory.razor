@@ -1,4 +1,4 @@
-@page "/rpt/inventory"
+﻿@page "/rpt/inventory"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.RptRepository Rpt
@@ -28,7 +28,7 @@
             <input class="ames-input" style="width:140px;padding:4px 8px;"
                    placeholder="@L["RPT.Inventory.Ph.Item"]" @bind="_fItem" autocomplete="off" />
             <span class="dim" style="font-size:.82em;white-space:nowrap;">Top</span>
-            <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_topN">
+            <select class="ames-input" style="width:70px;" @bind="_topN">
                 <option value="50">50</option>
                 <option value="100">100</option>
                 <option value="200">200</option>

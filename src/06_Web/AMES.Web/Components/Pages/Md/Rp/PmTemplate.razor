@@ -1,8 +1,9 @@
-﻿@page "/md/pm-template"
+@page "/md/rp/pm-template"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
 @inject AuthenticationStateProvider Auth
+@inject AMES.Web.Services.PermissionService Perm
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["MD.PmTemplate.Title"] · AMES</PageTitle>
@@ -40,7 +41,7 @@
             <input class="ames-input" style="width:150px;padding:4px 8px;"
                    placeholder='@L["MD.LabelTemplate.Ph.Search"]' @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
             <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.EquipType"]</span>
-            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fEquipType">
+            <select class="ames-input" style="width:110px;" @bind="_fEquipType">
                 <option value="">@L["Filter.AllEquipTypes"]</option>
                 @foreach (var t in _allRows.Select(r => r.EquipType).Where(x => x != null).Distinct().OrderBy(x => x))
                 {
@@ -48,13 +49,13 @@
                 }
             </select>
             <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Active"]</span>
-            <select class="ames-input" style="width:90px;padding:4px 8px;" @bind="_fActive">
+            <select class="ames-input" style="width:90px;" @bind="_fActive">
                 <option value="">@L["Filter.All"]</option>
                 <option value="Y">@L["Lbl.Active"]</option>
                 <option value="N">@L["Lbl.Inactive"]</option>
             </select>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
-            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
+            @if (_canEdit) { <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button> }
         </div>
     </div>
 
@@ -248,6 +249,7 @@
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
     string _msg = "", _modalErr = "";
     bool _isErr;
+    bool   _canEdit;
     string _actor = "system";
     FormModel _f = new();
 
@@ -255,6 +257,8 @@
     {
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
+        await Perm.EnsureAsync(Auth);
+        _canEdit = Perm.CanEdit("md/rp/pm-template");
         Reload();
     }
 
@@ -291,6 +295,7 @@
 
     void OpenEdit(AMES.Data.Repositories.MasterDataRepository.PmTemplateRow r)
     {
+        if (!_canEdit) return;
         _sel = r; _modalErr = ""; _confirmDelete = false;
         _f = new()
         {

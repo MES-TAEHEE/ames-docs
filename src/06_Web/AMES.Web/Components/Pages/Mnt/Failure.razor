@@ -1,4 +1,4 @@
-@page "/mnt/failure"
+﻿@page "/mnt/failure"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MntRepository Mnt
@@ -23,14 +23,14 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MNT.Failure.List"] · @_rows.Count @L["Lbl.Items"]</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_statusFilter">
+            <select class="ames-input" style="width:110px;" @bind="_statusFilter">
                 <option value="">@L["MNT.Failure.Filter.AllStatus"]</option>
                 <option value="OPEN">OPEN</option>
                 <option value="IN_PROGRESS">@L["MNT.Failure.InProgress"]</option>
                 <option value="RESOLVED">@L["MNT.Failure.Resolved"]</option>
             </select>
             <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Recent"]</label>
-            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_topN">
+            <select class="ames-input" style="width:110px;" @bind="_topN">
                 <option value="50">50@(L["Lbl.Items"])</option>
                 <option value="100">100@(L["Lbl.Items"])</option>
                 <option value="200">200@(L["Lbl.Items"])</option>

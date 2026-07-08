@@ -1,7 +1,9 @@
-﻿@page "/sys/config"
+@page "/sys/config"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
+@inject AMES.Web.Services.PermissionService Perm
+@inject AuthenticationStateProvider Auth
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>SYS-009 @L["SYS.Config.Title"] · AMES</PageTitle>
@@ -9,40 +11,119 @@
 <AmesPageHeader Code="SYS-009" TitleKey="SYS.Config.Title" />
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Config.Kpi.Keys"]</div>
-        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">@L["SYS.Config.Kpi.KeysSub"]</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["SYS.Config.Kpi.Active"]</div>
-        <div class="ames-kpi-v">@_active</div><div class="ames-kpi-s">@L["SYS.Config.Kpi.ActiveSub"]</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Config.Kpi.Categories"]</div>
-        <div class="ames-kpi-v">@_cat</div><div class="ames-kpi-s">@L["SYS.Config.Kpi.CategoriesSub"]</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["SYS.Config.Kpi.Security"]</div>
-        <div class="ames-kpi-v">@_sec</div><div class="ames-kpi-s">@L["SYS.Config.Kpi.SecuritySub"]</div></div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["SYS.Config.Kpi.Keys"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_rows.Count</div>
+            <div class="ames-kpi-s">@L["SYS.Config.Kpi.KeysSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">@L["SYS.Config.Kpi.Active"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_rows.Count(r => _edits.TryGetValue(r.ConfigId, out var e) ? e.IsActive : r.IsActive)</div>
+            <div class="ames-kpi-s">@L["SYS.Config.Kpi.ActiveSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["SYS.Config.Kpi.Categories"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_cat</div>
+            <div class="ames-kpi-s">@L["SYS.Config.Kpi.CategoriesSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">@L["SYS.Config.Kpi.Security"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_sec</div>
+            <div class="ames-kpi-s">@L["SYS.Config.Kpi.SecuritySub"]</div>
+        </div>
+    </div>
 </div>
 
-@foreach (var grp in _rows.Skip(_page * _pageSize).Take(_pageSize).GroupBy(r => r.Category ?? L["SYS.Config.GroupOther"].Value).OrderBy(g => g.Key))
+@if (_canEdit)
+{
+    <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:8px;">
+        @if (!string.IsNullOrEmpty(_msg))
+        {
+            <span class="@(_isErr ? "ames-alert bad" : "ames-alert ok")" style="padding:4px 12px;">@_msg</span>
+        }
+        <button class="ames-btn ok" @onclick="SaveAll" disabled="@(!_dirty || _busy)">@L["Btn.Save"]</button>
+    </div>
+}
+
+@foreach (var grp in _rows.GroupBy(r => r.Category ?? L["SYS.Config.GroupOther"].Value).OrderBy(g => g.Key))
 {
     <div class="ames-card">
         <div class="ames-card-h">▼ @grp.Key  ·  @grp.Count() @L["Lbl.Count"]</div>
-        <table class="ames-table">
-            <thead><tr><th>@L["SYS.Config.Col.Key"]</th><th>@L["SYS.Config.Col.Desc"]</th><th>@L["SYS.Config.Col.Value"]</th><th>@L["SYS.Config.Col.Unit"]</th><th>@L["SYS.Config.Col.Type"]</th><th>@L["Col.Status"]</th></tr></thead>
+        <table class="ames-table" style="table-layout:fixed;width:100%;">
+            <colgroup>
+                <col style="width:16.67%;" /><col style="width:16.67%;" /><col style="width:16.67%;" />
+                <col style="width:16.67%;" /><col style="width:16.67%;" /><col style="width:16.65%;" />
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>@L["SYS.Config.Col.Key"]</th>
+                    <th>@L["SYS.Config.Col.Desc"]</th>
+                    <th>@L["SYS.Config.Col.Value"]</th>
+                    <th>@L["SYS.Config.Col.Unit"]</th>
+                    <th>@L["SYS.Config.Col.Type"]</th>
+                    <th>@L["Col.Status"]</th>
+                </tr>
+            </thead>
             <tbody>
                 @foreach (var c in grp.OrderBy(x => x.SortOrder ?? 999).ThenBy(x => x.ConfigKey))
                 {
+                    var ed = _edits[c.ConfigId];
                     <tr>
-                        <td class="code">@(c.ConfigKey ?? "—")</td>
-                        <td class="dim">@(c.CodeName ?? "—")</td>
-                        <td class="code"><span style="color:#fff">@(c.ConfigValue ?? "—")</span></td>
+                        <td class="code" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@(c.ConfigKey ?? "—")</td>
+                        <td class="dim" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@(c.CodeName ?? "—")</td>
+                        <td>
+                            @if (_canEdit)
+                            {
+                                @if (c.ConfigType == "bool")
+                                {
+                                    <span class="dim code" style="font-size:12px;">true / false</span>
+                                }
+                                else
+                                {
+                                    <input class="ames-input" style="width:100%;min-width:120px;padding:3px 8px;"
+                                           type="@InputType(c.ConfigType)"
+                                           value="@ed.Value"
+                                           @oninput="e => { ed.Value = e.Value?.ToString(); _dirty = true; }" />
+                                }
+                            }
+                            else
+                            {
+                                <span class="code" style="color:#fff;">@(c.ConfigValue ?? "—")</span>
+                            }
+                        </td>
                         <td class="dim">@(c.Unit ?? "")</td>
                         <td class="dim">@(c.ConfigType ?? "—")</td>
-                        <td>@(c.IsActive ? (MarkupString)$"<span class=\"pill ok\">{L["SYS.Config.Active"]}</span>"
-                                          : (MarkupString)$"<span class=\"pill warn\">{L["SYS.Config.Inactive"]}</span>")</td>
+                        <td>
+                            @if (_canEdit)
+                            {
+                                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                                    <input type="checkbox" checked="@ed.IsActive"
+                                           @onchange="e => { ed.IsActive = (bool)(e.Value ?? false); _dirty = true; }"
+                                           style="accent-color:#60a5fa;" />
+                                    <span class="@(ed.IsActive ? "pill ok" : "pill warn")">
+                                        @(ed.IsActive ? L["SYS.Config.Active"] : L["SYS.Config.Inactive"])
+                                    </span>
+                                </label>
+                            }
+                            else
+                            {
+                                @(c.IsActive ? (MarkupString)$"<span class=\"pill ok\">{L["SYS.Config.Active"]}</span>"
+                                             : (MarkupString)$"<span class=\"pill warn\">{L["SYS.Config.Inactive"]}</span>")
+                            }
+                        </td>
                     </tr>
                 }
             </tbody>
         </table>
     </div>
 }
-<Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
 
 @if (_rows.Count == 0)
 {
@@ -51,14 +132,62 @@
 
 @code {
     List<AMES.Data.Repositories.SysRepository.ConfigRow> _rows = new();
-    int _page = 0;
-    const int _pageSize = 20;
-    int _active, _cat, _sec;
-    protected override void OnInitialized()
+    Dictionary<int, ConfigEdit> _edits = new();
+    int _cat, _sec;
+    bool _canEdit, _dirty, _busy;
+    string _msg = "", _actorEmail = "system";
+    bool _isErr;
+
+    class ConfigEdit
     {
-        try { _rows = Sys.ListConfig(); } catch { }
-        _active = _rows.Count(r => r.IsActive);
-        _cat    = _rows.Select(r => r.Category).Distinct().Count();
-        _sec    = _rows.Count(r => r.Category == "Security");
+        public string? Value    { get; set; }
+        public bool    IsActive { get; set; }
     }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Perm.EnsureAsync(Auth);
+        _canEdit = Perm.CanEdit("sys/config");
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actorEmail = auth.User.Identity?.Name ?? "system";
+        Reload();
+    }
+
+    void Reload()
+    {
+        try { _rows = Sys.ListConfig(); } catch { _rows = new(); }
+        _edits = _rows.ToDictionary(r => r.ConfigId, r => new ConfigEdit { Value = r.ConfigValue, IsActive = r.IsActive });
+        _cat  = _rows.Select(r => r.Category).Distinct().Count();
+        _sec  = _rows.Count(r => r.Category == "Security");
+        _dirty = false;
+    }
+
+    void SaveAll()
+    {
+        if (_busy) return;
+        _busy = true; _msg = ""; _isErr = false;
+        try
+        {
+            foreach (var r in _rows)
+            {
+                if (!_edits.TryGetValue(r.ConfigId, out var ed)) continue;
+                Sys.SetConfig(r.ConfigId, ed.Value, ed.IsActive);
+            }
+            Reload();
+            _msg = L["Msg.Saved"].Value;
+        }
+        catch (Exception ex)
+        {
+            _isErr = true;
+            _msg   = ex.Message;
+        }
+        finally { _busy = false; }
+    }
+
+    static string InputType(string? configType) => configType switch
+    {
+        "int" or "decimal" => "number",
+        "password"         => "password",
+        _                  => "text"
+    };
 }

@@ -7,10 +7,11 @@
 @inject UserManager<ApplicationUser> UserMgr
 @inject RoleManager<IdentityRole> RoleMgr
 @inject AuthenticationStateProvider Auth
+@inject AMES.Web.Services.PermissionService Perm
 @inject IStringLocalizer<SharedResources> L
+@using Radzen
 
 <PageTitle>SYS-001 @L["SYS.Users.Title"] · AMES</PageTitle>
-
 <AmesPageHeader Code="SYS-001" TitleKey="SYS.Users.Title" />
 
 <div class="ames-kpis">
@@ -35,13 +36,14 @@
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:300px;padding:4px 8px;"
                    placeholder="@L["SYS.Users.Ph.UserName"]" @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
-            <select class="ames-input" style="width:120px;padding:4px 8px;" @bind="_fStatus">
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
+            <select class="ames-input" style="width:120px;" @bind="_fStatus">
                 <option value="">@L["Filter.AllStatus"]</option>
                 @foreach (var s in _statusItems.Where(s => s.UseFlag))
                 { <option value="@s.CodeValue">[@s.CodeValue] @(MasterDataRepository.LocalName(s))</option> }
             </select>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
-            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
+            @if (_canEdit) { <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button> }
         </div>
     </div>
 
@@ -51,40 +53,68 @@
     }
     else
     {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["SYS.Users.Col.UserName"]</th><th>@L["SYS.Users.Col.Email"]</th><th>@L["SYS.Users.Col.EmployeeNo"]</th><th>@L["SYS.Users.Col.EmployeeName"]</th>
-                    <th>@L["SYS.Users.Col.Dept"]</th><th>@L["Col.Status"]</th><th>@L["SYS.Users.Col.Roles"]</th>
-                    <th class="num">@L["SYS.Users.Col.FailCount"]</th><th>@L["SYS.Users.Col.LastLogin"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var u in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    <tr class="ames-row-link" @onclick="() => OpenEdit(u)">
-                        <td class="code">@(u.UserName ?? "—")</td>
-                        <td class="dim">@(u.Email ?? "—")</td>
-                        <td class="dim">@(u.EmployeeNo ?? "—")</td>
-                        <td>@(u.EmployeeName ?? "—")</td>
-                        <td class="dim">@DeptName(u.Department)</td>
-                        <td>
+        <RadzenStack Gap="1rem">
+            <RadzenDataGrid TItem="AMES.Data.Repositories.SysRepository.UserRow" Data="@_rows" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                            PageSizeOptions="@pageSizeOptions" ShowPagingSummary="@showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" Class="ames-rz-grid">
+                <Columns>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.UserRow" Property="UserName" Title="@L["SYS.Users.Col.UserName"]">
+                        <Template Context="u">
+                            <span class="code">@(u.UserName ?? "—")</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.UserRow" Property="Email" Title="@L["SYS.Users.Col.Email"]">
+                        <Template Context="u">
+                            <span class="dim">@(u.Email ?? "—")</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.UserRow" Property="EmployeeNo" Title="@L["SYS.Users.Col.EmployeeNo"]">
+                        <Template Context="u">
+                            <span class="dim">@(u.EmployeeNo ?? "—")</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.UserRow" Property="EmployeeName" Title="@L["SYS.Users.Col.EmployeeName"]" />
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.UserRow" Title="@L["SYS.Users.Col.Dept"]">
+                        <Template Context="u">
+                            <span class="dim">@DeptName(u.Department)</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.UserRow" Title="@L["Col.Status"]">
+                        <Template Context="u">
                             @{
                                 var stEff = EffectiveStatus(u);
                                 var unver = !u.EmailConfirmed && stEff == "Active";
-                                var stCls = unver ? "warn" : stEff switch { "LOCKED" => "bad", "INACTIVE" => "dim", _ => "ok" };
-                                var stLbl = unver ? L["SYS.Users.Status.Unverified"].Value : StatusName(stEff);
+                                var stCls = unver
+                                    ? "warn"
+                                    : stEff switch
+                                    {
+                                        "LOCKED" => "bad",
+                                        "INACTIVE" => "dim",
+                                        _ => "ok"
+                                    };
+
+                                var stLbl = unver
+                                    ? L["SYS.Users.Status.Unverified"].Value
+                                    : StatusName(stEff);
                             }
                             <span class="pill @stCls">@stLbl</span>
-                        </td>
-                        <td class="dim">@(u.RolesCsv ?? "—")</td>
-                        <td class="num">@u.FailedLoginCount</td>
-                        <td class="dim">@(u.LastLoginTs?.ToString("MM-dd HH:mm") ?? "—")</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.UserRow" Property="RolesCsv" Title="@L["SYS.Users.Col.Roles"]">
+                        <Template Context="u">
+                            <span class="dim">@(u.RolesCsv ?? "—")</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.UserRow" Property="FailedLoginCount" Title="@L["SYS.Users.Col.FailCount"]" TextAlign="TextAlign.Right" />
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.UserRow" Title="@L["SYS.Users.Col.LastLogin"]">
+                        <Template Context="u">
+                            <span class="dim">
+                                @(u.LastLoginTs?.ToString("MM-dd HH:mm") ?? "—")
+                            </span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenStack>
     }
 </div>
 
@@ -284,8 +314,8 @@
 }
 
 @code {
-    int _page = 0;
-    const int _pageSize = 20;
+    IEnumerable<int> pageSizeOptions = new int[] { 10, 15, 20, 30, 50, 100 };
+    bool showPagerSummary = true;
     List<AMES.Data.Repositories.SysRepository.UserRow> _allRows = new();
     List<AMES.Data.Repositories.SysRepository.UserRow> _rows    = new();
     List<string> _roles = new();
@@ -307,20 +337,23 @@
     bool _isErr;
 
     FormModel _f = new();
+    bool   _canEdit;
     string _actorEmail = "system";
 
     protected override async Task OnInitializedAsync()
     {
         var auth = await Auth.GetAuthenticationStateAsync();
         _actorEmail = auth.User.Identity?.Name ?? "system";
+        await Perm.EnsureAsync(Auth);
+        _canEdit = Perm.CanEdit("sys/users");
         _roles = RoleMgr.Roles.Select(r => r.Name!).OrderBy(n => n).ToList();
         _lines = Sys.ListActiveLines();
-        var deptItems  = MD.ListCodeItems("Department").ToList();
+        var deptItems = MD.ListCodeItems("DEPARTMENT").ToList();
         _deptOptions   = ToOptions(deptItems);
         _deptSearchNames = deptItems
             .Where(c => c.UseFlag && !string.IsNullOrWhiteSpace(c.CodeValue))
             .ToDictionary(c => c.CodeValue!, c => $"{c.CodeName ?? ""} {c.CodeNameEn ?? ""}");
-        _plantOptions  = ToOptions(MD.ListCodeItems("Plant"));
+        _plantOptions  = ToOptions(MD.ListCodeItems("PLANT"));
         _shiftOptions  = ToOptions(MD.ListCodeItems("WORK_SHIFT"));
         _statusItems   = MD.ListCodeItems("USER_STATUS");
         Reload();
@@ -328,7 +361,7 @@
 
     void Reload() { _allRows = Sys.ListUsers(); ApplyFilter(); }
 
-    void ApplyFilter() { _page = 0; _rows = _allRows.Where(r =>
+    void ApplyFilter() { _rows = _allRows.Where(r =>
         (string.IsNullOrEmpty(_fSearch) ||
             (r.UserName     ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.Email        ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
@@ -366,8 +399,19 @@
         _modal = "create";
     }
 
+    void RowRender(RowRenderEventArgs<AMES.Data.Repositories.SysRepository.UserRow> args)
+    {
+        args.Attributes["class"] = "ames-row-link";
+    }
+
+    void OnRowClick(DataGridRowMouseEventArgs<AMES.Data.Repositories.SysRepository.UserRow> args)
+    {
+        if (args.Data is not null) OpenEdit(args.Data);
+    }
+
     void OpenEdit(AMES.Data.Repositories.SysRepository.UserRow u)
     {
+        if (!_canEdit) return;
         _sel = u; _modalErr = ""; _confirmDelete = false;
         List<string> parsedLines = new();
         if (!string.IsNullOrEmpty(u.AssignedLines))

@@ -1,4 +1,4 @@
-@page "/pp/delivery"
+﻿@page "/pp/delivery"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
@@ -48,13 +48,13 @@
             <span style="color:#64748b;font-size:.8rem;">~</span>
             <input class="ames-input" type="date" style="width:130px;padding:4px 8px;" @bind="_filterTo" />
             <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Customer"]</span>
-            <select class="ames-input" style="width:130px;padding:4px 8px;" @bind="_filterCustomer">
+            <select class="ames-input" style="width:130px;" @bind="_filterCustomer">
                 <option value="">@L["PP.Delivery.Filter.AllCustomer"]</option>
                 @foreach (var c in _customers)
                 { <option value="@c">@c</option> }
             </select>
             <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
-            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_filterStatus">
+            <select class="ames-input" style="width:100px;" @bind="_filterStatus">
                 <option value="">@L["PP.Delivery.Filter.AllStatus"]</option>
                 <option value="ontime">@L["PP.Delivery.Status.OnTime"]</option>
                 <option value="late">@L["PP.Delivery.Status.Late"]</option>

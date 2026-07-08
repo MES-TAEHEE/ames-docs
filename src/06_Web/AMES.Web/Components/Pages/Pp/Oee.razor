@@ -1,4 +1,4 @@
-@page "/pp/oee"
+﻿@page "/pp/oee"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @rendermode InteractiveServer
 @inject AMES.Data.Repositories.OeeRepository Repo
@@ -40,12 +40,12 @@
 @* ── 필터 바 ────────────────────────────────────────────────────── *@
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;">
-        <select class="ames-input" style="width:150px;padding:4px 8px;" @bind="_lineId"
+        <select class="ames-input" style="width:150px;" @bind="_lineId"
                 @bind:after="LoadSnapshots">
             <option value="">@L["PP.Oee.Ph.SelectLine"]</option>
             @foreach (var l in _lines) { <option value="@l">@l</option> }
         </select>
-        <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_periodType">
+        <select class="ames-input" style="width:110px;" @bind="_periodType">
             <option value="DAY">@L["PP.Oee.Period.Day"]</option>
             <option value="WEEK">@L["PP.Oee.Period.Week"]</option>
             <option value="MONTH">@L["PP.Oee.Period.Month"]</option>
@@ -195,7 +195,7 @@
             </div>
             <div>
                 <div class="dim" style="font-size:10px;margin-bottom:3px;">@L["Col.Status"]</div>
-                <select class="ames-input" style="width:162px;padding:4px 7px;" @bind="_newLog.StateCode">
+                <select class="ames-input" style="width:162px;" @bind="_newLog.StateCode">
                     <option value="LOAD">LOAD (@L["PP.Oee.Log.State.Load"])</option>
                     <option value="PLANNED_DOWN">PLANNED_DOWN</option>
                     <option value="UNPLANNED_DOWN">UNPLANNED_DOWN</option>

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ames-web",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/06_Web/AMES.Web/AMES.Web.csproj", "--urls", "http://localhost:5044"],
+      "port": 5044
+    }
+  ]
+}

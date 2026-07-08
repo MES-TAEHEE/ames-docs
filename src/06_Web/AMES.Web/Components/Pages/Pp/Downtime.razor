@@ -1,4 +1,4 @@
-@page "/pp/downtime"
+﻿@page "/pp/downtime"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
@@ -40,7 +40,7 @@
         </span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Line"]</span>
-            <select class="ames-input" style="width:120px;padding:4px 8px;" @bind="_filterLine">
+            <select class="ames-input" style="width:120px;" @bind="_filterLine">
                 <option value="">@L["PP.Downtime.Filter.AllLines"]</option>
                 @foreach (var l in _lines)
                 { <option value="@l">@l</option> }
@@ -48,13 +48,13 @@
             <input class="ames-input" type="date" style="width:130px;padding:4px 8px;" @bind="_filterFrom" />
             <input class="ames-input" type="date" style="width:130px;padding:4px 8px;" @bind="_filterTo" />
             <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
-            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_filterStatus">
+            <select class="ames-input" style="width:100px;" @bind="_filterStatus">
                 <option value="">@L["PP.Downtime.Filter.AllStatus"]</option>
                 <option value="open">@L["PP.Downtime.Status.Open"]</option>
                 <option value="closed">@L["PP.Downtime.Status.Closed"]</option>
             </select>
             <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Reason"]</span>
-            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_filterReason">
+            <select class="ames-input" style="width:100px;" @bind="_filterReason">
                 <option value="">@L["PP.Downtime.Filter.AllReason"]</option>
                 <option value="MECH">MECH</option>
                 <option value="ELEC">ELEC</option>

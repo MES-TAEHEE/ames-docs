@@ -3359,6 +3359,7 @@ CREATE TABLE dbo.SYS_Screen (
   [ScreenID]     INT IDENTITY     NOT NULL,
   [ScreenCode]   VARCHAR(20)      NOT NULL,   -- e.g. 'PP-001', 'SYS-003'
   [ModuleCode]   VARCHAR(10)      NOT NULL,   -- PP | MNT | RPT | MD | SYS
+  [ProcessCode]  VARCHAR(10)          NULL,   -- sub-process group (e.g. 'INJ', 'WH')
   [ScreenName]   NVARCHAR(100)    NOT NULL,
   [ScreenNameEn] NVARCHAR(100)        NULL,
   [HRef]         VARCHAR(200)         NULL,   -- route path (e.g. 'pp/forecast')

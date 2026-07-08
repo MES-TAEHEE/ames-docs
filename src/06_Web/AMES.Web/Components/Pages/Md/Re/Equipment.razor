@@ -1,8 +1,9 @@
-﻿@page "/md/equipment"
+@page "/md/re/equipment"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
 @inject AuthenticationStateProvider Auth
+@inject AMES.Web.Services.PermissionService Perm
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["MD.Equipment.Title"] · AMES</PageTitle>
@@ -40,7 +41,7 @@
             <input class="ames-input" style="width:160px;padding:4px 8px;"
                    placeholder='@L["MD.Equipment.Ph.Search"]' @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
             <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Line"]</span>
-            <select class="ames-input" style="width:130px;padding:4px 8px;" @bind="_fLine">
+            <select class="ames-input" style="width:130px;" @bind="_fLine">
                 <option value="">@L["Filter.AllLines"]</option>
                 @foreach (var l in _lineList)
                 {
@@ -48,7 +49,7 @@
                 }
             </select>
             <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Type"]</span>
-            <select class="ames-input" style="width:120px;padding:4px 8px;" @bind="_fType">
+            <select class="ames-input" style="width:120px;" @bind="_fType">
                 <option value="">@L["Filter.AllTypes"]</option>
                 @foreach (var t in _allRows.Select(r => r.EquipType).Where(x => x != null).Distinct().OrderBy(x => x))
                 {
@@ -56,13 +57,13 @@
                 }
             </select>
             <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Active"]</span>
-            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fActive">
+            <select class="ames-input" style="width:100px;" @bind="_fActive">
                 <option value="">@L["Filter.All"]</option>
                 <option value="Y">@L["Lbl.Active"]</option>
                 <option value="N">@L["Lbl.Inactive"]</option>
             </select>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
-            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
+            @if (_canEdit) { <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button> }
         </div>
     </div>
 
@@ -282,6 +283,7 @@
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
     string _msg = "", _modalErr = "";
     bool _isErr;
+    bool   _canEdit;
     string _actor = "system";
     FormModel _f = new();
 
@@ -289,6 +291,8 @@
     {
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
+        await Perm.EnsureAsync(Auth);
+        _canEdit = Perm.CanEdit("md/re/equipment");
         try { _lineList    = Md.ListLines();                        } catch { }
         try { _wcList      = Md.ListWorkCenters();                  } catch { }
         try { _equipStatus = Md.ListCodeItems("EQUIP_STATUS"); } catch { }
@@ -310,6 +314,7 @@
 
     void OpenEdit(AMES.Data.Repositories.MasterDataRepository.EquipmentRow r)
     {
+        if (!_canEdit) return;
         _sel = r; _modalErr = ""; _confirmDelete = false;
         _f = new()
         {

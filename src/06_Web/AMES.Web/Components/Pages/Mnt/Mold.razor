@@ -1,4 +1,4 @@
-@page "/mnt/mold"
+﻿@page "/mnt/mold"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MntRepository Mnt
@@ -25,7 +25,7 @@
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:130px;padding:4px 8px;"
                    placeholder="@L["MNT.Mold.Ph.Name"]" @bind="_fName" autocomplete="off" />
-            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fThreshold">
+            <select class="ames-input" style="width:110px;" @bind="_fThreshold">
                 <option value="">@L["Filter.All"]</option>
                 <option value="CRITICAL">CRITICAL</option>
                 <option value="WARNING">WARNING</option>

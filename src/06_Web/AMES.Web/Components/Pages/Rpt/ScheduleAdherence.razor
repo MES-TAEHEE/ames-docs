@@ -1,4 +1,4 @@
-@page "/rpt/schedule-adherence"
+﻿@page "/rpt/schedule-adherence"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.RptRepository Rpt
@@ -26,7 +26,7 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["RPT.ScheduleAdherence.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <select class="ames-input" style="width:140px;padding:4px 8px;" @bind="_fLine">
+            <select class="ames-input" style="width:140px;" @bind="_fLine">
                 <option value="">@L["Filter.AllLines"]</option>
                 @foreach (var l in _lineList)
                 {
@@ -34,7 +34,7 @@
                 }
             </select>
             <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Period"]</label>
-            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_daysBack">
+            <select class="ames-input" style="width:100px;" @bind="_daysBack">
                 <option value="7">7@(L["Lbl.Days"])</option>
                 <option value="14">14@(L["Lbl.Days"])</option>
                 <option value="30">30@(L["Lbl.Days"])</option>

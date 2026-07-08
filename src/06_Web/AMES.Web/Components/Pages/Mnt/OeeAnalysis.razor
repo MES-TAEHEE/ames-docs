@@ -1,4 +1,4 @@
-@page "/mnt/oee-analysis"
+﻿@page "/mnt/oee-analysis"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MntRepository Mnt
@@ -38,7 +38,7 @@
             <input class="ames-input" style="width:120px;padding:4px 8px;"
                    placeholder="@L["MNT.OeeAnalysis.Ph.Equip"]" @bind="_fEquip" autocomplete="off" />
             <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Period"]</label>
-            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_daysBack">
+            <select class="ames-input" style="width:100px;" @bind="_daysBack">
                 <option value="7">7@(L["Lbl.Days"])</option>
                 <option value="14">14@(L["Lbl.Days"])</option>
                 <option value="30">30@(L["Lbl.Days"])</option>

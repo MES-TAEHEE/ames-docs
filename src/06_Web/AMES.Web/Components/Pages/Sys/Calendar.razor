@@ -2,7 +2,9 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
+@inject AMES.Data.Repositories.MasterDataRepository Md
 @inject AuthenticationStateProvider Auth
+@inject AMES.Web.Services.PermissionService Perm
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>SYS-005 @L["SYS.Calendar.Title"] · AMES</PageTitle>
@@ -12,23 +14,31 @@
 <div class="ames-kpis">
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["SYS.Calendar.Kpi.Days"]</div>
-        <div class="ames-kpi-v">@_days</div>
-        <div class="ames-kpi-s">@L["SYS.Calendar.Kpi.DaysSub"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_days</div>
+            <div class="ames-kpi-s">@L["SYS.Calendar.Kpi.DaysSub"]</div>
+        </div>
     </div>
     <div class="ames-kpi ok">
         <div class="ames-kpi-l">@L["SYS.Calendar.Kpi.Work"]</div>
-        <div class="ames-kpi-v">@_work</div>
-        <div class="ames-kpi-s">@L["SYS.Calendar.Kpi.WorkSub"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_work</div>
+            <div class="ames-kpi-s">@L["SYS.Calendar.Kpi.WorkSub"]</div>
+        </div>
     </div>
     <div class="ames-kpi warn">
         <div class="ames-kpi-l">@L["SYS.Calendar.Kpi.Weekend"]</div>
-        <div class="ames-kpi-v">@_wknd</div>
-        <div class="ames-kpi-s">@L["SYS.Calendar.Kpi.WeekendSub"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_wknd</div>
+            <div class="ames-kpi-s">@L["SYS.Calendar.Kpi.WeekendSub"]</div>
+        </div>
     </div>
     <div class="ames-kpi bad">
         <div class="ames-kpi-l">@L["SYS.Calendar.Kpi.Holiday"]</div>
-        <div class="ames-kpi-v">@_hol</div>
-        <div class="ames-kpi-s">@L["SYS.Calendar.Kpi.HolidaySub"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_hol</div>
+            <div class="ames-kpi-s">@L["SYS.Calendar.Kpi.HolidaySub"]</div>
+        </div>
     </div>
 </div>
 
@@ -46,7 +56,7 @@
         ▦ @L["SYS.Calendar.Tab.Calendar"]
     </button>
     <div style="flex:1;"></div>
-    <button class="ames-btn" @onclick="OpenCreate" style="align-self:center;">@L["SYS.Calendar.Btn.Create"]</button>
+    @if (_canEdit) { <button class="ames-btn" @onclick="OpenCreate" style="align-self:center;">@L["SYS.Calendar.Btn.Create"]</button> }
 </div>
 
 @* ══════════════════════════════════════════════════════════════════ *@
@@ -100,9 +110,9 @@
                             <td class="code">@(dateKey.ToString("yyyy-MM-dd ddd"))</td>
                             <td>@DayTypePill(sample.DayType)</td>
                             <td class="dim">@(sample.HolidayName ?? "—")</td>
-                            <td class="num"><input type="checkbox" disabled checked="@hasA" style="accent-color:#34d399;" /></td>
-                            <td class="num"><input type="checkbox" disabled checked="@hasB" style="accent-color:#60a5fa;" /></td>
-                            <td class="num"><input type="checkbox" disabled checked="@hasC" style="accent-color:#f472b6;" /></td>
+                            <td class="num"><span class="ames-cal-sh @(hasA ? "sh-a" : "sh-off")">A</span></td>
+                            <td class="num"><span class="ames-cal-sh @(hasB ? "sh-b" : "sh-off")">B</span></td>
+                            <td class="num"><span class="ames-cal-sh @(hasC ? "sh-c" : "sh-off")">C</span></td>
                             <td class="dim">@(sample.PlantCode ?? "—")</td>
                         </tr>
                     }
@@ -188,7 +198,7 @@
                         {
                             @if (sample.DayType == "HOLIDAY")
                             {
-                                <div class="ames-cal-badge ames-cal-badge--holiday">@L["SYS.Calendar.Badge.Holiday"]</div>
+                                <div class="ames-cal-badge ames-cal-badge--holiday">@DayTypeName("HOLIDAY")</div>
                                 @if (!string.IsNullOrWhiteSpace(sample.HolidayName))
                                 {
                                     <div class="ames-cal-hname">@sample.HolidayName</div>
@@ -196,7 +206,7 @@
                             }
                             else if (sample.DayType == "WEEKEND")
                             {
-                                <div class="ames-cal-badge ames-cal-badge--weekend">@L["SYS.Calendar.Badge.Weekend"]</div>
+                                <div class="ames-cal-badge ames-cal-badge--weekend">@DayTypeName("WEEKEND")</div>
                             }
                         }
 
@@ -218,9 +228,9 @@
             <span class="ames-cal-sh sh-a">A</span> @L["SYS.Calendar.Legend.ShiftA"]
             <span class="ames-cal-sh sh-b" style="margin-left:10px;">B</span> @L["SYS.Calendar.Legend.ShiftB"]
             <span class="ames-cal-sh sh-c" style="margin-left:10px;">C</span> @L["SYS.Calendar.Legend.ShiftC"]
-            <span class="pill ok"  style="margin-left:16px;">@L["SYS.Calendar.Legend.Work"]</span>
-            <span class="pill warn">@L["SYS.Calendar.Legend.Weekend"]</span>
-            <span class="pill bad">@L["SYS.Calendar.Legend.Holiday"]</span>
+            <span class="pill ok"  style="margin-left:16px;">@DayTypeName("WORKDAY")</span>
+            <span class="pill warn">@DayTypeName("WEEKEND")</span>
+            <span class="pill bad">@DayTypeName("HOLIDAY")</span>
         </div>
     </div>
 }
@@ -248,7 +258,12 @@
             </div>
 
             <label style="margin-top:8px;">@L["SYS.Calendar.Lbl.Plant"]</label>
-            <input class="ames-input" @bind="_genPlant" placeholder="@L["SYS.Calendar.Ph.Plant"]" autocomplete="off" />
+            <select class="ames-input" @bind="_genPlant">
+                @foreach (var p in _plants)
+                {
+                    <option value="@p.CodeValue">[@p.CodeValue] @AMES.Data.Repositories.MasterDataRepository.LocalName(p)</option>
+                }
+            </select>
 
             <div style="margin-top:12px;font-size:.84em;font-weight:600;color:#94a3b8;letter-spacing:.05em;">@L["SYS.Calendar.Lbl.ShiftConfig"]</div>
             <table class="ames-table" style="margin-top:4px;">
@@ -266,9 +281,9 @@
                     @for (int gi = 0; gi < _genShifts.Length; gi++)
                     {
                         var i = gi;
-                        <tr>
+                        <tr style="@(!_genShifts[i].Active ? "opacity:.35;" : "")">
                             <td><input type="checkbox" @bind="_genShifts[i].Active" style="accent-color:#60a5fa;" /></td>
-                            <td class="code">@_genShifts[i].Code</td>
+                            <td><span class="ames-cal-sh @ShiftBadgeCls(_genShifts[i].Code, _genShifts[i].Active)">@_genShifts[i].Code</span></td>
                             <td>
                                 <input type="time" class="ames-input"
                                        value="@_genShifts[i].Start"
@@ -365,9 +380,19 @@
                     <select class="ames-input"
                             value="@_editDayType"
                             @onchange="e => _editDayType = e.Value?.ToString() ?? _editDayType">
-                        <option value="WORKDAY">WORKDAY</option>
-                        <option value="WEEKEND">WEEKEND</option>
-                        <option value="HOLIDAY">HOLIDAY</option>
+                        @foreach (var dt in _dayTypes)
+                        {
+                            <option value="@dt.CodeValue">[@dt.CodeValue] @AMES.Data.Repositories.MasterDataRepository.LocalName(dt)</option>
+                        }
+                    </select>
+                </div>
+                <div style="flex:0 0 160px;">
+                    <label>@L["Col.Plant"]</label>
+                    <select class="ames-input" @bind="_selPlant">
+                        @foreach (var p in _plants)
+                        {
+                            <option value="@p.CodeValue">[@p.CodeValue] @AMES.Data.Repositories.MasterDataRepository.LocalName(p)</option>
+                        }
                     </select>
                 </div>
                 @if (_editDayType == "HOLIDAY")
@@ -400,9 +425,9 @@
                     {
                         var i = ei;
                         var timeDis = !_editShifts[i].Active;
-                        <tr>
+                        <tr style="@(timeDis ? "opacity:.35;" : "")">
                             <td><input type="checkbox" @bind="_editShifts[i].Active" style="accent-color:#60a5fa;" /></td>
-                            <td class="code">@_editShifts[i].Code</td>
+                            <td><span class="ames-cal-sh @ShiftBadgeCls(_editShifts[i].Code, _editShifts[i].Active)">@_editShifts[i].Code</span></td>
                             <td>
                                 <input type="time" class="ames-input"
                                        value="@_editShifts[i].Start"
@@ -456,6 +481,8 @@
 
 @code {
     // ── State ────────────────────────────────────────────────────────────
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _dayTypes = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _plants   = new();
     List<AMES.Data.Repositories.SysRepository.CalendarRow> _rows = new();
     Dictionary<DateTime, List<AMES.Data.Repositories.SysRepository.CalendarRow>> _byDay = new();
     int _page = 0;
@@ -471,6 +498,7 @@
     string _modal = "";
     bool   _busy, _confirmDelete, _bgMouseDownOnSelf, _isErr;
     string _msg = "", _modalErr = "";
+    bool   _canEdit;
     string _actor = "system";
 
     // ── Edit form ────────────────────────────────────────────────────────
@@ -498,6 +526,17 @@
     {
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
+        await Perm.EnsureAsync(Auth);
+        _canEdit = Perm.CanEdit("sys/calendar");
+        try { _dayTypes = Md.ListCodeItems("CALENDAR_DAY_TYPE"); } catch { }
+        try { _plants = Md.ListCodeItems("PLANT"); } catch { }
+        if (_dayTypes.Count == 0)
+            _dayTypes = new()
+            {
+                new("CAL_DAY_WORKDAY", "CALENDAR_DAY_TYPE", "WORKDAY", "근무일", "Workday", null, 1, null, true, null, null, null, null, null),
+                new("CAL_DAY_WEEKEND", "CALENDAR_DAY_TYPE", "WEEKEND", "주말",   "Weekend", null, 2, null, true, null, null, null, null, null),
+                new("CAL_DAY_HOLIDAY", "CALENDAR_DAY_TYPE", "HOLIDAY", "공휴일", "Holiday", null, 3, null, true, null, null, null, null, null),
+            };
         Reload();
     }
 
@@ -557,14 +596,18 @@
     {
         _modalErr = ""; _confirmDelete = false;
         _genHolidays.Clear();
+        if (string.IsNullOrEmpty(_genPlant))
+            _genPlant = _plants.FirstOrDefault()?.CodeValue ?? "";
         _modal = "create";
     }
 
     void OpenEdit(DateTime date, List<AMES.Data.Repositories.SysRepository.CalendarRow>? shifts)
     {
+        if (!_canEdit) return;
         shifts ??= new();
         _selDate         = date;
-        _selPlant        = shifts.FirstOrDefault()?.PlantCode ?? "";
+        _selPlant        = shifts.FirstOrDefault()?.PlantCode
+                           ?? _plants.FirstOrDefault()?.CodeValue ?? "";
         _editDayType     = shifts.FirstOrDefault()?.DayType
                            ?? (date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday ? "WEEKEND" : "WORKDAY");
         _editHolidayName = shifts.FirstOrDefault()?.HolidayName ?? "";
@@ -707,6 +750,9 @@
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
+    static string ShiftBadgeCls(string code, bool active) =>
+        active ? code switch { "A" => "sh-a", "B" => "sh-b", "C" => "sh-c", _ => "" } : "sh-off";
+
     static decimal CalcNet(string start, string end, int breakMin)
     {
         if (!TimeSpan.TryParse(start, out var s) || !TimeSpan.TryParse(end, out var e)) return 0m;
@@ -730,18 +776,19 @@
             : new ShiftRow { Code = code, Active = false, Start = defStart, End = defEnd, BreakMin = 60 };
     }
 
-    static Microsoft.AspNetCore.Components.RenderFragment DayTypePill(string? dt) => builder =>
+    string DayTypeName(string? code)
     {
-        var (cls, text) = dt switch
-        {
-            "WORKDAY" => ("ok",   "WORKDAY"),
-            "WEEKEND" => ("warn", "WEEKEND"),
-            "HOLIDAY" => ("bad",  "HOLIDAY"),
-            _         => ("info", dt ?? "—")
-        };
+        if (code is null) return "—";
+        var item = _dayTypes.FirstOrDefault(d => d.CodeValue == code);
+        return item is null ? code : AMES.Data.Repositories.MasterDataRepository.LocalName(item);
+    }
+
+    Microsoft.AspNetCore.Components.RenderFragment DayTypePill(string? dt) => builder =>
+    {
+        var cls = dt switch { "WORKDAY" => "ok", "WEEKEND" => "warn", "HOLIDAY" => "bad", _ => "info" };
         builder.OpenElement(0, "span");
         builder.AddAttribute(1, "class", $"pill {cls}");
-        builder.AddContent(2, text);
+        builder.AddContent(2, dt is null ? "—" : DayTypeName(dt));
         builder.CloseElement();
     };
 

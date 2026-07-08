@@ -1,4 +1,4 @@
-@page "/rpt/on-time"
+﻿@page "/rpt/on-time"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.RptRepository Rpt
@@ -26,7 +26,7 @@
         <span style="white-space:nowrap;">▼ @L["RPT.OnTime.List"] · @_rows.Count @L["Lbl.Items"]</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Lbl.Period"]</span>
-            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_daysBack">
+            <select class="ames-input" style="width:100px;" @bind="_daysBack">
                 <option value="7">7@(L["Lbl.Days"])</option>
                 <option value="14">14@(L["Lbl.Days"])</option>
                 <option value="30">30@(L["Lbl.Days"])</option>

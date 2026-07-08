@@ -1,12 +1,129 @@
 ﻿@page "/sys/health"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@implements IDisposable
 @inject AMES.Data.Repositories.SysRepository Sys
+@inject ServerMonitorService Srv
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>SYS-010 @L["SYS.Health.Title"] · AMES</PageTitle>
 
 <AmesPageHeader Code="SYS-010" TitleKey="SYS.Health.Title" />
+
+@* ── 실시간 서버 정보 (KPI) ─────────────────────────────────────── *@
+<div class="ames-kpis">
+    <div class="ames-kpi @SvcClass()">
+        <div class="ames-kpi-l">@L["SYS.Health.Kpi.ServicesUp"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@(_srv is null ? "—" : $"{_srv.Services.Count(s => s.Status == "OK")}/{_srv.Services.Count}")</div>
+            <div class="ames-kpi-s">@L["SYS.Health.Kpi.ServicesUpSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi @PctClass(_srv?.CpuPct)">
+        <div class="ames-kpi-l">@L["SYS.Health.Kpi.Cpu"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@(_srv is null || _srv.CpuPct < 0 ? L["SYS.Health.Na"].Value : $"{_srv.CpuPct}%")</div>
+            <div class="ames-kpi-s">@string.Format(L["SYS.Health.Kpi.CpuSub"].Value, _srv?.Cores ?? Environment.ProcessorCount)</div>
+        </div>
+    </div>
+    <div class="ames-kpi @PctClass(_srv?.MemPct)">
+        <div class="ames-kpi-l">@L["SYS.Health.Kpi.Mem"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@(_srv is null || _srv.MemPct < 0 ? L["SYS.Health.Na"].Value : $"{_srv.MemPct}%")</div>
+            <div class="ames-kpi-s">@(_srv is null ? "" : string.Format(L["SYS.Health.Kpi.MemSub"].Value, _srv.MemUsedGb, _srv.MemTotalGb))</div>
+        </div>
+    </div>
+    <div class="ames-kpi @PctClass(_srv?.DiskPct)">
+        <div class="ames-kpi-l">@L["SYS.Health.Kpi.Disk"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@(_srv is null ? "—" : $"{_srv.DiskPct}%")</div>
+            <div class="ames-kpi-s">@(_srv is null ? "" : string.Format(L["SYS.Health.Kpi.DiskSub"].Value, _srv.DiskUsedGb, _srv.DiskTotalGb))</div>
+        </div>
+    </div>
+</div>
+
+<div class="sh-grid-2">
+    <div class="ames-card">
+        <div class="ames-card-h">▼ @L["SYS.Health.Svc.Title"]</div>
+        @if (_srv is null)
+        {
+            <div class="ames-empty">…</div>
+        }
+        else
+        {
+            @foreach (var s in _srv.Services)
+            {
+                <div class="sh-svc-row">
+                    <div class="sh-svc-left">
+                        <span class="sh-svc-dot @DotClass(s.Status)"></span>
+                        <div class="sh-svc-text">
+                            <div class="sh-svc-name">@s.Name</div>
+                            <div class="sh-svc-meta">@s.Host@(s.ResponseMs > 0 ? $" · response {s.ResponseMs}ms" : "")</div>
+                        </div>
+                    </div>
+                    <span class="pill @DotClass(s.Status)">@StatusLabel(s.Status)</span>
+                </div>
+            }
+        }
+    </div>
+
+    <div class="ames-card">
+        <div class="ames-card-h">▼ @L["SYS.Health.Res.Title"]</div>
+        @if (_srv is not null)
+        {
+            <div style="display:flex;flex-direction:column;gap:28px;padding:8px 0;">
+            @foreach (var (lbl, pct, val) in new[] {
+                (L["SYS.Health.Res.Cpu"].Value,  _srv.CpuPct,  $"{_srv.Cores} cores · {Math.Max(_srv.CpuPct, 0)}%"),
+                (L["SYS.Health.Res.Mem"].Value,  _srv.MemPct,  $"{_srv.MemTotalGb} GB · {Math.Max(_srv.MemPct, 0)}%"),
+                (L["SYS.Health.Res.Disk"].Value, _srv.DiskPct, $"{_srv.DiskTotalGb} GB · {_srv.DiskPct}%"),
+                (L["SYS.Health.Res.Net"].Value,  _srv.NetPct,  $"{_srv.NetMbps:F1} Mbps · {_srv.NetPct}%")
+            })
+            {
+                var barClr = pct >= 90 ? "rgba(239,68,68,.75)" : pct >= 75 ? "rgba(234,179,8,.75)" : "rgba(34,197,94,.75)";
+                <div class="pp-oee-bar-row">
+                    <span class="pp-oee-bar-lbl">@lbl</span>
+                    <div class="pp-oee-bar-track">
+                        <div class="pp-oee-bar-fill" style="width:@(Math.Clamp(pct, 0, 100))%;background:@barClr;"></div>
+                    </div>
+                    <span class="pp-oee-bar-val" style="width:auto;white-space:nowrap;text-align:left;">@val</span>
+                </div>
+            }
+        </div>
+        }
+    </div>
+</div>
+
+<div class="ames-card">
+    <div class="ames-card-h">▼ @L["SYS.Health.Events.Title"]</div>
+    @if (_events.Count == 0)
+    {
+        <div class="ames-empty">@L["SYS.Health.Events.Empty"]</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th>@L["SYS.Health.Events.Col.Time"]</th>
+                    <th>@L["SYS.Health.Events.Col.Level"]</th>
+                    <th>@L["SYS.Health.Events.Col.Component"]</th>
+                    <th>@L["SYS.Health.Events.Col.Message"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var e in _events)
+                {
+                    <tr>
+                        <td class="dim code">@(e.EventTs?.ToString("HH:mm:ss") ?? "—")</td>
+                        <td><span class="pill @(e.Result == "OK" ? "ok" : "warn")">@(e.Result == "OK" ? L["SYS.Health.Status.Ok"].Value : L["SYS.Health.Status.Warn"].Value)</span></td>
+                        <td class="dim">@(e.ModuleCode ?? e.ScreenCode ?? "—")</td>
+                        <td>@EventMessage(e)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
 
 <div class="ames-kpis">
     <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Health.Kpi.Users"]</div>
@@ -100,8 +217,95 @@
 @code {
     AMES.Data.Repositories.SysRepository.HealthKpi _k =
         new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0L);
+    List<AMES.Data.Repositories.SysRepository.AuditRow> _events = new();
+    ServerMonitorService.ServerSnapshot? _srv;
+    PeriodicTimer? _timer;
+    CancellationTokenSource? _cts;
+
     protected override void OnInitialized()
     {
         try { _k = Sys.GetHealth(); } catch { }
+        try { _events = Sys.ListAudit(8); } catch { }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _cts = new CancellationTokenSource();
+        await RefreshServerAsync();
+        StateHasChanged();
+        _timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+        _ = RunTimerAsync(_cts.Token);
+    }
+
+    async Task RunTimerAsync(CancellationToken ct)
+    {
+        try
+        {
+            while (await _timer!.WaitForNextTickAsync(ct))
+            {
+                await RefreshServerAsync();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    async Task RefreshServerAsync()
+    {
+        try { _srv = await Srv.GetSnapshotAsync(); } catch { }
+        try { _k = Sys.GetHealth(); } catch { }
+        try { _events = Sys.ListAudit(8); } catch { }
+    }
+
+    string SvcClass()
+    {
+        if (_srv is null || _srv.Services.Count == 0) return "";
+        if (_srv.Services.Any(s => s.Status == "DOWN")) return "bad";
+        if (_srv.Services.Any(s => s.Status == "WARN")) return "warn";
+        return "ok";
+    }
+
+    static string PctClass(int? pct) => pct switch
+    {
+        null => "",
+        < 0 => "",
+        >= 90 => "bad",
+        >= 75 => "warn",
+        _ => "ok"
+    };
+
+    static string DotClass(string status) => status switch
+    {
+        "OK" => "ok",
+        "WARN" => "warn",
+        "DOWN" => "bad",
+        _ => "warn"
+    };
+
+    string StatusLabel(string status) => status switch
+    {
+        "OK" => L["SYS.Health.Status.Ok"].Value,
+        "WARN" => L["SYS.Health.Status.Warn"].Value,
+        "DOWN" => L["SYS.Health.Status.Down"].Value,
+        _ => status
+    };
+
+    static string EventMessage(AMES.Data.Repositories.SysRepository.AuditRow e)
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(e.ActionType))   parts.Add(e.ActionType);
+        if (!string.IsNullOrWhiteSpace(e.TargetEntity)) parts.Add(e.TargetEntity);
+        if (!string.IsNullOrWhiteSpace(e.TargetId))     parts.Add($"#{e.TargetId}");
+        var head = string.Join(" ", parts);
+        if (!string.IsNullOrWhiteSpace(e.Note)) return head.Length == 0 ? e.Note! : $"{head} — {e.Note}";
+        return head.Length == 0 ? "—" : head;
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _timer?.Dispose();
+        _cts?.Dispose();
     }
 }

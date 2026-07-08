@@ -1,8 +1,9 @@
-﻿@page "/md/oven"
+@page "/md/re/oven"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
 @inject AuthenticationStateProvider Auth
+@inject AMES.Web.Services.PermissionService Perm
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["MD.Oven.Title"] · AMES</PageTitle>
@@ -40,7 +41,7 @@
             <input class="ames-input" style="width:160px;padding:4px 8px;"
                    placeholder='@L["MD.Oven.Ph.Search"]' @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
             <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Line"]</span>
-            <select class="ames-input" style="width:130px;padding:4px 8px;" @bind="_fLine">
+            <select class="ames-input" style="width:130px;" @bind="_fLine">
                 <option value="">@L["Filter.AllLines"]</option>
                 @foreach (var l in _lineList)
                 {
@@ -48,7 +49,7 @@
                 }
             </select>
             <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
-            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fStatus">
+            <select class="ames-input" style="width:100px;" @bind="_fStatus">
                 <option value="">@L["Filter.AllStatus"]</option>
                 @foreach (var s in _ovenStatus.Where(s => s.UseFlag))
                 {
@@ -56,7 +57,7 @@
                 }
             </select>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
-            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
+            @if (_canEdit) { <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button> }
         </div>
     </div>
 
@@ -250,6 +251,7 @@
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
     string _msg = "", _modalErr = "";
     bool _isErr;
+    bool   _canEdit;
     string _actor = "system";
     FormModel _f = new();
 
@@ -257,6 +259,8 @@
     {
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
+        await Perm.EnsureAsync(Auth);
+        _canEdit = Perm.CanEdit("md/re/oven");
         try { _lineList   = Md.ListLines();                      } catch { }
         try { _ovenStatus = Md.ListCodeItems("OVEN_STATUS"); } catch { }
         Reload();
@@ -276,6 +280,7 @@
 
     void OpenEdit(AMES.Data.Repositories.MasterDataRepository.OvenRow r)
     {
+        if (!_canEdit) return;
         _sel = r; _modalErr = ""; _confirmDelete = false;
         _f = new()
         {

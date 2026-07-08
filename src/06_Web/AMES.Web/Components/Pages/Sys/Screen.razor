@@ -2,7 +2,9 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
+@inject AMES.Data.Repositories.MasterDataRepository MD
 @inject AuthenticationStateProvider Auth
+@inject AMES.Web.Services.PermissionService Perm
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>SYS-003 @L["SYS.Screen.Title"] · AMES</PageTitle>
@@ -39,21 +41,30 @@
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:160px;padding:4px 8px;"
                    placeholder="@L["SYS.Screen.Ph.Search"]" @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
-            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fModule">
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Module"]</span>
+            <select class="ames-input" style="width:110px;" @bind="_fModule">
                 <option value="">@L["SYS.Screen.Filter.AllModules"]</option>
-                <option value="PP">PP</option>
-                <option value="MNT">MNT</option>
-                <option value="RPT">RPT</option>
-                <option value="MD">MD</option>
-                <option value="SYS">SYS</option>
+                @foreach (var m in _modules)
+                {
+                    <option value="@m.CodeValue">[@m.CodeValue] @(LocalName(m))</option>
+                }
             </select>
-            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fVisible">
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["SYS.Screen.Col.Process"]</span>
+            <select class="ames-input" style="width:120px;" @bind="_fProcess">
+                <option value="">@L["Filter.All"]</option>
+                @foreach (var p in _processes)
+                {
+                    <option value="@p.CodeValue">[@p.CodeValue] @(LocalName(p))</option>
+                }
+            </select>
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Lbl.Visible"]</span>
+            <select class="ames-input" style="width:100px;" @bind="_fVisible">
                 <option value="">@L["Filter.All"]</option>
                 <option value="Y">@L["SYS.Screen.Filter.Visible"]</option>
                 <option value="N">@L["SYS.Screen.Filter.Hidden"]</option>
             </select>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
-            <button class="ames-btn"    @onclick="OpenCreate">@L["Btn.Create"]</button>
+            @if (_canEdit) { <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button> }
         </div>
     </div>
 
@@ -66,9 +77,13 @@
         <table class="ames-table">
             <thead>
                 <tr>
-                    <th>@L["SYS.Screen.Col.Code"]</th><th>@L["SYS.Screen.Col.Module"]</th>
-                    <th>@L["SYS.Screen.Col.NameKo"]</th><th>@L["SYS.Screen.Col.NameEn"]</th>
-                    <th>@L["SYS.Screen.Col.Path"]</th><th>@L["SYS.Screen.Col.LidLabel"]</th>
+                    <th>@L["SYS.Screen.Col.Code"]</th>
+                    <th>@L["Col.Module"]</th>
+                    <th>@L["SYS.Screen.Col.Process"]</th>
+                    <th>@L["SYS.Screen.Col.NameKo"]</th>
+                    <th>@L["SYS.Screen.Col.NameEn"]</th>
+                    <th>@L["SYS.Screen.Col.Path"]</th>
+                    <th>@L["SYS.Screen.Col.LidLabel"]</th>
                     <th style="text-align:center;">@L["SYS.Screen.Col.SortOrder"]</th>
                     <th style="text-align:center;">@L["SYS.Screen.Col.Visible"]</th>
                     <th style="text-align:center;">@L["SYS.Screen.Col.Roles"]</th>
@@ -84,7 +99,7 @@
                     {
                         prevModule = r.ModuleCode;
                         <tr style="background:#f8fafc;">
-                            <td colspan="9" style="font-size:.8rem;font-weight:700;color:#64748b;letter-spacing:.05em;padding:6px 10px;">
+                            <td colspan="10" style="font-size:.8rem;font-weight:700;color:#64748b;letter-spacing:.05em;padding:6px 10px;">
                                 ── @r.ModuleCode ──────────────────────────────────
                             </td>
                         </tr>
@@ -92,6 +107,12 @@
                     <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
                         <td class="code">@r.ScreenCode</td>
                         <td><span class="pill info">@r.ModuleCode</span></td>
+                        <td>
+                            @if (r.ProcessCode is not null)
+                            { <span class="pill" style="background:#e0f2fe;color:#0369a1;">@r.ProcessCode</span> }
+                            else
+                            { <span class="dim">—</span> }
+                        </td>
                         <td>@r.ScreenName</td>
                         <td class="dim" style="font-size:12px;">@(r.ScreenNameEn ?? "—")</td>
                         <td class="dim" style="font-size:12px;font-family:'JetBrains Mono',monospace;">@(r.HRef ?? "—")</td>
@@ -122,13 +143,22 @@
             <label>@L["SYS.Screen.Col.Code"] *</label>
             <input class="ames-input" @bind="_f.ScreenCode" placeholder="@L["SYS.Screen.Ph.Code"]" autocomplete="off" />
 
-            <label>@L["SYS.Screen.Col.Module"] *</label>
+            <label>@L["Col.Module"] *</label>
             <select class="ames-input" @bind="_f.ModuleCode">
-                <option value="PP">PP</option>
-                <option value="MNT">MNT</option>
-                <option value="RPT">RPT</option>
-                <option value="MD">MD</option>
-                <option value="SYS">SYS</option>
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var m in _modules)
+                {
+                    <option value="@m.CodeValue">[@m.CodeValue] @(LocalName(m))</option>
+                }
+            </select>
+
+            <label>@L["SYS.Screen.Col.Process"]</label>
+            <select class="ames-input" @bind="_f.ProcessCode">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var p in _processes)
+                {
+                    <option value="@p.CodeValue">[@p.CodeValue] @(LocalName(p))</option>
+                }
             </select>
 
             <label>@L["SYS.Screen.Col.NameKo"] *</label>
@@ -172,13 +202,22 @@
             <label>@L["SYS.Screen.Col.Code"] *</label>
             <input class="ames-input" @bind="_f.ScreenCode" autocomplete="off" />
 
-            <label>@L["SYS.Screen.Col.Module"] *</label>
+            <label>@L["Col.Module"] *</label>
             <select class="ames-input" @bind="_f.ModuleCode">
-                <option value="PP">PP</option>
-                <option value="MNT">MNT</option>
-                <option value="RPT">RPT</option>
-                <option value="MD">MD</option>
-                <option value="SYS">SYS</option>
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var m in _modules)
+                {
+                    <option value="@m.CodeValue">[@m.CodeValue] @(LocalName(m))</option>
+                }
+            </select>
+
+            <label>@L["SYS.Screen.Col.Process"]</label>
+            <select class="ames-input" @bind="_f.ProcessCode">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var p in _processes)
+                {
+                    <option value="@p.CodeValue">[@p.CodeValue] @(LocalName(p))</option>
+                }
             </select>
 
             <label>@L["SYS.Screen.Col.NameKo"] *</label>
@@ -225,13 +264,16 @@
 }
 
 @code {
-    List<AMES.Data.Repositories.SysRepository.ScreenRow> _allRows = new();
-    List<AMES.Data.Repositories.SysRepository.ScreenRow> _rows    = new();
+    List<AMES.Data.Repositories.SysRepository.ScreenRow>       _allRows  = new();
+    List<AMES.Data.Repositories.SysRepository.ScreenRow>       _rows     = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _modules  = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _processes = new();
     AMES.Data.Repositories.SysRepository.ScreenRow? _sel;
 
-    string _fSearch = "", _fModule = "", _fVisible = "";
+    string _fSearch = "", _fModule = "", _fProcess = "", _fVisible = "";
     string _modal = "", _modalErr = "", _msg = "";
     bool _busy, _bgMouseDownOnSelf, _isErr, _confirmDelete;
+    bool   _canEdit;
     string _actor = "system";
 
     FormModel _f = new();
@@ -240,6 +282,10 @@
     {
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
+        await Perm.EnsureAsync(Auth);
+        _canEdit = Perm.CanEdit("sys/screen");
+        _modules   = MD.ListCodeItems("MODULE");
+        _processes = MD.ListCodeItems("PROCESS");
         Reload();
     }
 
@@ -249,26 +295,29 @@
         (string.IsNullOrEmpty(_fSearch) ||
             r.ScreenCode.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             r.ScreenName.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
-            (r.ScreenNameEn ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
-            (r.HRef ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
-        (string.IsNullOrEmpty(_fModule) || r.ModuleCode == _fModule) &&
+            (r.ScreenNameEn  ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.HRef          ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fModule)  || r.ModuleCode == _fModule) &&
+        (string.IsNullOrEmpty(_fProcess) || r.ProcessCode == _fProcess) &&
         (string.IsNullOrEmpty(_fVisible) || (_fVisible == "Y" ? r.IsVisible : !r.IsVisible))
-    ).ToList(); }
+    ).OrderBy(r => r.ProcessCode ?? "￿").ThenBy(r => r.ScreenCode).ToList(); }
 
     void OpenCreate()
     {
-        _f = new() { ModuleCode = "PP", IsVisible = true };
+        _f = new() { ModuleCode = _modules.FirstOrDefault()?.CodeValue ?? "", IsVisible = true };
         _modalErr = ""; _confirmDelete = false;
         _modal = "create";
     }
 
     void OpenEdit(AMES.Data.Repositories.SysRepository.ScreenRow r)
     {
+        if (!_canEdit) return;
         _sel = r; _modalErr = ""; _confirmDelete = false;
         _f = new()
         {
             ScreenCode   = r.ScreenCode,
             ModuleCode   = r.ModuleCode,
+            ProcessCode  = r.ProcessCode ?? "",
             ScreenName   = r.ScreenName,
             ScreenNameEn = r.ScreenNameEn ?? "",
             HRef         = r.HRef         ?? "",
@@ -287,15 +336,15 @@
     void SaveCreate()
     {
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_f.ScreenCode))  { _modalErr = L["SYS.Screen.Err.CodeRequired"].Value; return; }
-        if (string.IsNullOrWhiteSpace(_f.ModuleCode))  { _modalErr = L["SYS.Screen.Err.ModuleRequired"].Value; return; }
-        if (string.IsNullOrWhiteSpace(_f.ScreenName))  { _modalErr = L["SYS.Screen.Err.NameRequired"].Value; return; }
+        if (string.IsNullOrWhiteSpace(_f.ScreenCode)) { _modalErr = L["SYS.Screen.Err.CodeRequired"].Value; return; }
+        if (string.IsNullOrWhiteSpace(_f.ModuleCode)) { _modalErr = L["SYS.Screen.Err.ModuleRequired"].Value; return; }
+        if (string.IsNullOrWhiteSpace(_f.ScreenName)) { _modalErr = L["SYS.Screen.Err.NameRequired"].Value; return; }
         _busy = true;
         try
         {
             Sys.InsertScreen(
-                _f.ScreenCode.Trim(), _f.ModuleCode.Trim(), _f.ScreenName.Trim(),
-                Nz(_f.ScreenNameEn), Nz(_f.HRef), Nz(_f.LidLabel),
+                _f.ScreenCode.Trim(), _f.ModuleCode.Trim(), Nz(_f.ProcessCode),
+                _f.ScreenName.Trim(), Nz(_f.ScreenNameEn), Nz(_f.HRef), Nz(_f.LidLabel),
                 _f.SortOrder, _f.IsVisible, _actor);
             Reload(); CloseModal();
             ShowMsg(string.Format(L["SYS.Screen.Ok.Created"].Value, _f.ScreenCode), false);
@@ -308,15 +357,15 @@
     {
         if (_sel is null) return;
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_f.ScreenCode))  { _modalErr = L["SYS.Screen.Err.CodeRequired"].Value; return; }
-        if (string.IsNullOrWhiteSpace(_f.ModuleCode))  { _modalErr = L["SYS.Screen.Err.ModuleRequired"].Value; return; }
-        if (string.IsNullOrWhiteSpace(_f.ScreenName))  { _modalErr = L["SYS.Screen.Err.NameRequired"].Value; return; }
+        if (string.IsNullOrWhiteSpace(_f.ScreenCode)) { _modalErr = L["SYS.Screen.Err.CodeRequired"].Value; return; }
+        if (string.IsNullOrWhiteSpace(_f.ModuleCode)) { _modalErr = L["SYS.Screen.Err.ModuleRequired"].Value; return; }
+        if (string.IsNullOrWhiteSpace(_f.ScreenName)) { _modalErr = L["SYS.Screen.Err.NameRequired"].Value; return; }
         _busy = true;
         try
         {
             Sys.UpdateScreen(
-                _sel.ScreenId, _f.ScreenCode.Trim(), _f.ModuleCode.Trim(), _f.ScreenName.Trim(),
-                Nz(_f.ScreenNameEn), Nz(_f.HRef), Nz(_f.LidLabel),
+                _sel.ScreenId, _f.ScreenCode.Trim(), _f.ModuleCode.Trim(), Nz(_f.ProcessCode),
+                _f.ScreenName.Trim(), Nz(_f.ScreenNameEn), Nz(_f.HRef), Nz(_f.LidLabel),
                 _f.SortOrder, _f.IsVisible, _actor);
             Reload(); CloseModal();
             ShowMsg(string.Format(L["SYS.Screen.Ok.Updated"].Value, _f.ScreenCode), false);
@@ -348,10 +397,14 @@
 
     static string? Nz(string s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 
+    static string LocalName(AMES.Data.Repositories.MasterDataRepository.CodeItemRow r) =>
+        AMES.Data.Repositories.MasterDataRepository.LocalName(r);
+
     class FormModel
     {
         public string ScreenCode   { get; set; } = "";
-        public string ModuleCode   { get; set; } = "PP";
+        public string ModuleCode   { get; set; } = "";
+        public string ProcessCode  { get; set; } = "";
         public string ScreenName   { get; set; } = "";
         public string ScreenNameEn { get; set; } = "";
         public string HRef         { get; set; } = "";

@@ -53,7 +53,7 @@
     <button class="ames-cal-tab @(_tab=="pattern"?"active":"")"
             @onclick='() => SwitchTab("pattern")'>@L["PP.LineSchedule.Tab.Pattern"]</button>
     <div style="flex:1;"></div>
-    <select class="ames-input" style="width:160px;padding:4px 8px;align-self:center;"
+    <select class="ames-input" style="width:160px;align-self:center;"
             @bind="_lineId" @bind:after="LoadData">
         <option value="">@L["PP.LineSchedule.Ph.SelectLine"]</option>
         @foreach (var l in _lines)
@@ -64,7 +64,7 @@
     <input type="date" class="ames-input" style="width:150px;padding:4px 8px;align-self:center;"
            value="@_date.ToString("yyyy-MM-dd")"
            @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) { _date = d; LoadData(); } }" />
-    <select class="ames-input" style="width:120px;padding:4px 8px;align-self:center;"
+    <select class="ames-input" style="width:120px;align-self:center;"
             @bind="_dayType" @bind:after="LoadData">
         <option value="WORKDAY">WORKDAY</option>
         <option value="WEEKEND">WEEKEND</option>
@@ -90,12 +90,12 @@ else
             <span>▼ @_lineId · @_date.ToString("yyyy-MM-dd ddd") · @_dayType</span>
             <div style="display:flex;gap:6px;align-items:center;">
                 <span class="dim" style="font-size:12px;">@L["PP.LineSchedule.Kpi.WorkCap"]</span>
-                <select class="ames-input" style="width:90px;padding:3px 6px;" @bind="_startH"
+                <select class="ames-input" style="width:90px;" @bind="_startH"
                         @bind:after="StateHasChanged">
                     @for (int h = 0; h <= 22; h++) { <option value="@h">@($"{h:00}"):00</option> }
                 </select>
                 <span class="dim">~</span>
-                <select class="ames-input" style="width:90px;padding:3px 6px;" @bind="_endH"
+                <select class="ames-input" style="width:90px;" @bind="_endH"
                         @bind:after="StateHasChanged">
                     @for (int h = 1; h <= 24; h++) { <option value="@h">@($"{h:00}"):00</option> }
                 </select>
@@ -113,7 +113,7 @@ else
                         display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;">
                 <div>
                     <div class="dim" style="font-size:11px;margin-bottom:3px;">@L["PP.LineSchedule.Lbl.WoSelect"]</div>
-                    <select class="ames-input" style="width:220px;padding:4px 8px;" @bind="_placeWoId">
+                    <select class="ames-input" style="width:220px;" @bind="_placeWoId">
                         <option value="0">@L["Opt.Select"]</option>
                         @foreach (var wo in _availableWos)
                         {
@@ -205,12 +205,12 @@ else
                             @onclick="() => _bandType = t">@L[k]</button>
                 }
                 <span class="dim" style="font-size:11px;margin-left:4px;">@L["PP.LineSchedule.Kpi.WorkCap"]</span>
-                <select class="ames-input" style="width:90px;padding:3px 6px;" @bind="_startH"
+                <select class="ames-input" style="width:90px;" @bind="_startH"
                         @bind:after="ReinitDrag">
                     @for (int h = 0; h <= 22; h++) { <option value="@h">@($"{h:00}"):00</option> }
                 </select>
                 <span class="dim">~</span>
-                <select class="ames-input" style="width:90px;padding:3px 6px;" @bind="_endH"
+                <select class="ames-input" style="width:90px;" @bind="_endH"
                         @bind:after="ReinitDrag">
                     @for (int h = 1; h <= 24; h++) { <option value="@h">@($"{h:00}"):00</option> }
                 </select>
