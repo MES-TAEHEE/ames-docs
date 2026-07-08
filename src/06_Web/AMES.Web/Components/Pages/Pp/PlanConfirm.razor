@@ -1,46 +1,238 @@
-﻿@page "/pp/plan-confirm"
+@page "/pp/plan-confirm"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
+@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject DialogService Dialog
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["PP.PlanConfirm.Title"] · AMES</PageTitle>
 
 <AmesPageHeader Code="PP-003" TitleKey="PP.PlanConfirm.Title" />
 
-<div class="ames-card">
-    <div class="ames-card-h">▼ @L["PP.PlanConfirm.List"] (@_rows.Count)</div>
-    @if (_rows.Count == 0) { <div class="ames-empty">@L["PP.PlanConfirm.Empty"]</div> }
-    else
-    {
-        <table class="ames-table">
-            <thead><tr><th>@L["Col.Code"]</th><th>@L["Col.Period"]</th><th>@L["Col.Status"]</th><th class="num">@L["Col.Lines"]</th><th class="num">@L["Col.TotalQty"]</th><th></th></tr></thead>
-            <tbody>
-                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    <tr>
-                        <td class="code">@r.PlanCode</td>
-                        <td>@(r.PlanPeriod?.ToString("yyyy-MM") ?? "—")</td>
-                        <td>@r.Status</td>
-                        <td class="num">@r.LineCount</td>
-                        <td class="num">@r.TotalPlannedQty.ToString("0")</td>
-                        <td>
-                            @if (r.Status != "Confirmed")
-                            {
-                                <button class="ames-btn">✓ Confirm</button>
-                            }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
-    }
+<div class="pc-page">
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
+<div class="ames-kpis compact">
+    <div class="ames-kpi"><div class="ames-kpi-l">PLAN LINES</div><div class="ames-kpi-v">@_rows.Count</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">SELECTED</div><div class="ames-kpi-v">@_selected.Count</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">WO CREATED</div><div class="ames-kpi-v">@_woCreated</div></div>
+    <div class="ames-kpi @(BlockedCount > 0 ? "bad" : "")"><div class="ames-kpi-l">BLOCKED</div><div class="ames-kpi-v">@BlockedCount</div></div>
+</div>
+
+<div class="ames-card-h" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;text-transform:none;">
+    <div class="ames-fld">
+        <label>@L["Col.Customer"]</label>
+        <RadzenDropDown Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
+                        @bind-Value="_fCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
+                        Style="width:200px" />
+    </div>
+    <div class="ames-fld">
+        <label>@L["PP.PlanConfirm.Col.Due"] @L["PP.Forecast.Fld.Period"]</label>
+        <div style="display:flex;align-items:center;gap:6px;">
+            <RadzenDatePicker @bind-Value="_fFrom" DateFormat="MM/dd/yyyy" AllowClear="true"
+                              Placeholder="—" Style="width:165px" />
+            <span class="dim">~</span>
+            <RadzenDatePicker @bind-Value="_fTo" DateFormat="MM/dd/yyyy" AllowClear="true"
+                              Placeholder="—" Style="width:165px" />
+        </div>
+    </div>
+    <div class="ames-fld">
+        <label>@L["Col.SoNo"] / @L["Col.PartNo"]</label>
+        <RadzenTextBox @bind-Value="_fText" @bind-Value:after="ApplyFilters"
+                       Placeholder="—" Style="width:200px" />
+    </div>
+    <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+        <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" Click="Search" />
+        <RadzenButton Text="@L["Btn.Reset"].Value" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Click="Reset" />
+        <RadzenButton Text="@string.Format(L["PP.PlanConfirm.Btn.Batch"].Value, _selected.Count)"
+                      Icon="play_arrow" ButtonStyle="ButtonStyle.Success"
+                      Disabled="@(_selected.Count == 0)" Click="OpenBatch" />
+    </div>
+</div>
+
+<div class="pc-grid">
+@if (_rows.Count == 0)
+{
+    <div class="ames-empty">@L["PP.PlanConfirm.Empty"]</div>
+}
+else
+{
+    <RadzenDataGrid Data="_view" TItem="PpRepository.PlanLineRow" AllowVirtualization="true" Style="height:100%"
+                    AllowSorting="true" AllowColumnResize="true" Density="Density.Compact"
+                    class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Width="46px" Sortable="false"
+                                  Filterable="false" TextAlign="TextAlign.Center" Frozen="true">
+                <HeaderTemplate>
+                    <input type="checkbox" class="pc-ck" checked="@AllSelected"
+                           @onchange="e => ToggleAll((bool)(e.Value ?? false))" />
+                </HeaderTemplate>
+                <Template Context="r">
+                    <input type="checkbox" class="pc-ck" disabled="@r.Blocked"
+                           checked="@_selected.Contains(r.SoId)"
+                           @onchange="e => ToggleRow(r.SoId, (bool)(e.Value ?? false))" />
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="SoNumber" Title="@L["Col.SoNo"].Value"
+                                  Frozen="true" Width="150px">
+                <Template Context="r">
+                    <span class="code">@r.SoNumber</span>@if (r.SoLineNo is int ln) { <span class="dim">-@ln</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="CustomerId" Title="@L["Col.Customer"].Value" Width="120px" />
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="ItemNo" Title="@L["Col.Item"].Value" Width="240px">
+                <Template Context="r">
+                    <span class="code">@r.ItemNo</span>
+                    @if (!string.IsNullOrEmpty(r.ItemName)) { <span class="dim"> · @r.ItemName</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="OrderQty" Title="@L["Col.Order"].Value"
+                                  TextAlign="TextAlign.Right" Width="100px">
+                <Template Context="r">@r.OrderQty.ToString("#,0")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="FgOnHand" Title="@L["PP.PlanConfirm.Col.FgStock"].Value"
+                                  TextAlign="TextAlign.Right" Width="100px">
+                <Template Context="r"><span style="color:#86efac;">@r.FgOnHand.ToString("#,0")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="NetReq" Title="@L["PP.PlanConfirm.Col.NetReq"].Value"
+                                  TextAlign="TextAlign.Right" Width="110px">
+                <Template Context="r">
+                    <span style="font-weight:700;color:@(r.Blocked ? "#f87171" : "#93c5fd");">@r.NetReq.ToString("#,0")</span>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="LineLoadPct" Title="@L["PP.PlanConfirm.Col.LineLoad"].Value"
+                                  Filterable="false" Width="170px">
+                <Template Context="r">
+                    @if (r.LineLoadPct is int pct)
+                    {
+                        <span class="pc-bar"><i style="width:@(Math.Min(pct, 100))%;background:@LoadColor(pct);"></i></span>
+                        <span class="code" style="margin-left:6px;">@pct%</span>
+                        @if (!string.IsNullOrEmpty(r.LineId)) { <span class="dim" style="font-size:.85em;margin-left:4px;">@r.LineId</span> }
+                    }
+                    else { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="DueDate" Title="@L["PP.PlanConfirm.Col.Due"].Value" Width="120px">
+                <Template Context="r">
+                    @if (r.DueDate is DateTime d)
+                    {
+                        <span style="@(IsUrgent(d) ? "color:#f87171;font-weight:600;" : "")">@d.ToString("yyyy-MM-dd")</span>
+                    }
+                    else { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Title="@L["Col.Status"].Value"
+                                  Sortable="false" Filterable="false" Width="150px">
+                <Template Context="r">
+                    @if (r.Blocked)
+                    {
+                        <span class="pill bad">@L["PP.PlanConfirm.Status.Blocked"]</span>
+                    }
+                    else
+                    {
+                        <span class="pill info">@L["PP.PlanConfirm.Status.Pending"]</span>
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+}
+</div>
 </div>
 
 @code {
-    List<AMES.Data.Repositories.PpRepository.SupplyPlanRow> _rows = new();
-    int _page = 0;
-    const int _pageSize = 20;
-    protected override void OnInitialized() { try { _rows = Pp.ListSupplyPlans(); } catch { } }
+    List<MasterDataRepository.CustomerRow> _customers = new();
+
+    string    _fCustomer = "";
+    string    _fText     = "";
+    DateTime? _fFrom;
+    DateTime? _fTo;
+
+    List<PpRepository.PlanLineRow> _rows = new();   // 조회 결과
+    List<PpRepository.PlanLineRow> _view = new();   // 텍스트 필터 적용 표시용
+    HashSet<int> _selected = new();
+    int _woCreated;
+
+    string _msg = "";
+    bool   _isErr;
+
+    int BlockedCount => _rows.Count(r => r.Blocked);
+    IEnumerable<PpRepository.PlanLineRow> Selectable => _view.Where(r => !r.Blocked);
+    bool AllSelected => Selectable.Any() && Selectable.All(r => _selected.Contains(r.SoId));
+
+    protected override void OnInitialized()
+    {
+        try { _customers = Md.ListCustomers(); } catch { }
+        Search();
+    }
+
+    void Search()
+    {
+        try   { _rows = Pp.ListPlanCandidates(_fCustomer ?? "", _fFrom, _fTo); }
+        catch { _rows = new(); }
+        _selected.RemoveWhere(id => _rows.All(r => r.SoId != id));
+        ApplyFilters();
+    }
+
+    // SO 번호 / 품번·품명 부분일치 클라이언트 필터.
+    void ApplyFilters()
+    {
+        _view = string.IsNullOrWhiteSpace(_fText)
+            ? _rows
+            : _rows.Where(r =>
+                  (r.SoNumber?.Contains(_fText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                  r.ItemNo.Contains(_fText, StringComparison.OrdinalIgnoreCase) ||
+                  (r.ItemName?.Contains(_fText, StringComparison.OrdinalIgnoreCase) ?? false))
+              .ToList();
+    }
+
+    void Reset()
+    {
+        _fCustomer = ""; _fText = ""; _fFrom = null; _fTo = null;
+        Search();
+    }
+
+    void ToggleRow(int soId, bool on)
+    {
+        if (on) _selected.Add(soId); else _selected.Remove(soId);
+    }
+
+    void ToggleAll(bool on)
+    {
+        foreach (var r in Selectable)
+            if (on) _selected.Add(r.SoId); else _selected.Remove(r.SoId);
+    }
+
+    static bool IsUrgent(DateTime d) => (d.Date - DateTime.Today).Days <= 14;
+
+    // 라인 부하 색: >90 과부하(빨강) · 70~90 주의(주황) · <70 여유(초록)
+    static string LoadColor(int p) => p > 90 ? "#f87171" : p >= 70 ? "#fbbf24" : "#4ade80";
+
+    async Task OpenBatch()
+    {
+        var lines = _rows.Where(r => _selected.Contains(r.SoId) && !r.Blocked).ToList();
+        if (lines.Count == 0) { ShowMsg(L["PP.PlanConfirm.Err.NoneSelected"], true); return; }
+
+        var result = await Dialog.OpenAsync<PlanConfirmBatchDialog>(
+            L["PP.PlanConfirm.Dlg.Title"].Value,
+            new Dictionary<string, object?> { ["Lines"] = lines });
+
+        if (result is PlanConfirmBatchDialog.Result r)
+        {
+            _woCreated += r.Created;
+            _selected.Clear();
+            ShowMsg(string.Format(L["PP.PlanConfirm.Ok.Created"].Value, r.Created), false);
+            Search();
+        }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
 }
