@@ -39,6 +39,15 @@ public sealed class PpRepository
     public sealed record SupplyPlanRow(int PlanId, string? PlanCode, DateTime? PlanPeriod,
         string? Status, int LineCount, decimal TotalPlannedQty);
 
+    // PP-003 계획 검토 라인 — WO 미생성 확정 수주 + FG 재고 + 라인 부하.
+    public sealed record PlanLineRow(int SoId, string? SoNumber, int? SoLineNo, string? CustomerId,
+        string ItemNo, string? ItemName, decimal OrderQty, decimal FgOnHand, DateTime? DueDate, bool ItemExists,
+        string? LineId, int? LineLoadPct)
+    {
+        public decimal NetReq => Math.Max(0m, OrderQty - FgOnHand);
+        public bool Blocked => !ItemExists;   // 품목마스터 미완성 → WO 생성 불가 (BR-PP-001)
+    }
+
     public sealed record MrpRunRow(int MrpRunId, DateTime? RunAt, DateTime? HorizonStart,
         DateTime? HorizonEnd, int WosConsidered, int PrsCreated, int ShortageCount,
         int DurationMs, string? Status);
@@ -454,6 +463,112 @@ public sealed class PpRepository
             (int)r["PlanID"], r["PlanCode"] as string, r["PlanPeriod"] as DateTime?,
             r["Status"] as string, (int)r["LineCount"],
             r.GetDecimal(r.GetOrdinal("TotalPlannedQty"))));
+    }
+
+    // ── PP-003 계획 확정 — WO 미생성 확정 수주 후보 (납기·고객 필터) ───────
+    public List<PlanLineRow> ListPlanCandidates(string customerId, DateTime? dueFrom, DateTime? dueTo, int take = 500)
+    {
+        var sql = $$"""
+            SELECT TOP ({{take}}) s.SoID, s.SoNumber, s.SoLineNo, s.CustomerID,
+                   s.ItemNo, i.ItemName,
+                   ISNULL(s.OrderQty,0) AS OrderQty,
+                   ISNULL(fg.OnHand,0)  AS FgOnHand,
+                   s.RequestedDeliveryDate AS DueDate,
+                   CASE WHEN i.ItemNo IS NULL THEN 0 ELSE 1 END AS ItemExists,
+                   ln.LineID AS LineId,
+                   CASE WHEN ml.DailyCap > 0
+                        THEN CAST(ld.OpenLoad * 100.0 / (ml.DailyCap * 7) AS INT)
+                        ELSE NULL END AS LineLoadPct
+            FROM   dbo.PP_CustomerOrder s
+            LEFT JOIN dbo.MD_Item i ON i.ItemNo = s.ItemNo
+            LEFT JOIN dbo.PP_WorkOrder wo ON wo.SoID = s.SoID
+            OUTER APPLY (SELECT SUM(f.Qty) AS OnHand FROM dbo.FG_Stock f
+                         WHERE f.ItemNo = s.ItemNo AND f.Status NOT IN ('SHIPPED','SCRAPPED')) fg
+            OUTER APPLY (SELECT TOP 1 w2.LineID FROM dbo.PP_WorkOrder w2
+                         WHERE w2.ItemNo = s.ItemNo AND w2.LineID IS NOT NULL
+                         ORDER BY w2.CreatedTS DESC) ln
+            LEFT JOIN dbo.MD_Line ml ON ml.LineID = ln.LineID
+            OUTER APPLY (SELECT ISNULL(SUM(w3.OpenQty),0) AS OpenLoad FROM dbo.PP_WorkOrder w3
+                         WHERE w3.LineID = ln.LineID
+                           AND w3.Status IN ('Draft','Planned','Released','In Progress')) ld
+            WHERE  s.Status = 'Confirmed' AND wo.WoID IS NULL
+               AND (@Cust = '' OR s.CustomerID = @Cust)
+               AND (@From IS NULL OR s.RequestedDeliveryDate >= @From)
+               AND (@To   IS NULL OR s.RequestedDeliveryDate <= @To)
+            ORDER BY s.RequestedDeliveryDate, s.SoNumber, s.SoLineNo;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Cust", SqlDbType.VarChar, 20).Value = customerId ?? "";
+        cmd.Parameters.Add("@From", SqlDbType.Date).Value = (object?)dueFrom ?? DBNull.Value;
+        cmd.Parameters.Add("@To",   SqlDbType.Date).Value = (object?)dueTo   ?? DBNull.Value;
+        using var rdr = cmd.ExecuteReader();
+        var list = new List<PlanLineRow>();
+        while (rdr.Read())
+            list.Add(new PlanLineRow(
+                (int)rdr["SoID"], rdr["SoNumber"] as string, rdr["SoLineNo"] as int?, rdr["CustomerID"] as string,
+                rdr["ItemNo"] as string ?? "", rdr["ItemName"] as string,
+                rdr.GetDecimal(rdr.GetOrdinal("OrderQty")),
+                rdr.GetDecimal(rdr.GetOrdinal("FgOnHand")),
+                rdr["DueDate"] as DateTime?, (int)rdr["ItemExists"] == 1,
+                rdr["LineId"] as string, rdr["LineLoadPct"] as int?));
+        return list;
+    }
+
+    /// <summary>
+    /// PP-003 선택 확정 수주 → Draft 작업지시 일괄 생성. 확정·품목마스터 존재·WO 미생성
+    /// 건만 삽입. WoNumber = WO-yyyyMMdd-NNN. 생성된 WoNumber 목록 반환.
+    /// </summary>
+    public List<string> CreateWorkOrdersForOrders(IReadOnlyList<int> soIds, string actor)
+    {
+        var created = new List<string>();
+        if (soIds.Count == 0) return created;
+
+        var prefix = $"WO-{DateTime.Today:yyyyMMdd}-";
+
+        const string insSql = """
+            INSERT INTO dbo.PP_WorkOrder
+                   (WoNumber, SoID, ItemNo, OrderQty, OpenQty, DueDate, Status, CreatedBy, CreatedTS)
+            SELECT @Wo, s.SoID, s.ItemNo, s.OrderQty, s.OrderQty, s.RequestedDeliveryDate,
+                   'Draft', @Actor, SYSDATETIME()
+            FROM   dbo.PP_CustomerOrder s
+            JOIN   dbo.MD_Item i ON i.ItemNo = s.ItemNo
+            WHERE  s.SoID = @SoID AND s.Status = 'Confirmed'
+               AND NOT EXISTS (SELECT 1 FROM dbo.PP_WorkOrder w WHERE w.SoID = s.SoID);
+            """;
+
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            int seq;
+            using (var cnt = new SqlCommand(
+                "SELECT COUNT(*) FROM dbo.PP_WorkOrder WHERE WoNumber LIKE @P + '%'", conn, tx))
+            {
+                cnt.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = prefix;
+                seq = (int)cnt.ExecuteScalar();
+            }
+
+            using var ins = new SqlCommand(insSql, conn, tx);
+            var pWo    = ins.Parameters.Add("@Wo",   SqlDbType.VarChar, 20);
+            var pSo    = ins.Parameters.Add("@SoID", SqlDbType.Int);
+            ins.Parameters.Add("@Actor", SqlDbType.NVarChar, 450).Value = actor;
+
+            foreach (var soId in soIds)
+            {
+                var wo = $"{prefix}{(seq + 1):D3}";
+                pWo.Value = wo;
+                pSo.Value = soId;
+                if (ins.ExecuteNonQuery() == 1) { created.Add(wo); seq++; }
+            }
+            tx.Commit();
+            return created;
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
     }
 
     // ── PP-004 Work Order: covered by WorkOrderRepository ───────────────

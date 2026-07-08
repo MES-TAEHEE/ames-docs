@@ -1,185 +1,322 @@
 @page "/pp/work-order"
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.WorkOrderRepository Wos
 @inject AMES.Data.Repositories.MasterDataRepository Md
+@inject DialogService Dialog
+@inject AuthenticationStateProvider Auth
+@inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
+@using AMES.Contracts.Dto
 
 <PageTitle>@L["PP.WorkOrder.Title"] · AMES</PageTitle>
 
 <AmesPageHeader Code="PP-004" TitleKey="PP.WorkOrder.Title" />
 
-@* ── KPI strip ─────────────────────────────────────────────────────────── *@
-<div class="ames-kpis">
-    <div class="ames-kpi dim">
-        <div class="ames-kpi-l">DRAFT</div>
-        <div class="ames-kpi-v">@_rows.Count(r => r.Status == "Draft")</div>
-        <div class="ames-kpi-s">@L["PP.WorkOrder.Kpi.Unshipped"]</div>
+<div class="wo-page">
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
+<div class="ames-kpis compact">
+    <div class="ames-kpi"><div class="ames-kpi-l">DRAFT</div><div class="ames-kpi-v">@Count("Draft")</div></div>
+    <div class="ames-kpi info"><div class="ames-kpi-l">RELEASED</div><div class="ames-kpi-v">@Count("Released")</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">IN PROGRESS</div><div class="ames-kpi-v">@Count("In Progress")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">CLOSED</div><div class="ames-kpi-v">@Count("Closed")</div></div>
+    <div class="ames-kpi @(CriticalCount > 0 ? "warn" : "")"><div class="ames-kpi-l">D-3 CRITICAL</div><div class="ames-kpi-v">@CriticalCount</div></div>
+</div>
+
+<div class="ames-card-h" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;text-transform:none;">
+    <div class="ames-fld">
+        <label>@L["Col.Status"]</label>
+        <RadzenDropDown Data="_statuses" @bind-Value="_fStatus" @bind-Value:after="ApplyFilters"
+                        AllowClear="true" Placeholder="@L["Filter.All"].Value" Style="width:150px" />
     </div>
-    <div class="ames-kpi info">
-        <div class="ames-kpi-l">RELEASED</div>
-        <div class="ames-kpi-v">@_rows.Count(r => r.Status == "Released")</div>
-        <div class="ames-kpi-s">@L["PP.WorkOrder.Kpi.Waiting"]</div>
+    <div class="ames-fld">
+        <label>Routing</label>
+        <RadzenDropDown Data="_routings" @bind-Value="_fRouting" @bind-Value:after="ApplyFilters"
+                        AllowClear="true" Placeholder="@L["Filter.All"].Value" Style="width:110px" />
     </div>
-    <div class="ames-kpi ok">
-        <div class="ames-kpi-l">IN PROGRESS</div>
-        <div class="ames-kpi-v">@_rows.Count(r => r.Status == "In Progress")</div>
-        <div class="ames-kpi-s">@L["PP.WorkOrder.Kpi.InProgress"]</div>
+    <div class="ames-fld">
+        <label>@L["Col.WoNo"] / @L["Col.Item"]</label>
+        <RadzenTextBox @bind-Value="_fText" @bind-Value:after="ApplyFilters"
+                       Placeholder="—" Style="width:200px" />
     </div>
-    <div class="ames-kpi dim">
-        <div class="ames-kpi-l">CLOSED</div>
-        <div class="ames-kpi-v">@_rows.Count(r => r.Status == "Closed")</div>
-        <div class="ames-kpi-s">@string.Format(L["PP.WorkOrder.Kpi.ClosedN"].Value, _recentDays)</div>
+    <div class="ames-fld">
+        <label>@L["PP.WorkOrder.Filter.ClosedDays"]</label>
+        <RadzenDropDown Data="_dayOpts" @bind-Value="_recentDays" @bind-Value:after="Reload" Style="width:130px" />
+    </div>
+    <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+        <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" Click="Reload" />
+        <RadzenButton Text="@L["Btn.Reset"].Value" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Click="Reset" />
+        <RadzenButton Text="@L["PP.WorkOrder.Btn.Export"].Value" Icon="download" ButtonStyle="ButtonStyle.Light" Click="ExportCsv" />
+        <RadzenButton Text="@L["PP.WorkOrder.Btn.Manual"].Value" Icon="add" ButtonStyle="ButtonStyle.Secondary" Click="OpenManual" />
     </div>
 </div>
 
-@if (!string.IsNullOrEmpty(_msg))
+<div class="wo-grid">
+@if (_rows.Count == 0)
 {
-    <div class="ames-alert @(_err != null ? "bad" : "ok")">@_msg</div>
+    <div class="ames-empty">@L["PP.WorkOrder.Empty"]</div>
 }
-
-@* ── card: header(filter) + grid ──────────────────────────────────────── *@
-<div class="ames-card">
-    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["PP.WorkOrder.List"] · @_filtered.Count @L["Lbl.Items"]@(_filtered.Count < _rows.Count ? $" / {L["Lbl.TotalOf"]} {_rows.Count}" : "")</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <select class="ames-input" style="width:140px;padding:4px 8px;" @bind="_filterLine">
-                <option value="">@L["Filter.AllLines"]</option>
-                @foreach (var l in _lineList)
-                {
-                    <option value="@l.LineID">@l.LineID@(l.LineName != null ? $" {l.LineName}" : "")</option>
-                }
-            </select>
-            <select class="ames-input" style="width:130px;padding:4px 8px;" @bind="_filterStatus">
-                <option value="">@L["PP.WorkOrder.Filter.AllStatus"]</option>
-                <option value="Draft">Draft</option>
-                <option value="Released">Released</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Closed">Closed</option>
-            </select>
-            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_recentDays" @bind:after="Reload">
-                <option value="7">@L["PP.WorkOrder.Filter.Closed7"]</option>
-                <option value="30">@L["PP.WorkOrder.Filter.Closed30"]</option>
-                <option value="60">@L["PP.WorkOrder.Filter.Closed60"]</option>
-                <option value="90">@L["PP.WorkOrder.Filter.Closed90"]</option>
-            </select>
-            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Search"]</button>
-        </div>
-    </div>
-
-    @if (_err is not null)
-    {
-        <div class="ames-empty bad">@_err</div>
-    }
-    else if (_filtered.Count == 0)
-    {
-        <div class="ames-empty">@L["PP.WorkOrder.Empty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th style="width:120px;">@L["Col.WoNo"]</th>
-                    <th>@L["Col.Item"]</th>
-                    <th style="width:130px;">@L["Col.Line"]</th>
-                    <th style="width:50px;text-align:center;">Route</th>
-                    <th style="width:70px;text-align:right;">@L["Col.Order"]</th>
-                    <th style="width:70px;text-align:right;">@L["Col.Done"]</th>
-                    <th style="width:140px;">@L["Col.Progress"]</th>
-                    <th style="width:70px;text-align:center;">D-Day</th>
-                    <th style="width:90px;">@L["Col.Status"]</th>
-                    <th style="width:40px;text-align:center;" title="@L["PP.Wo.P0Title"]">P0</th>
-                    <th style="width:80px;">SAP B1</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var w in _filtered.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    var pct   = (int)Math.Clamp(w.ProgressPct, 0, 100);
-                    var dday  = w.DaysToDue;
-                    var ddCls = dday is null ? "dim"
-                              : dday < 0    ? "bad"
-                              : dday <= 3   ? "warn"
-                                            : "ok";
-                    var ddTxt = dday is null ? "—"
-                              : dday < 0    ? $"D+{-dday}"
-                              : dday == 0   ? "D-Day"
-                                           : $"D-{dday}";
-                    var stCls = w.Status switch {
-                        "In Progress" => "ok",
-                        "Released"    => "info",
-                        _             => "dim"
-                    };
-                    <tr class="ames-row-link" @onclick="() => { }">
-                        <td class="code">@w.WoNumber</td>
-                        <td title="@w.ItemNo">@(w.ItemNameEn ?? w.ItemName)</td>
-                        <td class="code dim">@w.LineId</td>
-                        <td style="text-align:center;">
-                            @if (w.RoutingType == "A")
-                            { <span class="pill info" title="@L["PP.WorkOrder.Ttl.IMG"]">A</span> }
-                            else if (w.RoutingType == "B")
-                            { <span class="pill warn" title="@L["PP.WorkOrder.Ttl.PNT"]">B</span> }
-                        </td>
-                        <td style="text-align:right;">@w.OrderQty.ToString("N0")</td>
-                        <td style="text-align:right;">@w.CompletedQty.ToString("N0")</td>
-                        <td>
-                            <div style="display:flex;align-items:center;gap:6px;">
-                                <div style="flex:1;height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden;">
-                                    <div style="width:@(pct)%;height:8px;border-radius:4px;background:@(pct>=100?"#22c55e":"#3b82f6");transition:width .3s;"></div>
-                                </div>
-                                <span class="dim" style="font-size:11px;white-space:nowrap;min-width:28px;">@(pct)%</span>
-                            </div>
-                        </td>
-                        <td style="text-align:center;"><span class="pill @ddCls">@ddTxt</span></td>
-                        <td><span class="pill @stCls">@w.Status</span></td>
-                        <td style="text-align:center;">
-                            @if (!w.Phase0Complete && w.Status == "Draft")
-                            { <span class="pill bad" title="@L["PP.WorkOrder.Ttl.Phase0Fail"]">🚧</span> }
-                            else
-                            { <span class="pill ok" title="@L["PP.WorkOrder.Ttl.Phase0Pass"]">✓</span> }
-                        </td>
-                        <td class="dim" style="font-size:11px;">@(w.SapRef ?? "—")</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_filtered.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
-    }
+else
+{
+    <RadzenDataGrid Data="_view" TItem="WorkOrderDto" AllowVirtualization="true" Style="height:100%"
+                    AllowSorting="true" AllowColumnResize="true" Density="Density.Compact"
+                    class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="WorkOrderDto" Property="WoNumber" Title="@L["Col.WoNo"].Value" Frozen="true" Width="150px">
+                <Template Context="w"><span class="code">@w.WoNumber</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WorkOrderDto" Property="ItemNo" Title="@L["Col.Item"].Value" Width="230px">
+                <Template Context="w">
+                    <span class="code">@w.ItemNo</span>
+                    @{ var nm = w.ItemNameEn ?? w.ItemName; }
+                    @if (!string.IsNullOrEmpty(nm)) { <span class="dim"> · @nm</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WorkOrderDto" Property="LineId" Title="@L["Col.Line"].Value" Width="120px">
+                <Template Context="w"><span class="code dim">@(string.IsNullOrEmpty(w.LineId) ? "—" : w.LineId)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WorkOrderDto" Property="RoutingType" Title="Routing" Width="90px" TextAlign="TextAlign.Center">
+                <Template Context="w">
+                    @if (w.RoutingType == "A") { <span class="pill info" title="INJ→IMG→QC→FG">A</span> }
+                    else if (w.RoutingType == "B") { <span class="pill warn" title="INJ→PNT→QC→FG">B</span> }
+                    else { <span class="dim">INJ</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WorkOrderDto" Property="OrderQty" Title="@L["Col.Order"].Value" TextAlign="TextAlign.Right" Width="90px">
+                <Template Context="w">@w.OrderQty.ToString("#,0")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WorkOrderDto" Property="CompletedQty" Title="@L["Col.Done"].Value" TextAlign="TextAlign.Right" Width="90px">
+                <Template Context="w">@w.CompletedQty.ToString("#,0")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WorkOrderDto" Property="ProgressPct" Title="@L["Col.Progress"].Value" Width="160px" Filterable="false">
+                <Template Context="w">
+                    @{ var p = (int)Math.Clamp(w.ProgressPct, 0, 100); }
+                    <span class="wo-bar"><i style="width:@(p)%;background:@ProgColor(p);"></i></span>
+                    <span class="code" style="margin-left:6px;">@p%</span>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WorkOrderDto" Property="DaysToDue" Title="D-Day" Width="90px" TextAlign="TextAlign.Center">
+                <Template Context="w"><span class="pill @DdClass(w)">@DdText(w)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WorkOrderDto" Property="Status" Title="@L["Col.Status"].Value" Width="110px">
+                <Template Context="w"><span class="pill @StatusClass(w.Status)">@w.Status</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WorkOrderDto" Property="Phase0Complete" Title="P0" Width="56px" TextAlign="TextAlign.Center" Filterable="false">
+                <Template Context="w">
+                    @if (!w.Phase0Complete && w.Status == "Draft") { <span class="pill bad" title="@L["PP.WorkOrder.Ttl.Phase0Fail"]">🚧</span> }
+                    else { <span class="pill ok" title="@L["PP.WorkOrder.Ttl.Phase0Pass"]">✓</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WorkOrderDto" Property="SoNumber" Title="SAP SO" Width="140px">
+                <Template Context="w"><span class="dim">@(w.SoNumber ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WorkOrderDto" Title="@L["PP.WorkOrder.Col.Action"].Value"
+                                  Sortable="false" Filterable="false" Width="180px">
+                <Template Context="w">
+                    @if (w.Status == "Draft")
+                    {
+                        <RadzenButton Text="@L["PP.WorkOrder.Btn.Release"].Value" Icon="play_arrow" ButtonStyle="ButtonStyle.Success"
+                                      Size="ButtonSize.ExtraSmall" Click="@(() => Release(w))" />
+                        <RadzenButton Text="@L["PP.WorkOrder.Btn.Cancel"].Value" Icon="close" ButtonStyle="ButtonStyle.Danger"
+                                      Size="ButtonSize.ExtraSmall" Click="@(() => Cancel(w))" style="margin-left:4px;" />
+                    }
+                    else if (w.Status == "Released")
+                    {
+                        <RadzenButton Text="@L["PP.WorkOrder.Btn.Cancel"].Value" Icon="close" ButtonStyle="ButtonStyle.Danger"
+                                      Size="ButtonSize.ExtraSmall" Click="@(() => Cancel(w))" />
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+        <Template Context="w">
+            <div style="padding:10px 16px;">
+                <div class="dim" style="font-size:.8em;margin-bottom:6px;">Routing @(w.RoutingType ?? "INJ") · @L["PP.WorkOrder.Detail.Routing"]</div>
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+                    @{ var steps = Flow(w.RoutingType); var doneN = (int)Math.Floor(steps.Length * w.ProgressPct / 100); }
+                    @for (var i = 0; i < steps.Length; i++)
+                    {
+                        var cls = w.ProgressPct >= 100 ? "done"
+                                : i < doneN ? "done"
+                                : (i == doneN && w.ProgressPct > 0) ? "cur" : "todo";
+                        <span class="wo-step @cls">@steps[i]</span>
+                        @if (i < steps.Length - 1) { <span class="dim">→</span> }
+                    }
+                </div>
+                <div style="display:flex;gap:32px;flex-wrap:wrap;">
+                    <div><div class="dim" style="font-size:.8em;">@L["Col.Order"] / @L["Col.Progress"]</div>
+                         <div>@w.OrderQty.ToString("#,0") EA · @((int)w.ProgressPct)%</div></div>
+                    <div><div class="dim" style="font-size:.8em;">SAP SO</div><div>@(w.SoNumber ?? "—")</div></div>
+                    <div><div class="dim" style="font-size:.8em;">@L["PP.PlanConfirm.Col.Due"]</div>
+                         <div>@(w.DueDate?.ToString("yyyy-MM-dd") ?? "—")</div></div>
+                    <div><div class="dim" style="font-size:.8em;">@L["PP.WorkOrder.Detail.Reservation"]</div>
+                         <div>@ReservationText(w.Status)</div></div>
+                </div>
+            </div>
+        </Template>
+    </RadzenDataGrid>
+}
+</div>
 </div>
 
 @code {
-    List<AMES.Contracts.Dto.WorkOrderDto> _rows     = [];
-    List<AMES.Contracts.Dto.WorkOrderDto> _filtered = [];
-    int _page = 0;
-    const int _pageSize = 20;
-    List<AMES.Data.Repositories.MasterDataRepository.LineRow> _lineList = [];
-    string  _filterLine   = "";
-    string  _filterStatus = "";
-    int     _recentDays   = 30;
-    string? _err;
-    string  _msg  = "";
+    List<WorkOrderDto> _rows = new();
+    List<WorkOrderDto> _view = new();
 
-    protected override void OnInitialized()
-    {
-        try { _lineList = Md.ListLines(); } catch { }
-        Reload();
-    }
+    readonly string[] _statuses = { "Draft", "Released", "In Progress", "Closed" };
+    readonly string[] _routings = { "A", "B" };
+    readonly int[]    _dayOpts  = { 7, 30, 60, 90 };
+
+    string _fStatus  = "";
+    string _fRouting = "";
+    string _fText    = "";
+    int    _recentDays = 30;
+
+    string _msg = "";
+    bool   _isErr;
+
+    int Count(string status) => _rows.Count(r => r.Status == status);
+    int CriticalCount => _rows.Count(r => r.DaysToDue is int d && d <= 3
+                                          && (r.Status is "Draft" or "Released" or "In Progress"));
+
+    protected override void OnInitialized() => Reload();
 
     void Reload()
     {
-        _err = null;
+        _isErr = false;
         try   { _rows = Wos.ListAll(_recentDays); }
-        catch (Exception ex) { _err = string.Format(L["Err.LoadFailed"].Value, ex.Message); _rows = []; }
-        ApplyFilter();
+        catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); _rows = new(); }
+        ApplyFilters();
     }
 
-    void ApplyFilter()
+    void ApplyFilters()
     {
-        _page = 0;
-        _filtered = _rows
-            .Where(r => string.IsNullOrEmpty(_filterLine) || r.LineId == _filterLine)
-            .Where(r => string.IsNullOrWhiteSpace(_filterStatus) || r.Status == _filterStatus)
-            .ToList();
+        IEnumerable<WorkOrderDto> q = _rows;
+        if (!string.IsNullOrEmpty(_fStatus))  q = q.Where(r => r.Status == _fStatus);
+        if (!string.IsNullOrEmpty(_fRouting)) q = q.Where(r => (r.RoutingType ?? "") == _fRouting);
+        if (!string.IsNullOrWhiteSpace(_fText))
+            q = q.Where(r =>
+                r.WoNumber.Contains(_fText, StringComparison.OrdinalIgnoreCase) ||
+                r.ItemNo.Contains(_fText, StringComparison.OrdinalIgnoreCase) ||
+                (r.ItemName?.Contains(_fText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (r.SoNumber?.Contains(_fText, StringComparison.OrdinalIgnoreCase) ?? false));
+        _view = q.ToList();
+    }
+
+    void Reset()
+    {
+        _fStatus = ""; _fRouting = ""; _fText = ""; _recentDays = 30;
+        Reload();
+    }
+
+    // ── display helpers ─────────────────────────────────────────────
+    static string ProgColor(int p) => p >= 80 ? "#4ade80" : p >= 40 ? "#3b82f6" : "#94a3b8";
+    static string StatusClass(string s) => s switch { "In Progress" => "ok", "Released" => "info", "Closed" => "dim", _ => "dim" };
+    static string DdClass(WorkOrderDto w) =>
+        w.DaysToDue is not int d ? "dim" : d < 0 ? "bad" : d <= 3 ? "warn" : "ok";
+    static string DdText(WorkOrderDto w) =>
+        w.DaysToDue is not int d ? "—" : d < 0 ? $"D+{-d}" : d == 0 ? "D-Day" : $"D-{d}";
+    static string[] Flow(string? rt) => rt switch
+    {
+        "A" => new[] { "INJ", "IMG", "QC", "FG" },
+        "B" => new[] { "INJ", "PNT", "QC", "FG" },
+        _   => new[] { "INJ", "QC", "FG" }
+    };
+    string ReservationText(string status) =>
+        status is "In Progress" or "Closed" ? L["PP.WorkOrder.Detail.Reserved"].Value
+                                            : L["PP.WorkOrder.Detail.NotReserved"].Value;
+
+    // ── actions ─────────────────────────────────────────────────────
+    async Task<string> Actor()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        return auth.User.Identity?.Name ?? "system";
+    }
+
+    async Task Release(WorkOrderDto w)
+    {
+        try
+        {
+            var n = Wos.ReleaseWo(w.WoId, await Actor());
+            if (n > 0) ShowMsg(string.Format(L["PP.WorkOrder.Ok.Released"].Value, w.WoNumber), false);
+            Reload();
+        }
+        catch (Exception ex) { ShowMsg(ex.Message, true); }
+    }
+
+    async Task Cancel(WorkOrderDto w)
+    {
+        var ok = await Dialog.Confirm(
+            string.Format(L["PP.WorkOrder.Cancel.Confirm"].Value, w.WoNumber, w.ItemNo, w.OrderQty.ToString("#,0")),
+            L["PP.WorkOrder.Cancel.Title"].Value,
+            new ConfirmOptions { OkButtonText = L["PP.WorkOrder.Btn.Cancel"].Value, CancelButtonText = L["Btn.Cancel"].Value });
+        if (ok != true) return;
+        try
+        {
+            var n = Wos.CancelWo(w.WoId, await Actor());
+            if (n > 0) ShowMsg(string.Format(L["PP.WorkOrder.Ok.Cancelled"].Value, w.WoNumber), false);
+            Reload();
+        }
+        catch (Exception ex) { ShowMsg(ex.Message, true); }
+    }
+
+    async Task OpenManual()
+    {
+        List<WorkOrderManualDialog.ItemVm> items;
+        try
+        {
+            items = Md.ListItems().Where(i => i.ActiveFlag)
+                .Select(i => new WorkOrderManualDialog.ItemVm(
+                    i.ItemNo, $"{i.ItemNo} · {i.ItemName}", i.RoutingType))
+                .ToList();
+        }
+        catch { items = new(); }
+
+        var result = await Dialog.OpenAsync<WorkOrderManualDialog>(
+            L["PP.WorkOrder.Manual.Title"].Value,
+            new Dictionary<string, object?> { ["Items"] = items });
+
+        if (result is WorkOrderManualDialog.Result r)
+        {
+            ShowMsg(string.Format(L["PP.WorkOrder.Ok.ManualCreated"].Value, r.WoNumber), false);
+            _fStatus = ""; _fText = "";
+            Reload();
+        }
+    }
+
+    async Task ExportCsv()
+    {
+        if (_view.Count == 0) { ShowMsg(L["PP.WorkOrder.Err.NoData"], true); return; }
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine(string.Join(",", new[] {
+            L["Col.WoNo"].Value, L["Col.Item"].Value, L["Col.Line"].Value, "Routing",
+            L["Col.Order"].Value, L["Col.Done"].Value, L["Col.Progress"].Value,
+            L["PP.PlanConfirm.Col.Due"].Value, L["Col.Status"].Value, "SAP SO" }.Select(Csv)));
+
+        foreach (var w in _view)
+        {
+            sb.AppendLine(string.Join(",", new[] {
+                w.WoNumber, w.ItemNameEn ?? w.ItemName, w.LineId, w.RoutingType ?? "INJ",
+                w.OrderQty.ToString("0.###"), w.CompletedQty.ToString("0.###"), ((int)w.ProgressPct) + "%",
+                w.DueDate?.ToString("yyyy-MM-dd") ?? "", w.Status, w.SoNumber ?? "" }.Select(Csv)));
+        }
+
+        var bytes = System.Text.Encoding.UTF8.GetPreamble()
+            .Concat(System.Text.Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
+        var name = $"WorkOrder_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+        await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes), "text/csv");
+    }
+
+    static string Csv(string s) =>
+        s.Contains(',') || s.Contains('"') || s.Contains('\n') ? $"\"{s.Replace("\"", "\"\"")}\"" : s;
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
     }
 }

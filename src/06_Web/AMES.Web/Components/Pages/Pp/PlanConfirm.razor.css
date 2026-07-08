@@ -1,0 +1,46 @@
+/* PP-003 그리드가 화면 남은 세로 영역을 꽉 채우도록.
+   TopBar 60px + .ames-content 상단 12 / 하단 16 패딩 = 88px */
+.pc-page {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 88px);
+    min-height: 360px;
+}
+
+.pc-grid {
+    flex: 1;
+    min-height: 0;
+}
+
+.pc-grid ::deep .rz-data-grid,
+.pc-grid ::deep .rz-datatable {
+    height: 100%;
+}
+
+/* 라인 부하 바 */
+.pc-bar {
+    height: 6px;
+    width: 64px;
+    background: rgba(255, 255, 255, .08);
+    border-radius: 4px;
+    overflow: hidden;
+    display: inline-block;
+    vertical-align: middle;
+}
+.pc-bar i {
+    display: block;
+    height: 100%;
+    border-radius: 4px;
+}
+
+/* 선택 체크박스 — 테마 액센트 */
+.pc-ck {
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    accent-color: #2563eb;
+}
+.pc-ck:disabled {
+    cursor: not-allowed;
+    opacity: .4;
+}

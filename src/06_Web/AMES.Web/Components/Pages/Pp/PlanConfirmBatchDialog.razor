@@ -1,0 +1,68 @@
+@inject AMES.Data.Repositories.PpRepository Pp
+@inject AuthenticationStateProvider Auth
+@inject DialogService Dialog
+@inject IStringLocalizer<SharedResources> L
+
+<div style="display:flex;flex-direction:column;gap:10px;min-width:460px;">
+    <div style="border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:4px 14px;">
+        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.12);">
+            <span class="dim">@L["PP.PlanConfirm.Dlg.Selected"]</span><span class="code">@Lines.Count</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.12);">
+            <span class="dim">@L["PP.PlanConfirm.Dlg.NetTotal"]</span><span class="code">@Lines.Sum(l => l.NetReq).ToString("#,0") EA</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.12);">
+            <span class="dim">@L["PP.PlanConfirm.Dlg.Validation"]</span><span style="color:#86efac;">✓ @L["PP.PlanConfirm.Dlg.Passed"]</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:7px 0;">
+            <span class="dim">@L["PP.PlanConfirm.Dlg.WoStatus"]</span><span>Draft → PP-04</span>
+        </div>
+    </div>
+
+    <div style="max-height:200px;overflow:auto;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:8px 12px;">
+        @foreach (var l in Lines)
+        {
+            <div style="display:flex;justify-content:space-between;font-size:.85em;padding:3px 0;">
+                <span><span class="code">@l.SoNumber</span> · @l.ItemNo</span>
+                <span class="dim">@l.NetReq.ToString("#,0") EA</span>
+            </div>
+        }
+    </div>
+
+    <span class="dim" style="font-size:.8em;line-height:1.5;">@L["PP.PlanConfirm.Dlg.Hint"]</span>
+
+    @if (!string.IsNullOrEmpty(_err))
+    {
+        <div class="ames-alert bad">@_err</div>
+    }
+
+    <div class="ames-modal-footer">
+        <RadzenButton Text="@L["Btn.Cancel"]" ButtonStyle="ButtonStyle.Light" Disabled="_busy"
+                      Click="@(() => Dialog.Close(null))" />
+        <RadzenButton Text="@(_busy ? L["Lbl.Loading"].Value : L["PP.PlanConfirm.Dlg.Run"].Value)"
+                      ButtonStyle="ButtonStyle.Success" Icon="play_arrow" Disabled="@(_busy || Lines.Count == 0)"
+                      Click="Run" />
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<PpRepository.PlanLineRow> Lines { get; set; } = new();
+
+    bool   _busy;
+    string _err = "";
+
+    async Task Run()
+    {
+        _busy = true;
+        try
+        {
+            var auth  = await Auth.GetAuthenticationStateAsync();
+            var actor = auth.User.Identity?.Name ?? "system";
+            var created = Pp.CreateWorkOrdersForOrders(Lines.Select(l => l.SoId).ToList(), actor);
+            Dialog.Close(new Result(created.Count));
+        }
+        catch (Exception ex) { _err = ex.Message; _busy = false; }
+    }
+
+    public record Result(int Created);
+}

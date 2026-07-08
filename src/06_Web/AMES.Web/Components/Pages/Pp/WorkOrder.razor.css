@@ -1,0 +1,46 @@
+/* PP-004 그리드가 화면 남은 세로 영역을 꽉 채우도록.
+   TopBar 60px + .ames-content 상단 12 / 하단 16 패딩 = 88px */
+.wo-page {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 88px);
+    min-height: 360px;
+}
+
+.wo-grid {
+    flex: 1;
+    min-height: 0;
+}
+
+.wo-grid ::deep .rz-data-grid,
+.wo-grid ::deep .rz-datatable {
+    height: 100%;
+}
+
+/* 진행률 바 */
+.wo-bar {
+    height: 6px;
+    width: 72px;
+    background: rgba(255, 255, 255, .08);
+    border-radius: 4px;
+    overflow: hidden;
+    display: inline-block;
+    vertical-align: middle;
+}
+.wo-bar i {
+    display: block;
+    height: 100%;
+    border-radius: 4px;
+}
+
+/* 라우팅 흐름 스텝 칩 */
+.wo-step {
+    padding: 4px 12px;
+    border-radius: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+}
+.wo-step.done { background: rgba(34, 197, 94, .18);  color: #4ade80; }
+.wo-step.cur  { background: #059669;                 color: #fff; }
+.wo-step.todo { background: rgba(255, 255, 255, .06); color: #64748b; }
