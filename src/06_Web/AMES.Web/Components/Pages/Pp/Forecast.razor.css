@@ -1,0 +1,29 @@
+/* PP-001 그리드가 화면 남은 세로 영역을 꽉 채우도록 (탭 레이아웃).
+   TopBar 60px + .ames-content 상단 12 / 하단 16 패딩 = 88px */
+.fc-page {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 88px);
+    min-height: 360px;
+}
+
+/* AmesTabs는 탭스트립 + 패널을 형제로 렌더 → 패널이 남은 공간을 채운다 */
+.fc-page ::deep .ames-tabstrip { flex: 0 0 auto; }
+.fc-page ::deep .ames-tabpanel {
+    flex: 1;
+    min-height: 0;
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* 탭 내부: 필터 카드헤더는 고정, 그리드가 남은 공간을 채우고 본문만 스크롤 */
+.fc-grid {
+    flex: 1;
+    min-height: 0;
+}
+.fc-grid ::deep .rz-data-grid,
+.fc-grid ::deep .rz-datatable {
+    height: 100%;
+}

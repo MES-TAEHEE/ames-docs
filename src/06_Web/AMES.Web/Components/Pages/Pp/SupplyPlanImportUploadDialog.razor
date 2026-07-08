@@ -1,0 +1,119 @@
+@inject AMES.Data.Repositories.PpRepository Pp
+@inject AuthenticationStateProvider Auth
+@inject DialogService Dialog
+@inject IStringLocalizer<SharedResources> L
+@using AMES.Web.Services
+
+<div style="display:flex;flex-direction:column;gap:6px;min-width:440px;">
+    <label>① @L["Col.Customer"]</label>
+    <RadzenDropDown Data="Customers" TextProperty="CustomerName" ValueProperty="CustomerID"
+                    @bind-Value="_upCustomer" Disabled="_busy" AllowClear="true"
+                    Placeholder="—" Style="width:100%" />
+
+    <label>② @L["PP.SupplyPlanImport.Upload.File"]</label>
+    <InputFile OnChange="OnFile" accept=".xls" disabled="@_busy" />
+    <span class="dim" style="font-size:.8em;">@L["PP.SupplyPlanImport.Upload.Hint"]</span>
+
+    <label>③ @L["PP.SupplyPlanImport.Upload.ParseResult"]</label>
+    <div style="border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:12px;font-size:.9em;min-height:56px;">
+        @if (_preview is null)
+        {
+            <span class="dim">@L["PP.SupplyPlanImport.Upload.NoFile"]</span>
+        }
+        else
+        {
+            <div>✔ @string.Format(L["PP.SupplyPlanImport.Preview.Summary"].Value,
+                _preview.Count, _distinctItems, _minOrderDate, _maxOrderDate)</div>
+            @if (!string.IsNullOrEmpty(_vendor))
+            {
+                <div class="dim" style="margin-top:4px;">@string.Format(L["PP.SupplyPlanImport.Preview.Vendor"].Value, _vendor)</div>
+            }
+            @if (_unmatched.Count > 0)
+            {
+                <div style="color:#f87171;margin-top:6px;">
+                    ⚠ @string.Format(L["PP.SupplyPlanImport.Preview.Unmatched"].Value, _unmatched.Count)<br />
+                    <span class="dim" style="font-size:.85em;">@string.Join(", ", _unmatched.Take(5))@(_unmatched.Count > 5 ? " …" : "")</span>
+                </div>
+            }
+        }
+    </div>
+    @if (!string.IsNullOrEmpty(_modalErr))
+    {
+        <div class="ames-alert bad">@_modalErr</div>
+    }
+
+    <div class="ames-modal-footer">
+        <RadzenButton Text="@L["Btn.Cancel"]" ButtonStyle="ButtonStyle.Light" Disabled="_busy"
+                      Click="@(() => Dialog.Close(null))" />
+        <RadzenButton Text="@(_busy ? L["Lbl.Loading"].Value : L["PP.SupplyPlanImport.Btn.RunUpload"].Value)"
+                      Disabled="@(_busy || _preview is null || string.IsNullOrEmpty(_upCustomer))"
+                      Click="DoUpload" />
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<MasterDataRepository.CustomerRow> Customers { get; set; } = new();
+
+    const long MaxBytes = 10 * 1024 * 1024;
+
+    string _upCustomer = "";
+    string _modalErr   = "";
+    bool   _busy;
+    IReadOnlyList<PoListParser.PoRow>? _preview;
+    HashSet<string> _unmatched = new();
+    int      _distinctItems;
+    string   _vendor = "";
+    DateTime _minOrderDate, _maxOrderDate;
+
+    async Task OnFile(InputFileChangeEventArgs e)
+    {
+        _modalErr = ""; _preview = null; _unmatched = new(); _vendor = "";
+        try
+        {
+            using var ms = new MemoryStream();
+            await using (var s = e.File.OpenReadStream(MaxBytes))
+                await s.CopyToAsync(ms);
+            ms.Position = 0;
+            var rows = PoListParser.Parse(ms);
+
+            var tooLong = rows.FirstOrDefault(r => r.ItemNo.Length > 20 || r.SoNumber.Length > 20);
+            if (tooLong is not null)
+                throw new FormatException(string.Format(L["PP.SupplyPlanImport.Err.ItemNoLen"].Value,
+                    tooLong.SoNumber.Length > 20 ? tooLong.SoNumber : tooLong.ItemNo));
+
+            var found  = Pp.ListExistingItemNos(rows.Select(r => r.ItemNo));
+            _unmatched = rows.Where(r => !found.Contains(r.ItemNo)).Select(r => r.ItemNo).ToHashSet();
+
+            _distinctItems = rows.Select(r => r.ItemNo).Distinct().Count();
+            var v = rows.FirstOrDefault(r => !string.IsNullOrEmpty(r.VendorName) || !string.IsNullOrEmpty(r.VendorCode));
+            _vendor = v is null ? "" : $"{v.VendorName} ({v.VendorCode})".Trim();
+            var dates = rows.Where(r => r.OrderDate.HasValue).Select(r => r.OrderDate!.Value).ToList();
+            _minOrderDate = dates.Count > 0 ? dates.Min() : default;
+            _maxOrderDate = dates.Count > 0 ? dates.Max() : default;
+            _preview = rows;
+        }
+        catch (IOException)        { _modalErr = L["PP.SupplyPlanImport.Err.TooLarge"]; }
+        catch (FormatException fx) { _modalErr = $"{L["PP.SupplyPlanImport.Err.Parse"]} — {fx.Message}"; }
+        catch (Exception ex)       { _modalErr = ex.Message; }
+    }
+
+    async Task DoUpload()
+    {
+        if (_preview is null || string.IsNullOrEmpty(_upCustomer)) return;
+        _busy = true;
+        try
+        {
+            var auth  = await Auth.GetAuthenticationStateAsync();
+            var actor = auth.User.Identity?.Name ?? "system";
+            var rows  = _preview.Select(r => new PpRepository.CustomerOrderImportRow(
+                r.SoNumber, r.SoLineNo, r.ItemNo, r.OrderQty, r.ShippedQty,
+                r.OrderDate, r.RequestedDeliveryDate)).ToList();
+
+            var (ins, upd) = Pp.UpsertCustomerOrders(_upCustomer, rows, actor);
+            Dialog.Close(new Result(ins, upd, _upCustomer, _minOrderDate, _maxOrderDate));
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _busy = false; }
+    }
+
+    public record Result(int Ins, int Upd, string CustomerId, DateTime From, DateTime To);
+}

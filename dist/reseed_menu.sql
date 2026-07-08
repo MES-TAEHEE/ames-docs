@@ -10,7 +10,7 @@ GO
 -- PP · 생산계획
 INSERT INTO dbo.SYS_Screen (ScreenCode,ModuleCode,ScreenName,ScreenNameEn,HRef,LidLabel,SortOrder,IsVisible,CreatedBy) VALUES
   ('PP-01',  'PP', N'수요 예측',        N'Forecast',          'pp/forecast',         'PP-01',   1,1,'admin'),
-  ('PP-02',  'PP', N'SAP 연동',         N'SAP Import',        'pp/sap-import',       'PP-02',   2,1,'admin'),
+  ('PP-02',  'PP', N'공급계획 가져오기',   N'Supply Plan Import', 'pp/supply-plan-import', 'PP-02',   2,1,'admin'),
   ('PP-03',  'PP', N'계획 확정',        N'Plan Confirm',      'pp/plan-confirm',     'PP-03',   3,1,'admin'),
   ('PP-04',  'PP', N'작업 지시',        N'Work Order',        'pp/work-order',       'PP-04',   4,1,'admin'),
   ('PP-05',  'PP', N'MRP',              N'MRP',               'pp/mrp',              'PP-05',   5,1,'admin'),

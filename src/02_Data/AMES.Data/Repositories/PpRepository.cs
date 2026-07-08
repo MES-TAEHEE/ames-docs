@@ -30,7 +30,11 @@ public sealed class PpRepository
 
     public sealed record SoRow(int SoId, string? SoNumber, int? SoLineNo, string? CustomerId,
         string ItemNo, string? ItemName, decimal OrderQty, decimal ShippedQty,
-        DateTime? OrderDate, DateTime? RequestedDeliveryDate, DateTime? PromisedDate, string? Status);
+        DateTime? OrderDate, DateTime? RequestedDeliveryDate, DateTime? PromisedDate, string? Status,
+        string? WoNumber, string? WoStatus);
+
+    public sealed record CustomerOrderImportRow(string SoNumber, int? SoLineNo, string ItemNo,
+        decimal OrderQty, decimal ShippedQty, DateTime? OrderDate, DateTime? RequestedDeliveryDate);
 
     public sealed record SupplyPlanRow(int PlanId, string? PlanCode, DateTime? PlanPeriod,
         string? Status, int LineCount, decimal TotalPlannedQty);
@@ -303,22 +307,137 @@ public sealed class PpRepository
         }
     }
 
-    // ── PP-002 SAP Import (customer orders just synced from SAP) ────────
-    public List<SoRow> ListSapImports(int daysBack = 30)
+    // ── PP-002 Supply Plan Import (customer orders synced from SAP) ─────
+    public List<SoRow> ListSupplyPlanImports(int daysBack = 30)
     {
         const string sql = """
             SELECT TOP 100 s.SoID, s.SoNumber, s.SoLineNo, s.CustomerID,
                    s.ItemNo, i.ItemName,
                    ISNULL(s.OrderQty,0)   AS OrderQty,
                    ISNULL(s.ShippedQty,0) AS ShippedQty,
-                   s.OrderDate, s.RequestedDeliveryDate, s.PromisedDate, s.Status
+                   s.OrderDate, s.RequestedDeliveryDate, s.PromisedDate, s.Status,
+                   wo.WoNumber, wo.WoStatus
             FROM   dbo.PP_CustomerOrder s
             LEFT JOIN dbo.MD_Item i ON i.ItemNo = s.ItemNo
+            OUTER APPLY (SELECT TOP 1 w.WoNumber, w.Status AS WoStatus
+                         FROM dbo.PP_WorkOrder w WHERE w.SoID = s.SoID
+                         ORDER BY w.CreatedTS DESC) wo
             WHERE  s.SapSyncedAt > DATEADD(day, -@D, SYSDATETIME())
                OR  s.OrderDate   > DATEADD(day, -@D, GETDATE())
             ORDER BY s.OrderDate DESC, s.SoNumber;
             """;
         return Query(sql, MapSo, ("@D", daysBack));
+    }
+
+    // ── PP-002 filtered read — customer/order-date range (SAP import grid) ──
+    public List<SoRow> ListCustomerOrders(string customerId, DateTime? from, DateTime? to, int take = 500)
+    {
+        var sql = $$"""
+            SELECT TOP ({{take}}) s.SoID, s.SoNumber, s.SoLineNo, s.CustomerID,
+                   s.ItemNo, i.ItemName,
+                   ISNULL(s.OrderQty,0)   AS OrderQty,
+                   ISNULL(s.ShippedQty,0) AS ShippedQty,
+                   s.OrderDate, s.RequestedDeliveryDate, s.PromisedDate, s.Status,
+                   wo.WoNumber, wo.WoStatus
+            FROM   dbo.PP_CustomerOrder s
+            LEFT JOIN dbo.MD_Item i ON i.ItemNo = s.ItemNo
+            OUTER APPLY (SELECT TOP 1 w.WoNumber, w.Status AS WoStatus
+                         FROM dbo.PP_WorkOrder w WHERE w.SoID = s.SoID
+                         ORDER BY w.CreatedTS DESC) wo
+            WHERE  (@Cust = '' OR s.CustomerID = @Cust)
+               AND (@From IS NULL OR s.OrderDate >= @From)
+               AND (@To   IS NULL OR s.OrderDate <= @To)
+            ORDER BY s.OrderDate DESC, s.SoNumber, s.SoLineNo;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Cust", SqlDbType.VarChar, 20).Value = customerId ?? "";
+        cmd.Parameters.Add("@From", SqlDbType.Date).Value = (object?)from ?? DBNull.Value;
+        cmd.Parameters.Add("@To",   SqlDbType.Date).Value = (object?)to   ?? DBNull.Value;
+        using var rdr = cmd.ExecuteReader();
+        var list = new List<SoRow>();
+        while (rdr.Read()) list.Add(MapSo(rdr));
+        return list;
+    }
+
+    /// <summary>
+    /// PP-002 SAP 구매오더(고객주문) 업서트 — (SoNumber, SoLineNo, CustomerID) 기준
+    /// UPDATE, 없으면 INSERT. 신규 행은 Status='Open'으로 삽입, 기존 행의 Status는
+    /// 보존(Confirmed 상태가 재임포트로 덮이지 않음). 매 실행 시 SapSyncedAt 갱신.
+    /// </summary>
+    public (int Inserted, int Updated) UpsertCustomerOrders(
+        string customerId, IReadOnlyList<CustomerOrderImportRow> rows, string actor)
+    {
+        const string updSql = """
+            UPDATE dbo.PP_CustomerOrder
+            SET    ItemNo = @Item, OrderQty = @OrderQty, ShippedQty = @ShippedQty,
+                   OrderDate = @OrderDate, RequestedDeliveryDate = @ReqDate,
+                   SapSyncedAt = SYSDATETIME(),
+                   ModifiedTS = SYSDATETIME(), ModifiedBy = @Actor
+            OUTPUT inserted.SoID
+            WHERE  SoNumber = @So AND ISNULL(SoLineNo,-1) = ISNULL(@Line,-1) AND CustomerID = @Cust;
+            """;
+        const string insSql = """
+            INSERT INTO dbo.PP_CustomerOrder
+                   (SoNumber, SoLineNo, CustomerID, ItemNo, OrderQty, ShippedQty,
+                    OrderDate, RequestedDeliveryDate, Status, SapSyncedAt, CreatedBy)
+            VALUES (@So, @Line, @Cust, @Item, @OrderQty, @ShippedQty,
+                    @OrderDate, @ReqDate, 'Open', SYSDATETIME(), @Actor);
+            """;
+
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            using var upd = new SqlCommand(updSql, conn, tx);
+            using var ins = new SqlCommand(insSql, conn, tx);
+            foreach (var c in new[] { upd, ins })
+            {
+                c.Parameters.Add("@So",   SqlDbType.VarChar, 20);
+                c.Parameters.Add("@Line", SqlDbType.Int);
+                c.Parameters.Add("@Cust", SqlDbType.VarChar, 20);
+                c.Parameters.Add("@Item", SqlDbType.VarChar, 20);
+                c.Parameters.Add("@OrderQty",   SqlDbType.Decimal).Precision = 14;
+                c.Parameters["@OrderQty"].Scale = 3;
+                c.Parameters.Add("@ShippedQty", SqlDbType.Decimal).Precision = 14;
+                c.Parameters["@ShippedQty"].Scale = 3;
+                c.Parameters.Add("@OrderDate", SqlDbType.Date);
+                c.Parameters.Add("@ReqDate",   SqlDbType.Date);
+                c.Parameters.Add("@Actor",  SqlDbType.NVarChar, 450);
+                c.Parameters["@Cust"].Value  = customerId;
+                c.Parameters["@Actor"].Value = actor;
+            }
+
+            int inserted = 0, updated = 0;
+            foreach (var r in rows)
+            {
+                foreach (var c in new[] { upd, ins })
+                {
+                    c.Parameters["@So"].Value         = r.SoNumber;
+                    c.Parameters["@Line"].Value       = (object?)r.SoLineNo ?? DBNull.Value;
+                    c.Parameters["@Item"].Value       = r.ItemNo;
+                    c.Parameters["@OrderQty"].Value   = r.OrderQty;
+                    c.Parameters["@ShippedQty"].Value = r.ShippedQty;
+                    c.Parameters["@OrderDate"].Value  = (object?)r.OrderDate ?? DBNull.Value;
+                    c.Parameters["@ReqDate"].Value    = (object?)r.RequestedDeliveryDate ?? DBNull.Value;
+                }
+
+                var hit = upd.ExecuteScalar();
+                if (hit is null || hit is DBNull)
+                {
+                    ins.ExecuteNonQuery();
+                    inserted++;
+                }
+                else updated++;
+            }
+            tx.Commit();
+            return (inserted, updated);
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
     }
 
     // ── PP-003 Plan Confirm — list supply plans with line count rollup ──
@@ -425,6 +544,23 @@ public sealed class PpRepository
         var list = new List<WoLite>();
         while (rdr.Read()) list.Add(MapWoLite(rdr));
         return list;
+    }
+
+    /// <summary>SO 상태를 Confirmed로 변경 (PP-002). Open 건만 대상. 변경 행수 반환.</summary>
+    public int ConfirmCustomerOrder(int soId, string actor)
+    {
+        const string sql = """
+            UPDATE dbo.PP_CustomerOrder
+            SET    Status     = 'Confirmed',
+                   ModifiedTS = SYSDATETIME(),
+                   ModifiedBy = @Actor
+            WHERE  SoID = @SoID AND Status = 'Open';
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@SoID",  SqlDbType.Int).Value = soId;
+        cmd.Parameters.Add("@Actor", SqlDbType.NVarChar, 450).Value = actor;
+        return cmd.ExecuteNonQuery();
     }
 
     /// <summary>WO 상태를 Released로 변경하고 ReleasedAt을 기록합니다 (PP-007).</summary>
@@ -760,7 +896,8 @@ public sealed class PpRepository
         r.GetDecimal(r.GetOrdinal("OrderQty")),
         r.GetDecimal(r.GetOrdinal("ShippedQty")),
         r["OrderDate"] as DateTime?, r["RequestedDeliveryDate"] as DateTime?,
-        r["PromisedDate"] as DateTime?, r["Status"] as string);
+        r["PromisedDate"] as DateTime?, r["Status"] as string,
+        r["WoNumber"] as string, r["WoStatus"] as string);
     private static WoLite MapWoLite(IDataReader r) => new(
         (int)r["WoID"], r["WoNumber"] as string,
         r["ItemNo"] as string ?? "", r["ItemName"] as string,

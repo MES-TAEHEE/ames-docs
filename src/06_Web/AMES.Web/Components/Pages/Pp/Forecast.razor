@@ -11,6 +11,7 @@
 
 <AmesPageHeader Code="PP-001" TitleKey="PP.Forecast.Title" />
 
+<div class="fc-page">
 @if (!string.IsNullOrEmpty(_msg))
 {
     <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
@@ -54,18 +55,18 @@
         </div>
     </div>
 
+    <div class="fc-grid">
     @if (_items.Count == 0)
     {
         <div class="ames-empty">@L["PP.Forecast.Empty"]</div>
     }
     else
     {
-        <RadzenDataGrid Data="_view" TItem="ItemVm" AllowPaging="true" PageSize="_pageSize"
+        <RadzenDataGrid Data="_view" TItem="ItemVm" AllowVirtualization="true" Style="height:100%"
                         AllowSorting="true" AllowColumnResize="true" Density="Density.Compact"
                         AllowFiltering="true" FilterMode="FilterMode.CheckBoxList"
                         FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
-                        class="ames-rz-grid" PagerHorizontalAlign="HorizontalAlign.Left"
-                        ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"].Value">
+                        class="ames-rz-grid">
             <Columns>
                 @if (_showCustomerCol)
                 {
@@ -102,6 +103,7 @@
             </Columns>
         </RadzenDataGrid>
     }
+    </div>
     </AmesTab>
 
     <AmesTab Title="@L["PP.Forecast.Tab.History"].Value">
@@ -127,6 +129,7 @@
             </div>
         </div>
 
+        <div class="fc-grid">
         @if (_batches.Count == 0)
         {
             <div class="ames-empty">@L["PP.Forecast.Hist.Empty"]</div>
@@ -134,10 +137,9 @@
         else
         {
             <RadzenDataGrid Data="_batches" TItem="PpRepository.WeeklyImportBatch"
-                            AllowPaging="true" PageSize="_pageSize" AllowSorting="true"
+                            AllowVirtualization="true" Style="height:100%" AllowSorting="true"
                             AllowColumnResize="true" Density="Density.Compact"
-                            class="ames-rz-grid" PagerHorizontalAlign="HorizontalAlign.Left"
-                            ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"].Value">
+                            class="ames-rz-grid">
                 <Columns>
                     <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Property="CustomerId"
                                           Title="@L["Col.Customer"].Value" Width="120px" />
@@ -167,12 +169,12 @@
                 </Columns>
             </RadzenDataGrid>
         }
+        </div>
     </AmesTab>
 </AmesTabs>
+</div>
 
 @code {
-    const int _pageSize = 20;
-
     List<MasterDataRepository.CustomerRow> _customers = new();
 
     // 예측 현황 조회 필터
