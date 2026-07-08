@@ -1,4 +1,4 @@
-@page "/mnt/pm-schedule"
+﻿@page "/mnt/pm-schedule"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MntRepository Mnt
@@ -28,7 +28,7 @@
         <span style="white-space:nowrap;">▼ @L["MNT.PmSchedule.List"] · @_rows.Count @L["Lbl.Items"]</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Future"]</label>
-            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_daysAhead">
+            <select class="ames-input" style="width:100px;" @bind="_daysAhead">
                 <option value="7">7@(L["Lbl.Days"])</option>
                 <option value="14">14@(L["Lbl.Days"])</option>
                 <option value="30">30@(L["Lbl.Days"])</option>
@@ -36,7 +36,7 @@
                 <option value="90">90@(L["Lbl.Days"])</option>
             </select>
             <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Past"]</label>
-            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_daysBack">
+            <select class="ames-input" style="width:100px;" @bind="_daysBack">
                 <option value="0">0@(L["Lbl.Days"])</option>
                 <option value="7">7@(L["Lbl.Days"])</option>
                 <option value="14">14@(L["Lbl.Days"])</option>

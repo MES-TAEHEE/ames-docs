@@ -1,10 +1,12 @@
-@page "/pp/downtime-monitor"
+﻿@page "/pp/downtime-monitor"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @implements IDisposable
 @inject AMES.Data.Repositories.PpRepository           Pp
 @inject AMES.Data.Repositories.OeeRepository          Oee
 @inject AMES.Data.Repositories.LineScheduleRepository Lsr
+@inject AuthenticationStateProvider Auth
+@inject AMES.Web.Services.PermissionService Perm
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["PP.DowntimeMonitor.Title"] · AMES</PageTitle>
@@ -129,7 +131,7 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span>▼ @L["PP.DowntimeMonitor.History.Header"]</span>
         <div style="display:flex;gap:6px;align-items:center;">
-            <select class="ames-input" style="width:130px;padding:4px 8px;" @bind="_dtlLine" @bind:after="ReloadDtl">
+            <select class="ames-input" style="width:130px;" @bind="_dtlLine" @bind:after="ReloadDtl">
                 <option value="">@L["PP.DowntimeMonitor.Filter.AllLines"]</option>
                 @foreach (var l in _dtlLines)
                 { <option value="@l">@l</option> }
@@ -175,10 +177,12 @@
                         <td class="dim">@(r.CauseCode ?? "—")</td>
                         <td class="dim">@r.Comment</td>
                         <td>
+                            @if (_canEdit) {
                             <button class="ames-btn ghost" style="padding:2px 10px;font-size:.78rem;"
                                     @onclick="() => OpenEdit(r)">
                                 @L["Btn.Edit"]
                             </button>
+                            }
                         </td>
                     </tr>
                 }
@@ -253,6 +257,7 @@
     }
 
     // ── 상태 ─────────────────────────────────────────────────────────────
+    bool _canEdit;
     int _page = 0;
     const int _pageSize = 20;
     Dictionary<string, LineVm> _vms        = [];
@@ -275,8 +280,10 @@
     string    _editError   = "";
 
     // ── 초기화 ───────────────────────────────────────────────────────────
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        await Perm.EnsureAsync(Auth);
+        _canEdit = Perm.CanEdit("pp/downtime-monitor");
         BuildVms();
         Refresh();
         ReloadDtl();
@@ -377,6 +384,7 @@
     // ── 사유 수정 모달 ───────────────────────────────────────────────────
     void OpenEdit(AMES.Data.Repositories.PpRepository.DowntimeRow r)
     {
+        if (!_canEdit) return;
         _editId      = r.DowntimeId;
         _editLine    = r.LineId;
         _editStart   = r.StartTs;

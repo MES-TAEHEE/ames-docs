@@ -1,17 +1,26 @@
-using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Data.SqlClient;
+using AMES.Data.Connection;
+using AMES.Data.Repositories;
 using AMES.Web.Components;
 using AMES.Web.Components.Account;
 using AMES.Web.Data;
-using AMES.Data.Connection;
-using AMES.Data.Repositories;
+using AMES.Web.Services;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Radzen;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddRadzenComponents();
+builder.Services.AddRadzenCookieThemeService(options =>
+{
+    options.Name = "ames-theme";
+    options.Duration = TimeSpan.FromDays(365);
+});
 
 builder.Services.AddLocalization();
 
@@ -51,11 +60,13 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<PermissionService>();
+builder.Services.AddHttpClient();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.OpenApiInfo
     {
         Title       = "AMES Web API",
         Version     = "v1",
@@ -80,6 +91,7 @@ builder.Services.AddSingleton(sp => new SysRepository(factory));
 builder.Services.AddSingleton(sp => new AuthRepository(factory));
 builder.Services.AddSingleton(sp => new LineScheduleRepository(factory));
 builder.Services.AddSingleton(sp => new OeeRepository(factory));
+builder.Services.AddSingleton<ServerMonitorService>();
 
 var app = builder.Build();
 
@@ -178,6 +190,8 @@ app.UseRequestLocalization(new RequestLocalizationOptions()
     .SetDefaultCulture("ko")
     .AddSupportedCultures(supportedCultures)
     .AddSupportedUICultures(supportedCultures));
+
+app.UseStaticFiles();
 
 app.UseAntiforgery();
 

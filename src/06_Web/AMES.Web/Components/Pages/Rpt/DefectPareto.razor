@@ -1,4 +1,4 @@
-@page "/rpt/defect-pareto"
+﻿@page "/rpt/defect-pareto"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.RptRepository Rpt
@@ -31,7 +31,7 @@
         <span style="white-space:nowrap;">▼ @L["RPT.DefectPareto.List"] · @_rows.Count @L["Lbl.Items"]</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Period"]</label>
-            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_daysBack">
+            <select class="ames-input" style="width:100px;" @bind="_daysBack">
                 <option value="7">7@(L["Lbl.Days"])</option>
                 <option value="14">14@(L["Lbl.Days"])</option>
                 <option value="30">30@(L["Lbl.Days"])</option>
@@ -39,7 +39,7 @@
                 <option value="90">90@(L["Lbl.Days"])</option>
             </select>
             <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">Top</label>
-            <select class="ames-input" style="width:70px;padding:4px 8px;" @bind="_topN">
+            <select class="ames-input" style="width:70px;" @bind="_topN">
                 <option value="10">10</option>
                 <option value="20">20</option>
                 <option value="50">50</option>

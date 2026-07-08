@@ -95,6 +95,12 @@ a:hover { color: #c4dafe; }
 .ames-side--collapsed .ames-nav-section-n,
 .ames-side--collapsed .ames-nav-chevron { display: none; }
 
+.ames-side--collapsed .ames-nav-sub {
+    justify-content: center; padding: 8px 4px; margin-left: 0;
+}
+.ames-side--collapsed .ames-nav-sub-body,
+.ames-side--collapsed .ames-nav-sub-chevron { display: none; }
+
 .ames-side--collapsed .ames-nav-link {
     justify-content: center; padding: 5px 4px;
 }
@@ -221,6 +227,41 @@ a:hover { color: #c4dafe; }
 .ames-nav-section.md  { color: #a78bfa; }
 .ames-nav-section.md  .ames-nav-section-n { background: rgba(167,139,250,.14); color: #a78bfa; }
 
+/* ── MD 하위 카테고리 (마스터 데이터 5그룹) ─────────────────────── */
+.ames-nav-sub {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    margin: 2px 0 2px 10px;
+    border-radius: 8px;
+    border-left: 2px solid transparent;
+    cursor: pointer;
+    user-select: none;
+    transition: background .12s;
+}
+.ames-nav-sub:hover { background: rgba(255,255,255,.03); }
+.ames-nav-sub.open {
+    background: rgba(167,139,250,.08);
+    border-left-color: #a78bfa;
+}
+.ames-nav-sub-letter {
+    flex-shrink: 0; width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px;
+    background: rgba(167,139,250,.14); color: #a78bfa;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 700;
+}
+.ames-nav-sub-body { flex: 1; min-width: 0; }
+.ames-nav-sub-t {
+    font-size: 13px; font-weight: 700;
+    color: rgba(255,255,255,.88); white-space: nowrap;
+}
+.ames-nav-sub-s {
+    font-size: 11px; color: rgba(255,255,255,.4); margin-top: 1px;
+    font-family: 'JetBrains Mono', monospace;
+}
+.ames-nav-sub-chevron { font-size: 11px; opacity: .6; flex-shrink: 0; }
+
 .ames-nav-link {
     display: flex; align-items: center; gap: 9px;
     padding: 6px 12px;
@@ -231,6 +272,7 @@ a:hover { color: #c4dafe; }
     transition: background .12s, color .12s;
     white-space: nowrap;
 }
+.ames-nav-link.sub { margin-left: 22px; }
 .ames-nav-link:hover { color: #fff; background: rgba(255,255,255,.04); }
 .ames-nav-link.active {
     color: #fff; font-weight: 700;
@@ -259,10 +301,10 @@ a:hover { color: #c4dafe; }
 
 .ames-page-h {
     display: flex; align-items: flex-end; gap: 16px;
-    margin-bottom: 24px; padding: 22px 26px;
+    margin-bottom: 16px; padding: 14px 17px;
     background: linear-gradient(135deg, rgba(37,99,235,.18), rgba(124,58,237,.1) 60%, transparent);
     border: 1px solid rgba(147,197,253,.18);
-    border-radius: 14px;
+    border-radius: 12px;
     position: relative; overflow: hidden;
 }
 .ames-page-h::before {
@@ -273,17 +315,17 @@ a:hover { color: #c4dafe; }
 }
 .ames-page-id {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 43px; letter-spacing: 2px;
+    font-size: 38px; letter-spacing: 2px;
     color: #93c5fd; line-height: 1;
     text-shadow: 0 0 24px rgba(147,197,253,.4);
 }
 .ames-page-t {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 36px; letter-spacing: 1px;
+    font-size: 24px; letter-spacing: 1px;
     color: #fff; line-height: 1;
 }
 .ames-page-sub {
-    font-size: 14px;
+    font-size: 9px;
     color: rgba(255,255,255,.6);
     margin-left: auto;
     font-family: 'JetBrains Mono', monospace;
@@ -324,17 +366,17 @@ a:hover { color: #c4dafe; }
 .ames-card {
     background: linear-gradient(180deg, rgba(15,29,51,.95), rgba(10,20,38,.95));
     border: 1px solid rgba(255,255,255,.06);
-    border-radius: 12px;
-    padding: 20px 24px;
-    margin-bottom: 16px;
-    box-shadow: 0 4px 12px -8px rgba(0,0,0,.6);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    box-shadow: 0 2px 6px -4px rgba(0,0,0,.6);
 }
 .ames-card-h {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 13px; letter-spacing: 1.6px;
+    font-size: 11px; letter-spacing: 1.6px;
     color: #93c5fd; text-transform: uppercase;
-    margin-bottom: 14px;
-    padding-bottom: 10px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
     border-bottom: 1px solid rgba(255,255,255,.05);
     display: flex; align-items: center;
 }
@@ -342,13 +384,13 @@ a:hover { color: #c4dafe; }
 /* ── KPI strip ────────────────────────────────────────────── */
 .ames-kpis {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 14px; margin-bottom: 20px;
+    gap: 10px; margin-bottom: 14px;
 }
 .ames-kpi {
     background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
     border: 1px solid rgba(255,255,255,.08);
-    border-radius: 12px;
-    padding: 16px 18px;
+    border-radius: 8px;
+    padding: 10px 12px;
     position: relative; overflow: hidden;
 }
 .ames-kpi::before {
@@ -358,12 +400,17 @@ a:hover { color: #c4dafe; }
 .ames-kpi.ok::before   { background: linear-gradient(180deg, #22c55e, #15803d); }
 .ames-kpi.warn::before { background: linear-gradient(180deg, #fbbf24, #b45309); }
 .ames-kpi.bad::before  { background: linear-gradient(180deg, #fca5a5, #b91c1c); }
-.ames-kpi-l { font-family: 'JetBrains Mono', monospace; font-size: 11px;
+.ames-kpi-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+}
+.ames-kpi-l { font-family: 'JetBrains Mono', monospace; font-size: 9px;
               color: rgba(147,197,253,.85); letter-spacing: 1.4px;
               text-transform: uppercase; }
-.ames-kpi-v { font-family: 'Bebas Neue', sans-serif; font-size: 41px;
-              color: #fff; line-height: 1; margin-top: 8px; letter-spacing: 1px; }
-.ames-kpi-s { font-size: 13px; color: rgba(255,255,255,.5); margin-top: 6px;
+.ames-kpi-v { font-family: 'Bebas Neue', sans-serif; font-size: 28px;
+              color: #fff; line-height: 1; margin-top: 5px; letter-spacing: 1px; }
+.ames-kpi-s { font-size: 10px; color: rgba(255,255,255,.5); margin-top: 4px;
               font-family: 'JetBrains Mono', monospace; }
 
 /* ── Tables ───────────────────────────────────────────────── */
@@ -620,6 +667,10 @@ a:hover { color: #c4dafe; }
     font-size: 16px; width: 100%; box-sizing: border-box;
 }
 .ames-input:focus { outline: none; border-color: #3b82f6; }
+select.ames-input {
+    padding: 9px 12px; font-size: 16px;
+    cursor: pointer; appearance: auto;
+}
 select.ames-input option { background: #0d1b2e; }
 
 /* ── Alert bar ────────────────────────────────────────────────── */
@@ -642,8 +693,109 @@ select.ames-input option { background: #0d1b2e; }
 
 /* ── Clickable table row ─────────────────────────────────────── */
 .ames-row-link { cursor: pointer; }
-.ames-row-link:hover td { background: rgba(99,179,237,.08); }
-.ames-row-selected td  { background: rgba(99,179,237,.15) !important; }
+.ames-row-link:hover td,
+.ames-row-link:hover .rz-data-cell { background: rgba(99,179,237,.08) !important; }
+.ames-row-selected td,
+.ames-row-selected .rz-data-cell   { background: rgba(99,179,237,.15) !important; }
+
+/* ── RadzenDataGrid — AMES 스타일 (humanistic-dark-base.css 위에 덮어씀) ── */
+
+/* 1. 외부 컨테이너 */
+.ames-rz-grid { background: transparent !important; }
+
+/* 2. 테이블 구조 복원
+   humanistic-dark-base.css가 반응형을 위해 table→block, tr→block, td→block으로 변경함.
+   데스크탑에서 정상 table 레이아웃으로 복원한다. */
+.ames-rz-grid .rz-data-grid-data > table {
+    display: table !important;
+    table-layout: auto !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+    background: transparent !important;
+}
+.ames-rz-grid .rz-data-grid-data > table > tbody { display: table-row-group !important; }
+.ames-rz-grid .rz-data-row                       { display: table-row !important; }
+.ames-rz-grid .rz-data-row > td                  { display: table-cell !important; width: auto !important; }
+
+/* 3. 헤더 */
+.ames-rz-grid .rz-column-header {
+    background: rgba(147,197,253,.06) !important;
+    color: #93c5fd !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 12px !important; letter-spacing: 1.2px !important; text-transform: uppercase !important;
+    padding: 10px 14px !important; white-space: nowrap !important;
+    border: none !important; border-bottom: 1px solid rgba(147,197,253,.15) !important;
+    text-align: left !important;
+}
+.ames-rz-grid .rz-column-header-content { display: flex !important; align-items: center !important; gap: 4px !important; }
+.ames-rz-grid .rz-column-title          { display: inline !important; color: #93c5fd !important; }
+.ames-rz-grid .rz-sortable-column-icon  { color: rgba(147,197,253,.35) !important; font-size: 14px !important; }
+.ames-rz-grid .rz-state-active.rz-column-header { background: rgba(147,197,253,.12) !important; }
+
+/* 4. 데이터 셀 */
+.ames-rz-grid .rz-data-cell {
+    padding: 11px 14px !important; color: #e5edf7 !important; font-size: 16px !important;
+    border: none !important; border-bottom: 1px solid rgba(255,255,255,.04) !important;
+    white-space: nowrap !important; vertical-align: middle !important; background: transparent !important;
+}
+.ames-rz-grid .rz-cell-data { padding: 0 !important; margin: 0 !important; color: inherit !important; background: transparent !important; }
+.ames-rz-grid .rz-data-row:last-child .rz-data-cell { border-bottom: none !important; }
+.ames-rz-grid .rz-data-cell.rz-text-align-right     { text-align: right !important; }
+
+/* 셀 내 AMES 클래스 */
+.ames-rz-grid .rz-data-cell .code {
+    font-family: 'JetBrains Mono', monospace; color: #93c5fd; font-weight: 700;
+}
+.ames-rz-grid .rz-data-cell .dim {
+    color: rgba(255,255,255,.5); font-size: 14px; font-family: 'JetBrains Mono', monospace;
+}
+
+/* 5. 행 hover */
+.ames-rz-grid .rz-state-highlight .rz-data-cell  { background: rgba(99,179,237,.08) !important; }
+.ames-row-link:hover .rz-data-cell                { background: rgba(99,179,237,.08) !important; }
+
+/* 6. 페이저 — Material Symbols 폰트가 humanistic-dark-base.css에서 로드됨 */
+.ames-rz-grid .rz-pager {
+    background: transparent !important;
+    border-color: rgba(255,255,255,.06) !important;
+    padding: 8px 14px !important;
+    gap: 4px !important;
+}
+.ames-rz-grid .rz-pager-pages { gap: 4px !important; }
+.ames-rz-grid .rz-pager-element {
+    background: transparent !important;
+    color: #93c5fd !important;
+    border: 1px solid rgba(147,197,253,.22) !important;
+    border-radius: 6px !important;
+    min-width: 32px !important; height: 30px !important; padding: 0 8px !important;
+    font-size: 13px !important;
+}
+.ames-rz-grid .rz-pager-element:hover:not([disabled]) {
+    background: rgba(147,197,253,.08) !important;
+    color: #fff !important;
+    border-color: rgba(147,197,253,.4) !important;
+}
+.ames-rz-grid .rz-pager-page.rz-state-active,
+.ames-rz-grid .rz-pager-element.rz-state-active {
+    background: rgba(147,197,253,.15) !important;
+    color: #fff !important;
+    border-color: rgba(147,197,253,.6) !important;
+}
+.ames-rz-grid .rz-pager-element[disabled] { opacity: .35 !important; }
+/* Material Symbols 아이콘 색상 */
+.ames-rz-grid .rz-pager .rzi { color: #93c5fd !important; font-size: 18px !important; }
+/* 페이지 요약 텍스트 */
+.ames-rz-grid .rz-pager-summary {
+    color: rgba(255,255,255,.4) !important; font-size: 13px !important;
+    white-space: nowrap !important;
+}
+/* PageSize 드롭다운 (PageSizeOptions 사용 시) */
+.ames-rz-grid .rz-pager .rz-dropdown {
+    background: #0f1b2e !important; border-color: rgba(147,197,253,.2) !important;
+    color: #93c5fd !important; font-size: 13px !important;
+}
+.ames-rz-grid .rz-pager .rz-dropdown .rz-dropdown-trigger { color: #93c5fd !important; }
 
 /* ── User detail grid inside modal ──────────────────────────── */
 .ames-detail-grid {
@@ -660,6 +812,24 @@ select.ames-input option { background: #0d1b2e; }
     text-transform: uppercase;
     padding-top: 2px;
 }
+
+/* ── Audit detail modal ─────────────────────────────────────── */
+.audit-section-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 1.1px;
+    text-transform: uppercase; color: #475569;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    padding-bottom: 5px; margin-top: 6px;
+}
+.audit-detail-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px 20px; margin-top: 8px;
+}
+.audit-kv { display: flex; flex-direction: column; gap: 3px; }
+.audit-kv-l {
+    font-size: 11px; color: #64748b;
+    text-transform: uppercase; letter-spacing: .06em;
+}
+.audit-kv-v { font-size: 14px; color: #e5edf7; }
 
 /* ── FullCalendar PP-CAL dark theme ─────────────────────────── */
 #pp-cal-fc { background: transparent; }
@@ -732,8 +902,16 @@ select.ames-input option { background: #0d1b2e; }
     cursor: pointer;
     transition: background .12s, color .12s;
 }
-.ames-cal-tab:first-child { border-radius: 8px 0 0 8px; }
-.ames-cal-tab:nth-child(2) { border-radius: 0 8px 8px 0; border-left: none; }
+.ames-cal-tab-group {
+    display: flex;
+}
+.ames-cal-tab:first-child {
+    border-radius: 8px 0 0 8px;
+}
+.ames-cal-tab:last-child {
+    border-radius: 0 8px 8px 0;
+    overflow: hidden;
+}
 .ames-cal-tab.active {
     background: rgba(147,197,253,.15);
     color: #93c5fd;
@@ -1181,6 +1359,27 @@ select.ames-input option { background: #0d1b2e; }
 .ames-form-row {
     display: flex; align-items: center; gap: .75rem; margin-bottom: .65rem;
 }
+/* ── SYS-010 실시간 서버 정보 (Server & Service Status / Resource Utilization) ── */
+.sh-grid-2 {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 16px; align-items: stretch;
+}
+.sh-svc-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.sh-svc-row:last-child { border-bottom: none; }
+.sh-svc-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.sh-svc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.sh-svc-dot.ok   { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,.7); }
+.sh-svc-dot.warn { background: #fbbf24; box-shadow: 0 0 6px rgba(251,191,36,.7); }
+.sh-svc-dot.bad  { background: #f87171; box-shadow: 0 0 6px rgba(248,113,113,.7); }
+.sh-svc-text { min-width: 0; }
+.sh-svc-name { font-size: 14px; color: #e5edf7; font-weight: 600; }
+.sh-svc-meta { font-size: 11px; color: rgba(255,255,255,.45);
+               font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+
 .ames-form-row label {
     width: 72px; font-size: .78rem; color: #94a3b8; flex-shrink: 0;
 }

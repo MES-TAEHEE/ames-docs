@@ -52,14 +52,14 @@
         @L["PP.Calendar.Tab.Week"]
     </button>
     <div style="flex:1;"></div>
-    <select class="ames-input" style="width:130px;padding:4px 8px;align-self:center;"
+    <select class="ames-input" style="width:130px;align-self:center;"
             @bind="_fRouting" @bind:after="RebuildByDue">
         <option value="">@L["PP.Calendar.Filter.AllRouting"]</option>
         <option value="A">@L["PP.Calendar.Routing.A"]</option>
         <option value="B">@L["PP.Calendar.Routing.B"]</option>
         <option value="INJ">@L["PP.Calendar.Routing.INJ"]</option>
     </select>
-    <select class="ames-input" style="width:130px;padding:4px 8px;align-self:center;margin-left:6px;"
+    <select class="ames-input" style="width:130px;align-self:center;margin-left:6px;"
             @bind="_fStatus" @bind:after="RebuildByDue">
         <option value="">@L["PP.Calendar.Filter.AllStatus"]</option>
         <option value="Draft">Draft</option>

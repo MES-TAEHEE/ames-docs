@@ -1,6 +1,8 @@
 @implements IDisposable
 @rendermode InteractiveServer
 @inject NavigationManager Nav
+@inject AMES.Web.Services.PermissionService Perm
+@inject SysRepository Sys
 @using System.Globalization
 @using System.Net
 
@@ -16,169 +18,186 @@
         <span>@NL("홈", "Home")</span>
     </NavLink>
 
-    @* ── PP ── *@
-    <div class="ames-nav-section pp" @onclick='() => Toggle("pp")'>
-        <span class="ames-nav-section-ic">📅</span>
-        <span class="ames-nav-section-t">PP · @SL("생산 계획", "Production Planning")</span>
-        <span class="ames-nav-section-n">13</span>
-        <span class="ames-nav-chevron">@Chev("pp")</span>
-    </div>
-    @if (IsOpen("pp"))
+    @foreach (var proc in _sectionOrder)
     {
-        <NavLink class="ames-nav-link" href="pp/forecast">         <span class="lid">PP-001</span> <span>@NL("수요 예측", "Forecast")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/sap-import">       <span class="lid">PP-002</span> <span>@NL("SAP 연동", "SAP Import")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/plan-confirm">     <span class="lid">PP-003</span> <span>@NL("계획 확정", "Plan Confirm")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/work-order">       <span class="lid">PP-004</span> <span>@NL("작업 지시", "Work Order")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/mrp">              <span class="lid">PP-005</span> <span>@NL("MRP", "MRP")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/purchase-req">     <span class="lid">PP-006</span> <span>@NL("구매 요청", "Purchase Req")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/wo-release">       <span class="lid">PP-007</span> <span>@NL("작업 지시 릴리스", "WO Release")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/calendar">         <span class="lid">CAL</span>   <span>@NL("캘린더", "Calendar")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/line-schedule">    <span class="lid">LSB</span>   <span>@NL("라인 일정", "Line Schedule")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/oee">              <span class="lid">OEE</span>   <span>@NL("라인 OEE", "Line OEE")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/downtime">         <span class="lid">DTL</span>   <span>@NL("비가동 이력", "Downtime Log")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/downtime-monitor"> <span class="lid">ODM</span>   <span>@NL("비가동 모니터", "Downtime Monitor")</span></NavLink>
-        <NavLink class="ames-nav-link" href="pp/delivery">         <span class="lid">OTD</span>   <span>@NL("납기 준수율", "On-Time Delivery")</span></NavLink>
-    }
-
-    @* ── MNT ── *@
-    <div class="ames-nav-section mnt" @onclick='() => Toggle("mnt")'>
-        <span class="ames-nav-section-ic">🔧</span>
-        <span class="ames-nav-section-t">MNT · @SL("설비 보전", "Maintenance")</span>
-        <span class="ames-nav-section-n">9</span>
-        <span class="ames-nav-chevron">@Chev("mnt")</span>
-    </div>
-    @if (IsOpen("mnt"))
-    {
-        <NavLink class="ames-nav-link" href="mnt/equipment-card">  <span class="lid">MNT-001</span> <span>@NL("설비 카드", "Equipment Card")</span></NavLink>
-        <NavLink class="ames-nav-link" href="mnt/failure">         <span class="lid">MNT-002</span> <span>@NL("고장 등록", "Failure Register")</span></NavLink>
-        <NavLink class="ames-nav-link" href="mnt/oee-analysis">    <span class="lid">MNT-003</span> <span>@NL("OEE 분석", "OEE Analysis")</span></NavLink>
-        <NavLink class="ames-nav-link" href="mnt/mold">            <span class="lid">MNT-004</span> <span>@NL("금형 관리", "Mold Management")</span></NavLink>
-        <NavLink class="ames-nav-link" href="mnt/pm-schedule">     <span class="lid">MNT-005</span> <span>@NL("PM 일정", "PM Schedule")</span></NavLink>
-        <NavLink class="ames-nav-link" href="mnt/downtime">        <span class="lid">MNT-006</span> <span>@NL("비가동 이력", "Downtime Log")</span></NavLink>
-        <NavLink class="ames-nav-link" href="mnt/work-order">      <span class="lid">MNT-007</span> <span>@NL("작업 지시", "Work Order")</span></NavLink>
-        <NavLink class="ames-nav-link" href="mnt/spare-parts">     <span class="lid">MNT-008</span> <span>@NL("예비 부품", "Spare Parts")</span></NavLink>
-        <NavLink class="ames-nav-link" href="mnt/dashboard">       <span class="lid">MNT-009</span> <span>@NL("대시보드", "Dashboard")</span></NavLink>
-    }
-
-    @* ── RPT ── *@
-    <div class="ames-nav-section rpt" @onclick='() => Toggle("rpt")'>
-        <span class="ames-nav-section-ic">📊</span>
-        <span class="ames-nav-section-t">RPT · @SL("보고서", "Reports")</span>
-        <span class="ames-nav-section-n">10</span>
-        <span class="ames-nav-chevron">@Chev("rpt")</span>
-    </div>
-    @if (IsOpen("rpt"))
-    {
-        <NavLink class="ames-nav-link" href="rpt/daily-production">  <span class="lid">RPT-001</span> <span>@NL("일별 생산 실적", "Daily Production")</span></NavLink>
-        <NavLink class="ames-nav-link" href="rpt/defect-pareto">     <span class="lid">RPT-002</span> <span>@NL("불량 파레토", "Defect Pareto")</span></NavLink>
-        <NavLink class="ames-nav-link" href="rpt/daily-shipment">    <span class="lid">RPT-003</span> <span>@NL("일별 출하 현황", "Daily Shipment")</span></NavLink>
-        <NavLink class="ames-nav-link" href="rpt/on-time">           <span class="lid">RPT-004</span> <span>@NL("납기 준수율", "On-Time Delivery")</span></NavLink>
-        <NavLink class="ames-nav-link" href="rpt/inventory">         <span class="lid">RPT-005</span> <span>@NL("재고 현황", "Inventory Status")</span></NavLink>
-        <NavLink class="ames-nav-link" href="rpt/equipment-oee">     <span class="lid">RPT-006</span> <span>@NL("설비 OEE", "Equipment OEE")</span></NavLink>
-        <NavLink class="ames-nav-link" href="rpt/monthly-kpi">       <span class="lid">RPT-007</span> <span>@NL("월간 KPI", "Monthly KPI")</span></NavLink>
-        <NavLink class="ames-nav-link" href="rpt/schedule-adherence"><span class="lid">RPT-008</span> <span>@NL("계획 준수율", "Schedule Adherence")</span></NavLink>
-        <NavLink class="ames-nav-link" href="rpt/report-center">     <span class="lid">RPT-009</span> <span>@NL("리포트 센터", "Report Center")</span></NavLink>
-        <NavLink class="ames-nav-link" href="rpt/report-builder">    <span class="lid">RPT-010</span> <span>@NL("리포트 빌더", "Report Builder")</span></NavLink>
-    }
-
-    @* ── MD ── *@
-    <div class="ames-nav-section md" @onclick='() => Toggle("md")'>
-        <span class="ames-nav-section-ic">🗂️</span>
-        <span class="ames-nav-section-t">MD · @SL("마스터 데이터", "Master Data")</span>
-        <span class="ames-nav-section-n">30</span>
-        <span class="ames-nav-chevron">@Chev("md")</span>
-    </div>
-    @if (IsOpen("md"))
-    {
-        <NavLink class="ames-nav-link" href="md/line">                <span class="lid">MD-001</span> <span>@NL("공장/라인 기준정보 관리", "Factory / Line Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/station">             <span class="lid">MD-002</span> <span>@NL("공정 기준정보 관리", "Process / Station Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/items">               <span class="lid">MD-003</span> <span>@NL("제품 기준정보 관리", "Product Item Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/bom">                 <span class="lid">MD-004</span> <span>@NL("BOM 관리", "BOM Management")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/bop">                 <span class="lid">MD-005</span> <span>@NL("BOP 관리", "BOP Management")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/work-center">         <span class="lid">MD-006</span> <span>@NL("Work Center 관리", "Work Center Management")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/mold">                <span class="lid">MD-007</span> <span>@NL("금형 기준정보 관리", "Mold Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/paint-fabric">        <span class="lid">MD-008</span> <span>@NL("원부자재 기준정보 관리", "Paint & Fabric Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/vendor">              <span class="lid">MD-009</span> <span>@NL("공급업체 기준정보 관리", "Vendor Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/customer">            <span class="lid">MD-010</span> <span>@NL("고객사 기준정보 관리", "Customer Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/shipment-dest">       <span class="lid">MD-011</span> <span>@NL("출하처 기준정보 관리", "Shipment Destination Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/defect-code">         <span class="lid">MD-012</span> <span>@NL("불량유형 기준정보 관리", "Defect Code Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/defect-cause">        <span class="lid">MD-013</span> <span>@NL("불량원인 기준정보 관리", "Defect Cause Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/equipment">           <span class="lid">MD-014</span> <span>@NL("설비 기준정보 관리", "Equipment Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/oven">                <span class="lid">MD-015</span> <span>@NL("건조로 기준정보 관리", "Oven Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/jig">                 <span class="lid">MD-016</span> <span>@NL("지그 기준정보 관리", "Jig Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/inspection-standard"> <span class="lid">MD-017</span> <span>@NL("검사기준 기준정보 관리", "Inspection Standard Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/location">            <span class="lid">MD-018</span> <span>@NL("창고/로케이션 기준정보 관리", "Warehouse Location Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/uom">                 <span class="lid">MD-019</span> <span>@NL("단위 관리", "UOM Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/rfid-tag">            <span class="lid">MD-020</span> <span>@NL("RFID 태그 관리", "RFID Tag Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/ral-color">           <span class="lid">MD-021</span> <span>@NL("RAL 색상 관리", "RAL Color Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/rfid-reader">         <span class="lid">MD-022</span> <span>@NL("RFID 리더 관리", "RFID Reader Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/packaging-spec">      <span class="lid">MD-023</span> <span>@NL("포장 사양 관리", "Packaging Spec Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/label-template">      <span class="lid">MD-024</span> <span>@NL("라벨 템플릿 관리", "Label Template Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/reason-code">         <span class="lid">MD-025</span> <span>@NL("사유 코드 관리", "Reason Code Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/spare-part">          <span class="lid">MD-026</span> <span>@NL("예비품 마스터", "Spare Part Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/pm-template">         <span class="lid">MD-027</span> <span>@NL("PM 템플릿 관리", "PM Template Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/line-time-pattern">   <span class="lid">MD-028</span> <span>@NL("라인 시간 패턴 관리", "Line Time Pattern Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/recipe">              <span class="lid">MD-029</span> <span>@NL("레시피 관리", "Recipe Master")</span></NavLink>
-        <NavLink class="ames-nav-link" href="md/common-code">         <span class="lid">MD-030</span> <span>@NL("코드 기준정보 관리", "Common Code Master")</span></NavLink>
-    }
-
-    @* ── SYS ── *@
-    <div class="ames-nav-section sys" @onclick='() => Toggle("sys")'>
-        <span class="ames-nav-section-ic">⚙️</span>
-        <span class="ames-nav-section-t">SYS · @SL("시스템", "System")</span>
-        <span class="ames-nav-section-n">10</span>
-        <span class="ames-nav-chevron">@Chev("sys")</span>
-    </div>
-    @if (IsOpen("sys"))
-    {
-        <NavLink class="ames-nav-link" href="sys/users">        <span class="lid">SYS-001</span> <span>@NL("사용자 관리", "User Management")</span></NavLink>
-        <NavLink class="ames-nav-link" href="sys/roles">        <span class="lid">SYS-002</span> <span>@NL("역할 관리", "Role Management")</span></NavLink>
-        <NavLink class="ames-nav-link" href="sys/screen">        <span class="lid">SYS-003</span> <span>@NL("화면 관리", "Screen Management")</span></NavLink>
-        <NavLink class="ames-nav-link" href="sys/rbac">         <span class="lid">SYS-004</span> <span>@NL("역할/권한 관리 (RBAC)", "Role & Permission (RBAC)")</span></NavLink>
-        <NavLink class="ames-nav-link" href="sys/calendar">     <span class="lid">SYS-005</span> <span>@NL("공장 캘린더", "Factory Calendar")</span></NavLink>
-        <NavLink class="ames-nav-link" href="sys/interfaces">   <span class="lid">SYS-006</span> <span>@NL("인터페이스 모니터", "Interface Monitor")</span></NavLink>
-        <NavLink class="ames-nav-link" href="sys/audit">        <span class="lid">SYS-007</span> <span>@NL("감사 로그", "Audit Log")</span></NavLink>
-        <NavLink class="ames-nav-link" href="sys/notifications"><span class="lid">SYS-008</span> <span>@NL("알림 관리", "Notification Management")</span></NavLink>
-        <NavLink class="ames-nav-link" href="sys/config">       <span class="lid">SYS-009</span> <span>@NL("시스템 설정", "System Configuration")</span></NavLink>
-        <NavLink class="ames-nav-link" href="sys/health">       <span class="lid">SYS-010</span> <span>@NL("시스템 상태", "System Health")</span></NavLink>
+        @if (_sectionMeta.TryGetValue(proc, out var meta)
+             && VisibleScreens(proc) is var vs
+             && vs.Count > 0)
+        {
+            <div class="ames-nav-section @meta.Css" @onclick='() => Toggle(proc)'>
+                <span class="ames-nav-section-ic">@meta.Icon</span>
+                <span class="ames-nav-section-t">@proc · @SL(meta.Ko, meta.En)</span>
+                <span class="ames-nav-section-n">@vs.Count</span>
+                <span class="ames-nav-chevron">@Chev(proc)</span>
+            </div>
+            @if (IsOpen(proc) && proc == "MD")
+            {
+                @foreach (var g in GroupedMd())
+                {
+                    <div class="ames-nav-sub @(IsSubOpen(g.Key) ? "open" : "")" @onclick='() => ToggleSub(g.Key)'>
+                        <span class="ames-nav-sub-letter">@g.Letter</span>
+                        <div class="ames-nav-sub-body">
+                            <div class="ames-nav-sub-t">@SL(g.Ko, g.En)</div>
+                            <div class="ames-nav-sub-s">@SL(g.En, g.Ko) · @g.Screens.Count</div>
+                        </div>
+                        <span class="ames-nav-sub-chevron">@(IsSubOpen(g.Key) ? "▾" : "▸")</span>
+                    </div>
+                    @if (IsSubOpen(g.Key))
+                    {
+                        @foreach (var s in g.Screens)
+                        {
+                            <NavLink class="ames-nav-link sub" href="@s.HRef!.TrimStart('/')">
+                                <span class="lid">@(s.LidLabel ?? s.ScreenCode)</span>
+                                <span>@NL(s.ScreenName, s.ScreenNameEn ?? s.ScreenName)</span>
+                            </NavLink>
+                        }
+                    }
+                }
+            }
+            else if (IsOpen(proc))
+            {
+                @foreach (var s in vs)
+                {
+                    <NavLink class="ames-nav-link" href="@s.HRef!.TrimStart('/')">
+                        <span class="lid">@(s.LidLabel ?? s.ScreenCode)</span>
+                        <span>@NL(s.ScreenName, s.ScreenNameEn ?? s.ScreenName)</span>
+                    </NavLink>
+                }
+            }
+        }
     }
 </div>
 </aside>
 
 @code {
+    [CascadingParameter] Task<AuthenticationState>? AuthState { get; set; }
+
     bool            _collapsed;
     string?         _url;
     HashSet<string> _open = new();
+    HashSet<string> _openSub = new();
     string          _lang = "ko";
+
+    Dictionary<string, List<SysRepository.ScreenRow>> _screensByProcess = new();
+
+    // 섹션 표시 순서
+    static readonly string[] _sectionOrder = ["PP", "MNT", "RPT", "MD", "SYS"];
+
+    // ProcessCode → (아이콘, 한국어, 영어, CSS클래스)
+    static readonly Dictionary<string, (string Icon, string Ko, string En, string Css)> _sectionMeta = new()
+    {
+        ["PP"]  = ("📅", "생산 계획",      "Production Planning", "pp"),
+        ["MNT"] = ("🔧", "설비 보전",      "Maintenance",         "mnt"),
+        ["RPT"] = ("📊", "보고서",         "Reports",             "rpt"),
+        ["MD"]  = ("🗂️", "마스터 데이터", "Master Data",         "md"),
+        ["SYS"] = ("⚙️", "시스템",        "System",              "sys"),
+    };
+
+    // MD 화면 30개를 5개 카테고리로 재분류 (Key, 표시 문자, 영문명, 국문명)
+    static readonly (string Key, string Letter, string En, string Ko)[] _mdGroupMeta =
+    [
+        ("FOUNDATION", "A", "Foundation",             "기반"),
+        ("ROUTING",    "B", "Routing & Production",   "라우팅·생산"),
+        ("RESOURCES",  "C", "Resources & Equipment",  "자원·설비"),
+        ("RFID",       "D", "RFID & Materials",       "RFID·자재"),
+        ("QUALITY",    "E", "Quality & Logistics",    "품질·물류"),
+    ];
+
+    // ScreenCode → 카테고리 Key. 목록에 없는 화면은 QUALITY(기타)로 편입.
+    static readonly Dictionary<string, string> _mdGroupByScreen = new()
+    {
+        ["MD-001"] = "FOUNDATION", ["MD-002"] = "FOUNDATION", ["MD-006"] = "FOUNDATION",
+        ["MD-019"] = "FOUNDATION", ["MD-030"] = "FOUNDATION",
+
+        ["MD-003"] = "ROUTING", ["MD-004"] = "ROUTING", ["MD-005"] = "ROUTING", ["MD-029"] = "ROUTING",
+
+        ["MD-007"] = "RESOURCES", ["MD-014"] = "RESOURCES", ["MD-015"] = "RESOURCES", ["MD-016"] = "RESOURCES",
+        ["MD-026"] = "RESOURCES", ["MD-027"] = "RESOURCES", ["MD-028"] = "RESOURCES",
+
+        ["MD-008"] = "RFID", ["MD-020"] = "RFID", ["MD-022"] = "RFID", ["MD-023"] = "RFID",
+
+        ["MD-009"] = "QUALITY", ["MD-010"] = "QUALITY", ["MD-011"] = "QUALITY", ["MD-012"] = "QUALITY",
+        ["MD-013"] = "QUALITY", ["MD-017"] = "QUALITY", ["MD-018"] = "QUALITY", ["MD-021"] = "QUALITY",
+        ["MD-024"] = "QUALITY", ["MD-025"] = "QUALITY",
+    };
 
     void ToggleSide() => _collapsed = !_collapsed;
 
-    static readonly Dictionary<string, string> _prefixMap = new()
-    {
-        ["pp/"]  = "pp",  ["mnt/"] = "mnt", ["rpt/"] = "rpt",
-        ["md/"]  = "md",  ["sys/"] = "sys",
-    };
+    // 렌더마다 권한을 재평가해야 하므로 메서드로 처리
+    List<SysRepository.ScreenRow> VisibleScreens(string proc) =>
+        _screensByProcess.TryGetValue(proc, out var screens)
+            ? screens.Where(s => !string.IsNullOrEmpty(s.HRef) && V(s.HRef)).ToList()
+            : new();
 
-    protected override void OnInitialized()
+    List<(string Key, string Letter, string En, string Ko, List<SysRepository.ScreenRow> Screens)> GroupedMd()
+    {
+        var visible = VisibleScreens("MD");
+        return _mdGroupMeta
+            .Select(g => (g.Key, g.Letter, g.En, g.Ko,
+                Screens: visible.Where(s => MdGroupOf(s.ScreenCode) == g.Key).ToList()))
+            .Where(g => g.Screens.Count > 0)
+            .ToList();
+    }
+
+    static string MdGroupOf(string screenCode) =>
+        _mdGroupByScreen.TryGetValue(screenCode, out var key) ? key : "QUALITY";
+
+    protected override async Task OnInitializedAsync()
     {
         _lang = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
         _url  = Nav.ToBaseRelativePath(Nav.Uri);
-        OpenCurrentSection();
+
+        try
+        {
+            _screensByProcess = Sys.ListScreens("WEB")
+                .Where(s => !string.IsNullOrEmpty(s.ProcessCode))
+                .GroupBy(s => s.ProcessCode!)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderBy(s => s.SortOrder ?? 999).ThenBy(s => s.ScreenCode).ToList());
+        }
+        catch { }
+
         Nav.LocationChanged += OnLocChanged;
+        if (AuthState is not null)
+            await Perm.EnsureAsync(AuthState);
+
+        OpenCurrentSection();
     }
 
     void OpenCurrentSection()
     {
-        var url = _url ?? "";
-        foreach (var (prefix, key) in _prefixMap)
-            if (url.StartsWith(prefix)) { _open.Add(key); return; }
+        var url = (_url ?? "").ToLowerInvariant();
+        foreach (var proc in _sectionOrder)
+        {
+            if (!_screensByProcess.TryGetValue(proc, out var screens)) continue;
+            var hit = screens.FirstOrDefault(s => s.HRef is not null &&
+                    url.StartsWith(s.HRef.TrimStart('/').ToLowerInvariant()));
+            if (hit is not null)
+            {
+                _open.Add(proc);
+                if (proc == "MD") _openSub.Add(MdGroupOf(hit.ScreenCode));
+                return;
+            }
+        }
     }
 
     void OnLocChanged(object? sender, LocationChangedEventArgs e)
     {
         _url = Nav.ToBaseRelativePath(e.Location);
-        foreach (var (prefix, key) in _prefixMap)
-            if (_url.StartsWith(prefix)) { _open.Add(key); break; }
+        var url = _url.ToLowerInvariant();
+        foreach (var proc in _sectionOrder)
+        {
+            if (!_screensByProcess.TryGetValue(proc, out var screens)) continue;
+            var hit = screens.FirstOrDefault(s => s.HRef is not null &&
+                    url.StartsWith(s.HRef.TrimStart('/').ToLowerInvariant()));
+            if (hit is not null)
+            {
+                _open.Add(proc);
+                if (proc == "MD") _openSub.Add(MdGroupOf(hit.ScreenCode));
+                break;
+            }
+        }
         StateHasChanged();
     }
 
@@ -188,13 +207,19 @@
         else { _open.Clear(); _open.Add(key); }
     }
 
-    bool   IsOpen(string key) => _open.Contains(key);
-    string Chev(string key)   => _open.Contains(key) ? "▾" : "▸";
+    void ToggleSub(string key)
+    {
+        if (_openSub.Contains(key)) _openSub.Remove(key);
+        else { _openSub.Clear(); _openSub.Add(key); }
+    }
 
-    // Section header: single language (no secondary)
+    bool   IsOpen(string key)    => _open.Contains(key);
+    bool   IsSubOpen(string key) => _openSub.Contains(key);
+    string Chev(string key)      => _open.Contains(key) ? "▾" : "▸";
+    bool   V(string href)     => Perm.IsVisible(href);
+
     string SL(string ko, string en) => _lang == "en" ? en : ko;
 
-    // Nav link label: primary (big) + secondary (small gray)
     MarkupString NL(string ko, string en)
     {
         var (p, s) = _lang == "en" ? (en, ko) : (ko, en);

@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
+@inject AMES.Data.Repositories.MasterDataRepository Md
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>SYS-006 @L["SYS.Interfaces.Title"] · AMES</PageTitle>
@@ -13,14 +14,34 @@
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Interfaces.Kpi.All"]</div>
-        <div class="ames-kpi-v">@_allRows.Count</div><div class="ames-kpi-s">@L["SYS.Interfaces.Kpi.AllSub"]</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["SYS.Interfaces.Kpi.Ok"]</div>
-        <div class="ames-kpi-v">@_ok</div><div class="ames-kpi-s">@L["SYS.Interfaces.Kpi.OkSub"]</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["SYS.Interfaces.Kpi.Warn"]</div>
-        <div class="ames-kpi-v">@_warn</div><div class="ames-kpi-s">@L["SYS.Interfaces.Kpi.WarnSub"]</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">@L["SYS.Interfaces.Kpi.Down"]</div>
-        <div class="ames-kpi-v">@_down</div><div class="ames-kpi-s">@L["SYS.Interfaces.Kpi.DownSub"]</div></div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["SYS.Interfaces.Kpi.All"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_allRows.Count</div>
+            <div class="ames-kpi-s">@L["SYS.Interfaces.Kpi.AllSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">@L["SYS.Interfaces.Kpi.Ok"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_ok</div>
+            <div class="ames-kpi-s">@L["SYS.Interfaces.Kpi.OkSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">@L["SYS.Interfaces.Kpi.Warn"]</div>
+            <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_warn</div>
+            <div class="ames-kpi-s">@L["SYS.Interfaces.Kpi.WarnSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi bad">
+        <div class="ames-kpi-l">@L["SYS.Interfaces.Kpi.Down"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_down</div>
+            <div class="ames-kpi-s">@L["SYS.Interfaces.Kpi.DownSub"]</div>
+        </div>
+    </div>
 </div>
 
 <div class="ames-card">
@@ -29,18 +50,17 @@
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <input class="ames-input" style="width:160px;padding:4px 8px;"
                    placeholder="@L["SYS.Interfaces.Ph.Search"]" @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") Reload(); }' autocomplete="off" />
-            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fStatus">
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
+            <select class="ames-input" style="width:130px;" @bind="_fStatus">
                 <option value="">@L["SYS.Interfaces.Filter.AllStatus"]</option>
-                <option value="OK">OK</option>
-                <option value="WARN">WARN</option>
-                <option value="DOWN">DOWN</option>
-                <option value="ERROR">ERROR</option>
+                @foreach (var s in _statusItems.Where(s => s.UseFlag))
+                { <option value="@s.CodeValue">[@s.CodeValue] @MasterDataRepository.LocalName(s)</option> }
             </select>
-            <select class="ames-input" style="width:85px;padding:4px 8px;" @bind="_fDir">
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Lbl.Direction"]</span>
+            <select class="ames-input" style="width:110px;" @bind="_fDir">
                 <option value="">@L["SYS.Interfaces.Filter.AllDir"]</option>
-                <option value="IN">IN</option>
-                <option value="OUT">OUT</option>
-                <option value="BI">BI</option>
+                @foreach (var d in _dirItems.Where(d => d.UseFlag))
+                { <option value="@d.CodeValue">[@d.CodeValue] @MasterDataRepository.LocalName(d)</option> }
             </select>
             <button class="ames-btn ok" @onclick="Reload">@L["Btn.Search"]</button>
         </div>
@@ -70,7 +90,7 @@
                     <tr>
                         <td class="code">@(i.InterfaceCode ?? "—")</td>
                         <td>@(i.InterfaceName ?? "—")</td>
-                        <td class="dim">@(i.Direction ?? "—")</td>
+                        <td class="dim">@DirName(i.Direction)</td>
                         <td class="dim" style="font-family:'JetBrains Mono',monospace;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px;">@(i.Endpoint ?? "—")</td>
                         <td class="dim">@(i.Protocol ?? "—")</td>
                         <td><span class="pill @StClass(i.ConnStatus)">@(i.ConnStatus ?? "—")</span></td>
@@ -92,10 +112,18 @@
     const int _pageSize = 20;
     List<AMES.Data.Repositories.SysRepository.InterfaceRow> _allRows = new();
     List<AMES.Data.Repositories.SysRepository.InterfaceRow> _rows    = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _statusItems = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _dirItems    = new();
     int _ok, _warn, _down;
     string _fSearch = "", _fStatus = "", _fDir = "";
     string? _err;
-    protected override void OnInitialized() => Reload();
+
+    protected override void OnInitialized()
+    {
+        try { _statusItems = Md.ListCodeItems("IF_STATUS"); }    catch { }
+        try { _dirItems    = Md.ListCodeItems("IF_DIRECTION"); } catch { }
+        Reload();
+    }
 
     void Reload()
     {
@@ -115,9 +143,16 @@
         (string.IsNullOrEmpty(_fStatus) || r.ConnStatus == _fStatus) &&
         (string.IsNullOrEmpty(_fDir)    || r.Direction  == _fDir)
     ).ToList(); }
+    string DirName(string? code)
+    {
+        if (code is null) return "—";
+        var item = _dirItems.FirstOrDefault(d => d.CodeValue == code);
+        return item is null ? code : MasterDataRepository.LocalName(item);
+    }
+
     static string StClass(string? s) => s switch
-    { "OK" or "UP"             => "ok",
-      "WARN" or "DEGRADED"     => "warn",
+    { "OK" or "UP"               => "ok",
+      "WARN" or "DEGRADED"       => "warn",
       "DOWN" or "ERROR" or "FAULT" => "bad",
-      _                         => "info" };
+      _                           => "info" };
 }

@@ -1,4 +1,4 @@
-@page "/pp/wo-release"
+﻿@page "/pp/wo-release"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @rendermode InteractiveServer
 @inject AMES.Data.Repositories.PpRepository Pp
@@ -45,14 +45,14 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["PP.WoRelease.Title"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _all.Count ? $" / {L["Lbl.TotalOf"]} {_all.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <select class="ames-input" style="width:140px;padding:4px 8px;" @bind="_fLine">
+            <select class="ames-input" style="width:140px;" @bind="_fLine">
                 <option value="">@L["Filter.AllLines"]</option>
                 @foreach (var l in _lineList)
                 {
                     <option value="@l.LineID">@l.LineID@(l.LineName != null ? $" {l.LineName}" : "")</option>
                 }
             </select>
-            <select class="ames-input" style="width:130px;padding:4px 8px;" @bind="_fStatus">
+            <select class="ames-input" style="width:130px;" @bind="_fStatus">
                 <option value="">@L["PP.WorkOrder.Filter.AllStatus"]</option>
                 <option value="Draft">Draft</option>
                 <option value="Planned">Planned</option>
@@ -60,7 +60,7 @@
                 <option value="In Progress">In Progress</option>
                 <option value="Closed">Closed</option>
             </select>
-            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_recentDays">
+            <select class="ames-input" style="width:110px;" @bind="_recentDays">
                 <option value="7">@L["PP.WorkOrder.Filter.Closed7"]</option>
                 <option value="30">@L["PP.WorkOrder.Filter.Closed30"]</option>
                 <option value="60">@L["PP.WorkOrder.Filter.Closed60"]</option>

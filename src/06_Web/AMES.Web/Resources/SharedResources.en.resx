@@ -31,6 +31,9 @@
   <data name="Btn.Approve"><value>Approve</value></data>
   <data name="Btn.Reject"><value>Reject</value></data>
   <data name="Btn.Close"><value>Close</value></data>
+  <data name="Btn.GoHome"><value>Go Home</value></data>
+  <data name="Err.Unauthorized"><value>Access Denied</value></data>
+  <data name="Err.UnauthorizedDesc"><value>You do not have permission to access this screen. Please request access from your administrator.</value></data>
   <data name="Btn.Confirm"><value>Confirm</value></data>
   <data name="Btn.Reload"><value>Reload</value></data>
   <data name="Btn.Reset"><value>Reset</value></data>
@@ -91,6 +94,9 @@
 
   <!-- ── Lbl.Period ── -->
   <data name="Lbl.Period"><value>Period</value></data>
+  <data name="Lbl.Result"><value>Result</value></data>
+  <data name="Lbl.Visible"><value>Visible</value></data>
+  <data name="Lbl.Direction"><value>Direction</value></data>
   <data name="Lbl.Recent"><value>Recent</value></data>
   <data name="Lbl.Future"><value>Ahead</value></data>
   <data name="Lbl.Past"><value>Back</value></data>
@@ -101,6 +107,7 @@
   <!-- ── Common Messages ── -->
   <data name="Msg.NoData"><value>No results found.</value></data>
   <data name="Msg.Saving"><value>Saving…</value></data>
+  <data name="Msg.Saved"><value>Saved successfully.</value></data>
   <data name="Msg.Deleting"><value>Deleting…</value></data>
   <data name="Msg.Confirm.Delete"><value>Are you sure you want to delete?</value></data>
   <data name="Msg.Yes"><value>Yes, Delete</value></data>
@@ -408,21 +415,17 @@
   <!-- SYS.Rbac -->
   <data name="SYS.Rbac.Title"><value>Role / Permission Management (RBAC)</value></data>
   <data name="SYS.Rbac.Sub"><value>Role × screen permission matrix</value></data>
-  <data name="SYS.Rbac.List"><value>Permission List</value></data>
-  <data name="SYS.Rbac.Kpi.Roles"><value>Roles</value></data>
-  <data name="SYS.Rbac.Kpi.Perms"><value>Permissions</value></data>
-  <data name="SYS.Rbac.Kpi.Screens"><value>Screens</value></data>
-  <data name="SYS.Rbac.Kpi.Users"><value>Role Users</value></data>
-  <data name="SYS.Rbac.Col.Module"><value>Module</value></data>
+  <data name="SYS.Rbac.Roles"><value>Roles</value></data>
+  <data name="SYS.Rbac.Matrix"><value>Permission Matrix</value></data>
+  <data name="SYS.Rbac.Matrix.UsersAssigned"><value>{0} users assigned</value></data>
+  <data name="SYS.Rbac.Hint.SelectRole"><value>Select a role from the list on the left.</value></data>
+  <data name="SYS.Rbac.Kpi.Roles"><value>Defined Roles</value></data>
+  <data name="SYS.Rbac.Kpi.Modules"><value>Managed Modules</value></data>
+  <data name="SYS.Rbac.Kpi.Users"><value>Users in Role</value></data>
+  <data name="SYS.Rbac.Kpi.Granted"><value>Granted Permissions</value></data>
   <data name="SYS.Rbac.Col.Screen"><value>Screen</value></data>
-  <data name="SYS.Rbac.Col.Level"><value>Level</value></data>
-  <data name="SYS.Rbac.Col.System"><value>System</value></data>
-  <data name="SYS.Rbac.Modal.Create"><value>Create Permission</value></data>
-  <data name="SYS.Rbac.Lbl.Role"><value>Role *</value></data>
-  <data name="SYS.Rbac.Lbl.Module"><value>Module *</value></data>
-  <data name="SYS.Rbac.Lbl.Screen"><value>Screen Code *</value></data>
-  <data name="SYS.Rbac.Lbl.Level"><value>Permission Level *</value></data>
-  <data name="SYS.Rbac.Lbl.IsSystem"><value>System Role</value></data>
+  <data name="SYS.Rbac.Col.All"><value>All</value></data>
+  <data name="SYS.Rbac.NoPerm"><value>No permissions</value></data>
 
   <!-- SYS.Screen -->
   <data name="SYS.Screen.Title"><value>Screen Management</value></data>
@@ -436,6 +439,7 @@
   <data name="SYS.Screen.Kpi.Restricted"><value>Role Restricted</value></data>
   <data name="SYS.Screen.Col.Code"><value>Code</value></data>
   <data name="SYS.Screen.Col.Module"><value>Module</value></data>
+  <data name="SYS.Screen.Col.Process"><value>Process</value></data>
   <data name="SYS.Screen.Col.NameKo"><value>Screen Name (KO)</value></data>
   <data name="SYS.Screen.Col.NameEn"><value>Screen Name (EN)</value></data>
   <data name="SYS.Screen.Col.Path"><value>Path</value></data>
@@ -532,6 +536,7 @@
   <data name="SYS.Notifications.History.Empty"><value>No send history.</value></data>
   <data name="SYS.Notifications.Ph.RuleSearch"><value>Code / event name</value></data>
   <data name="SYS.Notifications.Ph.ChSearch"><value>User / address</value></data>
+  <data name="SYS.Notifications.Ph.HistSearch"><value>Code / recipient / subject</value></data>
   <data name="SYS.Notifications.Filter.AllModules"><value>All Modules</value></data>
   <data name="SYS.Notifications.Filter.AllChannels"><value>All Channels</value></data>
   <data name="SYS.Notifications.Filter.AllEnabled"><value>All</value></data>
@@ -601,6 +606,32 @@
   <data name="SYS.Health.Tile.Calendar"><value>Factory Calendar</value></data>
   <data name="SYS.Health.Tile.Roles"><value>Roles</value></data>
   <data name="SYS.Health.Tile.Screen"><value>Screen Mgmt</value></data>
+
+  <!-- SYS.Health — Real-time server info -->
+  <data name="SYS.Health.Kpi.ServicesUp"><value>Services Up</value></data>
+  <data name="SYS.Health.Kpi.ServicesUpSub"><value>Running</value></data>
+  <data name="SYS.Health.Kpi.Cpu"><value>CPU Usage</value></data>
+  <data name="SYS.Health.Kpi.CpuSub"><value>{0} cores</value></data>
+  <data name="SYS.Health.Kpi.Mem"><value>Memory Usage</value></data>
+  <data name="SYS.Health.Kpi.MemSub"><value>{0} / {1} GB</value></data>
+  <data name="SYS.Health.Kpi.Disk"><value>Disk Usage</value></data>
+  <data name="SYS.Health.Kpi.DiskSub"><value>{0} / {1} GB</value></data>
+  <data name="SYS.Health.Svc.Title"><value>Server &amp; Service Status</value></data>
+  <data name="SYS.Health.Res.Title"><value>Resource Utilization</value></data>
+  <data name="SYS.Health.Res.Cpu"><value>CPU</value></data>
+  <data name="SYS.Health.Res.Mem"><value>Memory</value></data>
+  <data name="SYS.Health.Res.Disk"><value>Disk</value></data>
+  <data name="SYS.Health.Res.Net"><value>Network</value></data>
+  <data name="SYS.Health.Events.Title"><value>Recent System Events</value></data>
+  <data name="SYS.Health.Events.Col.Time"><value>Time</value></data>
+  <data name="SYS.Health.Events.Col.Level"><value>Level</value></data>
+  <data name="SYS.Health.Events.Col.Component"><value>Component</value></data>
+  <data name="SYS.Health.Events.Col.Message"><value>Message</value></data>
+  <data name="SYS.Health.Events.Empty"><value>No recent events</value></data>
+  <data name="SYS.Health.Status.Ok"><value>Healthy</value></data>
+  <data name="SYS.Health.Status.Warn"><value>Warning</value></data>
+  <data name="SYS.Health.Status.Down"><value>Down</value></data>
+  <data name="SYS.Health.Na"><value>N/A</value></data>
 
   <!-- ════════════════════════════════════════════════════════════ -->
   <!-- MD — Master Data -->
@@ -1546,6 +1577,7 @@
   <data name="SYS.Audit.Ph.Search"><value>User / Target ID / Note</value></data>
   <data name="SYS.Audit.Filter.AllModules"><value>All Modules</value></data>
   <data name="SYS.Audit.Filter.AllResults"><value>All</value></data>
+  <data name="SYS.Audit.Detail"><value>Audit Detail</value></data>
 
   <!-- SYS.Config -->
   <data name="SYS.Config.Kpi.KeysSub"><value>Total Config Keys</value></data>
@@ -1593,15 +1625,7 @@
   <data name="SYS.Screen.Ok.Deleted"><value>{0} deleted.</value></data>
 
   <!-- SYS.Rbac -->
-  <data name="SYS.Rbac.Empty"><value>No permissions defined.</value></data>
-  <data name="SYS.Rbac.Ph.ScreenCode"><value>e.g. SYS-001, PP-004</value></data>
-  <data name="SYS.Rbac.Err.RoleRequired"><value>Please select a role.</value></data>
-  <data name="SYS.Rbac.Err.ModuleRequired"><value>Please select a module.</value></data>
-  <data name="SYS.Rbac.Err.ScreenCodeRequired"><value>Screen code is required.</value></data>
-  <data name="SYS.Rbac.Err.LevelRequired"><value>Please select a permission level.</value></data>
-  <data name="SYS.Rbac.Ok.Created"><value>{0} · {1} permission created.</value></data>
-  <data name="SYS.Rbac.Ok.Updated"><value>{0} · {1} permission updated.</value></data>
-  <data name="SYS.Rbac.Ok.Deleted"><value>{0} · {1} permission deleted.</value></data>
+  <data name="SYS.Rbac.Empty"><value>No roles defined.</value></data>
 
   <!-- SYS.Roles -->
   <data name="SYS.Roles.Ph.RoleName"><value>e.g. Admin, Manager, Operator</value></data>

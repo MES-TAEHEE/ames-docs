@@ -3,6 +3,7 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject MasterDataRepository Md
 @inject AuthenticationStateProvider Auth
+@inject AMES.Web.Services.PermissionService Perm
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["MD.CommonCode.Title"] · AMES</PageTitle>
@@ -25,7 +26,7 @@
         <div class="ames-card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
                 <span style="font-weight:600;font-size:1em;">@L["MD.CommonCode.GrpHeader"]</span>
-                <button class="ames-btn" @onclick="OpenGroupCreate">@L["Btn.Create"]</button>
+                @if (_canEdit) { <button class="ames-btn" @onclick="OpenGroupCreate">@L["Btn.Create"]</button> }
             </div>
             <table class="ames-table" style="table-layout:fixed;width:100%;">
                 <thead>
@@ -76,7 +77,7 @@
                         @_selGroup.GroupName
                         <span class="dim" style="font-weight:400;margin-left:6px;">@string.Format(L["MD.CommonCode.ItemCount"].Value, _items.Count)</span>
                     </span>
-                    <button class="ames-btn" @onclick="OpenItemCreate">@L["Btn.Create"]</button>
+                    @if (_canEdit) { <button class="ames-btn" @onclick="OpenItemCreate">@L["Btn.Create"]</button> }
                 </div>
                 <table class="ames-table">
                     <thead>
@@ -239,7 +240,7 @@
                     <option value="">@L["MD.CommonCode.Opt.None"]</option>
                     @foreach (var p in _items)
                     {
-                        <option value="@p.CodeID">@p.CodeValue — @p.CodeName</option>
+                        <option value="@p.CodeID">[@p.CodeValue] @p.CodeName</option>
                     }
                 </select>
             </div>
@@ -311,7 +312,7 @@
                     <option value="">@L["MD.CommonCode.Opt.None"]</option>
                     @foreach (var p in _items.Where(i => i.CodeID != _fCodeId))
                     {
-                        <option value="@p.CodeID">@p.CodeValue — @p.CodeName</option>
+                        <option value="@p.CodeID">[@p.CodeValue] @p.CodeName</option>
                     }
                 </select>
             </div>
@@ -373,6 +374,7 @@
     string _msg               = "";
     bool   _isErr, _busy, _bgDown;
     bool   _grpConfirmDelete, _itemConfirmDelete;
+    bool   _canEdit;
     string _actor             = "system";
 
     // ── Group form fields ────────────────────────────────────────────────
@@ -398,6 +400,8 @@
     {
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor   = auth.User.Identity?.Name ?? "system";
+        await Perm.EnsureAsync(Auth);
+        _canEdit = Perm.CanEdit("md/common-code");
         LoadGroups();
     }
 

@@ -1,10 +1,11 @@
-﻿@page "/md/items"
+@page "/md/fd/items"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject MasterDataRepository Md
 @inject SysRepository Sys
 @inject IHttpContextAccessor HttpCtxAccessor
 @inject AuthenticationStateProvider Auth
+@inject AMES.Web.Services.PermissionService Perm
 @inject IStringLocalizer<SharedResources> L
 @using System.Text.Json
 
@@ -47,21 +48,19 @@
             <input class="ames-input" style="width:200px;padding:4px 8px;"
                    placeholder="@L["MD.Items.Ph.Search"]" @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
             <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Type"]</span>
-            <select class="ames-input" style="width:130px;padding:4px 8px;" @bind="_fTypeFilter">
+            <select class="ames-input" style="width:130px;" @bind="_fTypeFilter">
                 <option value="">@L["Filter.AllTypes"]</option>
-                @foreach (var t in _allItems.Select(r => r.ItemType).Where(t => t != null).Distinct().OrderBy(t => t))
-                {
-                    <option value="@t">@t</option>
-                }
+                @foreach (var t in _itemTypeItems.Where(t => t.UseFlag))
+                { <option value="@t.CodeValue">[@t.CodeValue] @MasterDataRepository.LocalName(t)</option> }
             </select>
             <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
-            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fActiveOnly">
+            <select class="ames-input" style="width:100px;" @bind="_fActiveOnly">
                 <option value="">@L["Filter.All"]</option>
                 <option value="Y">@L["Lbl.Use.On"]</option>
                 <option value="N">@L["Lbl.Use.Off"]</option>
             </select>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
-            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
+            @if (_canEdit) { <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button> }
         </div>
     </div>
 
@@ -129,8 +128,11 @@
                 </div>
                 <div>
                     <label>@L["MD.Items.Lbl.Uom"] <span class="dim" style="font-size:.82em;">(UOM)</span></label>
-                    <input class="ames-input" @bind="_fUom" maxlength="10" autocomplete="off"
-                           placeholder="예: EA, KG, M" />
+                    <select class="ames-input" @bind="_fUom">
+                        <option value="">@L["Opt.Select"]</option>
+                        @foreach (var u in _uomList.Where(u => u.ActiveFlag))
+                        { <option value="@u.UOMCode">@u.UOMCode@(string.IsNullOrEmpty(u.UOMName) ? "" : $"  ({u.UOMName})")</option> }
+                    </select>
                 </div>
             </div>
 
@@ -163,7 +165,11 @@
                 </div>
                 <div>
                     <label>@L["MD.Items.Lbl.Uom"] <span class="dim" style="font-size:.82em;">(UOM)</span></label>
-                    <input class="ames-input" @bind="_fUom" maxlength="10" autocomplete="off" />
+                    <select class="ames-input" @bind="_fUom">
+                        <option value="">@L["Opt.Select"]</option>
+                        @foreach (var u in _uomList.Where(u => u.ActiveFlag))
+                        { <option value="@u.UOMCode">@u.UOMCode@(string.IsNullOrEmpty(u.UOMName) ? "" : $"  ({u.UOMName})")</option> }
+                    </select>
                 </div>
             </div>
 
@@ -197,8 +203,11 @@
 @code {
     int _page = 0;
     const int _pageSize = 20;
-    List<MasterDataRepository.ItemRow> _allItems = new();
-    List<MasterDataRepository.ItemRow> _items    = new();
+    List<MasterDataRepository.ItemRow>        _allItems      = new();
+    List<MasterDataRepository.ItemRow>        _items         = new();
+    List<MasterDataRepository.CodeItemRow>    _itemTypeItems = new();
+    List<MasterDataRepository.CodeItemRow>    _routingItems  = new();
+    List<MasterDataRepository.UomRow>         _uomList       = new();
     string _fSearch       = "";
     string _fTypeFilter   = "";
     string _fActiveOnly   = "";
@@ -206,6 +215,7 @@
     string _modalErr      = "";
     string _msg           = "";
     bool   _isErr, _busy, _bgDown, _confirmDelete;
+    bool   _canEdit;
     string _actor     = "system";
     string _clientIp  = "";
     MasterDataRepository.ItemRow? _sel;
@@ -231,8 +241,13 @@
     {
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor   = auth.User.Identity?.Name ?? "system";
+        await Perm.EnsureAsync(Auth);
+        _canEdit = Perm.CanEdit("md/fd/items");
         // HttpContext is available during the prerender (HTTP) phase; null after WebSocket handoff.
-        _clientIp = HttpCtxAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "";
+        _clientIp = ToIpv4(HttpCtxAccessor.HttpContext?.Connection.RemoteIpAddress);
+        try { _itemTypeItems = Md.ListCodeItems("ITEM_TYPE"); } catch { }
+        try { _routingItems  = Md.ListCodeItems("ROUTING"); }   catch { }
+        try { _uomList       = Md.ListUoms(); }                  catch { }
         Reload();
     }
 
@@ -260,7 +275,7 @@
     void OpenCreate()
     {
         _fItemNo = ""; _fItemName = ""; _fItemNameEn = ""; _fItemType = "";
-        _fItemCategory = ""; _fUom = "EA"; _fRoutingType = "";
+        _fItemCategory = ""; _fUom = ""; _fRoutingType = "";
         _fMinStock = 0; _fMaxStock = 0; _fSafetyStock = 0; _fUnitCost = 0;
         _fCustSav = ""; _fCustGeo = ""; _fDrawingNo = ""; _fActiveFlag = true;
         _confirmDelete = false; _modalErr = ""; _modal = "create";
@@ -268,6 +283,7 @@
 
     void OpenEdit(MasterDataRepository.ItemRow r)
     {
+        if (!_canEdit) return;
         _sel           = r;
         _fItemNo       = r.ItemNo;
         _fItemName     = r.ItemName;
@@ -392,8 +408,11 @@
         <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;margin-top:6px;">
             <div>
                 <label>@L["MD.Items.Lbl.ItemType"]</label>
-                <input class="ames-input" @bind="_fItemType" autocomplete="off"
-                       placeholder="예: FG, WIP, RM" maxlength="10" />
+                <select class="ames-input" @bind="_fItemType">
+                    <option value="">@L["Opt.Select"]</option>
+                    @foreach (var t in _itemTypeItems.Where(t => t.UseFlag))
+                    { <option value="@t.CodeValue">[@t.CodeValue] @MasterDataRepository.LocalName(t)</option> }
+                </select>
             </div>
             <div>
                 <label>@L["MD.Items.Lbl.Category"]</label>
@@ -402,8 +421,11 @@
             </div>
             <div>
                 <label>Routing</label>
-                <input class="ames-input" @bind="_fRoutingType" maxlength="1" autocomplete="off"
-                       placeholder="예: A" />
+                <select class="ames-input" @bind="_fRoutingType">
+                    <option value="">@L["Opt.Select"]</option>
+                    @foreach (var r in _routingItems.Where(r => r.UseFlag))
+                    { <option value="@r.CodeValue">[@r.CodeValue] @MasterDataRepository.LocalName(r)</option> }
+                </select>
             </div>
         </div>
 
@@ -448,4 +470,12 @@
 
     static string? N(string s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
     static decimal? Nz(decimal v) => v == 0 ? null : v;
+
+    static string ToIpv4(System.Net.IPAddress? ip)
+    {
+        if (ip is null) return "";
+        if (ip.IsIPv4MappedToIPv6) return ip.MapToIPv4().ToString();
+        if (ip.Equals(System.Net.IPAddress.IPv6Loopback)) return "127.0.0.1";
+        return ip.ToString();
+    }
 }

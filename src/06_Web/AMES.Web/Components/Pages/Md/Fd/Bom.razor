@@ -1,8 +1,9 @@
-﻿@page "/md/bom"
+@page "/md/fd/bom"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject MasterDataRepository Md
 @inject AuthenticationStateProvider Auth
+@inject AMES.Web.Services.PermissionService Perm
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["MD.Bom.Title"] · AMES</PageTitle>
@@ -29,14 +30,14 @@
                 <input class="ames-input" style="flex:1;padding:7px 10px;font-size:.88em;"
                        placeholder='@L["MD.Bom.Ph.Search"]'
                        @bind="_search" />
-                <button class="ames-btn" @onclick="OpenVersionCreate"
-                        style="padding:7px 12px;font-size:.85em;white-space:nowrap;">@L["Btn.Create"]</button>
+                @if (_canEdit) { <button class="ames-btn" @onclick="OpenVersionCreate"
+                        style="padding:7px 12px;font-size:.85em;white-space:nowrap;">@L["Btn.Create"]</button> }
             </div>
 
             @* 결재 상태 필터 + 조회 *@
             <div style="display:flex;gap:6px;margin-bottom:8px;flex-shrink:0;align-items:center;">
                 <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
-                <select class="ames-input" style="flex:1;padding:6px 10px;font-size:.85em;" @bind="_statusFilter">
+                <select class="ames-input" style="flex:1;font-size:.85em;" @bind="_statusFilter">
                     <option value="">@L["Filter.AllStatus"]</option>
                     <option value="DRAFT">DRAFT</option>
                     <option value="PENDING">PENDING</option>
@@ -344,6 +345,7 @@
     string _msg              = "";
     bool   _isErr, _busy, _bgDown;
     bool   _verDelConfirm, _lineConfirmDelete;
+    bool   _canEdit;
     string _actor            = "system";
 
 
@@ -371,6 +373,8 @@
     {
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor   = auth.User.Identity?.Name ?? "system";
+        await Perm.EnsureAsync(Auth);
+        _canEdit = Perm.CanEdit("md/fd/bom");
         try { _itemList = Md.ListItems(); } catch { }
         LoadVersions();
     }

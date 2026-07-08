@@ -1,8 +1,9 @@
-﻿@page "/md/reason-code"
+@page "/md/re/reason-code"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
 @inject AuthenticationStateProvider Auth
+@inject AMES.Web.Services.PermissionService Perm
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["MD.ReasonCode.Title"] · AMES</PageTitle>
@@ -44,7 +45,7 @@
             <input class="ames-input" style="width:140px;padding:4px 8px;"
                    placeholder='@L["MD.ReasonCode.Ph.Search"]' @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
             <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Type"]</span>
-            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fType">
+            <select class="ames-input" style="width:110px;" @bind="_fType">
                 <option value="">@L["Filter.AllTypes"]</option>
                 @foreach (var t in _allRows.Select(r => r.ReasonType).Where(x => x != null).Distinct().OrderBy(x => x))
                 {
@@ -52,7 +53,7 @@
                 }
             </select>
             <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Module"]</span>
-            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_fModule">
+            <select class="ames-input" style="width:110px;" @bind="_fModule">
                 <option value="">@L["Filter.AllModules"]</option>
                 @foreach (var m in _allRows.Select(r => r.AppliesToModule).Where(x => x != null).Distinct().OrderBy(x => x))
                 {
@@ -60,7 +61,7 @@
                 }
             </select>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
-            <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button>
+            @if (_canEdit) { <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button> }
         </div>
     </div>
 
@@ -219,6 +220,7 @@
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
     string _msg = "", _modalErr = "";
     bool _isErr;
+    bool   _canEdit;
     string _actor = "system";
     FormModel _f = new();
 
@@ -226,6 +228,8 @@
     {
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
+        await Perm.EnsureAsync(Auth);
+        _canEdit = Perm.CanEdit("md/re/reason-code");
         Reload();
     }
 
@@ -253,6 +257,7 @@
 
     void OpenEdit(AMES.Data.Repositories.MasterDataRepository.ReasonCodeRow r)
     {
+        if (!_canEdit) return;
         _sel = r; _modalErr = ""; _confirmDelete = false;
         _f = new()
         {

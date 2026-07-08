@@ -1,4 +1,4 @@
-@page "/mnt/spare-parts"
+﻿@page "/mnt/spare-parts"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MntRepository Mnt
@@ -84,7 +84,7 @@
             <input class="ames-input" style="width:120px;padding:4px 8px;"
                    placeholder="@L["MNT.SpareParts.Ph.TxnPart"]" @bind="_fTxnPart" autocomplete="off" />
             <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Recent"]</label>
-            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_txnTopN">
+            <select class="ames-input" style="width:110px;" @bind="_txnTopN">
                 <option value="50">50@(L["Lbl.Items"])</option>
                 <option value="100">100@(L["Lbl.Items"])</option>
                 <option value="200">200@(L["Lbl.Items"])</option>

@@ -1,7 +1,8 @@
-﻿@page "/sys/audit"
+@page "/sys/audit"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
+@inject AMES.Data.Repositories.MasterDataRepository Md
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>SYS-007 @L["SYS.Audit.Title"] · AMES</PageTitle>
@@ -13,109 +14,270 @@
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Audit.Kpi.Events"]</div>
-        <div class="ames-kpi-v">@_allRows.Count</div><div class="ames-kpi-s">@L["SYS.Audit.Kpi.EventsSub"]</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["SYS.Audit.Kpi.Ok"]</div>
-        <div class="ames-kpi-v">@_ok</div><div class="ames-kpi-s">@L["SYS.Audit.Kpi.OkSub"]</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">@L["SYS.Audit.Kpi.Fail"]</div>
-        <div class="ames-kpi-v">@_fail</div><div class="ames-kpi-s">@L["SYS.Audit.Kpi.FailSub"]</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["SYS.Audit.Kpi.Last24h"]</div>
-        <div class="ames-kpi-v">@_day</div><div class="ames-kpi-s">@L["Lbl.Items"]</div></div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["SYS.Audit.Kpi.Events"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_allRows.Count</div>
+            <div class="ames-kpi-s">@L["SYS.Audit.Kpi.EventsSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">@L["SYS.Audit.Kpi.Ok"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_ok</div>
+            <div class="ames-kpi-s">@L["SYS.Audit.Kpi.OkSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi bad">
+        <div class="ames-kpi-l">@L["SYS.Audit.Kpi.Fail"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_fail</div>
+            <div class="ames-kpi-s">@L["SYS.Audit.Kpi.FailSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">@L["SYS.Audit.Kpi.Last24h"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_day</div>
+            <div class="ames-kpi-s">@L["Lbl.Items"]</div>
+        </div>
+    </div>
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span>▼ @L["SYS.Audit.List"] · @_rows.Count @L["Lbl.Items"]</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input type="date" class="ames-input" style="width:145px;" @bind="_fFrom" @bind:format="yyyy-MM-dd" />
-            <span style="color:#94a3b8;">~</span>
-            <input type="date" class="ames-input" style="width:145px;" @bind="_fTo" @bind:format="yyyy-MM-dd" />
-            <input class="ames-input" style="width:150px;padding:4px 8px;"
-                   placeholder="@L["SYS.Audit.Ph.Search"]" @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
-            <select class="ames-input" style="width:100px;padding:4px 8px;" @bind="_fModule">
+    <div class="ames-card-h" style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <span>▼ @L["SYS.Audit.List"] · @_rows.Count @L["Lbl.Items"]</span>
+            @* 기간 + 키워드 *@
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Lbl.Period"]</span>
+                <input type="date" class="ames-input" style="width:145px;" @bind="_fFrom" @bind:format="yyyy-MM-dd" />
+                <span style="color:#94a3b8;">~</span>
+                <input type="date" class="ames-input" style="width:145px;" @bind="_fTo" @bind:format="yyyy-MM-dd" />
+                <input class="ames-input" style="width:160px;padding:4px 8px;"
+                       placeholder="@L["SYS.Audit.Ph.Search"]" @bind="_fSearch" @bind:event="oninput"
+                       @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
+            </div>
+        </div>
+        @* 코드 필터 행 *@
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding-left:2px;">
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Module"]</span>
+            <select class="ames-input" style="width:130px;" @bind="_fModule">
                 <option value="">@L["SYS.Audit.Filter.AllModules"]</option>
-                <option value="PP">PP</option>
-                <option value="MNT">MNT</option>
-                <option value="QC">QC</option>
-                <option value="WH">WH</option>
-                <option value="FG">FG</option>
-                <option value="SYS">SYS</option>
+                @foreach (var m in _moduleItems.Where(m => m.UseFlag))
+                { <option value="@m.CodeValue">[@m.CodeValue] @MasterDataRepository.LocalName(m)</option> }
             </select>
-            <select class="ames-input" style="width:85px;padding:4px 8px;" @bind="_fResult">
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.ProcessCode"]</span>
+            <input class="ames-input" style="width:120px;padding:4px 8px;"
+                   placeholder="@L["SYS.Audit.Ph.Process"]" @bind="_fProcess" @bind:event="oninput"
+                   @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
+            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Lbl.Result"]</span>
+            <select class="ames-input" style="width:130px;" @bind="_fResult">
                 <option value="">@L["SYS.Audit.Filter.AllResults"]</option>
-                <option value="OK">OK</option>
-                <option value="FAIL">FAIL</option>
+                @foreach (var r in _resultItems.Where(r => r.UseFlag))
+                { <option value="@r.CodeValue">[@r.CodeValue] @MasterDataRepository.LocalName(r)</option> }
             </select>
             <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
         </div>
     </div>
-    <table class="ames-table">
-        <thead>
-            <tr>
-                <th>@L["SYS.Audit.Col.Time"]</th><th>@L["SYS.Audit.Col.Actor"]</th><th>@L["SYS.Audit.Col.Module"]</th><th>@L["SYS.Audit.Col.Screen"]</th>
-                <th>@L["SYS.Audit.Col.Action"]</th><th>@L["SYS.Audit.Col.Entity"]</th><th>@L["SYS.Audit.Col.TargetId"]</th>
-                <th>@L["SYS.Audit.Col.Result"]</th><th>@L["SYS.Audit.Col.Ip"]</th><th>@L["SYS.Audit.Col.Note"]</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var a in _rows.Skip(_page * _pageSize).Take(_pageSize))
-            {
+
+    @if (_rows.Count == 0)
+    {
+        <div class="ames-empty">@L["SYS.Audit.Empty"]</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
                 <tr>
-                    <td class="dim">@(a.EventTs?.ToString("MM-dd HH:mm:ss") ?? "—")</td>
-                    <td class="dim" style="font-family:'JetBrains Mono',monospace;font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;display:inline-block;">@(a.ActorUserId ?? "—")</td>
-                    <td><span class="pill info">@(a.ModuleCode ?? "—")</span></td>
-                    <td class="code">@(a.ScreenCode ?? "—")</td>
-                    <td><span class="pill @ActClass(a.ActionType)">@(a.ActionType ?? "—")</span></td>
-                    <td class="dim">@(a.TargetEntity ?? "—")</td>
-                    <td class="code dim">@(a.TargetId ?? "—")</td>
-                    <td>
-                        @if (a.Result == "OK")     { <span class="pill ok">OK</span> }
-                        else if (a.Result == "FAIL") { <span class="pill bad">FAIL</span> }
-                        else { <span class="dim">@(a.Result ?? "—")</span> }
-                    </td>
-                    <td class="dim code">@(a.IpAddress ?? "—")</td>
-                    <td class="dim">@(a.Note ?? "—")</td>
+                    <th>@L["SYS.Audit.Col.Time"]</th>
+                    <th>@L["SYS.Audit.Col.Actor"]</th>
+                    <th>@L["SYS.Audit.Col.Module"]</th>
+                    <th>@L["Col.ProcessCode"]</th>
+                    <th>@L["SYS.Audit.Col.Screen"]</th>
+                    <th>@L["SYS.Audit.Col.Action"]</th>
+                    <th>@L["SYS.Audit.Col.Entity"]</th>
+                    <th>@L["SYS.Audit.Col.TargetId"]</th>
+                    <th>@L["SYS.Audit.Col.Result"]</th>
+                    <th>@L["SYS.Audit.Col.Ip"]</th>
                 </tr>
-            }
-        </tbody>
-    </table>
-    <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
-    @if (_rows.Count == 0) { <div class="ames-empty">@L["SYS.Audit.Empty"]</div> }
+            </thead>
+            <tbody>
+                @foreach (var a in _rows.Skip(_page * _pageSize).Take(_pageSize))
+                {
+                    <tr class="ames-row-link" @onclick="() => OpenDetail(a)">
+                        <td class="code dim" style="font-size:13px;white-space:nowrap;">@(a.EventTs?.ToString("MM-dd HH:mm:ss") ?? "—")</td>
+                        <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                            <span class="dim" style="font-family:'JetBrains Mono',monospace;font-size:12px;">@(a.ActorUserId ?? "—")</span>
+                        </td>
+                        <td><span class="pill @ModClass(a.ModuleCode)">@(a.ModuleCode ?? "—")</span></td>
+                        <td class="code dim" style="font-size:13px;">@(a.ProcessCode ?? "—")</td>
+                        <td class="code" style="font-size:13px;">@(a.ScreenCode ?? "—")</td>
+                        <td><span class="pill @ActClass(a.ActionType)">@(a.ActionType ?? "—")</span></td>
+                        <td class="dim" style="font-size:13px;">@(a.TargetEntity ?? "—")</td>
+                        <td class="code dim" style="font-size:13px;">@(a.TargetId ?? "—")</td>
+                        <td>@ResultPill(a.Result)</td>
+                        <td class="dim code" style="font-size:12px;">@(a.IpAddress ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
+    }
 </div>
+
+@* ── Detail Modal ─────────────────────────────────────────────────── *@
+@if (_sel is not null)
+{
+    <div class="ames-modal-bg" @onclick="() => _sel = null">
+        <div class="ames-modal" style="min-width:540px;max-width:640px;" @onclick:stopPropagation>
+            <div class="ames-modal-h" style="display:flex;align-items:center;gap:10px;">
+                <span>@L["SYS.Audit.Detail"]</span>
+                @ResultPill(_sel.Result)
+            </div>
+
+            @* 기본 정보 *@
+            <div class="audit-section-label">@L["SYS.Audit.Sect.Basic"]</div>
+            <div class="audit-detail-grid">
+                <div class="audit-kv">
+                    <span class="audit-kv-l">@L["SYS.Audit.Col.Time"]</span>
+                    <span class="audit-kv-v code">@(_sel.EventTs?.ToString("yyyy-MM-dd HH:mm:ss") ?? "—")</span>
+                </div>
+                <div class="audit-kv">
+                    <span class="audit-kv-l">@L["SYS.Audit.Col.Actor"]</span>
+                    <span class="audit-kv-v code">@(_sel.ActorUserId ?? "—")</span>
+                </div>
+                <div class="audit-kv">
+                    <span class="audit-kv-l">@L["SYS.Audit.Col.Ip"]</span>
+                    <span class="audit-kv-v code">@(_sel.IpAddress ?? "—")</span>
+                </div>
+                <div class="audit-kv">
+                    <span class="audit-kv-l">@L["SYS.Audit.Col.Result"]</span>
+                    <span class="audit-kv-v">@ResultPill(_sel.Result)</span>
+                </div>
+            </div>
+
+            @* 이벤트 정보 *@
+            <div class="audit-section-label" style="margin-top:14px;">@L["SYS.Audit.Sect.Event"]</div>
+            <div class="audit-detail-grid">
+                <div class="audit-kv">
+                    <span class="audit-kv-l">@L["SYS.Audit.Col.Module"]</span>
+                    <span class="audit-kv-v"><span class="pill @ModClass(_sel.ModuleCode)">@(_sel.ModuleCode ?? "—")</span></span>
+                </div>
+                <div class="audit-kv">
+                    <span class="audit-kv-l">@L["Col.ProcessCode"]</span>
+                    <span class="audit-kv-v code">@(_sel.ProcessCode ?? "—")</span>
+                </div>
+                <div class="audit-kv">
+                    <span class="audit-kv-l">@L["SYS.Audit.Col.Screen"]</span>
+                    <span class="audit-kv-v code">@(_sel.ScreenCode ?? "—")</span>
+                </div>
+                <div class="audit-kv">
+                    <span class="audit-kv-l">@L["SYS.Audit.Col.Action"]</span>
+                    <span class="audit-kv-v"><span class="pill @ActClass(_sel.ActionType)">@(_sel.ActionType ?? "—")</span></span>
+                </div>
+                <div class="audit-kv" style="grid-column:1/3;">
+                    <span class="audit-kv-l">@L["SYS.Audit.Col.Entity"]</span>
+                    <span class="audit-kv-v code">@(_sel.TargetEntity ?? "—")</span>
+                </div>
+                <div class="audit-kv" style="grid-column:1/3;">
+                    <span class="audit-kv-l">@L["SYS.Audit.Col.TargetId"]</span>
+                    <span class="audit-kv-v code">@(_sel.TargetId ?? "—")</span>
+                </div>
+            </div>
+
+            @* 비고 *@
+            @if (!string.IsNullOrWhiteSpace(_sel.Note))
+            {
+                <div class="audit-section-label" style="margin-top:14px;">@L["SYS.Audit.Col.Note"]</div>
+                <div style="margin-top:4px;padding:10px 12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:6px;
+                            font-size:13px;color:#94a3b8;white-space:pre-wrap;word-break:break-all;line-height:1.6;">@_sel.Note</div>
+            }
+
+            <div class="ames-modal-footer">
+                <button class="ames-btn ghost" @onclick="() => _sel = null">@L["Btn.Close"]</button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     int _page = 0;
     const int _pageSize = 20;
     List<AMES.Data.Repositories.SysRepository.AuditRow> _allRows = new();
     List<AMES.Data.Repositories.SysRepository.AuditRow> _rows    = new();
+    AMES.Data.Repositories.SysRepository.AuditRow? _sel;
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _moduleItems = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _resultItems = new();
     int _ok, _fail, _day;
-    string _fSearch = "", _fModule = "", _fResult = "";
+    string _fSearch = "", _fModule = "", _fProcess = "", _fResult = "";
     DateTime _fFrom = DateTime.Today.AddDays(-7);
     DateTime _fTo   = DateTime.Today;
-    protected override void OnInitialized() => Reload();
+
+    protected override void OnInitialized()
+    {
+        try { _moduleItems = Md.ListCodeItems("MODULE"); }       catch { }
+        try { _resultItems = Md.ListCodeItems("AUDIT_STATUS"); } catch { }
+        Reload();
+    }
+
+    void OpenDetail(AMES.Data.Repositories.SysRepository.AuditRow r) => _sel = r;
 
     void Reload()
     {
         try { _allRows = Sys.ListAudit(); } catch { _allRows = new(); }
         _ok   = _allRows.Count(r => r.Result == "OK");
-        _fail = _allRows.Count(r => r.Result == "FAIL");
-        _day  = _allRows.Count(r => r.EventTs.HasValue
-                    && (DateTime.Now - r.EventTs.Value).TotalHours <= 24);
+        _fail = _allRows.Count(r => r.Result != "OK" && r.Result is not null);
+        _day  = _allRows.Count(r => r.EventTs.HasValue && (DateTime.Now - r.EventTs.Value).TotalHours <= 24);
         ApplyFilter();
     }
 
-    void ApplyFilter() { _page = 0; _rows = _allRows.Where(r =>
-        (string.IsNullOrEmpty(_fSearch) ||
-            (r.ActorUserId ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
-            (r.TargetId    ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
-            (r.Note        ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
-        (string.IsNullOrEmpty(_fModule)  || r.ModuleCode == _fModule) &&
-        (string.IsNullOrEmpty(_fResult)  || r.Result     == _fResult) &&
-        (!r.EventTs.HasValue || (r.EventTs.Value.Date >= _fFrom.Date && r.EventTs.Value.Date <= _fTo.Date))
-    ).ToList(); }
+    void ApplyFilter()
+    {
+        _page = 0;
+        _rows = _allRows.Where(r =>
+            (string.IsNullOrEmpty(_fSearch) ||
+                (r.ActorUserId  ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+                (r.TargetId     ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+                (r.TargetEntity ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+                (r.Note         ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(_fModule)  || r.ModuleCode  == _fModule) &&
+            (string.IsNullOrEmpty(_fProcess) || (r.ProcessCode ?? "").Contains(_fProcess, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(_fResult)  || r.Result      == _fResult) &&
+            (!r.EventTs.HasValue || (r.EventTs.Value.Date >= _fFrom.Date && r.EventTs.Value.Date <= _fTo.Date))
+        ).ToList();
+    }
+
+    Microsoft.AspNetCore.Components.RenderFragment ResultPill(string? result) => builder =>
+    {
+        var (cls, lbl) = result switch
+        {
+            "OK"   => ("ok",  "OK"),
+            "FAIL" => ("bad", "FAIL"),
+            _      => ("info", result ?? "—")
+        };
+        if (result is null) { builder.AddContent(0, "—"); return; }
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "class", $"pill {cls}");
+        builder.AddContent(2, lbl);
+        builder.CloseElement();
+    };
+
+    static string ModClass(string? m) => m switch
+    {
+        "SYS"           => "info",
+        "QC"            => "warn",
+        "PP"            => "info",
+        "WH" or "FG"    => "ok",
+        "MNT"           => "warn",
+        _               => "info"
+    };
+
     static string ActClass(string? a) => a switch
-    { "DELETE" => "bad", "REJECT" => "bad",
-      "CREATE" or "UPDATE" or "APPROVE" => "warn",
-      "LOGIN" or "LOGOUT" => "info",
-      _ => "info" };
+    {
+        "DELETE" or "REJECT"             => "bad",
+        "CREATE" or "UPDATE" or "APPROVE" => "warn",
+        "LOGIN"  or "LOGOUT"             => "info",
+        _                                 => "info"
+    };
 }

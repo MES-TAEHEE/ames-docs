@@ -1,8 +1,9 @@
-﻿@page "/md/bop"
+@page "/md/rp/bop"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject MasterDataRepository Md
 @inject AuthenticationStateProvider Auth
+@inject AMES.Web.Services.PermissionService Perm
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["MD.Bop.Title"] · AMES</PageTitle>
@@ -84,8 +85,8 @@
                                 @if (_rtFilter != null) {<span> · @string.Format(L["MD.Bop.RoutingFilter"], _rtFilter)</span>}
                             </div>
                         </div>
-                        <button class="ames-btn" @onclick="OpenStepCreate"
-                                style="padding:6px 14px;font-size:.83em;flex-shrink:0;">@L["MD.Bop.AddStep"]</button>
+                        @if (_canEdit) { <button class="ames-btn" @onclick="OpenStepCreate"
+                                style="padding:6px 14px;font-size:.83em;flex-shrink:0;">@L["MD.Bop.AddStep"]</button> }
                     </div>
                 </div>
 
@@ -231,6 +232,7 @@
     string _modalErr  = "";
     string _msg       = "";
     bool   _isErr, _busy, _bgDown, _confirmDelete;
+    bool   _canEdit;
     string _actor     = "system";
 
     // ── Form fields ───────────────────────────────────────────────────────
@@ -251,6 +253,8 @@
     {
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor   = auth.User.Identity?.Name ?? "system";
+        await Perm.EnsureAsync(Auth);
+        _canEdit = Perm.CanEdit("md/rp/bop");
         try { _itemList = Md.ListItems();       } catch { }
         try { _wcList   = Md.ListWorkCenters(); } catch { }
         LoadItems();

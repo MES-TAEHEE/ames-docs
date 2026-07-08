@@ -1,4 +1,4 @@
-@page "/rpt/monthly-kpi"
+﻿@page "/rpt/monthly-kpi"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.RptRepository Rpt
@@ -46,7 +46,7 @@ else
         <span style="white-space:nowrap;">▼ @L["RPT.MonthlyKpi.List"] · @_rows.Count @L["RPT.MonthlyKpi.ListSuffix"]</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Lbl.Period"]</span>
-            <select class="ames-input" style="width:110px;padding:4px 8px;" @bind="_monthsBack">
+            <select class="ames-input" style="width:110px;" @bind="_monthsBack">
                 <option value="3">3@(L["RPT.MonthlyKpi.ListSuffix"])</option>
                 <option value="6">6@(L["RPT.MonthlyKpi.ListSuffix"])</option>
                 <option value="12">12@(L["RPT.MonthlyKpi.ListSuffix"])</option>
