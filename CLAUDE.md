@@ -145,7 +145,7 @@ ASP.NET Identity 쿠키 인증. 개발 기본 계정: `admin@ames.local / Dev202
 
 #### PP (생산계획) — 13화면
 `WorkOrder` / `WoRelease` / `LineSchedule` / `Calendar` / `PlanConfirm`
-`Forecast` / `Delivery` / `Mrp` / `SapImport` / `PurchaseReq`
+`Forecast` / `Delivery` / `Mrp` / `SupplyPlanImport` / `PurchaseReq`
 `Oee` / `Downtime` / `DowntimeMonitor`
 
 #### MNT (설비보전) — 9화면

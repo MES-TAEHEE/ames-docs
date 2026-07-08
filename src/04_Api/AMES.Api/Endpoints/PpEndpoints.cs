@@ -20,9 +20,9 @@ public static class PpEndpoints
             ctx.GetSession() is null ? Results.Unauthorized()
                 : Results.Ok(repo.ListForecast(monthsBack ?? 6, monthsAhead ?? 6)));
 
-        g.MapGet("/sap-import", (HttpContext ctx, int? daysBack) =>
+        g.MapGet("/supply-plan-import", (HttpContext ctx, int? daysBack) =>
             ctx.GetSession() is null ? Results.Unauthorized()
-                : Results.Ok(repo.ListSapImports(daysBack ?? 30)));
+                : Results.Ok(repo.ListSupplyPlanImports(daysBack ?? 30)));
 
         g.MapGet("/supply-plans", (HttpContext ctx, int? topN) =>
             ctx.GetSession() is null ? Results.Unauthorized()

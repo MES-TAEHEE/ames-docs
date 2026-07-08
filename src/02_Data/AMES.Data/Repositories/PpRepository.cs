@@ -32,6 +32,10 @@ public sealed class PpRepository
         string ItemNo, string? ItemName, decimal OrderQty, decimal ShippedQty,
         DateTime? OrderDate, DateTime? RequestedDeliveryDate, DateTime? PromisedDate, string? Status);
 
+    public sealed record CustomerOrderImportRow(string SoNumber, int? SoLineNo, string ItemNo,
+        decimal OrderQty, decimal ShippedQty, DateTime? OrderDate, DateTime? RequestedDeliveryDate,
+        string Status);
+
     public sealed record SupplyPlanRow(int PlanId, string? PlanCode, DateTime? PlanPeriod,
         string? Status, int LineCount, decimal TotalPlannedQty);
 
@@ -303,8 +307,8 @@ public sealed class PpRepository
         }
     }
 
-    // ── PP-002 SAP Import (customer orders just synced from SAP) ────────
-    public List<SoRow> ListSapImports(int daysBack = 30)
+    // ── PP-002 Supply Plan Import (customer orders synced from SAP) ─────
+    public List<SoRow> ListSupplyPlanImports(int daysBack = 30)
     {
         const string sql = """
             SELECT TOP 100 s.SoID, s.SoNumber, s.SoLineNo, s.CustomerID,
@@ -319,6 +323,114 @@ public sealed class PpRepository
             ORDER BY s.OrderDate DESC, s.SoNumber;
             """;
         return Query(sql, MapSo, ("@D", daysBack));
+    }
+
+    // ── PP-002 filtered read — customer/order-date range (SAP import grid) ──
+    public List<SoRow> ListCustomerOrders(string customerId, DateTime? from, DateTime? to, int take = 500)
+    {
+        var sql = $$"""
+            SELECT TOP ({{take}}) s.SoID, s.SoNumber, s.SoLineNo, s.CustomerID,
+                   s.ItemNo, i.ItemName,
+                   ISNULL(s.OrderQty,0)   AS OrderQty,
+                   ISNULL(s.ShippedQty,0) AS ShippedQty,
+                   s.OrderDate, s.RequestedDeliveryDate, s.PromisedDate, s.Status
+            FROM   dbo.PP_CustomerOrder s
+            LEFT JOIN dbo.MD_Item i ON i.ItemNo = s.ItemNo
+            WHERE  (@Cust = '' OR s.CustomerID = @Cust)
+               AND (@From IS NULL OR s.OrderDate >= @From)
+               AND (@To   IS NULL OR s.OrderDate <= @To)
+            ORDER BY s.OrderDate DESC, s.SoNumber, s.SoLineNo;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Cust", SqlDbType.VarChar, 20).Value = customerId ?? "";
+        cmd.Parameters.Add("@From", SqlDbType.Date).Value = (object?)from ?? DBNull.Value;
+        cmd.Parameters.Add("@To",   SqlDbType.Date).Value = (object?)to   ?? DBNull.Value;
+        using var rdr = cmd.ExecuteReader();
+        var list = new List<SoRow>();
+        while (rdr.Read()) list.Add(MapSo(rdr));
+        return list;
+    }
+
+    /// <summary>
+    /// PP-002 SAP 구매오더(고객주문) 업서트 — (SoNumber, SoLineNo, CustomerID) 기준
+    /// UPDATE, 없으면 INSERT. 매 실행 시 SapSyncedAt 갱신.
+    /// </summary>
+    public (int Inserted, int Updated) UpsertCustomerOrders(
+        string customerId, IReadOnlyList<CustomerOrderImportRow> rows, string actor)
+    {
+        const string updSql = """
+            UPDATE dbo.PP_CustomerOrder
+            SET    ItemNo = @Item, OrderQty = @OrderQty, ShippedQty = @ShippedQty,
+                   OrderDate = @OrderDate, RequestedDeliveryDate = @ReqDate,
+                   Status = @Status, SapSyncedAt = SYSDATETIME(),
+                   ModifiedTS = SYSDATETIME(), ModifiedBy = @Actor
+            OUTPUT inserted.SoID
+            WHERE  SoNumber = @So AND ISNULL(SoLineNo,-1) = ISNULL(@Line,-1) AND CustomerID = @Cust;
+            """;
+        const string insSql = """
+            INSERT INTO dbo.PP_CustomerOrder
+                   (SoNumber, SoLineNo, CustomerID, ItemNo, OrderQty, ShippedQty,
+                    OrderDate, RequestedDeliveryDate, Status, SapSyncedAt, CreatedBy)
+            VALUES (@So, @Line, @Cust, @Item, @OrderQty, @ShippedQty,
+                    @OrderDate, @ReqDate, @Status, SYSDATETIME(), @Actor);
+            """;
+
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            using var upd = new SqlCommand(updSql, conn, tx);
+            using var ins = new SqlCommand(insSql, conn, tx);
+            foreach (var c in new[] { upd, ins })
+            {
+                c.Parameters.Add("@So",   SqlDbType.VarChar, 20);
+                c.Parameters.Add("@Line", SqlDbType.Int);
+                c.Parameters.Add("@Cust", SqlDbType.VarChar, 20);
+                c.Parameters.Add("@Item", SqlDbType.VarChar, 20);
+                c.Parameters.Add("@OrderQty",   SqlDbType.Decimal).Precision = 14;
+                c.Parameters["@OrderQty"].Scale = 3;
+                c.Parameters.Add("@ShippedQty", SqlDbType.Decimal).Precision = 14;
+                c.Parameters["@ShippedQty"].Scale = 3;
+                c.Parameters.Add("@OrderDate", SqlDbType.Date);
+                c.Parameters.Add("@ReqDate",   SqlDbType.Date);
+                c.Parameters.Add("@Status", SqlDbType.VarChar, 20);
+                c.Parameters.Add("@Actor",  SqlDbType.NVarChar, 450);
+                c.Parameters["@Cust"].Value  = customerId;
+                c.Parameters["@Actor"].Value = actor;
+            }
+
+            int inserted = 0, updated = 0;
+            foreach (var r in rows)
+            {
+                foreach (var c in new[] { upd, ins })
+                {
+                    c.Parameters["@So"].Value         = r.SoNumber;
+                    c.Parameters["@Line"].Value       = (object?)r.SoLineNo ?? DBNull.Value;
+                    c.Parameters["@Item"].Value       = r.ItemNo;
+                    c.Parameters["@OrderQty"].Value   = r.OrderQty;
+                    c.Parameters["@ShippedQty"].Value = r.ShippedQty;
+                    c.Parameters["@OrderDate"].Value  = (object?)r.OrderDate ?? DBNull.Value;
+                    c.Parameters["@ReqDate"].Value    = (object?)r.RequestedDeliveryDate ?? DBNull.Value;
+                    c.Parameters["@Status"].Value     = r.Status;
+                }
+
+                var hit = upd.ExecuteScalar();
+                if (hit is null || hit is DBNull)
+                {
+                    ins.ExecuteNonQuery();
+                    inserted++;
+                }
+                else updated++;
+            }
+            tx.Commit();
+            return (inserted, updated);
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
     }
 
     // ── PP-003 Plan Confirm — list supply plans with line count rollup ──
