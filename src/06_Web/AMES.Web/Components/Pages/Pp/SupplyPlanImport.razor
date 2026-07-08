@@ -4,6 +4,7 @@
 @inject AMES.Data.Repositories.PpRepository Pp
 @inject AMES.Data.Repositories.MasterDataRepository Md
 @inject DialogService Dialog
+@inject AuthenticationStateProvider Auth
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
@@ -18,7 +19,7 @@
 
 <div class="ames-kpis compact">
     <div class="ames-kpi"><div class="ames-kpi-l">IMPORTED</div><div class="ames-kpi-v">@_rows.Count</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">SHIPPED</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "Shipped")</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">CONFIRMED</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "Confirmed")</div></div>
     <div class="ames-kpi warn"><div class="ames-kpi-l">OPEN</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "Open")</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">TOTAL QTY</div><div class="ames-kpi-v">@_rows.Sum(r => r.OrderQty).ToString("#,0")</div></div>
 </div>
@@ -99,7 +100,13 @@ else
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="RequestedDeliveryDate" Title="@L["Col.Requested"].Value"
                                   Filterable="false" Width="120px">
-                <Template Context="r"><span class="dim">@(r.RequestedDeliveryDate?.ToString("yyyy-MM-dd") ?? "—")</span></Template>
+                <Template Context="r">
+                    @if (r.RequestedDeliveryDate is DateTime d)
+                    {
+                        <span style="@(IsUrgent(d) ? "color:#f87171;font-weight:600;" : "")">@d.ToString("yyyy-MM-dd")</span>
+                    }
+                    else { <span class="dim">—</span> }
+                </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="PromisedDate" Title="@L["Col.Promised"].Value"
                                   Filterable="false" Width="120px">
@@ -107,10 +114,55 @@ else
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="Status" Title="@L["Col.Status"].Value" Width="100px">
                 <Template Context="r">
-                    <span class="pill @(r.Status == "Shipped" ? "ok" : "warn")">@r.Status</span>
+                    <span class="pill @(r.Status == "Confirmed" ? "ok" : "warn")">@r.Status</span>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["PP.SupplyPlanImport.Col.Wo"].Value"
+                                  Filterable="false" Sortable="false" Width="180px">
+                <Template Context="r">
+                    @if (!string.IsNullOrEmpty(r.WoNumber))
+                    {
+                        <span class="code">@r.WoNumber</span> <span class="pill info">@r.WoStatus</span>
+                    }
+                    else if (r.Status == "Confirmed")
+                    {
+                        <span class="pill info">@L["PP.SupplyPlanImport.WoLink.Awaiting"]</span>
+                    }
+                    else { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["PP.SupplyPlanImport.Col.Action"].Value"
+                                  Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="r">
+                    @if (r.Status == "Open")
+                    {
+                        <RadzenButton Text="@L["Btn.Confirm"].Value" Icon="check" ButtonStyle="ButtonStyle.Success"
+                                      Size="ButtonSize.ExtraSmall" Click="@(() => Confirm(r.SoId))" />
+                    }
                 </Template>
             </RadzenDataGridColumn>
         </Columns>
+        <Template Context="r">
+            <div style="display:flex;gap:32px;flex-wrap:wrap;padding:8px 14px;">
+                <div>
+                    <div class="dim" style="font-size:.8em;">@L["PP.SupplyPlanImport.Detail.DDay"]</div>
+                    @{ var dd = DaysTo(r.RequestedDeliveryDate); }
+                    @if (dd is int n)
+                    {
+                        <div style="@(n <= 14 ? "color:#f87171;font-weight:600;" : "")">@(n >= 0 ? $"D-{n}" : $"D+{-n}")</div>
+                    }
+                    else { <div class="dim">—</div> }
+                </div>
+                <div>
+                    <div class="dim" style="font-size:.8em;">@L["Col.Order"] / @L["Col.Ship"]</div>
+                    <div>@r.OrderQty.ToString("#,0") / @r.ShippedQty.ToString("#,0")</div>
+                </div>
+                <div>
+                    <div class="dim" style="font-size:.8em;">@L["PP.SupplyPlanImport.Detail.WoStatus"]</div>
+                    <div>@(string.IsNullOrEmpty(r.WoNumber) ? "—" : $"{r.WoNumber} · {r.WoStatus}")</div>
+                </div>
+            </div>
+        </Template>
     </RadzenDataGrid>
 }
 
@@ -125,7 +177,7 @@ else
     DateTime? _fFrom;
     DateTime? _fTo;
 
-    readonly string[] _statuses = { "Shipped", "Open" };
+    readonly string[] _statuses = { "Open", "Confirmed" };
 
     List<PpRepository.SoRow> _rows = new();   // 조회 결과
     List<PpRepository.SoRow> _view = new();   // 텍스트·상태 필터 적용 표시용
@@ -161,6 +213,22 @@ else
             q = q.Where(r => r.Status == _fStatus);
 
         _view = q.ToList();
+    }
+
+    static int? DaysTo(DateTime? d) => d is DateTime x ? (x.Date - DateTime.Today).Days : null;
+    static bool IsUrgent(DateTime d) => (d.Date - DateTime.Today).Days <= 14;
+
+    async Task Confirm(int soId)
+    {
+        try
+        {
+            var auth  = await Auth.GetAuthenticationStateAsync();
+            var actor = auth.User.Identity?.Name ?? "system";
+            var n = Pp.ConfirmCustomerOrder(soId, actor);
+            if (n > 0) ShowMsg(L["PP.SupplyPlanImport.Ok.Confirmed"].Value, false);
+            Search();
+        }
+        catch (Exception ex) { ShowMsg(ex.Message, true); }
     }
 
     async Task OpenUpload()

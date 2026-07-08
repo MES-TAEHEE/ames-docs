@@ -1116,6 +1116,12 @@
   <data name="PP.SupplyPlanImport.Preview.Unmatched"><value>{0} item(s) not in item master</value></data>
   <data name="PP.SupplyPlanImport.Ok.Imported"><value>Import complete — {0} inserted, {1} updated.</value></data>
   <data name="PP.SupplyPlanImport.Ok.Exported"><value>{0} rows exported.</value></data>
+  <data name="PP.SupplyPlanImport.Ok.Confirmed"><value>Sales order confirmed — now eligible for PP-03 planning.</value></data>
+  <data name="PP.SupplyPlanImport.Col.Wo"><value>WO Link</value></data>
+  <data name="PP.SupplyPlanImport.Col.Action"><value>Action</value></data>
+  <data name="PP.SupplyPlanImport.WoLink.Awaiting"><value>Awaiting PP-03 Review</value></data>
+  <data name="PP.SupplyPlanImport.Detail.DDay"><value>D-Day</value></data>
+  <data name="PP.SupplyPlanImport.Detail.WoStatus"><value>WO Status</value></data>
   <data name="PP.SupplyPlanImport.Err.Parse"><value>Failed to parse the file</value></data>
   <data name="PP.SupplyPlanImport.Err.TooLarge"><value>File is too large (max 10 MB).</value></data>
   <data name="PP.SupplyPlanImport.Err.ItemNoLen"><value>Value too long (max 20 chars): {0}</value></data>

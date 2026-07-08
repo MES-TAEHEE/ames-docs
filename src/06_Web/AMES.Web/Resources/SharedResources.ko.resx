@@ -1116,6 +1116,12 @@
   <data name="PP.SupplyPlanImport.Preview.Unmatched"><value>품목마스터에 없는 품번 {0}개</value></data>
   <data name="PP.SupplyPlanImport.Ok.Imported"><value>가져오기 완료 — 신규 {0}건, 갱신 {1}건.</value></data>
   <data name="PP.SupplyPlanImport.Ok.Exported"><value>{0}건 내보냈습니다.</value></data>
+  <data name="PP.SupplyPlanImport.Ok.Confirmed"><value>수주 확정 완료 — PP-03 계획 대상으로 편입되었습니다.</value></data>
+  <data name="PP.SupplyPlanImport.Col.Wo"><value>WO 연계</value></data>
+  <data name="PP.SupplyPlanImport.Col.Action"><value>작업</value></data>
+  <data name="PP.SupplyPlanImport.WoLink.Awaiting"><value>PP-03 검토 대기</value></data>
+  <data name="PP.SupplyPlanImport.Detail.DDay"><value>D-Day</value></data>
+  <data name="PP.SupplyPlanImport.Detail.WoStatus"><value>WO 상태</value></data>
   <data name="PP.SupplyPlanImport.Err.Parse"><value>파일을 해석하지 못했습니다</value></data>
   <data name="PP.SupplyPlanImport.Err.TooLarge"><value>파일이 너무 큽니다 (최대 10MB).</value></data>
   <data name="PP.SupplyPlanImport.Err.ItemNoLen"><value>값이 너무 깁니다 (최대 20자): {0}</value></data>

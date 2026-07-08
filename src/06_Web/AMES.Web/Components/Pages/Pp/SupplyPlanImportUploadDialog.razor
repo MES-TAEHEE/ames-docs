@@ -107,8 +107,7 @@
             var actor = auth.User.Identity?.Name ?? "system";
             var rows  = _preview.Select(r => new PpRepository.CustomerOrderImportRow(
                 r.SoNumber, r.SoLineNo, r.ItemNo, r.OrderQty, r.ShippedQty,
-                r.OrderDate, r.RequestedDeliveryDate,
-                r.OrderQty > 0 && r.ShippedQty >= r.OrderQty ? "Shipped" : "Open")).ToList();
+                r.OrderDate, r.RequestedDeliveryDate)).ToList();
 
             var (ins, upd) = Pp.UpsertCustomerOrders(_upCustomer, rows, actor);
             Dialog.Close(new Result(ins, upd, _upCustomer, _minOrderDate, _maxOrderDate));
