@@ -12,6 +12,7 @@
 
 <AmesPageHeader Code="PP-002" TitleKey="PP.SupplyPlanImport.Title" />
 
+<div class="spi-page">
 @if (!string.IsNullOrEmpty(_msg))
 {
     <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
@@ -60,18 +61,18 @@
     </div>
 </div>
 
+<div class="spi-grid">
 @if (_rows.Count == 0)
 {
     <div class="ames-empty">@L["PP.SupplyPlanImport.Empty"]</div>
 }
 else
 {
-    <RadzenDataGrid Data="_view" TItem="PpRepository.SoRow" AllowPaging="true" PageSize="_pageSize"
+    <RadzenDataGrid Data="_view" TItem="PpRepository.SoRow" AllowVirtualization="true" Style="height:100%"
                     AllowSorting="true" AllowColumnResize="true" Density="Density.Compact"
                     AllowFiltering="true" FilterMode="FilterMode.CheckBoxList"
                     FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
-                    class="ames-rz-grid" PagerHorizontalAlign="HorizontalAlign.Left"
-                    ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"].Value">
+                    class="ames-rz-grid">
         <Columns>
             <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="SoNumber" Title="@L["Col.SoNo"].Value"
                                   Frozen="true" Width="140px">
@@ -165,10 +166,10 @@ else
         </Template>
     </RadzenDataGrid>
 }
+</div>
+</div>
 
 @code {
-    const int _pageSize = 20;
-
     List<MasterDataRepository.CustomerRow> _customers = new();
 
     string    _fCustomer = "";

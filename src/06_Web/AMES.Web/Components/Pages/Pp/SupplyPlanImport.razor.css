@@ -1,0 +1,19 @@
+/* PP-002 그리드가 화면 남은 세로 영역을 꽉 채우도록.
+   TopBar 60px + .ames-content 상단 30 / 하단 60 패딩 = 150px */
+.spi-page {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 150px);
+    min-height: 360px;
+}
+
+.spi-grid {
+    flex: 1;
+    min-height: 0;
+}
+
+/* Radzen 그리드가 컨테이너를 채우고 본문만 스크롤되도록 */
+.spi-grid ::deep .rz-data-grid,
+.spi-grid ::deep .rz-datatable {
+    height: 100%;
+}
