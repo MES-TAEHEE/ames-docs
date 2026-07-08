@@ -382,7 +382,7 @@ a:hover { color: #c4dafe; }
 
 /* ── Main content ─────────────────────────────────────────── */
 .ames-main { flex: 1; min-width: 0; overflow-y: auto; }
-.ames-content { padding: 30px 36px 60px; }
+.ames-content { padding: 12px 20px 16px; }
 
 /* 화면 경로/이름은 TopBar 브레드크럼(.ames-topbar-loc)에 표시된다.
    과거 페이지 상단 헤더(.ames-page-h/-id/-t/-sub)는 제거됨. */

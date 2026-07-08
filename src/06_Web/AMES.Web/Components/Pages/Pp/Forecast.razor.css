@@ -1,9 +1,9 @@
 /* PP-001 그리드가 화면 남은 세로 영역을 꽉 채우도록 (탭 레이아웃).
-   TopBar 60px + .ames-content 상단 30 / 하단 60 패딩 = 150px */
+   TopBar 60px + .ames-content 상단 12 / 하단 16 패딩 = 88px */
 .fc-page {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 150px);
+    height: calc(100vh - 88px);
     min-height: 360px;
 }
 
