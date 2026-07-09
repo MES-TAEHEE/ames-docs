@@ -121,6 +121,8 @@ public sealed class PdaApi
     public sealed record ReceiveReq(string LotCode, decimal Qty, string LocationId);
     public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId);
     public sealed record InboundCancelReq(string Mode, string Barcode);
+    public sealed record InboundAdjustReq(string Mode, string Barcode, decimal DeltaQty, string ReasonCode,
+        string? ReasonNote, string SupervisorPin);
     public sealed record InboundReceiveResult(bool Success, string Message, InboundScanRow? Row);
     public sealed record AdjustReq(string ItemNo, string LocationId, decimal Delta, string ReasonCode, string? Note);
     public sealed record PickReq(int ReleaseScheduleId, string LotCode, decimal Qty);
@@ -340,6 +342,43 @@ public sealed class PdaApi
             return new InboundReceiveResult(false, ex.Message, null);
         }
     }
+
+    public async Task<InboundReceiveResult> WhAdjustInboundQtyAsync(InboundAdjustReq body)
+    {
+        try
+        {
+            await using var conn = _db.CreateConnection();
+            await conn.OpenAsync();
+            await using var cmd = new SqlCommand("[SIS_TEST].[PDA_WH002_ADJUST_QTY]", conn)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            cmd.Parameters.Add("@IN_MODE", SqlDbType.NVarChar, 10).Value = body.Mode.Trim();
+            cmd.Parameters.Add("@IN_BARCODE", SqlDbType.NVarChar, 50).Value = body.Barcode.Trim();
+            cmd.Parameters.Add("@IN_DELTA_QTY", SqlDbType.Decimal).Value = body.DeltaQty;
+            cmd.Parameters["@IN_DELTA_QTY"].Precision = 18;
+            cmd.Parameters["@IN_DELTA_QTY"].Scale = 3;
+            cmd.Parameters.Add("@IN_REASON_CODE", SqlDbType.NVarChar, 30).Value = body.ReasonCode.Trim();
+            cmd.Parameters.Add("@IN_REASON_NOTE", SqlDbType.NVarChar, 500).Value =
+                string.IsNullOrWhiteSpace(body.ReasonNote) ? DBNull.Value : body.ReasonNote.Trim();
+            cmd.Parameters.Add("@IN_SUPERVISOR_PIN", SqlDbType.NVarChar, 40).Value = body.SupervisorPin.Trim();
+            cmd.Parameters.Add("@IN_USERID", SqlDbType.NVarChar, 40).Value =
+                (object?)_auth.Session?.EmployeeNo ?? "PDA";
+
+            await using var rdr = await cmd.ExecuteReaderAsync();
+            var row = await rdr.ReadAsync() ? ReadInboundScanRow(rdr) : null;
+            return new InboundReceiveResult(true, "Quantity adjusted", row);
+        }
+        catch (SqlException ex)
+        {
+            return new InboundReceiveResult(false, ex.Message, null);
+        }
+        catch (Exception ex)
+        {
+            return new InboundReceiveResult(false, ex.Message, null);
+        }
+    }
+
     public Task<HttpResponseMessage> WhAdjustAsync (AdjustReq  body) => Post("/api/wh/inventory/adjust", body);
     public Task<HttpResponseMessage> WhPickAsync   (PickReq    body) => Post("/api/wh/release/pick",      body);
 
