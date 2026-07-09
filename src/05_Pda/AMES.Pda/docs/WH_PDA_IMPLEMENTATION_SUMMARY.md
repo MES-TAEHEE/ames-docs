@@ -2,6 +2,8 @@
 
 작성일: 2026-07-07
 
+최근 업데이트: 2026-07-09
+
 대상 프로젝트: `C:\Users\Young\Desktop\Seoyon\Jackson\ames-docs\src\05_Pda\AMES.Pda`
 
 주요 구현 파일:
@@ -11,6 +13,7 @@
 - `Components/Pages/Wh/Wh03InventoryStatus.razor`
 - `Services/PdaApi.cs`
 - `wwwroot/css/pda.css`
+- `docs/sql/WH002_ADJUST_QTY.sql`
 
 테스트 DB 기준:
 
@@ -27,7 +30,8 @@
 2. WH001에서 PO 입고 예정 및 입고 진행 상태를 조회한다.
 3. WH002에서 작업자가 LOT No와 Location No를 스캔하고 입고 처리한다.
 4. 입고 처리 결과가 `WMS2010`, `WMS2020`, `AMM2010`에 반영된다.
-5. WH003에서 현재 재고 기준 테이블인 `WMS2000`을 기준으로 자재별 재고 상태와 위치별 재고를 조회한다.
+5. 이미 입고된 LOT을 WH002에서 다시 스캔하면 입고 취소, 위치 변경, 수량 조정을 처리할 수 있다.
+6. WH003에서 현재 재고 기준 테이블인 `WMS2000`을 기준으로 자재별 재고 상태와 위치별 재고를 조회한다.
 
 테스트 구현에서는 기존 Oracle SIS/PDA 구조를 SQL Server `SIS_TEST` 스키마에 필요한 범위만 복사/재현해서 연결했다.
 
@@ -146,13 +150,13 @@ ETA D-Day는 `PO_DELI_DATE` 기준이다.
 - PO Create Date, Arr.Date, Non-deliver Qty는 카드에서 제거하고 핵심 수량인 `PO Qty`, `GR Qty`만 남겼다.
 - `ETA D-Day`를 각 카드에 표시하도록 추가했다.
 - `Last Updated`와 1시간 자동 갱신을 추가했다.
-- 하단 고정 `RECEIVE` 버튼으로 WH002 입고 화면 이동을 추가했다.
+- 하단 고정 `RECEIVE` 버튼으로 WH002 Scan 화면 이동을 추가했다.
 
-## WH002 Receive
+## WH002 Scan
 
 ### 화면 목적
 
-`WH-002 RECEIVE`는 LOT No를 스캔해서 PO/입고 대상 정보를 조회하고, Location No를 스캔해서 실제 입고 처리하는 화면이다.
+`WH-002 SCAN`은 LOT No를 스캔해서 PO/입고 대상 정보를 조회하고, Location No를 스캔해서 실제 입고 처리하는 화면이다.
 
 기존 MAUIPDA의 `Material > Incoming` 흐름을 기반으로 만들었다.
 
@@ -180,6 +184,7 @@ ETA D-Day는 `PO_DELI_DATE` 기준이다.
 
 - `CANCEL INCOMING` 버튼 표시
 - `CHANGE LOCATION` 버튼 표시
+- `ADJUST QTY` 버튼 표시
 - 현재 위치 표시
 
 Location 변경 플로우:
@@ -198,6 +203,24 @@ Cancel Incoming 플로우:
 3. 확인 모달 후 입고 취소 프로시저를 호출한다.
 4. 성공 시 입고 상태가 취소된다.
 
+Inventory Adjustment 플로우:
+
+1. 이미 입고된 LOT을 스캔한다.
+2. `ADJUST QTY`를 누른다.
+3. 현재 LOT, Location, Part No, Current Qty를 확인한다.
+4. Reason Code, +/- 조정 수량, Supervisor PIN, Note를 입력한다.
+5. `POST ADJUST`를 누르면 수량 조정 프로시저를 호출한다.
+6. 조정 전 수량, 조정 수량, 조정 후 수량을 이력 테이블에 기록한다.
+7. 성공 시 `Adjustment Complete` 알럿을 띄우고 최신 수량으로 화면을 다시 조회한다.
+
+Reason Code:
+
+- `COUNT_DIFF`: cycle count 또는 실사 차이
+- `DAMAGED`: 파손
+- `LOST`: 분실
+- `FOUND`: 발견
+- `OTHER`: 기타
+
 UI/상태 관련 구현:
 
 - 기본 브라우저 알럿이 아니라 중앙 카드형 커스텀 모달 사용
@@ -208,6 +231,7 @@ UI/상태 관련 구현:
 - Qty는 `540 EA`처럼 수량과 Unit을 같이 표시
 - `Source`, 하단의 `Location OK`, `Scan OK` 같은 개발용 문구 제거
 - 테스트 버튼은 최종 UI에서 제거
+- WH005의 별도 Inventory Adjustment 화면은 만들지 않고, WH002의 이미 입고된 LOT 후속 작업으로 통합
 
 ### 사용하는 프로시저와 테이블
 
@@ -217,6 +241,7 @@ PDA 코드 호출:
 - `PdaApi.WhReceiveInboundAsync(body)`
 - `PdaApi.WhMoveInboundLocationAsync(body)`
 - `PdaApi.WhCancelInboundAsync(body)`
+- `PdaApi.WhAdjustInboundQtyAsync(body)`
 - `PdaApi.WhScanLocationAsync(locationId)`
 
 프로시저:
@@ -226,6 +251,7 @@ PDA 코드 호출:
 - `SIS_TEST.PDA_WH002_RECEIVE`
 - `SIS_TEST.PDA_WH002_MOVE_LOCATION`
 - `SIS_TEST.PDA_WH002_CANCEL`
+- `SIS_TEST.PDA_WH002_ADJUST_QTY`
 
 LOCAL 스캔 기준 테이블:
 
@@ -253,6 +279,7 @@ Location 검증 기준 테이블:
 - `SIS_TEST.WMS2010`: LOT 입고/재고 헤더 성격
 - `SIS_TEST.WMS2020`: LOT별 Location 재고 상세
 - `SIS_TEST.AMM2010`: GRN 실적
+- `SIS_TEST.WMS2000`: 현재 재고 기준 테이블
 
 입고 취소 시 삭제되는 테이블:
 
@@ -264,6 +291,21 @@ Location 변경 시 갱신되는 테이블:
 
 - `SIS_TEST.WMS2020.LOCATION_NO`, `WHCD`, 작업일시
 - `SIS_TEST.WMS2010.WHCD`, 수정일시
+
+수량 조정 시 갱신/기록되는 테이블:
+
+- `SIS_TEST.WMS2020.QTY`: LOT별 Location 현재 수량 갱신
+- `SIS_TEST.WMS2000.QTY`: WH003 Current Stock에서 보는 현재 재고 수량 동기화
+- `SIS_TEST.PDA_WH002_ADJUST_AUDIT`: 수량 조정 감사 이력 기록
+
+`PDA_WH002_ADJUST_AUDIT` 주요 컬럼:
+
+- `RECEIVE_TYPE`: `LOCAL` 또는 `CKD`
+- `LOTNO`, `BARCODE`, `PARTNO`, `LOCATION_NO`
+- `BEFORE_QTY`, `DELTA_QTY`, `AFTER_QTY`
+- `REASON_CODE`, `REASON_NOTE`
+- `SUPERVISOR_PIN_MASK`: Supervisor PIN 원문이 아닌 마스킹 값
+- `WORK_DATE`, `WORK_TIME`, `USER_ID`, `INSERT_DATE`
 
 ### 기존 프로그램에서 참고한 점
 
@@ -287,8 +329,13 @@ MAUIPDA:
 
 MAUIPDA Inventory 쪽 참고:
 
+- `WMS1330 Discrepancy Adjust`
+  - `MES.PKG_PDA_WMS1330.GET_LOT_INFO`
+  - `MES.PKG_PDA_WMS1330.SET_LOT_SAVE`
 - `WMS1340 Location Information`
   - `MES.PKG_PDA_WMS1340.GET_LOCATION_NO`
+
+`WMS1330 Discrepancy Adjust`는 LOT 정보를 조회한 뒤 변경 수량을 입력하고 조정 전/후 값을 저장하는 흐름을 가진다. WH002에서는 이를 별도 WH005 화면으로 분리하지 않고, 이미 입고된 LOT을 스캔했을 때 가능한 후속 작업으로 통합했다.
 
 SIS:
 
@@ -310,11 +357,14 @@ SQL Server `SIS_TEST`에 아래 테이블 및 프로시저를 준비했다.
 - `WMS1040`
 - `WMS2010`
 - `WMS2020`
+- `WMS2000`
+- `PDA_WH002_ADJUST_AUDIT`
 - `PDA_WH002_SCAN_LOCAL`
 - `PDA_WH002_SCAN_CKD`
 - `PDA_WH002_RECEIVE`
 - `PDA_WH002_MOVE_LOCATION`
 - `PDA_WH002_CANCEL`
+- `PDA_WH002_ADJUST_QTY`
 
 ### 기존과 달라진 점
 
@@ -324,6 +374,8 @@ SQL Server `SIS_TEST`에 아래 테이블 및 프로시저를 준비했다.
 - Location 선택 드롭다운은 제거하고 Location No 스캔 검증 방식으로 변경했다.
 - 기본 알럿 대신 중앙 카드형 모달을 사용했다.
 - 입고 완료 후 자동 초기화, Clear 버튼, Change Location confirm 플로우를 추가했다.
+- WH005로 따로 만들 예정이던 Inventory Adjustment를 WH002의 `ADJUST QTY` 모달로 통합했다.
+- 수량 조정 시 현재 재고(`WMS2020`, `WMS2000`)와 감사 이력(`PDA_WH002_ADJUST_AUDIT`)을 함께 갱신하도록 했다.
 
 ## WH003 Inventory Status
 
@@ -531,6 +583,12 @@ SQL Server `SIS_TEST`에 아래 항목을 준비했다.
 
 답변: 맞다. 실제 현재 재고라면 입고, 조정, 기초재고 등 어떤 이력/근거가 있어야 한다. 그래서 WH003은 자재 마스터 기준 0재고까지 보여주는 방식이 아니라 `WMS2000` 현재 재고가 있는 데이터만 보여주도록 수정했다.
 
+### WH002 수량 변경 이력 위치
+
+질문: WH002에서 수량 변경한 것은 어디에 기록되는가?
+
+답변: 실제 현재 수량은 `SIS_TEST.WMS2020.QTY`와 `SIS_TEST.WMS2000.QTY`에 반영된다. 누가, 언제, 왜, 몇 개를 조정했는지에 대한 감사 이력은 `SIS_TEST.PDA_WH002_ADJUST_AUDIT`에 남긴다. 이 테이블에는 조정 전 수량, 조정 수량, 조정 후 수량, Reason Code, Note, 작업자, Supervisor PIN 마스킹 값이 저장된다.
+
 ## 현재 구현 시 주의할 점
 
 - `SIS_TEST`는 테스트용 스키마다. 운영 반영 시에는 실제 SIS/MES DB 스키마와 권한, 프로시저 배포 방식이 별도로 필요하다.
@@ -538,3 +596,5 @@ SQL Server `SIS_TEST`에 아래 항목을 준비했다.
 - WH003의 `WMS2000`은 테스트 DB에 맞춰 생성/시드했다. 운영 DB에 실제 `WMS2000`이 있다면 해당 구조에 맞춰 프로시저를 다시 정렬해야 한다.
 - WH001의 PO 조회는 `WM40120` 기준으로 만들었고, SCM에서 PO가 신규 생성되는 원천 화면/배치까지 완전히 대체한 것은 아니다.
 - `GRN_QTY`는 PO schedule에 저장되는 값이라기보다 GRN 실적을 합산해 계산하는 값이다. 운영에서는 GRN cancellation, return, reversal까지 반영해야 한다.
+- WH002 수량 조정의 Supervisor PIN은 현재 테스트 구현에서 최소 길이 검증과 마스킹 저장만 한다. 운영에서는 실제 승인자 계정/권한 검증과 감사 로그 보관 정책을 추가해야 한다.
+- WH005 Inventory Adjustment는 별도 메뉴/화면으로 두지 않고 WH002에 통합했다. 운영 정책상 독립 메뉴가 필요하면 WH002의 `PDA_WH002_ADJUST_QTY` 호출부를 재사용해 별도 화면으로 분리할 수 있다.
