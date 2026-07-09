@@ -55,7 +55,7 @@ public sealed class SysRepository
         TimeSpan? QuietHoursStart, TimeSpan? QuietHoursEnd, DateTime? VerifiedAt);
 
     public sealed record ScreenRow(int ScreenId, string ScreenCode, string ModuleCode,
-        string? ProcessCode, string ScreenName, string? ScreenNameEn, string? HRef, string? LidLabel,
+        string? ProcessCode, string? SubProcessCode, string ScreenName, string? ScreenNameEn, string? HRef, string? LidLabel,
         int? SortOrder, bool IsVisible, int RoleCount);
 
     public sealed record ConfigRow(int ConfigId, string? ConfigKey, string? ConfigType,
@@ -495,7 +495,7 @@ public sealed class SysRepository
     public List<ScreenRow> ListScreens(string? moduleCode = null)
     {
         const string sql = """
-            SELECT  m.ScreenID, m.ScreenCode, m.ModuleCode, m.ProcessCode, m.ScreenName, m.ScreenNameEn,
+            SELECT  m.ScreenID, m.ScreenCode, m.ModuleCode, m.ProcessCode, m.SubProcessCode, m.ScreenName, m.ScreenNameEn,
                     m.HRef, m.LidLabel, m.SortOrder,
                     ISNULL(m.IsVisible, 1) AS IsVisible,
                     (SELECT COUNT(DISTINCT rp.RoleName) FROM dbo.SYS_RolePermission rp WHERE rp.ScreenCode = m.ScreenCode) AS RoleCount
@@ -511,56 +511,59 @@ public sealed class SysRepository
     }
 
     public void InsertScreen(string screenCode, string moduleCode, string? processCode,
-        string screenName, string? screenNameEn, string? href, string? lidLabel,
+        string? subProcessCode, string screenName, string? screenNameEn, string? href, string? lidLabel,
         int? sortOrder, bool isVisible, string createdBy)
     {
         const string sql = """
             INSERT INTO dbo.SYS_Screen
-                   (ScreenCode, ModuleCode, ProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy)
-            VALUES (@Code, @Module, @Process, @Name, @NameEn, @HRef, @Lid, @Sort, @Visible, @CreatedBy)
+                   (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy)
+            VALUES (@Code, @Module, @Process, @SubProc, @Name, @NameEn, @HRef, @Lid, @Sort, @Visible, @CreatedBy)
             """;
         Exec(sql,
             ("@Code",      screenCode),
             ("@Module",    moduleCode),
-            ("@Process",   (object?)processCode  ?? DBNull.Value),
+            ("@Process",   (object?)processCode    ?? DBNull.Value),
+            ("@SubProc",   (object?)subProcessCode ?? DBNull.Value),
             ("@Name",      screenName),
-            ("@NameEn",    (object?)screenNameEn ?? DBNull.Value),
-            ("@HRef",      (object?)href         ?? DBNull.Value),
-            ("@Lid",       (object?)lidLabel      ?? DBNull.Value),
-            ("@Sort",      (object?)sortOrder     ?? DBNull.Value),
+            ("@NameEn",    (object?)screenNameEn   ?? DBNull.Value),
+            ("@HRef",      (object?)href            ?? DBNull.Value),
+            ("@Lid",       (object?)lidLabel        ?? DBNull.Value),
+            ("@Sort",      (object?)sortOrder       ?? DBNull.Value),
             ("@Visible",   isVisible),
             ("@CreatedBy", createdBy));
     }
 
     public void UpdateScreen(int screenId, string screenCode, string moduleCode, string? processCode,
-        string screenName, string? screenNameEn, string? href, string? lidLabel,
+        string? subProcessCode, string screenName, string? screenNameEn, string? href, string? lidLabel,
         int? sortOrder, bool isVisible, string modifiedBy)
     {
         const string sql = """
             UPDATE dbo.SYS_Screen
-            SET    ScreenCode   = @Code,
-                   ModuleCode   = @Module,
-                   ProcessCode  = @Process,
-                   ScreenName   = @Name,
-                   ScreenNameEn = @NameEn,
-                   HRef         = @HRef,
-                   LidLabel     = @Lid,
-                   SortOrder    = @Sort,
-                   IsVisible    = @Visible,
-                   ModifiedBy   = @ModifiedBy,
-                   ModifiedTS   = SYSDATETIME()
+            SET    ScreenCode      = @Code,
+                   ModuleCode      = @Module,
+                   ProcessCode     = @Process,
+                   SubProcessCode  = @SubProc,
+                   ScreenName      = @Name,
+                   ScreenNameEn    = @NameEn,
+                   HRef            = @HRef,
+                   LidLabel        = @Lid,
+                   SortOrder       = @Sort,
+                   IsVisible       = @Visible,
+                   ModifiedBy      = @ModifiedBy,
+                   ModifiedTS      = SYSDATETIME()
             WHERE  ScreenID = @Id
             """;
         Exec(sql,
             ("@Id",         screenId),
             ("@Code",       screenCode),
             ("@Module",     moduleCode),
-            ("@Process",    (object?)processCode ?? DBNull.Value),
+            ("@Process",    (object?)processCode    ?? DBNull.Value),
+            ("@SubProc",    (object?)subProcessCode ?? DBNull.Value),
             ("@Name",       screenName),
-            ("@NameEn",     (object?)screenNameEn ?? DBNull.Value),
-            ("@HRef",       (object?)href         ?? DBNull.Value),
-            ("@Lid",        (object?)lidLabel      ?? DBNull.Value),
-            ("@Sort",       (object?)sortOrder     ?? DBNull.Value),
+            ("@NameEn",     (object?)screenNameEn   ?? DBNull.Value),
+            ("@HRef",       (object?)href            ?? DBNull.Value),
+            ("@Lid",        (object?)lidLabel        ?? DBNull.Value),
+            ("@Sort",       (object?)sortOrder       ?? DBNull.Value),
             ("@Visible",    isVisible),
             ("@ModifiedBy", modifiedBy));
     }
@@ -572,7 +575,7 @@ public sealed class SysRepository
 
     private static ScreenRow MapScreen(IDataReader r) => new(
         (int)r["ScreenID"], (string)r["ScreenCode"], (string)r["ModuleCode"],
-        r["ProcessCode"] as string,
+        r["ProcessCode"] as string, r["SubProcessCode"] as string,
         (string)r["ScreenName"], r["ScreenNameEn"] as string,
         r["HRef"] as string, r["LidLabel"] as string,
         r["SortOrder"] as int?, (bool)r["IsVisible"], (int)r["RoleCount"]);

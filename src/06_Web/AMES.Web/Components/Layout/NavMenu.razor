@@ -3,6 +3,7 @@
 @inject NavigationManager Nav
 @inject AMES.Web.Services.PermissionService Perm
 @inject SysRepository Sys
+@inject AMES.Data.Repositories.MasterDataRepository MD
 @using System.Globalization
 @using System.Net
 
@@ -79,6 +80,7 @@
     string          _lang = "ko";
 
     Dictionary<string, List<SysRepository.ScreenRow>> _screensByProcess = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _subprocessItems = new();
 
     // 섹션 표시 순서
     static readonly string[] _sectionOrder = ["PP", "MNT", "RPT", "MD", "SYS"];
@@ -93,34 +95,6 @@
         ["SYS"] = ("⚙️", "시스템",        "System",              "sys"),
     };
 
-    // MD 화면 30개를 5개 카테고리로 재분류 (Key, 표시 문자, 영문명, 국문명)
-    static readonly (string Key, string Letter, string En, string Ko)[] _mdGroupMeta =
-    [
-        ("FOUNDATION", "A", "Foundation",             "기반"),
-        ("ROUTING",    "B", "Routing & Production",   "라우팅·생산"),
-        ("RESOURCES",  "C", "Resources & Equipment",  "자원·설비"),
-        ("RFID",       "D", "RFID & Materials",       "RFID·자재"),
-        ("QUALITY",    "E", "Quality & Logistics",    "품질·물류"),
-    ];
-
-    // ScreenCode → 카테고리 Key. 목록에 없는 화면은 QUALITY(기타)로 편입.
-    static readonly Dictionary<string, string> _mdGroupByScreen = new()
-    {
-        ["MD-001"] = "FOUNDATION", ["MD-002"] = "FOUNDATION", ["MD-006"] = "FOUNDATION",
-        ["MD-019"] = "FOUNDATION", ["MD-030"] = "FOUNDATION",
-
-        ["MD-003"] = "ROUTING", ["MD-004"] = "ROUTING", ["MD-005"] = "ROUTING", ["MD-029"] = "ROUTING",
-
-        ["MD-007"] = "RESOURCES", ["MD-014"] = "RESOURCES", ["MD-015"] = "RESOURCES", ["MD-016"] = "RESOURCES",
-        ["MD-026"] = "RESOURCES", ["MD-027"] = "RESOURCES", ["MD-028"] = "RESOURCES",
-
-        ["MD-008"] = "RFID", ["MD-020"] = "RFID", ["MD-022"] = "RFID", ["MD-023"] = "RFID",
-
-        ["MD-009"] = "QUALITY", ["MD-010"] = "QUALITY", ["MD-011"] = "QUALITY", ["MD-012"] = "QUALITY",
-        ["MD-013"] = "QUALITY", ["MD-017"] = "QUALITY", ["MD-018"] = "QUALITY", ["MD-021"] = "QUALITY",
-        ["MD-024"] = "QUALITY", ["MD-025"] = "QUALITY",
-    };
-
     void ToggleSide() => _collapsed = !_collapsed;
 
     // 렌더마다 권한을 재평가해야 하므로 메서드로 처리
@@ -132,15 +106,17 @@
     List<(string Key, string Letter, string En, string Ko, List<SysRepository.ScreenRow> Screens)> GroupedMd()
     {
         var visible = VisibleScreens("MD");
-        return _mdGroupMeta
-            .Select(g => (g.Key, g.Letter, g.En, g.Ko,
-                Screens: visible.Where(s => MdGroupOf(s.ScreenCode) == g.Key).ToList()))
+        return _subprocessItems
+            .Select((g, i) => (
+                Key:     g.CodeValue ?? "",
+                Letter:  ((char)('A' + i)).ToString(),
+                En:      g.CodeNameEn ?? g.CodeName ?? g.CodeValue ?? "",
+                Ko:      g.CodeName   ?? g.CodeValue ?? "",
+                Screens: visible.Where(s => s.SubProcessCode == g.CodeValue).ToList()
+            ))
             .Where(g => g.Screens.Count > 0)
             .ToList();
     }
-
-    static string MdGroupOf(string screenCode) =>
-        _mdGroupByScreen.TryGetValue(screenCode, out var key) ? key : "QUALITY";
 
     protected override async Task OnInitializedAsync()
     {
@@ -155,6 +131,7 @@
                 .ToDictionary(
                     g => g.Key,
                     g => g.OrderBy(s => s.SortOrder ?? 999).ThenBy(s => s.ScreenCode).ToList());
+            _subprocessItems = MD.ListCodeItems("SUBPROCESS");
         }
         catch { }
 
@@ -176,7 +153,7 @@
             if (hit is not null)
             {
                 _open.Add(proc);
-                if (proc == "MD") _openSub.Add(MdGroupOf(hit.ScreenCode));
+                if (proc == "MD") _openSub.Add(hit.SubProcessCode ?? "");
                 return;
             }
         }
@@ -194,7 +171,7 @@
             if (hit is not null)
             {
                 _open.Add(proc);
-                if (proc == "MD") _openSub.Add(MdGroupOf(hit.ScreenCode));
+                if (proc == "MD") _openSub.Add(hit.SubProcessCode ?? "");
                 break;
             }
         }

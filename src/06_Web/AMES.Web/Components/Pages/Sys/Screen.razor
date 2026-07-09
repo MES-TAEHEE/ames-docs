@@ -84,6 +84,7 @@
                     <th>@L["SYS.Screen.Col.Code"]</th>
                     <th>@L["Col.Module"]</th>
                     <th>@L["SYS.Screen.Col.Process"]</th>
+                    <th>Sub</th>
                     <th>@L["SYS.Screen.Col.NameKo"]</th>
                     <th>@L["SYS.Screen.Col.NameEn"]</th>
                     <th>@L["SYS.Screen.Col.Path"]</th>
@@ -103,7 +104,7 @@
                     {
                         prevModule = r.ModuleCode;
                         <tr style="background:#f8fafc;">
-                            <td colspan="10" style="font-size:.8rem;font-weight:700;color:#64748b;letter-spacing:.05em;padding:6px 10px;">
+                            <td colspan="11" style="font-size:.8rem;font-weight:700;color:#64748b;letter-spacing:.05em;padding:6px 10px;">
                                 ── @r.ModuleCode ──────────────────────────────────
                             </td>
                         </tr>
@@ -114,6 +115,12 @@
                         <td>
                             @if (r.ProcessCode is not null)
                             { <span class="pill" style="background:#e0f2fe;color:#0369a1;">@r.ProcessCode</span> }
+                            else
+                            { <span class="dim">—</span> }
+                        </td>
+                        <td>
+                            @if (r.SubProcessCode is not null)
+                            { <span class="pill" style="background:#f0fdf4;color:#166534;">@r.SubProcessCode</span> }
                             else
                             { <span class="dim">—</span> }
                         </td>
@@ -162,6 +169,15 @@
                 @foreach (var p in _processes)
                 {
                     <option value="@p.CodeValue">[@p.CodeValue] @(LocalName(p))</option>
+                }
+            </select>
+
+            <label>Sub-Process</label>
+            <select class="ames-input" @bind="_f.SubProcessCode">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var sp in _subprocesses)
+                {
+                    <option value="@sp.CodeValue">[@sp.CodeValue] @(LocalName(sp))</option>
                 }
             </select>
 
@@ -224,6 +240,15 @@
                 }
             </select>
 
+            <label>Sub-Process</label>
+            <select class="ames-input" @bind="_f.SubProcessCode">
+                <option value="">@L["Opt.Select"]</option>
+                @foreach (var sp in _subprocesses)
+                {
+                    <option value="@sp.CodeValue">[@sp.CodeValue] @(LocalName(sp))</option>
+                }
+            </select>
+
             <label>@L["SYS.Screen.Col.NameKo"] *</label>
             <input class="ames-input" @bind="_f.ScreenName" autocomplete="off" />
 
@@ -272,6 +297,7 @@
     List<AMES.Data.Repositories.SysRepository.ScreenRow>       _rows     = new();
     List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _modules  = new();
     List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _processes = new();
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _subprocesses = new();
     AMES.Data.Repositories.SysRepository.ScreenRow? _sel;
 
     string _fSearch = "", _fModule = "", _fProcess = "", _fVisible = "";
@@ -288,8 +314,9 @@
         _actor = auth.User.Identity?.Name ?? "system";
         await Perm.EnsureAsync(Auth);
         _canEdit = Perm.CanEdit("sys/screen");
-        _modules   = MD.ListCodeItems("MODULE");
-        _processes = MD.ListCodeItems("PROCESS");
+        _modules      = MD.ListCodeItems("MODULE");
+        _processes    = MD.ListCodeItems("PROCESS");
+        _subprocesses = MD.ListCodeItems("SUBPROCESS");
         Reload();
     }
 
@@ -319,15 +346,16 @@
         _sel = r; _modalErr = ""; _confirmDelete = false;
         _f = new()
         {
-            ScreenCode   = r.ScreenCode,
-            ModuleCode   = r.ModuleCode,
-            ProcessCode  = r.ProcessCode ?? "",
-            ScreenName   = r.ScreenName,
-            ScreenNameEn = r.ScreenNameEn ?? "",
-            HRef         = r.HRef         ?? "",
-            LidLabel     = r.LidLabel     ?? "",
-            SortOrderStr = r.SortOrder?.ToString() ?? "",
-            IsVisible    = r.IsVisible,
+            ScreenCode    = r.ScreenCode,
+            ModuleCode    = r.ModuleCode,
+            ProcessCode   = r.ProcessCode    ?? "",
+            SubProcessCode = r.SubProcessCode ?? "",
+            ScreenName    = r.ScreenName,
+            ScreenNameEn  = r.ScreenNameEn  ?? "",
+            HRef          = r.HRef           ?? "",
+            LidLabel      = r.LidLabel       ?? "",
+            SortOrderStr  = r.SortOrder?.ToString() ?? "",
+            IsVisible     = r.IsVisible,
         };
         _modal = "edit";
     }
@@ -348,6 +376,7 @@
         {
             Sys.InsertScreen(
                 _f.ScreenCode.Trim(), _f.ModuleCode.Trim(), Nz(_f.ProcessCode),
+                Nz(_f.SubProcessCode),
                 _f.ScreenName.Trim(), Nz(_f.ScreenNameEn), Nz(_f.HRef), Nz(_f.LidLabel),
                 _f.SortOrder, _f.IsVisible, _actor);
             Reload(); CloseModal();
@@ -369,6 +398,7 @@
         {
             Sys.UpdateScreen(
                 _sel.ScreenId, _f.ScreenCode.Trim(), _f.ModuleCode.Trim(), Nz(_f.ProcessCode),
+                Nz(_f.SubProcessCode),
                 _f.ScreenName.Trim(), Nz(_f.ScreenNameEn), Nz(_f.HRef), Nz(_f.LidLabel),
                 _f.SortOrder, _f.IsVisible, _actor);
             Reload(); CloseModal();
@@ -406,15 +436,16 @@
 
     class FormModel
     {
-        public string ScreenCode   { get; set; } = "";
-        public string ModuleCode   { get; set; } = "";
-        public string ProcessCode  { get; set; } = "";
-        public string ScreenName   { get; set; } = "";
-        public string ScreenNameEn { get; set; } = "";
-        public string HRef         { get; set; } = "";
-        public string LidLabel     { get; set; } = "";
-        public string SortOrderStr { get; set; } = "";
-        public bool   IsVisible    { get; set; } = true;
-        public int?   SortOrder    => int.TryParse(SortOrderStr, out var n) ? n : null;
+        public string ScreenCode    { get; set; } = "";
+        public string ModuleCode    { get; set; } = "";
+        public string ProcessCode   { get; set; } = "";
+        public string SubProcessCode { get; set; } = "";
+        public string ScreenName    { get; set; } = "";
+        public string ScreenNameEn  { get; set; } = "";
+        public string HRef          { get; set; } = "";
+        public string LidLabel      { get; set; } = "";
+        public string SortOrderStr  { get; set; } = "";
+        public bool   IsVisible     { get; set; } = true;
+        public int?   SortOrder     => int.TryParse(SortOrderStr, out var n) ? n : null;
     }
 }

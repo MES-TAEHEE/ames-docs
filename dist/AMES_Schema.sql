@@ -3345,13 +3345,14 @@ IF OBJECT_ID(N'dbo.SYS_Screen', N'U') IS NOT NULL DROP TABLE dbo.SYS_Screen;
 GO
 
 CREATE TABLE dbo.SYS_Screen (
-  [ScreenID]     INT IDENTITY     NOT NULL,
-  [ScreenCode]   VARCHAR(20)      NOT NULL,   -- e.g. 'PP-001', 'SYS-003'
-  [ModuleCode]   VARCHAR(10)      NOT NULL,   -- PP | MNT | RPT | MD | SYS
-  [ProcessCode]  VARCHAR(10)          NULL,   -- sub-process group (e.g. 'INJ', 'WH')
-  [ScreenName]   NVARCHAR(100)    NOT NULL,
-  [ScreenNameEn] NVARCHAR(100)        NULL,
-  [HRef]         VARCHAR(200)         NULL,   -- route path (e.g. 'pp/forecast')
+  [ScreenID]       INT IDENTITY     NOT NULL,
+  [ScreenCode]     VARCHAR(20)      NOT NULL,   -- e.g. 'PP-001', 'SYS-003'
+  [ModuleCode]     VARCHAR(10)      NOT NULL,   -- 포탈 식별자 (WEB / POP / PDA)
+  [ProcessCode]    VARCHAR(10)          NULL,   -- 기능 영역 (PP / MNT / RPT / MD / SYS)
+  [SubProcessCode] VARCHAR(10)          NULL,   -- MD 서브그룹 (Fd/Rp/Re/Rm/Ql)
+  [ScreenName]     NVARCHAR(100)    NOT NULL,
+  [ScreenNameEn]   NVARCHAR(100)        NULL,
+  [HRef]           VARCHAR(200)         NULL,   -- route path (e.g. 'md/rp/line')
   [LidLabel]     VARCHAR(20)          NULL,   -- chip label shown in NavMenu
   [SortOrder]    INT                  NULL,
   [IsVisible]    BIT                  NULL  DEFAULT 1,
@@ -3417,7 +3418,7 @@ INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ScreenName, ScreenNameEn, HR
   ('MD-005', 'MD', N'BOP 관리',                    N'BOP Management',                 'md/bop',                 'MD-005',  5, 1, 'admin'),
   ('MD-006', 'MD', N'Work Center 관리',            N'Work Center Management',         'md/work-center',         'MD-006',  6, 1, 'admin'),
   ('MD-007', 'MD', N'금형 기준정보 관리',          N'Mold Master',                    'md/mold',                'MD-007',  7, 1, 'admin'),
-  ('MD-008', 'MD', N'원부자재 기준정보 관리',      N'Paint & Fabric Master',          'md/paint-fabric',        'MD-008',  8, 1, 'admin'),
+  ('MD-008', 'MD', N'원부자재 기준정보 관리',      N'Paint & Fabric Master',          'md/rm/paint-fabric',     'MD-008',  8, 1, 'admin'),
   ('MD-009', 'MD', N'공급업체 기준정보 관리',      N'Vendor Master',                  'md/vendor',              'MD-009',  9, 1, 'admin'),
   ('MD-010', 'MD', N'고객사 기준정보 관리',        N'Customer Master',                'md/customer',            'MD-010', 10, 1, 'admin'),
   ('MD-011', 'MD', N'출하처 기준정보 관리',        N'Shipment Destination Master',    'md/shipment-dest',       'MD-011', 11, 1, 'admin'),
@@ -3429,9 +3430,9 @@ INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ScreenName, ScreenNameEn, HR
   ('MD-017', 'MD', N'검사기준 기준정보 관리',      N'Inspection Standard Master',     'md/inspection-standard', 'MD-017', 17, 1, 'admin'),
   ('MD-018', 'MD', N'창고/로케이션 기준정보 관리', N'Warehouse Location Master',      'md/location',            'MD-018', 18, 1, 'admin'),
   ('MD-019', 'MD', N'단위 관리',                   N'UOM Master',                     'md/uom',                 'MD-019', 19, 1, 'admin'),
-  ('MD-020', 'MD', N'RFID 태그 관리',              N'RFID Tag Master',                'md/rfid-tag',            'MD-020', 20, 1, 'admin'),
-  ('MD-021', 'MD', N'RAL 색상 관리',               N'RAL Color Master',               'md/ral-color',           'MD-021', 21, 1, 'admin'),
-  ('MD-022', 'MD', N'RFID 리더 관리',              N'RFID Reader Master',             'md/rfid-reader',         'MD-022', 22, 1, 'admin'),
+  ('MD-020', 'MD', N'RFID 태그 관리',              N'RFID Tag Master',                'md/rm/rfid-tag',         'MD-020', 20, 1, 'admin'),
+  ('MD-021', 'MD', N'RAL 색상 관리',               N'RAL Color Master',               'md/rm/ral-color',        'MD-021', 21, 1, 'admin'),
+  ('MD-022', 'MD', N'RFID 리더 관리',              N'RFID Reader Master',             'md/rm/rfid-reader',      'MD-022', 22, 1, 'admin'),
   ('MD-023', 'MD', N'포장 사양 관리',              N'Packaging Spec Master',          'md/packaging-spec',      'MD-023', 23, 1, 'admin'),
   ('MD-024', 'MD', N'라벨 템플릿 관리',            N'Label Template Master',          'md/label-template',      'MD-024', 24, 1, 'admin'),
   ('MD-025', 'MD', N'사유 코드 관리',              N'Reason Code Master',             'md/reason-code',         'MD-025', 25, 1, 'admin'),

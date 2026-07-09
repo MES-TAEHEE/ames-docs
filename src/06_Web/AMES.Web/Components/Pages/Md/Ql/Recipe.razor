@@ -1,4 +1,4 @@
-﻿@page "/md/recipe"
+@page "/md/ql/recipe"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
@@ -9,7 +9,7 @@
 <PageTitle>@L["MD.Recipe.Title"] · AMES</PageTitle>
 
 <div class="ames-page-h">
-    <div class="ames-page-id">MD-029</div>
+    <div class="ames-page-id">MD-030</div>
     <div class="ames-page-t">@L["MD.Recipe.Title"]</div>
     <div class="ames-page-sub">@L["MD.Recipe.Sub"]</div>
 </div>
@@ -217,7 +217,7 @@
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
         await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("md/recipe");
+        _canEdit = Perm.CanEdit("md/ql/recipe");
         Reload();
     }
 

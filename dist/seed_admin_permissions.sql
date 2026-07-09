@@ -1,4 +1,4 @@
--- ════════════════════════════════════════════════════════════════════════
+﻿-- ════════════════════════════════════════════════════════════════════════
 -- Admin Role FULL 권한 시드 (SYS_Screen + SYS_RolePermission)
 -- 멱등 실행 가능 — MERGE 사용으로 중복 없음
 -- ════════════════════════════════════════════════════════════════════════
@@ -53,29 +53,29 @@ USING (VALUES
   ('MD-005', 'MD', N'BOP 관리',                   N'BOP Management',              'md/rp/bop',              'MD-005',  5, 1),
   ('MD-006', 'MD', N'Work Center 관리',           N'Work Center Management',      'md/rp/work-center',      'MD-006',  6, 1),
   ('MD-007', 'MD', N'금형 기준정보 관리',         N'Mold Master',                 'md/re/mold',             'MD-007',  7, 1),
-  ('MD-008', 'MD', N'원부자재 기준정보 관리',     N'Paint & Fabric Master',       'md/paint-fabric',        'MD-008',  8, 1),
+  ('MD-008', 'MD', N'원부자재 기준정보 관리',     N'Paint & Fabric Master',       'md/rm/paint-fabric',     'MD-008',  8, 1),
   ('MD-009', 'MD', N'공급업체 기준정보 관리',     N'Vendor Master',               'md/re/vendor',           'MD-009',  9, 1),
-  ('MD-010', 'MD', N'고객사 기준정보 관리',       N'Customer Master',             'md/customer',            'MD-010', 10, 1),
-  ('MD-011', 'MD', N'출하처 기준정보 관리',       N'Shipment Destination Master', 'md/shipment-dest',       'MD-011', 11, 1),
-  ('MD-012', 'MD', N'불량유형 기준정보 관리',     N'Defect Code Master',          'md/defect-code',         'MD-012', 12, 1),
-  ('MD-013', 'MD', N'불량원인 기준정보 관리',     N'Defect Cause Master',         'md/defect-cause',        'MD-013', 13, 1),
+  ('MD-010', 'MD', N'고객사 기준정보 관리',       N'Customer Master',             'md/ql/customer',            'MD-010', 10, 1),
+  ('MD-011', 'MD', N'출하처 기준정보 관리',       N'Shipment Destination Master', 'md/ql/shipment-dest',       'MD-011', 11, 1),
+  ('MD-012', 'MD', N'불량유형 기준정보 관리',     N'Defect Code Master',          'md/ql/defect-code',         'MD-012', 12, 1),
+  ('MD-013', 'MD', N'불량원인 기준정보 관리',     N'Defect Cause Master',         'md/ql/defect-cause',        'MD-013', 13, 1),
   ('MD-014', 'MD', N'설비 기준정보 관리',         N'Equipment Master',            'md/re/equipment',        'MD-014', 14, 1),
   ('MD-015', 'MD', N'건조로 기준정보 관리',       N'Oven Master',                 'md/re/oven',             'MD-015', 15, 1),
   ('MD-016', 'MD', N'지그 기준정보 관리',         N'Jig Master',                  'md/re/jig',              'MD-016', 16, 1),
-  ('MD-017', 'MD', N'검사기준 기준정보 관리',     N'Inspection Standard Master',  'md/inspection-standard', 'MD-017', 17, 1),
-  ('MD-018', 'MD', N'창고/로케이션 기준정보 관리',N'Warehouse Location Master',   'md/location',            'MD-018', 18, 1),
+  ('MD-017', 'MD', N'검사기준 기준정보 관리',     N'Inspection Standard Master',  'md/ql/inspection-standard', 'MD-017', 17, 1),
+  ('MD-018', 'MD', N'창고/로케이션 기준정보 관리',N'Warehouse Location Master',   'md/fd/location',         'MD-018', 18, 1),
   ('MD-019', 'MD', N'단위 관리',                  N'UOM Master',                  'md/fd/uom',              'MD-019', 19, 1),
-  ('MD-020', 'MD', N'RFID 태그 관리',             N'RFID Tag Master',             'md/rfid-tag',            'MD-020', 20, 1),
-  ('MD-021', 'MD', N'RAL 색상 관리',              N'RAL Color Master',            'md/ral-color',           'MD-021', 21, 1),
-  ('MD-022', 'MD', N'RFID 리더 관리',             N'RFID Reader Master',          'md/rfid-reader',         'MD-022', 22, 1),
-  ('MD-023', 'MD', N'포장 사양 관리',             N'Packaging Spec Master',       'md/packaging-spec',      'MD-023', 23, 1),
-  ('MD-024', 'MD', N'라벨 템플릿 관리',           N'Label Template Master',       'md/label-template',      'MD-024', 24, 1),
+  ('MD-020', 'MD', N'RFID 태그 관리',             N'RFID Tag Master',             'md/rm/rfid-tag',         'MD-020', 20, 1),
+  ('MD-021', 'MD', N'RAL 색상 관리',              N'RAL Color Master',            'md/rm/ral-color',        'MD-021', 21, 1),
+  ('MD-022', 'MD', N'RFID 리더 관리',             N'RFID Reader Master',          'md/rm/rfid-reader',      'MD-022', 22, 1),
+  ('MD-023', 'MD', N'포장 사양 관리',             N'Packaging Spec Master',       'md/ql/packaging-spec',      'MD-023', 23, 1),
+  ('MD-024', 'MD', N'라벨 템플릿 관리',           N'Label Template Master',       'md/ql/label-template',      'MD-024', 24, 1),
   ('MD-025', 'MD', N'사유 코드 관리',             N'Reason Code Master',          'md/re/reason-code',      'MD-025', 25, 1),
   ('MD-026', 'MD', N'예비품 마스터',              N'Spare Part Master',           'md/re/spare-part',       'MD-026', 26, 1),
   ('MD-027', 'MD', N'PM 템플릿 관리',             N'PM Template Master',          'md/rp/pm-template',      'MD-027', 27, 1),
   ('MD-028', 'MD', N'라인 시간 패턴 관리',        N'Line Time Pattern Master',    'md/rp/line-time-pattern','MD-028', 28, 1),
-  ('MD-029', 'MD', N'레시피 관리',                N'Recipe Master',               'md/recipe',              'MD-029', 29, 1),
-  ('MD-030', 'MD', N'코드 기준정보 관리',         N'Common Code Master',          'md/common-code',         'MD-030', 30, 1),
+  ('MD-029', 'MD', N'레시피 관리',                N'Recipe Master',               'md/ql/recipe',              'MD-029', 29, 1),
+  ('MD-030', 'MD', N'코드 기준정보 관리',         N'Common Code Master',          'md/ql/common-code',         'MD-030', 30, 1),
   -- SYS · 시스템
   ('SYS-001', 'SYS', N'사용자 관리',              N'User Management',             'sys/users',              'SYS-001',  1, 1),
   ('SYS-002', 'SYS', N'역할 관리',                N'Role Management',             'sys/roles',              'SYS-002',  2, 1),
@@ -99,6 +99,23 @@ WHEN MATCHED AND (tgt.HRef IS NULL OR tgt.HRef != src.HRef) THEN
 PRINT CONCAT('SYS_Screen: ', @@ROWCOUNT, '행 처리됨');
 GO
 
+-- ModuleCode='WEB'/ProcessCode 정규화 (단독 실행 시 이전 구조 보정)
+UPDATE dbo.SYS_Screen SET ModuleCode='WEB', ProcessCode='PP'  WHERE ScreenCode LIKE 'PP-%'  AND (ModuleCode != 'WEB' OR ProcessCode IS NULL);
+UPDATE dbo.SYS_Screen SET ModuleCode='WEB', ProcessCode='MNT' WHERE ScreenCode LIKE 'MNT-%' AND (ModuleCode != 'WEB' OR ProcessCode IS NULL);
+UPDATE dbo.SYS_Screen SET ModuleCode='WEB', ProcessCode='RPT' WHERE ScreenCode LIKE 'RPT-%' AND (ModuleCode != 'WEB' OR ProcessCode IS NULL);
+UPDATE dbo.SYS_Screen SET ModuleCode='WEB', ProcessCode='MD'  WHERE ScreenCode LIKE 'MD-%'  AND (ModuleCode != 'WEB' OR ProcessCode IS NULL);
+UPDATE dbo.SYS_Screen SET ModuleCode='WEB', ProcessCode='SYS' WHERE ScreenCode LIKE 'SYS-%' AND (ModuleCode != 'WEB' OR ProcessCode IS NULL);
+GO
+
+-- SubProcessCode HRef 기반 설정 (MD 화면)
+UPDATE dbo.SYS_Screen SET SubProcessCode='Fd' WHERE ProcessCode='MD' AND HRef LIKE 'md/fd/%';
+UPDATE dbo.SYS_Screen SET SubProcessCode='Rp' WHERE ProcessCode='MD' AND HRef LIKE 'md/rp/%';
+UPDATE dbo.SYS_Screen SET SubProcessCode='Re' WHERE ProcessCode='MD' AND HRef LIKE 'md/re/%';
+UPDATE dbo.SYS_Screen SET SubProcessCode='Rm' WHERE ProcessCode='MD' AND HRef LIKE 'md/rm/%';
+UPDATE dbo.SYS_Screen SET SubProcessCode='Ql' WHERE ProcessCode='MD' AND HRef LIKE 'md/ql/%';
+UPDATE dbo.SYS_Screen SET SubProcessCode=NULL WHERE ProcessCode='MD' AND HRef NOT LIKE 'md/%/%';
+GO
+
 -- ── Step 2: Admin Role 확보 ───────────────────────────────────────────────
 
 IF NOT EXISTS (SELECT 1 FROM dbo.AspNetRoles WHERE Name = 'Admin')
@@ -116,11 +133,9 @@ GO
 DECLARE @AdminRoleId NVARCHAR(450);
 SELECT @AdminRoleId = Id FROM dbo.AspNetRoles WHERE Name = 'Admin';
 
--- PERMISSION_LEVEL 비트 플래그(View/Create/Update/Delete/Approve) 전체 합산값
+-- PermissionService는 'R'/'RE'/'REA' 문자 조합으로 권한 판단
 DECLARE @FullLevel VARCHAR(10);
-SELECT @FullLevel = CAST(SUM(CAST(CodeValue AS INT)) AS VARCHAR(10))
-FROM   dbo.MD_CodeItem
-WHERE  GroupCode = 'PERMISSION_LEVEL' AND UseFlag = 1;
+SET @FullLevel = 'REA'; -- R=조회, E=편집, A=승인 전체 허용
 
 MERGE dbo.SYS_RolePermission AS tgt
 USING (

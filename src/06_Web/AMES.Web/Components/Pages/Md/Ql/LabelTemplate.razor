@@ -1,4 +1,4 @@
-﻿@page "/md/label-template"
+@page "/md/ql/label-template"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
@@ -246,7 +246,7 @@
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
         await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("md/label-template");
+        _canEdit = Perm.CanEdit("md/ql/label-template");
         try { _labelTypes    = Md.ListCodeItems("LABEL_TYPE");   } catch { }
         try { _barcodeTypes  = Md.ListCodeItems("BARCODE_TYPE"); } catch { }
         try { _labelStatuses = Md.ListCodeItems("LABEL_STATUS"); } catch { }
