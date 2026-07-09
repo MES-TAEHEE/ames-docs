@@ -113,6 +113,8 @@ public sealed class PdaApi
         string? WarehouseCode = null, string? WarehouseName = null, string? AreaCode = null, string? AreaName = null,
         string? ZoneName = null, string? X = null, string? Y = null, string? Z = null,
         string? PlantCode = null, string? LocationType = null, decimal? Capacity = null);
+    public sealed record LocationMapItemRow(string LotNo, string? PartNo, string? PartName, decimal Qty, string? Unit,
+        string? InventoryStatus, string? WorkDate, string? WorkTime);
     public sealed record ReleaseScheduleRow(int ReleaseScheduleId, int? WoId, string? WoNumber,
         string ItemNo, string? ItemName, decimal DemandQty, decimal PickedQty, DateTime? RequiredAt, string? Status);
     public sealed record TransactionRow(long TxnId, DateTime TxnTime, string TxnType, string? ItemNo,
@@ -178,6 +180,28 @@ public sealed class PdaApi
         catch
         {
             return await Get<List<LocationRow>>("/api/wh/locations");
+        }
+    }
+    public async Task<List<LocationRow>> WhLocationMapAsync()
+    {
+        try
+        {
+            return await QueryWhLocationMapDbAsync();
+        }
+        catch
+        {
+            return await WhLocationsAsync();
+        }
+    }
+    public async Task<List<LocationMapItemRow>> WhLocationMapItemsAsync(string locationId)
+    {
+        try
+        {
+            return await QueryWhLocationMapItemsDbAsync(locationId);
+        }
+        catch
+        {
+            return new List<LocationMapItemRow>();
         }
     }
     public async Task<LocationRow?> WhScanLocationAsync(string locationId)
@@ -553,6 +577,105 @@ public sealed class PdaApi
         return rows;
     }
 
+    private async Task<List<LocationRow>> QueryWhLocationMapDbAsync()
+    {
+        await using var conn = _db.CreateConnection();
+        await conn.OpenAsync();
+        await using var cmd = new SqlCommand("""
+            SELECT
+                L.LOCATION_NO AS LocationID,
+                L.LOCATION_NM AS LocationName,
+                L.ZONECD AS ZoneCode,
+                L.WHCD AS WarehouseCode,
+                W.WHNM AS WarehouseName,
+                L.AREACD AS AreaCode,
+                A.AREANM AS AreaName,
+                Z.ZONENM AS ZoneName,
+                L.RACK_X AS Aisle,
+                L.RACK_Y AS Bay,
+                L.RACK_Z AS Slot,
+                CAST(NULL AS nvarchar(20)) AS PlantCode,
+                CAST(N'SIS' AS nvarchar(20)) AS LocationType,
+                CAST(NULL AS decimal(18,3)) AS Capacity,
+                COUNT(S.LOTNO) AS LineCount,
+                COALESCE(SUM(S.QTY), 0) AS TotalQty
+            FROM SIS_TEST.WMS1040 L
+            LEFT JOIN SIS_TEST.WMS1010 W
+                ON W.CORCD = L.CORCD
+               AND W.BIZCD = L.BIZCD
+               AND W.WHCD = L.WHCD
+            LEFT JOIN SIS_TEST.WMS1020 A
+                ON A.CORCD = L.CORCD
+               AND A.BIZCD = L.BIZCD
+               AND A.AREACD = L.AREACD
+            LEFT JOIN SIS_TEST.WMS1030 Z
+                ON Z.CORCD = L.CORCD
+               AND Z.BIZCD = L.BIZCD
+               AND Z.ZONECD = L.ZONECD
+            LEFT JOIN SIS_TEST.WMS2000 S
+                ON S.CORCD = @LocationCorcd
+               AND S.BIZCD = @LocationBizcd
+               AND S.LOCATION_NO = L.LOCATION_NO
+            WHERE L.CORCD = @LocationCorcd
+              AND L.BIZCD = @LocationBizcd
+              AND COALESCE(L.USE_YN, N'Y') = N'Y'
+            GROUP BY L.LOCATION_NO, L.LOCATION_NM, L.ZONECD, L.WHCD, W.WHNM,
+                L.AREACD, A.AREANM, Z.ZONENM, L.RACK_X, L.RACK_Y, L.RACK_Z
+            ORDER BY L.AREACD, L.ZONECD, L.RACK_Z, L.RACK_Y, L.RACK_X, L.LOCATION_NO;
+            """, conn);
+        cmd.Parameters.Add("@LocationCorcd", SqlDbType.NVarChar, 10).Value = WhLocationCorcd;
+        cmd.Parameters.Add("@LocationBizcd", SqlDbType.NVarChar, 10).Value = WhLocationBizcd;
+
+        await using var rdr = await cmd.ExecuteReaderAsync();
+        var rows = new List<LocationRow>();
+        while (await rdr.ReadAsync())
+        {
+            rows.Add(ReadLocationRow(rdr));
+        }
+
+        return rows;
+    }
+
+    private async Task<List<LocationMapItemRow>> QueryWhLocationMapItemsDbAsync(string locationId)
+    {
+        await using var conn = _db.CreateConnection();
+        await conn.OpenAsync();
+        await using var cmd = new SqlCommand("""
+            SELECT
+                S.LOTNO,
+                S.PARTNO,
+                PL.PARTNM,
+                S.QTY,
+                COALESCE(P.UNIT, P.MEINS) AS UNIT,
+                S.INV_STATUS,
+                S.WORK_DATE,
+                S.WORK_TIME
+            FROM SIS_TEST.WMS2000 S
+            LEFT JOIN SIS_TEST.ACD0020 P
+                ON P.PARTNO = S.PARTNO
+            LEFT JOIN SIS_TEST.ACD0020L PL
+                ON PL.PARTNO = S.PARTNO
+               AND PL.LANG_SET = N'EN'
+            WHERE S.CORCD = @LocationCorcd
+              AND S.BIZCD = @LocationBizcd
+              AND UPPER(S.LOCATION_NO) = UPPER(@LocationID)
+              AND COALESCE(S.QTY, 0) > 0
+            ORDER BY S.PARTNO, S.LOTNO;
+            """, conn);
+        cmd.Parameters.Add("@LocationCorcd", SqlDbType.NVarChar, 10).Value = WhLocationCorcd;
+        cmd.Parameters.Add("@LocationBizcd", SqlDbType.NVarChar, 10).Value = WhLocationBizcd;
+        cmd.Parameters.Add("@LocationID", SqlDbType.NVarChar, 30).Value = locationId.Trim();
+
+        await using var rdr = await cmd.ExecuteReaderAsync();
+        var rows = new List<LocationMapItemRow>();
+        while (await rdr.ReadAsync())
+        {
+            rows.Add(ReadLocationMapItemRow(rdr));
+        }
+
+        return rows;
+    }
+
     private async Task<List<InventoryRow>> QueryWhInventoryDbAsync(string? q, DateTime? dateFrom, DateTime? dateTo)
     {
         await using var conn = _db.CreateConnection();
@@ -729,6 +852,19 @@ public sealed class PdaApi
             GetString(rdr, "PlantCode"),
             GetString(rdr, "LocationType"),
             GetNullableDecimal(rdr, "Capacity"));
+    }
+
+    private static LocationMapItemRow ReadLocationMapItemRow(SqlDataReader rdr)
+    {
+        return new LocationMapItemRow(
+            GetString(rdr, "LOTNO") ?? "",
+            GetString(rdr, "PARTNO"),
+            GetString(rdr, "PARTNM"),
+            GetDecimal(rdr, "QTY"),
+            GetString(rdr, "UNIT"),
+            GetString(rdr, "INV_STATUS"),
+            GetString(rdr, "WORK_DATE"),
+            GetString(rdr, "WORK_TIME"));
     }
 
     private static InventoryRow ReadInventoryRow(SqlDataReader rdr)
