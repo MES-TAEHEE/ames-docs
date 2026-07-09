@@ -2,22 +2,80 @@
 @inject AuthState Auth
 @inject NavigationManager Nav
 
-<div class="pda-shell wh">
+<div class="pda-shell wh wh-home-shell">
     <div class="pda-tbar">
-        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/home"))'>←</button>
-        <span class="pda-tbar-brand">WAREHOUSE</span>
-        <span class="pda-tbar-emp">@Auth.Session?.EmployeeNo</span>
+        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/home"))'>&lt;</button>
+        <div class="wh-home-title">
+            <span class="pda-tbar-brand">WAREHOUSE</span>
+            <span>@Auth.Session?.EmployeeNo</span>
+        </div>
     </div>
     <div class="pda-bd">
-        <div class="pda-tile-grid">
-            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/wh/01"))'><div class="pda-tile-ic">📋</div><div class="pda-tile-cap">WH-001</div><div class="pda-tile-sub">Inbound Schedule</div></button>
-            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/wh/02"))'><div class="pda-tile-ic">📥</div><div class="pda-tile-cap">WH-002</div><div class="pda-tile-sub">PDA Inbound</div></button>
-            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/wh/03"))'><div class="pda-tile-ic">📊</div><div class="pda-tile-cap">WH-003</div><div class="pda-tile-sub">Inventory Status</div></button>
-            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/wh/04"))'><div class="pda-tile-ic">🗺️</div><div class="pda-tile-cap">WH-004</div><div class="pda-tile-sub">Location Map</div></button>
-            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/wh/05"))'><div class="pda-tile-ic">✏️</div><div class="pda-tile-cap">WH-005</div><div class="pda-tile-sub">Inventory Adjust</div></button>
-            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/wh/06"))'><div class="pda-tile-ic">📅</div><div class="pda-tile-cap">WH-006</div><div class="pda-tile-sub">Release Schedule</div></button>
-            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/wh/07"))'><div class="pda-tile-ic">📤</div><div class="pda-tile-cap">WH-007</div><div class="pda-tile-sub">PDA Release</div></button>
-            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/wh/08"))'><div class="pda-tile-ic">📜</div><div class="pda-tile-cap">WH-008</div><div class="pda-tile-sub">Transactions</div></button>
+        <div class="wh-home-hero">
+            <div>
+                <span>WAREHOUSE MENU</span>
+                <strong>Stock Movement</strong>
+            </div>
+            <em>@DateTime.Now.ToString("HH:mm")</em>
+        </div>
+
+        <div class="pda-tile-grid wh-home-grid">
+            <button class="pda-tile sm wh-home-tile schedule" @onclick='@(() => Nav.NavigateTo("/wh/01"))'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="event_note" /></span>
+                <div class="wh-home-tile-copy">
+                    <div class="pda-tile-cap">Schedule</div>
+                    <div class="pda-tile-sub">Inbound receipt plan</div>
+                </div>
+                <span class="wh-home-tile-go">&gt;</span>
+            </button>
+            <button class="pda-tile sm wh-home-tile scan" @onclick='@(() => Nav.NavigateTo("/wh/02"))'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="qr_code_scanner" /></span>
+                <div class="wh-home-tile-copy">
+                    <div class="pda-tile-cap">Scan</div>
+                    <div class="pda-tile-sub">Receive and move stock</div>
+                </div>
+                <span class="wh-home-tile-go">&gt;</span>
+            </button>
+            <button class="pda-tile sm wh-home-tile inventory" @onclick='@(() => Nav.NavigateTo("/wh/03"))'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="inventory_2" /></span>
+                <div class="wh-home-tile-copy">
+                    <div class="pda-tile-cap">Inventory</div>
+                    <div class="pda-tile-sub">Current material stock</div>
+                </div>
+                <span class="wh-home-tile-go">&gt;</span>
+            </button>
+            <button class="pda-tile sm wh-home-tile location" @onclick='@(() => Nav.NavigateTo("/wh/04"))'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="travel_explore" /></span>
+                <div class="wh-home-tile-copy">
+                    <div class="pda-tile-cap">Location Search</div>
+                    <div class="pda-tile-sub">Find stock by position</div>
+                </div>
+                <span class="wh-home-tile-go">&gt;</span>
+            </button>
+            <button class="pda-tile sm wh-home-tile release-plan" @onclick='@(() => Nav.NavigateTo("/wh/06"))'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="assignment" /></span>
+                <div class="wh-home-tile-copy">
+                    <div class="pda-tile-cap">Release Schedule</div>
+                    <div class="pda-tile-sub">Outbound request list</div>
+                </div>
+                <span class="wh-home-tile-go">&gt;</span>
+            </button>
+            <button class="pda-tile sm wh-home-tile release" @onclick='@(() => Nav.NavigateTo("/wh/07"))'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="outbox" /></span>
+                <div class="wh-home-tile-copy">
+                    <div class="pda-tile-cap">Release</div>
+                    <div class="pda-tile-sub">Issue material to process</div>
+                </div>
+                <span class="wh-home-tile-go">&gt;</span>
+            </button>
+            <button class="pda-tile sm wh-home-tile transactions" @onclick='@(() => Nav.NavigateTo("/wh/08"))'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="history" /></span>
+                <div class="wh-home-tile-copy">
+                    <div class="pda-tile-cap">Transactions</div>
+                    <div class="pda-tile-sub">Inbound and stock history</div>
+                </div>
+                <span class="wh-home-tile-go">&gt;</span>
+            </button>
         </div>
     </div>
 </div>

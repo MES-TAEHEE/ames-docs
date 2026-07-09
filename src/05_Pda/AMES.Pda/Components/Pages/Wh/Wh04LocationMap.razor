@@ -2,49 +2,414 @@
 @inject PdaApi Api
 @inject NavigationManager Nav
 
-<div class="pda-shell wh">
+<div class="pda-shell wh wh04-shell">
     <div class="pda-tbar">
-        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/wh"))'>←</button>
-        <span class="pda-tbar-brand">WH-004 LOCATIONS</span>
+        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/wh"))' Text="&lt;" />
+        <div class="wh04-tbar-title">
+            <span class="pda-tbar-brand">LOCATION SEARCH</span>
+            <span class="wh04-last-updated">Last Updated @LastUpdatedText</span>
+        </div>
+        <RadzenButton class="wh04-tbar-refresh" Click="@LoadAsync" Disabled="@_loading" Text="REFRESH" />
     </div>
-    <div class="pda-bd">
-        <div class="pda-card">
-            <div class="pda-card-h">▼ LOCATIONS (@_rows.Count)</div>
-            @if (_rows.Count == 0) { <div class="pda-empty">@_msg</div> }
-            else
-            {
-                @foreach (var z in _rows.GroupBy(r => r.Zone ?? "—"))
+
+    <div class="pda-bd wh04-body">
+        @if (_loading)
+        {
+            <div class="wh04-loading">
+                <div class="wh04-spinner"></div>
+                <strong>Loading location map</strong>
+            </div>
+        }
+        else if (_locations.Count == 0)
+        {
+            <div class="pda-empty">No locations found.</div>
+        }
+        else
+        {
+            <RadzenCard class="wh04-filter-card">
+                <div class="wh04-filter-row">
+                    <div class="wh04-dd-field">
+                        <label>AREA</label>
+                        <RadzenDropDown TValue="string" class="wh04-select"
+                                        Data="@AreaOptions"
+                                        TextProperty="Text"
+                                        ValueProperty="Key"
+                                        Value="@_selectedAreaKey"
+                                        Change="@OnAreaChanged" />
+                    </div>
+                    <div class="wh04-dd-field">
+                        <label>LEVEL</label>
+                        <RadzenDropDown TValue="string" class="wh04-select"
+                                        Data="@LevelOptions"
+                                        TextProperty="Text"
+                                        ValueProperty="Key"
+                                        Value="@_selectedLevelKey"
+                                        Change="@OnLevelChanged" />
+                    </div>
+                </div>
+                <div class="wh04-filter-row">
+                    <div class="wh04-dd-field">
+                        <label>COLUMN</label>
+                        <RadzenDropDown TValue="string" class="wh04-select"
+                                        Data="@ColumnOptions"
+                                        TextProperty="Text"
+                                        ValueProperty="Key"
+                                        Value="@_selectedColumnKey"
+                                        Change="@OnColumnChanged" />
+                    </div>
+                    <div class="wh04-dd-field">
+                        <label>ROW</label>
+                        <RadzenDropDown TValue="string" class="wh04-select"
+                                        Data="@RowOptions"
+                                        TextProperty="Text"
+                                        ValueProperty="Key"
+                                        Value="@_selectedRowKey"
+                                        Change="@OnRowChanged" />
+                    </div>
+                </div>
+            </RadzenCard>
+
+            <RadzenCard class="wh04-match-card">
+                <div class="wh04-items-head">
+                    <span>Locations</span>
+                    <strong>@MatchingLocations.Count.ToString("N0")</strong>
+                </div>
+
+                @if (MatchingLocations.Count == 0)
                 {
-                    <div class="pda-zone-h">ZONE @z.Key</div>
-                    @foreach (var r in z)
+                    <div class="wh04-item-empty">No locations match this position.</div>
+                }
+                else
+                {
+                    <div class="wh04-location-list">
+                        @foreach (var location in MatchingLocations)
+                        {
+                            <button type="button" class="@LocationCardClass(location)" @onclick="@(() => SelectLocationAsync(location))">
+                                <div class="wh04-location-main">
+                                    <span>AREA</span>
+                                    <strong>@AreaLocationText(location)</strong>
+                                    <em>@ZoneText(location)</em>
+                                </div>
+                                <div class="wh04-location-qty">
+                                    <span>QTY</span>
+                                    <strong>@location.TotalQty.ToString("N0")</strong>
+                                </div>
+                            </button>
+                        }
+                    </div>
+
+                    @if (_selectedLocation is not null)
                     {
-                        <div class="pda-row3">
-                            <div class="r3-l">
-                                <div class="r3-code">@r.LocationId</div>
-                                <div class="r3-sub">@(r.LocationName ?? "")</div>
+                        <div class="wh04-location-items">
+                            <div class="wh04-items-head">
+                                <span>@_selectedLocation.LocationId Items</span>
+                                <strong>@_items.Count.ToString("N0")</strong>
                             </div>
-                            <div class="r3-m">
-                                <div>@r.LineCount</div>
-                                <div class="r3-sub">items</div>
-                            </div>
-                            <div class="r3-r">
-                                <div class="big">@r.TotalQty.ToString("0.#")</div>
-                                <div class="r3-sub">on hand</div>
-                            </div>
+
+                            @if (_loadingItems)
+                            {
+                                <div class="wh04-item-empty">Loading items...</div>
+                            }
+                            else if (_items.Count == 0)
+                            {
+                                <div class="wh04-item-empty">No current stock in this location.</div>
+                            }
+                            else
+                            {
+                                <div class="wh04-item-list">
+                                    @foreach (var item in _items)
+                                    {
+                                        <div class="wh04-item-row">
+                                            <div>
+                                                <span>ITEM</span>
+                                                <strong>@Text(item.PartNo)</strong>
+                                                <em>@Text(item.PartName)</em>
+                                            </div>
+                                            <div>
+                                                <span>LOT</span>
+                                                <strong>@Text(item.LotNo)</strong>
+                                                <em>@WorkText(item.WorkDate, item.WorkTime)</em>
+                                            </div>
+                                            <div>
+                                                <span>QTY</span>
+                                                <strong>@QtyUnit(item.Qty, item.Unit)</strong>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
                         </div>
                     }
                 }
-            }
-        </div>
+            </RadzenCard>
+        }
     </div>
 </div>
 
 @code {
-    List<PdaApi.LocationRow> _rows = new();
-    string _msg = "Loading…";
+    private const string EmptyKey = "__EMPTY__";
+
+    private List<PdaApi.LocationRow> _locations = new();
+    private List<PdaApi.LocationMapItemRow> _items = new();
+    private PdaApi.LocationRow? _selectedLocation;
+    private string? _selectedAreaKey;
+    private string? _selectedColumnKey;
+    private string? _selectedRowKey;
+    private string? _selectedLevelKey;
+    private bool _loading = true;
+    private bool _loadingItems;
+    private DateTime? _lastUpdated;
+
     protected override async Task OnInitializedAsync()
     {
-        _rows = await Api.WhLocationsAsync();
-        if (_rows.Count == 0) _msg = "No locations.";
+        await LoadAsync();
+    }
+
+    private IReadOnlyList<PdaApi.LocationRow> MapRows => _locations
+        .Where(r => !string.IsNullOrWhiteSpace(r.AreaCode)
+            && (!string.IsNullOrWhiteSpace(r.X) || !string.IsNullOrWhiteSpace(r.Y) || !string.IsNullOrWhiteSpace(r.Z)))
+        .ToList();
+
+    private IReadOnlyList<PdaApi.LocationRow> AreaRows => MapRows
+        .Where(r => AreaKey(r) == _selectedAreaKey)
+        .ToList();
+
+    private IReadOnlyList<PdaApi.LocationRow> ColumnRows => AreaRows
+        .Where(r => ColumnKey(r) == _selectedColumnKey)
+        .ToList();
+
+    private IReadOnlyList<PdaApi.LocationRow> RowRows => ColumnRows
+        .Where(r => RowKey(r) == _selectedRowKey)
+        .ToList();
+
+    private IReadOnlyList<PdaApi.LocationRow> MatchingLocations => RowRows
+        .Where(r => LevelKey(r) == _selectedLevelKey)
+        .OrderBy(r => SortGroup(LevelKey(r)))
+        .ThenBy(r => SortNumber(LevelKey(r)))
+        .ThenBy(r => SortText(LevelKey(r)))
+        .ThenBy(r => r.LocationId)
+        .ToList();
+
+    private IReadOnlyList<Option> AreaOptions => BuildOptions(MapRows, AreaKey, AreaLabel);
+    private IReadOnlyList<Option> ColumnOptions => BuildOptions(AreaRows, ColumnKey, r => Text(r.X));
+    private IReadOnlyList<Option> RowOptions => BuildOptions(ColumnRows, RowKey, r => Text(r.Y));
+    private IReadOnlyList<Option> LevelOptions => BuildOptions(RowRows, LevelKey, r => Text(r.Z));
+
+    private string LastUpdatedText => _lastUpdated?.ToString("HH:mm:ss") ?? "-";
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _locations = await Api.WhLocationMapAsync();
+        _lastUpdated = DateTime.Now;
+        _loading = false;
+
+        await SelectInitialAsync();
+    }
+
+    private async Task SelectInitialAsync()
+    {
+        _selectedAreaKey = AreaOptions.FirstOrDefault()?.Key;
+        _selectedColumnKey = ColumnOptions.FirstOrDefault()?.Key;
+        _selectedRowKey = RowOptions.FirstOrDefault()?.Key;
+        _selectedLevelKey = LevelOptions.FirstOrDefault()?.Key;
+        ClearSelectedLocation();
+        await Task.CompletedTask;
+    }
+
+    private async Task OnAreaChanged(object? value)
+    {
+        await SelectAreaAsync(Convert.ToString(value) ?? "");
+    }
+
+    private async Task OnColumnChanged(object? value)
+    {
+        await SelectColumnAsync(Convert.ToString(value) ?? "");
+    }
+
+    private async Task OnRowChanged(object? value)
+    {
+        await SelectRowAsync(Convert.ToString(value) ?? "");
+    }
+
+    private async Task OnLevelChanged(object? value)
+    {
+        await SelectLevelAsync(Convert.ToString(value) ?? "");
+    }
+
+    private async Task SelectAreaAsync(string key)
+    {
+        _selectedAreaKey = key;
+        _selectedColumnKey = ColumnOptions.FirstOrDefault()?.Key;
+        _selectedRowKey = RowOptions.FirstOrDefault()?.Key;
+        _selectedLevelKey = LevelOptions.FirstOrDefault()?.Key;
+        ClearSelectedLocation();
+        await Task.CompletedTask;
+    }
+
+    private async Task SelectColumnAsync(string key)
+    {
+        _selectedColumnKey = key;
+        _selectedRowKey = RowOptions.FirstOrDefault()?.Key;
+        _selectedLevelKey = LevelOptions.FirstOrDefault()?.Key;
+        ClearSelectedLocation();
+        await Task.CompletedTask;
+    }
+
+    private async Task SelectRowAsync(string key)
+    {
+        _selectedRowKey = key;
+        _selectedLevelKey = LevelOptions.FirstOrDefault()?.Key;
+        ClearSelectedLocation();
+        await Task.CompletedTask;
+    }
+
+    private async Task SelectLevelAsync(string key)
+    {
+        _selectedLevelKey = key;
+        ClearSelectedLocation();
+        await Task.CompletedTask;
+    }
+
+    private async Task SelectLocationAsync(PdaApi.LocationRow location)
+    {
+        _selectedLocation = location;
+        _items.Clear();
+        _loadingItems = true;
+
+        try
+        {
+            _items = await Api.WhLocationMapItemsAsync(location.LocationId);
+        }
+        finally
+        {
+            _loadingItems = false;
+        }
+    }
+
+    private void ClearSelectedLocation()
+    {
+        _selectedLocation = null;
+        _items.Clear();
+        _loadingItems = false;
+    }
+
+    private static IReadOnlyList<Option> BuildOptions(
+        IEnumerable<PdaApi.LocationRow> source,
+        Func<PdaApi.LocationRow, string> keySelector,
+        Func<PdaApi.LocationRow, string> labelSelector)
+    {
+        return source
+            .GroupBy(keySelector)
+            .Select(g => new Option(g.Key, labelSelector(g.First()), g.Count()))
+            .OrderBy(o => SortGroup(o.Key))
+            .ThenBy(o => SortNumber(o.Key))
+            .ThenBy(o => SortText(o.Key))
+            .ThenBy(o => o.Label)
+            .ToList();
+    }
+
+    private static string AreaLocationText(PdaApi.LocationRow location)
+    {
+        return $"{Text(location.AreaCode)} / {location.LocationId}";
+    }
+
+    private static string ZoneText(PdaApi.LocationRow location)
+    {
+        return CompactCodeName(location.Zone, location.ZoneName);
+    }
+
+    private string LocationCardClass(PdaApi.LocationRow location)
+    {
+        var active = string.Equals(_selectedLocation?.LocationId, location.LocationId, StringComparison.OrdinalIgnoreCase);
+        return active ? "wh04-location-row active" : "wh04-location-row";
+    }
+
+    private static string AreaKey(PdaApi.LocationRow row) => CleanKey(row.AreaCode);
+    private static string ColumnKey(PdaApi.LocationRow row) => CleanKey(row.X);
+    private static string RowKey(PdaApi.LocationRow row) => CleanKey(row.Y);
+    private static string LevelKey(PdaApi.LocationRow row) => CleanKey(row.Z);
+
+    private static string CleanKey(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? EmptyKey : value.Trim();
+    }
+
+    private static string AreaLabel(PdaApi.LocationRow row) => CodeName(row.AreaCode, row.AreaName, "No Area");
+
+    private static string CodeName(string? code, string? name, string empty = "-")
+    {
+        if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(name))
+            return empty;
+        if (string.IsNullOrWhiteSpace(name))
+            return code?.Trim() ?? empty;
+        if (string.IsNullOrWhiteSpace(code))
+            return name.Trim();
+        return $"{code.Trim()} / {name.Trim()}";
+    }
+
+    private static string CompactCodeName(string? code, string? name, string empty = "-")
+    {
+        if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(name))
+            return empty;
+        if (string.IsNullOrWhiteSpace(name))
+            return code?.Trim() ?? empty;
+        if (string.IsNullOrWhiteSpace(code))
+            return name.Trim();
+        return $"{code.Trim()}/{name.Trim()}";
+    }
+
+    private static string Text(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value == EmptyKey)
+            return "-";
+        return value.Trim();
+    }
+
+    private static string QtyUnit(decimal qty, string? unit)
+    {
+        var value = qty % 1 == 0 ? qty.ToString("N0") : qty.ToString("N3");
+        return string.IsNullOrWhiteSpace(unit) ? value : $"{value} {unit.Trim()}";
+    }
+
+    private static string WorkText(string? workDate, string? workTime)
+    {
+        var date = Text(workDate);
+        var time = Text(workTime);
+        if (date == "-" && time == "-")
+            return "-";
+        if (date == "-")
+            return time;
+        if (time == "-")
+            return date;
+        return $"{date} {time}";
+    }
+
+    private static int SortGroup(string? value)
+    {
+        var v = value == EmptyKey ? "" : value?.Trim();
+        if (string.IsNullOrWhiteSpace(v))
+            return 3;
+        if (int.TryParse(v, out _))
+            return 0;
+        if (v.Length == 1 && char.IsLetter(v[0]))
+            return 1;
+        return 2;
+    }
+
+    private static int SortNumber(string? value)
+    {
+        var v = value == EmptyKey ? "" : value?.Trim();
+        return int.TryParse(v, out var number) ? number : int.MaxValue;
+    }
+
+    private static string SortText(string? value)
+    {
+        return value == EmptyKey ? "" : value?.Trim() ?? "";
+    }
+
+    private sealed record Option(string Key, string Label, int Count)
+    {
+        public string Text => Label;
     }
 }

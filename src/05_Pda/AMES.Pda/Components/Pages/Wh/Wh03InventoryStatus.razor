@@ -25,20 +25,22 @@
             <RadzenButton class="wh03-search-btn" Click="@Load" Disabled="@_isLoading" Text="SEARCH" />
         </RadzenCard>
 
-        <RadzenCard class="wh03-date-card">
-            <div class="pda-fld">
-                <label>STOCK DATE FROM</label>
-                <input class="pda-input wh03-date-input" type="text" inputmode="numeric"
-                       value="@_dateFrom" @onchange="OnDateFromChanged" placeholder="YYYY-MM-DD" />
-            </div>
-            <div class="pda-fld">
-                <label>STOCK DATE TO</label>
-                <input class="pda-input wh03-date-input" type="text" inputmode="numeric"
-                       value="@_dateTo" @onchange="OnDateToChanged" placeholder="YYYY-MM-DD" />
-            </div>
-            <div class="wh03-date-actions">
-                <RadzenButton class="wh03-date-clear" Click="@ClearDateFilter" Disabled="@_isLoading" Text="CLEAR" />
-                <RadzenButton class="wh03-date-apply" Click="@Load" Disabled="@_isLoading" Text="APPLY" />
+        <RadzenCard class="wh03-filter-card">
+            <div class="wh03-date-panel">
+                <div class="pda-fld">
+                    <label>STOCK DATE FROM</label>
+                    <input class="pda-input wh03-date-input" type="text" inputmode="numeric"
+                           value="@_dateFrom" @onchange="OnDateFromChanged" placeholder="YYYY-MM-DD" />
+                </div>
+                <div class="pda-fld">
+                    <label>STOCK DATE TO</label>
+                    <input class="pda-input wh03-date-input" type="text" inputmode="numeric"
+                           value="@_dateTo" @onchange="OnDateToChanged" placeholder="YYYY-MM-DD" />
+                </div>
+                <div class="wh03-date-actions">
+                    <RadzenButton class="wh03-date-clear" Click="@ClearDateFilter" Disabled="@_isLoading" Text="CLEAR" />
+                    <RadzenButton class="wh03-date-apply" Click="@Load" Disabled="@_isLoading" Text="APPLY" />
+                </div>
             </div>
         </RadzenCard>
 
@@ -255,7 +257,10 @@
 
             _rows = await Api.WhInventoryAsync(_q, DateFrom, DateTo);
             _lastSyncAt = DateTime.Now;
-            if (_rows.Count == 0) _msg = "No inventory matches.";
+            if (_rows.Count == 0)
+            {
+                _msg = "No inventory matches.";
+            }
         }
         finally
         {
@@ -263,16 +268,16 @@
         }
     }
 
-    private void SetFilter(string status)
-    {
-        _statusFilter = status;
-    }
-
     private async Task ClearDateFilter()
     {
         _dateFrom = "";
         _dateTo = "";
         await Load();
+    }
+
+    private void SetFilter(string status)
+    {
+        _statusFilter = status;
     }
 
     private async Task OpenLocations(PdaApi.InventoryRow row)
@@ -334,7 +339,13 @@
             _ => "normal"
         };
 
-    private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private static string Text(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "-";
+
+        return value.Trim();
+    }
 
     private static DateTime? TryDate(string? value)
         => DateTime.TryParseExact(value, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out var parsed)
@@ -358,8 +369,8 @@
     private static string CodeName(string? code, string? name)
     {
         if (string.IsNullOrWhiteSpace(code)) return Text(name);
-        if (string.IsNullOrWhiteSpace(name)) return code;
-        return $"{code} / {name}";
+        if (string.IsNullOrWhiteSpace(name)) return code.Trim();
+        return $"{code.Trim()} / {name.Trim()}";
     }
 
     private static string Rack(PdaApi.InventoryLocationRow row)
