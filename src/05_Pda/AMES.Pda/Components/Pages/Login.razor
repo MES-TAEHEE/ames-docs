@@ -5,11 +5,15 @@
 
 <div class="pda-login">
     <div class="pda-login-brand">A-MES</div>
-    <div class="pda-login-sub">SHIFT LOGIN  ·  PDA</div>
+    <div class="pda-login-sub">SHIFT LOGIN / PDA</div>
 
     <div class="pda-fld">
         <label>EMPLOYEE NO</label>
-        <input class="pda-input" @bind="_empNo" @bind:event="oninput" placeholder="E001 / I001 / Q001 ..." />
+        <input class="pda-input"
+               @bind="_empNo"
+               @bind:event="oninput"
+               placeholder="E001 / I001 / Q001 ..."
+               disabled="@_submitting" />
     </div>
 
     <div class="pda-pin-dots">
@@ -20,53 +24,108 @@
     </div>
 
     <div class="pda-keypad">
-        @foreach (var d in new[] { "1","2","3","4","5","6","7","8","9" })
+        @foreach (var d in new[] { "1", "2", "3", "4", "5", "6", "7", "8", "9" })
         {
             var k = d;
-            <button class="pda-key" @onclick="@(() => Press(k))">@k</button>
+            <button class="pda-key" disabled="@_submitting" @onclick="@(() => PressAsync(k))">@k</button>
         }
-        <button class="pda-key del" @onclick="Back">←</button>
-        <button class="pda-key" @onclick='@(() => Press("0"))'>0</button>
-        <button class="pda-key ok" @onclick="Submit">✓</button>
+        <button class="pda-key del" disabled="@_submitting" @onclick="Back">DEL</button>
+        <button class="pda-key" disabled="@_submitting" @onclick='@(() => PressAsync("0"))'>0</button>
+        <button class="pda-key ok" disabled="@_submitting" @onclick="SubmitCurrentAsync">OK</button>
     </div>
 
     <div class="pda-status @_cls">@_status</div>
 </div>
 
 @code {
-    private string _empNo  = "E001";
-    private string _pin    = "";
+    private string _empNo = "E001";
+    private string _pin = "";
     private string _status = " ";
-    private string _cls    = "dim";
+    private string _cls = "dim";
+    private bool _submitting;
 
-    private void Press(string d)
+    private async Task PressAsync(string digit)
     {
-        if (_pin.Length >= 4) return;
-        _pin += d;
-        if (_pin.Length == 4) _ = Submit();
+        if (_submitting || _pin.Length >= 4)
+            return;
+        if (digit.Length != 1 || !char.IsDigit(digit[0]))
+            return;
+
+        _pin += digit;
+        Set(" ", "dim");
+
+        if (_pin.Length == 4)
+            await SubmitAsync(_pin);
     }
 
-    private void Back() { if (_pin.Length > 0) _pin = _pin[..^1]; }
-
-    private async Task Submit()
+    private void Back()
     {
-        if (_pin.Length < 4) { Set("PIN must be 4 digits", "fail"); return; }
+        if (_submitting)
+            return;
+
+        if (_pin.Length > 0)
+        {
+            _pin = _pin[..^1];
+            Set(" ", "dim");
+        }
+    }
+
+    private Task SubmitCurrentAsync() => SubmitAsync(_pin);
+
+    private async Task SubmitAsync(string pin)
+    {
+        pin = pin.Trim();
+        var employeeNo = _empNo.Trim();
+
+        if (string.IsNullOrWhiteSpace(employeeNo))
+        {
+            Set("Employee No is required.", "fail");
+            return;
+        }
+
+        if (pin.Length != 4 || !pin.All(char.IsDigit))
+        {
+            Set("PIN must be 4 digits.", "fail");
+            return;
+        }
+
+        _submitting = true;
+        Set("Signing in...", "dim");
+
         try
         {
-            var res = await Api.LoginAsync(_empNo, _pin);
+            var res = await Api.LoginAsync(employeeNo, pin);
             if (res is null)
             {
-                Set("× API unreachable", "fail"); _pin = ""; return;
+                Set("Authentication service is unavailable.", "fail");
+                _pin = "";
+                return;
             }
+
             if (res.Value.Session is null)
             {
-                Set("× " + (res.Value.Reason ?? "auth failed"), "fail"); _pin = ""; return;
+                Set("Sign-in failed. " + (res.Value.Reason ?? "Check Employee No and PIN."), "fail");
+                _pin = "";
+                return;
             }
+
             Auth.SignIn(res.Value.Token, res.Value.Session);
             Nav.NavigateTo("/home", replace: true);
         }
-        catch (Exception ex) { Set("× " + ex.Message, "fail"); _pin = ""; }
+        catch (Exception ex)
+        {
+            Set("Sign-in failed. " + ex.Message, "fail");
+            _pin = "";
+        }
+        finally
+        {
+            _submitting = false;
+        }
     }
 
-    private void Set(string s, string c) { _status = s; _cls = c; }
+    private void Set(string message, string cssClass)
+    {
+        _status = message;
+        _cls = cssClass;
+    }
 }
