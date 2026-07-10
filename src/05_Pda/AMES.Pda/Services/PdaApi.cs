@@ -54,26 +54,73 @@ public sealed class PdaApi
             resp = await _http.PostAsJsonAsync("/api/auth/login",
                 new LoginReq(employeeNo, pin, terminalId, lineId, shiftCode));
         }
-        catch (Exception ex) { return (Token: "", Session: null!, Reason: ex.Message); }
+        catch (Exception)
+        {
+            return (Token: "", Session: null!, Reason: "Authentication service is unavailable.");
+        }
 
         if (!resp.IsSuccessStatusCode)
-            return (Token: "", Session: null!, Reason: $"HTTP {(int)resp.StatusCode}");
+            return (Token: "", Session: null!, Reason: await LoginHttpErrorAsync(resp));
 
-        var login = await resp.Content.ReadFromJsonAsync<LoginRes>();
+        LoginRes? login;
+        try
+        {
+            login = await resp.Content.ReadFromJsonAsync<LoginRes>();
+        }
+        catch
+        {
+            return (Token: "", Session: null!, Reason: "Authentication service returned an invalid response.");
+        }
+
         if (login is null || string.IsNullOrEmpty(login.Token))
-            return (Token: "", Session: null!, Reason: login?.Reason ?? "no token");
+            return (Token: "", Session: null!, Reason: NormalizeLoginReason(login?.Reason));
 
         _http.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", login.Token);
 
         var meResp = await _http.GetAsync("/api/auth/me");
         if (!meResp.IsSuccessStatusCode)
-            return (Token: "", Session: null!, Reason: $"/me HTTP {(int)meResp.StatusCode}");
+            return (Token: "", Session: null!, Reason: "Session could not be loaded after sign-in.");
 
         var session = await meResp.Content.ReadFromJsonAsync<PopSessionDto>();
         return session is null
-            ? (Token: "", Session: null!, Reason: "/me empty body")
+            ? (Token: "", Session: null!, Reason: "Session response was empty.")
             : (login.Token, session, null);
+    }
+
+    private static async Task<string> LoginHttpErrorAsync(HttpResponseMessage resp)
+    {
+        if ((int)resp.StatusCode >= 500)
+            return "Authentication service failed. Check API database connection.";
+
+        var body = "";
+        try { body = await resp.Content.ReadAsStringAsync(); }
+        catch { /* ignore body read failures */ }
+
+        return string.IsNullOrWhiteSpace(body)
+            ? $"Authentication request failed ({(int)resp.StatusCode})."
+            : NormalizeLoginReason(body);
+    }
+
+    private static string NormalizeLoginReason(string? reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+            return "Check Employee No and PIN.";
+
+        var text = reason.Trim();
+        if (text.Contains("SqlException", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("network-related", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("SQL Server", StringComparison.OrdinalIgnoreCase))
+            return "Authentication database is unavailable.";
+
+        if (text.Equals("bad pin", StringComparison.OrdinalIgnoreCase)
+            || text.Equals("unknown employee", StringComparison.OrdinalIgnoreCase))
+            return "Check Employee No and PIN.";
+
+        if (text.Length > 160)
+            text = text[..160] + "...";
+
+        return text;
     }
 
     public async Task LogoutAsync()

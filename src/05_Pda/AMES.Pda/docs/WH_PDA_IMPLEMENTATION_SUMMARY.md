@@ -8,6 +8,7 @@
 
 주요 구현 파일:
 
+- `Components/Pages/Login.razor`
 - `Components/Pages/Wh/Wh01InboundSchedule.razor`
 - `Components/Pages/Wh/Wh02PdaInbound.razor`
 - `Components/Pages/Wh/Wh03InventoryStatus.razor`
@@ -16,6 +17,7 @@
 - `Components/Pages/Wh/WhHome.razor`
 - `Services/PdaApi.cs`
 - `wwwroot/css/pda.css`
+- `..\..\04_Api\AMES.Api\Endpoints\AuthEndpoints.cs`
 - `docs/sql/WH002_ADJUST_QTY.sql`
 
 테스트 DB 기준:
@@ -24,6 +26,54 @@
 - Schema: `SIS_TEST`
 - 주요 기준 코드: WH Location 쪽은 `CORCD = 5010`, `BIZCD = 5011`
 - WH001 PO 조회 쪽은 기존 `WM40120` 기준에 맞춰 `CORCD = 1000`, `BIZCD = 5011`로 호출
+
+## 공통 Login / PIN Auth
+
+### 화면 목적
+
+PDA 로그인은 작업자가 Employee No와 4자리 PIN을 입력해 PDA 세션을 생성하는 공통 진입 화면이다.
+
+### 현재 구현된 기능
+
+- 기본 Employee No는 개발 테스트용 `E001`이다.
+- PIN은 4자리 숫자만 유효하다.
+- 4번째 PIN 입력 시 자동으로 로그인 요청을 보낸다.
+- 로그인 요청 중에는 Employee No 입력과 키패드를 비활성화해 중복 submit을 막는다.
+- `OK` 버튼을 눌러도 현재 PIN 값으로 같은 검증을 수행한다.
+- 실패 시 PIN을 초기화하고 영어 메시지를 표시한다.
+
+### 사용하는 API, DB, Table
+
+PDA 코드 호출:
+
+- `PdaApi.LoginAsync(employeeNo, pin, terminalId, lineId, shiftCode)`
+
+API 코드:
+
+- `AMES.Api.Endpoints.AuthEndpoints.MapAuth()`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+
+DB/Table:
+
+- `dbo.AspNetUsers`: 사용자 계정 및 PIN hash
+- `dbo.SYS_UserProfile`: Employee No, 이름, 라인 권한, 계정 상태, 실패 횟수
+- `dbo.PR_PopSession`: 로그인 성공 시 세션 생성
+- `dbo.PR_PopAuthLog`: 로그인 성공/실패 감사 로그
+
+### 이번 변경점
+
+- 기존에는 PIN 4자리 자동 submit을 fire-and-forget 방식으로 실행해, 빠른 입력이나 `OK` 중복 클릭 시 PIN 길이 검증과 실제 입력 상태가 엇갈릴 수 있었다.
+- 현재는 4자리 PIN 값을 snapshot으로 잡은 뒤 `await` 처리하고, submit 중 키패드를 잠가 중복 호출을 막는다.
+- API가 DB 연결 오류 등으로 예외를 던져도 `HTTP 500` stack trace가 PDA에 그대로 보이지 않도록 API와 PDA client 양쪽에서 메시지를 정리했다.
+- `PdaApi.LoginAsync()`는 `HTTP 500`, invalid JSON, `/me` 실패를 사용자용 메시지로 변환한다.
+- API `AuthEndpoints`는 login 내부 예외를 잡아 `Authentication service unavailable` 사유를 반환한다.
+
+### 참고 및 주의
+
+- 현재 로컬 개발 DB는 `.\SQLEXPRESS`의 `AMES_DEV` 기준으로 확인했다.
+- 개발 테스트용으로 `E001 / 1234` 계정 profile을 로컬 DB에 추가했다.
+- 운영 반영 시에는 실제 계정 생성/권한 정책과 PIN hash 배포 방식을 별도로 정해야 한다.
 
 ## 전체 창고 플로우 요약
 
