@@ -991,7 +991,7 @@
   <data name="PP.Forecast.Fld.Period"><value>Period</value></data>
   <data name="PP.Forecast.Fld.PartNoPh"><value>Item code or name...</value></data>
   <data name="PP.Forecast.Upload.Title"><value>Weekly Purchase Plan Upload (SRM)</value></data>
-  <data name="PP.Forecast.Upload.Hint"><value>ZMM30004 .xls file · max 10 MB</value></data>
+  <data name="PP.Forecast.Upload.Hint"><value>ZMM30004 .xls/.xlsx file · max 10 MB</value></data>
   <data name="PP.Forecast.Err.NoCustomer"><value>Select a customer first.</value></data>
   <data name="PP.Forecast.Err.Parse"><value>Unrecognized file format. Check that it is a ZMM30004 weekly purchase plan file.</value></data>
   <data name="PP.Forecast.Err.TooLarge"><value>File is too large (max 10 MB).</value></data>
@@ -1154,8 +1154,8 @@
   <data name="PP.SupplyPlanImport.Btn.Upload"><value>PO Upload</value></data>
   <data name="PP.SupplyPlanImport.Btn.Export"><value>Export</value></data>
   <data name="PP.SupplyPlanImport.Upload.Title"><value>SAP PO Import</value></data>
-  <data name="PP.SupplyPlanImport.Upload.File"><value>PO List File (.xls)</value></data>
-  <data name="PP.SupplyPlanImport.Upload.Hint"><value>SRM MM31006 Purchase Order list export (.xls, HTML table).</value></data>
+  <data name="PP.SupplyPlanImport.Upload.File"><value>PO List File (.xls/.xlsx)</value></data>
+  <data name="PP.SupplyPlanImport.Upload.Hint"><value>SRM MM31006 Purchase Order list export (.xls/.xlsx).</value></data>
   <data name="PP.SupplyPlanImport.Upload.ParseResult"><value>Parse Result</value></data>
   <data name="PP.SupplyPlanImport.Upload.NoFile"><value>No file selected.</value></data>
   <data name="PP.SupplyPlanImport.Btn.RunUpload"><value>Run Import</value></data>
