@@ -2,7 +2,7 @@
 
 작성일: 2026-07-07
 
-최근 업데이트: 2026-07-09
+최근 업데이트: 2026-07-10
 
 대상 프로젝트: `C:\Users\Young\Desktop\Seoyon\Jackson\ames-docs\src\05_Pda\AMES.Pda`
 
@@ -11,6 +11,8 @@
 - `Components/Pages/Wh/Wh01InboundSchedule.razor`
 - `Components/Pages/Wh/Wh02PdaInbound.razor`
 - `Components/Pages/Wh/Wh03InventoryStatus.razor`
+- `Components/Pages/Wh/Wh04LocationMap.razor`
+- `Components/Pages/Wh/WhHome.razor`
 - `Services/PdaApi.cs`
 - `wwwroot/css/pda.css`
 - `docs/sql/WH002_ADJUST_QTY.sql`
@@ -24,16 +26,40 @@
 
 ## 전체 창고 플로우 요약
 
-현재 WH001, WH002, WH003은 아래 흐름으로 연결된다.
+현재 Warehouse PDA는 WH001, WH002, WH003, WH004가 아래 흐름으로 연결된다.
 
 1. SCM/SIS PO 데이터가 생성된다.
 2. WH001에서 PO 입고 예정 및 입고 진행 상태를 조회한다.
 3. WH002에서 작업자가 LOT No와 Location No를 스캔하고 입고 처리한다.
 4. 입고 처리 결과가 `WMS2010`, `WMS2020`, `AMM2010`에 반영된다.
 5. 이미 입고된 LOT을 WH002에서 다시 스캔하면 입고 취소, 위치 변경, 수량 조정을 처리할 수 있다.
-6. WH003에서 현재 재고 기준 테이블인 `WMS2000`을 기준으로 자재별 재고 상태와 위치별 재고를 조회한다.
+6. WH003에서 현재 재고 기준 테이블인 `WMS2000`을 기준으로 자재별 재고 상태를 조회한다.
+7. 특정 창고 위치 기준으로 재고를 찾고 싶을 때는 WH004 `Location Search`에서 Area/Level/Column/Row 조건으로 위치와 해당 위치의 품목을 조회한다.
 
 테스트 구현에서는 기존 Oracle SIS/PDA 구조를 SQL Server `SIS_TEST` 스키마에 필요한 범위만 복사/재현해서 연결했다.
+
+## Warehouse Menu
+
+### 화면 목적
+
+Warehouse 대메뉴는 PDA 창고 업무의 진입점이다. 기존에는 기능명이 단순 버튼처럼 나열되어 있었고, 화면 코드(`WH001`, `WH002`) 중심으로 보일 수 있어 실제 작업자가 업무를 고르기 애매했다.
+
+현재는 메뉴명을 작업 기준으로 정리하고 카드형 UI로 바꿨다.
+
+- `Schedule`: WH001 입고 예정/PO 진행 현황
+- `Scan`: WH002 LOT/Location 스캔, 입고, 위치 변경, 수량 조정
+- `Inventory`: WH003 자재별 현재 재고와 Min/Max 상태
+- `Location Search`: WH004 위치 조건별 재고 검색
+- `Release Schedule`: 출고 예정
+- `Release`: 출고 처리
+- `Transactions`: 입출고/재고 변경 이력
+
+### 구현 변경점
+
+- `Location Map`은 삭제하지 않고 기능은 유지하되, 메뉴명과 화면 타이틀을 `Location Search`로 변경했다.
+- WH001/WH002/WH003 같은 코드명은 대메뉴 카드에 직접 노출하지 않고, 사용자가 이해하기 쉬운 업무명으로 표시했다.
+- Radzen icon을 붙인 흰색 카드형 UI로 변경해 PDA 앱 화면처럼 보이도록 했다.
+- 각 카드에는 짧은 설명을 추가해 신규 개발자나 작업자가 화면 역할을 빠르게 이해할 수 있게 했다.
 
 ## WH001 Inbound Schedule
 
@@ -392,8 +418,12 @@ SQL Server `SIS_TEST`에 아래 테이블 및 프로시저를 준비했다.
 - Material search
 - Stock Date From
 - Stock Date To
+- Clear
+- Apply
 - Refresh
 - Last Updated
+
+WH003은 현재 날짜 필터 중심으로만 동작한다. 위치 조건으로 재고를 찾는 기능은 WH004 `Location Search`로 분리했다.
 
 상태 요약 카드:
 
@@ -429,6 +459,8 @@ Location detail:
 - Zone
 - Area
 - Rack
+
+이 Location detail은 자재 카드에서 해당 자재가 어느 위치들에 나뉘어 있는지 확인하는 보조 상세다. 위치를 먼저 고르고 그 위치의 품목을 찾는 화면은 WH004에서 처리한다.
 
 ### 사용하는 프로시저와 테이블
 
@@ -523,9 +555,93 @@ SQL Server `SIS_TEST`에 아래 항목을 준비했다.
 - 처음에는 `ACD0020` 기준 자재까지 포함해 재고 0인 품목도 표시할 수 있었지만, 실제 Current Stock 화면 성격에 맞지 않아 `WMS2000` 현재 재고가 있는 품목만 표시하도록 변경했다.
 - `Last Received`, `Lots`는 카드에서 제거했다.
 - 같은 자재가 여러 Location에 있을 경우 하나의 자재 카드에 합산 재고를 표시하고, `Locations`를 눌러 위치별 상세를 보도록 바꿨다.
+- 처음에는 WH003 안에 Date/Location 탭을 같이 두는 안도 검토했지만, Inventory와 Location Search의 역할이 겹쳐서 WH003에서는 Location 필터를 제거했다.
+- WH003의 날짜 입력 영역은 버튼과 입력칸이 너무 붙어 보이지 않도록 `CLEAR`, `APPLY` 간격과 버튼 높이를 조정했다.
 - 기존 SIS 그리드 방식 대신 PDA 카드 + 모달 방식으로 변경했다.
 - 날짜 필터는 `<input type="date">`를 쓰면 WebView/OS locale 때문에 한국어 날짜 UI가 뜨는 문제가 있어, `YYYY-MM-DD` 텍스트 입력으로 바꿨다.
 - 모든 화면 문구는 영어 기준으로 정리했다.
+
+## WH004 Location Search
+
+### 화면 목적
+
+`LOCATION SEARCH`는 위치 조건을 기준으로 현재 재고가 있는 Location과 해당 Location의 품목을 조회하는 화면이다.
+
+처음에는 `Location Map`이라는 이름으로 만들었지만, PDA 화면에서 실제 그리드 맵을 표현하기에는 X/Y/Level 조합이 너무 많고 화면이 복잡해졌다. 그래서 기능은 유지하되 사용 목적에 맞게 `Location Search`로 이름을 변경했다.
+
+### 현재 보여주는 정보
+
+상단 기능:
+
+- Last Updated
+- Refresh
+
+검색 조건:
+
+- Area
+- Level
+- Column
+- Row
+
+검색 결과 Location 카드:
+
+- Area / Location No
+- Zone text
+- Qty
+
+Location 카드를 누르면 해당 위치의 현재 재고 품목을 표시한다.
+
+Location item detail:
+
+- Item
+- Item name
+- Lot
+- Work date/time
+- Qty + Unit
+
+### 사용하는 API, 테이블
+
+PDA 코드 호출:
+
+- `PdaApi.WhLocationMapAsync()`
+- `PdaApi.WhLocationMapItemsAsync(locationId)`
+
+`WhLocationMapAsync()` 주요 기준:
+
+- `SIS_TEST.WMS1040`: Location master, Location No, Area, Zone, Rack X/Y/Z
+- `SIS_TEST.WMS1010`: Warehouse name
+- `SIS_TEST.WMS1020`: Area name
+- `SIS_TEST.WMS1030`: Zone name
+- `SIS_TEST.WMS2000`: Location별 현재 stock line count, total qty
+
+`WhLocationMapItemsAsync(locationId)` 주요 기준:
+
+- `SIS_TEST.WMS2000`: Location별 LOT/품번/수량
+- `SIS_TEST.ACD0020`: Unit
+- `SIS_TEST.ACD0020L`: Part name
+
+현재 WH004는 별도 저장 프로시저를 만들지 않고 `PdaApi.cs`에서 SQL Server `SIS_TEST` 테이블을 직접 조회한다. 운영 반영 시에는 SIS 표준에 맞춰 프로시저로 분리하는 것을 권장한다.
+
+### 기존 프로그램에서 참고한 점
+
+SIS:
+
+- Location master 구조: `WMS1040`
+- Warehouse/Area/Zone 이름 구조: `WMS1010`, `WMS1020`, `WMS1030`
+- 위치별 현재 재고 조회 개념: `WM30140`, `WM30260`, `WM30265`
+
+MAUIPDA:
+
+- `WMS1340 Location Information`
+- Location No를 기준으로 위치와 해당 위치의 품목 상태를 확인하는 흐름
+
+### 기존과 달라진 점
+
+- 기획 문서의 Location Map처럼 전체 위치를 격자형으로 그리는 방식은 PDA 화면에 과밀해서 제외했다.
+- Area/Level, Column/Row를 각각 한 줄의 드롭다운으로 배치해 작은 화면에서도 조건을 선택하기 쉽게 했다.
+- 드롭다운 글씨가 잘리지 않도록 선택 라벨은 여러 줄 표시가 가능하게 스타일을 조정했다.
+- `On Hand`, `Occupied`, `Selected Position`, `Inventory` 같은 혼동될 수 있는 보조 문구는 제거하고, Location과 Qty 중심으로 단순화했다.
+- Location 카드 선택 시 그 위치에 어떤 품목과 LOT가 있는지 바로 확인할 수 있게 했다.
 
 ## 작업 중 주요 질문과 답변 요약
 
@@ -589,11 +705,22 @@ SQL Server `SIS_TEST`에 아래 항목을 준비했다.
 
 답변: 실제 현재 수량은 `SIS_TEST.WMS2020.QTY`와 `SIS_TEST.WMS2000.QTY`에 반영된다. 누가, 언제, 왜, 몇 개를 조정했는지에 대한 감사 이력은 `SIS_TEST.PDA_WH002_ADJUST_AUDIT`에 남긴다. 이 테이블에는 조정 전 수량, 조정 수량, 조정 후 수량, Reason Code, Note, 작업자, Supervisor PIN 마스킹 값이 저장된다.
 
+### Location Map과 Inventory 관계
+
+질문: WH003 Inventory와 WH004 Location Map은 기능을 합칠 수 있지 않은가?
+
+답변: 일부 기능은 겹친다. WH003은 자재를 먼저 보고 해당 자재가 어느 위치에 있는지 확인하는 흐름이고, WH004는 위치를 먼저 고르고 그 위치에 어떤 자재/LOT가 있는지 확인하는 흐름이다. 따라서 WH003 안에 위치 탭을 넣는 대신 WH004를 `Location Search`로 유지해 두 역할을 분리했다.
+
+질문: Location Map을 격자형으로 보여주면 PDA에서 괜찮은가?
+
+답변: 실제 Location master에는 Area, Column, Row, Level 조합이 많아 PDA 화면에서 격자 전체를 표현하면 너무 복잡해진다. 그래서 격자형 맵은 제외하고 Area/Level/Column/Row 드롭다운으로 조건을 좁힌 뒤 Location 카드와 해당 Location의 품목을 보여주는 방식으로 바꿨다.
+
 ## 현재 구현 시 주의할 점
 
 - `SIS_TEST`는 테스트용 스키마다. 운영 반영 시에는 실제 SIS/MES DB 스키마와 권한, 프로시저 배포 방식이 별도로 필요하다.
 - WH002의 입고/취소 로직은 테스트 구현이므로 실제 운영에서는 기존 Oracle 패키지의 예외 처리, 트랜잭션, 인터페이스 테이블 반영 범위를 더 확인해야 한다.
 - WH003의 `WMS2000`은 테스트 DB에 맞춰 생성/시드했다. 운영 DB에 실제 `WMS2000`이 있다면 해당 구조에 맞춰 프로시저를 다시 정렬해야 한다.
+- WH004 `Location Search`는 현재 `PdaApi.cs`에서 직접 SQL로 조회한다. 운영 반영 시에는 `PDA_WH04_LOCATION_SEARCH`, `PDA_WH04_LOCATION_ITEMS` 같은 프로시저로 분리하는 편이 유지보수에 좋다.
 - WH001의 PO 조회는 `WM40120` 기준으로 만들었고, SCM에서 PO가 신규 생성되는 원천 화면/배치까지 완전히 대체한 것은 아니다.
 - `GRN_QTY`는 PO schedule에 저장되는 값이라기보다 GRN 실적을 합산해 계산하는 값이다. 운영에서는 GRN cancellation, return, reversal까지 반영해야 한다.
 - WH002 수량 조정의 Supervisor PIN은 현재 테스트 구현에서 최소 길이 검증과 마스킹 저장만 한다. 운영에서는 실제 승인자 계정/권한 검증과 감사 로그 보관 정책을 추가해야 한다.
