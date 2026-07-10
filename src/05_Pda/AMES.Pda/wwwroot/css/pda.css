@@ -3970,6 +3970,92 @@ body:has(.wh04-shell),
     align-items: end;
 }
 
+.wh04-scan-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(92px, auto);
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 14px;
+}
+
+.wh04-scan-field {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.wh04-scan-field label {
+    color: #64748b;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+
+.pda-shell.wh.wh04-shell .wh04-scan-input.rz-textbox {
+    width: 100% !important;
+    min-height: 58px !important;
+    border: 1px solid #d7dee9 !important;
+    border-radius: 8px !important;
+    background: #ffffff !important;
+    color: #071225 !important;
+    font-size: 16px !important;
+    font-weight: 800 !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.wh04-shell .wh04-scan-input.rz-textbox::placeholder {
+    color: #94a3b8 !important;
+    font-weight: 700 !important;
+}
+
+.pda-shell.wh.wh04-shell .wh04-scan-btn.rz-button {
+    min-width: 92px !important;
+    min-height: 58px !important;
+    border: 1px solid #bfdbfe !important;
+    border-radius: 8px !important;
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+    font-size: 13px !important;
+    font-weight: 900 !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.wh04-shell .wh04-scan-btn.rz-state-disabled,
+.pda-shell.wh.wh04-shell .wh04-scan-btn.rz-button:disabled {
+    border-color: #e2e8f0 !important;
+    background: #f8fafc !important;
+    color: #94a3b8 !important;
+}
+
+.wh04-scan-status {
+    margin: -2px 0 14px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.wh04-scan-status.dim {
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #64748b;
+}
+
+.wh04-scan-status.ok {
+    border: 1px solid #bbf7d0;
+    background: #f0fdf4;
+    color: #15803d;
+}
+
+.wh04-scan-status.fail {
+    border: 1px solid #fecaca;
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
 .wh04-filter-row + .wh04-filter-row {
     margin-top: 12px;
 }

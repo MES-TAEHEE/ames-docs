@@ -22,11 +22,33 @@
         }
         else if (_locations.Count == 0)
         {
-            <div class="pda-empty">No locations found.</div>
+            <div class="pda-empty">
+                <strong>No locations found.</strong>
+                @if (!string.IsNullOrWhiteSpace(_loadMessage))
+                {
+                    <span>@_loadMessage</span>
+                }
+            </div>
         }
         else
         {
             <RadzenCard class="wh04-filter-card">
+                <div class="wh04-scan-panel">
+                    <div class="wh04-scan-field">
+                        <label>LOCATION NO SCAN</label>
+                        <RadzenTextBox class="wh04-scan-input"
+                                       Value="@_locationScan"
+                                       @oninput="OnLocationScanInput"
+                                       @onkeydown="OnLocationScanKey"
+                                       Placeholder="Scan or enter location no" />
+                    </div>
+                    <RadzenButton class="wh04-scan-btn" Click="@ScanLocationAsync" Disabled="@DisableLocationScan" Text="SCAN" />
+                </div>
+                @if (!string.IsNullOrWhiteSpace(_scanMessage))
+                {
+                    <div class="@($"wh04-scan-status {_scanMessageClass}")">@_scanMessage</div>
+                }
+
                 <div class="wh04-filter-row">
                     <div class="wh04-dd-field">
                         <label>AREA</label>
@@ -156,8 +178,13 @@
     private string? _selectedColumnKey;
     private string? _selectedRowKey;
     private string? _selectedLevelKey;
+    private string _locationScan = "";
+    private string? _loadMessage;
+    private string? _scanMessage;
+    private string _scanMessageClass = "dim";
     private bool _loading = true;
     private bool _loadingItems;
+    private bool _scanningLocation;
     private DateTime? _lastUpdated;
 
     protected override async Task OnInitializedAsync()
@@ -196,15 +223,30 @@
     private IReadOnlyList<Option> LevelOptions => BuildOptions(RowRows, LevelKey, r => Text(r.Z));
 
     private string LastUpdatedText => _lastUpdated?.ToString("HH:mm:ss") ?? "-";
+    private bool DisableLocationScan => _scanningLocation || string.IsNullOrWhiteSpace(_locationScan);
 
     private async Task LoadAsync()
     {
         _loading = true;
-        _locations = await Api.WhLocationMapAsync();
-        _lastUpdated = DateTime.Now;
-        _loading = false;
+        _loadMessage = null;
+        _scanMessage = null;
+        ClearSelectedLocation();
 
-        await SelectInitialAsync();
+        try
+        {
+            _locations = await Api.WhLocationMapAsync();
+            _lastUpdated = DateTime.Now;
+            await SelectInitialAsync();
+        }
+        catch (Exception ex)
+        {
+            _locations = new();
+            _loadMessage = $"Location data could not be loaded. {ShortError(ex.Message)}";
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
 
     private async Task SelectInitialAsync()
@@ -213,8 +255,79 @@
         _selectedColumnKey = ColumnOptions.FirstOrDefault()?.Key;
         _selectedRowKey = RowOptions.FirstOrDefault()?.Key;
         _selectedLevelKey = LevelOptions.FirstOrDefault()?.Key;
+        _scanMessage = null;
         ClearSelectedLocation();
         await Task.CompletedTask;
+    }
+
+    private async Task OnLocationScanInput(ChangeEventArgs e)
+    {
+        _locationScan = e.Value?.ToString() ?? "";
+
+        var locationNo = _locationScan.Trim();
+        if (string.Equals(_selectedLocation?.LocationId, locationNo, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        _scanMessage = null;
+        ClearSelectedLocation();
+
+        if (string.IsNullOrWhiteSpace(locationNo))
+            return;
+
+        var location = FindLocation(locationNo);
+        if (location is not null)
+        {
+            await SelectScannedLocationAsync(location);
+            _locationScan = location.LocationId;
+            _scanMessage = $"Location {location.LocationId} loaded.";
+            _scanMessageClass = "ok";
+        }
+    }
+
+    private async Task OnLocationScanKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await ScanLocationAsync();
+    }
+
+    private async Task ScanLocationAsync()
+    {
+        var locationNo = _locationScan.Trim();
+        if (string.IsNullOrWhiteSpace(locationNo) || _scanningLocation)
+            return;
+
+        _scanningLocation = true;
+        _scanMessage = "Scanning location...";
+        _scanMessageClass = "dim";
+
+        try
+        {
+            var location = FindLocation(locationNo) ?? await Api.WhScanLocationAsync(locationNo);
+            if (location is null)
+            {
+                _scanMessage = "Location not found.";
+                _scanMessageClass = "fail";
+                ClearSelectedLocation();
+                return;
+            }
+
+            EnsureLocationInMap(location);
+            await SelectScannedLocationAsync(location);
+
+            _locationScan = location.LocationId;
+            _scanMessage = $"Location {location.LocationId} loaded.";
+            _scanMessageClass = "ok";
+        }
+        catch (Exception ex)
+        {
+            _scanMessage = ex.Message;
+            _scanMessageClass = "fail";
+            ClearSelectedLocation();
+        }
+        finally
+        {
+            _scanningLocation = false;
+        }
     }
 
     private async Task OnAreaChanged(object? value)
@@ -294,6 +407,33 @@
         _loadingItems = false;
     }
 
+    private async Task SelectScannedLocationAsync(PdaApi.LocationRow location)
+    {
+        _selectedAreaKey = AreaKey(location);
+        _selectedColumnKey = ColumnKey(location);
+        _selectedRowKey = RowKey(location);
+        _selectedLevelKey = LevelKey(location);
+
+        var matchingLocation = MatchingLocations.FirstOrDefault(r =>
+            string.Equals(r.LocationId, location.LocationId, StringComparison.OrdinalIgnoreCase)) ?? location;
+
+        await SelectLocationAsync(matchingLocation);
+    }
+
+    private PdaApi.LocationRow? FindLocation(string locationNo)
+    {
+        return _locations.FirstOrDefault(r =>
+            string.Equals(r.LocationId, locationNo, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void EnsureLocationInMap(PdaApi.LocationRow location)
+    {
+        if (FindLocation(location.LocationId) is not null)
+            return;
+
+        _locations.Add(location);
+    }
+
     private static IReadOnlyList<Option> BuildOptions(
         IEnumerable<PdaApi.LocationRow> source,
         Func<PdaApi.LocationRow, string> keySelector,
@@ -364,6 +504,15 @@
         if (string.IsNullOrWhiteSpace(value) || value == EmptyKey)
             return "-";
         return value.Trim();
+    }
+
+    private static string ShortError(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "";
+
+        var text = value.Trim();
+        return text.Length <= 120 ? text : text[..120] + "...";
     }
 
     private static string QtyUnit(decimal qty, string? unit)

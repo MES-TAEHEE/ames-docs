@@ -627,6 +627,8 @@ SQL Server `SIS_TEST`에 아래 항목을 준비했다.
 
 - Last Updated
 - Refresh
+- Location No Scan
+- Scan button
 
 검색 조건:
 
@@ -651,6 +653,14 @@ Location item detail:
 - Work date/time
 - Qty + Unit
 
+Location No Scan 동작:
+
+- Location No를 입력하거나 스캔하면 현재 로드된 Location 목록에서 먼저 자동 검색한다.
+- 입력값이 Location No와 일치하면 해당 Location을 선택하고, Area/Level/Column/Row 필터도 자동으로 해당 위치 기준으로 변경한다.
+- `Enter` 또는 `SCAN` 버튼을 눌러도 같은 검색을 수행한다.
+- 현재 목록에 없으면 `PdaApi.WhScanLocationAsync(locationId)`로 DB/API 기준 Location을 다시 조회한다.
+- Location 조회 성공 시 해당 Location 카드가 선택되고, 하단에 해당 위치의 item/LOT 목록을 로드한다.
+
 ### 사용하는 API, 테이블
 
 PDA 코드 호출:
@@ -665,6 +675,8 @@ PDA 코드 호출:
 - `SIS_TEST.WMS1020`: Area name
 - `SIS_TEST.WMS1030`: Zone name
 - `SIS_TEST.WMS2000`: Location별 현재 stock line count, total qty
+- fallback: 직접 DB 조회 실패 시 `/api/wh/locations`를 호출한다.
+- fallback Location에 Area/X/Y/Z가 없으면 `PdaApi`에서 Location No/Zone 기준으로 PDA 필터용 값을 보정한다.
 
 `WhLocationMapItemsAsync(locationId)` 주요 기준:
 
@@ -673,6 +685,12 @@ PDA 코드 호출:
 - `SIS_TEST.ACD0020L`: Part name
 
 현재 WH004는 별도 저장 프로시저를 만들지 않고 `PdaApi.cs`에서 SQL Server `SIS_TEST` 테이블을 직접 조회한다. 운영 반영 시에는 SIS 표준에 맞춰 프로시저로 분리하는 것을 권장한다.
+
+로딩/예외 처리:
+
+- Location 조회 중 예외가 발생해도 화면이 `Loading location map` 상태에 갇히지 않도록 `try/catch/finally`로 `_loading`을 반드시 해제한다.
+- 조회 실패 시 `No locations found`와 함께 간단한 실패 메시지를 표시한다.
+- API fallback까지 실패하면 빈 Location 리스트를 반환해 화면이 깨지지 않도록 했다.
 
 ### 기존 프로그램에서 참고한 점
 
@@ -694,6 +712,8 @@ MAUIPDA:
 - 드롭다운 글씨가 잘리지 않도록 선택 라벨은 여러 줄 표시가 가능하게 스타일을 조정했다.
 - `On Hand`, `Occupied`, `Selected Position`, `Inventory` 같은 혼동될 수 있는 보조 문구는 제거하고, Location과 Qty 중심으로 단순화했다.
 - Location 카드 선택 시 그 위치에 어떤 품목과 LOT가 있는지 바로 확인할 수 있게 했다.
+- Location No 스캔 입력을 추가해 드롭다운을 직접 고르지 않아도 위치를 바로 찾을 수 있게 했다.
+- 스캔된 Location이 있으면 Area/Level/Column/Row 드롭다운이 자동으로 맞춰지도록 변경했다.
 
 ## WH008 Transactions
 
@@ -909,6 +929,7 @@ SIS/DB:
 - WH002의 입고/취소 로직은 테스트 구현이므로 실제 운영에서는 기존 Oracle 패키지의 예외 처리, 트랜잭션, 인터페이스 테이블 반영 범위를 더 확인해야 한다.
 - WH003의 `WMS2000`은 테스트 DB에 맞춰 생성/시드했다. 운영 DB에 실제 `WMS2000`이 있다면 해당 구조에 맞춰 프로시저를 다시 정렬해야 한다.
 - WH004 `Location Search`는 현재 `PdaApi.cs`에서 직접 SQL로 조회한다. 운영 반영 시에는 `PDA_WH04_LOCATION_SEARCH`, `PDA_WH04_LOCATION_ITEMS` 같은 프로시저로 분리하는 편이 유지보수에 좋다.
+- WH004는 SIS_TEST 직접 조회가 실패하면 API `/api/wh/locations`로 fallback한다. fallback 테이블인 `dbo.MD_Location`은 로컬 개발 DB 기준이므로 실제 운영 Location master와 혼동하지 않아야 한다.
 - WH001의 PO 조회는 `WM40120` 기준으로 만들었고, SCM에서 PO가 신규 생성되는 원천 화면/배치까지 완전히 대체한 것은 아니다.
 - `GRN_QTY`는 PO schedule에 저장되는 값이라기보다 GRN 실적을 합산해 계산하는 값이다. 운영에서는 GRN cancellation, return, reversal까지 반영해야 한다.
 - WH002 수량 조정의 Supervisor PIN은 현재 테스트 구현에서 최소 길이 검증과 마스킹 저장만 한다. 운영에서는 실제 승인자 계정/권한 검증과 감사 로그 보관 정책을 추가해야 한다.

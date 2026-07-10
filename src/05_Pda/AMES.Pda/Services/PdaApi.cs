@@ -228,22 +228,36 @@ public sealed class PdaApi
     {
         try
         {
-            return await QueryWhLocationsDbAsync();
+            return NormalizeLocationRows(await QueryWhLocationsDbAsync());
         }
         catch
         {
-            return await Get<List<LocationRow>>("/api/wh/locations");
+            try
+            {
+                return NormalizeLocationRows(await Get<List<LocationRow>>("/api/wh/locations"));
+            }
+            catch
+            {
+                return new List<LocationRow>();
+            }
         }
     }
     public async Task<List<LocationRow>> WhLocationMapAsync()
     {
         try
         {
-            return await QueryWhLocationMapDbAsync();
+            return NormalizeLocationRows(await QueryWhLocationMapDbAsync());
         }
         catch
         {
-            return await WhLocationsAsync();
+            try
+            {
+                return NormalizeLocationRows(await Get<List<LocationRow>>("/api/wh/locations"));
+            }
+            catch
+            {
+                return new List<LocationRow>();
+            }
         }
     }
     public async Task<List<LocationMapItemRow>> WhLocationMapItemsAsync(string locationId)
@@ -1129,6 +1143,57 @@ public sealed class PdaApi
             GetString(rdr, "AFTER_LOCATION"),
             GetString(rdr, "SOURCE"),
             GetString(rdr, "NOTE"));
+    }
+
+    private static List<LocationRow> NormalizeLocationRows(IEnumerable<LocationRow> rows)
+    {
+        return rows.Select(NormalizeLocationRow).ToList();
+    }
+
+    private static LocationRow NormalizeLocationRow(LocationRow row)
+    {
+        if (!string.IsNullOrWhiteSpace(row.AreaCode)
+            && (!string.IsNullOrWhiteSpace(row.X) || !string.IsNullOrWhiteSpace(row.Y) || !string.IsNullOrWhiteSpace(row.Z)))
+            return row;
+
+        var fallback = GuessLocationPosition(row);
+        return row with
+        {
+            AreaCode = FirstText(row.AreaCode, row.Zone, fallback.Area),
+            AreaName = FirstText(row.AreaName, row.ZoneName, row.LocationName),
+            X = FirstText(row.X, fallback.Column),
+            Y = FirstText(row.Y, fallback.Row),
+            Z = FirstText(row.Z, fallback.Level)
+        };
+    }
+
+    private static (string Area, string Column, string Row, string Level) GuessLocationPosition(LocationRow row)
+    {
+        var locationId = row.LocationId?.Trim() ?? "";
+        var compact = new string(locationId.Where(char.IsLetterOrDigit).ToArray());
+        var digits = new string(compact.Where(char.IsDigit).ToArray());
+
+        var area = !string.IsNullOrWhiteSpace(row.Zone) ? row.Zone.Trim()
+            : compact.Length >= 4 ? compact[..4]
+            : compact.Length > 0 ? compact
+            : "AREA";
+
+        var column = digits.Length >= 2 ? digits[..2] : "1";
+        var locationRow = digits.Length >= 4 ? digits.Substring(2, 2) : "1";
+        var level = digits.Length >= 6 ? digits.Substring(4, 2) : "1";
+
+        return (area, column, locationRow, level);
+    }
+
+    private static string? FirstText(params string?[] values)
+    {
+        foreach (var value in values)
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+                return value.Trim();
+        }
+
+        return null;
     }
 
     private static LocationRow ReadLocationRow(SqlDataReader rdr)
