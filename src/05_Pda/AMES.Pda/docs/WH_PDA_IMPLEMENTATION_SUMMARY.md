@@ -12,6 +12,7 @@
 - `Components/Pages/Wh/Wh02PdaInbound.razor`
 - `Components/Pages/Wh/Wh03InventoryStatus.razor`
 - `Components/Pages/Wh/Wh04LocationMap.razor`
+- `Components/Pages/Wh/Wh08TransactionHistory.razor`
 - `Components/Pages/Wh/WhHome.razor`
 - `Services/PdaApi.cs`
 - `wwwroot/css/pda.css`
@@ -35,6 +36,7 @@
 5. 이미 입고된 LOT을 WH002에서 다시 스캔하면 입고 취소, 위치 변경, 수량 조정을 처리할 수 있다.
 6. WH003에서 현재 재고 기준 테이블인 `WMS2000`을 기준으로 자재별 재고 상태를 조회한다.
 7. 특정 창고 위치 기준으로 재고를 찾고 싶을 때는 WH004 `Location Search`에서 Area/Level/Column/Row 조건으로 위치와 해당 위치의 품목을 조회한다.
+8. 입고, 출고, 수량 조정 이력은 WH008 `Transactions`에서 LOT, 품번, 작업자, 날짜 범위, 조정 사유 기준으로 조회한다.
 
 테스트 구현에서는 기존 Oracle SIS/PDA 구조를 SQL Server `SIS_TEST` 스키마에 필요한 범위만 복사/재현해서 연결했다.
 
@@ -643,6 +645,128 @@ MAUIPDA:
 - `On Hand`, `Occupied`, `Selected Position`, `Inventory` 같은 혼동될 수 있는 보조 문구는 제거하고, Location과 Qty 중심으로 단순화했다.
 - Location 카드 선택 시 그 위치에 어떤 품목과 LOT가 있는지 바로 확인할 수 있게 했다.
 
+## WH008 Transactions
+
+### 화면 목적
+
+`WH-008 TRANSACTIONS`는 창고 입고, 출고, 수량 조정 이력을 조회하는 화면이다.
+
+처음에는 WH002에서 이미 입고된 LOT을 스캔했을 때 접히는 Transaction Log를 보여주는 방식으로 검토했지만, WH002는 스캔/입고/위치 변경/수량 조정 작업 화면으로 유지하는 편이 더 명확했다. 그래서 이력 조회는 기존 Warehouse 메뉴의 `Transactions`인 WH008로 이동했다.
+
+### 현재 구현된 기능
+
+상단 요약:
+
+- `ALL`: 현재 조건에 맞는 전체 이력 건수
+- `IN`: 입고 성격의 이력 건수
+- `OUT`: 출고 성격의 이력 건수
+- `ADJ`: 수량 조정 이력 건수
+
+요약 버튼을 누르면 해당 타입으로 카드 리스트가 필터링된다.
+
+검색 조건:
+
+- LOT No
+- Item
+- Worker
+- Adj Reason
+- Date Range: `FROM`, `TO`를 `YYYY-MM-DD` 형식으로 직접 입력
+
+날짜 영역:
+
+- 기본 기간은 최근 7일이다.
+- `RESET`은 최근 7일 범위로 되돌린다.
+- `APPLY`는 입력한 From/To 기간으로 DB를 다시 조회한다.
+- OS/WebView locale 문제를 피하기 위해 WH003과 동일하게 `<input type="date">` 대신 `YYYY-MM-DD` 텍스트 입력을 사용한다.
+
+카드 표시:
+
+- `IN`, `OUT`, `ADJ`를 작은 배지만으로 구분하면 눈에 잘 들어오지 않아 카드 자체 색상과 왼쪽 컬러 라인을 다르게 표시한다.
+- `IN`: 연녹색 카드
+- `OUT`: 연노랑/주황 카드
+- `ADJ`: 연하늘색 카드
+- 기타 상태: 회색 카드
+
+기본 카드에는 아래 정보를 표시한다.
+
+- Date/Time
+- LOT No
+- Status badge
+- Part No
+- Location No
+
+`ADJ` 카드만 `DETAIL` 버튼을 제공한다. 기본 상태에서는 일반 카드처럼 보이고, `DETAIL`을 누르면 아래 정보를 펼쳐서 보여준다.
+
+- Before Qty
+- Change Qty
+- After Qty
+- Reason
+- Note
+- Supervisor
+
+현재 WH008의 `Supervisor` 표시는 PIN 값이 아니라 실제 작업자 기준으로 `USER_ID`를 사용한다. WH002 조정 모달에서는 Supervisor PIN을 입력받지만, WH008 조회 화면에서는 사용자에게 PIN/masked PIN을 보여주는 것보다 실제 조정 작업자를 보여주는 편이 이해하기 쉽기 때문이다.
+
+Excel export는 한때 CSV 저장 방식으로 검토했지만, PDA 환경에서 파일 저장 위치와 사용 흐름이 애매해서 제거했다.
+
+### 사용하는 API, 테이블
+
+PDA 코드 호출:
+
+- `PdaApi.WhInboundTransactionLogsAsync(lotNo, dateFrom, dateTo)`
+
+현재 테스트 DB 기준 조회 방식:
+
+- `SIS_TEST.WMS2030`이 존재하면 우선 사용한다.
+- 현재 테스트 DB에는 `WMS2030`이 없으므로 fallback으로 아래 테이블을 조합한다.
+
+fallback 참조 테이블:
+
+- `SIS_TEST.WMS2010`: 입고 이력 성격의 row. WH008에서는 `IN`으로 표시한다.
+- `SIS_TEST.WMS2020`: 현재 재고 row. `WMS2010` 입고 이력이 없는 LOT에 한해서 보조 이력처럼 표시한다. 입고 이력이 이미 있는 LOT은 중복 표시를 피하기 위해 제외한다.
+- `SIS_TEST.PDA_WH002_ADJUST_AUDIT`: WH002 `ADJUST QTY`에서 저장한 수량 조정 감사 이력. WH008에서는 `ADJ`로 표시한다.
+
+`PDA_WH002_ADJUST_AUDIT`에서 사용하는 주요 컬럼:
+
+- `LOTNO`
+- `PARTNO`
+- `LOCATION_NO`
+- `BEFORE_QTY`
+- `DELTA_QTY`
+- `AFTER_QTY`
+- `REASON_CODE`
+- `REASON_NOTE`
+- `USER_ID`
+- `WORK_DATE`
+- `WORK_TIME`
+- `INSERT_DATE`
+
+### 기존 프로그램에서 참고한 점
+
+MAUIPDA:
+
+- `Material > Inventory > Lotno Status`
+- 기존 서비스: `MaterialInventoryService`
+- 기존 패키지: `MES.PKG_PDA_WMS1310.GET_LOT_INFO`
+- 기존 이력 테이블: `MES.WMS2030`
+
+기존 Lotno Status 화면은 LOT 기준으로 `Date`, `Location`, `Qty`, `Status`를 보여준다. WH008은 이 개념을 PDA 신규 Warehouse 메뉴의 전체 Transaction History 화면으로 확장했다.
+
+SIS/DB:
+
+- 현재 재고 기준: `WMS2020`, `WMS2000`
+- 입고 이력 기준: `WMS2010`
+- 테스트 수량 조정 감사 이력: `PDA_WH002_ADJUST_AUDIT`
+
+### 기존과 달라진 점
+
+- WH002 Scan 화면 안에 Transaction Log를 넣지 않고 WH008로 분리했다.
+- 단순 `1D`, `7D`, `30D` 버튼 대신 From/To 날짜 범위를 직접 입력하도록 바꿨다.
+- 상태 배지만으로 구분하지 않고 카드 자체 색상을 `IN`, `OUT`, `ADJ`별로 다르게 표시했다.
+- `ADJ`는 기본 카드에서는 일반 이력처럼 보이고, `DETAIL` 버튼을 눌렀을 때만 조정 전/후 스냅샷과 사유 정보를 보여준다.
+- 수량 조정 상세 하단의 `COUNT_DIFF +1.000` 같은 중복 note 표시는 제거했다.
+- 일반 `IN/OUT` 카드의 `Qty / Worker` 보조 박스도 제거해 카드 정보를 단순화했다.
+- Excel export는 PDA 사용성상 제거했다.
+
 ## 작업 중 주요 질문과 답변 요약
 
 ### PO와 SCM 시작점
@@ -715,6 +839,20 @@ MAUIPDA:
 
 답변: 실제 Location master에는 Area, Column, Row, Level 조합이 많아 PDA 화면에서 격자 전체를 표현하면 너무 복잡해진다. 그래서 격자형 맵은 제외하고 Area/Level/Column/Row 드롭다운으로 조건을 좁힌 뒤 Location 카드와 해당 Location의 품목을 보여주는 방식으로 바꿨다.
 
+### WH008 Transaction History 이동
+
+질문: WH002에서 이미 입고된 LOT을 스캔했을 때 Transaction Log를 같이 보여주는 게 맞는가?
+
+답변: 처음에는 WH002 안에 접히는 Transaction Log를 넣었지만, WH002는 작업 화면이고 이력 조회는 별도 화면이 더 적합하다. 그래서 Transaction Log는 WH002에서 제거하고 기존 Warehouse 메뉴의 `Transactions`, 즉 WH008로 옮겼다.
+
+질문: ADJ 이력은 카드에 전부 펼쳐서 보여줘야 하는가?
+
+답변: ADJ도 기본 카드에서는 IN/OUT과 같은 일반 이력처럼 보이게 하고, `DETAIL`을 눌렀을 때만 Before/Change/After, Reason, Note, Supervisor를 보여주도록 바꿨다. 이렇게 해야 리스트 스캔성이 좋아지고 조정 상세는 필요할 때만 확인할 수 있다.
+
+질문: WH008에서 Excel export가 필요한가?
+
+답변: CSV 저장 방식으로 검토했지만 PDA 환경에서는 파일 저장 위치와 후속 사용 흐름이 애매해서 제거했다. Export가 필요하면 Web PC 화면 또는 별도 리포트 화면에서 처리하는 편이 더 자연스럽다.
+
 ## 현재 구현 시 주의할 점
 
 - `SIS_TEST`는 테스트용 스키마다. 운영 반영 시에는 실제 SIS/MES DB 스키마와 권한, 프로시저 배포 방식이 별도로 필요하다.
@@ -724,4 +862,5 @@ MAUIPDA:
 - WH001의 PO 조회는 `WM40120` 기준으로 만들었고, SCM에서 PO가 신규 생성되는 원천 화면/배치까지 완전히 대체한 것은 아니다.
 - `GRN_QTY`는 PO schedule에 저장되는 값이라기보다 GRN 실적을 합산해 계산하는 값이다. 운영에서는 GRN cancellation, return, reversal까지 반영해야 한다.
 - WH002 수량 조정의 Supervisor PIN은 현재 테스트 구현에서 최소 길이 검증과 마스킹 저장만 한다. 운영에서는 실제 승인자 계정/권한 검증과 감사 로그 보관 정책을 추가해야 한다.
+- WH008은 `WMS2030`이 있으면 우선 사용하도록 만들었지만, 현재 테스트 DB에는 `WMS2030`이 없어 `WMS2010`, `WMS2020`, `PDA_WH002_ADJUST_AUDIT`를 조합한다. 운영 반영 시에는 실제 Transaction History 표준 테이블/프로시저 기준으로 재정렬해야 한다.
 - WH005 Inventory Adjustment는 별도 메뉴/화면으로 두지 않고 WH002에 통합했다. 운영 정책상 독립 메뉴가 필요하면 WH002의 `PDA_WH002_ADJUST_QTY` 호출부를 재사용해 별도 화면으로 분리할 수 있다.

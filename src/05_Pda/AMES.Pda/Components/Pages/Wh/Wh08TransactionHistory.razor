@@ -2,55 +2,367 @@
 @inject PdaApi Api
 @inject NavigationManager Nav
 
-<div class="pda-shell wh">
+<div class="pda-shell wh wh08-shell">
     <div class="pda-tbar">
-        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/wh"))'>←</button>
-        <span class="pda-tbar-brand">WH-008 TXN HISTORY</span>
-    </div>
-    <div class="pda-bd">
-        <div class="pda-card">
-            <div class="pda-card-h">▼ LAST @_days DAYS (@_rows.Count)</div>
-            <div style="display:flex; gap:8px; margin-bottom:10px;">
-                <button class="pda-key sm @( _days == 1 ? "on" : "")" @onclick='@(() => Switch(1))'>1d</button>
-                <button class="pda-key sm @( _days == 7 ? "on" : "")" @onclick='@(() => Switch(7))'>7d</button>
-                <button class="pda-key sm @( _days == 30 ? "on" : "")" @onclick='@(() => Switch(30))'>30d</button>
-            </div>
-            @if (_rows.Count == 0) { <div class="pda-empty">@_msg</div> }
-            else
-            {
-                @foreach (var r in _rows)
-                {
-                    var cls = r.Delta > 0 ? "ok" : r.Delta < 0 ? "bad" : "";
-                    <div class="pda-row3 @cls">
-                        <div class="r3-l">
-                            <div class="r3-code">@r.TxnType</div>
-                            <div class="r3-sub">@(r.ItemNo ?? "—") · @(r.LocationId ?? "—")</div>
-                        </div>
-                        <div class="r3-m">
-                            <div>@r.Delta.ToString("+0.#;-0.#;0")</div>
-                            <div class="r3-sub">@(r.ReasonCode ?? "")</div>
-                        </div>
-                        <div class="r3-r">
-                            <div>@r.TxnTime.ToString("MM-dd HH:mm")</div>
-                            <div class="r3-sub">→ @r.QtyAfter.ToString("0.#")</div>
-                        </div>
-                    </div>
-                }
-            }
+        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/wh"))' Text="&lt;" />
+        <div class="wh08-tbar-title">
+            <span class="pda-tbar-brand">WH-008 TRANSACTIONS</span>
+            <span class="wh08-last-updated">Last Updated @LastUpdatedText</span>
         </div>
+        <RadzenButton class="wh08-refresh" Click="@Load" Disabled="@_loading" Text="REFRESH" />
+    </div>
+
+    <div class="pda-bd wh08-body">
+        <div class="wh08-kpi-strip">
+            <button type="button" class="@($"wh08-kpi all {TypeClass("")}")" @onclick='@(() => SetType(""))'>
+                <span>ALL</span>
+                <strong>@ConditionRows.Count().ToString("N0")</strong>
+            </button>
+            <button type="button" class="@($"wh08-kpi in {TypeClass("IN")}")" @onclick='@(() => SetType("IN"))'>
+                <span>IN</span>
+                <strong>@InCount.ToString("N0")</strong>
+            </button>
+            <button type="button" class="@($"wh08-kpi out {TypeClass("OUT")}")" @onclick='@(() => SetType("OUT"))'>
+                <span>OUT</span>
+                <strong>@OutCount.ToString("N0")</strong>
+            </button>
+            <button type="button" class="@($"wh08-kpi adj {TypeClass("ADJ")}")" @onclick='@(() => SetType("ADJ"))'>
+                <span>ADJ</span>
+                <strong>@AdjCount.ToString("N0")</strong>
+            </button>
+        </div>
+
+        <RadzenCard class="wh08-search-card">
+            <div class="pda-fld">
+                <label>LOT NO</label>
+                <RadzenTextBox class="pda-input wh08-search-input"
+                               Value="@_lot"
+                               @oninput="OnLotInput"
+                               @onkeydown="OnKey"
+                               Placeholder="Search LOT No" />
+            </div>
+            <div class="pda-fld">
+                <label>ITEM</label>
+                <RadzenTextBox class="pda-input wh08-search-input"
+                               Value="@_item"
+                               @oninput="OnItemInput"
+                               Placeholder="Part No" />
+            </div>
+            <div class="pda-fld">
+                <label>WORKER</label>
+                <RadzenTextBox class="pda-input wh08-search-input"
+                               Value="@_worker"
+                               @oninput="OnWorkerInput"
+                               Placeholder="Worker ID" />
+            </div>
+            <div class="pda-fld">
+                <label>ADJ REASON</label>
+                <select class="pda-input wh08-search-input wh08-select" @bind="_reason">
+                    <option value="">All reasons</option>
+                    @foreach (var reason in ReasonOptions)
+                    {
+                        <option value="@reason">@reason</option>
+                    }
+                </select>
+            </div>
+            <div class="wh08-search-actions">
+                <RadzenButton class="wh08-clear" Click="@ClearSearch" Disabled="@_loading" Text="CLEAR" />
+                <RadzenButton class="wh08-search" Click="@Load" Disabled="@_loading" Text="SEARCH" />
+            </div>
+        </RadzenCard>
+
+        <RadzenCard class="wh08-range-card">
+            <div class="wh08-range-head">
+                <span>DATE RANGE</span>
+                <strong>@RangeLabel</strong>
+            </div>
+            <div class="wh08-date-panel">
+                <div class="pda-fld">
+                    <label>FROM</label>
+                    <input class="pda-input wh08-date-input" type="text" inputmode="numeric"
+                           value="@_dateFrom" @onchange="OnDateFromChanged" placeholder="YYYY-MM-DD" />
+                </div>
+                <div class="pda-fld">
+                    <label>TO</label>
+                    <input class="pda-input wh08-date-input" type="text" inputmode="numeric"
+                           value="@_dateTo" @onchange="OnDateToChanged" placeholder="YYYY-MM-DD" />
+                </div>
+            </div>
+            <div class="wh08-date-actions">
+                <RadzenButton class="wh08-date-reset" Click="@ResetDateRange" Disabled="@_loading" Text="RESET" />
+                <RadzenButton class="wh08-date-apply" Click="@Load" Disabled="@_loading" Text="APPLY" />
+            </div>
+        </RadzenCard>
+
+        @if (_loading)
+        {
+            <RadzenCard class="wh08-empty">Loading transactions...</RadzenCard>
+        }
+        else if (!FilteredRows.Any())
+        {
+            <RadzenCard class="wh08-empty">@_msg</RadzenCard>
+        }
+        else
+        {
+            <div class="wh08-list">
+                @foreach (var row in FilteredRows)
+                {
+                    <RadzenCard class="@($"wh08-row-card {RowCardClass(row)}")">
+                        <div class="wh08-row-top">
+                            <div class="wh08-row-main">
+                                <span>@LogDateText(row)</span>
+                                <strong>@Text(row.LotNo)</strong>
+                            </div>
+                            <RadzenBadge class="@($"wh08-status {StatusClass(row.Status)}")" Text="@Text(row.Status)" />
+                        </div>
+
+                        <div class="wh08-row-part">
+                            <strong>@Text(row.PartNo)</strong>
+                            <span>@Text(row.LocationId)</span>
+                        </div>
+
+                        @if (IsAdjust(row))
+                        {
+                            <button type="button" class="wh08-detail-btn" @onclick="@(() => ToggleDetail(row.RowNo))">
+                                @(_expandedRows.Contains(row.RowNo) ? "HIDE DETAIL" : "DETAIL")
+                            </button>
+
+                            @if (_expandedRows.Contains(row.RowNo))
+                            {
+                                <div class="wh08-snapshot">
+                                    <div>
+                                        <span>Before</span>
+                                        <strong>@QtyText(row.BeforeQty)</strong>
+                                    </div>
+                                    <div>
+                                        <span>Change</span>
+                                        <strong class="@DeltaClass(row.DeltaQty)">@SignedQtyText(row.DeltaQty)</strong>
+                                    </div>
+                                    <div>
+                                        <span>After</span>
+                                        <strong>@QtyText(row.AfterQty)</strong>
+                                    </div>
+                                </div>
+                                <div class="wh08-reason">
+                                    <div>
+                                        <span>Reason</span>
+                                        <strong>@Text(row.ReasonCode)</strong>
+                                    </div>
+                                    <div>
+                                        <span>Note</span>
+                                        <strong>@Text(row.ReasonNote)</strong>
+                                    </div>
+                                    <div>
+                                        <span>Supervisor</span>
+                                        <strong>@Text(row.Supervisor)</strong>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </RadzenCard>
+                }
+            </div>
+        }
     </div>
 </div>
 
 @code {
-    int _days = 7;
-    List<PdaApi.TransactionRow> _rows = new();
-    string _msg = "Loading…";
+    private string _dateFrom = DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd");
+    private string _dateTo = DateTime.Today.ToString("yyyy-MM-dd");
+    private string _lot = "";
+    private string _item = "";
+    private string _worker = "";
+    private string _reason = "";
+    private string _type = "";
+    private string _msg = "Loading transactions...";
+    private bool _loading;
+    private DateTime? _lastUpdated;
+    private List<PdaApi.InboundTransactionLogRow> _rows = new();
+    private readonly HashSet<long> _expandedRows = new();
+
+    private string LastUpdatedText => _lastUpdated?.ToString("HH:mm:ss") ?? "-";
+    private DateTime? DateFrom => TryDate(_dateFrom);
+    private DateTime? DateTo => TryDate(_dateTo);
+    private string RangeLabel => $"{Text(_dateFrom)} - {Text(_dateTo)}";
+    private IEnumerable<PdaApi.InboundTransactionLogRow> ConditionRows => _rows.Where(MatchesConditions).ToList();
+    private IEnumerable<PdaApi.InboundTransactionLogRow> FilteredRows => ConditionRows.Where(MatchesType).ToList();
+    private int InCount => ConditionRows.Count(r => IsDirection(r, "IN"));
+    private int OutCount => ConditionRows.Count(r => IsDirection(r, "OUT"));
+    private int AdjCount => ConditionRows.Count(r => IsDirection(r, "ADJ"));
+    private IEnumerable<string> ReasonOptions => _rows
+        .Where(IsAdjust)
+        .Select(r => r.ReasonCode)
+        .Where(r => !string.IsNullOrWhiteSpace(r))
+        .Select(r => r!)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(r => r);
+
     protected override async Task OnInitializedAsync() => await Load();
-    async Task Switch(int d) { _days = d; await Load(); }
-    async Task Load()
+
+    private void OnDateFromChanged(ChangeEventArgs e)
     {
-        _msg = "Loading…";
-        _rows = await Api.WhTransactionsAsync(_days);
-        if (_rows.Count == 0) _msg = "No transactions in this window.";
+        _dateFrom = Convert.ToString(e.Value) ?? "";
+    }
+
+    private void OnDateToChanged(ChangeEventArgs e)
+    {
+        _dateTo = Convert.ToString(e.Value) ?? "";
+    }
+
+    private async Task ResetDateRange()
+    {
+        _dateFrom = DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd");
+        _dateTo = DateTime.Today.ToString("yyyy-MM-dd");
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        _loading = true;
+        _msg = "Loading transactions...";
+
+        try
+        {
+            if (HasInvalidDate)
+            {
+                _rows = new();
+                _msg = "Date format must be YYYY-MM-DD.";
+                return;
+            }
+
+            if (DateFrom.HasValue && DateTo.HasValue && DateFrom.Value > DateTo.Value)
+            {
+                _rows = new();
+                _msg = "Date range is invalid.";
+                return;
+            }
+
+            _rows = await Api.WhInboundTransactionLogsAsync(_lot, DateFrom, DateTo);
+            _expandedRows.Clear();
+            _lastUpdated = DateTime.Now;
+            _msg = string.IsNullOrWhiteSpace(_lot)
+                ? "No transactions found for the selected conditions."
+                : "No transactions found for this LOT No.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ClearSearch()
+    {
+        _lot = "";
+        _item = "";
+        _worker = "";
+        _reason = "";
+        _type = "";
+        await Load();
+    }
+
+    private void OnLotInput(ChangeEventArgs e)
+    {
+        _lot = e.Value?.ToString() ?? "";
+    }
+
+    private void OnItemInput(ChangeEventArgs e)
+    {
+        _item = e.Value?.ToString() ?? "";
+    }
+
+    private void OnWorkerInput(ChangeEventArgs e)
+    {
+        _worker = e.Value?.ToString() ?? "";
+    }
+
+    private async Task OnKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await Load();
+    }
+
+    private string TypeClass(string type) => string.Equals(_type, type, StringComparison.OrdinalIgnoreCase) ? "on" : "";
+
+    private void SetType(string type)
+    {
+        _type = type;
+    }
+
+    private void ToggleDetail(long rowNo)
+    {
+        if (!_expandedRows.Add(rowNo))
+            _expandedRows.Remove(rowNo);
+    }
+
+    private bool MatchesConditions(PdaApi.InboundTransactionLogRow row)
+    {
+        return Contains(row.PartNo, _item)
+            && Contains(row.WorkerId, _worker)
+            && (string.IsNullOrWhiteSpace(_reason) || string.Equals(row.ReasonCode, _reason, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private bool MatchesType(PdaApi.InboundTransactionLogRow row)
+    {
+        return string.IsNullOrWhiteSpace(_type) || IsDirection(row, _type);
+    }
+
+    private static bool Contains(string? value, string filter)
+    {
+        return string.IsNullOrWhiteSpace(filter)
+            || (!string.IsNullOrWhiteSpace(value) && value.Contains(filter.Trim(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private static DateTime? TryDate(string? value)
+        => DateTime.TryParseExact(value, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out var parsed)
+            ? parsed.Date
+            : null;
+
+    private bool HasInvalidDate
+        => (!string.IsNullOrWhiteSpace(_dateFrom) && !DateFrom.HasValue)
+           || (!string.IsNullOrWhiteSpace(_dateTo) && !DateTo.HasValue);
+
+    private static string QtyText(decimal? value) => value?.ToString("N0") ?? "-";
+    private static string SignedQtyText(decimal? value)
+    {
+        if (!value.HasValue) return "-";
+        var prefix = value.Value > 0 ? "+" : "";
+        return $"{prefix}{value.Value:N0}";
+    }
+
+    private static string DeltaClass(decimal? value)
+    {
+        if (!value.HasValue || value.Value == 0) return "";
+        return value.Value > 0 ? "plus" : "minus";
+    }
+
+    private static string LogDateText(PdaApi.InboundTransactionLogRow row)
+    {
+        var date = Text(row.WorkDate);
+        return string.IsNullOrWhiteSpace(row.WorkTime) ? date : $"{date} {row.WorkTime}";
+    }
+
+    private static bool IsAdjust(PdaApi.InboundTransactionLogRow row) => IsDirection(row, "ADJ");
+    private static bool IsDirection(PdaApi.InboundTransactionLogRow row, string direction)
+        => string.Equals(row.Direction, direction, StringComparison.OrdinalIgnoreCase);
+
+    private static string RowCardClass(PdaApi.InboundTransactionLogRow row)
+        => row.Direction?.ToUpperInvariant() switch
+        {
+            "IN" => "inbound",
+            "OUT" => "outbound",
+            "ADJ" => "adjust",
+            _ => "other"
+        };
+
+    private static string StatusClass(string? status)
+    {
+        var value = status?.Trim().ToLowerInvariant() ?? "";
+        if (value == "in") return "in";
+        if (value.Contains("adjust")) return "adjust";
+        if (value.Contains("cancel")) return "cancel";
+        if (value.Contains("out")) return "out";
+        if (value.Contains("loss")) return "loss";
+        return "stock";
     }
 }

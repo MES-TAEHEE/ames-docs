@@ -101,6 +101,12 @@ public sealed class PdaApi
         int? PoSeq, string? VendorId, string? VendorName, DateTime? ProductionDate, DateTime? DeliveryDate,
         DateTime? ArrivalDate, DateTime? ShipDate, DateTime? PackDate, string? ReceivedLocation,
         string? ReceivedStatus);
+    public sealed record InboundTransactionLogRow(long RowNo, string? LotNo, string? PartNo,
+        string? WorkDate, string? WorkTime, string? LocationId, decimal Qty, string Status,
+        string Direction, string? WorkerId, string? ReasonCode, string? ReasonNote,
+        string? Supervisor, decimal? BeforeQty, decimal? DeltaQty, decimal? AfterQty,
+        string? BeforeStatus, string? AfterStatus, string? BeforeLocation, string? AfterLocation,
+        string? Source, string? Note);
     public sealed record InventoryRow(int InventoryId, string ItemNo, string? ItemName, string LocationId,
         int? LotId, decimal OnHandQty, decimal ReservedQty, DateTime? ExpiryDate,
         string? CarCode = null, string? Unit = null, decimal? MinDays = null, decimal? MinQty = null,
@@ -247,6 +253,18 @@ public sealed class PdaApi
 
         await using var rdr = await cmd.ExecuteReaderAsync();
         return await rdr.ReadAsync() ? ReadInboundScanRow(rdr) : null;
+    }
+
+    public async Task<List<InboundTransactionLogRow>> WhInboundTransactionLogsAsync(string? lotNo = null, DateTime? dateFrom = null, DateTime? dateTo = null)
+    {
+        try
+        {
+            return await QueryWhInboundTransactionLogsDbAsync(lotNo, dateFrom, dateTo);
+        }
+        catch
+        {
+            return new List<InboundTransactionLogRow>();
+        }
     }
 
     public async Task<string?> WhInboundTestBarcodeAsync(string mode)
@@ -466,6 +484,204 @@ public sealed class PdaApi
     }
 
     // ── helper ──────────────────────────────────────────────────────────
+    private async Task<List<InboundTransactionLogRow>> QueryWhInboundTransactionLogsDbAsync(string? lotNo, DateTime? dateFrom, DateTime? dateTo)
+    {
+        var rows = new List<InboundTransactionLogRow>();
+        var lotFilter = string.IsNullOrWhiteSpace(lotNo) ? null : lotNo.Trim();
+        var fromFilter = dateFrom?.Date ?? DateTime.Today.AddDays(-7);
+        var toFilter = dateTo?.Date ?? DateTime.Today;
+
+        await using var conn = _db.CreateConnection();
+        await conn.OpenAsync();
+
+        var hasWms2030 = await TableExistsAsync(conn, "SIS_TEST", "WMS2030");
+        var sql = hasWms2030
+            ? """
+                SELECT
+                    ROW_NUMBER() OVER (ORDER BY H.SEQNO DESC) AS ROW_NO,
+                    H.LOTNO,
+                    CAST(NULL AS nvarchar(50)) AS PARTNO,
+                    H.STD_DATE AS WDATE,
+                    CAST(NULL AS nvarchar(20)) AS WTIME,
+                    H.LOCATION_NO,
+                    COALESCE(H.QTY, 0) AS QTY,
+                    CASE
+                        WHEN H.INV_STATUS = N'IC' THEN N'Cancel'
+                        WHEN H.INV_STATUS LIKE N'I%' THEN N'In'
+                        WHEN H.INV_STATUS LIKE N'O%' THEN N'Out'
+                        ELSE N'Loss'
+                    END AS STATUS,
+                    CASE
+                        WHEN H.INV_STATUS LIKE N'I%' THEN N'IN'
+                        WHEN H.INV_STATUS LIKE N'O%' THEN N'OUT'
+                        ELSE N'OTHER'
+                    END AS DIRECTION,
+                    CAST(NULL AS nvarchar(80)) AS WORKER_ID,
+                    CAST(NULL AS nvarchar(60)) AS REASON_CODE,
+                    CAST(NULL AS nvarchar(1000)) AS REASON_NOTE,
+                    CAST(NULL AS nvarchar(40)) AS SUPERVISOR,
+                    CAST(NULL AS decimal(18,3)) AS BEFORE_QTY,
+                    CAST(NULL AS decimal(18,3)) AS DELTA_QTY,
+                    CAST(NULL AS decimal(18,3)) AS AFTER_QTY,
+                    CAST(NULL AS nvarchar(30)) AS BEFORE_STATUS,
+                    H.INV_STATUS AS AFTER_STATUS,
+                    CAST(NULL AS nvarchar(60)) AS BEFORE_LOCATION,
+                    H.LOCATION_NO AS AFTER_LOCATION,
+                    N'WMS2030' AS SOURCE,
+                    H.INV_STATUS AS NOTE
+                FROM SIS_TEST.WMS2030 H
+                WHERE (@IN_LOTNO IS NULL OR H.LOTNO = @IN_LOTNO)
+                  AND COALESCE(TRY_CONVERT(date, H.STD_DATE, 23), TRY_CONVERT(date, H.STD_DATE, 112), CONVERT(date, SYSDATETIME())) >= @IN_DATE_FROM
+                  AND COALESCE(TRY_CONVERT(date, H.STD_DATE, 23), TRY_CONVERT(date, H.STD_DATE, 112), CONVERT(date, SYSDATETIME())) < DATEADD(day, 1, @IN_DATE_TO)
+                ORDER BY ROW_NO;
+                """
+            : """
+                ;WITH Logs AS
+                (
+                    SELECT
+                        1 AS SORT_BUCKET,
+                        H.LOTNO,
+                        H.PARTNO,
+                        COALESCE(NULLIF(H.STOCK_DATE, N''), NULLIF(H.STD_DATE, N''), CONVERT(nvarchar(10), H.INSERT_DATE, 23)) AS WDATE,
+                        COALESCE(NULLIF(H.STOCK_TIME, N''), CONVERT(nvarchar(8), H.INSERT_DATE, 108)) AS WTIME,
+                        CAST(NULL AS nvarchar(30)) AS LOCATION_NO,
+                        COALESCE(H.QTY, 0) AS QTY,
+                        N'In' AS STATUS,
+                        N'IN' AS DIRECTION,
+                        COALESCE(NULLIF(H.USER_ID, N''), NULLIF(H.INSERT_ID, N''), NULLIF(H.UPDATE_ID, N'')) AS WORKER_ID,
+                        CAST(NULL AS nvarchar(60)) AS REASON_CODE,
+                        CAST(NULL AS nvarchar(1000)) AS REASON_NOTE,
+                        CAST(NULL AS nvarchar(40)) AS SUPERVISOR,
+                        CAST(NULL AS decimal(18,3)) AS BEFORE_QTY,
+                        COALESCE(H.QTY, 0) AS DELTA_QTY,
+                        COALESCE(H.QTY, 0) AS AFTER_QTY,
+                        CAST(NULL AS nvarchar(30)) AS BEFORE_STATUS,
+                        H.INV_STATUS AS AFTER_STATUS,
+                        CAST(NULL AS nvarchar(60)) AS BEFORE_LOCATION,
+                        CAST(NULL AS nvarchar(60)) AS AFTER_LOCATION,
+                        N'WMS2010' AS SOURCE,
+                        H.INV_STATUS AS NOTE,
+                        COALESCE(H.INSERT_DATE, H.UPDATE_DATE, SYSUTCDATETIME()) AS SORT_TS
+                    FROM SIS_TEST.WMS2010 H
+                    WHERE (@IN_LOTNO IS NULL OR H.LOTNO = @IN_LOTNO)
+
+                    UNION ALL
+
+                    SELECT
+                        2 AS SORT_BUCKET,
+                        S.LOTNO,
+                        S.PARTNO,
+                        COALESCE(NULLIF(S.WORK_DATE, N''), NULLIF(S.RCV_DATE, N''), CONVERT(nvarchar(10), S.INSERT_DATE, 23)) AS WDATE,
+                        COALESCE(NULLIF(S.WORK_TIME, N''), CONVERT(nvarchar(8), S.INSERT_DATE, 108)) AS WTIME,
+                        S.LOCATION_NO,
+                        COALESCE(S.QTY, 0) AS QTY,
+                        CASE
+                            WHEN S.INV_STATUS = N'IC' THEN N'Cancel'
+                            WHEN S.INV_STATUS LIKE N'I%' THEN N'In'
+                            WHEN S.INV_STATUS LIKE N'O%' THEN N'Out'
+                            ELSE N'Loss'
+                        END AS STATUS,
+                        CASE
+                            WHEN S.INV_STATUS LIKE N'I%' THEN N'IN'
+                            WHEN S.INV_STATUS LIKE N'O%' THEN N'OUT'
+                            ELSE N'OTHER'
+                        END AS DIRECTION,
+                        COALESCE(NULLIF(S.USER_ID, N''), NULLIF(S.UPDATE_ID, N''), NULLIF(S.INSERT_ID, N'')) AS WORKER_ID,
+                        CAST(NULL AS nvarchar(60)) AS REASON_CODE,
+                        CAST(NULL AS nvarchar(1000)) AS REASON_NOTE,
+                        CAST(NULL AS nvarchar(40)) AS SUPERVISOR,
+                        CAST(NULL AS decimal(18,3)) AS BEFORE_QTY,
+                        COALESCE(S.QTY, 0) AS DELTA_QTY,
+                        COALESCE(S.QTY, 0) AS AFTER_QTY,
+                        CAST(NULL AS nvarchar(30)) AS BEFORE_STATUS,
+                        S.INV_STATUS AS AFTER_STATUS,
+                        CAST(NULL AS nvarchar(60)) AS BEFORE_LOCATION,
+                        S.LOCATION_NO AS AFTER_LOCATION,
+                        N'WMS2020' AS SOURCE,
+                        S.INV_STATUS AS NOTE,
+                        COALESCE(S.UPDATE_DATE, S.INSERT_DATE, SYSUTCDATETIME()) AS SORT_TS
+                    FROM SIS_TEST.WMS2020 S
+                    WHERE (@IN_LOTNO IS NULL OR S.LOTNO = @IN_LOTNO)
+                      AND NOT EXISTS
+                      (
+                          SELECT 1
+                          FROM SIS_TEST.WMS2010 H
+                          WHERE H.LOTNO = S.LOTNO
+                      )
+
+                    UNION ALL
+
+                    SELECT
+                        3 AS SORT_BUCKET,
+                        A.LOTNO,
+                        A.PARTNO,
+                        A.WORK_DATE AS WDATE,
+                        A.WORK_TIME AS WTIME,
+                        A.LOCATION_NO,
+                        COALESCE(A.AFTER_QTY, 0) AS QTY,
+                        N'Adjust' AS STATUS,
+                        N'ADJ' AS DIRECTION,
+                        A.USER_ID AS WORKER_ID,
+                        A.REASON_CODE,
+                        A.REASON_NOTE,
+                        A.USER_ID AS SUPERVISOR,
+                        A.BEFORE_QTY,
+                        A.DELTA_QTY,
+                        A.AFTER_QTY,
+                        N'QTY BEFORE' AS BEFORE_STATUS,
+                        N'QTY AFTER' AS AFTER_STATUS,
+                        A.LOCATION_NO AS BEFORE_LOCATION,
+                        A.LOCATION_NO AS AFTER_LOCATION,
+                        N'PDA_WH002_ADJUST_AUDIT' AS SOURCE,
+                        CONCAT(A.REASON_CODE, N' ', CASE WHEN A.DELTA_QTY > 0 THEN N'+' ELSE N'' END, CONVERT(nvarchar(40), A.DELTA_QTY)) AS NOTE,
+                        COALESCE(A.INSERT_DATE, SYSUTCDATETIME()) AS SORT_TS
+                    FROM SIS_TEST.PDA_WH002_ADJUST_AUDIT A
+                    WHERE (@IN_LOTNO IS NULL OR A.LOTNO = @IN_LOTNO)
+                )
+                SELECT TOP (200)
+                    ROW_NUMBER() OVER (ORDER BY SORT_TS DESC, SORT_BUCKET DESC) AS ROW_NO,
+                    LOTNO,
+                    PARTNO,
+                    WDATE,
+                    WTIME,
+                    LOCATION_NO,
+                    QTY,
+                    STATUS,
+                    DIRECTION,
+                    WORKER_ID,
+                    REASON_CODE,
+                    REASON_NOTE,
+                    SUPERVISOR,
+                    BEFORE_QTY,
+                    DELTA_QTY,
+                    AFTER_QTY,
+                    BEFORE_STATUS,
+                    AFTER_STATUS,
+                    BEFORE_LOCATION,
+                    AFTER_LOCATION,
+                    SOURCE,
+                    NOTE
+                FROM Logs
+                WHERE SORT_TS >= @IN_DATE_FROM
+                  AND SORT_TS < DATEADD(day, 1, @IN_DATE_TO)
+                ORDER BY ROW_NO;
+                """;
+
+        await using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@IN_LOTNO", SqlDbType.NVarChar, 100).Value =
+            (object?)lotFilter ?? DBNull.Value;
+        cmd.Parameters.Add("@IN_DATE_FROM", SqlDbType.Date).Value = fromFilter;
+        cmd.Parameters.Add("@IN_DATE_TO", SqlDbType.Date).Value = toFilter;
+
+        await using var rdr = await cmd.ExecuteReaderAsync();
+        while (await rdr.ReadAsync())
+        {
+            rows.Add(ReadInboundTransactionLogRow(rdr));
+        }
+
+        return rows;
+    }
+
     private async Task<List<InboundScheduleRow>> QueryWhInboundScheduleDbAsync(int? year, int? quarter, string? vendorId)
     {
         var today = DateTime.Today;
@@ -803,6 +1019,14 @@ public sealed class PdaApi
         return value == DBNull.Value ? null : Convert.ToString(value);
     }
 
+    private static async Task<bool> TableExistsAsync(SqlConnection conn, string schema, string table)
+    {
+        await using var cmd = new SqlCommand("SELECT CASE WHEN OBJECT_ID(@ObjectName, N'U') IS NULL THEN 0 ELSE 1 END;", conn);
+        cmd.Parameters.Add("@ObjectName", SqlDbType.NVarChar, 256).Value = $"{schema}.{table}";
+        var value = await cmd.ExecuteScalarAsync();
+        return Convert.ToInt32(value) == 1;
+    }
+
     private static InboundScanRow ReadInboundScanRow(SqlDataReader rdr)
     {
         return new InboundScanRow(
@@ -831,6 +1055,33 @@ public sealed class PdaApi
             GetDate(rdr, "PACK_DATE"),
             GetString(rdr, "RECEIVED_LOCATION"),
             GetString(rdr, "RECEIVED_STATUS"));
+    }
+
+    private static InboundTransactionLogRow ReadInboundTransactionLogRow(SqlDataReader rdr)
+    {
+        return new InboundTransactionLogRow(
+            GetLong(rdr, "ROW_NO") ?? 0,
+            GetString(rdr, "LOTNO"),
+            GetString(rdr, "PARTNO"),
+            GetString(rdr, "WDATE"),
+            GetString(rdr, "WTIME"),
+            GetString(rdr, "LOCATION_NO"),
+            GetDecimal(rdr, "QTY"),
+            GetString(rdr, "STATUS") ?? "-",
+            GetString(rdr, "DIRECTION") ?? "OTHER",
+            GetString(rdr, "WORKER_ID"),
+            GetString(rdr, "REASON_CODE"),
+            GetString(rdr, "REASON_NOTE"),
+            GetString(rdr, "SUPERVISOR"),
+            GetNullableDecimal(rdr, "BEFORE_QTY"),
+            GetNullableDecimal(rdr, "DELTA_QTY"),
+            GetNullableDecimal(rdr, "AFTER_QTY"),
+            GetString(rdr, "BEFORE_STATUS"),
+            GetString(rdr, "AFTER_STATUS"),
+            GetString(rdr, "BEFORE_LOCATION"),
+            GetString(rdr, "AFTER_LOCATION"),
+            GetString(rdr, "SOURCE"),
+            GetString(rdr, "NOTE"));
     }
 
     private static LocationRow ReadLocationRow(SqlDataReader rdr)
@@ -932,6 +1183,13 @@ public sealed class PdaApi
         if (!HasColumn(rdr, name)) return null;
         var value = rdr[name];
         return value == DBNull.Value ? null : Convert.ToInt32(value);
+    }
+
+    private static long? GetLong(SqlDataReader rdr, string name)
+    {
+        if (!HasColumn(rdr, name)) return null;
+        var value = rdr[name];
+        return value == DBNull.Value ? null : Convert.ToInt64(value);
     }
 
     private static decimal GetDecimal(SqlDataReader rdr, string name)
