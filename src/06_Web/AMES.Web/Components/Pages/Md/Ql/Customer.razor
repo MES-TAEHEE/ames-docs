@@ -1,4 +1,4 @@
-﻿@page "/md/customer"
+@page "/md/ql/customer"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
@@ -251,7 +251,7 @@
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
         await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("md/customer");
+        _canEdit = Perm.CanEdit("md/ql/customer");
         Reload();
     }
 

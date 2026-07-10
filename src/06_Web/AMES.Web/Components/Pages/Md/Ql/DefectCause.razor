@@ -1,4 +1,4 @@
-﻿@page "/md/defect-cause"
+@page "/md/ql/defect-cause"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
@@ -115,7 +115,6 @@
     }
 </div>
 
-@* ── Create Modal ─────────────────────────────────────────────────── *@
 @if (_modal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
@@ -188,7 +187,6 @@
     </div>
 }
 
-@* ── Edit Modal ───────────────────────────────────────────────────── *@
 @if (_modal == "edit" && _sel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
@@ -292,7 +290,7 @@
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
         await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("md/defect-cause");
+        _canEdit = Perm.CanEdit("md/ql/defect-cause");
         try { _deptCodes   = Md.ListCodeItems("DEPARTMENT");         } catch { }
         try { _causeStatus = Md.ListCodeItems("DEFECT_CAUSE_STATUS"); } catch { }
         Reload();

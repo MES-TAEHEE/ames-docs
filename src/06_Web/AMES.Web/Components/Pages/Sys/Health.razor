@@ -126,29 +126,65 @@
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Health.Kpi.Users"]</div>
-        <div class="ames-kpi-v">@_k.Users</div><div class="ames-kpi-s">@L["SYS.Health.Kpi.UsersSub"]</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Health.Kpi.Roles"]</div>
-        <div class="ames-kpi-v">@_k.Roles</div><div class="ames-kpi-s">@L["SYS.Health.Kpi.RolesSub"]</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["SYS.Health.Kpi.IfOk"]</div>
-        <div class="ames-kpi-v">@_k.InterfacesOk</div><div class="ames-kpi-s">@L["SYS.Health.Kpi.IfOkSub"]</div></div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["SYS.Health.Kpi.Users"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_k.Users</div>
+            <div class="ames-kpi-s">@L["SYS.Health.Kpi.UsersSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["SYS.Health.Kpi.Roles"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_k.Roles</div>
+            <div class="ames-kpi-s">@L["SYS.Health.Kpi.RolesSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">@L["SYS.Health.Kpi.IfOk"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_k.InterfacesOk</div>
+            <div class="ames-kpi-s">@L["SYS.Health.Kpi.IfOkSub"]</div>
+        </div>
+    </div>
     <div class="ames-kpi @(_k.InterfacesDown == 0 ? "ok" : "bad")">
         <div class="ames-kpi-l">@L["SYS.Health.Kpi.IfDown"]</div>
-        <div class="ames-kpi-v">@_k.InterfacesDown</div>
-        <div class="ames-kpi-s">@L["SYS.Health.Kpi.IfDownSub"]</div></div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_k.InterfacesDown</div>
+            <div class="ames-kpi-s">@L["SYS.Health.Kpi.IfDownSub"]</div>
+        </div>
+    </div>
 </div>
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Health.Kpi.Audit"]</div>
-        <div class="ames-kpi-v">@_k.AuditLast24h</div><div class="ames-kpi-s">@L["SYS.Health.Kpi.AuditSub"]</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Health.Kpi.Notif"]</div>
-        <div class="ames-kpi-v">@_k.NotifLast24h</div><div class="ames-kpi-s">@L["SYS.Health.Kpi.NotifSub"]</div></div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["SYS.Health.Kpi.Audit"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_k.AuditLast24h</div>
+            <div class="ames-kpi-s">@L["SYS.Health.Kpi.AuditSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["SYS.Health.Kpi.Notif"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_k.NotifLast24h</div>
+            <div class="ames-kpi-s">@L["SYS.Health.Kpi.NotifSub"]</div>
+        </div>
+    </div>
     <div class="ames-kpi @(_k.NotifFailedLast24h == 0 ? "ok" : "bad")">
         <div class="ames-kpi-l">@L["SYS.Health.Kpi.NotifFail"]</div>
-        <div class="ames-kpi-v">@_k.NotifFailedLast24h</div>
-        <div class="ames-kpi-s">@L["SYS.Health.Kpi.NotifFailSub"]</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Health.Kpi.Config"]</div>
-        <div class="ames-kpi-v">@_k.ConfigKeys</div><div class="ames-kpi-s">@L["SYS.Health.Kpi.ConfigSub"]</div></div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_k.NotifFailedLast24h</div>
+            <div class="ames-kpi-s">@L["SYS.Health.Kpi.NotifFailSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["SYS.Health.Kpi.Config"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_k.ConfigKeys</div>
+            <div class="ames-kpi-s">@L["SYS.Health.Kpi.ConfigSub"]</div>
+        </div>
+    </div>
 </div>
 
 <div class="ames-card">

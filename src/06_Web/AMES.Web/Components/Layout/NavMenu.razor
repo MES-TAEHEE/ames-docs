@@ -3,6 +3,7 @@
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @inject AMES.Data.Repositories.SysRepository Sys
+@inject AMES.Data.Repositories.MasterDataRepository MD
 @inject AMES.Web.Services.PermissionService Perm
 @using System.Globalization
 @using System.Net
@@ -88,9 +89,38 @@
             </div>
             @if (IsOpen(sec.Key))
             {
-                @foreach (var it in secItems)
+                @if (sec.Key == "md" && _subprocessItems.Count > 0)
                 {
-                    @RenderRow(it, showTag: false)
+                    @* ── MD: SubProcessCode 서브그룹 아코디언 ── *@
+                    @foreach (var g in GroupedMd(secItems))
+                    {
+                        <div class="ames-nav-sub @(IsSubOpen(g.Key) ? "open" : "")" @onclick='() => ToggleSub(g.Key)'>
+                            <span class="ames-nav-sub-letter">@g.Letter</span>
+                            <div class="ames-nav-sub-body">
+                                <div class="ames-nav-sub-t">@SL(g.Ko, g.En)</div>
+                                <div class="ames-nav-sub-s">@SL(g.En, g.Ko) · @g.Items.Count</div>
+                            </div>
+                            <span class="ames-nav-sub-chevron">@(IsSubOpen(g.Key) ? "▾" : "▸")</span>
+                        </div>
+                        @if (IsSubOpen(g.Key))
+                        {
+                            @foreach (var it in g.Items)
+                            {
+                                @RenderRow(it, showTag: false)
+                            }
+                        }
+                    }
+                    @foreach (var it in UngroupedMd(secItems))
+                    {
+                        @RenderRow(it, showTag: false)
+                    }
+                }
+                else
+                {
+                    @foreach (var it in secItems)
+                    {
+                        @RenderRow(it, showTag: false)
+                    }
                 }
             }
         }
@@ -104,6 +134,7 @@
     bool            _collapsed;
     string?         _url;
     HashSet<string> _open = new();
+    HashSet<string> _openSub = new();
     HashSet<string> _favorites = new();
     string          _lang = "ko";
     string          _query = "";
@@ -112,12 +143,16 @@
     bool            _usingFallback;    // DB 로딩 실패 시 정적 목록 사용 → 권한 필터 미적용
 
     const string KeyOpen      = "ames.nav.open";
+    const string KeyOpenSub   = "ames.nav.opensub";
     const string KeyCollapsed = "ames.nav.collapsed";
     const string KeyFavorites = "ames.nav.favorites";
     const string KeyFavOpen   = "ames.nav.favopen";
 
+    // MD 서브그룹 정의 (SUBPROCESS 공통코드, DB 로딩)
+    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _subprocessItems = new();
+
     record NavSection(string Key, string Icon, string Ko, string En);
-    record NavItem(string Section, string Href, string Lid, string Ko, string En);
+    record NavItem(string Section, string Href, string Lid, string Ko, string En, string? Sub = null);
 
     static readonly NavSection[] _sections =
     {
@@ -129,7 +164,7 @@
     };
 
     // 메뉴 항목은 SYS_Screen(ModuleCode='WEB')에서 동적으로 로딩된다.
-    // DB 조회 실패/빈 결과 시 아래 정적 목록으로 폴백(권한 필터 미적용).
+    // DB 조회 실패/빈 결과 시 아래 정적 목록으로 폴백(권한 필터 미적용, 서브그룹 미표시).
     List<NavItem> _items = new();
 
     static readonly NavItem[] _fallbackItems =
@@ -172,37 +207,37 @@
         new("rpt", "rpt/report-center",      "RPT-009", "리포트 센터",    "Report Center"),
         new("rpt", "rpt/report-builder",     "RPT-010", "리포트 빌더",    "Report Builder"),
 
-        // ── MD (main의 Fd/Re/Rp 폴더 이동 경로 반영) ──
-        new("md", "md/rp/line",             "MD-001", "공장/라인 기준정보 관리", "Factory / Line Master"),
-        new("md", "md/rp/station",          "MD-002", "공정 기준정보 관리",     "Process / Station Master"),
-        new("md", "md/fd/items",            "MD-003", "제품 기준정보 관리",     "Product Item Master"),
-        new("md", "md/fd/bom",              "MD-004", "BOM 관리",             "BOM Management"),
-        new("md", "md/rp/bop",              "MD-005", "BOP 관리",             "BOP Management"),
-        new("md", "md/rp/work-center",      "MD-006", "Work Center 관리",     "Work Center Management"),
-        new("md", "md/re/mold",             "MD-007", "금형 기준정보 관리",     "Mold Master"),
-        new("md", "md/paint-fabric",        "MD-008", "원부자재 기준정보 관리",  "Paint & Fabric Master"),
-        new("md", "md/re/vendor",           "MD-009", "공급업체 기준정보 관리",  "Vendor Master"),
-        new("md", "md/customer",            "MD-010", "고객사 기준정보 관리",    "Customer Master"),
-        new("md", "md/shipment-dest",       "MD-011", "출하처 기준정보 관리",    "Shipment Destination Master"),
-        new("md", "md/defect-code",         "MD-012", "불량유형 기준정보 관리",  "Defect Code Master"),
-        new("md", "md/defect-cause",        "MD-013", "불량원인 기준정보 관리",  "Defect Cause Master"),
-        new("md", "md/re/equipment",        "MD-014", "설비 기준정보 관리",     "Equipment Master"),
-        new("md", "md/re/oven",             "MD-015", "건조로 기준정보 관리",    "Oven Master"),
-        new("md", "md/re/jig",              "MD-016", "지그 기준정보 관리",     "Jig Master"),
-        new("md", "md/inspection-standard", "MD-017", "검사기준 기준정보 관리",  "Inspection Standard Master"),
-        new("md", "md/location",            "MD-018", "창고/로케이션 기준정보 관리", "Warehouse Location Master"),
-        new("md", "md/fd/uom",              "MD-019", "단위 관리",             "UOM Master"),
-        new("md", "md/rfid-tag",            "MD-020", "RFID 태그 관리",        "RFID Tag Master"),
-        new("md", "md/ral-color",           "MD-021", "RAL 색상 관리",         "RAL Color Master"),
-        new("md", "md/rfid-reader",         "MD-022", "RFID 리더 관리",        "RFID Reader Master"),
-        new("md", "md/packaging-spec",      "MD-023", "포장 사양 관리",         "Packaging Spec Master"),
-        new("md", "md/label-template",      "MD-024", "라벨 템플릿 관리",       "Label Template Master"),
-        new("md", "md/re/reason-code",      "MD-026", "사유 코드 관리",         "Reason Code Master"),
-        new("md", "md/re/spare-part",       "MD-027", "예비품 마스터",          "Spare Part Master"),
-        new("md", "md/rp/pm-template",      "MD-028", "PM 템플릿 관리",        "PM Template Master"),
-        new("md", "md/rp/line-time-pattern","MD-029", "라인 시간 패턴 관리",     "Line Time Pattern Master"),
-        new("md", "md/recipe",              "MD-030", "레시피 관리",           "Recipe Master"),
-        new("md", "md/common-code",         "MD-031", "코드 기준정보 관리",     "Common Code Master"),
+        // ── MD (Rp/Fd/Re/Rm/Ql 서브폴더 이동 경로 반영) ──
+        new("md", "md/rp/line",                "MD-001", "공장/라인 기준정보 관리", "Factory / Line Master"),
+        new("md", "md/rp/station",             "MD-002", "공정 기준정보 관리",     "Process / Station Master"),
+        new("md", "md/fd/items",               "MD-003", "제품 기준정보 관리",     "Product Item Master"),
+        new("md", "md/fd/bom",                 "MD-004", "BOM 관리",             "BOM Management"),
+        new("md", "md/rp/bop",                 "MD-005", "BOP 관리",             "BOP Management"),
+        new("md", "md/rp/work-center",         "MD-006", "Work Center 관리",     "Work Center Management"),
+        new("md", "md/re/mold",                "MD-007", "금형 기준정보 관리",     "Mold Master"),
+        new("md", "md/rm/paint-fabric",        "MD-008", "원부자재 기준정보 관리",  "Paint & Fabric Master"),
+        new("md", "md/re/vendor",              "MD-009", "공급업체 기준정보 관리",  "Vendor Master"),
+        new("md", "md/ql/customer",            "MD-010", "고객사 기준정보 관리",    "Customer Master"),
+        new("md", "md/ql/shipment-dest",       "MD-011", "출하처 기준정보 관리",    "Shipment Destination Master"),
+        new("md", "md/ql/defect-code",         "MD-012", "불량유형 기준정보 관리",  "Defect Code Master"),
+        new("md", "md/ql/defect-cause",        "MD-013", "불량원인 기준정보 관리",  "Defect Cause Master"),
+        new("md", "md/re/equipment",           "MD-014", "설비 기준정보 관리",     "Equipment Master"),
+        new("md", "md/re/oven",                "MD-015", "건조로 기준정보 관리",    "Oven Master"),
+        new("md", "md/re/jig",                 "MD-016", "지그 기준정보 관리",     "Jig Master"),
+        new("md", "md/ql/inspection-standard", "MD-017", "검사기준 기준정보 관리",  "Inspection Standard Master"),
+        new("md", "md/fd/location",            "MD-018", "창고/로케이션 기준정보 관리", "Warehouse Location Master"),
+        new("md", "md/fd/uom",                 "MD-019", "단위 관리",             "UOM Master"),
+        new("md", "md/rm/rfid-tag",            "MD-020", "RFID 태그 관리",        "RFID Tag Master"),
+        new("md", "md/rm/ral-color",           "MD-021", "RAL 색상 관리",         "RAL Color Master"),
+        new("md", "md/rm/rfid-reader",         "MD-022", "RFID 리더 관리",        "RFID Reader Master"),
+        new("md", "md/ql/packaging-spec",      "MD-023", "포장 사양 관리",         "Packaging Spec Master"),
+        new("md", "md/ql/label-template",      "MD-024", "라벨 템플릿 관리",       "Label Template Master"),
+        new("md", "md/re/reason-code",         "MD-025", "사유 코드 관리",         "Reason Code Master"),
+        new("md", "md/re/spare-part",          "MD-026", "예비품 마스터",          "Spare Part Master"),
+        new("md", "md/rp/pm-template",         "MD-027", "PM 템플릿 관리",        "PM Template Master"),
+        new("md", "md/rp/line-time-pattern",   "MD-028", "라인 시간 패턴 관리",     "Line Time Pattern Master"),
+        new("md", "md/ql/recipe",              "MD-029", "레시피 관리",           "Recipe Master"),
+        new("md", "md/ql/common-code",         "MD-030", "코드 기준정보 관리",     "Common Code Master"),
 
         // ── SYS ──
         new("sys", "sys/users",         "SYS-001", "사용자 관리",         "User Management"),
@@ -274,6 +309,23 @@
     // 권한 필터: DB 로딩 시 PermissionService 기준, 폴백 시 전부 표시
     bool V(string href) => _usingFallback || Perm.IsVisible(href);
 
+    List<(string Key, string Letter, string Ko, string En, List<NavItem> Items)> GroupedMd(List<NavItem> mdItems) =>
+        _subprocessItems
+            .Select((g, i) => (
+                Key:    g.CodeValue ?? "",
+                Letter: ((char)('A' + i)).ToString(),
+                Ko:     g.CodeName   ?? g.CodeValue ?? "",
+                En:     g.CodeNameEn ?? g.CodeName ?? g.CodeValue ?? "",
+                Items:  mdItems.Where(x => x.Sub == g.CodeValue).ToList()))
+            .Where(g => g.Items.Count > 0)
+            .ToList();
+
+    List<NavItem> UngroupedMd(List<NavItem> mdItems)
+    {
+        var keys = _subprocessItems.Select(g => g.CodeValue).ToHashSet();
+        return mdItems.Where(x => string.IsNullOrEmpty(x.Sub) || !keys.Contains(x.Sub)).ToList();
+    }
+
     protected override async Task OnInitializedAsync()
     {
         _lang = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
@@ -303,10 +355,18 @@
                     s.HRef!.TrimStart('/'),
                     s.LidLabel ?? s.ScreenCode,
                     s.ScreenName,
-                    s.ScreenNameEn ?? s.ScreenName))
+                    s.ScreenNameEn ?? s.ScreenName,
+                    s.SubProcessCode))
                 .ToList();
 
-            if (rows.Count > 0) { _items = rows; _usingFallback = false; return; }
+            if (rows.Count > 0)
+            {
+                _items = rows;
+                _usingFallback = false;
+                try { _subprocessItems = MD.ListCodeItems("SUBPROCESS"); }
+                catch { /* 서브그룹 정의 실패 시 MD 플랫 표시 */ }
+                return;
+            }
         }
         catch { /* fall through to fallback */ }
 
@@ -330,6 +390,13 @@
             var favOpen = await JS.InvokeAsync<string?>("localStorage.getItem", KeyFavOpen);
             if (favOpen is not null) _favOpen = favOpen == "1";
 
+            var openSubJson = await JS.InvokeAsync<string?>("localStorage.getItem", KeyOpenSub);
+            if (!string.IsNullOrWhiteSpace(openSubJson))
+            {
+                var storedSub = JsonSerializer.Deserialize<HashSet<string>>(openSubJson);
+                if (storedSub is not null) _openSub.UnionWith(storedSub);
+            }
+
             var openJson = await JS.InvokeAsync<string?>("localStorage.getItem", KeyOpen);
             if (!string.IsNullOrWhiteSpace(openJson))
             {
@@ -351,14 +418,22 @@
     {
         var url = _url ?? "";
         foreach (var (prefix, key) in _prefixMap)
-            if (url.StartsWith(prefix)) { _open.Add(key); return; }
+            if (url.StartsWith(prefix)) { _open.Add(key); OpenCurrentSub(url); return; }
+    }
+
+    // 현재 URL이 속한 MD 서브그룹도 열어둠
+    void OpenCurrentSub(string url)
+    {
+        var hit = _items.FirstOrDefault(i =>
+            url.StartsWith(i.Href, StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrEmpty(hit?.Sub)) _openSub.Add(hit!.Sub!);
     }
 
     void OnLocChanged(object? sender, LocationChangedEventArgs e)
     {
         _url = Nav.ToBaseRelativePath(e.Location);
         foreach (var (prefix, key) in _prefixMap)
-            if (_url.StartsWith(prefix)) { _open.Add(key); break; }
+            if (_url.StartsWith(prefix)) { _open.Add(key); OpenCurrentSub(_url); break; }
         _ = PersistOpen();
         StateHasChanged();
     }
@@ -369,16 +444,24 @@
         _ = PersistOpen();
     }
 
+    void ToggleSub(string key)
+    {
+        if (!_openSub.Remove(key)) _openSub.Add(key);
+        _ = PersistOpenSub();
+    }
+
     void ToggleFav()
     {
         _favOpen = !_favOpen;
         _ = PersistFavOpen();
     }
 
-    bool   IsOpen(string key) => _open.Contains(key);
-    string Chev(string key)   => _open.Contains(key) ? "▾" : "▸";
+    bool   IsOpen(string key)    => _open.Contains(key);
+    bool   IsSubOpen(string key) => _openSub.Contains(key);
+    string Chev(string key)      => _open.Contains(key) ? "▾" : "▸";
 
     Task PersistOpen()      => Save(KeyOpen, JsonSerializer.Serialize(_open));
+    Task PersistOpenSub()   => Save(KeyOpenSub, JsonSerializer.Serialize(_openSub));
     Task PersistFavorites() => Save(KeyFavorites, JsonSerializer.Serialize(_favorites));
     Task PersistCollapsed() => Save(KeyCollapsed, _collapsed ? "1" : "0");
     Task PersistFavOpen()   => Save(KeyFavOpen, _favOpen ? "1" : "0");

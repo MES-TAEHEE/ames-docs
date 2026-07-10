@@ -1,4 +1,4 @@
-﻿@page "/md/location"
+@page "/md/fd/location"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
@@ -249,7 +249,7 @@
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
         await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("md/location");
+        _canEdit = Perm.CanEdit("md/fd/location");
         try { _plantCodes = Md.ListCodeItems("PLANT"); } catch { }
         Reload();
     }

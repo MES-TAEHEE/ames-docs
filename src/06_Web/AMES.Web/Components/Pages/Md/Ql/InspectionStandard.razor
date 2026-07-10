@@ -1,4 +1,4 @@
-﻿@page "/md/inspection-standard"
+@page "/md/ql/inspection-standard"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
@@ -116,7 +116,6 @@
     }
 </div>
 
-@* ── Create Modal ─────────────────────────────────────────────────── *@
 @if (_modal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
@@ -181,7 +180,6 @@
     </div>
 }
 
-@* ── Edit Modal ───────────────────────────────────────────────────── *@
 @if (_modal == "edit" && _sel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
@@ -275,7 +273,7 @@
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
         await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("md/inspection-standard");
+        _canEdit = Perm.CanEdit("md/ql/inspection-standard");
         Reload();
     }
 

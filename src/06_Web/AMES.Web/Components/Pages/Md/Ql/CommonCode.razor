@@ -1,4 +1,4 @@
-﻿@page "/md/common-code"
+@page "/md/ql/common-code"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject MasterDataRepository Md
@@ -397,7 +397,7 @@
         var auth = await Auth.GetAuthenticationStateAsync();
         _actor   = auth.User.Identity?.Name ?? "system";
         await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("md/common-code");
+        _canEdit = Perm.CanEdit("md/ql/common-code");
         LoadGroups();
     }
 
@@ -439,7 +439,6 @@
         _fDescription = g.Description ?? "";
         _fUseFlag     = g.UseFlag;
         _grpConfirmDelete = false; _modalErr = "";
-        // 아이템 카운트를 삭제 확인 메시지에 사용하기 위해 로드
         if (_selGroup?.GroupCode != g.GroupCode)
             try { _items = Md.ListCodeItems(g.GroupCode); } catch { _items = new(); }
         _modal = "grp-edit";
