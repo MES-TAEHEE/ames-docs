@@ -3,6 +3,8 @@
 @rendermode InteractiveServer
 @inject AMES.Data.Repositories.PpRepository Pp
 @inject AMES.Data.Repositories.MasterDataRepository Md
+@inject DialogService Dialog
+@inject AuthenticationStateProvider Auth
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["PP.WoRelease.Title"] · AMES</PageTitle>
@@ -154,12 +156,19 @@
         catch (Exception ex) { _err = string.Format(L["Err.LoadFailed"].Value, ex.Message); _all = []; _rows = []; }
     }
 
-    void DoRelease(AMES.Data.Repositories.PpRepository.WoLite w)
+    async Task DoRelease(AMES.Data.Repositories.PpRepository.WoLite w)
     {
+        var result = await Dialog.OpenAsync<WoReleaseLineDialog>(
+            $"{L["PP.WoRelease.Btn.Release"].Value} · {w.WoNumber}",
+            new Dictionary<string, object?> { ["CurrentLineId"] = w.LineId });
+        if (result is not WoReleaseLineDialog.Result r) return;
+
         try
         {
-            Pp.ReleaseWo(w.WoId);
-            ShowMsg(string.Format(L["PP.WoRelease.Ok.Released"].Value, w.WoNumber), false);
+            var auth  = await Auth.GetAuthenticationStateAsync();
+            var actor = auth.User.Identity?.Name ?? "system";
+            var n = Pp.ReleaseWo(w.WoId, r.LineId, actor);
+            if (n > 0) ShowMsg(string.Format(L["PP.WoRelease.Ok.Released"].Value, w.WoNumber), false);
             Reload();
         }
         catch (Exception ex) { ShowMsg(ex.Message, true); }

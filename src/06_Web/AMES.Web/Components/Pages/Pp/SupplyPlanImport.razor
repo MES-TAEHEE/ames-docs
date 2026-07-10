@@ -195,7 +195,7 @@ else
     void Search()
     {
         try   { _rows = Pp.ListCustomerOrders(_fCustomer ?? "", _fFrom, _fTo); }
-        catch { _rows = new(); }
+        catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); _rows = new(); }
         ApplyFilters();
     }
 

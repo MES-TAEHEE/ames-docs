@@ -1138,6 +1138,11 @@
   <data name="PP.PlanConfirm.Dlg.Title"><value>Batch Create Work Orders</value></data>
   <data name="PP.PlanConfirm.Dlg.Selected"><value>Selected Plans</value></data>
   <data name="PP.PlanConfirm.Dlg.NetTotal"><value>Net Production Total</value></data>
+  <data name="PP.PlanConfirm.Dlg.OrderTotal"><value>Order Qty Total</value></data>
+  <data name="PP.PlanConfirm.Dlg.QtyBasis"><value>Qty Basis</value></data>
+  <data name="PP.PlanConfirm.Dlg.QtyNet"><value>Net req. (Order − FG stock)</value></data>
+  <data name="PP.PlanConfirm.Dlg.QtyOrder"><value>Full order qty</value></data>
+  <data name="PP.PlanConfirm.Dlg.SkipZero"><value>{0} line(s) with net requirement ≤ 0 will be skipped.</value></data>
   <data name="PP.PlanConfirm.Dlg.Validation"><value>Master Data Validation</value></data>
   <data name="PP.PlanConfirm.Dlg.Passed"><value>All passed</value></data>
   <data name="PP.PlanConfirm.Dlg.WoStatus"><value>Created WO Status</value></data>
@@ -1162,6 +1167,8 @@
   <data name="PP.SupplyPlanImport.Preview.Summary"><value>{0} PO lines · {1} items · {2:yyyy-MM-dd} ~ {3:yyyy-MM-dd}</value></data>
   <data name="PP.SupplyPlanImport.Preview.Vendor"><value>Vendor: {0}</value></data>
   <data name="PP.SupplyPlanImport.Preview.Unmatched"><value>{0} item(s) not in item master</value></data>
+  <data name="PP.SupplyPlanImport.Preview.NegSkipped"><value>{0} row(s) with negative order qty will be skipped.</value></data>
+  <data name="PP.SupplyPlanImport.Err.AllNegative"><value>All rows have a negative order qty — nothing to import.</value></data>
   <data name="PP.SupplyPlanImport.Ok.Imported"><value>Import complete — {0} inserted, {1} updated.</value></data>
   <data name="PP.SupplyPlanImport.Ok.Exported"><value>{0} rows exported.</value></data>
   <data name="PP.SupplyPlanImport.Ok.Confirmed"><value>Sales order confirmed — now eligible for PP-03 planning.</value></data>
@@ -1180,6 +1187,7 @@
   <data name="PP.WoRelease.Kpi.Pending"><value>Waiting for Release</value></data>
   <data name="PP.WoRelease.Btn.Release"><value>▶ Release</value></data>
   <data name="PP.WoRelease.Ok.Released"><value>{0} released.</value></data>
+  <data name="PP.WoRelease.Dlg.Phase0Warn"><value>BOM/BOP master data is incomplete. Release is allowed, but complete it before shop-floor execution.</value></data>
   <data name="PP.WorkOrder.Title"><value>Work Order</value></data>
   <data name="PP.WorkOrder.Sub"><value>Production Work Order Management</value></data>
   <data name="PP.WorkOrder.List"><value>Work Order List</value></data>

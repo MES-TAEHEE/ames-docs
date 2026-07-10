@@ -28,6 +28,12 @@
             {
                 <div class="dim" style="margin-top:4px;">@string.Format(L["PP.SupplyPlanImport.Preview.Vendor"].Value, _vendor)</div>
             }
+            @if (_negSkipped > 0)
+            {
+                <div style="color:#fbbf24;margin-top:6px;">
+                    ⚠ @string.Format(L["PP.SupplyPlanImport.Preview.NegSkipped"].Value, _negSkipped)
+                </div>
+            }
             @if (_unmatched.Count > 0)
             {
                 <div style="color:#f87171;margin-top:6px;">
@@ -62,19 +68,26 @@
     IReadOnlyList<PoListParser.PoRow>? _preview;
     HashSet<string> _unmatched = new();
     int      _distinctItems;
+    int      _negSkipped;
     string   _vendor = "";
     DateTime _minOrderDate, _maxOrderDate;
 
     async Task OnFile(InputFileChangeEventArgs e)
     {
-        _modalErr = ""; _preview = null; _unmatched = new(); _vendor = "";
+        _modalErr = ""; _preview = null; _unmatched = new(); _vendor = ""; _negSkipped = 0;
         try
         {
             using var ms = new MemoryStream();
             await using (var s = e.File.OpenReadStream(MaxBytes))
                 await s.CopyToAsync(ms);
             ms.Position = 0;
-            var rows = PoListParser.Parse(ms);
+            var parsed = PoListParser.Parse(ms);
+
+            // 발주수량 음수 행(반품 등)은 가져오기 대상에서 제외
+            _negSkipped = parsed.Count(r => r.OrderQty < 0);
+            var rows = parsed.Where(r => r.OrderQty >= 0).ToList();
+            if (rows.Count == 0)
+                throw new FormatException(L["PP.SupplyPlanImport.Err.AllNegative"].Value);
 
             var tooLong = rows.FirstOrDefault(r => r.ItemNo.Length > 20 || r.SoNumber.Length > 20);
             if (tooLong is not null)

@@ -1213,6 +1213,12 @@ CREATE TABLE dbo.PP_WorkOrder (
   CONSTRAINT PK_PP_WorkOrder PRIMARY KEY CLUSTERED ([WoID])
 );
 GO
+SET QUOTED_IDENTIFIER ON;  -- 필터드 인덱스 필수 (sqlcmd 기본값 OFF)
+GO
+CREATE UNIQUE NONCLUSTERED INDEX UX_PP_WorkOrder_WoNumber
+  ON dbo.PP_WorkOrder (WoNumber)
+  WHERE WoNumber IS NOT NULL;
+GO
 
 -- ── PP_WorkOrderRouting  (WO 라우팅 (BOP 스냅샷))
 CREATE TABLE dbo.PP_WorkOrderRouting (

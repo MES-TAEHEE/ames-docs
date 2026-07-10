@@ -1138,6 +1138,11 @@
   <data name="PP.PlanConfirm.Dlg.Title"><value>작업지시 일괄 생성</value></data>
   <data name="PP.PlanConfirm.Dlg.Selected"><value>선택 계획</value></data>
   <data name="PP.PlanConfirm.Dlg.NetTotal"><value>순생산 합계</value></data>
+  <data name="PP.PlanConfirm.Dlg.OrderTotal"><value>수주수량 합계</value></data>
+  <data name="PP.PlanConfirm.Dlg.QtyBasis"><value>수량 기준</value></data>
+  <data name="PP.PlanConfirm.Dlg.QtyNet"><value>순소요량 (수주−FG재고)</value></data>
+  <data name="PP.PlanConfirm.Dlg.QtyOrder"><value>수주 전량</value></data>
+  <data name="PP.PlanConfirm.Dlg.SkipZero"><value>순소요 0 이하 {0}건은 생성에서 제외됩니다.</value></data>
   <data name="PP.PlanConfirm.Dlg.Validation"><value>마스터 데이터 검증</value></data>
   <data name="PP.PlanConfirm.Dlg.Passed"><value>전체 통과</value></data>
   <data name="PP.PlanConfirm.Dlg.WoStatus"><value>생성 WO 상태</value></data>
@@ -1162,6 +1167,8 @@
   <data name="PP.SupplyPlanImport.Preview.Summary"><value>PO {0}건 · 품목 {1}개 · {2:yyyy-MM-dd} ~ {3:yyyy-MM-dd}</value></data>
   <data name="PP.SupplyPlanImport.Preview.Vendor"><value>거래처: {0}</value></data>
   <data name="PP.SupplyPlanImport.Preview.Unmatched"><value>품목마스터에 없는 품번 {0}개</value></data>
+  <data name="PP.SupplyPlanImport.Preview.NegSkipped"><value>발주수량이 음수인 {0}건은 가져오기에서 제외됩니다.</value></data>
+  <data name="PP.SupplyPlanImport.Err.AllNegative"><value>모든 행의 발주수량이 음수여서 가져올 데이터가 없습니다.</value></data>
   <data name="PP.SupplyPlanImport.Ok.Imported"><value>가져오기 완료 — 신규 {0}건, 갱신 {1}건.</value></data>
   <data name="PP.SupplyPlanImport.Ok.Exported"><value>{0}건 내보냈습니다.</value></data>
   <data name="PP.SupplyPlanImport.Ok.Confirmed"><value>수주 확정 완료 — PP-03 계획 대상으로 편입되었습니다.</value></data>
@@ -1180,6 +1187,7 @@
   <data name="PP.WoRelease.Kpi.Pending"><value>출하 대기</value></data>
   <data name="PP.WoRelease.Btn.Release"><value>▶ 출하</value></data>
   <data name="PP.WoRelease.Ok.Released"><value>{0} 출하 완료.</value></data>
+  <data name="PP.WoRelease.Dlg.Phase0Warn"><value>BOM/BOP 기준정보가 미완성입니다. 릴리스는 가능하나 현장 진행 전 보완이 필요합니다.</value></data>
   <data name="PP.WorkOrder.Title"><value>작업 지시</value></data>
   <data name="PP.WorkOrder.Sub"><value>생산 작업 지시 조회</value></data>
   <data name="PP.WorkOrder.List"><value>작업 지시 목록</value></data>
