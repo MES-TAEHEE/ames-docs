@@ -879,7 +879,11 @@ select.ames-input option { background: #0d1b2e; }
 .ames-rz-grid .rz-data-row                       { display: table-row !important; }
 .ames-rz-grid .rz-data-row > td                  { display: table-cell !important; width: auto !important; }
 
-/* 3. 헤더 */
+/* 3. 헤더 — th는 sticky라 반투명이면 세로 스크롤 시 행이 밑으로 비친다.
+   불투명 배경 위에 기존 파란 틴트를 합성한다. */
+.ames-rz-grid thead th {
+    background: linear-gradient(rgba(147,197,253,.06), rgba(147,197,253,.06)), var(--ames-frozen-bg) !important;
+}
 .ames-rz-grid .rz-column-header {
     background: rgba(147,197,253,.06) !important;
     color: #93c5fd !important;
@@ -927,9 +931,13 @@ select.ames-input option { background: #0d1b2e; }
 /* box-shadow: 테이블이 auto 레이아웃이라 실제 렌더 폭이 선언 폭(=sticky 오프셋 계산 기준)보다
    좁아질 수 있고, 그 오차만큼 고정 셀 사이에 틈이 생겨 뒤 컬럼이 비친다.
    배경을 왼쪽으로 12px 연장해 틈을 덮는다 (왼쪽은 항상 고정 셀 영역이라 안전). */
-.ames-rz-grid td.rz-frozen-cell,
-.ames-rz-grid th.rz-frozen-cell {
+.ames-rz-grid td.rz-frozen-cell {
     background: var(--ames-frozen-bg) !important;
+    box-shadow: -12px 0 0 var(--ames-frozen-bg) !important;
+}
+.ames-rz-grid th.rz-frozen-cell {
+    /* 일반 헤더와 같은 틴트 합성 배경 (3. 헤더 참조) */
+    background: linear-gradient(rgba(147,197,253,.06), rgba(147,197,253,.06)), var(--ames-frozen-bg) !important;
     box-shadow: -12px 0 0 var(--ames-frozen-bg) !important;
 }
 /* 마지막이 아닌 고정 셀은 오른쪽으로도 연장 — 소수 DPI 배율에서 다음 고정 셀의
