@@ -1000,7 +1000,7 @@
   <data name="PP.Forecast.Preview.Summary"><value>{0} items × {1} weeks · {2:MM/dd}–{3:MM/dd}</value></data>
   <data name="PP.Forecast.Preview.Unmatched"><value>{0} items not in item master — you can still save; names fall back to the file values.</value></data>
   <data name="PP.Forecast.Ok.Imported"><value>Saved: {0} new · {1} updated · {2} qty changes</value></data>
-  <data name="PP.Forecast.Badge.NoItem"><value>NO ITEM</value></data>
+  <data name="PP.Forecast.Badge.Unregistered"><value>UNREGISTERED</value></data>
   <data name="PP.Forecast.Btn.ExcelUpload"><value>Excel Upload</value></data>
   <data name="PP.Forecast.Btn.Export"><value>Export</value></data>
   <data name="PP.Forecast.Btn.RunUpload"><value>Run Upload</value></data>

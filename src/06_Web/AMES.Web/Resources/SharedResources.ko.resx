@@ -1000,7 +1000,7 @@
   <data name="PP.Forecast.Preview.Summary"><value>품목 {0}개 × {1}주 · {2:MM/dd}–{3:MM/dd}</value></data>
   <data name="PP.Forecast.Preview.Unmatched"><value>미등록 품목 {0}건 — 저장은 가능하며 품목명은 파일 값으로 표시됩니다.</value></data>
   <data name="PP.Forecast.Ok.Imported"><value>저장 완료: 신규 {0} · 수정 {1} · 수량변경 {2}</value></data>
-  <data name="PP.Forecast.Badge.NoItem"><value>미등록</value></data>
+  <data name="PP.Forecast.Badge.Unregistered"><value>미등록</value></data>
   <data name="PP.Forecast.Btn.ExcelUpload"><value>Excel 업로드</value></data>
   <data name="PP.Forecast.Btn.Export"><value>내보내기</value></data>
   <data name="PP.Forecast.Btn.RunUpload"><value>업로드 실행</value></data>
