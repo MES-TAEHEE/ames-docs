@@ -1,0 +1,49 @@
+@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject DialogService Dialog
+@inject IStringLocalizer<SharedResources> L
+
+<div style="display:flex;flex-direction:column;gap:10px;min-width:380px;">
+    @if (Phase0Incomplete)
+    {
+        <div class="ames-alert bad">🚧 @L["PP.WoRelease.Dlg.Phase0Warn"]</div>
+    }
+
+    <div class="ames-fld">
+        <label>@L["Col.Line"]</label>
+        <RadzenDropDown Data="_lines" TextProperty="Display" ValueProperty="LineID"
+                        @bind-Value="_lineId" AllowFiltering="true"
+                        Placeholder="—" Style="width:100%" />
+    </div>
+
+    <div class="ames-modal-footer">
+        <RadzenButton Text="@L["Btn.Cancel"]" ButtonStyle="ButtonStyle.Light"
+                      Click="@(() => Dialog.Close(null))" />
+        <RadzenButton Text="@L["PP.WorkOrder.Btn.Release"].Value" Icon="play_arrow"
+                      ButtonStyle="ButtonStyle.Success" Disabled="@string.IsNullOrEmpty(_lineId)"
+                      Click="@(() => Dialog.Close(new Result(_lineId)))" />
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? CurrentLineId { get; set; }
+    [Parameter] public bool Phase0Incomplete { get; set; }
+
+    record LineVm(string LineID, string Display);
+    List<LineVm> _lines = new();
+    string _lineId = "";
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            _lines = Md.ListLines()
+                .Select(l => new LineVm(l.LineID,
+                    string.IsNullOrEmpty(l.LineName) ? l.LineID : $"{l.LineID} · {l.LineName}"))
+                .ToList();
+        }
+        catch { _lines = new(); }
+        _lineId = CurrentLineId ?? "";
+    }
+
+    public record Result(string LineId);
+}

@@ -166,7 +166,7 @@ else
     List<WorkOrderDto> _rows = new();
     List<WorkOrderDto> _view = new();
 
-    readonly string[] _statuses = { "Draft", "Released", "In Progress", "Closed" };
+    readonly string[] _statuses = { "Draft", "Planned", "Released", "In Progress", "Closed", "Cancelled" };
     readonly string[] _routings = { "A", "B" };
     readonly int[]    _dayOpts  = { 7, 30, 60, 90 };
 
@@ -214,7 +214,7 @@ else
 
     // ── display helpers ─────────────────────────────────────────────
     static string ProgColor(int p) => p >= 80 ? "#4ade80" : p >= 40 ? "#3b82f6" : "#94a3b8";
-    static string StatusClass(string s) => s switch { "In Progress" => "ok", "Released" => "info", "Closed" => "dim", _ => "dim" };
+    static string StatusClass(string s) => s switch { "In Progress" => "ok", "Released" => "info", "Cancelled" => "bad", _ => "dim" };
     static string DdClass(WorkOrderDto w) =>
         w.DaysToDue is not int d ? "dim" : d < 0 ? "bad" : d <= 3 ? "warn" : "ok";
     static string DdText(WorkOrderDto w) =>
@@ -238,9 +238,18 @@ else
 
     async Task Release(WorkOrderDto w)
     {
+        var result = await Dialog.OpenAsync<WoReleaseLineDialog>(
+            $"{L["PP.WorkOrder.Btn.Release"].Value} · {w.WoNumber}",
+            new Dictionary<string, object?>
+            {
+                ["CurrentLineId"]    = w.LineId,
+                ["Phase0Incomplete"] = !w.Phase0Complete,
+            });
+        if (result is not WoReleaseLineDialog.Result r) return;
+
         try
         {
-            var n = Wos.ReleaseWo(w.WoId, await Actor());
+            var n = Wos.ReleaseWo(w.WoId, r.LineId, await Actor());
             if (n > 0) ShowMsg(string.Format(L["PP.WorkOrder.Ok.Released"].Value, w.WoNumber), false);
             Reload();
         }
@@ -300,7 +309,7 @@ else
         foreach (var w in _view)
         {
             sb.AppendLine(string.Join(",", new[] {
-                w.WoNumber, w.ItemNameEn ?? w.ItemName, w.LineId, w.RoutingType ?? "INJ",
+                w.WoNumber, w.ItemNameEn ?? w.ItemName ?? "", w.LineId ?? "", w.RoutingType ?? "INJ",
                 w.OrderQty.ToString("0.###"), w.CompletedQty.ToString("0.###"), ((int)w.ProgressPct) + "%",
                 w.DueDate?.ToString("yyyy-MM-dd") ?? "", w.Status, w.SoNumber ?? "" }.Select(Csv)));
         }

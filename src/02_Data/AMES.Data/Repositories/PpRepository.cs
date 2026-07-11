@@ -481,7 +481,7 @@ public sealed class PpRepository
                         ELSE NULL END AS LineLoadPct
             FROM   dbo.PP_CustomerOrder s
             LEFT JOIN dbo.MD_Item i ON i.ItemNo = s.ItemNo
-            LEFT JOIN dbo.PP_WorkOrder wo ON wo.SoID = s.SoID
+            LEFT JOIN dbo.PP_WorkOrder wo ON wo.SoID = s.SoID AND wo.Status <> 'Cancelled'
             OUTER APPLY (SELECT SUM(f.Qty) AS OnHand FROM dbo.FG_Stock f
                          WHERE f.ItemNo = s.ItemNo AND f.Status NOT IN ('SHIPPED','SCRAPPED')) fg
             OUTER APPLY (SELECT TOP 1 w2.LineID FROM dbo.PP_WorkOrder w2
@@ -517,9 +517,10 @@ public sealed class PpRepository
 
     /// <summary>
     /// PP-003 선택 확정 수주 → Draft 작업지시 일괄 생성. 확정·품목마스터 존재·WO 미생성
-    /// 건만 삽입. WoNumber = WO-yyyyMMdd-NNN. 생성된 WoNumber 목록 반환.
+    /// (취소 WO 제외) 건만 삽입. useNetReq면 수량 = max(0, 수주 − FG재고), 0 이하 건 skip.
+    /// WoNumber = WO-yyyyMMdd-NNN. 생성된 WoNumber 목록 반환.
     /// </summary>
-    public List<string> CreateWorkOrdersForOrders(IReadOnlyList<int> soIds, string actor)
+    public List<string> CreateWorkOrdersForOrders(IReadOnlyList<int> soIds, string actor, bool useNetReq = false)
     {
         var created = new List<string>();
         if (soIds.Count == 0) return created;
@@ -529,30 +530,32 @@ public sealed class PpRepository
         const string insSql = """
             INSERT INTO dbo.PP_WorkOrder
                    (WoNumber, SoID, ItemNo, OrderQty, OpenQty, DueDate, Status, CreatedBy, CreatedTS)
-            SELECT @Wo, s.SoID, s.ItemNo, s.OrderQty, s.OrderQty, s.RequestedDeliveryDate,
+            SELECT @Wo, s.SoID, s.ItemNo, q.Qty, q.Qty, s.RequestedDeliveryDate,
                    'Draft', @Actor, SYSDATETIME()
             FROM   dbo.PP_CustomerOrder s
             JOIN   dbo.MD_Item i ON i.ItemNo = s.ItemNo
-            WHERE  s.SoID = @SoID AND s.Status = 'Confirmed'
-               AND NOT EXISTS (SELECT 1 FROM dbo.PP_WorkOrder w WHERE w.SoID = s.SoID);
+            OUTER APPLY (SELECT SUM(f.Qty) AS OnHand FROM dbo.FG_Stock f
+                         WHERE f.ItemNo = s.ItemNo AND f.Status NOT IN ('SHIPPED','SCRAPPED')) fg
+            CROSS APPLY (SELECT CASE WHEN @UseNet = 1
+                                     THEN IIF(ISNULL(s.OrderQty,0) > ISNULL(fg.OnHand,0),
+                                              ISNULL(s.OrderQty,0) - ISNULL(fg.OnHand,0), 0)
+                                     ELSE ISNULL(s.OrderQty,0) END AS Qty) q
+            WHERE  s.SoID = @SoID AND s.Status = 'Confirmed' AND q.Qty > 0
+               AND NOT EXISTS (SELECT 1 FROM dbo.PP_WorkOrder w
+                               WHERE w.SoID = s.SoID AND w.Status <> 'Cancelled');
             """;
 
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
         try
         {
-            int seq;
-            using (var cnt = new SqlCommand(
-                "SELECT COUNT(*) FROM dbo.PP_WorkOrder WHERE WoNumber LIKE @P + '%'", conn, tx))
-            {
-                cnt.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = prefix;
-                seq = (int)cnt.ExecuteScalar();
-            }
+            var seq = NextWoSeq(conn, tx, prefix);
 
             using var ins = new SqlCommand(insSql, conn, tx);
             var pWo    = ins.Parameters.Add("@Wo",   SqlDbType.VarChar, 20);
             var pSo    = ins.Parameters.Add("@SoID", SqlDbType.Int);
-            ins.Parameters.Add("@Actor", SqlDbType.NVarChar, 450).Value = actor;
+            ins.Parameters.Add("@Actor",  SqlDbType.NVarChar, 450).Value = actor;
+            ins.Parameters.Add("@UseNet", SqlDbType.Bit).Value = useNetReq;
 
             foreach (var soId in soIds)
             {
@@ -569,6 +572,21 @@ public sealed class PpRepository
             tx.Rollback();
             throw;
         }
+    }
+
+    /// <summary>
+    /// 접두사 내 마지막 채번 번호. UPDLOCK/HOLDLOCK으로 트랜잭션 종료까지 범위를 잠가
+    /// 동시 생성 시 중복 채번을 방지한다 (WoNumber 유니크 인덱스가 최종 방어선).
+    /// </summary>
+    internal static int NextWoSeq(SqlConnection conn, SqlTransaction tx, string prefix)
+    {
+        using var cmd = new SqlCommand("""
+            SELECT ISNULL(MAX(TRY_CAST(SUBSTRING(WoNumber, LEN(@P) + 1, 10) AS INT)), 0)
+            FROM   dbo.PP_WorkOrder WITH (UPDLOCK, HOLDLOCK)
+            WHERE  WoNumber LIKE @P + '%';
+            """, conn, tx);
+        cmd.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = prefix;
+        return (int)cmd.ExecuteScalar();
     }
 
     // ── PP-004 Work Order: covered by WorkOrderRepository ───────────────
@@ -678,21 +696,26 @@ public sealed class PpRepository
         return cmd.ExecuteNonQuery();
     }
 
-    /// <summary>WO 상태를 Released로 변경하고 ReleasedAt을 기록합니다 (PP-007).</summary>
-    public void ReleaseWo(int woId)
+    /// <summary>WO를 Released로 전환하고 생산라인을 지정합니다 (PP-007). 변경 행수 반환.</summary>
+    public int ReleaseWo(int woId, string lineId, string actor)
     {
         const string sql = """
             UPDATE dbo.PP_WorkOrder
             SET    Status     = 'Released',
+                   LineID     = @LineID,
                    ReleasedAt = SYSDATETIME(),
-                   ModifiedTS = SYSDATETIME()
+                   ReleasedBy = @Actor,
+                   ModifiedTS = SYSDATETIME(),
+                   ModifiedBy = @Actor
             WHERE  WoID   = @WoID
               AND  Status IN ('Draft','Planned');
             """;
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@WoID", SqlDbType.Int).Value = woId;
-        cmd.ExecuteNonQuery();
+        cmd.Parameters.Add("@WoID",   SqlDbType.Int).Value           = woId;
+        cmd.Parameters.Add("@LineID", SqlDbType.VarChar, 20).Value   = lineId;
+        cmd.Parameters.Add("@Actor",  SqlDbType.NVarChar, 450).Value = actor;
+        return cmd.ExecuteNonQuery();
     }
 
     // ── PP-CAL Calendar overrides ───────────────────────────────────────

@@ -16,7 +16,7 @@ public sealed class WorkOrderRepository
 
     /// <summary>
     /// All WOs across all lines for the PP-004 management grid.
-    /// Returns Draft + Released + In Progress always; Closed only within the last <paramref name="recentClosedDays"/> days.
+    /// Returns Draft + Planned + Released + In Progress always; Closed/Cancelled only within the last <paramref name="recentClosedDays"/> days.
     /// </summary>
     public List<WorkOrderDto> ListAll(int recentClosedDays = 30)
     {
@@ -38,9 +38,11 @@ public sealed class WorkOrderRepository
             FROM   dbo.PP_WorkOrder w
             JOIN   dbo.MD_Item      i  ON i.ItemNo = w.ItemNo
             LEFT JOIN dbo.PP_CustomerOrder so ON so.SoID = w.SoID
-            WHERE  w.Status IN ('Draft','Released','In Progress')
+            WHERE  w.Status IN ('Draft','Planned','Released','In Progress')
                OR (w.Status = 'Closed'
                    AND w.ActualEnd >= DATEADD(day, -@Days, CAST(GETDATE() AS date)))
+               OR (w.Status = 'Cancelled'
+                   AND w.ModifiedTS >= DATEADD(day, -@Days, CAST(GETDATE() AS date)))
             ORDER  BY CASE w.Status
                            WHEN 'In Progress' THEN 0
                            WHEN 'Released'    THEN 1
@@ -210,12 +212,13 @@ public sealed class WorkOrderRepository
 
     // ── PP-004 lifecycle actions ─────────────────────────────────────────────
 
-    /// <summary>WO를 Released로 전환 (Draft/Planned만). 변경 행수 반환.</summary>
-    public int ReleaseWo(int woId, string actor)
+    /// <summary>WO를 Released로 전환하고 생산라인을 지정 (Draft/Planned만). 변경 행수 반환.</summary>
+    public int ReleaseWo(int woId, string lineId, string actor)
     {
         const string sql = """
             UPDATE dbo.PP_WorkOrder
                SET Status     = 'Released',
+                   LineID     = @LineID,
                    ReleasedAt = SYSDATETIME(),
                    ReleasedBy = @Actor,
                    ModifiedTS = SYSDATETIME(),
@@ -225,8 +228,9 @@ public sealed class WorkOrderRepository
             """;
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@WoID",  SqlDbType.Int).Value          = woId;
-        cmd.Parameters.Add("@Actor", SqlDbType.NVarChar, 450).Value = actor;
+        cmd.Parameters.Add("@WoID",   SqlDbType.Int).Value           = woId;
+        cmd.Parameters.Add("@LineID", SqlDbType.VarChar, 20).Value   = lineId;
+        cmd.Parameters.Add("@Actor",  SqlDbType.NVarChar, 450).Value = actor;
         return cmd.ExecuteNonQuery();
     }
 
@@ -266,13 +270,7 @@ public sealed class WorkOrderRepository
         using var tx   = conn.BeginTransaction();
         try
         {
-            int seq;
-            using (var cnt = new SqlCommand(
-                "SELECT COUNT(*) FROM dbo.PP_WorkOrder WHERE WoNumber LIKE @P + '%'", conn, tx))
-            {
-                cnt.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = prefix;
-                seq = (int)cnt.ExecuteScalar();
-            }
+            var seq = PpRepository.NextWoSeq(conn, tx, prefix);
 
             var wo = $"{prefix}{(seq + 1):D3}";
             using var ins = new SqlCommand(insSql, conn, tx);

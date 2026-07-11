@@ -8,8 +8,18 @@
         <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.12);">
             <span class="dim">@L["PP.PlanConfirm.Dlg.Selected"]</span><span class="code">@Lines.Count</span>
         </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.12);">
+            <span class="dim">@L["PP.PlanConfirm.Dlg.QtyBasis"]</span>
+            <RadzenRadioButtonList @bind-Value="_useNet" TValue="bool" Orientation="Radzen.Orientation.Horizontal" Disabled="_busy">
+                <Items>
+                    <RadzenRadioButtonListItem Text="@L["PP.PlanConfirm.Dlg.QtyNet"].Value" Value="true" TValue="bool" />
+                    <RadzenRadioButtonListItem Text="@L["PP.PlanConfirm.Dlg.QtyOrder"].Value" Value="false" TValue="bool" />
+                </Items>
+            </RadzenRadioButtonList>
+        </div>
         <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.12);">
-            <span class="dim">@L["PP.PlanConfirm.Dlg.NetTotal"]</span><span class="code">@Lines.Sum(l => l.NetReq).ToString("#,0") EA</span>
+            <span class="dim">@L[_useNet ? "PP.PlanConfirm.Dlg.NetTotal" : "PP.PlanConfirm.Dlg.OrderTotal"]</span>
+            <span class="code">@Lines.Sum(Qty).ToString("#,0") EA</span>
         </div>
         <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.12);">
             <span class="dim">@L["PP.PlanConfirm.Dlg.Validation"]</span><span style="color:#86efac;">✓ @L["PP.PlanConfirm.Dlg.Passed"]</span>
@@ -24,10 +34,15 @@
         {
             <div style="display:flex;justify-content:space-between;font-size:.85em;padding:3px 0;">
                 <span><span class="code">@l.SoNumber</span> · @l.ItemNo</span>
-                <span class="dim">@l.NetReq.ToString("#,0") EA</span>
+                <span class="dim">@Qty(l).ToString("#,0") EA</span>
             </div>
         }
     </div>
+
+    @if (_useNet && SkipCount > 0)
+    {
+        <div class="ames-alert bad">@string.Format(L["PP.PlanConfirm.Dlg.SkipZero"].Value, SkipCount)</div>
+    }
 
     <span class="dim" style="font-size:.8em;line-height:1.5;">@L["PP.PlanConfirm.Dlg.Hint"]</span>
 
@@ -49,7 +64,11 @@
     [Parameter] public List<PpRepository.PlanLineRow> Lines { get; set; } = new();
 
     bool   _busy;
+    bool   _useNet = true;
     string _err = "";
+
+    decimal Qty(PpRepository.PlanLineRow l) => _useNet ? l.NetReq : l.OrderQty;
+    int SkipCount => Lines.Count(l => l.NetReq <= 0);
 
     async Task Run()
     {
@@ -58,7 +77,7 @@
         {
             var auth  = await Auth.GetAuthenticationStateAsync();
             var actor = auth.User.Identity?.Name ?? "system";
-            var created = Pp.CreateWorkOrdersForOrders(Lines.Select(l => l.SoId).ToList(), actor);
+            var created = Pp.CreateWorkOrdersForOrders(Lines.Select(l => l.SoId).ToList(), actor, _useNet);
             Dialog.Close(new Result(created.Count));
         }
         catch (Exception ex) { _err = ex.Message; _busy = false; }
