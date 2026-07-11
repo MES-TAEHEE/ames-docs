@@ -916,6 +916,55 @@ select.ames-input option { background: #0d1b2e; }
 .ames-rz-grid .rz-state-highlight .rz-data-cell  { background: rgba(99,179,237,.08) !important; }
 .ames-row-link:hover .rz-data-cell                { background: rgba(99,179,237,.08) !important; }
 
+/* 5b. 고정(Frozen) 컬럼 — Radzen 기본 배경이 반투명(rgba(255,255,255,.02))이라
+   가로 스크롤 시 뒤 컬럼이 비쳐 보인다. 그리드가 놓인 배경과 같은 톤의 불투명 배경을
+   깔고, 반투명 강조색은 그 위에 겹친다. Radzen 11은 td/th에 rz-frozen-cell만 붙는다
+   (rz-data-cell·rz-column-header 아님 — 헤더 틴트는 th 안쪽 div가 덮는다). */
+.ames-rz-grid { --ames-frozen-bg: #060b17; }                /* 본문 배경 위 그리드 */
+.ames-tabpanel .ames-rz-grid,
+.ames-card .ames-rz-grid { --ames-frozen-bg: #0c182b; }     /* 탭 패널·카드 안 그리드 */
+
+/* box-shadow: 테이블이 auto 레이아웃이라 실제 렌더 폭이 선언 폭(=sticky 오프셋 계산 기준)보다
+   좁아질 수 있고, 그 오차만큼 고정 셀 사이에 틈이 생겨 뒤 컬럼이 비친다.
+   배경을 왼쪽으로 12px 연장해 틈을 덮는다 (왼쪽은 항상 고정 셀 영역이라 안전). */
+.ames-rz-grid td.rz-frozen-cell,
+.ames-rz-grid th.rz-frozen-cell {
+    background: var(--ames-frozen-bg) !important;
+    box-shadow: -12px 0 0 var(--ames-frozen-bg) !important;
+}
+/* 마지막이 아닌 고정 셀은 오른쪽으로도 연장 — 소수 DPI 배율에서 다음 고정 셀의
+   배경/그림자 래스터 경계가 서브픽셀로 어긋나며 생기는 실선 이음새를 뒤에서 받친다 */
+.ames-rz-grid td.rz-frozen-cell:not(.rz-frozen-cell-left-end),
+.ames-rz-grid th.rz-frozen-cell:not(.rz-frozen-cell-left-end) {
+    box-shadow: -12px 0 0 var(--ames-frozen-bg), 12px 0 0 var(--ames-frozen-bg) !important;
+}
+/* 마지막 고정 셀은 Radzen의 우측 경계 그림자를 유지하며 병합 */
+.ames-rz-grid td.rz-frozen-cell-left-end,
+.ames-rz-grid th.rz-frozen-cell-left-end {
+    box-shadow: -12px 0 0 var(--ames-frozen-bg), 5px 0 5px -5px rgba(0,0,0,.12) !important;
+}
+/* 고정 셀 sticky 오프셋은 js/frozen-columns.js가 실제 렌더 폭 기준으로 재계산한다
+   (Radzen의 선언 폭 기반 인라인 오프셋은 auto 레이아웃 실제 폭과 어긋나 틈 발생). */
+.ames-rz-grid tr.rz-state-highlight td.rz-frozen-cell,
+.ames-row-link:hover td.rz-frozen-cell {
+    background: linear-gradient(rgba(99,179,237,.08), rgba(99,179,237,.08)), var(--ames-frozen-bg) !important;
+    box-shadow: -12px 0 0 color-mix(in srgb, rgb(99,179,237) 8%, var(--ames-frozen-bg)) !important;
+}
+.ames-rz-grid tr.rz-state-highlight td.rz-frozen-cell:not(.rz-frozen-cell-left-end),
+.ames-row-link:hover td.rz-frozen-cell:not(.rz-frozen-cell-left-end) {
+    box-shadow: -12px 0 0 color-mix(in srgb, rgb(99,179,237) 8%, var(--ames-frozen-bg)),
+                12px 0 0 color-mix(in srgb, rgb(99,179,237) 8%, var(--ames-frozen-bg)) !important;
+}
+.ames-rz-grid tr.rz-state-highlight td.rz-frozen-cell-left-end,
+.ames-row-link:hover td.rz-frozen-cell-left-end {
+    box-shadow: -12px 0 0 color-mix(in srgb, rgb(99,179,237) 8%, var(--ames-frozen-bg)),
+                5px 0 5px -5px rgba(0,0,0,.12) !important;
+}
+.ames-row-selected td.rz-frozen-cell {
+    background: linear-gradient(rgba(99,179,237,.15), rgba(99,179,237,.15)), var(--ames-frozen-bg) !important;
+    box-shadow: -12px 0 0 color-mix(in srgb, rgb(99,179,237) 15%, var(--ames-frozen-bg)) !important;
+}
+
 /* 6. 페이저 — Material Symbols 폰트가 humanistic-dark-base.css에서 로드됨 */
 .ames-rz-grid .rz-pager {
     background: transparent !important;
