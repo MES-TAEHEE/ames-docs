@@ -2015,4 +2015,40 @@
   <data name="MD.Uom.PillBase"><value>Base</value></data>
   <data name="MD.Uom.BaseUnit"><value>Base Unit</value></data>
   <data name="PP.DowntimeMonitor.Tl.Title"><value>Last 60-min history (1 cell=1min)</value></data>
+  <data name="SYS.Users.Ph.Search" xml:space="preserve">
+    <value>User ID/Email/Emp.No/Name/Dept</value>
+  </data>
+  <data name="PP.SapImport.Title" xml:space="preserve">
+    <value>SAP Import</value>
+  </data>
+  <data name="PP.SapImport.Sub" xml:space="preserve">
+    <value>SAP Delivery Order Integration</value>
+  </data>
+  <data name="PP.SapImport.Empty" xml:space="preserve">
+    <value>No SAP import data matches the conditions.</value>
+  </data>
+  <data name="SYS.Interfaces.Filter.All" xml:space="preserve">
+    <value>— All —</value>
+  </data>
+  <data name="SYS.Users.Lbl.Email" xml:space="preserve">
+    <value>Email *</value>
+  </data>
+  <data name="SYS.Users.Ph.Email" xml:space="preserve">
+    <value>user@ames.local</value>
+  </data>
+  <data name="SYS.Users.Ph.EmployeeNo" xml:space="preserve">
+    <value>e.g. EMP001</value>
+  </data>
+  <data name="SYS.Users.Hint.Unverified" xml:space="preserve">
+    <value>Account status cannot be changed before email verification.</value>
+  </data>
+  <data name="SYS.Screen.Col.SubProcess" xml:space="preserve">
+    <value>Sub</value>
+  </data>
+  <data name="SYS.Screen.Modal.Create" xml:space="preserve">
+    <value>New screen</value>
+  </data>
+  <data name="SYS.Screen.Modal.Edit" xml:space="preserve">
+    <value>Edit Screen</value>
+  </data>
 </root>

@@ -2032,4 +2032,40 @@
   <data name="MD.Uom.PillBase"><value>기준</value></data>
   <data name="MD.Uom.BaseUnit"><value>기준단위</value></data>
   <data name="PP.DowntimeMonitor.Tl.Title"><value>최근 60분 가동 이력 (1칸=1분)</value></data>
+  <data name="SYS.Users.Ph.Search" xml:space="preserve">
+    <value>사용자ID/이메일/사번/성명/부서</value>
+  </data>
+  <data name="PP.SapImport.Title" xml:space="preserve">
+    <value>SAP 연동</value>
+  </data>
+  <data name="PP.SapImport.Sub" xml:space="preserve">
+    <value>SAP 납품 오더 연동</value>
+  </data>
+  <data name="PP.SapImport.Empty" xml:space="preserve">
+    <value>해당 조건에 SAP 연동 데이터가 없습니다.</value>
+  </data>
+  <data name="SYS.Interfaces.Filter.All" xml:space="preserve">
+    <value>— 전체 —</value>
+  </data>
+  <data name="SYS.Users.Lbl.Email" xml:space="preserve">
+    <value>이메일 *</value>
+  </data>
+  <data name="SYS.Users.Ph.Email" xml:space="preserve">
+    <value>user@ames.local</value>
+  </data>
+  <data name="SYS.Users.Ph.EmployeeNo" xml:space="preserve">
+    <value>예: EMP001</value>
+  </data>
+  <data name="SYS.Users.Hint.Unverified" xml:space="preserve">
+    <value>이메일 인증 전에는 계정 상태를 변경할 수 없습니다.</value>
+  </data>
+  <data name="SYS.Screen.Col.SubProcess" xml:space="preserve">
+    <value>서브</value>
+  </data>
+  <data name="SYS.Screen.Modal.Create" xml:space="preserve">
+    <value>신규 화면 등록</value>
+  </data>
+  <data name="SYS.Screen.Modal.Edit" xml:space="preserve">
+    <value>화면 수정</value>
+  </data>
 </root>

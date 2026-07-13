@@ -582,6 +582,7 @@ GO
 CREATE TABLE dbo.MD_Line (
   [LineID]                    VARCHAR(20)          NOT NULL,
   [LineName]                  NVARCHAR(50)             NULL,
+  [LineNameEn]                NVARCHAR(50)             NULL,
   [LineType]                  VARCHAR(16)              NULL,
   [PlantCode]                 VARCHAR(20)              NULL,
   [DefaultWCID]               VARCHAR(20)              NULL,  -- FK -> MD_WorkCenter.WCID
@@ -601,6 +602,7 @@ GO
 CREATE TABLE dbo.MD_Station (
   [StationCode]               VARCHAR(20)          NOT NULL,
   [StationName]               NVARCHAR(60)             NULL,
+  [StationNameEn]             NVARCHAR(60)             NULL,
   [LineID]                    VARCHAR(20)              NULL,  -- FK -> MD_Line.LineID
   [StationType]               VARCHAR(20)              NULL,
   [ProcessCode]               VARCHAR(10)              NULL,

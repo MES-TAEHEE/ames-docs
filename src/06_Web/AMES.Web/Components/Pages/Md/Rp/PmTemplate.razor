@@ -1,14 +1,13 @@
-@page "/md/rp/pm-template"
+﻿@page "/md/rp/pm-template"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
 @inject AuthenticationStateProvider Auth
 @inject AMES.Web.Services.PermissionService Perm
 @inject IStringLocalizer<SharedResources> L
+@using Radzen
 
 <PageTitle>@L["MD.PmTemplate.Title"] · AMES</PageTitle>
-
-<AmesPageHeader Code="MD-027" TitleKey="MD.PmTemplate.Title" />
 
 <div class="ames-kpis">
     <div class="ames-kpi">
@@ -31,207 +30,266 @@
 
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MD.PmTemplate.List"] · @_rows.Count @L["Lbl.Items"]@if (_rows.Count < _allRows.Count) { <text> / @L["Lbl.TotalOf"] @_allRows.Count</text> }</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input class="ames-input" style="width:150px;padding:4px 8px;"
-                   placeholder='@L["MD.LabelTemplate.Ph.Search"]' @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.EquipType"]</span>
-            <select class="ames-input" style="width:110px;" @bind="_fEquipType">
-                <option value="">@L["Filter.AllEquipTypes"]</option>
-                @foreach (var t in _allRows.Select(r => r.EquipType).Where(x => x != null).Distinct().OrderBy(x => x))
-                {
-                    <option value="@t">@t</option>
-                }
-            </select>
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Active"]</span>
-            <select class="ames-input" style="width:90px;" @bind="_fActive">
-                <option value="">@L["Filter.All"]</option>
-                <option value="Y">@L["Lbl.Active"]</option>
-                <option value="N">@L["Lbl.Inactive"]</option>
-            </select>
-            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
-            @if (_canEdit) { <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button> }
-        </div>
+        <span style="white-space:nowrap;">▼ @L["MD.PmTemplate.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fSearch" Placeholder='@L["MD.LabelTemplate.Ph.Search"]'
+                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" AutoComplete="false"
+                           @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' />
+            <RadzenLabel Text="@L["Col.EquipType"]" />
+            <RadzenDropDown @bind-Value="_fEquipType" Data="@EquipTypeOptions" TextProperty="Text" ValueProperty="Value"
+                            AllowClear="true" Placeholder="@L["Filter.AllEquipTypes"]"
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenLabel Text="@L["Col.Active"]" />
+            <RadzenDropDown @bind-Value="_fActive" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value"
+                            AllowClear="true" Placeholder="@L["Filter.All"]"
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
+            @if (_canEdit) { <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" /> }
+        </RadzenStack>
     </div>
 
-    @if (_rows.Count == 0)
+    <RadzenDataGrid TItem="AMES.Data.Repositories.MasterDataRepository.PmTemplateRow"
+                    Data="@_rows"
+                    AllowPaging="true" PageSize="25"
+                    PagerHorizontalAlign="HorizontalAlign.Center"
+                    PageSizeOptions="@_pageSizeOptions"
+                    ShowPagingSummary="true"
+                    AllowSorting="true"
+                    RowRender="@PmRowRender"
+                    RowClick="@(args => { if (args.Data is not null) OpenEdit(args.Data); })"
+                    EmptyText="@L["MD.PmTemplate.Empty"]"
+                    Class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.PmTemplateRow" Property="PMTemplateID" Title="@L["Col.TemplateId"]" Width="110px">
+                <Template Context="r"><span class="code">@r.PMTemplateID</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.PmTemplateRow" Property="TemplateName" Title="@L["Col.TemplateName"]">
+                <Template Context="r">@(r.TemplateName ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.PmTemplateRow" Property="EquipType" Title="@L["Col.EquipType"]" Width="110px">
+                <Template Context="r"><span class="dim">@(r.EquipType ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.PmTemplateRow" Property="CycleBasis" Title="@L["Col.BasisCycle"]" Width="100px">
+                <Template Context="r"><span class="pill">@(r.CycleBasis ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.PmTemplateRow" Property="IntervalValue" Title="@L["Col.Cycle"]" Width="70px" TextAlign="TextAlign.Right">
+                <Template Context="r">@(r.IntervalValue?.ToString() ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.PmTemplateRow" Property="IntervalUnit" Title="@L["Col.Uom"]" Width="80px">
+                <Template Context="r"><span class="dim">@(r.IntervalUnit ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.PmTemplateRow" Property="StdDurationMin" Title="@L["Col.StdDuration"]" Width="80px" TextAlign="TextAlign.Right">
+                <Template Context="r">@(r.StdDurationMin?.ToString() ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.PmTemplateRow" Property="SafetyLOTOFlag" Title="@L["Col.LOTO"]" Width="72px" TextAlign="TextAlign.Center">
+                <Template Context="r">@if (r.SafetyLOTOFlag) { <span class="pill warn">LOTO</span> }</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.PmTemplateRow" Property="ActiveFlag" Title="@L["Col.Status"]" Width="80px" TextAlign="TextAlign.Center">
+                <Template Context="r">
+                    @if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
+                    else { <span class="pill bad">@L["Lbl.Inactive"]</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.PmTemplateRow" Title="@L["Col.CheckItems"]" Width="80px" TextAlign="TextAlign.Center" Sortable="false">
+                <Template Context="r">
+                    <span @onclick:stopPropagation="true">
+                        <RadzenButton Icon="@(_expandedId == r.PMTemplateID ? "expand_less" : "expand_more")"
+                                      ButtonStyle="ButtonStyle.Light" Size="ButtonSize.ExtraSmall"
+                                      Click="@(() => ToggleSteps(r.PMTemplateID))" class="ames-rz-btn" />
+                    </span>
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+
+    @if (_expandedId != null && _steps.Count > 0)
     {
-        <div class="ames-empty">@L["MD.PmTemplate.Empty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
+        <div class="ames-card-h" style="margin-top:12px;font-size:.9em;">▶ @L["MD.PmTemplate.Steps"] — <span class="code">@_expandedId</span></div>
+        <table class="ames-table" style="font-size:.9em;">
             <thead>
                 <tr>
-                    <th>@L["Col.TemplateId"]</th><th>@L["Col.TemplateName"]</th><th>@L["Col.EquipType"]</th>
-                    <th>@L["Col.BasisCycle"]</th><th class="num">@L["Col.Cycle"]</th><th>@L["Col.Uom"]</th>
-                    <th class="num">@L["Col.StdDuration"]</th><th>@L["Col.LOTO"]</th><th>@L["Col.Status"]</th><th>@L["Col.CheckItems"]</th>
+                    <th class="num">@L["Col.Seq"]</th>
+                    <th>@L["Col.CheckItem"]</th>
+                    <th>@L["Col.PassCriteria"]</th>
+                    <th>@L["Col.RequiredPart"]</th>
+                    <th class="num">@L["Col.Qty"]</th>
+                    <th class="num">@L["Col.DurationMin"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
+                @foreach (var s in _steps)
                 {
-                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
-                        <td class="code">@r.PMTemplateID</td>
-                        <td>@(r.TemplateName ?? "—")</td>
-                        <td class="dim">@(r.EquipType ?? "—")</td>
-                        <td>@(r.CycleBasis ?? "—")</td>
-                        <td class="num">@(r.IntervalValue?.ToString() ?? "—")</td>
-                        <td class="dim">@(r.IntervalUnit ?? "—")</td>
-                        <td class="num">@(r.StdDurationMin?.ToString() ?? "—")</td>
-                        <td>@(r.SafetyLOTOFlag ? (MarkupString)"<span class=\"pill warn\">LOTO</span>" : (MarkupString)"")</td>
-                        <td>@if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> } else { <span class="pill bad">@L["Lbl.Inactive"]</span> }</td>
-                        <td><button class="ames-btn ghost" style="padding:2px 8px;font-size:.8em;" @onclick:stopPropagation @onclick="() => ToggleSteps(r.PMTemplateID)">▶</button></td>
+                    <tr>
+                        <td class="num">@(s.StepSeq?.ToString() ?? "—")</td>
+                        <td>@(s.StepDescription ?? "—")</td>
+                        <td class="dim">@(s.AcceptanceCriteria ?? "—")</td>
+                        <td class="dim">@(s.RequiredPartNo ?? "—")</td>
+                        <td class="num">@(s.RequiredQty?.ToString("0.###") ?? "—")</td>
+                        <td class="num">@(s.StepDurationMin?.ToString() ?? "—")</td>
                     </tr>
-                    @if (_expandedId == r.PMTemplateID && _steps.Count > 0)
-                    {
-                        <tr>
-                            <td colspan="10" style="padding:0 0 8px 32px;background:#f8fafc;">
-                                <table class="ames-table" style="margin:8px 0;">
-                                    <thead>
-                                        <tr>
-                                            <th class="num">@L["Col.Seq"]</th><th>@L["Col.CheckItem"]</th><th>@L["Col.PassCriteria"]</th>
-                                            <th>@L["Col.RequiredPart"]</th><th class="num">@L["Col.Qty"]</th><th class="num">@L["Col.DurationMin"]</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var s in _steps)
-                                        {
-                                            <tr>
-                                                <td class="num">@(s.StepSeq?.ToString() ?? "—")</td>
-                                                <td>@(s.StepDescription ?? "—")</td>
-                                                <td class="dim">@(s.AcceptanceCriteria ?? "—")</td>
-                                                <td class="dim">@(s.RequiredPartNo ?? "—")</td>
-                                                <td class="num">@(s.RequiredQty?.ToString("0.###") ?? "—")</td>
-                                                <td class="num">@(s.StepDurationMin?.ToString() ?? "—")</td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </td>
-                        </tr>
-                    }
                 }
             </tbody>
         </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
     }
 </div>
 
+@* ── Create Modal ─────────────────────────────────────────────────── *@
 @if (_modal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.PmTemplate.Title"] — @L["Btn.Create"]</div>
 
-            <label>@L["Col.TemplateId"]</label>
-            <input class="ames-input" @bind="_f.PMTemplateID" placeholder="PM-001" autocomplete="off" />
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div>
+                    <RadzenLabel Text="@L["Col.TemplateId"]" />
+                    <RadzenTextBox @bind-Value="_f.PMTemplateID" Placeholder="PM-001" AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="@L["Col.TemplateName"]" />
+                    <RadzenTextBox @bind-Value="_f.TemplateName" Placeholder='@L["MD.PmTemplate.Ph.TemplateName"]' AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+            </div>
 
-            <label>@L["Col.TemplateName"]</label>
-            <input class="ames-input" @bind="_f.TemplateName" placeholder='@L["MD.PmTemplate.Ph.TemplateName"]' autocomplete="off" />
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+                <div>
+                    <RadzenLabel Text="@L["Col.EquipType"]" />
+                    <RadzenTextBox @bind-Value="_f.EquipType" Placeholder="INJECTION / PAINTING" AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="@L["Col.BasisCycle"]" />
+                    <RadzenDropDown @bind-Value="_f.CycleBasis" Data="@CycleBasisOptions" TextProperty="Text" ValueProperty="Value"
+                                    Placeholder="@L["Opt.Select"]"
+                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+            </div>
 
-            <label>@L["Col.EquipType"]</label>
-            <input class="ames-input" @bind="_f.EquipType" placeholder="INJECTION / PAINTING / CONVEYOR" autocomplete="off" />
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+                <div>
+                    <RadzenLabel Text="@L["Col.Cycle"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.IntervalValue" Min="1"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="@L["Col.Uom"]" />
+                    <RadzenTextBox @bind-Value="_f.IntervalUnit" Placeholder="MONTH / WEEK / DAY / SHOT" AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+            </div>
 
-            <label>@L["Col.BasisCycle"]</label>
-            <select class="ames-input" @bind="_f.CycleBasis">
-                <option value="">@L["Opt.Select"]</option>
-                <option value="TIME">TIME</option>
-                <option value="COUNT">COUNT</option>
-                <option value="CALENDAR">CALENDAR</option>
-            </select>
+            <RadzenLabel Text='@(L["Col.StdDuration"] + " (분)")' Style="margin-top:6px;" />
+            <RadzenNumeric TValue="int?" @bind-Value="_f.StdDurationMin" Min="0"
+                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:50%;" />
 
-            <label>@L["Col.Cycle"]</label>
-            <input class="ames-input" type="number" @bind="_f.IntervalValue" placeholder="1" min="1" autocomplete="off" />
-
-            <label>@L["Col.Uom"]</label>
-            <input class="ames-input" @bind="_f.IntervalUnit" placeholder="MONTH / WEEK / DAY / SHOT" autocomplete="off" />
-
-            <label>@L["Col.StdDuration"] (분)</label>
-            <input class="ames-input" type="number" @bind="_f.StdDurationMin" placeholder="60" min="0" autocomplete="off" />
-
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" @bind="_f.SafetyLOTOFlag" />
-                <span>@L["Col.LOTO"] 필요</span>
-            </label>
-
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" @bind="_f.ActiveFlag" />
-                <span>@L["Lbl.Active"]</span>
-            </label>
+            <div style="display:flex;gap:16px;margin-top:8px;">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.SafetyLOTOFlag" />
+                    <span>@L["Col.LOTO"] 필요</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" />
+                    <span>@L["Lbl.Active"]</span>
+                </label>
+            </div>
 
             @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad">@_modalErr</div> }
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="margin-top:8px;">@_modalErr</RadzenAlert>
+            }
 
-            <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)</button>
-                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Create"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveCreate" Disabled="@_busy" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseModal" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
 
+@* ── Edit Modal ───────────────────────────────────────────────────── *@
 @if (_modal == "edit" && _sel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.PmTemplate.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.PMTemplateID</span></div>
 
-            <label>@L["Col.TemplateName"]</label>
-            <input class="ames-input" @bind="_f.TemplateName" autocomplete="off" />
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div>
+                    <RadzenLabel Text="@L["Col.TemplateName"]" />
+                    <RadzenTextBox @bind-Value="_f.TemplateName" AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="@L["Col.EquipType"]" />
+                    <RadzenTextBox @bind-Value="_f.EquipType" AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+            </div>
 
-            <label>@L["Col.EquipType"]</label>
-            <input class="ames-input" @bind="_f.EquipType" autocomplete="off" />
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+                <div>
+                    <RadzenLabel Text="@L["Col.BasisCycle"]" />
+                    <RadzenDropDown @bind-Value="_f.CycleBasis" Data="@CycleBasisOptions" TextProperty="Text" ValueProperty="Value"
+                                    Placeholder="@L["Opt.Select"]"
+                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="@L["Col.Cycle"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.IntervalValue" Min="1"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+            </div>
 
-            <label>@L["Col.BasisCycle"]</label>
-            <select class="ames-input" @bind="_f.CycleBasis">
-                <option value="">@L["Opt.Select"]</option>
-                <option value="TIME">TIME</option>
-                <option value="COUNT">COUNT</option>
-                <option value="CALENDAR">CALENDAR</option>
-            </select>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+                <div>
+                    <RadzenLabel Text="@L["Col.Uom"]" />
+                    <RadzenTextBox @bind-Value="_f.IntervalUnit" AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@(L["Col.StdDuration"] + " (분)")' />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.StdDurationMin" Min="0"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+            </div>
 
-            <label>@L["Col.Cycle"]</label>
-            <input class="ames-input" type="number" @bind="_f.IntervalValue" min="1" autocomplete="off" />
-
-            <label>@L["Col.Uom"]</label>
-            <input class="ames-input" @bind="_f.IntervalUnit" autocomplete="off" />
-
-            <label>@L["Col.StdDuration"] (분)</label>
-            <input class="ames-input" type="number" @bind="_f.StdDurationMin" min="0" autocomplete="off" />
-
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" @bind="_f.SafetyLOTOFlag" />
-                <span>@L["Col.LOTO"] 필요</span>
-            </label>
-
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" @bind="_f.ActiveFlag" />
-                <span>@L["Lbl.Active"]</span>
-            </label>
+            <div style="display:flex;gap:16px;margin-top:8px;">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.SafetyLOTOFlag" />
+                    <span>@L["Col.LOTO"] 필요</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" />
+                    <span>@L["Lbl.Active"]</span>
+                </label>
+            </div>
 
             @if (_confirmDelete)
             {
-                <div class="ames-delete-confirm">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
                     <span>@L["Msg.Confirm.Delete"]</span>
-                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
-                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)</button>
-                </div>
+                    <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _confirmDelete = false' class="ames-rz-btn" />
+                    <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
+                </RadzenStack>
             }
 
             @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad">@_modalErr</div> }
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="margin-top:8px;">@_modalErr</RadzenAlert>
+            }
 
-            <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="SaveEdit" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)</button>
-                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Edit"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveEdit" Disabled="@_busy" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseModal" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
@@ -241,10 +299,12 @@
     List<AMES.Data.Repositories.MasterDataRepository.PmTemplateRow>     _rows    = new();
     List<AMES.Data.Repositories.MasterDataRepository.PmTemplateStepRow> _steps   = new();
     AMES.Data.Repositories.MasterDataRepository.PmTemplateRow? _sel;
-    int _page = 0;
-    const int _pageSize = 20;
-    string _fSearch = "", _fEquipType = "", _fActive = "";
+
+    string _fSearch = "";
+    string? _fEquipType, _fActive;
     string? _expandedId;
+    int[] _pageSizeOptions = { 15, 30, 50, 100 };
+
     string _modal = "";
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
     string _msg = "", _modalErr = "";
@@ -272,7 +332,6 @@
 
     void ApplyFilter()
     {
-        _page = 0;
         _rows = _allRows;
         if (!string.IsNullOrWhiteSpace(_fSearch))
             _rows = _rows.Where(r =>
@@ -374,6 +433,31 @@
         _msg = msg; _isErr = isErr;
         _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
     }
+
+    IEnumerable<DropDownItem> EquipTypeOptions =>
+        _allRows.Select(r => r.EquipType).Where(x => x != null).Distinct().OrderBy(x => x)
+            .Select(t => new DropDownItem { Value = t!, Text = t! });
+
+    DropDownItem[] CycleBasisOptions =
+    {
+        new() { Value = "TIME",     Text = "TIME" },
+        new() { Value = "COUNT",    Text = "COUNT" },
+        new() { Value = "CALENDAR", Text = "CALENDAR" },
+    };
+
+    DropDownItem[] ActiveFilterOptions =
+    {
+        new() { Value = "Y", Text = "Active" },
+        new() { Value = "N", Text = "Inactive" },
+    };
+
+    void PmRowRender(RowRenderEventArgs<AMES.Data.Repositories.MasterDataRepository.PmTemplateRow> args)
+    {
+        if (!args.Attributes.TryGetValue("class", out var cls)) cls = "";
+        args.Attributes["class"] = cls + " ames-row-link";
+    }
+
+    class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
     class FormModel
     {

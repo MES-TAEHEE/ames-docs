@@ -1,4 +1,4 @@
-@page "/md/rm/rfid-tag"
+﻿@page "/md/rm/rfid-tag"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
@@ -7,8 +7,6 @@
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["MD.RfidTag.Title"] · AMES</PageTitle>
-
-<AmesPageHeader Code="MD-020" TitleKey="MD.RfidTag.Title" />
 
 <div class="ames-kpis">
     <div class="ames-kpi">
@@ -31,63 +29,66 @@
 
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" ShowIcon="false" Variant="Variant.Flat" class="ames-alert-rz">@_msg</RadzenAlert>
 }
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.RfidTag.List"] · @_rows.Count @L["Lbl.Items"]@if (_rows.Count < _allRows.Count) { <text> / @L["Lbl.TotalOf"] @_allRows.Count</text> }</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input class="ames-input" style="width:140px;padding:4px 8px;"
-                   placeholder="TagID / EPC" @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
-            <select class="ames-input" style="width:100px;" @bind="_fStatus">
-                <option value="">@L["Filter.AllStatus"]</option>
-                @foreach (var s in _rfidStatus.Where(x => x.UseFlag))
-                {
-                    <option value="@s.CodeValue">@(MasterDataRepository.LocalName(s))</option>
-                }
-            </select>
-            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
-            @if (_canEdit) { <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button> }
-        </div>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="6px" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fSearch" Placeholder="TagID / EPC" Style="width:140px;"
+                           @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
+            <RadzenLabel Text='@L["Col.Status"]' class="dim" Style="font-size:.82em;white-space:nowrap;" />
+            <RadzenDropDown @bind-Value="_fStatus" Data="StatusFilterOptions" TextProperty="Text" ValueProperty="Value"
+                            AllowClear="true" Placeholder='@L["Filter.AllStatus"]' Style="width:130px;" />
+            <RadzenButton Text='@L["Btn.Search"]' ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Click="ApplyFilter" />
+            @if (_canEdit) { <RadzenButton Text='@L["Btn.Create"]' ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="OpenCreate" /> }
+        </RadzenStack>
     </div>
 
-    @if (_rows.Count == 0)
-    {
-        <div class="ames-empty">@L["MD.RfidTag.Empty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["Col.TagId"]</th><th>@L["Col.EPC"]</th><th>@L["Col.TagRole"]</th><th>@L["Col.JigId"]</th>
-                    <th>@L["Col.MountLocation"]</th><th class="num">@L["Col.HeatRating"]</th>
-                    <th class="num">@L["Col.Cycles"]</th><th>@L["Col.InstallDate"]</th><th>@L["Col.ReplaceDue"]</th><th>@L["Col.Status"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    var needReplace = r.ReplaceSchedule.HasValue && r.ReplaceSchedule.Value <= DateOnly.FromDateTime(DateTime.Today);
-                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
-                        <td class="code">@r.TagID</td>
-                        <td class="dim">@(r.EPC ?? "—")</td>
-                        <td>@(r.TagRole ?? "—")</td>
-                        <td class="dim">@(r.JigID ?? "—")</td>
-                        <td class="dim">@(r.MountPos ?? "—")</td>
-                        <td class="num">@(r.HeatRating?.ToString() ?? "—")</td>
-                        <td class="num">@(r.CycleCount?.ToString("N0") ?? "—")</td>
-                        <td class="dim">@(r.InstallDate?.ToString("yy-MM-dd") ?? "—")</td>
-                        <td class="@(needReplace ? "bad" : "dim")">@(r.ReplaceSchedule?.ToString("yy-MM-dd") ?? "—")</td>
-                        <td><span class="pill @(r.Status == "ACTIVE" ? "ok" : "warn")">@(_rfidStatus.FirstOrDefault(x => x.CodeValue == r.Status) is { } _stLf ? MasterDataRepository.LocalName(_stLf) : r.Status ?? "—")</span></td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
-    }
+    <RadzenDataGrid Data="_rows" TItem="MasterDataRepository.RfidTagRow"
+                    RowRender="TagRowRender" RowSelect="OpenEdit"
+                    AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizeOptions"
+                    PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true"
+                    Class="ames-rz-grid" EmptyText='@L["MD.RfidTag.Empty"]'>
+        <Columns>
+            <RadzenDataGridColumn Property="TagID" Title='@L["Col.TagId"]' Width="130px">
+                <Template Context="r"><span class="code">@r.TagID</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="EPC" Title='@L["Col.EPC"]' Width="140px">
+                <Template Context="r"><span class="dim">@(r.EPC ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="TagRole" Title='@L["Col.TagRole"]' Width="100px">
+                <Template Context="r">@(r.TagRole ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="JigID" Title='@L["Col.JigId"]' Width="100px">
+                <Template Context="r"><span class="dim">@(r.JigID ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="MountPos" Title='@L["Col.MountLocation"]' Width="100px">
+                <Template Context="r"><span class="dim">@(r.MountPos ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="HeatRating" Title='@L["Col.HeatRating"]' Width="90px" TextAlign="TextAlign.Right">
+                <Template Context="r">@(r.HeatRating?.ToString() ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="CycleCount" Title='@L["Col.Cycles"]' Width="90px" TextAlign="TextAlign.Right">
+                <Template Context="r">@(r.CycleCount?.ToString("N0") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="InstallDate" Title='@L["Col.InstallDate"]' Width="105px">
+                <Template Context="r"><span class="dim">@(r.InstallDate?.ToString("yy-MM-dd") ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="ReplaceSchedule" Title='@L["Col.ReplaceDue"]' Width="105px">
+                <Template Context="r">
+                    @{ var needReplace = r.ReplaceSchedule.HasValue && r.ReplaceSchedule.Value <= DateOnly.FromDateTime(DateTime.Today); }
+                    <span class="@(needReplace ? "bad" : "dim")">@(r.ReplaceSchedule?.ToString("yy-MM-dd") ?? "—")</span>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="Status" Title='@L["Col.Status"]' Width="100px">
+                <Template Context="r">
+                    <span class="pill @(r.Status == "ACTIVE" ? "ok" : "warn")">@(_rfidStatus.FirstOrDefault(x => x.CodeValue == r.Status) is { } stLf ? MasterDataRepository.LocalName(stLf) : r.Status ?? "—")</span>
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 </div>
 
 @if (_modal == "create")
@@ -95,49 +96,54 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.RfidTag.Title"] — @L["Btn.Create"]</div>
-
-            <label>@L["Col.TagId"]</label>
-            <input class="ames-input" @bind="_f.TagID" placeholder="TAG-001" autocomplete="off" />
-
-            <label>@L["Col.EPC"]</label>
-            <input class="ames-input" @bind="_f.EPC" placeholder="E200..." autocomplete="off" />
-
-            <label>@L["Col.TagRole"]</label>
-            <input class="ames-input" @bind="_f.TagRole" placeholder="JIG / CARRIER" autocomplete="off" />
-
-            <label>@L["Col.JigId"]</label>
-            <input class="ames-input" @bind="_f.JigID" placeholder="JIG-001" autocomplete="off" />
-
-            <label>@L["Col.MountLocation"]</label>
-            <input class="ames-input" @bind="_f.MountPos" placeholder="TOP" autocomplete="off" />
-
-            <label>@L["Col.HeatRating"]</label>
-            <input class="ames-input" type="number" @bind="_f.HeatRating" placeholder="200" autocomplete="off" />
-
-            <label>@L["Col.Cycles"]</label>
-            <input class="ames-input" type="number" @bind="_f.CycleCount" placeholder="0" min="0" autocomplete="off" />
-
-            <label>@L["Col.InstallDate"]</label>
-            <input class="ames-input" type="text" @bind="_f.InstallDate" placeholder="yyyy-MM-dd" autocomplete="off" />
-
-            <label>@L["Col.ReplaceDue"]</label>
-            <input class="ames-input" type="text" @bind="_f.ReplaceSchedule" placeholder="yyyy-MM-dd" autocomplete="off" />
-
-            <label>@L["Col.Status"]</label>
-            <select class="ames-input" @bind="_f.Status">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var s in _rfidStatus.Where(x => x.UseFlag))
-                {
-                    <option value="@s.CodeValue">@(MasterDataRepository.LocalName(s))</option>
-                }
-            </select>
-
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div>
+                    <RadzenLabel Text='@L["Col.TagId"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.TagID" Placeholder="TAG-001" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.EPC"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.EPC" Placeholder="E200..." Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.TagRole"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.TagRole" Placeholder="JIG / CARRIER" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.JigId"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.JigID" Placeholder="JIG-001" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.MountLocation"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.MountPos" Placeholder="TOP" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.HeatRating"]' /><br />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.HeatRating" Placeholder="200" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.Cycles"]' /><br />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.CycleCount" Min="0" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.Status"]' /><br />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="StatusOptions" TextProperty="Text" ValueProperty="Value"
+                                    Placeholder='@L["Opt.Select"]' Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.InstallDate"]' /><br />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.InstallDate" DateFormat="yyyy-MM-dd" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.ReplaceDue"]' /><br />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.ReplaceSchedule" DateFormat="yyyy-MM-dd" Style="width:100%;" />
+                </div>
+            </div>
             @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad">@_modalErr</div> }
-
+            { <RadzenAlert AlertStyle="AlertStyle.Danger" ShowIcon="false" Variant="Variant.Flat" class="ames-alert-rz" Style="margin-top:8px;">@_modalErr</RadzenAlert> }
             <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)</button>
-                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <RadzenButton Text='@(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)' Click="SaveCreate" Disabled="_busy" ButtonStyle="ButtonStyle.Primary" />
+                <RadzenButton Text='@L["Btn.Cancel"]' Click="CloseModal" ButtonStyle="ButtonStyle.Light" />
             </div>
         </div>
     </div>
@@ -148,77 +154,90 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.RfidTag.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.TagID</span></div>
-
-            <label>@L["Col.EPC"]</label>
-            <input class="ames-input" @bind="_f.EPC" autocomplete="off" />
-
-            <label>@L["Col.TagRole"]</label>
-            <input class="ames-input" @bind="_f.TagRole" autocomplete="off" />
-
-            <label>@L["Col.JigId"]</label>
-            <input class="ames-input" @bind="_f.JigID" autocomplete="off" />
-
-            <label>@L["Col.MountLocation"]</label>
-            <input class="ames-input" @bind="_f.MountPos" autocomplete="off" />
-
-            <label>@L["Col.HeatRating"]</label>
-            <input class="ames-input" type="number" @bind="_f.HeatRating" autocomplete="off" />
-
-            <label>@L["Col.Cycles"]</label>
-            <input class="ames-input" type="number" @bind="_f.CycleCount" min="0" autocomplete="off" />
-
-            <label>@L["Col.InstallDate"]</label>
-            <input class="ames-input" type="text" @bind="_f.InstallDate" placeholder="yyyy-MM-dd" autocomplete="off" />
-
-            <label>@L["Col.ReplaceDue"]</label>
-            <input class="ames-input" type="text" @bind="_f.ReplaceSchedule" placeholder="yyyy-MM-dd" autocomplete="off" />
-
-            <label>@L["Col.Status"]</label>
-            <select class="ames-input" @bind="_f.Status">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var s in _rfidStatus.Where(x => x.UseFlag))
-                {
-                    <option value="@s.CodeValue">@(MasterDataRepository.LocalName(s))</option>
-                }
-            </select>
-
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div>
+                    <RadzenLabel Text='@L["Col.EPC"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.EPC" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.TagRole"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.TagRole" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.JigId"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.JigID" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.MountLocation"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.MountPos" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.HeatRating"]' /><br />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.HeatRating" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.Cycles"]' /><br />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.CycleCount" Min="0" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.InstallDate"]' /><br />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.InstallDate" DateFormat="yyyy-MM-dd" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.ReplaceDue"]' /><br />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.ReplaceSchedule" DateFormat="yyyy-MM-dd" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.Status"]' /><br />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="StatusOptions" TextProperty="Text" ValueProperty="Value"
+                                    Placeholder='@L["Opt.Select"]' Style="width:100%;" />
+                </div>
+            </div>
             @if (_confirmDelete)
             {
                 <div class="ames-delete-confirm">
                     <span>@L["Msg.Confirm.Delete"]</span>
-                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
-                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)</button>
+                    <RadzenButton Text='@L["Msg.No"]' Click='() => _confirmDelete = false' ButtonStyle="ButtonStyle.Light" />
+                    <RadzenButton Text='@(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)' Click="SaveDelete" Disabled="_busy" ButtonStyle="ButtonStyle.Danger" />
                 </div>
             }
-
             @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad">@_modalErr</div> }
-
+            { <RadzenAlert AlertStyle="AlertStyle.Danger" ShowIcon="false" Variant="Variant.Flat" class="ames-alert-rz" Style="margin-top:8px;">@_modalErr</RadzenAlert> }
             <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="SaveEdit" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)</button>
-                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <RadzenButton Text='@(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)' Click="SaveEdit" Disabled="_busy" ButtonStyle="ButtonStyle.Primary" />
+                <RadzenButton Text='@L["Btn.Delete"]' Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="_busy" ButtonStyle="ButtonStyle.Danger" />
+                <RadzenButton Text='@L["Btn.Cancel"]' Click="CloseModal" ButtonStyle="ButtonStyle.Light" />
             </div>
         </div>
     </div>
 }
 
 @code {
-    int _page = 0;
-    const int _pageSize = 20;
-    List<AMES.Data.Repositories.MasterDataRepository.RfidTagRow> _allRows = new();
-    List<AMES.Data.Repositories.MasterDataRepository.RfidTagRow> _rows    = new();
-    AMES.Data.Repositories.MasterDataRepository.RfidTagRow? _sel;
+    List<MasterDataRepository.RfidTagRow> _allRows = new();
+    List<MasterDataRepository.RfidTagRow> _rows    = new();
+    MasterDataRepository.RfidTagRow? _sel;
+    int[] _pageSizeOptions = { 15, 30, 50, 100 };
 
-    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _rfidStatus = new();
-    string _fSearch = "", _fStatus = "";
+    List<MasterDataRepository.CodeItemRow> _rfidStatus = new();
+    string? _fStatus;
+    string  _fSearch = "";
     string _modal = "";
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
     string _msg = "", _modalErr = "";
-    bool _isErr;
-    bool   _canEdit;
+    bool _isErr, _canEdit;
     string _actor = "system";
     FormModel _f = new();
+
+    IEnumerable<DropDownItem> StatusFilterOptions =>
+        _rfidStatus.Where(x => x.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = MasterDataRepository.LocalName(s) });
+    IEnumerable<DropDownItem> StatusOptions =>
+        _rfidStatus.Where(x => x.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = MasterDataRepository.LocalName(s) });
+
+    void TagRowRender(RowRenderEventArgs<MasterDataRepository.RfidTagRow> args)
+    {
+        if (!args.Attributes.TryGetValue("class", out var cls)) cls = "";
+        args.Attributes["class"] = cls + " ames-row-link";
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -230,27 +249,18 @@
         Reload();
     }
 
-    void Reload()
-    {
-        try { _allRows = Md.ListRfidTags(); } catch { _allRows = new(); }
-        ApplyFilter();
-    }
+    void Reload() { try { _allRows = Md.ListRfidTags(); } catch { _allRows = new(); } ApplyFilter(); }
 
-    void ApplyFilter()
-    {
-        _page = 0;
-        _rows = _allRows;
-        if (!string.IsNullOrWhiteSpace(_fSearch))
-            _rows = _rows.Where(r =>
-                r.TagID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
-                (r.EPC ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)).ToList();
-        if (!string.IsNullOrWhiteSpace(_fStatus))
-            _rows = _rows.Where(r => r.Status == _fStatus).ToList();
-    }
+    void ApplyFilter() { _rows = _allRows.Where(r =>
+        (string.IsNullOrEmpty(_fSearch) ||
+            r.TagID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.EPC ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (_fStatus == null || r.Status == _fStatus)
+    ).ToList(); }
 
     void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
 
-    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.RfidTagRow r)
+    void OpenEdit(MasterDataRepository.RfidTagRow r)
     {
         if (!_canEdit) return;
         _sel = r; _modalErr = ""; _confirmDelete = false;
@@ -261,9 +271,9 @@
             TagRole         = r.TagRole   ?? "",
             HeatRating      = r.HeatRating,
             MountPos        = r.MountPos  ?? "",
-            InstallDate     = r.InstallDate?.ToString("yyyy-MM-dd") ?? "",
+            InstallDate     = r.InstallDate,
             CycleCount      = r.CycleCount,
-            ReplaceSchedule = r.ReplaceSchedule?.ToString("yyyy-MM-dd") ?? "",
+            ReplaceSchedule = r.ReplaceSchedule,
             Status          = r.Status    ?? "ACTIVE",
         };
         _modal = "edit";
@@ -282,14 +292,12 @@
         if (string.IsNullOrWhiteSpace(_f.TagID)) { _modalErr = L["Err.TagIdRequired"]; return; }
         var id = _f.TagID.Trim();
         if (Md.RfidTagExists(id)) { _modalErr = $"'{id}' TagID가 {L["Err.AlreadyExists"]}"; return; }
-        DateOnly? installDate     = DateOnly.TryParse(_f.InstallDate, out var d1)     ? d1 : null;
-        DateOnly? replaceSchedule = DateOnly.TryParse(_f.ReplaceSchedule, out var d2) ? d2 : null;
         _busy = true;
         try
         {
             Md.InsertRfidTag(id, NE(_f.EPC), NE(_f.JigID), NE(_f.TagRole),
                 _f.HeatRating, NE(_f.MountPos),
-                installDate, _f.CycleCount, replaceSchedule,
+                _f.InstallDate, _f.CycleCount, _f.ReplaceSchedule,
                 NE(_f.Status), _actor);
             CloseModal(); Reload();
             ShowMsg($"{id} {L["Msg.Created"]}", false);
@@ -302,14 +310,12 @@
     {
         if (_sel is null) return;
         _modalErr = "";
-        DateOnly? installDate     = DateOnly.TryParse(_f.InstallDate, out var d1)     ? d1 : null;
-        DateOnly? replaceSchedule = DateOnly.TryParse(_f.ReplaceSchedule, out var d2) ? d2 : null;
         _busy = true;
         try
         {
             Md.UpdateRfidTag(_sel.TagID, NE(_f.EPC), NE(_f.JigID), NE(_f.TagRole),
                 _f.HeatRating, NE(_f.MountPos),
-                installDate, _f.CycleCount, replaceSchedule,
+                _f.InstallDate, _f.CycleCount, _f.ReplaceSchedule,
                 NE(_f.Status), _actor);
             CloseModal(); Reload();
             ShowMsg($"{_sel.TagID} {L["Msg.Updated"]}", false);
@@ -341,15 +347,17 @@
 
     class FormModel
     {
-        public string  TagID           { get; set; } = "";
-        public string  EPC             { get; set; } = "";
-        public string  JigID           { get; set; } = "";
-        public string  TagRole         { get; set; } = "";
-        public int?    HeatRating      { get; set; }
-        public string  MountPos        { get; set; } = "";
-        public string  InstallDate     { get; set; } = "";
-        public int?    CycleCount      { get; set; }
-        public string  ReplaceSchedule { get; set; } = "";
-        public string  Status          { get; set; } = "ACTIVE";
+        public string    TagID           { get; set; } = "";
+        public string    EPC             { get; set; } = "";
+        public string    JigID           { get; set; } = "";
+        public string    TagRole         { get; set; } = "";
+        public int?      HeatRating      { get; set; }
+        public string    MountPos        { get; set; } = "";
+        public DateOnly? InstallDate     { get; set; }
+        public int?      CycleCount      { get; set; }
+        public DateOnly? ReplaceSchedule { get; set; }
+        public string    Status          { get; set; } = "ACTIVE";
     }
+
+    class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 }

@@ -6,10 +6,9 @@
 @inject AuthenticationStateProvider Auth
 @inject AMES.Web.Services.PermissionService Perm
 @inject IStringLocalizer<SharedResources> L
+@using Radzen
 
 <PageTitle>SYS-005 @L["SYS.Calendar.Title"] · AMES</PageTitle>
-
-<AmesPageHeader Code="SYS-005" TitleKey="SYS.Calendar.Title" />
 
 <div class="ames-kpis">
     <div class="ames-kpi">
@@ -56,7 +55,7 @@
         ▦ @L["SYS.Calendar.Tab.Calendar"]
     </button>
     <div style="flex:1;"></div>
-    @if (_canEdit) { <button class="ames-btn" @onclick="OpenCreate" style="align-self:center;">@L["SYS.Calendar.Btn.Create"]</button> }
+    @if (_canEdit) { <RadzenButton Text="@L["SYS.Calendar.Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" Style="align-self:center;" /> }
 </div>
 
 @* ══════════════════════════════════════════════════════════════════ *@
@@ -68,14 +67,12 @@
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
             <span>▼ @L["SYS.Calendar.Tab.List"] · @_byDay.Count @L["Lbl.Days"]</span>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                <input type="date" class="ames-input" style="width:150px"
-                       value="@_filterFrom.ToString("yyyy-MM-dd")"
-                       @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) _filterFrom = d; }" />
+                <RadzenDatePicker TValue="DateTime" @bind-Value="_filterFrom" DateFormat="yyyy-MM-dd"
+                                  InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
                 <span class="dim">~</span>
-                <input type="date" class="ames-input" style="width:150px"
-                       value="@_filterTo.ToString("yyyy-MM-dd")"
-                       @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) _filterTo = d; }" />
-                <button class="ames-btn" @onclick="Load">@L["Btn.Search"]</button>
+                <RadzenDatePicker TValue="DateTime" @bind-Value="_filterTo" DateFormat="yyyy-MM-dd"
+                                  InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+                <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Load" class="ames-rz-btn" />
             </div>
         </div>
 
@@ -85,40 +82,51 @@
         }
         else
         {
-            <table class="ames-table">
-                <thead>
-                    <tr>
-                        <th>@L["SYS.Calendar.Col.Date"]</th>
-                        <th>@L["SYS.Calendar.Col.DayType"]</th>
-                        <th>@L["SYS.Calendar.Col.HolidayName"]</th>
-                        <th class="num">@L["Col.ShiftA"]</th>
-                        <th class="num">@L["Col.ShiftB"]</th>
-                        <th class="num">@L["Col.ShiftC"]</th>
-                        <th>@L["Col.Plant"]</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var grp in _byDay.Skip(_page * _pageSize).Take(_pageSize))
-                    {
-                        var sample   = grp.Value.First();
-                        var hasA     = grp.Value.Any(r => r.ShiftCode == "A");
-                        var hasB     = grp.Value.Any(r => r.ShiftCode == "B");
-                        var hasC     = grp.Value.Any(r => r.ShiftCode == "C");
-                        var dateKey  = grp.Key;
-                        var shiftsCp = grp.Value;
-                        <tr class="ames-row-link" @onclick="() => OpenEdit(dateKey, shiftsCp)">
-                            <td class="code">@(dateKey.ToString("yyyy-MM-dd ddd"))</td>
-                            <td>@DayTypePill(sample.DayType)</td>
-                            <td class="dim">@(sample.HolidayName ?? "—")</td>
-                            <td class="num"><span class="ames-cal-sh @(hasA ? "sh-a" : "sh-off")">A</span></td>
-                            <td class="num"><span class="ames-cal-sh @(hasB ? "sh-b" : "sh-off")">B</span></td>
-                            <td class="num"><span class="ames-cal-sh @(hasC ? "sh-c" : "sh-off")">C</span></td>
-                            <td class="dim">@(sample.PlantCode ?? "—")</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-            <Pager Page="_page" Total="_byDay.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
+            <RadzenDataGrid TItem="CalendarDaySummary"
+                            Data="@DaySummaries.ToList()"
+                            AllowPaging="false"
+                            AllowSorting="true"
+                            RowRender="@CalDayRowRender"
+                            RowClick="@(args => { if (args.Data is not null) OpenEdit(args.Data.Date, args.Data.Shifts); })"
+                            Class="ames-rz-grid">
+                <Columns>
+                    <RadzenDataGridColumn TItem="CalendarDaySummary" Property="Date" Title="@L["SYS.Calendar.Col.Date"]">
+                        <Template Context="row">
+                            <span class="code">@(row.Date.ToString("yyyy-MM-dd ddd"))</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="CalendarDaySummary" Property="DayType" Title="@L["SYS.Calendar.Col.DayType"]">
+                        <Template Context="row">
+                            @DayTypePill(row.DayType)
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="CalendarDaySummary" Property="HolidayName" Title="@L["SYS.Calendar.Col.HolidayName"]">
+                        <Template Context="row">
+                            <span class="dim">@(row.HolidayName ?? "—")</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="CalendarDaySummary" Title="@L["Col.ShiftA"]" TextAlign="TextAlign.Center" Width="72px" Sortable="false">
+                        <Template Context="row">
+                            <span class="ames-cal-sh @(row.HasA ? "sh-a" : "sh-off")">A</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="CalendarDaySummary" Title="@L["Col.ShiftB"]" TextAlign="TextAlign.Center" Width="72px" Sortable="false">
+                        <Template Context="row">
+                            <span class="ames-cal-sh @(row.HasB ? "sh-b" : "sh-off")">B</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="CalendarDaySummary" Title="@L["Col.ShiftC"]" TextAlign="TextAlign.Center" Width="72px" Sortable="false">
+                        <Template Context="row">
+                            <span class="ames-cal-sh @(row.HasC ? "sh-c" : "sh-off")">C</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="CalendarDaySummary" Property="PlantCode" Title="@L["Col.Plant"]">
+                        <Template Context="row">
+                            <span class="dim">@(row.PlantCode ?? "—")</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
         }
     </div>
 }
@@ -132,13 +140,13 @@
         @* Month navigation *@
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
             <div style="display:flex;align-items:center;gap:12px;">
-                <button class="ames-btn" style="padding:6px 14px;" @onclick="PrevMonth">‹</button>
+                <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@PrevMonth" class="ames-rz-btn" />
                 <span style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fff;">
                     @string.Format(L["SYS.Calendar.Fmt.YearMonth"].Value, _calYear, _calMonth.ToString("D2"))
                 </span>
-                <button class="ames-btn" style="padding:6px 14px;" @onclick="NextMonth">›</button>
+                <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@NextMonth" class="ames-rz-btn" />
             </div>
-            <button class="ames-btn" style="padding:6px 14px;" @onclick="GoToday">@L["SYS.Calendar.Btn.Today"]</button>
+            <RadzenButton Text="@L["SYS.Calendar.Btn.Today"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@GoToday" class="ames-rz-btn" />
         </div>
 
         @{
@@ -245,25 +253,19 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>
                     <label>@L["Col.From"] *</label>
-                    <input type="date" class="ames-input"
-                           value="@_genFrom.ToString("yyyy-MM-dd")"
-                           @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) _genFrom = d; }" />
+                    <RadzenDatePicker TValue="DateTime" @bind-Value="_genFrom" DateFormat="yyyy-MM-dd"
+                                      InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <label>@L["SYS.Calendar.Lbl.EndDate"]</label>
-                    <input type="date" class="ames-input"
-                           value="@_genTo.ToString("yyyy-MM-dd")"
-                           @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) _genTo = d; }" />
+                    <RadzenDatePicker TValue="DateTime" @bind-Value="_genTo" DateFormat="yyyy-MM-dd"
+                                      InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
             <label style="margin-top:8px;">@L["SYS.Calendar.Lbl.Plant"]</label>
-            <select class="ames-input" @bind="_genPlant">
-                @foreach (var p in _plants)
-                {
-                    <option value="@p.CodeValue">[@p.CodeValue] @AMES.Data.Repositories.MasterDataRepository.LocalName(p)</option>
-                }
-            </select>
+            <RadzenDropDown @bind-Value="_genPlant" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value"
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
 
             <div style="margin-top:12px;font-size:.84em;font-weight:600;color:#94a3b8;letter-spacing:.05em;">@L["SYS.Calendar.Lbl.ShiftConfig"]</div>
             <table class="ames-table" style="margin-top:4px;">
@@ -319,7 +321,7 @@
 
             <div style="margin-top:10px;font-size:.84em;font-weight:600;color:#94a3b8;letter-spacing:.05em;">
                 @L["SYS.Calendar.Lbl.Holidays"] <span class="dim" style="font-weight:400;">@L["SYS.Calendar.Hint.Holidays"]</span>
-                <button class="ames-btn" style="font-size:.78em;padding:2px 8px;margin-left:8px;" @onclick="AddHoliday">@L["Btn.Add"]</button>
+                <RadzenButton Text="@L["Btn.Add"]" Icon="add" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall" Click="@AddHoliday" class="ames-rz-btn" Style="margin-left:8px;" />
             </div>
             @if (_genHolidays.Count > 0)
             {
@@ -342,8 +344,7 @@
                                            autocomplete="off" />
                                 </td>
                                 <td>
-                                    <button class="ames-btn bad" style="padding:2px 6px;"
-                                            @onclick="() => _genHolidays.RemoveAt(hidx)">×</button>
+                                    <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall" Click="() => _genHolidays.RemoveAt(hidx)" class="ames-rz-btn" />
                                 </td>
                             </tr>
                         }
@@ -352,14 +353,14 @@
             }
 
             @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad">@_modalErr</div> }
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
 
-            <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="Generate" disabled="@_busy">
-                    @(_busy ? L["Msg.Generating"].Value : L["Btn.Generate"].Value)
-                </button>
-                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Generating"] : L["Btn.Generate"])" Icon="event" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@Generate" Disabled="@_busy" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseModal" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
@@ -377,30 +378,20 @@
             <div style="display:flex;gap:8px;align-items:flex-end;">
                 <div style="flex:0 0 180px;">
                     <label>@L["SYS.Calendar.Lbl.DayType"]</label>
-                    <select class="ames-input"
-                            value="@_editDayType"
-                            @onchange="e => _editDayType = e.Value?.ToString() ?? _editDayType">
-                        @foreach (var dt in _dayTypes)
-                        {
-                            <option value="@dt.CodeValue">[@dt.CodeValue] @AMES.Data.Repositories.MasterDataRepository.LocalName(dt)</option>
-                        }
-                    </select>
+                    <RadzenDropDown @bind-Value="_editDayType" Data="@DayTypeOptions" TextProperty="Text" ValueProperty="Value"
+                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div style="flex:0 0 160px;">
                     <label>@L["Col.Plant"]</label>
-                    <select class="ames-input" @bind="_selPlant">
-                        @foreach (var p in _plants)
-                        {
-                            <option value="@p.CodeValue">[@p.CodeValue] @AMES.Data.Repositories.MasterDataRepository.LocalName(p)</option>
-                        }
-                    </select>
+                    <RadzenDropDown @bind-Value="_selPlant" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value"
+                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 @if (_editDayType == "HOLIDAY")
                 {
                     <div style="flex:1;">
                         <label>@L["SYS.Calendar.Lbl.HolidayName"]</label>
-                        <input class="ames-input" @bind="_editHolidayName" autocomplete="off"
-                               placeholder="@L["SYS.Calendar.Ph.HolidayNameInput"]" />
+                        <RadzenTextBox @bind-Value="_editHolidayName" Placeholder="@L["SYS.Calendar.Ph.HolidayNameInput"]"
+                                       InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" AutoComplete="false" />
                     </div>
                 }
             </div>
@@ -456,25 +447,23 @@
 
             @if (_confirmDelete)
             {
-                <div class="ames-delete-confirm">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
                     <span>@string.Format(L["SYS.Calendar.Confirm.Delete"].Value, _selDate.Value.ToString("yyyy-MM-dd"))</span>
-                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
-                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">
-                        @(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)
-                    </button>
-                </div>
+                    <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _confirmDelete = false' class="ames-rz-btn" />
+                    <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
+                </RadzenStack>
             }
 
             @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad">@_modalErr</div> }
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
 
-            <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="SaveEdit" disabled="@_busy">
-                    @(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)
-                </button>
-                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Edit"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveEdit" Disabled="@_busy" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseModal" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
@@ -485,8 +474,6 @@
     List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _plants   = new();
     List<AMES.Data.Repositories.SysRepository.CalendarRow> _rows = new();
     Dictionary<DateTime, List<AMES.Data.Repositories.SysRepository.CalendarRow>> _byDay = new();
-    int _page = 0;
-    const int _pageSize = 20;
     int _days, _work, _wknd, _hol;
 
     string   _view       = "list";
@@ -542,7 +529,6 @@
 
     void Reload()
     {
-        _page = 0;
         try { _rows = Sys.ListCalendarRange(_filterFrom, _filterTo); } catch { _rows = new(); }
         _byDay = _rows
             .Where(r => r.CalendarDate.HasValue)
@@ -796,6 +782,38 @@
     {
         _msg = msg; _isErr = isErr;
         _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+
+    private IEnumerable<DropDownItem> PlantOptions =>
+        _plants.Select(p => new DropDownItem { Value = p.CodeValue ?? "", Text = $"[{p.CodeValue}] {AMES.Data.Repositories.MasterDataRepository.LocalName(p)}" });
+
+    private IEnumerable<DropDownItem> DayTypeOptions =>
+        _dayTypes.Select(d => new DropDownItem { Value = d.CodeValue ?? "", Text = $"[{d.CodeValue}] {AMES.Data.Repositories.MasterDataRepository.LocalName(d)}" });
+
+    private record CalendarDaySummary(
+        DateTime Date, string? DayType, string? HolidayName,
+        bool HasA, bool HasB, bool HasC, string? PlantCode,
+        List<AMES.Data.Repositories.SysRepository.CalendarRow> Shifts);
+
+    private IEnumerable<CalendarDaySummary> DaySummaries =>
+        _byDay.Select(g => new CalendarDaySummary(
+            g.Key,
+            g.Value.FirstOrDefault()?.DayType,
+            g.Value.FirstOrDefault()?.HolidayName,
+            g.Value.Any(r => r.ShiftCode == "A"),
+            g.Value.Any(r => r.ShiftCode == "B"),
+            g.Value.Any(r => r.ShiftCode == "C"),
+            g.Value.FirstOrDefault()?.PlantCode,
+            g.Value));
+
+    void CalDayRowRender(RowRenderEventArgs<CalendarDaySummary> args)
+    {
+        if (args.Attributes.TryGetValue("class", out var existing))
+            args.Attributes["class"] = existing + " ames-row-link";
+        else
+            args.Attributes["class"] = "ames-row-link";
     }
 
     // ── Inner types ───────────────────────────────────────────────────────

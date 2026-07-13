@@ -1,4 +1,4 @@
-@page "/md/ql/inspection-standard"
+﻿@page "/md/ql/inspection-standard"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
@@ -7,8 +7,6 @@
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["MD.InspStd.Title"] · AMES</PageTitle>
-
-<AmesPageHeader Code="MD-017" TitleKey="MD.InspStd.Title" />
 
 <div class="ames-kpis">
     <div class="ames-kpi">
@@ -31,89 +29,85 @@
 
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" ShowIcon="false" Variant="Variant.Flat" class="ames-alert-rz">@_msg</RadzenAlert>
 }
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.InspStd.List"] · @_rows.Count @L["Lbl.Items"]@if (_rows.Count < _allRows.Count) { <text> / @L["Lbl.TotalOf"] @_allRows.Count</text> }</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input class="ames-input" style="width:180px;padding:4px 8px;"
-                   placeholder='@L["MD.InspStd.Ph.Search"]' @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Type"]</span>
-            <select class="ames-input" style="width:120px;" @bind="_fType">
-                <option value="">@L["Filter.AllInspectionTypes"]</option>
-                @foreach (var t in _allRows.Select(r => r.InspType).Where(x => x != null).Distinct().OrderBy(x => x))
-                {
-                    <option value="@t">@t</option>
-                }
-            </select>
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Process"]</span>
-            <select class="ames-input" style="width:110px;" @bind="_fProcess">
-                <option value="">@L["Filter.AllProcesses"]</option>
-                @foreach (var p in _allRows.Select(r => r.ProcessCode).Where(x => x != null).Distinct().OrderBy(x => x))
-                {
-                    <option value="@p">@p</option>
-                }
-            </select>
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
-            <select class="ames-input" style="width:100px;" @bind="_fStatus">
-                <option value="">@L["Filter.AllStatus"]</option>
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-            </select>
-            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
-            @if (_canEdit) { <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button> }
-        </div>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="6px" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fSearch" Placeholder='@L["MD.InspStd.Ph.Search"]' Style="width:170px;"
+                           @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
+            <RadzenLabel Text='@L["Col.Type"]' class="dim" Style="font-size:.82em;white-space:nowrap;" />
+            <RadzenDropDown @bind-Value="_fType" Data="TypeFilterOptions" TextProperty="Text" ValueProperty="Value"
+                            AllowClear="true" Placeholder='@L["Filter.AllInspectionTypes"]' Style="width:130px;" />
+            <RadzenLabel Text='@L["Col.Process"]' class="dim" Style="font-size:.82em;white-space:nowrap;" />
+            <RadzenDropDown @bind-Value="_fProcess" Data="ProcessFilterOptions" TextProperty="Text" ValueProperty="Value"
+                            AllowClear="true" Placeholder='@L["Filter.AllProcesses"]' Style="width:100px;" />
+            <RadzenLabel Text='@L["Col.Status"]' class="dim" Style="font-size:.82em;white-space:nowrap;" />
+            <RadzenDropDown @bind-Value="_fStatus" Data="_statusFilterOptions" TextProperty="Text" ValueProperty="Value"
+                            AllowClear="true" Placeholder='@L["Filter.AllStatus"]' Style="width:110px;" />
+            <RadzenButton Text='@L["Btn.Search"]' Icon="refresh" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="ApplyFilter" class="ames-rz-btn" />
+            @if (_canEdit) { <RadzenButton Text='@L["Btn.Create"]' Icon="add_circle" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="OpenCreate" class="ames-rz-btn" /> }
+        </RadzenStack>
     </div>
 
-    @if (_rows.Count == 0)
-    {
-        <div class="ames-empty">@L["MD.InspStd.Empty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["Col.StandardId"]</th><th>@L["Col.ItemNo"]</th><th>@L["Col.ProcessName"]</th><th>@L["Col.InspType"]</th><th>@L["Col.CharName"]</th>
-                    <th style="text-align:right;">@L["Col.Nominal"]</th>
-                    <th style="text-align:right;">@L["Col.LSL"]</th>
-                    <th style="text-align:right;">@L["Col.USL"]</th>
-                    <th>@L["Col.Uom"]</th><th>@L["Col.SamplingPlan"]</th><th>@L["Col.InspMethod"]</th>
-                    <th style="text-align:center;">@L["Col.CTQ"]</th>
-                    <th>@L["Col.EffectiveDate"]</th><th>@L["Col.Status"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
-                        <td class="code">@r.InspStdID</td>
-                        <td class="dim">@(r.ItemID ?? "—")</td>
-                        <td class="dim">@(r.ProcessCode ?? "—")</td>
-                        <td><span class="pill">@(r.InspType ?? "—")</span></td>
-                        <td>@(r.CharName ?? "—")</td>
-                        <td style="text-align:right;">@(r.SpecNominal?.ToString("G6") ?? "—")</td>
-                        <td style="text-align:right;" class="dim">@(r.SpecLSL?.ToString("G6") ?? "—")</td>
-                        <td style="text-align:right;" class="dim">@(r.SpecUSL?.ToString("G6") ?? "—")</td>
-                        <td class="dim">@(r.UOM ?? "—")</td>
-                        <td class="dim">@(r.SamplingPlan ?? "—")</td>
-                        <td class="dim">@(r.InspMethod ?? "—")</td>
-                        <td style="text-align:center;">
-                            @if (r.IsCTQ) { <span class="pill warn">CTQ</span> }
-                            else { <span class="dim">—</span> }
-                        </td>
-                        <td class="dim">@(r.EffectiveDate?.ToString("yyyy-MM-dd") ?? "—")</td>
-                        <td>
-                            <span class="pill @(r.Status == "Active" ? "ok" : "bad")">@(r.Status ?? "—")</span>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
-    }
+    <RadzenDataGrid Data="_rows" TItem="MasterDataRepository.InspectionStandardRow"
+                    RowRender="IsRowRender" RowSelect="OpenEdit"
+                    AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizeOptions"
+                    PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true"
+                    Class="ames-rz-grid" EmptyText='@L["MD.InspStd.Empty"]'>
+        <Columns>
+            <RadzenDataGridColumn Property="InspStdID" Title='@L["Col.StandardId"]' Width="130px">
+                <Template Context="r"><span class="code">@r.InspStdID</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="ItemID" Title='@L["Col.ItemNo"]' Width="100px">
+                <Template Context="r"><span class="dim">@(r.ItemID ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="ProcessCode" Title='@L["Col.ProcessName"]' Width="80px">
+                <Template Context="r"><span class="dim">@(r.ProcessCode ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="InspType" Title='@L["Col.InspType"]' Width="100px">
+                <Template Context="r">
+                    @if (r.InspType != null) { <span class="pill">@r.InspType</span> }
+                    else { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="CharName" Title='@L["Col.CharName"]' Width="150px" />
+            <RadzenDataGridColumn Property="SpecNominal" Title='@L["Col.Nominal"]' Width="85px" TextAlign="TextAlign.Right">
+                <Template Context="r"><span>@(r.SpecNominal?.ToString("G6") ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="SpecLSL" Title='@L["Col.LSL"]' Width="80px" TextAlign="TextAlign.Right">
+                <Template Context="r"><span class="dim">@(r.SpecLSL?.ToString("G6") ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="SpecUSL" Title='@L["Col.USL"]' Width="80px" TextAlign="TextAlign.Right">
+                <Template Context="r"><span class="dim">@(r.SpecUSL?.ToString("G6") ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="UOM" Title='@L["Col.Uom"]' Width="65px">
+                <Template Context="r"><span class="dim">@(r.UOM ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="SamplingPlan" Title='@L["Col.SamplingPlan"]' Width="100px">
+                <Template Context="r"><span class="dim">@(r.SamplingPlan ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="InspMethod" Title='@L["Col.InspMethod"]' Width="110px">
+                <Template Context="r"><span class="dim">@(r.InspMethod ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="IsCTQ" Title='@L["Col.CTQ"]' Width="65px" TextAlign="TextAlign.Center">
+                <Template Context="r">
+                    @if (r.IsCTQ) { <span class="pill warn">CTQ</span> }
+                    else { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="EffectiveDate" Title='@L["Col.EffectiveDate"]' Width="110px">
+                <Template Context="r"><span class="dim">@(r.EffectiveDate?.ToString("yyyy-MM-dd") ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="Status" Title='@L["Col.Status"]' Width="90px">
+                <Template Context="r">
+                    <span class="pill @(r.Status == "Active" ? "ok" : "bad")">@(r.Status ?? "—")</span>
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 </div>
 
 @if (_modal == "create")
@@ -121,61 +115,71 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.InspStd.Title"] — @L["Btn.Create"]</div>
-
-            <label>@L["Col.InspStdId"] * <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: IS-INJ-001)</span></label>
-            <input class="ames-input" @bind="_f.InspStdID" placeholder="IS-INJ-001" autocomplete="off" />
-
-            <label>@L["Col.ItemId"]</label>
-            <input class="ames-input" @bind="_f.ItemID" placeholder="ITEM-001" maxlength="20" autocomplete="off" />
-
-            <label>@L["Col.ProcessCode"]</label>
-            <input class="ames-input" @bind="_f.ProcessCode" placeholder="INJ, QC 등" maxlength="10" autocomplete="off" />
-
-            <label>@L["Col.InspType"]</label>
-            <input class="ames-input" @bind="_f.InspType" placeholder="INCOMING, INPROC 등" maxlength="10" autocomplete="off" />
-
-            <label>@L["Col.CharName"] *</label>
-            <input class="ames-input" @bind="_f.CharName" placeholder='@L["MD.InspStd.Ph.CharName"]' autocomplete="off" />
-
-            <label>@L["Col.Nominal"]</label>
-            <input class="ames-input" type="number" step="0.0001" @bind="_f.SpecNominal" placeholder="0.0000" autocomplete="off" />
-
-            <label>@L["Col.LSL"]</label>
-            <input class="ames-input" type="number" step="0.0001" @bind="_f.SpecLSL" placeholder="0.0000" autocomplete="off" />
-
-            <label>@L["Col.USL"]</label>
-            <input class="ames-input" type="number" step="0.0001" @bind="_f.SpecUSL" placeholder="0.0000" autocomplete="off" />
-
-            <label>@L["Col.Uom"]</label>
-            <input class="ames-input" @bind="_f.UOM" placeholder="mm, kg 등" maxlength="10" autocomplete="off" />
-
-            <label>@L["Col.SamplingPlan"]</label>
-            <input class="ames-input" @bind="_f.SamplingPlan" placeholder="AQL-1.0" maxlength="20" autocomplete="off" />
-
-            <label>@L["Col.InspMethod"]</label>
-            <input class="ames-input" @bind="_f.InspMethod" placeholder='@L["MD.InspStd.Ph.InspMethod"]' autocomplete="off" />
-
-            <label>@L["Col.EffectiveDate"]</label>
-            <input class="ames-input" type="date" @bind="_f.EffectiveDate" autocomplete="off" />
-
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" @bind="_f.IsCTQ" />
-                <span>@L["MD.InspStd.CtqLabel"]</span>
-            </label>
-
-            <label>@L["Col.Status"]</label>
-            <select class="ames-input" @bind="_f.Status">
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-            </select>
-
-            @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad">@_modalErr</div> }
-
-            <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? @L["Msg.Saving"] : @L["Btn.Create"])</button>
-                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div style="grid-column:span 2;">
+                    <RadzenLabel Text='@($"{L["Col.InspStdId"]} * (예: IS-INJ-001)")' /><br />
+                    <RadzenTextBox @bind-Value="_f.InspStdID" Placeholder="IS-INJ-001" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.ItemId"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.ItemID" Placeholder="ITEM-001" MaxLength="20" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.ProcessCode"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.ProcessCode" Placeholder="INJ, QC" MaxLength="10" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.InspType"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.InspType" Placeholder="INCOMING" MaxLength="10" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div style="grid-column:span 2;">
+                    <RadzenLabel Text='@($"{L["Col.CharName"]} *")' /><br />
+                    <RadzenTextBox @bind-Value="_f.CharName" Placeholder='@L["MD.InspStd.Ph.CharName"]' Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.Nominal"]' /><br />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.SpecNominal" Step="0.0001m" Placeholder="0.0000" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.LSL"]' /><br />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.SpecLSL" Step="0.0001m" Placeholder="0.0000" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.USL"]' /><br />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.SpecUSL" Step="0.0001m" Placeholder="0.0000" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.Uom"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.UOM" Placeholder="mm, kg" MaxLength="10" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.SamplingPlan"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.SamplingPlan" Placeholder="AQL-1.0" MaxLength="20" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div style="grid-column:span 2;">
+                    <RadzenLabel Text='@L["Col.InspMethod"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.InspMethod" Placeholder='@L["MD.InspStd.Ph.InspMethod"]' Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.EffectiveDate"]' /><br />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.EffectiveDate" DateFormat="yyyy-MM-dd" Style="width:100%;" />
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; padding-top:22px;">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.IsCTQ" />
+                    <RadzenLabel Text='@L["MD.InspStd.CtqLabel"]' Style="cursor:pointer;" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.Status"]' /><br />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="_statusFilterOptions" TextProperty="Text" ValueProperty="Value"
+                                    Placeholder='@L["Opt.Select"]' Style="width:100%;" />
+                </div>
             </div>
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <RadzenAlert AlertStyle="AlertStyle.Danger" ShowIcon="false" Variant="Variant.Flat" class="ames-alert-rz" Style="margin-top:8px;">@_modalErr</RadzenAlert> }
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text='@(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)' Click="SaveCreate" Disabled="_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text='@L["Btn.Cancel"]' Click="CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
@@ -185,88 +189,114 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.InspStd.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.InspStdID</span></div>
-
-            <label>@L["Col.ItemId"]</label>
-            <input class="ames-input" @bind="_f.ItemID" maxlength="20" autocomplete="off" />
-
-            <label>@L["Col.ProcessCode"]</label>
-            <input class="ames-input" @bind="_f.ProcessCode" maxlength="10" autocomplete="off" />
-
-            <label>@L["Col.InspType"]</label>
-            <input class="ames-input" @bind="_f.InspType" maxlength="10" autocomplete="off" />
-
-            <label>@L["Col.CharName"] *</label>
-            <input class="ames-input" @bind="_f.CharName" autocomplete="off" />
-
-            <label>@L["Col.Nominal"]</label>
-            <input class="ames-input" type="number" step="0.0001" @bind="_f.SpecNominal" autocomplete="off" />
-
-            <label>@L["Col.LSL"]</label>
-            <input class="ames-input" type="number" step="0.0001" @bind="_f.SpecLSL" autocomplete="off" />
-
-            <label>@L["Col.USL"]</label>
-            <input class="ames-input" type="number" step="0.0001" @bind="_f.SpecUSL" autocomplete="off" />
-
-            <label>@L["Col.Uom"]</label>
-            <input class="ames-input" @bind="_f.UOM" maxlength="10" autocomplete="off" />
-
-            <label>@L["Col.SamplingPlan"]</label>
-            <input class="ames-input" @bind="_f.SamplingPlan" maxlength="20" autocomplete="off" />
-
-            <label>@L["Col.InspMethod"]</label>
-            <input class="ames-input" @bind="_f.InspMethod" autocomplete="off" />
-
-            <label>@L["Col.EffectiveDate"]</label>
-            <input class="ames-input" type="date" @bind="_f.EffectiveDate" autocomplete="off" />
-
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" @bind="_f.IsCTQ" />
-                <span>@L["MD.InspStd.CtqLabel"]</span>
-            </label>
-
-            <label>@L["Col.Status"]</label>
-            <select class="ames-input" @bind="_f.Status">
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-            </select>
-
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div>
+                    <RadzenLabel Text='@L["Col.ItemId"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.ItemID" MaxLength="20" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.ProcessCode"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.ProcessCode" MaxLength="10" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.InspType"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.InspType" MaxLength="10" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div style="grid-column:span 2;">
+                    <RadzenLabel Text='@($"{L["Col.CharName"]} *")' /><br />
+                    <RadzenTextBox @bind-Value="_f.CharName" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.Nominal"]' /><br />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.SpecNominal" Step="0.0001m" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.LSL"]' /><br />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.SpecLSL" Step="0.0001m" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.USL"]' /><br />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.SpecUSL" Step="0.0001m" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.Uom"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.UOM" MaxLength="10" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.SamplingPlan"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.SamplingPlan" MaxLength="20" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div style="grid-column:span 2;">
+                    <RadzenLabel Text='@L["Col.InspMethod"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.InspMethod" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.EffectiveDate"]' /><br />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.EffectiveDate" DateFormat="yyyy-MM-dd" Style="width:100%;" />
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; padding-top:22px;">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.IsCTQ" />
+                    <RadzenLabel Text='@L["MD.InspStd.CtqLabel"]' Style="cursor:pointer;" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.Status"]' /><br />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="_statusFilterOptions" TextProperty="Text" ValueProperty="Value"
+                                    Placeholder='@L["Opt.Select"]' Style="width:100%;" />
+                </div>
+            </div>
             @if (_confirmDelete)
             {
-                <div class="ames-delete-confirm">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
                     <span>@L["Msg.Confirm.Delete"]</span>
-                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
-                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? @L["Msg.Deleting"] : @L["Msg.Yes"])</button>
-                </div>
+                    <RadzenButton Text='@L["Msg.No"]' Click='() => _confirmDelete = false' ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                    <RadzenButton Text='@(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)' Click="SaveDelete" Disabled="_busy" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                </RadzenStack>
             }
-
             @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad">@_modalErr</div> }
-
-            <div class="ames-modal-footer">
-                <button class="ames-btn"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? @L["Msg.Saving"] : @L["Btn.Edit"])</button>
-                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn ghost"     @onclick="CloseModal">@L["Btn.Cancel"]</button>
-            </div>
+            { <RadzenAlert AlertStyle="AlertStyle.Danger" ShowIcon="false" Variant="Variant.Flat" class="ames-alert-rz" Style="margin-top:8px;">@_modalErr</RadzenAlert> }
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text='@(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)' Click="SaveEdit" Disabled="_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text='@L["Btn.Delete"]' Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text='@L["Btn.Cancel"]' Click="CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
 
 @code {
-    List<AMES.Data.Repositories.MasterDataRepository.InspectionStandardRow> _allRows = new();
-    List<AMES.Data.Repositories.MasterDataRepository.InspectionStandardRow> _rows    = new();
-    AMES.Data.Repositories.MasterDataRepository.InspectionStandardRow? _sel;
-    int _page = 0;
-    const int _pageSize = 20;
+    List<MasterDataRepository.InspectionStandardRow> _allRows = new();
+    List<MasterDataRepository.InspectionStandardRow> _rows    = new();
+    MasterDataRepository.InspectionStandardRow? _sel;
+    int[] _pageSizeOptions = { 15, 30, 50, 100 };
 
-    string _fSearch = "", _fType = "", _fProcess = "", _fStatus = "";
-
+    string? _fType, _fProcess, _fStatus;
+    string  _fSearch = "";
     string _modal = "";
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
     string _msg = "", _modalErr = "";
-    bool _isErr;
-    bool   _canEdit;
+    bool _isErr, _canEdit;
     string _actor = "system";
     FormModel _f = new();
+
+    DropDownItem[] _statusFilterOptions =
+    {
+        new() { Value = "Active",   Text = "Active"   },
+        new() { Value = "Inactive", Text = "Inactive" },
+    };
+
+    IEnumerable<DropDownItem> TypeFilterOptions =>
+        _allRows.Select(r => r.InspType).Where(x => x != null).Distinct().OrderBy(x => x)
+                .Select(t => new DropDownItem { Value = t!, Text = t! });
+
+    IEnumerable<DropDownItem> ProcessFilterOptions =>
+        _allRows.Select(r => r.ProcessCode).Where(x => x != null).Distinct().OrderBy(x => x)
+                .Select(p => new DropDownItem { Value = p!, Text = p! });
+
+    void IsRowRender(RowRenderEventArgs<MasterDataRepository.InspectionStandardRow> args)
+    {
+        if (!args.Attributes.TryGetValue("class", out var cls)) cls = "";
+        args.Attributes["class"] = cls + " ames-row-link";
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -279,38 +309,38 @@
 
     void Reload() { _allRows = Md.ListInspectionStandards(); ApplyFilter(); }
 
-    void ApplyFilter() { _page = 0; _rows = _allRows.Where(r =>
+    void ApplyFilter() { _rows = _allRows.Where(r =>
         (string.IsNullOrEmpty(_fSearch) ||
             r.InspStdID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
-            (r.CharName   ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
-            (r.ItemID     ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
-        (string.IsNullOrEmpty(_fType)    || r.InspType    == _fType) &&
-        (string.IsNullOrEmpty(_fProcess) || r.ProcessCode == _fProcess) &&
-        (string.IsNullOrEmpty(_fStatus)  || r.Status      == _fStatus)
+            (r.CharName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.ItemID   ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (_fType    == null || r.InspType    == _fType) &&
+        (_fProcess == null || r.ProcessCode == _fProcess) &&
+        (_fStatus  == null || r.Status      == _fStatus)
     ).ToList(); }
 
     void OpenCreate() { _f = new() { Status = "Active" }; _modalErr = ""; _confirmDelete = false; _modal = "create"; }
 
-    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.InspectionStandardRow r)
+    void OpenEdit(MasterDataRepository.InspectionStandardRow r)
     {
         if (!_canEdit) return;
         _sel = r; _modalErr = ""; _confirmDelete = false;
         _f = new()
         {
             InspStdID     = r.InspStdID,
-            ItemID        = r.ItemID        ?? "",
-            ProcessCode   = r.ProcessCode   ?? "",
-            InspType      = r.InspType      ?? "",
-            CharName      = r.CharName      ?? "",
+            ItemID        = r.ItemID       ?? "",
+            ProcessCode   = r.ProcessCode  ?? "",
+            InspType      = r.InspType     ?? "",
+            CharName      = r.CharName     ?? "",
             SpecNominal   = r.SpecNominal,
             SpecLSL       = r.SpecLSL,
             SpecUSL       = r.SpecUSL,
-            UOM           = r.UOM           ?? "",
-            SamplingPlan  = r.SamplingPlan  ?? "",
-            InspMethod    = r.InspMethod    ?? "",
+            UOM           = r.UOM          ?? "",
+            SamplingPlan  = r.SamplingPlan ?? "",
+            InspMethod    = r.InspMethod   ?? "",
             IsCTQ         = r.IsCTQ,
             EffectiveDate = r.EffectiveDate,
-            Status        = r.Status        ?? "Active",
+            Status        = r.Status       ?? "Active",
         };
         _modal = "edit";
     }
@@ -400,4 +430,6 @@
         public DateOnly? EffectiveDate { get; set; }
         public string   Status        { get; set; } = "Active";
     }
+
+    class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 }

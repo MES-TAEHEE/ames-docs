@@ -1,14 +1,13 @@
-@page "/md/rp/line"
+﻿@page "/md/rp/line"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
 @inject AuthenticationStateProvider Auth
 @inject AMES.Web.Services.PermissionService Perm
 @inject IStringLocalizer<SharedResources> L
+@using Radzen
 
 <PageTitle>@L["MD.Line.Title"] · AMES</PageTitle>
-
-<AmesPageHeader Code="MD-001" TitleKey="MD.Line.Title" />
 
 <div class="ames-kpis">
     <div class="ames-kpi">
@@ -31,98 +30,91 @@
 
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.Line.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input class="ames-input" style="width:120px;padding:4px 8px;"
-                   placeholder="@L["MD.Line.Ph.Search"]" @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Type"]</span>
-            <select class="ames-input" style="width:120px;" @bind="_fType">
-                <option value="">@L["Filter.AllTypes"]</option>
-                @foreach (var c in _lineTypeCodes.Where(c => c.UseFlag))
-                {
-                    <option value="@c.CodeValue">[@c.CodeValue]@($" {MasterDataRepository.LocalName(c)}")</option>
-                }
-            </select>
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
-            <select class="ames-input" style="width:140px;" @bind="_fStatus">
-                <option value="">@L["Filter.AllStatus"]</option>
-                @foreach (var s in _lineStatus.Where(s => s.UseFlag))
-                {
-                    <option value="@s.CodeValue">[@s.CodeValue] @(MasterDataRepository.LocalName(s))</option>
-                }
-            </select>
-            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
-            @if (_canEdit) { <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button> }
-        </div>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fSearch" Placeholder="@L["MD.Line.Ph.Search"]"
+                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" AutoComplete="false"
+                           @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' />
+            <RadzenLabel Text="@L["Col.Type"]" />
+            <RadzenDropDown @bind-Value="_fType" Data="@LineTypeOptions" TextProperty="Text" ValueProperty="Value"
+                            AllowClear="true" Placeholder="@L["Filter.AllTypes"]"
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenLabel Text="@L["Col.Status"]" />
+            <RadzenDropDown @bind-Value="_fStatus" Data="@LineStatusOptions" TextProperty="Text" ValueProperty="Value"
+                            AllowClear="true" Placeholder="@L["Filter.AllStatus"]"
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
+            @if (_canEdit) { <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" /> }
+        </RadzenStack>
     </div>
 
-    @if (_rows.Count == 0)
-    {
-        <div class="ames-empty">@L["MD.Line.Empty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["Col.LineId"]</th>
-                    <th>@L["Col.LineName"]</th>
-                    <th>@L["Col.LineNameEn"]</th>
-                    <th>@L["Col.Type"]</th>
-                    <th>@L["Col.Plant"]</th>
-                    <th>@L["Col.WCID"]</th>
-                    <th class="num">@L["Col.Capacity"]</th>
-                    <th>@L["Col.Pattern"]</th>
-                    <th style="text-align:center;">@L["Col.RFID"]</th>
-                    <th style="text-align:center;">@L["Col.Status"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    var typeName  = _lineTypeCodes.FirstOrDefault(c2 => c2.CodeValue == r.LineType) is { } _ltf ? MasterDataRepository.LocalName(_ltf) : r.LineType;
-                    var shiftName = _shiftCodes.FirstOrDefault(c2 => c2.CodeValue == r.ShiftPattern) is { } _scf ? MasterDataRepository.LocalName(_scf) : r.ShiftPattern;
-                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
-                        <td class="code">@r.LineID</td>
-                        <td>@(r.LineName ?? "—")</td>
-                        <td class="dim">@(r.LineNameEn ?? "—")</td>
-                        <td>
-                            <span class="pill @TypeClass(r.LineType)">@(r.LineType ?? "—")</span>
-                            @if (typeName != null) { <span class="dim" style="font-size:.8em;margin-left:4px;">@typeName</span> }
-                        </td>
-                        <td class="dim code" style="font-size:12px;">@(r.PlantCode ?? "—")</td>
-                        <td class="dim" style="font-size:12px;">@(r.DefaultWCID ?? "—")</td>
-                        <td class="num">@(r.DailyCap?.ToString("N0") ?? "—")</td>
-                        <td>
-                            @if (r.ShiftPattern != null)
-                            {
-                                <span class="pill info">@r.ShiftPattern</span>
-                                @if (shiftName != null) { <span class="dim" style="font-size:.8em;margin-left:4px;">@shiftName</span> }
-                            }
-                            else { <span class="dim">—</span> }
-                        </td>
-                        <td style="text-align:center;">
-                            @if (r.RfidEnabledFlag) { <span class="pill ok">ON</span> }
-                            else { <span class="dim">—</span> }
-                        </td>
-                        <td style="text-align:center;">
-                            @{
-                                var scls   = r.Status == "ACTIVE" ? "ok" : "bad";
-                                var sLabel = _lineStatus.FirstOrDefault(s => s.CodeValue == r.Status) is { } _lf_ ? MasterDataRepository.LocalName(_lf_) : r.Status;
-                            }
-                            <span class="pill @scls">@(sLabel ?? "—")</span>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
-    }
+    <RadzenDataGrid TItem="AMES.Data.Repositories.MasterDataRepository.LineRow"
+                    Data="@_rows"
+                    AllowPaging="true" PageSize="25"
+                    PagerHorizontalAlign="HorizontalAlign.Center"
+                    PageSizeOptions="@_pageSizeOptions"
+                    ShowPagingSummary="true"
+                    AllowSorting="true"
+                    RowRender="@LineRowRender"
+                    RowClick="@(args => { if (args.Data is not null) OpenEdit(args.Data); })"
+                    EmptyText="@L["MD.Line.Empty"]"
+                    Class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.LineRow" Property="LineID" Title="@L["Col.LineId"]" Width="100px">
+                <Template Context="r"><span class="code">@r.LineID</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.LineRow" Property="LineName" Title="@L["Col.LineName"]">
+                <Template Context="r">@(r.LineName ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.LineRow" Property="LineNameEn" Title="@L["Col.LineNameEn"]">
+                <Template Context="r"><span class="dim">@(r.LineNameEn ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.LineRow" Property="LineType" Title="@L["Col.Type"]" Width="130px">
+                <Template Context="r">
+                    @{ var typeName = _lineTypeCodes.FirstOrDefault(c2 => c2.CodeValue == r.LineType) is { } ltf ? MasterDataRepository.LocalName(ltf) : null; }
+                    <span class="pill @TypeClass(r.LineType)">@(r.LineType ?? "—")</span>
+                    @if (typeName != null) { <span class="dim" style="font-size:.8em;margin-left:4px;">@typeName</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.LineRow" Property="PlantCode" Title="@L["Col.Plant"]" Width="70px">
+                <Template Context="r"><span class="code dim" style="font-size:12px;">@(r.PlantCode ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.LineRow" Property="DefaultWCID" Title="@L["Col.WCID"]" Width="80px">
+                <Template Context="r"><span class="dim" style="font-size:12px;">@(r.DefaultWCID ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.LineRow" Property="DailyCap" Title="@L["Col.Capacity"]" Width="80px" TextAlign="TextAlign.Right">
+                <Template Context="r">@(r.DailyCap?.ToString("N0") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.LineRow" Property="ShiftPattern" Title="@L["Col.Pattern"]" Width="130px">
+                <Template Context="r">
+                    @if (r.ShiftPattern != null)
+                    {
+                        var shiftName = _shiftCodes.FirstOrDefault(c2 => c2.CodeValue == r.ShiftPattern) is { } scf ? MasterDataRepository.LocalName(scf) : null;
+                        <span class="pill info">@r.ShiftPattern</span>
+                        @if (shiftName != null) { <span class="dim" style="font-size:.8em;margin-left:4px;">@shiftName</span> }
+                    }
+                    else { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.LineRow" Property="RfidEnabledFlag" Title="@L["Col.RFID"]" Width="56px" TextAlign="TextAlign.Center">
+                <Template Context="r">
+                    @if (r.RfidEnabledFlag) { <span class="pill ok">ON</span> }
+                    else { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.LineRow" Property="Status" Title="@L["Col.Status"]" Width="90px" TextAlign="TextAlign.Center">
+                <Template Context="r">
+                    @{ var sLabel = _lineStatus.FirstOrDefault(s => s.CodeValue == r.Status) is { } lf ? MasterDataRepository.LocalName(lf) : r.Status; }
+                    <span class="pill @(r.Status == "ACTIVE" ? "ok" : "bad")">@(sLabel ?? "—")</span>
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 </div>
 
 @* ── Create Modal ─────────────────────────────────────────────────── *@
@@ -132,75 +124,81 @@
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Line.Modal.Create"]</div>
 
-            <label>@L["MD.Line.Lbl.LineId"] <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: INJ-L01)</span></label>
-            <input class="ames-input" @bind="_f.LineID" placeholder="INJ-L01" autocomplete="off" />
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div>
+                    <RadzenLabel Text='@(L["MD.Line.Lbl.LineId"] + "  (예: INJ-L01)")' />
+                    <RadzenTextBox @bind-Value="_f.LineID" Placeholder="INJ-L01" AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="@L["MD.Line.Lbl.LineName"]" />
+                    <RadzenTextBox @bind-Value="_f.LineName" Placeholder="@L["MD.Line.Ph.LineName"]" AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+            </div>
 
-            <label>@L["MD.Line.Lbl.LineName"]</label>
-            <input class="ames-input" @bind="_f.LineName" placeholder='@L["MD.Line.Ph.LineName"]' autocomplete="off" />
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+                <div>
+                    <RadzenLabel Text="@L["MD.Line.Lbl.LineNameEn"]" />
+                    <RadzenTextBox @bind-Value="_f.LineNameEn" Placeholder="Injection Line 1" AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="@L["MD.Line.Lbl.LineType"]" />
+                    <RadzenDropDown @bind-Value="_f.LineType" Data="@LineTypeOptions" TextProperty="Text" ValueProperty="Value"
+                                    Placeholder="@L["Opt.Select"]"
+                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+            </div>
 
-            <label>@L["MD.Line.Lbl.LineNameEn"]</label>
-            <input class="ames-input" @bind="_f.LineNameEn" placeholder="Injection Line 1" autocomplete="off" />
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+                <div>
+                    <RadzenLabel Text="@L["MD.Line.Lbl.PlantId"]" />
+                    <RadzenDropDown @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value"
+                                    Placeholder="@L["Opt.Select"]"
+                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="@L["MD.Line.Lbl.DefaultWcid"]" />
+                    <RadzenDropDown @bind-Value="_f.DefaultWCID" Data="@WcOptions" TextProperty="Text" ValueProperty="Value"
+                                    Placeholder="@L["Opt.Select"]"
+                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+            </div>
 
-            <label>@L["MD.Line.Lbl.LineType"]</label>
-            <select class="ames-input" @bind="_f.LineType">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var c in _lineTypeCodes.Where(c => c.UseFlag))
-                {
-                    <option value="@c.CodeValue">[@c.CodeValue]@($" {MasterDataRepository.LocalName(c)}")</option>
-                }
-            </select>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+                <div>
+                    <RadzenLabel Text="@L["MD.Line.Lbl.DailyCap"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.DailyCap" Placeholder="1000" Min="0"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="@L["MD.Line.Lbl.ShiftPattern"]" />
+                    <RadzenDropDown @bind-Value="_f.ShiftPattern" Data="@ShiftOptions" TextProperty="Text" ValueProperty="Value"
+                                    Placeholder="@L["Opt.Select"]"
+                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+            </div>
 
-            <label>@L["MD.Line.Lbl.PlantId"]</label>
-            <select class="ames-input" @bind="_f.PlantCode">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var c in _plantCodes.Where(c => c.UseFlag))
-                {
-                    <option value="@c.CodeValue">[@c.CodeValue]@($" {MasterDataRepository.LocalName(c)}")</option>
-                }
-            </select>
+            <RadzenLabel Text="@L["Col.Status"]" Style="margin-top:6px;" />
+            <RadzenDropDown @bind-Value="_f.Status" Data="@LineStatusOptions" TextProperty="Text" ValueProperty="Value"
+                            Placeholder="@L["Opt.Select"]"
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
 
-            <label>@L["MD.Line.Lbl.DefaultWcid"]</label>
-            <select class="ames-input" @bind="_f.DefaultWCID">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var w in _wcList.Where(w => w.ActiveFlag))
-                {
-                    <option value="@w.WCID">[@w.WCID]@(w.WCName != null ? $" {w.WCName}" : "")</option>
-                }
-            </select>
-
-            <label>@L["MD.Line.Lbl.DailyCap"]</label>
-            <input class="ames-input" type="number" @bind="_f.DailyCap" placeholder="1000" min="0" autocomplete="off" />
-
-            <label>@L["MD.Line.Lbl.ShiftPattern"]</label>
-            <select class="ames-input" @bind="_f.ShiftPattern">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var c in _shiftCodes.Where(c => c.UseFlag))
-                {
-                    <option value="@c.CodeValue">[@c.CodeValue]@($" {MasterDataRepository.LocalName(c)}")</option>
-                }
-            </select>
-
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" @bind="_f.RfidEnabledFlag" />
+            <label style="margin-top:6px;display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <RadzenCheckBox TValue="bool" @bind-Value="_f.RfidEnabledFlag" />
                 <span>@L["MD.Line.Lbl.RfidEnabled"]</span>
             </label>
 
-            <label>@L["Col.Status"]</label>
-            <select class="ames-input" @bind="_f.Status">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var s in _lineStatus.Where(s => s.UseFlag))
-                {
-                    <option value="@s.CodeValue">[@s.CodeValue] @(MasterDataRepository.LocalName(s))</option>
-                }
-            </select>
-
             @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad">@_modalErr</div> }
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="margin-top:8px;">@_modalErr</RadzenAlert>
+            }
 
-            <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)</button>
-                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Create"])" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveCreate" Disabled="@_busy" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseModal" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
@@ -212,82 +210,87 @@
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Line.Modal.Edit"] — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.LineID</span></div>
 
-            <label>@L["MD.Line.Lbl.LineName"]</label>
-            <input class="ames-input" @bind="_f.LineName" autocomplete="off" />
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div>
+                    <RadzenLabel Text="@L["MD.Line.Lbl.LineName"]" />
+                    <RadzenTextBox @bind-Value="_f.LineName" AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="@L["MD.Line.Lbl.LineNameEn"]" />
+                    <RadzenTextBox @bind-Value="_f.LineNameEn" AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+            </div>
 
-            <label>@L["MD.Line.Lbl.LineNameEn"]</label>
-            <input class="ames-input" @bind="_f.LineNameEn" autocomplete="off" />
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+                <div>
+                    <RadzenLabel Text="@L["MD.Line.Lbl.LineType"]" />
+                    <RadzenDropDown @bind-Value="_f.LineType" Data="@LineTypeOptions" TextProperty="Text" ValueProperty="Value"
+                                    Placeholder="@L["Opt.Select"]"
+                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="@L["MD.Line.Lbl.PlantId"]" />
+                    <RadzenDropDown @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value"
+                                    Placeholder="@L["Opt.Select"]"
+                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+            </div>
 
-            <label>@L["MD.Line.Lbl.LineType"]</label>
-            <select class="ames-input" @bind="_f.LineType">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var c in _lineTypeCodes.Where(c => c.UseFlag))
-                {
-                    <option value="@c.CodeValue">[@c.CodeValue]@($" {MasterDataRepository.LocalName(c)}")</option>
-                }
-            </select>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+                <div>
+                    <RadzenLabel Text="@L["MD.Line.Lbl.DefaultWcid"]" />
+                    <RadzenDropDown @bind-Value="_f.DefaultWCID" Data="@WcOptions" TextProperty="Text" ValueProperty="Value"
+                                    Placeholder="@L["Opt.Select"]"
+                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="@L["MD.Line.Lbl.DailyCap"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.DailyCap" Min="0"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+            </div>
 
-            <label>@L["MD.Line.Lbl.PlantId"]</label>
-            <select class="ames-input" @bind="_f.PlantCode">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var c in _plantCodes.Where(c => c.UseFlag))
-                {
-                    <option value="@c.CodeValue">[@c.CodeValue]@($" {MasterDataRepository.LocalName(c)}")</option>
-                }
-            </select>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+                <div>
+                    <RadzenLabel Text="@L["MD.Line.Lbl.ShiftPattern"]" />
+                    <RadzenDropDown @bind-Value="_f.ShiftPattern" Data="@ShiftOptions" TextProperty="Text" ValueProperty="Value"
+                                    Placeholder="@L["Opt.Select"]"
+                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="@L["Col.Status"]" />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="@LineStatusOptions" TextProperty="Text" ValueProperty="Value"
+                                    Placeholder="@L["Opt.Select"]"
+                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+            </div>
 
-            <label>@L["MD.Line.Lbl.DefaultWcid"]</label>
-            <select class="ames-input" @bind="_f.DefaultWCID">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var w in _wcList.Where(w => w.ActiveFlag))
-                {
-                    <option value="@w.WCID">[@w.WCID]@(w.WCName != null ? $" {w.WCName}" : "")</option>
-                }
-            </select>
-
-            <label>@L["MD.Line.Lbl.DailyCap"]</label>
-            <input class="ames-input" type="number" @bind="_f.DailyCap" min="0" autocomplete="off" />
-
-            <label>@L["MD.Line.Lbl.ShiftPattern"]</label>
-            <select class="ames-input" @bind="_f.ShiftPattern">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var c in _shiftCodes.Where(c => c.UseFlag))
-                {
-                    <option value="@c.CodeValue">[@c.CodeValue]@($" {MasterDataRepository.LocalName(c)}")</option>
-                }
-            </select>
-
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" @bind="_f.RfidEnabledFlag" />
+            <label style="margin-top:6px;display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <RadzenCheckBox TValue="bool" @bind-Value="_f.RfidEnabledFlag" />
                 <span>@L["MD.Line.Lbl.RfidEnabled"]</span>
             </label>
 
-            <label>@L["Col.Status"]</label>
-            <select class="ames-input" @bind="_f.Status">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var s in _lineStatus.Where(s => s.UseFlag))
-                {
-                    <option value="@s.CodeValue">[@s.CodeValue] @(MasterDataRepository.LocalName(s))</option>
-                }
-            </select>
-
             @if (_confirmDelete)
             {
-                <div class="ames-delete-confirm">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
                     <span>@L["Msg.Confirm.Delete"]</span>
-                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
-                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)</button>
-                </div>
+                    <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _confirmDelete = false' class="ames-rz-btn" />
+                    <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
+                </RadzenStack>
             }
 
             @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad">@_modalErr</div> }
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="margin-top:8px;">@_modalErr</RadzenAlert>
+            }
 
-            <div class="ames-modal-footer">
-                <button class="ames-btn"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)</button>
-                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn ghost"     @onclick="CloseModal">@L["Btn.Cancel"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Edit"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveEdit" Disabled="@_busy" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseModal" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
@@ -302,10 +305,39 @@
     List<AMES.Data.Repositories.MasterDataRepository.WorkCenterRow> _wcList       = new();
     AMES.Data.Repositories.MasterDataRepository.LineRow? _sel;
 
-    int _page = 0;
-    const int _pageSize = 20;
+    string  _fSearch = "";
+    string? _fType;
+    string? _fStatus;
 
-    string _fSearch = "", _fType = "", _fStatus = "";
+    readonly IEnumerable<int> _pageSizeOptions = new[] { 15, 30, 50, 100 };
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+
+    private IEnumerable<DropDownItem> LineTypeOptions =>
+        _lineTypeCodes.Where(c => c.UseFlag)
+            .Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+
+    private IEnumerable<DropDownItem> LineStatusOptions =>
+        _lineStatus.Where(s => s.UseFlag)
+            .Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}" });
+
+    private IEnumerable<DropDownItem> PlantOptions =>
+        _plantCodes.Where(c => c.UseFlag)
+            .Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+
+    private IEnumerable<DropDownItem> WcOptions =>
+        _wcList.Where(w => w.ActiveFlag)
+            .Select(w => new DropDownItem { Value = w.WCID ?? "", Text = $"[{w.WCID}]{(w.WCName != null ? $" {w.WCName}" : "")}" });
+
+    private IEnumerable<DropDownItem> ShiftOptions =>
+        _shiftCodes.Where(c => c.UseFlag)
+            .Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+
+    private void LineRowRender(RowRenderEventArgs<AMES.Data.Repositories.MasterDataRepository.LineRow> args)
+    {
+        if (!args.Attributes.TryGetValue("class", out var cls)) cls = "";
+        args.Attributes["class"] = cls + " ames-row-link";
+    }
 
     string _modal = "";
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
@@ -331,7 +363,7 @@
 
     void Reload() { _allRows = Md.ListLines(); ApplyFilter(); }
 
-    void ApplyFilter() { _page = 0; _rows = _allRows.Where(r =>
+    void ApplyFilter() { _rows = _allRows.Where(r =>
         (string.IsNullOrEmpty(_fSearch) || r.LineID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase)
                                         || (r.LineName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fType)   || r.LineType == _fType) &&

@@ -642,6 +642,13 @@ a:hover { color: #c4dafe; }
 .ames-btn.ghost { background: transparent; border: 1px solid rgba(255,255,255,.25); color: rgba(255,255,255,.75); box-shadow: none; }
 .ames-btn.ghost:hover:not(:disabled) { background: rgba(255,255,255,.07); color: #fff; border-color: rgba(255,255,255,.45); }
 
+.ames-rz-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+}
+
 /* ── Error overlay ────────────────────────────────────────── */
 #blazor-error-ui {
     background: #dc2626; color: #fff;
@@ -833,6 +840,32 @@ select.ames-input {
     cursor: pointer; appearance: auto;
 }
 select.ames-input option { background: #0d1b2e; }
+
+.ames-rz-modal-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    line-height: 0.9;
+    padding: 0;
+    margin-bottom: 1px;
+    display: inline-block;
+    flex-shrink: 0;
+    width:120px;
+}
+.ames-rz-input {
+    background: #050a13;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+}
+select.ames-rz-input {
+    padding: 0;
+    font-size: 12px;
+    cursor: pointer;
+    appearance: auto;
+}
 
 /* ── Alert bar ────────────────────────────────────────────────── */
 .ames-alert {

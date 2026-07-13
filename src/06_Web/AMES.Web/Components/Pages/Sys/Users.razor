@@ -1,28 +1,45 @@
 ﻿@page "/sys/users"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.SysRepository Sys
-@inject AMES.Data.Repositories.MasterDataRepository MD
-@inject AMES.Data.Repositories.AuthRepository AuthRepo
+
+@using System.Globalization
+@using System.Text.Json
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using AMES.Web.Services
+@using Radzen
+
+@attribute [Authorize]
+
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject AuthRepository AuthRepo
+@inject SysRepository Sys
+@inject MasterDataRepository MD
 @inject UserManager<ApplicationUser> UserMgr
 @inject RoleManager<IdentityRole> RoleMgr
-@inject AuthenticationStateProvider Auth
-@inject AMES.Web.Services.PermissionService Perm
 @inject IStringLocalizer<SharedResources> L
-@using Radzen
 
 <PageTitle>SYS-001 @L["SYS.Users.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="SYS-001" TitleKey="SYS.Users.Title" />
 
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">@L["SYS.Users.Kpi.Users"]</div>
-        <div class="ames-kpi-v">@_allRows.Count</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["SYS.Users.Kpi.Verified"]</div>
-        <div class="ames-kpi-v">@_allRows.Count(r => r.EmailConfirmed)</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">@L["SYS.Users.Kpi.Locked"]</div>
-        <div class="ames-kpi-v">@_allRows.Count(r => r.LockedOut || r.AccountStatus == "LOCKED")</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["SYS.Users.Kpi.RecentLogin"]</div>
-        <div class="ames-kpi-v">@_allRows.Count(r => r.LastLoginTs.HasValue && (DateTime.Now - r.LastLoginTs.Value).TotalHours <= 24)</div></div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["SYS.Users.Kpi.Users"]</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">@L["SYS.Users.Kpi.Verified"]</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.EmailConfirmed)</div>
+    </div>
+    <div class="ames-kpi bad">
+        <div class="ames-kpi-l">@L["SYS.Users.Kpi.Locked"]</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.LockedOut || r.AccountStatus == "LOCKED")</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">@L["SYS.Users.Kpi.RecentLogin"]</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.LastLoginTs.HasValue && (DateTime.Now - r.LastLoginTs.Value).TotalHours <= 24)</div>
+    </div>
 </div>
 
 @if (!string.IsNullOrEmpty(_msg))
@@ -33,18 +50,17 @@
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["SYS.Users.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input class="ames-input" style="width:300px;padding:4px 8px;"
-                   placeholder="@L["SYS.Users.Ph.UserName"]" @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
-            <select class="ames-input" style="width:120px;" @bind="_fStatus">
-                <option value="">@L["Filter.AllStatus"]</option>
-                @foreach (var s in _statusItems.Where(s => s.UseFlag))
-                { <option value="@s.CodeValue">[@s.CodeValue] @(MasterDataRepository.LocalName(s))</option> }
-            </select>
-            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
-            @if (_canEdit) { <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button> }
-        </div>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["SYS.Users.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" />
+            <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
+            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@SearchStatusItems.Where(x => !string.IsNullOrEmpty(x.Value))" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+
+            <RadzenButton Text="@L["Btn.Search"]" Icon="refresh" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click=@(args => Reload()) class="ames-rz-btn" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["Btn.Create"]" Icon="add_circle" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click=@OpenCreate class="ames-rz-btn" />
+            }
+        </RadzenStack>
     </div>
 
     @if (_rows.Count == 0)
@@ -54,58 +70,58 @@
     else
     {
         <RadzenStack Gap="1rem">
-            <RadzenDataGrid TItem="AMES.Data.Repositories.SysRepository.UserRow" Data="@_rows" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                            PageSizeOptions="@pageSizeOptions" ShowPagingSummary="@showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" Class="ames-rz-grid">
+            <RadzenDataGrid TItem="SysRepository.UserRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" Class="ames-rz-grid">
                 <Columns>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.UserRow" Property="UserName" Title="@L["SYS.Users.Col.UserName"]">
+                    <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="UserName" Title="@L["SYS.Users.Col.UserName"]">
                         <Template Context="u">
                             <span class="code">@(u.UserName ?? "—")</span>
                         </Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.UserRow" Property="Email" Title="@L["SYS.Users.Col.Email"]">
+                    <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="Email" Title="@L["SYS.Users.Col.Email"]">
                         <Template Context="u">
                             <span class="dim">@(u.Email ?? "—")</span>
                         </Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.UserRow" Property="EmployeeNo" Title="@L["SYS.Users.Col.EmployeeNo"]">
+                    <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="EmployeeNo" Title="@L["SYS.Users.Col.EmployeeNo"]">
                         <Template Context="u">
                             <span class="dim">@(u.EmployeeNo ?? "—")</span>
                         </Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.UserRow" Property="EmployeeName" Title="@L["SYS.Users.Col.EmployeeName"]" />
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.UserRow" Title="@L["SYS.Users.Col.Dept"]">
+                    <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="EmployeeName" Title="@L["SYS.Users.Col.EmployeeName"]" />
+                    <RadzenDataGridColumn TItem="SysRepository.UserRow" Title="@L["SYS.Users.Col.Dept"]">
                         <Template Context="u">
                             <span class="dim">@DeptName(u.Department)</span>
                         </Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.UserRow" Title="@L["Col.Status"]">
+                    <RadzenDataGridColumn TItem="SysRepository.UserRow" Title="@L["Col.Status"]">
                         <Template Context="u">
                             @{
                                 var stEff = EffectiveStatus(u);
-                                var unver = !u.EmailConfirmed && stEff == "Active";
-                                var stCls = unver
-                                    ? "warn"
-                                    : stEff switch
-                                    {
-                                        "LOCKED" => "bad",
-                                        "INACTIVE" => "dim",
-                                        _ => "ok"
-                                    };
+                                var unver = string.Equals(stEff, "UNVERIFIED", StringComparison.OrdinalIgnoreCase);
+                                var nonvf = !u.EmailConfirmed && unver;
+                                var stCls = nonvf ? "ghost" : stEff switch
+                                {
+                                    "LOCKED"    => "bad",
+                                    "INACTIVE"  => "mute",
+                                    "SUSPENDED" => "warn",
+                                    _ => "ok"
+                                };
 
-                                var stLbl = unver
+                                var stLbl = nonvf
                                     ? L["SYS.Users.Status.Unverified"].Value
                                     : StatusName(stEff);
                             }
                             <span class="pill @stCls">@stLbl</span>
                         </Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.UserRow" Property="RolesCsv" Title="@L["SYS.Users.Col.Roles"]">
+                    <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="RolesCsv" Title="@L["SYS.Users.Col.Roles"]">
                         <Template Context="u">
                             <span class="dim">@(u.RolesCsv ?? "—")</span>
                         </Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.UserRow" Property="FailedLoginCount" Title="@L["SYS.Users.Col.FailCount"]" TextAlign="TextAlign.Right" />
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.UserRow" Title="@L["SYS.Users.Col.LastLogin"]">
+                    <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="FailedLoginCount" Title="@L["SYS.Users.Col.FailCount"]" TextAlign="TextAlign.Right" />
+                    <RadzenDataGridColumn TItem="SysRepository.UserRow" Title="@L["SYS.Users.Col.LastLogin"]">
                         <Template Context="u">
                             <span class="dim">
                                 @(u.LastLoginTs?.ToString("MM-dd HH:mm") ?? "—")
@@ -129,69 +145,76 @@
             <input type="text"     style="display:none" autocomplete="username" />
             <input type="password" style="display:none" autocomplete="new-password" />
 
-            <label>Email *</label>
-            <input class="ames-input" @bind="_f.Email" placeholder="user@ames.local" autocomplete="off" />
+            <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Users.Lbl.Email"]" class="ames-rz-modal-label" Component="CreateTextBoxEmail" />
+                    <RadzenTextBox Name="CreateTextBoxEmail" @bind-Value="_f.Email" Placeholder="@L["SYS.Users.Ph.Email"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                </RadzenStack>
 
-            <label>@L["SYS.Users.Lbl.Password"]</label>
-            <input class="ames-input" type="password" @bind="_f.Password" placeholder="@L["SYS.Users.Ph.Password"]" autocomplete="new-password" />
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Users.Lbl.Password"]" class="ames-rz-modal-label" Component="CreateTextBoxPassword" />
+                    <RadzenTextBox Name="CreateTextBoxPassword" @bind-Value="_f.Password" Type="Password" Placeholder="@L["SYS.Users.Ph.Password"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.NewPassword" />
+                </RadzenStack>
 
-            <label>@L["SYS.Users.Lbl.EmployeeNo"]</label>
-            <input class="ames-input" @bind="_f.EmployeeNo" placeholder="EMP001" autocomplete="off" />
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Users.Lbl.EmployeeNo"]" class="ames-rz-modal-label" Component="CreateTextBoxEmployeeNo" />
+                    <RadzenTextBox Name="CreateTextBoxEmployeeNo" @bind-Value="_f.EmployeeNo" Placeholder="@L["SYS.Users.Ph.EmployeeNo"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                </RadzenStack>
 
-            <label>@L["SYS.Users.Lbl.EmployeeName"]</label>
-            <input class="ames-input" @bind="_f.EmployeeName" placeholder='@L["SYS.Users.Ph.Name"]' autocomplete="off" />
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Users.Lbl.EmployeeName"]" class="ames-rz-modal-label" Component="CreateTextBoxEmployeeName" />
+                    <RadzenTextBox Name="CreateTextBoxEmployeeName" @bind-Value="_f.EmployeeName" Placeholder="@L["SYS.Users.Ph.Name"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                </RadzenStack>
 
-            <label>@L["SYS.Users.Lbl.Dept"]</label>
-            <select class="ames-input" @bind="_f.Department">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var o in _deptOptions) { <option value="@o.Value">@o.Display</option> }
-            </select>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Users.Lbl.Dept"]" class="ames-rz-modal-label" Component="CreateDropDownDepartment" />
+                    <RadzenDropDown Name="CreateDropDownDepartment" @bind-Value="_f.Department" Data="@DeptOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+                
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Users.Lbl.Plant"]" class="ames-rz-modal-label" Component="CreateDropDownPlantCode" />
+                    <RadzenDropDown Name="CreateDropDownPlantCode" @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
 
-            <label>@L["SYS.Users.Lbl.Plant"]</label>
-            <select class="ames-input" @bind="_f.PlantCode">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var o in _plantOptions) { <option value="@o.Value">@o.Display</option> }
-            </select>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Users.Lbl.DefaultShift"]" class="ames-rz-modal-label" Component="CreateDropDownDefaultShift" />
+                    <RadzenDropDown Name="CreateDropDownDefaultShift" @bind-Value="_f.DefaultShift" Data="@ShiftOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
 
-            <label>@L["SYS.Users.Lbl.DefaultShift"]</label>
-            <select class="ames-input" @bind="_f.DefaultShift">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var o in _shiftOptions) { <option value="@o.Value">@o.Display</option> }
-            </select>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Users.Lbl.Role"]" class="ames-rz-modal-label" Component="CreateDropDownRole" />
+                    <RadzenDropDown Name="CreateDropDownRole" @bind-Value="_f.Role" Data="@_roles" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
 
-            <label>@L["SYS.Users.Lbl.Role"]</label>
-            <select class="ames-input"
-                    value="@_f.Role"
-                    @onchange="e => _f.Role = e.Value?.ToString() ?? string.Empty">
-                <option value="">@L["SYS.Users.Opt.NoRole"]</option>
-                @foreach (var r in _roles) { <option value="@r">@r</option> }
-            </select>
-
-            <label>@L["SYS.Users.Lbl.Lines"] <span style="font-weight:400;color:#64748b;">@L["SYS.Users.Hint.Lines"]</span></label>
-            <div class="ames-line-picker">
-                @if (_lines.Count == 0)
-                { <span class="dim" style="font-size:.8em;">@L["SYS.Users.Lbl.NoLines"]</span> }
-                @foreach (var ln in _lines)
-                {
-                    <label class="ames-line-item">
-                        <input type="checkbox"
-                               checked="@_f.SelectedLines.Contains(ln.LineId)"
-                               @onchange="e => ToggleLine(ln.LineId, (bool)e.Value!)" />
-                        <span class="code">@ln.LineId</span>
-                        <span class="dim">@ln.LineName</span>
-                    </label>
-                }
-            </div>
+                <RadzenLabel Text="@L["SYS.Users.Lbl.Lines"]" />
+                <RadzenStack Gap="0.5rem" class="ames-line-picker" Style="flex:1;width:100%;">
+                    @if (_lines.Count == 0)
+                    {
+                        <span class="dim">@L["SYS.Users.Lbl.NoLines"]</span>
+                    }
+                    else
+                    {
+                        @foreach (var ln in _lines)
+                        {
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-line-item" Style="width:100%;">
+                                <RadzenCheckBox TValue="bool" Value="@(_f.SelectedLines?.Contains(ln.LineId) ?? false)" Change="@(args => ToggleLine(ln.LineId, args))" />
+                                <span class="code">@ln.LineId</span>
+                                <span class="dim">@LineLocalName(ln)</span>
+                            </RadzenStack>
+                        }
+                    }
+                </RadzenStack>
+            </RadzenStack>
 
             @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad">@_modalErr</div> }
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
 
-            <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">
-                    @(_busy ? @L["Msg.Saving"] : @L["Btn.Create"])
-                </button>
-                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Create"])" Click="@SaveCreate" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
@@ -207,156 +230,199 @@
             <input type="text"     style="display:none" autocomplete="username" />
             <input type="password" style="display:none" autocomplete="new-password" />
 
-            <label>@L["SYS.Users.Lbl.EmployeeNo"]</label>
-            <input class="ames-input" @bind="_f.EmployeeNo" autocomplete="off" />
+            <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Users.Lbl.EmployeeNo"]" class="ames-rz-modal-label" Component="EditTextBoxEmployeeNo" />
+                    <RadzenTextBox Name="EditTextBoxEmployeeNo" @bind-Value="_f.EmployeeNo" Placeholder="@L["SYS.Users.Ph.EmployeeNo"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                </RadzenStack>
 
-            <label>@L["SYS.Users.Lbl.EmployeeName"]</label>
-            <input class="ames-input" @bind="_f.EmployeeName" autocomplete="off" />
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Users.Lbl.EmployeeName"]" class="ames-rz-modal-label" Component="EditTextBoxEmployeeName" />
+                    <RadzenTextBox Name="EditTextBoxEmployeeName" @bind-Value="_f.EmployeeName" Placeholder="@L["SYS.Users.Ph.Name"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                </RadzenStack>
 
-            <label>@L["SYS.Users.Lbl.Dept"]</label>
-            <select class="ames-input" @bind="_f.Department">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var o in _deptOptions) { <option value="@o.Value">@o.Display</option> }
-            </select>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Users.Lbl.Dept"]" class="ames-rz-modal-label" Component="EditDropDownDepartment" />
+                    <RadzenDropDown Name="EditDropDownDepartment" @bind-Value="_f.Department" Data="@DeptOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
 
-            <label>@L["SYS.Users.Lbl.Plant"]</label>
-            <select class="ames-input" @bind="_f.PlantCode">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var o in _plantOptions) { <option value="@o.Value">@o.Display</option> }
-            </select>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Users.Lbl.Plant"]" class="ames-rz-modal-label" Component="EditDropDownPlantCode" />
+                    <RadzenDropDown Name="EditDropDownPlantCode" @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
 
-            <label>@L["SYS.Users.Lbl.DefaultShift"]</label>
-            <select class="ames-input" @bind="_f.DefaultShift">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var o in _shiftOptions) { <option value="@o.Value">@o.Display</option> }
-            </select>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Users.Lbl.DefaultShift"]" class="ames-rz-modal-label" Component="EditDropDownDefaultShift" />
+                    <RadzenDropDown Name="EditDropDownDefaultShift" @bind-Value="_f.DefaultShift" Data="@ShiftOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
 
-            <label>@L["SYS.Users.Lbl.AccountStatus"]</label>
-            @if (_sel!.AccountStatus == "LOCKED")
-            {
-                <div class="ames-alert bad" style="padding:5px 10px;margin-bottom:4px;font-size:.85em;">
-                    🔒 @L["SYS.Users.Locked.Domain"] · @L["SYS.Users.Col.FailCount"]: @_sel.FailedLoginCount
-                </div>
-            }
-            <select class="ames-input" @bind="_f.AccountStatus">
-                @if (_sel!.AccountStatus == "LOCKED")
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Users.Lbl.AccountStatus"]" class="ames-rz-modal-label" />
+                    @if (!_sel!.EmailConfirmed)
+                    {
+                        <div style="flex:1;background:rgba(203,213,225,.08);border:1px solid rgba(203,213,225,.25);color:#cbd5e1;padding:6px 10px;font-size:.85em;border-radius:6px;">
+                            @L["SYS.Users.Status.Unverified"] · @L["SYS.Users.Hint.Unverified"]
+                        </div>
+                    }
+                    else
+                    {
+                        <RadzenStack Orientation="Orientation.Vertical" Gap="0.4rem" Style="flex:1;width:100%;">
+                            @if (string.Equals(_sel!.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase))
+                            {
+                                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="padding:5px 10px;font-size:.85em;">
+                                    🔒 @L["SYS.Users.Locked.Domain"] · @L["SYS.Users.Col.FailCount"]: @_sel.FailedLoginCount
+                                </RadzenAlert>
+                            }
+                            <RadzenDropDown Name="EditDropDownStatus" @bind-Value="_f.AccountStatus" Data="@EditStatusItems" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                        </RadzenStack>
+                    }
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Users.Lbl.Role"]" class="ames-rz-modal-label" Component="EditDropDownRole" />
+                    <RadzenDropDown Name="EditDropDownRole" @bind-Value="_f.Role" Data="@_roles" Placeholder="@L["SYS.Users.Opt.NoRole"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Vertical" Gap="0.5rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Users.Lbl.Lines"]" />
+                    <RadzenStack Gap="0.5rem" class="ames-line-picker" Style="flex:1;width:100%;">
+                        @if (_lines.Count == 0)
+                        {
+                            <span class="dim">@L["SYS.Users.Lbl.NoLines"]</span>
+                        }
+                        else
+                        {
+                            @foreach (var ln in _lines)
+                            {
+                                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-line-item" Style="width:100%;">
+                                    <RadzenCheckBox TValue="bool" Value="@(_f.SelectedLines.Contains(ln.LineId))" Change="@(args => ToggleLine(ln.LineId, args))" />
+                                    <span class="code">@ln.LineId</span>
+                                    <span class="dim">@LineLocalName(ln)</span>
+                                </RadzenStack>
+                            }
+                        }
+                    </RadzenStack>
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Users.Lbl.NewPassword"]" class="ames-rz-modal-label" Component="EditTextBoxNewPassword" />
+                    <RadzenTextBox Name="EditTextBoxNewPassword" @bind-Value="_f.Password" Type="Password" Placeholder="@L["SYS.Users.Ph.NewPassword"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.NewPassword" />
+                </RadzenStack>
+
+                @if (_sel.LockedOut)
                 {
-                    <option value="LOCKED" disabled>🔒 @StatusName("LOCKED")</option>
+                    <RadzenButton Text="@L["SYS.Users.Unlock"]" Icon="lock_open" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@UnlockUser" class="ames-rz-btn" />
                 }
-                @foreach (var s in _statusItems.Where(s => s.UseFlag && (_sel!.AccountStatus != "LOCKED" || s.CodeValue != "LOCKED")))
-                { <option value="@s.CodeValue">[@s.CodeValue] @(MasterDataRepository.LocalName(s))</option> }
-            </select>
-
-            <label>@L["SYS.Users.Lbl.Role"]</label>
-            <select class="ames-input"
-                    value="@_f.Role"
-                    @onchange="e => _f.Role = e.Value?.ToString() ?? string.Empty">
-                <option value="">@L["SYS.Users.Opt.NoRole"]</option>
-                @foreach (var r in _roles) { <option value="@r">@r</option> }
-            </select>
-
-            <label>@L["SYS.Users.Lbl.Lines"] <span style="font-weight:400;color:#64748b;">@L["SYS.Users.Hint.Lines"]</span></label>
-            <div class="ames-line-picker">
-                @if (_lines.Count == 0)
-                { <span class="dim" style="font-size:.8em;">@L["SYS.Users.Lbl.NoLines"]</span> }
-                @foreach (var ln in _lines)
+                @if (string.Equals(_sel.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase))
                 {
-                    <label class="ames-line-item">
-                        <input type="checkbox"
-                               checked="@_f.SelectedLines.Contains(ln.LineId)"
-                               @onchange="e => ToggleLine(ln.LineId, (bool)e.Value!)" />
-                        <span class="code">@ln.LineId</span>
-                        <span class="dim">@ln.LineName</span>
-                    </label>
+                    <RadzenButton Text="@L["SYS.Users.Unlock.Domain"]" Icon="lock_open" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@UnlockDomainAccount" class="ames-rz-btn" />
                 }
-            </div>
-
-            <label>@L["SYS.Users.Lbl.NewPassword"]</label>
-            <input class="ames-input" type="password" @bind="_f.Password" placeholder="@L["SYS.Users.Ph.NewPassword"]" autocomplete="new-password" />
-
-            @if (_sel.LockedOut)
-            {
-                <div style="margin-top:6px;">
-                    <button class="ames-btn warn" @onclick="UnlockUser">🔓 @L["SYS.Users.Unlock"]</button>
-                </div>
-            }
-            @if (_sel.AccountStatus == "LOCKED")
-            {
-                <div style="margin-top:6px;">
-                    <button class="ames-btn warn" @onclick="UnlockDomainAccount">🔓 @L["SYS.Users.Unlock.Domain"]</button>
-                </div>
-            }
+            </RadzenStack>
 
             @* 삭제 버튼 클릭 후 인라인 확인 *@
             @if (_confirmDelete)
             {
-                <div class="ames-delete-confirm">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
                     <span>@L["Msg.Confirm.Delete"]</span>
-                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
-                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">
-                        @(_busy ? @L["Msg.Deleting"] : @L["Msg.Yes"])
-                    </button>
-                </div>
+                    <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _confirmDelete = false' class="ames-rz-btn" />
+                    <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
+                </RadzenStack>
             }
 
             @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad">@_modalErr</div> }
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
 
-            <div class="ames-modal-footer">
-                <button class="ames-btn"  @onclick="SaveEdit" disabled="@_busy">
-                    @(_busy ? @L["Msg.Saving"] : @L["Btn.Save"])
-                </button>
-                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
 
 @code {
-    IEnumerable<int> pageSizeOptions = new int[] { 10, 15, 20, 30, 50, 100 };
-    bool showPagerSummary = true;
-    List<AMES.Data.Repositories.SysRepository.UserRow> _allRows = new();
-    List<AMES.Data.Repositories.SysRepository.UserRow> _rows    = new();
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
+    bool _showPagerSummary = true;
+    List<SysRepository.UserRow> _allRows = new();
+    List<SysRepository.UserRow> _rows    = new();
     List<string> _roles = new();
-    List<AMES.Data.Repositories.SysRepository.LineRow> _lines = new();
-    List<CodeOption> _deptOptions  = new();
-    List<CodeOption> _plantOptions = new();
-    List<CodeOption> _shiftOptions = new();
-    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _statusItems = new();
-    Dictionary<string, string> _deptSearchNames = new(); // dept code → "CodeName CodeNameEn"
-    AMES.Data.Repositories.SysRepository.UserRow? _sel;
+    List<SysRepository.LineRow> _lines = new();
+    List<MasterDataRepository.CodeItemRow> _deptItems  = new();
+    List<MasterDataRepository.CodeItemRow> _plantItems = new();
+    List<MasterDataRepository.CodeItemRow> _shiftItems = new();
+    List<MasterDataRepository.CodeItemRow> _statusItems = new();
+    Dictionary<string, string> _deptSearchNames = new();
+    SysRepository.UserRow? _sel;
 
     string _fSearch = "", _fStatus = "";
 
     string _modal = "";   // "" | "create" | "edit"
     bool _busy;
     bool _confirmDelete;
-    bool _bgMouseDownOnSelf;   // backdrop mousedown 발생 위치 추적
+    bool _bgMouseDownOnSelf;
+    bool _canEdit;
+    string _actorEmail = "system";
     string _msg = "", _modalErr = "";
     bool _isErr;
 
+    public class DropDownItem
+    {
+        public string Text { get; set; } = "";
+        public string Value { get; set; } = "";
+    }
+
+    private IEnumerable<DropDownItem> DeptOptions  => _deptItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    private IEnumerable<DropDownItem> PlantOptions => _plantItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    private IEnumerable<DropDownItem> ShiftOptions => _shiftItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+
+    private IEnumerable<DropDownItem> SearchStatusItems =>
+        _statusItems
+            .Where(s => s.UseFlag)
+            .Select(s => new DropDownItem { Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}", Value = s.CodeValue ?? "" });
+
+    private IEnumerable<DropDownItem> EditStatusItems =>
+        _statusItems
+            .Where(s => s.UseFlag
+                && !string.Equals(s.CodeValue, "UNVERIFIED", StringComparison.OrdinalIgnoreCase)
+                && (_sel is null
+                    || !string.Equals(_sel.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase)
+                    || !string.Equals(s.CodeValue, "LOCKED", StringComparison.OrdinalIgnoreCase)))
+            .Select(s => new DropDownItem { Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}", Value = s.CodeValue ?? "" });
+
     FormModel _f = new();
-    bool   _canEdit;
-    string _actorEmail = "system";
 
     protected override async Task OnInitializedAsync()
     {
-        var auth = await Auth.GetAuthenticationStateAsync();
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actorEmail = auth.User.Identity?.Name ?? "system";
-        await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("sys/users");
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("sys/users");
         _roles = RoleMgr.Roles.Select(r => r.Name!).OrderBy(n => n).ToList();
         _lines = Sys.ListActiveLines();
-        var deptItems = MD.ListCodeItems("DEPARTMENT").ToList();
-        _deptOptions   = ToOptions(deptItems);
-        _deptSearchNames = deptItems
+        _deptItems = MD.ListCodeItems("DEPARTMENT");
+        _deptSearchNames = _deptItems
             .Where(c => c.UseFlag && !string.IsNullOrWhiteSpace(c.CodeValue))
             .ToDictionary(c => c.CodeValue!, c => $"{c.CodeName ?? ""} {c.CodeNameEn ?? ""}");
-        _plantOptions  = ToOptions(MD.ListCodeItems("PLANT"));
-        _shiftOptions  = ToOptions(MD.ListCodeItems("WORK_SHIFT"));
-        _statusItems   = MD.ListCodeItems("USER_STATUS");
+        _plantItems  = MD.ListCodeItems("PLANT");
+        _shiftItems  = MD.ListCodeItems("WORK_SHIFT");
+        _statusItems = MD.ListCodeItems("USER_STATUS");
         Reload();
+    }
+
+    private void OnSearchChanged(string value)
+    {
+        _fSearch = value?.ToString() ?? "";
+    }
+
+    private void OnSearchKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            Reload();
+        }
     }
 
     void Reload() { _allRows = Sys.ListUsers(); ApplyFilter(); }
@@ -371,25 +437,27 @@
         (string.IsNullOrEmpty(_fStatus) || MatchStatus(r, _fStatus))
     ).ToList(); }
 
-    static string EffectiveStatus(AMES.Data.Repositories.SysRepository.UserRow r) =>
-        (r.LockedOut || r.AccountStatus == "LOCKED") ? "LOCKED" : (r.AccountStatus ?? "Active");
+    static string EffectiveStatus(SysRepository.UserRow r) =>
+        (r.LockedOut || string.Equals(r.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase)) ? "LOCKED" : (r.AccountStatus ?? "ACTIVE");
 
-    static bool MatchStatus(AMES.Data.Repositories.SysRepository.UserRow r, string s) =>
-        EffectiveStatus(r) == s;
+    static bool MatchStatus(SysRepository.UserRow r, string s)
+    {
+        if (s == "UNVERIFIED")
+            return !r.EmailConfirmed && string.Equals(EffectiveStatus(r), "ACTIVE", StringComparison.OrdinalIgnoreCase);
+        return EffectiveStatus(r) == s;
+    }
 
     string DeptName(string? code)
     {
         if (string.IsNullOrEmpty(code)) return "—";
-        var opt = _deptOptions.FirstOrDefault(o => o.Value == code);
-        if (opt is null) return code;
-        var idx = opt.Display.IndexOf("] ");
-        return idx >= 0 ? opt.Display[(idx + 2)..] : opt.Display;
+        var item = _deptItems.FirstOrDefault(i => i.CodeValue == code);
+        return item is null ? code : MasterDataRepository.LocalName(item);
     }
 
     string StatusName(string? code)
     {
         if (string.IsNullOrEmpty(code)) return "—";
-        var found = _statusItems.FirstOrDefault(s => s.CodeValue == code);
+        var found = _statusItems.FirstOrDefault(s => string.Equals(s.CodeValue, code, StringComparison.OrdinalIgnoreCase));
         return found is null ? code : MasterDataRepository.LocalName(found);
     }
 
@@ -399,24 +467,27 @@
         _modal = "create";
     }
 
-    void RowRender(RowRenderEventArgs<AMES.Data.Repositories.SysRepository.UserRow> args)
+    void RowRender(RowRenderEventArgs<SysRepository.UserRow> args)
     {
-        args.Attributes["class"] = "ames-row-link";
+        if (args.Attributes.TryGetValue("class", out var existing))
+            args.Attributes["class"] = existing + " ames-row-link";
+        else
+            args.Attributes["class"] = "ames-row-link";
     }
 
-    void OnRowClick(DataGridRowMouseEventArgs<AMES.Data.Repositories.SysRepository.UserRow> args)
+    void OnRowClick(DataGridRowMouseEventArgs<SysRepository.UserRow> args)
     {
         if (args.Data is not null) OpenEdit(args.Data);
     }
 
-    void OpenEdit(AMES.Data.Repositories.SysRepository.UserRow u)
+    void OpenEdit(SysRepository.UserRow u)
     {
         if (!_canEdit) return;
         _sel = u; _modalErr = ""; _confirmDelete = false;
         List<string> parsedLines = new();
         if (!string.IsNullOrEmpty(u.AssignedLines))
         {
-            try { parsedLines = System.Text.Json.JsonSerializer.Deserialize<List<string>>(u.AssignedLines) ?? new(); }
+            try { parsedLines = JsonSerializer.Deserialize<List<string>>(u.AssignedLines) ?? new(); }
             catch { parsedLines = new(); }
         }
 
@@ -427,7 +498,7 @@
             Department    = u.Department    ?? "",
             PlantCode     = u.PlantCode     ?? "",
             DefaultShift  = u.DefaultShift  ?? "",
-            AccountStatus = u.AccountStatus ?? "Active",
+            AccountStatus = u.AccountStatus ?? "ACTIVE",
             Role          = u.RolesCsv?.Split(',').FirstOrDefault()?.Trim() ?? "",
             SelectedLines = parsedLines
         };
@@ -468,7 +539,7 @@
             }
 
             var linesJson = _f.SelectedLines.Count > 0
-                ? System.Text.Json.JsonSerializer.Serialize(_f.SelectedLines)
+                ? JsonSerializer.Serialize(_f.SelectedLines)
                 : null;
             Sys.CreateProfile(user.Id, _f.EmployeeNo, _f.EmployeeName,
                 _f.Department, _f.PlantCode, _f.DefaultShift, _actorEmail, linesJson);
@@ -494,7 +565,7 @@
         try
         {
             var linesJson = _f.SelectedLines.Count > 0
-                ? System.Text.Json.JsonSerializer.Serialize(_f.SelectedLines)
+                ? JsonSerializer.Serialize(_f.SelectedLines)
                 : null;
             if (Sys.ProfileExists(_sel.UserId))
                 Sys.UpdateProfile(_sel.UserId, _f.EmployeeNo, _f.EmployeeName,
@@ -600,25 +671,13 @@
         public string       Department    { get; set; } = "";
         public string       PlantCode     { get; set; } = "";
         public string       DefaultShift  { get; set; } = "";
-        public string       AccountStatus { get; set; } = "Active";
+        public string       AccountStatus { get; set; } = "ACTIVE";
         public string       Role          { get; set; } = "";
         public List<string> SelectedLines { get; set; } = new();
     }
 
-    static string OptionName(CodeOption o)
-    {
-        var idx = o.Display.IndexOf("] ");
-        return idx >= 0 ? o.Display[(idx + 2)..] : o.Display;
-    }
-
-    // 현재 UI 언어에 맞게 "[CodeValue] 이름" 형태의 표시 텍스트를 생성
-    static List<CodeOption> ToOptions(IEnumerable<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> rows)
-    {
-        return rows
-            .Where(c => c.UseFlag && !string.IsNullOrWhiteSpace(c.CodeValue))
-            .Select(c => new CodeOption(c.CodeValue!, $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}"))
-            .ToList();
-    }
-
-    record CodeOption(string Value, string Display);
+    static string LineLocalName(SysRepository.LineRow r) =>
+        CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ko"
+            ? r.LineName
+            : (r.LineNameEn ?? r.LineName);
 }

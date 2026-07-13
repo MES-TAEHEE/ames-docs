@@ -1,4 +1,4 @@
-@page "/md/ql/customer"
+﻿@page "/md/ql/customer"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
@@ -7,8 +7,6 @@
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["MD.Customer.Title"] · AMES</PageTitle>
-
-<AmesPageHeader Code="MD-010" TitleKey="MD.Customer.Title" />
 
 <div class="ames-kpis">
     <div class="ames-kpi">
@@ -31,220 +29,250 @@
 
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" ShowIcon="false" Variant="Variant.Flat" class="ames-alert-rz">@_msg</RadzenAlert>
 }
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.Customer.List"] · @_rows.Count @L["Lbl.Items"]@if (_rows.Count < _allRows.Count) { <text> / @L["Lbl.TotalOf"] @_allRows.Count</text> }</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input class="ames-input" style="width:220px;padding:4px 8px;"
-                   placeholder="@L["MD.Customer.Ph.Search"]" @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Type"]</span>
-            <select class="ames-input" style="width:110px;" @bind="_fType">
-                <option value="">@L["Filter.AllTypes"]</option>
-                <option>OEM</option><option>TIER1</option><option>TIER2</option><option>Direct</option>
-            </select>
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
-            <select class="ames-input" style="width:100px;" @bind="_fStatus">
-                <option value="">@L["Filter.AllStatus"]</option>
-                <option>Active</option><option>Inactive</option>
-            </select>
-            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
-            @if (_canEdit) { <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button> }
-        </div>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="6px" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fSearch" Placeholder="@L["MD.Customer.Ph.Search"]" Style="width:220px;"
+                           @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
+            <RadzenLabel Text='@L["Col.Type"]' class="dim" Style="font-size:.82em;white-space:nowrap;" />
+            <RadzenDropDown @bind-Value="_fType" Data="_typeOptions" TextProperty="Text" ValueProperty="Value"
+                            AllowClear="true" Placeholder='@L["Filter.AllTypes"]' Style="width:110px;" />
+            <RadzenLabel Text='@L["Col.Status"]' class="dim" Style="font-size:.82em;white-space:nowrap;" />
+            <RadzenDropDown @bind-Value="_fStatus" Data="_statusOptions" TextProperty="Text" ValueProperty="Value"
+                            AllowClear="true" Placeholder='@L["Filter.AllStatus"]' Style="width:110px;" />
+            <RadzenButton Text='@L["Btn.Search"]' ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Click="ApplyFilter" />
+            @if (_canEdit) { <RadzenButton Text='@L["Btn.Create"]' ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="OpenCreate" /> }
+        </RadzenStack>
     </div>
 
-    @if (_rows.Count == 0)
-    {
-        <div class="ames-empty">@L["MD.Customer.Empty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["Col.CustomerId"]</th><th>@L["Col.Code"]</th><th>@L["Col.CustomerName"]</th><th>@L["Col.NameEn"]</th>
-                    <th>@L["Col.Type"]</th><th>@L["Col.Country"]</th><th>@L["Col.Contact"]</th><th>@L["Col.Phone"]</th>
-                    <th>@L["Col.EDI"]</th><th>@L["Col.Status"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
-                        <td class="code">@r.CustomerID</td>
-                        <td class="dim">@(r.CustomerCode ?? "—")</td>
-                        <td>@(r.CustomerName ?? "—")</td>
-                        <td class="dim">@(r.CustomerNameEn ?? "—")</td>
-                        <td><span class="pill">@(r.CustomerType ?? "—")</span></td>
-                        <td class="dim">@(r.Country ?? "—")</td>
-                        <td>@(r.ContactPerson ?? "—")</td>
-                        <td class="dim">@(r.ContactPhone ?? "—")</td>
-                        <td>
-                            @if (r.EDIFlag) { <span class="pill ok">EDI</span> }
-                            else { <span class="dim">—</span> }
-                        </td>
-                        <td>
-                            @if (r.Status == "Active") { <span class="pill ok">Active</span> }
-                            else { <span class="pill bad">@(r.Status ?? "—")</span> }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
-    }
+    <RadzenDataGrid Data="_rows" TItem="MasterDataRepository.CustomerRow"
+                    RowRender="CustRowRender" RowSelect="OpenEdit"
+                    AllowPaging="true" PageSize="15" PageSizeOptions="_pageSizeOptions"
+                    PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true"
+                    Class="ames-rz-grid" EmptyText='@L["MD.Customer.Empty"]'>
+        <Columns>
+            <RadzenDataGridColumn Property="CustomerID" Title='@L["Col.CustomerId"]' Width="130px">
+                <Template Context="r"><span class="code">@r.CustomerID</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="CustomerCode" Title='@L["Col.Code"]' Width="110px">
+                <Template Context="r"><span class="dim">@(r.CustomerCode ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="CustomerName" Title='@L["Col.CustomerName"]' />
+            <RadzenDataGridColumn Property="CustomerNameEn" Title='@L["Col.NameEn"]'>
+                <Template Context="r"><span class="dim">@(r.CustomerNameEn ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="CustomerType" Title='@L["Col.Type"]' Width="90px">
+                <Template Context="r"><span class="pill">@(r.CustomerType ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="Country" Title='@L["Col.Country"]' Width="75px">
+                <Template Context="r"><span class="dim">@(r.Country ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="ContactPerson" Title='@L["Col.Contact"]' Width="110px">
+                <Template Context="r">@(r.ContactPerson ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="ContactPhone" Title='@L["Col.Phone"]' Width="130px">
+                <Template Context="r"><span class="dim">@(r.ContactPhone ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="EDIFlag" Title='@L["Col.EDI"]' Width="70px">
+                <Template Context="r">
+                    @if (r.EDIFlag) { <span class="pill ok">EDI</span> }
+                    else { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="Status" Title='@L["Col.Status"]' Width="95px">
+                <Template Context="r">
+                    @if (r.Status == "Active") { <span class="pill ok">Active</span> }
+                    else { <span class="pill bad">@(r.Status ?? "—")</span> }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 </div>
 
-@* ── Create Modal ─────────────────────────────────────────────────── *@
 @if (_modal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Customer.Modal.Create"]</div>
-
-            <label>@L["MD.Customer.Lbl.CustomerCode"]</label>
-            <input class="ames-input" @bind="_f.CustomerCode" placeholder="예: HYUNDAI" autocomplete="off" />
-
-            <label>@L["MD.Customer.Lbl.CustomerName"]</label>
-            <input class="ames-input" @bind="_f.CustomerName" placeholder='@L["MD.Customer.Ph.CustomerName"]' autocomplete="off" />
-
-            <label>@L["MD.Customer.Lbl.CustomerNameEn"]</label>
-            <input class="ames-input" @bind="_f.CustomerNameEn" placeholder="Hyundai Motor Co." autocomplete="off" />
-
-            <label>@L["MD.Customer.Lbl.CustomerType"]</label>
-            <select class="ames-input" @bind="_f.CustomerType">
-                <option value="">@L["Opt.Select"]</option>
-                <option>OEM</option><option>TIER1</option><option>TIER2</option><option>Direct</option>
-            </select>
-
-            <label>@L["MD.Customer.Lbl.BizRegNo"]</label>
-            <input class="ames-input" @bind="_f.BizRegNo" placeholder="000-00-00000" autocomplete="off" />
-
-            <label>@L["MD.Customer.Lbl.Country"]</label>
-            <input class="ames-input" @bind="_f.Country" placeholder="KOR" maxlength="3" autocomplete="off" />
-
-            <label>@L["Col.Contact"]</label>
-            <input class="ames-input" @bind="_f.ContactPerson" autocomplete="off" />
-
-            <label>@L["Col.Phone"]</label>
-            <input class="ames-input" @bind="_f.ContactPhone" placeholder="02-0000-0000" autocomplete="off" />
-
-            <label>@L["MD.Customer.Lbl.Email"]</label>
-            <input class="ames-input" @bind="_f.ContactEmail" placeholder="contact@customer.com" autocomplete="off" />
-
-            <label>@L["MD.Customer.Lbl.Currency"]</label>
-            <input class="ames-input" @bind="_f.CurrencyCode" placeholder="KRW" maxlength="3" autocomplete="off" />
-
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" @bind="_f.EDIFlag" />
-                <span>@L["MD.Customer.Lbl.EDI"]</span>
-            </label>
-
-            <label>@L["Col.Status"]</label>
-            <select class="ames-input" @bind="_f.Status">
-                <option>Active</option><option>Inactive</option>
-            </select>
-
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div>
+                    <RadzenLabel Text='@L["MD.Customer.Lbl.CustomerCode"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.CustomerCode" Placeholder="예: HYUNDAI" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["MD.Customer.Lbl.CustomerType"]' /><br />
+                    <RadzenDropDown @bind-Value="_f.CustomerType" Data="_typeOptions" TextProperty="Text" ValueProperty="Value"
+                                    AllowClear="true" Placeholder='@L["Opt.Select"]' Style="width:100%;" />
+                </div>
+                <div style="grid-column:span 2;">
+                    <RadzenLabel Text='@L["MD.Customer.Lbl.CustomerName"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.CustomerName" Placeholder='@L["MD.Customer.Ph.CustomerName"]' Style="width:100%;" autocomplete="off" />
+                </div>
+                <div style="grid-column:span 2;">
+                    <RadzenLabel Text='@L["MD.Customer.Lbl.CustomerNameEn"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.CustomerNameEn" Placeholder="Hyundai Motor Co." Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["MD.Customer.Lbl.BizRegNo"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.BizRegNo" Placeholder="000-00-00000" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["MD.Customer.Lbl.Country"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.Country" Placeholder="KOR" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.Contact"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.ContactPerson" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.Phone"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.ContactPhone" Placeholder="02-0000-0000" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["MD.Customer.Lbl.Email"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.ContactEmail" Placeholder="contact@customer.com" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["MD.Customer.Lbl.Currency"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.CurrencyCode" Placeholder="KRW" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.Status"]' /><br />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="_statusOptions" TextProperty="Text" ValueProperty="Value"
+                                    Placeholder='@L["Opt.Select"]' Style="width:100%;" />
+                </div>
+            </div>
+            <div style="margin-top:8px;">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.EDIFlag" />
+                    <span>@L["MD.Customer.Lbl.EDI"]</span>
+                </label>
+            </div>
             @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad">@_modalErr</div> }
-
+            { <RadzenAlert AlertStyle="AlertStyle.Danger" ShowIcon="false" Variant="Variant.Flat" class="ames-alert-rz" Style="margin-top:8px;">@_modalErr</RadzenAlert> }
             <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)</button>
-                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <RadzenButton Text='@(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)' Click="SaveCreate" Disabled="_busy" ButtonStyle="ButtonStyle.Primary" />
+                <RadzenButton Text='@L["Btn.Cancel"]' Click="CloseModal" ButtonStyle="ButtonStyle.Light" />
             </div>
         </div>
     </div>
 }
 
-@* ── Edit Modal ───────────────────────────────────────────────────── *@
 @if (_modal == "edit" && _sel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Customer.Modal.Edit"] — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.CustomerID</span></div>
-
-            <label>@L["MD.Customer.Lbl.CustomerCode"]</label>
-            <input class="ames-input" @bind="_f.CustomerCode" autocomplete="off" />
-
-            <label>@L["MD.Customer.Lbl.CustomerName"]</label>
-            <input class="ames-input" @bind="_f.CustomerName" autocomplete="off" />
-
-            <label>@L["MD.Customer.Lbl.CustomerNameEn"]</label>
-            <input class="ames-input" @bind="_f.CustomerNameEn" autocomplete="off" />
-
-            <label>@L["MD.Customer.Lbl.CustomerType"]</label>
-            <select class="ames-input" @bind="_f.CustomerType">
-                <option value="">@L["Opt.Select"]</option>
-                <option>OEM</option><option>TIER1</option><option>TIER2</option><option>Direct</option>
-            </select>
-
-            <label>@L["MD.Customer.Lbl.BizRegNo"]</label>
-            <input class="ames-input" @bind="_f.BizRegNo" autocomplete="off" />
-
-            <label>@L["MD.Customer.Lbl.Country"]</label>
-            <input class="ames-input" @bind="_f.Country" maxlength="3" autocomplete="off" />
-
-            <label>@L["Col.Contact"]</label>
-            <input class="ames-input" @bind="_f.ContactPerson" autocomplete="off" />
-
-            <label>@L["Col.Phone"]</label>
-            <input class="ames-input" @bind="_f.ContactPhone" autocomplete="off" />
-
-            <label>@L["MD.Customer.Lbl.Email"]</label>
-            <input class="ames-input" @bind="_f.ContactEmail" autocomplete="off" />
-
-            <label>@L["MD.Customer.Lbl.Currency"]</label>
-            <input class="ames-input" @bind="_f.CurrencyCode" maxlength="3" autocomplete="off" />
-
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" @bind="_f.EDIFlag" />
-                <span>@L["MD.Customer.Lbl.EDI"]</span>
-            </label>
-
-            <label>@L["Col.Status"]</label>
-            <select class="ames-input" @bind="_f.Status">
-                <option>Active</option><option>Inactive</option>
-            </select>
-
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div>
+                    <RadzenLabel Text='@L["MD.Customer.Lbl.CustomerCode"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.CustomerCode" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["MD.Customer.Lbl.CustomerType"]' /><br />
+                    <RadzenDropDown @bind-Value="_f.CustomerType" Data="_typeOptions" TextProperty="Text" ValueProperty="Value"
+                                    AllowClear="true" Placeholder='@L["Opt.Select"]' Style="width:100%;" />
+                </div>
+                <div style="grid-column:span 2;">
+                    <RadzenLabel Text='@L["MD.Customer.Lbl.CustomerName"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.CustomerName" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div style="grid-column:span 2;">
+                    <RadzenLabel Text='@L["MD.Customer.Lbl.CustomerNameEn"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.CustomerNameEn" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["MD.Customer.Lbl.BizRegNo"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.BizRegNo" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["MD.Customer.Lbl.Country"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.Country" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.Contact"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.ContactPerson" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.Phone"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.ContactPhone" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["MD.Customer.Lbl.Email"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.ContactEmail" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["MD.Customer.Lbl.Currency"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.CurrencyCode" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.Status"]' /><br />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="_statusOptions" TextProperty="Text" ValueProperty="Value"
+                                    Placeholder='@L["Opt.Select"]' Style="width:100%;" />
+                </div>
+            </div>
+            <div style="margin-top:8px;">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.EDIFlag" />
+                    <span>@L["MD.Customer.Lbl.EDI"]</span>
+                </label>
+            </div>
             @if (_confirmDelete)
             {
                 <div class="ames-delete-confirm">
                     <span>@L["Msg.Confirm.Delete"]</span>
-                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
-                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)</button>
+                    <RadzenButton Text='@L["Msg.No"]' Click='() => _confirmDelete = false' ButtonStyle="ButtonStyle.Light" />
+                    <RadzenButton Text='@(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)' Click="SaveDelete" Disabled="_busy" ButtonStyle="ButtonStyle.Danger" />
                 </div>
             }
-
             @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad">@_modalErr</div> }
-
+            { <RadzenAlert AlertStyle="AlertStyle.Danger" ShowIcon="false" Variant="Variant.Flat" class="ames-alert-rz" Style="margin-top:8px;">@_modalErr</RadzenAlert> }
             <div class="ames-modal-footer">
-                <button class="ames-btn"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)</button>
-                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn ghost"     @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <RadzenButton Text='@(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)' Click="SaveEdit" Disabled="_busy" ButtonStyle="ButtonStyle.Primary" />
+                <RadzenButton Text='@L["Btn.Delete"]' Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="_busy" ButtonStyle="ButtonStyle.Danger" />
+                <RadzenButton Text='@L["Btn.Cancel"]' Click="CloseModal" ButtonStyle="ButtonStyle.Light" />
             </div>
         </div>
     </div>
 }
 
 @code {
-    List<AMES.Data.Repositories.MasterDataRepository.CustomerRow> _allRows = new();
-    List<AMES.Data.Repositories.MasterDataRepository.CustomerRow> _rows    = new();
-    AMES.Data.Repositories.MasterDataRepository.CustomerRow? _sel;
-    int _page = 0;
-    const int _pageSize = 20;
+    List<MasterDataRepository.CustomerRow> _allRows = new();
+    List<MasterDataRepository.CustomerRow> _rows    = new();
+    MasterDataRepository.CustomerRow? _sel;
+    int[] _pageSizeOptions = { 15, 30, 50, 100 };
 
-    string _fSearch = "", _fType = "", _fStatus = "";
-
+    string? _fType, _fStatus;
+    string  _fSearch = "";
     string _modal = "";
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
     string _msg = "", _modalErr = "";
-    bool _isErr;
-    bool   _canEdit;
+    bool _isErr, _canEdit;
     string _actor = "system";
     FormModel _f = new();
+
+    DropDownItem[] _typeOptions =
+    {
+        new() { Value = "OEM",    Text = "OEM"    },
+        new() { Value = "TIER1",  Text = "TIER1"  },
+        new() { Value = "TIER2",  Text = "TIER2"  },
+        new() { Value = "Direct", Text = "Direct" },
+    };
+    DropDownItem[] _statusOptions =
+    {
+        new() { Value = "Active",   Text = "Active"   },
+        new() { Value = "Inactive", Text = "Inactive" },
+    };
+
+    void CustRowRender(RowRenderEventArgs<MasterDataRepository.CustomerRow> args)
+    {
+        if (!args.Attributes.TryGetValue("class", out var cls)) cls = "";
+        args.Attributes["class"] = cls + " ames-row-link";
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -257,18 +285,18 @@
 
     void Reload() { _allRows = Md.ListCustomers(); ApplyFilter(); }
 
-    void ApplyFilter() { _page = 0; _rows = _allRows.Where(r =>
+    void ApplyFilter() { _rows = _allRows.Where(r =>
         (string.IsNullOrEmpty(_fSearch) ||
             (r.CustomerCode   ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.CustomerName   ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.CustomerNameEn ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
-        (string.IsNullOrEmpty(_fType)   || r.CustomerType == _fType) &&
-        (string.IsNullOrEmpty(_fStatus) || r.Status       == _fStatus)
+        (_fType   == null || r.CustomerType == _fType) &&
+        (_fStatus == null || r.Status       == _fStatus)
     ).ToList(); }
 
     void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
 
-    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.CustomerRow r)
+    void OpenEdit(MasterDataRepository.CustomerRow r)
     {
         if (!_canEdit) return;
         _sel = r; _modalErr = ""; _confirmDelete = false;
@@ -277,7 +305,7 @@
             CustomerCode   = r.CustomerCode   ?? "",
             CustomerName   = r.CustomerName   ?? "",
             CustomerNameEn = r.CustomerNameEn ?? "",
-            CustomerType   = r.CustomerType   ?? "",
+            CustomerType   = r.CustomerType,
             BizRegNo       = r.BizRegNo       ?? "",
             Country        = r.Country        ?? "",
             ContactPerson  = r.ContactPerson  ?? "",
@@ -307,7 +335,7 @@
             var newId = "C" + Guid.NewGuid().ToString("N")[..14].ToUpper();
             Md.InsertCustomer(newId, NE(_f.CustomerCode),
                 _f.CustomerName, NE(_f.CustomerNameEn),
-                NE(_f.CustomerType), NE(_f.BizRegNo),
+                _f.CustomerType, NE(_f.BizRegNo),
                 NE(_f.Country), NE(_f.ContactPerson),
                 NE(_f.ContactPhone), NE(_f.ContactEmail),
                 _f.EDIFlag, NE(_f.CurrencyCode), _f.Status, _actor);
@@ -328,7 +356,7 @@
         {
             Md.UpdateCustomer(_sel.CustomerID,
                 NE(_f.CustomerCode), _f.CustomerName, NE(_f.CustomerNameEn),
-                NE(_f.CustomerType), NE(_f.BizRegNo),
+                _f.CustomerType, NE(_f.BizRegNo),
                 NE(_f.Country), NE(_f.ContactPerson),
                 NE(_f.ContactPhone), NE(_f.ContactEmail),
                 _f.EDIFlag, NE(_f.CurrencyCode), _f.Status, _actor);
@@ -363,17 +391,19 @@
 
     class FormModel
     {
-        public string CustomerCode   { get; set; } = "";
-        public string CustomerName   { get; set; } = "";
-        public string CustomerNameEn { get; set; } = "";
-        public string CustomerType   { get; set; } = "";
-        public string BizRegNo       { get; set; } = "";
-        public string Country        { get; set; } = "KOR";
-        public string ContactPerson  { get; set; } = "";
-        public string ContactPhone   { get; set; } = "";
-        public string ContactEmail   { get; set; } = "";
-        public string CurrencyCode   { get; set; } = "KRW";
-        public bool   EDIFlag        { get; set; } = false;
-        public string Status         { get; set; } = "Active";
+        public string  CustomerCode   { get; set; } = "";
+        public string  CustomerName   { get; set; } = "";
+        public string  CustomerNameEn { get; set; } = "";
+        public string? CustomerType   { get; set; }
+        public string  BizRegNo       { get; set; } = "";
+        public string  Country        { get; set; } = "KOR";
+        public string  ContactPerson  { get; set; } = "";
+        public string  ContactPhone   { get; set; } = "";
+        public string  ContactEmail   { get; set; } = "";
+        public string  CurrencyCode   { get; set; } = "KRW";
+        public bool    EDIFlag        { get; set; } = false;
+        public string  Status         { get; set; } = "Active";
     }
+
+    class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 }

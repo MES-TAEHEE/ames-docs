@@ -1,4 +1,4 @@
-@page "/md/rm/ral-color"
+﻿@page "/md/rm/ral-color"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
@@ -7,8 +7,6 @@
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["MD.RalColor.Title"] · AMES</PageTitle>
-
-<AmesPageHeader Code="MD-021" TitleKey="MD.RalColor.Title" />
 
 <div class="ames-kpis">
     <div class="ames-kpi">
@@ -31,74 +29,76 @@
 
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" ShowIcon="false" Variant="Variant.Flat" class="ames-alert-rz">@_msg</RadzenAlert>
 }
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.RalColor.List"] · @_rows.Count @L["Lbl.Items"]@if (_rows.Count < _allRows.Count) { <text> / @L["Lbl.TotalOf"] @_allRows.Count</text> }</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input class="ames-input" style="width:140px;padding:4px 8px;"
-                   placeholder='@L["MD.RalColor.Ph.Search"]' @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Active"]</span>
-            <select class="ames-input" style="width:90px;" @bind="_fActive">
-                <option value="">@L["Filter.All"]</option>
-                <option value="Y">@L["Lbl.Active"]</option>
-                <option value="N">@L["Lbl.Inactive"]</option>
-            </select>
-            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
-            @if (_canEdit) { <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button> }
-        </div>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="6px" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fSearch" Placeholder='@L["MD.RalColor.Ph.Search"]' Style="width:140px;"
+                           @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
+            <RadzenLabel Text='@L["Col.Active"]' class="dim" Style="font-size:.82em;white-space:nowrap;" />
+            <RadzenDropDown @bind-Value="_fActive" Data="_activeFilterOptions" TextProperty="Text" ValueProperty="Value"
+                            AllowClear="true" Placeholder='@L["Filter.All"]' Style="width:110px;" />
+            <RadzenButton Text='@L["Btn.Search"]' ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Click="ApplyFilter" />
+            @if (_canEdit) { <RadzenButton Text='@L["Btn.Create"]' ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="OpenCreate" /> }
+        </RadzenStack>
     </div>
 
-    @if (_rows.Count == 0)
-    {
-        <div class="ames-empty">@L["MD.RalColor.Empty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["Col.RalCode"]</th><th>@L["Col.ColorName"]</th><th>@L["Col.Hex"]</th><th>@L["Col.CurrentLot"]</th>
-                    <th class="num">@L["Col.CureTemp"]</th><th class="num">@L["Col.CureTime"]</th>
-                    <th class="num">@L["Col.Voltage"]</th><th class="num">@L["Col.ParticleSize"]</th><th>@L["Col.Status"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    var _hex = ValidHex(r.HexValue);
-                    var _fg  = _hex != null ? TextColorFor(_hex) : null;
-                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
-                        <td class="code">@r.RALCode</td>
-                        <td style="@(_hex != null ? $"background:{_hex};color:{_fg};font-weight:500;" : "")">@(r.ColorName ?? "—")</td>
-                        <td style="@(_hex != null ? $"background:{_hex};color:{_fg};" : "")">
-                            @if (_hex != null)
-                            {
-                                <span>@_hex</span>
-                            }
-                            else if (r.HexValue != null)
-                            {
-                                <span style="display:inline-flex;align-items:center;gap:5px;">
-                                    <span style="width:14px;height:14px;border-radius:3px;background:@r.HexValue;border:1px solid #cbd5e1;display:inline-block;"></span>
-                                    @r.HexValue
-                                </span>
-                            }
-                            else { <span class="dim">—</span> }
-                        </td>
-                        <td class="dim">@(r.CurrentPowderLot ?? "—")</td>
-                        <td class="num">@(r.CureTemp?.ToString() ?? "—")</td>
-                        <td class="num">@(r.CureDuration?.ToString() ?? "—")</td>
-                        <td class="num">@(r.ElectroV?.ToString() ?? "—")</td>
-                        <td class="num">@(r.ParticleUm?.ToString("0.0") ?? "—")</td>
-                        <td>@if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> } else { <span class="pill bad">@L["Lbl.Inactive"]</span> }</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
-    }
+    <RadzenDataGrid Data="_rows" TItem="MasterDataRepository.RalColorRow"
+                    RowRender="ColorRowRender" RowSelect="OpenEdit"
+                    AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizeOptions"
+                    PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true"
+                    Class="ames-rz-grid" EmptyText='@L["MD.RalColor.Empty"]'>
+        <Columns>
+            <RadzenDataGridColumn Property="RALCode" Title='@L["Col.RalCode"]' Width="110px">
+                <Template Context="r"><span class="code">@r.RALCode</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="ColorName" Title='@L["Col.ColorName"]' Width="160px">
+                <Template Context="r">
+                    @{ var hex1 = ValidHex(r.HexValue); var fg1 = hex1 != null ? TextColorFor(hex1) : null; }
+                    <span style="@(hex1 != null ? $"background:{hex1};color:{fg1};font-weight:500;padding:2px 6px;border-radius:4px;" : "")">@(r.ColorName ?? "—")</span>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="HexValue" Title='@L["Col.Hex"]' Width="130px">
+                <Template Context="r">
+                    @{ var hex2 = ValidHex(r.HexValue); var fg2 = hex2 != null ? TextColorFor(hex2) : null; }
+                    @if (hex2 != null)
+                    { <span style="background:@hex2;color:@fg2;padding:2px 6px;border-radius:4px;">@hex2</span> }
+                    else if (r.HexValue != null)
+                    {
+                        <span style="display:inline-flex;align-items:center;gap:5px;">
+                            <span style="width:14px;height:14px;border-radius:3px;background:@r.HexValue;border:1px solid #cbd5e1;display:inline-block;"></span>
+                            @r.HexValue
+                        </span>
+                    }
+                    else { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="CurrentPowderLot" Title='@L["Col.CurrentLot"]' Width="130px">
+                <Template Context="r"><span class="dim">@(r.CurrentPowderLot ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="CureTemp" Title='@L["Col.CureTemp"]' Width="85px" TextAlign="TextAlign.Right">
+                <Template Context="r">@(r.CureTemp?.ToString() ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="CureDuration" Title='@L["Col.CureTime"]' Width="85px" TextAlign="TextAlign.Right">
+                <Template Context="r">@(r.CureDuration?.ToString() ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="ElectroV" Title='@L["Col.Voltage"]' Width="75px" TextAlign="TextAlign.Right">
+                <Template Context="r">@(r.ElectroV?.ToString() ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="ParticleUm" Title='@L["Col.ParticleSize"]' Width="85px" TextAlign="TextAlign.Right">
+                <Template Context="r">@(r.ParticleUm?.ToString("0.0") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="ActiveFlag" Title='@L["Col.Status"]' Width="90px">
+                <Template Context="r">
+                    @if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
+                    else { <span class="pill bad">@L["Lbl.Inactive"]</span> }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 </div>
 
 @if (_modal == "create")
@@ -106,42 +106,51 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.RalColor.Title"] — @L["Btn.Create"]</div>
-
-            <label>@L["Col.RalCode"]</label>
-            <input class="ames-input" @bind="_f.RALCode" placeholder="RAL1000" autocomplete="off" />
-
-            <label>@L["Col.ColorName"]</label>
-            <input class="ames-input" @bind="_f.ColorName" placeholder="Green Beige" autocomplete="off" />
-
-            <label>@L["Col.Hex"]</label>
-            <input class="ames-input" @bind="_f.HexValue" placeholder="#CDBA88" autocomplete="off" />
-
-            <label>@L["Col.CurrentLot"]</label>
-            <input class="ames-input" @bind="_f.CurrentPowderLot" placeholder="LOT-2024-001" autocomplete="off" />
-
-            <label>@L["Col.CureTemp"] (°C)</label>
-            <input class="ames-input" type="number" @bind="_f.CureTemp" placeholder="180" autocomplete="off" />
-
-            <label>@L["Col.CureTime"] (분)</label>
-            <input class="ames-input" type="number" @bind="_f.CureDuration" placeholder="20" autocomplete="off" />
-
-            <label>@L["Col.Voltage"] (V)</label>
-            <input class="ames-input" type="number" @bind="_f.ElectroV" placeholder="70" autocomplete="off" />
-
-            <label>@L["Col.ParticleSize"] (μm)</label>
-            <input class="ames-input" type="number" @bind="_f.ParticleUm" placeholder="60.0" step="0.1" autocomplete="off" />
-
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" @bind="_f.ActiveFlag" />
-                <span>@L["Lbl.Active"]</span>
-            </label>
-
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div>
+                    <RadzenLabel Text='@L["Col.RalCode"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.RALCode" Placeholder="RAL1000" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.ColorName"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.ColorName" Placeholder="Green Beige" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.Hex"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.HexValue" Placeholder="#CDBA88" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.CurrentLot"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.CurrentPowderLot" Placeholder="LOT-2024-001" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@($"{L["Col.CureTemp"]} (°C)")' /><br />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.CureTemp" Placeholder="180" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@($"{L["Col.CureTime"]} (분)")' /><br />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.CureDuration" Placeholder="20" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@($"{L["Col.Voltage"]} (V)")' /><br />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.ElectroV" Placeholder="70" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@($"{L["Col.ParticleSize"]} (μm)")' /><br />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.ParticleUm" Step="0.1m" Placeholder="60.0" Style="width:100%;" />
+                </div>
+            </div>
+            <div style="margin-top:8px;">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" />
+                    <span>@L["Lbl.Active"]</span>
+                </label>
+            </div>
             @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad">@_modalErr</div> }
-
+            { <RadzenAlert AlertStyle="AlertStyle.Danger" ShowIcon="false" Variant="Variant.Flat" class="ames-alert-rz" Style="margin-top:8px;">@_modalErr</RadzenAlert> }
             <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)</button>
-                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <RadzenButton Text='@(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)' Click="SaveCreate" Disabled="_busy" ButtonStyle="ButtonStyle.Primary" />
+                <RadzenButton Text='@L["Btn.Cancel"]' Click="CloseModal" ButtonStyle="ButtonStyle.Light" />
             </div>
         </div>
     </div>
@@ -152,68 +161,87 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.RalColor.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.RALCode</span></div>
-
-            <label>@L["Col.ColorName"]</label>
-            <input class="ames-input" @bind="_f.ColorName" autocomplete="off" />
-
-            <label>@L["Col.Hex"]</label>
-            <input class="ames-input" @bind="_f.HexValue" autocomplete="off" />
-
-            <label>@L["Col.CurrentLot"]</label>
-            <input class="ames-input" @bind="_f.CurrentPowderLot" autocomplete="off" />
-
-            <label>@L["Col.CureTemp"] (°C)</label>
-            <input class="ames-input" type="number" @bind="_f.CureTemp" autocomplete="off" />
-
-            <label>@L["Col.CureTime"] (분)</label>
-            <input class="ames-input" type="number" @bind="_f.CureDuration" autocomplete="off" />
-
-            <label>@L["Col.Voltage"] (V)</label>
-            <input class="ames-input" type="number" @bind="_f.ElectroV" autocomplete="off" />
-
-            <label>@L["Col.ParticleSize"] (μm)</label>
-            <input class="ames-input" type="number" @bind="_f.ParticleUm" step="0.1" autocomplete="off" />
-
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" @bind="_f.ActiveFlag" />
-                <span>@L["Lbl.Active"]</span>
-            </label>
-
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div>
+                    <RadzenLabel Text='@L["Col.ColorName"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.ColorName" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["Col.Hex"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.HexValue" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div style="grid-column:span 2;">
+                    <RadzenLabel Text='@L["Col.CurrentLot"]' /><br />
+                    <RadzenTextBox @bind-Value="_f.CurrentPowderLot" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@($"{L["Col.CureTemp"]} (°C)")' /><br />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.CureTemp" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@($"{L["Col.CureTime"]} (분)")' /><br />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.CureDuration" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@($"{L["Col.Voltage"]} (V)")' /><br />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.ElectroV" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@($"{L["Col.ParticleSize"]} (μm)")' /><br />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.ParticleUm" Step="0.1m" Style="width:100%;" />
+                </div>
+            </div>
+            <div style="margin-top:8px;">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" />
+                    <span>@L["Lbl.Active"]</span>
+                </label>
+            </div>
             @if (_confirmDelete)
             {
                 <div class="ames-delete-confirm">
                     <span>@L["Msg.Confirm.Delete"]</span>
-                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
-                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)</button>
+                    <RadzenButton Text='@L["Msg.No"]' Click='() => _confirmDelete = false' ButtonStyle="ButtonStyle.Light" />
+                    <RadzenButton Text='@(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)' Click="SaveDelete" Disabled="_busy" ButtonStyle="ButtonStyle.Danger" />
                 </div>
             }
-
             @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad">@_modalErr</div> }
-
+            { <RadzenAlert AlertStyle="AlertStyle.Danger" ShowIcon="false" Variant="Variant.Flat" class="ames-alert-rz" Style="margin-top:8px;">@_modalErr</RadzenAlert> }
             <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="SaveEdit" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)</button>
-                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+                <RadzenButton Text='@(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)' Click="SaveEdit" Disabled="_busy" ButtonStyle="ButtonStyle.Primary" />
+                <RadzenButton Text='@L["Btn.Delete"]' Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="_busy" ButtonStyle="ButtonStyle.Danger" />
+                <RadzenButton Text='@L["Btn.Cancel"]' Click="CloseModal" ButtonStyle="ButtonStyle.Light" />
             </div>
         </div>
     </div>
 }
 
 @code {
-    List<AMES.Data.Repositories.MasterDataRepository.RalColorRow> _allRows = new();
-    List<AMES.Data.Repositories.MasterDataRepository.RalColorRow> _rows    = new();
-    AMES.Data.Repositories.MasterDataRepository.RalColorRow? _sel;
-    int _page = 0;
-    const int _pageSize = 20;
-    string _fSearch = "", _fActive = "";
+    List<MasterDataRepository.RalColorRow> _allRows = new();
+    List<MasterDataRepository.RalColorRow> _rows    = new();
+    MasterDataRepository.RalColorRow? _sel;
+    int[] _pageSizeOptions = { 15, 30, 50, 100 };
+
+    string? _fActive;
+    string  _fSearch = "";
     string _modal = "";
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
     string _msg = "", _modalErr = "";
-    bool _isErr;
-    bool   _canEdit;
+    bool _isErr, _canEdit;
     string _actor = "system";
     FormModel _f = new();
+
+    DropDownItem[] _activeFilterOptions =
+    {
+        new() { Value = "Y", Text = "Active" },
+        new() { Value = "N", Text = "Inactive" },
+    };
+
+    void ColorRowRender(RowRenderEventArgs<MasterDataRepository.RalColorRow> args)
+    {
+        if (!args.Attributes.TryGetValue("class", out var cls)) cls = "";
+        args.Attributes["class"] = cls + " ames-row-link";
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -224,27 +252,18 @@
         Reload();
     }
 
-    void Reload()
-    {
-        try { _allRows = Md.ListRalColors(); } catch { _allRows = new(); }
-        ApplyFilter();
-    }
+    void Reload() { try { _allRows = Md.ListRalColors(); } catch { _allRows = new(); } ApplyFilter(); }
 
-    void ApplyFilter()
-    {
-        _page = 0;
-        _rows = _allRows;
-        if (!string.IsNullOrWhiteSpace(_fSearch))
-            _rows = _rows.Where(r =>
-                r.RALCode.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
-                (r.ColorName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)).ToList();
-        if (_fActive == "Y") _rows = _rows.Where(r => r.ActiveFlag).ToList();
-        if (_fActive == "N") _rows = _rows.Where(r => !r.ActiveFlag).ToList();
-    }
+    void ApplyFilter() { _rows = _allRows.Where(r =>
+        (string.IsNullOrEmpty(_fSearch) ||
+            r.RALCode.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.ColorName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (_fActive == null || (_fActive == "Y" ? r.ActiveFlag : !r.ActiveFlag))
+    ).ToList(); }
 
     void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
 
-    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.RalColorRow r)
+    void OpenEdit(MasterDataRepository.RalColorRow r)
     {
         if (!_canEdit) return;
         _sel = r; _modalErr = ""; _confirmDelete = false;
@@ -355,4 +374,6 @@
         public decimal? ParticleUm       { get; set; }
         public bool     ActiveFlag       { get; set; } = true;
     }
+
+    class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 }
