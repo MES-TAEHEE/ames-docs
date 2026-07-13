@@ -2,7 +2,7 @@
 
 작성일: 2026-07-07
 
-최근 업데이트: 2026-07-10
+최근 업데이트: 2026-07-13
 
 대상 프로젝트: `C:\Users\Young\Desktop\Seoyon\Jackson\ames-docs\src\05_Pda\AMES.Pda`
 
@@ -13,11 +13,14 @@
 - `Components/Pages/Wh/Wh02PdaInbound.razor`
 - `Components/Pages/Wh/Wh03InventoryStatus.razor`
 - `Components/Pages/Wh/Wh04LocationMap.razor`
+- `Components/Pages/Wh/Wh06ReleaseSchedule.razor`
+- `Components/Pages/Wh/Wh07PdaRelease.razor`
 - `Components/Pages/Wh/Wh08TransactionHistory.razor`
 - `Components/Pages/Wh/WhHome.razor`
 - `Services/PdaApi.cs`
 - `wwwroot/css/pda.css`
 - `..\..\04_Api\AMES.Api\Endpoints\AuthEndpoints.cs`
+- `..\..\04_Api\AMES.Api\Endpoints\WhEndpoints.cs`
 - `docs/sql/WH002_ADJUST_QTY.sql`
 
 테스트 DB 기준:
@@ -77,16 +80,17 @@ DB/Table:
 
 ## 전체 창고 플로우 요약
 
-현재 Warehouse PDA는 WH001, WH002, WH003, WH004가 아래 흐름으로 연결된다.
+현재 Warehouse PDA는 `Schedule`, `Inbound`, `Release`, `Inventory`, `Adjust`, `Transactions` 중심으로 정리되어 있다. WH004 `Location Search`와 WH003의 `Locating` 코드는 유지하되, 현재 대메뉴에서는 잠시 숨겨 둔 상태다.
 
 1. SCM/SIS PO 데이터가 생성된다.
-2. WH001에서 PO 입고 예정 및 입고 진행 상태를 조회한다.
-3. WH002에서 작업자가 LOT No와 Location No를 스캔하고 입고 처리한다.
-4. 입고 처리 결과가 `WMS2010`, `WMS2020`, `AMM2010`에 반영된다.
-5. 이미 입고된 LOT을 WH002에서 다시 스캔하면 입고 취소, 위치 변경, 수량 조정을 처리할 수 있다.
-6. WH003에서 현재 재고 기준 테이블인 `WMS2000`을 기준으로 자재별 재고 상태를 조회한다.
-7. 특정 창고 위치 기준으로 재고를 찾고 싶을 때는 WH004 `Location Search`에서 Area/Level/Column/Row 조건으로 위치와 해당 위치의 품목을 조회한다.
-8. 입고, 출고, 수량 조정 이력은 WH008 `Transactions`에서 LOT, 품번, 작업자, 날짜 범위, 조정 사유 기준으로 조회한다.
+2. WH001 `Schedule`에서 Inbound 탭으로 PO 입고 예정 및 입고 진행 상태를 조회한다.
+3. WH001 `Schedule`에서 Release 탭으로 출고 예정 Pick Slip과 진행 상태를 조회한다.
+4. WH002 `Inbound`에서 작업자가 LOT No와 Location No를 스캔하고 입고 처리한다.
+5. 입고 처리 결과가 `WMS2010`, `WMS2020`, `AMM2010`에 반영된다.
+6. WH007 `Release`에서 Pick Slip을 불러오고 LOT No를 스캔해 FIFO 기준으로 출고 처리한다.
+7. WH003 `Inventory`에서 현재 재고 기준 테이블인 `WMS2000`을 기준으로 자재별 재고 상태를 조회한다.
+8. WH003 `Adjust`에서 이미 입고된 LOT을 스캔해 수량 조정을 저장한다.
+9. WH008 `Transactions`에서 입고, 출고, 수량 조정 이력을 LOT, 품번, 작업자, 날짜 범위, 조정 사유 기준으로 조회한다.
 
 테스트 구현에서는 기존 Oracle SIS/PDA 구조를 SQL Server `SIS_TEST` 스키마에 필요한 범위만 복사/재현해서 연결했다.
 
@@ -98,32 +102,33 @@ Warehouse 대메뉴는 PDA 창고 업무의 진입점이다. 기존에는 기능
 
 현재는 메뉴명을 작업 기준으로 정리하고 카드형 UI로 바꿨다.
 
-- `Schedule`: WH001 입고 예정/PO 진행 현황
-- `Scan`: WH002 LOT/Location 스캔, 입고, 위치 변경, 수량 조정
+- `Schedule`: WH001 입고 예정과 출고 예정 통합 조회
+- `Inbound`: WH002 LOT/Location 스캔 기반 입고 처리
+- `Release`: WH007 Pick Slip 기반 출고 피킹
 - `Inventory`: WH003 자재별 현재 재고와 Min/Max 상태
-- `Location Search`: WH004 위치 조건별 재고 검색
-- `Release Schedule`: 출고 예정
-- `Release`: 출고 처리
+- `Adjust`: WH003 Adjust 모드, LOT 스캔 기반 수량 조정
 - `Transactions`: 입출고/재고 변경 이력
 
 ### 구현 변경점
 
-- `Location Map`은 삭제하지 않고 기능은 유지하되, 메뉴명과 화면 타이틀을 `Location Search`로 변경했다.
+- `Location Search`는 삭제하지 않고 기능은 유지하되, 현재 대메뉴에서는 숨겨 두었다.
+- 별도 `Release Schedule` 메뉴는 없애고 WH001 `Schedule`의 Release 탭으로 합쳤다.
+- WH006은 기존 링크 호환을 위해 `/wh/01?tab=release`로 보내는 redirect 화면으로 남겼다.
 - WH001/WH002/WH003 같은 코드명은 대메뉴 카드에 직접 노출하지 않고, 사용자가 이해하기 쉬운 업무명으로 표시했다.
 - Radzen icon을 붙인 흰색 카드형 UI로 변경해 PDA 앱 화면처럼 보이도록 했다.
 - 각 카드에는 짧은 설명을 추가해 신규 개발자나 작업자가 화면 역할을 빠르게 이해할 수 있게 했다.
 
-## WH001 Inbound Schedule
+## WH001 Schedule
 
 ### 화면 목적
 
-`WH-001 INBOUND`는 PO 기준 입고 예정 목록과 진행 상태를 PDA 카드 형태로 보여주는 화면이다.
+`WH-001 SCHEDULE`은 입고 예정과 출고 예정 스케줄을 한 화면에서 탭으로 나눠 보여주는 화면이다.
 
-기획 문서의 `WH-01 Inbound Schedule` 역할에 맞춰, 기존 SIS의 PO/back order 조회 화면인 `WM40120`을 PDA 화면에 맞게 축약했다.
+Inbound 탭은 기획 문서의 `WH-01 Inbound Schedule` 역할에 맞춰, 기존 SIS의 PO/back order 조회 화면인 `WM40120`을 PDA 화면에 맞게 축약했다. Release 탭은 별도 `WH006 Release Schedule` 메뉴로 두지 않고 이 화면에 합쳐 Pick Slip 기준 출고 예정과 진행 상태를 보여준다.
 
 ### 현재 보여주는 정보
 
-각 PO 카드에 아래 정보를 표시한다.
+Inbound 탭의 각 PO 카드에 아래 정보를 표시한다.
 
 - PO No
 - Unit
@@ -144,7 +149,29 @@ Warehouse 대메뉴는 PDA 창고 업무의 진입점이다. 기존에는 기능
 
 헤더에는 `Last Updated HH:mm:ss`를 표시하고, `REFRESH` 버튼으로 수동 갱신할 수 있다. 자동 갱신 주기는 테스트 중 1분으로 두었다가 최종적으로 1시간으로 변경했다.
 
-하단 고정 버튼은 처음 `SCAN`이었으나, 실제 역할에 맞춰 `RECEIVE`로 변경했고 누르면 WH002로 이동한다.
+Inbound 탭의 하단 고정 버튼은 처음 `SCAN`이었으나, 실제 역할에 맞춰 `RECEIVE`로 변경했고 누르면 WH002로 이동한다.
+
+Release 탭의 각 카드에는 아래 정보를 표시한다.
+
+- Pick Slip No
+- Destination / Request Location
+- ETA D-Day
+- Status: `Open`, `Partial`, `Picked`, `Late`
+- First Material No
+- First Material Desc
+- Line count
+- FIFO suggested location
+- Requested Boxes
+- Picked Boxes
+
+Release 탭 상단에는 `RELEASE STATUS` 요약을 표시한다.
+
+- Total
+- Open
+- Partial
+- Picked
+
+Release 탭에서는 카드를 선택한 뒤 하단 고정 `PICK` 버튼을 누르면 WH007 Release 화면으로 이동한다. 선택한 Pick Slip No는 `/wh/07?pickSlipNo=...` query string으로 넘긴다.
 
 ### 사용하는 프로시저와 테이블
 
@@ -152,6 +179,8 @@ PDA 코드 호출:
 
 - `PdaApi.WhInboundScheduleAsync()`
 - 내부 DB 호출: `SIS_TEST.APG_WM40120_INQUERY_VENDER_BACK_ORDER`
+- `PdaApi.WhReleaseScheduleAsync()`
+- API 호출: `GET /api/wh/release/schedule`
 
 프로시저 입력:
 
@@ -185,6 +214,27 @@ PDA 코드 호출:
 - `NON_DELI_QTY`
 - `VENDCD`
 - `VENDNM`
+
+Release 탭이 참고하는 주요 테이블:
+
+- `SIS_TEST.WMS3050`: Pick Slip/출고 요청 라인 기준
+- `SIS_TEST.WMS2020`: 현재 재고, Picked 수량, FIFO 추천 Location
+- `SIS_TEST.WMS1040`: Location master
+- `SIS_TEST.ACD0020`: 자재 마스터, Unit
+- `SIS_TEST.ACD0020L`: 자재명
+
+Release 주요 출력 컬럼:
+
+- `PICK_SLIPNO`
+- `REQ_LOCATION`
+- `REQ_DATE`
+- `LINE_COUNT`
+- `REQ_BOX_QTY`
+- `PICKED_BOX_QTY`
+- `FIRST_PARTNO`
+- `FIRST_PARTNM`
+- `SUGGESTED_LOCATION`
+- `STATUS`
 
 ### 기존 프로그램에서 참고한 점
 
@@ -225,18 +275,20 @@ ETA D-Day는 `PO_DELI_DATE` 기준이다.
 ### 기존과 달라진 점
 
 - SIS의 긴 그리드 UI를 PDA 카드 UI로 변경했다.
+- 별도 WH006 Release Schedule 화면을 만들지 않고 WH001 Schedule의 Release 탭으로 통합했다.
 - PO Create Date, Arr.Date, Non-deliver Qty는 카드에서 제거하고 핵심 수량인 `PO Qty`, `GR Qty`만 남겼다.
 - `ETA D-Day`를 각 카드에 표시하도록 추가했다.
 - `Last Updated`와 1시간 자동 갱신을 추가했다.
-- 하단 고정 `RECEIVE` 버튼으로 WH002 Scan 화면 이동을 추가했다.
+- 하단 고정 `RECEIVE` 버튼으로 WH002 Inbound 화면 이동을 추가했다.
+- Release 탭에서는 선택한 Pick Slip을 하단 고정 `PICK` 버튼으로 WH007에 넘긴다.
 
-## WH002 Scan
+## WH002 Inbound
 
 ### 화면 목적
 
-`WH-002 SCAN`은 LOT No를 스캔해서 PO/입고 대상 정보를 조회하고, Location No를 스캔해서 실제 입고 처리하는 화면이다.
+`WH-002 INBOUND`는 LOT No를 스캔해서 PO/입고 대상 정보를 조회하고, Location No를 스캔해서 실제 입고 처리하는 화면이다.
 
-기존 MAUIPDA의 `Material > Incoming` 흐름을 기반으로 만들었다.
+기존 MAUIPDA의 `Material > Incoming` 흐름을 기반으로 만들었고, 현재 화면 역할은 입고 처리와 입고 취소에 집중한다. 수량 조정은 Warehouse 대메뉴의 `Adjust`로 분리했고, 위치 변경/Locating 코드는 유지하되 현재 메뉴에서는 숨겨 둔 상태다.
 
 ### 현재 구현된 기능
 
@@ -245,59 +297,25 @@ ETA D-Day는 `PO_DELI_DATE` 기준이다.
 - `LOCAL`
 - `CKD`
 
-기본 플로우:
+기본 입고 플로우:
 
 1. `LOCAL` 또는 `CKD`를 선택한다.
 2. `LOT NO SCAN`에 LOT No 또는 관련 바코드를 입력/스캔한다.
-3. DB에서 PO/입고 대상 정보를 조회한다.
-4. LOT이 PO 리스트에 없으면 커스텀 알럿을 표시한다.
-5. LOT이 입고 대상이면 품번, 품명, PO No, PO Seq, Qty, Vendor 등 정보를 카드로 보여준다.
+3. API가 `SIS_TEST` 프로시저를 호출해 PO/입고 대상 정보를 조회한다.
+4. LOT이 PO 리스트에 없거나 입고 대상이 아니면 중앙 카드형 커스텀 알럿을 표시한다.
+5. LOT이 입고 대상이면 품번, 품명, PO No, PO Seq, Qty + Unit, Vendor 등 정보를 카드로 보여준다.
 6. LOT 정보가 조회된 뒤에만 Location No 스캔이 활성화된다.
 7. Location No를 `WMS1040` 기준으로 검증한다.
 8. Location의 WH, Area, Zone, Rack X/Y/Z, Stock Lines, Stock Qty를 표시한다.
-9. LOT와 Location이 모두 유효하면 `RECEIVE` 버튼이 활성화된다.
+9. LOT와 Location이 모두 유효하면 `RECEIVE` 버튼으로 입고 처리한다.
 10. 입고 완료 후 `Receive Complete` 알럿을 띄우고 화면을 초기화한다.
 
 이미 입고된 LOT을 다시 스캔한 경우:
 
-- `CANCEL INCOMING` 버튼 표시
-- `CHANGE LOCATION` 버튼 표시
-- `ADJUST QTY` 버튼 표시
-- 현재 위치 표시
-
-Location 변경 플로우:
-
-1. 이미 입고된 LOT을 스캔한다.
-2. `CHANGE LOCATION`을 누른다.
-3. 기존 아이템 정보는 숨기고 현재 위치 정보와 새 위치 스캔 영역만 보여준다.
-4. 기존 위치와 같은 Location No를 넣으면 `Same Location` 알럿을 표시한다.
-5. 새 Location No가 유효하면 `CONFIRM`으로 위치 변경한다.
-6. 변경 전/후 Location을 알럿으로 보여준 뒤 화면을 초기화한다.
-
-Cancel Incoming 플로우:
-
-1. 이미 입고된 LOT을 스캔한다.
-2. `CANCEL INCOMING`을 누른다.
-3. 확인 모달 후 입고 취소 프로시저를 호출한다.
-4. 성공 시 입고 상태가 취소된다.
-
-Inventory Adjustment 플로우:
-
-1. 이미 입고된 LOT을 스캔한다.
-2. `ADJUST QTY`를 누른다.
-3. 현재 LOT, Location, Part No, Current Qty를 확인한다.
-4. Reason Code, +/- 조정 수량, Supervisor PIN, Note를 입력한다.
-5. `POST ADJUST`를 누르면 수량 조정 프로시저를 호출한다.
-6. 조정 전 수량, 조정 수량, 조정 후 수량을 이력 테이블에 기록한다.
-7. 성공 시 `Adjustment Complete` 알럿을 띄우고 최신 수량으로 화면을 다시 조회한다.
-
-Reason Code:
-
-- `COUNT_DIFF`: cycle count 또는 실사 차이
-- `DAMAGED`: 파손
-- `LOST`: 분실
-- `FOUND`: 발견
-- `OTHER`: 기타
+- 현재 LOT 상태와 현재 Location을 보여준다.
+- WH002에서는 `CANCEL INCOMING`만 직접 제공한다.
+- 수량 조정은 `Adjust` 메뉴에서 처리하도록 안내한다.
+- Location 변경/Locating은 코드와 API는 유지하지만 현재 대메뉴에서는 숨겨 둔 상태다.
 
 UI/상태 관련 구현:
 
@@ -309,27 +327,30 @@ UI/상태 관련 구현:
 - Qty는 `540 EA`처럼 수량과 Unit을 같이 표시
 - `Source`, 하단의 `Location OK`, `Scan OK` 같은 개발용 문구 제거
 - 테스트 버튼은 최종 UI에서 제거
-- WH005의 별도 Inventory Adjustment 화면은 만들지 않고, WH002의 이미 입고된 LOT 후속 작업으로 통합
+- PDA에서 SQL Server에 직접 붙지 않고 API를 통해 조회/저장하도록 변경해, WebView/PDA 쪽 네트워크 timeout 메시지가 화면에 그대로 뜨는 문제를 줄였다.
 
-### 사용하는 프로시저와 테이블
+### 사용하는 API, 프로시저와 테이블
 
 PDA 코드 호출:
 
 - `PdaApi.WhScanInboundAsync(mode, barcode)`
 - `PdaApi.WhReceiveInboundAsync(body)`
-- `PdaApi.WhMoveInboundLocationAsync(body)`
 - `PdaApi.WhCancelInboundAsync(body)`
-- `PdaApi.WhAdjustInboundQtyAsync(body)`
 - `PdaApi.WhScanLocationAsync(locationId)`
+
+API route:
+
+- `GET /api/wh/inbound/scan`
+- `POST /api/wh/inbound/receive-sis`
+- `POST /api/wh/inbound/cancel`
+- `GET /api/wh/location/scan`
 
 프로시저:
 
 - `SIS_TEST.PDA_WH002_SCAN_LOCAL`
 - `SIS_TEST.PDA_WH002_SCAN_CKD`
 - `SIS_TEST.PDA_WH002_RECEIVE`
-- `SIS_TEST.PDA_WH002_MOVE_LOCATION`
 - `SIS_TEST.PDA_WH002_CANCEL`
-- `SIS_TEST.PDA_WH002_ADJUST_QTY`
 
 LOCAL 스캔 기준 테이블:
 
@@ -365,25 +386,14 @@ Location 검증 기준 테이블:
 - `SIS_TEST.WMS2010`
 - `SIS_TEST.AMM2010`
 
-Location 변경 시 갱신되는 테이블:
+현재 화면에서는 직접 노출하지 않지만, WH003 Adjust/Locating 계열에서 재사용하는 API와 프로시저:
 
-- `SIS_TEST.WMS2020.LOCATION_NO`, `WHCD`, 작업일시
-- `SIS_TEST.WMS2010.WHCD`, 수정일시
-
-수량 조정 시 갱신/기록되는 테이블:
-
-- `SIS_TEST.WMS2020.QTY`: LOT별 Location 현재 수량 갱신
-- `SIS_TEST.WMS2000.QTY`: WH003 Current Stock에서 보는 현재 재고 수량 동기화
-- `SIS_TEST.PDA_WH002_ADJUST_AUDIT`: 수량 조정 감사 이력 기록
-
-`PDA_WH002_ADJUST_AUDIT` 주요 컬럼:
-
-- `RECEIVE_TYPE`: `LOCAL` 또는 `CKD`
-- `LOTNO`, `BARCODE`, `PARTNO`, `LOCATION_NO`
-- `BEFORE_QTY`, `DELTA_QTY`, `AFTER_QTY`
-- `REASON_CODE`, `REASON_NOTE`
-- `SUPERVISOR_PIN_MASK`: Supervisor PIN 원문이 아닌 마스킹 값
-- `WORK_DATE`, `WORK_TIME`, `USER_ID`, `INSERT_DATE`
+- `PdaApi.WhMoveInboundLocationAsync(body)`
+- `PdaApi.WhAdjustInboundQtyAsync(body)`
+- `POST /api/wh/inbound/move-location`
+- `POST /api/wh/inbound/adjust-qty`
+- `SIS_TEST.PDA_WH002_MOVE_LOCATION`
+- `SIS_TEST.PDA_WH002_ADJUST_QTY`
 
 ### 기존 프로그램에서 참고한 점
 
@@ -397,23 +407,9 @@ MAUIPDA:
   - `MES.PKG_PDA_WMS1120.GET_CASE_INFO`
   - `MES.PKG_PDA_WMS1120.GET_LOT_INFO`
   - `MES.PKG_PDA_WMS1120.LOT_SAVE`
-- `WMS1130 Locating / Relocating`
-  - `MES.PKG_PDA_WMS1130.GET_LOCATION_NO`
-  - `MES.PKG_PDA_WMS1130.GET_LOT_INFO`
-  - `MES.PKG_PDA_WMS1130.SET_ILOT_MOVE`
 - `WMS1150 Incoming Cancel`
   - `MES.PKG_PDA_WMS1150.GET_LOT_INFO`
   - `MES.PKG_PDA_WMS1150.SET_IN_CANCEL`
-
-MAUIPDA Inventory 쪽 참고:
-
-- `WMS1330 Discrepancy Adjust`
-  - `MES.PKG_PDA_WMS1330.GET_LOT_INFO`
-  - `MES.PKG_PDA_WMS1330.SET_LOT_SAVE`
-- `WMS1340 Location Information`
-  - `MES.PKG_PDA_WMS1340.GET_LOCATION_NO`
-
-`WMS1330 Discrepancy Adjust`는 LOT 정보를 조회한 뒤 변경 수량을 입력하고 조정 전/후 값을 저장하는 흐름을 가진다. WH002에서는 이를 별도 WH005 화면으로 분리하지 않고, 이미 입고된 LOT을 스캔했을 때 가능한 후속 작업으로 통합했다.
 
 SIS:
 
@@ -436,24 +432,20 @@ SQL Server `SIS_TEST`에 아래 테이블 및 프로시저를 준비했다.
 - `WMS2010`
 - `WMS2020`
 - `WMS2000`
-- `PDA_WH002_ADJUST_AUDIT`
 - `PDA_WH002_SCAN_LOCAL`
 - `PDA_WH002_SCAN_CKD`
 - `PDA_WH002_RECEIVE`
-- `PDA_WH002_MOVE_LOCATION`
 - `PDA_WH002_CANCEL`
-- `PDA_WH002_ADJUST_QTY`
 
 ### 기존과 달라진 점
 
-- 기존 MAUIPDA는 여러 화면으로 나뉘어 있던 Local Receive, CKD Receive, Locating, Incoming Cancel 기능을 WH002 한 화면에 통합했다.
+- 기존 MAUIPDA는 Local Receive, CKD Receive, Incoming Cancel이 화면별로 나뉘어 있었지만, WH002에서는 Local/CKD 입고와 입고 취소를 한 화면에서 처리한다.
 - Local/CKD 선택 상태를 탭처럼 두고, 각 탭의 입력 상태를 유지하도록 했다.
 - 실제 PDA 스캐너 대신 웹/PDA 테스트가 가능하도록 텍스트 입력 + 버튼 스캔 방식으로 구현했다.
 - Location 선택 드롭다운은 제거하고 Location No 스캔 검증 방식으로 변경했다.
 - 기본 알럿 대신 중앙 카드형 모달을 사용했다.
-- 입고 완료 후 자동 초기화, Clear 버튼, Change Location confirm 플로우를 추가했다.
-- WH005로 따로 만들 예정이던 Inventory Adjustment를 WH002의 `ADJUST QTY` 모달로 통합했다.
-- 수량 조정 시 현재 재고(`WMS2020`, `WMS2000`)와 감사 이력(`PDA_WH002_ADJUST_AUDIT`)을 함께 갱신하도록 했다.
+- 입고 완료 후 자동 초기화와 Clear 버튼을 추가했다.
+- WH002에서 수량 조정 버튼은 제거하고, 별도 `Adjust` 메뉴로 분리했다.
 
 ## WH003 Inventory Status
 
@@ -613,6 +605,96 @@ SQL Server `SIS_TEST`에 아래 항목을 준비했다.
 - 날짜 필터는 `<input type="date">`를 쓰면 WebView/OS locale 때문에 한국어 날짜 UI가 뜨는 문제가 있어, `YYYY-MM-DD` 텍스트 입력으로 바꿨다.
 - 모든 화면 문구는 영어 기준으로 정리했다.
 
+## WH003 Adjust
+
+### 화면 목적
+
+`WH-003 ADJUST`는 이미 입고되어 현재 재고에 존재하는 LOT을 스캔한 뒤, 수량 차이를 사유와 함께 저장하는 화면이다.
+
+코드 파일은 `Wh03InventoryStatus.razor`를 같이 사용하지만, Warehouse 대메뉴에서는 `Inventory`와 별도 카드인 `Adjust`로 진입한다. 경로는 `/wh/03?tab=adjust`다.
+
+### 현재 구현된 기능
+
+기본 플로우:
+
+1. `LOT NO SCAN`에 LOT No를 입력/스캔한다.
+2. Local/CKD 선택 버튼 없이, 내부적으로 Local 스캔 후 CKD 스캔을 시도해 자동 감지한다.
+3. 스캔 결과가 현재 재고에 있는 LOT이면 LOT, Part, Current Qty, Location 정보를 보여준다.
+4. LOT이 현재 재고에 없거나 이미 입고 상태가 아니면 커스텀 알럿을 표시한다.
+5. LOT이 유효하면 `ADJUSTMENT` 카드가 나타난다.
+6. Before Qty, Change, After Qty를 확인한다.
+7. Reason Code, Adjust Qty, Supervisor PIN, Note를 입력한다.
+8. `SAVE`를 누르면 조정 전/후 수량과 사유를 저장한다.
+9. 저장 성공 시 최신 LOT 정보를 다시 조회하고 조정 입력값을 초기화한다.
+
+UI/상태 관련 구현:
+
+- `Auto Detect` 모드 버튼은 제거했다.
+- LOT 입력 placeholder는 `Scan Lot No`로 정리했다.
+- Note 입력칸의 `Optional Note` placeholder는 제거했다.
+- `SAVE` 버튼은 초록색이며, 입력이 부족해도 버튼 자체는 항상 보이게 두고 검증은 알럿으로 처리한다.
+- 변경 수량이 `0`이면 `No changes to save.` 알럿을 표시한다.
+- Supervisor PIN이 4자리 미만이면 저장하지 않는다.
+- 조정 후 수량이 음수가 되면 저장하지 않는다.
+
+Reason Code:
+
+- `COUNT_DIFF`: cycle count 또는 실사 차이
+- `DAMAGED`: 파손
+- `LOST`: 분실
+- `FOUND`: 발견
+- `OTHER`: 기타
+
+### 사용하는 API, 프로시저와 테이블
+
+PDA 코드 호출:
+
+- `PdaApi.WhScanInboundAsync(mode, barcode)`
+- `PdaApi.WhAdjustInboundQtyAsync(body)`
+
+API route:
+
+- `GET /api/wh/inbound/scan`
+- `POST /api/wh/inbound/adjust-qty`
+
+프로시저:
+
+- `SIS_TEST.PDA_WH002_SCAN_LOCAL`
+- `SIS_TEST.PDA_WH002_SCAN_CKD`
+- `SIS_TEST.PDA_WH002_ADJUST_QTY`
+
+수량 조정 시 갱신/기록되는 테이블:
+
+- `SIS_TEST.WMS2020.QTY`: LOT별 Location 현재 수량 갱신
+- `SIS_TEST.WMS2000.QTY`: WH003 Inventory에서 보는 현재 재고 수량 동기화
+- `SIS_TEST.PDA_WH002_ADJUST_AUDIT`: 수량 조정 감사 이력 기록
+
+`PDA_WH002_ADJUST_AUDIT` 주요 컬럼:
+
+- `RECEIVE_TYPE`: `LOCAL` 또는 `CKD`
+- `LOTNO`, `BARCODE`, `PARTNO`, `LOCATION_NO`
+- `BEFORE_QTY`, `DELTA_QTY`, `AFTER_QTY`
+- `REASON_CODE`, `REASON_NOTE`
+- `SUPERVISOR_PIN_MASK`: Supervisor PIN 원문이 아닌 마스킹 값
+- `WORK_DATE`, `WORK_TIME`, `USER_ID`, `INSERT_DATE`
+
+### 기존 프로그램에서 참고한 점
+
+MAUIPDA Inventory:
+
+- `WMS1330 Discrepancy Adjust`
+  - `MES.PKG_PDA_WMS1330.GET_LOT_INFO`
+  - `MES.PKG_PDA_WMS1330.SET_LOT_SAVE`
+
+`WMS1330 Discrepancy Adjust`는 LOT 정보를 조회한 뒤 변경 수량을 입력하고 조정 전/후 값을 저장하는 흐름을 가진다. 신규 PDA에서는 처음에 WH002 안에 넣었다가, 현재는 Warehouse 대메뉴의 `Adjust`로 분리했다.
+
+### 기존과 달라진 점
+
+- 별도 WH005 화면을 만들지 않고 WH003 컴포넌트의 Adjust 모드로 구현했다.
+- 작업자는 Local/CKD를 직접 고르지 않고 LOT 스캔 결과로 감지한다.
+- 저장 버튼은 비활성화로 막기보다, 눌렀을 때 부족한 입력값을 커스텀 알럿으로 안내한다.
+- 조정 이력은 WH008 `Transactions`에서 `ADJ` 카드로 조회할 수 있다.
+
 ## WH004 Location Search
 
 ### 화면 목적
@@ -715,13 +797,97 @@ MAUIPDA:
 - Location No 스캔 입력을 추가해 드롭다운을 직접 고르지 않아도 위치를 바로 찾을 수 있게 했다.
 - 스캔된 Location이 있으면 Area/Level/Column/Row 드롭다운이 자동으로 맞춰지도록 변경했다.
 
+## WH007 Release
+
+### 화면 목적
+
+`WH-007 RELEASE`는 WH001 Schedule의 Release 탭에서 선택한 Pick Slip을 기준으로 출고 피킹을 처리하는 화면이다.
+
+기획 문서의 WH006 `Release Schedule`과 WH007 `PDA Release Picking` 역할을 나눠 보면, WH006은 "출고해야 할 목록을 보는 화면"이고 WH007은 "실제로 LOT을 스캔해서 출고 처리하는 화면"이다. 현재 구현에서는 WH006 목록 역할을 WH001 Release 탭에 합쳤고, WH007은 피킹 작업 화면으로 남겼다.
+
+WH006 route(`/wh/06`)는 기존 링크 호환용으로만 남아 있으며, 열리면 `/wh/01?tab=release`로 이동한다.
+
+### 현재 구현된 기능
+
+기본 플로우:
+
+1. WH001 Release 탭에서 Pick Slip 카드를 선택한다.
+2. 하단 고정 `PICK` 버튼을 누르면 `/wh/07?pickSlipNo=...`로 이동한다.
+3. WH007에서 Pick Slip No를 자동 로드하거나 직접 입력 후 `LOAD`한다.
+4. Pick Slip line별 요청 품번, 요청 박스 수량, 이미 picked 된 박스 수량, FIFO 추천 위치를 보여준다.
+5. 작업자가 `LOT NO SCAN`에 LOT No를 입력/스캔한다.
+6. API가 해당 LOT이 Pick Slip에 포함된 품번인지, 아직 출고 가능한 상태인지, FIFO 순서에 맞는지 검증한다.
+7. 잘못된 품번, 이미 완료된 품번, closed Pick Slip, FIFO 위반이면 `Blocked` 상태와 알럿 메시지를 보여준다.
+8. 검증된 LOT이면 `PICK`으로 출고 처리한다.
+9. 성공 시 `WMS2020`의 LOT 상태를 출고 상태로 바꾸고 Pick Slip No를 기록한다.
+
+### 주요 용어
+
+- `Pick Slip`: 이번 출고 작업 묶음 번호다. 여러 품번/라인이 하나의 Pick Slip으로 묶일 수 있다.
+- `Requested Boxes`: Pick Slip에서 요구한 박스 수량이다. 현재 구현에서는 `WMS3050.REQ_BOX_QTY` 합계를 사용한다.
+- `Picked Boxes`: 이미 피킹 완료된 박스 수량이다. 현재 구현에서는 `WMS2020`에서 같은 `PICK_SLIPNO`를 가지고 `INV_STATUS = O1`인 LOT을 집계한다.
+- `Lines`: Pick Slip 안에 들어 있는 품번 라인 수다. 같은 Pick Slip에 품번이 여러 개 있으면 여러 line으로 표시된다.
+- `FIFO`: 먼저 입고된 LOT부터 먼저 출고하는 규칙이다. 현재 구현에서는 `RCV_DATE`, 없으면 `PROD_DATE`, 그 다음 `LOCATION_NO`, `LOTNO` 순서로 가장 오래된 LOT을 추천한다.
+
+### 사용하는 API, 프로시저와 테이블
+
+PDA 코드 호출:
+
+- `PdaApi.WhReleaseScheduleAsync()`
+- `PdaApi.WhReleaseLinesAsync(pickSlipNo)`
+- `PdaApi.WhReleaseLotAsync(pickSlipNo, lotNo)`
+- `PdaApi.WhPickAsync(body)`
+
+API route:
+
+- `GET /api/wh/release/schedule`
+- `GET /api/wh/release/schedule/{pickSlipNo}/lines`
+- `GET /api/wh/release/lot`
+- `POST /api/wh/release/pick`
+
+주요 기준 테이블:
+
+- `SIS_TEST.WMS3050`: Pick Slip과 출고 요청 라인
+- `SIS_TEST.WMS2020`: 현재 재고 LOT, Location, 출고 가능 상태, Picked 집계
+- `SIS_TEST.WMS1040`: Location master와 Zone
+- `SIS_TEST.ACD0020`: 자재 마스터와 Unit
+- `SIS_TEST.ACD0020L`: 자재명
+- `SIS_TEST.PDA_WH_RELEASE_PICK_AUDIT`: WH007 출고 피킹 감사 이력
+
+출고 처리 시 갱신/기록:
+
+- `SIS_TEST.WMS2020.INV_STATUS = O1`
+- `SIS_TEST.WMS2020.PICK_SLIPNO = 선택한 Pick Slip No`
+- `SIS_TEST.WMS2020.WORK_DATE`, `WORK_TIME`, `STD_DATE`, `USER_ID`, `UPDATE_ID`, `UPDATE_DATE`
+- `SIS_TEST.PDA_WH_RELEASE_PICK_AUDIT`에 Pick Slip, LOT, Part, Qty, Location, 변경 전/후 상태, 작업자, 단말 정보 기록
+
+### 기존 프로그램에서 참고한 점
+
+SIS/WMS:
+
+- 출고 요청 묶음과 라인 구조는 `WMS3050`의 Pick Slip 데이터를 기준으로 잡았다.
+- 실제 출고 가능한 LOT과 위치 추천은 현재 재고 테이블인 `WMS2020`을 기준으로 잡았다.
+- FIFO 추천은 현재 재고 LOT의 입고일/생산일 기반으로 정렬하는 방식으로 구현했다.
+
+기획 문서:
+
+- WH006 `Release Schedule`: 출고 예정 목록, PP/FG 요청 통합, Pick 버튼으로 WH007 이동
+- WH007 `PDA Release Picking`: PDA에서 LOT 스캔, FIFO 검증, 잘못된 품번 차단, 출고 처리
+
+### 기존과 달라진 점
+
+- WH006은 별도 화면으로 유지하지 않고 WH001 Schedule의 Release 탭에 통합했다.
+- WH001 Release 카드의 개별 버튼은 없애고, WH001 하단 고정 `PICK` 버튼으로 WH007에 진입한다.
+- WH007은 전체 Pick Slip을 먼저 로드하고, 라인별 진행률과 FIFO 추천 위치를 본 뒤 LOT을 스캔하는 구조다.
+- 현재 테스트 구현에서는 부분 LOT split은 지원하지 않고, LOT 전체 수량 기준으로 Pick한다.
+
 ## WH008 Transactions
 
 ### 화면 목적
 
 `WH-008 TRANSACTIONS`는 창고 입고, 출고, 수량 조정 이력을 조회하는 화면이다.
 
-처음에는 WH002에서 이미 입고된 LOT을 스캔했을 때 접히는 Transaction Log를 보여주는 방식으로 검토했지만, WH002는 스캔/입고/위치 변경/수량 조정 작업 화면으로 유지하는 편이 더 명확했다. 그래서 이력 조회는 기존 Warehouse 메뉴의 `Transactions`인 WH008로 이동했다.
+처음에는 WH002에서 이미 입고된 LOT을 스캔했을 때 접히는 Transaction Log를 보여주는 방식으로 검토했지만, WH002는 입고 작업 화면으로 유지하는 편이 더 명확했다. 그래서 이력 조회는 기존 Warehouse 메뉴의 `Transactions`인 WH008로 이동했다.
 
 ### 현재 구현된 기능
 
@@ -774,7 +940,7 @@ MAUIPDA:
 - Note
 - Supervisor
 
-현재 WH008의 `Supervisor` 표시는 PIN 값이 아니라 실제 작업자 기준으로 `USER_ID`를 사용한다. WH002 조정 모달에서는 Supervisor PIN을 입력받지만, WH008 조회 화면에서는 사용자에게 PIN/masked PIN을 보여주는 것보다 실제 조정 작업자를 보여주는 편이 이해하기 쉽기 때문이다.
+현재 WH008의 `Supervisor` 표시는 PIN 값이 아니라 실제 작업자 기준으로 `USER_ID`를 사용한다. WH003 Adjust에서는 Supervisor PIN을 입력받지만, WH008 조회 화면에서는 사용자에게 PIN/masked PIN을 보여주는 것보다 실제 조정 작업자를 보여주는 편이 이해하기 쉽기 때문이다.
 
 Excel export는 한때 CSV 저장 방식으로 검토했지만, PDA 환경에서 파일 저장 위치와 사용 흐름이 애매해서 제거했다.
 
@@ -793,7 +959,7 @@ fallback 참조 테이블:
 
 - `SIS_TEST.WMS2010`: 입고 이력 성격의 row. WH008에서는 `IN`으로 표시한다.
 - `SIS_TEST.WMS2020`: 현재 재고 row. `WMS2010` 입고 이력이 없는 LOT에 한해서 보조 이력처럼 표시한다. 입고 이력이 이미 있는 LOT은 중복 표시를 피하기 위해 제외한다.
-- `SIS_TEST.PDA_WH002_ADJUST_AUDIT`: WH002 `ADJUST QTY`에서 저장한 수량 조정 감사 이력. WH008에서는 `ADJ`로 표시한다.
+- `SIS_TEST.PDA_WH002_ADJUST_AUDIT`: WH003 Adjust에서 저장한 수량 조정 감사 이력. WH008에서는 `ADJ`로 표시한다.
 
 `PDA_WH002_ADJUST_AUDIT`에서 사용하는 주요 컬럼:
 
@@ -829,7 +995,7 @@ SIS/DB:
 
 ### 기존과 달라진 점
 
-- WH002 Scan 화면 안에 Transaction Log를 넣지 않고 WH008로 분리했다.
+- WH002 Inbound 화면 안에 Transaction Log를 넣지 않고 WH008로 분리했다.
 - 단순 `1D`, `7D`, `30D` 버튼 대신 From/To 날짜 범위를 직접 입력하도록 바꿨다.
 - 상태 배지만으로 구분하지 않고 카드 자체 색상을 `IN`, `OUT`, `ADJ`별로 다르게 표시했다.
 - `ADJ`는 기본 카드에서는 일반 이력처럼 보이고, `DETAIL` 버튼을 눌렀을 때만 조정 전/후 스냅샷과 사유 정보를 보여준다.
@@ -893,11 +1059,11 @@ SIS/DB:
 
 답변: 맞다. 실제 현재 재고라면 입고, 조정, 기초재고 등 어떤 이력/근거가 있어야 한다. 그래서 WH003은 자재 마스터 기준 0재고까지 보여주는 방식이 아니라 `WMS2000` 현재 재고가 있는 데이터만 보여주도록 수정했다.
 
-### WH002 수량 변경 이력 위치
+### Adjust 수량 변경 이력 위치
 
-질문: WH002에서 수량 변경한 것은 어디에 기록되는가?
+질문: 수량 변경한 것은 어디에 기록되는가?
 
-답변: 실제 현재 수량은 `SIS_TEST.WMS2020.QTY`와 `SIS_TEST.WMS2000.QTY`에 반영된다. 누가, 언제, 왜, 몇 개를 조정했는지에 대한 감사 이력은 `SIS_TEST.PDA_WH002_ADJUST_AUDIT`에 남긴다. 이 테이블에는 조정 전 수량, 조정 수량, 조정 후 수량, Reason Code, Note, 작업자, Supervisor PIN 마스킹 값이 저장된다.
+답변: 현재 구조에서는 WH003 `Adjust` 메뉴에서 수량 변경을 저장한다. 실제 현재 수량은 `SIS_TEST.WMS2020.QTY`와 `SIS_TEST.WMS2000.QTY`에 반영된다. 누가, 언제, 왜, 몇 개를 조정했는지에 대한 감사 이력은 `SIS_TEST.PDA_WH002_ADJUST_AUDIT`에 남긴다. 이 테이블에는 조정 전 수량, 조정 수량, 조정 후 수량, Reason Code, Note, 작업자, Supervisor PIN 마스킹 값이 저장된다.
 
 ### Location Map과 Inventory 관계
 
@@ -908,6 +1074,16 @@ SIS/DB:
 질문: Location Map을 격자형으로 보여주면 PDA에서 괜찮은가?
 
 답변: 실제 Location master에는 Area, Column, Row, Level 조합이 많아 PDA 화면에서 격자 전체를 표현하면 너무 복잡해진다. 그래서 격자형 맵은 제외하고 Area/Level/Column/Row 드롭다운으로 조건을 좁힌 뒤 Location 카드와 해당 Location의 품목을 보여주는 방식으로 바꿨다.
+
+### Release Schedule과 Pick Slip
+
+질문: WH006 Release Schedule은 별도 화면으로 있어야 하는가?
+
+답변: 현재는 별도 화면보다 WH001 Schedule 안에 Inbound/Release 탭을 두는 구조가 더 자연스럽다고 판단했다. 입고 예정과 출고 예정 모두 "오늘/앞으로 해야 할 작업 목록"이므로 한 화면에서 탭으로 전환하는 방식이 PDA에 맞다. 그래서 WH006은 `/wh/01?tab=release`로 보내는 redirect로 남겼다.
+
+질문: Pick Slip, Requested Boxes, Picked Boxes, Lines, FIFO는 무슨 뜻인가?
+
+답변: Pick Slip은 출고 작업 묶음 번호다. Requested Boxes는 그 Pick Slip에서 요청한 박스 수량이고, Picked Boxes는 이미 스캔해서 출고 처리된 박스 수량이다. Lines는 Pick Slip 안에 포함된 품번 라인 수다. FIFO는 먼저 입고된 LOT부터 먼저 출고하라는 규칙이며, WH007은 `WMS2020`의 입고일/생산일 기준으로 가장 오래된 LOT을 먼저 요구한다.
 
 ### WH008 Transaction History 이동
 
@@ -932,6 +1108,8 @@ SIS/DB:
 - WH004는 SIS_TEST 직접 조회가 실패하면 API `/api/wh/locations`로 fallback한다. fallback 테이블인 `dbo.MD_Location`은 로컬 개발 DB 기준이므로 실제 운영 Location master와 혼동하지 않아야 한다.
 - WH001의 PO 조회는 `WM40120` 기준으로 만들었고, SCM에서 PO가 신규 생성되는 원천 화면/배치까지 완전히 대체한 것은 아니다.
 - `GRN_QTY`는 PO schedule에 저장되는 값이라기보다 GRN 실적을 합산해 계산하는 값이다. 운영에서는 GRN cancellation, return, reversal까지 반영해야 한다.
-- WH002 수량 조정의 Supervisor PIN은 현재 테스트 구현에서 최소 길이 검증과 마스킹 저장만 한다. 운영에서는 실제 승인자 계정/권한 검증과 감사 로그 보관 정책을 추가해야 한다.
+- WH003 Adjust의 Supervisor PIN은 현재 테스트 구현에서 최소 길이 검증과 마스킹 저장만 한다. 운영에서는 실제 승인자 계정/권한 검증과 감사 로그 보관 정책을 추가해야 한다.
+- WH007 Release는 `WMS3050` Pick Slip과 `WMS2020` 현재 재고를 기준으로 구현했다. 운영에서는 실제 출고 확정, 납품서/manifest, 회계/물류 인터페이스까지 이어지는 표준 프로시저를 더 확인해야 한다.
+- WH006은 현재 redirect 화면이다. 운영에서 별도 Release Schedule 화면이 다시 필요해지면 WH001 Release 탭의 `WhReleaseScheduleAsync()` 호출부와 카드 UI를 분리해서 재사용할 수 있다.
 - WH008은 `WMS2030`이 있으면 우선 사용하도록 만들었지만, 현재 테스트 DB에는 `WMS2030`이 없어 `WMS2010`, `WMS2020`, `PDA_WH002_ADJUST_AUDIT`를 조합한다. 운영 반영 시에는 실제 Transaction History 표준 테이블/프로시저 기준으로 재정렬해야 한다.
-- WH005 Inventory Adjustment는 별도 메뉴/화면으로 두지 않고 WH002에 통합했다. 운영 정책상 독립 메뉴가 필요하면 WH002의 `PDA_WH002_ADJUST_QTY` 호출부를 재사용해 별도 화면으로 분리할 수 있다.
+- WH005 Inventory Adjustment는 별도 메뉴/화면으로 두지 않고 WH003 Adjust 모드로 구현했다. 운영 정책상 독립 화면 번호가 필요하면 현재 `PDA_WH002_ADJUST_QTY` 호출부를 재사용해 별도 화면으로 분리할 수 있다.
