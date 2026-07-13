@@ -458,7 +458,7 @@ GO
 
 -- ── MD_Calendar  (공장 캘린더 (MD-14))
 CREATE TABLE dbo.MD_Calendar (
-  [PlantID]                   VARCHAR(10)          NOT NULL,
+  [PlantCode]                 VARCHAR(20)          NOT NULL,
   [CalendarDate]              DATE                 NOT NULL,
   [DayType]                   VARCHAR(10)              NULL,
   [HolidayName]               NVARCHAR(40)             NULL,
@@ -471,7 +471,7 @@ CREATE TABLE dbo.MD_Calendar (
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
-  CONSTRAINT PK_MD_Calendar PRIMARY KEY CLUSTERED ([PlantID], [CalendarDate])
+  CONSTRAINT PK_MD_Calendar PRIMARY KEY CLUSTERED ([PlantCode], [CalendarDate])
 );
 GO
 
@@ -582,7 +582,7 @@ CREATE TABLE dbo.MD_Line (
   [LineID]                    VARCHAR(20)          NOT NULL,
   [LineName]                  NVARCHAR(50)             NULL,
   [LineType]                  VARCHAR(16)              NULL,
-  [PlantID]                   VARCHAR(10)              NULL,
+  [PlantCode]                 VARCHAR(20)              NULL,
   [DefaultWCID]               VARCHAR(20)              NULL,  -- FK -> MD_WorkCenter.WCID
   [DailyCap]                  INT                      NULL,
   [ShiftPattern]              VARCHAR(20)              NULL,
@@ -716,12 +716,12 @@ GO
 
 -- ── MD_CodeItem  (공통코드 항목 (MD-26b))
 CREATE TABLE dbo.MD_CodeItem (
-  [CodeID]                    VARCHAR(24)          NOT NULL,
+  [CodeID]                    VARCHAR(41)          NOT NULL,  -- GroupCode(20)+'_'+CodeValue(20)
   [GroupCode]                 VARCHAR(20)              NULL,  -- FK -> MD_CodeGroup.GroupCode
   [CodeValue]                 VARCHAR(20)              NULL,
   [CodeName]                  NVARCHAR(60)             NULL,
   [CodeNameEn]                NVARCHAR(60)             NULL,
-  [ParentCodeID]              VARCHAR(24)              NULL,  -- FK -> MD_CodeItem.CodeID
+  [ParentCodeID]              VARCHAR(41)              NULL,  -- FK -> MD_CodeItem.CodeID
   [SortOrder]                 INT                      NULL,
   [Attribute1]                NVARCHAR(40)             NULL,
   [UseFlag]                   BIT                      NULL DEFAULT 1,
@@ -844,7 +844,7 @@ CREATE TABLE dbo.MD_Location (
   [Slot]                      VARCHAR(5)               NULL,
   [Capacity]                  DECIMAL(10,3)            NULL,
   [LocationType]              VARCHAR(20)              NULL,
-  [PlantID]                   VARCHAR(10)              NULL,
+  [PlantCode]                 VARCHAR(20)              NULL,
   [ActiveFlag]                BIT                      NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
@@ -2078,7 +2078,7 @@ GO
 
 -- ── PNT_StationStatsCache  (라인보드 캐시)
 CREATE TABLE dbo.PNT_StationStatsCache (
-  [StationID]                 VARCHAR(20)          NOT NULL,
+  [StationCode]               VARCHAR(20)          NOT NULL,
   [ActiveCount]               INT                      NULL,
   [AvgDwellSec]               INT                      NULL,
   [BottleneckFlag]            BIT                      NULL,
@@ -2086,7 +2086,7 @@ CREATE TABLE dbo.PNT_StationStatsCache (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedBy]                NVARCHAR(450)            NULL,
-  CONSTRAINT PK_PNT_StationStatsCache PRIMARY KEY CLUSTERED ([StationID])
+  CONSTRAINT PK_PNT_StationStatsCache PRIMARY KEY CLUSTERED ([StationCode])
 );
 GO
 
@@ -2984,7 +2984,7 @@ CREATE TABLE dbo.SYS_UserProfile (
   [EmployeeNo]                VARCHAR(20)              NULL,
   [EmployeeName]              NVARCHAR(50)             NULL,
   [Department]                VARCHAR(30)              NULL,
-  [Plant]                     VARCHAR(20)              NULL,
+  [PlantCode]                 VARCHAR(20)              NULL,
   [DefaultShift]              VARCHAR(10)              NULL,
   [AssignedLines]             NVARCHAR(MAX)            NULL,
   [AccountStatus]             VARCHAR(10)              NULL,
@@ -3156,7 +3156,7 @@ CREATE TABLE dbo.SYS_FactoryCalendar (
   [BreakMinutes]              INT                      NULL,
   [NetWorkHours]              DECIMAL(4,1)             NULL,
   [CalendarYear]              INT                      NULL,
-  [Plant]                     VARCHAR(20)              NULL,
+  [PlantCode]                 VARCHAR(20)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
@@ -3286,7 +3286,7 @@ INSERT INTO dbo.MD_Vendor (VendorID, VendorName, VendorType, VendorCategory, Pho
 GO
 
 -- Production Lines
-INSERT INTO dbo.MD_Line (LineID, LineName, LineType, PlantID, DailyCap, ShiftPattern, RfidEnabledFlag, Status, CreatedBy, CreatedTS) VALUES
+INSERT INTO dbo.MD_Line (LineID, LineName, LineType, PlantCode, DailyCap, ShiftPattern, RfidEnabledFlag, Status, CreatedBy, CreatedTS) VALUES
   ('LINE-INJ-01', N'Injection Line 1 (650T)',  'INJECTION', 'SAV', 4800, '2-SHIFT', 0, 'ACTIVE', 'admin', SYSDATETIME()),
   ('LINE-INJ-02', N'Injection Line 2 (850T)',  'INJECTION', 'SAV', 3600, '2-SHIFT', 0, 'ACTIVE', 'admin', SYSDATETIME()),
   ('LINE-IMG-01', N'Wrapping Line 1',           'WRAPPING',  'SAV', 1200, '2-SHIFT', 0, 'ACTIVE', 'admin', SYSDATETIME()),
@@ -3318,6 +3318,128 @@ INSERT INTO dbo.MD_Equipment (EquipID, EquipName, EquipType, LineID, MakerModel,
 GO
 
 PRINT '✓ Seed data inserted: 9 UOMs, 7 Customers, 5 Vendors, 5 Lines, 10 Items, 5 Equipment';
+GO
+
+-- ════════════════════════════════════════════════════════════════════════
+-- SYS_Screen  (화면 기준정보 — 가시성 및 내비게이션 관리)
+-- ════════════════════════════════════════════════════════════════════════
+IF OBJECT_ID(N'dbo.SYS_Screen', N'U') IS NOT NULL DROP TABLE dbo.SYS_Screen;
+GO
+
+CREATE TABLE dbo.SYS_Screen (
+  [ScreenID]       INT IDENTITY     NOT NULL,
+  [ScreenCode]     VARCHAR(20)      NOT NULL,   -- e.g. 'PP-001', 'SYS-003'
+  [ModuleCode]     VARCHAR(10)      NOT NULL,   -- 포탈 식별자 (WEB / POP / PDA)
+  [ProcessCode]    VARCHAR(10)          NULL,   -- 기능 영역 (PP / MNT / RPT / MD / SYS)
+  [SubProcessCode] VARCHAR(10)          NULL,   -- MD 서브그룹 (Fd/Rp/Re/Rm/Ql)
+  [ScreenName]     NVARCHAR(100)    NOT NULL,
+  [ScreenNameEn]   NVARCHAR(100)        NULL,
+  [HRef]           VARCHAR(200)         NULL,   -- route path (e.g. 'md/rp/line')
+  [LidLabel]     VARCHAR(20)          NULL,   -- chip label shown in NavMenu
+  [SortOrder]    INT                  NULL,
+  [IsVisible]    BIT                  NULL  DEFAULT 1,
+  [CreatedBy]    VARCHAR(50)      NOT NULL,
+  [CreatedTS]    DATETIME2            NULL  DEFAULT SYSDATETIME(),
+  [ModifiedBy]   VARCHAR(50)          NULL,
+  [ModifiedTS]   DATETIME2            NULL,
+  CONSTRAINT PK_SYS_Screen PRIMARY KEY CLUSTERED ([ScreenID]),
+  CONSTRAINT UQ_SYS_Screen UNIQUE ([ScreenCode])
+);
+GO
+
+-- ── Seed: PP · 생산계획 ──────────────────────────────────────────────
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES
+  ('PP-001', 'PP', N'수요 예측',        N'Forecast',          'pp/forecast',         'PP-001',  1, 1, 'admin'),
+  ('PP-002', 'PP', N'공급계획 가져오기',   N'Supply Plan Import', 'pp/supply-plan-import', 'PP-002',  2, 1, 'admin'),
+  ('PP-003', 'PP', N'계획 확정',        N'Plan Confirm',      'pp/plan-confirm',     'PP-003',  3, 1, 'admin'),
+  ('PP-004', 'PP', N'작업 지시',        N'Work Order',        'pp/work-order',       'PP-004',  4, 1, 'admin'),
+  ('PP-005', 'PP', N'MRP',              N'MRP',               'pp/mrp',              'PP-005',  5, 1, 'admin'),
+  ('PP-006', 'PP', N'구매 요청',        N'Purchase Req',      'pp/purchase-req',     'PP-006',  6, 1, 'admin'),
+  ('PP-007', 'PP', N'작업 지시 릴리스', N'WO Release',        'pp/wo-release',       'PP-007',  7, 1, 'admin'),
+  ('PP-CAL', 'PP', N'캘린더',           N'Calendar',          'pp/calendar',         'CAL',     8, 1, 'admin'),
+  ('PP-LSB', 'PP', N'라인 일정',        N'Line Schedule',     'pp/line-schedule',    'LSB',     9, 1, 'admin'),
+  ('PP-OEE', 'PP', N'라인 OEE',         N'Line OEE',          'pp/oee',              'OEE',    10, 1, 'admin'),
+  ('PP-DTL', 'PP', N'비가동 이력',      N'Downtime Log',      'pp/downtime',         'DTL',    11, 1, 'admin'),
+  ('PP-ODM', 'PP', N'비가동 모니터',    N'Downtime Monitor',  'pp/downtime-monitor', 'ODM',    12, 1, 'admin'),
+  ('PP-OTD', 'PP', N'납기 준수율',      N'On-Time Delivery',  'pp/delivery',         'OTD',    13, 1, 'admin');
+GO
+
+-- ── Seed: MNT · 설비보전 ────────────────────────────────────────────
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES
+  ('MNT-001', 'MNT', N'설비 카드',   N'Equipment Card',   'mnt/equipment-card', 'MNT-001', 1, 1, 'admin'),
+  ('MNT-002', 'MNT', N'고장 등록',   N'Failure Register', 'mnt/failure',        'MNT-002', 2, 1, 'admin'),
+  ('MNT-003', 'MNT', N'OEE 분석',    N'OEE Analysis',     'mnt/oee-analysis',   'MNT-003', 3, 1, 'admin'),
+  ('MNT-004', 'MNT', N'금형 관리',   N'Mold Management',  'mnt/mold',           'MNT-004', 4, 1, 'admin'),
+  ('MNT-005', 'MNT', N'PM 일정',     N'PM Schedule',      'mnt/pm-schedule',    'MNT-005', 5, 1, 'admin'),
+  ('MNT-006', 'MNT', N'비가동 이력', N'Downtime Log',     'mnt/downtime',       'MNT-006', 6, 1, 'admin'),
+  ('MNT-007', 'MNT', N'작업 지시',   N'Work Order',       'mnt/work-order',     'MNT-007', 7, 1, 'admin'),
+  ('MNT-008', 'MNT', N'예비 부품',   N'Spare Parts',      'mnt/spare-parts',    'MNT-008', 8, 1, 'admin'),
+  ('MNT-009', 'MNT', N'대시보드',    N'Dashboard',        'mnt/dashboard',      'MNT-009', 9, 1, 'admin');
+GO
+
+-- ── Seed: RPT · 보고서 ──────────────────────────────────────────────
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES
+  ('RPT-001', 'RPT', N'일별 생산 실적', N'Daily Production',   'rpt/daily-production',   'RPT-001',  1, 1, 'admin'),
+  ('RPT-002', 'RPT', N'불량 파레토',   N'Defect Pareto',      'rpt/defect-pareto',      'RPT-002',  2, 1, 'admin'),
+  ('RPT-003', 'RPT', N'일별 출하 현황',N'Daily Shipment',     'rpt/daily-shipment',     'RPT-003',  3, 1, 'admin'),
+  ('RPT-004', 'RPT', N'납기 준수율',   N'On-Time Delivery',   'rpt/on-time',            'RPT-004',  4, 1, 'admin'),
+  ('RPT-005', 'RPT', N'재고 현황',     N'Inventory Status',   'rpt/inventory',          'RPT-005',  5, 1, 'admin'),
+  ('RPT-006', 'RPT', N'설비 OEE',      N'Equipment OEE',      'rpt/equipment-oee',      'RPT-006',  6, 1, 'admin'),
+  ('RPT-007', 'RPT', N'월간 KPI',      N'Monthly KPI',        'rpt/monthly-kpi',        'RPT-007',  7, 1, 'admin'),
+  ('RPT-008', 'RPT', N'계획 준수율',   N'Schedule Adherence', 'rpt/schedule-adherence', 'RPT-008',  8, 1, 'admin'),
+  ('RPT-009', 'RPT', N'리포트 센터',   N'Report Center',      'rpt/report-center',      'RPT-009',  9, 1, 'admin'),
+  ('RPT-010', 'RPT', N'리포트 빌더',   N'Report Builder',     'rpt/report-builder',     'RPT-010', 10, 1, 'admin');
+GO
+
+-- ── Seed: MD · 마스터데이터 ─────────────────────────────────────────
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES
+  ('MD-001', 'MD', N'공장/라인 기준정보 관리',     N'Factory / Line Master',          'md/line',                'MD-001',  1, 1, 'admin'),
+  ('MD-002', 'MD', N'공정 기준정보 관리',          N'Process / Station Master',       'md/station',             'MD-002',  2, 1, 'admin'),
+  ('MD-003', 'MD', N'제품 기준정보 관리',          N'Product Item Master',            'md/items',               'MD-003',  3, 1, 'admin'),
+  ('MD-004', 'MD', N'BOM 관리',                    N'BOM Management',                 'md/bom',                 'MD-004',  4, 1, 'admin'),
+  ('MD-005', 'MD', N'BOP 관리',                    N'BOP Management',                 'md/bop',                 'MD-005',  5, 1, 'admin'),
+  ('MD-006', 'MD', N'Work Center 관리',            N'Work Center Management',         'md/work-center',         'MD-006',  6, 1, 'admin'),
+  ('MD-007', 'MD', N'금형 기준정보 관리',          N'Mold Master',                    'md/mold',                'MD-007',  7, 1, 'admin'),
+  ('MD-008', 'MD', N'원부자재 기준정보 관리',      N'Paint & Fabric Master',          'md/rm/paint-fabric',     'MD-008',  8, 1, 'admin'),
+  ('MD-009', 'MD', N'공급업체 기준정보 관리',      N'Vendor Master',                  'md/vendor',              'MD-009',  9, 1, 'admin'),
+  ('MD-010', 'MD', N'고객사 기준정보 관리',        N'Customer Master',                'md/customer',            'MD-010', 10, 1, 'admin'),
+  ('MD-011', 'MD', N'출하처 기준정보 관리',        N'Shipment Destination Master',    'md/shipment-dest',       'MD-011', 11, 1, 'admin'),
+  ('MD-012', 'MD', N'불량유형 기준정보 관리',      N'Defect Code Master',             'md/defect-code',         'MD-012', 12, 1, 'admin'),
+  ('MD-013', 'MD', N'불량원인 기준정보 관리',      N'Defect Cause Master',            'md/defect-cause',        'MD-013', 13, 1, 'admin'),
+  ('MD-014', 'MD', N'설비 기준정보 관리',          N'Equipment Master',               'md/equipment',           'MD-014', 14, 1, 'admin'),
+  ('MD-015', 'MD', N'건조로 기준정보 관리',        N'Oven Master',                    'md/oven',                'MD-015', 15, 1, 'admin'),
+  ('MD-016', 'MD', N'지그 기준정보 관리',          N'Jig Master',                     'md/jig',                 'MD-016', 16, 1, 'admin'),
+  ('MD-017', 'MD', N'검사기준 기준정보 관리',      N'Inspection Standard Master',     'md/inspection-standard', 'MD-017', 17, 1, 'admin'),
+  ('MD-018', 'MD', N'창고/로케이션 기준정보 관리', N'Warehouse Location Master',      'md/location',            'MD-018', 18, 1, 'admin'),
+  ('MD-019', 'MD', N'단위 관리',                   N'UOM Master',                     'md/uom',                 'MD-019', 19, 1, 'admin'),
+  ('MD-020', 'MD', N'RFID 태그 관리',              N'RFID Tag Master',                'md/rm/rfid-tag',         'MD-020', 20, 1, 'admin'),
+  ('MD-021', 'MD', N'RAL 색상 관리',               N'RAL Color Master',               'md/rm/ral-color',        'MD-021', 21, 1, 'admin'),
+  ('MD-022', 'MD', N'RFID 리더 관리',              N'RFID Reader Master',             'md/rm/rfid-reader',      'MD-022', 22, 1, 'admin'),
+  ('MD-023', 'MD', N'포장 사양 관리',              N'Packaging Spec Master',          'md/packaging-spec',      'MD-023', 23, 1, 'admin'),
+  ('MD-024', 'MD', N'라벨 템플릿 관리',            N'Label Template Master',          'md/label-template',      'MD-024', 24, 1, 'admin'),
+  ('MD-025', 'MD', N'사유 코드 관리',              N'Reason Code Master',             'md/reason-code',         'MD-025', 25, 1, 'admin'),
+  ('MD-026', 'MD', N'예비품 마스터',               N'Spare Part Master',              'md/spare-part',          'MD-026', 26, 1, 'admin'),
+  ('MD-027', 'MD', N'PM 템플릿 관리',              N'PM Template Master',             'md/pm-template',         'MD-027', 27, 1, 'admin'),
+  ('MD-028', 'MD', N'라인 시간 패턴 관리',         N'Line Time Pattern Master',       'md/line-time-pattern',   'MD-028', 28, 1, 'admin'),
+  ('MD-029', 'MD', N'레시피 관리',                 N'Recipe Master',                  'md/recipe',              'MD-029', 29, 1, 'admin'),
+  ('MD-030', 'MD', N'코드 기준정보 관리',          N'Common Code Master',             'md/common-code',         'MD-030', 30, 1, 'admin');
+GO
+
+-- ── Seed: SYS · 시스템 (SYS-003=화면관리, SYS-004=RBAC) ─────────────
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES
+  ('SYS-001', 'SYS', N'사용자 관리',           N'User Management',          'sys/users',         'SYS-001',  1, 1, 'admin'),
+  ('SYS-002', 'SYS', N'역할 관리',             N'Role Management',          'sys/roles',         'SYS-002',  2, 1, 'admin'),
+  ('SYS-003', 'SYS', N'화면 관리',             N'Screen Management',        'sys/screen',        'SYS-003',  3, 1, 'admin'),
+  ('SYS-004', 'SYS', N'역할/권한 관리 (RBAC)', N'Role & Permission (RBAC)', 'sys/rbac',          'SYS-004',  4, 1, 'admin'),
+  ('SYS-005', 'SYS', N'공장 캘린더',           N'Factory Calendar',         'sys/calendar',      'SYS-005',  5, 1, 'admin'),
+  ('SYS-006', 'SYS', N'인터페이스 모니터',     N'Interface Monitor',        'sys/interfaces',    'SYS-006',  6, 1, 'admin'),
+  ('SYS-007', 'SYS', N'감사 로그',             N'Audit Log',                'sys/audit',         'SYS-007',  7, 1, 'admin'),
+  ('SYS-008', 'SYS', N'알림 관리',             N'Notification Management',  'sys/notifications', 'SYS-008',  8, 1, 'admin'),
+  ('SYS-009', 'SYS', N'시스템 설정',           N'System Configuration',     'sys/config',        'SYS-009',  9, 1, 'admin'),
+  ('SYS-010', 'SYS', N'시스템 상태',           N'System Health',            'sys/health',        'SYS-010', 10, 1, 'admin');
+GO
+
+PRINT '✓ SYS_Screen: 72 rows (PP:13 + MNT:9 + RPT:10 + MD:30 + SYS:10)';
 GO
 
 -- ════════════════════════════════════════════════════════════════════════
