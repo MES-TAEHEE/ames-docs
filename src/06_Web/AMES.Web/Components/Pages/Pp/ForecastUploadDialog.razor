@@ -93,9 +93,13 @@
             var auth  = await Auth.GetAuthenticationStateAsync();
             var actor = auth.User.Identity?.Name ?? "system";
             var batch = "WK" + DateTime.Now.ToString("yyyyMMddHHmmss");
-            var rows  = _preview.Items.SelectMany(it => _preview.WeekStarts.Select((w, k) =>
-                new PpRepository.WeeklyImportRow(it.PartNo, Trunc(it.PartName, 100), Trunc(it.Unit, 10),
-                    it.BaseInv, w, Trunc(_preview.WeekLabels[k], 10), it.Qty[k]))).ToList();
+            // 주간 파일 → 월 집계 후 저장 (WeekStartDate 컬럼 제거됨)
+            var rows = _preview.Items.SelectMany(it =>
+                _preview.WeekStarts
+                    .Select((w, k) => (Month: new DateTime(w.Year, w.Month, 1), Qty: it.Qty[k]))
+                    .GroupBy(x => x.Month)
+                    .Select(g => new PpRepository.WeeklyImportRow(it.PartNo, g.Key, g.Sum(x => x.Qty))))
+                .ToList();
 
             var (ins, upd, chg) = Pp.UpsertWeeklyForecast(_upCustomer, batch, rows, actor);
             Dialog.Close(new Result(ins, upd, chg, _upCustomer,

@@ -19,11 +19,10 @@ public sealed class PpRepository
         string ItemNo, string? ItemName, DateTime? ForecastMonth, decimal ForecastQty,
         string? Confidence, string? Source);
 
-    public sealed record WeeklyCell(string? CustomerId, string ItemNo, string? ItemName, string? PartName,
-        string? Unit, decimal? BaseInv, DateTime WeekStartDate, string? WeekLabel, decimal Qty, bool ItemExists);
+    public sealed record WeeklyCell(string? CustomerId, string ItemNo, string? ItemName,
+        DateTime ForecastMonth, decimal Qty, bool ItemExists);
 
-    public sealed record WeeklyImportRow(string ItemNo, string PartName, string Unit,
-        decimal BaseInv, DateTime WeekStartDate, string WeekLabel, decimal Qty);
+    public sealed record WeeklyImportRow(string ItemNo, DateTime ForecastMonth, decimal Qty);
 
     public sealed record WeeklyImportBatch(string Batch, string? CustomerId, DateTime? ImportedAt,
         string? ImportedBy, int Rows, int Items, DateTime? WeekFrom, DateTime? WeekTo);
@@ -104,34 +103,32 @@ public sealed class PpRepository
             ("@B", monthsBack), ("@A", monthsAhead));
     }
 
-    /// <summary>PP-001 주간 구매계획 조회 — 화면에서 품목×주차로 피벗. customerId null/빈값 = 전체 고객.</summary>
+    /// <summary>PP-001 월별 구매계획 조회 — 화면에서 품목×월로 피벗. customerId null/빈값 = 전체 고객.</summary>
     public List<WeeklyCell> ListWeeklyForecast(string? customerId, DateTime from, DateTime to)
     {
         const string sql = """
-            SELECT f.CustomerID, f.ItemNo, i.ItemName, f.PartName, f.Unit, f.BaseInv,
-                   f.WeekStartDate, f.WeekLabel, ISNULL(f.ForecastQty,0) AS Qty,
+            SELECT f.CustomerID, f.ItemNo, i.ItemName,
+                   f.ForecastMonth, ISNULL(f.ForecastQty,0) AS Qty,
                    CASE WHEN i.ItemNo IS NULL THEN 0 ELSE 1 END AS ItemExists
             FROM   dbo.PP_Forecast f
             LEFT JOIN dbo.MD_Item i ON i.ItemNo = f.ItemNo
             WHERE  (@Cust IS NULL OR f.CustomerID = @Cust)
-              AND  f.WeekStartDate BETWEEN @From AND @To
-            ORDER BY f.CustomerID, f.ItemNo, f.WeekStartDate;
+              AND  f.ForecastMonth BETWEEN @From AND @To
+            ORDER BY f.CustomerID, f.ItemNo, f.ForecastMonth;
             """;
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@Cust", SqlDbType.VarChar, 20).Value =
             string.IsNullOrEmpty(customerId) ? DBNull.Value : customerId;
-        cmd.Parameters.Add("@From", SqlDbType.Date).Value = from.Date;
-        cmd.Parameters.Add("@To",   SqlDbType.Date).Value = to.Date;
+        cmd.Parameters.Add("@From", SqlDbType.Date).Value = new DateTime(from.Year, from.Month, 1);
+        cmd.Parameters.Add("@To",   SqlDbType.Date).Value = new DateTime(to.Year, to.Month, 1);
         using var rdr = cmd.ExecuteReader();
         var list = new List<WeeklyCell>();
         while (rdr.Read())
             list.Add(new WeeklyCell(
                 rdr["CustomerID"] as string,
                 rdr["ItemNo"] as string ?? "", rdr["ItemName"] as string,
-                rdr["PartName"] as string, rdr["Unit"] as string,
-                rdr["BaseInv"] as decimal?, (DateTime)rdr["WeekStartDate"],
-                rdr["WeekLabel"] as string,
+                (DateTime)rdr["ForecastMonth"],
                 rdr.GetDecimal(rdr.GetOrdinal("Qty")),
                 (int)rdr["ItemExists"] == 1));
         return list;
@@ -150,8 +147,8 @@ public sealed class PpRepository
                    MAX(f.ImportedBy)        AS ImportedBy,
                    COUNT(*)                 AS Rows,
                    COUNT(DISTINCT f.ItemNo) AS Items,
-                   MIN(f.WeekStartDate)     AS WeekFrom,
-                   MAX(f.WeekStartDate)     AS WeekTo
+                   MIN(f.ForecastMonth)     AS WeekFrom,
+                   MAX(f.ForecastMonth)     AS WeekTo
             FROM   dbo.PP_Forecast f
             WHERE  f.Source = 'SRM_WEEKLY' AND f.ForecastBatch IS NOT NULL
               AND  (@Cust IS NULL OR f.CustomerID = @Cust)
@@ -207,20 +204,16 @@ public sealed class PpRepository
         const string updSql = """
             UPDATE dbo.PP_Forecast
             SET    ForecastBatch = @Batch, ForecastQty = @Qty,
-                   BaseInv = @BaseInv, PartName = @PartName, Unit = @Unit, WeekLabel = @WeekLabel,
-                   ForecastMonth = DATEFROMPARTS(YEAR(@Week), MONTH(@Week), 1),
                    Source = 'SRM_WEEKLY', ImportedAt = SYSDATETIME(), ImportedBy = @Actor,
                    ModifiedTS = SYSDATETIME(), ModifiedBy = @Actor
             OUTPUT inserted.ForecastID, deleted.ForecastQty, deleted.ForecastBatch
-            WHERE  CustomerID = @Cust AND ItemNo = @Item AND WeekStartDate = @Week;
+            WHERE  CustomerID = @Cust AND ItemNo = @Item AND ForecastMonth = @Month;
             """;
         const string insSql = """
             INSERT INTO dbo.PP_Forecast
                    (ForecastBatch, CustomerID, ItemNo, ForecastMonth, ForecastQty,
-                    WeekStartDate, WeekLabel, BaseInv, PartName, Unit,
                     Source, ImportedAt, ImportedBy, CreatedBy)
-            VALUES (@Batch, @Cust, @Item, DATEFROMPARTS(YEAR(@Week), MONTH(@Week), 1), @Qty,
-                    @Week, @WeekLabel, @BaseInv, @PartName, @Unit,
+            VALUES (@Batch, @Cust, @Item, @Month, @Qty,
                     'SRM_WEEKLY', SYSDATETIME(), @Actor, @Actor);
             """;
         const string histSql = """
@@ -238,18 +231,13 @@ public sealed class PpRepository
             using var hist = new SqlCommand(histSql, conn, tx);
             foreach (var c in new[] { upd, ins })
             {
-                c.Parameters.Add("@Batch",     SqlDbType.VarChar,    20);
-                c.Parameters.Add("@Cust",      SqlDbType.VarChar,    20);
-                c.Parameters.Add("@Item",      SqlDbType.VarChar,    20);
-                c.Parameters.Add("@Week",      SqlDbType.Date);
-                c.Parameters.Add("@Qty",       SqlDbType.Decimal).Precision = 14;
+                c.Parameters.Add("@Batch", SqlDbType.VarChar,   20);
+                c.Parameters.Add("@Cust",  SqlDbType.VarChar,   20);
+                c.Parameters.Add("@Item",  SqlDbType.VarChar,   20);
+                c.Parameters.Add("@Month", SqlDbType.Date);
+                c.Parameters.Add("@Qty",   SqlDbType.Decimal).Precision = 14;
                 c.Parameters["@Qty"].Scale = 3;
-                c.Parameters.Add("@WeekLabel", SqlDbType.VarChar,    10);
-                c.Parameters.Add("@BaseInv",   SqlDbType.Decimal).Precision = 14;
-                c.Parameters["@BaseInv"].Scale = 3;
-                c.Parameters.Add("@PartName",  SqlDbType.NVarChar,  100);
-                c.Parameters.Add("@Unit",      SqlDbType.VarChar,    10);
-                c.Parameters.Add("@Actor",     SqlDbType.NVarChar,  450);
+                c.Parameters.Add("@Actor", SqlDbType.NVarChar, 450);
                 c.Parameters["@Batch"].Value = batch;
                 c.Parameters["@Cust"].Value  = customerId;
                 c.Parameters["@Actor"].Value = actor;
@@ -267,13 +255,9 @@ public sealed class PpRepository
             {
                 foreach (var c in new[] { upd, ins })
                 {
-                    c.Parameters["@Item"].Value      = r.ItemNo;
-                    c.Parameters["@Week"].Value      = r.WeekStartDate;
-                    c.Parameters["@Qty"].Value       = r.Qty;
-                    c.Parameters["@WeekLabel"].Value = r.WeekLabel;
-                    c.Parameters["@BaseInv"].Value   = r.BaseInv;
-                    c.Parameters["@PartName"].Value  = r.PartName;
-                    c.Parameters["@Unit"].Value      = r.Unit;
+                    c.Parameters["@Item"].Value  = r.ItemNo;
+                    c.Parameters["@Month"].Value = r.ForecastMonth;
+                    c.Parameters["@Qty"].Value   = r.Qty;
                 }
 
                 int?     fid      = null;
