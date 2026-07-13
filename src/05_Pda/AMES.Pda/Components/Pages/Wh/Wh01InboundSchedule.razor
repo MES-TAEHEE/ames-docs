@@ -8,92 +8,197 @@
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/wh"))' Text="&lt;" />
         <div class="wh01-tbar-title">
-            <span class="pda-tbar-brand">WH-001 INBOUND</span>
+            <span class="pda-tbar-brand">WH-001 SCHEDULE</span>
             <span class="wh01-last-updated">Last Updated @LastUpdatedText</span>
         </div>
         <RadzenButton class="wh01-tbar-refresh" Click="@Load" Disabled="@_isLoading" Text="REFRESH" />
     </div>
-    <div class="pda-bd wh01-body">
-        <RadzenCard class="wh01-head">
-            <div class="pda-card-h">PO RECEIPT STATUS</div>
-            <div class="wh01-summary">
-                <RadzenCard class="wh01-stat">
-                    <span>Total</span>
-                    <strong>@TotalCount</strong>
-                </RadzenCard>
-                <RadzenCard class="wh01-stat progress">
-                    <span>In Progress</span>
-                    <strong>@InProgressCount</strong>
-                </RadzenCard>
-                <RadzenCard class="wh01-stat complete">
-                    <span>Complete</span>
-                    <strong>@CompleteCount</strong>
-                </RadzenCard>
-                <RadzenCard class="wh01-stat late">
-                    <span>Late</span>
-                    <strong>@LateCount</strong>
-                </RadzenCard>
-            </div>
-        </RadzenCard>
 
-        @if (_rows.Count == 0)
+    <div class="pda-bd wh01-body">
+        <div class="wh01-tabs">
+            <RadzenButton class="@($"wh01-tab {TabClass("Inbound")}")" Click='@(() => SetTab("Inbound"))' Text="INBOUND" />
+            <RadzenButton class="@($"wh01-tab {TabClass("Release")}")" Click='@(() => SetTab("Release"))' Text="RELEASE" />
+        </div>
+
+        @if (IsInboundTab)
         {
-            <div class="pda-empty">@_msg</div>
+            <RadzenCard class="wh01-head">
+                <div class="pda-card-h">PO RECEIPT STATUS</div>
+                <div class="wh01-summary">
+                    <RadzenCard class="wh01-stat">
+                        <span>Total</span>
+                        <strong>@InboundTotalCount</strong>
+                    </RadzenCard>
+                    <RadzenCard class="wh01-stat progress">
+                        <span>In Progress</span>
+                        <strong>@InProgressCount</strong>
+                    </RadzenCard>
+                    <RadzenCard class="wh01-stat complete">
+                        <span>Complete</span>
+                        <strong>@CompleteCount</strong>
+                    </RadzenCard>
+                    <RadzenCard class="wh01-stat late">
+                        <span>Late</span>
+                        <strong>@LateCount</strong>
+                    </RadzenCard>
+                </div>
+            </RadzenCard>
+
+            @if (_inboundRows.Count == 0)
+            {
+                <div class="pda-empty">@_inboundMsg</div>
+            }
+            else
+            {
+                <div class="wh01-list">
+                    @foreach (var row in _inboundRows)
+                    {
+                        <RadzenCard class="@($"wh01-po-card {InboundRowClass(row)}")">
+                            <div class="wh01-card-top">
+                                <div class="wh01-po-main">
+                                    <div class="wh01-po-no">@row.PoNumber</div>
+                                    <div class="wh01-po-sub">UNIT @(row.Unit ?? "-")</div>
+                                </div>
+                                <div class="wh01-card-tags">
+                                    <RadzenBadge class="@($"wh01-dday {InboundDdayClass(row)}")" Text="@InboundDdayText(row)" />
+                                    <RadzenBadge class="@($"wh01-status {InboundRowClass(row)}")" Text="@InboundStatusText(row)" />
+                                </div>
+                            </div>
+
+                            <div class="wh01-material">
+                                <div class="wh01-part">@(row.ItemNo ?? "-")</div>
+                                <div class="wh01-desc">@(row.ItemName ?? "-")</div>
+                                <div class="wh01-car-line">CAR @(row.CarCode ?? "-")</div>
+                            </div>
+
+                            <div class="wh01-qty-grid">
+                                <div class="wh01-qty">
+                                    <span>PO Qty</span>
+                                    <strong>@row.OrderQty.ToString("N0")</strong>
+                                </div>
+                                <div class="wh01-qty">
+                                    <span>GR Qty</span>
+                                    <strong>@row.ReceivedQty.ToString("N0")</strong>
+                                </div>
+                            </div>
+                        </RadzenCard>
+                    }
+                </div>
+            }
         }
         else
         {
-            <div class="wh01-list">
-                @foreach (var row in _rows)
-                {
-                    <RadzenCard class="@($"wh01-po-card {RowClass(row)}")">
-                        <div class="wh01-card-top">
-                            <div class="wh01-po-main">
-                                <div class="wh01-po-no">@row.PoNumber</div>
-                                <div class="wh01-po-sub">UNIT @(row.Unit ?? "-")</div>
-                            </div>
-                            <div class="wh01-card-tags">
-                                <RadzenBadge class="@($"wh01-dday {DdayClass(row)}")" Text="@DdayText(row)" />
-                                <RadzenBadge class="@($"wh01-status {RowClass(row)}")" Text="@StatusText(row)" />
-                            </div>
-                        </div>
-
-                        <div class="wh01-material">
-                            <div class="wh01-part">@(row.ItemNo ?? "-")</div>
-                            <div class="wh01-desc">@(row.ItemName ?? "-")</div>
-                            <div class="wh01-car-line">CAR @(row.CarCode ?? "-")</div>
-                        </div>
-
-                        <div class="wh01-qty-grid">
-                            <div class="wh01-qty">
-                                <span>PO Qty</span>
-                                <strong>@row.OrderQty.ToString("N0")</strong>
-                            </div>
-                            <div class="wh01-qty">
-                                <span>GR Qty</span>
-                                <strong>@row.ReceivedQty.ToString("N0")</strong>
-                            </div>
-                        </div>
+            <RadzenCard class="wh01-head">
+                <div class="pda-card-h">RELEASE STATUS</div>
+                <div class="wh01-summary">
+                    <RadzenCard class="wh01-stat">
+                        <span>Total</span>
+                        <strong>@ReleaseTotalCount</strong>
                     </RadzenCard>
-                }
-            </div>
+                    <RadzenCard class="wh01-stat open">
+                        <span>Open</span>
+                        <strong>@OpenCount</strong>
+                    </RadzenCard>
+                    <RadzenCard class="wh01-stat partial">
+                        <span>Partial</span>
+                        <strong>@PartialCount</strong>
+                    </RadzenCard>
+                    <RadzenCard class="wh01-stat picked">
+                        <span>Picked</span>
+                        <strong>@PickedCount</strong>
+                    </RadzenCard>
+                </div>
+            </RadzenCard>
+
+            @if (_releaseRows.Count == 0)
+            {
+                <div class="pda-empty">@_releaseMsg</div>
+            }
+            else
+            {
+                <div class="wh01-list">
+                    @foreach (var row in _releaseRows)
+                    {
+                        <RadzenCard class="@($"wh01-release-card {ReleaseStatusClass(row)} {SelectedReleaseClass(row)}")"
+                                    @onclick="@(() => SelectRelease(row))">
+                            <div class="wh01-card-top">
+                                <div class="wh01-po-main">
+                                    <div class="wh01-po-no">@row.PickSlipNo</div>
+                                    <div class="wh01-po-sub">DEST @(row.RequestLocation ?? "-")</div>
+                                </div>
+                                <div class="wh01-card-tags">
+                                    <RadzenBadge class="@($"wh01-dday {ReleaseDdayClass(row)}")" Text="@ReleaseDdayText(row)" />
+                                    <RadzenBadge class="@($"wh01-status {ReleaseStatusClass(row)}")" Text="@ReleaseStatusText(row)" />
+                                </div>
+                            </div>
+
+                            <div class="wh01-material">
+                                <div class="wh01-part">@(row.FirstItemNo ?? "-")</div>
+                                <div class="wh01-desc">@(row.FirstItemName ?? "-")</div>
+                                <div class="wh01-car-line">@row.LineCount line(s) / FIFO @(row.SuggestedLocation ?? "-")</div>
+                            </div>
+
+                            <div class="wh01-qty-grid">
+                                <div class="wh01-qty">
+                                    <span>Requested Boxes</span>
+                                    <strong>@row.RequestBoxQty.ToString("N0")</strong>
+                                </div>
+                                <div class="wh01-qty">
+                                    <span>Picked Boxes</span>
+                                    <strong>@row.PickedBoxQty.ToString("N0")</strong>
+                                </div>
+                            </div>
+                        </RadzenCard>
+                    }
+                </div>
+            }
         }
     </div>
-    <RadzenButton class="wh01-scan-fixed" Click='@(() => Nav.NavigateTo("/wh/02"))' Text="RECEIVE" />
+
+    <RadzenButton class="@($"wh01-scan-fixed {FixedActionClass}")"
+                  Click="@FixedAction"
+                  Disabled="@FixedActionDisabled"
+                  Text="@FixedActionText" />
 </div>
 
 @code {
-    private List<PdaApi.InboundScheduleRow> _rows = new();
-    private string _msg = "Loading...";
+    [SupplyParameterFromQuery]
+    public string? Tab { get; set; }
+
+    private List<PdaApi.InboundScheduleRow> _inboundRows = new();
+    private List<PdaApi.ReleaseScheduleRow> _releaseRows = new();
+    private string _activeTab = "Inbound";
+    private string? _selectedPickSlipNo;
+    private string _inboundMsg = "Loading...";
+    private string _releaseMsg = "Loading...";
     private DateTime? _lastSyncAt;
     private System.Threading.Timer? _autoSyncTimer;
     private bool _isLoading;
+    private bool _tabApplied;
     private static readonly TimeSpan AutoSyncInterval = TimeSpan.FromHours(1);
 
-    private int TotalCount => _rows.Count;
-    private int InProgressCount => _rows.Count(IsInProgress);
-    private int CompleteCount => _rows.Count(IsComplete);
-    private int LateCount => _rows.Count(IsLate);
+    private bool IsInboundTab => string.Equals(_activeTab, "Inbound", StringComparison.OrdinalIgnoreCase);
+    private int InboundTotalCount => _inboundRows.Count;
+    private int InProgressCount => _inboundRows.Count(IsInboundInProgress);
+    private int CompleteCount => _inboundRows.Count(IsInboundComplete);
+    private int LateCount => _inboundRows.Count(IsInboundLate);
+    private int ReleaseTotalCount => _releaseRows.Count;
+    private int OpenCount => _releaseRows.Count(r => ReleaseStatusKey(r) is "open" or "late");
+    private int PartialCount => _releaseRows.Count(r => ReleaseStatusKey(r) == "partial");
+    private int PickedCount => _releaseRows.Count(r => ReleaseStatusKey(r) is "picked" or "closed");
     private string LastUpdatedText => _lastSyncAt?.ToString("HH:mm:ss") ?? "-";
+    private string FixedActionText => IsInboundTab ? "RECEIVE" : "PICK";
+    private string FixedActionClass => IsInboundTab ? "receive" : "pick";
+    private bool FixedActionDisabled => !IsInboundTab && string.IsNullOrWhiteSpace(_selectedPickSlipNo);
+
+    protected override void OnParametersSet()
+    {
+        if (_tabApplied) return;
+        _tabApplied = true;
+
+        if (string.Equals(Tab, "release", StringComparison.OrdinalIgnoreCase))
+            _activeTab = "Release";
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -115,10 +220,26 @@
         _isLoading = true;
         try
         {
-            _msg = "Loading...";
-            _rows = await Api.WhInboundScheduleAsync();
+            _inboundMsg = "Loading...";
+            _releaseMsg = "Loading...";
+
+            var inboundTask = Api.WhInboundScheduleAsync();
+            var releaseTask = Api.WhReleaseScheduleAsync();
+            await Task.WhenAll(inboundTask, releaseTask);
+
+            _inboundRows = inboundTask.Result;
+            _releaseRows = releaseTask.Result;
             _lastSyncAt = DateTime.Now;
-            if (_rows.Count == 0) _msg = "No inbound scheduled.";
+
+            if (_inboundRows.Count == 0) _inboundMsg = "No inbound scheduled.";
+            if (_releaseRows.Count == 0) _releaseMsg = "No release scheduled.";
+
+            if (string.IsNullOrWhiteSpace(_selectedPickSlipNo)
+                || !_releaseRows.Any(r => string.Equals(r.PickSlipNo, _selectedPickSlipNo, StringComparison.OrdinalIgnoreCase)))
+            {
+                _selectedPickSlipNo = _releaseRows.FirstOrDefault(r => ReleaseStatusClass(r) != "picked")?.PickSlipNo
+                    ?? _releaseRows.FirstOrDefault()?.PickSlipNo;
+            }
         }
         finally
         {
@@ -126,47 +247,121 @@
         }
     }
 
-    private static bool IsComplete(PdaApi.InboundScheduleRow row) => row.NonDeliverQty <= 0;
-
-    private static bool IsLate(PdaApi.InboundScheduleRow row)
-        => !IsComplete(row) && row.DueDate.HasValue && row.DueDate.Value.Date < DateTime.Today;
-
-    private static bool IsInProgress(PdaApi.InboundScheduleRow row)
-        => !IsComplete(row) && !IsLate(row);
-
-    private static string RowClass(PdaApi.InboundScheduleRow row)
+    private void SetTab(string tab)
     {
-        if (IsComplete(row)) return "complete";
-        if (IsLate(row)) return "late";
+        _activeTab = tab;
+    }
+
+    private string TabClass(string tab)
+        => string.Equals(_activeTab, tab, StringComparison.OrdinalIgnoreCase) ? "on" : "";
+
+    private void SelectRelease(PdaApi.ReleaseScheduleRow row)
+    {
+        _selectedPickSlipNo = row.PickSlipNo;
+    }
+
+    private string SelectedReleaseClass(PdaApi.ReleaseScheduleRow row)
+        => string.Equals(row.PickSlipNo, _selectedPickSlipNo, StringComparison.OrdinalIgnoreCase) ? "selected" : "";
+
+    private void FixedAction()
+    {
+        if (IsInboundTab)
+        {
+            Nav.NavigateTo("/wh/02");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_selectedPickSlipNo)) return;
+        Nav.NavigateTo($"/wh/07?pickSlipNo={Uri.EscapeDataString(_selectedPickSlipNo)}");
+    }
+
+    private static bool IsInboundComplete(PdaApi.InboundScheduleRow row) => row.NonDeliverQty <= 0;
+
+    private static bool IsInboundLate(PdaApi.InboundScheduleRow row)
+        => !IsInboundComplete(row) && row.DueDate.HasValue && row.DueDate.Value.Date < DateTime.Today;
+
+    private static bool IsInboundInProgress(PdaApi.InboundScheduleRow row)
+        => !IsInboundComplete(row) && !IsInboundLate(row);
+
+    private static string InboundRowClass(PdaApi.InboundScheduleRow row)
+    {
+        if (IsInboundComplete(row)) return "complete";
+        if (IsInboundLate(row)) return "late";
         return "progress";
     }
 
-    private static string StatusText(PdaApi.InboundScheduleRow row)
+    private static string InboundStatusText(PdaApi.InboundScheduleRow row)
     {
-        if (IsComplete(row)) return "Complete";
-        if (IsLate(row)) return "Late";
+        if (IsInboundComplete(row)) return "Complete";
+        if (IsInboundLate(row)) return "Late";
         return "In Progress";
     }
 
-    private static int? EtaDays(PdaApi.InboundScheduleRow row)
+    private static int? InboundEtaDays(PdaApi.InboundScheduleRow row)
         => row.DueDate.HasValue ? (row.DueDate.Value.Date - DateTime.Today).Days : null;
 
-    private static string DdayText(PdaApi.InboundScheduleRow row)
+    private static string InboundDdayText(PdaApi.InboundScheduleRow row)
     {
-        if (IsComplete(row)) return "Done";
+        if (IsInboundComplete(row)) return "Done";
 
-        var days = EtaDays(row);
+        var days = InboundEtaDays(row);
         if (!days.HasValue) return "No ETA";
         if (days.Value == 0) return "D-0";
         if (days.Value > 0) return $"D-{days.Value}";
         return $"D+{Math.Abs(days.Value)}";
     }
 
-    private static string DdayClass(PdaApi.InboundScheduleRow row)
+    private static string InboundDdayClass(PdaApi.InboundScheduleRow row)
     {
-        if (IsComplete(row)) return "complete";
+        if (IsInboundComplete(row)) return "complete";
 
-        var days = EtaDays(row);
+        var days = InboundEtaDays(row);
+        if (!days.HasValue) return "";
+        if (days.Value <= 0) return "urgent";
+        if (days.Value <= 3) return "warn";
+        return "";
+    }
+
+    private static string ReleaseStatusKey(PdaApi.ReleaseScheduleRow row)
+        => (row.Status ?? "Open").Trim().ToLowerInvariant();
+
+    private static string ReleaseStatusClass(PdaApi.ReleaseScheduleRow row)
+        => ReleaseStatusKey(row) switch
+        {
+            "picked" or "closed" => "picked",
+            "partial" => "partial",
+            "late" => "late",
+            _ => "open"
+        };
+
+    private static string ReleaseStatusText(PdaApi.ReleaseScheduleRow row)
+        => ReleaseStatusClass(row) switch
+        {
+            "picked" => string.Equals(row.Status, "Closed", StringComparison.OrdinalIgnoreCase) ? "Closed" : "Picked",
+            "partial" => "Partial",
+            "late" => "Late",
+            _ => "Open"
+        };
+
+    private static int? ReleaseEtaDays(PdaApi.ReleaseScheduleRow row)
+        => row.RequestDate.HasValue ? (row.RequestDate.Value.Date - DateTime.Today).Days : null;
+
+    private static string ReleaseDdayText(PdaApi.ReleaseScheduleRow row)
+    {
+        if (ReleaseStatusClass(row) == "picked") return "Done";
+
+        var days = ReleaseEtaDays(row);
+        if (!days.HasValue) return "No ETA";
+        if (days.Value == 0) return "D-0";
+        if (days.Value > 0) return $"D-{days.Value}";
+        return $"D+{Math.Abs(days.Value)}";
+    }
+
+    private static string ReleaseDdayClass(PdaApi.ReleaseScheduleRow row)
+    {
+        if (ReleaseStatusClass(row) == "picked") return "picked";
+
+        var days = ReleaseEtaDays(row);
         if (!days.HasValue) return "";
         if (days.Value <= 0) return "urgent";
         if (days.Value <= 3) return "warn";
