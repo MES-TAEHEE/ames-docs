@@ -6,7 +6,6 @@ public sealed class WorkOrderDto
     public required string   WoNumber      { get; init; }
     public required string   ItemNo        { get; init; }
     public required string   ItemName      { get; init; }
-    public string?           ItemNameEn    { get; init; }
     public required decimal  OrderQty      { get; init; }
     public required decimal  OpenQty       { get; init; }
     public required decimal  CompletedQty  { get; init; }

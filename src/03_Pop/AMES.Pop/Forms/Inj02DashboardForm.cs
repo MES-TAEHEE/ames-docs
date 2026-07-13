@@ -229,7 +229,7 @@ public sealed class Inj02DashboardForm : PopForm
             if (wo is not null)
             {
                 _lblWoNumber.Text = wo.WoNumber;
-                _lblWoItem.Text   = $"{wo.ItemNameEn ?? wo.ItemName}  ({wo.ItemNo})";
+                _lblWoItem.Text   = $"{wo.ItemName}  ({wo.ItemNo})";
                 _lblWoProgress.Text = $"{wo.CompletedQty:0}  /  {wo.OrderQty:0}";
                 _lblWoPct.Text    = $"{wo.ProgressPct:0}%";
                 _woBar.Value      = Math.Clamp((int)wo.ProgressPct, 0, 100);

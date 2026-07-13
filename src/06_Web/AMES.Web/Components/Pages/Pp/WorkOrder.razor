@@ -72,7 +72,7 @@ else
             <RadzenDataGridColumn TItem="WorkOrderDto" Property="ItemNo" Title="@L["Col.Item"].Value" Width="230px">
                 <Template Context="w">
                     <span class="code">@w.ItemNo</span>
-                    @{ var nm = w.ItemNameEn ?? w.ItemName; }
+                    @{ var nm = w.ItemName; }
                     @if (!string.IsNullOrEmpty(nm)) { <span class="dim"> · @nm</span> }
                 </Template>
             </RadzenDataGridColumn>
@@ -309,7 +309,7 @@ else
         foreach (var w in _view)
         {
             sb.AppendLine(string.Join(",", new[] {
-                w.WoNumber, w.ItemNameEn ?? w.ItemName ?? "", w.LineId ?? "", w.RoutingType ?? "INJ",
+                w.WoNumber, w.ItemName, w.LineId ?? "", w.RoutingType ?? "INJ",
                 w.OrderQty.ToString("0.###"), w.CompletedQty.ToString("0.###"), ((int)w.ProgressPct) + "%",
                 w.DueDate?.ToString("yyyy-MM-dd") ?? "", w.Status, w.SoNumber ?? "" }.Select(Csv)));
         }

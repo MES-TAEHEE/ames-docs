@@ -234,7 +234,7 @@ public sealed class Inj02DashboardFormV2 : PopForm
 
             if (wo is not null)
             {
-                _lblWoHeader.Text = $"▼ WO PROGRESS · {wo.WoNumber} · {wo.ItemNameEn ?? wo.ItemName}";
+                _lblWoHeader.Text = $"▼ WO PROGRESS · {wo.WoNumber} · {wo.ItemName}";
                 _lblWoValue.Text  = $"{wo.CompletedQty:0}";
                 _lblWoTarget.Text = $"/ {wo.OrderQty:0} EA";
                 _lblWoPct.Text    = $"{wo.ProgressPct:0}%";

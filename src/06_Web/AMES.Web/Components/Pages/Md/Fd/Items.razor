@@ -23,12 +23,12 @@
         <div class="ames-kpi-v">@_allItems.Count(r => r.ActiveFlag)</div>
     </div>
     <div class="ames-kpi warn">
-        <div class="ames-kpi-l">@L["MD.Items.Kpi.FG"]</div>
-        <div class="ames-kpi-v">@_allItems.Count(r => r.ItemType == "FG")</div>
+        <div class="ames-kpi-l">@L["MD.Items.Kpi.Assy"]</div>
+        <div class="ames-kpi-v">@_allItems.Count(r => r.ItemType == "ASSY")</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">@L["MD.Items.Kpi.WIP"]</div>
-        <div class="ames-kpi-v">@_allItems.Count(r => r.ItemType == "WIP")</div>
+        <div class="ames-kpi-l">@L["MD.Items.Kpi.Sub"]</div>
+        <div class="ames-kpi-v">@_allItems.Count(r => r.ItemType == "SUB")</div>
     </div>
 </div>
 
@@ -71,9 +71,11 @@
                 <tr>
                     <th style="width:130px;">@L["Col.ItemNo"]</th>
                     <th>@L["Col.ItemName"]</th>
-                    <th>@L["Col.NameEn"]</th>
                     <th style="width:90px;">@L["Col.Type"]</th>
                     <th style="width:110px;">@L["Col.Category"]</th>
+                    <th style="width:70px;">@L["Col.CarType"]</th>
+                    <th style="width:60px;">PGN</th>
+                    <th style="width:70px;">ALC</th>
                     <th style="width:60px;">@L["Col.Uom"]</th>
                     <th style="width:60px;">@L["Col.Routing"]</th>
                     <th style="width:80px;text-align:right;">@L["Col.Safety"]</th>
@@ -90,9 +92,11 @@
                     <tr class="ames-row-link" @onclick="() => OpenEdit(cap)">
                         <td class="code">@item.ItemNo</td>
                         <td>@item.ItemName</td>
-                        <td class="dim">@item.ItemNameEN</td>
                         <td><span class="pill info">@(item.ItemType ?? "—")</span></td>
                         <td class="dim">@item.ItemCategory</td>
+                        <td class="code dim">@(item.CarType ?? "—")</td>
+                        <td class="code dim">@(item.PGN ?? "—")</td>
+                        <td class="code dim">@(item.ALC ?? "—")</td>
                         <td class="code dim">@item.DefaultUOM</td>
                         <td class="code dim">@(item.RoutingType ?? "—")</td>
                         <td style="text-align:right;">@(item.SafetyStock?.ToString("N0") ?? "—")</td>
@@ -219,17 +223,17 @@
     // ── Form fields ──────────────────────────────────────────────────────
     string  _fItemNo       = "";
     string  _fItemName     = "";
-    string  _fItemNameEn   = "";
     string  _fItemType     = "";
     string  _fItemCategory = "";
+    string  _fCarType      = "";
     string  _fUom          = "";
     string  _fRoutingType  = "";
     decimal _fMinStock     = 0;
     decimal _fMaxStock     = 0;
     decimal _fSafetyStock  = 0;
     decimal _fUnitCost     = 0;
-    string  _fCustSav      = "";
-    string  _fCustGeo      = "";
+    string  _fPgn          = "";
+    string  _fAlc          = "";
     string  _fDrawingNo    = "";
     bool    _fActiveFlag   = true;
 
@@ -253,7 +257,9 @@
         (string.IsNullOrEmpty(_fSearch) ||
             r.ItemNo.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             r.ItemName.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
-            (r.ItemNameEN ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+            (r.CarType ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.PGN ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.ALC ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fTypeFilter) || r.ItemType == _fTypeFilter) &&
         (string.IsNullOrEmpty(_fActiveOnly) || (_fActiveOnly == "Y" ? r.ActiveFlag : !r.ActiveFlag))
     ).ToList(); }
@@ -270,10 +276,10 @@
 
     void OpenCreate()
     {
-        _fItemNo = ""; _fItemName = ""; _fItemNameEn = ""; _fItemType = "";
-        _fItemCategory = ""; _fUom = ""; _fRoutingType = "";
+        _fItemNo = ""; _fItemName = ""; _fItemType = "";
+        _fItemCategory = ""; _fCarType = ""; _fUom = ""; _fRoutingType = "";
         _fMinStock = 0; _fMaxStock = 0; _fSafetyStock = 0; _fUnitCost = 0;
-        _fCustSav = ""; _fCustGeo = ""; _fDrawingNo = ""; _fActiveFlag = true;
+        _fPgn = ""; _fAlc = ""; _fDrawingNo = ""; _fActiveFlag = true;
         _confirmDelete = false; _modalErr = ""; _modal = "create";
     }
 
@@ -283,17 +289,17 @@
         _sel           = r;
         _fItemNo       = r.ItemNo;
         _fItemName     = r.ItemName;
-        _fItemNameEn   = r.ItemNameEN      ?? "";
         _fItemType     = r.ItemType        ?? "";
         _fItemCategory = r.ItemCategory    ?? "";
+        _fCarType      = r.CarType         ?? "";
         _fUom          = r.DefaultUOM      ?? "";
         _fRoutingType  = r.RoutingType     ?? "";
         _fMinStock     = r.MinStock        ?? 0;
         _fMaxStock     = r.MaxStock        ?? 0;
         _fSafetyStock  = r.SafetyStock     ?? 0;
         _fUnitCost     = r.UnitCost        ?? 0;
-        _fCustSav      = r.CustItemNoSAV   ?? "";
-        _fCustGeo      = r.CustItemNoGEO   ?? "";
+        _fPgn          = r.PGN             ?? "";
+        _fAlc          = r.ALC             ?? "";
         _fDrawingNo    = r.DrawingNo       ?? "";
         _fActiveFlag   = r.ActiveFlag;
         _confirmDelete = false; _modalErr = ""; _modal = "edit";
@@ -309,12 +315,12 @@
         {
             var no = _fItemNo.Trim().ToUpper();
             if (Md.ItemExists(no)) { _modalErr = $"'{no}' 품목번호가 {L["Err.AlreadyExists"]}"; return; }
-            Md.InsertItem(no, _fItemName.Trim(), N(_fItemNameEn), N(_fItemType),
-                N(_fItemCategory), N(_fUom), N(_fRoutingType),
+            Md.InsertItem(no, _fItemName.Trim(), N(_fItemType),
+                N(_fItemCategory), N(_fCarType), N(_fUom), N(_fRoutingType),
                 Nz(_fMinStock), Nz(_fMaxStock), Nz(_fSafetyStock), Nz(_fUnitCost),
-                N(_fCustSav), N(_fCustGeo), N(_fDrawingNo), _fActiveFlag, _actor);
+                N(_fPgn), N(_fAlc), N(_fDrawingNo), _fActiveFlag, _actor);
             Sys.InsertAuditLog("MD", "MD-003", "CREATE", "MD_Item", no,
-                null, ItemJson(no, _fItemName.Trim(), N(_fItemNameEn), N(_fItemType),
+                null, ItemJson(no, _fItemName.Trim(), N(_fCarType), N(_fItemType),
                     N(_fItemCategory), N(_fUom), _fActiveFlag),
                 _actor, _clientIp,
                 note: $"Created MD_Item '{no}' (ItemName='{_fItemName.Trim()}'" +
@@ -334,14 +340,14 @@
         try
         {
             var beforeJson = _sel is null ? null : ItemJson(
-                _sel.ItemNo, _sel.ItemName, _sel.ItemNameEN, _sel.ItemType,
+                _sel.ItemNo, _sel.ItemName, _sel.CarType, _sel.ItemType,
                 _sel.ItemCategory, _sel.DefaultUOM, _sel.ActiveFlag);
-            Md.UpdateItem(_fItemNo, _fItemName.Trim(), N(_fItemNameEn), N(_fItemType),
-                N(_fItemCategory), N(_fUom), N(_fRoutingType),
+            Md.UpdateItem(_fItemNo, _fItemName.Trim(), N(_fItemType),
+                N(_fItemCategory), N(_fCarType), N(_fUom), N(_fRoutingType),
                 Nz(_fMinStock), Nz(_fMaxStock), Nz(_fSafetyStock), Nz(_fUnitCost),
-                N(_fCustSav), N(_fCustGeo), N(_fDrawingNo), _fActiveFlag, _actor);
+                N(_fPgn), N(_fAlc), N(_fDrawingNo), _fActiveFlag, _actor);
             Sys.InsertAuditLog("MD", "MD-003", "UPDATE", "MD_Item", _fItemNo,
-                beforeJson, ItemJson(_fItemNo, _fItemName.Trim(), N(_fItemNameEn), N(_fItemType),
+                beforeJson, ItemJson(_fItemNo, _fItemName.Trim(), N(_fCarType), N(_fItemType),
                     N(_fItemCategory), N(_fUom), _fActiveFlag),
                 _actor, _clientIp,
                 note: $"Updated MD_Item '{_fItemNo}' (ItemName='{_fItemName.Trim()}'" +
@@ -360,7 +366,7 @@
         try
         {
             var beforeJson = _sel is null ? null : ItemJson(
-                _sel.ItemNo, _sel.ItemName, _sel.ItemNameEN, _sel.ItemType,
+                _sel.ItemNo, _sel.ItemName, _sel.CarType, _sel.ItemType,
                 _sel.ItemCategory, _sel.DefaultUOM, _sel.ActiveFlag);
             Md.DeleteItem(_fItemNo);
             Sys.InsertAuditLog("MD", "MD-003", "DELETE", "MD_Item", _fItemNo,
@@ -375,13 +381,13 @@
         finally { _busy = false; }
     }
 
-    static string ItemJson(string itemNo, string itemName, string? itemNameEn,
+    static string ItemJson(string itemNo, string itemName, string? carType,
         string? itemType, string? itemCategory, string? uom, bool activeFlag)
         => JsonSerializer.Serialize(new
         {
             ItemNo       = itemNo,
             ItemName     = itemName,
-            ItemNameEN   = itemNameEn,
+            CarType      = carType,
             ItemType     = itemType,
             ItemCategory = itemCategory,
             DefaultUOM   = uom,
@@ -396,8 +402,9 @@
                 <input class="ames-input" @bind="_fItemName" autocomplete="off" />
             </div>
             <div>
-                <label>@L["MD.Items.Lbl.ItemNameEn"]</label>
-                <input class="ames-input" @bind="_fItemNameEn" autocomplete="off" />
+                <label>@L["MD.Items.Lbl.CarType"]</label>
+                <input class="ames-input" @bind="_fCarType" maxlength="10" autocomplete="off"
+                       placeholder="예: LQ2" />
             </div>
         </div>
 
@@ -446,12 +453,12 @@
                 <input type="number" class="ames-input" @bind="_fUnitCost" min="0" step="0.01" />
             </div>
             <div>
-                <label>@L["MD.Items.Lbl.CustSav"]</label>
-                <input class="ames-input" @bind="_fCustSav" maxlength="30" autocomplete="off" />
+                <label>PGN</label>
+                <input class="ames-input" @bind="_fPgn" maxlength="4" autocomplete="off" />
             </div>
             <div>
-                <label>@L["MD.Items.Lbl.CustGeo"]</label>
-                <input class="ames-input" @bind="_fCustGeo" maxlength="30" autocomplete="off" />
+                <label>ALC</label>
+                <input class="ames-input" @bind="_fAlc" maxlength="10" autocomplete="off" />
             </div>
         </div>
 

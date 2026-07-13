@@ -1373,6 +1373,7 @@
   <data name="Col.CustomerId"><value>Customer ID</value></data>
   <data name="Col.CustomerName"><value>Customer Name</value></data>
   <data name="Col.NameEn"><value>English Name</value></data>
+  <data name="Col.CarType"><value>Car Type</value></data>
   <data name="Col.Country"><value>Country</value></data>
   <data name="Col.Contact"><value>Contact</value></data>
   <data name="Col.Phone"><value>Phone</value></data>
@@ -1538,24 +1539,22 @@
   <data name="Lbl.Use.Off"><value>Inactive</value></data>
 
   <!-- MD.Items detail -->
-  <data name="MD.Items.Kpi.FG"><value>Finished Goods (FG)</value></data>
-  <data name="MD.Items.Kpi.WIP"><value>Semi-finished (WIP)</value></data>
-  <data name="MD.Items.Ph.Search"><value>Search by Item No / Name / EN</value></data>
+  <data name="MD.Items.Kpi.Assy"><value>Assembly (ASSY)</value></data>
+  <data name="MD.Items.Kpi.Sub"><value>Sub-part (SUB)</value></data>
+  <data name="MD.Items.Ph.Search"><value>Search by Item No / Name / Car Type / PGN / ALC</value></data>
   <data name="MD.Items.Modal.Create"><value>Create Item</value></data>
   <data name="MD.Items.Modal.Edit"><value>Edit Item</value></data>
   <data name="MD.Items.Lbl.ItemNo"><value>Item No. *</value></data>
   <data name="MD.Items.Lbl.ItemNoHint"><value>(max 20)</value></data>
   <data name="MD.Items.Lbl.Uom"><value>UOM</value></data>
   <data name="MD.Items.Lbl.ItemName"><value>Item Name *</value></data>
-  <data name="MD.Items.Lbl.ItemNameEn"><value>Item Name (EN)</value></data>
+  <data name="MD.Items.Lbl.CarType"><value>Car Type</value></data>
   <data name="MD.Items.Lbl.ItemType"><value>Item Type</value></data>
   <data name="MD.Items.Lbl.Category"><value>Category</value></data>
   <data name="MD.Items.Lbl.SafetyStock"><value>Safety Stock</value></data>
   <data name="MD.Items.Lbl.MinStock"><value>Min Stock</value></data>
   <data name="MD.Items.Lbl.MaxStock"><value>Max Stock</value></data>
   <data name="MD.Items.Lbl.UnitCost"><value>Unit Cost</value></data>
-  <data name="MD.Items.Lbl.CustSav"><value>Customer P/N (SAV)</value></data>
-  <data name="MD.Items.Lbl.CustGeo"><value>Customer P/N (GEO)</value></data>
   <data name="MD.Items.Lbl.DrawingNo"><value>Drawing No.</value></data>
   <data name="MD.Items.ConfirmDelete"><value>Delete {0} ({1})?</value></data>
   <data name="MD.Items.Err.NameRequired"><value>Item name is required.</value></data>

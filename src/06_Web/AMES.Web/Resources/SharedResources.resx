@@ -1373,6 +1373,7 @@
   <data name="Col.CustomerId"><value>고객 ID</value></data>
   <data name="Col.CustomerName"><value>고객명</value></data>
   <data name="Col.NameEn"><value>영문명</value></data>
+  <data name="Col.CarType"><value>차종</value></data>
   <data name="Col.Country"><value>국가</value></data>
   <data name="Col.Contact"><value>담당자</value></data>
   <data name="Col.Phone"><value>전화</value></data>
@@ -1538,24 +1539,22 @@
   <data name="Lbl.Use.Off"><value>미사용</value></data>
 
   <!-- MD.Items 상세 -->
-  <data name="MD.Items.Kpi.FG"><value>완제품(FG)</value></data>
-  <data name="MD.Items.Kpi.WIP"><value>반제품(WIP)</value></data>
-  <data name="MD.Items.Ph.Search"><value>품목번호·품목명·영문명 검색</value></data>
+  <data name="MD.Items.Kpi.Assy"><value>완성품(ASSY)</value></data>
+  <data name="MD.Items.Kpi.Sub"><value>반제품(SUB)</value></data>
+  <data name="MD.Items.Ph.Search"><value>품목번호·품목명·차종·PGN·ALC 검색</value></data>
   <data name="MD.Items.Modal.Create"><value>품목 등록</value></data>
   <data name="MD.Items.Modal.Edit"><value>품목 수정</value></data>
   <data name="MD.Items.Lbl.ItemNo"><value>품목번호 *</value></data>
   <data name="MD.Items.Lbl.ItemNoHint"><value>(최대 20자)</value></data>
   <data name="MD.Items.Lbl.Uom"><value>단위</value></data>
   <data name="MD.Items.Lbl.ItemName"><value>품목명 *</value></data>
-  <data name="MD.Items.Lbl.ItemNameEn"><value>품목명(영문)</value></data>
+  <data name="MD.Items.Lbl.CarType"><value>차종</value></data>
   <data name="MD.Items.Lbl.ItemType"><value>품목유형</value></data>
   <data name="MD.Items.Lbl.Category"><value>카테고리</value></data>
   <data name="MD.Items.Lbl.SafetyStock"><value>안전재고</value></data>
   <data name="MD.Items.Lbl.MinStock"><value>최소재고</value></data>
   <data name="MD.Items.Lbl.MaxStock"><value>최대재고</value></data>
   <data name="MD.Items.Lbl.UnitCost"><value>단가</value></data>
-  <data name="MD.Items.Lbl.CustSav"><value>고객품번(SAV)</value></data>
-  <data name="MD.Items.Lbl.CustGeo"><value>고객품번(GEO)</value></data>
   <data name="MD.Items.Lbl.DrawingNo"><value>도면번호</value></data>
   <data name="MD.Items.ConfirmDelete"><value>{0} ({1}) 을 삭제합니까?</value></data>
   <data name="MD.Items.Err.NameRequired"><value>품목명을 입력하세요.</value></data>
