@@ -420,7 +420,7 @@
         ("OTHER", "Other")
     ];
 
-    private string PageTitle => IsAdjustTab ? "WH-003 ADJUST" : "WH-003 INVENTORY";
+    private string PageTitle => IsAdjustTab ? "WH-005 ADJUST" : "WH-004 INVENTORY";
     private string LastUpdatedText => _lastSyncAt?.ToString("HH:mm:ss") ?? "-";
     private string EmptyMessage => _rows.Count == 0 ? _msg : "No items in this status.";
     private DateTime? DateFrom => TryDate(_dateFrom);
