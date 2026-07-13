@@ -6,123 +6,315 @@
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/wh"))' Text="&lt;" />
         <div class="wh03-tbar-title">
-            <span class="pda-tbar-brand">WH-003 INVENTORY</span>
+            <span class="pda-tbar-brand">@PageTitle</span>
             <span class="wh03-last-updated">Last Updated @LastUpdatedText</span>
         </div>
         <RadzenButton class="wh03-refresh" Click="@Load" Disabled="@_isLoading" Text="REFRESH" />
     </div>
 
     <div class="pda-bd wh03-body">
-        <RadzenCard class="wh03-search-card">
-            <div class="pda-fld">
-                <label>MATERIAL SEARCH</label>
-                <RadzenTextBox class="pda-input wh03-search-input"
-                               Value="@_q"
-                               @oninput="OnSearchInput"
-                               @onkeydown="OnKey"
-                               Placeholder="Search material, name, or car" />
-            </div>
-            <RadzenButton class="wh03-search-btn" Click="@Load" Disabled="@_isLoading" Text="SEARCH" />
-        </RadzenCard>
-
-        <RadzenCard class="wh03-filter-card">
-            <div class="wh03-date-panel">
-                <div class="pda-fld">
-                    <label>STOCK DATE FROM</label>
-                    <input class="pda-input wh03-date-input" type="text" inputmode="numeric"
-                           value="@_dateFrom" @onchange="OnDateFromChanged" placeholder="YYYY-MM-DD" />
-                </div>
-                <div class="pda-fld">
-                    <label>STOCK DATE TO</label>
-                    <input class="pda-input wh03-date-input" type="text" inputmode="numeric"
-                           value="@_dateTo" @onchange="OnDateToChanged" placeholder="YYYY-MM-DD" />
-                </div>
-                <div class="wh03-date-actions">
-                    <RadzenButton class="wh03-date-clear" Click="@ClearDateFilter" Disabled="@_isLoading" Text="CLEAR" />
-                    <RadzenButton class="wh03-date-apply" Click="@Load" Disabled="@_isLoading" Text="APPLY" />
-                </div>
-            </div>
-        </RadzenCard>
-
-        <RadzenCard class="wh03-head">
-            <div class="pda-card-h">MATERIAL STOCK STATUS</div>
-            <div class="wh03-summary">
-                <button type="button" class='@SummaryClass("ALL")' @onclick='@(() => SetFilter("ALL"))'>
-                    <span>Total</span>
-                    <strong>@_rows.Count</strong>
-                </button>
-                <button type="button" class='@SummaryClass("BELOW_MIN")' @onclick='@(() => SetFilter("BELOW_MIN"))'>
-                    <span>Below Min</span>
-                    <strong>@CountStatus("BELOW_MIN")</strong>
-                </button>
-                <button type="button" class='@SummaryClass("LOW_STOCK")' @onclick='@(() => SetFilter("LOW_STOCK"))'>
-                    <span>Low Stock</span>
-                    <strong>@CountStatus("LOW_STOCK")</strong>
-                </button>
-                <button type="button" class='@SummaryClass("OVER_MAX")' @onclick='@(() => SetFilter("OVER_MAX"))'>
-                    <span>Over Max</span>
-                    <strong>@CountStatus("OVER_MAX")</strong>
-                </button>
-                <button type="button" class='@SummaryClass("NORMAL")' @onclick='@(() => SetFilter("NORMAL"))'>
-                    <span>Normal</span>
-                    <strong>@CountStatus("NORMAL")</strong>
-                </button>
-            </div>
-        </RadzenCard>
-
-        @if (VisibleRows.Count == 0)
+        @if (IsSearchTab)
         {
-            <div class="pda-empty">@EmptyMessage</div>
+            <RadzenCard class="wh03-search-card">
+                <div class="pda-fld">
+                    <label>MATERIAL SEARCH</label>
+                    <RadzenTextBox class="pda-input wh03-search-input"
+                                   Value="@_q"
+                                   @oninput="OnSearchInput"
+                                   @onkeydown="OnKey"
+                                   Placeholder="Search material, name, or car" />
+                </div>
+                <RadzenButton class="wh03-search-btn" Click="@Load" Disabled="@_isLoading" Text="SEARCH" />
+            </RadzenCard>
+
+            <RadzenCard class="wh03-filter-card">
+                <div class="wh03-date-panel">
+                    <div class="pda-fld">
+                        <label>STOCK DATE FROM</label>
+                        <input class="pda-input wh03-date-input" type="text" inputmode="numeric"
+                               value="@_dateFrom" @onchange="OnDateFromChanged" placeholder="YYYY-MM-DD" />
+                    </div>
+                    <div class="pda-fld">
+                        <label>STOCK DATE TO</label>
+                        <input class="pda-input wh03-date-input" type="text" inputmode="numeric"
+                               value="@_dateTo" @onchange="OnDateToChanged" placeholder="YYYY-MM-DD" />
+                    </div>
+                    <div class="wh03-date-actions">
+                        <RadzenButton class="wh03-date-clear" Click="@ClearDateFilter" Disabled="@_isLoading" Text="CLEAR" />
+                        <RadzenButton class="wh03-date-apply" Click="@Load" Disabled="@_isLoading" Text="APPLY" />
+                    </div>
+                </div>
+            </RadzenCard>
+
+            <RadzenCard class="wh03-head">
+                <div class="pda-card-h">MATERIAL STOCK STATUS</div>
+                <div class="wh03-summary">
+                    <button type="button" class='@SummaryClass("ALL")' @onclick='@(() => SetFilter("ALL"))'>
+                        <span>Total</span>
+                        <strong>@_rows.Count</strong>
+                    </button>
+                    <button type="button" class='@SummaryClass("BELOW_MIN")' @onclick='@(() => SetFilter("BELOW_MIN"))'>
+                        <span>Below Min</span>
+                        <strong>@CountStatus("BELOW_MIN")</strong>
+                    </button>
+                    <button type="button" class='@SummaryClass("LOW_STOCK")' @onclick='@(() => SetFilter("LOW_STOCK"))'>
+                        <span>Low Stock</span>
+                        <strong>@CountStatus("LOW_STOCK")</strong>
+                    </button>
+                    <button type="button" class='@SummaryClass("OVER_MAX")' @onclick='@(() => SetFilter("OVER_MAX"))'>
+                        <span>Over Max</span>
+                        <strong>@CountStatus("OVER_MAX")</strong>
+                    </button>
+                    <button type="button" class='@SummaryClass("NORMAL")' @onclick='@(() => SetFilter("NORMAL"))'>
+                        <span>Normal</span>
+                        <strong>@CountStatus("NORMAL")</strong>
+                    </button>
+                </div>
+            </RadzenCard>
+
+            @if (VisibleRows.Count == 0)
+            {
+                <div class="pda-empty">@EmptyMessage</div>
+            }
+            else
+            {
+                <div class="wh03-list">
+                    @foreach (var row in VisibleRows)
+                    {
+                        <RadzenCard class="@($"wh03-stock-card {StatusClass(row)}")">
+                            <div class="wh03-card-top">
+                                <div class="wh03-part-main">
+                                    <div class="wh03-part-no">@Text(row.ItemNo)</div>
+                                    <div class="wh03-part-name">@Text(row.ItemName)</div>
+                                    <div class="wh03-part-sub">CAR @Text(row.CarCode) / UNIT @Unit(row.Unit)</div>
+                                </div>
+                                <RadzenBadge class="@($"wh03-status-badge {StatusClass(row)}")" Text="@StatusText(row)" />
+                            </div>
+
+                            <div class="wh03-onhand">
+                                <span>On Hand</span>
+                                <strong>@Qty(row.OnHandQty, row.Unit)</strong>
+                            </div>
+
+                            <div class="wh03-threshold-grid">
+                                <div class="wh03-threshold">
+                                    <span>Min Qty</span>
+                                    <strong>@Qty(row.MinQty, row.Unit)</strong>
+                                    <em>@Days(row.MinDays)</em>
+                                </div>
+                                <div class="wh03-threshold">
+                                    <span>Max Qty</span>
+                                    <strong>@Qty(row.MaxQty, row.Unit)</strong>
+                                    <em>@Days(row.MaxDays)</em>
+                                </div>
+                            </div>
+
+                            <div class="wh03-meta-grid">
+                                <div>
+                                    <span>Main Location</span>
+                                    <strong>@Text(row.LocationId)</strong>
+                                </div>
+                                <button class="wh03-location-link" @onclick="@(() => OpenLocations(row))">
+                                    <span>Locations</span>
+                                    <strong>@row.LocationCount</strong>
+                                    <em>View Detail</em>
+                                </button>
+                            </div>
+                        </RadzenCard>
+                    }
+                </div>
+            }
         }
         else
         {
-            <div class="wh03-list">
-                @foreach (var row in VisibleRows)
+            <RadzenCard class="wh03-work-card">
+                <div class="wh03-work-head">
+                    <div>
+                        <span>@_workTab.ToUpperInvariant()</span>
+                        <strong>@(IsAdjustTab ? "Inventory Quantity Adjustment" : "Inventory Location Change")</strong>
+                    </div>
+                    <em>Scan LOT No first</em>
+                </div>
+
+                @if (!IsAdjustTab)
                 {
-                    <RadzenCard class="@($"wh03-stock-card {StatusClass(row)}")">
-                        <div class="wh03-card-top">
-                            <div class="wh03-part-main">
-                                <div class="wh03-part-no">@Text(row.ItemNo)</div>
-                                <div class="wh03-part-name">@Text(row.ItemName)</div>
-                                <div class="wh03-part-sub">CAR @Text(row.CarCode) / UNIT @Unit(row.Unit)</div>
-                            </div>
-                            <RadzenBadge class="@($"wh03-status-badge {StatusClass(row)}")" Text="@StatusText(row)" />
-                        </div>
-
-                        <div class="wh03-onhand">
-                            <span>On Hand</span>
-                            <strong>@Qty(row.OnHandQty, row.Unit)</strong>
-                        </div>
-
-                        <div class="wh03-threshold-grid">
-                            <div class="wh03-threshold">
-                                <span>Min Qty</span>
-                                <strong>@Qty(row.MinQty, row.Unit)</strong>
-                                <em>@Days(row.MinDays)</em>
-                            </div>
-                            <div class="wh03-threshold">
-                                <span>Max Qty</span>
-                                <strong>@Qty(row.MaxQty, row.Unit)</strong>
-                                <em>@Days(row.MaxDays)</em>
-                            </div>
-                        </div>
-
-                        <div class="wh03-meta-grid">
-                            <div>
-                                <span>Main Location</span>
-                                <strong>@Text(row.LocationId)</strong>
-                            </div>
-                            <button class="wh03-location-link" @onclick="@(() => OpenLocations(row))">
-                                <span>Locations</span>
-                                <strong>@row.LocationCount</strong>
-                                <em>View Detail</em>
-                            </button>
-                        </div>
-                    </RadzenCard>
+                    <div class="wh03-mode-row">
+                        <RadzenButton class="@InvModeClass("LOCAL")" Click='@(() => SetInventoryMode("LOCAL"))' Text="LOCAL" />
+                        <RadzenButton class="@InvModeClass("CKD")" Click='@(() => SetInventoryMode("CKD"))' Text="CKD" />
+                    </div>
                 }
-            </div>
+
+                <div class="wh03-work-scan">
+                    <div class="pda-fld">
+                        <label>LOT NO SCAN</label>
+                        <RadzenTextBox class="pda-input wh03-work-input"
+                                       Value="@_invBarcode"
+                                       @oninput="OnInventoryBarcodeInput"
+                                       @onkeydown="OnInventoryLotKey"
+                                       Placeholder="@InventoryBarcodePlaceholder" />
+                    </div>
+                    <RadzenButton class="wh03-work-scan-btn" Click="@ScanInventoryLot" Disabled="@DisableInventoryScan" Text="SCAN" />
+                </div>
+            </RadzenCard>
+
+            @if (_invScan is not null)
+            {
+                <RadzenCard class="@($"wh03-work-card wh03-lot-card {InventoryLotCardClass}")">
+                    <div class="wh03-lot-top">
+                        <div>
+                            <span>LOT NO</span>
+                            <strong>@Text(_invScan.LotNo)</strong>
+                        </div>
+                        <RadzenBadge class="@($"wh03-status-badge {InventoryStatusClass}")" Text="@InventoryStatusLabel" />
+                    </div>
+                    <div class="wh03-lot-part">
+                        <strong>@Text(_invScan.PartNo)</strong>
+                        <span>@Text(_invScan.PartName)</span>
+                    </div>
+                    <div class="wh03-info-grid">
+                        @foreach (var field in InventoryLotFields())
+                        {
+                            <div class="wh03-info-box">
+                                <span>@field.Label</span>
+                                <strong>@field.Value</strong>
+                            </div>
+                        }
+                    </div>
+                </RadzenCard>
+            }
+
+            @if (IsAdjustTab && _invScan is not null)
+            {
+                <RadzenCard class="@($"wh03-work-card wh03-action-card {(!InventoryAlreadyReceived ? "disabled" : "")}")">
+                    <div class="wh03-section-title">ADJUSTMENT</div>
+                    <div class="wh03-adjust-summary">
+                        <div>
+                            <span>Before Qty</span>
+                            <strong>@Qty(_invScan?.Qty, _invScan?.Unit)</strong>
+                        </div>
+                        <div>
+                            <span>Change</span>
+                            <strong class="@AdjustDeltaClass">@SignedQty(_invAdjustDelta, _invScan?.Unit)</strong>
+                        </div>
+                        <div>
+                            <span>After Qty</span>
+                            <strong>@Qty(InventoryAfterQty, _invScan?.Unit)</strong>
+                        </div>
+                    </div>
+
+                    <div class="wh03-form-grid">
+                        <div class="pda-fld">
+                            <label>REASON CODE</label>
+                            <select class="pda-input wh03-work-input" @bind="_invAdjustReason" disabled="@(!InventoryAlreadyReceived || InventoryBusy)">
+                                @foreach (var reason in AdjustReasons)
+                                {
+                                    <option value="@reason.Code">@reason.Label</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="pda-fld">
+                            <label>ADJUST QTY (+/-)</label>
+                            <input class="pda-input wh03-work-input" type="number" step="1" @bind="_invAdjustDelta" disabled="@(!InventoryAlreadyReceived || InventoryBusy)" />
+                        </div>
+                        <div class="pda-fld">
+                            <label>SUPERVISOR PIN</label>
+                            <input class="pda-input wh03-work-input" type="password" inputmode="numeric" maxlength="12" @bind="_invAdjustSupervisorPin" disabled="@(!InventoryAlreadyReceived || InventoryBusy)" />
+                        </div>
+                        <div class="pda-fld wh03-form-wide">
+                            <label>NOTE</label>
+                            <textarea class="pda-input wh03-work-note" rows="2" @bind="_invAdjustNote" disabled="@(!InventoryAlreadyReceived || InventoryBusy)"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="wh03-action-row">
+                        <RadzenButton class="wh03-date-clear" Click="@ClearInventoryWork" Disabled="@InventoryBusy" Text="CLEAR" />
+                        <RadzenButton class="wh03-date-apply wh03-post-btn ready save" Click="@PostInventoryAdjust" Disabled="@InventoryBusy" Text="SAVE" />
+                    </div>
+                </RadzenCard>
+            }
+
+            @if (IsLocatingTab)
+            {
+                <RadzenCard class="@($"wh03-work-card wh03-action-card {(!InventoryAlreadyReceived ? "disabled" : "")}")">
+                    <div class="wh03-section-title">CURRENT LOCATION</div>
+                    @if (_inventoryCurrentLocation is not null)
+                    {
+                        <div class="wh03-location-mini-card">
+                            <strong>@Text(_inventoryCurrentLocation.LocationId)</strong>
+                            <span>@Text(_inventoryCurrentLocation.LocationName ?? _inventoryCurrentLocation.ZoneName ?? _inventoryCurrentLocation.Zone)</span>
+                            <div class="wh03-info-grid">
+                                @foreach (var field in LocationFieldsFor(_inventoryCurrentLocation))
+                                {
+                                    <div class="wh03-info-box">
+                                        <span>@field.Label</span>
+                                        <strong>@field.Value</strong>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="pda-empty compact">No current location loaded.</div>
+                    }
+
+                    <div class="wh03-work-scan wh03-location-scan">
+                        <div class="pda-fld">
+                            <label>NEW LOCATION NO SCAN</label>
+                            <RadzenTextBox class="pda-input wh03-work-input"
+                                           Value="@_invLocationNo"
+                                           @oninput="OnInventoryLocationInput"
+                                           @onkeydown="OnInventoryLocationKey"
+                                           Placeholder="Scan new location no"
+                                           Disabled="@(!InventoryAlreadyReceived || InventoryBusy)" />
+                        </div>
+                        <RadzenButton class="wh03-work-scan-btn" Click="@ScanInventoryLocation" Disabled="@DisableInventoryLocationScan" Text="SCAN" />
+                    </div>
+
+                    @if (_invTargetLocation is not null)
+                    {
+                        <div class="wh03-location-mini-card target">
+                            <strong>@Text(_invTargetLocation.LocationId)</strong>
+                            <span>@Text(_invTargetLocation.LocationName ?? _invTargetLocation.ZoneName ?? _invTargetLocation.Zone)</span>
+                            <div class="wh03-info-grid">
+                                @foreach (var field in LocationFieldsFor(_invTargetLocation))
+                                {
+                                    <div class="wh03-info-box">
+                                        <span>@field.Label</span>
+                                        <strong>@field.Value</strong>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <div class="wh03-action-row">
+                        <RadzenButton class="wh03-date-clear" Click="@ClearInventoryWork" Disabled="@InventoryBusy" Text="CLEAR" />
+                        <RadzenButton class="@($"wh03-date-apply wh03-post-btn {(DisableInventoryMove ? "blocked" : "ready")}")" Click="@ConfirmInventoryMove" Disabled="@DisableInventoryMove" Text="CONFIRM MOVE" />
+                    </div>
+                </RadzenCard>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(_invMsg))
+            {
+                <div class="pda-status @_invCls">@_invMsg</div>
+            }
         }
     </div>
+
+    @if (_modalOpen)
+    {
+        <div class="wh-modal-backdrop" @onclick="DismissModal">
+            <RadzenCard class="@($"wh-modal-card {_modalKind}")" @onclick:stopPropagation="true">
+                <div class="wh-modal-mark">@ModalMark</div>
+                <div class="wh-modal-title">@_modalTitle</div>
+                <div class="wh-modal-message">@_modalMessage</div>
+                <div class="wh-modal-actions">
+                    <RadzenButton class="wh-modal-btn primary" Click="@DismissModal" Text="OK" />
+                </div>
+            </RadzenCard>
+        </div>
+    }
 
     @if (_locationModalOpen)
     {
@@ -189,25 +381,131 @@
     private string _dateTo = "";
     private string _statusFilter = "ALL";
     private string _msg = "Loading...";
+    private string _workTab = "Search";
+    private string _invMode = "LOCAL";
+    private string _invBarcode = "";
+    private string _invLocationNo = "";
+    private string _invMsg = "";
+    private string _invCls = "dim";
+    private string _invAdjustReason = "COUNT_DIFF";
+    private string _invAdjustSupervisorPin = "";
+    private string _invAdjustNote = "";
+    private decimal _invAdjustDelta;
     private bool _isLoading;
     private bool _locationsLoading;
     private bool _locationModalOpen;
+    private bool _isInventoryScanning;
+    private bool _isInventoryLocationScanning;
+    private bool _isInventoryAdjusting;
+    private bool _isInventoryMoving;
+    private bool _modalOpen;
     private DateTime? _lastSyncAt;
+    private string _modalTitle = "";
+    private string _modalMessage = "";
+    private string _modalKind = "info";
     private List<PdaApi.InventoryRow> _rows = new();
     private List<PdaApi.InventoryLocationRow> _locationRows = new();
     private PdaApi.InventoryRow? _locationItem;
+    private PdaApi.InboundScanRow? _invScan;
+    private PdaApi.LocationRow? _inventoryCurrentLocation;
+    private PdaApi.LocationRow? _invTargetLocation;
+    private static readonly bool ShowLocatingTab = false;
 
+    private static readonly (string Code, string Label)[] AdjustReasons =
+    [
+        ("COUNT_DIFF", "Count Diff"),
+        ("DAMAGED", "Damaged"),
+        ("LOST", "Lost"),
+        ("FOUND", "Found"),
+        ("OTHER", "Other")
+    ];
+
+    private string PageTitle => IsAdjustTab ? "WH-005 ADJUST" : "WH-004 INVENTORY";
     private string LastUpdatedText => _lastSyncAt?.ToString("HH:mm:ss") ?? "-";
     private string EmptyMessage => _rows.Count == 0 ? _msg : "No items in this status.";
     private DateTime? DateFrom => TryDate(_dateFrom);
     private DateTime? DateTo => TryDate(_dateTo);
+    private bool IsSearchTab => string.Equals(_workTab, "Search", StringComparison.OrdinalIgnoreCase);
+    private bool IsAdjustTab => string.Equals(_workTab, "Adjust", StringComparison.OrdinalIgnoreCase);
+    private bool IsLocatingTab => string.Equals(_workTab, "Locating", StringComparison.OrdinalIgnoreCase);
+    private bool InventoryBusy => _isInventoryScanning || _isInventoryLocationScanning || _isInventoryAdjusting || _isInventoryMoving;
+    private bool InventoryAlreadyReceived => string.Equals(_invScan?.Yn, "N", StringComparison.OrdinalIgnoreCase);
+    private bool DisableInventoryScan => InventoryBusy || string.IsNullOrWhiteSpace(_invBarcode);
+    private bool DisableInventoryLocationScan => !InventoryAlreadyReceived || InventoryBusy || string.IsNullOrWhiteSpace(_invLocationNo);
+    private bool DisableInventoryAdjust => !InventoryAlreadyReceived || InventoryBusy || _invAdjustDelta == 0 || InventoryAfterQty < 0
+        || string.IsNullOrWhiteSpace(_invAdjustReason) || string.IsNullOrWhiteSpace(_invAdjustSupervisorPin);
+    private bool DisableInventoryMove => !InventoryAlreadyReceived || InventoryBusy || _invTargetLocation is null || InventoryTargetSameAsCurrent;
+    private decimal InventoryBeforeQty => _invScan?.Qty ?? 0;
+    private decimal InventoryAfterQty => InventoryBeforeQty + _invAdjustDelta;
+    private string InventoryBarcodePlaceholder => IsAdjustTab ? "Scan Lot No" : _invMode == "CKD" ? "Scan CKD lot no" : "Scan local lot no";
+    private string InventoryLotCardClass => InventoryAlreadyReceived ? "ready" : "blocked";
+    private string InventoryStatusClass => InventoryAlreadyReceived ? "normal" : "below";
+    private string InventoryStatusLabel => _invScan is null
+        ? "-"
+        : InventoryAlreadyReceived
+            ? $"Incoming {Text(_invScan.ReceivedStatus)}"
+            : "Not Incoming";
+    private string AdjustDeltaClass => _invAdjustDelta < 0 ? "minus" : _invAdjustDelta > 0 ? "plus" : "";
+    private bool InventoryTargetSameAsCurrent
+        => _invTargetLocation is not null && IsCurrentInventoryLocation(_invTargetLocation.LocationId);
+    private string ModalMark => _modalKind switch
+    {
+        "danger" => "!",
+        "warn" => "!",
+        "success" => "OK",
+        _ => "i"
+    };
 
     private List<PdaApi.InventoryRow> VisibleRows
         => _statusFilter == "ALL"
             ? _rows
             : _rows.Where(row => string.Equals(row.Status, _statusFilter, StringComparison.OrdinalIgnoreCase)).ToList();
 
-    protected override async Task OnInitializedAsync() => await Load();
+    protected override async Task OnInitializedAsync()
+    {
+        ApplyInitialTab();
+        await Load();
+    }
+
+    private void ApplyInitialTab()
+    {
+        var query = Nav.ToAbsoluteUri(Nav.Uri).Query;
+        if (query.Contains("tab=adjust", StringComparison.OrdinalIgnoreCase))
+        {
+            _workTab = "Adjust";
+            return;
+        }
+
+        if (ShowLocatingTab && query.Contains("tab=locating", StringComparison.OrdinalIgnoreCase))
+        {
+            _workTab = "Locating";
+            return;
+        }
+
+        _workTab = "Search";
+    }
+
+    private void SetWorkTab(string tab)
+    {
+        _workTab = tab;
+        _invMsg = "";
+        _invCls = "dim";
+    }
+
+    private string WorkTabClass(string tab)
+        => $"wh03-filter-tab {(string.Equals(_workTab, tab, StringComparison.OrdinalIgnoreCase) ? "on" : "")}";
+
+    private void SetInventoryMode(string mode)
+    {
+        if (string.Equals(_invMode, mode, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        _invMode = mode;
+        ClearInventoryWork();
+    }
+
+    private string InvModeClass(string mode)
+        => $"wh03-mode-btn {(string.Equals(_invMode, mode, StringComparison.OrdinalIgnoreCase) ? "on" : "")}";
 
     private void OnSearchInput(ChangeEventArgs e)
     {
@@ -230,6 +528,30 @@
         {
             await Load();
         }
+    }
+
+    private void OnInventoryBarcodeInput(ChangeEventArgs e)
+    {
+        _invBarcode = Convert.ToString(e.Value) ?? "";
+    }
+
+    private void OnInventoryLocationInput(ChangeEventArgs e)
+    {
+        _invLocationNo = Convert.ToString(e.Value) ?? "";
+        if (!string.Equals(_invTargetLocation?.LocationId, _invLocationNo.Trim(), StringComparison.OrdinalIgnoreCase))
+            _invTargetLocation = null;
+    }
+
+    private async Task OnInventoryLotKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await ScanInventoryLot();
+    }
+
+    private async Task OnInventoryLocationKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await ScanInventoryLocation();
     }
 
     private async Task Load()
@@ -275,6 +597,308 @@
         await Load();
     }
 
+    private void ClearInventoryWork()
+    {
+        _invBarcode = "";
+        _invLocationNo = "";
+        _invMsg = "";
+        _invCls = "dim";
+        _invScan = null;
+        _inventoryCurrentLocation = null;
+        _invTargetLocation = null;
+        ResetInventoryAdjust();
+    }
+
+    private void ResetInventoryAdjust()
+    {
+        _invAdjustReason = "COUNT_DIFF";
+        _invAdjustSupervisorPin = "";
+        _invAdjustNote = "";
+        _invAdjustDelta = 0;
+    }
+
+    private async Task ScanInventoryLot()
+    {
+        if (DisableInventoryScan) return;
+
+        _isInventoryScanning = true;
+        _invMsg = "Scanning LOT No...";
+        _invCls = "dim";
+        _invScan = null;
+        _inventoryCurrentLocation = null;
+        _invTargetLocation = null;
+        _invLocationNo = "";
+        ResetInventoryAdjust();
+
+        try
+        {
+            var row = await ScanInventoryLotByModeAsync(_invBarcode.Trim());
+            if (row is null)
+            {
+                _invMsg = "LOT No was not found in the PO list.";
+                _invCls = "fail";
+                return;
+            }
+
+            _invScan = row;
+            _invBarcode = row.Barcode;
+
+            if (InventoryAlreadyReceived && !string.IsNullOrWhiteSpace(row.ReceivedLocation))
+                _inventoryCurrentLocation = await Api.WhScanLocationAsync(row.ReceivedLocation);
+
+            _invMsg = InventoryAlreadyReceived
+                ? "Inventory LOT loaded."
+                : "This LOT has not been received yet. Receive it before adjustment or locating.";
+            _invCls = InventoryAlreadyReceived ? "ok" : "warn";
+        }
+        catch (Exception ex)
+        {
+            _invMsg = ex.Message;
+            _invCls = "fail";
+        }
+        finally
+        {
+            _isInventoryScanning = false;
+        }
+    }
+
+    private async Task<PdaApi.InboundScanRow?> ScanInventoryLotByModeAsync(string barcode)
+    {
+        if (!IsAdjustTab)
+        {
+            var row = await Api.WhScanInboundAsync(_invMode, barcode);
+            ApplyDetectedMode(row);
+            return row;
+        }
+
+        Exception? firstError = null;
+        foreach (var mode in new[] { "LOCAL", "CKD" })
+        {
+            try
+            {
+                var row = await Api.WhScanInboundAsync(mode, barcode);
+                if (row is null)
+                    continue;
+
+                _invMode = mode;
+                ApplyDetectedMode(row);
+                return row;
+            }
+            catch (Exception ex)
+            {
+                firstError ??= ex;
+            }
+        }
+
+        if (firstError is not null)
+            throw firstError;
+
+        return null;
+    }
+
+    private void ApplyDetectedMode(PdaApi.InboundScanRow? row)
+    {
+        if (row is null || string.IsNullOrWhiteSpace(row.ReceiveType))
+            return;
+
+        _invMode = string.Equals(row.ReceiveType, "CKD", StringComparison.OrdinalIgnoreCase)
+            ? "CKD"
+            : "LOCAL";
+    }
+
+    private async Task ScanInventoryLocation()
+    {
+        if (DisableInventoryLocationScan) return;
+
+        var locationNo = _invLocationNo.Trim();
+        if (IsCurrentInventoryLocation(locationNo))
+        {
+            _invTargetLocation = null;
+            _invMsg = "This LOT is already in the selected location.";
+            _invCls = "fail";
+            return;
+        }
+
+        _isInventoryLocationScanning = true;
+        _invMsg = "Scanning location...";
+        _invCls = "dim";
+
+        try
+        {
+            var location = await Api.WhScanLocationAsync(locationNo);
+            if (location is null)
+            {
+                _invTargetLocation = null;
+                _invMsg = "Location No was not found.";
+                _invCls = "fail";
+                return;
+            }
+
+            if (IsCurrentInventoryLocation(location.LocationId))
+            {
+                _invTargetLocation = null;
+                _invLocationNo = location.LocationId;
+                _invMsg = "This LOT is already in the selected location.";
+                _invCls = "fail";
+                return;
+            }
+
+            _invTargetLocation = location;
+            _invLocationNo = location.LocationId;
+            _invMsg = "New location loaded. Confirm the move.";
+            _invCls = "ok";
+        }
+        catch (Exception ex)
+        {
+            _invTargetLocation = null;
+            _invMsg = ex.Message;
+            _invCls = "fail";
+        }
+        finally
+        {
+            _isInventoryLocationScanning = false;
+        }
+    }
+
+    private async Task PostInventoryAdjust()
+    {
+        if (InventoryBusy) return;
+
+        if (_invScan is null)
+        {
+            ShowAlert("LOT Required", "Scan a LOT No first.", "warn");
+            return;
+        }
+
+        if (!InventoryAlreadyReceived)
+        {
+            ShowAlert("Incoming Required", "This LOT has not been received yet.", "warn");
+            return;
+        }
+
+        if (_invAdjustDelta == 0)
+        {
+            ShowAlert("No Changes", "Enter an adjustment quantity before saving.", "warn");
+            return;
+        }
+
+        if (InventoryAfterQty < 0)
+        {
+            ShowAlert("Invalid Quantity", "After Qty cannot be below zero.", "warn");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_invAdjustReason))
+        {
+            ShowAlert("Reason Required", "Select a reason code.", "warn");
+            return;
+        }
+
+        if (_invAdjustSupervisorPin.Trim().Length < 4)
+        {
+            ShowAlert("Supervisor Required", "Supervisor PIN must be at least 4 digits.", "warn");
+            return;
+        }
+
+        var beforeQty = InventoryBeforeQty;
+        var deltaQty = _invAdjustDelta;
+        var afterQty = InventoryAfterQty;
+
+        _isInventoryAdjusting = true;
+        _invMsg = "Posting adjustment...";
+        _invCls = "dim";
+
+        try
+        {
+            var result = await Api.WhAdjustInboundQtyAsync(new PdaApi.InboundAdjustReq(
+                _invMode,
+                _invScan.Barcode,
+                deltaQty,
+                _invAdjustReason,
+                _invAdjustNote,
+                _invAdjustSupervisorPin));
+
+            if (!result.Success)
+            {
+                _invMsg = result.Message;
+                _invCls = "fail";
+                return;
+            }
+
+            _invScan = result.Row ?? await Api.WhScanInboundAsync(_invMode, _invScan.Barcode);
+            if (_invScan is not null && !string.IsNullOrWhiteSpace(_invScan.ReceivedLocation))
+                _inventoryCurrentLocation = await Api.WhScanLocationAsync(_invScan.ReceivedLocation);
+
+            _invMsg = $"Quantity adjusted. {Qty(beforeQty, _invScan?.Unit)} -> {Qty(afterQty, _invScan?.Unit)} ({SignedQty(deltaQty, _invScan?.Unit)})";
+            _invCls = "ok";
+            ShowAlert("Saved", "Inventory adjustment was saved.", "success");
+            ResetInventoryAdjust();
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _invMsg = ex.Message;
+            _invCls = "fail";
+        }
+        finally
+        {
+            _isInventoryAdjusting = false;
+        }
+    }
+
+    private void ShowAlert(string title, string message, string kind = "info")
+    {
+        _modalTitle = title;
+        _modalMessage = message;
+        _modalKind = kind;
+        _modalOpen = true;
+    }
+
+    private void DismissModal()
+    {
+        _modalOpen = false;
+    }
+
+    private async Task ConfirmInventoryMove()
+    {
+        if (DisableInventoryMove || _invScan is null || _invTargetLocation is null) return;
+
+        var fromLocation = Text(_invScan.ReceivedLocation);
+        var toLocation = _invTargetLocation.LocationId;
+
+        _isInventoryMoving = true;
+        _invMsg = "Changing location...";
+        _invCls = "dim";
+
+        try
+        {
+            var result = await Api.WhMoveInboundLocationAsync(new PdaApi.InboundReceiveReq(_invMode, _invScan.Barcode, toLocation));
+            if (!result.Success)
+            {
+                _invMsg = result.Message;
+                _invCls = "fail";
+                return;
+            }
+
+            _invScan = result.Row ?? await Api.WhScanInboundAsync(_invMode, _invScan.Barcode);
+            _inventoryCurrentLocation = await Api.WhScanLocationAsync(toLocation);
+            _invTargetLocation = null;
+            _invLocationNo = "";
+            _invMsg = $"Location changed. {fromLocation} -> {toLocation}";
+            _invCls = "ok";
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _invMsg = ex.Message;
+            _invCls = "fail";
+        }
+        finally
+        {
+            _isInventoryMoving = false;
+        }
+    }
+
     private void SetFilter(string status)
     {
         _statusFilter = status;
@@ -310,6 +934,34 @@
 
     private string SummaryClass(string status)
         => $"wh03-stat {StatusClass(status)} {(string.Equals(_statusFilter, status, StringComparison.OrdinalIgnoreCase) ? "on" : "")}";
+
+    private bool IsCurrentInventoryLocation(string? locationId)
+    {
+        if (string.IsNullOrWhiteSpace(locationId)) return false;
+
+        var current = _invScan?.ReceivedLocation;
+        return !string.IsNullOrWhiteSpace(current)
+            && string.Equals(locationId.Trim(), current.Trim(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private IEnumerable<(string Label, string Value)> InventoryLotFields()
+    {
+        if (_invScan is null) yield break;
+
+        yield return ("Qty", Qty(_invScan.Qty, _invScan.Unit));
+        yield return ("PO No", Text(_invScan.PoNo));
+        yield return ("PO Seq", _invScan.PoSeq?.ToString() ?? "-");
+        yield return ("Vendor", Text(_invScan.VendorName ?? _invScan.VendorId));
+        yield return ("Current Loc", Text(_invScan.ReceivedLocation));
+    }
+
+    private static IEnumerable<(string Label, string Value)> LocationFieldsFor(PdaApi.LocationRow location)
+    {
+        yield return ("WH", CodeName(location.WarehouseCode, location.WarehouseName));
+        yield return ("Area", CodeName(location.AreaCode, location.AreaName));
+        yield return ("Zone", CodeName(location.Zone, location.ZoneName));
+        yield return ("Rack", Rack(location.X, location.Y, location.Z));
+    }
 
     private static string StatusText(PdaApi.InventoryRow row)
         => string.IsNullOrWhiteSpace(row.StatusName) ? StatusText(row.Status) : row.StatusName;
@@ -363,6 +1015,12 @@
     private static string Qty(decimal? value, string? unit)
         => value.HasValue ? $"{value.Value:N0} {Unit(unit)}" : "-";
 
+    private static string SignedQty(decimal value, string? unit)
+    {
+        var prefix = value > 0 ? "+" : "";
+        return $"{prefix}{value:N0} {Unit(unit)}";
+    }
+
     private static string Days(decimal? value)
         => value.HasValue ? $"{value.Value:N0} days" : "-";
 
@@ -375,7 +1033,12 @@
 
     private static string Rack(PdaApi.InventoryLocationRow row)
     {
-        var rack = new[] { row.RackX, row.RackY, row.RackZ }
+        return Rack(row.RackX, row.RackY, row.RackZ);
+    }
+
+    private static string Rack(string? x, string? y, string? z)
+    {
+        var rack = new[] { x, y, z }
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .ToArray();
 

@@ -168,8 +168,19 @@ public sealed class PdaApi
         string? PlantCode = null, string? LocationType = null, decimal? Capacity = null);
     public sealed record LocationMapItemRow(string LotNo, string? PartNo, string? PartName, decimal Qty, string? Unit,
         string? InventoryStatus, string? WorkDate, string? WorkTime);
-    public sealed record ReleaseScheduleRow(int ReleaseScheduleId, int? WoId, string? WoNumber,
-        string ItemNo, string? ItemName, decimal DemandQty, decimal PickedQty, DateTime? RequiredAt, string? Status);
+    public sealed record ReleaseScheduleRow(string PickSlipNo, string? RequestLocation, DateTime? RequestDate,
+        string? RequestTime, DateTime? PrintDate, DateTime? CloseDate, string? CloseUserId,
+        int LineCount, decimal RequestBoxQty, decimal PickedBoxQty, decimal RequestQty, decimal PickedQty,
+        string Status, string? FirstItemNo, string? FirstItemName, string? SuggestedLocation, string? SuggestedZone);
+    public sealed record ReleaseSlipStatusRow(string PickSlipNo, bool Exists, bool IsClosed, int LineCount,
+        string? RequestLocation, DateTime? RequestDate, DateTime? CloseDate, string Message);
+    public sealed record ReleasePickLineRow(string PickSlipNo, string ItemNo, string? ItemName,
+        decimal RequestBoxQty, decimal PickedBoxQty, decimal PickedQty, string? RequestUserId,
+        string? SuggestedLocation1, string? SuggestedLocation2, string? SuggestedLocation3, string Status);
+    public sealed record ReleaseLotRow(string PickSlipNo, string LotNo, string? ItemNo, string? ItemName,
+        decimal Qty, string? Unit, string? LocationNo, string? LocationName, string? ZoneCode,
+        string? InvStatus, string? ProdDate, string? RcvDate, bool IsFifoSuggested, bool IsValid,
+        string? Message);
     public sealed record TransactionRow(long TxnId, DateTime TxnTime, string TxnType, string? ItemNo,
         string? LocationId, decimal QtyBefore, decimal Delta, decimal QtyAfter, string? ReasonCode);
 
@@ -180,7 +191,8 @@ public sealed class PdaApi
         string? ReasonNote, string SupervisorPin);
     public sealed record InboundReceiveResult(bool Success, string Message, InboundScanRow? Row);
     public sealed record AdjustReq(string ItemNo, string LocationId, decimal Delta, string ReasonCode, string? Note);
-    public sealed record PickReq(int ReleaseScheduleId, string LotCode, decimal Qty);
+    public sealed record PickReq(string PickSlipNo, string LotNo, decimal Qty);
+    public sealed record PickResult(bool Success, string Message, ReleaseLotRow? Row);
 
     public Task<List<InboundRow>>         WhInboundTodayAsync()    => Get<List<InboundRow>>("/api/wh/inbound/today");
     public async Task<List<InboundScheduleRow>> WhInboundScheduleAsync(int? year = null, int? quarter = null, string? vendorId = null)
@@ -275,12 +287,21 @@ public sealed class PdaApi
     {
         try
         {
-            return await QueryWhLocationDbAsync(locationId);
+            Authorize();
+            var url = $"/api/wh/location/scan?locationId={Uri.EscapeDataString(locationId.Trim())}";
+            var resp = await _http.GetAsync(url);
+            if (!resp.IsSuccessStatusCode)
+                throw new InvalidOperationException("Warehouse location service is unavailable.");
+
+            return await resp.Content.ReadFromJsonAsync<LocationRow>();
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
         }
         catch
         {
-            var rows = await WhLocationsAsync();
-            return rows.FirstOrDefault(r => string.Equals(r.LocationId, locationId.Trim(), StringComparison.OrdinalIgnoreCase));
+            throw new InvalidOperationException("Warehouse location service is unavailable.");
         }
     }
     public async Task<string?> WhLocationTestBarcodeAsync()
@@ -295,25 +316,59 @@ public sealed class PdaApi
         }
     }
     public Task<List<ReleaseScheduleRow>> WhReleaseScheduleAsync() => Get<List<ReleaseScheduleRow>>("/api/wh/release/schedule");
+    public async Task<ReleaseSlipStatusRow?> WhReleaseSlipStatusAsync(string pickSlipNo)
+    {
+        Authorize();
+        try
+        {
+            var url = $"/api/wh/release/schedule/{Uri.EscapeDataString(pickSlipNo.Trim())}/status";
+            var resp = await _http.GetAsync(url);
+            return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<ReleaseSlipStatusRow>() : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+    public Task<List<ReleasePickLineRow>> WhReleaseLinesAsync(string pickSlipNo)
+        => Get<List<ReleasePickLineRow>>($"/api/wh/release/schedule/{Uri.EscapeDataString(pickSlipNo)}/lines");
+    public async Task<ReleaseLotRow?> WhReleaseLotAsync(string pickSlipNo, string lotNo)
+    {
+        Authorize();
+        try
+        {
+            var url = $"/api/wh/release/lot?pickSlipNo={Uri.EscapeDataString(pickSlipNo)}&lotNo={Uri.EscapeDataString(lotNo)}";
+            var resp = await _http.GetAsync(url);
+            return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<ReleaseLotRow>() : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
     public Task<List<TransactionRow>>     WhTransactionsAsync(int days = 7) => Get<List<TransactionRow>>($"/api/wh/transactions?days={days}");
 
     public Task<HttpResponseMessage> WhReceiveAsync(ReceiveReq body) => Post("/api/wh/inbound/receive", body);
     public async Task<InboundScanRow?> WhScanInboundAsync(string mode, string barcode)
     {
-        var proc = string.Equals(mode, "CKD", StringComparison.OrdinalIgnoreCase)
-            ? "[SIS_TEST].[PDA_WH002_SCAN_CKD]"
-            : "[SIS_TEST].[PDA_WH002_SCAN_LOCAL]";
-
-        await using var conn = _db.CreateConnection();
-        await conn.OpenAsync();
-        await using var cmd = new SqlCommand(proc, conn)
+        try
         {
-            CommandType = CommandType.StoredProcedure
-        };
-        cmd.Parameters.Add("@IN_BARCODE", SqlDbType.NVarChar, 50).Value = barcode.Trim();
+            Authorize();
+            var url = $"/api/wh/inbound/scan?mode={Uri.EscapeDataString(mode.Trim())}&barcode={Uri.EscapeDataString(barcode.Trim())}";
+            var resp = await _http.GetAsync(url);
+            if (!resp.IsSuccessStatusCode)
+                throw new InvalidOperationException("Warehouse scan service is unavailable.");
 
-        await using var rdr = await cmd.ExecuteReaderAsync();
-        return await rdr.ReadAsync() ? ReadInboundScanRow(rdr) : null;
+            return await resp.Content.ReadFromJsonAsync<InboundScanRow>();
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
+        }
+        catch
+        {
+            throw new InvalidOperationException("Warehouse scan service is unavailable.");
+        }
     }
 
     public async Task<List<InboundTransactionLogRow>> WhInboundTransactionLogsAsync(string? lotNo = null, DateTime? dateFrom = null, DateTime? dateTo = null)
@@ -361,29 +416,13 @@ public sealed class PdaApi
     {
         try
         {
-            await using var conn = _db.CreateConnection();
-            await conn.OpenAsync();
-            await using var cmd = new SqlCommand("[SIS_TEST].[PDA_WH002_RECEIVE]", conn)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-            cmd.Parameters.Add("@IN_MODE", SqlDbType.NVarChar, 10).Value = body.Mode.Trim();
-            cmd.Parameters.Add("@IN_BARCODE", SqlDbType.NVarChar, 50).Value = body.Barcode.Trim();
-            cmd.Parameters.Add("@IN_LOCATION_NO", SqlDbType.NVarChar, 30).Value = body.LocationId.Trim();
-            cmd.Parameters.Add("@IN_USERID", SqlDbType.NVarChar, 40).Value =
-                (object?)_auth.Session?.EmployeeNo ?? "PDA";
-
-            await using var rdr = await cmd.ExecuteReaderAsync();
-            var row = await rdr.ReadAsync() ? ReadInboundScanRow(rdr) : null;
-            return new InboundReceiveResult(true, "Received", row);
+            Authorize();
+            var resp = await _http.PostAsJsonAsync("/api/wh/inbound/receive-sis", body);
+            return await ReadInboundReceiveResultAsync(resp);
         }
-        catch (SqlException ex)
+        catch
         {
-            return new InboundReceiveResult(false, ex.Message, null);
-        }
-        catch (Exception ex)
-        {
-            return new InboundReceiveResult(false, ex.Message, null);
+            return new InboundReceiveResult(false, "Warehouse receive service is unavailable.", null);
         }
     }
 
@@ -391,29 +430,13 @@ public sealed class PdaApi
     {
         try
         {
-            await using var conn = _db.CreateConnection();
-            await conn.OpenAsync();
-            await using var cmd = new SqlCommand("[SIS_TEST].[PDA_WH002_MOVE_LOCATION]", conn)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-            cmd.Parameters.Add("@IN_MODE", SqlDbType.NVarChar, 10).Value = body.Mode.Trim();
-            cmd.Parameters.Add("@IN_BARCODE", SqlDbType.NVarChar, 50).Value = body.Barcode.Trim();
-            cmd.Parameters.Add("@IN_LOCATION_NO", SqlDbType.NVarChar, 30).Value = body.LocationId.Trim();
-            cmd.Parameters.Add("@IN_USERID", SqlDbType.NVarChar, 40).Value =
-                (object?)_auth.Session?.EmployeeNo ?? "PDA";
-
-            await using var rdr = await cmd.ExecuteReaderAsync();
-            var row = await rdr.ReadAsync() ? ReadInboundScanRow(rdr) : null;
-            return new InboundReceiveResult(true, "Location changed", row);
+            Authorize();
+            var resp = await _http.PostAsJsonAsync("/api/wh/inbound/move-location", body);
+            return await ReadInboundReceiveResultAsync(resp);
         }
-        catch (SqlException ex)
+        catch
         {
-            return new InboundReceiveResult(false, ex.Message, null);
-        }
-        catch (Exception ex)
-        {
-            return new InboundReceiveResult(false, ex.Message, null);
+            return new InboundReceiveResult(false, "Warehouse location service is unavailable.", null);
         }
     }
 
@@ -421,28 +444,13 @@ public sealed class PdaApi
     {
         try
         {
-            await using var conn = _db.CreateConnection();
-            await conn.OpenAsync();
-            await using var cmd = new SqlCommand("[SIS_TEST].[PDA_WH002_CANCEL]", conn)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-            cmd.Parameters.Add("@IN_MODE", SqlDbType.NVarChar, 10).Value = body.Mode.Trim();
-            cmd.Parameters.Add("@IN_BARCODE", SqlDbType.NVarChar, 50).Value = body.Barcode.Trim();
-            cmd.Parameters.Add("@IN_USERID", SqlDbType.NVarChar, 40).Value =
-                (object?)_auth.Session?.EmployeeNo ?? "PDA";
-
-            await using var rdr = await cmd.ExecuteReaderAsync();
-            var row = await rdr.ReadAsync() ? ReadInboundScanRow(rdr) : null;
-            return new InboundReceiveResult(true, "Incoming canceled", row);
+            Authorize();
+            var resp = await _http.PostAsJsonAsync("/api/wh/inbound/cancel", body);
+            return await ReadInboundReceiveResultAsync(resp);
         }
-        catch (SqlException ex)
+        catch
         {
-            return new InboundReceiveResult(false, ex.Message, null);
-        }
-        catch (Exception ex)
-        {
-            return new InboundReceiveResult(false, ex.Message, null);
+            return new InboundReceiveResult(false, "Warehouse cancel service is unavailable.", null);
         }
     }
 
@@ -450,35 +458,13 @@ public sealed class PdaApi
     {
         try
         {
-            await using var conn = _db.CreateConnection();
-            await conn.OpenAsync();
-            await using var cmd = new SqlCommand("[SIS_TEST].[PDA_WH002_ADJUST_QTY]", conn)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-            cmd.Parameters.Add("@IN_MODE", SqlDbType.NVarChar, 10).Value = body.Mode.Trim();
-            cmd.Parameters.Add("@IN_BARCODE", SqlDbType.NVarChar, 50).Value = body.Barcode.Trim();
-            cmd.Parameters.Add("@IN_DELTA_QTY", SqlDbType.Decimal).Value = body.DeltaQty;
-            cmd.Parameters["@IN_DELTA_QTY"].Precision = 18;
-            cmd.Parameters["@IN_DELTA_QTY"].Scale = 3;
-            cmd.Parameters.Add("@IN_REASON_CODE", SqlDbType.NVarChar, 30).Value = body.ReasonCode.Trim();
-            cmd.Parameters.Add("@IN_REASON_NOTE", SqlDbType.NVarChar, 500).Value =
-                string.IsNullOrWhiteSpace(body.ReasonNote) ? DBNull.Value : body.ReasonNote.Trim();
-            cmd.Parameters.Add("@IN_SUPERVISOR_PIN", SqlDbType.NVarChar, 40).Value = body.SupervisorPin.Trim();
-            cmd.Parameters.Add("@IN_USERID", SqlDbType.NVarChar, 40).Value =
-                (object?)_auth.Session?.EmployeeNo ?? "PDA";
-
-            await using var rdr = await cmd.ExecuteReaderAsync();
-            var row = await rdr.ReadAsync() ? ReadInboundScanRow(rdr) : null;
-            return new InboundReceiveResult(true, "Quantity adjusted", row);
+            Authorize();
+            var resp = await _http.PostAsJsonAsync("/api/wh/inbound/adjust-qty", body);
+            return await ReadInboundReceiveResultAsync(resp);
         }
-        catch (SqlException ex)
+        catch
         {
-            return new InboundReceiveResult(false, ex.Message, null);
-        }
-        catch (Exception ex)
-        {
-            return new InboundReceiveResult(false, ex.Message, null);
+            return new InboundReceiveResult(false, "Warehouse adjustment service is unavailable.", null);
         }
     }
 
@@ -545,6 +531,15 @@ public sealed class PdaApi
     }
 
     // ── helper ──────────────────────────────────────────────────────────
+    private static async Task<InboundReceiveResult> ReadInboundReceiveResultAsync(HttpResponseMessage resp)
+    {
+        if (!resp.IsSuccessStatusCode)
+            return new InboundReceiveResult(false, "Warehouse service is unavailable.", null);
+
+        return await resp.Content.ReadFromJsonAsync<InboundReceiveResult>()
+               ?? new InboundReceiveResult(false, "Warehouse service returned an empty response.", null);
+    }
+
     private async Task<List<InboundTransactionLogRow>> QueryWhInboundTransactionLogsDbAsync(string? lotNo, DateTime? dateFrom, DateTime? dateTo)
     {
         var rows = new List<InboundTransactionLogRow>();

@@ -5,7 +5,7 @@
 <div class="pda-shell wh wh02-shell">
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/wh"))' Text="&lt;" />
-        <span class="pda-tbar-brand">WH-002 SCAN</span>
+        <span class="pda-tbar-brand">WH-002 INBOUND</span>
     </div>
 
     <div class="pda-bd wh02-body">
@@ -138,8 +138,6 @@
             else if (AlreadyReceived)
             {
                 <RadzenButton class="wh02-cancel-btn" Click="@CancelIncoming" Disabled="@DisableCancel" Text="CANCEL INCOMING" />
-                <RadzenButton class="@($"wh02-adjust-btn {AdjustButtonClass}")" Click="@StartQtyAdjust" Disabled="@DisableAdjust" Text="ADJUST QTY" />
-                <RadzenButton class="@($"pda-btn-pri wh02-receive-btn wh02-change-btn {ChangeButtonClass}")" Click="@StartLocationChange" Disabled="@IsBusy" Text="CHANGE LOCATION" />
             }
             else
             {
@@ -167,85 +165,6 @@
         </div>
     }
 
-    @if (_adjustModalOpen)
-    {
-        <div class="wh-modal-backdrop">
-            <RadzenCard class="wh-modal-card wh-adjust-modal" @onclick:stopPropagation="true">
-                <div class="wh-adjust-head">
-                    <div class="wh-modal-mark">+/-</div>
-                    <div>
-                        <div class="wh-modal-title">Inventory Adjustment</div>
-                        <div class="wh-adjust-sub">Reason code, supervisor PIN, and before/after qty are recorded.</div>
-                    </div>
-                </div>
-
-                <div class="wh-adjust-summary">
-                    <div>
-                        <span>LOT NO</span>
-                        <strong>@Text(_scan?.LotNo)</strong>
-                    </div>
-                    <div>
-                        <span>LOCATION</span>
-                        <strong>@Text(_scan?.ReceivedLocation)</strong>
-                    </div>
-                    <div>
-                        <span>PART NO</span>
-                        <strong>@Text(_scan?.PartNo)</strong>
-                    </div>
-                    <div>
-                        <span>CURRENT QTY</span>
-                        <strong>@QuantityText(AdjustBeforeQty, _scan?.Unit)</strong>
-                    </div>
-                    <div>
-                        <span>ADJUSTMENT</span>
-                        <strong class="@AdjustDeltaClass">@QuantityText(_adjustDelta, _scan?.Unit, true)</strong>
-                    </div>
-                    <div>
-                        <span>AFTER QTY</span>
-                        <strong>@QuantityText(AdjustAfterQty, _scan?.Unit)</strong>
-                    </div>
-                </div>
-
-                <div class="wh-adjust-form">
-                    <div class="pda-fld">
-                        <label>REASON CODE</label>
-                        <select class="pda-input wh-adjust-input" @bind="_adjustReason">
-                            @foreach (var reason in AdjustReasons)
-                            {
-                                <option value="@reason.Code">@reason.Label</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="pda-fld">
-                        <label>ADJUST QTY (+/-)</label>
-                        <input class="pda-input wh-adjust-input" type="number" step="1" @bind="_adjustDelta" />
-                    </div>
-                    <div class="pda-fld">
-                        <label>SUPERVISOR PIN</label>
-                        <input class="pda-input wh-adjust-input" type="password" inputmode="numeric" maxlength="12" @bind="_adjustSupervisorPin" />
-                    </div>
-                    <div class="pda-fld">
-                        <label>NOTE</label>
-                        <textarea class="pda-input wh-adjust-note" rows="2" @bind="_adjustNote" placeholder="Optional note"></textarea>
-                    </div>
-                </div>
-
-                <div class="wh-adjust-help">
-                    Count diff, damaged, lost, found, or other reason is required before posting.
-                </div>
-
-                @if (!string.IsNullOrWhiteSpace(_adjustMsg))
-                {
-                    <div class="wh-adjust-status @_adjustCls">@_adjustMsg</div>
-                }
-
-                <div class="wh-modal-actions">
-                    <RadzenButton class="wh-modal-btn secondary" Click="@CloseAdjustModal" Disabled="@_isAdjusting" Text="CANCEL" />
-                    <RadzenButton class="wh-modal-btn primary" Click="@PostQtyAdjust" Disabled="@_isAdjusting" Text="@(_isAdjusting ? "POSTING..." : "POST ADJUST")" />
-                </div>
-            </RadzenCard>
-        </div>
-    }
 </div>
 
 @code {
@@ -278,20 +197,12 @@
     private bool _isReceiving;
     private bool _isMoving;
     private bool _isCanceling;
-    private bool _isAdjusting;
     private bool _isLocationChangeMode;
     private bool _modalOpen;
     private bool _modalConfirm;
-    private bool _adjustModalOpen;
     private string _modalTitle = "";
     private string _modalMessage = "";
     private string _modalKind = "info";
-    private string _adjustReason = "COUNT_DIFF";
-    private string _adjustSupervisorPin = "";
-    private string _adjustNote = "";
-    private string _adjustMsg = "";
-    private string _adjustCls = "dim";
-    private decimal _adjustDelta;
     private Func<Task>? _modalPrimaryAction;
     private Func<Task>? _modalAfterCloseAction;
     private string? _changeFromLocation;
@@ -299,16 +210,7 @@
     private PdaApi.LocationRow? _selectedLocation;
     private PdaApi.InboundScanRow? _scan;
 
-    private static readonly (string Code, string Label)[] AdjustReasons =
-    [
-        ("COUNT_DIFF", "Count Diff"),
-        ("DAMAGED", "Damaged"),
-        ("LOST", "Lost"),
-        ("FOUND", "Found"),
-        ("OTHER", "Other")
-    ];
-
-    private bool IsBusy => _isScanning || _isLocationScanning || _isReceiving || _isMoving || _isCanceling || _isAdjusting;
+    private bool IsBusy => _isScanning || _isLocationScanning || _isReceiving || _isMoving || _isCanceling;
     private string BarcodePlaceholder => _mode == "CKD" ? "Scan CKD lot no" : "Scan local lot no";
     private string LocationScanLabel => _isLocationChangeMode
         ? "NEW LOCATION NO SCAN"
@@ -324,16 +226,11 @@
     private bool DisableReceive => IsBusy || _scan is null || AlreadyReceived || _selectedLocation is null
         || !string.Equals(_selectedLocation.LocationId, _loc.Trim(), StringComparison.OrdinalIgnoreCase);
     private bool DisableCancel => IsBusy || _scan is null || !AlreadyReceived;
-    private bool DisableAdjust => IsBusy || _scan is null || !AlreadyReceived;
-    private string ActionBarClass => _isLocationChangeMode || !AlreadyReceived ? "has-reset" : AlreadyReceived ? "has-three" : "has-secondary";
+    private string ActionBarClass => _isLocationChangeMode || !AlreadyReceived ? "has-reset" : AlreadyReceived ? "has-cancel" : "has-secondary";
     private string ReceiveButtonClass => DisableReceive ? "blocked" : "ready";
     private string ConfirmMoveButtonClass => _isLocationChangeMode && !string.IsNullOrWhiteSpace(_loc) ? "ready" : "blocked";
     private string ChangeButtonClass => IsBusy ? "blocked" : "ready";
-    private string AdjustButtonClass => DisableAdjust ? "blocked" : "ready";
     private string StatusChipClass => AlreadyReceived ? "received" : "ready";
-    private decimal AdjustBeforeQty => _scan?.Qty ?? 0;
-    private decimal AdjustAfterQty => AdjustBeforeQty + _adjustDelta;
-    private string AdjustDeltaClass => _adjustDelta < 0 ? "minus" : _adjustDelta > 0 ? "plus" : "";
     private string ModalMark => _modalKind switch
     {
         "danger" => "!",
@@ -408,8 +305,6 @@
         _selectedLocation = null;
         _currentLocation = null;
         _isLocationChangeMode = false;
-        _adjustModalOpen = false;
-        ResetAdjustFields();
         _changeFromLocation = null;
         _msg = "";
         _cls = "dim";
@@ -470,8 +365,6 @@
         _selectedLocation = null;
         _currentLocation = null;
         _isLocationChangeMode = false;
-        _adjustModalOpen = false;
-        ResetAdjustFields();
         _changeFromLocation = null;
         _msg = "Scanning...";
         _cls = "dim";
@@ -499,7 +392,7 @@
             }
 
             _msg = AlreadyReceived
-                ? "Already incoming. Tap Change Location or Cancel Incoming."
+                ? "Already incoming. Use Inventory for adjustment or relocation, or cancel incoming here."
                 : "PO matched. Scan the location and receive.";
             _cls = AlreadyReceived ? "warn" : "ok";
         }
@@ -734,117 +627,6 @@
         }
     }
 
-    private void StartQtyAdjust()
-    {
-        if (DisableAdjust || _scan is null) return;
-
-        if (!AlreadyReceived)
-        {
-            ShowAlert("Incoming Required", "This LOT has not been received yet.", "warn");
-            return;
-        }
-
-        ResetAdjustFields();
-        _adjustModalOpen = true;
-    }
-
-    private void CloseAdjustModal()
-    {
-        if (_isAdjusting) return;
-        _adjustModalOpen = false;
-        ResetAdjustFields();
-    }
-
-    private void ResetAdjustFields()
-    {
-        _adjustReason = "COUNT_DIFF";
-        _adjustDelta = 0;
-        _adjustSupervisorPin = "";
-        _adjustNote = "";
-        _adjustMsg = "";
-        _adjustCls = "dim";
-    }
-
-    private async Task PostQtyAdjust()
-    {
-        if (_isAdjusting || _scan is null) return;
-
-        var validation = AdjustValidationMessage();
-        if (validation is not null)
-        {
-            _adjustMsg = validation;
-            _adjustCls = "fail";
-            return;
-        }
-
-        var beforeQty = AdjustBeforeQty;
-        var afterQty = AdjustAfterQty;
-
-        _isAdjusting = true;
-        _adjustMsg = "Posting adjustment...";
-        _adjustCls = "dim";
-
-        try
-        {
-            var result = await Api.WhAdjustInboundQtyAsync(new PdaApi.InboundAdjustReq(
-                _mode,
-                _scan.Barcode,
-                _adjustDelta,
-                _adjustReason,
-                _adjustNote,
-                _adjustSupervisorPin));
-
-            if (!result.Success)
-            {
-                _adjustMsg = result.Message;
-                _adjustCls = "fail";
-                return;
-            }
-
-            _scan = result.Row ?? await Api.WhScanInboundAsync(_mode, _scan.Barcode);
-            if (_scan is not null && !string.IsNullOrWhiteSpace(_scan.ReceivedLocation))
-            {
-                _loc = _scan.ReceivedLocation;
-                _changeFromLocation = _scan.ReceivedLocation;
-                _selectedLocation = await Api.WhScanLocationAsync(_scan.ReceivedLocation);
-                _currentLocation = _selectedLocation;
-            }
-
-            _adjustModalOpen = false;
-            ResetAdjustFields();
-            _msg = "Quantity adjusted.";
-            _cls = "ok";
-            ShowAlert(
-                "Adjustment Posted",
-                $"Before Qty: {QuantityText(beforeQty, _scan?.Unit)}\nAdjustment: {QuantityText(afterQty - beforeQty, _scan?.Unit, true)}\nAfter Qty: {QuantityText(afterQty, _scan?.Unit)}",
-                "success");
-        }
-        finally
-        {
-            _isAdjusting = false;
-        }
-    }
-
-    private string? AdjustValidationMessage()
-    {
-        if (_scan is null)
-            return "Scan a LOT No first.";
-        if (!AlreadyReceived)
-            return "This LOT has not been received yet.";
-        if (string.IsNullOrWhiteSpace(_adjustReason))
-            return "Select a reason code.";
-        if (_adjustDelta == 0)
-            return "Enter an adjustment quantity other than zero.";
-        if (AdjustAfterQty < 0)
-            return "After Qty cannot be below zero.";
-        if (string.IsNullOrWhiteSpace(_adjustSupervisorPin))
-            return "Enter the supervisor PIN.";
-        if (_adjustSupervisorPin.Trim().Length < 4)
-            return "Supervisor PIN must be at least 4 digits.";
-
-        return null;
-    }
-
     private IEnumerable<(string Label, string Value)> CommonFields()
     {
         if (_scan is null) yield break;
@@ -914,7 +696,7 @@
         if (_scan is null)
             return "Tap LOT No SCAN to load the PO information first.";
         if (AlreadyReceived)
-            return "This LOT is already incoming. Choose Change Location or Cancel Incoming.";
+            return "This LOT is already incoming. Use Inventory for adjustment or relocation, or cancel incoming here.";
         if (string.IsNullOrWhiteSpace(_loc))
             return "Enter or scan a Location No first.";
         if (_selectedLocation is null)
