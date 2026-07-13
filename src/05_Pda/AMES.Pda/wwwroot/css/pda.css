@@ -5800,6 +5800,12 @@ body:has(.wh08-shell) {
     box-shadow: 0 2px 10px rgba(15, 23, 42, .04);
 }
 
+.pda-shell.wh.wh07-shell > .pda-tbar {
+    min-height: 64px !important;
+    padding: 12px 16px !important;
+    gap: 10px !important;
+}
+
 .pda-shell.wh.wh06-shell > .pda-tbar .pda-tbar-back.rz-button,
 .pda-shell.wh.wh07-shell > .pda-tbar .pda-tbar-back.rz-button {
     min-width: 54px !important;
@@ -5813,6 +5819,14 @@ body:has(.wh08-shell) {
     font-size: 22px !important;
     font-weight: 900 !important;
     padding: 0 !important;
+}
+
+.pda-shell.wh.wh07-shell > .pda-tbar .pda-tbar-back.rz-button {
+    min-width: 40px !important;
+    width: 40px !important;
+    min-height: 40px !important;
+    height: 40px !important;
+    font-size: 18px !important;
 }
 
 .wh06-tbar-title,
@@ -5834,11 +5848,22 @@ body:has(.wh08-shell) {
     line-height: 1.1;
 }
 
+.pda-shell.wh.wh07-shell > .pda-tbar .pda-tbar-brand {
+    color: #172033 !important;
+    font-size: 15px !important;
+    font-weight: 850 !important;
+}
+
 .wh06-last-updated,
 .wh07-subtitle {
     color: #64748b;
     font-size: 13px;
     font-weight: 800;
+}
+
+.wh07-subtitle {
+    font-size: 11px;
+    font-weight: 700;
 }
 
 .pda-shell.wh.wh06-shell .wh06-tbar-refresh.rz-button {
@@ -6154,11 +6179,18 @@ body:has(.wh08-shell) {
     font-size: 15px !important;
     font-weight: 800 !important;
     padding: 0 14px !important;
+    text-align: left !important;
 }
 
 .pda-shell.wh.wh07-shell .wh07-input.rz-textbox:disabled {
     background: #edf2f7 !important;
-    color: #94a3b8 !important;
+    color: #475569 !important;
+    opacity: 1 !important;
+}
+
+.pda-shell.wh.wh07-shell .wh07-input.rz-textbox::placeholder {
+    color: #64748b !important;
+    opacity: 1 !important;
 }
 
 .pda-shell.wh.wh07-shell .wh07-load-btn.rz-button,
@@ -6169,10 +6201,14 @@ body:has(.wh08-shell) {
 }
 
 .pda-shell.wh.wh07-shell .wh07-load-btn.rz-button:disabled,
-.pda-shell.wh.wh07-shell .wh07-scan-btn.rz-button:disabled {
-    border-color: #d7dee9 !important;
-    background: #edf2f7 !important;
-    color: #94a3b8 !important;
+.pda-shell.wh.wh07-shell .wh07-scan-btn.rz-button:disabled,
+.pda-shell.wh.wh07-shell .wh07-load-btn.rz-state-disabled,
+.pda-shell.wh.wh07-shell .wh07-scan-btn.rz-state-disabled {
+    border-color: #bcc8d7 !important;
+    background: #dbe3ee !important;
+    color: #475569 !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
 }
 
 .wh07-fifo {
@@ -6193,7 +6229,7 @@ body:has(.wh08-shell) {
 }
 
 .wh07-scan-panel.disabled {
-    opacity: .72;
+    opacity: 1;
 }
 
 .wh07-scan-message {
@@ -6235,10 +6271,13 @@ body:has(.wh08-shell) {
 }
 
 .pda-shell.wh.wh07-shell .wh07-pick-btn.blocked.rz-button,
-.pda-shell.wh.wh07-shell .wh07-pick-btn.rz-button:disabled {
-    border: 1px solid #d7dee9 !important;
-    background: #edf2f7 !important;
-    color: #94a3b8 !important;
+.pda-shell.wh.wh07-shell .wh07-pick-btn.rz-button:disabled,
+.pda-shell.wh.wh07-shell .wh07-pick-btn.rz-state-disabled {
+    border: 1px solid #bcc8d7 !important;
+    background: #dbe3ee !important;
+    color: #475569 !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
 }
 
 /* WH001 combined inbound/release schedule */

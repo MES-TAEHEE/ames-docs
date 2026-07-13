@@ -41,6 +41,9 @@ public static class WhEndpoints
         int LineCount, decimal RequestBoxQty, decimal PickedBoxQty, decimal RequestQty, decimal PickedQty,
         string Status, string? FirstItemNo, string? FirstItemName, string? SuggestedLocation, string? SuggestedZone);
 
+    public sealed record ReleaseSlipStatusRow(string PickSlipNo, bool Exists, bool IsClosed, int LineCount,
+        string? RequestLocation, DateTime? RequestDate, DateTime? CloseDate, string Message);
+
     public sealed record ReleasePickLineRow(string PickSlipNo, string ItemNo, string? ItemName,
         decimal RequestBoxQty, decimal PickedBoxQty, decimal PickedQty, string? RequestUserId,
         string? SuggestedLocation1, string? SuggestedLocation2, string? SuggestedLocation3, string Status);
@@ -293,6 +296,12 @@ public static class WhEndpoints
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
             return Results.Ok(QueryReleaseSchedule(factory));
+        });
+
+        g.MapGet("/release/schedule/{pickSlipNo}/status", (HttpContext ctx, string pickSlipNo) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+            return Results.Ok(QueryReleaseSlipStatus(factory, pickSlipNo));
         });
 
         g.MapGet("/release/schedule/{pickSlipNo}/lines", (HttpContext ctx, string pickSlipNo) =>
@@ -609,6 +618,53 @@ public static class WhEndpoints
         return rows;
     }
 
+    private static ReleaseSlipStatusRow QueryReleaseSlipStatus(AmesConnectionFactory factory, string pickSlipNo)
+    {
+        pickSlipNo = pickSlipNo.Trim();
+
+        if (string.IsNullOrWhiteSpace(pickSlipNo))
+            return new ReleaseSlipStatusRow("", false, false, 0, null, null, null, "Pick Slip No is required.");
+
+        using var conn = factory.OpenConnection();
+        if (!HasReleaseTables(conn))
+            return new ReleaseSlipStatusRow(pickSlipNo, false, false, 0, null, null, null,
+                "Release tables are not available in SIS_TEST.");
+
+        using var cmd = new SqlCommand("""
+            SELECT
+                COUNT(*) AS LINE_COUNT,
+                MIN(REQ_LOCATION) AS REQ_LOCATION,
+                MAX(TRY_CONVERT(date, REQ_DATE)) AS REQ_DATE_DT,
+                MAX(TRY_CONVERT(datetime2, CLOSE_DATE)) AS CLOSE_DATE,
+                MAX(CASE WHEN ISNULL(CLOSE_YN, N'N') = N'Y' THEN 1 ELSE 0 END) AS CLOSE_YN_FLAG
+            FROM SIS_TEST.WMS3050
+            WHERE PICK_SLIPNO = @PickSlipNo;
+            """, conn);
+        cmd.Parameters.AddWithValue("@PickSlipNo", pickSlipNo);
+
+        using var rdr = cmd.ExecuteReader();
+        if (!rdr.Read())
+            return new ReleaseSlipStatusRow(pickSlipNo, false, false, 0, null, null, null, "Pick Slip was not found.");
+
+        var lineCount = GetInt(rdr, "LINE_COUNT") ?? 0;
+        if (lineCount <= 0)
+            return new ReleaseSlipStatusRow(pickSlipNo, false, false, 0, null, null, null, "Pick Slip was not found.");
+
+        var closeDate = GetDate(rdr, "CLOSE_DATE");
+        var isClosed = closeDate.HasValue || GetInt(rdr, "CLOSE_YN_FLAG") == 1;
+        var message = isClosed ? "Pick Slip is already closed." : "Pick Slip is ready.";
+
+        return new ReleaseSlipStatusRow(
+            pickSlipNo,
+            true,
+            isClosed,
+            lineCount,
+            GetString(rdr, "REQ_LOCATION"),
+            GetDate(rdr, "REQ_DATE_DT"),
+            closeDate,
+            message);
+    }
+
     private static ReleaseLotRow ValidateReleaseLot(SqlConnection conn, SqlTransaction? tx, string pickSlipNo, string lotNo)
     {
         pickSlipNo = pickSlipNo.Trim();
@@ -624,16 +680,19 @@ public static class WhEndpoints
             return InvalidReleaseLot(pickSlipNo, lotNo, "LOT No is required.");
 
         using (var slipCmd = new SqlCommand("""
-            SELECT TOP (1) CLOSE_DATE
+            SELECT TOP (1) CLOSE_DATE, CLOSE_YN
             FROM SIS_TEST.WMS3050
             WHERE PICK_SLIPNO = @PickSlipNo;
             """, conn, tx))
         {
             slipCmd.Parameters.AddWithValue("@PickSlipNo", pickSlipNo);
-            var closeDate = slipCmd.ExecuteScalar();
-            if (closeDate is null)
+            using var slipRdr = slipCmd.ExecuteReader();
+            if (!slipRdr.Read())
                 return InvalidReleaseLot(pickSlipNo, lotNo, "Pick Slip was not found.");
-            if (closeDate != DBNull.Value && !string.IsNullOrWhiteSpace(Convert.ToString(closeDate)))
+
+            var closeDate = GetDate(slipRdr, "CLOSE_DATE");
+            var closeYn = GetString(slipRdr, "CLOSE_YN");
+            if (closeDate.HasValue || string.Equals(closeYn, "Y", StringComparison.OrdinalIgnoreCase))
                 return InvalidReleaseLot(pickSlipNo, lotNo, "Pick Slip is already closed.");
         }
 

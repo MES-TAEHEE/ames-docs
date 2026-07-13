@@ -172,6 +172,8 @@ public sealed class PdaApi
         string? RequestTime, DateTime? PrintDate, DateTime? CloseDate, string? CloseUserId,
         int LineCount, decimal RequestBoxQty, decimal PickedBoxQty, decimal RequestQty, decimal PickedQty,
         string Status, string? FirstItemNo, string? FirstItemName, string? SuggestedLocation, string? SuggestedZone);
+    public sealed record ReleaseSlipStatusRow(string PickSlipNo, bool Exists, bool IsClosed, int LineCount,
+        string? RequestLocation, DateTime? RequestDate, DateTime? CloseDate, string Message);
     public sealed record ReleasePickLineRow(string PickSlipNo, string ItemNo, string? ItemName,
         decimal RequestBoxQty, decimal PickedBoxQty, decimal PickedQty, string? RequestUserId,
         string? SuggestedLocation1, string? SuggestedLocation2, string? SuggestedLocation3, string Status);
@@ -314,6 +316,20 @@ public sealed class PdaApi
         }
     }
     public Task<List<ReleaseScheduleRow>> WhReleaseScheduleAsync() => Get<List<ReleaseScheduleRow>>("/api/wh/release/schedule");
+    public async Task<ReleaseSlipStatusRow?> WhReleaseSlipStatusAsync(string pickSlipNo)
+    {
+        Authorize();
+        try
+        {
+            var url = $"/api/wh/release/schedule/{Uri.EscapeDataString(pickSlipNo.Trim())}/status";
+            var resp = await _http.GetAsync(url);
+            return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<ReleaseSlipStatusRow>() : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
     public Task<List<ReleasePickLineRow>> WhReleaseLinesAsync(string pickSlipNo)
         => Get<List<ReleasePickLineRow>>($"/api/wh/release/schedule/{Uri.EscapeDataString(pickSlipNo)}/lines");
     public async Task<ReleaseLotRow?> WhReleaseLotAsync(string pickSlipNo, string lotNo)

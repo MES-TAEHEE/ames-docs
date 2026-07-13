@@ -6,7 +6,7 @@
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/wh"))' Text="&lt;" />
         <div class="wh07-tbar-title">
-            <span class="pda-tbar-brand">WH-007 RELEASE</span>
+            <span class="pda-tbar-brand">WH-003 RELEASE</span>
             <span class="wh07-subtitle">@(_loadedSlipNo ?? "Select Pick Slip")</span>
         </div>
     </div>
@@ -19,7 +19,7 @@
                                Value="@_pickSlipNo"
                                @oninput="OnPickSlipInput"
                                @onkeydown="OnPickSlipKey"
-                               Placeholder="Scan or enter Pick Slip No" />
+                               Placeholder="Scan Pick Slip No" />
             </div>
             <RadzenButton class="wh07-load-btn" Click="@LoadSlip" Disabled="@DisableLoad" Text="LOAD" />
         </RadzenCard>
@@ -87,12 +87,12 @@
 
         <RadzenCard class="@($"wh07-panel wh07-scan-panel {(ScanDisabled ? "disabled" : "")}")">
             <div class="pda-fld">
-                <label>LOT NO SCAN</label>
+                <label>LOT NO</label>
                 <RadzenTextBox class="pda-input wh07-input"
                                Value="@_lotNo"
                                @oninput="OnLotInput"
                                @onkeydown="OnLotKey"
-                               Placeholder="Scan LOT No"
+                               Placeholder="Scan Lot No"
                                Disabled="@ScanDisabled" />
             </div>
             <RadzenButton class="wh07-scan-btn" Click="@ScanLot" Disabled="@DisableScan" Text="SCAN" />
@@ -234,12 +234,39 @@
         try
         {
             _loadedSlipNo = _pickSlipNo.Trim();
-            _lines = await Api.WhReleaseLinesAsync(_loadedSlipNo);
             _scan = null;
             _lotNo = "";
+            _lines.Clear();
+
+            var status = await Api.WhReleaseSlipStatusAsync(_loadedSlipNo);
+            if (status is null)
+            {
+                ShowModal("Load Failed", "Pick Slip lookup failed. Check API connection.", "fail");
+                _loadedSlipNo = null;
+                return;
+            }
+
+            if (!status.Exists)
+            {
+                ShowModal("Pick Slip Not Found", status.Message, "fail");
+                _loadedSlipNo = null;
+                return;
+            }
+
+            if (status.IsClosed)
+            {
+                ShowModal("Pick Slip Closed", status.Message, "warn");
+                _loadedSlipNo = null;
+                return;
+            }
+
+            _lines = await Api.WhReleaseLinesAsync(_loadedSlipNo);
 
             if (_lines.Count == 0)
+            {
                 ShowModal("No Lines Found", "No release lines were found for this Pick Slip.", "warn");
+                _loadedSlipNo = null;
+            }
         }
         finally
         {
