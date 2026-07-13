@@ -98,8 +98,7 @@
                         <Template Context="u">
                             @{
                                 var stEff = EffectiveStatus(u);
-                                var unver = string.Equals(stEff, "UNVERIFIED", StringComparison.OrdinalIgnoreCase);
-                                var nonvf = !u.EmailConfirmed && unver;
+                                var nonvf = string.Equals(stEff, "UNVERIFIED", StringComparison.OrdinalIgnoreCase);
                                 var stCls = nonvf ? "ghost" : stEff switch
                                 {
                                     "LOCKED"    => "bad",
@@ -368,11 +367,7 @@
     string _msg = "", _modalErr = "";
     bool _isErr;
 
-    public class DropDownItem
-    {
-        public string Text { get; set; } = "";
-        public string Value { get; set; } = "";
-    }
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
     private IEnumerable<DropDownItem> DeptOptions  => _deptItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     private IEnumerable<DropDownItem> PlantOptions => _plantItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });

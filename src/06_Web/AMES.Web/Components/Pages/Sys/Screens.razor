@@ -1,4 +1,4 @@
-@page "/sys/screen"
+@page "/sys/screens"
 @rendermode InteractiveServer
 
 @using Microsoft.AspNetCore.Authorization
@@ -307,15 +307,11 @@
 
     FormModel _f = new();
 
-    public class DropDownItem
-    {
-        public string Text  { get; set; } = "";
-        public string Value { get; set; } = "";
-    }
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
-    private IEnumerable<DropDownItem> ModuleOptions     => _moduleItems.Where(m => m.UseFlag).Select(m => new DropDownItem { Value = m.CodeValue ?? "", Text = $"[{m.CodeValue}] {LocalName(m)}" });
-    private IEnumerable<DropDownItem> ProcessOptions    => _processItems.Where(p => p.UseFlag).Select(p => new DropDownItem { Value = p.CodeValue ?? "", Text = $"[{p.CodeValue}] {LocalName(p)}" });
-    private IEnumerable<DropDownItem> SubProcessOptions => _subprocessItems.Where(s => s.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = $"[{s.CodeValue}] {LocalName(s)}" });
+    private IEnumerable<DropDownItem> ModuleOptions     => _moduleItems.Where(m => m.UseFlag).Select(m => new DropDownItem { Value = m.CodeValue ?? "", Text = $"[{m.CodeValue}] {MasterDataRepository.LocalName(m)}" });
+    private IEnumerable<DropDownItem> ProcessOptions    => _processItems.Where(p => p.UseFlag).Select(p => new DropDownItem { Value = p.CodeValue ?? "", Text = $"[{p.CodeValue}] {MasterDataRepository.LocalName(p)}" });
+    private IEnumerable<DropDownItem> SubProcessOptions => _subprocessItems.Where(s => s.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}" });
     private List<DropDownItem> VisibleList => new()
     {
         new() { Value = "Y", Text = L["SYS.Screen.Filter.Visible"].Value },
@@ -327,7 +323,7 @@
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
         await PermSvc.EnsureAsync(AuthPrvd);
-        _canEdit = PermSvc.CanEdit("sys/screen");
+        _canEdit = PermSvc.CanEdit("sys/screens");
         _moduleItems      = MD.ListCodeItems("MODULE");
         _processItems    = MD.ListCodeItems("PROCESS");
         _subprocessItems = MD.ListCodeItems("SUBPROCESS");
@@ -461,9 +457,6 @@
     }
 
     static string? Nz(string s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
-
-    static string LocalName(MasterDataRepository.CodeItemRow r) =>
-        MasterDataRepository.LocalName(r);
 
     class FormModel
     {

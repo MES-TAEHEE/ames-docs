@@ -424,6 +424,7 @@
     // 현재 URL이 속한 MD 서브그룹도 열어둠
     void OpenCurrentSub(string url)
     {
+        _openSub.Clear();
         var hit = _items.FirstOrDefault(i =>
             url.StartsWith(i.Href, StringComparison.OrdinalIgnoreCase));
         if (!string.IsNullOrEmpty(hit?.Sub)) _openSub.Add(hit!.Sub!);
@@ -432,6 +433,7 @@
     void OnLocChanged(object? sender, LocationChangedEventArgs e)
     {
         _url = Nav.ToBaseRelativePath(e.Location);
+        _open.Clear();
         foreach (var (prefix, key) in _prefixMap)
             if (_url.StartsWith(prefix)) { _open.Add(key); OpenCurrentSub(_url); break; }
         _ = PersistOpen();
@@ -440,13 +442,17 @@
 
     void Toggle(string key)
     {
-        if (!_open.Remove(key)) _open.Add(key);   // 다중-오픈: 다른 섹션 유지
+        var isOpen = _open.Contains(key);
+        _open.Clear();
+        if (!isOpen) _open.Add(key);
         _ = PersistOpen();
     }
 
     void ToggleSub(string key)
     {
-        if (!_openSub.Remove(key)) _openSub.Add(key);
+        var isOpen = _openSub.Contains(key);
+        _openSub.Clear();
+        if (!isOpen) _openSub.Add(key);
         _ = PersistOpenSub();
     }
 

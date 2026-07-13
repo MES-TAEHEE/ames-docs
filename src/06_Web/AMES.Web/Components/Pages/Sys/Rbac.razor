@@ -1,15 +1,23 @@
 ﻿@page "/sys/rbac"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.SysRepository Sys
-@inject AMES.Data.Repositories.MasterDataRepository Md
-@inject AuthenticationStateProvider Auth
-@inject AMES.Web.Services.PermissionService Perm
-@inject IStringLocalizer<SharedResources> L
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using AMES.Web.Services
 @using Radzen
 
-<PageTitle>SYS-004 @L["SYS.Rbac.Title"] · AMES</PageTitle>
+@attribute [Authorize]
 
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject SysRepository Sys
+@inject MasterDataRepository MD
+@inject IStringLocalizer<SharedResources> L
+
+<PageTitle>SYS-004 @L["SYS.Rbac.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="SYS-004" TitleKey="SYS.Rbac.Title" />
+
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["SYS.Rbac.Kpi.Roles"]</div>
@@ -35,7 +43,6 @@
 }
 
 <div style="display:flex;gap:16px;align-items:flex-start;">
-
     @* ── 좌: 역할 목록 ─────────────────────────────────────────────── *@
     <div style="flex:0 0 300px;">
         <div class="ames-card">
@@ -85,16 +92,13 @@
                         </span>
                     </span>
                     <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-                        <RadzenLabel Text="@L["Col.Module"]" />
-                        <RadzenDropDown @bind-Value="_fModule" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value"
-                                        InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" />
+                        <RadzenLabel Text="@L["Col.Module"]" Component="DropDownModule" />
+                        <RadzenDropDown Name="DropDownModule" @bind-Value="_fModule" @bind-Value:after="OnModuleChanged" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+                        <RadzenLabel Text="@L["SYS.Screen.Col.Process"]" Component="DropDownProcess" />
+                        <RadzenDropDown Name="DropDownProcess" @bind-Value="_fProcess" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
                         @if (_canEdit)
                         {
-                            <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])"
-                                          Icon="save"
-                                          ButtonStyle="@(_dirty ? ButtonStyle.Primary : ButtonStyle.Base)"
-                                          Size="ButtonSize.Small" Click="@SaveAll" Disabled="@(!_dirty || _busy)"
-                                          class="ames-rz-btn" />
+                            <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveAll" Disabled="@(!_dirty || _busy)" Icon="save" ButtonStyle="@(_dirty ? ButtonStyle.Primary : ButtonStyle.Base)" Size="ButtonSize.Small" class="ames-rz-btn" />
                         }
                     </RadzenStack>
                 </div>
@@ -105,50 +109,29 @@
                 }
                 else
                 {
-                    <RadzenDataGrid TItem="AMES.Data.Repositories.SysRepository.ScreenRow"
-                                    Data="@ScreensFiltered.ToList()"
-                                    AllowPaging="false"
-                                    AllowSorting="false"
-                                    AllowGrouping="false"
-                                    Groups="@_groupDescriptors"
-                                    Class="ames-rz-grid">
-                        <GroupHeaderTemplate Context="group">
-                            @{ var grpKey = group.Data.Key?.ToString(); }
-                            @if (!string.IsNullOrEmpty(grpKey))
-                            {
-                                <span class="pill" style="background:rgba(56,189,248,.12);color:#7dd3fc;">@grpKey</span>
-                            }
-                        </GroupHeaderTemplate>
+                    <RadzenDataGrid TItem="SysRepository.ScreenRow" Data="@ScreensFiltered.ToList()" AllowPaging="false" AllowSorting="false" Class="ames-rz-grid">
                         <Columns>
-                            <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.ScreenRow"
-                                                  Property="ScreenCode" Title="@L["SYS.Screen.Col.Code"]" Width="110px">
+                            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenCode" Title="@L["SYS.Screen.Col.Code"]" Width="110px">
                                 <Template Context="s">
                                     <span class="code" style="white-space:nowrap;">@s.ScreenCode</span>
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.ScreenRow"
-                                                  Title="@L["SYS.Rbac.Col.Screen"]">
+                            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Title="@L["SYS.Rbac.Col.Screen"]">
                                 <Template Context="s">
-                                    @SL(s.ScreenName, s.ScreenNameEn)
+                                    @MasterDataRepository.LocalName(s.ScreenName, s.ScreenNameEn)
                                 </Template>
                             </RadzenDataGridColumn>
-                            @foreach (var pl in _permLevels)
+                            @foreach (var pl in _permLevelItems)
                             {
                                 var plCap = pl;
-                                <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.ScreenRow"
-                                                      TextAlign="TextAlign.Center" Width="80px" Sortable="false">
+                                <RadzenDataGridColumn TItem="SysRepository.ScreenRow" TextAlign="TextAlign.Center" Width="80px" Sortable="false">
                                     <HeaderTemplate>
-                                        <span style="cursor:pointer;user-select:none;"
-                                              @onclick="() => ToggleColumn(plCap)"
-                                              @onclick:stopPropagation="true">
+                                        <span style="cursor:pointer;user-select:none;" @onclick="() => ToggleColumn(plCap)" @onclick:stopPropagation="true">
                                             @MasterDataRepository.LocalName(plCap)
                                         </span>
                                     </HeaderTemplate>
                                     <Template Context="s">
-                                        <RadzenCheckBox TValue="bool"
-                                                        Value="@IsChecked(s.ScreenCode, plCap)"
-                                                        Change="@(v => ToggleCell(s, plCap, v))"
-                                                        Disabled="@(!_canEdit)" />
+                                        <RadzenCheckBox TValue="bool" Value="@IsChecked(s.ScreenCode, plCap)" Change="@(v => ToggleCell(s, plCap, v))" Disabled="@(!_canEdit)" />
                                     </Template>
                                 </RadzenDataGridColumn>
                             }
@@ -161,28 +144,24 @@
 </div>
 
 @code {
-    List<AMES.Data.Repositories.SysRepository.RoleRow>            _roles      = new();
-    List<AMES.Data.Repositories.SysRepository.RolePermRow>        _rows       = new();
-    List<AMES.Data.Repositories.SysRepository.ScreenRow>          _screens    = new();
-    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _permLevels = new();
-    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _modules    = new();
-    AMES.Data.Repositories.SysRepository.RoleRow? _selRole;
+    List<SysRepository.RoleRow>            _roles      = new();
+    List<SysRepository.RolePermRow>        _rows       = new();
+    List<SysRepository.ScreenRow>          _screens    = new();
+    List<MasterDataRepository.CodeItemRow> _permLevelItems  = new();
+    List<MasterDataRepository.CodeItemRow> _moduleItems     = new();
+    List<MasterDataRepository.CodeItemRow> _processItems    = new();
+    SysRepository.RoleRow? _selRole;
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
-    private IEnumerable<DropDownItem> ModuleOptions =>
-        _modules.Select(m => new DropDownItem { Value = m.CodeValue ?? "", Text = $"[{m.CodeValue}] {ModuleName(m.CodeValue ?? "")}" });
-
-    private IList<GroupDescriptor> _groupDescriptors = new List<GroupDescriptor>
-    {
-        new GroupDescriptor { Property = "ProcessCode", SortOrder = SortOrder.Ascending }
-    };
+    private IEnumerable<DropDownItem> ModuleOptions => _moduleItems.Select(m => new DropDownItem { Value = m.CodeValue ?? "", Text = $"[{m.CodeValue}] {MasterDataRepository.LocalName(m)}" });
+    private IEnumerable<DropDownItem> ProcessOptions => _processItems.Where(p => p.UseFlag && _screens.Any(s => s.ModuleCode == _fModule && s.ProcessCode == p.CodeValue)).Select(p => new DropDownItem { Value = p.CodeValue ?? "", Text = $"[{p.CodeValue}] {MasterDataRepository.LocalName(p)}" });
 
     // ScreenCode → PermissionLevel 문자열 (현재 선택 역할, e.g. "RE")
     Dictionary<string, string> _grants = new();
 
-    string _fModule = "";
-    string _lang = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+    string _fModule  = "";
+    string _fProcess = "";
     bool _dirty;
     bool _busy;
     string _msg = "";
@@ -190,24 +169,26 @@
     bool _canEdit;
     string _actorEmail = "system";
 
-    IEnumerable<AMES.Data.Repositories.SysRepository.ScreenRow> ScreensFiltered =>
-        (string.IsNullOrEmpty(_fModule) ? _screens : _screens.Where(s => s.ModuleCode == _fModule))
+    IEnumerable<SysRepository.ScreenRow> ScreensFiltered =>
+        _screens
+            .Where(s => string.IsNullOrEmpty(_fModule)  || s.ModuleCode  == _fModule)
+            .Where(s => string.IsNullOrEmpty(_fProcess) || s.ProcessCode == _fProcess)
             .OrderBy(s => s.ProcessCode ?? "￿")
             .ThenBy(s => s.SortOrder ?? 9999);
 
-    string SL(string? ko, string? en) => _lang == "en" ? (en ?? ko ?? "") : (ko ?? en ?? "");
-
     protected override async Task OnInitializedAsync()
     {
-        var auth = await Auth.GetAuthenticationStateAsync();
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actorEmail = auth.User.Identity?.Name ?? "system";
-        await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("sys/rbac");
-        try { _permLevels = Md.ListCodeItems("PERMISSION_LEVEL").Where(p => p.UseFlag).ToList(); } catch { }
-        try { _modules    = Md.ListCodeItems("MODULE"); } catch { }
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("sys/rbac");
+        try { _permLevelItems = MD.ListCodeItems("PERMISSION_LEVEL").Where(p => p.UseFlag).ToList(); } catch { }
+        try { _moduleItems    = MD.ListCodeItems("MODULE"); } catch { }
+        try { _processItems   = MD.ListCodeItems("PROCESS"); } catch { }
         Reload();
-        if (_fModule == "" && _modules.Count > 0)
-            _fModule = _modules[0].CodeValue ?? "";
+        if (_fModule == "" && _moduleItems.Count > 0)
+            _fModule = _moduleItems[0].CodeValue ?? "";
+        _fProcess = ProcessOptions.FirstOrDefault()?.Value ?? "";
     }
 
     void Reload()
@@ -226,7 +207,12 @@
         _dirty = false;
     }
 
-    void SelectRole(AMES.Data.Repositories.SysRepository.RoleRow r)
+    void OnModuleChanged()
+    {
+        _fProcess = ProcessOptions.FirstOrDefault()?.Value ?? "";
+    }
+
+    void SelectRole(SysRepository.RoleRow r)
     {
         _selRole = r;
         _dirty   = false;
@@ -258,7 +244,7 @@
         return new string(chars.OrderBy(c => "REA".IndexOf(c)).ToArray());
     }
 
-    bool IsChecked(string screenCode, AMES.Data.Repositories.MasterDataRepository.CodeItemRow pl)
+    bool IsChecked(string screenCode, MasterDataRepository.CodeItemRow pl)
     {
         var letter = (pl.CodeValue ?? "").Trim().ToUpperInvariant();
         return letter.Length == 1
@@ -266,8 +252,8 @@
             && lvl.Contains(letter[0]);
     }
 
-    void ToggleCell(AMES.Data.Repositories.SysRepository.ScreenRow s,
-        AMES.Data.Repositories.MasterDataRepository.CodeItemRow pl, bool isChecked)
+    void ToggleCell(SysRepository.ScreenRow s,
+        MasterDataRepository.CodeItemRow pl, bool isChecked)
     {
         if (!_canEdit || _selRole is null) return;
         var letter = (pl.CodeValue ?? "").Trim().ToUpperInvariant();
@@ -277,7 +263,7 @@
         _dirty = true;
     }
 
-    void ToggleColumn(AMES.Data.Repositories.MasterDataRepository.CodeItemRow pl)
+    void ToggleColumn(MasterDataRepository.CodeItemRow pl)
     {
         if (!_canEdit || _selRole is null) return;
         var letter = (pl.CodeValue ?? "").Trim().ToUpperInvariant();
@@ -297,7 +283,7 @@
     {
         if (!_canEdit || _selRole is null) return;
         var filtered  = ScreensFiltered.ToList();
-        var fullLevel = new string(_permLevels
+        var fullLevel = new string(_permLevelItems
             .Select(pl => (pl.CodeValue ?? "").Trim().ToUpperInvariant())
             .Where(v => v.Length == 1)
             .Select(v => v[0])
@@ -326,7 +312,7 @@
             }
             _rows  = Sys.ListRolePermissions();
             _dirty = false;
-            Perm.Reset(); // 권한 변경 후 캐시 무효화
+            PermSvc.Reset(); // 권한 변경 후 캐시 무효화
             ShowMsg(L["Msg.Saved"].Value, false);
         }
         catch (Exception ex) { ShowMsg(ex.Message, true); }
@@ -339,9 +325,9 @@
         return _screens.Count(s => _grants.TryGetValue(s.ScreenCode, out var lvl) && lvl.Contains('R'));
     }
 
-    int TotalCells() => _screens.Count * _permLevels.Count;
+    int TotalCells() => _screens.Count * _permLevelItems.Count;
 
-    string ModuleSummary(AMES.Data.Repositories.SysRepository.RoleRow r)
+    string ModuleSummary(SysRepository.RoleRow r)
     {
         var mods = _rows
             .Where(x => x.RoleName == r.RoleName && x.ModuleCode is not null
@@ -351,12 +337,6 @@
             .OrderBy(m => m)
             .ToList();
         return mods.Count > 0 ? string.Join(", ", mods) : L["SYS.Rbac.NoPerm"].Value;
-    }
-
-    string ModuleName(string moduleCode)
-    {
-        var m = _modules.FirstOrDefault(x => x.CodeValue == moduleCode);
-        return m is null ? moduleCode : AMES.Data.Repositories.MasterDataRepository.LocalName(m);
     }
 
     void ShowMsg(string msg, bool isErr)

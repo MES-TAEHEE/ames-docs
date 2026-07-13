@@ -3454,7 +3454,7 @@ GO
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES
   ('SYS-001', 'SYS', N'사용자 관리',           N'User Management',          'sys/users',         'SYS-001',  1, 1, 'admin'),
   ('SYS-002', 'SYS', N'역할 관리',             N'Role Management',          'sys/roles',         'SYS-002',  2, 1, 'admin'),
-  ('SYS-003', 'SYS', N'화면 관리',             N'Screen Management',        'sys/screen',        'SYS-003',  3, 1, 'admin'),
+  ('SYS-003', 'SYS', N'화면 관리',             N'Screen Management',        'sys/screens',       'SYS-003',  3, 1, 'admin'),
   ('SYS-004', 'SYS', N'역할/권한 관리 (RBAC)', N'Role & Permission (RBAC)', 'sys/rbac',          'SYS-004',  4, 1, 'admin'),
   ('SYS-005', 'SYS', N'공장 캘린더',           N'Factory Calendar',         'sys/calendar',      'SYS-005',  5, 1, 'admin'),
   ('SYS-006', 'SYS', N'인터페이스 모니터',     N'Interface Monitor',        'sys/interfaces',    'SYS-006',  6, 1, 'admin'),

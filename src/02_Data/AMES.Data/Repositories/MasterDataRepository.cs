@@ -505,6 +505,12 @@ public sealed class MasterDataRepository
             ? (r.CodeName   ?? r.CodeValue ?? "")
             : (r.CodeNameEn ?? r.CodeName  ?? r.CodeValue ?? "");
 
+    /// <summary>현재 UI 문화권(ko/en)에 맞는 이름을 반환합니다.</summary>
+    public static string LocalName(string? ko, string? en) =>
+        System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ko"
+            ? (ko ?? en ?? "")
+            : (en ?? ko ?? "");
+
     // ── MD-04 BOP ────────────────────────────────────────────────────────
     public List<BopItemRow> ListBopItems(string? search = null)
     {
