@@ -531,6 +531,15 @@ public sealed class PdaApi
     }
 
     // ── helper ──────────────────────────────────────────────────────────
+    private static string EscapeLikePattern(string value)
+    {
+        return value
+            .Replace(@"\", @"\\")
+            .Replace("%", @"\%")
+            .Replace("_", @"\_")
+            .Replace("[", @"\[");
+    }
+
     private static async Task<InboundReceiveResult> ReadInboundReceiveResultAsync(HttpResponseMessage resp)
     {
         if (!resp.IsSuccessStatusCode)
@@ -543,7 +552,7 @@ public sealed class PdaApi
     private async Task<List<InboundTransactionLogRow>> QueryWhInboundTransactionLogsDbAsync(string? lotNo, DateTime? dateFrom, DateTime? dateTo)
     {
         var rows = new List<InboundTransactionLogRow>();
-        var lotFilter = string.IsNullOrWhiteSpace(lotNo) ? null : lotNo.Trim();
+        var searchFilter = string.IsNullOrWhiteSpace(lotNo) ? null : $"%{EscapeLikePattern(lotNo.Trim())}%";
         var fromFilter = dateFrom?.Date ?? DateTime.Today.AddDays(-7);
         var toFilter = dateTo?.Date ?? DateTime.Today;
 
@@ -586,7 +595,7 @@ public sealed class PdaApi
                     N'WMS2030' AS SOURCE,
                     H.INV_STATUS AS NOTE
                 FROM SIS_TEST.WMS2030 H
-                WHERE (@IN_LOTNO IS NULL OR H.LOTNO = @IN_LOTNO)
+                WHERE (@IN_SEARCH IS NULL OR H.LOTNO LIKE @IN_SEARCH ESCAPE N'\')
                   AND COALESCE(TRY_CONVERT(date, H.STD_DATE, 23), TRY_CONVERT(date, H.STD_DATE, 112), CONVERT(date, SYSDATETIME())) >= @IN_DATE_FROM
                   AND COALESCE(TRY_CONVERT(date, H.STD_DATE, 23), TRY_CONVERT(date, H.STD_DATE, 112), CONVERT(date, SYSDATETIME())) < DATEADD(day, 1, @IN_DATE_TO)
                 ORDER BY ROW_NO;
@@ -619,7 +628,7 @@ public sealed class PdaApi
                         H.INV_STATUS AS NOTE,
                         COALESCE(H.INSERT_DATE, H.UPDATE_DATE, SYSUTCDATETIME()) AS SORT_TS
                     FROM SIS_TEST.WMS2010 H
-                    WHERE (@IN_LOTNO IS NULL OR H.LOTNO = @IN_LOTNO)
+                    WHERE (@IN_SEARCH IS NULL OR H.LOTNO LIKE @IN_SEARCH ESCAPE N'\' OR H.PARTNO LIKE @IN_SEARCH ESCAPE N'\')
 
                     UNION ALL
 
@@ -657,7 +666,7 @@ public sealed class PdaApi
                         S.INV_STATUS AS NOTE,
                         COALESCE(S.UPDATE_DATE, S.INSERT_DATE, SYSUTCDATETIME()) AS SORT_TS
                     FROM SIS_TEST.WMS2020 S
-                    WHERE (@IN_LOTNO IS NULL OR S.LOTNO = @IN_LOTNO)
+                    WHERE (@IN_SEARCH IS NULL OR S.LOTNO LIKE @IN_SEARCH ESCAPE N'\' OR S.PARTNO LIKE @IN_SEARCH ESCAPE N'\')
                       AND NOT EXISTS
                       (
                           SELECT 1
@@ -692,7 +701,7 @@ public sealed class PdaApi
                         CONCAT(A.REASON_CODE, N' ', CASE WHEN A.DELTA_QTY > 0 THEN N'+' ELSE N'' END, CONVERT(nvarchar(40), A.DELTA_QTY)) AS NOTE,
                         COALESCE(A.INSERT_DATE, SYSUTCDATETIME()) AS SORT_TS
                     FROM SIS_TEST.PDA_WH002_ADJUST_AUDIT A
-                    WHERE (@IN_LOTNO IS NULL OR A.LOTNO = @IN_LOTNO)
+                    WHERE (@IN_SEARCH IS NULL OR A.LOTNO LIKE @IN_SEARCH ESCAPE N'\' OR A.PARTNO LIKE @IN_SEARCH ESCAPE N'\')
                 )
                 SELECT TOP (200)
                     ROW_NUMBER() OVER (ORDER BY SORT_TS DESC, SORT_BUCKET DESC) AS ROW_NO,
@@ -724,8 +733,8 @@ public sealed class PdaApi
                 """;
 
         await using var cmd = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@IN_LOTNO", SqlDbType.NVarChar, 100).Value =
-            (object?)lotFilter ?? DBNull.Value;
+        cmd.Parameters.Add("@IN_SEARCH", SqlDbType.NVarChar, 120).Value =
+            (object?)searchFilter ?? DBNull.Value;
         cmd.Parameters.Add("@IN_DATE_FROM", SqlDbType.Date).Value = fromFilter;
         cmd.Parameters.Add("@IN_DATE_TO", SqlDbType.Date).Value = toFilter;
 
