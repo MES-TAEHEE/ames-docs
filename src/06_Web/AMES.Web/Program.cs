@@ -96,6 +96,7 @@ builder.Services.AddSingleton(sp => new QcRepository(factory));
 builder.Services.AddSingleton(sp => new PpRepository(factory));
 builder.Services.AddSingleton(sp => new MntRepository(factory));
 builder.Services.AddSingleton(sp => new RptRepository(factory));
+builder.Services.AddSingleton(sp => new WarehouseRepository(factory));
 builder.Services.AddSingleton(sp => new SysRepository(factory));
 builder.Services.AddSingleton(sp => new AuthRepository(factory));
 builder.Services.AddSingleton(sp => new LineScheduleRepository(factory));
