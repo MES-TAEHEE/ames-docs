@@ -1089,6 +1089,11 @@ CREATE TABLE dbo.PP_Forecast (
   [Source]                    VARCHAR(20)              NULL,
   [ImportedAt]                DATETIME2                NULL,
   [ImportedBy]                NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
+  [WeekStartDate]             DATE                     NULL,  -- 주간 계획: 주 시작일 (월별 행은 NULL)
+  [WeekLabel]                 VARCHAR(10)              NULL,  -- 예: '[28/1W]'
+  [BaseInv]                   DECIMAL(14,3)            NULL,  -- Base Inv. (품목당, 비정규화)
+  [PartName]                  NVARCHAR(100)            NULL,  -- 업체 품명 (MD_Item 미등록 대비)
+  [Unit]                      VARCHAR(10)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
@@ -1096,6 +1101,13 @@ CREATE TABLE dbo.PP_Forecast (
   CONSTRAINT PK_PP_Forecast PRIMARY KEY CLUSTERED ([ForecastID])
 );
 GO
+SET QUOTED_IDENTIFIER ON;  -- 필터드 인덱스 필수 (sqlcmd 기본값 OFF)
+GO
+CREATE UNIQUE NONCLUSTERED INDEX UX_PP_Forecast_Cust_Item_Week
+  ON dbo.PP_Forecast (CustomerID, ItemNo, WeekStartDate)
+  WHERE WeekStartDate IS NOT NULL;
+GO
+
 -- ── PP_ForecastHistory  (예측 이력)
 CREATE TABLE dbo.PP_ForecastHistory (
   [HistoryID]                 BIGINT IDENTITY      NOT NULL,
