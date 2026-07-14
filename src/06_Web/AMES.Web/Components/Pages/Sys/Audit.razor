@@ -1,13 +1,12 @@
-@page "/sys/audit"
+﻿@page "/sys/audit"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
 @inject AMES.Data.Repositories.MasterDataRepository Md
 @inject IStringLocalizer<SharedResources> L
+@using Radzen
 
 <PageTitle>SYS-007 @L["SYS.Audit.Title"] · AMES</PageTitle>
-
-<AmesPageHeader Code="SYS-007" TitleKey="SYS.Audit.Title" />
 
 <div class="ames-kpis">
     <div class="ames-kpi">
@@ -44,37 +43,35 @@
     <div class="ames-card-h" style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
             <span>▼ @L["SYS.Audit.List"] · @_rows.Count @L["Lbl.Items"]</span>
-            @* 기간 + 키워드 *@
-            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem" Wrap="FlexWrap.Wrap">
                 <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Lbl.Period"]</span>
-                <input type="date" class="ames-input" style="width:145px;" @bind="_fFrom" @bind:format="yyyy-MM-dd" />
+                <RadzenDatePicker TValue="DateTime" @bind-Value="_fFrom" DateFormat="yyyy-MM-dd"
+                                  InputSize="InputSize.Small" class="ames-rz-input" Style="width:145px;" />
                 <span style="color:#94a3b8;">~</span>
-                <input type="date" class="ames-input" style="width:145px;" @bind="_fTo" @bind:format="yyyy-MM-dd" />
-                <input class="ames-input" style="width:160px;padding:4px 8px;"
-                       placeholder="@L["SYS.Audit.Ph.Search"]" @bind="_fSearch" @bind:event="oninput"
-                       @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
-            </div>
+                <RadzenDatePicker TValue="DateTime" @bind-Value="_fTo" DateFormat="yyyy-MM-dd"
+                                  InputSize="InputSize.Small" class="ames-rz-input" Style="width:145px;" />
+                <RadzenTextBox @bind-Value="_fSearch" Placeholder="@L["SYS.Audit.Ph.Search"]"
+                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:160px;"
+                               AutoComplete="false"
+                               @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' />
+            </RadzenStack>
         </div>
-        @* 코드 필터 행 *@
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding-left:2px;">
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Module"]</span>
-            <select class="ames-input" style="width:130px;" @bind="_fModule">
-                <option value="">@L["SYS.Audit.Filter.AllModules"]</option>
-                @foreach (var m in _moduleItems.Where(m => m.UseFlag))
-                { <option value="@m.CodeValue">[@m.CodeValue] @MasterDataRepository.LocalName(m)</option> }
-            </select>
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.ProcessCode"]</span>
-            <input class="ames-input" style="width:120px;padding:4px 8px;"
-                   placeholder="@L["SYS.Audit.Ph.Process"]" @bind="_fProcess" @bind:event="oninput"
-                   @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Lbl.Result"]</span>
-            <select class="ames-input" style="width:130px;" @bind="_fResult">
-                <option value="">@L["SYS.Audit.Filter.AllResults"]</option>
-                @foreach (var r in _resultItems.Where(r => r.UseFlag))
-                { <option value="@r.CodeValue">[@r.CodeValue] @MasterDataRepository.LocalName(r)</option> }
-            </select>
-            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
-        </div>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["Col.Module"]" />
+            <RadzenDropDown @bind-Value="_fModule" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value"
+                            AllowClear="true" Placeholder="@L["SYS.Audit.Filter.AllModules"]"
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+            <RadzenLabel Text="@L["Col.ProcessCode"]" />
+            <RadzenTextBox @bind-Value="_fProcess" Placeholder="@L["SYS.Audit.Ph.Process"]"
+                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;"
+                           AutoComplete="false"
+                           @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' />
+            <RadzenLabel Text="@L["Lbl.Result"]" />
+            <RadzenDropDown @bind-Value="_fResult" Data="@ResultOptions" TextProperty="Text" ValueProperty="Value"
+                            AllowClear="true" Placeholder="@L["SYS.Audit.Filter.AllResults"]"
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
+        </RadzenStack>
     </div>
 
     @if (_rows.Count == 0)
@@ -83,42 +80,79 @@
     }
     else
     {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["SYS.Audit.Col.Time"]</th>
-                    <th>@L["SYS.Audit.Col.Actor"]</th>
-                    <th>@L["SYS.Audit.Col.Module"]</th>
-                    <th>@L["Col.ProcessCode"]</th>
-                    <th>@L["SYS.Audit.Col.Screen"]</th>
-                    <th>@L["SYS.Audit.Col.Action"]</th>
-                    <th>@L["SYS.Audit.Col.Entity"]</th>
-                    <th>@L["SYS.Audit.Col.TargetId"]</th>
-                    <th>@L["SYS.Audit.Col.Result"]</th>
-                    <th>@L["SYS.Audit.Col.Ip"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var a in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    <tr class="ames-row-link" @onclick="() => OpenDetail(a)">
-                        <td class="code dim" style="font-size:13px;white-space:nowrap;">@(a.EventTs?.ToString("MM-dd HH:mm:ss") ?? "—")</td>
-                        <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                            <span class="dim" style="font-family:'JetBrains Mono',monospace;font-size:12px;">@(a.ActorUserId ?? "—")</span>
-                        </td>
-                        <td><span class="pill @ModClass(a.ModuleCode)">@(a.ModuleCode ?? "—")</span></td>
-                        <td class="code dim" style="font-size:13px;">@(a.ProcessCode ?? "—")</td>
-                        <td class="code" style="font-size:13px;">@(a.ScreenCode ?? "—")</td>
-                        <td><span class="pill @ActClass(a.ActionType)">@(a.ActionType ?? "—")</span></td>
-                        <td class="dim" style="font-size:13px;">@(a.TargetEntity ?? "—")</td>
-                        <td class="code dim" style="font-size:13px;">@(a.TargetId ?? "—")</td>
-                        <td>@ResultPill(a.Result)</td>
-                        <td class="dim code" style="font-size:12px;">@(a.IpAddress ?? "—")</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
+        <RadzenDataGrid TItem="AMES.Data.Repositories.SysRepository.AuditRow"
+                        Data="@_rows"
+                        AllowPaging="true" PageSize="25"
+                        PagerHorizontalAlign="HorizontalAlign.Center"
+                        PageSizeOptions="@_pageSizeOptions"
+                        ShowPagingSummary="true"
+                        AllowSorting="true"
+                        RowRender="@AuditRowRender"
+                        RowClick="@(args => { if (args.Data is not null) OpenDetail(args.Data); })"
+                        Class="ames-rz-grid">
+            <Columns>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.AuditRow"
+                                      Property="EventTs" Title="@L["SYS.Audit.Col.Time"]" Width="140px">
+                    <Template Context="a">
+                        <span class="code dim" style="font-size:13px;white-space:nowrap;">@(a.EventTs?.ToString("MM-dd HH:mm:ss") ?? "—")</span>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.AuditRow"
+                                      Property="ActorUserId" Title="@L["SYS.Audit.Col.Actor"]" Width="150px">
+                    <Template Context="a">
+                        <span class="dim" style="font-family:'JetBrains Mono',monospace;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:140px;">@(a.ActorUserId ?? "—")</span>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.AuditRow"
+                                      Property="ModuleCode" Title="@L["SYS.Audit.Col.Module"]" Width="90px">
+                    <Template Context="a">
+                        <span class="pill @ModClass(a.ModuleCode)">@(a.ModuleCode ?? "—")</span>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.AuditRow"
+                                      Property="ProcessCode" Title="@L["Col.ProcessCode"]" Width="110px">
+                    <Template Context="a">
+                        <span class="code dim" style="font-size:13px;">@(a.ProcessCode ?? "—")</span>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.AuditRow"
+                                      Property="ScreenCode" Title="@L["SYS.Audit.Col.Screen"]" Width="110px">
+                    <Template Context="a">
+                        <span class="code" style="font-size:13px;">@(a.ScreenCode ?? "—")</span>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.AuditRow"
+                                      Property="ActionType" Title="@L["SYS.Audit.Col.Action"]" Width="100px">
+                    <Template Context="a">
+                        <span class="pill @ActClass(a.ActionType)">@(a.ActionType ?? "—")</span>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.AuditRow"
+                                      Property="TargetEntity" Title="@L["SYS.Audit.Col.Entity"]">
+                    <Template Context="a">
+                        <span class="dim" style="font-size:13px;">@(a.TargetEntity ?? "—")</span>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.AuditRow"
+                                      Property="TargetId" Title="@L["SYS.Audit.Col.TargetId"]" Width="120px">
+                    <Template Context="a">
+                        <span class="code dim" style="font-size:13px;">@(a.TargetId ?? "—")</span>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.AuditRow"
+                                      Property="Result" Title="@L["SYS.Audit.Col.Result"]" Width="80px" TextAlign="TextAlign.Center">
+                    <Template Context="a">
+                        @ResultPill(a.Result)
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.AuditRow"
+                                      Property="IpAddress" Title="@L["SYS.Audit.Col.Ip"]" Width="130px">
+                    <Template Context="a">
+                        <span class="dim code" style="font-size:12px;">@(a.IpAddress ?? "—")</span>
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
     }
 </div>
 
@@ -190,23 +224,22 @@
                             font-size:13px;color:#94a3b8;white-space:pre-wrap;word-break:break-all;line-height:1.6;">@_sel.Note</div>
             }
 
-            <div class="ames-modal-footer">
-                <button class="ames-btn ghost" @onclick="() => _sel = null">@L["Btn.Close"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="() => _sel = null" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
 
 @code {
-    int _page = 0;
-    const int _pageSize = 20;
     List<AMES.Data.Repositories.SysRepository.AuditRow> _allRows = new();
     List<AMES.Data.Repositories.SysRepository.AuditRow> _rows    = new();
     AMES.Data.Repositories.SysRepository.AuditRow? _sel;
     List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _moduleItems = new();
     List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _resultItems = new();
     int _ok, _fail, _day;
-    string _fSearch = "", _fModule = "", _fProcess = "", _fResult = "";
+    string _fSearch = "", _fProcess = "";
+    string? _fModule, _fResult;
     DateTime _fFrom = DateTime.Today.AddDays(-7);
     DateTime _fTo   = DateTime.Today;
 
@@ -230,7 +263,6 @@
 
     void ApplyFilter()
     {
-        _page = 0;
         _rows = _allRows.Where(r =>
             (string.IsNullOrEmpty(_fSearch) ||
                 (r.ActorUserId  ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
@@ -242,6 +274,26 @@
             (string.IsNullOrEmpty(_fResult)  || r.Result      == _fResult) &&
             (!r.EventTs.HasValue || (r.EventTs.Value.Date >= _fFrom.Date && r.EventTs.Value.Date <= _fTo.Date))
         ).ToList();
+    }
+
+    IEnumerable<int> _pageSizeOptions = new[] { 20, 50, 100 };
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+
+    private IEnumerable<DropDownItem> ModuleOptions =>
+        _moduleItems.Where(m => m.UseFlag)
+            .Select(m => new DropDownItem { Value = m.CodeValue ?? "", Text = $"[{m.CodeValue}] {MasterDataRepository.LocalName(m)}" });
+
+    private IEnumerable<DropDownItem> ResultOptions =>
+        _resultItems.Where(r => r.UseFlag)
+            .Select(r => new DropDownItem { Value = r.CodeValue ?? "", Text = $"[{r.CodeValue}] {MasterDataRepository.LocalName(r)}" });
+
+    void AuditRowRender(RowRenderEventArgs<AMES.Data.Repositories.SysRepository.AuditRow> args)
+    {
+        if (args.Attributes.TryGetValue("class", out var existing))
+            args.Attributes["class"] = existing + " ames-row-link";
+        else
+            args.Attributes["class"] = "ames-row-link";
     }
 
     Microsoft.AspNetCore.Components.RenderFragment ResultPill(string? result) => builder =>

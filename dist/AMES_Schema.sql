@@ -582,6 +582,7 @@ GO
 CREATE TABLE dbo.MD_Line (
   [LineID]                    VARCHAR(20)          NOT NULL,
   [LineName]                  NVARCHAR(50)             NULL,
+  [LineNameEn]                NVARCHAR(50)             NULL,
   [LineType]                  VARCHAR(16)              NULL,
   [PlantCode]                 VARCHAR(20)              NULL,
   [DefaultWCID]               VARCHAR(20)              NULL,  -- FK -> MD_WorkCenter.WCID
@@ -601,6 +602,7 @@ GO
 CREATE TABLE dbo.MD_Station (
   [StationCode]               VARCHAR(20)          NOT NULL,
   [StationName]               NVARCHAR(60)             NULL,
+  [StationNameEn]             NVARCHAR(60)             NULL,
   [LineID]                    VARCHAR(20)              NULL,  -- FK -> MD_Line.LineID
   [StationType]               VARCHAR(20)              NULL,
   [ProcessCode]               VARCHAR(10)              NULL,
@@ -1087,11 +1089,6 @@ CREATE TABLE dbo.PP_Forecast (
   [Source]                    VARCHAR(20)              NULL,
   [ImportedAt]                DATETIME2                NULL,
   [ImportedBy]                NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
-  [WeekStartDate]             DATE                     NULL,  -- 주간 계획: 주 시작일 (월별 행은 NULL)
-  [WeekLabel]                 VARCHAR(10)              NULL,  -- 예: '[28/1W]'
-  [BaseInv]                   DECIMAL(14,3)            NULL,  -- Base Inv. (품목당, 비정규화)
-  [PartName]                  NVARCHAR(100)            NULL,  -- 업체 품명 (MD_Item 미등록 대비)
-  [Unit]                      VARCHAR(10)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
@@ -1099,13 +1096,6 @@ CREATE TABLE dbo.PP_Forecast (
   CONSTRAINT PK_PP_Forecast PRIMARY KEY CLUSTERED ([ForecastID])
 );
 GO
-SET QUOTED_IDENTIFIER ON;  -- 필터드 인덱스 필수 (sqlcmd 기본값 OFF)
-GO
-CREATE UNIQUE NONCLUSTERED INDEX UX_PP_Forecast_Cust_Item_Week
-  ON dbo.PP_Forecast (CustomerID, ItemNo, WeekStartDate)
-  WHERE WeekStartDate IS NOT NULL;
-GO
-
 -- ── PP_ForecastHistory  (예측 이력)
 CREATE TABLE dbo.PP_ForecastHistory (
   [HistoryID]                 BIGINT IDENTITY      NOT NULL,
@@ -4645,7 +4635,7 @@ GO
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES
   ('SYS-001', 'SYS', N'사용자 관리',           N'User Management',          'sys/users',         'SYS-001',  1, 1, 'admin'),
   ('SYS-002', 'SYS', N'역할 관리',             N'Role Management',          'sys/roles',         'SYS-002',  2, 1, 'admin'),
-  ('SYS-003', 'SYS', N'화면 관리',             N'Screen Management',        'sys/screen',        'SYS-003',  3, 1, 'admin'),
+  ('SYS-003', 'SYS', N'화면 관리',             N'Screen Management',        'sys/screens',       'SYS-003',  3, 1, 'admin'),
   ('SYS-004', 'SYS', N'역할/권한 관리 (RBAC)', N'Role & Permission (RBAC)', 'sys/rbac',          'SYS-004',  4, 1, 'admin'),
   ('SYS-005', 'SYS', N'공장 캘린더',           N'Factory Calendar',         'sys/calendar',      'SYS-005',  5, 1, 'admin'),
   ('SYS-006', 'SYS', N'인터페이스 모니터',     N'Interface Monitor',        'sys/interfaces',    'SYS-006',  6, 1, 'admin'),

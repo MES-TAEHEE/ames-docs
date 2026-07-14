@@ -610,10 +610,12 @@ a:hover { color: #c4dafe; }
 .pill { display: inline-block; padding: 2px 8px; border-radius: 6px;
         font-family: 'JetBrains Mono', monospace; font-size: 12px;
         letter-spacing: 1px; text-transform: uppercase; }
-.pill.ok   { background: rgba(34,197,94,.15);  color: #86efac; border: 1px solid rgba(134,239,172,.3); }
-.pill.warn { background: rgba(251,191,36,.14); color: #fbbf24; border: 1px solid rgba(251,191,36,.3); }
-.pill.bad  { background: rgba(252,165,165,.12); color: #fca5a5; border: 1px solid rgba(252,165,165,.3); }
-.pill.info { background: rgba(147,197,253,.12); color: #93c5fd; border: 1px solid rgba(147,197,253,.3); }
+.pill.ok     { background: rgba(34,197,94,.15);    color: #86efac; border: 1px solid rgba(134,239,172,.3); }
+.pill.warn   { background: rgba(251,191,36,.14);   color: #fbbf24; border: 1px solid rgba(251,191,36,.3); }
+.pill.bad    { background: rgba(252,165,165,.12);   color: #fca5a5; border: 1px solid rgba(252,165,165,.3); }
+.pill.info   { background: rgba(147,197,253,.12);   color: #93c5fd; border: 1px solid rgba(147,197,253,.3); }
+.pill.mute   { background: rgba(148,163,184,.10);   color: #94a3b8; border: 1px solid rgba(148,163,184,.3); }
+.pill.ghost  { background: transparent;             color: #94a3b8; border: 1px solid rgba(148,163,184,.4); }
 
 /* ── Forms ────────────────────────────────────────────────── */
 .ames-form { display: flex; flex-direction: column; gap: 12px; }
@@ -641,6 +643,13 @@ a:hover { color: #c4dafe; }
 .ames-btn:disabled { opacity: .4; cursor: not-allowed; filter: saturate(.5); }
 .ames-btn.ghost { background: transparent; border: 1px solid rgba(255,255,255,.25); color: rgba(255,255,255,.75); box-shadow: none; }
 .ames-btn.ghost:hover:not(:disabled) { background: rgba(255,255,255,.07); color: #fff; border-color: rgba(255,255,255,.45); }
+
+.ames-rz-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+}
 
 /* ── Error overlay ────────────────────────────────────────── */
 #blazor-error-ui {
@@ -833,6 +842,32 @@ select.ames-input {
     cursor: pointer; appearance: auto;
 }
 select.ames-input option { background: #0d1b2e; }
+
+.ames-rz-modal-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    line-height: 0.9;
+    padding: 0;
+    margin-bottom: 1px;
+    display: inline-block;
+    flex-shrink: 0;
+    width:120px;
+}
+.ames-rz-input {
+    background: #050a13;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+}
+select.ames-rz-input {
+    padding: 0;
+    font-size: 12px;
+    cursor: pointer;
+    appearance: auto;
+}
 
 /* ── Alert bar ────────────────────────────────────────────────── */
 .ames-alert {

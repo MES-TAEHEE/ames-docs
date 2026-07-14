@@ -21,7 +21,7 @@ public sealed class SysRepository
         string? AccountStatus, DateTime? LastLoginTs, string? RolesCsv,
         string? AssignedLines, int FailedLoginCount);
 
-    public sealed record LineRow(string LineId, string LineName);
+    public sealed record LineRow(string LineId, string LineName, string? LineNameEn);
 
     public sealed record RoleRow(string RoleId, string RoleName, int UserCount);
 
@@ -790,7 +790,7 @@ public sealed class SysRepository
                  AccountStatus, FailedLoginCount, AssignedLines, CreatedBy, CreatedTS)
             VALUES
                 (@UserID, @EmpNo, @EmpName, @Dept, @Plant, @Shift,
-                 'Active', 0, @Lines, @CreatedBy, SYSDATETIME())
+                 'ACTIVE', 0, @Lines, @CreatedBy, SYSDATETIME())
             """;
         Exec(sql,
             ("@UserID",    userId),
@@ -815,7 +815,7 @@ public sealed class SysRepository
                    PlantCode        = @Plant,
                    DefaultShift     = @Shift,
                    AccountStatus    = @Status,
-                   FailedLoginCount = CASE WHEN @Status = 'Active' THEN 0 ELSE FailedLoginCount END,
+                   FailedLoginCount = CASE WHEN @UPPER(@Status) = 'ACTIVE' THEN 0 ELSE FailedLoginCount END,
                    AssignedLines    = @Lines,
                    ModifiedBy       = @ModifiedBy,
                    ModifiedTS       = SYSDATETIME()
@@ -837,12 +837,15 @@ public sealed class SysRepository
     public List<LineRow> ListActiveLines()
     {
         const string sql = """
-            SELECT LineID, ISNULL(LineName, LineID) AS LineName
+            SELECT LineID, ISNULL(LineName, LineID) AS LineName, LineNameEn
             FROM   dbo.MD_Line
             WHERE  Status = 'ACTIVE'
             ORDER  BY LineID;
             """;
-        return Query(sql, r => new LineRow((string)r["LineID"], (string)r["LineName"]));
+        return Query(sql, r => new LineRow(
+            (string)r["LineID"],
+            (string)r["LineName"],
+            r["LineNameEn"] as string));
     }
 
     public void DeleteProfile(string userId)

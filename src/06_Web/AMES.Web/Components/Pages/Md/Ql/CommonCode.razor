@@ -1,4 +1,4 @@
-@page "/md/ql/common-code"
+﻿@page "/md/ql/common-code"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject MasterDataRepository Md
@@ -8,57 +8,49 @@
 
 <PageTitle>@L["MD.CommonCode.Title"] · AMES</PageTitle>
 
-<AmesPageHeader Code="MD-030" TitleKey="MD.CommonCode.Title" />
-
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")" style="margin-bottom:12px;">@_msg</div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" ShowIcon="false" Variant="Variant.Flat" class="ames-alert-rz" Style="margin-bottom:12px;">@_msg</RadzenAlert>
 }
 
 <div style="display:flex;gap:16px;align-items:flex-start;">
 
-    @* ── 좌: 코드 그룹 ─────────────────────────────────────────────── *@
+    @* ── 좌: 코드 그룹 ────────────────────────────────────────────────── *@
     <div style="flex:0 0 480px;">
         <div class="ames-card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
                 <span style="font-weight:600;font-size:1em;">@L["MD.CommonCode.GrpHeader"]</span>
-                @if (_canEdit) { <button class="ames-btn" @onclick="OpenGroupCreate">@L["Btn.Create"]</button> }
+                @if (_canEdit) { <RadzenButton Text='@L["Btn.Create"]' Icon="add_circle" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="OpenGroupCreate" class="ames-rz-btn" /> }
             </div>
-            <table class="ames-table" style="table-layout:fixed;width:100%;">
-                <thead>
-                    <tr>
-                        <th style="width:160px;">@L["Col.GroupCode"]</th>
-                        <th>@L["Col.GroupName"]</th>
-                        <th style="width:48px;text-align:center;">@L["Col.Active"]</th>
-                        <th style="width:48px;"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var g in _groups.Skip(_page * _pageSize).Take(_pageSize))
-                    {
-                        var gCap = g;
-                        <tr class="ames-row-link @(_selGroup?.GroupCode == g.GroupCode ? "ames-row-selected" : "")"
-                            @onclick="() => OpenGroupEdit(gCap)">
-                            <td class="code">@g.GroupCode</td>
-                            <td>@g.GroupName</td>
-                            <td style="text-align:center;">
-                                <span class="pill @(g.UseFlag ? "ok" : "dim")">@(g.UseFlag ? "Y" : "N")</span>
-                            </td>
-                            <td style="text-align:center;">
-                                <button class="ames-btn" style="padding:2px 10px;font-size:.85em;"
-                                        title="@L["MD.CommonCode.Title.ViewItems"]"
-                                        @onclick:stopPropagation
-                                        @onclick="() => SelectGroup(gCap)">▶</button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-            <Pager Page="_page" Total="_groups.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
+            <RadzenDataGrid Data="_groups" TItem="MasterDataRepository.CodeGroupRow"
+                            RowRender="GrpRowRender" RowSelect="OnGroupRowSelect"
+                            AllowPaging="true" PageSize="15" PageSizeOptions="_pageSizeOptions"
+                            PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true"
+                            Class="ames-rz-grid">
+                <Columns>
+                    <RadzenDataGridColumn Property="GroupCode" Title='@L["Col.GroupCode"]' Width="160px">
+                        <Template Context="g"><span class="code">@g.GroupCode</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn Property="GroupName" Title='@L["Col.GroupName"]' />
+                    <RadzenDataGridColumn Property="UseFlag" Title='@L["Col.Active"]' Width="60px" TextAlign="TextAlign.Center">
+                        <Template Context="g">
+                            <span class="pill @(g.UseFlag ? "ok" : "dim")">@(g.UseFlag ? "Y" : "N")</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn Width="52px" TextAlign="TextAlign.Center">
+                        <Template Context="g">
+                            <div @onclick:stopPropagation>
+                                <RadzenButton ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Text="▶"
+                                              Click="() => SelectGroup(g)" title='@L["MD.CommonCode.Title.ViewItems"]' />
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
         </div>
     </div>
 
-    @* ── 우: 코드 항목 ─────────────────────────────────────────────── *@
+    @* ── 우: 코드 항목 ────────────────────────────────────────────────── *@
     <div style="flex:1;min-width:0;">
         <div class="ames-card">
             @if (_selGroup is null)
@@ -73,297 +65,251 @@
                         @_selGroup.GroupName
                         <span class="dim" style="font-weight:400;margin-left:6px;">@string.Format(L["MD.CommonCode.ItemCount"].Value, _items.Count)</span>
                     </span>
-                    @if (_canEdit) { <button class="ames-btn" @onclick="OpenItemCreate">@L["Btn.Create"]</button> }
+                    @if (_canEdit) { <RadzenButton Text='@L["Btn.Create"]' Icon="add_circle" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="OpenItemCreate" class="ames-rz-btn" /> }
                 </div>
-                <table class="ames-table">
-                    <thead>
-                        <tr>
-                            <th style="width:60px;">@L["Col.Seq"]</th>
-                            <th style="width:120px;">@L["Col.CodeValue"]</th>
-                            <th>@L["Col.CodeName"]</th>
-                            <th>@L["Col.NameEn"]</th>
-                            <th style="width:100px;">@L["Col.Attr1"]</th>
-                            <th style="width:44px;text-align:center;">@L["Col.Active"]</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var item in _items)
-                        {
-                            var iCap = item;
-                            <tr class="ames-row-link" @onclick="() => OpenItemEdit(iCap)">
-                                <td class="num">@item.SortOrder</td>
-                                <td class="code">@item.CodeValue</td>
-                                <td>@item.CodeName</td>
-                                <td class="dim">@item.CodeNameEn</td>
-                                <td class="dim">@item.Attribute1</td>
-                                <td style="text-align:center;">
-                                    <span class="pill @(item.UseFlag ? "ok" : "dim")">@(item.UseFlag ? "Y" : "N")</span>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+                <RadzenDataGrid Data="_items" TItem="MasterDataRepository.CodeItemRow"
+                                RowRender="ItemRowRender" RowSelect="OpenItemEdit"
+                                AllowPaging="false" Class="ames-rz-grid">
+                    <Columns>
+                        <RadzenDataGridColumn Property="SortOrder" Title='@L["Col.Seq"]' Width="60px" TextAlign="TextAlign.Right">
+                            <Template Context="i">@i.SortOrder</Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn Property="CodeValue" Title='@L["Col.CodeValue"]' Width="120px">
+                            <Template Context="i"><span class="code">@i.CodeValue</span></Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn Property="CodeName" Title='@L["Col.CodeName"]' />
+                        <RadzenDataGridColumn Property="CodeNameEn" Title='@L["Col.NameEn"]'>
+                            <Template Context="i"><span class="dim">@i.CodeNameEn</span></Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn Property="Attribute1" Title='@L["Col.Attr1"]' Width="100px">
+                            <Template Context="i"><span class="dim">@i.Attribute1</span></Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn Property="UseFlag" Title='@L["Col.Active"]' Width="60px" TextAlign="TextAlign.Center">
+                            <Template Context="i">
+                                <span class="pill @(i.UseFlag ? "ok" : "dim")">@(i.UseFlag ? "Y" : "N")</span>
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
             }
         </div>
     </div>
 </div>
 
-@* ── 코드 그룹 등록 모달 ────────────────────────────────────────────── *@
+@* ── 코드 그룹 등록 모달 ──────────────────────────────────────────────── *@
 @if (_modal == "grp-create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
         <div class="ames-modal" style="max-width:500px;" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.CommonCode.Grp.Create"]</div>
-
-            <label>@L["MD.CommonCode.Lbl.GroupCode"] <span class="dim" style="font-size:.82em;">@L["MD.CommonCode.Lbl.GroupCodeHint"]</span></label>
-            <input class="ames-input" @bind="_fGroupCode" placeholder="예: DEFECT_TYPE" autocomplete="off" maxlength="20" />
-
+            <div style="margin-bottom:6px;">
+                <RadzenLabel Text='@($"{L["MD.CommonCode.Lbl.GroupCode"]} {L["MD.CommonCode.Lbl.GroupCodeHint"]}")' /><br />
+                <RadzenTextBox @bind-Value="_fGroupCode" Placeholder="예: DEFECT_TYPE" MaxLength="20" Style="width:100%;" autocomplete="off" />
+            </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
                 <div>
-                    <label>@L["MD.CommonCode.Lbl.GroupName"]</label>
-                    <input class="ames-input" @bind="_fGroupName" placeholder='@L["MD.CommonCode.Ph.GroupName"]' autocomplete="off" />
+                    <RadzenLabel Text='@L["MD.CommonCode.Lbl.GroupName"]' /><br />
+                    <RadzenTextBox @bind-Value="_fGroupName" Placeholder='@L["MD.CommonCode.Ph.GroupName"]' Style="width:100%;" autocomplete="off" />
                 </div>
                 <div>
-                    <label>@L["MD.CommonCode.Lbl.GroupNameEn"]</label>
-                    <input class="ames-input" @bind="_fGroupNameEn" placeholder="예: Defect Type" autocomplete="off" />
+                    <RadzenLabel Text='@L["MD.CommonCode.Lbl.GroupNameEn"]' /><br />
+                    <RadzenTextBox @bind-Value="_fGroupNameEn" Placeholder="예: Defect Type" Style="width:100%;" autocomplete="off" />
                 </div>
             </div>
-
-            <label style="margin-top:6px;">@L["MD.CommonCode.Lbl.Description"]</label>
-            <input class="ames-input" @bind="_fDescription" autocomplete="off" />
-
-            <label style="margin-top:8px;display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" @bind="_fUseFlag" style="accent-color:#60a5fa;" /> @L["MD.CommonCode.Lbl.UseFlag"]
-            </label>
-
-            @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div> }
-
-            <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="SaveGroupCreate" disabled="@_busy">
-                    @(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)
-                </button>
-                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+            <div style="margin-top:6px;">
+                <RadzenLabel Text='@L["MD.CommonCode.Lbl.Description"]' /><br />
+                <RadzenTextBox @bind-Value="_fDescription" Style="width:100%;" autocomplete="off" />
             </div>
+            <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+                <RadzenCheckBox TValue="bool" @bind-Value="_fUseFlag" />
+                <RadzenLabel Text='@L["MD.CommonCode.Lbl.UseFlag"]' Style="cursor:pointer;" />
+            </div>
+            @if (!string.IsNullOrEmpty(_modalErr))
+            { <RadzenAlert AlertStyle="AlertStyle.Danger" ShowIcon="false" Variant="Variant.Flat" class="ames-alert-rz" Style="margin-top:8px;">@_modalErr</RadzenAlert> }
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text='@(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)' Click="SaveGroupCreate" Disabled="_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text='@L["Btn.Cancel"]' Click="CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
 
-@* ── 코드 그룹 수정/삭제 모달 ───────────────────────────────────────── *@
+@* ── 코드 그룹 수정/삭제 모달 ────────────────────────────────────────── *@
 @if (_modal == "grp-edit")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
         <div class="ames-modal" style="max-width:500px;" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.CommonCode.Grp.Edit"] — <span class="code" style="font-weight:400;font-size:.9em;">@_fGroupCode</span></div>
-
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>
-                    <label>@L["MD.CommonCode.Lbl.GroupName"]</label>
-                    <input class="ames-input" @bind="_fGroupName" autocomplete="off" />
+                    <RadzenLabel Text='@L["MD.CommonCode.Lbl.GroupName"]' /><br />
+                    <RadzenTextBox @bind-Value="_fGroupName" Style="width:100%;" autocomplete="off" />
                 </div>
                 <div>
-                    <label>@L["MD.CommonCode.Lbl.GroupNameEn"]</label>
-                    <input class="ames-input" @bind="_fGroupNameEn" autocomplete="off" />
+                    <RadzenLabel Text='@L["MD.CommonCode.Lbl.GroupNameEn"]' /><br />
+                    <RadzenTextBox @bind-Value="_fGroupNameEn" Style="width:100%;" autocomplete="off" />
                 </div>
             </div>
-
-            <label style="margin-top:6px;">@L["MD.CommonCode.Lbl.Description"]</label>
-            <input class="ames-input" @bind="_fDescription" autocomplete="off" />
-
-            <label style="margin-top:8px;display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" @bind="_fUseFlag" style="accent-color:#60a5fa;" /> @L["MD.CommonCode.Lbl.UseFlag"]
-            </label>
-
+            <div style="margin-top:6px;">
+                <RadzenLabel Text='@L["MD.CommonCode.Lbl.Description"]' /><br />
+                <RadzenTextBox @bind-Value="_fDescription" Style="width:100%;" autocomplete="off" />
+            </div>
+            <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+                <RadzenCheckBox TValue="bool" @bind-Value="_fUseFlag" />
+                <RadzenLabel Text='@L["MD.CommonCode.Lbl.UseFlag"]' Style="cursor:pointer;" />
+            </div>
             @if (_grpConfirmDelete)
             {
-                <div class="ames-delete-confirm">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
                     <span>@string.Format(L["MD.CommonCode.ConfirmGrpDelete"].Value, _items.Count)</span>
-                    <button class="ames-btn ghost" @onclick='() => _grpConfirmDelete = false'>@L["Msg.No"]</button>
-                    <button class="ames-btn bad" @onclick="SaveGroupDelete" disabled="@_busy">
-                        @(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)
-                    </button>
-                </div>
+                    <RadzenButton Text='@L["Msg.No"]' Click='() => _grpConfirmDelete = false' ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                    <RadzenButton Text='@(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)' Click="SaveGroupDelete" Disabled="_busy" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                </RadzenStack>
             }
-
             @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div> }
-
-            <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="SaveGroupEdit" disabled="@_busy">
-                    @(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)
-                </button>
-                <button class="ames-btn bad" @onclick='() => { _grpConfirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
-            </div>
+            { <RadzenAlert AlertStyle="AlertStyle.Danger" ShowIcon="false" Variant="Variant.Flat" class="ames-alert-rz" Style="margin-top:8px;">@_modalErr</RadzenAlert> }
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text='@(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)' Click="SaveGroupEdit" Disabled="_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text='@L["Btn.Delete"]' Click='() => { _grpConfirmDelete = true; _modalErr = ""; }' Disabled="_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text='@L["Btn.Cancel"]' Click="CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
 
-@* ── 코드 항목 등록 모달 ────────────────────────────────────────────── *@
+@* ── 코드 항목 등록 모달 ──────────────────────────────────────────────── *@
 @if (_modal == "item-create" && _selGroup is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
         <div class="ames-modal" style="max-width:560px;" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.CommonCode.Item.Create"] — <span class="code" style="font-weight:400;font-size:.9em;">@_selGroup.GroupCode</span></div>
-
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>
-                    <label>@L["MD.CommonCode.Lbl.CodeValue"] <span class="dim" style="font-size:.82em;">@L["MD.CommonCode.Lbl.CodeValueHint"]</span></label>
-                    <input class="ames-input" value="@_fCodeValue"
-                           @oninput="OnCodeValueInput"
-                           placeholder="예: SCRAP" autocomplete="off" maxlength="20" />
+                    <RadzenLabel Text='@($"{L["MD.CommonCode.Lbl.CodeValue"]} {L["MD.CommonCode.Lbl.CodeValueHint"]}")' /><br />
+                    <RadzenTextBox Value="@_fCodeValue" ValueChanged="OnCodeValueInput"
+                                   Placeholder="예: SCRAP" MaxLength="20" Style="width:100%;" autocomplete="off" />
                 </div>
                 <div>
-                    <label>@L["MD.CommonCode.Lbl.CodeId"] <span class="dim" style="font-size:.82em;">@L["MD.CommonCode.Lbl.CodeIdHint"]</span></label>
-                    <input class="ames-input" @bind="_fCodeId" autocomplete="off" maxlength="24" />
-                </div>
-            </div>
-
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
-                <div>
-                    <label>@L["MD.CommonCode.Lbl.CodeName"]</label>
-                    <input class="ames-input" @bind="_fCodeName" autocomplete="off" />
+                    <RadzenLabel Text='@($"{L["MD.CommonCode.Lbl.CodeId"]} {L["MD.CommonCode.Lbl.CodeIdHint"]}")' /><br />
+                    <RadzenTextBox @bind-Value="_fCodeId" MaxLength="24" Style="width:100%;" autocomplete="off" />
                 </div>
                 <div>
-                    <label>@L["MD.CommonCode.Lbl.CodeNameEn"]</label>
-                    <input class="ames-input" @bind="_fCodeNameEn" autocomplete="off" />
+                    <RadzenLabel Text='@L["MD.CommonCode.Lbl.CodeName"]' /><br />
+                    <RadzenTextBox @bind-Value="_fCodeName" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["MD.CommonCode.Lbl.CodeNameEn"]' /><br />
+                    <RadzenTextBox @bind-Value="_fCodeNameEn" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div style="grid-column:span 2;">
+                    <RadzenLabel Text='@($"{L["MD.CommonCode.Lbl.ParentCode"]} {L["MD.CommonCode.Lbl.ParentCodeOpt"]}")' /><br />
+                    <RadzenDropDown @bind-Value="_fParentCodeId"
+                                    Data="@(_items.Select(p => new DropDownItem { Value = p.CodeID, Text = $"[{p.CodeValue}] {p.CodeName}" }))"
+                                    TextProperty="Text" ValueProperty="Value"
+                                    AllowClear="true" Placeholder='@L["MD.CommonCode.Opt.None"]' Style="width:100%;" />
                 </div>
             </div>
-
-            <div style="margin-top:6px;">
-                <label>@L["MD.CommonCode.Lbl.ParentCode"] <span class="dim" style="font-size:.82em;">@L["MD.CommonCode.Lbl.ParentCodeOpt"]</span></label>
-                <select class="ames-input" @bind="_fParentCodeId">
-                    <option value="">@L["MD.CommonCode.Opt.None"]</option>
-                    @foreach (var p in _items)
-                    {
-                        <option value="@p.CodeID">[@p.CodeValue] @p.CodeName</option>
-                    }
-                </select>
-            </div>
-
             <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:8px;margin-top:6px;">
                 <div>
-                    <label>@L["MD.CommonCode.Lbl.SortOrder"]</label>
-                    <input type="number" class="ames-input" @bind="_fSortOrder" min="0" />
+                    <RadzenLabel Text='@L["MD.CommonCode.Lbl.SortOrder"]' /><br />
+                    <RadzenNumeric TValue="int" @bind-Value="_fSortOrder" Style="width:100%;" />
                 </div>
                 <div>
-                    <label>@L["Col.Attr1"]</label>
-                    <input class="ames-input" @bind="_fAttribute1" autocomplete="off" />
+                    <RadzenLabel Text='@L["Col.Attr1"]' /><br />
+                    <RadzenTextBox @bind-Value="_fAttribute1" Style="width:100%;" autocomplete="off" />
                 </div>
                 <div>
-                    <label>@L["MD.CommonCode.Lbl.Description"]</label>
-                    <input class="ames-input" @bind="_fItemDescription" autocomplete="off" />
+                    <RadzenLabel Text='@L["MD.CommonCode.Lbl.Description"]' /><br />
+                    <RadzenTextBox @bind-Value="_fItemDescription" Style="width:100%;" autocomplete="off" />
                 </div>
             </div>
-
-            <label style="margin-top:8px;display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" @bind="_fItemUseFlag" style="accent-color:#60a5fa;" /> @L["MD.CommonCode.Lbl.UseFlag"]
-            </label>
-
+            <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+                <RadzenCheckBox TValue="bool" @bind-Value="_fItemUseFlag" />
+                <RadzenLabel Text='@L["MD.CommonCode.Lbl.UseFlag"]' Style="cursor:pointer;" />
+            </div>
             @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div> }
-
-            <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="SaveItemCreate" disabled="@_busy">
-                    @(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)
-                </button>
-                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
-            </div>
+            { <RadzenAlert AlertStyle="AlertStyle.Danger" ShowIcon="false" Variant="Variant.Flat" class="ames-alert-rz" Style="margin-top:8px;">@_modalErr</RadzenAlert> }
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text='@(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)' Click="SaveItemCreate" Disabled="_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text='@L["Btn.Cancel"]' Click="CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
 
-@* ── 코드 항목 수정/삭제 모달 ───────────────────────────────────────── *@
+@* ── 코드 항목 수정/삭제 모달 ────────────────────────────────────────── *@
 @if (_modal == "item-edit")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
         <div class="ames-modal" style="max-width:560px;" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.CommonCode.Item.Edit"] — <span class="code" style="font-weight:400;font-size:.9em;">@_fCodeId</span></div>
-
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>
-                    <label>@L["MD.CommonCode.Lbl.CodeValue"]</label>
-                    <input class="ames-input" @bind="_fCodeValue" autocomplete="off" maxlength="20" />
+                    <RadzenLabel Text='@L["MD.CommonCode.Lbl.CodeValue"]' /><br />
+                    <RadzenTextBox @bind-Value="_fCodeValue" MaxLength="20" Style="width:100%;" autocomplete="off" />
                 </div>
                 <div>
-                    <label>@L["MD.CommonCode.Lbl.CodeId"]</label>
-                    <input class="ames-input" value="@_fCodeId" disabled style="opacity:.6;cursor:not-allowed;" />
-                </div>
-            </div>
-
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
-                <div>
-                    <label>@L["MD.CommonCode.Lbl.CodeName"]</label>
-                    <input class="ames-input" @bind="_fCodeName" autocomplete="off" />
+                    <RadzenLabel Text='@L["MD.CommonCode.Lbl.CodeId"]' /><br />
+                    <RadzenTextBox Value="@_fCodeId" Disabled="true" Style="width:100%;opacity:.6;" />
                 </div>
                 <div>
-                    <label>@L["MD.CommonCode.Lbl.CodeNameEn"]</label>
-                    <input class="ames-input" @bind="_fCodeNameEn" autocomplete="off" />
+                    <RadzenLabel Text='@L["MD.CommonCode.Lbl.CodeName"]' /><br />
+                    <RadzenTextBox @bind-Value="_fCodeName" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div>
+                    <RadzenLabel Text='@L["MD.CommonCode.Lbl.CodeNameEn"]' /><br />
+                    <RadzenTextBox @bind-Value="_fCodeNameEn" Style="width:100%;" autocomplete="off" />
+                </div>
+                <div style="grid-column:span 2;">
+                    <RadzenLabel Text='@($"{L["MD.CommonCode.Lbl.ParentCode"]} {L["MD.CommonCode.Lbl.ParentCodeOpt"]}")' /><br />
+                    <RadzenDropDown @bind-Value="_fParentCodeId"
+                                    Data="@(_items.Where(i => i.CodeID != _fCodeId).Select(p => new DropDownItem { Value = p.CodeID, Text = $"[{p.CodeValue}] {p.CodeName}" }))"
+                                    TextProperty="Text" ValueProperty="Value"
+                                    AllowClear="true" Placeholder='@L["MD.CommonCode.Opt.None"]' Style="width:100%;" />
                 </div>
             </div>
-
-            <div style="margin-top:6px;">
-                <label>@L["MD.CommonCode.Lbl.ParentCode"] <span class="dim" style="font-size:.82em;">@L["MD.CommonCode.Lbl.ParentCodeOpt"]</span></label>
-                <select class="ames-input" @bind="_fParentCodeId">
-                    <option value="">@L["MD.CommonCode.Opt.None"]</option>
-                    @foreach (var p in _items.Where(i => i.CodeID != _fCodeId))
-                    {
-                        <option value="@p.CodeID">[@p.CodeValue] @p.CodeName</option>
-                    }
-                </select>
-            </div>
-
             <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:8px;margin-top:6px;">
                 <div>
-                    <label>@L["MD.CommonCode.Lbl.SortOrder"]</label>
-                    <input type="number" class="ames-input" @bind="_fSortOrder" min="0" />
+                    <RadzenLabel Text='@L["MD.CommonCode.Lbl.SortOrder"]' /><br />
+                    <RadzenNumeric TValue="int" @bind-Value="_fSortOrder" Style="width:100%;" />
                 </div>
                 <div>
-                    <label>@L["Col.Attr1"]</label>
-                    <input class="ames-input" @bind="_fAttribute1" autocomplete="off" />
+                    <RadzenLabel Text='@L["Col.Attr1"]' /><br />
+                    <RadzenTextBox @bind-Value="_fAttribute1" Style="width:100%;" autocomplete="off" />
                 </div>
                 <div>
-                    <label>@L["MD.CommonCode.Lbl.Description"]</label>
-                    <input class="ames-input" @bind="_fItemDescription" autocomplete="off" />
+                    <RadzenLabel Text='@L["MD.CommonCode.Lbl.Description"]' /><br />
+                    <RadzenTextBox @bind-Value="_fItemDescription" Style="width:100%;" autocomplete="off" />
                 </div>
             </div>
-
-            <label style="margin-top:8px;display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input type="checkbox" @bind="_fItemUseFlag" style="accent-color:#60a5fa;" /> @L["MD.CommonCode.Lbl.UseFlag"]
-            </label>
-
+            <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+                <RadzenCheckBox TValue="bool" @bind-Value="_fItemUseFlag" />
+                <RadzenLabel Text='@L["MD.CommonCode.Lbl.UseFlag"]' Style="cursor:pointer;" />
+            </div>
             @if (_itemConfirmDelete)
             {
-                <div class="ames-delete-confirm">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
                     <span>@string.Format(L["MD.CommonCode.ConfirmItemDelete"].Value, _fCodeId, _fCodeName)</span>
-                    <button class="ames-btn ghost" @onclick='() => _itemConfirmDelete = false'>@L["Msg.No"]</button>
-                    <button class="ames-btn bad" @onclick="SaveItemDelete" disabled="@_busy">
-                        @(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)
-                    </button>
-                </div>
+                    <RadzenButton Text='@L["Msg.No"]' Click='() => _itemConfirmDelete = false' ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                    <RadzenButton Text='@(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)' Click="SaveItemDelete" Disabled="_busy" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                </RadzenStack>
             }
-
             @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad" style="margin-top:8px;">@_modalErr</div> }
-
-            <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="SaveItemEdit" disabled="@_busy">
-                    @(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)
-                </button>
-                <button class="ames-btn bad" @onclick='() => { _itemConfirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
-            </div>
+            { <RadzenAlert AlertStyle="AlertStyle.Danger" ShowIcon="false" Variant="Variant.Flat" class="ames-alert-rz" Style="margin-top:8px;">@_modalErr</RadzenAlert> }
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text='@(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)' Click="SaveItemEdit" Disabled="_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text='@L["Btn.Delete"]' Click='() => { _itemConfirmDelete = true; _modalErr = ""; }' Disabled="_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text='@L["Btn.Cancel"]' Click="CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
 
 @code {
-    // ── State ────────────────────────────────────────────────────────────
     List<MasterDataRepository.CodeGroupRow> _groups = new();
     List<MasterDataRepository.CodeItemRow>  _items  = new();
     MasterDataRepository.CodeGroupRow?      _selGroup;
-    int _page = 0;
-    const int _pageSize = 20;
+    int[] _pageSizeOptions = { 15, 30, 50 };
 
     string _modal             = "";
     string _modalErr          = "";
@@ -373,25 +319,41 @@
     bool   _canEdit;
     string _actor             = "system";
 
-    // ── Group form fields ────────────────────────────────────────────────
     string _fGroupCode   = "";
     string _fGroupName   = "";
     string _fGroupNameEn = "";
     string _fDescription = "";
     bool   _fUseFlag     = true;
 
-    // ── Item form fields ─────────────────────────────────────────────────
-    string _fCodeId          = "";
-    string _fCodeValue       = "";
-    string _fCodeName        = "";
-    string _fCodeNameEn      = "";
-    string _fParentCodeId    = "";
-    int    _fSortOrder       = 0;
-    string _fAttribute1      = "";
-    bool   _fItemUseFlag     = true;
-    string _fItemDescription = "";
+    string  _fCodeId          = "";
+    string  _fCodeValue       = "";
+    string  _fCodeName        = "";
+    string  _fCodeNameEn      = "";
+    string? _fParentCodeId;
+    int     _fSortOrder       = 0;
+    string  _fAttribute1      = "";
+    bool    _fItemUseFlag     = true;
+    string  _fItemDescription = "";
 
-    // ── Init ─────────────────────────────────────────────────────────────
+    void GrpRowRender(RowRenderEventArgs<MasterDataRepository.CodeGroupRow> args)
+    {
+        var cls = "ames-row-link";
+        if (_selGroup?.GroupCode == args.Data?.GroupCode) cls += " ames-row-selected";
+        args.Attributes["class"] = cls;
+    }
+
+    void ItemRowRender(RowRenderEventArgs<MasterDataRepository.CodeItemRow> args)
+    {
+        if (!args.Attributes.TryGetValue("class", out var cls)) cls = "";
+        args.Attributes["class"] = cls + " ames-row-link";
+    }
+
+    void OnGroupRowSelect(MasterDataRepository.CodeGroupRow g)
+    {
+        if (_canEdit) OpenGroupEdit(g);
+        else SelectGroup(g);
+    }
+
     protected override async Task OnInitializedAsync()
     {
         var auth = await Auth.GetAuthenticationStateAsync();
@@ -401,7 +363,7 @@
         LoadGroups();
     }
 
-    void LoadGroups() { _page = 0; try { _groups = Md.ListCodeGroups(); } catch { _groups = new(); } }
+    void LoadGroups() { try { _groups = Md.ListCodeGroups(); } catch { _groups = new(); } }
 
     void LoadItems()
     {
@@ -411,7 +373,6 @@
 
     void SelectGroup(MasterDataRepository.CodeGroupRow g) { _selGroup = g; LoadItems(); }
 
-    // ── Modal helpers ─────────────────────────────────────────────────────
     void CloseModal() { _modal = ""; _modalErr = ""; _grpConfirmDelete = false; _itemConfirmDelete = false; }
     void OnBgDown()  => _bgDown = true;
     void OnBgClick() { if (_bgDown) CloseModal(); _bgDown = false; }
@@ -422,7 +383,6 @@
         _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
     }
 
-    // ── CodeGroup CRUD ────────────────────────────────────────────────────
     void OpenGroupCreate()
     {
         _fGroupCode = ""; _fGroupName = ""; _fGroupNameEn = "";
@@ -495,31 +455,31 @@
         finally { _busy = false; }
     }
 
-    // ── CodeItem CRUD ────────────────────────────────────────────────────
     void OpenItemCreate()
     {
         int next = _items.Count > 0 ? (_items.Max(i => i.SortOrder ?? 0) + 10) : 10;
         _fCodeId = ""; _fCodeValue = ""; _fCodeName = ""; _fCodeNameEn = "";
-        _fParentCodeId = ""; _fSortOrder = next; _fAttribute1 = "";
+        _fParentCodeId = null; _fSortOrder = next; _fAttribute1 = "";
         _fItemUseFlag = true; _fItemDescription = "";
         _itemConfirmDelete = false; _modalErr = "";
         _modal = "item-create";
     }
 
-    void OnCodeValueInput(ChangeEventArgs e)
+    void OnCodeValueInput(string? v)
     {
-        _fCodeValue = e.Value?.ToString() ?? "";
-        var s = (_selGroup!.GroupCode + "_" + _fCodeValue.Trim().ToUpper());
+        _fCodeValue = v ?? "";
+        var s = _selGroup!.GroupCode + "_" + _fCodeValue.Trim().ToUpper();
         _fCodeId = s.Length <= 24 ? s : s[..24];
     }
 
     void OpenItemEdit(MasterDataRepository.CodeItemRow item)
     {
+        if (!_canEdit) return;
         _fCodeId          = item.CodeID;
         _fCodeValue       = item.CodeValue    ?? "";
         _fCodeName        = item.CodeName     ?? "";
         _fCodeNameEn      = item.CodeNameEn   ?? "";
-        _fParentCodeId    = item.ParentCodeID ?? "";
+        _fParentCodeId    = item.ParentCodeID;
         _fSortOrder       = item.SortOrder    ?? 0;
         _fAttribute1      = item.Attribute1   ?? "";
         _fItemUseFlag     = item.UseFlag;
@@ -542,7 +502,7 @@
             if (Md.CodeItemExists(id)) { _modalErr = $"CodeID '{id}' {L["Err.AlreadyExists"]}"; return; }
             Md.InsertCodeItem(id, _selGroup!.GroupCode, _fCodeValue.Trim(), _fCodeName.Trim(),
                 N(_fCodeNameEn), _fSortOrder, N(_fAttribute1), _fItemUseFlag, N(_fItemDescription), _actor,
-                N(_fParentCodeId));
+                _fParentCodeId);
             LoadItems(); CloseModal();
             ShowMsg($"{id} 항목 {L["Msg.Created"]}", false);
         }
@@ -560,7 +520,7 @@
         {
             Md.UpdateCodeItem(_fCodeId, _fCodeValue.Trim(), _fCodeName.Trim(),
                 N(_fCodeNameEn), _fSortOrder, N(_fAttribute1), _fItemUseFlag, N(_fItemDescription), _actor,
-                N(_fParentCodeId));
+                _fParentCodeId);
             LoadItems(); CloseModal();
             ShowMsg($"{_fCodeId} {L["Msg.Updated"]}", false);
         }
@@ -581,5 +541,7 @@
         finally { _busy = false; }
     }
 
-    static string? N(string s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+    static string? N(string? s) => string.IsNullOrWhiteSpace(s) ? null : s?.Trim();
+
+    class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 }

@@ -1,14 +1,13 @@
-@page "/md/re/mold"
+﻿@page "/md/re/mold"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MasterDataRepository Md
 @inject AuthenticationStateProvider Auth
 @inject AMES.Web.Services.PermissionService Perm
 @inject IStringLocalizer<SharedResources> L
+@using Radzen
 
 <PageTitle>@L["MD.Mold.Title"] · AMES</PageTitle>
-
-<AmesPageHeader Code="MD-007" TitleKey="MD.Mold.Title" />
 
 <div class="ames-kpis">
     <div class="ames-kpi">
@@ -31,92 +30,91 @@
 
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MD.Mold.List"] · @_rows.Count @L["Lbl.Items"]@if (_rows.Count < _allRows.Count) { <text> / @L["Lbl.TotalOf"] @_allRows.Count</text> }</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input class="ames-input" style="width:140px;padding:4px 8px;"
-                   placeholder='@L["MD.Mold.Ph.Search"]' @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
-            <select class="ames-input" style="width:120px;" @bind="_fStatus">
-                <option value="">@L["Filter.AllStatus"]</option>
-                @foreach (var s in _moldStatus.Where(s => s.UseFlag))
-                {
-                    <option value="@s.CodeValue">[@s.CodeValue] @(MasterDataRepository.LocalName(s))</option>
-                }
-            </select>
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.StorageLoc"]</span>
-            <select class="ames-input" style="width:120px;" @bind="_fLoc">
-                <option value="">@L["Filter.AllLocations"]</option>
-                @foreach (var l in _allRows.Select(r => r.StorageLoc).Where(x => x != null).Distinct().OrderBy(x => x))
-                {
-                    <option value="@l">@l</option>
-                }
-            </select>
-            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
-            @if (_canEdit) { <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button> }
-        </div>
+        <span style="white-space:nowrap;">▼ @L["MD.Mold.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fSearch" Placeholder='@L["MD.Mold.Ph.Search"]'
+                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" AutoComplete="false"
+                           @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' />
+            <RadzenLabel Text="@L["Col.Status"]" />
+            <RadzenDropDown @bind-Value="_fStatus" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value"
+                            AllowClear="true" Placeholder="@L["Filter.AllStatus"]"
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenLabel Text="@L["Col.StorageLoc"]" />
+            <RadzenDropDown @bind-Value="_fLoc" Data="@LocFilterOptions" TextProperty="Text" ValueProperty="Value"
+                            AllowClear="true" Placeholder="@L["Filter.AllLocations"]"
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
+            @if (_canEdit) { <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" /> }
+        </RadzenStack>
     </div>
 
-    @if (_rows.Count == 0)
-    {
-        <div class="ames-empty">@L["MD.Mold.Empty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["Col.MoldId"]</th><th>@L["Col.MoldName"]</th>
-                    <th style="text-align:right;">@L["Col.Cavities"]</th>
-                    <th style="text-align:right;">@L["Col.Tonnage"]</th>
-                    <th style="text-align:right;">@L["Col.ShotsLifetime"]</th>
-                    <th style="text-align:right;">@L["Col.ShotsCurrent"]</th>
-                    <th style="text-align:right;">@L["Col.UsagePct"]</th>
-                    <th>@L["Col.StorageLoc"]</th>
-                    <th>@L["Col.LastMaint"]</th>
-                    <th>@L["Col.Status"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    var pct = r.RatedShots.HasValue && r.RatedShots > 0 && r.CurrentShots.HasValue
-                        ? (double)r.CurrentShots.Value / r.RatedShots.Value * 100
-                        : (double?)null;
-                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
-                        <td class="code">@r.MoldID</td>
-                        <td>@(r.MoldName ?? "—")</td>
-                        <td style="text-align:right;">@(r.CavityCount?.ToString() ?? "—")</td>
-                        <td style="text-align:right;">@(r.Tonnage?.ToString("N0") ?? "—")</td>
-                        <td style="text-align:right;">@(r.RatedShots?.ToString("N0") ?? "—")</td>
-                        <td style="text-align:right;">@(r.CurrentShots?.ToString("N0") ?? "—")</td>
-                        <td style="text-align:right;">
-                            @if (pct.HasValue)
-                            {
-                                var cls = pct >= 100 ? "bad" : pct >= 80 ? "warn" : "ok";
-                                <span class="pill @cls">@pct.Value.ToString("N1")%</span>
-                            }
-                            else { <span class="dim">—</span> }
-                        </td>
-                        <td class="dim">@(r.StorageLoc ?? "—")</td>
-                        <td class="dim">@(r.LastMaintDate?.ToString("yyyy-MM-dd") ?? "—")</td>
-                        <td>
-                            @{
-                                var scls = r.Status switch { "AVAILABLE" => "ok", "MOUNTED" => "info", _ => "bad" };
-                                var sLabel = _moldStatus.FirstOrDefault(s => s.CodeValue == r.Status) is { } _lf_ ? MasterDataRepository.LocalName(_lf_) : r.Status;
-                            }
-                            <span class="pill @scls">@(sLabel ?? "—")</span>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
-    }
+    <RadzenDataGrid TItem="AMES.Data.Repositories.MasterDataRepository.MoldRow"
+                    Data="@_rows"
+                    AllowPaging="true" PageSize="25"
+                    PagerHorizontalAlign="HorizontalAlign.Center"
+                    PageSizeOptions="@_pageSizeOptions"
+                    ShowPagingSummary="true"
+                    AllowSorting="true"
+                    RowRender="@MoldRowRender"
+                    RowClick="@(args => { if (args.Data is not null) OpenEdit(args.Data); })"
+                    EmptyText="@L["MD.Mold.Empty"]"
+                    Class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.MoldRow" Property="MoldID" Title="@L["Col.MoldId"]" Width="110px">
+                <Template Context="r"><span class="code">@r.MoldID</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.MoldRow" Property="MoldName" Title="@L["Col.MoldName"]">
+                <Template Context="r">@(r.MoldName ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.MoldRow" Property="CavityCount" Title="@L["Col.Cavities"]" Width="70px" TextAlign="TextAlign.Right">
+                <Template Context="r">@(r.CavityCount?.ToString() ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.MoldRow" Property="Tonnage" Title="@L["Col.Tonnage"]" Width="80px" TextAlign="TextAlign.Right">
+                <Template Context="r">@(r.Tonnage?.ToString("N0") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.MoldRow" Property="RatedShots" Title="@L["Col.ShotsLifetime"]" Width="100px" TextAlign="TextAlign.Right">
+                <Template Context="r">@(r.RatedShots?.ToString("N0") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.MoldRow" Property="CurrentShots" Title="@L["Col.ShotsCurrent"]" Width="100px" TextAlign="TextAlign.Right">
+                <Template Context="r">@(r.CurrentShots?.ToString("N0") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.MoldRow" Title="@L["Col.UsagePct"]" Width="80px" TextAlign="TextAlign.Right" Sortable="false">
+                <Template Context="r">
+                    @{
+                        var pct = r.RatedShots.HasValue && r.RatedShots > 0 && r.CurrentShots.HasValue
+                            ? (double)r.CurrentShots.Value / r.RatedShots.Value * 100
+                            : (double?)null;
+                    }
+                    @if (pct.HasValue)
+                    {
+                        var cls = pct.Value >= 100 ? "bad" : pct.Value >= 80 ? "warn" : "ok";
+                        <span class="pill @cls">@pct.Value.ToString("N1")%</span>
+                    }
+                    else { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.MoldRow" Property="StorageLoc" Title="@L["Col.StorageLoc"]" Width="100px">
+                <Template Context="r"><span class="dim">@(r.StorageLoc ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.MoldRow" Property="LastMaintDate" Title="@L["Col.LastMaint"]" Width="100px">
+                <Template Context="r"><span class="dim">@(r.LastMaintDate?.ToString("yyyy-MM-dd") ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.MoldRow" Property="Status" Title="@L["Col.Status"]" Width="110px" TextAlign="TextAlign.Center">
+                <Template Context="r">
+                    @{
+                        var scls   = r.Status switch { "AVAILABLE" => "ok", "MOUNTED" => "info", _ => "bad" };
+                        var sLabel = _moldStatus.FirstOrDefault(s => s.CodeValue == r.Status) is { } lf ? MasterDataRepository.LocalName(lf) : r.Status;
+                    }
+                    <span class="pill @scls">@(sLabel ?? "—")</span>
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 </div>
 
 @* ── Create Modal ─────────────────────────────────────────────────── *@
@@ -126,58 +124,72 @@
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Mold.Title"] — @L["Btn.Create"]</div>
 
-            <label>@L["Col.MoldId"] * <span style="font-weight:400;color:#64748b;font-size:.85em;">(예: MLD-INJ-001)</span></label>
-            <input class="ames-input" @bind="_f.MoldID" placeholder="MLD-INJ-001" autocomplete="off" />
-
-            <label>@L["Col.MoldName"] *</label>
-            <input class="ames-input" @bind="_f.MoldName" placeholder='@L["MD.Mold.Ph.MoldName"]' autocomplete="off" />
-
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>
-                    <label>@L["Col.Cavities"]</label>
-                    <input class="ames-input" type="number" @bind="_f.CavityCount" min="1" autocomplete="off" />
+                    <RadzenLabel Text='@(L["Col.MoldId"] + " *")' />
+                    <RadzenTextBox @bind-Value="_f.MoldID" Placeholder="MLD-INJ-001" AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
-                    <label>@L["Col.Tonnage"]</label>
-                    <input class="ames-input" type="number" @bind="_f.Tonnage" min="0" autocomplete="off" />
+                    <RadzenLabel Text='@(L["Col.MoldName"] + " *")' />
+                    <RadzenTextBox @bind-Value="_f.MoldName" Placeholder='@L["MD.Mold.Ph.MoldName"]' AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
                 <div>
-                    <label>@L["Col.ShotsLifetime"]</label>
-                    <input class="ames-input" type="number" @bind="_f.RatedShots" min="0" autocomplete="off" />
+                    <RadzenLabel Text="@L["Col.Cavities"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.CavityCount" Min="1"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
-                    <label>@L["Col.ShotsCurrent"]</label>
-                    <input class="ames-input" type="number" @bind="_f.CurrentShots" min="0" autocomplete="off" />
+                    <RadzenLabel Text="@L["Col.Tonnage"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.Tonnage" Min="0"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
-            <label style="margin-top:6px;">@L["MD.Mold.StoreLoc"]</label>
-            <input class="ames-input" @bind="_f.StorageLoc" placeholder='@L["MD.Mold.Ph.StorageLoc"]' maxlength="20" autocomplete="off" />
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+                <div>
+                    <RadzenLabel Text="@L["Col.ShotsLifetime"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.RatedShots" Min="0"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="@L["Col.ShotsCurrent"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.CurrentShots" Min="0"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+            </div>
 
-            <label>@L["Col.LastMaint"]</label>
-            <input type="date" class="ames-input"
-                   value="@(_f.LastMaintDate?.ToString("yyyy-MM-dd"))"
-                   @oninput="e => _f.LastMaintDate = ParseDate(e.Value?.ToString())" />
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+                <div>
+                    <RadzenLabel Text="@L["MD.Mold.StoreLoc"]" />
+                    <RadzenTextBox @bind-Value="_f.StorageLoc" Placeholder='@L["MD.Mold.Ph.StorageLoc"]' AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="@L["Col.LastMaint"]" />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.LastMaintDate" DateFormat="yyyy-MM-dd"
+                                      InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+            </div>
 
-            <label>@L["Col.Status"]</label>
-            <select class="ames-input" @bind="_f.Status">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var s in _moldStatus.Where(s => s.UseFlag))
-                {
-                    <option value="@s.CodeValue">[@s.CodeValue] @(MasterDataRepository.LocalName(s))</option>
-                }
-            </select>
+            <RadzenLabel Text="@L["Col.Status"]" Style="margin-top:6px;" />
+            <RadzenDropDown @bind-Value="_f.Status" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value"
+                            Placeholder="@L["Opt.Select"]"
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:50%;" />
 
             @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad">@_modalErr</div> }
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="margin-top:8px;">@_modalErr</RadzenAlert>
+            }
 
-            <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? @L["Msg.Saving"] : @L["Btn.Create"])</button>
-                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Create"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveCreate" Disabled="@_busy" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseModal" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
@@ -189,79 +201,91 @@
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Mold.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.MoldID</span></div>
 
-            <label>@L["Col.MoldName"] *</label>
-            <input class="ames-input" @bind="_f.MoldName" autocomplete="off" />
-
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>
-                    <label>@L["Col.Cavities"]</label>
-                    <input class="ames-input" type="number" @bind="_f.CavityCount" min="1" autocomplete="off" />
+                    <RadzenLabel Text='@(L["Col.MoldName"] + " *")' />
+                    <RadzenTextBox @bind-Value="_f.MoldName" AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
-                    <label>@L["Col.Tonnage"]</label>
-                    <input class="ames-input" type="number" @bind="_f.Tonnage" min="0" autocomplete="off" />
+                    <RadzenLabel Text="@L["Col.Status"]" />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value"
+                                    Placeholder="@L["Opt.Select"]"
+                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
                 <div>
-                    <label>@L["Col.ShotsLifetime"]</label>
-                    <input class="ames-input" type="number" @bind="_f.RatedShots" min="0" autocomplete="off" />
+                    <RadzenLabel Text="@L["Col.Cavities"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.CavityCount" Min="1"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
-                    <label>@L["Col.ShotsCurrent"]</label>
-                    <input class="ames-input" type="number" value="@_f.CurrentShots" readonly style="background:#94a3b8;color:#1e293b;cursor:not-allowed;" />
+                    <RadzenLabel Text="@L["Col.Tonnage"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.Tonnage" Min="0"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
-            <label style="margin-top:6px;">@L["MD.Mold.StoreLoc"]</label>
-            <input class="ames-input" @bind="_f.StorageLoc" maxlength="20" autocomplete="off" />
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+                <div>
+                    <RadzenLabel Text="@L["Col.ShotsLifetime"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.RatedShots" Min="0"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="@L["Col.ShotsCurrent"]" />
+                    <RadzenNumeric TValue="int?" Value="_f.CurrentShots" Disabled="true"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+            </div>
 
-            <label>@L["Col.LastMaint"]</label>
-            <input type="date" class="ames-input"
-                   value="@(_f.LastMaintDate?.ToString("yyyy-MM-dd"))"
-                   @oninput="e => _f.LastMaintDate = ParseDate(e.Value?.ToString())" />
-
-            <label>@L["Col.Status"]</label>
-            <select class="ames-input" @bind="_f.Status">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var s in _moldStatus.Where(s => s.UseFlag))
-                {
-                    <option value="@s.CodeValue">[@s.CodeValue] @(MasterDataRepository.LocalName(s))</option>
-                }
-            </select>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+                <div>
+                    <RadzenLabel Text="@L["MD.Mold.StoreLoc"]" />
+                    <RadzenTextBox @bind-Value="_f.StorageLoc" AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="@L["Col.LastMaint"]" />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.LastMaintDate" DateFormat="yyyy-MM-dd"
+                                      InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+            </div>
 
             @if (_confirmDelete)
             {
-                <div class="ames-delete-confirm">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
                     <span>@L["Msg.Confirm.Delete"]</span>
-                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
-                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? @L["Msg.Deleting"] : @L["Msg.Yes"])</button>
-                </div>
+                    <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _confirmDelete = false' class="ames-rz-btn" />
+                    <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
+                </RadzenStack>
             }
 
             @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad">@_modalErr</div> }
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="margin-top:8px;">@_modalErr</RadzenAlert>
+            }
 
-            <div class="ames-modal-footer">
-                <button class="ames-btn"  @onclick="SaveEdit"   disabled="@_busy">@(_busy ? @L["Msg.Saving"] : @L["Btn.Edit"])</button>
-                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn ghost"     @onclick="CloseModal">@L["Btn.Cancel"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Edit"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveEdit" Disabled="@_busy" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseModal" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
 
 @code {
-    List<AMES.Data.Repositories.MasterDataRepository.MoldRow>    _allRows    = new();
-    List<AMES.Data.Repositories.MasterDataRepository.MoldRow>    _rows       = new();
+    List<AMES.Data.Repositories.MasterDataRepository.MoldRow>     _allRows    = new();
+    List<AMES.Data.Repositories.MasterDataRepository.MoldRow>     _rows       = new();
     List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _moldStatus = new();
     AMES.Data.Repositories.MasterDataRepository.MoldRow? _sel;
 
-    int _page = 0;
-    const int _pageSize = 20;
-
-    string _fSearch = "", _fStatus = "", _fLoc = "";
+    string _fSearch = "";
+    string? _fStatus, _fLoc;
+    int[] _pageSizeOptions = { 15, 30, 50, 100 };
 
     string _modal = "";
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
@@ -283,13 +307,27 @@
 
     void Reload() { _allRows = Md.ListMolds(); ApplyFilter(); }
 
-    void ApplyFilter() { _page = 0; _rows = _allRows.Where(r =>
+    void ApplyFilter() { _rows = _allRows.Where(r =>
         (string.IsNullOrEmpty(_fSearch) ||
             r.MoldID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.MoldName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
-        (string.IsNullOrEmpty(_fStatus) || r.Status    == _fStatus) &&
+        (string.IsNullOrEmpty(_fStatus) || r.Status     == _fStatus) &&
         (string.IsNullOrEmpty(_fLoc)    || r.StorageLoc == _fLoc)
     ).ToList(); }
+
+    IEnumerable<DropDownItem> StatusOptions =>
+        _moldStatus.Where(s => s.UseFlag)
+            .Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}" });
+
+    IEnumerable<DropDownItem> LocFilterOptions =>
+        _allRows.Select(r => r.StorageLoc).Where(x => x != null).Distinct().OrderBy(x => x)
+            .Select(l => new DropDownItem { Value = l!, Text = l! });
+
+    void MoldRowRender(RowRenderEventArgs<AMES.Data.Repositories.MasterDataRepository.MoldRow> args)
+    {
+        if (!args.Attributes.TryGetValue("class", out var cls)) cls = "";
+        args.Attributes["class"] = cls + " ames-row-link";
+    }
 
     void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
 
@@ -299,15 +337,15 @@
         _sel = r; _modalErr = ""; _confirmDelete = false;
         _f = new()
         {
-            MoldID       = r.MoldID,
-            MoldName     = r.MoldName     ?? "",
-            RatedShots   = r.RatedShots,
-            CurrentShots = r.CurrentShots,
-            CavityCount  = r.CavityCount,
-            Tonnage      = r.Tonnage,
-            StorageLoc   = r.StorageLoc   ?? "",
+            MoldID        = r.MoldID,
+            MoldName      = r.MoldName      ?? "",
+            RatedShots    = r.RatedShots,
+            CurrentShots  = r.CurrentShots,
+            CavityCount   = r.CavityCount,
+            Tonnage       = r.Tonnage,
+            StorageLoc    = r.StorageLoc    ?? "",
             LastMaintDate = r.LastMaintDate,
-            Status       = r.Status       ?? "AVAILABLE",
+            Status        = r.Status        ?? "AVAILABLE",
         };
         _modal = "edit";
     }
@@ -318,7 +356,6 @@
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
     static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
-    static DateOnly? ParseDate(string? s) => DateOnly.TryParse(s, out var d) ? d : null;
 
     void SaveCreate()
     {
@@ -379,16 +416,18 @@
         _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
     }
 
+    class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+
     class FormModel
     {
-        public string   MoldID        { get; set; } = "";
-        public string   MoldName      { get; set; } = "";
-        public int?     RatedShots    { get; set; }
-        public int?     CurrentShots  { get; set; }
-        public int?     CavityCount   { get; set; }
-        public int?     Tonnage       { get; set; }
-        public string   StorageLoc    { get; set; } = "";
+        public string    MoldID        { get; set; } = "";
+        public string    MoldName      { get; set; } = "";
+        public int?      RatedShots    { get; set; }
+        public int?      CurrentShots  { get; set; }
+        public int?      CavityCount   { get; set; }
+        public int?      Tonnage       { get; set; }
+        public string    StorageLoc    { get; set; } = "";
         public DateOnly? LastMaintDate { get; set; }
-        public string   Status        { get; set; } = "AVAILABLE";
+        public string    Status        { get; set; } = "AVAILABLE";
     }
 }

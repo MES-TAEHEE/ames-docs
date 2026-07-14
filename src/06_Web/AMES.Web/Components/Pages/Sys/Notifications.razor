@@ -1,4 +1,4 @@
-@page "/sys/notifications"
+﻿@page "/sys/notifications"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.SysRepository Sys
@@ -7,10 +7,9 @@
 @inject AuthenticationStateProvider Auth
 @inject AMES.Web.Services.PermissionService Perm
 @inject IStringLocalizer<SharedResources> L
+@using Radzen
 
 <PageTitle>SYS-008 @L["SYS.Notifications.Title"] · AMES</PageTitle>
-
-<AmesPageHeader Code="SYS-008" TitleKey="SYS.Notifications.Title" />
 
 <div class="ames-kpis">
     <div class="ames-kpi">
@@ -58,7 +57,7 @@
         <button class="ames-cal-tab @(_tab == "history"  ? "active" : "")" @onclick='() => _tab = "history"'>@L["SYS.Notifications.Tab.History"]</button>
     </div>
     <div style="flex:1;"></div>
-    <button class="ames-btn ok" @onclick="Reload" style="align-self:center;">@L["Btn.Reload"]</button>
+    <RadzenButton Text="@L["Btn.Reload"]" Icon="refresh" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" Style="align-self:center;" />
 </div>
 
 @* ══════════════════ 탭 1: 알림 규칙 ══════════════════ *@
@@ -68,30 +67,26 @@
         <div class="ames-card-h" style="display:flex;flex-direction:column;gap:8px;">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
                 <span>▼ @L["SYS.Notifications.Rules.List"] · @_ruleRows.Count @L["Lbl.Items"]@(_ruleRows.Count < _rules.Count ? $" / {L["Lbl.TotalOf"]} {_rules.Count}" : "")</span>
-                @if (_canEdit) { <button class="ames-btn" @onclick="OpenRuleCreate">@L["Btn.Create"]</button> }
+                @if (_canEdit) { <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenRuleCreate" class="ames-rz-btn" /> }
             </div>
-            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-                <input class="ames-input" style="width:150px;padding:4px 8px;"
-                       placeholder="@L["SYS.Notifications.Ph.RuleSearch"]" @bind="_fRuleSearch" @bind:event="oninput"
-                       @onkeydown='e => { if (e.Key == "Enter") ApplyRuleFilter(); }' autocomplete="off" />
-                <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Module"]</span>
-                <select class="ames-input" style="width:130px;" @bind="_fRuleModule">
-                    <option value="">@L["SYS.Notifications.Filter.AllModules"]</option>
-                    @foreach (var m in _modules.Where(m => m.UseFlag))
-                    { <option value="@m.CodeValue">[@m.CodeValue] @MasterDataRepository.LocalName(m)</option> }
-                </select>
-                <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.ProcessCode"]</span>
-                <input class="ames-input" style="width:110px;padding:4px 8px;"
-                       placeholder="@L["SYS.Audit.Ph.Process"]" @bind="_fRuleProcess" @bind:event="oninput"
-                       @onkeydown='e => { if (e.Key == "Enter") ApplyRuleFilter(); }' autocomplete="off" />
-                <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
-                <select class="ames-input" style="width:130px;" @bind="_fRuleStatus">
-                    <option value="">@L["SYS.Notifications.Filter.AllEnabled"]</option>
-                    @foreach (var s in _notifStatusItems.Where(s => s.UseFlag))
-                    { <option value="@s.CodeValue">[@s.CodeValue] @MasterDataRepository.LocalName(s)</option> }
-                </select>
-                <button class="ames-btn ok" @onclick="ApplyRuleFilter">@L["Btn.Search"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem" Wrap="FlexWrap.Wrap">
+                <RadzenTextBox @bind-Value="_fRuleSearch" Placeholder="@L["SYS.Notifications.Ph.RuleSearch"]"
+                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" AutoComplete="false"
+                               @onkeydown='e => { if (e.Key == "Enter") ApplyRuleFilter(); }' />
+                <RadzenLabel Text="@L["Col.Module"]" />
+                <RadzenDropDown @bind-Value="_fRuleModule" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value"
+                                AllowClear="true" Placeholder="@L["SYS.Notifications.Filter.AllModules"]"
+                                InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+                <RadzenLabel Text="@L["Col.ProcessCode"]" />
+                <RadzenTextBox @bind-Value="_fRuleProcess" Placeholder="@L["SYS.Audit.Ph.Process"]"
+                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" AutoComplete="false"
+                               @onkeydown='e => { if (e.Key == "Enter") ApplyRuleFilter(); }' />
+                <RadzenLabel Text="@L["Col.Status"]" />
+                <RadzenDropDown @bind-Value="_fRuleStatus" Data="@NotifStatusOptions" TextProperty="Text" ValueProperty="Value"
+                                AllowClear="true" Placeholder="@L["SYS.Notifications.Filter.AllEnabled"]"
+                                InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
+                <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ApplyRuleFilter" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
 
         @if (_ruleRows.Count == 0)
@@ -100,35 +95,46 @@
         }
         else
         {
-            <table class="ames-table">
-                <thead>
-                    <tr>
-                        <th>@L["Col.EventCode"]</th><th>@L["Col.EventName"]</th>
-                        <th>@L["Col.Module"]</th><th>@L["Col.ProcessCode"]</th>
-                        <th>@L["Col.TriggerCond"]</th><th style="text-align:center;">@L["Col.Status"]</th>
-                        <th>@L["Col.Channel"]</th><th>@L["Col.RoleName"]</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var r in _ruleRows.Skip(_page * _pageSize).Take(_pageSize))
-                    {
-                        <tr class="ames-row-link" @onclick="() => OpenRuleEdit(r)">
-                            <td class="code">@(r.EventTypeCode ?? "—")</td>
-                            <td>@(r.EventName ?? "—")</td>
-                            <td><span class="pill info">@(r.ModuleCode ?? "—")</span></td>
-                            <td class="code dim" style="font-size:13px;">@(r.ProcessCode ?? "—")</td>
-                            <td class="dim" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">@(r.TriggerCondition ?? "—")</td>
-                            <td style="text-align:center;">
-                                @if (r.IsEnabled) { <span class="pill ok">@NotifStatusName("ACTIVE")</span> }
-                                else              { <span class="pill warn">@NotifStatusName("INACTIVE")</span> }
-                            </td>
-                            <td>@ChipList(ParseJsonList(r.ChannelsJson))</td>
-                            <td>@ChipList(ParseJsonList(r.RecipientRolesJson))</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-            <Pager Page="_page" Total="_ruleRows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
+            <RadzenDataGrid TItem="AMES.Data.Repositories.SysRepository.NotifRuleRow"
+                            Data="@_ruleRows"
+                            AllowPaging="true" PageSize="25"
+                            PagerHorizontalAlign="HorizontalAlign.Center"
+                            PageSizeOptions="@_pageSizeOptions"
+                            ShowPagingSummary="true"
+                            AllowSorting="true"
+                            RowRender="@RuleRowRender"
+                            RowClick="@(args => { if (args.Data is not null) OpenRuleEdit(args.Data); })"
+                            Class="ames-rz-grid">
+                <Columns>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifRuleRow" Property="EventTypeCode" Title="@L["Col.EventCode"]" Width="130px">
+                        <Template Context="r"><span class="code">@(r.EventTypeCode ?? "—")</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifRuleRow" Property="EventName" Title="@L["Col.EventName"]">
+                        <Template Context="r">@(r.EventName ?? "—")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifRuleRow" Property="ModuleCode" Title="@L["Col.Module"]" Width="90px">
+                        <Template Context="r"><span class="pill info">@(r.ModuleCode ?? "—")</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifRuleRow" Property="ProcessCode" Title="@L["Col.ProcessCode"]" Width="110px">
+                        <Template Context="r"><span class="code dim" style="font-size:13px;">@(r.ProcessCode ?? "—")</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifRuleRow" Property="TriggerCondition" Title="@L["Col.TriggerCond"]">
+                        <Template Context="r"><span class="dim" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;display:block;">@(r.TriggerCondition ?? "—")</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifRuleRow" Property="IsEnabled" Title="@L["Col.Status"]" Width="90px" TextAlign="TextAlign.Center">
+                        <Template Context="r">
+                            @if (r.IsEnabled) { <span class="pill ok">@NotifStatusName("ACTIVE")</span> }
+                            else { <span class="pill warn">@NotifStatusName("INACTIVE")</span> }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifRuleRow" Title="@L["Col.Channel"]" Width="120px" Sortable="false">
+                        <Template Context="r">@ChipList(ParseJsonList(r.ChannelsJson))</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifRuleRow" Title="@L["Col.RoleName"]" Width="120px" Sortable="false">
+                        <Template Context="r">@ChipList(ParseJsonList(r.RecipientRolesJson))</Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
         }
     </div>
 }
@@ -139,24 +145,20 @@
     <div class="ames-card">
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
             <span style="white-space:nowrap;">▼ @L["SYS.Notifications.History.List"] · @_histRows.Count @L["Lbl.Items"]@(_histRows.Count < _hist.Count ? $" / {L["Lbl.TotalOf"]} {_hist.Count}" : "")</span>
-            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-                <input class="ames-input" style="width:150px;padding:4px 8px;"
-                       placeholder="@L["SYS.Notifications.Ph.HistSearch"]" @bind="_fHistSearch" @bind:event="oninput"
-                       @onkeydown='e => { if (e.Key == "Enter") ApplyHistFilter(); }' autocomplete="off" />
-                <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Channel"]</span>
-                <select class="ames-input" style="width:130px;" @bind="_fHistChannel">
-                    <option value="">@L["SYS.Notifications.Filter.AllChannels"]</option>
-                    @foreach (var c in _channelCodes.Where(c => c.UseFlag))
-                    { <option value="@c.CodeValue">[@c.CodeValue] @MasterDataRepository.LocalName(c)</option> }
-                </select>
-                <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
-                <select class="ames-input" style="width:130px;" @bind="_fHistStatus">
-                    <option value="">@L["SYS.Notifications.Filter.AllEnabled"]</option>
-                    @foreach (var s in _deliveryStatusItems.Where(s => s.UseFlag))
-                    { <option value="@s.CodeValue">[@s.CodeValue] @MasterDataRepository.LocalName(s)</option> }
-                </select>
-                <button class="ames-btn ok" @onclick="ApplyHistFilter">@L["Btn.Search"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem" Wrap="FlexWrap.Wrap">
+                <RadzenTextBox @bind-Value="_fHistSearch" Placeholder="@L["SYS.Notifications.Ph.HistSearch"]"
+                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" AutoComplete="false"
+                               @onkeydown='e => { if (e.Key == "Enter") ApplyHistFilter(); }' />
+                <RadzenLabel Text="@L["Col.Channel"]" />
+                <RadzenDropDown @bind-Value="_fHistChannel" Data="@ChannelCodeOptions" TextProperty="Text" ValueProperty="Value"
+                                AllowClear="true" Placeholder="@L["SYS.Notifications.Filter.AllChannels"]"
+                                InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
+                <RadzenLabel Text="@L["Col.Status"]" />
+                <RadzenDropDown @bind-Value="_fHistStatus" Data="@DeliveryStatusOptions" TextProperty="Text" ValueProperty="Value"
+                                AllowClear="true" Placeholder="@L["SYS.Notifications.Filter.AllEnabled"]"
+                                InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
+                <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ApplyHistFilter" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
         @if (_histRows.Count == 0)
         {
@@ -164,31 +166,41 @@
         }
         else
         {
-            <table class="ames-table">
-                <thead>
-                    <tr>
-                        <th>@L["Col.SentAt"]</th><th>@L["Col.EventName"]</th><th>@L["Col.Recipient"]</th>
-                        <th>@L["Col.Channel"]</th><th>@L["Col.Name"]</th>
-                        <th>@L["Col.Status"]</th><th class="num">@L["Col.EventCount"]</th><th>@L["Col.Error"]</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var h in _histRows.Skip(_page3 * _pageSize).Take(_pageSize))
-                    {
-                        <tr>
-                            <td class="dim">@(h.SentAt?.ToString("MM-dd HH:mm") ?? "—")</td>
-                            <td class="code">@(h.EventTypeCode ?? "—")</td>
-                            <td class="dim" style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;">@(h.RecipientUserId ?? "—")</td>
-                            <td><span class="pill info">@(h.Channel ?? "—")</span></td>
-                            <td>@(h.Subject ?? "—")</td>
-                            <td>@DeliveryStatusPill(h.Status)</td>
-                            <td class="num">@(h.RetryCount?.ToString() ?? "—")</td>
-                            <td class="dim">@(h.ErrorMsg ?? "—")</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-            <Pager Page="_page3" Total="_histRows.Count" PageSize="_pageSize" OnPageChange="p => _page3 = p" />
+            <RadzenDataGrid TItem="AMES.Data.Repositories.SysRepository.NotifHistoryRow"
+                            Data="@_histRows"
+                            AllowPaging="true" PageSize="25"
+                            PagerHorizontalAlign="HorizontalAlign.Center"
+                            PageSizeOptions="@_pageSizeOptions"
+                            ShowPagingSummary="true"
+                            AllowSorting="true"
+                            Class="ames-rz-grid">
+                <Columns>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifHistoryRow" Property="SentAt" Title="@L["Col.SentAt"]" Width="110px">
+                        <Template Context="h"><span class="dim">@(h.SentAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifHistoryRow" Property="EventTypeCode" Title="@L["Col.EventName"]" Width="130px">
+                        <Template Context="h"><span class="code">@(h.EventTypeCode ?? "—")</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifHistoryRow" Property="RecipientUserId" Title="@L["Col.Recipient"]">
+                        <Template Context="h"><span class="dim" style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;display:block;">@(h.RecipientUserId ?? "—")</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifHistoryRow" Property="Channel" Title="@L["Col.Channel"]" Width="90px">
+                        <Template Context="h"><span class="pill info">@(h.Channel ?? "—")</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifHistoryRow" Property="Subject" Title="@L["Col.Name"]">
+                        <Template Context="h">@(h.Subject ?? "—")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifHistoryRow" Property="Status" Title="@L["Col.Status"]" Width="90px" TextAlign="TextAlign.Center">
+                        <Template Context="h">@DeliveryStatusPill(h.Status)</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifHistoryRow" Property="RetryCount" Title="@L["Col.EventCount"]" Width="80px" TextAlign="TextAlign.Center">
+                        <Template Context="h">@(h.RetryCount?.ToString() ?? "—")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifHistoryRow" Property="ErrorMsg" Title="@L["Col.Error"]">
+                        <Template Context="h"><span class="dim">@(h.ErrorMsg ?? "—")</span></Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
         }
     </div>
 }
@@ -199,7 +211,7 @@
     <div class="ames-card">
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
             <span>▼ @L["SYS.Notifications.Channels.List"] · @_channels.Count @L["Lbl.Items"]</span>
-            @if (_canEdit) { <button class="ames-btn" @onclick="OpenChCreate">@L["Btn.Create"]</button> }
+            @if (_canEdit) { <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenChCreate" class="ames-rz-btn" /> }
         </div>
         @if (_channels.Count == 0)
         {
@@ -207,27 +219,42 @@
         }
         else
         {
-            <table class="ames-table">
-                <thead>
-                    <tr><th>@L["Col.User"]</th><th>@L["Col.Channel"]</th><th>@L["Col.Address"]</th>
-                        <th>@L["Col.Subscribe"]</th><th>@L["Col.DndStart"]</th><th>@L["Col.DndEnd"]</th><th>@L["Col.AuthTs"]</th></tr>
-                </thead>
-                <tbody>
-                    @foreach (var c in _channels.Skip(_page2 * _pageSize).Take(_pageSize))
-                    {
-                        <tr class="ames-row-link" @onclick="() => OpenChEdit(c)">
-                            <td class="dim" style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;">@(c.UserName ?? c.UserId ?? "—")</td>
-                            <td><span class="pill info">@(c.Channel ?? "—")</span></td>
-                            <td>@(c.Address ?? "—")</td>
-                            <td>@if (c.IsEnabled) { <span class="pill ok">ON</span> } else { <span class="pill bad">OFF</span> }</td>
-                            <td class="dim">@(c.QuietHoursStart?.ToString(@"hh\:mm") ?? "—")</td>
-                            <td class="dim">@(c.QuietHoursEnd?.ToString(@"hh\:mm") ?? "—")</td>
-                            <td class="dim">@(c.VerifiedAt?.ToString("MM-dd HH:mm") ?? L["SYS.Notifications.Lbl.Unverified"].Value)</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-            <Pager Page="_page2" Total="_channels.Count" PageSize="_pageSize" OnPageChange="p => _page2 = p" />
+            <RadzenDataGrid TItem="AMES.Data.Repositories.SysRepository.NotifChannelRow"
+                            Data="@_channels"
+                            AllowPaging="true" PageSize="25"
+                            PagerHorizontalAlign="HorizontalAlign.Center"
+                            PageSizeOptions="@_pageSizeOptions"
+                            ShowPagingSummary="true"
+                            AllowSorting="true"
+                            RowRender="@ChRowRender"
+                            RowClick="@(args => { if (args.Data is not null) OpenChEdit(args.Data); })"
+                            Class="ames-rz-grid">
+                <Columns>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifChannelRow" Property="UserName" Title="@L["Col.User"]" Width="160px">
+                        <Template Context="c"><span class="dim" style="font-size:12px;max-width:150px;overflow:hidden;text-overflow:ellipsis;display:block;">@(c.UserName ?? c.UserId ?? "—")</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifChannelRow" Property="Channel" Title="@L["Col.Channel"]" Width="90px">
+                        <Template Context="c"><span class="pill info">@(c.Channel ?? "—")</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifChannelRow" Property="Address" Title="@L["Col.Address"]">
+                        <Template Context="c">@(c.Address ?? "—")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifChannelRow" Property="IsEnabled" Title="@L["Col.Subscribe"]" Width="90px" TextAlign="TextAlign.Center">
+                        <Template Context="c">
+                            @if (c.IsEnabled) { <span class="pill ok">ON</span> } else { <span class="pill bad">OFF</span> }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifChannelRow" Property="QuietHoursStart" Title="@L["Col.DndStart"]" Width="90px">
+                        <Template Context="c"><span class="dim">@(c.QuietHoursStart?.ToString(@"hh\:mm") ?? "—")</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifChannelRow" Property="QuietHoursEnd" Title="@L["Col.DndEnd"]" Width="90px">
+                        <Template Context="c"><span class="dim">@(c.QuietHoursEnd?.ToString(@"hh\:mm") ?? "—")</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifChannelRow" Property="VerifiedAt" Title="@L["Col.AuthTs"]" Width="120px">
+                        <Template Context="c"><span class="dim">@(c.VerifiedAt?.ToString("MM-dd HH:mm") ?? L["SYS.Notifications.Lbl.Unverified"].Value)</span></Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
         }
     </div>
 }
@@ -241,24 +268,25 @@
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>
-                    <label>@L["Col.EventCode"] *</label>
-                    <input class="ames-input" @bind="_rf.EventTypeCode" placeholder="EVENT_CODE" autocomplete="off" />
+                    <RadzenLabel Text="@(L["Col.EventCode"] + " *")" />
+                    <RadzenTextBox @bind-Value="_rf.EventTypeCode" Placeholder="EVENT_CODE" AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
-                    <label>@L["Col.EventName"]</label>
-                    <input class="ames-input" @bind="_rf.EventName" placeholder='@L["SYS.Notifications.Ph.EventName"]' autocomplete="off" />
+                    <RadzenLabel Text="@L["Col.EventName"]" />
+                    <RadzenTextBox @bind-Value="_rf.EventName" Placeholder='@L["SYS.Notifications.Ph.EventName"]' AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
-                    <label>@L["Col.Module"]</label>
-                    <select class="ames-input" @bind="_rf.ModuleCode">
-                        <option value="">@L["Opt.Select"]</option>
-                        @foreach (var m in _modules.Where(m => m.UseFlag))
-                        { <option value="@m.CodeValue">[@m.CodeValue] @MasterDataRepository.LocalName(m)</option> }
-                    </select>
+                    <RadzenLabel Text="@L["Col.Module"]" />
+                    <RadzenDropDown @bind-Value="_rf.ModuleCode" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value"
+                                    Placeholder="@L["Opt.Select"]"
+                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
-                    <label>@L["Col.ProcessCode"]</label>
-                    <input class="ames-input" @bind="_rf.ProcessCode" placeholder="INJ / PNT / QC …" autocomplete="off" />
+                    <RadzenLabel Text="@L["Col.ProcessCode"]" />
+                    <RadzenTextBox @bind-Value="_rf.ProcessCode" Placeholder="INJ / PNT / QC …" AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
@@ -278,9 +306,9 @@
                     @foreach (var ch in _channelCodes.Where(c => c.UseFlag))
                     {
                         <label class="ames-line-item">
-                            <input type="checkbox"
-                                   checked="@_rf.SelectedChannels.Contains(ch.CodeValue!)"
-                                   @onchange="e => ToggleChannel(ch.CodeValue!, (bool)e.Value!)" />
+                            <RadzenCheckBox TValue="bool"
+                                            Value="@_rf.SelectedChannels.Contains(ch.CodeValue!)"
+                                            Change="@(v => ToggleChannel(ch.CodeValue!, v))" />
                             <span class="code">@ch.CodeValue</span>
                             <span class="dim">@MasterDataRepository.LocalName(ch)</span>
                         </label>
@@ -300,9 +328,9 @@
                     @foreach (var role in _rolesList)
                     {
                         <label class="ames-line-item">
-                            <input type="checkbox"
-                                   checked="@_rf.SelectedRoles.Contains(role)"
-                                   @onchange="e => ToggleRole(role, (bool)e.Value!)" />
+                            <RadzenCheckBox TValue="bool"
+                                            Value="@_rf.SelectedRoles.Contains(role)"
+                                            Change="@(v => ToggleRole(role, v))" />
                             <span class="code">@role</span>
                         </label>
                     }
@@ -311,23 +339,18 @@
 
             @* 상태 *@
             <label style="margin-top:8px;">@L["Col.Status"]</label>
-            <select class="ames-input" @bind="_rf.StatusCode">
-                @foreach (var s in _notifStatusItems.Where(s => s.UseFlag))
-                { <option value="@s.CodeValue">[@s.CodeValue] @MasterDataRepository.LocalName(s)</option> }
-                @if (_notifStatusItems.Count == 0)
-                {
-                    <option value="ACTIVE">@L["Lbl.Active"]</option>
-                    <option value="INACTIVE">@L["SYS.Notifications.Filter.Inactive"]</option>
-                }
-            </select>
+            <RadzenDropDown @bind-Value="_rf.StatusCode" Data="@NotifStatusOptions" TextProperty="Text" ValueProperty="Value"
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
 
             @if (!string.IsNullOrEmpty(_ruleModalErr))
-            { <div class="ames-alert bad">@_ruleModalErr</div> }
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_ruleModalErr</RadzenAlert>
+            }
 
-            <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="SaveRuleCreate" disabled="@_ruleBusy">@(_ruleBusy ? @L["Msg.Saving"] : @L["Btn.Create"])</button>
-                <button class="ames-btn ghost" @onclick="CloseRuleModal">@L["Btn.Cancel"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_ruleBusy ? L["Msg.Saving"] : L["Btn.Create"])" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveRuleCreate" Disabled="@_ruleBusy" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseRuleModal" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
@@ -341,24 +364,25 @@
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>
-                    <label>@L["Col.EventCode"] *</label>
-                    <input class="ames-input" @bind="_rf.EventTypeCode" autocomplete="off" />
+                    <RadzenLabel Text="@(L["Col.EventCode"] + " *")" />
+                    <RadzenTextBox @bind-Value="_rf.EventTypeCode" AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
-                    <label>@L["Col.EventName"]</label>
-                    <input class="ames-input" @bind="_rf.EventName" autocomplete="off" />
+                    <RadzenLabel Text="@L["Col.EventName"]" />
+                    <RadzenTextBox @bind-Value="_rf.EventName" AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
-                    <label>@L["Col.Module"]</label>
-                    <select class="ames-input" @bind="_rf.ModuleCode">
-                        <option value="">@L["Opt.Select"]</option>
-                        @foreach (var m in _modules.Where(m => m.UseFlag))
-                        { <option value="@m.CodeValue">[@m.CodeValue] @MasterDataRepository.LocalName(m)</option> }
-                    </select>
+                    <RadzenLabel Text="@L["Col.Module"]" />
+                    <RadzenDropDown @bind-Value="_rf.ModuleCode" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value"
+                                    Placeholder="@L["Opt.Select"]"
+                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
-                    <label>@L["Col.ProcessCode"]</label>
-                    <input class="ames-input" @bind="_rf.ProcessCode" autocomplete="off" />
+                    <RadzenLabel Text="@L["Col.ProcessCode"]" />
+                    <RadzenTextBox @bind-Value="_rf.ProcessCode" AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
@@ -377,9 +401,9 @@
                     @foreach (var ch in _channelCodes.Where(c => c.UseFlag))
                     {
                         <label class="ames-line-item">
-                            <input type="checkbox"
-                                   checked="@_rf.SelectedChannels.Contains(ch.CodeValue!)"
-                                   @onchange="e => ToggleChannel(ch.CodeValue!, (bool)e.Value!)" />
+                            <RadzenCheckBox TValue="bool"
+                                            Value="@_rf.SelectedChannels.Contains(ch.CodeValue!)"
+                                            Change="@(v => ToggleChannel(ch.CodeValue!, v))" />
                             <span class="code">@ch.CodeValue</span>
                             <span class="dim">@MasterDataRepository.LocalName(ch)</span>
                         </label>
@@ -399,9 +423,9 @@
                     @foreach (var role in _rolesList)
                     {
                         <label class="ames-line-item">
-                            <input type="checkbox"
-                                   checked="@_rf.SelectedRoles.Contains(role)"
-                                   @onchange="e => ToggleRole(role, (bool)e.Value!)" />
+                            <RadzenCheckBox TValue="bool"
+                                            Value="@_rf.SelectedRoles.Contains(role)"
+                                            Change="@(v => ToggleRole(role, v))" />
                             <span class="code">@role</span>
                         </label>
                     }
@@ -410,32 +434,27 @@
 
             @* 상태 *@
             <label style="margin-top:8px;">@L["Col.Status"]</label>
-            <select class="ames-input" @bind="_rf.StatusCode">
-                @foreach (var s in _notifStatusItems.Where(s => s.UseFlag))
-                { <option value="@s.CodeValue">[@s.CodeValue] @MasterDataRepository.LocalName(s)</option> }
-                @if (_notifStatusItems.Count == 0)
-                {
-                    <option value="ACTIVE">@L["Lbl.Active"]</option>
-                    <option value="INACTIVE">@L["SYS.Notifications.Filter.Inactive"]</option>
-                }
-            </select>
+            <RadzenDropDown @bind-Value="_rf.StatusCode" Data="@NotifStatusOptions" TextProperty="Text" ValueProperty="Value"
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
 
             @if (_ruleConfirmDelete)
             {
-                <div class="ames-delete-confirm">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
                     <span>@L["Msg.Confirm.Delete"]</span>
-                    <button class="ames-btn ghost" @onclick='() => _ruleConfirmDelete = false'>@L["Msg.No"]</button>
-                    <button class="ames-btn bad" @onclick="SaveRuleDelete" disabled="@_ruleBusy">@(_ruleBusy ? @L["Msg.Deleting"] : @L["Msg.Yes"])</button>
-                </div>
+                    <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _ruleConfirmDelete = false' class="ames-rz-btn" />
+                    <RadzenButton Text="@(_ruleBusy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveRuleDelete" Disabled="@_ruleBusy" class="ames-rz-btn" />
+                </RadzenStack>
             }
             @if (!string.IsNullOrEmpty(_ruleModalErr))
-            { <div class="ames-alert bad">@_ruleModalErr</div> }
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_ruleModalErr</RadzenAlert>
+            }
 
-            <div class="ames-modal-footer">
-                <button class="ames-btn"  @onclick="SaveRuleEdit"   disabled="@_ruleBusy">@(_ruleBusy ? @L["Msg.Saving"] : @L["Btn.Save"])</button>
-                <button class="ames-btn bad" @onclick='() => { _ruleConfirmDelete = true; _ruleModalErr = ""; }' disabled="@_ruleBusy">@L["Btn.Delete"]</button>
-                <button class="ames-btn ghost" @onclick="CloseRuleModal">@L["Btn.Cancel"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_ruleBusy ? L["Msg.Saving"] : L["Btn.Save"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveRuleEdit" Disabled="@_ruleBusy" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click='() => { _ruleConfirmDelete = true; _ruleModalErr = ""; }' Disabled="@_ruleBusy" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseRuleModal" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
@@ -447,47 +466,41 @@
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["SYS.Notifications.Modal.CreateChannel"]</div>
 
-            <label>@L["Col.User"]</label>
-            <select class="ames-input" value="@_cf.UserId" @onchange="OnCreateUserChanged">
-                <option value="">@L["Opt.SelectUser"]</option>
-                @foreach (var u in _userList)
-                { <option value="@u.Id">@(u.UserName ?? u.Id)@(!string.IsNullOrEmpty(u.Email) ? $"  ({u.Email})" : "")</option> }
-            </select>
+            <RadzenLabel Text="@L["Col.User"]" />
+            <RadzenDropDown @bind-Value="_cf.UserId" Data="@UserOptions" TextProperty="Text" ValueProperty="Value"
+                            Placeholder="@L["Opt.SelectUser"]"
+                            Change="@(_ => AutoFillAddress())"
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
 
-            <label>@L["Col.Channel"]</label>
-            <select class="ames-input" value="@_cf.Channel" @onchange="OnCreateChannelChanged">
-                @foreach (var ch in _channelCodes.Where(c => c.UseFlag))
-                { <option value="@ch.CodeValue">[@ch.CodeValue] @MasterDataRepository.LocalName(ch)</option> }
-                @if (_channelCodes.Count == 0)
-                {
-                    <option value="EMAIL">EMAIL</option>
-                    <option value="SMS">SMS</option>
-                    <option value="KAKAO">KAKAO</option>
-                    <option value="SLACK">SLACK</option>
-                }
-            </select>
+            <RadzenLabel Text="@L["Col.Channel"]" Style="margin-top:6px;" />
+            <RadzenDropDown @bind-Value="_cf.Channel" Data="@ChannelCodeOptions" TextProperty="Text" ValueProperty="Value"
+                            Change="@(_ => AutoFillAddress())"
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
 
-            <label>@L["Col.Address"] <span class="dim-label">(@L["SYS.Notifications.Hint.AddressAutoFill"])</span></label>
-            <input class="ames-input" @bind="_cf.Address" placeholder='@L["SYS.Notifications.Ph.Address"]' autocomplete="off" />
+            <label style="margin-top:6px;">@L["Col.Address"] <span class="dim-label">(@L["SYS.Notifications.Hint.AddressAutoFill"])</span></label>
+            <RadzenTextBox @bind-Value="_cf.Address" Placeholder='@L["SYS.Notifications.Ph.Address"]' AutoComplete="false"
+                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
 
-            <label>@L["SYS.Notifications.Lbl.DndStart"]</label>
+            <label style="margin-top:6px;">@L["SYS.Notifications.Lbl.DndStart"]</label>
             <input class="ames-input" type="time" @bind="_cf.QuietStart" />
 
-            <label>@L["SYS.Notifications.Lbl.DndEnd"]</label>
+            <label style="margin-top:6px;">@L["SYS.Notifications.Lbl.DndEnd"]</label>
             <input class="ames-input" type="time" @bind="_cf.QuietEnd" />
 
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:4px;">
-                <input type="checkbox" @bind="_cf.IsEnabled" />
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:8px;">
+                <RadzenCheckBox TValue="bool" @bind-Value="_cf.IsEnabled" />
                 <span>@L["Lbl.Active"]</span>
             </label>
 
             @if (!string.IsNullOrEmpty(_chModalErr))
-            { <div class="ames-alert bad">@_chModalErr</div> }
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_chModalErr</RadzenAlert>
+            }
 
-            <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="SaveChCreate" disabled="@_chBusy">@(_chBusy ? @L["Msg.Saving"] : @L["Btn.Create"])</button>
-                <button class="ames-btn ghost" @onclick="CloseChModal">@L["Btn.Cancel"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_chBusy ? L["Msg.Saving"] : L["Btn.Create"])" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveChCreate" Disabled="@_chBusy" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseChModal" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
@@ -499,49 +512,43 @@
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["SYS.Notifications.Modal.EditChannel"] — <span class="dim" style="font-weight:400;font-size:.9em;">@(_chSel.Channel) · @(_chSel.UserName ?? _chSel.UserId)</span></div>
 
-            <label>@L["Col.Channel"]</label>
-            <select class="ames-input" @bind="_cf.Channel">
-                @foreach (var ch in _channelCodes.Where(c => c.UseFlag))
-                { <option value="@ch.CodeValue">[@ch.CodeValue] @MasterDataRepository.LocalName(ch)</option> }
-                @if (_channelCodes.Count == 0)
-                {
-                    <option value="EMAIL">EMAIL</option>
-                    <option value="SMS">SMS</option>
-                    <option value="KAKAO">KAKAO</option>
-                    <option value="SLACK">SLACK</option>
-                }
-            </select>
+            <RadzenLabel Text="@L["Col.Channel"]" />
+            <RadzenDropDown @bind-Value="_cf.Channel" Data="@ChannelCodeOptions" TextProperty="Text" ValueProperty="Value"
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
 
-            <label>@L["Col.Address"]</label>
-            <input class="ames-input" @bind="_cf.Address" autocomplete="off" />
+            <label style="margin-top:6px;">@L["Col.Address"]</label>
+            <RadzenTextBox @bind-Value="_cf.Address" AutoComplete="false"
+                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
 
-            <label>@L["SYS.Notifications.Lbl.DndStart"]</label>
+            <label style="margin-top:6px;">@L["SYS.Notifications.Lbl.DndStart"]</label>
             <input class="ames-input" type="time" @bind="_cf.QuietStart" />
 
-            <label>@L["SYS.Notifications.Lbl.DndEnd"]</label>
+            <label style="margin-top:6px;">@L["SYS.Notifications.Lbl.DndEnd"]</label>
             <input class="ames-input" type="time" @bind="_cf.QuietEnd" />
 
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:4px;">
-                <input type="checkbox" @bind="_cf.IsEnabled" />
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:8px;">
+                <RadzenCheckBox TValue="bool" @bind-Value="_cf.IsEnabled" />
                 <span>@L["Lbl.Active"]</span>
             </label>
 
             @if (_chConfirmDelete)
             {
-                <div class="ames-delete-confirm">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
                     <span>@L["Msg.Confirm.Delete"]</span>
-                    <button class="ames-btn ghost" @onclick='() => _chConfirmDelete = false'>@L["Msg.No"]</button>
-                    <button class="ames-btn bad" @onclick="SaveChDelete" disabled="@_chBusy">@(_chBusy ? @L["Msg.Deleting"] : @L["Msg.Yes"])</button>
-                </div>
+                    <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _chConfirmDelete = false' class="ames-rz-btn" />
+                    <RadzenButton Text="@(_chBusy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveChDelete" Disabled="@_chBusy" class="ames-rz-btn" />
+                </RadzenStack>
             }
             @if (!string.IsNullOrEmpty(_chModalErr))
-            { <div class="ames-alert bad">@_chModalErr</div> }
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_chModalErr</RadzenAlert>
+            }
 
-            <div class="ames-modal-footer">
-                <button class="ames-btn"  @onclick="SaveChEdit"   disabled="@_chBusy">@(_chBusy ? @L["Msg.Saving"] : @L["Btn.Save"])</button>
-                <button class="ames-btn bad" @onclick='() => { _chConfirmDelete = true; _chModalErr = ""; }' disabled="@_chBusy">@L["Btn.Delete"]</button>
-                <button class="ames-btn ghost" @onclick="CloseChModal">@L["Btn.Cancel"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_chBusy ? L["Msg.Saving"] : L["Btn.Save"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveChEdit" Disabled="@_chBusy" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click='() => { _chConfirmDelete = true; _chModalErr = ""; }' Disabled="@_chBusy" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseChModal" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
@@ -551,9 +558,8 @@
 </style>
 
 @code {
-    int _page = 0, _page2 = 0, _page3 = 0;
-    const int _pageSize = 20;
     string _tab = "rules";
+    IEnumerable<int> _pageSizeOptions = new[] { 15, 30, 50, 100 };
     bool _bgMouseDownOnSelf, _canEdit;
     string _actor = "system";
 
@@ -568,7 +574,8 @@
     List<AMES.Data.Repositories.SysRepository.NotifRuleRow> _rules    = new();
     List<AMES.Data.Repositories.SysRepository.NotifRuleRow> _ruleRows = new();
     AMES.Data.Repositories.SysRepository.NotifRuleRow? _ruleSel;
-    string _fRuleSearch = "", _fRuleModule = "", _fRuleProcess = "", _fRuleStatus = "";
+    string _fRuleSearch = "", _fRuleProcess = "";
+    string? _fRuleModule, _fRuleStatus;
     string _ruleModal = "", _ruleModalErr = "";
     bool _ruleBusy, _ruleConfirmDelete;
     RuleForm _rf = new();
@@ -576,7 +583,8 @@
     // ── 발송 이력 ──────────────────────────────────────────────────────
     List<AMES.Data.Repositories.SysRepository.NotifHistoryRow> _hist     = new();
     List<AMES.Data.Repositories.SysRepository.NotifHistoryRow> _histRows = new();
-    string _fHistSearch = "", _fHistChannel = "", _fHistStatus = "";
+    string _fHistSearch = "";
+    string? _fHistChannel, _fHistStatus;
     int _sent, _failed;
 
     // ── 채널 설정 ──────────────────────────────────────────────────────
@@ -620,7 +628,6 @@
     // ── 규칙 필터 ──────────────────────────────────────────────────────
     void ApplyRuleFilter()
     {
-        _page = 0;
         _ruleRows = _rules.Where(r =>
             (string.IsNullOrEmpty(_fRuleSearch) ||
                 (r.EventTypeCode ?? "").Contains(_fRuleSearch, StringComparison.OrdinalIgnoreCase) ||
@@ -722,7 +729,6 @@
     // ── 발송 이력 필터 ─────────────────────────────────────────────────
     void ApplyHistFilter()
     {
-        _page3 = 0;
         _histRows = _hist.Where(h =>
             (string.IsNullOrEmpty(_fHistSearch) ||
                 (h.EventTypeCode   ?? "").Contains(_fHistSearch, StringComparison.OrdinalIgnoreCase) ||
@@ -756,9 +762,6 @@
     }
 
     void CloseChModal() { _chModal = ""; _chSel = null; _chModalErr = ""; _chConfirmDelete = false; }
-
-    void OnCreateUserChanged(ChangeEventArgs e) { _cf.UserId = e.Value?.ToString() ?? ""; AutoFillAddress(); }
-    void OnCreateChannelChanged(ChangeEventArgs e) { _cf.Channel = e.Value?.ToString() ?? "EMAIL"; AutoFillAddress(); }
 
     void AutoFillAddress()
     {
@@ -825,6 +828,69 @@
         _bgMouseDownOnSelf = false;
         CloseRuleModal();
         CloseChModal();
+    }
+
+    // ── Radzen 헬퍼 ──────────────────────────────────────────────────
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+
+    private IEnumerable<DropDownItem> ModuleOptions =>
+        _modules.Where(m => m.UseFlag)
+            .Select(m => new DropDownItem { Value = m.CodeValue ?? "", Text = $"[{m.CodeValue}] {MasterDataRepository.LocalName(m)}" });
+
+    private IEnumerable<DropDownItem> NotifStatusOptions
+    {
+        get
+        {
+            var items = _notifStatusItems.Where(s => s.UseFlag).ToList();
+            if (items.Count > 0)
+                return items.Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}" });
+            return new[] {
+                new DropDownItem { Value = "ACTIVE",   Text = L["Lbl.Active"].Value },
+                new DropDownItem { Value = "INACTIVE", Text = L["SYS.Notifications.Filter.Inactive"].Value },
+            };
+        }
+    }
+
+    private IEnumerable<DropDownItem> ChannelCodeOptions
+    {
+        get
+        {
+            var items = _channelCodes.Where(c => c.UseFlag).ToList();
+            if (items.Count > 0)
+                return items.Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+            return new[] {
+                new DropDownItem { Value = "EMAIL", Text = "EMAIL" },
+                new DropDownItem { Value = "SMS",   Text = "SMS" },
+                new DropDownItem { Value = "KAKAO", Text = "KAKAO" },
+                new DropDownItem { Value = "SLACK", Text = "SLACK" },
+            };
+        }
+    }
+
+    private IEnumerable<DropDownItem> DeliveryStatusOptions =>
+        _deliveryStatusItems.Where(s => s.UseFlag)
+            .Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}" });
+
+    private IEnumerable<DropDownItem> UserOptions =>
+        _userList.Select(u => new DropDownItem {
+            Value = u.Id,
+            Text  = (u.UserName ?? u.Id) + (!string.IsNullOrEmpty(u.Email) ? $" ({u.Email})" : "")
+        });
+
+    void RuleRowRender(RowRenderEventArgs<AMES.Data.Repositories.SysRepository.NotifRuleRow> args)
+    {
+        if (args.Attributes.TryGetValue("class", out var existing))
+            args.Attributes["class"] = existing + " ames-row-link";
+        else
+            args.Attributes["class"] = "ames-row-link";
+    }
+
+    void ChRowRender(RowRenderEventArgs<AMES.Data.Repositories.SysRepository.NotifChannelRow> args)
+    {
+        if (args.Attributes.TryGetValue("class", out var existing))
+            args.Attributes["class"] = existing + " ames-row-link";
+        else
+            args.Attributes["class"] = "ames-row-link";
     }
 
     // ── 헬퍼 ──────────────────────────────────────────────────────────

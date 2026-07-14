@@ -1,17 +1,23 @@
 ﻿@page "/sys/roles"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject RoleManager<IdentityRole> RoleMgr
-@inject AMES.Data.Repositories.SysRepository Sys
-@inject AuthenticationStateProvider Auth
-@inject AMES.Web.Services.PermissionService Perm
-@inject IStringLocalizer<SharedResources> L
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using AMES.Web.Services
 @using Radzen
 
+@attribute [Authorize]
+
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject SysRepository Sys
+@inject RoleManager<IdentityRole> RoleMgr
+@inject IStringLocalizer<SharedResources> L
+
 <PageTitle>SYS-002 @L["SYS.Roles.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="SYS-003" TitleKey="SYS.Roles.Title" />
 
-<AmesPageHeader Code="SYS-002" TitleKey="SYS.Roles.Title" />
-
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["SYS.Roles.Kpi.Roles"]</div>
@@ -33,12 +39,15 @@
 }
 
 <div class="ames-card">
-    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
-        <span>▼ @L["SYS.Roles.List"] · @_rows.Count @L["Lbl.Items"]</span>
-        <div style="display:flex;gap:6px;">
-            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Search"]</button>
-            @if (_canEdit) { <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button> }
-        </div>
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ @L["SYS.Roles.List"] · @_rows.Count @L["Lbl.Items"]</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Wrap="FlexWrap.Wrap">
+            <RadzenButton Text="@L["Btn.Search"]" Icon="refresh" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["Btn.Create"]" Icon="add_circle" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
+            }
+        </RadzenStack>
     </div>
 
     @if (_rows.Count == 0)
@@ -48,15 +57,15 @@
     else
     {
         <RadzenStack Gap="1rem">
-            <RadzenDataGrid TItem="AMES.Data.Repositories.SysRepository.RoleRow" Data="@_rows" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                            PageSizeOptions="@pageSizeOptions" ShowPagingSummary="@showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" Class="ames-rz-grid">
+            <RadzenDataGrid TItem="SysRepository.RoleRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" Class="ames-rz-grid">
                 <Columns>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.RoleRow" Property="RoleName" Title="@L["Col.RoleName"]">
+                    <RadzenDataGridColumn TItem="SysRepository.RoleRow" Property="RoleName" Title="@L["Col.RoleName"]">
                         <Template Context="r">
                             <span class="code">@(r.RoleName ?? "—")</span>
                         </Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.RoleRow" Property="UserCount" Title="@L["Col.UserCount"]" TextAlign="TextAlign.Right">
+                    <RadzenDataGridColumn TItem="SysRepository.RoleRow" Property="UserCount" Title="@L["Col.UserCount"]" TextAlign="TextAlign.Right">
                         <Template Context="r">
                             @if (r.UserCount > 0)
                             {
@@ -82,43 +91,51 @@
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["SYS.Roles.Modal.Create"]</div>
 
-            <label>@L["SYS.Roles.Lbl.RoleName"]</label>
-            <input class="ames-input" @bind="_roleName" placeholder="@L["SYS.Roles.Ph.RoleName"]" autocomplete="off" />
+            <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Roles.Lbl.RoleName"]" class="ames-rz-modal-label" Component="CreateTextBoxRoleName" />
+                    <RadzenTextBox Name="CreateTextBoxRoleName" @bind-Value="_roleName" Placeholder="@L["SYS.Roles.Ph.RoleName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                </RadzenStack>
+            </RadzenStack>
 
             @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad">@_modalErr</div> }
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
 
-            <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">
-                    @(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)
-                </button>
-                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Create"])" Click="@SaveCreate" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
 
-@* ── Edit Modal ───────────────────────────────────────────────────── *@
+@* ── Edit Modal ──────────────────────────────────────────────────── *@
 @if (_modal == "edit" && _sel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["SYS.Roles.Modal.Edit"] — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.RoleName</span></div>
 
-            <label>@L["SYS.Roles.Lbl.RoleName"]</label>
-            <input class="ames-input" @bind="_roleName" autocomplete="off" />
+            <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Roles.Lbl.RoleName"]" class="ames-rz-modal-label" Component="EditTextBoxRoleName" />
+                    <RadzenTextBox Name="EditTextBoxRoleName" @bind-Value="_roleName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                </RadzenStack>
 
-            @if (_sel.UserCount > 0)
-            {
-                <div style="font-size:.82em;color:#94a3b8;margin-top:4px;">
-                    @L["SYS.Roles.InUseBy"] <strong style="color:#fbbf24;">@_sel.UserCount @L["Lbl.Persons"]</strong>
-                </div>
-            }
+                @if (_sel.UserCount > 0)
+                {
+                    <div style="font-size:.82em;color:#94a3b8;">
+                        @L["SYS.Roles.InUseBy"] <strong style="color:#fbbf24;">@_sel.UserCount @L["Lbl.Persons"]</strong>
+                    </div>
+                }
+            </RadzenStack>
 
-            @* 삭제 인라인 확인 *@
+            @* 삭제 버튼 클릭 후 인라인 확인 *@
             @if (_confirmDelete)
             {
-                <div class="ames-delete-confirm">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
                     @if (_sel.UserCount > 0)
                     {
                         <span>@string.Format(L["SYS.Roles.ConfirmDeleteInUse"].Value, _sel.UserCount)</span>
@@ -127,32 +144,30 @@
                     {
                         <span>@L["Msg.Confirm.Delete"]</span>
                     }
-                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
-                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">
-                        @(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)
-                    </button>
-                </div>
+                    <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _confirmDelete = false' class="ames-rz-btn" />
+                    <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
+                </RadzenStack>
             }
 
             @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad">@_modalErr</div> }
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
 
-            <div class="ames-modal-footer">
-                <button class="ames-btn"  @onclick="SaveEdit" disabled="@_busy">
-                    @(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)
-                </button>
-                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
 
 @code {
-    IEnumerable<int> pageSizeOptions = new int[] { 10, 15, 20, 30, 50, 100 };
-    bool showPagerSummary = true;
-    List<AMES.Data.Repositories.SysRepository.RoleRow> _rows = new();
-    AMES.Data.Repositories.SysRepository.RoleRow? _sel;
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
+    bool _showPagerSummary = true;
+    List<SysRepository.RoleRow> _rows = new();
+    SysRepository.RoleRow? _sel;
 
     string _modal = "";   // "" | "create" | "edit"
     string _roleName = "";
@@ -165,8 +180,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("sys/roles");
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("sys/roles");
         Reload();
     }
 
@@ -178,17 +193,20 @@
         _modal = "create";
     }
 
-    void RowRender(RowRenderEventArgs<AMES.Data.Repositories.SysRepository.RoleRow> args)
+    void RowRender(RowRenderEventArgs<SysRepository.RoleRow> args)
     {
-        args.Attributes["class"] = "ames-row-link";
+        if (args.Attributes.TryGetValue("class", out var existing))
+            args.Attributes["class"] = existing + " ames-row-link";
+        else
+            args.Attributes["class"] = "ames-row-link";
     }
 
-    void OnRowClick(DataGridRowMouseEventArgs<AMES.Data.Repositories.SysRepository.RoleRow> args)
+    void OnRowClick(DataGridRowMouseEventArgs<SysRepository.RoleRow> args)
     {
         if (args.Data is not null) OpenEdit(args.Data);
     }
 
-    void OpenEdit(AMES.Data.Repositories.SysRepository.RoleRow r)
+    void OpenEdit(SysRepository.RoleRow r)
     {
         if (!_canEdit) return;
         _sel = r; _roleName = r.RoleName; _modalErr = ""; _confirmDelete = false;
