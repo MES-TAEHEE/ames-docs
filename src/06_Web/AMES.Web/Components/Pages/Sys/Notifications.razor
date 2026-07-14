@@ -1,16 +1,24 @@
 ﻿@page "/sys/notifications"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.SysRepository Sys
-@inject AMES.Data.Repositories.MasterDataRepository Md
-@inject RoleManager<IdentityRole> RoleMgr
-@inject AuthenticationStateProvider Auth
-@inject AMES.Web.Services.PermissionService Perm
-@inject IStringLocalizer<SharedResources> L
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using AMES.Web.Services
 @using Radzen
 
-<PageTitle>SYS-008 @L["SYS.Notifications.Title"] · AMES</PageTitle>
+@attribute [Authorize]
 
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject SysRepository Sys
+@inject MasterDataRepository MD
+@inject RoleManager<IdentityRole> RoleMgr
+@inject IStringLocalizer<SharedResources> L
+
+<PageTitle>SYS-008 @L["SYS.Notifications.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="SYS-008" TitleKey="SYS.Notifications.Title" />
+
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["SYS.Notifications.Kpi.Rules"]</div>
@@ -49,7 +57,7 @@
     </div>
 </div>
 
-@* ── 탭 헤더 ── *@
+@* ── Tab bar ───────────────────────────────────────────────────── *@
 <div class="ames-cal-tabs">
     <div class="ames-cal-tab-group">
         <button class="ames-cal-tab @(_tab == "rules"    ? "active" : "")" @onclick='() => _tab = "rules"'>@L["SYS.Notifications.Tab.Rules"]</button>
@@ -60,7 +68,7 @@
     <RadzenButton Text="@L["Btn.Reload"]" Icon="refresh" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" Style="align-self:center;" />
 </div>
 
-@* ══════════════════ 탭 1: 알림 규칙 ══════════════════ *@
+@* ── Tab 1 : Notification rules ─────────────────────────────────────────── *@
 @if (_tab == "rules")
 {
     <div class="ames-card">
@@ -70,21 +78,14 @@
                 @if (_canEdit) { <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenRuleCreate" class="ames-rz-btn" /> }
             </div>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem" Wrap="FlexWrap.Wrap">
-                <RadzenTextBox @bind-Value="_fRuleSearch" Placeholder="@L["SYS.Notifications.Ph.RuleSearch"]"
-                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" AutoComplete="false"
-                               @onkeydown='e => { if (e.Key == "Enter") ApplyRuleFilter(); }' />
+                <RadzenTextBox @bind-Value="_fRuleSearch" Placeholder="@L["SYS.Notifications.Ph.RuleSearch"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") ApplyRuleFilter(); }' />
                 <RadzenLabel Text="@L["Col.Module"]" />
-                <RadzenDropDown @bind-Value="_fRuleModule" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value"
-                                AllowClear="true" Placeholder="@L["SYS.Notifications.Filter.AllModules"]"
-                                InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+                <RadzenDropDown @bind-Value="_fRuleModule" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["SYS.Notifications.Filter.AllModules"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
                 <RadzenLabel Text="@L["Col.ProcessCode"]" />
-                <RadzenTextBox @bind-Value="_fRuleProcess" Placeholder="@L["SYS.Audit.Ph.Process"]"
-                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" AutoComplete="false"
-                               @onkeydown='e => { if (e.Key == "Enter") ApplyRuleFilter(); }' />
+                <RadzenTextBox @bind-Value="_fRuleProcess" Placeholder="@L["SYS.Audit.Ph.Process"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") ApplyRuleFilter(); }' />
                 <RadzenLabel Text="@L["Col.Status"]" />
-                <RadzenDropDown @bind-Value="_fRuleStatus" Data="@NotifStatusOptions" TextProperty="Text" ValueProperty="Value"
-                                AllowClear="true" Placeholder="@L["SYS.Notifications.Filter.AllEnabled"]"
-                                InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
+                <RadzenDropDown @bind-Value="_fRuleStatus" Data="@NotifStatusOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["SYS.Notifications.Filter.AllEnabled"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
+
                 <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ApplyRuleFilter" class="ames-rz-btn" />
             </RadzenStack>
         </div>
@@ -95,42 +96,34 @@
         }
         else
         {
-            <RadzenDataGrid TItem="AMES.Data.Repositories.SysRepository.NotifRuleRow"
-                            Data="@_ruleRows"
-                            AllowPaging="true" PageSize="25"
-                            PagerHorizontalAlign="HorizontalAlign.Center"
-                            PageSizeOptions="@_pageSizeOptions"
-                            ShowPagingSummary="true"
-                            AllowSorting="true"
-                            RowRender="@RuleRowRender"
-                            RowClick="@(args => { if (args.Data is not null) OpenRuleEdit(args.Data); })"
-                            Class="ames-rz-grid">
+            <RadzenDataGrid TItem="SysRepository.NotifRuleRow" Data="@_ruleRows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" RowClick="@(args => { if (args.Data is not null) OpenRuleEdit(args.Data); })" RowRender="@RuleRowRender" Class="ames-rz-grid">
                 <Columns>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifRuleRow" Property="EventTypeCode" Title="@L["Col.EventCode"]" Width="130px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="EventTypeCode" Title="@L["Col.EventCode"]" Width="130px">
                         <Template Context="r"><span class="code">@(r.EventTypeCode ?? "—")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifRuleRow" Property="EventName" Title="@L["Col.EventName"]">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="EventName" Title="@L["Col.EventName"]">
                         <Template Context="r">@(r.EventName ?? "—")</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifRuleRow" Property="ModuleCode" Title="@L["Col.Module"]" Width="90px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="ModuleCode" Title="@L["Col.Module"]" Width="90px">
                         <Template Context="r"><span class="pill info">@(r.ModuleCode ?? "—")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifRuleRow" Property="ProcessCode" Title="@L["Col.ProcessCode"]" Width="110px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="ProcessCode" Title="@L["Col.ProcessCode"]" Width="110px">
                         <Template Context="r"><span class="code dim" style="font-size:13px;">@(r.ProcessCode ?? "—")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifRuleRow" Property="TriggerCondition" Title="@L["Col.TriggerCond"]">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="TriggerCondition" Title="@L["Col.TriggerCond"]">
                         <Template Context="r"><span class="dim" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;display:block;">@(r.TriggerCondition ?? "—")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifRuleRow" Property="IsEnabled" Title="@L["Col.Status"]" Width="90px" TextAlign="TextAlign.Center">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="IsEnabled" Title="@L["Col.Status"]" Width="90px" TextAlign="TextAlign.Center">
                         <Template Context="r">
                             @if (r.IsEnabled) { <span class="pill ok">@NotifStatusName("ACTIVE")</span> }
                             else { <span class="pill warn">@NotifStatusName("INACTIVE")</span> }
                         </Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifRuleRow" Title="@L["Col.Channel"]" Width="120px" Sortable="false">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Title="@L["Col.Channel"]" Width="120px" Sortable="false">
                         <Template Context="r">@ChipList(ParseJsonList(r.ChannelsJson))</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifRuleRow" Title="@L["Col.RoleName"]" Width="120px" Sortable="false">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Title="@L["Col.RoleName"]" Width="120px" Sortable="false">
                         <Template Context="r">@ChipList(ParseJsonList(r.RecipientRolesJson))</Template>
                     </RadzenDataGridColumn>
                 </Columns>
@@ -139,7 +132,7 @@
     </div>
 }
 
-@* ══════════════════ 탭 2: 발송 이력 ══════════════════ *@
+@* ── Tab 2 : Notification histories ───────────────────────────────────────── *@
 @if (_tab == "history")
 {
     <div class="ames-card">
@@ -166,7 +159,7 @@
         }
         else
         {
-            <RadzenDataGrid TItem="AMES.Data.Repositories.SysRepository.NotifHistoryRow"
+            <RadzenDataGrid TItem="SysRepository.NotifHistoryRow"
                             Data="@_histRows"
                             AllowPaging="true" PageSize="25"
                             PagerHorizontalAlign="HorizontalAlign.Center"
@@ -175,28 +168,28 @@
                             AllowSorting="true"
                             Class="ames-rz-grid">
                 <Columns>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifHistoryRow" Property="SentAt" Title="@L["Col.SentAt"]" Width="110px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="SentAt" Title="@L["Col.SentAt"]" Width="110px">
                         <Template Context="h"><span class="dim">@(h.SentAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifHistoryRow" Property="EventTypeCode" Title="@L["Col.EventName"]" Width="130px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="EventTypeCode" Title="@L["Col.EventName"]" Width="130px">
                         <Template Context="h"><span class="code">@(h.EventTypeCode ?? "—")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifHistoryRow" Property="RecipientUserId" Title="@L["Col.Recipient"]">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="RecipientUserId" Title="@L["Col.Recipient"]">
                         <Template Context="h"><span class="dim" style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;display:block;">@(h.RecipientUserId ?? "—")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifHistoryRow" Property="Channel" Title="@L["Col.Channel"]" Width="90px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="Channel" Title="@L["Col.Channel"]" Width="90px">
                         <Template Context="h"><span class="pill info">@(h.Channel ?? "—")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifHistoryRow" Property="Subject" Title="@L["Col.Name"]">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="Subject" Title="@L["Col.Name"]">
                         <Template Context="h">@(h.Subject ?? "—")</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifHistoryRow" Property="Status" Title="@L["Col.Status"]" Width="90px" TextAlign="TextAlign.Center">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="Status" Title="@L["Col.Status"]" Width="90px" TextAlign="TextAlign.Center">
                         <Template Context="h">@DeliveryStatusPill(h.Status)</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifHistoryRow" Property="RetryCount" Title="@L["Col.EventCount"]" Width="80px" TextAlign="TextAlign.Center">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="RetryCount" Title="@L["Col.EventCount"]" Width="80px" TextAlign="TextAlign.Center">
                         <Template Context="h">@(h.RetryCount?.ToString() ?? "—")</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifHistoryRow" Property="ErrorMsg" Title="@L["Col.Error"]">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="ErrorMsg" Title="@L["Col.Error"]">
                         <Template Context="h"><span class="dim">@(h.ErrorMsg ?? "—")</span></Template>
                     </RadzenDataGridColumn>
                 </Columns>
@@ -205,6 +198,7 @@
     </div>
 }
 
+@* ── Tab 2 : Notification histories ───────────────────────────────────────── *@
 @* ══════════════════ 탭 3: 채널 설정 ══════════════════ *@
 @if (_tab == "channels")
 {
@@ -219,7 +213,7 @@
         }
         else
         {
-            <RadzenDataGrid TItem="AMES.Data.Repositories.SysRepository.NotifChannelRow"
+            <RadzenDataGrid TItem="SysRepository.NotifChannelRow"
                             Data="@_channels"
                             AllowPaging="true" PageSize="25"
                             PagerHorizontalAlign="HorizontalAlign.Center"
@@ -230,27 +224,27 @@
                             RowClick="@(args => { if (args.Data is not null) OpenChEdit(args.Data); })"
                             Class="ames-rz-grid">
                 <Columns>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifChannelRow" Property="UserName" Title="@L["Col.User"]" Width="160px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="UserName" Title="@L["Col.User"]" Width="160px">
                         <Template Context="c"><span class="dim" style="font-size:12px;max-width:150px;overflow:hidden;text-overflow:ellipsis;display:block;">@(c.UserName ?? c.UserId ?? "—")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifChannelRow" Property="Channel" Title="@L["Col.Channel"]" Width="90px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="Channel" Title="@L["Col.Channel"]" Width="90px">
                         <Template Context="c"><span class="pill info">@(c.Channel ?? "—")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifChannelRow" Property="Address" Title="@L["Col.Address"]">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="Address" Title="@L["Col.Address"]">
                         <Template Context="c">@(c.Address ?? "—")</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifChannelRow" Property="IsEnabled" Title="@L["Col.Subscribe"]" Width="90px" TextAlign="TextAlign.Center">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="IsEnabled" Title="@L["Col.Subscribe"]" Width="90px" TextAlign="TextAlign.Center">
                         <Template Context="c">
                             @if (c.IsEnabled) { <span class="pill ok">ON</span> } else { <span class="pill bad">OFF</span> }
                         </Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifChannelRow" Property="QuietHoursStart" Title="@L["Col.DndStart"]" Width="90px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="QuietHoursStart" Title="@L["Col.DndStart"]" Width="90px">
                         <Template Context="c"><span class="dim">@(c.QuietHoursStart?.ToString(@"hh\:mm") ?? "—")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifChannelRow" Property="QuietHoursEnd" Title="@L["Col.DndEnd"]" Width="90px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="QuietHoursEnd" Title="@L["Col.DndEnd"]" Width="90px">
                         <Template Context="c"><span class="dim">@(c.QuietHoursEnd?.ToString(@"hh\:mm") ?? "—")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.SysRepository.NotifChannelRow" Property="VerifiedAt" Title="@L["Col.AuthTs"]" Width="120px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="VerifiedAt" Title="@L["Col.AuthTs"]" Width="120px">
                         <Template Context="c"><span class="dim">@(c.VerifiedAt?.ToString("MM-dd HH:mm") ?? L["SYS.Notifications.Lbl.Unverified"].Value)</span></Template>
                     </RadzenDataGridColumn>
                 </Columns>
@@ -564,16 +558,16 @@
     string _actor = "system";
 
     // ── 공통코드 ──────────────────────────────────────────────────────────
-    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _modules            = new();
-    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _channelCodes       = new();
-    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _notifStatusItems   = new();
-    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _deliveryStatusItems = new();
+    List<MasterDataRepository.CodeItemRow> _modules            = new();
+    List<MasterDataRepository.CodeItemRow> _channelCodes       = new();
+    List<MasterDataRepository.CodeItemRow> _notifStatusItems   = new();
+    List<MasterDataRepository.CodeItemRow> _deliveryStatusItems = new();
     List<string> _rolesList = new();
 
     // ── 알림 규칙 ──────────────────────────────────────────────────────
-    List<AMES.Data.Repositories.SysRepository.NotifRuleRow> _rules    = new();
-    List<AMES.Data.Repositories.SysRepository.NotifRuleRow> _ruleRows = new();
-    AMES.Data.Repositories.SysRepository.NotifRuleRow? _ruleSel;
+    List<SysRepository.NotifRuleRow> _rules    = new();
+    List<SysRepository.NotifRuleRow> _ruleRows = new();
+    SysRepository.NotifRuleRow? _ruleSel;
     string _fRuleSearch = "", _fRuleProcess = "";
     string? _fRuleModule, _fRuleStatus;
     string _ruleModal = "", _ruleModalErr = "";
@@ -581,31 +575,31 @@
     RuleForm _rf = new();
 
     // ── 발송 이력 ──────────────────────────────────────────────────────
-    List<AMES.Data.Repositories.SysRepository.NotifHistoryRow> _hist     = new();
-    List<AMES.Data.Repositories.SysRepository.NotifHistoryRow> _histRows = new();
+    List<SysRepository.NotifHistoryRow> _hist     = new();
+    List<SysRepository.NotifHistoryRow> _histRows = new();
     string _fHistSearch = "";
     string? _fHistChannel, _fHistStatus;
     int _sent, _failed;
 
     // ── 채널 설정 ──────────────────────────────────────────────────────
-    List<AMES.Data.Repositories.SysRepository.UserSelectRow>   _userList = new();
-    List<AMES.Data.Repositories.SysRepository.NotifChannelRow> _channels = new();
-    AMES.Data.Repositories.SysRepository.NotifChannelRow? _chSel;
+    List<SysRepository.UserSelectRow>   _userList = new();
+    List<SysRepository.NotifChannelRow> _channels = new();
+    SysRepository.NotifChannelRow? _chSel;
     string _chModal = "", _chModalErr = "";
     bool _chBusy, _chConfirmDelete;
     ChForm _cf = new();
 
     protected override async Task OnInitializedAsync()
     {
-        var auth = await Auth.GetAuthenticationStateAsync();
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
-        await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("sys/notifications");
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("sys/notifications");
 
-        try { _modules             = Md.ListCodeItems("MODULE"); }               catch { }
-        try { _channelCodes        = Md.ListCodeItems("NOTIFICATION_CHANNEL"); } catch { }
-        try { _notifStatusItems    = Md.ListCodeItems("NOTIFICATION_STATUS"); }  catch { }
-        try { _deliveryStatusItems = Md.ListCodeItems("DELIVERY_STATUS"); }      catch { }
+        try { _modules             = MD.ListCodeItems("MODULE"); }               catch { }
+        try { _channelCodes        = MD.ListCodeItems("NOTIFICATION_CHANNEL"); } catch { }
+        try { _notifStatusItems    = MD.ListCodeItems("NOTIFICATION_STATUS"); }  catch { }
+        try { _deliveryStatusItems = MD.ListCodeItems("DELIVERY_STATUS"); }      catch { }
         try { _rolesList           = RoleMgr.Roles.Select(r => r.Name!).OrderBy(n => n).ToList(); } catch { }
         try { _userList            = Sys.ListUsersForSelect(); }                 catch { }
         Reload();
@@ -648,7 +642,7 @@
         _ruleModalErr = ""; _ruleConfirmDelete = false; _ruleModal = "create";
     }
 
-    void OpenRuleEdit(AMES.Data.Repositories.SysRepository.NotifRuleRow r)
+    void OpenRuleEdit(SysRepository.NotifRuleRow r)
     {
         _ruleSel = r; _ruleModalErr = ""; _ruleConfirmDelete = false;
         _rf = new()
@@ -746,7 +740,7 @@
         _chModalErr = ""; _chConfirmDelete = false; _chModal = "create";
     }
 
-    void OpenChEdit(AMES.Data.Repositories.SysRepository.NotifChannelRow c)
+    void OpenChEdit(SysRepository.NotifChannelRow c)
     {
         _chSel = c; _chModalErr = ""; _chConfirmDelete = false;
         _cf = new()
@@ -877,7 +871,7 @@
             Text  = (u.UserName ?? u.Id) + (!string.IsNullOrEmpty(u.Email) ? $" ({u.Email})" : "")
         });
 
-    void RuleRowRender(RowRenderEventArgs<AMES.Data.Repositories.SysRepository.NotifRuleRow> args)
+    void RuleRowRender(RowRenderEventArgs<SysRepository.NotifRuleRow> args)
     {
         if (args.Attributes.TryGetValue("class", out var existing))
             args.Attributes["class"] = existing + " ames-row-link";
@@ -885,7 +879,7 @@
             args.Attributes["class"] = "ames-row-link";
     }
 
-    void ChRowRender(RowRenderEventArgs<AMES.Data.Repositories.SysRepository.NotifChannelRow> args)
+    void ChRowRender(RowRenderEventArgs<SysRepository.NotifChannelRow> args)
     {
         if (args.Attributes.TryGetValue("class", out var existing))
             args.Attributes["class"] = existing + " ames-row-link";

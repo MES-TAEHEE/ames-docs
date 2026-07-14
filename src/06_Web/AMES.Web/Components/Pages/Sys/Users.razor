@@ -55,10 +55,10 @@
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
             <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@SearchStatusItems.Where(x => !string.IsNullOrEmpty(x.Value))" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
 
-            <RadzenButton Text="@L["Btn.Search"]" Icon="refresh" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click=@(args => Reload()) class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click=@(args => Reload()) class="ames-rz-btn" />
             @if (_canEdit)
             {
-                <RadzenButton Text="@L["Btn.Create"]" Icon="add_circle" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click=@OpenCreate class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click=@OpenCreate class="ames-rz-btn" />
             }
         </RadzenStack>
     </div>

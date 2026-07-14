@@ -4528,7 +4528,7 @@
     <value>Generating...</value>
   </data>
   <data name="Lbl.Persons" xml:space="preserve">
-    <value />
+    <value>persons</value>
   </data>
   <data name="Lbl.Count" xml:space="preserve">
     <value />
@@ -5446,7 +5446,7 @@
     <value>All</value>
   </data>
   <data name="Lbl.Year" xml:space="preserve">
-    <value />
+    <value>Year</value>
   </data>
   <data name="Lbl.Min" xml:space="preserve">
     <value>min</value>

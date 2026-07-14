@@ -7,7 +7,7 @@
 
 @attribute [Authorize]
 @inject SysRepository Sys
-@inject MasterDataRepository Md
+@inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>SYS-006 @L["SYS.Interfaces.Title"] · AMES</PageTitle>
@@ -54,7 +54,8 @@
             <RadzenDropDown Name="DropDownDir" @bind-Value="_fDir" Data="@DirList.Where(x => !string.IsNullOrEmpty(x.Value))" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
             <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusList.Where(x => !string.IsNullOrEmpty(x.Value))" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" />
-            <RadzenButton Text="@L["Btn.Search"]" Icon="refresh" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click=@(args => Reload()) class="ames-rz-btn" />
+
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click=@(args => Reload()) class="ames-rz-btn" />
         </RadzenStack>
     </div>
 
@@ -141,8 +142,8 @@
 
     protected override void OnInitialized()
     {
-        try { _statusItems = Md.ListCodeItems("IF_STATUS"); }    catch { }
-        try { _dirItems    = Md.ListCodeItems("IF_DIRECTION"); } catch { }
+        try { _statusItems = MD.ListCodeItems("IF_STATUS"); } catch { }
+        try { _dirItems = MD.ListCodeItems("IF_DIRECTION"); } catch { }
         Reload();
     }
 

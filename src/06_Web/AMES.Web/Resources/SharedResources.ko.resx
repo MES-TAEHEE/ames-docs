@@ -307,7 +307,7 @@
     <value>품목명</value>
   </data>
   <data name="Lbl.Period" xml:space="preserve">
-    <value>조회 기간</value>
+    <value>기간</value>
   </data>
   <data name="Lbl.Result" xml:space="preserve">
     <value>결과</value>

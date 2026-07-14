@@ -49,15 +49,15 @@
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["SYS.Screen.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:220px;" />
             <RadzenLabel Text="@L["Col.Module"]" Component="DropDownModule" />
             <RadzenDropDown Name="DropDownModule" @bind-Value="_fModule" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenLabel Text="@L["SYS.Screen.Col.Process"]" Component="DropDownProcess" />
+            <RadzenLabel Text="@L["Col.Process"]" Component="DropDownProcess" />
             <RadzenDropDown Name="DropDownProcess" @bind-Value="_fProcess" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
             <RadzenLabel Text="@L["Lbl.Visible"]" Component="DropDownVisible" />
             <RadzenDropDown Name="DropDownVisible" @bind-Value="_fVisible" Data="@VisibleList" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
 
-            <RadzenButton Text="@L["Btn.Search"]" Icon="refresh" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
             @if (_canEdit)
             {
-                <RadzenButton Text="@L["Btn.Create"]" Icon="add_circle" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
             }
         </RadzenStack>
     </div>
