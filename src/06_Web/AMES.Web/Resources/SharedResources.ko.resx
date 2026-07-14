@@ -1222,7 +1222,7 @@
     <value>달력</value>
   </data>
   <data name="SYS.Calendar.Btn.Create" xml:space="preserve">
-    <value>+ 일정 생성</value>
+    <value>일정 생성</value>
   </data>
   <data name="SYS.Calendar.Empty" xml:space="preserve">
     <value>조회 기간 내 데이터가 없습니다. '일정 생성'으로 추가하세요.</value>

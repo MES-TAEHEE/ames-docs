@@ -1222,7 +1222,7 @@
     <value>Calendar</value>
   </data>
   <data name="SYS.Calendar.Btn.Create" xml:space="preserve">
-    <value>+ Generate Schedule</value>
+    <value>Generate Schedule</value>
   </data>
   <data name="SYS.Calendar.Empty" xml:space="preserve">
     <value>No data in the selected period. Use 'Generate Schedule' to add entries.</value>

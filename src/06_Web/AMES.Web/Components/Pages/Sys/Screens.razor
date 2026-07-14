@@ -17,6 +17,7 @@
 <PageTitle>SYS-003 @L["SYS.Screen.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="SYS-003" TitleKey="SYS.Screen.Title" />
 
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["SYS.Screen.Kpi.All"]</div>
@@ -134,7 +135,7 @@
     }
 </div>
 
-@* ── Create Modal ── *@
+@* ── Create Modal ─────────────────────────────────────────────────── *@
 @if (_modal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
@@ -206,7 +207,7 @@
     </div>
 }
 
-@* ── Edit Modal ── *@
+@* ── Edit Modal ──────────────────────────────────────────────────── *@
 @if (_modal == "edit" && _sel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
