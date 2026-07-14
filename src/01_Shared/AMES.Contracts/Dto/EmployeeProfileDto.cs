@@ -35,4 +35,10 @@ public sealed class EmployeeProfileDto
 
     /// <summary>AspNetUsers.PasswordHash — checked by PinHasher.Verify(pin, hash).</summary>
     public required string PasswordHash { get; init; }
+
+    /// <summary>
+    /// SYS_UserProfile.PinHash — the operator's 4-digit POP PIN (PBKDF2), checked by
+    /// PinHasher.Verify(pin, hash). Distinct from PasswordHash above. Null when no PIN is set.
+    /// </summary>
+    public string? PinHash { get; init; }
 }

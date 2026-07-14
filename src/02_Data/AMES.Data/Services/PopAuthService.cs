@@ -51,7 +51,7 @@ public sealed class PopAuthService
         // 3) PIN verify (only on the PIN path; Badge currently trusts the scanner).
         if (req.Method == AuthMethod.Pin)
         {
-            if (string.IsNullOrEmpty(req.Pin) || !PinHasher.Verify(req.Pin, profile.PasswordHash))
+            if (string.IsNullOrEmpty(req.Pin) || !PinHasher.Verify(req.Pin, profile.PinHash))
             {
                 var isNowLocked = _auth.IncrementFailedCount(profile.UserId);
                 if (isNowLocked)

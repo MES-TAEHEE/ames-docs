@@ -5,6 +5,7 @@
 @using System.Text.Json
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Data.Repositories
+@using AMES.Data.Security
 @using AMES.Web.Services
 @using Radzen
 
@@ -153,6 +154,11 @@
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.Password"]" class="ames-rz-modal-label" Component="CreateTextBoxPassword" />
                     <RadzenTextBox Name="CreateTextBoxPassword" @bind-Value="_f.Password" Type="Password" Placeholder="@L["SYS.Users.Ph.Password"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.NewPassword" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Users.Lbl.Pin"]" class="ames-rz-modal-label" Component="CreateTextBoxPin" />
+                    <RadzenTextBox Name="CreateTextBoxPin" @bind-Value="_f.Pin" MaxLength="4" Placeholder="@L["SYS.Users.Ph.Pin"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -306,6 +312,11 @@
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.NewPassword"]" class="ames-rz-modal-label" Component="EditTextBoxNewPassword" />
                     <RadzenTextBox Name="EditTextBoxNewPassword" @bind-Value="_f.Password" Type="Password" Placeholder="@L["SYS.Users.Ph.NewPassword"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.NewPassword" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Users.Lbl.NewPin"]" class="ames-rz-modal-label" Component="EditTextBoxNewPin" />
+                    <RadzenTextBox Name="EditTextBoxNewPin" @bind-Value="_f.Pin" MaxLength="4" Placeholder="@L["SYS.Users.Ph.NewPin"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 @if (_sel.LockedOut)
@@ -521,6 +532,7 @@
         if (string.IsNullOrWhiteSpace(_f.Password))     { _modalErr = L["SYS.Users.Err.PasswordRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.EmployeeNo))   { _modalErr = L["SYS.Users.Err.EmpNoRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = L["SYS.Users.Err.NameRequired"]; return; }
+        if (!string.IsNullOrWhiteSpace(_f.Pin) && !IsPin(_f.Pin)) { _modalErr = L["SYS.Users.Err.PinFormat"]; return; }
 
         _busy = true;
         try
@@ -539,6 +551,9 @@
             Sys.CreateProfile(user.Id, _f.EmployeeNo, _f.EmployeeName,
                 _f.Department, _f.PlantCode, _f.DefaultShift, _actorEmail, linesJson);
 
+            if (!string.IsNullOrWhiteSpace(_f.Pin))
+                Sys.SetPin(user.Id, PinHasher.Hash(_f.Pin), _actorEmail);
+
             if (!string.IsNullOrEmpty(_f.Role))
                 await UserMgr.AddToRoleAsync(user, _f.Role);
 
@@ -555,6 +570,7 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.EmployeeNo))   { _modalErr = L["SYS.Users.Err.EmpNoRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = L["SYS.Users.Err.NameRequired"]; return; }
+        if (!string.IsNullOrWhiteSpace(_f.Pin) && !IsPin(_f.Pin)) { _modalErr = L["SYS.Users.Err.PinFormat"]; return; }
 
         _busy = true;
         try
@@ -568,6 +584,9 @@
             else
                 Sys.CreateProfile(_sel.UserId, _f.EmployeeNo, _f.EmployeeName,
                     _f.Department, _f.PlantCode, _f.DefaultShift, _actorEmail, linesJson);
+
+            if (!string.IsNullOrWhiteSpace(_f.Pin))
+                Sys.SetPin(_sel.UserId, PinHasher.Hash(_f.Pin), _actorEmail);
 
             if (!string.IsNullOrWhiteSpace(_f.Password))
             {
@@ -661,6 +680,7 @@
     {
         public string       Email         { get; set; } = "";
         public string       Password      { get; set; } = "";
+        public string       Pin           { get; set; } = "";
         public string       EmployeeNo    { get; set; } = "";
         public string       EmployeeName  { get; set; } = "";
         public string       Department    { get; set; } = "";
@@ -670,6 +690,9 @@
         public string       Role          { get; set; } = "";
         public List<string> SelectedLines { get; set; } = new();
     }
+
+    // POP 키패드 제약과 동일: 정확히 숫자 4자리만 유효.
+    static bool IsPin(string s) => s.Length == 4 && s.All(char.IsDigit);
 
     static string LineLocalName(SysRepository.LineRow r) =>
         CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ko"

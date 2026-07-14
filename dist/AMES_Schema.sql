@@ -3026,6 +3026,7 @@ CREATE TABLE dbo.SYS_UserProfile (
   [AssignedLines]             NVARCHAR(MAX)            NULL,
   [AccountStatus]             VARCHAR(10)              NULL,
   [FailedLoginCount]          INT                      NULL,
+  [PinHash]                   NVARCHAR(200)            NULL,  -- POP 4자리 PIN (PBKDF2). Web 비번(AspNetUsers.PasswordHash)과 분리
   [LastLoginTS]               DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),

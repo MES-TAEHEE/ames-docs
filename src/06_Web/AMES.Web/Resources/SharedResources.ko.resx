@@ -990,6 +990,21 @@
   <data name="SYS.Users.Ph.NewPassword" xml:space="preserve">
     <value>비워두면 변경 안 함</value>
   </data>
+  <data name="SYS.Users.Lbl.Pin" xml:space="preserve">
+    <value>PIN (4자리)</value>
+  </data>
+  <data name="SYS.Users.Ph.Pin" xml:space="preserve">
+    <value>POP 로그인용 · 선택</value>
+  </data>
+  <data name="SYS.Users.Lbl.NewPin" xml:space="preserve">
+    <value>새 PIN (4자리)</value>
+  </data>
+  <data name="SYS.Users.Ph.NewPin" xml:space="preserve">
+    <value>비워두면 변경 안 함</value>
+  </data>
+  <data name="SYS.Users.Err.PinFormat" xml:space="preserve">
+    <value>PIN은 숫자 4자리여야 합니다.</value>
+  </data>
   <data name="SYS.Users.Unlock" xml:space="preserve">
     <value>잠금 해제</value>
   </data>
