@@ -1,0 +1,275 @@
+@page "/wh/picking-orders"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.WarehouseRepository Wh
+@inject AuthenticationStateProvider Auth
+@using Radzen
+
+<PageTitle>WH-002 Picking Orders · AMES</PageTitle>
+<AmesPageHeader Code="WH-002" Title="Picking Orders" />
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">Lines</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+        <div class="ames-kpi-s">request lines</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">Open</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Open")</div>
+        <div class="ames-kpi-s">ready to pick</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">Partial</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Partial")</div>
+        <div class="ames-kpi-s">partially picked</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">Pick Slips</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.PickSlipNo).Distinct().Count()</div>
+        <div class="ames-kpi-s">unique slips</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_msg))
+{
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
+}
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ Picking Order List · @_rows.Count items@(_rows.Count < _allRows.Count ? $" / {_allRows.Count}" : "")</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_search" Placeholder="Pick slip, part, location, requester"
+                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:245px;" AutoComplete="false"
+                           @onkeydown='e => { if (e.Key == "Enter") Reload(); }' />
+            <label style="display:flex;align-items:center;gap:6px;color:#cbd5e1;font-size:12px;">
+                <RadzenCheckBox TValue="bool" @bind-Value="_includeClosed" Change="@(_ => Reload())" />
+                Include closed
+            </label>
+            <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
+            <RadzenButton Text="New Order" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+
+    <RadzenDataGrid TItem="AMES.Data.Repositories.WarehouseRepository.PickingOrderRow"
+                    Data="@_rows"
+                    AllowPaging="true" PageSize="15"
+                    PagerHorizontalAlign="HorizontalAlign.Center"
+                    PageSizeOptions="@_pageSizeOptions"
+                    ShowPagingSummary="true"
+                    AllowSorting="true"
+                    EmptyText="No picking orders found."
+                    Class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.PickingOrderRow" Property="PickSlipNo" Title="Pick Slip No" Width="150px">
+                <Template Context="r"><span class="code">@r.PickSlipNo</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.PickingOrderRow" Property="ReqDate" Title="Req Date" Width="120px">
+                <Template Context="r"><span class="dim">@(r.ReqDate ?? "-")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.PickingOrderRow" Property="ReqLocation" Title="Request To" Width="150px">
+                <Template Context="r"><span class="pill info">@(r.ReqLocation ?? "-")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.PickingOrderRow" Property="SeqNo" Title="Seq" Width="70px" TextAlign="TextAlign.Right" />
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.PickingOrderRow" Property="PartNo" Title="Part No">
+                <Template Context="r"><span class="code">@(r.PartNo ?? "-")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.PickingOrderRow" Property="ReqBoxQty" Title="Requested" Width="110px" TextAlign="TextAlign.Right">
+                <Template Context="r">@r.ReqBoxQty.ToString("N3")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.PickingOrderRow" Property="PickedQty" Title="Picked" Width="110px" TextAlign="TextAlign.Right">
+                <Template Context="r">@r.PickedQty.ToString("N3")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.PickingOrderRow" Property="ReqUserId" Title="Requester" Width="120px">
+                <Template Context="r"><span class="dim">@(r.ReqUserId ?? "-")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.PickingOrderRow" Property="Status" Title="Status" Width="100px" TextAlign="TextAlign.Center">
+                <Template Context="r"><span class="pill @StatusClass(r.Status)">@r.Status</span></Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+</div>
+
+@if (_modalOpen)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal wh-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">Create Picking Order</div>
+            <div class="wh-form-grid">
+                <div>
+                    <RadzenLabel Text="Pick Slip No" />
+                    <RadzenTextBox @bind-Value="_form.PickSlipNo" Placeholder="Blank = auto number" AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="Request Date" />
+                    <RadzenDatePicker @bind-Value="_form.ReqDate" DateFormat="yyyy-MM-dd"
+                                      InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="Request Location" />
+                    <RadzenTextBox @bind-Value="_form.ReqLocation" Placeholder="LINE-INJ-01" AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="Seq" />
+                    <RadzenNumeric TValue="int" @bind-Value="_form.SeqNo" Min="1" Step="10"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="Part No" />
+                    <RadzenDropDown @bind-Value="_form.PartNo" Data="@_partOptions" TextProperty="PartNo" ValueProperty="PartNo"
+                                    AllowFiltering="true" AllowClear="true" Placeholder="Select or type part"
+                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="Requested Box Qty" />
+                    <RadzenNumeric TValue="decimal" @bind-Value="_form.ReqBoxQty" Min="0" Step="1m"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="Requester" />
+                    <RadzenTextBox @bind-Value="_form.ReqUserId" Placeholder="planner" AutoComplete="false"
+                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="margin-top:8px;">@_modalErr</RadzenAlert>
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? "Saving" : "Create")" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveCreate" Disabled="@_busy" class="ames-rz-btn" />
+                <RadzenButton Text="Cancel" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseModal" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@code {
+    List<AMES.Data.Repositories.WarehouseRepository.PickingOrderRow> _allRows = new();
+    List<AMES.Data.Repositories.WarehouseRepository.PickingOrderRow> _rows = new();
+    List<AMES.Data.Repositories.WarehouseRepository.PartOptionRow> _partOptions = new();
+
+    readonly IEnumerable<int> _pageSizeOptions = new[] { 15, 30, 50, 100 };
+    string _search = "";
+    bool _includeClosed = true;
+    bool _modalOpen;
+    bool _busy;
+    bool _isErr;
+    bool _bgMouseDownOnSelf;
+    string _msg = "";
+    string _modalErr = "";
+    string _actor = "planner";
+    FormModel _form = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await Auth.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "planner";
+        Reload();
+        try { _partOptions = Wh.ListPartOptions(); } catch { _partOptions = new(); }
+    }
+
+    void Reload()
+    {
+        try
+        {
+            _allRows = Wh.ListPickingOrders(_search, _includeClosed);
+            _rows = _allRows;
+        }
+        catch (Exception ex)
+        {
+            _allRows = new();
+            _rows = new();
+            ShowMsg(ex.Message, true);
+        }
+    }
+
+    void OpenCreate()
+    {
+        _form = new()
+        {
+            ReqDate = DateTime.Today,
+            ReqLocation = "LINE-INJ-01",
+            SeqNo = 10,
+            ReqBoxQty = 1m,
+            ReqUserId = _actor,
+        };
+        _modalErr = "";
+        _modalOpen = true;
+    }
+
+    void SaveCreate()
+    {
+        _modalErr = "";
+        if (_form.ReqDate is null) { _modalErr = "Request Date is required."; return; }
+        if (string.IsNullOrWhiteSpace(_form.ReqLocation)) { _modalErr = "Request Location is required."; return; }
+        if (string.IsNullOrWhiteSpace(_form.PartNo)) { _modalErr = "Part No is required."; return; }
+        if (_form.ReqBoxQty <= 0) { _modalErr = "Requested quantity must be greater than zero."; return; }
+
+        _busy = true;
+        try
+        {
+            var slipNo = Wh.InsertPickingOrderLine(
+                _form.PickSlipNo,
+                _form.ReqDate.Value.ToString("yyyy-MM-dd"),
+                _form.ReqLocation.Trim(),
+                _form.SeqNo,
+                _form.PartNo.Trim(),
+                _form.ReqBoxQty,
+                string.IsNullOrWhiteSpace(_form.ReqUserId) ? _actor : _form.ReqUserId.Trim());
+            CloseModal();
+            Reload();
+            ShowMsg($"Picking order {slipNo} created.", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void CloseModal()
+    {
+        _modalOpen = false;
+        _modalErr = "";
+    }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick()
+    {
+        if (_bgMouseDownOnSelf) CloseModal();
+        _bgMouseDownOnSelf = false;
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg;
+        _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ =>
+        {
+            _msg = "";
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    static string StatusClass(string status) => status switch
+    {
+        "Open" => "ok",
+        "Partial" => "warn",
+        "Closed" => "mute",
+        "Picked" => "info",
+        _ => "ghost",
+    };
+
+    class FormModel
+    {
+        public string PickSlipNo { get; set; } = "";
+        public DateTime? ReqDate { get; set; }
+        public string ReqLocation { get; set; } = "";
+        public int SeqNo { get; set; } = 10;
+        public string PartNo { get; set; } = "";
+        public decimal ReqBoxQty { get; set; } = 1m;
+        public string ReqUserId { get; set; } = "";
+    }
+}
