@@ -178,14 +178,14 @@ public sealed class MasterDataRepository
     public List<ItemRow> ListItems(string? search = null)
     {
         var sql = """
-            SELECT ItemNo, ItemName, ItemNameEN, ItemType, ItemCategory, DefaultUOM,
+            SELECT ItemNo, ItemName, ItemType, ItemCategory, CarType, DefaultUOM,
                    RoutingType, MinStock, MaxStock, SafetyStock, UnitCost,
-                   CustItemNoSAV, CustItemNoGEO, DrawingNo,
+                   PGN, ALC, DrawingNo,
                    ISNULL(ActiveFlag,1) AS ActiveFlag,
                    CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
             FROM   dbo.MD_Item
             """ + (string.IsNullOrWhiteSpace(search) ? "" :
-            " WHERE ItemNo LIKE @S OR ItemName LIKE @S OR ItemNameEN LIKE @S OR ItemCategory LIKE @S") +
+            " WHERE ItemNo LIKE @S OR ItemName LIKE @S OR ItemCategory LIKE @S OR CarType LIKE @S OR PGN LIKE @S OR ALC LIKE @S") +
             " ORDER BY ItemNo";
         var p = string.IsNullOrWhiteSpace(search)
             ? Array.Empty<(string, object?)>()
@@ -193,17 +193,17 @@ public sealed class MasterDataRepository
         return Query(sql, r => new ItemRow(
             r.GetString("ItemNo"),
             r.GetString("ItemName"),
-            r["ItemNameEN"]    as string,
             r["ItemType"]      as string,
             r["ItemCategory"]  as string,
+            r["CarType"]       as string,
             r["DefaultUOM"]    as string,
             r["RoutingType"]   as string,
             r["MinStock"]      is decimal mn  ? mn  : null,
             r["MaxStock"]      is decimal mx  ? mx  : null,
             r["SafetyStock"]   is decimal ss  ? ss  : null,
             r["UnitCost"]      is decimal uc  ? uc  : null,
-            r["CustItemNoSAV"] as string,
-            r["CustItemNoGEO"] as string,
+            r["PGN"]           as string,
+            r["ALC"]           as string,
             r["DrawingNo"]     as string,
             (bool)r["ActiveFlag"],
             r["CreatedBy"]     as string,
@@ -221,46 +221,48 @@ public sealed class MasterDataRepository
         return (int)cmd.ExecuteScalar()! > 0;
     }
 
-    public void InsertItem(string itemNo, string itemName, string? itemNameEn,
-        string? itemType, string? itemCategory, string? defaultUom,
+    public void InsertItem(string itemNo, string itemName,
+        string? itemType, string? itemCategory, string? carType, string? defaultUom,
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
-        decimal? unitCost, string? custSav, string? custGeo, string? drawingNo,
+        decimal? unitCost, string? pgn, string? alc, string? drawingNo,
         bool activeFlag, string createdBy)
         => Exec("""
             INSERT INTO dbo.MD_Item
-                   (ItemNo,ItemName,ItemNameEN,ItemType,ItemCategory,DefaultUOM,
+                   (ItemNo,ItemName,ItemType,ItemCategory,CarType,DefaultUOM,
                     RoutingType,MinStock,MaxStock,SafetyStock,UnitCost,
-                    CustItemNoSAV,CustItemNoGEO,DrawingNo,ActiveFlag,CreatedBy,CreatedTS)
-            VALUES (@No,@Name,@NameEn,@Type,@Cat,@Uom,
+                    PGN,ALC,DrawingNo,ActiveFlag,CreatedBy,CreatedTS)
+            VALUES (@No,@Name,@Type,@Cat,@Car,@Uom,
                     @Route,@Min,@Max,@Safe,@Cost,
-                    @SAV,@GEO,@Draw,@Active,@By,SYSDATETIME())
+                    @PGN,@ALC,@Draw,@Active,@By,SYSDATETIME())
             """,
-            ("@No",     itemNo),   ("@Name",   itemName),  ("@NameEn", itemNameEn),
-            ("@Type",   itemType), ("@Cat",    itemCategory), ("@Uom", defaultUom),
+            ("@No",     itemNo),   ("@Name",   itemName),
+            ("@Type",   itemType), ("@Cat",    itemCategory), ("@Car", carType),
+            ("@Uom",    defaultUom),
             ("@Route",  routingType), ("@Min", minStock),  ("@Max",    maxStock),
-            ("@Safe",   safetyStock), ("@Cost", unitCost), ("@SAV",    custSav),
-            ("@GEO",    custGeo),  ("@Draw",   drawingNo), ("@Active", activeFlag),
+            ("@Safe",   safetyStock), ("@Cost", unitCost), ("@PGN",    pgn),
+            ("@ALC",    alc),      ("@Draw",   drawingNo), ("@Active", activeFlag),
             ("@By",     createdBy));
 
-    public void UpdateItem(string itemNo, string itemName, string? itemNameEn,
-        string? itemType, string? itemCategory, string? defaultUom,
+    public void UpdateItem(string itemNo, string itemName,
+        string? itemType, string? itemCategory, string? carType, string? defaultUom,
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
-        decimal? unitCost, string? custSav, string? custGeo, string? drawingNo,
+        decimal? unitCost, string? pgn, string? alc, string? drawingNo,
         bool activeFlag, string modifiedBy)
         => Exec("""
             UPDATE dbo.MD_Item
-            SET    ItemName=@Name, ItemNameEN=@NameEn, ItemType=@Type,
-                   ItemCategory=@Cat, DefaultUOM=@Uom, RoutingType=@Route,
+            SET    ItemName=@Name, ItemType=@Type,
+                   ItemCategory=@Cat, CarType=@Car, DefaultUOM=@Uom, RoutingType=@Route,
                    MinStock=@Min, MaxStock=@Max, SafetyStock=@Safe, UnitCost=@Cost,
-                   CustItemNoSAV=@SAV, CustItemNoGEO=@GEO, DrawingNo=@Draw,
+                   PGN=@PGN, ALC=@ALC, DrawingNo=@Draw,
                    ActiveFlag=@Active, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  ItemNo=@No
             """,
-            ("@No",     itemNo),   ("@Name",   itemName),  ("@NameEn", itemNameEn),
-            ("@Type",   itemType), ("@Cat",    itemCategory), ("@Uom", defaultUom),
+            ("@No",     itemNo),   ("@Name",   itemName),
+            ("@Type",   itemType), ("@Cat",    itemCategory), ("@Car", carType),
+            ("@Uom",    defaultUom),
             ("@Route",  routingType), ("@Min", minStock),  ("@Max",    maxStock),
-            ("@Safe",   safetyStock), ("@Cost", unitCost), ("@SAV",    custSav),
-            ("@GEO",    custGeo),  ("@Draw",   drawingNo), ("@Active", activeFlag),
+            ("@Safe",   safetyStock), ("@Cost", unitCost), ("@PGN",    pgn),
+            ("@ALC",    alc),      ("@Draw",   drawingNo), ("@Active", activeFlag),
             ("@By",     modifiedBy));
 
     public void DeleteItem(string itemNo)
@@ -483,11 +485,11 @@ public sealed class MasterDataRepository
         string? ModifiedBy, DateTime? ModifiedTS);
 
     public record ItemRow(
-        string ItemNo, string ItemName, string? ItemNameEN,
-        string? ItemType, string? ItemCategory, string? DefaultUOM,
+        string ItemNo, string ItemName,
+        string? ItemType, string? ItemCategory, string? CarType, string? DefaultUOM,
         string? RoutingType,
         decimal? MinStock, decimal? MaxStock, decimal? SafetyStock, decimal? UnitCost,
-        string? CustItemNoSAV, string? CustItemNoGEO, string? DrawingNo,
+        string? PGN, string? ALC, string? DrawingNo,
         bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS,
         string? ModifiedBy, DateTime? ModifiedTS);

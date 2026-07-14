@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using AMES.Contracts.Dto;
 using AMES.Data.Connection;
 using Microsoft.Data.SqlClient;
@@ -21,7 +21,7 @@ public sealed class WorkOrderRepository
     public List<WorkOrderDto> ListAll(int recentClosedDays = 30)
     {
         const string sql = """
-            SELECT w.WoID, w.WoNumber, w.ItemNo, i.ItemName, i.ItemNameEN,
+            SELECT w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
                    w.OrderQty, w.OpenQty, w.CompletedQty, w.LineID,
                    w.MoldID, w.RecipeID, w.DueDate, w.Status, w.TerminalLock,
                    ISNULL(w.Priority,5) AS Priority,
@@ -60,7 +60,7 @@ public sealed class WorkOrderRepository
     public List<WorkOrderDto> ListForLine(string lineId)
     {
         const string sql = """
-            SELECT w.WoID, w.WoNumber, w.ItemNo, i.ItemName, i.ItemNameEN,
+            SELECT w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
                    w.OrderQty, w.OpenQty, w.CompletedQty, w.LineID,
                    w.MoldID, w.RecipeID, w.DueDate, w.Status, w.TerminalLock,
                    ISNULL(w.Priority,5) AS Priority
@@ -81,7 +81,7 @@ public sealed class WorkOrderRepository
     public WorkOrderDto? GetById(int woId)
     {
         const string sql = """
-            SELECT TOP 1 w.WoID, w.WoNumber, w.ItemNo, i.ItemName, i.ItemNameEN,
+            SELECT TOP 1 w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
                    w.OrderQty, w.OpenQty, w.CompletedQty, w.LineID,
                    w.MoldID, w.RecipeID, w.DueDate, w.Status, w.TerminalLock,
                    ISNULL(w.Priority,5) AS Priority
@@ -98,7 +98,7 @@ public sealed class WorkOrderRepository
     public WorkOrderDto? GetActiveForTerminal(string lineId, string terminalId)
     {
         const string sql = """
-            SELECT TOP 1 w.WoID, w.WoNumber, w.ItemNo, i.ItemName, i.ItemNameEN,
+            SELECT TOP 1 w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
                    w.OrderQty, w.OpenQty, w.CompletedQty, w.LineID,
                    w.MoldID, w.RecipeID, w.DueDate, w.Status, w.TerminalLock,
                    ISNULL(w.Priority,5) AS Priority
@@ -210,9 +210,9 @@ public sealed class WorkOrderRepository
         cmd.ExecuteNonQuery();
     }
 
-    // ── PP-004 lifecycle actions ─────────────────────────────────────────────
+    // â”€â”€ PP-004 lifecycle actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-    /// <summary>WO를 Released로 전환하고 생산라인을 지정 (Draft/Planned만). 변경 행수 반환.</summary>
+    /// <summary>WOë¥¼ Releasedë¡œ ì „í™˜í•˜ê³  ìƒì‚°ë¼ì¸ì„ ì§€ì • (Draft/Plannedë§Œ). ë³€ê²½ í–‰ìˆ˜ ë°˜í™˜.</summary>
     public int ReleaseWo(int woId, string lineId, string actor)
     {
         const string sql = """
@@ -234,7 +234,7 @@ public sealed class WorkOrderRepository
         return cmd.ExecuteNonQuery();
     }
 
-    /// <summary>WO를 Cancelled로 전환 (Draft/Planned/Released만). 변경 행수 반환.</summary>
+    /// <summary>WOë¥¼ Cancelledë¡œ ì „í™˜ (Draft/Planned/Releasedë§Œ). ë³€ê²½ í–‰ìˆ˜ ë°˜í™˜.</summary>
     public int CancelWo(int woId, string actor)
     {
         const string sql = """
@@ -253,8 +253,8 @@ public sealed class WorkOrderRepository
     }
 
     /// <summary>
-    /// 수동 Draft WO 생성 (SO 미연계). WoNumber = WO-yyyyMMdd-NNN.
-    /// 품목마스터에 존재하는 품번만 생성. 생성된 WoNumber 반환(실패 시 빈 문자열).
+    /// ìˆ˜ë™ Draft WO ìƒì„± (SO ë¯¸ì—°ê³„). WoNumber = WO-yyyyMMdd-NNN.
+    /// í’ˆëª©ë§ˆìŠ¤í„°ì— ì¡´ìž¬í•˜ëŠ” í’ˆë²ˆë§Œ ìƒì„±. ìƒì„±ëœ WoNumber ë°˜í™˜(ì‹¤íŒ¨ ì‹œ ë¹ˆ ë¬¸ìžì—´).
     /// </summary>
     public string CreateManualWo(string itemNo, decimal qty, DateTime? due, string actor)
     {
@@ -293,7 +293,7 @@ public sealed class WorkOrderRepository
         }
     }
 
-    // ── helpers ─────────────────────────────────────────────────────────────
+    // â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private static bool HasColumn(SqlDataReader rdr, string name)
     {
         for (int i = 0; i < rdr.FieldCount; i++)
@@ -316,7 +316,6 @@ public sealed class WorkOrderRepository
                 WoNumber      = rdr["WoNumber"] as string ?? string.Empty,
                 ItemNo        = (string)rdr["ItemNo"],
                 ItemName      = (string)rdr["ItemName"],
-                ItemNameEn    = rdr["ItemNameEN"] as string,
                 OrderQty      = rdr["OrderQty"]     as decimal? ?? 0,
                 OpenQty       = rdr["OpenQty"]      as decimal? ?? 0,
                 CompletedQty  = rdr["CompletedQty"] as decimal? ?? 0,

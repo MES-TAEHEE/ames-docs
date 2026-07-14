@@ -30,7 +30,7 @@
         @* ── row 1: WO progress + Equipment status ─────────────────────── *@
         <div class="dash-top">
             <div class="pop-card">
-                <div class="pop-card-h">▼ WO PROGRESS · @(_wo?.WoNumber ?? "(no active WO)") · @(_wo?.ItemNameEn ?? _wo?.ItemName ?? "—")</div>
+                <div class="pop-card-h">▼ WO PROGRESS · @(_wo?.WoNumber ?? "(no active WO)") · @(_wo?.ItemName ?? "—")</div>
                 <div class="wo-progress">
                     <span class="wo-progress-v">@( _wo?.CompletedQty.ToString("0") ?? "—" )</span>
                     <span class="wo-progress-t">/ @( _wo?.OrderQty.ToString("0") ?? "—" ) EA</span>

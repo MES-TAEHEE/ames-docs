@@ -30,9 +30,9 @@ public sealed class ItemRepository
     {
         using var conn = _connFactory.OpenConnection();
         using var cmd = new SqlCommand(@"
-            SELECT ItemNo, ItemName, ItemNameEN, ItemType, ItemCategory,
+            SELECT ItemNo, ItemName, ItemType, ItemCategory, CarType,
                    DefaultUOM, RoutingType, MinStock, SafetyStock, UnitCost,
-                   CustItemNoSAV, CustItemNoGEO, ActiveFlag
+                   PGN, ALC, ActiveFlag
             FROM dbo.MD_Item
             WHERE ActiveFlag = 1
             ORDER BY ItemNo;", conn);
@@ -59,16 +59,16 @@ public sealed class ItemRepository
     {
         ItemNo        = (string)r["ItemNo"],
         ItemName      = (string)r["ItemName"],
-        ItemNameEN    = r["ItemNameEN"] as string,
         ItemType      = Enum.Parse<ItemType>((string)r["ItemType"]),
         ItemCategory  = r["ItemCategory"] as string,
+        CarType       = r["CarType"] as string,
         DefaultUOM    = r["DefaultUOM"] as string,
         RoutingType   = r["RoutingType"] as string,
         MinStock      = r["MinStock"] as decimal?,
         SafetyStock   = r["SafetyStock"] as decimal?,
         UnitCost      = r["UnitCost"] as decimal?,
-        CustItemNoSAV = r["CustItemNoSAV"] as string,
-        CustItemNoGEO = r["CustItemNoGEO"] as string,
+        PGN           = r["PGN"] as string,
+        ALC           = r["ALC"] as string,
         ActiveFlag    = (bool)r["ActiveFlag"],
     };
 }

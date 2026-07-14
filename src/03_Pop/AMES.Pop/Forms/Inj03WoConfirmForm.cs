@@ -162,7 +162,7 @@ public sealed class Inj03WoConfirmForm : PopForm
         _lblDetail.Text = string.Join("\r\n", new[]
         {
             $"WO         : {_selected.WoNumber}",
-            $"Item       : {_selected.ItemName}  ({_selected.ItemNameEn ?? "—"})  [{_selected.ItemNo}]",
+            $"Item       : {_selected.ItemName}  [{_selected.ItemNo}]",
             $"Qty        : {_selected.CompletedQty:0} / {_selected.OrderQty:0}  ({_selected.ProgressPct:0}%)",
             $"Due        : {(_selected.DueDate?.ToString("yyyy-MM-dd") ?? "—")}  (D-{_selected.DaysToDue?.ToString() ?? "?"})",
             moldLine,
