@@ -84,9 +84,13 @@ else
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="CustomerId" Title="@L["Col.Customer"].Value" Width="120px" />
-            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="ItemNo" Title="@L["Col.Item"].Value" Width="240px">
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="ItemNo" Title="@L["Col.PartNo"].Value" Width="240px">
                 <Template Context="r">
                     <span class="code">@r.ItemNo</span>
+                    @if (!r.ItemExists)
+                    {
+                        <span class="badge-bad">@L["PP.Forecast.Badge.Unregistered"]</span>
+                    }
                     @if (!string.IsNullOrEmpty(r.ItemName)) { <span class="dim"> · @r.ItemName</span> }
                 </Template>
             </RadzenDataGridColumn>

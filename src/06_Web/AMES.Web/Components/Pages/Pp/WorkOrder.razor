@@ -69,7 +69,7 @@ else
             <RadzenDataGridColumn TItem="WorkOrderDto" Property="WoNumber" Title="@L["Col.WoNo"].Value" Frozen="true" Width="150px">
                 <Template Context="w"><span class="code">@w.WoNumber</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="ItemNo" Title="@L["Col.Item"].Value" Width="230px">
+            <RadzenDataGridColumn TItem="WorkOrderDto" Property="ItemNo" Title="@L["Col.PartNo"].Value" Width="230px">
                 <Template Context="w">
                     <span class="code">@w.ItemNo</span>
                     @{ var nm = w.ItemName; }

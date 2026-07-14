@@ -31,7 +31,7 @@ public sealed class PpRepository
     public sealed record SoRow(int SoId, string? SoNumber, int? SoLineNo, string? CustomerId,
         string ItemNo, string? ItemName, decimal OrderQty, decimal ShippedQty,
         DateTime? OrderDate, DateTime? RequestedDeliveryDate, DateTime? PromisedDate, string? Status,
-        string? WoNumber, string? WoStatus);
+        string? WoNumber, string? WoStatus, bool ItemExists);
 
     public sealed record CustomerOrderImportRow(string SoNumber, int? SoLineNo, string ItemNo,
         decimal OrderQty, decimal ShippedQty, DateTime? OrderDate, DateTime? RequestedDeliveryDate);
@@ -325,7 +325,8 @@ public sealed class PpRepository
                    ISNULL(s.OrderQty,0)   AS OrderQty,
                    ISNULL(s.ShippedQty,0) AS ShippedQty,
                    s.OrderDate, s.RequestedDeliveryDate, s.PromisedDate, s.Status,
-                   wo.WoNumber, wo.WoStatus
+                   wo.WoNumber, wo.WoStatus,
+                   CASE WHEN i.ItemNo IS NULL THEN 0 ELSE 1 END AS ItemExists
             FROM   dbo.PP_CustomerOrder s
             LEFT JOIN dbo.MD_Item i ON i.ItemNo = s.ItemNo
             OUTER APPLY (SELECT TOP 1 w.WoNumber, w.Status AS WoStatus
@@ -347,7 +348,8 @@ public sealed class PpRepository
                    ISNULL(s.OrderQty,0)   AS OrderQty,
                    ISNULL(s.ShippedQty,0) AS ShippedQty,
                    s.OrderDate, s.RequestedDeliveryDate, s.PromisedDate, s.Status,
-                   wo.WoNumber, wo.WoStatus
+                   wo.WoNumber, wo.WoStatus,
+                   CASE WHEN i.ItemNo IS NULL THEN 0 ELSE 1 END AS ItemExists
             FROM   dbo.PP_CustomerOrder s
             LEFT JOIN dbo.MD_Item i ON i.ItemNo = s.ItemNo
             OUTER APPLY (SELECT TOP 1 w.WoNumber, w.Status AS WoStatus
@@ -1035,7 +1037,8 @@ public sealed class PpRepository
         r.GetDecimal(r.GetOrdinal("ShippedQty")),
         r["OrderDate"] as DateTime?, r["RequestedDeliveryDate"] as DateTime?,
         r["PromisedDate"] as DateTime?, r["Status"] as string,
-        r["WoNumber"] as string, r["WoStatus"] as string);
+        r["WoNumber"] as string, r["WoStatus"] as string,
+        (int)r["ItemExists"] == 1);
     private static WoLite MapWoLite(IDataReader r) => new(
         (int)r["WoID"], r["WoNumber"] as string,
         r["ItemNo"] as string ?? "", r["ItemName"] as string,
