@@ -28,7 +28,7 @@ public sealed class AuthRepository
     {
         const string sql = """
             SELECT TOP 1
-                u.Id, u.UserName, u.PasswordHash,
+                u.Id, u.UserName, u.PasswordHash, p.PinHash,
                 p.EmployeeNo, p.EmployeeName, p.Department, p.DefaultShift,
                 p.AssignedLines, p.AccountStatus, p.FailedLoginCount
             FROM   dbo.SYS_UserProfile p
@@ -48,6 +48,7 @@ public sealed class AuthRepository
             UserId            = (string)rdr["Id"],
             UserName          = (string)rdr["UserName"],
             PasswordHash      = rdr["PasswordHash"] as string ?? string.Empty,
+            PinHash           = rdr["PinHash"] as string,
             EmployeeNo        = (string)rdr["EmployeeNo"],
             EmployeeName      = (string)rdr["EmployeeName"],
             Department        = rdr["Department"]   as string,
@@ -61,15 +62,15 @@ public sealed class AuthRepository
     /// <summary>
     /// All active profiles ordered by EmployeeNo. Used by the dev User Picker
     /// popup on the login screen so testers can switch identities without
-    /// scanning a barcode. The PasswordHash is loaded too because the picker
+    /// scanning a barcode. The PasswordHash / PinHash are loaded too because the picker
     /// returns the same DTO shape as FindByEmployeeNo for consistency, but
-    /// callers should treat the hash as opaque — verify still flows through
+    /// callers should treat the hashes as opaque — verify still flows through
     /// PopAuthService.
     /// </summary>
     public List<EmployeeProfileDto> ListAllProfiles()
     {
         const string sql = """
-            SELECT u.Id, u.UserName, u.PasswordHash,
+            SELECT u.Id, u.UserName, u.PasswordHash, p.PinHash,
                    p.EmployeeNo, p.EmployeeName, p.Department, p.DefaultShift,
                    p.AssignedLines, p.AccountStatus, ISNULL(p.FailedLoginCount,0) AS FailedLoginCount
             FROM   dbo.SYS_UserProfile p
@@ -89,6 +90,7 @@ public sealed class AuthRepository
                 UserId            = (string)rdr["Id"],
                 UserName          = (string)rdr["UserName"],
                 PasswordHash      = rdr["PasswordHash"] as string ?? string.Empty,
+                PinHash           = rdr["PinHash"] as string,
                 EmployeeNo        = (string)rdr["EmployeeNo"],
                 EmployeeName      = (string)rdr["EmployeeName"],
                 Department        = rdr["Department"]   as string,
