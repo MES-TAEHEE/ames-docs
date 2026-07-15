@@ -1,16 +1,22 @@
 ﻿@page "/sys/health"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@implements IDisposable
-@inject AMES.Data.Repositories.SysRepository Sys
-@inject ServerMonitorService Srv
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using Radzen
+
+@attribute [Authorize]
+
+@inject ServerMonitorService SrvMntSvc
+@inject SysRepository Sys
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>SYS-010 @L["SYS.Health.Title"] · AMES</PageTitle>
+@implements IDisposable
 
+<PageTitle>SYS-010 @L["SYS.Health.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="SYS-010" TitleKey="SYS.Health.Title" />
 
-@* ── 실시간 서버 정보 (KPI) ─────────────────────────────────────── *@
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi @SvcClass()">
         <div class="ames-kpi-l">@L["SYS.Health.Kpi.ServicesUp"]</div>
@@ -79,12 +85,10 @@
                 (L["SYS.Health.Res.Net"].Value,  _srv.NetPct,  $"{_srv.NetMbps:F1} Mbps · {_srv.NetPct}%")
             })
             {
-                var barClr = pct >= 90 ? "rgba(239,68,68,.75)" : pct >= 75 ? "rgba(234,179,8,.75)" : "rgba(34,197,94,.75)";
+                var barStyle = pct >= 90 ? ProgressBarStyle.Danger : pct >= 75 ? ProgressBarStyle.Warning : ProgressBarStyle.Success;
                 <div class="pp-oee-bar-row">
                     <span class="pp-oee-bar-lbl">@lbl</span>
-                    <div class="pp-oee-bar-track">
-                        <div class="pp-oee-bar-fill" style="width:@(Math.Clamp(pct, 0, 100))%;background:@barClr;"></div>
-                    </div>
+                    <RadzenProgressBar Value="@Math.Clamp(pct, 0, 100)" Max="100" ShowValue="false" ProgressBarStyle="@barStyle" Style="flex:1;" />
                     <span class="pp-oee-bar-val" style="width:auto;white-space:nowrap;text-align:left;">@val</span>
                 </div>
             }
@@ -95,36 +99,25 @@
 
 <div class="ames-card">
     <div class="ames-card-h">▼ @L["SYS.Health.Events.Title"]</div>
-    @if (_events.Count == 0)
-    {
-        <div class="ames-empty">@L["SYS.Health.Events.Empty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["SYS.Health.Events.Col.Time"]</th>
-                    <th>@L["SYS.Health.Events.Col.Level"]</th>
-                    <th>@L["SYS.Health.Events.Col.Component"]</th>
-                    <th>@L["SYS.Health.Events.Col.Message"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var e in _events)
-                {
-                    <tr>
-                        <td class="dim code">@(e.EventTs?.ToString("HH:mm:ss") ?? "—")</td>
-                        <td><span class="pill @(e.Result == "OK" ? "ok" : "warn")">@(e.Result == "OK" ? L["SYS.Health.Status.Ok"].Value : L["SYS.Health.Status.Warn"].Value)</span></td>
-                        <td class="dim">@(e.ModuleCode ?? e.ScreenCode ?? "—")</td>
-                        <td>@EventMessage(e)</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    }
+    <RadzenDataGrid TItem="SysRepository.AuditRow" Data="@_events" AllowPaging="false" AllowSorting="true" EmptyText="@L["SYS.Health.Events.Empty"]" Class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="EventTs" Title="@L["SYS.Health.Events.Col.Time"]" Width="110px">
+                <Template Context="e"><span class="dim code">@(e.EventTs?.ToString("HH:mm:ss") ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="Result" Title="@L["SYS.Health.Events.Col.Level"]" Width="90px" TextAlign="TextAlign.Center">
+                <Template Context="e"><span class="pill @(e.Result == "OK" ? "ok" : "warn")">@(e.Result == "OK" ? L["SYS.Health.Status.Ok"].Value : L["SYS.Health.Status.Warn"].Value)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Title="@L["SYS.Health.Events.Col.Component"]" Width="150px" Sortable="false">
+                <Template Context="e"><span class="dim">@(e.ModuleCode ?? e.ScreenCode ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Title="@L["SYS.Health.Events.Col.Message"]" Sortable="false">
+                <Template Context="e">@EventMessage(e)</Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 </div>
 
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["SYS.Health.Kpi.Users"]</div>
@@ -156,6 +149,7 @@
     </div>
 </div>
 
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["SYS.Health.Kpi.Audit"]</div>
@@ -251,9 +245,8 @@
 </div>
 
 @code {
-    AMES.Data.Repositories.SysRepository.HealthKpi _k =
-        new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0L);
-    List<AMES.Data.Repositories.SysRepository.AuditRow> _events = new();
+    SysRepository.HealthKpi _k = new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0L);
+    List<SysRepository.AuditRow> _events = new();
     ServerMonitorService.ServerSnapshot? _srv;
     PeriodicTimer? _timer;
     CancellationTokenSource? _cts;
@@ -289,7 +282,7 @@
 
     async Task RefreshServerAsync()
     {
-        try { _srv = await Srv.GetSnapshotAsync(); } catch { }
+        try { _srv = await SrvMntSvc.GetSnapshotAsync(); } catch { }
         try { _k = Sys.GetHealth(); } catch { }
         try { _events = Sys.ListAudit(8); } catch { }
     }
@@ -327,7 +320,7 @@
         _ => status
     };
 
-    static string EventMessage(AMES.Data.Repositories.SysRepository.AuditRow e)
+    static string EventMessage(SysRepository.AuditRow e)
     {
         var parts = new List<string>();
         if (!string.IsNullOrWhiteSpace(e.ActionType))   parts.Add(e.ActionType);

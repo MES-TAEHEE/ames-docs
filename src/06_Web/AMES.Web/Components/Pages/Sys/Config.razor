@@ -1,15 +1,22 @@
 @page "/sys/config"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.SysRepository Sys
-@inject AMES.Web.Services.PermissionService Perm
-@inject AuthenticationStateProvider Auth
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using AMES.Web.Services
+@using Radzen
+
+@attribute [Authorize]
+
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject SysRepository Sys
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>SYS-009 @L["SYS.Config.Title"] · AMES</PageTitle>
-
 <AmesPageHeader Code="SYS-009" TitleKey="SYS.Config.Title" />
 
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["SYS.Config.Kpi.Keys"]</div>
@@ -46,9 +53,9 @@
     <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:8px;">
         @if (!string.IsNullOrEmpty(_msg))
         {
-            <span class="@(_isErr ? "ames-alert bad" : "ames-alert ok")" style="padding:4px 12px;">@_msg</span>
+            <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
         }
-        <button class="ames-btn ok" @onclick="SaveAll" disabled="@(!_dirty || _busy)">@L["Btn.Save"]</button>
+        <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveAll" Disabled="@(!_dirty || _busy)" class="ames-rz-btn" />
     </div>
 }
 
@@ -85,12 +92,13 @@
                                 {
                                     <span class="dim code" style="font-size:12px;">true / false</span>
                                 }
+                                else if (c.ConfigType == "password")
+                                {
+                                    <RadzenPassword Value="@ed.Value" Change="@(v => { ed.Value = v; _dirty = true; })" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;min-width:120px;" />
+                                }
                                 else
                                 {
-                                    <input class="ames-input" style="width:100%;min-width:120px;padding:3px 8px;"
-                                           type="@InputType(c.ConfigType)"
-                                           value="@ed.Value"
-                                           @oninput="e => { ed.Value = e.Value?.ToString(); _dirty = true; }" />
+                                    <RadzenTextBox Value="@ed.Value" Change="@(v => { ed.Value = v; _dirty = true; })" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;min-width:120px;" AutoCompleteType="AutoCompleteType.Off" />
                                 }
                             }
                             else
@@ -103,14 +111,12 @@
                         <td>
                             @if (_canEdit)
                             {
-                                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-                                    <input type="checkbox" checked="@ed.IsActive"
-                                           @onchange="e => { ed.IsActive = (bool)(e.Value ?? false); _dirty = true; }"
-                                           style="accent-color:#60a5fa;" />
+                                <div style="display:flex;align-items:center;gap:6px;">
+                                    <RadzenCheckBox TValue="bool" Value="@ed.IsActive" Change="@(v => { ed.IsActive = v; _dirty = true; })" />
                                     <span class="@(ed.IsActive ? "pill ok" : "pill warn")">
                                         @(ed.IsActive ? L["SYS.Config.Active"] : L["SYS.Config.Inactive"])
                                     </span>
-                                </label>
+                                </div>
                             }
                             else
                             {
@@ -131,7 +137,7 @@
 }
 
 @code {
-    List<AMES.Data.Repositories.SysRepository.ConfigRow> _rows = new();
+    List<SysRepository.ConfigRow> _rows = new();
     Dictionary<int, ConfigEdit> _edits = new();
     int _cat, _sec;
     bool _canEdit, _dirty, _busy;
@@ -146,9 +152,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("sys/config");
-        var auth = await Auth.GetAuthenticationStateAsync();
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("sys/config");
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actorEmail = auth.User.Identity?.Name ?? "system";
         Reload();
     }
@@ -183,11 +189,4 @@
         }
         finally { _busy = false; }
     }
-
-    static string InputType(string? configType) => configType switch
-    {
-        "int" or "decimal" => "number",
-        "password"         => "password",
-        _                  => "text"
-    };
 }

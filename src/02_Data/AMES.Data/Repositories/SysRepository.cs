@@ -815,7 +815,7 @@ public sealed class SysRepository
                    PlantCode        = @Plant,
                    DefaultShift     = @Shift,
                    AccountStatus    = @Status,
-                   FailedLoginCount = CASE WHEN @UPPER(@Status) = 'ACTIVE' THEN 0 ELSE FailedLoginCount END,
+                   FailedLoginCount = CASE WHEN UPPER(@Status) = 'ACTIVE' THEN 0 ELSE FailedLoginCount END,
                    AssignedLines    = @Lines,
                    ModifiedBy       = @ModifiedBy,
                    ModifiedTS       = SYSDATETIME()
@@ -830,6 +830,26 @@ public sealed class SysRepository
             ("@Shift",      (object?)defaultShift      ?? DBNull.Value),
             ("@Status",     accountStatus),
             ("@Lines",      (object?)assignedLinesJson ?? DBNull.Value),
+            ("@ModifiedBy", modifiedBy));
+    }
+
+    /// <summary>
+    /// Sets (or replaces) the operator's POP login PIN hash. Called from SYS-01 only
+    /// when an admin actually types a PIN — leaving the field blank keeps the current
+    /// value. Web login (AspNetUsers.PasswordHash) is untouched. Pass a hash produced
+    /// by PinHasher.Hash; this method never sees the raw PIN.
+    /// </summary>
+    public void SetPin(string userId, string pinHash, string modifiedBy)
+    {
+        Exec("""
+            UPDATE dbo.SYS_UserProfile
+            SET    PinHash    = @PinHash,
+                   ModifiedBy = @ModifiedBy,
+                   ModifiedTS = SYSDATETIME()
+            WHERE  UserID = @UserID
+            """,
+            ("@UserID",     userId),
+            ("@PinHash",    pinHash),
             ("@ModifiedBy", modifiedBy));
     }
 

@@ -990,6 +990,21 @@
   <data name="SYS.Users.Ph.NewPassword" xml:space="preserve">
     <value>Leave blank to keep current</value>
   </data>
+  <data name="SYS.Users.Lbl.Pin" xml:space="preserve">
+    <value>PIN (4 digits)</value>
+  </data>
+  <data name="SYS.Users.Ph.Pin" xml:space="preserve">
+    <value>For POP login · optional</value>
+  </data>
+  <data name="SYS.Users.Lbl.NewPin" xml:space="preserve">
+    <value>New PIN (4 digits)</value>
+  </data>
+  <data name="SYS.Users.Ph.NewPin" xml:space="preserve">
+    <value>Leave blank to keep current</value>
+  </data>
+  <data name="SYS.Users.Err.PinFormat" xml:space="preserve">
+    <value>PIN must be exactly 4 digits.</value>
+  </data>
   <data name="SYS.Users.Unlock" xml:space="preserve">
     <value>Unlock Account</value>
   </data>

@@ -35,13 +35,13 @@
 
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["SYS.Roles.List"] · @_rows.Count @L["Lbl.Items"]</span>
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Wrap="FlexWrap.Wrap">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
             @if (_canEdit)
             {
@@ -50,38 +50,27 @@
         </RadzenStack>
     </div>
 
-    @if (_rows.Count == 0)
-    {
-        <div class="ames-empty">@L["SYS.Roles.Empty"]</div>
-    }
-    else
-    {
-        <RadzenStack Gap="1rem">
-            <RadzenDataGrid TItem="SysRepository.RoleRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" Class="ames-rz-grid">
-                <Columns>
-                    <RadzenDataGridColumn TItem="SysRepository.RoleRow" Property="RoleName" Title="@L["Col.RoleName"]">
-                        <Template Context="r">
-                            <span class="code">@(r.RoleName ?? "—")</span>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.RoleRow" Property="UserCount" Title="@L["Col.UserCount"]" TextAlign="TextAlign.Right">
-                        <Template Context="r">
-                            @if (r.UserCount > 0)
-                            {
-                                <span class="pill ok">@r.UserCount</span>
-                            }
-                            else
-                            {
+    <RadzenDataGrid TItem="SysRepository.RoleRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SYS.Roles.Empty"]" Class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="SysRepository.RoleRow" Property="RoleName" Title="@L["Col.RoleName"]">
+                <Template Context="r"><span class="code">@(r.RoleName ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.RoleRow" Property="UserCount" Title="@L["Col.UserCount"]" TextAlign="TextAlign.Right">
+                <Template Context="r">
+                    @if (r.UserCount > 0)
+                    {
+                        <span class="pill ok">@r.UserCount</span>
+                    }
+                    else
+                    {
 
-                                <span class="dim">0</span>
-                            }
-                        </Template>
-                    </RadzenDataGridColumn>
-                </Columns>
-            </RadzenDataGrid>
-        </RadzenStack>
-    }
+                        <span class="dim">0</span>
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 </div>
 
 @* ── Create Modal ─────────────────────────────────────────────────── *@
@@ -92,7 +81,7 @@
             <div class="ames-modal-h">@L["SYS.Roles.Modal.Create"]</div>
 
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Roles.Lbl.RoleName"]" class="ames-rz-modal-label" Component="CreateTextBoxRoleName" />
                     <RadzenTextBox Name="CreateTextBoxRoleName" @bind-Value="_roleName" Placeholder="@L["SYS.Roles.Ph.RoleName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
@@ -119,7 +108,7 @@
             <div class="ames-modal-h">@L["SYS.Roles.Modal.Edit"] — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.RoleName</span></div>
 
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Roles.Lbl.RoleName"]" class="ames-rz-modal-label" Component="EditTextBoxRoleName" />
                     <RadzenTextBox Name="EditTextBoxRoleName" @bind-Value="_roleName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
@@ -164,7 +153,7 @@
 }
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
     bool _showPagerSummary = true;
     List<SysRepository.RoleRow> _rows = new();
     SysRepository.RoleRow? _sel;

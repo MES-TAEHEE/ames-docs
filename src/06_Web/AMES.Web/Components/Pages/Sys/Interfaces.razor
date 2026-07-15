@@ -6,6 +6,7 @@
 @using Radzen
 
 @attribute [Authorize]
+
 @inject SysRepository Sys
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
@@ -48,12 +49,12 @@
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["SYS.Interfaces.List"] · @_rows.Count @L["Lbl.Items"]</span>
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Wrap="FlexWrap.Wrap">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["SYS.Interfaces.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" />
             <RadzenLabel Text="@L["Lbl.Direction"]" Component="DropDownDir" />
             <RadzenDropDown Name="DropDownDir" @bind-Value="_fDir" Data="@DirList.Where(x => !string.IsNullOrEmpty(x.Value))" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
-            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusList.Where(x => !string.IsNullOrEmpty(x.Value))" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" />
+            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusList.Where(x => !string.IsNullOrEmpty(x.Value))" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click=@(args => Reload()) class="ames-rz-btn" />
         </RadzenStack>
@@ -63,61 +64,39 @@
     {
         <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_err</RadzenAlert>
     }
-    else if (_rows.Count == 0)
-    {
-        <div class="ames-empty">@L["SYS.Interfaces.Empty"]</div>
-    }
     else
     {
-        <RadzenDataGrid TItem="SysRepository.InterfaceRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                        PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" Class="ames-rz-grid">
+        <RadzenDataGrid TItem="SysRepository.InterfaceRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                        PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["SYS.Interfaces.Empty"]" Class="ames-rz-grid">
             <Columns>
                 <RadzenDataGridColumn TItem="SysRepository.InterfaceRow" Property="InterfaceCode" Title="@L["SYS.Interfaces.Col.Code"]">
-                    <Template Context="i">
-                        <span class="code">@(i.InterfaceCode ?? "—")</span>
-                    </Template>
+                    <Template Context="i"><span class="code">@(i.InterfaceCode ?? "—")</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SysRepository.InterfaceRow" Property="InterfaceName" Title="@L["SYS.Interfaces.Col.Name"]" />
                 <RadzenDataGridColumn TItem="SysRepository.InterfaceRow" Property="Direction" Title="@L["SYS.Interfaces.Col.Dir"]">
-                    <Template Context="i">
-                        <span class="dim">@DirName(i.Direction)</span>
-                    </Template>
+                    <Template Context="i"><span class="dim">@DirName(i.Direction)</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SysRepository.InterfaceRow" Property="Endpoint" Title="@L["SYS.Interfaces.Col.Endpoint"]">
-                    <Template Context="i">
-                        <span class="dim" style="font-family:'JetBrains Mono',monospace;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:260px;">@(i.Endpoint ?? "—")</span>
-                    </Template>
+                    <Template Context="i"><span class="dim" style="font-family:'JetBrains Mono',monospace;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:260px;">@(i.Endpoint ?? "—")</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SysRepository.InterfaceRow" Property="Protocol" Title="@L["SYS.Interfaces.Col.Protocol"]">
-                    <Template Context="i">
-                        <span class="dim">@(i.Protocol ?? "—")</span>
-                    </Template>
+                    <Template Context="i"><span class="dim">@(i.Protocol ?? "—")</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SysRepository.InterfaceRow" Property="ConnStatus" Title="@L["Col.Status"]">
-                    <Template Context="i">
-                        <span class="pill @StClass(i.ConnStatus)">@StatusName(i.ConnStatus)</span>
-                    </Template>
+                    <Template Context="i"><span class="pill @StClass(i.ConnStatus)">@StatusName(i.ConnStatus)</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SysRepository.InterfaceRow" Property="LastSyncTs" Title="@L["SYS.Interfaces.Col.LastSync"]">
-                    <Template Context="i">
-                        <span class="dim">@(i.LastSyncTs?.ToString("MM-dd HH:mm") ?? "—")</span>
-                    </Template>
+                    <Template Context="i"><span class="dim">@(i.LastSyncTs?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SysRepository.InterfaceRow" Property="MinutesSinceSync" Title="@L["SYS.Interfaces.Col.Elapsed"]" TextAlign="TextAlign.Right" />
                 <RadzenDataGridColumn TItem="SysRepository.InterfaceRow" Property="LastRecordCount" Title="@L["SYS.Interfaces.Col.LastCount"]" TextAlign="TextAlign.Right">
-                    <Template Context="i">
-                        <span>@(i.LastRecordCount?.ToString() ?? "—")</span>
-                    </Template>
+                    <Template Context="i"><span>@(i.LastRecordCount?.ToString() ?? "—")</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SysRepository.InterfaceRow" Property="RetryCount" Title="@L["SYS.Interfaces.Col.Retry"]" TextAlign="TextAlign.Right">
-                    <Template Context="i">
-                        <span>@(i.RetryCount?.ToString() ?? "—")</span>
-                    </Template>
+                    <Template Context="i"><span>@(i.RetryCount?.ToString() ?? "—")</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SysRepository.InterfaceRow" Property="LastErrorMsg" Title="@L["SYS.Interfaces.Col.Error"]">
-                    <Template Context="i">
-                        <span class="dim">@(i.LastErrorMsg ?? "—")</span>
-                    </Template>
+                    <Template Context="i"><span class="dim">@(i.LastErrorMsg ?? "—")</span></Template>
                 </RadzenDataGridColumn>
             </Columns>
         </RadzenDataGrid>
@@ -125,7 +104,7 @@
 </div>
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 20, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
     bool _showPagerSummary = true;
     List<SysRepository.InterfaceRow> _allRows = new();
     List<SysRepository.InterfaceRow> _rows    = new();

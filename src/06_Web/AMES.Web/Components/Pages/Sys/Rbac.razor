@@ -39,7 +39,7 @@
 
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
 <div style="display:flex;gap:16px;align-items:flex-start;">
@@ -96,6 +96,7 @@
                         <RadzenDropDown Name="DropDownModule" @bind-Value="_fModule" @bind-Value:after="OnModuleChanged" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
                         <RadzenLabel Text="@L["SYS.Screen.Col.Process"]" Component="DropDownProcess" />
                         <RadzenDropDown Name="DropDownProcess" @bind-Value="_fProcess" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+
                         @if (_canEdit)
                         {
                             <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveAll" Disabled="@(!_dirty || _busy)" Icon="save" ButtonStyle="@(_dirty ? ButtonStyle.Primary : ButtonStyle.Base)" Size="ButtonSize.Small" class="ames-rz-btn" />
@@ -103,41 +104,30 @@
                     </RadzenStack>
                 </div>
 
-                @if (!ScreensFiltered.Any())
-                {
-                    <div class="ames-empty">@L["SYS.Screen.Empty"]</div>
-                }
-                else
-                {
-                    <RadzenDataGrid TItem="SysRepository.ScreenRow" Data="@ScreensFiltered.ToList()" AllowPaging="false" AllowSorting="false" Class="ames-rz-grid">
-                        <Columns>
-                            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenCode" Title="@L["SYS.Screen.Col.Code"]" Width="110px">
+                <RadzenDataGrid TItem="SysRepository.ScreenRow" Data="@ScreensFiltered.ToList()" AllowPaging="false" AllowSorting="false" EmptyText="@L["SYS.Screen.Empty"]" Class="ames-rz-grid">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenCode" Title="@L["SYS.Screen.Col.Code"]" Width="110px">
+                            <Template Context="s"><span class="code" style="white-space:nowrap;">@s.ScreenCode</span></Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Title="@L["SYS.Rbac.Col.Screen"]">
+                            <Template Context="s">@MasterDataRepository.LocalName(s.ScreenName, s.ScreenNameEn)</Template>
+                        </RadzenDataGridColumn>
+                        @foreach (var pl in _permLevelItems)
+                        {
+                            var plCap = pl;
+                            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" TextAlign="TextAlign.Center" Width="80px" Sortable="false">
+                                <HeaderTemplate>
+                                    <span style="cursor:pointer;user-select:none;" @onclick="() => ToggleColumn(plCap)" @onclick:stopPropagation="true">
+                                        @MasterDataRepository.LocalName(plCap)
+                                    </span>
+                                </HeaderTemplate>
                                 <Template Context="s">
-                                    <span class="code" style="white-space:nowrap;">@s.ScreenCode</span>
+                                    <RadzenCheckBox TValue="bool" Value="@IsChecked(s.ScreenCode, plCap)" Change="@(v => ToggleCell(s, plCap, v))" Disabled="@(!_canEdit)" />
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Title="@L["SYS.Rbac.Col.Screen"]">
-                                <Template Context="s">
-                                    @MasterDataRepository.LocalName(s.ScreenName, s.ScreenNameEn)
-                                </Template>
-                            </RadzenDataGridColumn>
-                            @foreach (var pl in _permLevelItems)
-                            {
-                                var plCap = pl;
-                                <RadzenDataGridColumn TItem="SysRepository.ScreenRow" TextAlign="TextAlign.Center" Width="80px" Sortable="false">
-                                    <HeaderTemplate>
-                                        <span style="cursor:pointer;user-select:none;" @onclick="() => ToggleColumn(plCap)" @onclick:stopPropagation="true">
-                                            @MasterDataRepository.LocalName(plCap)
-                                        </span>
-                                    </HeaderTemplate>
-                                    <Template Context="s">
-                                        <RadzenCheckBox TValue="bool" Value="@IsChecked(s.ScreenCode, plCap)" Change="@(v => ToggleCell(s, plCap, v))" Disabled="@(!_canEdit)" />
-                                    </Template>
-                                </RadzenDataGridColumn>
-                            }
-                        </Columns>
-                    </RadzenDataGrid>
-                }
+                        }
+                    </Columns>
+                </RadzenDataGrid>
             }
         </div>
     </div>

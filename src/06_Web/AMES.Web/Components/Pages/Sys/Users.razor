@@ -5,6 +5,7 @@
 @using System.Text.Json
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Data.Repositories
+@using AMES.Data.Security
 @using AMES.Web.Services
 @using Radzen
 
@@ -44,13 +45,13 @@
 
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["SYS.Users.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Wrap="FlexWrap.Wrap">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["SYS.Users.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
             <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@SearchStatusItems.Where(x => !string.IsNullOrEmpty(x.Value))" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
@@ -63,74 +64,65 @@
         </RadzenStack>
     </div>
 
-    @if (_rows.Count == 0)
-    {
-        <div class="ames-empty">@L["SYS.Users.Empty"]</div>
-    }
-    else
-    {
-        <RadzenStack Gap="1rem">
-            <RadzenDataGrid TItem="SysRepository.UserRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" Class="ames-rz-grid">
-                <Columns>
-                    <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="UserName" Title="@L["SYS.Users.Col.UserName"]">
-                        <Template Context="u">
-                            <span class="code">@(u.UserName ?? "—")</span>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="Email" Title="@L["SYS.Users.Col.Email"]">
-                        <Template Context="u">
-                            <span class="dim">@(u.Email ?? "—")</span>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="EmployeeNo" Title="@L["SYS.Users.Col.EmployeeNo"]">
-                        <Template Context="u">
-                            <span class="dim">@(u.EmployeeNo ?? "—")</span>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="EmployeeName" Title="@L["SYS.Users.Col.EmployeeName"]" />
-                    <RadzenDataGridColumn TItem="SysRepository.UserRow" Title="@L["SYS.Users.Col.Dept"]">
-                        <Template Context="u">
-                            <span class="dim">@DeptName(u.Department)</span>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.UserRow" Title="@L["Col.Status"]">
-                        <Template Context="u">
-                            @{
-                                var stEff = EffectiveStatus(u);
-                                var nonvf = string.Equals(stEff, "UNVERIFIED", StringComparison.OrdinalIgnoreCase);
-                                var stCls = nonvf ? "ghost" : stEff switch
-                                {
-                                    "LOCKED"    => "bad",
-                                    "INACTIVE"  => "mute",
-                                    "SUSPENDED" => "warn",
-                                    _ => "ok"
-                                };
+    <RadzenDataGrid TItem="SysRepository.UserRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SYS.Users.Empty"]" Class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="UserName" Title="@L["SYS.Users.Col.UserName"]">
+                <Template Context="u">
+                    <span class="code">@(u.UserName ?? "—")</span>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="Email" Title="@L["SYS.Users.Col.Email"]">
+                <Template Context="u">
+                    <span class="dim">@(u.Email ?? "—")</span>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="EmployeeNo" Title="@L["SYS.Users.Col.EmployeeNo"]">
+                <Template Context="u">
+                    <span class="dim">@(u.EmployeeNo ?? "—")</span>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="EmployeeName" Title="@L["SYS.Users.Col.EmployeeName"]" />
+            <RadzenDataGridColumn TItem="SysRepository.UserRow" Title="@L["SYS.Users.Col.Dept"]">
+                <Template Context="u">
+                    <span class="dim">@DeptName(u.Department)</span>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.UserRow" Title="@L["Col.Status"]">
+                <Template Context="u">
+                    @{
+                        var stEff = EffectiveStatus(u);
+                        var nonvf = string.Equals(stEff, "UNVERIFIED", StringComparison.OrdinalIgnoreCase);
+                        var stCls = nonvf ? "ghost" : stEff switch
+                        {
+                            "LOCKED" => "bad",
+                            "INACTIVE" => "mute",
+                            "SUSPENDED" => "warn",
+                            _ => "ok"
+                        };
 
-                                var stLbl = nonvf
-                                    ? L["SYS.Users.Status.Unverified"].Value
-                                    : StatusName(stEff);
-                            }
-                            <span class="pill @stCls">@stLbl</span>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="RolesCsv" Title="@L["SYS.Users.Col.Roles"]">
-                        <Template Context="u">
-                            <span class="dim">@(u.RolesCsv ?? "—")</span>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="FailedLoginCount" Title="@L["SYS.Users.Col.FailCount"]" TextAlign="TextAlign.Right" />
-                    <RadzenDataGridColumn TItem="SysRepository.UserRow" Title="@L["SYS.Users.Col.LastLogin"]">
-                        <Template Context="u">
-                            <span class="dim">
-                                @(u.LastLoginTs?.ToString("MM-dd HH:mm") ?? "—")
-                            </span>
-                        </Template>
-                    </RadzenDataGridColumn>
-                </Columns>
-            </RadzenDataGrid>
-        </RadzenStack>
-    }
+                        var stLbl = nonvf
+                            ? L["SYS.Users.Status.Unverified"].Value
+                            : StatusName(stEff);
+                    }
+                    <span class="pill @stCls">@stLbl</span>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="RolesCsv" Title="@L["SYS.Users.Col.Roles"]">
+                <Template Context="u">
+                    <span class="dim">@(u.RolesCsv ?? "—")</span>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="FailedLoginCount" Title="@L["SYS.Users.Col.FailCount"]" TextAlign="TextAlign.Right" />
+            <RadzenDataGridColumn TItem="SysRepository.UserRow" Title="@L["SYS.Users.Col.LastLogin"]">
+                <Template Context="u">
+                    <span class="dim">
+                        @(u.LastLoginTs?.ToString("MM-dd HH:mm") ?? "—")
+                    </span>
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 </div>
 
 @* ── Create Modal ─────────────────────────────────────────────────── *@
@@ -153,6 +145,11 @@
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.Password"]" class="ames-rz-modal-label" Component="CreateTextBoxPassword" />
                     <RadzenTextBox Name="CreateTextBoxPassword" @bind-Value="_f.Password" Type="Password" Placeholder="@L["SYS.Users.Ph.Password"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.NewPassword" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Users.Lbl.Pin"]" class="ames-rz-modal-label" Component="CreateTextBoxPin" />
+                    <RadzenTextBox Name="CreateTextBoxPin" @bind-Value="_f.Pin" MaxLength="4" Placeholder="@L["SYS.Users.Ph.Pin"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -308,6 +305,11 @@
                     <RadzenTextBox Name="EditTextBoxNewPassword" @bind-Value="_f.Password" Type="Password" Placeholder="@L["SYS.Users.Ph.NewPassword"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.NewPassword" />
                 </RadzenStack>
 
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Users.Lbl.NewPin"]" class="ames-rz-modal-label" Component="EditTextBoxNewPin" />
+                    <RadzenTextBox Name="EditTextBoxNewPin" @bind-Value="_f.Pin" MaxLength="4" Placeholder="@L["SYS.Users.Ph.NewPin"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                </RadzenStack>
+
                 @if (_sel.LockedOut)
                 {
                     <RadzenButton Text="@L["SYS.Users.Unlock"]" Icon="lock_open" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@UnlockUser" class="ames-rz-btn" />
@@ -367,27 +369,20 @@
     string _msg = "", _modalErr = "";
     bool _isErr;
 
+    FormModel _f = new();
+
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
     private IEnumerable<DropDownItem> DeptOptions  => _deptItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     private IEnumerable<DropDownItem> PlantOptions => _plantItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     private IEnumerable<DropDownItem> ShiftOptions => _shiftItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
-
-    private IEnumerable<DropDownItem> SearchStatusItems =>
-        _statusItems
-            .Where(s => s.UseFlag)
-            .Select(s => new DropDownItem { Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}", Value = s.CodeValue ?? "" });
-
-    private IEnumerable<DropDownItem> EditStatusItems =>
-        _statusItems
-            .Where(s => s.UseFlag
+    private IEnumerable<DropDownItem> SearchStatusItems => _statusItems.Where(s => s.UseFlag).Select(s => new DropDownItem { Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}", Value = s.CodeValue ?? "" });
+    private IEnumerable<DropDownItem> EditStatusItems => _statusItems.Where(s => s.UseFlag
                 && !string.Equals(s.CodeValue, "UNVERIFIED", StringComparison.OrdinalIgnoreCase)
                 && (_sel is null
                     || !string.Equals(_sel.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase)
                     || !string.Equals(s.CodeValue, "LOCKED", StringComparison.OrdinalIgnoreCase)))
             .Select(s => new DropDownItem { Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}", Value = s.CodeValue ?? "" });
-
-    FormModel _f = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -407,30 +402,24 @@
         Reload();
     }
 
-    private void OnSearchChanged(string value)
-    {
-        _fSearch = value?.ToString() ?? "";
-    }
-
-    private void OnSearchKeyDown(KeyboardEventArgs e)
-    {
-        if (e.Key == "Enter")
-        {
-            Reload();
-        }
-    }
-
     void Reload() { _allRows = Sys.ListUsers(); ApplyFilter(); }
 
-    void ApplyFilter() { _rows = _allRows.Where(r =>
+    void ApplyFilter()
+    {
+        _rows = _allRows.Where(r =>
         (string.IsNullOrEmpty(_fSearch) ||
-            (r.UserName     ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
-            (r.Email        ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
-            (r.EmployeeNo   ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.UserName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.Email ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.EmployeeNo ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.EmployeeName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (_deptSearchNames.GetValueOrDefault(r.Department ?? "") ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fStatus) || MatchStatus(r, _fStatus))
-    ).ToList(); }
+    ).ToList();
+    }
+
+    void OnSearchChanged(string value) => _fSearch = value ?? "";
+
+    void OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") ApplyFilter(); }
 
     static string EffectiveStatus(SysRepository.UserRow r) =>
         (r.LockedOut || string.Equals(r.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase)) ? "LOCKED" : (r.AccountStatus ?? "ACTIVE");
@@ -456,12 +445,6 @@
         return found is null ? code : MasterDataRepository.LocalName(found);
     }
 
-    void OpenCreate()
-    {
-        _f = new(); _modalErr = ""; _confirmDelete = false;
-        _modal = "create";
-    }
-
     void RowRender(RowRenderEventArgs<SysRepository.UserRow> args)
     {
         if (args.Attributes.TryGetValue("class", out var existing))
@@ -473,6 +456,12 @@
     void OnRowClick(DataGridRowMouseEventArgs<SysRepository.UserRow> args)
     {
         if (args.Data is not null) OpenEdit(args.Data);
+    }
+
+    void OpenCreate()
+    {
+        _f = new(); _modalErr = ""; _confirmDelete = false;
+        _modal = "create";
     }
 
     void OpenEdit(SysRepository.UserRow u)
@@ -500,19 +489,10 @@
         _modal = "edit";
     }
 
-    void CloseModal()
-    {
-        _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false;
-    }
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
 
-    // backdrop에서 mousedown이 시작됐을 때만 click으로 닫힘 허용.
-    // Chrome 자동완성 팝업 닫힘 등 외부 이벤트로 인한 오닫힘 방지.
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
-    void OnBgClick()
-    {
-        if (_bgMouseDownOnSelf) CloseModal();
-        _bgMouseDownOnSelf = false;
-    }
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
     async Task SaveCreate()
     {
@@ -521,6 +501,7 @@
         if (string.IsNullOrWhiteSpace(_f.Password))     { _modalErr = L["SYS.Users.Err.PasswordRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.EmployeeNo))   { _modalErr = L["SYS.Users.Err.EmpNoRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = L["SYS.Users.Err.NameRequired"]; return; }
+        if (!string.IsNullOrWhiteSpace(_f.Pin) && !IsPin(_f.Pin)) { _modalErr = L["SYS.Users.Err.PinFormat"]; return; }
 
         _busy = true;
         try
@@ -539,6 +520,9 @@
             Sys.CreateProfile(user.Id, _f.EmployeeNo, _f.EmployeeName,
                 _f.Department, _f.PlantCode, _f.DefaultShift, _actorEmail, linesJson);
 
+            if (!string.IsNullOrWhiteSpace(_f.Pin))
+                Sys.SetPin(user.Id, PinHasher.Hash(_f.Pin), _actorEmail);
+
             if (!string.IsNullOrEmpty(_f.Role))
                 await UserMgr.AddToRoleAsync(user, _f.Role);
 
@@ -555,6 +539,7 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.EmployeeNo))   { _modalErr = L["SYS.Users.Err.EmpNoRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = L["SYS.Users.Err.NameRequired"]; return; }
+        if (!string.IsNullOrWhiteSpace(_f.Pin) && !IsPin(_f.Pin)) { _modalErr = L["SYS.Users.Err.PinFormat"]; return; }
 
         _busy = true;
         try
@@ -568,6 +553,9 @@
             else
                 Sys.CreateProfile(_sel.UserId, _f.EmployeeNo, _f.EmployeeName,
                     _f.Department, _f.PlantCode, _f.DefaultShift, _actorEmail, linesJson);
+
+            if (!string.IsNullOrWhiteSpace(_f.Pin))
+                Sys.SetPin(_sel.UserId, PinHasher.Hash(_f.Pin), _actorEmail);
 
             if (!string.IsNullOrWhiteSpace(_f.Password))
             {
@@ -661,6 +649,7 @@
     {
         public string       Email         { get; set; } = "";
         public string       Password      { get; set; } = "";
+        public string       Pin           { get; set; } = "";
         public string       EmployeeNo    { get; set; } = "";
         public string       EmployeeName  { get; set; } = "";
         public string       Department    { get; set; } = "";
@@ -670,6 +659,9 @@
         public string       Role          { get; set; } = "";
         public List<string> SelectedLines { get; set; } = new();
     }
+
+    // POP 키패드 제약과 동일: 정확히 숫자 4자리만 유효.
+    static bool IsPin(string s) => s.Length == 4 && s.All(char.IsDigit);
 
     static string LineLocalName(SysRepository.LineRow r) =>
         CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ko"

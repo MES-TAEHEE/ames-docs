@@ -1,14 +1,22 @@
 ﻿@page "/md/re/vendor"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.MasterDataRepository Md
-@inject AuthenticationStateProvider Auth
-@inject AMES.Web.Services.PermissionService Perm
-@inject IStringLocalizer<SharedResources> L
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using AMES.Web.Services
 @using Radzen
 
-<PageTitle>@L["MD.Vendor.Title"] · AMES</PageTitle>
+@attribute [Authorize]
 
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject MasterDataRepository MD
+@inject IStringLocalizer<SharedResources> L
+
+<PageTitle>MD-009 @L["MD.Vendor.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="MD-009" TitleKey="MD.Vendor.Title" />
+
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["Lbl.Total"]</div>
@@ -36,42 +44,31 @@
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.Vendor.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Placeholder="@L["MD.Vendor.Ph.Search"]"
-                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:160px;" AutoComplete="false"
-                           @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' />
-            <RadzenLabel Text="@L["Col.Type"]" />
-            <RadzenDropDown @bind-Value="_fType" Data="@VendorTypeOptions" TextProperty="Text" ValueProperty="Value"
-                            AllowClear="true" Placeholder="@L["Filter.AllTypes"]"
-                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
-            <RadzenLabel Text="@L["Col.Status"]" />
-            <RadzenDropDown @bind-Value="_fActive" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value"
-                            AllowClear="true" Placeholder="@L["Filter.AllStatus"]"
-                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
-            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
-            @if (_canEdit) { <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" /> }
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Vendor.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:160px;" />
+            <RadzenLabel Text="@L["Col.Type"]" Component="DropDownType" />
+            <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="@VendorTypeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
+            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fActive" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
+
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
+            }
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid TItem="AMES.Data.Repositories.MasterDataRepository.VendorRow"
-                    Data="@_rows"
-                    AllowPaging="true" PageSize="25"
-                    PagerHorizontalAlign="HorizontalAlign.Center"
-                    PageSizeOptions="@_pageSizeOptions"
-                    ShowPagingSummary="true"
-                    AllowSorting="true"
-                    RowRender="@VendorRowRender"
-                    RowClick="@(args => { if (args.Data is not null) OpenEdit(args.Data); })"
-                    EmptyText="@L["MD.Vendor.Empty"]"
-                    Class="ames-rz-grid">
+    <RadzenDataGrid TItem="MasterDataRepository.VendorRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Vendor.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.VendorRow" Property="VendorID" Title="@L["Col.VendorId"]" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="VendorID" Title="@L["Col.VendorId"]" Width="110px">
                 <Template Context="r"><span class="code">@r.VendorID</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.VendorRow" Property="VendorName" Title="@L["Col.VendorName"]">
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="VendorName" Title="@L["Col.VendorName"]">
                 <Template Context="r">@(r.VendorName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.VendorRow" Property="VendorType" Title="@L["Col.Type"]" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="VendorType" Title="@L["Col.Type"]" Width="100px">
                 <Template Context="r">
                     @{
                         var typeName = _vendorTypes.FirstOrDefault(v => v.CodeValue == r.VendorType) is { } lf ? MasterDataRepository.LocalName(lf) : r.VendorType;
@@ -79,25 +76,25 @@
                     <span class="pill">@(typeName ?? "—")</span>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.VendorRow" Property="VendorCategory" Title="@L["Col.Category"]" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="VendorCategory" Title="@L["Col.Category"]" Width="100px">
                 <Template Context="r"><span class="dim">@(r.VendorCategory ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.VendorRow" Property="ContactPerson" Title="@L["Col.Contact"]" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="ContactPerson" Title="@L["Col.Contact"]" Width="100px">
                 <Template Context="r">@(r.ContactPerson ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.VendorRow" Property="EdiFlag" Title="@L["Col.EDI"]" Width="70px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="EdiFlag" Title="@L["Col.EDI"]" Width="70px" TextAlign="TextAlign.Center">
                 <Template Context="r">
                     @if (r.EdiFlag) { <span class="pill ok">EDI</span> }
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.VendorRow" Property="OtdTargetRate" Title="@L["Col.OtdPct"]" Width="70px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="OtdTargetRate" Title="@L["Col.OtdPct"]" Width="70px" TextAlign="TextAlign.Right">
                 <Template Context="r">@(r.OtdTargetRate?.ToString("F1") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.VendorRow" Property="PaymentTerms" Title="@L["Col.PayTerm"]" Width="80px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="PaymentTerms" Title="@L["Col.PayTerm"]" Width="80px">
                 <Template Context="r"><span class="dim">@(r.PaymentTerms ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.VendorRow" Property="ActiveFlag" Title="@L["Col.Active"]" Width="80px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="ActiveFlag" Title="@L["Col.Active"]" Width="80px" TextAlign="TextAlign.Center">
                 <Template Context="r">
                     @if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
                     else { <span class="pill bad">@L["Lbl.Inactive"]</span> }
@@ -312,14 +309,15 @@
 }
 
 @code {
-    List<AMES.Data.Repositories.MasterDataRepository.VendorRow>   _allRows     = new();
-    List<AMES.Data.Repositories.MasterDataRepository.VendorRow>   _rows        = new();
-    AMES.Data.Repositories.MasterDataRepository.VendorRow? _sel;
-    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _vendorTypes = new();
+    List<MasterDataRepository.VendorRow>   _allRows     = new();
+    List<MasterDataRepository.VendorRow>   _rows        = new();
+    MasterDataRepository.VendorRow? _sel;
+    List<MasterDataRepository.CodeItemRow> _vendorTypes = new();
 
     string _fSearch = "";
     string? _fType, _fActive;
     int[] _pageSizeOptions = { 15, 30, 50, 100 };
+    bool _showPagerSummary = true;
 
     string _modal = "";
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
@@ -331,15 +329,15 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var auth = await Auth.GetAuthenticationStateAsync();
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
-        await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("md/re/vendor");
-        try { _vendorTypes = Md.ListCodeItems("VENDOR_TYPE"); } catch { }
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("md/re/vendor");
+        try { _vendorTypes = MD.ListCodeItems("VENDOR_TYPE"); } catch { }
         Reload();
     }
 
-    void Reload() { _allRows = Md.ListVendors(); ApplyFilter(); }
+    void Reload() { _allRows = MD.ListVendors(); ApplyFilter(); }
 
     void ApplyFilter() { _rows = _allRows.Where(r =>
         (string.IsNullOrEmpty(_fSearch) ||
@@ -358,15 +356,26 @@
         new() { Value = "N", Text = "Inactive" },
     };
 
-    void VendorRowRender(RowRenderEventArgs<AMES.Data.Repositories.MasterDataRepository.VendorRow> args)
+    void OnSearchChanged(string value) => _fSearch = value ?? "";
+
+    void OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") ApplyFilter(); }
+
+    void RowRender(RowRenderEventArgs<MasterDataRepository.VendorRow> args)
     {
-        if (!args.Attributes.TryGetValue("class", out var cls)) cls = "";
-        args.Attributes["class"] = cls + " ames-row-link";
+        if (args.Attributes.TryGetValue("class", out var existing))
+            args.Attributes["class"] = existing + " ames-row-link";
+        else
+            args.Attributes["class"] = "ames-row-link";
+    }
+
+    void OnRowClick(DataGridRowMouseEventArgs<MasterDataRepository.VendorRow> args)
+    {
+        if (args.Data is not null) OpenEdit(args.Data);
     }
 
     void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
 
-    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.VendorRow r)
+    void OpenEdit(MasterDataRepository.VendorRow r)
     {
         if (!_canEdit) return;
         _sel = r; _modalErr = ""; _confirmDelete = false;
@@ -403,7 +412,7 @@
         try
         {
             var newId = "V" + Guid.NewGuid().ToString("N")[..14].ToUpper();
-            Md.InsertVendor(newId, _f.VendorName, NE(_f.VendorType), NE(_f.VendorCategory),
+            MD.InsertVendor(newId, _f.VendorName, NE(_f.VendorType), NE(_f.VendorCategory),
                 NE(_f.BizRegNo), NE(_f.ContactPerson), NE(_f.Phone), NE(_f.Email),
                 NE(_f.ScmURL), _f.EdiFlag, _f.OtdTargetRate,
                 NE(_f.PaymentTerms), _f.ActiveFlag, _actor);
@@ -422,7 +431,7 @@
         _busy = true;
         try
         {
-            Md.UpdateVendor(_sel.VendorID, _f.VendorName, NE(_f.VendorType), NE(_f.VendorCategory),
+            MD.UpdateVendor(_sel.VendorID, _f.VendorName, NE(_f.VendorType), NE(_f.VendorCategory),
                 NE(_f.BizRegNo), NE(_f.ContactPerson), NE(_f.Phone), NE(_f.Email),
                 NE(_f.ScmURL), _f.EdiFlag, _f.OtdTargetRate,
                 NE(_f.PaymentTerms), _f.ActiveFlag, _actor);
@@ -441,7 +450,7 @@
         try
         {
             var name = _sel.VendorName ?? _sel.VendorID;
-            Md.DeleteVendor(_sel.VendorID);
+            MD.DeleteVendor(_sel.VendorID);
             CloseModal(); Reload();
             ShowMsg(string.Format(L["MD.Vendor.Ok.Deleted"].Value, name), false);
         }

@@ -39,13 +39,13 @@
 
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["SYS.Screen.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Wrap="FlexWrap.Wrap">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["SYS.Screen.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:220px;" />
             <RadzenLabel Text="@L["Col.Module"]" Component="DropDownModule" />
             <RadzenDropDown Name="DropDownModule" @bind-Value="_fModule" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
@@ -62,77 +62,58 @@
         </RadzenStack>
     </div>
 
-    @if (_rows.Count == 0)
-    {
-        <div class="ames-empty">@L["SYS.Screen.Empty"]</div>
-    }
-    else
-    {
-        <RadzenDataGrid TItem="SysRepository.ScreenRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                        PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" Class="ames-rz-grid">
-            <Columns>
-                <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenCode" Title="@L["SYS.Screen.Col.Code"]">
-                    <Template Context="r">
-                        <span class="code">@r.ScreenCode</span>
-                    </Template>
-                </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ModuleCode" Title="@L["Col.Module"]">
-                    <Template Context="r">
-                        <span class="pill info">@r.ModuleCode</span>
-                    </Template>
-                </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ProcessCode" Title="@L["SYS.Screen.Col.Process"]">
-                    <Template Context="r">
-                        @if (r.ProcessCode is not null)
-                        { <span class="pill" style="background:rgba(56,189,248,.12);color:#7dd3fc;">@r.ProcessCode</span> }
-                        else
-                        { <span class="dim">—</span> }
-                    </Template>
-                </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="SubProcessCode" Title="@L["SYS.Screen.Col.SubProcess"]">
-                    <Template Context="r">
-                        @if (r.SubProcessCode is not null)
-                        { <span class="pill" style="background:rgba(134,239,172,.12);color:#86efac;">@r.SubProcessCode</span> }
-                        else
-                        { <span class="dim">—</span> }
-                    </Template>
-                </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenName" Title="@L["SYS.Screen.Col.NameKo"]" />
-                <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenNameEn" Title="@L["SYS.Screen.Col.NameEn"]">
-                    <Template Context="r">
-                        <span class="dim" style="font-size:12px;">@(r.ScreenNameEn ?? "—")</span>
-                    </Template>
-                </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="HRef" Title="@L["SYS.Screen.Col.Path"]">
-                    <Template Context="r">
-                        <span class="dim" style="font-size:12px;font-family:'JetBrains Mono',monospace;">@(r.HRef ?? "—")</span>
-                    </Template>
-                </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="LidLabel" Title="@L["SYS.Screen.Col.LidLabel"]">
-                    <Template Context="r">
-                        <span class="dim code" style="font-size:12px;">@(r.LidLabel ?? "—")</span>
-                    </Template>
-                </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="SortOrder" Title="@L["SYS.Screen.Col.SortOrder"]" TextAlign="TextAlign.Center">
-                    <Template Context="r">
-                        <span class="dim">@(r.SortOrder?.ToString() ?? "—")</span>
-                    </Template>
-                </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="IsVisible" Title="@L["SYS.Screen.Col.Visible"]" TextAlign="TextAlign.Center">
-                    <Template Context="r">
-                        @if (r.IsVisible) { <span class="pill ok">@L["SYS.Screen.Filter.Visible"]</span> }
-                        else { <span class="pill bad">@L["SYS.Screen.Filter.Hidden"]</span> }
-                    </Template>
-                </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="RoleCount" Title="@L["SYS.Screen.Col.Roles"]" TextAlign="TextAlign.Center">
-                    <Template Context="r">
-                        @if (r.RoleCount > 0) { <span class="pill warn">@r.RoleCount @L["SYS.Screen.Col.Roles"]</span> }
-                        else { <span class="dim">@L["Filter.All"]</span> }
-                    </Template>
-                </RadzenDataGridColumn>
-            </Columns>
-        </RadzenDataGrid>
-    }
+    <RadzenDataGrid TItem="SysRepository.ScreenRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SYS.Screen.Empty"]" Class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenCode" Title="@L["SYS.Screen.Col.Code"]">
+                <Template Context="r"><span class="code">@r.ScreenCode</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ModuleCode" Title="@L["Col.Module"]">
+                <Template Context="r"><span class="pill info">@r.ModuleCode</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ProcessCode" Title="@L["SYS.Screen.Col.Process"]">
+                <Template Context="r">
+                    @if (r.ProcessCode is not null)
+                    { <span class="pill" style="background:rgba(56,189,248,.12);color:#7dd3fc;">@r.ProcessCode</span> }
+                    else
+                    { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="SubProcessCode" Title="@L["SYS.Screen.Col.SubProcess"]">
+                <Template Context="r">
+                    @if (r.SubProcessCode is not null)
+                    { <span class="pill" style="background:rgba(134,239,172,.12);color:#86efac;">@r.SubProcessCode</span> }
+                    else
+                    { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenName" Title="@L["SYS.Screen.Col.NameKo"]" />
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenNameEn" Title="@L["SYS.Screen.Col.NameEn"]">
+                <Template Context="r"><span class="dim" style="font-size:12px;">@(r.ScreenNameEn ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="HRef" Title="@L["SYS.Screen.Col.Path"]">
+                <Template Context="r"><span class="dim" style="font-size:12px;font-family:'JetBrains Mono',monospace;">@(r.HRef ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="LidLabel" Title="@L["SYS.Screen.Col.LidLabel"]">
+                <Template Context="r"><span class="dim code" style="font-size:12px;">@(r.LidLabel ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="SortOrder" Title="@L["SYS.Screen.Col.SortOrder"]" TextAlign="TextAlign.Center">
+                <Template Context="r"><span class="dim">@(r.SortOrder?.ToString() ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="IsVisible" Title="@L["SYS.Screen.Col.Visible"]" TextAlign="TextAlign.Center">
+                <Template Context="r">
+                    @if (r.IsVisible) { <span class="pill ok">@L["SYS.Screen.Filter.Visible"]</span> }
+                    else { <span class="pill bad">@L["SYS.Screen.Filter.Hidden"]</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="RoleCount" Title="@L["SYS.Screen.Col.Roles"]" TextAlign="TextAlign.Center">
+                <Template Context="r">
+                    @if (r.RoleCount > 0) { <span class="pill warn">@r.RoleCount @L["SYS.Screen.Col.Roles"]</span> }
+                    else { <span class="dim">@L["Filter.All"]</span> }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 </div>
 
 @* ── Create Modal ─────────────────────────────────────────────────── *@
@@ -143,47 +124,47 @@
             <div class="ames-modal-h">@L["SYS.Screen.Modal.Create"]</div>
 
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@(L["SYS.Screen.Col.Code"].Value + " *")" class="ames-rz-modal-label" Component="CreateTextBoxScreenCode" />
                     <RadzenTextBox Name="CreateTextBoxScreenCode" @bind-Value="_f.ScreenCode" Placeholder="@L["SYS.Screen.Ph.Code"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@(L["Col.Module"].Value + " *")" class="ames-rz-modal-label" Component="CreateDropDownModuleCode" />
                     <RadzenDropDown Name="CreateDropDownModuleCode" @bind-Value="_f.ModuleCode" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.Process"]" class="ames-rz-modal-label" Component="CreateDropDownProcessCode" />
                     <RadzenDropDown Name="CreateDropDownProcessCode" @bind-Value="_f.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="Sub-Process" class="ames-rz-modal-label" Component="CreateDropDownSubProcessCode" />
                     <RadzenDropDown Name="CreateDropDownSubProcessCode" @bind-Value="_f.SubProcessCode" Data="@SubProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@(L["SYS.Screen.Col.NameKo"].Value + " *")" class="ames-rz-modal-label" Component="CreateTextBoxScreenNameKo" />
                     <RadzenTextBox Name="CreateTextBoxScreenNameKo" @bind-Value="_f.ScreenName" Placeholder="@L["SYS.Screen.Ph.NameKo"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.NameEn"]" class="ames-rz-modal-label" Component="CreateTextBoxScreenNameEn" />
                     <RadzenTextBox Name="CreateTextBoxScreenNameEn" @bind-Value="_f.ScreenNameEn" Placeholder="@L["SYS.Screen.Ph.NameEn"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.Path"]" class="ames-rz-modal-label" Component="CreateTextBoxHRef" />
                     <RadzenTextBox Name="CreateTextBoxHRef" @bind-Value="_f.HRef" Placeholder="@L["SYS.Screen.Ph.HRef"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.LidLabel"]" class="ames-rz-modal-label" Component="CreateTextBoxLidLabel" />
                     <RadzenTextBox Name="CreateTextBoxLidLabel" @bind-Value="_f.LidLabel" Placeholder="@L["SYS.Screen.Ph.LidLabel"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.SortOrder"]" class="ames-rz-modal-label" Component="CreateTextBoxSortOrder" />
                     <RadzenTextBox Name="CreateTextBoxSortOrder" @bind-Value="_f.SortOrderStr" Placeholder="@L["SYS.Screen.Ph.SortOrder"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
@@ -215,47 +196,47 @@
             <div class="ames-modal-h">@L["SYS.Screen.Modal.Edit"] — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.ScreenCode</span></div>
 
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@(L["SYS.Screen.Col.Code"].Value + " *")" class="ames-rz-modal-label" Component="EditTextBoxScreenCode" />
                     <RadzenTextBox Name="EditTextBoxScreenCode" @bind-Value="_f.ScreenCode" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@(L["Col.Module"].Value + " *")" class="ames-rz-modal-label" Component="EditDropDownModuleCode" />
                     <RadzenDropDown Name="EditDropDownModuleCode" @bind-Value="_f.ModuleCode" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.Process"]" class="ames-rz-modal-label" Component="EditDropDownProcessCode" />
                     <RadzenDropDown Name="EditDropDownProcessCode" @bind-Value="_f.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="Sub-Process" class="ames-rz-modal-label" Component="EditDropDownSubProcessCode" />
                     <RadzenDropDown Name="EditDropDownSubProcessCode" @bind-Value="_f.SubProcessCode" Data="@SubProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@(L["SYS.Screen.Col.NameKo"].Value + " *")" class="ames-rz-modal-label" Component="EditTextBoxScreenNameKo" />
                     <RadzenTextBox Name="EditTextBoxScreenNameKo" @bind-Value="_f.ScreenName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.NameEn"]" class="ames-rz-modal-label" Component="EditTextBoxScreenNameEn" />
                     <RadzenTextBox Name="EditTextBoxScreenNameEn" @bind-Value="_f.ScreenNameEn" Placeholder="@L["SYS.Screen.Ph.NameEn"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.Path"]" class="ames-rz-modal-label" Component="EditTextBoxHRef" />
                     <RadzenTextBox Name="EditTextBoxHRef" @bind-Value="_f.HRef" Placeholder="@L["SYS.Screen.Ph.HRef"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.LidLabel"]" class="ames-rz-modal-label" Component="EditTextBoxLidLabel" />
                     <RadzenTextBox Name="EditTextBoxLidLabel" @bind-Value="_f.LidLabel" Placeholder="@L["SYS.Screen.Ph.LidLabelEdit"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.SortOrder"]" class="ames-rz-modal-label" Component="EditTextBoxSortOrder" />
                     <RadzenTextBox Name="EditTextBoxSortOrder" @bind-Value="_f.SortOrderStr" Placeholder="@L["SYS.Screen.Ph.SortOrder"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
@@ -291,7 +272,7 @@
 }
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
     bool _showPagerSummary = true;
     List<SysRepository.ScreenRow> _allRows      = new();
     List<SysRepository.ScreenRow> _rows         = new();

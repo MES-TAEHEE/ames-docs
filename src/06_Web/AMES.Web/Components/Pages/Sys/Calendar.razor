@@ -51,7 +51,7 @@
 
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
 @* ── Tab bar ───────────────────────────────────────────────────── *@
@@ -61,7 +61,10 @@
         <button class="ames-cal-tab @(_view == "calendar" ? "active" : "")" @onclick='() => SwitchView("calendar")'>▦ @L["SYS.Calendar.Tab.Calendar"]</button>
     </div>
     <div style="flex:1;"></div>
-    @if (_canEdit) { <RadzenButton Text="@L["SYS.Calendar.Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" Style="align-self:center;" /> }
+    @if (_canEdit)
+    {
+        <RadzenButton Text="@L["SYS.Calendar.Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" Style="align-self:center;" />
+    }
 </div>
 
 @* ── LIST VIEW ──────────────────────────────────────────────────── *@
@@ -71,60 +74,40 @@
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
             <span>▼ @L["SYS.Calendar.Tab.List"] · @_byDay.Count @L["Lbl.Days"]</span>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                <RadzenDatePicker TValue="DateTime" @bind-Value="_filterFrom" DateFormat="yyyy-MM-dd" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+                <RadzenDatePicker TValue="DateTime" @bind-Value="_filterFrom" DateFormat="yyyy-MM-dd" InputSize="InputSize.Small" class="ames-rz-input" Style="width:125px;" />
                 <span class="dim">~</span>
-                <RadzenDatePicker TValue="DateTime" @bind-Value="_filterTo" DateFormat="yyyy-MM-dd" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+                <RadzenDatePicker TValue="DateTime" @bind-Value="_filterTo" DateFormat="yyyy-MM-dd" InputSize="InputSize.Small" class="ames-rz-input" Style="width:125px;" />
+
                 <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Load" class="ames-rz-btn" />
             </div>
         </div>
 
-        @if (_byDay.Count == 0)
-        {
-            <div class="ames-empty">@L["SYS.Calendar.Empty"]</div>
-        }
-        else
-        {
-            <RadzenDataGrid TItem="CalendarDaySummary" Data="@DaySummaries.ToList()" AllowPaging="false" AllowSorting="true" RowRender="@CalDayRowRender"
-                            RowClick="@(args => { if (args.Data is not null) OpenEdit(args.Data.Date, args.Data.Shifts); })" Class="ames-rz-grid">
-                <Columns>
-                    <RadzenDataGridColumn TItem="CalendarDaySummary" Property="Date" Title="@L["SYS.Calendar.Col.Date"]">
-                        <Template Context="row">
-                            <span class="code">@(row.Date.ToString("yyyy-MM-dd ddd"))</span>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="CalendarDaySummary" Property="DayType" Title="@L["SYS.Calendar.Col.DayType"]">
-                        <Template Context="row">
-                            @DayTypePill(row.DayType)
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="CalendarDaySummary" Property="HolidayName" Title="@L["SYS.Calendar.Col.HolidayName"]">
-                        <Template Context="row">
-                            <span class="dim">@(row.HolidayName ?? "—")</span>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="CalendarDaySummary" Title="@L["Col.ShiftA"]" TextAlign="TextAlign.Center" Width="72px" Sortable="false">
-                        <Template Context="row">
-                            <span class="ames-cal-sh @(row.HasA ? "sh-a" : "sh-off")">A</span>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="CalendarDaySummary" Title="@L["Col.ShiftB"]" TextAlign="TextAlign.Center" Width="72px" Sortable="false">
-                        <Template Context="row">
-                            <span class="ames-cal-sh @(row.HasB ? "sh-b" : "sh-off")">B</span>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="CalendarDaySummary" Title="@L["Col.ShiftC"]" TextAlign="TextAlign.Center" Width="72px" Sortable="false">
-                        <Template Context="row">
-                            <span class="ames-cal-sh @(row.HasC ? "sh-c" : "sh-off")">C</span>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="CalendarDaySummary" Property="PlantCode" Title="@L["Col.Plant"]">
-                        <Template Context="row">
-                            <span class="dim">@(row.PlantCode ?? "—")</span>
-                        </Template>
-                    </RadzenDataGridColumn>
-                </Columns>
-            </RadzenDataGrid>
-        }
+        <RadzenDataGrid TItem="CalendarDaySummary" Data="@DaySummaries.ToList()" AllowPaging="false" AllowSorting="true" RowRender="@CalDayRowRender"
+                        RowClick="@(args => { if (args.Data is not null) OpenEdit(args.Data.Date, args.Data.Shifts); })" EmptyText="@L["SYS.Calendar.Empty"]" Class="ames-rz-grid">
+            <Columns>
+                <RadzenDataGridColumn TItem="CalendarDaySummary" Property="Date" Title="@L["SYS.Calendar.Col.Date"]">
+                    <Template Context="row"><span class="code">@(row.Date.ToString("yyyy-MM-dd ddd"))</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="CalendarDaySummary" Property="DayType" Title="@L["SYS.Calendar.Col.DayType"]">
+                    <Template Context="row">@DayTypePill(row.DayType)</Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="CalendarDaySummary" Property="HolidayName" Title="@L["SYS.Calendar.Col.HolidayName"]">
+                    <Template Context="row"><span class="dim">@(row.HolidayName ?? "—")</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="CalendarDaySummary" Title="@L["Col.ShiftA"]" TextAlign="TextAlign.Center" Width="72px" Sortable="false">
+                    <Template Context="row"><span class="ames-cal-sh @(row.HasA ? "sh-a" : "sh-off")">A</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="CalendarDaySummary" Title="@L["Col.ShiftB"]" TextAlign="TextAlign.Center" Width="72px" Sortable="false">
+                    <Template Context="row"><span class="ames-cal-sh @(row.HasB ? "sh-b" : "sh-off")">B</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="CalendarDaySummary" Title="@L["Col.ShiftC"]" TextAlign="TextAlign.Center" Width="72px" Sortable="false">
+                    <Template Context="row"><span class="ames-cal-sh @(row.HasC ? "sh-c" : "sh-off")">C</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="CalendarDaySummary" Property="PlantCode" Title="@L["Col.Plant"]">
+                    <Template Context="row"><span class="dim">@(row.PlantCode ?? "—")</span></Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
     </div>
 }
 
@@ -140,6 +123,7 @@
                 </span>
                 <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@NextMonth" class="ames-rz-btn" />
             </div>
+
             <RadzenButton Text="@L["SYS.Calendar.Btn.Today"]" Icon="done" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@GoToday" class="ames-rz-btn" />
         </div>
 

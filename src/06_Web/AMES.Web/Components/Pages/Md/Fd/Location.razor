@@ -1,14 +1,22 @@
 ﻿@page "/md/fd/location"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.MasterDataRepository Md
-@inject AuthenticationStateProvider Auth
-@inject AMES.Web.Services.PermissionService Perm
-@inject IStringLocalizer<SharedResources> L
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using AMES.Web.Services
 @using Radzen
 
-<PageTitle>@L["MD.Location.Title"] · AMES</PageTitle>
+@attribute [Authorize]
 
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject MasterDataRepository MD
+@inject IStringLocalizer<SharedResources> L
+
+<PageTitle>MD-018 @L["MD.Location.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="MD-018" TitleKey="MD.Location.Title" />
+
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["Lbl.Total"]</div>
@@ -36,67 +44,54 @@
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.Location.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Placeholder="@L["MD.Location.Ph.Search"]"
-                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:160px;" AutoComplete="false"
-                           @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' />
-            <RadzenLabel Text="@L["Col.Zone"]" />
-            <RadzenDropDown @bind-Value="_fZone" Data="@ZoneOptions" TextProperty="Text" ValueProperty="Value"
-                            AllowClear="true" Placeholder="@L["Filter.AllZones"]"
-                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenLabel Text="@L["Col.Type"]" />
-            <RadzenDropDown @bind-Value="_fType" Data="@TypeOptions" TextProperty="Text" ValueProperty="Value"
-                            AllowClear="true" Placeholder="@L["Filter.AllTypes"]"
-                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
-            <RadzenLabel Text="@L["Col.Active"]" />
-            <RadzenDropDown @bind-Value="_fActive" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value"
-                            AllowClear="true" Placeholder="@L["Filter.All"]"
-                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
-            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
-            @if (_canEdit) { <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" /> }
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Location.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:160px;" />
+            <RadzenLabel Text="@L["Col.Zone"]" Component="DropDownZone" />
+            <RadzenDropDown Name="DropDownZone" @bind-Value="_fZone" Data="@ZoneOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenLabel Text="@L["Col.Type"]" Component="DropDownType" />
+            <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="@TypeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenLabel Text="@L["Col.Active"]" Component="DropDownActive" />
+            <RadzenDropDown Name="DropDownActive" @bind-Value="_fActive" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
+
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
+            }
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid TItem="AMES.Data.Repositories.MasterDataRepository.LocationRow"
-                    Data="@_rows"
-                    AllowPaging="true" PageSize="15"
-                    PagerHorizontalAlign="HorizontalAlign.Center"
-                    PageSizeOptions="@_pageSizeOptions"
-                    ShowPagingSummary="true"
-                    AllowSorting="true"
-                    RowRender="@LocRowRender"
-                    RowClick="@(args => { if (args.Data is not null) OpenEdit(args.Data); })"
-                    EmptyText="@L["MD.Location.Empty"]"
-                    Class="ames-rz-grid">
+    <RadzenDataGrid TItem="MasterDataRepository.LocationRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Location.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.LocationRow" Property="LocationID" Title="@L["Col.LocationId"]" Width="140px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="LocationID" Title="@L["Col.LocationId"]" Width="140px">
                 <Template Context="r"><span class="code">@r.LocationID</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.LocationRow" Property="LocationName" Title="@L["Col.Name"]">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="LocationName" Title="@L["Col.Name"]">
                 <Template Context="r">@(r.LocationName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.LocationRow" Property="ZoneCode" Title="@L["Col.Zone"]" Width="80px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="ZoneCode" Title="@L["Col.Zone"]" Width="80px">
                 <Template Context="r"><span class="pill">@(r.ZoneCode ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.LocationRow" Property="Aisle" Title="@L["Col.Aisle"]" Width="60px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="Aisle" Title="@L["Col.Aisle"]" Width="60px">
                 <Template Context="r"><span class="dim">@(r.Aisle ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.LocationRow" Property="Bay" Title="@L["Col.Bay"]" Width="60px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="Bay" Title="@L["Col.Bay"]" Width="60px">
                 <Template Context="r"><span class="dim">@(r.Bay ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.LocationRow" Property="Slot" Title="@L["Col.Slot"]" Width="60px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="Slot" Title="@L["Col.Slot"]" Width="60px">
                 <Template Context="r"><span class="dim">@(r.Slot ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.LocationRow" Property="Capacity" Title="@L["Col.LoadCapacity"]" Width="100px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="Capacity" Title="@L["Col.LoadCapacity"]" Width="100px" TextAlign="TextAlign.Right">
                 <Template Context="r">@(r.Capacity?.ToString("N3") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.LocationRow" Property="LocationType" Title="@L["Col.Type"]" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="LocationType" Title="@L["Col.Type"]" Width="100px">
                 <Template Context="r"><span class="pill">@(r.LocationType ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.LocationRow" Property="PlantCode" Title="@L["Col.Plant"]" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="PlantCode" Title="@L["Col.Plant"]" Width="70px">
                 <Template Context="r"><span class="dim">@(r.PlantCode ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.LocationRow" Property="ActiveFlag" Title="@L["Col.Active"]" Width="72px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="ActiveFlag" Title="@L["Col.Active"]" Width="72px" TextAlign="TextAlign.Center">
                 <Template Context="r">
                     @if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
                     else { <span class="pill bad">@L["Lbl.Inactive"]</span> }
@@ -114,53 +109,43 @@
             <div class="ames-modal-h">@L["MD.Location.Modal.Create"]</div>
 
             <RadzenLabel Text='@(L["MD.Location.Lbl.LocationID"] + "  (예: WH-A-01-01)")' />
-            <RadzenTextBox @bind-Value="_f.LocationID" Placeholder="WH-A-01-01" AutoComplete="false"
-                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            <RadzenTextBox @bind-Value="_f.LocationID" Placeholder="WH-A-01-01" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
 
             <RadzenLabel Text="@L["MD.Location.Lbl.LocationName"]" Style="margin-top:6px;" />
-            <RadzenTextBox @bind-Value="_f.LocationName" Placeholder="@L["MD.Location.Ph.LocationName"]" AutoComplete="false"
-                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            <RadzenTextBox @bind-Value="_f.LocationName" Placeholder="@L["MD.Location.Ph.LocationName"]" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
 
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px;">
                 <div>
                     <RadzenLabel Text="@L["MD.Location.Lbl.ZoneCode"]" />
-                    <RadzenTextBox @bind-Value="_f.ZoneCode" Placeholder="A, B, FG 등" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.ZoneCode" Placeholder="A, B, FG 등" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text="@L["MD.Location.Lbl.Aisle"]" />
-                    <RadzenTextBox @bind-Value="_f.Aisle" Placeholder="01" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.Aisle" Placeholder="01" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text="@L["MD.Location.Lbl.Bay"]" />
-                    <RadzenTextBox @bind-Value="_f.Bay" Placeholder="01" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.Bay" Placeholder="01" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px;">
                 <div>
                     <RadzenLabel Text="@L["MD.Location.Lbl.Slot"]" />
-                    <RadzenTextBox @bind-Value="_f.Slot" Placeholder="01" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.Slot" Placeholder="01" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text="@L["MD.Location.Lbl.Capacity"]" />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.Capacity" Placeholder="1000.000" Min="0" Step="0.001m"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.Capacity" Placeholder="1000.000" Min="0" Step="0.001m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text="@L["MD.Location.Lbl.LocationType"]" />
-                    <RadzenTextBox @bind-Value="_f.LocationType" Placeholder="RACK, FLOOR, STAGING 등" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.LocationType" Placeholder="RACK, FLOOR, STAGING 등" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
             <RadzenLabel Text="@L["MD.Location.Lbl.PlantCode"]" Style="margin-top:6px;" />
-            <RadzenDropDown @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value"
-                            Placeholder="@L["Opt.Select"]"
-                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            <RadzenDropDown @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
 
             <label style="margin-top:6px;display:flex;align-items:center;gap:8px;cursor:pointer;">
                 <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" />
@@ -169,12 +154,12 @@
 
             @if (!string.IsNullOrEmpty(_modalErr))
             {
-                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="margin-top:8px;">@_modalErr</RadzenAlert>
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
             }
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Create"])" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveCreate" Disabled="@_busy" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseModal" class="ames-rz-btn" />
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Create"])" Click="@SaveCreate" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
     </div>
@@ -188,55 +173,47 @@
             <div class="ames-modal-h">@L["MD.Location.Modal.Edit"] — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.LocationID</span></div>
 
             <RadzenLabel Text="@L["MD.Location.Lbl.LocationName"]" />
-            <RadzenTextBox @bind-Value="_f.LocationName" AutoComplete="false"
-                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            <RadzenTextBox @bind-Value="_f.LocationName" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
 
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px;">
                 <div>
                     <RadzenLabel Text="@L["MD.Location.Lbl.ZoneCode"]" />
-                    <RadzenTextBox @bind-Value="_f.ZoneCode" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.ZoneCode" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text="@L["MD.Location.Lbl.Aisle"]" />
-                    <RadzenTextBox @bind-Value="_f.Aisle" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.Aisle" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text="@L["MD.Location.Lbl.Bay"]" />
-                    <RadzenTextBox @bind-Value="_f.Bay" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.Bay" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px;">
                 <div>
                     <RadzenLabel Text="@L["MD.Location.Lbl.Slot"]" />
-                    <RadzenTextBox @bind-Value="_f.Slot" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.Slot" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text="@L["MD.Location.Lbl.Capacity"]" />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.Capacity" Min="0" Step="0.001m"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.Capacity" Min="0" Step="0.001m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text="@L["MD.Location.Lbl.LocationType"]" />
-                    <RadzenTextBox @bind-Value="_f.LocationType" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.LocationType" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
             <RadzenLabel Text="@L["MD.Location.Lbl.PlantCode"]" Style="margin-top:6px;" />
-            <RadzenDropDown @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value"
-                            Placeholder="@L["Opt.Select"]"
-                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            <RadzenDropDown @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
 
             <label style="margin-top:6px;display:flex;align-items:center;gap:8px;cursor:pointer;">
                 <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" />
                 <span>@L["Lbl.Active"]</span>
             </label>
 
+            @* 삭제 버튼 클릭 후 인라인 확인 *@
             @if (_confirmDelete)
             {
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
@@ -248,76 +225,57 @@
 
             @if (!string.IsNullOrEmpty(_modalErr))
             {
-                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="margin-top:8px;">@_modalErr</RadzenAlert>
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
             }
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Edit"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveEdit" Disabled="@_busy" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseModal" class="ames-rz-btn" />
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Edit"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
     </div>
 }
 
 @code {
-    List<AMES.Data.Repositories.MasterDataRepository.LocationRow> _allRows = new();
-    List<AMES.Data.Repositories.MasterDataRepository.LocationRow> _rows    = new();
-    AMES.Data.Repositories.MasterDataRepository.LocationRow? _sel;
+    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    bool _showPagerSummary = true;
+    List<MasterDataRepository.LocationRow> _allRows = new();
+    List<MasterDataRepository.LocationRow> _rows    = new();
+    List<MasterDataRepository.CodeItemRow> _plantCodes = new();
+    MasterDataRepository.LocationRow? _sel;
 
-    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _plantCodes = new();
     string  _fSearch = "";
-    string? _fZone;
-    string? _fType;
-    string? _fActive;
+    string? _fZone, _fType, _fActive;
+    string _modal = "", _modalErr = "", _msg = "";
+    bool _busy, _bgMouseDownOnSelf, _isErr, _confirmDelete;
+    bool _canEdit;
+    string _actor = "system";
 
-    readonly IEnumerable<int> _pageSizeOptions = new[] { 15, 30, 50, 100 };
+    FormModel _f = new();
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
-    private IEnumerable<DropDownItem> ZoneOptions =>
-        _allRows.Select(r => r.ZoneCode).Where(x => x != null).Distinct().OrderBy(x => x)
-            .Select(z => new DropDownItem { Value = z!, Text = z! });
-
-    private IEnumerable<DropDownItem> TypeOptions =>
-        _allRows.Select(r => r.LocationType).Where(x => x != null).Distinct().OrderBy(x => x)
-            .Select(t => new DropDownItem { Value = t!, Text = t! });
-
+    private IEnumerable<DropDownItem> ZoneOptions => _allRows.Select(r => r.ZoneCode).Where(x => x != null).Distinct().OrderBy(x => x).Select(z => new DropDownItem { Value = z!, Text = z! });
+    private IEnumerable<DropDownItem> TypeOptions => _allRows.Select(r => r.LocationType).Where(x => x != null).Distinct().OrderBy(x => x).Select(t => new DropDownItem { Value = t!, Text = t! });
+    private IEnumerable<DropDownItem> PlantOptions => _plantCodes.Where(p => p.UseFlag).Select(p => new DropDownItem { Value = p.CodeValue ?? "", Text = MasterDataRepository.LocalName(p) });
     private IEnumerable<DropDownItem> ActiveFilterOptions => new[]
     {
         new DropDownItem { Value = "Y", Text = L["Lbl.Active"].Value },
         new DropDownItem { Value = "N", Text = L["Lbl.Inactive"].Value },
     };
 
-    private IEnumerable<DropDownItem> PlantOptions =>
-        _plantCodes.Where(p => p.UseFlag)
-            .Select(p => new DropDownItem { Value = p.CodeValue ?? "", Text = AMES.Data.Repositories.MasterDataRepository.LocalName(p) });
-
-    private void LocRowRender(RowRenderEventArgs<AMES.Data.Repositories.MasterDataRepository.LocationRow> args)
-    {
-        if (!args.Attributes.TryGetValue("class", out var cls)) cls = "";
-        args.Attributes["class"] = cls + " ames-row-link";
-    }
-
-    string _modal = "";
-    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
-    string _msg = "", _modalErr = "";
-    bool _isErr;
-    bool   _canEdit;
-    string _actor = "system";
-    FormModel _f = new();
-
     protected override async Task OnInitializedAsync()
     {
-        var auth = await Auth.GetAuthenticationStateAsync();
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
-        await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("md/fd/location");
-        try { _plantCodes = Md.ListCodeItems("PLANT"); } catch { }
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("md/fd/location");
+        try { _plantCodes = MD.ListCodeItems("PLANT"); } catch { }
         Reload();
     }
 
-    void Reload() { _allRows = Md.ListLocations(); ApplyFilter(); }
+    void Reload() { _allRows = MD.ListLocations(); ApplyFilter(); }
 
     void ApplyFilter() { _rows = _allRows.Where(r =>
         (string.IsNullOrEmpty(_fSearch) ||
@@ -326,11 +284,29 @@
         (string.IsNullOrEmpty(_fZone)   || r.ZoneCode     == _fZone) &&
         (string.IsNullOrEmpty(_fType)   || r.LocationType == _fType) &&
         (string.IsNullOrEmpty(_fActive) || (_fActive == "Y" ? r.ActiveFlag : !r.ActiveFlag))
-    ).ToList(); }
+    ).ToList();
+    }
+
+    void OnSearchChanged(string value) => _fSearch = value ?? "";
+
+    void OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") ApplyFilter(); }
+
+    private void RowRender(RowRenderEventArgs<MasterDataRepository.LocationRow> args)
+    {
+        if (args.Attributes.TryGetValue("class", out var existing))
+            args.Attributes["class"] = existing + " ames-row-link";
+        else
+            args.Attributes["class"] = "ames-row-link";
+    }
+
+    void OnRowClick(DataGridRowMouseEventArgs<MasterDataRepository.LocationRow> args)
+    {
+        if (args.Data is not null) OpenEdit(args.Data);
+    }
 
     void OpenCreate() { _f = new() { ActiveFlag = true }; _modalErr = ""; _confirmDelete = false; _modal = "create"; }
 
-    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.LocationRow r)
+    void OpenEdit(MasterDataRepository.LocationRow r)
     {
         if (!_canEdit) return;
         _sel = r; _modalErr = ""; _confirmDelete = false;
@@ -355,17 +331,15 @@
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
-    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
-
     void SaveCreate()
     {
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.LocationID)) { _modalErr = L["MD.Location.Err.IDRequired"]; return; }
-        if (Md.LocationExists(_f.LocationID.Trim()))  { _modalErr = string.Format(L["MD.Location.Err.IDExists"].Value, _f.LocationID.Trim()); return; }
+        if (MD.LocationExists(_f.LocationID.Trim())) { _modalErr = string.Format(L["MD.Location.Err.IDExists"].Value, _f.LocationID.Trim()); return; }
         _busy = true;
         try
         {
-            Md.InsertLocation(_f.LocationID.Trim(), NE(_f.LocationName), NE(_f.ZoneCode),
+            MD.InsertLocation(_f.LocationID.Trim(), NE(_f.LocationName), NE(_f.ZoneCode),
                 NE(_f.Aisle), NE(_f.Bay), NE(_f.Slot),
                 _f.Capacity, NE(_f.LocationType), NE(_f.PlantCode), _f.ActiveFlag, _actor);
             CloseModal(); Reload();
@@ -381,7 +355,7 @@
         _busy = true;
         try
         {
-            Md.UpdateLocation(_sel.LocationID, NE(_f.LocationName), NE(_f.ZoneCode),
+            MD.UpdateLocation(_sel.LocationID, NE(_f.LocationName), NE(_f.ZoneCode),
                 NE(_f.Aisle), NE(_f.Bay), NE(_f.Slot),
                 _f.Capacity, NE(_f.LocationType), NE(_f.PlantCode), _f.ActiveFlag, _actor);
             CloseModal(); Reload();
@@ -398,7 +372,7 @@
         try
         {
             var name = _sel.LocationName ?? _sel.LocationID;
-            Md.DeleteLocation(_sel.LocationID);
+            MD.DeleteLocation(_sel.LocationID);
             CloseModal(); Reload();
             ShowMsg(string.Format(L["MD.Location.Ok.Deleted"].Value, name), false);
         }
@@ -411,6 +385,8 @@
         _msg = msg; _isErr = isErr;
         _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
     }
+    
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
 
     class FormModel
     {
