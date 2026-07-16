@@ -64,8 +64,6 @@
         <button class="ames-cal-tab @(_tab == "channels" ? "active" : "")" @onclick='() => _tab = "channels"'>@L["SYS.Notifications.Tab.Channels"]</button>
         <button class="ames-cal-tab @(_tab == "history"  ? "active" : "")" @onclick='() => _tab = "history"'>@L["SYS.Notifications.Tab.History"]</button>
     </div>
-    <div style="flex:1;"></div>
-    <RadzenButton Text="@L["Btn.Reload"]" Icon="refresh" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" Style="align-self:center;" />
 </div>
 
 @* ── Tab 1 : Notification rules ─────────────────────────────────────────── *@
@@ -130,14 +128,19 @@
 @if (_tab == "channels")
 {
     <div class="ames-card">
-        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
-            <span>▼ @L["SYS.Notifications.Channels.List"] · @_channels.Count @L["Lbl.Items"]</span>
-            @if (_canEdit)
-            {
-                <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenChCreate" class="ames-rz-btn" />
-            }
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="white-space:nowrap;">▼ @L["SYS.Notifications.Channels.List"] · @_chRows.Count @L["Lbl.Items"]@(_chRows.Count < _channels.Count ? $" / {L["Lbl.TotalOf"]} {_channels.Count}" : "")</span>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+                <RadzenTextBox @bind-Value="_fChSearch" Change="@OnChSearchChanged" @onkeydown="OnChSearchKeyDown" Immediate="true" Placeholder="@L["SYS.Notifications.Ph.ChSearch"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+
+                <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyChFilter" class="ames-rz-btn" />
+                @if (_canEdit)
+                {
+                    <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenChCreate" class="ames-rz-btn" />
+                }
+            </RadzenStack>
         </div>
-        <RadzenDataGrid TItem="SysRepository.NotifChannelRow" Data="@_channels" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+        <RadzenDataGrid TItem="SysRepository.NotifChannelRow" Data="@_chRows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                         PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnChRowClick" RowRender="@ChRowRender" EmptyText="@L["SYS.Notifications.Channels.Empty"]" Class="ames-rz-grid">
             <Columns>
                 <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="UserName" Title="@L["Col.User"]" Width="160px">
@@ -566,6 +569,8 @@
     // ── 채널 설정 ──────────────────────────────────────────────────────
     List<SysRepository.UserSelectRow>   _userList = new();
     List<SysRepository.NotifChannelRow> _channels = new();
+    List<SysRepository.NotifChannelRow> _chRows   = new();
+    string _fChSearch = "";
     SysRepository.NotifChannelRow? _chSel;
     string _chModal = "", _chModalErr = "";
     bool _chBusy, _chConfirmDelete;
@@ -600,6 +605,7 @@
 
         ApplyRuleFilter();
         ApplyHistFilter();
+        ApplyChFilter();
     }
 
     // ── 규칙 필터 ──────────────────────────────────────────────────────
@@ -617,6 +623,21 @@
 
     void OnRuleSearchChanged(string value) => _fRuleSearch = value ?? "";
     void OnRuleSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") ApplyRuleFilter(); }
+
+    // ── 채널 필터 ──────────────────────────────────────────────────────
+    void ApplyChFilter()
+    {
+        _chRows = _channels.Where(c =>
+            string.IsNullOrEmpty(_fChSearch) ||
+            (c.UserName ?? "").Contains(_fChSearch, StringComparison.OrdinalIgnoreCase) ||
+            (c.UserId   ?? "").Contains(_fChSearch, StringComparison.OrdinalIgnoreCase) ||
+            (c.Address  ?? "").Contains(_fChSearch, StringComparison.OrdinalIgnoreCase) ||
+            (c.Channel  ?? "").Contains(_fChSearch, StringComparison.OrdinalIgnoreCase)
+        ).ToList();
+    }
+
+    void OnChSearchChanged(string value) => _fChSearch = value ?? "";
+    void OnChSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") ApplyChFilter(); }
 
     // NOTIFICATION_STATUS CodeValue → IsEnabled 매핑 (ACTIVE=true, 그 외=false)
     static bool StatusMatches(bool isEnabled, string statusCode) =>

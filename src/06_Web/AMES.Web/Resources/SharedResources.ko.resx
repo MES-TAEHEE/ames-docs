@@ -5583,4 +5583,7 @@
   <data name="MD.Items.Lbl.CarType" xml:space="preserve">
     <value>차종</value>
   </data>
+  <data name="MD.RfidTag.Ph.Search" xml:space="preserve">
+    <value>TagID / EPC</value>
+  </data>
 </root>

@@ -108,53 +108,44 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>
                     <RadzenLabel Text='@(L["Col.WCID"] + " *  (예: WC-INJ-001)")' />
-                    <RadzenTextBox @bind-Value="_f.WCID" Placeholder="WC-INJ-001" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.WCID" Placeholder="WC-INJ-001" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text='@(L["Col.Name"] + " *")' />
-                    <RadzenTextBox @bind-Value="_f.WCName" Placeholder="@L["MD.WorkCenter.Ph.WcName"]" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.WCName" Placeholder="@L["MD.WorkCenter.Ph.WcName"]" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
                 <div>
                     <RadzenLabel Text="@L["Col.ProcessType"]" />
-                    <RadzenTextBox @bind-Value="_f.ProcessType" Placeholder="INJ, ASM, PNT 등" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.ProcessType" Placeholder="INJ, ASM, PNT 등" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text="@L["Col.LineId"]" />
-                    <RadzenDropDown @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value"
-                                    Placeholder="@L["Opt.Select"]"
-                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
                 <div>
                     <RadzenLabel Text='@(L["Col.DailyCapacity"] + " (EA)")' />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.DailyCapacity" Placeholder="1000" Min="0"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.DailyCapacity" Placeholder="1000" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text="@L["Col.StdManpower"]" />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.StdManpower" Placeholder="3" Min="0"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.StdManpower" Placeholder="3" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
                 <div>
                     <RadzenLabel Text="@L["Col.CostCenter"]" />
-                    <RadzenTextBox @bind-Value="_f.CostCenterCode" Placeholder="CC-INJ-001" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.CostCenterCode" Placeholder="CC-INJ-001" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text="@L["Col.LocationDesc"]" />
-                    <RadzenTextBox @bind-Value="_f.LocationDesc" Placeholder="@L["MD.WorkCenter.Ph.LocationDesc"]" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.LocationDesc" Placeholder="@L["MD.WorkCenter.Ph.LocationDesc"]" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
@@ -186,46 +177,38 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>
                     <RadzenLabel Text='@(L["Col.Name"] + " *")' />
-                    <RadzenTextBox @bind-Value="_f.WCName" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.WCName" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text="@L["Col.ProcessType"]" />
-                    <RadzenTextBox @bind-Value="_f.ProcessType" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.ProcessType" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
                 <div>
                     <RadzenLabel Text="@L["Col.LineId"]" />
-                    <RadzenDropDown @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value"
-                                    Placeholder="@L["Opt.Select"]"
-                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text='@(L["Col.DailyCapacity"] + " (EA)")' />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.DailyCapacity" Min="0"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.DailyCapacity" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
                 <div>
                     <RadzenLabel Text="@L["Col.StdManpower"]" />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.StdManpower" Min="0"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.StdManpower" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text="@L["Col.CostCenter"]" />
-                    <RadzenTextBox @bind-Value="_f.CostCenterCode" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.CostCenterCode" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
             <RadzenLabel Text="@L["Col.LocationDesc"]" Style="margin-top:6px;" />
-            <RadzenTextBox @bind-Value="_f.LocationDesc" AutoComplete="false"
-                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            <RadzenTextBox @bind-Value="_f.LocationDesc" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
 
             <label style="margin-top:6px;display:flex;align-items:center;gap:8px;cursor:pointer;">
                 <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" />
@@ -248,7 +231,7 @@
             }
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Edit"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
                 <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
                 <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>

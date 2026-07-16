@@ -1,14 +1,22 @@
 ﻿@page "/md/re/jig"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.MasterDataRepository Md
-@inject AuthenticationStateProvider Auth
-@inject AMES.Web.Services.PermissionService Perm
-@inject IStringLocalizer<SharedResources> L
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using AMES.Web.Services
 @using Radzen
 
-<PageTitle>@L["MD.Jig.Title"] · AMES</PageTitle>
+@attribute [Authorize]
 
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject MasterDataRepository MD
+@inject IStringLocalizer<SharedResources> L
+
+<PageTitle>MD-016 @L["MD.Jig.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="MD-016" TitleKey="MD.Jig.Title" />
+
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["Lbl.Total"]</div>
@@ -42,51 +50,40 @@
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.Jig.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Placeholder='@L["MD.Jig.Ph.Search"]'
-                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:160px;" AutoComplete="false"
-                           @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' />
-            <RadzenLabel Text="@L["Col.Health"]" />
-            <RadzenDropDown @bind-Value="_fHealth" Data="@HealthFilterOptions" TextProperty="Text" ValueProperty="Value"
-                            AllowClear="true" Placeholder="@L["Filter.AllConditions"]"
-                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenLabel Text="@L["Col.Active"]" />
-            <RadzenDropDown @bind-Value="_fActive" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value"
-                            AllowClear="true" Placeholder="@L["Filter.All"]"
-                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
-            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
-            @if (_canEdit) { <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" /> }
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Jig.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:160px;" />
+            <RadzenLabel Text="@L["Col.Health"]" Component="DropDownHealth" />
+            <RadzenDropDown Name="DropDownHealth" @bind-Value="_fHealth" Data="@HealthFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenLabel Text="@L["Col.Active"]" Component="DropDownActive" />
+            <RadzenDropDown Name="DropDownActive" @bind-Value="_fActive" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
+
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
+            }
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid TItem="AMES.Data.Repositories.MasterDataRepository.JigRow"
-                    Data="@_rows"
-                    AllowPaging="true" PageSize="25"
-                    PagerHorizontalAlign="HorizontalAlign.Center"
-                    PageSizeOptions="@_pageSizeOptions"
-                    ShowPagingSummary="true"
-                    AllowSorting="true"
-                    RowRender="@JigRowRender"
-                    RowClick="@(args => { if (args.Data is not null) OpenEdit(args.Data); })"
-                    EmptyText="@L["MD.Jig.Empty"]"
-                    Class="ames-rz-grid">
+    <RadzenDataGrid TItem="MasterDataRepository.JigRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Jig.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.JigRow" Property="JigID" Title="@L["Col.JigId"]" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="JigID" Title="@L["Col.JigId"]" Width="110px">
                 <Template Context="r"><span class="code">@r.JigID</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.JigRow" Property="JigName" Title="@L["Col.Name"]">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="JigName" Title="@L["Col.Name"]">
                 <Template Context="r">@(r.JigName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.JigRow" Property="HangerCount" Title="@L["Col.HangerCount"]" Width="80px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="HangerCount" Title="@L["Col.HangerCount"]" Width="80px" TextAlign="TextAlign.Right">
                 <Template Context="r">@(r.HangerCount?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.JigRow" Property="RatedCycle" Title="@L["Col.RatedCycle"]" Width="90px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="RatedCycle" Title="@L["Col.RatedCycle"]" Width="90px" TextAlign="TextAlign.Right">
                 <Template Context="r">@(r.RatedCycle?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.JigRow" Property="CycleCount" Title="@L["Col.ShotsCurrent"]" Width="90px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="CycleCount" Title="@L["Col.ShotsCurrent"]" Width="90px" TextAlign="TextAlign.Right">
                 <Template Context="r">@(r.CycleCount?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.JigRow" Title="@L["Col.UsagePct"]" Width="80px" TextAlign="TextAlign.Center" Sortable="false">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Title="@L["Col.UsagePct"]" Width="80px" TextAlign="TextAlign.Center" Sortable="false">
                 <Template Context="r">
                     @{
                         var pct    = r.RatedCycle is > 0 && r.CycleCount.HasValue ? (double)r.CycleCount.Value / r.RatedCycle.Value * 100 : (double?)null;
@@ -96,10 +93,10 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.JigRow" Property="ReadFailRate" Title="@L["Col.ReadFailRate"]" Width="80px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="ReadFailRate" Title="@L["Col.ReadFailRate"]" Width="80px" TextAlign="TextAlign.Right">
                 <Template Context="r">@(r.ReadFailRate?.ToString("F2") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.JigRow" Property="HealthStatus" Title="@L["Col.Health"]" Width="80px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="HealthStatus" Title="@L["Col.Health"]" Width="80px" TextAlign="TextAlign.Center">
                 <Template Context="r">
                     @{
                         var hCss = r.HealthStatus switch { "OK" => "ok", "WARN" => "warn", "FAIL" => "bad", _ => "" };
@@ -108,10 +105,10 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.JigRow" Property="LastServiceDate" Title="@L["Col.LastMaint"]" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="LastServiceDate" Title="@L["Col.LastMaint"]" Width="100px">
                 <Template Context="r"><span class="dim">@(r.LastServiceDate?.ToString("yyyy-MM-dd") ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.JigRow" Property="ActiveFlag" Title="@L["Col.Active"]" Width="80px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="ActiveFlag" Title="@L["Col.Active"]" Width="80px" TextAlign="TextAlign.Center">
                 <Template Context="r">
                     @if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
                     else { <span class="pill bad">@L["Lbl.Inactive"]</span> }
@@ -131,53 +128,44 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>
                     <RadzenLabel Text="@L["Col.JigId"]" />
-                    <RadzenTextBox @bind-Value="_f.JigID" Placeholder="JIG-PNT-001" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.JigID" Placeholder="JIG-PNT-001" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text="@L["Col.JigName"]" />
-                    <RadzenTextBox @bind-Value="_f.JigName" Placeholder='@L["MD.Jig.Ph.JigName"]' AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.JigName" Placeholder='@L["MD.Jig.Ph.JigName"]' AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
                 <div>
                     <RadzenLabel Text="@L["Col.HangerCount"]" />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.HangerCount" Min="0"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.HangerCount" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text="@L["Col.RatedCycle"]" />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.RatedCycle" Min="0"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.RatedCycle" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
                 <div>
                     <RadzenLabel Text="@L["Col.CycleCount"]" />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.CycleCount" Min="0"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.CycleCount" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text="@L["Col.ReadFailRate"]" />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.ReadFailRate" Min="0m" Max="100m" Step="0.01m"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.ReadFailRate" Min="0m" Max="100m" Step="0.01m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
                 <div>
                     <RadzenLabel Text="@L["Col.Health"]" />
-                    <RadzenDropDown @bind-Value="_f.HealthStatus" Data="@HealthStatusOptions" TextProperty="Text" ValueProperty="Value"
-                                    Placeholder="@L["Opt.None"]"
-                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown @bind-Value="_f.HealthStatus" Data="@HealthStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text="@L["Col.LastService"]" />
-                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.LastServiceDate" DateFormat="yyyy-MM-dd"
-                                      InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.LastServiceDate" DateFormat="yyyy-MM-dd" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
@@ -190,18 +178,18 @@
 
             @if (!string.IsNullOrEmpty(_modalErr))
             {
-                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="margin-top:8px;">@_modalErr</RadzenAlert>
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
             }
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Create"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveCreate" Disabled="@_busy" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseModal" class="ames-rz-btn" />
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Create"])" Click="@SaveCreate" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
     </div>
 }
 
-@* ── Edit Modal ───────────────────────────────────────────────────── *@
+@* ── Edit Modal ──────────────────────────────────────────────────── *@
 @if (_modal == "edit" && _sel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
@@ -211,47 +199,39 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>
                     <RadzenLabel Text="@L["Col.JigName"]" />
-                    <RadzenTextBox @bind-Value="_f.JigName" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.JigName" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text="@L["Col.HangerCount"]" />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.HangerCount" Min="0"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.HangerCount" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
                 <div>
                     <RadzenLabel Text="@L["Col.RatedCycle"]" />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.RatedCycle" Min="0"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.RatedCycle" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text="@L["Col.CycleCount"]" />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.CycleCount" Min="0"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.CycleCount" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
                 <div>
                     <RadzenLabel Text="@L["Col.ReadFailRate"]" />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.ReadFailRate" Min="0m" Max="100m" Step="0.01m"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.ReadFailRate" Min="0m" Max="100m" Step="0.01m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text="@L["Col.Health"]" />
-                    <RadzenDropDown @bind-Value="_f.HealthStatus" Data="@HealthStatusOptions" TextProperty="Text" ValueProperty="Value"
-                                    Placeholder="@L["Opt.None"]"
-                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown @bind-Value="_f.HealthStatus" Data="@HealthStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
             <div style="margin-top:6px;">
                 <RadzenLabel Text="@L["Col.LastService"]" />
-                <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.LastServiceDate" DateFormat="yyyy-MM-dd"
-                                  InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.LastServiceDate" DateFormat="yyyy-MM-dd" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </div>
 
             <div style="margin-top:8px;">
@@ -261,6 +241,7 @@
                 </label>
             </div>
 
+            @* 삭제 버튼 클릭 후 인라인 확인 *@
             @if (_confirmDelete)
             {
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
@@ -272,45 +253,59 @@
 
             @if (!string.IsNullOrEmpty(_modalErr))
             {
-                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="margin-top:8px;">@_modalErr</RadzenAlert>
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
             }
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Edit"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveEdit" Disabled="@_busy" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseModal" class="ames-rz-btn" />
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
     </div>
 }
 
 @code {
-    List<AMES.Data.Repositories.MasterDataRepository.JigRow> _allRows = new();
-    List<AMES.Data.Repositories.MasterDataRepository.JigRow> _rows    = new();
-    AMES.Data.Repositories.MasterDataRepository.JigRow? _sel;
+    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    bool _showPagerSummary = true;
+    List<MasterDataRepository.JigRow> _allRows = new();
+    List<MasterDataRepository.JigRow> _rows    = new();
+    MasterDataRepository.JigRow? _sel;
 
     string _fSearch = "";
     string? _fHealth, _fActive;
-    int[] _pageSizeOptions = { 15, 30, 50, 100 };
-
-    string _modal = "";
-    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
-    string _msg = "", _modalErr = "";
-    bool _isErr;
-    bool   _canEdit;
+    string _modal = "", _modalErr = "", _msg = "";
+    bool _busy, _bgMouseDownOnSelf, _isErr, _confirmDelete;
+    bool _canEdit;
     string _actor = "system";
+
     FormModel _f = new();
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+
+    IEnumerable<DropDownItem> HealthFilterOptions => _allRows.Select(r => r.HealthStatus).Where(x => x != null).Distinct().OrderBy(x => x).Select(h => new DropDownItem { Value = h!, Text = h! });
+    DropDownItem[] HealthStatusOptions =
+    {
+        new() { Value = "OK",   Text = "OK"   },
+        new() { Value = "WARN", Text = "WARN" },
+        new() { Value = "FAIL", Text = "FAIL" },
+    };
+    DropDownItem[] ActiveFilterOptions =
+    {
+        new() { Value = "Y", Text = "Active"   },
+        new() { Value = "N", Text = "Inactive" },
+    };
 
     protected override async Task OnInitializedAsync()
     {
-        var auth = await Auth.GetAuthenticationStateAsync();
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
-        await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("md/re/jig");
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("md/re/jig");
         Reload();
     }
 
-    void Reload() { _allRows = Md.ListJigs(); ApplyFilter(); }
+    void Reload() { _allRows = MD.ListJigs(); ApplyFilter(); }
 
     void ApplyFilter() { _rows = _allRows.Where(r =>
         (string.IsNullOrEmpty(_fSearch) ||
@@ -318,34 +313,29 @@
             (r.JigName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fHealth) || r.HealthStatus == _fHealth) &&
         (string.IsNullOrEmpty(_fActive) || (_fActive == "Y" ? r.ActiveFlag : !r.ActiveFlag))
-    ).ToList(); }
+    ).ToList();
+    }
 
-    IEnumerable<DropDownItem> HealthFilterOptions =>
-        _allRows.Select(r => r.HealthStatus).Where(x => x != null).Distinct().OrderBy(x => x)
-            .Select(h => new DropDownItem { Value = h!, Text = h! });
+    void OnSearchChanged(string value) => _fSearch = value ?? "";
 
-    DropDownItem[] HealthStatusOptions =
+    void OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") ApplyFilter(); }
+
+    void RowRender(RowRenderEventArgs<MasterDataRepository.JigRow> args)
     {
-        new() { Value = "OK",   Text = "OK"   },
-        new() { Value = "WARN", Text = "WARN" },
-        new() { Value = "FAIL", Text = "FAIL" },
-    };
+        if (args.Attributes.TryGetValue("class", out var existing))
+            args.Attributes["class"] = existing + " ames-row-link";
+        else
+            args.Attributes["class"] = "ames-row-link";
+    }
 
-    DropDownItem[] ActiveFilterOptions =
+    void OnRowClick(DataGridRowMouseEventArgs<MasterDataRepository.JigRow> args)
     {
-        new() { Value = "Y", Text = "Active"   },
-        new() { Value = "N", Text = "Inactive" },
-    };
-
-    void JigRowRender(RowRenderEventArgs<AMES.Data.Repositories.MasterDataRepository.JigRow> args)
-    {
-        if (!args.Attributes.TryGetValue("class", out var cls)) cls = "";
-        args.Attributes["class"] = cls + " ames-row-link";
+        if (args.Data is not null) OpenEdit(args.Data);
     }
 
     void OpenCreate() { _f = new() { ActiveFlag = true }; _modalErr = ""; _confirmDelete = false; _modal = "create"; }
 
-    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.JigRow r)
+    void OpenEdit(MasterDataRepository.JigRow r)
     {
         if (!_canEdit) return;
         _sel = r; _modalErr = ""; _confirmDelete = false;
@@ -369,18 +359,16 @@
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
-    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
-
     void SaveCreate()
     {
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.JigID))  { _modalErr = L["Err.JigIdRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.JigName)) { _modalErr = L["Err.NameRequired"]; return; }
-        if (Md.JigExists(_f.JigID.Trim()))          { _modalErr = $"지그 ID '{_f.JigID.Trim()}' 이 {L["Err.AlreadyExists"]}"; return; }
+        if (MD.JigExists(_f.JigID.Trim())) { _modalErr = $"지그 ID '{_f.JigID.Trim()}' 이 {L["Err.AlreadyExists"]}"; return; }
         _busy = true;
         try
         {
-            Md.InsertJig(_f.JigID.Trim(), _f.JigName, _f.HangerCount,
+            MD.InsertJig(_f.JigID.Trim(), _f.JigName, _f.HangerCount,
                 _f.RatedCycle, _f.CycleCount, _f.ReadFailRate,
                 NE(_f.HealthStatus), _f.LastServiceDate, _f.ActiveFlag, _actor);
             CloseModal(); Reload();
@@ -398,7 +386,7 @@
         _busy = true;
         try
         {
-            Md.UpdateJig(_sel.JigID, _f.JigName, _f.HangerCount,
+            MD.UpdateJig(_sel.JigID, _f.JigName, _f.HangerCount,
                 _f.RatedCycle, _f.CycleCount, _f.ReadFailRate,
                 NE(_f.HealthStatus), _f.LastServiceDate, _f.ActiveFlag, _actor);
             var name = _f.JigName;
@@ -416,7 +404,7 @@
         try
         {
             var name = _sel.JigName ?? _sel.JigID;
-            Md.DeleteJig(_sel.JigID);
+            MD.DeleteJig(_sel.JigID);
             CloseModal(); Reload();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }
@@ -430,7 +418,7 @@
         _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
     }
 
-    class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
 
     class FormModel
     {

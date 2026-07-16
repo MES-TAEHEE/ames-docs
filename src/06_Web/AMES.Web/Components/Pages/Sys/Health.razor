@@ -9,6 +9,8 @@
 
 @inject ServerMonitorService SrvMntSvc
 @inject SysRepository Sys
+@inject AMES.Web.Services.PermissionService Perm
+@inject AuthenticationStateProvider AuthPrvd
 @inject IStringLocalizer<SharedResources> L
 
 @implements IDisposable
@@ -197,51 +199,15 @@
 </div>
 
 <div class="ames-tiles">
-    <a class="ames-tile sys" href="/sys/users">
-        <div class="ames-tile-ic">👤</div>
-        <div class="ames-tile-h">@L["SYS.Health.Tile.Users"]</div>
-        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.UsersSub"].Value, _k.Users)</div>
-    </a>
-    <a class="ames-tile sys" href="/sys/roles">
-        <div class="ames-tile-ic">🎭</div>
-        <div class="ames-tile-h">@L["SYS.Health.Tile.Roles"]</div>
-        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.RolesSub"].Value, _k.Roles)</div>
-    </a>
-    <a class="ames-tile sys" href="/sys/screens">
-        <div class="ames-tile-ic">🖥️</div>
-        <div class="ames-tile-h">@L["SYS.Health.Tile.Screen"]</div>
-        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.ScreenSub"].Value, _k.Screens)</div>
-    </a>
-    <a class="ames-tile sys" href="/sys/rbac">
-        <div class="ames-tile-ic">🛡️</div>
-        <div class="ames-tile-h">@L["SYS.Health.Tile.Rbac"]</div>
-        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.RbacSub"].Value, _k.Permissions)</div>
-    </a>
-    <a class="ames-tile sys" href="/sys/calendar">
-        <div class="ames-tile-ic">📅</div>
-        <div class="ames-tile-h">@L["SYS.Health.Tile.Calendar"]</div>
-        <div class="ames-tile-sub">@L["SYS.Health.Tile.CalendarSub"]</div>
-    </a>
-    <a class="ames-tile sys" href="/sys/interfaces">
-        <div class="ames-tile-ic">🔌</div>
-        <div class="ames-tile-h">@L["SYS.Health.Tile.Interfaces"]</div>
-        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.InterfacesSub"].Value, _k.InterfacesOk, _k.InterfacesDown)</div>
-    </a>
-    <a class="ames-tile sys" href="/sys/audit">
-        <div class="ames-tile-ic">📜</div>
-        <div class="ames-tile-h">@L["SYS.Health.Tile.Audit"]</div>
-        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.AuditSub"].Value, _k.AuditLast24h)</div>
-    </a>
-    <a class="ames-tile sys" href="/sys/notifications">
-        <div class="ames-tile-ic">🔔</div>
-        <div class="ames-tile-h">@L["SYS.Health.Tile.Notif"]</div>
-        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.NotifSub"].Value, _k.NotifLast24h, _k.NotifFailedLast24h)</div>
-    </a>
-    <a class="ames-tile sys" href="/sys/config">
-        <div class="ames-tile-ic">⚙</div>
-        <div class="ames-tile-h">@L["SYS.Health.Tile.Config"]</div>
-        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.ConfigSub"].Value, _k.ConfigKeys)</div>
-    </a>
+    @Tile("sys/users",         "👤", L["SYS.Health.Tile.Users"].Value,      string.Format(L["SYS.Health.Tile.UsersSub"].Value, _k.Users))
+    @Tile("sys/roles",         "🎭", L["SYS.Health.Tile.Roles"].Value,      string.Format(L["SYS.Health.Tile.RolesSub"].Value, _k.Roles))
+    @Tile("sys/screens",       "🖥️", L["SYS.Health.Tile.Screen"].Value,     string.Format(L["SYS.Health.Tile.ScreenSub"].Value, _k.Screens))
+    @Tile("sys/rbac",          "🛡️", L["SYS.Health.Tile.Rbac"].Value,       string.Format(L["SYS.Health.Tile.RbacSub"].Value, _k.Permissions))
+    @Tile("sys/calendar",      "📅", L["SYS.Health.Tile.Calendar"].Value,   L["SYS.Health.Tile.CalendarSub"].Value)
+    @Tile("sys/interfaces",    "🔌", L["SYS.Health.Tile.Interfaces"].Value, string.Format(L["SYS.Health.Tile.InterfacesSub"].Value, _k.InterfacesOk, _k.InterfacesDown))
+    @Tile("sys/audit",         "📜", L["SYS.Health.Tile.Audit"].Value,      string.Format(L["SYS.Health.Tile.AuditSub"].Value, _k.AuditLast24h))
+    @Tile("sys/notifications", "🔔", L["SYS.Health.Tile.Notif"].Value,      string.Format(L["SYS.Health.Tile.NotifSub"].Value, _k.NotifLast24h, _k.NotifFailedLast24h))
+    @Tile("sys/config",        "⚙", L["SYS.Health.Tile.Config"].Value,      string.Format(L["SYS.Health.Tile.ConfigSub"].Value, _k.ConfigKeys))
 </div>
 
 @code {
@@ -251,11 +217,33 @@
     PeriodicTimer? _timer;
     CancellationTokenSource? _cts;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        try { await Perm.EnsureAsync(AuthPrvd); } catch { }
         try { _k = Sys.GetHealth(); } catch { }
         try { _events = Sys.ListAudit(8); } catch { }
     }
+
+    // NavMenu 와 동일하게 권한(PermissionService.IsVisible)에 따라 타일 활성/비활성
+    RenderFragment Tile(string href, string icon, string title, string sub) => __builder =>
+    {
+        if (Perm.IsVisible(href))
+        {
+            <a class="ames-tile sys" href="@("/" + href)">
+                <div class="ames-tile-ic">@icon</div>
+                <div class="ames-tile-h">@title</div>
+                <div class="ames-tile-sub">@sub</div>
+            </a>
+        }
+        else
+        {
+            <div class="ames-tile sys" style="opacity:.4;pointer-events:none;filter:grayscale(1);" aria-disabled="true">
+                <div class="ames-tile-ic">@icon</div>
+                <div class="ames-tile-h">@title</div>
+                <div class="ames-tile-sub">@sub</div>
+            </div>
+        }
+    };
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
