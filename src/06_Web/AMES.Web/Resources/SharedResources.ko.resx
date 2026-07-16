@@ -1885,10 +1885,10 @@
     <value>(영문·숫자·밑줄, 최대 20자)</value>
   </data>
   <data name="MD.CommonCode.Lbl.GroupName" xml:space="preserve">
-    <value>그룹명 *</value>
+    <value>그룹명 (국문) *</value>
   </data>
   <data name="MD.CommonCode.Lbl.GroupNameEn" xml:space="preserve">
-    <value>그룹명(영문)</value>
+    <value>그룹명 (영문)</value>
   </data>
   <data name="MD.CommonCode.Lbl.Description" xml:space="preserve">
     <value>설명</value>
@@ -1909,10 +1909,10 @@
     <value>(자동생성, 최대 24자)</value>
   </data>
   <data name="MD.CommonCode.Lbl.CodeName" xml:space="preserve">
-    <value>코드명 *</value>
+    <value>코드명 (국문)</value>
   </data>
   <data name="MD.CommonCode.Lbl.CodeNameEn" xml:space="preserve">
-    <value>코드명(영문)</value>
+    <value>코드명 (영문)</value>
   </data>
   <data name="MD.CommonCode.Lbl.ParentCode" xml:space="preserve">
     <value>상위 코드</value>

@@ -11,8 +11,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 
 <aside class="ames-side @(_collapsed ? "ames-side--collapsed" : "")">
-<div class="ames-nav">
-    @* ── 검색 + 사이드바 토글 ── *@
+    @* ── 검색 + 사이드바 토글 (스크롤과 무관한 고정 헤더) ── *@
     <div class="ames-nav-top">
         <div class="ames-nav-search">
             <span class="ames-nav-search-ic">🔍</span>
@@ -32,6 +31,7 @@
         </button>
     </div>
 
+<div class="ames-nav">
     <NavLink class="ames-nav-home" href="" Match="NavLinkMatch.All">
         <span class="ames-nav-ic">⌂</span>
         <span>@NL("홈", "Home")</span>
