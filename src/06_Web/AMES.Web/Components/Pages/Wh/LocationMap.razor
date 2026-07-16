@@ -2,48 +2,52 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.WarehouseRepository Wh
+@inject IJSRuntime JS
+@using System.Globalization
+@using AMES.Data.Repositories
+@using Microsoft.JSInterop
 @using Radzen
+@implements IAsyncDisposable
 
-<PageTitle>WH-003 Location Map · AMES</PageTitle>
+<PageTitle>WH-003 Location Map - AMES</PageTitle>
 <AmesPageHeader Code="WH-003" Title="Location Map" />
 
 <div class="ames-kpis">
     <div class="ames-kpi">
-        <div class="ames-kpi-l">Locations</div>
-        <div class="ames-kpi-v">@_rows.Count</div>
-        <div class="ames-kpi-s">current view</div>
+        <div class="ames-kpi-l">Level</div>
+        <div class="ames-kpi-v">@DisplayLevel(_levelCode)</div>
+        <div class="ames-kpi-s">current floor</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">Areas</div>
+        <div class="ames-kpi-v">@_areaLayouts.Count</div>
+        <div class="ames-kpi-s">factory blocks</div>
     </div>
     <div class="ames-kpi ok">
         <div class="ames-kpi-l">Stocked</div>
         <div class="ames-kpi-v">@_rows.Count(r => r.TotalQty > 0)</div>
-        <div class="ames-kpi-s">occupied bins</div>
-    </div>
-    <div class="ames-kpi">
-        <div class="ames-kpi-l">Empty</div>
-        <div class="ames-kpi-v">@_rows.Count(r => r.TotalQty == 0)</div>
-        <div class="ames-kpi-s">available bins</div>
+        <div class="ames-kpi-s">locations on level</div>
     </div>
     <div class="ames-kpi warn">
         <div class="ames-kpi-l">Mixed</div>
         <div class="ames-kpi-v">@_rows.Count(r => r.Status == "Mixed")</div>
-        <div class="ames-kpi-s">multiple parts</div>
+        <div class="ames-kpi-s">multi-part locations</div>
     </div>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(_msg))
 {
-    <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_msg</RadzenAlert>
+    <RadzenAlert AlertStyle="@_msgStyle" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
 <div class="ames-card">
-    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ Warehouse Location Map</span>
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem" Wrap="FlexWrap.Wrap">
-            <RadzenLabel Text="Area" />
-            <RadzenDropDown @bind-Value="_areaCode" Data="@AreaOptions" TextProperty="Text" ValueProperty="Value"
-                            AllowClear="true" Placeholder="All Areas" Change="@(_ => Reload())"
-                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:190px;" />
-            <RadzenButton Text="Refresh" Icon="refresh" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
+    <div class="ames-card-h wh-map-toolbar">
+        <div>
+            <span>Factory Top View</span>
+            <div class="dim">Drag areas to set the factory layout.</div>
+        </div>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenButton Text="Refresh" Icon="refresh" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ReloadAll" class="ames-rz-btn" />
         </RadzenStack>
     </div>
 
@@ -51,65 +55,138 @@
         <span><i class="empty"></i> Empty</span>
         <span><i class="stocked"></i> Stocked</span>
         <span><i class="mixed"></i> Mixed</span>
+        <span><i class="selected"></i> Selected Area</span>
     </div>
 
-    @if (_rows.Count == 0)
+    @if (_areaLayouts.Count == 0)
     {
-        <div class="ames-empty">No locations found.</div>
+        <div class="ames-empty">No areas found.</div>
     }
     else
     {
-        @foreach (var area in _rows.GroupBy(r => new { r.AreaCode, r.AreaName }).OrderBy(g => g.Key.AreaCode))
-        {
-            <div class="wh-map-area">
-                <div class="wh-map-area-h">
-                    <div>
-                        <strong>@(area.Key.AreaCode ?? "No Area")</strong>
-                        <span class="dim">@(area.Key.AreaName ?? "")</span>
-                    </div>
-                    <span class="pill info">@area.Count() locations</span>
-                </div>
-                <div class="wh-map-grid">
-                    @foreach (var loc in area)
-                    {
-                        <button type="button" class="wh-map-cell @StatusClass(loc.Status)" @onclick="() => _selected = loc">
-                            <span class="wh-map-cell-code">@loc.LocationNo</span>
-                            <span class="wh-map-cell-rack">@RackText(loc)</span>
-                            <span class="wh-map-cell-qty">@loc.TotalQty.ToString("N0")</span>
-                        </button>
-                    }
-                </div>
-            </div>
-        }
+        <div id="wh-location-map-plan" class="wh-factory-plan" aria-label="Factory top view">
+            <div class="wh-factory-label wh-factory-label-receiving">Receiving</div>
+            <div class="wh-factory-label wh-factory-label-production">Production</div>
+            <div class="wh-factory-label wh-factory-label-shipping">Shipping</div>
+
+            @foreach (var area in AreaViews())
+            {
+                <button type="button"
+                        class="wh-area-block @AreaStatusClass(area) @(area.Layout.AreaCode == _selectedAreaCode ? "selected" : "")"
+                        data-area-code="@area.Layout.AreaCode"
+                        style="@AreaStyle(area.Layout)"
+                        @onclick="() => SelectArea(area.Layout.AreaCode)">
+                    <span class="wh-area-code">@area.Layout.AreaCode</span>
+                    <span class="wh-area-name">@(area.Layout.AreaName ?? "Area")</span>
+                    <span class="wh-area-metrics">
+                        <strong>@area.LocationCount</strong> loc
+                        <strong>@area.TotalQty.ToString("N0")</strong> qty
+                    </span>
+                    <span class="wh-area-mini">
+                        @area.StockedCount stocked / @area.MixedCount mixed
+                    </span>
+                    <span class="wh-area-resize-handle" title="Resize area" @onclick:stopPropagation="true"></span>
+                </button>
+            }
+        </div>
     }
 </div>
 
-@if (_selected is not null)
+<div class="ames-card">
+    <div class="ames-card-h wh-locations-toolbar">
+        <div>
+            <span>Locations</span>
+            <div class="dim">@SelectedAreaLabel()</div>
+        </div>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="Level" />
+            <RadzenDropDown @bind-Value="_levelCode" Data="@LevelOptions" TextProperty="Text" ValueProperty="Value"
+                            Placeholder="Select Level" Change="@(_ => ChangeLevel())"
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" />
+        </RadzenStack>
+    </div>
+    @{
+        var areaLocations = AreaLocations();
+        var locationColumns = LocationColumns(areaLocations);
+        var locationRows = LocationRows(areaLocations);
+    }
+    @if (areaLocations.Count == 0)
+    {
+        <div class="ames-empty">No locations on this level.</div>
+    }
+    else
+    {
+        <div class="wh-location-coordinate-scroll">
+            <div class="wh-location-coordinate-map" style="@LocationGridStyle(locationColumns.Count)">
+                <div class="wh-grid-corner">Y / X</div>
+                @foreach (var column in locationColumns)
+                {
+                    <div class="wh-grid-axis wh-grid-col">@column</div>
+                }
+
+                @foreach (var row in locationRows)
+                {
+                    <div class="wh-grid-axis wh-grid-row">@row</div>
+                    @foreach (var column in locationColumns)
+                    {
+                        var cells = LocationCells(areaLocations, column, row);
+                        <div class="wh-grid-slot @(cells.Count == 0 ? "empty" : "")">
+                            @if (cells.Count == 0)
+                            {
+                                <span class="wh-grid-empty">-</span>
+                            }
+                            else
+                            {
+                                @foreach (var loc in cells)
+                                {
+                                    <button type="button" class="wh-location-bin @StatusClass(loc.Status)" @onclick="() => _selectedLocation = loc">
+                                        <span class="wh-location-bin-code">@loc.LocationNo</span>
+                                        <span class="wh-location-bin-zone">@((loc.ZoneCode ?? loc.ZoneName) ?? "-")</span>
+                                        <span class="wh-location-bin-qty">@loc.TotalQty.ToString("N0")</span>
+                                    </button>
+                                }
+                            }
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@if (_selectedLocation is not null)
 {
     <div class="ames-card">
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
             <span>Selected Location</span>
-            <button class="ames-btn" @onclick="() => _selected = null">Close</button>
+            <button class="ames-btn" @onclick="() => _selectedLocation = null">Close</button>
         </div>
         <div class="wh-detail-grid">
-            <div><span>Location</span><strong>@_selected.LocationNo</strong></div>
-            <div><span>Name</span><strong>@(_selected.LocationName ?? "-")</strong></div>
-            <div><span>Area</span><strong>@(_selected.AreaCode ?? "-")</strong></div>
-            <div><span>Zone</span><strong>@(_selected.ZoneCode ?? "-")</strong></div>
-            <div><span>Rack</span><strong>@RackText(_selected)</strong></div>
-            <div><span>Qty</span><strong>@_selected.TotalQty.ToString("N0")</strong></div>
-            <div><span>Lots</span><strong>@_selected.LotCount</strong></div>
-            <div><span>Parts</span><strong>@_selected.PartCount</strong></div>
+            <div><span>Location</span><strong>@_selectedLocation.LocationNo</strong></div>
+            <div><span>Name</span><strong>@(_selectedLocation.LocationName ?? "-")</strong></div>
+            <div><span>Area</span><strong>@(_selectedLocation.AreaCode ?? "-")</strong></div>
+            <div><span>Zone</span><strong>@(_selectedLocation.ZoneCode ?? "-")</strong></div>
+            <div><span>Rack</span><strong>@RackText(_selectedLocation)</strong></div>
+            <div><span>Qty</span><strong>@_selectedLocation.TotalQty.ToString("N0")</strong></div>
+            <div><span>Lots</span><strong>@_selectedLocation.LotCount</strong></div>
+            <div><span>Parts</span><strong>@_selectedLocation.PartCount</strong></div>
         </div>
     </div>
 }
 
 @code {
-    List<AMES.Data.Repositories.WarehouseRepository.LocationMapRow> _allRows = new();
-    List<AMES.Data.Repositories.WarehouseRepository.LocationMapRow> _rows = new();
-    AMES.Data.Repositories.WarehouseRepository.LocationMapRow? _selected;
-    string? _areaCode;
+    List<WarehouseRepository.LocationMapRow> _allRows = new();
+    List<WarehouseRepository.LocationMapRow> _rows = new();
+    List<WarehouseRepository.LocationAreaLayoutRow> _areaLayouts = new();
+    WarehouseRepository.LocationMapRow? _selectedLocation;
+    string? _selectedAreaCode;
+    string? _levelCode;
     string _msg = "";
+    AlertStyle _msgStyle = AlertStyle.Danger;
+    bool _mapJsReady;
+    bool _mapJsInitPending = true;
+    AreaLayoutForm _layoutForm = new();
+    DotNetObjectReference<LocationMap>? _mapRef;
 
     public class DropDownItem
     {
@@ -117,47 +194,239 @@
         public string Value { get; set; } = "";
     }
 
-    IEnumerable<DropDownItem> AreaOptions =>
+    sealed class AreaLayoutForm
+    {
+        public decimal XPct { get; set; }
+        public decimal YPct { get; set; }
+        public decimal WPct { get; set; }
+        public decimal HPct { get; set; }
+    }
+
+    sealed record AreaView(
+        WarehouseRepository.LocationAreaLayoutRow Layout,
+        int LocationCount,
+        int StockedCount,
+        int MixedCount,
+        decimal TotalQty);
+
+    IEnumerable<DropDownItem> LevelOptions =>
         _allRows
-            .Where(r => !string.IsNullOrWhiteSpace(r.AreaCode))
-            .GroupBy(r => r.AreaCode)
-            .OrderBy(g => g.Key)
-            .Select(g => new DropDownItem
-            {
-                Value = g.Key!,
-                Text = $"{g.Key} - {g.First().AreaName ?? "Area"}",
-            });
+            .Select(r => r.RackZ)
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(LevelSortKey)
+            .ThenBy(v => v)
+            .Select(v => new DropDownItem { Value = v!, Text = $"Level {v}" });
+
+    WarehouseRepository.LocationAreaLayoutRow? SelectedArea =>
+        _areaLayouts.FirstOrDefault(a => a.AreaCode == _selectedAreaCode);
 
     protected override void OnInitialized() => ReloadAll();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            _mapRef = DotNetObjectReference.Create(this);
+
+        if (_mapJsInitPending && _mapRef is not null)
+        {
+            await JS.InvokeVoidAsync("whLocationMap.init", _mapRef, "wh-location-map-plan");
+            _mapJsReady = true;
+            _mapJsInitPending = false;
+        }
+    }
 
     void ReloadAll()
     {
         try
         {
+            _areaLayouts = Wh.ListLocationAreaLayouts();
             _allRows = Wh.ListLocationMap();
-            _rows = string.IsNullOrWhiteSpace(_areaCode)
-                ? _allRows
-                : _allRows.Where(r => r.AreaCode == _areaCode).ToList();
+
+            var levelValues = _allRows
+                .Select(r => r.RackZ)
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(LevelSortKey)
+                .ThenBy(v => v)
+                .ToList();
+
+            if (levelValues.Count > 0 && (string.IsNullOrWhiteSpace(_levelCode) || !levelValues.Contains(_levelCode)))
+                _levelCode = levelValues[0];
+
+            LoadRowsForLevel();
+            EnsureSelectedArea();
+            _mapJsInitPending = true;
+            _msg = "";
         }
         catch (Exception ex)
         {
+            _areaLayouts = new();
             _allRows = new();
             _rows = new();
+            _msgStyle = AlertStyle.Danger;
             _msg = ex.Message;
         }
     }
 
-    void Reload()
+    void ChangeLevel()
     {
         try
         {
-            _rows = Wh.ListLocationMap(_areaCode);
+            LoadRowsForLevel();
+            _selectedLocation = null;
+            EnsureSelectedArea();
+            _mapJsInitPending = true;
             _msg = "";
         }
         catch (Exception ex)
         {
             _rows = new();
+            _msgStyle = AlertStyle.Danger;
             _msg = ex.Message;
+        }
+    }
+
+    void LoadRowsForLevel()
+    {
+        _rows = Wh.ListLocationMap(null, _levelCode);
+    }
+
+    void EnsureSelectedArea()
+    {
+        if (!string.IsNullOrWhiteSpace(_selectedAreaCode) && _areaLayouts.Any(a => a.AreaCode == _selectedAreaCode))
+        {
+            SyncLayoutForm();
+            return;
+        }
+
+        _selectedAreaCode = _areaLayouts.FirstOrDefault()?.AreaCode;
+        SyncLayoutForm();
+    }
+
+    void SelectArea(string areaCode)
+    {
+        _selectedAreaCode = areaCode;
+        _selectedLocation = null;
+        SyncLayoutForm();
+    }
+
+    [JSInvokable]
+    public Task OnAreaSelectedFromMap(string areaCode)
+    {
+        SelectArea(areaCode);
+        return InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public Task OnAreaLayoutChanged(string areaCode, double xPct, double yPct, double wPct, double hPct)
+    {
+        _selectedAreaCode = areaCode;
+        _selectedLocation = null;
+        _layoutForm = new AreaLayoutForm
+        {
+            XPct = (decimal)xPct,
+            YPct = (decimal)yPct,
+            WPct = (decimal)wPct,
+            HPct = (decimal)hPct
+        };
+
+        SaveAreaPosition();
+        return InvokeAsync(StateHasChanged);
+    }
+
+    void SyncLayoutForm()
+    {
+        if (SelectedArea is null) return;
+        _layoutForm = new AreaLayoutForm
+        {
+            XPct = SelectedArea.XPct,
+            YPct = SelectedArea.YPct,
+            WPct = SelectedArea.WPct,
+            HPct = SelectedArea.HPct
+        };
+    }
+
+    void SaveAreaPosition()
+    {
+        if (SelectedArea is null) return;
+
+        try
+        {
+            Wh.SaveLocationAreaLayout(
+                SelectedArea.AreaCode,
+                _layoutForm.XPct,
+                _layoutForm.YPct,
+                _layoutForm.WPct,
+                _layoutForm.HPct);
+            _areaLayouts = Wh.ListLocationAreaLayouts();
+            SyncLayoutForm();
+            _msg = "";
+        }
+        catch (Exception ex)
+        {
+            _msgStyle = AlertStyle.Danger;
+            _msg = ex.Message;
+        }
+    }
+
+    List<WarehouseRepository.LocationMapRow> AreaLocations()
+    {
+        if (string.IsNullOrWhiteSpace(_selectedAreaCode)) return new();
+        return _rows
+            .Where(r => string.Equals(r.AreaCode, _selectedAreaCode, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(r => ToNumberOrMax(r.RackY))
+            .ThenBy(r => r.RackY)
+            .ThenBy(r => ToNumberOrMax(r.RackX))
+            .ThenBy(r => r.RackX)
+            .ThenBy(r => r.ZoneCode)
+            .ThenBy(r => r.LocationNo)
+            .ToList();
+    }
+
+    static List<string> LocationColumns(List<WarehouseRepository.LocationMapRow> rows) =>
+        rows.Select(r => AxisText(r.RackX))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(ToNumberOrMax)
+            .ThenBy(v => v)
+            .ToList();
+
+    static List<string> LocationRows(List<WarehouseRepository.LocationMapRow> rows) =>
+        rows.Select(r => AxisText(r.RackY))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(ToNumberOrMax)
+            .ThenBy(v => v)
+            .ToList();
+
+    static List<WarehouseRepository.LocationMapRow> LocationCells(
+        List<WarehouseRepository.LocationMapRow> rows,
+        string rackX,
+        string rackY) =>
+        rows.Where(r => string.Equals(AxisText(r.RackX), rackX, StringComparison.OrdinalIgnoreCase)
+                     && string.Equals(AxisText(r.RackY), rackY, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(r => r.ZoneCode)
+            .ThenBy(r => r.LocationNo)
+            .ToList();
+
+    string SelectedAreaLabel() =>
+        SelectedArea is null
+            ? $"Level {DisplayLevel(_levelCode)}"
+            : $"{SelectedArea.AreaCode} - {SelectedArea.AreaName ?? "Area"} / Level {DisplayLevel(_levelCode)}";
+
+    IEnumerable<AreaView> AreaViews()
+    {
+        foreach (var layout in _areaLayouts)
+        {
+            var rows = _rows
+                .Where(r => string.Equals(r.AreaCode, layout.AreaCode, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            yield return new AreaView(
+                layout,
+                rows.Count,
+                rows.Count(r => r.TotalQty > 0),
+                rows.Count(r => r.Status == "Mixed"),
+                rows.Sum(r => r.TotalQty));
         }
     }
 
@@ -168,6 +437,45 @@
         _ => "empty",
     };
 
-    static string RackText(AMES.Data.Repositories.WarehouseRepository.LocationMapRow row) =>
+    static string AreaStatusClass(AreaView area)
+    {
+        if (area.MixedCount > 0) return "mixed";
+        if (area.TotalQty > 0) return "stocked";
+        return "empty";
+    }
+
+    static string RackText(WarehouseRepository.LocationMapRow row) =>
         string.Join("-", new[] { row.RackX, row.RackY, row.RackZ }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+    static string DisplayLevel(string? level) =>
+        string.IsNullOrWhiteSpace(level) ? "-" : level;
+
+    static string AreaStyle(WarehouseRepository.LocationAreaLayoutRow row) =>
+        $"left:{Pct(row.XPct)}%;top:{Pct(row.YPct)}%;width:{Pct(row.WPct)}%;height:{Pct(row.HPct)}%;";
+
+    static string LocationGridStyle(int columnCount) =>
+        $"--wh-cols:{Math.Max(1, columnCount)};min-width:{72 + Math.Max(1, columnCount) * 156}px;";
+
+    static string Pct(decimal value) =>
+        value.ToString("0.##", CultureInfo.InvariantCulture);
+
+    static string AxisText(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+
+    static int ToNumberOrMax(string? value) =>
+        int.TryParse(value, out var number) ? number : int.MaxValue;
+
+    static int LevelSortKey(string? value) =>
+        int.TryParse(value, out var number) ? number : int.MaxValue;
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_mapJsReady)
+        {
+            try { await JS.InvokeVoidAsync("whLocationMap.destroy"); }
+            catch { }
+        }
+
+        _mapRef?.Dispose();
+    }
 }
