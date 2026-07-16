@@ -400,77 +400,63 @@
         <RadzenRow Gap="8px" Style="margin-top:6px;">
             <RadzenColumn Size="6">
                 <RadzenLabel Text="@L["MD.Items.Lbl.ItemName"]" />
-                <RadzenTextBox @bind-Value="_f.ItemName" AutoComplete="false"
-                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenTextBox @bind-Value="_f.ItemName" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="6">
                 <RadzenLabel Text="@L["MD.Items.Lbl.CarType"]" />
-                <RadzenTextBox @bind-Value="_f.CarType" Placeholder="예: LQ2" MaxLength="10" AutoComplete="false"
-                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenTextBox @bind-Value="_f.CarType" Placeholder="예: LQ2" MaxLength="10" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
         </RadzenRow>
 
         <RadzenRow Gap="8px" Style="margin-top:6px;">
             <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["MD.Items.Lbl.ItemType"]" />
-                <RadzenDropDown @bind-Value="_f.ItemType" Data="@ItemTypeOptions" TextProperty="Text" ValueProperty="Value"
-                                Placeholder="@L["Opt.Select"]"
-                                InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenDropDown @bind-Value="_f.ItemType" Data="@ItemTypeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["MD.Items.Lbl.Category"]" />
-                <RadzenTextBox @bind-Value="_f.ItemCategory" Placeholder="예: BUMPER, DOOR" AutoComplete="false"
-                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenTextBox @bind-Value="_f.ItemCategory" Placeholder="예: BUMPER, DOOR" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="4">
                 <RadzenLabel Text="Routing" />
-                <RadzenDropDown @bind-Value="_f.RoutingType" Data="@RoutingOptions" TextProperty="Text" ValueProperty="Value"
-                                Placeholder="@L["Opt.Select"]"
-                                InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenDropDown @bind-Value="_f.RoutingType" Data="@RoutingOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
         </RadzenRow>
 
         <RadzenRow Gap="8px" Style="margin-top:6px;">
             <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["MD.Items.Lbl.SafetyStock"]" />
-                <RadzenNumeric TValue="decimal" @bind-Value="_f.SafetyStock" Min="0" Step="0.0001m"
-                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenNumeric TValue="decimal" @bind-Value="_f.SafetyStock" Min="0" Step="0.0001m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["MD.Items.Lbl.MinStock"]" />
-                <RadzenNumeric TValue="decimal" @bind-Value="_f.MinStock" Min="0" Step="0.0001m"
-                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenNumeric TValue="decimal" @bind-Value="_f.MinStock" Min="0" Step="0.0001m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["MD.Items.Lbl.MaxStock"]" />
-                <RadzenNumeric TValue="decimal" @bind-Value="_f.MaxStock" Min="0" Step="0.0001m"
-                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenNumeric TValue="decimal" @bind-Value="_f.MaxStock" Min="0" Step="0.0001m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
         </RadzenRow>
 
         <RadzenRow Gap="8px" Style="margin-top:6px;">
             <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["MD.Items.Lbl.UnitCost"]" />
-                <RadzenNumeric TValue="decimal" @bind-Value="_f.UnitCost" Min="0" Step="0.01m"
-                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenNumeric TValue="decimal" @bind-Value="_f.UnitCost" Min="0" Step="0.01m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="4">
                 <RadzenLabel Text="PGN" />
-                <RadzenTextBox @bind-Value="_f.Pgn" MaxLength="4" AutoComplete="false"
-                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenTextBox @bind-Value="_f.Pgn" MaxLength="4" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="4">
                 <RadzenLabel Text="ALC" />
-                <RadzenTextBox @bind-Value="_f.Alc" MaxLength="10" AutoComplete="false"
-                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenTextBox @bind-Value="_f.Alc" MaxLength="10" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
         </RadzenRow>
 
         <RadzenRow Gap="8px" Style="margin-top:6px;">
             <RadzenColumn Size="12">
                 <RadzenLabel Text="@L["MD.Items.Lbl.DrawingNo"]" />
-                <RadzenTextBox @bind-Value="_f.DrawingNo" AutoComplete="false"
-                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenTextBox @bind-Value="_f.DrawingNo" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
         </RadzenRow>
 

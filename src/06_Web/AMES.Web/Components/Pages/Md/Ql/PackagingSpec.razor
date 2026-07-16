@@ -112,56 +112,74 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.PackSpec.Title"] — @L["Modal.Create"]</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div>
-                    <RadzenLabel Text="@L["Col.SpecId"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.PackSpecID" Placeholder="PS-001" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.ItemNo"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.ItemID" Placeholder="ITEM-001" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div style="grid-column:span 2;">
-                    <RadzenLabel Text="@L["Col.PackType"]" /><br />
-                    <RadzenDropDown @bind-Value="_f.PackType" Data="PackTypeOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.InnerQty"]" /><br />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.QtyPerInner" Placeholder="10" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.InnerPerOuter"]" /><br />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.InnerPerOuter" Placeholder="5" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.OuterPerPallet"]" /><br />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.OuterPerPallet" Placeholder="20" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@($"{L["Col.NetWeight"]} (kg)")' /><br />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.NetWeightKg" Step="0.001m" Placeholder="0.500" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@($"{L["Col.GrossWeight"]} (kg)")' /><br />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.GrossWeightKg" Step="0.001m" Placeholder="0.600" Style="width:100%;" />
-                </div>
-                <div style="grid-column:span 2;">
-                    <RadzenLabel Text='@($"{L["Col.Dimensions"]} (L×W×H mm)")' /><br />
-                    <RadzenTextBox @bind-Value="_f.DimLxWxH" Placeholder="400x300x200" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.LabelTemplate"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.LabelTemplateID" Placeholder="LBL-001" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div style="display:flex;align-items:center;gap:8px;padding-top:22px;">
-                    <RadzenCheckBox TValue="bool" @bind-Value="_f.ReturnableFlag" />
-                    <RadzenLabel Text="@L["Col.Returnable"]" Style="cursor:pointer;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.Status"]" /><br />
-                    <RadzenDropDown @bind-Value="_f.Status" Data="StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" Style="width:100%;" />
-                </div>
-            </div>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenLabel Text="@L["Col.SpecId"]" class="ames-rz-modal-label" Component="CreateTextBoxPackSpecID" />
+                <RadzenTextBox Name="CreateTextBoxPackSpecID" @bind-Value="_f.PackSpecID" Placeholder="PS-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.ItemNo"]" />
+                    <RadzenTextBox @bind-Value="_f.ItemID" Placeholder="ITEM-001" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.PackType"]" />
+                    <RadzenDropDown @bind-Value="_f.PackType" Data="PackTypeOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.InnerQty"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.QtyPerInner" Placeholder="10" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.InnerPerOuter"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.InnerPerOuter" Placeholder="5" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.OuterPerPallet"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.OuterPerPallet" Placeholder="20" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@($"{L["Col.NetWeight"]} (kg)")' />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.NetWeightKg" Step="0.001m" Placeholder="0.500" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@($"{L["Col.GrossWeight"]} (kg)")' />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.GrossWeightKg" Step="0.001m" Placeholder="0.600" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.LabelTemplate"]" />
+                    <RadzenTextBox @bind-Value="_f.LabelTemplateID" Placeholder="LBL-001" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="12">
+                    <RadzenLabel Text='@($"{L["Col.Dimensions"]} (L×W×H mm)")' />
+                    <RadzenTextBox @bind-Value="_f.DimLxWxH" Placeholder="400x300x200" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Status"]" />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:6px;">
+                <RadzenCheckBox TValue="bool" @bind-Value="_f.ReturnableFlag" Name="CreateChkReturnable" />
+                <RadzenLabel Text="@L["Col.Returnable"]" Component="CreateChkReturnable" style="cursor:pointer;" />
+            </RadzenStack>
 
             @if (!string.IsNullOrEmpty(_modalErr))
             {
@@ -182,52 +200,69 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.PackSpec.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.PackSpecID</span></div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div style="grid-column:span 2;">
-                    <RadzenLabel Text="@L["Col.ItemNo"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.ItemID" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div style="grid-column:span 2;">
-                    <RadzenLabel Text="@L["Col.PackType"]" /><br />
-                    <RadzenDropDown @bind-Value="_f.PackType" Data="PackTypeOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.InnerQty"]" /><br />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.QtyPerInner" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.InnerPerOuter"]" /><br />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.InnerPerOuter" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.OuterPerPallet"]" /><br />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.OuterPerPallet" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@($"{L["Col.NetWeight"]} (kg)")' /><br />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.NetWeightKg" Step="0.001m" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@($"{L["Col.GrossWeight"]} (kg)")' /><br />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.GrossWeightKg" Step="0.001m" Style="width:100%;" />
-                </div>
-                <div style="grid-column:span 2;">
-                    <RadzenLabel Text="@L["Col.Dimensions"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.DimLxWxH" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.LabelTemplate"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.LabelTemplateID" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div style="display:flex;align-items:center;gap:8px;padding-top:22px;">
-                    <RadzenCheckBox TValue="bool" @bind-Value="_f.ReturnableFlag" />
-                    <RadzenLabel Text="@L["Col.Returnable"]" Style="cursor:pointer;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.Status"]" /><br />
-                    <RadzenDropDown @bind-Value="_f.Status" Data="StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" Style="width:100%;" />
-                </div>
-            </div>
+
+            <RadzenRow Gap="8px">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.ItemNo"]" />
+                    <RadzenTextBox @bind-Value="_f.ItemID" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.PackType"]" />
+                    <RadzenDropDown @bind-Value="_f.PackType" Data="PackTypeOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.InnerQty"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.QtyPerInner" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.InnerPerOuter"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.InnerPerOuter" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.OuterPerPallet"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.OuterPerPallet" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@($"{L["Col.NetWeight"]} (kg)")' />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.NetWeightKg" Step="0.001m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@($"{L["Col.GrossWeight"]} (kg)")' />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.GrossWeightKg" Step="0.001m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.LabelTemplate"]" />
+                    <RadzenTextBox @bind-Value="_f.LabelTemplateID" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="12">
+                    <RadzenLabel Text="@L["Col.Dimensions"]" />
+                    <RadzenTextBox @bind-Value="_f.DimLxWxH" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Status"]" />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:6px;">
+                <RadzenCheckBox TValue="bool" @bind-Value="_f.ReturnableFlag" Name="EditChkReturnable" />
+                <RadzenLabel Text="@L["Col.Returnable"]" Component="EditChkReturnable" style="cursor:pointer;" />
+            </RadzenStack>
 
             @* 삭제 버튼 클릭 후 인라인 확인 *@
             @if (_confirmDelete)

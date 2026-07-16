@@ -120,64 +120,83 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.InspStd.Title"] — @L["Modal.Create"]</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div style="grid-column:span 2;">
-                    <RadzenLabel Text='@($"{L["Col.InspStdId"]} * (예: IS-INJ-001)")' /><br />
-                    <RadzenTextBox @bind-Value="_f.InspStdID" Placeholder="IS-INJ-001" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@L["Col.ItemId"]' /><br />
-                    <RadzenTextBox @bind-Value="_f.ItemID" Placeholder="ITEM-001" MaxLength="20" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@L["Col.ProcessCode"]' /><br />
-                    <RadzenTextBox @bind-Value="_f.ProcessCode" Placeholder="INJ, QC" MaxLength="10" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@L["Col.InspType"]' /><br />
-                    <RadzenTextBox @bind-Value="_f.InspType" Placeholder="INCOMING" MaxLength="10" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div style="grid-column:span 2;">
-                    <RadzenLabel Text='@($"{L["Col.CharName"]} *")' /><br />
-                    <RadzenTextBox @bind-Value="_f.CharName" Placeholder='@L["MD.InspStd.Ph.CharName"]' Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@L["Col.Nominal"]' /><br />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.SpecNominal" Step="0.0001m" Placeholder="0.0000" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@L["Col.LSL"]' /><br />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.SpecLSL" Step="0.0001m" Placeholder="0.0000" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@L["Col.USL"]' /><br />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.SpecUSL" Step="0.0001m" Placeholder="0.0000" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@L["Col.Uom"]' /><br />
-                    <RadzenTextBox @bind-Value="_f.UOM" Placeholder="mm, kg" MaxLength="10" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@L["Col.SamplingPlan"]' /><br />
-                    <RadzenTextBox @bind-Value="_f.SamplingPlan" Placeholder="AQL-1.0" MaxLength="20" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div style="grid-column:span 2;">
-                    <RadzenLabel Text='@L["Col.InspMethod"]' /><br />
-                    <RadzenTextBox @bind-Value="_f.InspMethod" Placeholder='@L["MD.InspStd.Ph.InspMethod"]' Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@L["Col.EffectiveDate"]' /><br />
-                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.EffectiveDate" DateFormat="yyyy-MM-dd" Style="width:100%;" />
-                </div>
-                <div style="display:flex; align-items:center; gap:8px; padding-top:22px;">
-                    <RadzenCheckBox TValue="bool" @bind-Value="_f.IsCTQ" />
-                    <RadzenLabel Text='@L["MD.InspStd.CtqLabel"]' Style="cursor:pointer;" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@L["Col.Status"]' /><br />
-                    <RadzenDropDown @bind-Value="_f.Status" Data="_statusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder='@L["Opt.Select"]' Style="width:100%;" />
-                </div>
-            </div>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenLabel Text='@($"{L["Col.InspStdId"]} * (예: IS-INJ-001)")' class="ames-rz-modal-label" Component="CreateTextBoxInspStdID" />
+                <RadzenTextBox Name="CreateTextBoxInspStdID" @bind-Value="_f.InspStdID" Placeholder="IS-INJ-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
+                <RadzenLabel Text='@($"{L["Col.CharName"]} *")' class="ames-rz-modal-label" Component="CreateTextBoxCharName" />
+                <RadzenTextBox Name="CreateTextBoxCharName" @bind-Value="_f.CharName" Placeholder='@L["MD.InspStd.Ph.CharName"]' InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@L["Col.ItemId"]' />
+                    <RadzenTextBox @bind-Value="_f.ItemID" Placeholder="ITEM-001" MaxLength="20" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@L["Col.ProcessCode"]' />
+                    <RadzenTextBox @bind-Value="_f.ProcessCode" Placeholder="INJ, QC" MaxLength="10" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@L["Col.InspType"]' />
+                    <RadzenTextBox @bind-Value="_f.InspType" Placeholder="INCOMING" MaxLength="10" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@L["Col.Uom"]' />
+                    <RadzenTextBox @bind-Value="_f.UOM" Placeholder="mm, kg" MaxLength="10" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text='@L["Col.Nominal"]' />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.SpecNominal" Step="0.0001m" Placeholder="0.0000" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text='@L["Col.LSL"]' />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.SpecLSL" Step="0.0001m" Placeholder="0.0000" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text='@L["Col.USL"]' />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.SpecUSL" Step="0.0001m" Placeholder="0.0000" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@L["Col.SamplingPlan"]' />
+                    <RadzenTextBox @bind-Value="_f.SamplingPlan" Placeholder="AQL-1.0" MaxLength="20" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@L["Col.EffectiveDate"]' />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.EffectiveDate" DateFormat="yyyy-MM-dd" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="12">
+                    <RadzenLabel Text='@L["Col.InspMethod"]' />
+                    <RadzenTextBox @bind-Value="_f.InspMethod" Placeholder='@L["MD.InspStd.Ph.InspMethod"]' AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@L["Col.Status"]' />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="_statusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder='@L["Opt.Select"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:6px;">
+                <RadzenCheckBox TValue="bool" @bind-Value="_f.IsCTQ" Name="CreateChkCtq" />
+                <RadzenLabel Text='@L["MD.InspStd.CtqLabel"]' Component="CreateChkCtq" style="cursor:pointer;" />
+            </RadzenStack>
 
             @if (!string.IsNullOrEmpty(_modalErr))
             {
@@ -198,61 +217,78 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.InspStd.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.InspStdID</span></div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div>
-                    <RadzenLabel Text='@L["Col.ItemId"]' /><br />
-                    <RadzenTextBox @bind-Value="_f.ItemID" MaxLength="20" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@L["Col.ProcessCode"]' /><br />
-                    <RadzenTextBox @bind-Value="_f.ProcessCode" MaxLength="10" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@L["Col.InspType"]' /><br />
-                    <RadzenTextBox @bind-Value="_f.InspType" MaxLength="10" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div style="grid-column:span 2;">
-                    <RadzenLabel Text='@($"{L["Col.CharName"]} *")' /><br />
-                    <RadzenTextBox @bind-Value="_f.CharName" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@L["Col.Nominal"]' /><br />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.SpecNominal" Step="0.0001m" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@L["Col.LSL"]' /><br />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.SpecLSL" Step="0.0001m" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@L["Col.USL"]' /><br />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.SpecUSL" Step="0.0001m" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@L["Col.Uom"]' /><br />
-                    <RadzenTextBox @bind-Value="_f.UOM" MaxLength="10" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@L["Col.SamplingPlan"]' /><br />
-                    <RadzenTextBox @bind-Value="_f.SamplingPlan" MaxLength="20" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div style="grid-column:span 2;">
-                    <RadzenLabel Text='@L["Col.InspMethod"]' /><br />
-                    <RadzenTextBox @bind-Value="_f.InspMethod" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@L["Col.EffectiveDate"]' /><br />
-                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.EffectiveDate" DateFormat="yyyy-MM-dd" Style="width:100%;" />
-                </div>
-                <div style="display:flex; align-items:center; gap:8px; padding-top:22px;">
-                    <RadzenCheckBox TValue="bool" @bind-Value="_f.IsCTQ" />
-                    <RadzenLabel Text='@L["MD.InspStd.CtqLabel"]' Style="cursor:pointer;" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@L["Col.Status"]' /><br />
-                    <RadzenDropDown @bind-Value="_f.Status" Data="_statusFilterOptions" TextProperty="Text" ValueProperty="Value"
-                                    Placeholder='@L["Opt.Select"]' Style="width:100%;" />
-                </div>
-            </div>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenLabel Text='@($"{L["Col.CharName"]} *")' class="ames-rz-modal-label" Component="EditTextBoxCharName" />
+                <RadzenTextBox Name="EditTextBoxCharName" @bind-Value="_f.CharName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@L["Col.ItemId"]' />
+                    <RadzenTextBox @bind-Value="_f.ItemID" MaxLength="20" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@L["Col.ProcessCode"]' />
+                    <RadzenTextBox @bind-Value="_f.ProcessCode" MaxLength="10" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@L["Col.InspType"]' />
+                    <RadzenTextBox @bind-Value="_f.InspType" MaxLength="10" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@L["Col.Uom"]' />
+                    <RadzenTextBox @bind-Value="_f.UOM" MaxLength="10" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text='@L["Col.Nominal"]' />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.SpecNominal" Step="0.0001m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text='@L["Col.LSL"]' />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.SpecLSL" Step="0.0001m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text='@L["Col.USL"]' />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.SpecUSL" Step="0.0001m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@L["Col.SamplingPlan"]' />
+                    <RadzenTextBox @bind-Value="_f.SamplingPlan" MaxLength="20" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@L["Col.EffectiveDate"]' />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.EffectiveDate" DateFormat="yyyy-MM-dd" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="12">
+                    <RadzenLabel Text='@L["Col.InspMethod"]' />
+                    <RadzenTextBox @bind-Value="_f.InspMethod" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@L["Col.Status"]' />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="_statusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder='@L["Opt.Select"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:6px;">
+                <RadzenCheckBox TValue="bool" @bind-Value="_f.IsCTQ" Name="EditChkCtq" />
+                <RadzenLabel Text='@L["MD.InspStd.CtqLabel"]' Component="EditChkCtq" style="cursor:pointer;" />
+            </RadzenStack>
 
             @* 삭제 버튼 클릭 후 인라인 확인 *@
             @if (_confirmDelete)

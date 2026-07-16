@@ -140,52 +140,55 @@
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.PmTemplate.Title"] — @L["Modal.Create"]</div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div>
-                    <RadzenLabel Text="@L["Col.TemplateId"]" />
-                    <RadzenTextBox @bind-Value="_f.PMTemplateID" Placeholder="PM-001" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.TemplateName"]" />
-                    <RadzenTextBox @bind-Value="_f.TemplateName" Placeholder='@L["MD.PmTemplate.Ph.TemplateName"]' AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenLabel Text="@L["Col.TemplateId"]" class="ames-rz-modal-label" Component="CreateTextBoxPMTemplateID" />
+                <RadzenTextBox Name="CreateTextBoxPMTemplateID" @bind-Value="_f.PMTemplateID" Placeholder="PM-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
-                <div>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
+                <RadzenLabel Text="@L["Col.TemplateName"]" class="ames-rz-modal-label" Component="CreateTextBoxTemplateName" />
+                <RadzenTextBox Name="CreateTextBoxTemplateName" @bind-Value="_f.TemplateName" Placeholder='@L["MD.PmTemplate.Ph.TemplateName"]' InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.EquipType"]" />
                     <RadzenTextBox @bind-Value="_f.EquipType" Placeholder="INJECTION / PAINTING" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-                <div>
+                </RadzenColumn>
+                <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.BasisCycle"]" />
                     <RadzenDropDown @bind-Value="_f.CycleBasis" Data="@CycleBasisOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-            </div>
+                </RadzenColumn>
+            </RadzenRow>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
-                <div>
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Cycle"]" />
                     <RadzenNumeric TValue="int?" @bind-Value="_f.IntervalValue" Min="1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-                <div>
+                </RadzenColumn>
+                <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Uom"]" />
                     <RadzenTextBox @bind-Value="_f.IntervalUnit" Placeholder="MONTH / WEEK / DAY / SHOT" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-            </div>
+                </RadzenColumn>
+            </RadzenRow>
 
-            <RadzenLabel Text='@(L["Col.StdDuration"] + " (분)")' Style="margin-top:6px;" />
-            <RadzenNumeric TValue="int?" @bind-Value="_f.StdDurationMin" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:50%;" />
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@(L["Col.StdDuration"] + " (분)")' />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.StdDurationMin" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
 
-            <div style="display:flex;gap:16px;margin-top:8px;">
-                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                    <RadzenCheckBox TValue="bool" @bind-Value="_f.SafetyLOTOFlag" />
-                    <span>@L["Col.LOTO"] 필요</span>
-                </label>
-                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                    <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" />
-                    <span>@L["Lbl.Active"]</span>
-                </label>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1.5rem" Style="margin-top:8px;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.SafetyLOTOFlag" Name="CreateChkLoto" />
+                    <RadzenLabel Text="@($"{L["Col.LOTO"]} 필요")" Component="CreateChkLoto" style="cursor:pointer;" />
+                </RadzenStack>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="CreateChkActive" />
+                    <RadzenLabel Text="@L["Lbl.Active"]" Component="CreateChkActive" style="cursor:pointer;" />
+                </RadzenStack>
+            </RadzenStack>
 
             @if (!string.IsNullOrEmpty(_modalErr))
             {
@@ -207,49 +210,50 @@
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.PmTemplate.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.PMTemplateID</span></div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div>
-                    <RadzenLabel Text="@L["Col.TemplateName"]" />
-                    <RadzenTextBox @bind-Value="_f.TemplateName" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-                <div>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenLabel Text="@L["Col.TemplateName"]" class="ames-rz-modal-label" Component="EditTextBoxTemplateName" />
+                <RadzenTextBox Name="EditTextBoxTemplateName" @bind-Value="_f.TemplateName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.EquipType"]" />
                     <RadzenTextBox @bind-Value="_f.EquipType" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-            </div>
-
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
-                <div>
+                </RadzenColumn>
+                <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.BasisCycle"]" />
                     <RadzenDropDown @bind-Value="_f.CycleBasis" Data="@CycleBasisOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-                <div>
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Cycle"]" />
                     <RadzenNumeric TValue="int?" @bind-Value="_f.IntervalValue" Min="1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-            </div>
-
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
-                <div>
+                </RadzenColumn>
+                <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Uom"]" />
                     <RadzenTextBox @bind-Value="_f.IntervalUnit" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-                <div>
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
                     <RadzenLabel Text='@(L["Col.StdDuration"] + " (분)")' />
                     <RadzenNumeric TValue="int?" @bind-Value="_f.StdDurationMin" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-            </div>
+                </RadzenColumn>
+            </RadzenRow>
 
-            <div style="display:flex;gap:16px;margin-top:8px;">
-                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                    <RadzenCheckBox TValue="bool" @bind-Value="_f.SafetyLOTOFlag" />
-                    <span>@L["Col.LOTO"] 필요</span>
-                </label>
-                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                    <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" />
-                    <span>@L["Lbl.Active"]</span>
-                </label>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1.5rem" Style="margin-top:8px;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.SafetyLOTOFlag" Name="EditChkLoto" />
+                    <RadzenLabel Text="@($"{L["Col.LOTO"]} 필요")" Component="EditChkLoto" style="cursor:pointer;" />
+                </RadzenStack>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="EditChkActive" />
+                    <RadzenLabel Text="@L["Lbl.Active"]" Component="EditChkActive" style="cursor:pointer;" />
+                </RadzenStack>
+            </RadzenStack>
 
             @* 삭제 버튼 클릭 후 인라인 확인 *@
             @if (_confirmDelete)

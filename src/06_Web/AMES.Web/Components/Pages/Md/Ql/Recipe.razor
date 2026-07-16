@@ -99,40 +99,49 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Recipe.Title"] — @L["Modal.Create"]</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div>
-                    <RadzenLabel Text="@L["Col.RecipeId"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.RecipeID" Placeholder="RCP-001" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.RecipeName"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.RecipeName" Placeholder="@L["MD.Recipe.Ph.RecipeName"]" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.Type"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.RecipeType" Placeholder="INJECTION / PAINTING" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.ItemNo"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.ItemNo" Placeholder="ITEM-001" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@($"{L["Col.CycleTime"]} (초)")' /><br />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.CycleTime" Placeholder="30" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.Version"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.Version" Placeholder="v1.0" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.EffectiveDate"]" /><br />
-                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.EffectiveDate" DateFormat="yyyy-MM-dd" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.Status"]" /><br />
-                    <RadzenDropDown @bind-Value="_f.Status" Data="_statusModalOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" Style="width:100%;" />
-                </div>
-            </div>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenLabel Text="@L["Col.RecipeId"]" class="ames-rz-modal-label" Component="CreateTextBoxRecipeID" />
+                <RadzenTextBox Name="CreateTextBoxRecipeID" @bind-Value="_f.RecipeID" Placeholder="RCP-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
+                <RadzenLabel Text="@L["Col.RecipeName"]" class="ames-rz-modal-label" Component="CreateTextBoxRecipeName" />
+                <RadzenTextBox Name="CreateTextBoxRecipeName" @bind-Value="_f.RecipeName" Placeholder="@L["MD.Recipe.Ph.RecipeName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Type"]" />
+                    <RadzenTextBox @bind-Value="_f.RecipeType" Placeholder="INJECTION / PAINTING" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.ItemNo"]" />
+                    <RadzenTextBox @bind-Value="_f.ItemNo" Placeholder="ITEM-001" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@($"{L["Col.CycleTime"]} (초)")' />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.CycleTime" Placeholder="30" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Version"]" />
+                    <RadzenTextBox @bind-Value="_f.Version" Placeholder="v1.0" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.EffectiveDate"]" />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.EffectiveDate" DateFormat="yyyy-MM-dd" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Status"]" />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="_statusModalOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
 
             @if (!string.IsNullOrEmpty(_modalErr))
             {
@@ -153,36 +162,44 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Recipe.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.RecipeID</span></div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div style="grid-column:span 2;">
-                    <RadzenLabel Text="@L["Col.RecipeName"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.RecipeName" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.Type"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.RecipeType" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.ItemNo"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.ItemNo" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text='@($"{L["Col.CycleTime"]} (초)")' /><br />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.CycleTime" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.Version"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.Version" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.EffectiveDate"]" /><br />
-                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.EffectiveDate" DateFormat="yyyy-MM-dd" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.Status"]" /><br />
-                    <RadzenDropDown @bind-Value="_f.Status" Data="_statusModalOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" Style="width:100%;" />
-                </div>
-            </div>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenLabel Text="@L["Col.RecipeName"]" class="ames-rz-modal-label" Component="EditTextBoxRecipeName" />
+                <RadzenTextBox Name="EditTextBoxRecipeName" @bind-Value="_f.RecipeName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Type"]" />
+                    <RadzenTextBox @bind-Value="_f.RecipeType" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.ItemNo"]" />
+                    <RadzenTextBox @bind-Value="_f.ItemNo" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@($"{L["Col.CycleTime"]} (초)")' />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.CycleTime" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Version"]" />
+                    <RadzenTextBox @bind-Value="_f.Version" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.EffectiveDate"]" />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.EffectiveDate" DateFormat="yyyy-MM-dd" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Status"]" />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="_statusModalOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
 
             @* 삭제 버튼 클릭 후 인라인 확인 *@
             @if (_confirmDelete)

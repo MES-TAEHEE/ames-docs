@@ -103,49 +103,62 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.RfidTag.Title"] — @L["Modal.Create"]</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div>
-                    <RadzenLabel Text="@L["Col.TagId"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.TagID" Placeholder="TAG-001" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.EPC"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.EPC" Placeholder="E200..." Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.TagRole"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.TagRole" Placeholder="JIG / CARRIER" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.JigId"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.JigID" Placeholder="JIG-001" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.MountLocation"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.MountPos" Placeholder="TOP" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.HeatRating"]" /><br />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.HeatRating" Placeholder="200" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.Cycles"]" /><br />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.CycleCount" Min="0" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.Status"]" /><br />
-                    <RadzenDropDown @bind-Value="_f.Status" Data="StatusOptions" TextProperty="Text" ValueProperty="Value"
-                                    Placeholder="@L["Opt.Select"]" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.InstallDate"]" /><br />
-                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.InstallDate" DateFormat="yyyy-MM-dd" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.ReplaceDue"]" /><br />
-                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.ReplaceSchedule" DateFormat="yyyy-MM-dd" Style="width:100%;" />
-                </div>
-            </div>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenLabel Text="@L["Col.TagId"]" class="ames-rz-modal-label" Component="CreateTextBoxTagID" />
+                <RadzenTextBox Name="CreateTextBoxTagID" @bind-Value="_f.TagID" Placeholder="TAG-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.EPC"]" />
+                    <RadzenTextBox @bind-Value="_f.EPC" Placeholder="E200..." AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.TagRole"]" />
+                    <RadzenTextBox @bind-Value="_f.TagRole" Placeholder="JIG / CARRIER" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.JigId"]" />
+                    <RadzenTextBox @bind-Value="_f.JigID" Placeholder="JIG-001" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.MountLocation"]" />
+                    <RadzenTextBox @bind-Value="_f.MountPos" Placeholder="TOP" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.HeatRating"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.HeatRating" Placeholder="200" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Cycles"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.CycleCount" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Status"]" />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.InstallDate"]" />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.InstallDate" DateFormat="yyyy-MM-dd" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.ReplaceDue"]" />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.ReplaceSchedule" DateFormat="yyyy-MM-dd" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
 
             @if (!string.IsNullOrEmpty(_modalErr))
             {
@@ -166,44 +179,57 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.RfidTag.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.TagID</span></div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div>
-                    <RadzenLabel Text="@L["Col.EPC"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.EPC" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.TagRole"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.TagRole" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.JigId"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.JigID" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.MountLocation"]" /><br />
-                    <RadzenTextBox @bind-Value="_f.MountPos" Style="width:100%;" autocomplete="off" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.HeatRating"]" /><br />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.HeatRating" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.Cycles"]" /><br />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.CycleCount" Min="0" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.InstallDate"]" /><br />
-                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.InstallDate" DateFormat="yyyy-MM-dd" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.ReplaceDue"]" /><br />
-                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.ReplaceSchedule" DateFormat="yyyy-MM-dd" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.Status"]" /><br />
-                    <RadzenDropDown @bind-Value="_f.Status" Data="StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" Style="width:100%;" />
-                </div>
-            </div>
+
+            <RadzenRow Gap="8px">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.EPC"]" />
+                    <RadzenTextBox @bind-Value="_f.EPC" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.TagRole"]" />
+                    <RadzenTextBox @bind-Value="_f.TagRole" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.JigId"]" />
+                    <RadzenTextBox @bind-Value="_f.JigID" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.MountLocation"]" />
+                    <RadzenTextBox @bind-Value="_f.MountPos" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.HeatRating"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.HeatRating" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Cycles"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.CycleCount" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.InstallDate"]" />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.InstallDate" DateFormat="yyyy-MM-dd" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.ReplaceDue"]" />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.ReplaceSchedule" DateFormat="yyyy-MM-dd" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Status"]" />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
 
             @* 삭제 버튼 클릭 후 인라인 확인 *@
             @if (_confirmDelete)
