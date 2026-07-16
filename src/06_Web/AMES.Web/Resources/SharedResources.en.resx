@@ -1777,7 +1777,7 @@
     <value>Line ID *</value>
   </data>
   <data name="MD.Line.Lbl.LineName" xml:space="preserve">
-    <value>Line Name *</value>
+    <value>Line Name (KO) *</value>
   </data>
   <data name="MD.Line.Lbl.LineNameEn" xml:space="preserve">
     <value>Line Name (EN)</value>
@@ -3817,7 +3817,7 @@
     <value>Customer ID</value>
   </data>
   <data name="Col.CustomerName" xml:space="preserve">
-    <value>Customer Name</value>
+    <value>Customer Name (KO)</value>
   </data>
   <data name="Col.NameEn" xml:space="preserve">
     <value>English Name</value>
@@ -3862,10 +3862,10 @@
     <value>Defect Code</value>
   </data>
   <data name="Col.DefectName" xml:space="preserve">
-    <value>Defect Name</value>
+    <value>Defect Name (KO)</value>
   </data>
   <data name="Col.DefectNameEn" xml:space="preserve">
-    <value>Defect Name (En)</value>
+    <value>Defect Name (EN)</value>
   </data>
   <data name="Col.Severity" xml:space="preserve">
     <value>Severity</value>
@@ -3976,7 +3976,7 @@
     <value>Printer Model</value>
   </data>
   <data name="Col.LineName" xml:space="preserve">
-    <value>Line Name</value>
+    <value>Line Name (KO)</value>
   </data>
   <data name="Col.LineNameEn" xml:space="preserve">
     <value>Line Name (EN)</value>
@@ -4399,10 +4399,10 @@
     <value>Customer Code</value>
   </data>
   <data name="MD.Customer.Lbl.CustomerName" xml:space="preserve">
-    <value>Customer Name *</value>
+    <value>Customer Name (KO) *</value>
   </data>
   <data name="MD.Customer.Lbl.CustomerNameEn" xml:space="preserve">
-    <value>English Name</value>
+    <value>Customer Name (EN)</value>
   </data>
   <data name="MD.Customer.Lbl.CustomerType" xml:space="preserve">
     <value>Customer Type</value>
@@ -4963,7 +4963,7 @@
     <value>Station ID</value>
   </data>
   <data name="Col.StationName" xml:space="preserve">
-    <value>Station Name</value>
+    <value>Process Name (KO)</value>
   </data>
   <data name="Col.OrderSeq" xml:space="preserve">
     <value>Order Seq.</value>
@@ -5585,5 +5585,11 @@
   </data>
   <data name="MD.RfidTag.Ph.Search" xml:space="preserve">
     <value>TagID / EPC</value>
+  </data>
+  <data name="Modal.Create" xml:space="preserve">
+    <value>Create</value>
+  </data>
+  <data name="Modal.Edit" xml:space="preserve">
+    <value>Edit</value>
   </data>
 </root>

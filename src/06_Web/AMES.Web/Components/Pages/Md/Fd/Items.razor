@@ -115,18 +115,18 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" style="max-width:680px;" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["MD.Items.Modal.Create"]</div>
+            <div class="ames-modal-h">@L["MD.Items.Title"] — @L["Modal.Create"]</div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div>
+            <RadzenRow Gap="8px">
+                <RadzenColumn Size="6">
                     <RadzenLabel Text='@(L["MD.Items.Lbl.ItemNo"] + "  " + L["MD.Items.Lbl.ItemNoHint"])' />
                     <RadzenTextBox @bind-Value="_f.ItemNo" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-                <div>
+                </RadzenColumn>
+                <RadzenColumn Size="6">
                     <RadzenLabel Text='@(L["MD.Items.Lbl.Uom"] + " (UOM)")' />
                     <RadzenDropDown @bind-Value="_f.Uom" Data="@UomOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-            </div>
+                </RadzenColumn>
+            </RadzenRow>
 
             @ItemFormFields()
 
@@ -148,18 +148,18 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" style="max-width:680px;" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["MD.Items.Modal.Edit"] — <span class="code" style="font-weight:400;font-size:.9em;">@_f.ItemNo</span></div>
+            <div class="ames-modal-h">@L["MD.Items.Title"] — @L["Modal.Edit"] <span class="code" style="font-weight:400;font-size:.9em;">@_f.ItemNo</span></div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div>
+            <RadzenRow Gap="8px">
+                <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["MD.Items.Lbl.ItemNo"]" />
                     <RadzenTextBox Value="@_f.ItemNo" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-                <div>
+                </RadzenColumn>
+                <RadzenColumn Size="6">
                     <RadzenLabel Text='@(L["MD.Items.Lbl.Uom"] + " (UOM)")' />
                     <RadzenDropDown @bind-Value="_f.Uom" Data="@UomOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-            </div>
+                </RadzenColumn>
+            </RadzenRow>
 
             @ItemFormFields()
 
@@ -397,83 +397,87 @@
 
     RenderFragment ItemFormFields() =>
     @<div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
-            <div>
+        <RadzenRow Gap="8px" Style="margin-top:6px;">
+            <RadzenColumn Size="6">
                 <RadzenLabel Text="@L["MD.Items.Lbl.ItemName"]" />
                 <RadzenTextBox @bind-Value="_f.ItemName" AutoComplete="false"
                                InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-            </div>
-            <div>
+            </RadzenColumn>
+            <RadzenColumn Size="6">
                 <RadzenLabel Text="@L["MD.Items.Lbl.CarType"]" />
                 <RadzenTextBox @bind-Value="_f.CarType" Placeholder="예: LQ2" MaxLength="10" AutoComplete="false"
                                InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-            </div>
-        </div>
+            </RadzenColumn>
+        </RadzenRow>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px;">
-            <div>
+        <RadzenRow Gap="8px" Style="margin-top:6px;">
+            <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["MD.Items.Lbl.ItemType"]" />
                 <RadzenDropDown @bind-Value="_f.ItemType" Data="@ItemTypeOptions" TextProperty="Text" ValueProperty="Value"
                                 Placeholder="@L["Opt.Select"]"
                                 InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-            </div>
-            <div>
+            </RadzenColumn>
+            <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["MD.Items.Lbl.Category"]" />
                 <RadzenTextBox @bind-Value="_f.ItemCategory" Placeholder="예: BUMPER, DOOR" AutoComplete="false"
                                InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-            </div>
-            <div>
+            </RadzenColumn>
+            <RadzenColumn Size="4">
                 <RadzenLabel Text="Routing" />
                 <RadzenDropDown @bind-Value="_f.RoutingType" Data="@RoutingOptions" TextProperty="Text" ValueProperty="Value"
                                 Placeholder="@L["Opt.Select"]"
                                 InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-            </div>
-        </div>
+            </RadzenColumn>
+        </RadzenRow>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px;">
-            <div>
+        <RadzenRow Gap="8px" Style="margin-top:6px;">
+            <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["MD.Items.Lbl.SafetyStock"]" />
                 <RadzenNumeric TValue="decimal" @bind-Value="_f.SafetyStock" Min="0" Step="0.0001m"
                                InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-            </div>
-            <div>
+            </RadzenColumn>
+            <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["MD.Items.Lbl.MinStock"]" />
                 <RadzenNumeric TValue="decimal" @bind-Value="_f.MinStock" Min="0" Step="0.0001m"
                                InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-            </div>
-            <div>
+            </RadzenColumn>
+            <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["MD.Items.Lbl.MaxStock"]" />
                 <RadzenNumeric TValue="decimal" @bind-Value="_f.MaxStock" Min="0" Step="0.0001m"
                                InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-            </div>
-        </div>
+            </RadzenColumn>
+        </RadzenRow>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px;">
-            <div>
+        <RadzenRow Gap="8px" Style="margin-top:6px;">
+            <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["MD.Items.Lbl.UnitCost"]" />
                 <RadzenNumeric TValue="decimal" @bind-Value="_f.UnitCost" Min="0" Step="0.01m"
                                InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-            </div>
-            <div>
+            </RadzenColumn>
+            <RadzenColumn Size="4">
                 <RadzenLabel Text="PGN" />
                 <RadzenTextBox @bind-Value="_f.Pgn" MaxLength="4" AutoComplete="false"
                                InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-            </div>
-            <div>
+            </RadzenColumn>
+            <RadzenColumn Size="4">
                 <RadzenLabel Text="ALC" />
                 <RadzenTextBox @bind-Value="_f.Alc" MaxLength="10" AutoComplete="false"
                                InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-            </div>
-        </div>
+            </RadzenColumn>
+        </RadzenRow>
 
-        <RadzenLabel Text="@L["MD.Items.Lbl.DrawingNo"]" Style="margin-top:6px;" />
-        <RadzenTextBox @bind-Value="_f.DrawingNo" AutoComplete="false"
-                       InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+        <RadzenRow Gap="8px" Style="margin-top:6px;">
+            <RadzenColumn Size="12">
+                <RadzenLabel Text="@L["MD.Items.Lbl.DrawingNo"]" />
+                <RadzenTextBox @bind-Value="_f.DrawingNo" AutoComplete="false"
+                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            </RadzenColumn>
+        </RadzenRow>
 
-        <label style="margin-top:6px;display:flex;align-items:center;gap:8px;cursor:pointer;">
-            <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" />
-            @L["Lbl.Use.On"]
-        </label>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:6px;">
+            <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="ItemChkActive" />
+            <RadzenLabel Text="@L["Lbl.Use.On"]" Component="ItemChkActive" style="cursor:pointer;" />
+        </RadzenStack>
     </div>;
 
     static string? N(string s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();

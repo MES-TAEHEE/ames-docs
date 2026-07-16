@@ -42,7 +42,7 @@
                    placeholder='@L["MD.LineTimePattern.Ph.Search"]' @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
             <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Line"]</span>
             <select class="ames-input" style="width:130px;" @bind="_fLine">
-                <option value="">@L["Filter.AllLines"]</option>
+                <option value="">@L["Filter.All"]</option>
                 @foreach (var l in _lineList)
                 {
                     <option value="@l.LineID">@l.LineID@(l.LineName != null ? $" {l.LineName}" : "")</option>
@@ -125,7 +125,7 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["MD.LinePat.Title"] — @L["Btn.Create"]</div>
+            <div class="ames-modal-h">@L["MD.LinePat.Title"] — @L["Modal.Create"]</div>
 
             <label>@L["Col.PatternId"]</label>
             <input class="ames-input" @bind="_f.PatternID" placeholder="LP-INJ-001" autocomplete="off" />
@@ -190,7 +190,7 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["MD.LinePat.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.PatternID</span></div>
+            <div class="ames-modal-h">@L["MD.LinePat.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.PatternID</span></div>
 
             <label>@L["Col.Pattern"]</label>
             <input class="ames-input" @bind="_f.PatternName" autocomplete="off" />

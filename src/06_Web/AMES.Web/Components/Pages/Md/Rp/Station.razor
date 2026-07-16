@@ -67,7 +67,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="StationCode" Title="@L["Col.ProcessId"]" Width="120px">
                 <Template Context="r"><span class="code">@r.StationCode</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="StationName" Title="@L["Col.ProcessName"]">
+            <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="StationName" Title="@L["Col.StationName"]">
                 <Template Context="r">@(r.StationName ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="StationNameEn" Title="@L["Col.ProcessNameEn"]">
@@ -103,7 +103,7 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["MD.Station.Title"] — @L["Btn.Create"]</div>
+            <div class="ames-modal-h">@L["MD.Station.Title"] — @L["Modal.Create"]</div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>
@@ -167,7 +167,7 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["MD.Station.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.StationCode</span></div>
+            <div class="ames-modal-h">@L["MD.Station.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.StationCode</span></div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>

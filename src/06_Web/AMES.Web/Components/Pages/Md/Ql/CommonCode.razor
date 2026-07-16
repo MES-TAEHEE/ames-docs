@@ -1,16 +1,24 @@
 ﻿@page "/md/ql/common-code"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject MasterDataRepository Md
-@inject AuthenticationStateProvider Auth
-@inject AMES.Web.Services.PermissionService Perm
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using AMES.Web.Services
+@using Radzen
+
+@attribute [Authorize]
+
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>@L["MD.CommonCode.Title"] · AMES</PageTitle>
+<PageTitle>MD-030 @L["MD.CommonCode.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="MD-030" TitleKey="MD.CommonCode.Title" />
 
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" ShowIcon="false" Variant="Variant.Flat" class="ames-alert-rz" Style="margin-bottom:12px;">@_msg</RadzenAlert>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
 <div style="display:flex;gap:16px;align-items:flex-start;">
@@ -20,7 +28,9 @@
         <div class="ames-card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
                 <span style="font-weight:600;font-size:1em;">@L["MD.CommonCode.GrpHeader"]</span>
-                @if (_canEdit) { <RadzenButton Text='@L["Btn.Create"]' Icon="add_circle" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="OpenGroupCreate" class="ames-rz-btn" /> }
+                @if (_canEdit) {
+                    <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenGroupCreate" class="ames-rz-btn" />
+                }
             </div>
             <RadzenDataGrid Data="_groups" TItem="MasterDataRepository.CodeGroupRow"
                             RowRender="GrpRowRender" RowSelect="OnGroupRowSelect"
@@ -65,7 +75,9 @@
                         @_selGroup.GroupName
                         <span class="dim" style="font-weight:400;margin-left:6px;">@string.Format(L["MD.CommonCode.ItemCount"].Value, _items.Count)</span>
                     </span>
-                    @if (_canEdit) { <RadzenButton Text='@L["Btn.Create"]' Icon="add_circle" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="OpenItemCreate" class="ames-rz-btn" /> }
+                    @if (_canEdit) {
+                        <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenItemCreate" class="ames-rz-btn" />
+                    }
                 </div>
                 <RadzenDataGrid Data="_items" TItem="MasterDataRepository.CodeItemRow"
                                 RowRender="ItemRowRender" RowSelect="OpenItemEdit"
@@ -356,19 +368,19 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var auth = await Auth.GetAuthenticationStateAsync();
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actor   = auth.User.Identity?.Name ?? "system";
-        await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("md/ql/common-code");
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("md/ql/common-code");
         LoadGroups();
     }
 
-    void LoadGroups() { try { _groups = Md.ListCodeGroups(); } catch { _groups = new(); } }
+    void LoadGroups() { try { _groups = MD.ListCodeGroups(); } catch { _groups = new(); } }
 
     void LoadItems()
     {
         if (_selGroup is null) { _items = new(); return; }
-        try { _items = Md.ListCodeItems(_selGroup.GroupCode); } catch { _items = new(); }
+        try { _items = MD.ListCodeItems(_selGroup.GroupCode); } catch { _items = new(); }
     }
 
     void SelectGroup(MasterDataRepository.CodeGroupRow g) { _selGroup = g; LoadItems(); }
@@ -400,7 +412,7 @@
         _fUseFlag     = g.UseFlag;
         _grpConfirmDelete = false; _modalErr = "";
         if (_selGroup?.GroupCode != g.GroupCode)
-            try { _items = Md.ListCodeItems(g.GroupCode); } catch { _items = new(); }
+            try { _items = MD.ListCodeItems(g.GroupCode); } catch { _items = new(); }
         _modal = "grp-edit";
     }
 
@@ -413,8 +425,8 @@
         try
         {
             var code = _fGroupCode.Trim().ToUpper();
-            if (Md.CodeGroupExists(code)) { _modalErr = $"'{code}' {L["Err.AlreadyExists"]}"; return; }
-            Md.InsertCodeGroup(code, _fGroupName.Trim(), N(_fGroupNameEn), N(_fDescription), _fUseFlag, _actor);
+            if (MD.CodeGroupExists(code)) { _modalErr = $"'{code}' {L["Err.AlreadyExists"]}"; return; }
+            MD.InsertCodeGroup(code, _fGroupName.Trim(), N(_fGroupNameEn), N(_fDescription), _fUseFlag, _actor);
             LoadGroups(); CloseModal();
             ShowMsg($"{code} 그룹 {L["Msg.Created"]}", false);
         }
@@ -429,7 +441,7 @@
         _busy = true;
         try
         {
-            Md.UpdateCodeGroup(_fGroupCode, _fGroupName.Trim(), N(_fGroupNameEn), N(_fDescription), _fUseFlag, _actor);
+            MD.UpdateCodeGroup(_fGroupCode, _fGroupName.Trim(), N(_fGroupNameEn), N(_fDescription), _fUseFlag, _actor);
             LoadGroups();
             if (_selGroup?.GroupCode == _fGroupCode)
                 _selGroup = _groups.FirstOrDefault(g => g.GroupCode == _fGroupCode);
@@ -445,8 +457,8 @@
         _busy = true;
         try
         {
-            foreach (var item in _items) Md.DeleteCodeItem(item.CodeID);
-            Md.DeleteCodeGroup(_fGroupCode);
+            foreach (var item in _items) MD.DeleteCodeItem(item.CodeID);
+            MD.DeleteCodeGroup(_fGroupCode);
             if (_selGroup?.GroupCode == _fGroupCode) { _selGroup = null; _items = new(); }
             LoadGroups(); CloseModal();
             ShowMsg($"그룹 {L["Msg.Deleted"]}", false);
@@ -499,8 +511,8 @@
         try
         {
             var id = _fCodeId.Trim().ToUpper();
-            if (Md.CodeItemExists(id)) { _modalErr = $"CodeID '{id}' {L["Err.AlreadyExists"]}"; return; }
-            Md.InsertCodeItem(id, _selGroup!.GroupCode, _fCodeValue.Trim(), _fCodeName.Trim(),
+            if (MD.CodeItemExists(id)) { _modalErr = $"CodeID '{id}' {L["Err.AlreadyExists"]}"; return; }
+            MD.InsertCodeItem(id, _selGroup!.GroupCode, _fCodeValue.Trim(), _fCodeName.Trim(),
                 N(_fCodeNameEn), _fSortOrder, N(_fAttribute1), _fItemUseFlag, N(_fItemDescription), _actor,
                 _fParentCodeId);
             LoadItems(); CloseModal();
@@ -518,7 +530,7 @@
         _busy = true;
         try
         {
-            Md.UpdateCodeItem(_fCodeId, _fCodeValue.Trim(), _fCodeName.Trim(),
+            MD.UpdateCodeItem(_fCodeId, _fCodeValue.Trim(), _fCodeName.Trim(),
                 N(_fCodeNameEn), _fSortOrder, N(_fAttribute1), _fItemUseFlag, N(_fItemDescription), _actor,
                 _fParentCodeId);
             LoadItems(); CloseModal();
@@ -533,7 +545,7 @@
         _busy = true;
         try
         {
-            Md.DeleteCodeItem(_fCodeId);
+            MD.DeleteCodeItem(_fCodeId);
             LoadItems(); CloseModal();
             ShowMsg($"{_fCodeId} {L["Msg.Deleted"]}", false);
         }

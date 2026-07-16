@@ -119,7 +119,7 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["MD.Line.Modal.Create"]</div>
+            <div class="ames-modal-h">@L["MD.Line.Title"] — @L["Modal.Create"]</div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>
@@ -191,7 +191,7 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["MD.Line.Modal.Edit"] — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.LineID</span></div>
+            <div class="ames-modal-h">@L["MD.Line.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.LineID</span></div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>

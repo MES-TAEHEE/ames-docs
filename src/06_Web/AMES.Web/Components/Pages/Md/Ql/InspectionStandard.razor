@@ -119,7 +119,7 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["MD.InspStd.Title"] — @L["Btn.Create"]</div>
+            <div class="ames-modal-h">@L["MD.InspStd.Title"] — @L["Modal.Create"]</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div style="grid-column:span 2;">
                     <RadzenLabel Text='@($"{L["Col.InspStdId"]} * (예: IS-INJ-001)")' /><br />
@@ -197,7 +197,7 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["MD.InspStd.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.InspStdID</span></div>
+            <div class="ames-modal-h">@L["MD.InspStd.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.InspStdID</span></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>
                     <RadzenLabel Text='@L["Col.ItemId"]' /><br />

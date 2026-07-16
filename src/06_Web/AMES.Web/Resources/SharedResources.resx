@@ -1183,10 +1183,10 @@
     <value>프로세스</value>
   </data>
   <data name="SYS.Screen.Col.NameKo" xml:space="preserve">
-    <value>화면명 (한국어)</value>
+    <value>화면명 (국문)</value>
   </data>
   <data name="SYS.Screen.Col.NameEn" xml:space="preserve">
-    <value>영문명</value>
+    <value>화면명 (영문)</value>
   </data>
   <data name="SYS.Screen.Col.Path" xml:space="preserve">
     <value>경로</value>
@@ -1777,10 +1777,10 @@
     <value>라인 ID *</value>
   </data>
   <data name="MD.Line.Lbl.LineName" xml:space="preserve">
-    <value>라인명 *</value>
+    <value>라인명 (국문) *</value>
   </data>
   <data name="MD.Line.Lbl.LineNameEn" xml:space="preserve">
-    <value>영문 라인명</value>
+    <value>라인명 (영문)</value>
   </data>
   <data name="MD.Line.Lbl.LineType" xml:space="preserve">
     <value>라인 유형</value>
@@ -3817,7 +3817,7 @@
     <value>고객 ID</value>
   </data>
   <data name="Col.CustomerName" xml:space="preserve">
-    <value>고객명</value>
+    <value>고객명 (국문)</value>
   </data>
   <data name="Col.NameEn" xml:space="preserve">
     <value>영문명</value>
@@ -3847,7 +3847,7 @@
     <value>공정명</value>
   </data>
   <data name="Col.ProcessNameEn" xml:space="preserve">
-    <value>영문 공정명</value>
+    <value>공정명 (영문)</value>
   </data>
   <data name="Col.UpperCause" xml:space="preserve">
     <value>상위원인</value>
@@ -3862,10 +3862,10 @@
     <value>불량코드</value>
   </data>
   <data name="Col.DefectName" xml:space="preserve">
-    <value>불량명</value>
+    <value>불량명 (국문)</value>
   </data>
   <data name="Col.DefectNameEn" xml:space="preserve">
-    <value>불량명(영문)</value>
+    <value>불량명 (영문)</value>
   </data>
   <data name="Col.Severity" xml:space="preserve">
     <value>심각도</value>
@@ -3976,10 +3976,10 @@
     <value>프린터 모델</value>
   </data>
   <data name="Col.LineName" xml:space="preserve">
-    <value>라인명</value>
+    <value>라인명 (국문)</value>
   </data>
   <data name="Col.LineNameEn" xml:space="preserve">
-    <value>영문 라인명</value>
+    <value>라인명 (영문)</value>
   </data>
   <data name="Col.RFID" xml:space="preserve">
     <value>RFID</value>
@@ -4399,10 +4399,10 @@
     <value>고객 코드</value>
   </data>
   <data name="MD.Customer.Lbl.CustomerName" xml:space="preserve">
-    <value>고객명 *</value>
+    <value>고객명 (국문) *</value>
   </data>
   <data name="MD.Customer.Lbl.CustomerNameEn" xml:space="preserve">
-    <value>영문명</value>
+    <value>고객명 (영문)</value>
   </data>
   <data name="MD.Customer.Lbl.CustomerType" xml:space="preserve">
     <value>고객 유형</value>
@@ -4963,7 +4963,7 @@
     <value>공정 ID</value>
   </data>
   <data name="Col.StationName" xml:space="preserve">
-    <value>공정명</value>
+    <value>공정명 (국문)</value>
   </data>
   <data name="Col.OrderSeq" xml:space="preserve">
     <value>순서</value>
@@ -5585,5 +5585,11 @@
   </data>
   <data name="MD.RfidTag.Ph.Search" xml:space="preserve">
     <value>TagID / EPC</value>
+  </data>
+  <data name="Modal.Create" xml:space="preserve">
+    <value>등록</value>
+  </data>
+  <data name="Modal.Edit" xml:space="preserve">
+    <value>수정</value>
   </data>
 </root>

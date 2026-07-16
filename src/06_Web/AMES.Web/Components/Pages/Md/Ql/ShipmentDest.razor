@@ -97,7 +97,7 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["MD.ShipDest.Title"] — @L["Btn.Create"]</div>
+            <div class="ames-modal-h">@L["MD.ShipDest.Title"] — @L["Modal.Create"]</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div style="grid-column:span 2;">
                     <RadzenLabel Text='@($"{L["Col.CustomerCode"]} *")' /><br />
@@ -159,7 +159,7 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["MD.ShipDest.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.ShipDestID</span></div>
+            <div class="ames-modal-h">@L["MD.ShipDest.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.ShipDestID</span></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div style="grid-column:span 2;">
                     <RadzenLabel Text='@($"{L["Col.CustomerCode"]} *")' /><br />
