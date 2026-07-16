@@ -59,6 +59,14 @@ public sealed class WarehouseRepository
         decimal TotalQty,
         string Status);
 
+    public record LocationAreaLayoutRow(
+        string AreaCode,
+        string? AreaName,
+        decimal XPct,
+        decimal YPct,
+        decimal WPct,
+        decimal HPct);
+
     public record TransactionLogRow(
         long RowNo,
         DateTime? TxnTs,
@@ -333,7 +341,7 @@ public sealed class WarehouseRepository
             """, r => new PartOptionRow(GetString(r, "PARTNO") ?? ""));
     }
 
-    public List<LocationMapRow> ListLocationMap(string? areaCode = null)
+    public List<LocationMapRow> ListLocationMap(string? areaCode = null, string? rackZ = null)
     {
         return Query("""
             SELECT
@@ -358,6 +366,7 @@ public sealed class WarehouseRepository
             LEFT JOIN SIS_TEST.WMS2020 S ON S.LOCATION_NO = L.LOCATION_NO
             WHERE COALESCE(L.USE_YN, N'Y') = N'Y'
               AND (@AreaCode IS NULL OR L.AREACD = @AreaCode)
+              AND (@RackZ IS NULL OR L.RACK_Z = @RackZ)
             GROUP BY L.LOCATION_NO, L.LOCATION_NM, L.AREACD, L.AREANM,
                      L.ZONECD, L.ZONENM, L.RACK_X, L.RACK_Y, L.RACK_Z
             ORDER BY L.AREACD, L.ZONECD, TRY_CONVERT(int, L.RACK_X), L.RACK_X,
@@ -377,7 +386,85 @@ public sealed class WarehouseRepository
                 GetInt(r, "PART_COUNT"),
                 GetDecimal(r, "TOTAL_QTY"),
                 GetString(r, "STATUS") ?? "Empty"),
-            ("@AreaCode", NullIfBlank(areaCode)));
+            ("@AreaCode", NullIfBlank(areaCode)),
+            ("@RackZ", NullIfBlank(rackZ)));
+    }
+
+    public List<LocationAreaLayoutRow> ListLocationAreaLayouts()
+    {
+        EnsureAreaLayoutTable();
+
+        return Query("""
+            WITH Areas AS (
+                SELECT
+                    L.AREACD,
+                    MAX(L.AREANM) AS AREANM,
+                    ROW_NUMBER() OVER (ORDER BY L.AREACD) AS RN
+                FROM SIS_TEST.WMS1040 L
+                WHERE COALESCE(L.USE_YN, N'Y') = N'Y'
+                  AND NULLIF(L.AREACD, N'') IS NOT NULL
+                GROUP BY L.AREACD
+            )
+            SELECT
+                A.AREACD,
+                A.AREANM,
+                COALESCE(M.X_PCT, CAST(4 + ((A.RN - 1) % 3) * 31 AS decimal(5,2))) AS X_PCT,
+                COALESCE(M.Y_PCT, CAST(8 + ((A.RN - 1) / 3) * 28 AS decimal(5,2))) AS Y_PCT,
+                COALESCE(M.W_PCT, CAST(27 AS decimal(5,2))) AS W_PCT,
+                COALESCE(M.H_PCT, CAST(22 AS decimal(5,2))) AS H_PCT
+            FROM Areas A
+            LEFT JOIN SIS_TEST.WH_AREA_LAYOUT M ON M.AREACD = A.AREACD
+            ORDER BY A.AREACD;
+            """, r => new LocationAreaLayoutRow(
+                GetString(r, "AREACD") ?? "",
+                GetString(r, "AREANM"),
+                GetDecimal(r, "X_PCT"),
+                GetDecimal(r, "Y_PCT"),
+                GetDecimal(r, "W_PCT"),
+                GetDecimal(r, "H_PCT")));
+    }
+
+    public void SaveLocationAreaLayout(
+        string areaCode,
+        decimal xPct,
+        decimal yPct,
+        decimal wPct,
+        decimal hPct,
+        string modifiedBy = "web")
+    {
+        if (string.IsNullOrWhiteSpace(areaCode))
+            throw new ArgumentException("Area code is required.", nameof(areaCode));
+
+        EnsureAreaLayoutTable();
+
+        xPct = ClampDecimal(xPct, 0m, 92m);
+        yPct = ClampDecimal(yPct, 0m, 92m);
+        wPct = ClampDecimal(wPct, 8m, 100m - xPct);
+        hPct = ClampDecimal(hPct, 8m, 100m - yPct);
+
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            MERGE SIS_TEST.WH_AREA_LAYOUT AS tgt
+            USING (SELECT @AreaCode AS AREACD) AS src ON tgt.AREACD = src.AREACD
+            WHEN MATCHED THEN UPDATE SET
+                X_PCT = @XPct,
+                Y_PCT = @YPct,
+                W_PCT = @WPct,
+                H_PCT = @HPct,
+                MODIFIED_BY = @ModifiedBy,
+                MODIFIED_TS = SYSDATETIME()
+            WHEN NOT MATCHED THEN INSERT
+                (AREACD, X_PCT, Y_PCT, W_PCT, H_PCT, MODIFIED_BY, MODIFIED_TS)
+            VALUES
+                (@AreaCode, @XPct, @YPct, @WPct, @HPct, @ModifiedBy, SYSDATETIME());
+            """, conn);
+        cmd.Parameters.Add("@AreaCode", SqlDbType.NVarChar, 20).Value = areaCode.Trim();
+        AddDecimal(cmd, "@XPct", xPct);
+        AddDecimal(cmd, "@YPct", yPct);
+        AddDecimal(cmd, "@WPct", wPct);
+        AddDecimal(cmd, "@HPct", hPct);
+        cmd.Parameters.Add("@ModifiedBy", SqlDbType.NVarChar, 80).Value = modifiedBy;
+        cmd.ExecuteNonQuery();
     }
 
     public List<TransactionLogRow> ListTransactions(
@@ -464,6 +551,26 @@ public sealed class WarehouseRepository
             ("@To", to));
     }
 
+    private void EnsureAreaLayoutTable()
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            IF OBJECT_ID(N'SIS_TEST.WH_AREA_LAYOUT', N'U') IS NULL
+            BEGIN
+                CREATE TABLE SIS_TEST.WH_AREA_LAYOUT (
+                    AREACD NVARCHAR(20) NOT NULL CONSTRAINT PK_WH_AREA_LAYOUT PRIMARY KEY,
+                    X_PCT DECIMAL(5,2) NOT NULL,
+                    Y_PCT DECIMAL(5,2) NOT NULL,
+                    W_PCT DECIMAL(5,2) NOT NULL,
+                    H_PCT DECIMAL(5,2) NOT NULL,
+                    MODIFIED_BY NVARCHAR(80) NULL,
+                    MODIFIED_TS DATETIME2 NOT NULL CONSTRAINT DF_WH_AREA_LAYOUT_MODIFIED_TS DEFAULT SYSDATETIME()
+                );
+            END;
+            """, conn);
+        cmd.ExecuteNonQuery();
+    }
+
     private (string Corcd, string Bizcd) GetDefaultCompany()
     {
         using var conn = _factory.OpenConnection();
@@ -535,6 +642,17 @@ public sealed class WarehouseRepository
         var p = cmd.Parameters.Add(name, type, size);
         p.Value = string.IsNullOrWhiteSpace(value) ? DBNull.Value : value.Trim();
     }
+
+    private static void AddDecimal(SqlCommand cmd, string name, decimal value)
+    {
+        var p = cmd.Parameters.Add(name, SqlDbType.Decimal);
+        p.Precision = 5;
+        p.Scale = 2;
+        p.Value = value;
+    }
+
+    private static decimal ClampDecimal(decimal value, decimal min, decimal max) =>
+        Math.Min(Math.Max(value, min), max);
 
     private static string? GetString(SqlDataReader r, string name)
     {
