@@ -6,6 +6,8 @@ namespace AMES.Data.Repositories;
 
 public sealed class WarehouseRepository
 {
+    private const string DefaultNormalColor = "#16A34A";
+
     private readonly AmesConnectionFactory _factory;
 
     public WarehouseRepository(AmesConnectionFactory factory) => _factory = factory;
@@ -79,6 +81,20 @@ public sealed class WarehouseRepository
         string? ReasonCode,
         string? Note,
         string Source);
+
+    public record InventorySettingRow(
+        string ItemNo,
+        string? ItemName,
+        string? DefaultUom,
+        decimal CurrentQty,
+        decimal MinQty,
+        decimal MaxQty,
+        decimal ShortageQty,
+        string Status,
+        string StatusColor,
+        int LocationCount,
+        int LotCount,
+        DateTime? ModifiedTs);
 
     public List<WarehouseLocationRow> ListLocations(string? search = null, bool includeInactive = false)
     {
@@ -551,6 +567,118 @@ public sealed class WarehouseRepository
             ("@To", to));
     }
 
+    public List<InventorySettingRow> ListInventorySettings(string? search = null, string? status = null)
+    {
+        var like = Like(search);
+        return Query("""
+            WITH Stock AS (
+                SELECT
+                    W.ItemNo,
+                    SUM(COALESCE(W.OnHandQty, 0)) AS CURRENT_QTY,
+                    COUNT(DISTINCT W.LocationID) AS LOCATION_COUNT,
+                    COUNT(DISTINCT W.LotID) AS LOT_COUNT
+                FROM dbo.WH_Inventory W
+                WHERE W.ItemNo IS NOT NULL
+                  AND UPPER(COALESCE(W.Status, 'RECEIVED')) NOT IN ('CANCELED')
+                GROUP BY W.ItemNo
+            ),
+            SettingBase AS (
+                SELECT
+                    I.ItemNo,
+                    I.ItemName,
+                    I.DefaultUOM,
+                    COALESCE(S.CURRENT_QTY, 0) AS CURRENT_QTY,
+                    COALESCE(I.MinStock, 0) AS MIN_QTY,
+                    COALESCE(I.MaxStock, 0) AS MAX_QTY,
+                    CASE
+                        WHEN COALESCE(I.MinStock, 0) > COALESCE(S.CURRENT_QTY, 0)
+                            THEN COALESCE(I.MinStock, 0) - COALESCE(S.CURRENT_QTY, 0)
+                        ELSE 0
+                    END AS SHORTAGE_QTY,
+                    COALESCE(S.LOCATION_COUNT, 0) AS LOCATION_COUNT,
+                    COALESCE(S.LOT_COUNT, 0) AS LOT_COUNT,
+                    I.ModifiedTS AS MODIFIED_TS
+                FROM dbo.MD_Item I
+                LEFT JOIN Stock S ON S.ItemNo = I.ItemNo
+                WHERE COALESCE(I.ActiveFlag, 1) = 1
+                  AND (@Search IS NULL
+                       OR I.ItemNo LIKE @Search
+                       OR I.ItemName LIKE @Search
+                       OR I.ItemCategory LIKE @Search
+                       OR I.CarType LIKE @Search)
+            ),
+            Statused AS (
+                SELECT *,
+                    CASE
+                        WHEN MAX_QTY > 0 AND CURRENT_QTY > MAX_QTY THEN 'OVER_MAX'
+                        WHEN SHORTAGE_QTY > 0 THEN 'BELOW_MIN'
+                        ELSE 'NORMAL'
+                    END AS STATUS
+                FROM SettingBase
+            )
+            SELECT *,
+                CASE STATUS
+                    WHEN 'OVER_MAX' THEN '#2563EB'
+                    WHEN 'BELOW_MIN' THEN '#F97316'
+                    ELSE '#16A34A'
+                END AS STATUS_COLOR
+            FROM Statused
+            WHERE (@Status IS NULL OR STATUS = @Status)
+            ORDER BY
+                CASE STATUS
+                    WHEN 'BELOW_MIN' THEN 1
+                    WHEN 'OVER_MAX' THEN 2
+                    ELSE 3
+                END,
+                SHORTAGE_QTY DESC,
+                ItemNo;
+            """, r => new InventorySettingRow(
+                GetString(r, "ItemNo") ?? "",
+                GetString(r, "ItemName"),
+                GetString(r, "DefaultUOM"),
+                GetDecimal(r, "CURRENT_QTY"),
+                GetDecimal(r, "MIN_QTY"),
+                GetDecimal(r, "MAX_QTY"),
+                GetDecimal(r, "SHORTAGE_QTY"),
+                GetString(r, "STATUS") ?? "NORMAL",
+                GetString(r, "STATUS_COLOR") ?? DefaultNormalColor,
+                GetInt(r, "LOCATION_COUNT"),
+                GetInt(r, "LOT_COUNT"),
+                GetDateTime(r, "MODIFIED_TS")),
+            ("@Search", like),
+            ("@Status", NullIfBlank(status)));
+    }
+
+    public void SaveInventorySetting(
+        string itemNo,
+        decimal minQty,
+        decimal maxQty,
+        string modifiedBy = "web")
+    {
+        if (string.IsNullOrWhiteSpace(itemNo))
+            throw new ArgumentException("Item No is required.", nameof(itemNo));
+        if (minQty < 0 || maxQty < 0)
+            throw new InvalidOperationException("Quantity thresholds cannot be negative.");
+        if (maxQty > 0 && minQty > maxQty)
+            throw new InvalidOperationException("Min Qty cannot be greater than Max Qty.");
+
+        using var conn = _factory.OpenConnection();
+        using var itemCmd = new SqlCommand("""
+            UPDATE dbo.MD_Item
+               SET MinStock = @MinQty,
+                   MaxStock = @MaxQty,
+                   ModifiedBy = @ModifiedBy,
+                   ModifiedTS = SYSDATETIME()
+             WHERE ItemNo = @ItemNo;
+            """, conn);
+        itemCmd.Parameters.Add("@ItemNo", SqlDbType.VarChar, 20).Value = itemNo.Trim();
+        AddQtyDecimal(itemCmd, "@MinQty", minQty, scale: 4);
+        AddQtyDecimal(itemCmd, "@MaxQty", maxQty, scale: 4);
+        itemCmd.Parameters.Add("@ModifiedBy", SqlDbType.NVarChar, 80).Value = modifiedBy;
+        if (itemCmd.ExecuteNonQuery() == 0)
+            throw new InvalidOperationException("Item was not found.");
+    }
+
     private void EnsureAreaLayoutTable()
     {
         using var conn = _factory.OpenConnection();
@@ -648,6 +776,14 @@ public sealed class WarehouseRepository
         var p = cmd.Parameters.Add(name, SqlDbType.Decimal);
         p.Precision = 5;
         p.Scale = 2;
+        p.Value = value;
+    }
+
+    private static void AddQtyDecimal(SqlCommand cmd, string name, decimal value, byte scale = 3)
+    {
+        var p = cmd.Parameters.Add(name, SqlDbType.Decimal);
+        p.Precision = 14;
+        p.Scale = scale;
         p.Value = value;
     }
 
