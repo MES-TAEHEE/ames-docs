@@ -21,6 +21,11 @@
 - `wwwroot/css/pda.css`
 - `..\..\04_Api\AMES.Api\Endpoints\AuthEndpoints.cs`
 - `..\..\04_Api\AMES.Api\Endpoints\WhEndpoints.cs`
+- `..\..\..\dist\pda\README.md`
+- `..\..\..\dist\pda\migrate_pda_wh_schedule.sql`
+- `..\..\..\dist\pda\seed_pda_wh_demo_data.sql`
+- `..\..\..\dist\pda\migrate_pda_wh_inbound.sql`
+- `..\..\..\dist\pda\seed_pda_wh_inbound_demo_data.sql`
 - `docs/sql/WH002_ADJUST_QTY.sql`
 
 테스트 DB 기준:
@@ -223,10 +228,20 @@ Release 탭에서는 카드를 선택한 뒤 하단 고정 `PICK` 버튼을 누�
 
 PDA 코드 호출:
 
-- `PdaApi.WhInboundScheduleAsync()`
-- 내부 DB 호출: `SIS_TEST.APG_WM40120_INQUERY_VENDER_BACK_ORDER`
-- `PdaApi.WhReleaseScheduleAsync()`
-- API 호출: `GET /api/wh/release/schedule`
+- `PdaApi.Wh001ScheduleInboundAsync()`
+- 내부 DB 호출: `dbo.WH_PDA_SCHEDULE_INBOUND_LIST`
+- 원천 테이블: `dbo.WH_PurchaseOrder`
+- `PdaApi.Wh001ScheduleReleaseAsync()`
+- API 호출: `GET /api/wh/schedule/release`
+- fallback 호환 route: `GET /api/wh/release/schedule`
+
+PDA DB 스크립트 관리 기준:
+
+- Schedule부터 PDA DB 변경사항은 화면별 `docs/sql/WH001_*.sql` 파일로 나누지 않고 `dist/pda/migrate_pda_wh_schedule.sql`에 통합 관리한다.
+- 새 프로시저는 화면번호가 아닌 업무 기준 이름을 사용한다. 예: `dbo.WH_PDA_SCHEDULE_INBOUND_LIST`, `dbo.WH_PDA_SCHEDULE_RELEASE_LIST`.
+- PDA가 직접 관리하거나 demo seed로 채우는 Warehouse 업무 테이블은 기존 AMES 명명 규칙에 맞춰 `dbo.WH_...` 형식을 사용한다.
+- Schedule Inbound demo data는 `dbo.WH_PurchaseOrder`, Release demo data는 `dbo.WH_ReleaseSchedule`을 사용한다.
+- demo seed는 `dist/pda/seed_pda_wh_demo_data.sql`에 분리해 둔다.
 
 프로시저 입력:
 
@@ -387,16 +402,18 @@ PDA 코드 호출:
 API route:
 
 - `GET /api/wh/inbound/scan`
-- `POST /api/wh/inbound/receive-sis`
+- `POST /api/wh/inbound/receive-lot`
+- `POST /api/wh/inbound/receive-sis` (compatibility alias)
+- `POST /api/wh/inbound/move-location`
 - `POST /api/wh/inbound/cancel`
 - `GET /api/wh/location/scan`
 
 프로시저:
 
-- `SIS_TEST.PDA_WH002_SCAN_LOCAL`
-- `SIS_TEST.PDA_WH002_SCAN_CKD`
-- `SIS_TEST.PDA_WH002_RECEIVE`
-- `SIS_TEST.PDA_WH002_CANCEL`
+- `dbo.WH_PDA_INBOUND_SCAN_LOT`
+- `dbo.WH_PDA_INBOUND_RECEIVE_LOT`
+- `dbo.WH_PDA_INBOUND_MOVE_LOCATION`
+- `dbo.WH_PDA_INBOUND_CANCEL_RECEIPT`
 
 LOCAL 스캔 기준 테이블:
 
@@ -438,7 +455,7 @@ Location 검증 기준 테이블:
 - `PdaApi.WhAdjustInboundQtyAsync(body)`
 - `POST /api/wh/inbound/move-location`
 - `POST /api/wh/inbound/adjust-qty`
-- `SIS_TEST.PDA_WH002_MOVE_LOCATION`
+- `dbo.WH_PDA_INBOUND_MOVE_LOCATION`
 - `SIS_TEST.PDA_WH002_ADJUST_QTY`
 
 ### 기존 프로그램에서 참고한 점
@@ -464,24 +481,27 @@ SIS:
 
 ### 현재 카피/재현한 것
 
-SQL Server `SIS_TEST`에 아래 테이블 및 프로시저를 준비했다.
+SQL Server `AMES_DEV`의 `dbo` 스키마에 아래 테이블 및 프로시저를 준비했다.
 
-- `AMM9010`
-- `AMM9011`
-- `AMF1030`
-- `AMM1040`
-- `AMM2010`
-- `WMS1010`
-- `WMS1020`
-- `WMS1030`
-- `WMS1040`
-- `WMS2010`
-- `WMS2020`
-- `WMS2000`
-- `PDA_WH002_SCAN_LOCAL`
-- `PDA_WH002_SCAN_CKD`
-- `PDA_WH002_RECEIVE`
-- `PDA_WH002_CANCEL`
+- `dbo.tbl_Lot`
+- `dbo.WH_PurchaseOrder`
+- `dbo.WH_Receiving`
+- `dbo.WH_Inventory`
+- `dbo.MD_Location`
+- `dbo.WH_PDA_INBOUND_SCAN_LOT`
+- `dbo.WH_PDA_INBOUND_RECEIVE_LOT`
+- `dbo.WH_PDA_INBOUND_MOVE_LOCATION`
+- `dbo.WH_PDA_INBOUND_CANCEL_RECEIPT`
+- `dist/pda/migrate_pda_wh_inbound.sql`
+- `dist/pda/seed_pda_wh_inbound_demo_data.sql`
+
+Inbound test data:
+
+- Ready local LOT: `LOT-LOCAL-001` -> PO `INB2607001`, Part `INB-MAT-001`, Qty `72 EA`
+- Ready CKD LOT: `LOT-CKD-001` -> PO `INB2607002`, Part `INB-MAT-003`, Qty `100 EA`
+- Already received LOT: `LOT-LOCAL-RECV` -> PO `INB2607003`, Part `INB-MAT-002`, Qty `40 EA`, Location `WH010101`
+- Location No: `WH010101`, `WH010201`, `WH020101`
+- Scan validation: `dbo.tbl_Lot.ProcessCode` must match the selected tab (`LOCAL` or `CKD`). For example, scanning `LOT-LOCAL-001` on the CKD tab returns `LOT receive mode does not match the selected tab.`
 
 ### 기존과 달라진 점
 
@@ -901,7 +921,7 @@ Pick Slip 요청은 `WMS3050`에 저장되는 현장 자재출고요청 데이�
 
 PDA 코드 호출:
 
-- `PdaApi.WhReleaseScheduleAsync()`
+- `PdaApi.Wh001ScheduleReleaseAsync()`
 - `PdaApi.WhReleaseSlipStatusAsync(pickSlipNo)`
 - `PdaApi.WhReleaseLinesAsync(pickSlipNo)`
 - `PdaApi.WhReleaseLotAsync(pickSlipNo, lotNo)`
@@ -909,7 +929,8 @@ PDA 코드 호출:
 
 API route:
 
-- `GET /api/wh/release/schedule`
+- `GET /api/wh/schedule/release`
+- `GET /api/wh/release/schedule` (compatibility alias)
 - `GET /api/wh/release/schedule/{pickSlipNo}/status`
 - `GET /api/wh/release/schedule/{pickSlipNo}/lines`
 - `GET /api/wh/release/lot`
@@ -1195,7 +1216,7 @@ SIS/DB:
 - `GRN_QTY`는 PO schedule에 저장되는 값이라기보다 GRN 실적을 합산해 계산하는 값이다. 운영에서는 GRN cancellation, return, reversal까지 반영해야 한다.
 - WH005 Adjust의 Supervisor PIN은 현재 테스트 구현에서 최소 길이 검증과 마스킹 저장만 한다. 운영에서는 실제 승인자 계정/권한 검증과 감사 로그 보관 정책을 추가해야 한다.
 - WH003 Release는 `WMS3050` Pick Slip과 `WMS2020` 현재 재고를 기준으로 구현했다. 운영에서는 실제 출고 확정, 납품서/manifest, 회계/물류 인터페이스까지 이어지는 표준 프로시저를 더 확인해야 한다. 실제 route/component는 `/wh/07`, `Wh07PdaRelease.razor`다.
-- WH006은 현재 redirect 화면이다. 운영에서 별도 Release Schedule 화면이 다시 필요해지면 WH001 Release 탭의 `WhReleaseScheduleAsync()` 호출부와 카드 UI를 분리해서 재사용할 수 있다.
+- WH006은 현재 redirect 화면이다. 운영에서 별도 Release Schedule 화면이 다시 필요해지면 WH001 Release 탭의 `Wh001ScheduleReleaseAsync()` 호출부와 카드 UI를 분리해서 재사용할 수 있다.
 - WH006 Transactions는 `WMS2030`이 있으면 우선 사용하도록 만들었지만, 현재 테스트 DB에는 `WMS2030`이 없어 `WMS2010`, `WMS2020`, `PDA_WH002_ADJUST_AUDIT`를 조합한다. 운영 반영 시에는 실제 Transaction History 표준 테이블/프로시저 기준으로 재정렬해야 한다. 실제 route/component는 `/wh/08`, `Wh08TransactionHistory.razor`다.
 - WH005 Adjust는 별도 component를 만들지 않고 WH004 Inventory와 같은 `Wh03InventoryStatus.razor`의 Adjust 모드로 구현했다. 운영 정책상 완전한 독립 화면이 필요하면 현재 `PDA_WH002_ADJUST_QTY` 호출부를 재사용해 별도 component로 분리할 수 있다.
 
