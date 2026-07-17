@@ -44,14 +44,14 @@
         <span style="white-space:nowrap;">▼ @L["PP.WoRelease.Title"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _all.Count ? $" / {L["Lbl.TotalOf"]} {_all.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <select class="ames-input" style="width:140px;" @bind="_fLine">
-                <option value="">@L["Filter.AllLines"]</option>
+                <option value="">@L["Filter.All"]</option>
                 @foreach (var l in _lineList)
                 {
                     <option value="@l.LineID">@l.LineID@(l.LineName != null ? $" {l.LineName}" : "")</option>
                 }
             </select>
             <select class="ames-input" style="width:130px;" @bind="_fStatus">
-                <option value="">@L["PP.WorkOrder.Filter.AllStatus"]</option>
+                <option value="">@L["Filter.All"]</option>
                 <option value="Draft">Draft</option>
                 <option value="Planned">Planned</option>
                 <option value="Released">Released</option>

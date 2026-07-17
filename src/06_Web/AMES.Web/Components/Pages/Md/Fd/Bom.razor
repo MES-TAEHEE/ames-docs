@@ -26,20 +26,21 @@
     @* ── 좌: 버전 목록 ─────────────────────────────────────────────────── *@
     <div style="flex:0 0 500px;display:flex;flex-direction:column;min-height:0;">
         <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;">
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-bottom:8px;">
-                <RadzenTextBox @bind-Value="_search" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Bom.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;" />
-                @if (_canEdit)
-                {
-                    <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenVersionCreate" class="ames-rz-btn" />
-                }
-            </RadzenStack>
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-bottom:8px;">
-                <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
-                <RadzenDropDown Name="DropDownStatus" @bind-Value="_statusFilter" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;" />
-                <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@LoadVersions" class="ames-rz-btn" />
-            </RadzenStack>
+            <div class="ames-card-h" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                    <RadzenTextBox @bind-Value="_search" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Bom.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:2;" />
+                    <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
+                    <RadzenDropDown Name="DropDownStatus" @bind-Value="_statusFilter" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;" />
+                </RadzenStack>
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                    <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@LoadVersions" class="ames-rz-btn" />
+                    @if (_canEdit) {
+                        <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenVersionCreate" class="ames-rz-btn" />
+                    }
+                </RadzenStack>
+            </div>
             <div style="flex:1;min-height:0;overflow:hidden;">
-                <RadzenDataGrid TItem="MasterDataRepository.BomVersionRow" Data="_versions" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center"
+                <RadzenDataGrid TItem="MasterDataRepository.BomVersionRow" Data="_versions" AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center"
                                 ShowPagingSummary="false" RowRender="VerRowRender" RowSelect="OnVerRowSelect" EmptyText="@L["MD.Bom.NoVersions"]" Class="ames-rz-grid">
                     <Columns>
                         <RadzenDataGridColumn TItem="MasterDataRepository.BomVersionRow" Property="RootItemNo" Title="@L["Col.RootItemNo"]">
@@ -131,11 +132,10 @@
                         @* 워크플로 버튼 *@
                         @if (_canEdit)
                         {
-                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Start" Gap="0.35rem" Wrap="FlexWrap.Wrap" Style="flex-shrink:0;">
-                                @if (_selVer.Status == "DRAFT")
-                                {
-                                    <RadzenButton Text="@L["MD.Bom.AddItem"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@OpenLineCreate" Disabled="@_busy" class="ames-rz-btn" />
-                                    <RadzenButton Text="@L["Btn.Edit"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="() => OpenVersionEdit(_selVer)" Disabled="@_busy" class="ames-rz-btn" />
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Start" Gap="0.5rem" Wrap="FlexWrap.Wrap" Style="flex-shrink:0;">
+                                @if (_selVer.Status == "DRAFT") {
+                                    <RadzenButton Text="@L["Btn.Edit"]" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="() => OpenVersionEdit(_selVer)" Disabled="@_busy" class="ames-rz-btn" />
+                                    <RadzenButton Text="@L["MD.Bom.AddItem"]" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenLineCreate" Disabled="@_busy" class="ames-rz-btn" />
                                     <RadzenButton Text="@L["MD.Bom.RequestApproval"]" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@DoRequestApproval" Disabled="@_busy" class="ames-rz-btn" />
                                     @if (!_verDelConfirm)
                                     {
@@ -167,7 +167,7 @@
                 </div>
 
                 @* 라인 카운트 + 읽기 전용 안내 *@
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="padding:4px 0 6px;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="padding:4px 0 6px;">
                     <span class="dim" style="font-size:.82em;">@string.Format(L["MD.Bom.LineCount"], _lines.Count)</span>
                     @if (_selVer.Status != "DRAFT")
                     {
@@ -223,7 +223,7 @@
 @if (_modal == "ver-create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
-        <div class="ames-modal" style="max-width:540px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Bom.Title"] — @L["Modal.Create"]</div>
             @VersionFormFields(false)
             @if (!string.IsNullOrEmpty(_modalErr))
@@ -242,7 +242,7 @@
 @if (_modal == "ver-edit")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
-        <div class="ames-modal" style="max-width:540px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Bom.Title"] — @L["Modal.Edit"] <span class="code" style="font-weight:400;font-size:.9em;">@_fv.VersionId</span></div>
             @VersionFormFields(true)
             @if (!string.IsNullOrEmpty(_modalErr))
@@ -261,7 +261,7 @@
 @if (_modal == "line-create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
-        <div class="ames-modal" style="max-width:500px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Bom.Modal.AddLine"] — <span class="code" style="font-weight:400;font-size:.9em;">@_selVer!.VersionID</span></div>
             @LineFormFields()
             @if (!string.IsNullOrEmpty(_modalErr))
@@ -280,7 +280,7 @@
 @if (_modal == "line-edit")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
-        <div class="ames-modal" style="max-width:500px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">BOM — @L["Modal.Edit"] <span class="code" style="font-weight:400;font-size:.9em;">@_fl.CompItemNo</span></div>
             @LineFormFields()
             @if (_lineConfirmDelete)
@@ -627,7 +627,7 @@
         <RadzenRow Gap="8px" Style="margin-top:6px;">
             <RadzenColumn Size="12">
                 <RadzenLabel Text='@($"{L["Col.RootItemNo"]} *")' />
-                <RadzenDropDown @bind-Value="_fv.RootItemNo" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.SelectItem"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenDropDown @bind-Value="_fv.RootItemNo" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" Disabled="@editMode" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
         </RadzenRow>
 
@@ -662,11 +662,11 @@
         <RadzenRow Gap="8px">
             <RadzenColumn Size="6">
                 <RadzenLabel Text="@L["Col.ParentItem"]" />
-                <RadzenDropDown @bind-Value="_fl.ParentItemNo" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.RootLevel"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenDropDown @bind-Value="_fl.ParentItemNo" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" Disabled="true" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.RootLevel"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="6">
                 <RadzenLabel Text='@($"{L["Col.CompItem"]} *")' />
-                <RadzenDropDown @bind-Value="_fl.CompItemNo" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.SelectItem"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenDropDown @bind-Value="_fl.CompItemNo" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
         </RadzenRow>
 

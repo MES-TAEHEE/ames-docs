@@ -88,8 +88,11 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="LocationType" Title="@L["Col.Type"]" Width="100px">
                 <Template Context="r"><span class="pill">@(r.LocationType ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="PlantCode" Title="@L["Col.Plant"]" Width="70px">
-                <Template Context="r"><span class="dim">@(r.PlantCode ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="PlantCode" Title="@L["Col.Plant"]" Width="110px">
+                <Template Context="r">
+                    @{ var plantName = _plantCodes.FirstOrDefault(p => p.CodeValue == r.PlantCode) is { } pf ? MasterDataRepository.LocalName(pf) : r.PlantCode; }
+                    <span class="dim">@(plantName ?? "—")</span>
+                </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="ActiveFlag" Title="@L["Col.Active"]" Width="72px" TextAlign="TextAlign.Center">
                 <Template Context="r">
@@ -268,7 +271,7 @@
 
     private IEnumerable<DropDownItem> ZoneOptions => _allRows.Select(r => r.ZoneCode).Where(x => x != null).Distinct().OrderBy(x => x).Select(z => new DropDownItem { Value = z!, Text = z! });
     private IEnumerable<DropDownItem> TypeOptions => _allRows.Select(r => r.LocationType).Where(x => x != null).Distinct().OrderBy(x => x).Select(t => new DropDownItem { Value = t!, Text = t! });
-    private IEnumerable<DropDownItem> PlantOptions => _plantCodes.Where(p => p.UseFlag).Select(p => new DropDownItem { Value = p.CodeValue ?? "", Text = MasterDataRepository.LocalName(p) });
+    private IEnumerable<DropDownItem> PlantOptions => _plantCodes.Where(p => p.UseFlag).Select(p => new DropDownItem { Value = p.CodeValue ?? "", Text = $"[{p.CodeValue}] {MasterDataRepository.LocalName(p)}" });
     private IEnumerable<DropDownItem> ActiveFilterOptions => new[]
     {
         new DropDownItem { Value = "Y", Text = L["Lbl.Active"].Value },

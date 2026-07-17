@@ -27,7 +27,7 @@
         <span style="white-space:nowrap;">▼ @L["RPT.DailyProduction.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <select class="ames-input" style="width:140px;" @bind="_fLine">
-                <option value="">@L["Filter.AllLines"]</option>
+                <option value="">@L["Filter.All"]</option>
                 @foreach (var l in _lineList)
                 {
                     <option value="@l.LineID">@l.LineID@(l.LineName != null ? $" {l.LineName}" : "")</option>

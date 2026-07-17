@@ -113,7 +113,7 @@
 @if (_modal == "grp-create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
-        <div class="ames-modal" style="max-width:500px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.CommonCode.Grp.Create"]</div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -160,7 +160,7 @@
 @if (_modal == "grp-edit")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
-        <div class="ames-modal" style="max-width:500px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.CommonCode.Grp.Edit"] — <span class="code" style="font-weight:400;font-size:.9em;">@_fGroup.GroupCode</span></div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -212,7 +212,7 @@
 @if (_modal == "item-create" && _selGroup is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
-        <div class="ames-modal" style="max-width:560px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.CommonCode.Item.Create"] — <span class="code" style="font-weight:400;font-size:.9em;">@_selGroup.GroupCode</span></div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -282,7 +282,7 @@
 @if (_modal == "item-edit")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
-        <div class="ames-modal" style="max-width:560px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.CommonCode.Item.Edit"] — <span class="code" style="font-weight:400;font-size:.9em;">@_fItem.CodeId</span></div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">

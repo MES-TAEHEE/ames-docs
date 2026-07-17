@@ -129,7 +129,7 @@
         <span>▼ @L["PP.DowntimeMonitor.History.Header"]</span>
         <div style="display:flex;gap:6px;align-items:center;">
             <select class="ames-input" style="width:130px;" @bind="_dtlLine" @bind:after="ReloadDtl">
-                <option value="">@L["PP.DowntimeMonitor.Filter.AllLines"]</option>
+                <option value="">@L["Filter.All"]</option>
                 @foreach (var l in _dtlLines)
                 { <option value="@l">@l</option> }
             </select>

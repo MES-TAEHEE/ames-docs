@@ -196,55 +196,13 @@
     <value>Data load error: {0}</value>
   </data>
   <data name="Filter.All" xml:space="preserve">
-    <value>All</value>
-  </data>
-  <data name="Filter.AllTypes" xml:space="preserve">
-    <value>All Types</value>
-  </data>
-  <data name="Filter.AllStatus" xml:space="preserve">
-    <value>All Status</value>
-  </data>
-  <data name="Filter.AllLines" xml:space="preserve">
-    <value>All Lines</value>
-  </data>
-  <data name="Filter.AllCategories" xml:space="preserve">
-    <value>All Categories</value>
-  </data>
-  <data name="Filter.AllModules" xml:space="preserve">
-    <value>All Modules</value>
-  </data>
-  <data name="Filter.AllSections" xml:space="preserve">
-    <value>All Sections</value>
-  </data>
-  <data name="Filter.AllProcesses" xml:space="preserve">
-    <value>All Processes</value>
-  </data>
-  <data name="Filter.AllInspectionTypes" xml:space="preserve">
-    <value>All Inspection Types</value>
-  </data>
-  <data name="Filter.AllConditions" xml:space="preserve">
-    <value>All Conditions</value>
-  </data>
-  <data name="Filter.AllZones" xml:space="preserve">
-    <value>All Zones</value>
-  </data>
-  <data name="Filter.AllLocations" xml:space="preserve">
-    <value>All Locations</value>
-  </data>
-  <data name="Filter.AllEquipTypes" xml:space="preserve">
-    <value>All Equip. Types</value>
-  </data>
-  <data name="Filter.AllProcessTypes" xml:space="preserve">
-    <value>All Process Types</value>
+    <value>— All —</value>
   </data>
   <data name="Opt.None" xml:space="preserve">
     <value>None</value>
   </data>
   <data name="Opt.Select" xml:space="preserve">
     <value>— Select —</value>
-  </data>
-  <data name="Opt.SelectUser" xml:space="preserve">
-    <value>— Select User —</value>
   </data>
   <data name="Col.Code" xml:space="preserve">
     <value>Code</value>
@@ -382,7 +340,7 @@
     <value>Search equipment name</value>
   </data>
   <data name="MNT.EquipmentCard.Ph.Search" xml:space="preserve">
-    <value>Search line / equipment name</value>
+    <value>line/equipment name</value>
   </data>
   <data name="MNT.WorkOrder.Title" xml:space="preserve">
     <value>Work Order</value>
@@ -395,9 +353,6 @@
   </data>
   <data name="MNT.WorkOrder.Empty" xml:space="preserve">
     <value>No work orders for the selected criteria.</value>
-  </data>
-  <data name="MNT.WorkOrder.Filter.AllStatus" xml:space="preserve">
-    <value>All Status</value>
   </data>
   <data name="MNT.WorkOrder.InProgress" xml:space="preserve">
     <value>In Progress</value>
@@ -443,9 +398,6 @@
   </data>
   <data name="MNT.Failure.Empty" xml:space="preserve">
     <value>No failure events for the selected criteria.</value>
-  </data>
-  <data name="MNT.Failure.Filter.AllStatus" xml:space="preserve">
-    <value>All Status</value>
   </data>
   <data name="MNT.Failure.InProgress" xml:space="preserve">
     <value>In Progress</value>
@@ -1159,7 +1111,7 @@
     <value>No screen items to display.</value>
   </data>
   <data name="SYS.Screen.Ph.Search" xml:space="preserve">
-    <value>Code / screen name / path</value>
+    <value>Code/screen name/path</value>
   </data>
   <data name="SYS.Screen.Kpi.All" xml:space="preserve">
     <value>Total Screens</value>
@@ -1196,9 +1148,6 @@
   </data>
   <data name="SYS.Screen.Col.Roles" xml:space="preserve">
     <value>Roles</value>
-  </data>
-  <data name="SYS.Screen.Filter.AllModules" xml:space="preserve">
-    <value>All Modules</value>
   </data>
   <data name="SYS.Screen.Filter.Visible" xml:space="preserve">
     <value>Visible</value>
@@ -1448,15 +1397,6 @@
   </data>
   <data name="SYS.Notifications.Ph.HistSearch" xml:space="preserve">
     <value>Code / recipient / subject</value>
-  </data>
-  <data name="SYS.Notifications.Filter.AllModules" xml:space="preserve">
-    <value>All Modules</value>
-  </data>
-  <data name="SYS.Notifications.Filter.AllChannels" xml:space="preserve">
-    <value>All Channels</value>
-  </data>
-  <data name="SYS.Notifications.Filter.AllEnabled" xml:space="preserve">
-    <value>All</value>
   </data>
   <data name="SYS.Notifications.Filter.Active" xml:space="preserve">
     <value>Active</value>
@@ -1729,13 +1669,7 @@
     <value>No production lines registered.</value>
   </data>
   <data name="MD.Line.Ph.Search" xml:space="preserve">
-    <value>Line ID / name</value>
-  </data>
-  <data name="MD.Line.Filter.AllTypes" xml:space="preserve">
-    <value>All Types</value>
-  </data>
-  <data name="MD.Line.Filter.AllStatus" xml:space="preserve">
-    <value>All Status</value>
+    <value>Line ID/name</value>
   </data>
   <data name="MD.Line.Kpi.Total" xml:space="preserve">
     <value>Total</value>
@@ -2209,7 +2143,7 @@
     <value>No stations found.</value>
   </data>
   <data name="MD.Station.Ph.Search" xml:space="preserve">
-    <value>Station ID / Name</value>
+    <value>Station ID/Name</value>
   </data>
   <data name="MD.Station.Kpi.Lines" xml:space="preserve">
     <value>Lines</value>
@@ -2285,9 +2219,6 @@
   </data>
   <data name="PP.Calendar.Kpi.InProgSub" xml:space="preserve">
     <value>In Production</value>
-  </data>
-  <data name="PP.Calendar.Filter.AllRouting" xml:space="preserve">
-    <value>All Routing</value>
   </data>
   <data name="PP.Calendar.Routing.INJ" xml:space="preserve">
     <value>INJ — Injection</value>
@@ -2403,9 +2334,6 @@
   <data name="PP.Calendar.DdTxt.DaysTo" xml:space="preserve">
     <value>D-{0}</value>
   </data>
-  <data name="PP.Calendar.Filter.AllStatus" xml:space="preserve">
-    <value>All Status</value>
-  </data>
   <data name="PP.Calendar.Modal.Detail" xml:space="preserve">
     <value>WO Details —</value>
   </data>
@@ -2432,12 +2360,6 @@
   </data>
   <data name="PP.Delivery.Kpi.OtdSub" xml:space="preserve">
     <value>OTD Rate</value>
-  </data>
-  <data name="PP.Delivery.Filter.AllCustomer" xml:space="preserve">
-    <value>All Customers</value>
-  </data>
-  <data name="PP.Delivery.Filter.AllStatus" xml:space="preserve">
-    <value>All</value>
   </data>
   <data name="PP.Delivery.Status.OnTime" xml:space="preserve">
     <value>On-Time</value>
@@ -2471,15 +2393,6 @@
   </data>
   <data name="PP.Downtime.Empty" xml:space="preserve">
     <value>No downtime events match the conditions.</value>
-  </data>
-  <data name="PP.Downtime.Filter.AllLines" xml:space="preserve">
-    <value>All Lines</value>
-  </data>
-  <data name="PP.Downtime.Filter.AllStatus" xml:space="preserve">
-    <value>All Status</value>
-  </data>
-  <data name="PP.Downtime.Filter.AllReason" xml:space="preserve">
-    <value>All Reasons</value>
   </data>
   <data name="PP.Downtime.Status.Open" xml:space="preserve">
     <value>Open</value>
@@ -2564,9 +2477,6 @@
   </data>
   <data name="PP.DowntimeMonitor.History.Header" xml:space="preserve">
     <value>Today's Downtime Events — Edit reason if missing</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Filter.AllLines" xml:space="preserve">
-    <value>All Lines</value>
   </data>
   <data name="PP.DowntimeMonitor.History.Empty" xml:space="preserve">
     <value>No downtime events today.</value>
@@ -3297,9 +3207,6 @@
   <data name="PP.WorkOrder.Kpi.ClosedN" xml:space="preserve">
     <value>Closed (last {0} days)</value>
   </data>
-  <data name="PP.WorkOrder.Filter.AllStatus" xml:space="preserve">
-    <value>All Status</value>
-  </data>
   <data name="PP.WorkOrder.Filter.Closed7" xml:space="preserve">
     <value>Closed 7d</value>
   </data>
@@ -3397,7 +3304,7 @@
     <value>Select a part and enter a quantity of 1 or greater.</value>
   </data>
   <data name="PP.PurchaseReq.Ph.Search" xml:space="preserve">
-    <value>Part No · Name · PR No</value>
+    <value>Part No/Name/PR No</value>
   </data>
   <data name="Col.WoNo" xml:space="preserve">
     <value>WO No</value>
@@ -4296,12 +4203,6 @@
   <data name="Col.Progress" xml:space="preserve">
     <value>Progress</value>
   </data>
-  <data name="Lbl.Use.On" xml:space="preserve">
-    <value>Active</value>
-  </data>
-  <data name="Lbl.Use.Off" xml:space="preserve">
-    <value>Inactive</value>
-  </data>
   <data name="MD.Items.Kpi.FG" xml:space="preserve">
     <value>Finished Goods (FG)</value>
   </data>
@@ -4309,7 +4210,7 @@
     <value>Semi-finished (WIP)</value>
   </data>
   <data name="MD.Items.Ph.Search" xml:space="preserve">
-    <value>Search by Part No / Name / Car Type / PGN / ALC</value>
+    <value>Part No/Name/Car Type/PGN/ALC</value>
   </data>
   <data name="MD.Items.Modal.Create" xml:space="preserve">
     <value>Create Part</value>
@@ -4384,7 +4285,7 @@
     <value>Domestic</value>
   </data>
   <data name="MD.Customer.Ph.Search" xml:space="preserve">
-    <value>Customer code / name / EN</value>
+    <value>Customer code/Name</value>
   </data>
   <data name="MD.Customer.Modal.Create" xml:space="preserve">
     <value>New Customer</value>
@@ -4426,7 +4327,7 @@
     <value>OTD Target Set</value>
   </data>
   <data name="MD.Vendor.Ph.Search" xml:space="preserve">
-    <value>Search vendor name</value>
+    <value>Vendor name</value>
   </data>
   <data name="MD.Vendor.Modal.Create" xml:space="preserve">
     <value>New Vendor</value>
@@ -4480,7 +4381,7 @@
     <value>Plants</value>
   </data>
   <data name="MD.Location.Ph.Search" xml:space="preserve">
-    <value>Location ID / Name</value>
+    <value>Location ID/Name</value>
   </data>
   <data name="MD.Location.Modal.Create" xml:space="preserve">
     <value>New Location</value>
@@ -4513,7 +4414,7 @@
     <value>Location Type</value>
   </data>
   <data name="MD.Location.Lbl.PlantCode" xml:space="preserve">
-    <value>Plant Code</value>
+    <value>Plant</value>
   </data>
   <data name="MD.Location.Err.IDRequired" xml:space="preserve">
     <value>Location ID is required.</value>
@@ -4648,13 +4549,7 @@
     <value>Down</value>
   </data>
   <data name="SYS.Interfaces.Ph.Search" xml:space="preserve">
-    <value>Code / Interface Name</value>
-  </data>
-  <data name="SYS.Interfaces.Filter.AllStatus" xml:space="preserve">
-    <value>All Status</value>
-  </data>
-  <data name="SYS.Interfaces.Filter.AllDir" xml:space="preserve">
-    <value>All</value>
+    <value>Code/Interface Name</value>
   </data>
   <data name="SYS.Audit.Kpi.EventsSub" xml:space="preserve">
     <value>Recent Events</value>
@@ -4666,13 +4561,7 @@
     <value>Result FAIL</value>
   </data>
   <data name="SYS.Audit.Ph.Search" xml:space="preserve">
-    <value>User / Target ID / Note</value>
-  </data>
-  <data name="SYS.Audit.Filter.AllModules" xml:space="preserve">
-    <value>All Modules</value>
-  </data>
-  <data name="SYS.Audit.Filter.AllResults" xml:space="preserve">
-    <value>All</value>
+    <value>User/Target ID/Note</value>
   </data>
   <data name="SYS.Audit.Detail" xml:space="preserve">
     <value>Audit Detail</value>
@@ -5182,70 +5071,70 @@
     <value>LOT ID is required.</value>
   </data>
   <data name="MD.Bom.Ph.Search" xml:space="preserve">
-    <value>Version ID · Part search…</value>
+    <value>Version ID/Part</value>
   </data>
   <data name="MD.Bop.Ph.Search" xml:space="preserve">
-    <value>Part No. · Part Name search…</value>
+    <value>Part No./Part Name</value>
   </data>
   <data name="MD.DefectCause.Ph.Search" xml:space="preserve">
-    <value>Cause code / Name</value>
+    <value>Cause code/Name</value>
   </data>
   <data name="MD.DefectCode.Ph.Search" xml:space="preserve">
-    <value>Defect code / Name</value>
+    <value>Defect code/Name</value>
   </data>
   <data name="MD.Equipment.Ph.Search" xml:space="preserve">
-    <value>Equip. ID / Name</value>
+    <value>Equip. ID/Name</value>
   </data>
   <data name="MD.InspStd.Ph.Search" xml:space="preserve">
-    <value>Std. ID / Char. Name / Part ID</value>
+    <value>Std. ID/Char. Name/Part ID</value>
   </data>
   <data name="MD.Jig.Ph.Search" xml:space="preserve">
-    <value>Jig ID / Name</value>
+    <value>Jig ID/Name</value>
   </data>
   <data name="MD.LabelTemplate.Ph.Search" xml:space="preserve">
-    <value>Template ID / Name</value>
+    <value>Template ID/Name</value>
   </data>
   <data name="MD.LineTimePattern.Ph.Search" xml:space="preserve">
-    <value>Pattern ID / Name</value>
+    <value>Pattern ID/Name</value>
   </data>
   <data name="MD.Mold.Ph.Search" xml:space="preserve">
-    <value>Mold ID / Name</value>
+    <value>Mold ID/Name</value>
   </data>
   <data name="MD.Oven.Ph.Search" xml:space="preserve">
-    <value>Oven ID / Name</value>
+    <value>Oven ID/Name</value>
   </data>
   <data name="MD.PackagingSpec.Ph.Search" xml:space="preserve">
-    <value>Spec ID / Part ID</value>
+    <value>Spec ID/Part ID</value>
   </data>
   <data name="MD.PaintFabric.Ph.Search" xml:space="preserve">
-    <value>LOT ID / Mat. Code / Name</value>
+    <value>LOT ID/Mat. Code/Name</value>
   </data>
   <data name="MD.PmTemplate.Ph.Search" xml:space="preserve">
-    <value>Template ID / Name</value>
+    <value>Template ID/Name</value>
   </data>
   <data name="MD.RalColor.Ph.Search" xml:space="preserve">
-    <value>RAL code / Color name</value>
+    <value>RAL code/Color name</value>
   </data>
   <data name="MD.ReasonCode.Ph.Search" xml:space="preserve">
-    <value>Reason code / Name</value>
+    <value>Reason code/Name</value>
   </data>
   <data name="MD.Recipe.Ph.Search" xml:space="preserve">
-    <value>Recipe ID / Name</value>
+    <value>Recipe ID/Name</value>
   </data>
   <data name="MD.RfidReader.Ph.Search" xml:space="preserve">
-    <value>Reader ID / Name</value>
+    <value>Reader ID/Name</value>
   </data>
   <data name="MD.ShipmentDest.Ph.Search" xml:space="preserve">
-    <value>Dest. name / Customer</value>
+    <value>Dest. name/Customer</value>
   </data>
   <data name="MD.SparePart.Ph.Search" xml:space="preserve">
-    <value>Part No. / Name</value>
+    <value>Part No./Name</value>
   </data>
   <data name="MD.Uom.Ph.Search" xml:space="preserve">
-    <value>UOM code / Name</value>
+    <value>UOM code/Name</value>
   </data>
   <data name="MD.WorkCenter.Ph.Search" xml:space="preserve">
-    <value>WC ID / Name</value>
+    <value>WC ID/Name</value>
   </data>
   <data name="MD.CommonCode.Ph.GroupName" xml:space="preserve">
     <value>e.g. Defect Type</value>
@@ -5442,9 +5331,6 @@
   <data name="Col.ChangeReason" xml:space="preserve">
     <value>Change Reason</value>
   </data>
-  <data name="Opt.SelectItem" xml:space="preserve">
-    <value>Select part</value>
-  </data>
   <data name="Opt.RootLevel" xml:space="preserve">
     <value>Root level</value>
   </data>
@@ -5547,9 +5433,6 @@
   <data name="PP.SapImport.Empty" xml:space="preserve">
     <value>No SAP import data matches the conditions.</value>
   </data>
-  <data name="SYS.Interfaces.Filter.All" xml:space="preserve">
-    <value>— All —</value>
-  </data>
   <data name="SYS.Users.Lbl.Email" xml:space="preserve">
     <value>Email *</value>
   </data>
@@ -5584,12 +5467,33 @@
     <value>Car Type</value>
   </data>
   <data name="MD.RfidTag.Ph.Search" xml:space="preserve">
-    <value>TagID / EPC</value>
+    <value>TagID/EPC</value>
   </data>
   <data name="Modal.Create" xml:space="preserve">
     <value>Create</value>
   </data>
   <data name="Modal.Edit" xml:space="preserve">
     <value>Edit</value>
+  </data>
+  <data name="Col.StepCount" xml:space="preserve">
+    <value>Step count</value>
+  </data>
+  <data name="MD.Bop.CopyStep" xml:space="preserve">
+    <value>Copy steps</value>
+  </data>
+  <data name="MD.Bop.CopySource" xml:space="preserve">
+    <value>Source item</value>
+  </data>
+  <data name="MD.Bop.CopyHint" xml:space="preserve">
+    <value>Copy steps from an item with the same routing ({0})</value>
+  </data>
+  <data name="MD.Bop.CopyNoCandidates" xml:space="preserve">
+    <value>No item with the same routing to copy from</value>
+  </data>
+  <data name="MD.Bop.CopyConfirmOverwrite" xml:space="preserve">
+    <value>Delete the existing {0} step(s) and copy?</value>
+  </data>
+  <data name="MD.Bop.CopyOk" xml:space="preserve">
+    <value>Copied {0} step(s)</value>
   </data>
 </root>

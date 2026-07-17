@@ -45,7 +45,7 @@
                                 </div>
                             </Template>
                         </RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="MasterDataRepository.BopItemRow" Property="StepCount" Title="@L["Col.Seq"]" Width="52px" TextAlign="TextAlign.Center">
+                        <RadzenDataGridColumn TItem="MasterDataRepository.BopItemRow" Property="StepCount" Title="@L["Col.StepCount"]" Width="80px" TextAlign="TextAlign.Center">
                             <Template Context="item"><span class="pill info">@item.StepCount</span></Template>
                         </RadzenDataGridColumn>
                     </Columns>
@@ -85,7 +85,10 @@
                         </div>
                         @if (_canEdit)
                         {
-                            <RadzenButton Text="@L["MD.Bop.AddStep"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenStepCreate" class="ames-rz-btn" />
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                <RadzenButton Text="@L["MD.Bop.CopyStep"]" Icon="content_copy" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="@OpenStepCopy" class="ames-rz-btn" />
+                                <RadzenButton Text="@L["MD.Bop.AddStep"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenStepCreate" class="ames-rz-btn" />
+                            </RadzenStack>
                         }
                     </div>
                 </div>
@@ -157,7 +160,7 @@
 @if (_modal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
-        <div class="ames-modal" style="max-width:560px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Bop.Title"] — @L["Modal.Create"]</div>
 
             @StepFormFields(false)
@@ -179,7 +182,7 @@
 @if (_modal == "edit")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
-        <div class="ames-modal" style="max-width:560px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">
                 @L["MD.Bop.Title"] — @L["Modal.Edit"]
                 <span class="pill info" style="margin-left:8px;font-size:.8em;">@_f.RoutingType</span>
@@ -211,6 +214,52 @@
     </div>
 }
 
+@* ── 단계 복사 모달 ─────────────────────────────────────────────────── *@
+@if (_modal == "copy")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">
+                @L["MD.Bop.CopyStep"]
+                <span class="dim" style="margin-left:6px;font-size:.88em;font-weight:400;">→ @_selItem?.ItemNo</span>
+            </div>
+
+            <div class="dim" style="font-size:.85em;">@string.Format(L["MD.Bop.CopyHint"], ItemRouting(_selItem?.ItemNo))</div>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
+                <RadzenLabel Text='@($"{L["MD.Bop.CopySource"]} *")' class="ames-rz-modal-label" Component="CopySourceDd" />
+                @if (_copyCandidates.Count == 0)
+                {
+                    <span class="dim" style="flex:1;">@L["MD.Bop.CopyNoCandidates"]</span>
+                }
+                else
+                {
+                    <RadzenDropDown Name="CopySourceDd" @bind-Value="_copySource" Data="@CopyOptions" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                }
+            </RadzenStack>
+
+            @if (_copyConfirm)
+            {
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
+                    <span>@string.Format(L["MD.Bop.CopyConfirmOverwrite"], _selItem?.StepCount)</span>
+                    <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _copyConfirm = false' class="ames-rz-btn" />
+                    <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@DoCopy" Disabled="@_busy" class="ames-rz-btn" />
+                </RadzenStack>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["MD.Bop.CopyStep"])" Click="@SaveCopy" Disabled="@(_busy || _copyCandidates.Count == 0)" Icon="content_copy" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
 @code {
     IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
     bool _showPagerSummary = true;
@@ -218,10 +267,15 @@
     List<MasterDataRepository.BopRow>        _steps    = new();
     List<MasterDataRepository.ItemRow>       _itemList = new();
     List<MasterDataRepository.StationRow>    _stationList = new();
+    List<MasterDataRepository.CodeItemRow>   _routingItems = new();
     MasterDataRepository.BopItemRow?         _selItem;
     List<string> _routingTypes = new();
     string? _rtFilter;
     string  _search = "";
+
+    List<MasterDataRepository.BopItemRow> _copyCandidates = new();
+    string _copySource = "";
+    bool   _copyConfirm;
 
     string _modal = "", _modalErr = "", _msg = "";
     bool   _isErr, _busy, _bgDown, _confirmDelete;
@@ -238,6 +292,7 @@
         _canEdit = PermSvc.CanEdit("md/rp/bop");
         try { _itemList = MD.ListItems();       } catch { }
         try { _stationList = MD.ListStations(); } catch { }
+        try { _routingItems = MD.ListCodeItems("ROUTING"); } catch { }
         LoadItems();
     }
 
@@ -286,10 +341,52 @@
 
     void OnStepRowSelect(MasterDataRepository.BopRow step) { if (_canEdit) OpenStepEdit(step); }
 
-    void CloseModal() { _modal = ""; _modalErr = ""; _confirmDelete = false; }
+    // 선택 품목(MD_Item)에 정의된 RoutingType 을 그대로 사용 (수정 불가)
+    string ItemRouting(string? itemNo, string? fallback = null)
+        => _itemList.FirstOrDefault(i => i.ItemNo == itemNo)?.RoutingType is { Length: > 0 } rt ? rt : (fallback ?? "");
+
+    void CloseModal() { _modal = ""; _modalErr = ""; _confirmDelete = false; _copyConfirm = false; _copySource = ""; }
 
     void OnBgDown()  => _bgDown = true;
     void OnBgClick() { if (_bgDown) CloseModal(); _bgDown = false; }
+
+    // ── 단계 복사 ──────────────────────────────────────────────
+    void OpenStepCopy()
+    {
+        if (_selItem is null) return;
+        var targetRt = ItemRouting(_selItem.ItemNo);
+        _copyCandidates = MD.ListBopItems(null)
+            .Where(i => i.StepCount > 0
+                     && i.ItemNo != _selItem.ItemNo
+                     && ItemRouting(i.ItemNo) == targetRt)
+            .ToList();
+        _copySource = ""; _copyConfirm = false; _modalErr = ""; _modal = "copy";
+    }
+
+    void SaveCopy()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_copySource)) { _modalErr = L["Opt.Select"]; return; }
+        if ((_selItem?.StepCount ?? 0) > 0 && !_copyConfirm) { _copyConfirm = true; return; }
+        DoCopy();
+    }
+
+    void DoCopy()
+    {
+        if (_selItem is null || string.IsNullOrWhiteSpace(_copySource)) return;
+        _busy = true;
+        try
+        {
+            int n = MD.CopyBopSteps(_copySource, _selItem.ItemNo, (_selItem.StepCount) > 0, _actor);
+            var itemNo = _selItem.ItemNo;
+            LoadItems();
+            _selItem = _items.FirstOrDefault(i => i.ItemNo == itemNo) ?? _selItem;
+            LoadSteps(); CloseModal();
+            ShowMsg(string.Format(L["MD.Bop.CopyOk"].Value, n), false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
 
     void OpenStepCreate()
     {
@@ -297,7 +394,7 @@
         _f = new()
         {
             ItemNo      = _selItem?.ItemNo ?? "",
-            RoutingType = _rtFilter ?? "A",
+            RoutingType = ItemRouting(_selItem?.ItemNo),
             StepSeq     = nextSeq,
         };
         _confirmDelete = false; _modalErr = ""; _modal = "create";
@@ -309,7 +406,7 @@
         {
             BopId       = step.BOPID,
             ItemNo      = step.ItemNo         ?? "",
-            RoutingType = step.RoutingType    ?? "A",
+            RoutingType = ItemRouting(step.ItemNo, step.RoutingType),
             StepSeq     = step.StepSeq        ?? 10,
             StationCode = step.StationCode    ?? "",
             CycleTime   = step.StdCycleTime   ?? 0,
@@ -395,20 +492,13 @@
     @<div>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
             <RadzenLabel Text='@($"{L["Col.ItemNo"]} *")' class="ames-rz-modal-label" Component="StepFormItemNo" />
-            @if (editMode)
-            {
-                <RadzenTextBox Name="StepFormItemNo" Value="@_f.ItemNo" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
-            }
-            else
-            {
-                <RadzenDropDown Name="StepFormItemNo" @bind-Value="_f.ItemNo" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.SelectItem"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
-            }
+            <RadzenDropDown Name="StepFormItemNo" @bind-Value="_f.ItemNo" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" Disabled="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
         </RadzenStack>
 
         <RadzenRow Gap="8px" Style="margin-top:6px;">
             <RadzenColumn Size="6">
-                <RadzenLabel Text="Routing *" />
-                <RadzenTextBox @bind-Value="_f.RoutingType" Placeholder="A" MaxLength="1" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;text-transform:uppercase;" />
+                <RadzenLabel Text="Routing" />
+                <RadzenDropDown @bind-Value="_f.RoutingType" Data="@RoutingOptions" TextProperty="Text" ValueProperty="Value" Disabled="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="6">
                 <RadzenLabel Text='@($"{L["Col.StepSeq"]} *")' />
@@ -456,6 +546,8 @@
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
     private IEnumerable<DropDownItem> ItemOptions => _itemList.Select(i => new DropDownItem { Value = i.ItemNo, Text = $"[{i.ItemNo}] {i.ItemName}" });
+    private IEnumerable<DropDownItem> RoutingOptions => _routingItems.Where(r => r.UseFlag).Select(r => new DropDownItem { Value = r.CodeValue ?? "", Text = $"[{r.CodeValue}] {MasterDataRepository.LocalName(r)}" });
+    private IEnumerable<DropDownItem> CopyOptions => _copyCandidates.Select(i => new DropDownItem { Value = i.ItemNo, Text = $"[{i.ItemNo}] {i.ItemName} ({i.StepCount})" });
     private IEnumerable<DropDownItem> StationOptions => _stationList.Select(s => new DropDownItem { Value = s.StationCode, Text = $"[{s.StationCode}] {MasterDataRepository.LocalName(s.StationName, s.StationNameEn)}" });
 
     class StepForm

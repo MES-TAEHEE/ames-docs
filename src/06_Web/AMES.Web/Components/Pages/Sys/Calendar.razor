@@ -225,7 +225,7 @@
 @if (_modal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" style="max-width:780px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["SYS.Calendar.Modal.Generate"]</div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -330,7 +330,7 @@
 @if (_modal == "edit" && _selDate.HasValue)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" style="max-width:780px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">
                 @_selDate.Value.ToString("yyyy-MM-dd ddd")
                 <span class="dim" style="font-weight:400;font-size:.85em;margin-left:8px;">@L["SYS.Calendar.Lbl.EditTitle"]</span>

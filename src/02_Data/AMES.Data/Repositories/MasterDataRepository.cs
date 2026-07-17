@@ -612,6 +612,42 @@ public sealed class MasterDataRepository
     public void DeleteBopStep(string bopId)
         => Exec("DELETE dbo.MD_Bop WHERE BOPID=@I", ("@I", bopId));
 
+    // 소스 품번의 모든 단계를 대상 품번으로 복사 (BOPID/ItemNo 만 새로, 나머지는 동일)
+    // overwrite=true 이면 대상 기존 단계 삭제 후 복사. 복사한 단계 수 반환.
+    public int CopyBopSteps(string sourceItemNo, string targetItemNo, bool overwrite, string createdBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var tx = conn.BeginTransaction();
+        try
+        {
+            if (overwrite)
+            {
+                using var del = new SqlCommand("DELETE dbo.MD_Bop WHERE ItemNo=@T;", conn, tx);
+                del.Parameters.Add("@T", SqlDbType.VarChar, 20).Value = targetItemNo;
+                del.ExecuteNonQuery();
+            }
+            using var ins = new SqlCommand("""
+                INSERT INTO dbo.MD_Bop
+                    (BOPID, ItemNo, RoutingType, StepSeq, StationCode,
+                     StdCycleTime, StdSetupTime, QcRequiredFlag, StepDescription,
+                     ActiveFlag, CreatedBy, CreatedTS)
+                SELECT 'P' + LEFT(REPLACE(CONVERT(varchar(36), NEWID()), '-', ''), 23),
+                       @T, RoutingType, StepSeq, StationCode,
+                       StdCycleTime, StdSetupTime, QcRequiredFlag, StepDescription,
+                       ISNULL(ActiveFlag,1), @By, SYSDATETIME()
+                FROM   dbo.MD_Bop
+                WHERE  ItemNo=@S;
+                """, conn, tx);
+            ins.Parameters.Add("@T",  SqlDbType.VarChar, 20).Value = targetItemNo;
+            ins.Parameters.Add("@S",  SqlDbType.VarChar, 20).Value = sourceItemNo;
+            ins.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = createdBy;
+            int n = ins.ExecuteNonQuery();
+            tx.Commit();
+            return n;
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
     public record BopItemRow(string ItemNo, string ItemName, int StepCount);
 
     public record BopRow(

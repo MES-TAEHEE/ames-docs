@@ -820,10 +820,11 @@ a:hover { color: #c4dafe; }
 }
 .ames-modal {
     background: #0d1b2e; border: 1px solid rgba(255,255,255,.12);
-    border-radius: 10px; padding: 28px 32px; min-width: 400px; max-width: 520px;
+    border-radius: 10px; padding: 28px 32px; min-width: 400px; max-width: 640px;
     width: 100%; display: flex; flex-direction: column; gap: 10px;
     max-height: calc(100vh - 40px); overflow-y: auto;
 }
+.ames-modal.ames-modal-wide { max-width: 800px; }
 .ames-modal-h {
     font-family: 'JetBrains Mono', monospace; font-size: 16px;
     color: #93c5fd; letter-spacing: 1px; text-transform: uppercase;

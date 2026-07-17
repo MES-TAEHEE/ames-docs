@@ -108,7 +108,7 @@
 @if (_sel is not null)
 {
     <div class="ames-modal-bg" @onclick="() => _sel = null">
-        <div class="ames-modal" style="min-width:540px;max-width:640px;" @onclick:stopPropagation>
+        <div class="ames-modal" @onclick:stopPropagation>
             <div class="ames-modal-h" style="display:flex;align-items:center;gap:10px;">
                 <span>@L["SYS.Audit.Detail"]</span>
                 @ResultPill(_sel.Result)
