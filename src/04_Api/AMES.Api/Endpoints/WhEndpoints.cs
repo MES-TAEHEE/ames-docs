@@ -9,11 +9,14 @@ public static class WhEndpoints
 {
     private const string WhLocationCorcd = "5010";
     private const string WhLocationBizcd = "5011";
+    private const string PdaScheduleInboundProcedure = "WH_PDA_SCHEDULE_INBOUND_LIST";
+    private const string PdaScheduleReleaseProcedure = "WH_PDA_SCHEDULE_RELEASE_LIST";
 
     // ── DTOs ─────────────────────────────────────────────────────────────
-    public sealed record InboundScheduleRow(int PoId, string PoNumber, int? PoLineNo, string? VendorId,
-        string? ItemNo, string? ItemName, string? CarCode, string? Unit, decimal OrderQty, decimal ReceivedQty,
-        decimal NonDeliverQty, DateTime? DueDate, DateTime? PoCreateDate, string? Status);
+    public sealed record Wh001ScheduleInboundItem(int ScheduleItemId, string PurchaseOrderNo, int? PurchaseOrderLineNo,
+        string? SupplierName, string? MaterialNo, string? MaterialName, string? CarCode, string? UnitOfMeasure,
+        decimal PurchaseOrderQty, decimal ReceivedQty, decimal RemainingQty, DateTime? ExpectedArrivalDate,
+        DateTime? PurchaseOrderCreatedDate, string ReceiptStatus);
 
     public sealed record InventoryRow(int InventoryId, string ItemNo, string? ItemName, string LocationId,
         int? LotId, decimal OnHandQty, decimal ReservedQty, DateTime? ExpiryDate);
@@ -36,10 +39,11 @@ public static class WhEndpoints
         string? ReasonNote, string SupervisorPin);
     public sealed record InboundReceiveResult(bool Success, string Message, InboundScanRow? Row);
 
-    public sealed record ReleaseScheduleRow(string PickSlipNo, string? RequestLocation, DateTime? RequestDate,
-        string? RequestTime, DateTime? PrintDate, DateTime? CloseDate, string? CloseUserId,
-        int LineCount, decimal RequestBoxQty, decimal PickedBoxQty, decimal RequestQty, decimal PickedQty,
-        string Status, string? FirstItemNo, string? FirstItemName, string? SuggestedLocation, string? SuggestedZone);
+    public sealed record Wh001ScheduleReleaseItem(string PickSlipNo, string? DestinationLocation, DateTime? RequiredDate,
+        string? RequiredTime, DateTime? PrintedAt, DateTime? ClosedAt, string? ClosedBy,
+        int MaterialLineCount, decimal RequestedBoxQty, decimal PickedBoxQty, decimal RequestedQty, decimal PickedQty,
+        string PickStatus, string? FirstMaterialNo, string? FirstMaterialName, string? SuggestedPickLocation,
+        string? SuggestedPickZone);
 
     public sealed record ReleaseSlipStatusRow(string PickSlipNo, bool Exists, bool IsClosed, int LineCount,
         string? RequestLocation, DateTime? RequestDate, DateTime? CloseDate, string Message);
@@ -66,62 +70,15 @@ public static class WhEndpoints
     {
         var g = app.MapGroup("/api/wh").WithTags("Warehouse");
 
-        // WH-01 Inbound Schedule
-        g.MapGet("/inbound/schedule", (HttpContext ctx, int? year, int? quarter, string? vendorId, string? lang) =>
+        // WH-001 Schedule - inbound tab
+        IResult GetWh001ScheduleInbound(HttpContext ctx, int? year, int? quarter, string? vendorId, string? lang)
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
+            return Results.Ok(QueryWh001ScheduleInbound(factory, year, quarter, vendorId, lang));
+        }
 
-            var today = DateTime.Today;
-            var queryYear = year ?? today.Year;
-            var queryQuarter = quarter ?? ((today.Month - 1) / 3) + 1;
-            var language = string.IsNullOrWhiteSpace(lang) ? "EN" : lang;
-
-            using var conn = factory.OpenConnection();
-            using var cmd = new SqlCommand("[SIS_TEST].[APG_WM40120_INQUERY_VENDER_BACK_ORDER]", conn)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-            cmd.Parameters.AddWithValue("@IN_CORCD", "1000");
-            cmd.Parameters.AddWithValue("@IN_BIZCD", "5011");
-            cmd.Parameters.AddWithValue("@IN_YYYY", queryYear.ToString());
-            cmd.Parameters.AddWithValue("@IN_QUATER", queryQuarter.ToString());
-            cmd.Parameters.AddWithValue("@IN_VENDCD", string.IsNullOrWhiteSpace(vendorId) ? DBNull.Value : vendorId);
-            cmd.Parameters.AddWithValue("@IN_LANG_SET", language);
-
-            using var rdr = cmd.ExecuteReader();
-            var rows = new List<InboundScheduleRow>();
-            var poId = 1;
-            while (rdr.Read())
-            {
-                var orderQty = GetDecimal(rdr, "PO_QTY");
-                var receivedQty = GetDecimal(rdr, "GRN_QTY");
-                var remainQty = GetDecimal(rdr, "NON_DELI_QTY");
-                var dueDate = GetDate(rdr, "PO_DELI_DATE");
-                var poCreateDate = GetDate(rdr, "PO_DATE");
-                var status = remainQty <= 0
-                    ? "Complete"
-                    : dueDate.HasValue && dueDate.Value.Date < today ? "Late"
-                    : "In Progress";
-
-                rows.Add(new InboundScheduleRow(
-                    poId++,
-                    GetString(rdr, "PONO") ?? "",
-                    GetInt(rdr, "PONO_SEQ"),
-                    GetString(rdr, "VENDNM") ?? GetString(rdr, "VENDCD"),
-                    GetString(rdr, "PARTNO"),
-                    GetString(rdr, "PARTNM"),
-                    GetString(rdr, "VINCD"),
-                    GetString(rdr, "PO_UNIT"),
-                    orderQty,
-                    receivedQty,
-                    remainQty,
-                    dueDate,
-                    poCreateDate,
-                    status));
-            }
-
-            return Results.Ok(rows);
-        });
+        g.MapGet("/schedule/inbound", GetWh001ScheduleInbound);
+        g.MapGet("/inbound/schedule", GetWh001ScheduleInbound);
 
         // Today's inbound (kept from earlier sample)
         g.MapGet("/inbound/today", (HttpContext ctx) =>
@@ -291,12 +248,15 @@ public static class WhEndpoints
             return Results.Ok(new { AdjustId = id });
         });
 
-        // WH-06 Release Schedule
-        g.MapGet("/release/schedule", (HttpContext ctx) =>
+        // WH-001 Schedule - release tab
+        IResult GetWh001ScheduleRelease(HttpContext ctx)
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
-            return Results.Ok(QueryReleaseSchedule(factory));
-        });
+            return Results.Ok(QueryWh001ScheduleRelease(factory));
+        }
+
+        g.MapGet("/schedule/release", GetWh001ScheduleRelease);
+        g.MapGet("/release/schedule", GetWh001ScheduleRelease);
 
         g.MapGet("/release/schedule/{pickSlipNo}/status", (HttpContext ctx, string pickSlipNo) =>
         {
@@ -417,11 +377,65 @@ public static class WhEndpoints
     public sealed record InboundRowDto(int LotId, string LotCode, string? ItemNo, string? ItemName,
         decimal Qty, string? Vendor, DateTime? ArrivedAt);
 
-    private static List<ReleaseScheduleRow> QueryReleaseSchedule(AmesConnectionFactory factory)
+    private static List<Wh001ScheduleInboundItem> QueryWh001ScheduleInbound(
+        AmesConnectionFactory factory,
+        int? year,
+        int? quarter,
+        string? vendorId,
+        string? lang)
+    {
+        var today = DateTime.Today;
+        var queryYear = year ?? today.Year;
+        var queryQuarter = quarter ?? ((today.Month - 1) / 3) + 1;
+        var language = string.IsNullOrWhiteSpace(lang) ? "EN" : lang;
+
+        using var conn = factory.OpenConnection();
+        var hasScheduleProcedure = ProcedureExists(conn, "dbo", PdaScheduleInboundProcedure);
+        if (!hasScheduleProcedure)
+            return new List<Wh001ScheduleInboundItem>();
+
+        using var cmd = new SqlCommand($"[dbo].[{PdaScheduleInboundProcedure}]", conn)
+        {
+            CommandType = CommandType.StoredProcedure
+        };
+
+        cmd.Parameters.AddWithValue("@CompanyCode", "1000");
+        cmd.Parameters.AddWithValue("@BusinessCode", "5011");
+        cmd.Parameters.AddWithValue("@ScheduleYear", queryYear.ToString());
+        cmd.Parameters.AddWithValue("@ScheduleQuarter", queryQuarter.ToString());
+        cmd.Parameters.Add("@SupplierCode", SqlDbType.NVarChar, 10).Value =
+            string.IsNullOrWhiteSpace(vendorId) ? DBNull.Value : vendorId;
+        cmd.Parameters.AddWithValue("@LanguageCode", language);
+
+        using var rdr = cmd.ExecuteReader();
+        var rows = new List<Wh001ScheduleInboundItem>();
+        var scheduleItemId = 1;
+        while (rdr.Read())
+        {
+            rows.Add(ReadWh001ScheduleInboundItem(rdr, today, scheduleItemId++));
+        }
+
+        return rows;
+    }
+
+    private static List<Wh001ScheduleReleaseItem> QueryWh001ScheduleRelease(AmesConnectionFactory factory)
     {
         using var conn = factory.OpenConnection();
+        if (ProcedureExists(conn, "dbo", PdaScheduleReleaseProcedure))
+        {
+            using var wh001Cmd = new SqlCommand($"[dbo].[{PdaScheduleReleaseProcedure}]", conn)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            using var wh001Rdr = wh001Cmd.ExecuteReader();
+            var wh001Rows = new List<Wh001ScheduleReleaseItem>();
+            while (wh001Rdr.Read()) wh001Rows.Add(ReadWh001ScheduleReleaseItem(wh001Rdr));
+            return wh001Rows;
+        }
+
         if (!HasReleaseTables(conn))
-            return QueryDemoReleaseSchedule(conn);
+            return QueryDemoWh001ScheduleRelease(conn);
 
         using var cmd = new SqlCommand("""
             WITH Header AS (
@@ -508,8 +522,8 @@ public static class WhEndpoints
             """, conn);
 
         using var rdr = cmd.ExecuteReader();
-        var rows = new List<ReleaseScheduleRow>();
-        while (rdr.Read()) rows.Add(ReadReleaseScheduleRow(rdr));
+        var rows = new List<Wh001ScheduleReleaseItem>();
+        while (rdr.Read()) rows.Add(ReadWh001ScheduleReleaseItem(rdr));
         return rows;
     }
 
@@ -825,10 +839,10 @@ public static class WhEndpoints
            && TableExists(conn, tx, "SIS_TEST", "ACD0020")
            && TableExists(conn, tx, "SIS_TEST", "ACD0020L");
 
-    private static List<ReleaseScheduleRow> QueryDemoReleaseSchedule(SqlConnection conn)
+    private static List<Wh001ScheduleReleaseItem> QueryDemoWh001ScheduleRelease(SqlConnection conn)
     {
         if (!TableExists(conn, null, "dbo", "WH_ReleaseSchedule"))
-            return new List<ReleaseScheduleRow>();
+            return new List<Wh001ScheduleReleaseItem>();
 
         using var cmd = new SqlCommand("""
             SELECT TOP (50)
@@ -855,35 +869,79 @@ public static class WhEndpoints
             ORDER BY ISNULL(rs.RequiredAt, '9999-01-01'), rs.ReleaseScheduleID;
             """, conn);
         using var rdr = cmd.ExecuteReader();
-        var rows = new List<ReleaseScheduleRow>();
-        while (rdr.Read()) rows.Add(ReadReleaseScheduleRow(rdr));
+        var rows = new List<Wh001ScheduleReleaseItem>();
+        while (rdr.Read()) rows.Add(ReadWh001ScheduleReleaseItem(rdr));
         return rows;
     }
 
-    private static ReleaseScheduleRow ReadReleaseScheduleRow(SqlDataReader rdr)
+    private static Wh001ScheduleInboundItem ReadWh001ScheduleInboundItem(
+        SqlDataReader rdr,
+        DateTime today,
+        int scheduleItemId)
+    {
+        var purchaseOrderQty = GetDecimal(rdr, "PurchaseOrderQty");
+        if (!HasColumn(rdr, "PurchaseOrderQty")) purchaseOrderQty = GetDecimal(rdr, "PO_QTY");
+
+        var receivedQty = GetDecimal(rdr, "ReceivedQty");
+        if (!HasColumn(rdr, "ReceivedQty")) receivedQty = GetDecimal(rdr, "GRN_QTY");
+
+        var remainingQty = GetDecimal(rdr, "RemainingQty");
+        if (!HasColumn(rdr, "RemainingQty")) remainingQty = GetDecimal(rdr, "NON_DELI_QTY");
+
+        var expectedArrivalDate = GetDate(rdr, "ExpectedArrivalDate") ?? GetDate(rdr, "PO_DELI_DATE");
+        var receiptStatus = remainingQty <= 0
+            ? "Complete"
+            : expectedArrivalDate.HasValue && expectedArrivalDate.Value.Date < today ? "Late"
+            : "In Progress";
+
+        return new Wh001ScheduleInboundItem(
+            scheduleItemId,
+            GetString(rdr, "PurchaseOrderNo") ?? GetString(rdr, "PONO") ?? "",
+            GetInt(rdr, "PurchaseOrderLineNo") ?? GetInt(rdr, "PONO_SEQ"),
+            GetString(rdr, "SupplierName") ?? GetString(rdr, "VENDNM") ?? GetString(rdr, "VENDCD"),
+            GetString(rdr, "MaterialNo") ?? GetString(rdr, "PARTNO"),
+            GetString(rdr, "MaterialName") ?? GetString(rdr, "PARTNM"),
+            GetString(rdr, "CarCode") ?? GetString(rdr, "VINCD"),
+            GetString(rdr, "UnitOfMeasure") ?? GetString(rdr, "PO_UNIT"),
+            purchaseOrderQty,
+            receivedQty,
+            remainingQty,
+            expectedArrivalDate,
+            GetDate(rdr, "PurchaseOrderCreatedDate") ?? GetDate(rdr, "PO_DATE"),
+            GetString(rdr, "ReceiptStatus") ?? receiptStatus);
+    }
+
+    private static Wh001ScheduleReleaseItem ReadWh001ScheduleReleaseItem(SqlDataReader rdr)
         => new(
-            GetString(rdr, "PICK_SLIPNO") ?? "",
-            GetString(rdr, "REQ_LOCATION"),
-            GetDate(rdr, "REQ_DATE"),
-            GetString(rdr, "REQ_TIME"),
-            GetDate(rdr, "PRINT_DATE"),
-            GetDate(rdr, "CLOSE_DATE"),
-            GetString(rdr, "CLOSE_USER_ID"),
-            GetInt(rdr, "LINE_COUNT") ?? 0,
-            GetDecimal(rdr, "REQ_BOX_QTY"),
-            GetDecimal(rdr, "PICKED_BOX_QTY"),
-            GetDecimal(rdr, "REQ_QTY"),
-            GetDecimal(rdr, "PICKED_QTY"),
-            GetString(rdr, "STATUS") ?? "Open",
-            GetString(rdr, "FIRST_PARTNO"),
-            GetString(rdr, "FIRST_PARTNM"),
-            GetString(rdr, "SUGGESTED_LOCATION"),
-            GetString(rdr, "SUGGESTED_ZONE"));
+            GetString(rdr, "PickSlipNo") ?? GetString(rdr, "PICK_SLIPNO") ?? "",
+            GetString(rdr, "DestinationLocation") ?? GetString(rdr, "REQ_LOCATION"),
+            GetDate(rdr, "RequiredDate") ?? GetDate(rdr, "REQ_DATE"),
+            GetString(rdr, "RequiredTime") ?? GetString(rdr, "REQ_TIME"),
+            GetDate(rdr, "PrintedAt") ?? GetDate(rdr, "PRINT_DATE"),
+            GetDate(rdr, "ClosedAt") ?? GetDate(rdr, "CLOSE_DATE"),
+            GetString(rdr, "ClosedBy") ?? GetString(rdr, "CLOSE_USER_ID"),
+            GetInt(rdr, "MaterialLineCount") ?? GetInt(rdr, "LINE_COUNT") ?? 0,
+            GetDecimal(rdr, "RequestedBoxQty") != 0 ? GetDecimal(rdr, "RequestedBoxQty") : GetDecimal(rdr, "REQ_BOX_QTY"),
+            GetDecimal(rdr, "PickedBoxQty") != 0 ? GetDecimal(rdr, "PickedBoxQty") : GetDecimal(rdr, "PICKED_BOX_QTY"),
+            GetDecimal(rdr, "RequestedQty") != 0 ? GetDecimal(rdr, "RequestedQty") : GetDecimal(rdr, "REQ_QTY"),
+            GetDecimal(rdr, "PickedQty") != 0 ? GetDecimal(rdr, "PickedQty") : GetDecimal(rdr, "PICKED_QTY"),
+            GetString(rdr, "PickStatus") ?? GetString(rdr, "STATUS") ?? "Open",
+            GetString(rdr, "FirstMaterialNo") ?? GetString(rdr, "FIRST_PARTNO"),
+            GetString(rdr, "FirstMaterialName") ?? GetString(rdr, "FIRST_PARTNM"),
+            GetString(rdr, "SuggestedPickLocation") ?? GetString(rdr, "SUGGESTED_LOCATION"),
+            GetString(rdr, "SuggestedPickZone") ?? GetString(rdr, "SUGGESTED_ZONE"));
 
     private static bool TableExists(SqlConnection conn, SqlTransaction? tx, string schema, string table)
     {
         using var cmd = new SqlCommand("SELECT CASE WHEN OBJECT_ID(@ObjectName, N'U') IS NULL THEN 0 ELSE 1 END;", conn, tx);
         cmd.Parameters.Add("@ObjectName", SqlDbType.NVarChar, 256).Value = $"{schema}.{table}";
+        return Convert.ToInt32(cmd.ExecuteScalar()) == 1;
+    }
+
+    private static bool ProcedureExists(SqlConnection conn, string schema, string procedure)
+    {
+        using var cmd = new SqlCommand("SELECT CASE WHEN OBJECT_ID(@ObjectName, N'P') IS NULL THEN 0 ELSE 1 END;", conn);
+        cmd.Parameters.Add("@ObjectName", SqlDbType.NVarChar, 256).Value = $"{schema}.{procedure}";
         return Convert.ToInt32(cmd.ExecuteScalar()) == 1;
     }
 

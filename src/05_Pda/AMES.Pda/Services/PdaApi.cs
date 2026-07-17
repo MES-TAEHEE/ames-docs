@@ -139,9 +139,10 @@ public sealed class PdaApi
     // ── WH ───────────────────────────────────────────────────────────────
     public sealed record InboundRow(int LotId, string LotCode, string? ItemNo, string? ItemName,
         decimal Qty, string? Vendor, DateTime? ArrivedAt);
-    public sealed record InboundScheduleRow(int PoId, string PoNumber, int? PoLineNo, string? VendorId,
-        string? ItemNo, string? ItemName, string? CarCode, string? Unit, decimal OrderQty, decimal ReceivedQty,
-        decimal NonDeliverQty, DateTime? DueDate, DateTime? PoCreateDate, string? Status);
+    public sealed record Wh001ScheduleInboundItem(int ScheduleItemId, string PurchaseOrderNo, int? PurchaseOrderLineNo,
+        string? SupplierName, string? MaterialNo, string? MaterialName, string? CarCode, string? UnitOfMeasure,
+        decimal PurchaseOrderQty, decimal ReceivedQty, decimal RemainingQty, DateTime? ExpectedArrivalDate,
+        DateTime? PurchaseOrderCreatedDate, string ReceiptStatus);
     public sealed record InboundScanRow(string ReceiveType, string? Yn, string LotNo, string Barcode,
         string? SourceTable, string? NoteNo, string? CaseBarcode, string? CaseNo, string? InvoiceNo,
         string? ContainerNo, string? PartNo, string? PartName, decimal Qty, string? Unit, string? PoNo,
@@ -168,10 +169,11 @@ public sealed class PdaApi
         string? PlantCode = null, string? LocationType = null, decimal? Capacity = null);
     public sealed record LocationMapItemRow(string LotNo, string? PartNo, string? PartName, decimal Qty, string? Unit,
         string? InventoryStatus, string? WorkDate, string? WorkTime);
-    public sealed record ReleaseScheduleRow(string PickSlipNo, string? RequestLocation, DateTime? RequestDate,
-        string? RequestTime, DateTime? PrintDate, DateTime? CloseDate, string? CloseUserId,
-        int LineCount, decimal RequestBoxQty, decimal PickedBoxQty, decimal RequestQty, decimal PickedQty,
-        string Status, string? FirstItemNo, string? FirstItemName, string? SuggestedLocation, string? SuggestedZone);
+    public sealed record Wh001ScheduleReleaseItem(string PickSlipNo, string? DestinationLocation, DateTime? RequiredDate,
+        string? RequiredTime, DateTime? PrintedAt, DateTime? ClosedAt, string? ClosedBy,
+        int MaterialLineCount, decimal RequestedBoxQty, decimal PickedBoxQty, decimal RequestedQty, decimal PickedQty,
+        string PickStatus, string? FirstMaterialNo, string? FirstMaterialName, string? SuggestedPickLocation,
+        string? SuggestedPickZone);
     public sealed record ReleaseSlipStatusRow(string PickSlipNo, bool Exists, bool IsClosed, int LineCount,
         string? RequestLocation, DateTime? RequestDate, DateTime? CloseDate, string Message);
     public sealed record ReleasePickLineRow(string PickSlipNo, string ItemNo, string? ItemName,
@@ -195,24 +197,15 @@ public sealed class PdaApi
     public sealed record PickResult(bool Success, string Message, ReleaseLotRow? Row);
 
     public Task<List<InboundRow>>         WhInboundTodayAsync()    => Get<List<InboundRow>>("/api/wh/inbound/today");
-    public async Task<List<InboundScheduleRow>> WhInboundScheduleAsync(int? year = null, int? quarter = null, string? vendorId = null)
+    public async Task<List<Wh001ScheduleInboundItem>> Wh001ScheduleInboundAsync(int? year = null, int? quarter = null, string? vendorId = null)
     {
-        try
-        {
-            return await QueryWhInboundScheduleDbAsync(year, quarter, vendorId);
-        }
-        catch
-        {
-            // Keep the older API route as a fallback while WH-01 reads SIS_TEST directly.
-        }
-
         var args = new List<string>();
         if (year.HasValue) args.Add($"year={year.Value}");
         if (quarter.HasValue) args.Add($"quarter={quarter.Value}");
         if (!string.IsNullOrWhiteSpace(vendorId)) args.Add($"vendorId={Uri.EscapeDataString(vendorId)}");
 
         var query = args.Count == 0 ? "" : "?" + string.Join("&", args);
-        return await Get<List<InboundScheduleRow>>("/api/wh/inbound/schedule" + query);
+        return await Get<List<Wh001ScheduleInboundItem>>("/api/wh/schedule/inbound" + query);
     }
     public async Task<List<InventoryRow>> WhInventoryAsync(string? q = null, DateTime? dateFrom = null, DateTime? dateTo = null)
     {
@@ -315,7 +308,8 @@ public sealed class PdaApi
             return (await WhLocationsAsync()).FirstOrDefault()?.LocationId;
         }
     }
-    public Task<List<ReleaseScheduleRow>> WhReleaseScheduleAsync() => Get<List<ReleaseScheduleRow>>("/api/wh/release/schedule");
+    public Task<List<Wh001ScheduleReleaseItem>> Wh001ScheduleReleaseAsync() =>
+        Get<List<Wh001ScheduleReleaseItem>>("/api/wh/schedule/release");
     public async Task<ReleaseSlipStatusRow?> WhReleaseSlipStatusAsync(string pickSlipNo)
     {
         Authorize();
@@ -742,60 +736,6 @@ public sealed class PdaApi
         while (await rdr.ReadAsync())
         {
             rows.Add(ReadInboundTransactionLogRow(rdr));
-        }
-
-        return rows;
-    }
-
-    private async Task<List<InboundScheduleRow>> QueryWhInboundScheduleDbAsync(int? year, int? quarter, string? vendorId)
-    {
-        var today = DateTime.Today;
-        var queryYear = year ?? today.Year;
-        var queryQuarter = quarter ?? ((today.Month - 1) / 3) + 1;
-
-        await using var conn = _db.CreateConnection();
-        await conn.OpenAsync();
-        await using var cmd = new SqlCommand("[SIS_TEST].[APG_WM40120_INQUERY_VENDER_BACK_ORDER]", conn)
-        {
-            CommandType = CommandType.StoredProcedure
-        };
-        cmd.Parameters.AddWithValue("@IN_CORCD", "1000");
-        cmd.Parameters.AddWithValue("@IN_BIZCD", "5011");
-        cmd.Parameters.AddWithValue("@IN_YYYY", queryYear.ToString());
-        cmd.Parameters.AddWithValue("@IN_QUATER", queryQuarter.ToString());
-        cmd.Parameters.Add("@IN_VENDCD", SqlDbType.NVarChar, 10).Value =
-            string.IsNullOrWhiteSpace(vendorId) ? DBNull.Value : vendorId;
-        cmd.Parameters.AddWithValue("@IN_LANG_SET", "EN");
-
-        await using var rdr = await cmd.ExecuteReaderAsync();
-        var rows = new List<InboundScheduleRow>();
-        var poId = 1;
-        while (await rdr.ReadAsync())
-        {
-            var orderQty = GetDecimal(rdr, "PO_QTY");
-            var receivedQty = GetDecimal(rdr, "GRN_QTY");
-            var nonDeliverQty = GetDecimal(rdr, "NON_DELI_QTY");
-            var dueDate = GetDate(rdr, "PO_DELI_DATE");
-            var status = nonDeliverQty <= 0
-                ? "Complete"
-                : dueDate.HasValue && dueDate.Value.Date < today ? "Late"
-                : "In Progress";
-
-            rows.Add(new InboundScheduleRow(
-                poId++,
-                GetString(rdr, "PONO") ?? "",
-                GetInt(rdr, "PONO_SEQ"),
-                GetString(rdr, "VENDNM") ?? GetString(rdr, "VENDCD"),
-                GetString(rdr, "PARTNO"),
-                GetString(rdr, "PARTNM"),
-                GetString(rdr, "VINCD"),
-                GetString(rdr, "PO_UNIT"),
-                orderQty,
-                receivedQty,
-                nonDeliverQty,
-                dueDate,
-                GetDate(rdr, "PO_DATE"),
-                status));
         }
 
         return rows;
