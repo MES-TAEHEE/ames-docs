@@ -1674,6 +1674,76 @@ select.ames-rz-input {
     cursor: pointer;
 }
 
+.wh-setting-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 92px;
+    padding: 4px 9px;
+    border: 1px solid;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    box-shadow: 0 8px 18px rgba(15,23,42,.22);
+}
+
+.wh-shortage-text {
+    color: #f97316;
+    font-weight: 800;
+}
+
+.wh-setting-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wh-setting-btn {
+    width: 34px;
+    min-width: 34px;
+    height: 32px;
+    padding: 0;
+}
+
+.wh-setting-modal {
+    width: min(420px, calc(100vw - 32px));
+    max-width: 420px;
+    overflow-x: hidden;
+}
+
+.wh-setting-modal-title {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.wh-setting-modal-title span {
+    color: #94a3b8;
+    font-size: .72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+.wh-setting-modal-title strong {
+    color: #f8fafc;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1rem;
+}
+
+.wh-setting-form {
+    grid-template-columns: repeat(2, minmax(130px, 1fr));
+}
+
+@media (max-width: 520px) {
+    .wh-setting-form {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
 .wh-map-legend {
     display: flex;
     align-items: center;

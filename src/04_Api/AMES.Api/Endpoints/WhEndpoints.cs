@@ -15,6 +15,10 @@ public static class WhEndpoints
     private const string PdaInboundReceiveLotProcedure = "WH_PDA_INBOUND_RECEIVE_LOT";
     private const string PdaInboundMoveLocationProcedure = "WH_PDA_INBOUND_MOVE_LOCATION";
     private const string PdaInboundCancelReceiptProcedure = "WH_PDA_INBOUND_CANCEL_RECEIPT";
+    private const string PdaReleaseSlipStatusProcedure = "WH_PDA_RELEASE_SLIP_STATUS";
+    private const string PdaReleasePickLinesProcedure = "WH_PDA_RELEASE_PICK_LINES";
+    private const string PdaReleaseScanLotProcedure = "WH_PDA_RELEASE_SCAN_LOT";
+    private const string PdaReleasePickLotProcedure = "WH_PDA_RELEASE_PICK_LOT";
 
     // ── DTOs ─────────────────────────────────────────────────────────────
     public sealed record Wh001ScheduleInboundItem(int ScheduleItemId, string PurchaseOrderNo, int? PurchaseOrderLineNo,
@@ -301,6 +305,12 @@ public static class WhEndpoints
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
 
             using var conn = factory.OpenConnection();
+            if (ProcedureExists(conn, "dbo", PdaReleasePickLotProcedure))
+            {
+                var result = ExecuteReleasePickStoredProcedure(conn, body, s.EmployeeNo, s.TerminalId);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            }
+
             using var tx = conn.BeginTransaction();
 
             var row = ValidateReleaseLot(conn, tx, body.PickSlipNo, body.LotNo);
@@ -547,6 +557,36 @@ public static class WhEndpoints
     private static List<ReleasePickLineRow> QueryReleasePickLines(AmesConnectionFactory factory, string pickSlipNo)
     {
         using var conn = factory.OpenConnection();
+        if (ProcedureExists(conn, "dbo", PdaReleasePickLinesProcedure))
+        {
+            using var pdaCmd = new SqlCommand($"[dbo].[{PdaReleasePickLinesProcedure}]", conn)
+            {
+                CommandType = CommandType.StoredProcedure,
+                CommandTimeout = 15
+            };
+            pdaCmd.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 40).Value = pickSlipNo.Trim();
+
+            using var pdaRdr = pdaCmd.ExecuteReader();
+            var pdaRows = new List<ReleasePickLineRow>();
+            while (pdaRdr.Read())
+            {
+                pdaRows.Add(new ReleasePickLineRow(
+                    GetString(pdaRdr, "PICK_SLIPNO") ?? "",
+                    GetString(pdaRdr, "PARTNO") ?? "",
+                    GetString(pdaRdr, "PARTNM"),
+                    GetDecimal(pdaRdr, "REQ_BOX_QTY"),
+                    GetDecimal(pdaRdr, "PICKED_BOX_QTY"),
+                    GetDecimal(pdaRdr, "PICKED_QTY"),
+                    GetString(pdaRdr, "REQ_USERID"),
+                    GetString(pdaRdr, "LOC_01"),
+                    GetString(pdaRdr, "LOC_02"),
+                    GetString(pdaRdr, "LOC_03"),
+                    GetString(pdaRdr, "STATUS") ?? "Open"));
+            }
+
+            return pdaRows;
+        }
+
         if (!HasReleaseTables(conn)) return new List<ReleasePickLineRow>();
 
         using var cmd = new SqlCommand("""
@@ -657,6 +697,30 @@ public static class WhEndpoints
             return new ReleaseSlipStatusRow("", false, false, 0, null, null, null, "Pick Slip No is required.");
 
         using var conn = factory.OpenConnection();
+        if (ProcedureExists(conn, "dbo", PdaReleaseSlipStatusProcedure))
+        {
+            using var pdaCmd = new SqlCommand($"[dbo].[{PdaReleaseSlipStatusProcedure}]", conn)
+            {
+                CommandType = CommandType.StoredProcedure,
+                CommandTimeout = 15
+            };
+            pdaCmd.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 40).Value = pickSlipNo;
+
+            using var pdaRdr = pdaCmd.ExecuteReader();
+            if (!pdaRdr.Read())
+                return new ReleaseSlipStatusRow(pickSlipNo, false, false, 0, null, null, null, "Pick Slip was not found.");
+
+            return new ReleaseSlipStatusRow(
+                GetString(pdaRdr, "PICK_SLIPNO") ?? pickSlipNo,
+                GetInt(pdaRdr, "EXISTS_FLAG") == 1,
+                GetInt(pdaRdr, "IS_CLOSED") == 1,
+                GetInt(pdaRdr, "LINE_COUNT") ?? 0,
+                GetString(pdaRdr, "REQ_LOCATION"),
+                GetDate(pdaRdr, "REQ_DATE"),
+                GetDate(pdaRdr, "CLOSE_DATE"),
+                GetString(pdaRdr, "MESSAGE") ?? "Pick Slip is ready.");
+        }
+
         if (!HasReleaseTables(conn))
             return new ReleaseSlipStatusRow(pickSlipNo, false, false, 0, null, null, null,
                 "Release tables are not available in SIS_TEST.");
@@ -700,6 +764,22 @@ public static class WhEndpoints
     {
         pickSlipNo = pickSlipNo.Trim();
         lotNo = lotNo.Trim();
+
+        if (ProcedureExists(conn, tx, "dbo", PdaReleaseScanLotProcedure))
+        {
+            using var pdaCmd = new SqlCommand($"[dbo].[{PdaReleaseScanLotProcedure}]", conn, tx)
+            {
+                CommandType = CommandType.StoredProcedure,
+                CommandTimeout = 15
+            };
+            pdaCmd.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 40).Value = pickSlipNo;
+            pdaCmd.Parameters.Add("@LotNo", SqlDbType.NVarChar, 50).Value = lotNo;
+
+            using var pdaRdr = pdaCmd.ExecuteReader();
+            return pdaRdr.Read()
+                ? ReadReleaseLotRow(pdaRdr, pickSlipNo, lotNo)
+                : InvalidReleaseLot(pickSlipNo, lotNo, "LOT was not found.");
+        }
 
         if (!HasReleaseTables(conn, tx))
             return InvalidReleaseLot(pickSlipNo, lotNo, "Release tables are not available in SIS_TEST.");
@@ -846,6 +926,46 @@ public static class WhEndpoints
         cmd.ExecuteNonQuery();
     }
 
+    private static PickResult ExecuteReleasePickStoredProcedure(SqlConnection conn, PickReq body, string userId, string terminalId)
+    {
+        using var cmd = new SqlCommand($"[dbo].[{PdaReleasePickLotProcedure}]", conn)
+        {
+            CommandType = CommandType.StoredProcedure,
+            CommandTimeout = 15
+        };
+        cmd.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 40).Value = body.PickSlipNo.Trim();
+        cmd.Parameters.Add("@LotNo", SqlDbType.NVarChar, 50).Value = body.LotNo.Trim();
+        cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 80).Value = userId;
+        cmd.Parameters.Add("@TerminalId", SqlDbType.NVarChar, 80).Value = terminalId;
+
+        using var rdr = cmd.ExecuteReader();
+        var row = rdr.Read()
+            ? ReadReleaseLotRow(rdr, body.PickSlipNo.Trim(), body.LotNo.Trim())
+            : InvalidReleaseLot(body.PickSlipNo, body.LotNo, "Release pick service returned an empty response.");
+
+        return new PickResult(row.IsValid, row.Message ?? (row.IsValid ? "Release pick completed." : "LOT cannot be picked."), row);
+    }
+
+    private static ReleaseLotRow ReadReleaseLotRow(SqlDataReader rdr, string pickSlipNo, string lotNo)
+    {
+        return new ReleaseLotRow(
+            GetString(rdr, "PICK_SLIPNO") ?? pickSlipNo,
+            GetString(rdr, "LOTNO") ?? lotNo,
+            GetString(rdr, "PARTNO"),
+            GetString(rdr, "PARTNM"),
+            GetDecimal(rdr, "QTY"),
+            GetString(rdr, "UNIT"),
+            GetString(rdr, "LOCATION_NO"),
+            GetString(rdr, "LOCATION_NM"),
+            GetString(rdr, "ZONECD"),
+            GetString(rdr, "INV_STATUS"),
+            GetString(rdr, "PROD_DATE"),
+            GetString(rdr, "RCV_DATE"),
+            GetInt(rdr, "IS_FIFO_SUGGESTED") == 1,
+            GetInt(rdr, "IS_VALID") == 1,
+            GetString(rdr, "MESSAGE"));
+    }
+
     private static ReleaseLotRow InvalidReleaseLot(string pickSlipNo, string lotNo, string message)
         => new(pickSlipNo, lotNo, null, null, 0, null, null, null, null, null, null, null, false, false, message);
 
@@ -956,8 +1076,11 @@ public static class WhEndpoints
     }
 
     private static bool ProcedureExists(SqlConnection conn, string schema, string procedure)
+        => ProcedureExists(conn, null, schema, procedure);
+
+    private static bool ProcedureExists(SqlConnection conn, SqlTransaction? tx, string schema, string procedure)
     {
-        using var cmd = new SqlCommand("SELECT CASE WHEN OBJECT_ID(@ObjectName, N'P') IS NULL THEN 0 ELSE 1 END;", conn);
+        using var cmd = new SqlCommand("SELECT CASE WHEN OBJECT_ID(@ObjectName, N'P') IS NULL THEN 0 ELSE 1 END;", conn, tx);
         cmd.Parameters.Add("@ObjectName", SqlDbType.NVarChar, 256).Value = $"{schema}.{procedure}";
         return Convert.ToInt32(cmd.ExecuteScalar()) == 1;
     }
