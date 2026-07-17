@@ -32,7 +32,7 @@
     </div>
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["MD.WorkCenter.Kpi.Types"]</div>
-        <div class="ames-kpi-v">@_allRows.Select(r => r.ProcessType).Where(t => t != null).Distinct().Count()</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.ProcessCode).Where(t => t != null).Distinct().Count()</div>
     </div>
 </div>
 
@@ -48,7 +48,7 @@
             <RadzenTextBox @bind-Value="_fSearch" Placeholder="@L["MD.WorkCenter.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' />
             <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
             <RadzenDropDown Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
-            <RadzenLabel Text="@L["Col.ProcessType"]" Component="DropDownProcessType" />
+            <RadzenLabel Text="@L["Col.ProcessCode"]" Component="DropDownProcessType" />
             <RadzenDropDown Name="DropDownProcessType" @bind-Value="_fType" Data="@TypeFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Active"]" Component="DropDownActive" />
             <RadzenDropDown Name="DropDownActive" @bind-Value="_fActive" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
@@ -70,11 +70,11 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="WCName" Title="@L["Col.WcName"]">
                 <Template Context="r">@(r.WCName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="ProcessType" Title="@L["Col.ProcessType"]" Width="100px">
-                <Template Context="r"><span class="pill">@(r.ProcessType ?? "—")</span></Template>
-            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="LineID" Title="@L["Col.Line"]" Width="90px">
                 <Template Context="r"><span class="dim">@(r.LineID ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="ProcessCode" Title="@L["Col.ProcessCode"]" Width="100px">
+                <Template Context="r"><span class="pill">@(r.ProcessCode ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="DailyCapacity" Title="@L["Col.Capacity"]" Width="80px" TextAlign="TextAlign.Right">
                 <Template Context="r">@(r.DailyCapacity?.ToString("N0") ?? "—")</Template>
@@ -117,12 +117,12 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.ProcessType"]" />
-                    <RadzenTextBox @bind-Value="_f.ProcessType" Placeholder="INJ, ASM, PNT 등" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.LineId"]" />
+                    <RadzenDropDown @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Change="@OnLineChanged" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.LineId"]" />
-                    <RadzenDropDown @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.ProcessCode"]" />
+                    <RadzenTextBox Value="@_f.ProcessCode" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -180,12 +180,12 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.ProcessType"]" />
-                    <RadzenTextBox @bind-Value="_f.ProcessType" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.LineId"]" />
+                    <RadzenDropDown @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Change="@OnLineChanged" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.LineId"]" />
-                    <RadzenDropDown @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.ProcessCode"]" />
+                    <RadzenTextBox Value="@_f.ProcessCode" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -263,7 +263,7 @@
 
     IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = l.LineID + (l.LineName != null ? $" {l.LineName}" : "") });
     IEnumerable<DropDownItem> LineOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = $"[{l.LineID}]" + (l.LineName != null ? $" {l.LineName}" : "") });
-    IEnumerable<DropDownItem> TypeFilterOptions => _allRows.Select(r => r.ProcessType).Where(x => x != null).Distinct().OrderBy(x => x).Select(t => new DropDownItem { Value = t!, Text = t! });
+    IEnumerable<DropDownItem> TypeFilterOptions => _allRows.Select(r => r.ProcessCode).Where(x => x != null).Distinct().OrderBy(x => x).Select(t => new DropDownItem { Value = t!, Text = t! });
     private List<DropDownItem> ActiveFilterOptions => new()
     {
         new() { Value = "Y", Text = L["Lbl.Active"].Value },
@@ -287,7 +287,7 @@
             r.WCID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.WCName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fLine)   || r.LineID      == _fLine) &&
-        (string.IsNullOrEmpty(_fType)   || r.ProcessType == _fType) &&
+        (string.IsNullOrEmpty(_fType)   || r.ProcessCode == _fType) &&
         (string.IsNullOrEmpty(_fActive) || (_fActive == "Y" ? r.ActiveFlag : !r.ActiveFlag))
     ).ToList();
     }
@@ -295,6 +295,13 @@
     void OnSearchChanged(string value) => _fSearch = value ?? "";
 
     void OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") ApplyFilter(); }
+
+    // 라인 선택 시 해당 라인의 ProcessCode 를 복사
+    void OnLineChanged(object? _)
+    {
+        var line = _lineList.FirstOrDefault(l => l.LineID == _f.LineID);
+        _f.ProcessCode = line?.ProcessCode ?? "";
+    }
 
     void RowRender(RowRenderEventArgs<MasterDataRepository.WorkCenterRow> args)
     {
@@ -317,7 +324,7 @@
         {
             WCID           = r.WCID,
             WCName         = r.WCName         ?? "",
-            ProcessType    = r.ProcessType    ?? "",
+            ProcessCode    = r.ProcessCode    ?? "",
             LineID         = r.LineID         ?? "",
             DailyCapacity  = r.DailyCapacity,
             StdManpower    = r.StdManpower,
@@ -342,7 +349,7 @@
         _busy = true;
         try
         {
-            MD.InsertWorkCenter(_f.WCID.Trim(), _f.WCName, NE(_f.ProcessType),
+            MD.InsertWorkCenter(_f.WCID.Trim(), _f.WCName, NE(_f.ProcessCode),
                 NE(_f.LineID), _f.DailyCapacity, _f.StdManpower,
                 NE(_f.CostCenterCode), NE(_f.LocationDesc), _f.ActiveFlag, _actor);
             CloseModal(); Reload();
@@ -360,7 +367,7 @@
         _busy = true;
         try
         {
-            MD.UpdateWorkCenter(_sel.WCID, _f.WCName, NE(_f.ProcessType),
+            MD.UpdateWorkCenter(_sel.WCID, _f.WCName, NE(_f.ProcessCode),
                 NE(_f.LineID), _f.DailyCapacity, _f.StdManpower,
                 NE(_f.CostCenterCode), NE(_f.LocationDesc), _f.ActiveFlag, _actor);
             var name = _f.WCName;
@@ -398,7 +405,7 @@
     {
         public string WCID           { get; set; } = "";
         public string WCName         { get; set; } = "";
-        public string ProcessType    { get; set; } = "";
+        public string ProcessCode    { get; set; } = "";
         public string LineID         { get; set; } = "";
         public int?   DailyCapacity  { get; set; }
         public int?   StdManpower    { get; set; }

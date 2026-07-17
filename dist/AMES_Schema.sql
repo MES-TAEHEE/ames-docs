@@ -248,8 +248,7 @@ CREATE TABLE dbo.MD_Bop (
   [ItemNo]                    VARCHAR(20)              NULL,  -- FK -> MD_Item.ItemNo
   [RoutingType]               CHAR(1)                  NULL,
   [StepSeq]                   INT                      NULL,
-  [ProcessCode]               VARCHAR(10)              NULL,
-  [WorkCenterID]              VARCHAR(20)              NULL,  -- FK -> MD_WorkCenter.WCID
+  [StationCode]               VARCHAR(20)              NULL,  -- FK -> MD_Station.StationCode
   [StdCycleTime]              DECIMAL(8,2)             NULL,
   [StdSetupTime]              DECIMAL(8,2)             NULL,
   [QcRequiredFlag]            BIT                      NULL,
@@ -267,8 +266,8 @@ GO
 CREATE TABLE dbo.MD_WorkCenter (
   [WCID]                      VARCHAR(20)          NOT NULL,
   [WCName]                    NVARCHAR(50)             NULL,
-  [ProcessType]               VARCHAR(16)              NULL,
   [LineID]                    VARCHAR(20)              NULL,  -- FK -> MD_Line.LineID
+  [ProcessCode]               VARCHAR(10)              NULL,  -- MD_Line.ProcessCode 복사
   [DailyCapacity]             INT                      NULL,
   [StdManpower]               INT                      NULL,
   [CostCenterCode]            VARCHAR(20)              NULL,
@@ -583,7 +582,7 @@ CREATE TABLE dbo.MD_Line (
   [LineID]                    VARCHAR(20)          NOT NULL,
   [LineName]                  NVARCHAR(50)             NULL,
   [LineNameEn]                NVARCHAR(50)             NULL,
-  [LineType]                  VARCHAR(16)              NULL,
+  [ProcessCode]               VARCHAR(10)              NULL,  -- MD_CodeItem(PROCESS)
   [PlantCode]                 VARCHAR(20)              NULL,
   [DefaultWCID]               VARCHAR(20)              NULL,  -- FK -> MD_WorkCenter.WCID
   [DailyCap]                  INT                      NULL,
@@ -604,8 +603,8 @@ CREATE TABLE dbo.MD_Station (
   [StationName]               NVARCHAR(60)             NULL,
   [StationNameEn]             NVARCHAR(60)             NULL,
   [LineID]                    VARCHAR(20)              NULL,  -- FK -> MD_Line.LineID
-  [StationType]               VARCHAR(20)              NULL,
-  [ProcessCode]               VARCHAR(10)              NULL,
+  [WCID]                      VARCHAR(20)              NULL,  -- FK -> MD_WorkCenter.WCID
+  [ProcessCode]               VARCHAR(10)              NULL,  -- MD_Line.ProcessCode 복사
   [OrderSeq]                  INT                      NULL,
   [Status]                    VARCHAR(10)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,

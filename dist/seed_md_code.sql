@@ -40,6 +40,7 @@ INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, Us
 INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('RFID_READER_STATUS', N'RFID리더 상태', N'RFID reader status', NULL, 1, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('RFID_STATUS', N'RFID 상태', N'RFID status', NULL, 1, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('ROUTING', N'라우팅', N'Routing', NULL, 1, 'admin@ames.local');
+INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('SHIFT_PATTERN', N'교대 패턴', N'Shift pattern', N'라인 교대 운영 패턴 (주간고정/2교대/3교대)', 1, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('STATION_STATUS', N'공정 유형', N'Station status', NULL, 1, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('SUBPROCESS', N'서브프로세스', N'Subprocess', NULL, 1, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('UNIT_CATEGORY', N'단위 분류', N'Unit category', NULL, 1, 'admin@ames.local');
@@ -148,6 +149,9 @@ INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn,
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('RFID_STATUS_RETIRED', 'RFID_STATUS', 'RETIRED', N'운영종료', N'Retired', NULL, 90, NULL, 1, NULL, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('ROUTING_A', 'ROUTING', 'A', N'라우팅 A', N'Routing A', NULL, 10, NULL, 1, NULL, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('ROUTING_B', 'ROUTING', 'B', N'라우팅 B', N'Routing B', NULL, 20, NULL, 1, NULL, 'admin@ames.local');
+INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('SHIFT_PATTERN_DAY', 'SHIFT_PATTERN', 'DAY', N'주간고정', N'Day (fixed)', NULL, 10, NULL, 1, NULL, 'admin@ames.local');
+INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('SHIFT_PATTERN_2SHIFT', 'SHIFT_PATTERN', '2SHIFT', N'2교대', N'2-shift', NULL, 20, NULL, 1, NULL, 'admin@ames.local');
+INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('SHIFT_PATTERN_3SHIFT', 'SHIFT_PATTERN', '3SHIFT', N'3교대', N'3-shift', NULL, 30, NULL, 1, NULL, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('STATION_STATUS_ACTIVE', 'STATION_STATUS', 'ACTIVE', N'활성', N'Active', NULL, 10, NULL, 1, NULL, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('STATION_STATUS_INACTIVE', 'STATION_STATUS', 'INACTIVE', N'비활성', N'Inactive', NULL, 90, NULL, 1, NULL, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('SUBPROCESS_FD', 'SUBPROCESS', 'FD', N'기반정보', N'Foundation', NULL, 10, N'MD', 1, NULL, 'admin@ames.local');
@@ -174,4 +178,4 @@ INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn,
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('WORK_SHIFT_C', 'WORK_SHIFT', 'C', N'C 교대', N'C Shift', NULL, 30, NULL, 1, NULL, 'admin@ames.local');
 
 GO
-PRINT 'MD_CodeGroup: 36 rows / MD_CodeItem: 124 rows seeded.';
+PRINT 'MD_CodeGroup: 37 rows / MD_CodeItem: 127 rows seeded.';

@@ -1906,7 +1906,7 @@
     <value>CodeID</value>
   </data>
   <data name="MD.CommonCode.Lbl.CodeIdHint" xml:space="preserve">
-    <value>(자동생성, 최대 24자)</value>
+    <value>(자동생성, 최대 41자)</value>
   </data>
   <data name="MD.CommonCode.Lbl.CodeName" xml:space="preserve">
     <value>코드명 (국문)</value>
@@ -2197,19 +2197,19 @@
     <value>등록된 예비부품이 없습니다.</value>
   </data>
   <data name="MD.Station.Title" xml:space="preserve">
-    <value>공정 기준정보 관리</value>
+    <value>작업 위치 관리</value>
   </data>
   <data name="MD.Station.Sub" xml:space="preserve">
-    <value>공정별 작업 스테이션 기준정보</value>
+    <value>작업 위치 기준정보</value>
   </data>
   <data name="MD.Station.List" xml:space="preserve">
-    <value>스테이션 목록</value>
+    <value>작업 위치 목록</value>
   </data>
   <data name="MD.Station.Empty" xml:space="preserve">
-    <value>등록된 스테이션이 없습니다.</value>
+    <value>등록된 작업 위치가 없습니다.</value>
   </data>
   <data name="MD.Station.Ph.Search" xml:space="preserve">
-    <value>공정 ID / 명칭</value>
+    <value>작업 위치 ID / 명칭</value>
   </data>
   <data name="MD.Station.Kpi.Lines" xml:space="preserve">
     <value>라인 수</value>
@@ -3846,8 +3846,8 @@
   <data name="Col.ProcessName" xml:space="preserve">
     <value>공정명</value>
   </data>
-  <data name="Col.ProcessNameEn" xml:space="preserve">
-    <value>공정명 (영문)</value>
+  <data name="Col.StationNameEn" xml:space="preserve">
+    <value>작업 위치명 (영문)</value>
   </data>
   <data name="Col.UpperCause" xml:space="preserve">
     <value>상위원인</value>
@@ -4226,9 +4226,6 @@
   </data>
   <data name="Col.ReorderQty" xml:space="preserve">
     <value>재주문량</value>
-  </data>
-  <data name="Col.ProcessId" xml:space="preserve">
-    <value>공정 ID</value>
   </data>
   <data name="Col.UomCode" xml:space="preserve">
     <value>단위 코드</value>
@@ -4959,11 +4956,14 @@
   <data name="Col.DeliveryWindow" xml:space="preserve">
     <value>납품 시간대</value>
   </data>
+  <data name="Col.Station" xml:space="preserve">
+    <value>작업 위치</value>
+  </data>
   <data name="Col.StationCode" xml:space="preserve">
-    <value>공정 ID</value>
+    <value>작업 위치 코드</value>
   </data>
   <data name="Col.StationName" xml:space="preserve">
-    <value>공정명 (국문)</value>
+    <value>작업 위치명 (국문)</value>
   </data>
   <data name="Col.OrderSeq" xml:space="preserve">
     <value>순서</value>
@@ -5166,8 +5166,8 @@
   <data name="Err.CodeIdRequired" xml:space="preserve">
     <value>CodeID를 입력하세요.</value>
   </data>
-  <data name="Err.CodeIdMax24" xml:space="preserve">
-    <value>CodeID는 24자 이하여야 합니다.</value>
+  <data name="Err.CodeIdMax41" xml:space="preserve">
+    <value>CodeID는 41자 이하여야 합니다.</value>
   </data>
   <data name="Err.RalCodeRequired" xml:space="preserve">
     <value>RAL코드를 입력하세요.</value>

@@ -32,7 +32,7 @@
     </div>
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["MD.Station.Kpi.Types"]</div>
-        <div class="ames-kpi-v">@_allRows.Select(r => r.StationType).Where(t => t != null).Distinct().Count()</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.ProcessCode).Where(t => t != null).Distinct().Count()</div>
     </div>
 </div>
 
@@ -48,7 +48,7 @@
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Station.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
             <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
             <RadzenDropDown Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
-            <RadzenLabel Text="@L["Col.Type"]" Component="DropDownType" />
+            <RadzenLabel Text="@L["Col.ProcessCode"]" Component="DropDownType" />
             <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="@TypeFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
             <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
@@ -64,23 +64,30 @@
     <RadzenDataGrid TItem="MasterDataRepository.StationRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Station.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="StationCode" Title="@L["Col.ProcessId"]" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="StationCode" Title="@L["Col.StationCode"]" Width="120px">
                 <Template Context="r"><span class="code">@r.StationCode</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="StationName" Title="@L["Col.StationName"]">
                 <Template Context="r">@(r.StationName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="StationNameEn" Title="@L["Col.ProcessNameEn"]">
+            <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="StationNameEn" Title="@L["Col.StationNameEn"]">
                 <Template Context="r"><span class="dim">@(r.StationNameEn ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="LineID" Title="@L["Col.Line"]" Width="100px">
                 <Template Context="r"><span class="dim">@(r.LineID ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="StationType" Title="@L["Col.Type"]" Width="110px">
-                <Template Context="r"><span class="pill">@(r.StationType ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="WCID" Title="@L["Col.WorkCenter"]" Width="130px">
+                <Template Context="r">
+                    @if (!string.IsNullOrEmpty(r.WCID))
+                    {
+                        <span class="code">@r.WCID</span>
+                        @if (!string.IsNullOrEmpty(r.WCName)) { <span class="dim" style="font-size:.8em;margin-left:4px;">@r.WCName</span> }
+                    }
+                    else { <span class="dim">—</span> }
+                </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="ProcessCode" Title="@L["Col.Code"]" Width="70px">
-                <Template Context="r"><span class="dim">@(r.ProcessCode ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="ProcessCode" Title="@L["Col.ProcessCode"]" Width="90px">
+                <Template Context="r"><span class="pill">@(r.ProcessCode ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="OrderSeq" Title="@L["Col.Seq"]" Width="60px" TextAlign="TextAlign.Right">
                 <Template Context="r">@(r.OrderSeq?.ToString() ?? "—")</Template>
@@ -116,25 +123,25 @@
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
-                <RadzenLabel Text="@L["Col.ProcessNameEn"]" class="ames-rz-modal-label" Component="CreateTextBoxStationNameEn" />
+                <RadzenLabel Text="@L["Col.StationNameEn"]" class="ames-rz-modal-label" Component="CreateTextBoxStationNameEn" />
                 <RadzenTextBox Name="CreateTextBoxStationNameEn" @bind-Value="_f.StationNameEn" Placeholder="Injection Process 1" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.LineId"]" />
-                    <RadzenDropDown @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Change="@OnLineChanged" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.ProcessType"]" />
-                    <RadzenTextBox @bind-Value="_f.StationType" Placeholder="INJECTION, ASSEMBLY 등" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.WorkCenter"]" />
+                    <RadzenDropDown @bind-Value="_f.WCID" Data="@WcOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.ProcessCode"]" />
-                    <RadzenTextBox @bind-Value="_f.ProcessCode" Placeholder="INJ" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox Value="@_f.ProcessCode" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.OrderSeq"]" />
@@ -175,25 +182,25 @@
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
-                <RadzenLabel Text="@L["Col.ProcessNameEn"]" class="ames-rz-modal-label" Component="EditTextBoxStationNameEn" />
+                <RadzenLabel Text="@L["Col.StationNameEn"]" class="ames-rz-modal-label" Component="EditTextBoxStationNameEn" />
                 <RadzenTextBox Name="EditTextBoxStationNameEn" @bind-Value="_f.StationNameEn" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.LineId"]" />
-                    <RadzenDropDown @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Change="@OnLineChanged" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.ProcessType"]" />
-                    <RadzenTextBox @bind-Value="_f.StationType" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.WorkCenter"]" />
+                    <RadzenDropDown @bind-Value="_f.WCID" Data="@WcOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.ProcessCode"]" />
-                    <RadzenTextBox @bind-Value="_f.ProcessCode" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox Value="@_f.ProcessCode" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.OrderSeq"]" />
@@ -239,6 +246,7 @@
     List<MasterDataRepository.StationRow>  _rows          = new();
     List<MasterDataRepository.CodeItemRow> _stationStatus = new();
     List<MasterDataRepository.LineRow>     _lineList      = new();
+    List<MasterDataRepository.WorkCenterRow> _wcList      = new();
     MasterDataRepository.StationRow? _sel;
 
     string  _fSearch = "";
@@ -258,7 +266,8 @@
 
     private IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = l.LineID + (l.LineName != null ? $" {l.LineName}" : "") });
     private IEnumerable<DropDownItem> LineOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = $"[{l.LineID}]{(l.LineName != null ? $" {l.LineName}" : "")}" });
-    private IEnumerable<DropDownItem> TypeFilterOptions => _allRows.Select(r => r.StationType).Where(x => x != null).Distinct().OrderBy(x => x).Select(t => new DropDownItem { Value = t!, Text = t! });
+    private IEnumerable<DropDownItem> WcOptions => _wcList.Where(w => w.ActiveFlag).Select(w => new DropDownItem { Value = w.WCID ?? "", Text = $"[{w.WCID}]{(w.WCName != null ? $" {w.WCName}" : "")}" });
+    private IEnumerable<DropDownItem> TypeFilterOptions => _allRows.Select(r => r.ProcessCode).Where(x => x != null).Distinct().OrderBy(x => x).Select(t => new DropDownItem { Value = t!, Text = t! });
     private IEnumerable<DropDownItem> StatusOptions => _stationStatus.Where(s => s.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}" });
 
     protected override async Task OnInitializedAsync()
@@ -269,6 +278,7 @@
         _canEdit = PermSvc.CanEdit("md/rp/station");
         try { _stationStatus = MD.ListCodeItems("STATION_STATUS"); } catch { }
         try { _lineList = MD.ListLines(); } catch { }
+        try { _wcList = MD.ListWorkCenters(); } catch { }
         Reload();
     }
 
@@ -281,7 +291,7 @@
             r.StationCode.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.StationName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fLine) || r.LineID == _fLine) &&
-        (string.IsNullOrEmpty(_fType) || r.StationType == _fType) &&
+        (string.IsNullOrEmpty(_fType) || r.ProcessCode == _fType) &&
         (string.IsNullOrEmpty(_fStatus) || r.Status == _fStatus)
     ).ToList();
     }
@@ -289,6 +299,13 @@
     void OnSearchChanged(string value) => _fSearch = value ?? "";
 
     void OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") ApplyFilter(); }
+
+    // 라인 선택 시 해당 라인의 ProcessCode 를 복사
+    void OnLineChanged(object? _)
+    {
+        var line = _lineList.FirstOrDefault(l => l.LineID == _f.LineID);
+        _f.ProcessCode = line?.ProcessCode ?? "";
+    }
 
     private void RowRender(RowRenderEventArgs<MasterDataRepository.StationRow> args)
     {
@@ -315,7 +332,7 @@
             StationName   = r.StationName   ?? "",
             StationNameEn = r.StationNameEn ?? "",
             LineID        = r.LineID        ?? "",
-            StationType = r.StationType ?? "",
+            WCID          = r.WCID          ?? "",
             ProcessCode = r.ProcessCode ?? "",
             OrderSeq    = r.OrderSeq,
             Status      = r.Status      ?? "ACTIVE",
@@ -333,12 +350,12 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.StationCode))   { _modalErr = L["Err.StationIdRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.StationName)) { _modalErr = L["Err.StationNameRequired"]; return; }
-        if (MD.StationExists(_f.StationCode.Trim()))     { _modalErr = $"공정 ID '{_f.StationCode.Trim()}' 이 {L["Err.AlreadyExists"]}"; return; }
+        if (MD.StationExists(_f.StationCode.Trim()))     { _modalErr = $"작업 위치 ID '{_f.StationCode.Trim()}' 이 {L["Err.AlreadyExists"]}"; return; }
         _busy = true;
         try
         {
-            MD.InsertStation(_f.StationCode.Trim(), _f.StationName, NE(_f.StationNameEn), NE(_f.LineID),
-                NE(_f.StationType), NE(_f.ProcessCode), _f.OrderSeq, _f.Status, _actor);
+            MD.InsertStation(_f.StationCode.Trim(), _f.StationName, NE(_f.StationNameEn), NE(_f.LineID), NE(_f.WCID),
+                NE(_f.ProcessCode), _f.OrderSeq, _f.Status, _actor);
             CloseModal(); Reload();
             ShowMsg($"{_f.StationName} {L["Msg.Created"]}", false);
         }
@@ -354,8 +371,8 @@
         _busy = true;
         try
         {
-            MD.UpdateStation(_sel.StationCode, _f.StationName, NE(_f.StationNameEn), NE(_f.LineID),
-                NE(_f.StationType), NE(_f.ProcessCode), _f.OrderSeq, _f.Status, _actor);
+            MD.UpdateStation(_sel.StationCode, _f.StationName, NE(_f.StationNameEn), NE(_f.LineID), NE(_f.WCID),
+                NE(_f.ProcessCode), _f.OrderSeq, _f.Status, _actor);
             var name = _f.StationName;
             CloseModal(); Reload();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
@@ -393,7 +410,7 @@
         public string StationName    { get; set; } = "";
         public string StationNameEn  { get; set; } = "";
         public string LineID       { get; set; } = "";
-        public string StationType  { get; set; } = "";
+        public string WCID         { get; set; } = "";
         public string ProcessCode  { get; set; } = "";
         public int?   OrderSeq     { get; set; }
         public string Status       { get; set; } = "ACTIVE";

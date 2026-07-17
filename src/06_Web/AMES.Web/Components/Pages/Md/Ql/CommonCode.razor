@@ -217,12 +217,12 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text='@($"{L["MD.CommonCode.Lbl.CodeValue"]} {L["MD.CommonCode.Lbl.CodeValueHint"]}")' class="ames-rz-modal-label" Component="ItemCreateTextBoxCodeValue" />
-                <RadzenTextBox Name="ItemCreateTextBoxCodeValue" Value="@_fItem.CodeValue" ValueChanged="OnCodeValueInput" Placeholder="예: SCRAP" MaxLength="20" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="ItemCreateTextBoxCodeValue" Value="@_fItem.CodeValue" ValueChanged="OnCodeValueInput" Immediate="true" Placeholder="예: SCRAP" MaxLength="20" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text='@($"{L["MD.CommonCode.Lbl.CodeId"]} {L["MD.CommonCode.Lbl.CodeIdHint"]}")' class="ames-rz-modal-label" Component="ItemCreateTextBoxCodeId" />
-                <RadzenTextBox Name="ItemCreateTextBoxCodeId" @bind-Value="_fItem.CodeId" MaxLength="24" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="ItemCreateTextBoxCodeId" @bind-Value="_fItem.CodeId" MaxLength="41" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
@@ -503,7 +503,7 @@
     {
         _fItem.CodeValue = v ?? "";
         var s = _selGroup!.GroupCode + "_" + _fItem.CodeValue.Trim().ToUpper();
-        _fItem.CodeId = s.Length <= 24 ? s : s[..24];
+        _fItem.CodeId = s.Length <= 41 ? s : s[..41];
     }
 
     void OpenItemEdit(MasterDataRepository.CodeItemRow item)
@@ -531,7 +531,7 @@
         if (string.IsNullOrWhiteSpace(_fItem.CodeValue)) { _modalErr = L["Err.CodeValueRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_fItem.CodeName))  { _modalErr = L["Err.CodeNameRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_fItem.CodeId))    { _modalErr = L["Err.CodeIdRequired"]; return; }
-        if (_fItem.CodeId.Length > 24)                   { _modalErr = L["Err.CodeIdMax24"]; return; }
+        if (_fItem.CodeId.Length > 41)                   { _modalErr = L["Err.CodeIdMax41"]; return; }
         _busy = true;
         try
         {

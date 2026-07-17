@@ -2154,3 +2154,54 @@ select.ames-rz-input {
         grid-template-columns: 1fr;
     }
 }
+
+/* ── 화면 전환 로딩 표시 (좌측 메뉴 클릭 → 우측 콘텐츠 로딩) ───────────── */
+#ames-nav-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    width: 0;
+    z-index: 100000;
+    background: linear-gradient(90deg, #0ea5e9, #7dd3fc);
+    box-shadow: 0 0 10px rgba(56, 189, 248, .7);
+    opacity: 0;
+    pointer-events: none;
+}
+
+#ames-nav-progress.active {
+    opacity: 1;
+    width: 85%;
+    transition: width 8s cubic-bezier(.05, .7, .55, 1), opacity .15s ease;
+}
+
+#ames-nav-progress.done {
+    width: 100%;
+    opacity: 0;
+    transition: width .2s ease, opacity .4s ease .15s;
+}
+
+.ames-navigating .ames-content {
+    position: relative;
+}
+
+.ames-navigating .ames-content::after {
+    content: "불러오는 중…";
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(2, 6, 23, .30);
+    backdrop-filter: blur(1.5px);
+    color: #e2e8f0;
+    font-size: .9rem;
+    letter-spacing: .3px;
+    animation: ames-nav-fade .15s ease;
+}
+
+@keyframes ames-nav-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}

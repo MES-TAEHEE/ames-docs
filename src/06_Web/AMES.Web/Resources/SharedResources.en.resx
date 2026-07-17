@@ -301,10 +301,10 @@
     <value>Seq</value>
   </data>
   <data name="Col.ItemNo" xml:space="preserve">
-    <value>Item No</value>
+    <value>Part No</value>
   </data>
   <data name="Col.ItemName" xml:space="preserve">
-    <value>Item Name</value>
+    <value>Part Name</value>
   </data>
   <data name="Lbl.Period" xml:space="preserve">
     <value>Period</value>
@@ -691,7 +691,7 @@
     <value>Inventory Status</value>
   </data>
   <data name="RPT.Inventory.Sub" xml:space="preserve">
-    <value>Finished goods inventory — item × location</value>
+    <value>Finished goods inventory — part × location</value>
   </data>
   <data name="RPT.Inventory.List" xml:space="preserve">
     <value>Inventory Aggregation</value>
@@ -700,7 +700,7 @@
     <value>No inventory data.</value>
   </data>
   <data name="RPT.Inventory.Ph.Item" xml:space="preserve">
-    <value>Search item number</value>
+    <value>Search part number</value>
   </data>
   <data name="RPT.Inventory.Kpi.Count" xml:space="preserve">
     <value>Result Count</value>
@@ -715,7 +715,7 @@
     <value>Hold Rate</value>
   </data>
   <data name="RPT.Inventory.Col.ItemNo" xml:space="preserve">
-    <value>Item No</value>
+    <value>Part No</value>
   </data>
   <data name="RPT.Inventory.Col.Location" xml:space="preserve">
     <value>Location</value>
@@ -1825,7 +1825,7 @@
     <value>BOM Management</value>
   </data>
   <data name="MD.Bom.Sub" xml:space="preserve">
-    <value>Bill of Materials — component items by product</value>
+    <value>Bill of Materials — component parts by product</value>
   </data>
   <data name="MD.Bom.List" xml:space="preserve">
     <value>BOM List</value>
@@ -1906,7 +1906,7 @@
     <value>CodeID</value>
   </data>
   <data name="MD.CommonCode.Lbl.CodeIdHint" xml:space="preserve">
-    <value>(auto-generated, max 24)</value>
+    <value>(auto-generated, max 41)</value>
   </data>
   <data name="MD.CommonCode.Lbl.CodeName" xml:space="preserve">
     <value>Code Name (KO)</value>
@@ -1984,7 +1984,7 @@
     <value>Inspection Standard Master</value>
   </data>
   <data name="MD.InspStd.Sub" xml:space="preserve">
-    <value>Inspection standard by item</value>
+    <value>Inspection standard by part</value>
   </data>
   <data name="MD.InspStd.List" xml:space="preserve">
     <value>Inspection Standard List</value>
@@ -1999,10 +1999,10 @@
     <value>Item master — raw material, semi-finished, finished goods</value>
   </data>
   <data name="MD.Items.List" xml:space="preserve">
-    <value>Item List</value>
+    <value>Part List</value>
   </data>
   <data name="MD.Items.Empty" xml:space="preserve">
-    <value>No items found.</value>
+    <value>No parts found.</value>
   </data>
   <data name="MD.Jig.Title" xml:space="preserve">
     <value>Jig Master</value>
@@ -2197,7 +2197,7 @@
     <value>No spare parts found.</value>
   </data>
   <data name="MD.Station.Title" xml:space="preserve">
-    <value>Process / Station Master</value>
+    <value>Station Master</value>
   </data>
   <data name="MD.Station.Sub" xml:space="preserve">
     <value>Work station master by process</value>
@@ -2638,7 +2638,7 @@
     <value>Forecast</value>
   </data>
   <data name="PP.Forecast.Sub" xml:space="preserve">
-    <value>Customer Item Demand Forecast</value>
+    <value>Customer Part Demand Forecast</value>
   </data>
   <data name="PP.Forecast.Empty" xml:space="preserve">
     <value>No forecast data matches the conditions.</value>
@@ -2662,7 +2662,7 @@
     <value>Rows</value>
   </data>
   <data name="PP.Forecast.Hist.Items" xml:space="preserve">
-    <value>Items</value>
+    <value>Parts</value>
   </data>
   <data name="PP.Forecast.Hist.Period" xml:space="preserve">
     <value>Period</value>
@@ -2701,10 +2701,10 @@
     <value>Upload Preview</value>
   </data>
   <data name="PP.Forecast.Preview.Summary" xml:space="preserve">
-    <value>{0} items × {1} weeks · {2:MM/dd}–{3:MM/dd}</value>
+    <value>{0} parts × {1} weeks · {2:MM/dd}–{3:MM/dd}</value>
   </data>
   <data name="PP.Forecast.Preview.Unmatched" xml:space="preserve">
-    <value>{0} items not in item master — you can still save; names fall back to the file values.</value>
+    <value>{0} parts not in part master — you can still save; names fall back to the file values.</value>
   </data>
   <data name="PP.Forecast.Ok.Imported" xml:space="preserve">
     <value>Saved: {0} new · {1} updated · {2} qty changes</value>
@@ -3148,7 +3148,7 @@
     <value>Created WO Status</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Hint" xml:space="preserve">
-    <value>Each selected plan creates a Draft Work Order forwarded to PP-04. Items missing master data cannot be selected.</value>
+    <value>Each selected plan creates a Draft Work Order forwarded to PP-04. Parts missing master data cannot be selected.</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Run" xml:space="preserve">
     <value>Run WO Creation</value>
@@ -3202,13 +3202,13 @@
     <value>Run Import</value>
   </data>
   <data name="PP.SupplyPlanImport.Preview.Summary" xml:space="preserve">
-    <value>{0} PO lines · {1} items · {2:yyyy-MM-dd} ~ {3:yyyy-MM-dd}</value>
+    <value>{0} PO lines · {1} parts · {2:yyyy-MM-dd} ~ {3:yyyy-MM-dd}</value>
   </data>
   <data name="PP.SupplyPlanImport.Preview.Vendor" xml:space="preserve">
     <value>Vendor: {0}</value>
   </data>
   <data name="PP.SupplyPlanImport.Preview.Unmatched" xml:space="preserve">
-    <value>{0} item(s) not in item master</value>
+    <value>{0} part(s) not in part master</value>
   </data>
   <data name="PP.SupplyPlanImport.Preview.NegSkipped" xml:space="preserve">
     <value>{0} row(s) with negative order qty will be skipped.</value>
@@ -3349,7 +3349,7 @@
     <value>Create Manual Work Order</value>
   </data>
   <data name="PP.WorkOrder.Manual.Item" xml:space="preserve">
-    <value>Item</value>
+    <value>Part</value>
   </data>
   <data name="PP.WorkOrder.Manual.Qty" xml:space="preserve">
     <value>Plan Qty (EA)</value>
@@ -3358,7 +3358,7 @@
     <value>Due Date</value>
   </data>
   <data name="PP.WorkOrder.Manual.Hint" xml:space="preserve">
-    <value>A manual WO bypasses the SAP supply plan and is created in Draft status. Routing is resolved from the item master.</value>
+    <value>A manual WO bypasses the SAP supply plan and is created in Draft status. Routing is resolved from the part master.</value>
   </data>
   <data name="PP.WorkOrder.Manual.Create" xml:space="preserve">
     <value>Create WO</value>
@@ -3394,16 +3394,16 @@
     <value>No work orders to export.</value>
   </data>
   <data name="PP.WorkOrder.Err.ManualInvalid" xml:space="preserve">
-    <value>Select an item and enter a quantity of 1 or greater.</value>
+    <value>Select a part and enter a quantity of 1 or greater.</value>
   </data>
   <data name="PP.PurchaseReq.Ph.Search" xml:space="preserve">
-    <value>Item No · Name · PR No</value>
+    <value>Part No · Name · PR No</value>
   </data>
   <data name="Col.WoNo" xml:space="preserve">
     <value>WO No</value>
   </data>
   <data name="Col.Item" xml:space="preserve">
-    <value>Item</value>
+    <value>Part</value>
   </data>
   <data name="Col.Order" xml:space="preserve">
     <value>Order</value>
@@ -3846,8 +3846,8 @@
   <data name="Col.ProcessName" xml:space="preserve">
     <value>Process Name</value>
   </data>
-  <data name="Col.ProcessNameEn" xml:space="preserve">
-    <value>Process Name (EN)</value>
+  <data name="Col.StationNameEn" xml:space="preserve">
+    <value>Station Name (EN)</value>
   </data>
   <data name="Col.UpperCause" xml:space="preserve">
     <value>Upper Cause</value>
@@ -4227,9 +4227,6 @@
   <data name="Col.ReorderQty" xml:space="preserve">
     <value>Reorder Qty</value>
   </data>
-  <data name="Col.ProcessId" xml:space="preserve">
-    <value>Process ID</value>
-  </data>
   <data name="Col.UomCode" xml:space="preserve">
     <value>UOM Code</value>
   </data>
@@ -4279,10 +4276,10 @@
     <value>Lv</value>
   </data>
   <data name="Col.ParentItem" xml:space="preserve">
-    <value>Parent Item</value>
+    <value>Parent Part</value>
   </data>
   <data name="Col.ComponentItem" xml:space="preserve">
-    <value>Component Item</value>
+    <value>Component Part</value>
   </data>
   <data name="Col.ScrapPct" xml:space="preserve">
     <value>Scrap %</value>
@@ -4312,16 +4309,16 @@
     <value>Semi-finished (WIP)</value>
   </data>
   <data name="MD.Items.Ph.Search" xml:space="preserve">
-    <value>Search by Item No / Name / Car Type / PGN / ALC</value>
+    <value>Search by Part No / Name / Car Type / PGN / ALC</value>
   </data>
   <data name="MD.Items.Modal.Create" xml:space="preserve">
-    <value>Create Item</value>
+    <value>Create Part</value>
   </data>
   <data name="MD.Items.Modal.Edit" xml:space="preserve">
-    <value>Edit Item</value>
+    <value>Edit Part</value>
   </data>
   <data name="MD.Items.Lbl.ItemNo" xml:space="preserve">
-    <value>Item No. *</value>
+    <value>Part No. *</value>
   </data>
   <data name="MD.Items.Lbl.ItemNoHint" xml:space="preserve">
     <value>(max 20)</value>
@@ -4330,13 +4327,13 @@
     <value>UOM</value>
   </data>
   <data name="MD.Items.Lbl.ItemName" xml:space="preserve">
-    <value>Item Name *</value>
+    <value>Part Name *</value>
   </data>
   <data name="MD.Items.Lbl.ItemNameEn" xml:space="preserve">
-    <value>Item Name (EN)</value>
+    <value>Part Name (EN)</value>
   </data>
   <data name="MD.Items.Lbl.ItemType" xml:space="preserve">
-    <value>Item Type</value>
+    <value>Part Type</value>
   </data>
   <data name="MD.Items.Lbl.Category" xml:space="preserve">
     <value>Category</value>
@@ -4366,16 +4363,16 @@
     <value>Delete {0} ({1})?</value>
   </data>
   <data name="MD.Items.Err.NameRequired" xml:space="preserve">
-    <value>Item name is required.</value>
+    <value>Part name is required.</value>
   </data>
   <data name="MD.Items.Err.NoRequired" xml:space="preserve">
-    <value>Item number is required.</value>
+    <value>Part number is required.</value>
   </data>
   <data name="MD.Items.Ok.Created" xml:space="preserve">
-    <value>Item {0} created.</value>
+    <value>Part {0} created.</value>
   </data>
   <data name="MD.Items.Ok.Updated" xml:space="preserve">
-    <value>Item {0} updated.</value>
+    <value>Part {0} updated.</value>
   </data>
   <data name="MD.Items.Ok.Deleted" xml:space="preserve">
     <value>Item {0} deleted.</value>
@@ -4959,11 +4956,14 @@
   <data name="Col.DeliveryWindow" xml:space="preserve">
     <value>Delivery Window</value>
   </data>
+  <data name="Col.Station" xml:space="preserve">
+    <value>Station</value>
+  </data>
   <data name="Col.StationCode" xml:space="preserve">
-    <value>Station ID</value>
+    <value>Station Code</value>
   </data>
   <data name="Col.StationName" xml:space="preserve">
-    <value>Process Name (KO)</value>
+    <value>Station Name (KO)</value>
   </data>
   <data name="Col.OrderSeq" xml:space="preserve">
     <value>Order Seq.</value>
@@ -4996,7 +4996,7 @@
     <value>End Date</value>
   </data>
   <data name="Col.CompItem" xml:space="preserve">
-    <value>Component Item</value>
+    <value>Component Part</value>
   </data>
   <data name="Col.ScrapRate" xml:space="preserve">
     <value>Scrap Rate (%)</value>
@@ -5005,7 +5005,7 @@
     <value>Std. ID</value>
   </data>
   <data name="Col.ItemId" xml:space="preserve">
-    <value>Item ID</value>
+    <value>Part ID</value>
   </data>
   <data name="Col.StdCycleTime" xml:space="preserve">
     <value>Std. Cycle Time</value>
@@ -5020,16 +5020,16 @@
     <value>Template ID is required.</value>
   </data>
   <data name="Err.RootItemRequired" xml:space="preserve">
-    <value>Root item is required.</value>
+    <value>Root part is required.</value>
   </data>
   <data name="Err.CompItemRequired" xml:space="preserve">
-    <value>Component item is required.</value>
+    <value>Component part is required.</value>
   </data>
   <data name="Err.QtyGtZero" xml:space="preserve">
     <value>Quantity must be greater than 0.</value>
   </data>
   <data name="Err.ItemNoRequired" xml:space="preserve">
-    <value>Item number is required.</value>
+    <value>Part number is required.</value>
   </data>
   <data name="Err.RoutingTypeRequired" xml:space="preserve">
     <value>Routing type is required.</value>
@@ -5166,8 +5166,8 @@
   <data name="Err.CodeIdRequired" xml:space="preserve">
     <value>Code ID is required.</value>
   </data>
-  <data name="Err.CodeIdMax24" xml:space="preserve">
-    <value>Code ID must be 24 characters or fewer.</value>
+  <data name="Err.CodeIdMax41" xml:space="preserve">
+    <value>Code ID must be 41 characters or fewer.</value>
   </data>
   <data name="Err.RalCodeRequired" xml:space="preserve">
     <value>RAL code is required.</value>
@@ -5182,10 +5182,10 @@
     <value>LOT ID is required.</value>
   </data>
   <data name="MD.Bom.Ph.Search" xml:space="preserve">
-    <value>Version ID · Item search…</value>
+    <value>Version ID · Part search…</value>
   </data>
   <data name="MD.Bop.Ph.Search" xml:space="preserve">
-    <value>Item No. · Item Name search…</value>
+    <value>Part No. · Part Name search…</value>
   </data>
   <data name="MD.DefectCause.Ph.Search" xml:space="preserve">
     <value>Cause code / Name</value>
@@ -5197,7 +5197,7 @@
     <value>Equip. ID / Name</value>
   </data>
   <data name="MD.InspStd.Ph.Search" xml:space="preserve">
-    <value>Std. ID / Char. Name / Item ID</value>
+    <value>Std. ID / Char. Name / Part ID</value>
   </data>
   <data name="MD.Jig.Ph.Search" xml:space="preserve">
     <value>Jig ID / Name</value>
@@ -5215,7 +5215,7 @@
     <value>Oven ID / Name</value>
   </data>
   <data name="MD.PackagingSpec.Ph.Search" xml:space="preserve">
-    <value>Spec ID / Item ID</value>
+    <value>Spec ID / Part ID</value>
   </data>
   <data name="MD.PaintFabric.Ph.Search" xml:space="preserve">
     <value>LOT ID / Mat. Code / Name</value>
@@ -5365,7 +5365,7 @@
     <value>Approved by</value>
   </data>
   <data name="MD.Bom.AddItem" xml:space="preserve">
-    <value>Add item</value>
+    <value>Add part</value>
   </data>
   <data name="MD.Bom.RequestApproval" xml:space="preserve">
     <value>Request approval</value>
@@ -5404,10 +5404,10 @@
     <value>At least 1 BOM line is required to approve</value>
   </data>
   <data name="MD.Bop.NoItems" xml:space="preserve">
-    <value>No items</value>
+    <value>No parts</value>
   </data>
   <data name="MD.Bop.SelectItemHint" xml:space="preserve">
-    <value>Select an item on the left to view process steps</value>
+    <value>Select a part on the left to view process steps</value>
   </data>
   <data name="MD.Bop.StepCount" xml:space="preserve">
     <value>{0} process step(s)</value>
@@ -5434,7 +5434,7 @@
     <value>Step Description</value>
   </data>
   <data name="Col.RootItemNo" xml:space="preserve">
-    <value>Root Item No.</value>
+    <value>Root Part No.</value>
   </data>
   <data name="Col.ChangeType" xml:space="preserve">
     <value>Change Type</value>
@@ -5443,7 +5443,7 @@
     <value>Change Reason</value>
   </data>
   <data name="Opt.SelectItem" xml:space="preserve">
-    <value>Select item</value>
+    <value>Select part</value>
   </data>
   <data name="Opt.RootLevel" xml:space="preserve">
     <value>Root level</value>
