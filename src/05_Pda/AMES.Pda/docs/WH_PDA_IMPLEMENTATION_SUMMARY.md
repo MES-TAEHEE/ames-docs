@@ -24,6 +24,8 @@
 - `..\..\..\dist\pda\README.md`
 - `..\..\..\dist\pda\migrate_pda_wh_schedule.sql`
 - `..\..\..\dist\pda\seed_pda_wh_demo_data.sql`
+- `..\..\..\dist\pda\migrate_pda_wh_inbound.sql`
+- `..\..\..\dist\pda\seed_pda_wh_inbound_demo_data.sql`
 - `docs/sql/WH002_ADJUST_QTY.sql`
 
 테스트 DB 기준:
@@ -400,16 +402,18 @@ PDA 코드 호출:
 API route:
 
 - `GET /api/wh/inbound/scan`
-- `POST /api/wh/inbound/receive-sis`
+- `POST /api/wh/inbound/receive-lot`
+- `POST /api/wh/inbound/receive-sis` (compatibility alias)
+- `POST /api/wh/inbound/move-location`
 - `POST /api/wh/inbound/cancel`
 - `GET /api/wh/location/scan`
 
 프로시저:
 
-- `SIS_TEST.PDA_WH002_SCAN_LOCAL`
-- `SIS_TEST.PDA_WH002_SCAN_CKD`
-- `SIS_TEST.PDA_WH002_RECEIVE`
-- `SIS_TEST.PDA_WH002_CANCEL`
+- `dbo.WH_PDA_INBOUND_SCAN_LOT`
+- `dbo.WH_PDA_INBOUND_RECEIVE_LOT`
+- `dbo.WH_PDA_INBOUND_MOVE_LOCATION`
+- `dbo.WH_PDA_INBOUND_CANCEL_RECEIPT`
 
 LOCAL 스캔 기준 테이블:
 
@@ -451,7 +455,7 @@ Location 검증 기준 테이블:
 - `PdaApi.WhAdjustInboundQtyAsync(body)`
 - `POST /api/wh/inbound/move-location`
 - `POST /api/wh/inbound/adjust-qty`
-- `SIS_TEST.PDA_WH002_MOVE_LOCATION`
+- `dbo.WH_PDA_INBOUND_MOVE_LOCATION`
 - `SIS_TEST.PDA_WH002_ADJUST_QTY`
 
 ### 기존 프로그램에서 참고한 점
@@ -477,24 +481,27 @@ SIS:
 
 ### 현재 카피/재현한 것
 
-SQL Server `SIS_TEST`에 아래 테이블 및 프로시저를 준비했다.
+SQL Server `AMES_DEV`의 `dbo` 스키마에 아래 테이블 및 프로시저를 준비했다.
 
-- `AMM9010`
-- `AMM9011`
-- `AMF1030`
-- `AMM1040`
-- `AMM2010`
-- `WMS1010`
-- `WMS1020`
-- `WMS1030`
-- `WMS1040`
-- `WMS2010`
-- `WMS2020`
-- `WMS2000`
-- `PDA_WH002_SCAN_LOCAL`
-- `PDA_WH002_SCAN_CKD`
-- `PDA_WH002_RECEIVE`
-- `PDA_WH002_CANCEL`
+- `dbo.tbl_Lot`
+- `dbo.WH_PurchaseOrder`
+- `dbo.WH_Receiving`
+- `dbo.WH_Inventory`
+- `dbo.MD_Location`
+- `dbo.WH_PDA_INBOUND_SCAN_LOT`
+- `dbo.WH_PDA_INBOUND_RECEIVE_LOT`
+- `dbo.WH_PDA_INBOUND_MOVE_LOCATION`
+- `dbo.WH_PDA_INBOUND_CANCEL_RECEIPT`
+- `dist/pda/migrate_pda_wh_inbound.sql`
+- `dist/pda/seed_pda_wh_inbound_demo_data.sql`
+
+Inbound test data:
+
+- Ready local LOT: `LOT-LOCAL-001` -> PO `INB2607001`, Part `INB-MAT-001`, Qty `72 EA`
+- Ready CKD LOT: `LOT-CKD-001` -> PO `INB2607002`, Part `INB-MAT-003`, Qty `100 EA`
+- Already received LOT: `LOT-LOCAL-RECV` -> PO `INB2607003`, Part `INB-MAT-002`, Qty `40 EA`, Location `WH010101`
+- Location No: `WH010101`, `WH010201`, `WH020101`
+- Scan validation: `dbo.tbl_Lot.ProcessCode` must match the selected tab (`LOCAL` or `CKD`). For example, scanning `LOT-LOCAL-001` on the CKD tab returns `LOT receive mode does not match the selected tab.`
 
 ### 기존과 달라진 점
 

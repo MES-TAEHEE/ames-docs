@@ -11,6 +11,10 @@ public static class WhEndpoints
     private const string WhLocationBizcd = "5011";
     private const string PdaScheduleInboundProcedure = "WH_PDA_SCHEDULE_INBOUND_LIST";
     private const string PdaScheduleReleaseProcedure = "WH_PDA_SCHEDULE_RELEASE_LIST";
+    private const string PdaInboundScanLotProcedure = "WH_PDA_INBOUND_SCAN_LOT";
+    private const string PdaInboundReceiveLotProcedure = "WH_PDA_INBOUND_RECEIVE_LOT";
+    private const string PdaInboundMoveLocationProcedure = "WH_PDA_INBOUND_MOVE_LOCATION";
+    private const string PdaInboundCancelReceiptProcedure = "WH_PDA_INBOUND_CANCEL_RECEIPT";
 
     // ── DTOs ─────────────────────────────────────────────────────────────
     public sealed record Wh001ScheduleInboundItem(int ScheduleItemId, string PurchaseOrderNo, int? PurchaseOrderLineNo,
@@ -133,24 +137,37 @@ public static class WhEndpoints
             {
                 return Results.Ok(ExecuteInboundScan(factory, mode, barcode));
             }
-            catch
+            catch (Exception ex)
             {
-                return Results.Problem("Warehouse database is unavailable.", statusCode: StatusCodes.Status503ServiceUnavailable);
+                var isValidationError =
+                    ex is SqlException sqlEx
+                    && sqlEx.Errors.Count > 0
+                    && sqlEx.Errors[0].Number >= 51400
+                    && sqlEx.Errors[0].Number < 51500;
+
+                return Results.Problem(
+                    WarehouseProcedureMessage(ex),
+                    statusCode: isValidationError
+                        ? StatusCodes.Status400BadRequest
+                        : StatusCodes.Status503ServiceUnavailable);
             }
         });
 
-        g.MapPost("/inbound/receive-sis", (HttpContext ctx, InboundReceiveReq body) =>
+        IResult ReceiveInboundLot(HttpContext ctx, InboundReceiveReq body)
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
 
-            return Results.Ok(ExecuteInboundReceive(factory, body, s.EmployeeNo, "[SIS_TEST].[PDA_WH002_RECEIVE]", "Received"));
-        });
+            return Results.Ok(ExecuteInboundReceive(factory, body, s.EmployeeNo, PdaInboundReceiveLotProcedure, "Received"));
+        }
+
+        g.MapPost("/inbound/receive-lot", ReceiveInboundLot);
+        g.MapPost("/inbound/receive-sis", ReceiveInboundLot);
 
         g.MapPost("/inbound/move-location", (HttpContext ctx, InboundReceiveReq body) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
 
-            return Results.Ok(ExecuteInboundReceive(factory, body, s.EmployeeNo, "[SIS_TEST].[PDA_WH002_MOVE_LOCATION]", "Location changed"));
+            return Results.Ok(ExecuteInboundReceive(factory, body, s.EmployeeNo, PdaInboundMoveLocationProcedure, "Location changed"));
         });
 
         g.MapPost("/inbound/cancel", (HttpContext ctx, InboundCancelReq body) =>
@@ -966,17 +983,14 @@ public static class WhEndpoints
     // ── Helpers ─────────────────────────────────────────────────────────
     private static InboundScanRow? ExecuteInboundScan(AmesConnectionFactory factory, string mode, string barcode)
     {
-        var proc = string.Equals(mode, "CKD", StringComparison.OrdinalIgnoreCase)
-            ? "[SIS_TEST].[PDA_WH002_SCAN_CKD]"
-            : "[SIS_TEST].[PDA_WH002_SCAN_LOCAL]";
-
         using var conn = factory.OpenConnection();
-        using var cmd = new SqlCommand(proc, conn)
+        using var cmd = new SqlCommand($"[dbo].[{PdaInboundScanLotProcedure}]", conn)
         {
             CommandType = CommandType.StoredProcedure,
             CommandTimeout = 15
         };
-        cmd.Parameters.Add("@IN_BARCODE", SqlDbType.NVarChar, 50).Value = barcode.Trim();
+        cmd.Parameters.Add("@ReceiveMode", SqlDbType.NVarChar, 10).Value = mode.Trim();
+        cmd.Parameters.Add("@LotBarcode", SqlDbType.NVarChar, 50).Value = barcode.Trim();
 
         using var rdr = cmd.ExecuteReader();
         return rdr.Read() ? ReadInboundScanRow(rdr) : null;
@@ -992,23 +1006,23 @@ public static class WhEndpoints
         try
         {
             using var conn = factory.OpenConnection();
-            using var cmd = new SqlCommand(proc, conn)
+            using var cmd = new SqlCommand($"[dbo].[{proc}]", conn)
             {
                 CommandType = CommandType.StoredProcedure,
                 CommandTimeout = 15
             };
-            cmd.Parameters.Add("@IN_MODE", SqlDbType.NVarChar, 10).Value = body.Mode.Trim();
-            cmd.Parameters.Add("@IN_BARCODE", SqlDbType.NVarChar, 50).Value = body.Barcode.Trim();
-            cmd.Parameters.Add("@IN_LOCATION_NO", SqlDbType.NVarChar, 30).Value = body.LocationId.Trim();
-            cmd.Parameters.Add("@IN_USERID", SqlDbType.NVarChar, 40).Value = userId;
+            cmd.Parameters.Add("@ReceiveMode", SqlDbType.NVarChar, 10).Value = body.Mode.Trim();
+            cmd.Parameters.Add("@LotBarcode", SqlDbType.NVarChar, 50).Value = body.Barcode.Trim();
+            cmd.Parameters.Add("@LocationId", SqlDbType.NVarChar, 30).Value = body.LocationId.Trim();
+            cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 40).Value = userId;
 
             using var rdr = cmd.ExecuteReader();
             var row = rdr.Read() ? ReadInboundScanRow(rdr) : null;
             return new InboundReceiveResult(true, successMessage, row);
         }
-        catch
+        catch (Exception ex)
         {
-            return new InboundReceiveResult(false, "Warehouse database is unavailable.", null);
+            return new InboundReceiveResult(false, WarehouseProcedureMessage(ex), null);
         }
     }
 
@@ -1017,22 +1031,22 @@ public static class WhEndpoints
         try
         {
             using var conn = factory.OpenConnection();
-            using var cmd = new SqlCommand("[SIS_TEST].[PDA_WH002_CANCEL]", conn)
+            using var cmd = new SqlCommand($"[dbo].[{PdaInboundCancelReceiptProcedure}]", conn)
             {
                 CommandType = CommandType.StoredProcedure,
                 CommandTimeout = 15
             };
-            cmd.Parameters.Add("@IN_MODE", SqlDbType.NVarChar, 10).Value = body.Mode.Trim();
-            cmd.Parameters.Add("@IN_BARCODE", SqlDbType.NVarChar, 50).Value = body.Barcode.Trim();
-            cmd.Parameters.Add("@IN_USERID", SqlDbType.NVarChar, 40).Value = userId;
+            cmd.Parameters.Add("@ReceiveMode", SqlDbType.NVarChar, 10).Value = body.Mode.Trim();
+            cmd.Parameters.Add("@LotBarcode", SqlDbType.NVarChar, 50).Value = body.Barcode.Trim();
+            cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 40).Value = userId;
 
             using var rdr = cmd.ExecuteReader();
             var row = rdr.Read() ? ReadInboundScanRow(rdr) : null;
             return new InboundReceiveResult(true, "Incoming canceled", row);
         }
-        catch
+        catch (Exception ex)
         {
-            return new InboundReceiveResult(false, "Warehouse database is unavailable.", null);
+            return new InboundReceiveResult(false, WarehouseProcedureMessage(ex), null);
         }
     }
 
@@ -1070,6 +1084,46 @@ public static class WhEndpoints
     private static LocationRow? QuerySisLocation(AmesConnectionFactory factory, string locationId)
     {
         using var conn = factory.OpenConnection();
+        if (!TableExists(conn, null, "SIS_TEST", "WMS1040"))
+        {
+            using var dboCmd = new SqlCommand("""
+                SELECT TOP (1)
+                    L.LocationID,
+                    L.LocationName,
+                    L.ZoneCode,
+                    CAST(NULL AS nvarchar(20)) AS WarehouseCode,
+                    CAST(NULL AS nvarchar(80)) AS WarehouseName,
+                    L.PlantCode AS AreaCode,
+                    L.PlantCode AS AreaName,
+                    L.ZoneCode AS ZoneName,
+                    L.Aisle,
+                    L.Bay,
+                    L.Slot,
+                    L.PlantCode,
+                    L.LocationType,
+                    L.Capacity,
+                    COUNT(I.InventoryID) AS LineCount,
+                    COALESCE(SUM(I.OnHandQty), 0) AS TotalQty
+                FROM dbo.MD_Location L
+                LEFT JOIN dbo.WH_Inventory I
+                    ON I.LocationID = L.LocationID
+                   AND COALESCE(I.Status, 'Received') <> 'Canceled'
+                   AND COALESCE(I.OnHandQty, 0) > 0
+                WHERE COALESCE(L.ActiveFlag, 1) = 1
+                  AND UPPER(L.LocationID) = UPPER(@LocationID)
+                GROUP BY L.LocationID, L.LocationName, L.ZoneCode, L.Aisle, L.Bay, L.Slot,
+                    L.PlantCode, L.LocationType, L.Capacity
+                ORDER BY L.LocationID;
+                """, conn)
+            {
+                CommandTimeout = 15
+            };
+            dboCmd.Parameters.Add("@LocationID", SqlDbType.NVarChar, 30).Value = locationId.Trim();
+
+            using var dboRdr = dboCmd.ExecuteReader();
+            return dboRdr.Read() ? ReadLocationRow(dboRdr) : null;
+        }
+
         using var cmd = new SqlCommand("""
             SELECT TOP (1)
                 L.LOCATION_NO AS LocationID,
@@ -1120,6 +1174,14 @@ public static class WhEndpoints
 
         using var rdr = cmd.ExecuteReader();
         return rdr.Read() ? ReadLocationRow(rdr) : null;
+    }
+
+    private static string WarehouseProcedureMessage(Exception ex)
+    {
+        if (ex is SqlException sqlEx && sqlEx.Errors.Count > 0)
+            return sqlEx.Errors[0].Message;
+
+        return "Warehouse database is unavailable.";
     }
 
     private static InboundScanRow ReadInboundScanRow(SqlDataReader rdr)

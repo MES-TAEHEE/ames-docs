@@ -1,6 +1,7 @@
 using System.Data;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using AMES.Contracts.Dto;
 using AMES.Data.Connection;
 using Microsoft.Data.SqlClient;
@@ -351,7 +352,7 @@ public sealed class PdaApi
             var url = $"/api/wh/inbound/scan?mode={Uri.EscapeDataString(mode.Trim())}&barcode={Uri.EscapeDataString(barcode.Trim())}";
             var resp = await _http.GetAsync(url);
             if (!resp.IsSuccessStatusCode)
-                throw new InvalidOperationException("Warehouse scan service is unavailable.");
+                throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Warehouse scan service is unavailable."));
 
             return await resp.Content.ReadFromJsonAsync<InboundScanRow>();
         }
@@ -379,29 +380,20 @@ public sealed class PdaApi
 
     public async Task<string?> WhInboundTestBarcodeAsync(string mode)
     {
-        var sql = string.Equals(mode, "CKD", StringComparison.OrdinalIgnoreCase)
-            ? """
-                SELECT TOP (1) C.BOX_BARCODE
-                FROM SIS_TEST.AMF1030 C
-                LEFT JOIN SIS_TEST.WMS2020 S
-                    ON S.CORCD = C.CORCD
-                   AND S.BIZCD = C.BIZCD
-                   AND S.LOTNO = C.BOX_BARCODE
-                ORDER BY CASE WHEN S.LOTNO IS NULL THEN 0 ELSE 1 END, C.BOX_BARCODE;
-                """
-            : """
-                SELECT TOP (1) B.BOX_BARCODE
-                FROM SIS_TEST.AMM9011 B
-                LEFT JOIN SIS_TEST.WMS2020 S
-                    ON S.CORCD = B.CORCD
-                   AND S.BIZCD = B.BIZCD
-                   AND S.LOTNO = B.BOX_BARCODE
-                ORDER BY CASE WHEN S.LOTNO IS NULL THEN 0 ELSE 1 END, B.BOX_BARCODE;
-                """;
-
         await using var conn = _db.CreateConnection();
         await conn.OpenAsync();
-        await using var cmd = new SqlCommand(sql, conn);
+        await using var cmd = new SqlCommand("""
+            SELECT TOP (1) L.LotCode
+            FROM dbo.tbl_Lot L
+            LEFT JOIN dbo.WH_Inventory I
+                ON I.LotID = L.LotID
+               AND COALESCE(I.Status, 'Received') <> 'Canceled'
+               AND COALESCE(I.OnHandQty, 0) > 0
+            WHERE (@Mode = N'' OR UPPER(COALESCE(L.ProcessCode, N'')) = @Mode)
+            ORDER BY CASE WHEN I.InventoryID IS NULL THEN 0 ELSE 1 END, L.LotID DESC;
+            """, conn);
+        cmd.Parameters.Add("@Mode", SqlDbType.NVarChar, 10).Value =
+            string.IsNullOrWhiteSpace(mode) ? "" : mode.Trim().ToUpperInvariant();
         var value = await cmd.ExecuteScalarAsync();
         return value == DBNull.Value ? null : Convert.ToString(value);
     }
@@ -411,7 +403,7 @@ public sealed class PdaApi
         try
         {
             Authorize();
-            var resp = await _http.PostAsJsonAsync("/api/wh/inbound/receive-sis", body);
+            var resp = await _http.PostAsJsonAsync("/api/wh/inbound/receive-lot", body);
             return await ReadInboundReceiveResultAsync(resp);
         }
         catch
@@ -541,6 +533,42 @@ public sealed class PdaApi
 
         return await resp.Content.ReadFromJsonAsync<InboundReceiveResult>()
                ?? new InboundReceiveResult(false, "Warehouse service returned an empty response.", null);
+    }
+
+    private static async Task<string> ReadServiceErrorAsync(HttpResponseMessage resp, string fallback)
+    {
+        string body;
+        try
+        {
+            body = await resp.Content.ReadAsStringAsync();
+        }
+        catch
+        {
+            return fallback;
+        }
+
+        if (string.IsNullOrWhiteSpace(body))
+            return fallback;
+
+        try
+        {
+            using var json = JsonDocument.Parse(body);
+            if (json.RootElement.TryGetProperty("detail", out var detail)
+                && detail.ValueKind == JsonValueKind.String
+                && !string.IsNullOrWhiteSpace(detail.GetString()))
+                return detail.GetString()!;
+
+            if (json.RootElement.TryGetProperty("title", out var title)
+                && title.ValueKind == JsonValueKind.String
+                && !string.IsNullOrWhiteSpace(title.GetString()))
+                return title.GetString()!;
+        }
+        catch
+        {
+            // Fall back to a short generic message rather than showing raw JSON.
+        }
+
+        return fallback;
     }
 
     private async Task<List<InboundTransactionLogRow>> QueryWhInboundTransactionLogsDbAsync(string? lotNo, DateTime? dateFrom, DateTime? dateTo)
