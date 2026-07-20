@@ -82,9 +82,9 @@
                 <div class="gauge-sub">@_moldSub</div>
             </div>
             <div class="pop-card gauge">
-                <div class="gauge-v dim">—</div>
-                <div class="gauge-l">OEE</div>
-                <div class="gauge-sub">A × P × Q (TODO)</div>
+                <div class="gauge-v @(_ngCount > 0 ? "alert" : _rawCount > 0 ? "warn" : "ok")">@_todayShots</div>
+                <div class="gauge-l">Today Shots (PLC)</div>
+                <div class="gauge-sub">미확정 @_rawCount · NG차단 @_ngCount</div>
             </div>
         </div>
 
@@ -147,6 +147,7 @@
     private string  _moldText   = "—";
     private string  _moldClass  = "ok";
     private string  _moldSub    = "—";
+    private int _todayShots, _rawCount, _ngCount;
     private DateTime _now       = DateTime.Now;
 
     private System.Threading.Timer? _refreshTimer;
@@ -223,6 +224,9 @@
 
             _hourly = PopServices.Production.GetHourlyToday(Session.LineId);
             _hourlyMax = _hourly?.Max(h => h.GoodQty + h.DefectQty) ?? 1;
+
+            var (shots, raw, ng) = PopServices.InjLots.GetTodayStats(Session.LineId);
+            _todayShots = shots; _rawCount = raw; _ngCount = ng;
         }
         catch (Exception ex)
         {

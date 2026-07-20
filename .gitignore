@@ -33,3 +33,6 @@ Thumbs.db
 src/04_Api/AMES.Api/logs/ames-api-release.err.log
 
 src/04_Api/AMES.Api/logs/ames-api-release.out.log
+
+# InjAgent File-mode label output (dev)
+labels/

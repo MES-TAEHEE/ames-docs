@@ -16,11 +16,13 @@
 
 ```
 01_Shared/AMES.Contracts   ← DTO + Enum, 의존성 없음 (net10.0)
+01_Shared/AMES.Devices     ← ZPL 라벨, 의존성 없음 (net10.0)
 02_Data/AMES.Data          ← Repository 20개, ADO.NET + SqlClient (net10.0)
 03_Pop/AMES.Pop            ← WinForms + BlazorWebView 하이브리드, 공장 터미널 (net10.0-windows)
 04_Api/AMES.Api            ← Minimal API, PDA REST 서버 (net10.0)
 05_Pda/AMES.Pda            ← .NET MAUI Blazor Hybrid, 핸디 스캐너 (net10.0-android/windows)
 06_Web/AMES.Web            ← Blazor Server + ASP.NET Identity, 사무실 포탈 (net10.0)
+07_Etc/AMES.InjAgent       ← WinForms 상주 에이전트, 사출기 Modbus/취출로봇 FEnet 수집 (net10.0-windows)
 ```
 
 ### 의존성 방향
@@ -61,6 +63,9 @@ dotnet run --project src\04_Api\AMES.Api\AMES.Api.csproj
 
 # 사무실 웹
 dotnet run --project src\06_Web\AMES.Web\AMES.Web.csproj
+
+# 사출 PLC 수집 에이전트 (PLC_Simulator 와 연동)
+dotnet run --project src\07_Etc\AMES.InjAgent\AMES.InjAgent.csproj
 ```
 
 **DB 전제조건**: `dist/AMES_Schema.sql` (149개 테이블)을 `AMES_DEV`에 적용 후 실행.
@@ -79,7 +84,7 @@ dotnet run --project src\06_Web\AMES.Web\AMES.Web.csproj
 | Login | `Pages/Login.razor` | PIN 인증, 사원 선택 |
 | INJ-02 | `Pages/Inj02Dashboard.razor` | 라인 대시보드, 시간대별 생산량 |
 | INJ-03 | `Pages/Inj03WoConfirm.razor` | 작업지시 확인/접수 |
-| INJ-04 | `Pages/Inj04ProductionEntry.razor` | 생산 실적 입력 |
+| INJ-04 | `Pages/Inj04ProductionEntry.razor` | 생산 실적 확정 (바코드 스캔 / 수동 입력) |
 | INJ-05 | `Pages/Inj05Defect.razor` | 불량 입력 |
 | INJ-06 | `Pages/Inj06MoldChange.razor` | 금형 교체 |
 | INJ-07 | `Pages/Inj07ProdStatus.razor` | 생산 현황 |
@@ -227,6 +232,8 @@ Health check: `GET /api/health`
 | `QC_` | 품질 |
 | `SYS_` | 시스템 (감사로그, 설정) |
 | `Auth_` | 인증 (PIN 해시, 세션) |
+
+사출 자동수집 테이블(`PR_InjLot` · `MD_InjCondItem` · `PR_InjCondLog` · `PR_RobotInspection`)은 `dist/migrate_inj_agent.sql`, 금형 마스터(`MD_MoldColor` · `MD_MoldItem` · `MD_MoldLine`)는 `dist/migrate_mold_master.sql` 참조.
 
 ---
 

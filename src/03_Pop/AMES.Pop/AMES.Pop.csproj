@@ -15,6 +15,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\02_Data\AMES.Data\AMES.Data.csproj" />
     <ProjectReference Include="..\..\01_Shared\AMES.Contracts\AMES.Contracts.csproj" />
+    <ProjectReference Include="..\..\01_Shared\AMES.Devices\AMES.Devices.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -28,6 +29,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="appsettings.Development.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="appsettings.Production.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
