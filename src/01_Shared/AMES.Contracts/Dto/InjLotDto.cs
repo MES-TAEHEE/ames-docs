@@ -17,6 +17,8 @@ public sealed class InjLotDto
     public string?  PressType        { get; init; }
     public string   ConfirmStatus    { get; init; } = "RAW";
     public long?    MachineShotCount { get; init; }
+    /// <summary>라벨 누적 발행 횟수 (에이전트 최초 발행 + 재출력).</summary>
+    public int      PrintedCount     { get; init; }
     public DateTime CreatedTS        { get; init; }
     public bool?    OverallNg        { get; init; }
     /// <summary>검사 없거나 전항목 OK/PASS면 null — NG 여부는 OverallNg로 판별.</summary>

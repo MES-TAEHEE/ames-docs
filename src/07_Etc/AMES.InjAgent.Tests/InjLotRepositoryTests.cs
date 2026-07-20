@@ -25,7 +25,7 @@ public class InjLotRepositoryTests
         catch { return null; }
     }
 
-    static MoldItemMapDto Lh() => new()
+    static MoldItemDto Lh() => new()
     { MoldCode = "LQ2DTMD", ColorCode = "CBK", CavityNo = 1, CavityPos = "LH", ItemNo = "83335-P8000RBQ", MoldId = null };
 
     static void Cleanup(AmesConnectionFactory f, int lotId)
@@ -62,6 +62,21 @@ public class InjLotRepositoryTests
             Assert.True(lotId > 0);
             var list = repo.GetUnconfirmed("LINE-INJ-01");
             Assert.Contains(list, x => x.LotId == lotId && x.ConfirmStatus == "RAW" && x.LotCode == lotCode);
+        }
+        finally { Cleanup(f, lotId); }
+    }
+
+    [SkippableFact]
+    public void IncrementPrintedCount_accumulates_and_shows_in_view()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        var repo = new InjLotRepository(f);
+        var (lotId, lotCode) = repo.CreateRawLot("LINE-INJ-01", "INJ-650-01", Lh(), 12347);
+        try
+        {
+            Assert.Equal(1, repo.IncrementPrintedCount(lotId));   // 에이전트 최초 발행
+            Assert.Equal(2, repo.IncrementPrintedCount(lotId));   // Inj04 재출력
+            Assert.Equal(2, repo.GetByLotCode(lotCode)!.PrintedCount);
         }
         finally { Cleanup(f, lotId); }
     }

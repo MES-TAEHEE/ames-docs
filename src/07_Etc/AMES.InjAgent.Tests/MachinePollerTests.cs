@@ -45,23 +45,24 @@ public class MachinePollerTests
 
     sealed class FakeStore : IInjAgentStore
     {
-        public List<MoldItemMapDto> Map = new()
+        public List<MoldItemDto> Map = new()
         {
             new() { MoldCode = "LQ2DTMD", ColorCode = "CBK", CavityNo = 1, CavityPos = "LH", ItemNo = "ITEM-LH", MoldId = "MOLD-1" },
             new() { MoldCode = "LQ2DTMD", ColorCode = "CBK", CavityNo = 2, CavityPos = "RH", ItemNo = "ITEM-RH", MoldId = "MOLD-1" },
         };
         public List<InjCondItemDto> CondItems = new();
-        public List<(string LineId, string EquipId, MoldItemMapDto Map, long Shot)> Created = new();
+        public List<(string LineId, string EquipId, MoldItemDto Map, long Shot)> Created = new();
+        public List<int> LabelPrinted = new();
         public List<(int LotId, bool Ng)>     Inspections = new();
         public List<int>                      NgBlocked   = new();
         public List<(string Item, long Seq, decimal? Set, decimal? Act)> CondLogs = new();
-        public Func<MoldItemMapDto, bool>? FailCreateFor;
+        public Func<MoldItemDto, bool>? FailCreateFor;
         public bool FailSaveInspection;
         int _nextLotId = 100;
 
-        public List<MoldItemMapDto> GetMoldItems(string moldCode, string colorCode)
+        public List<MoldItemDto> GetMoldItems(string moldCode, string colorCode)
             => Map.Where(m => m.MoldCode == moldCode && m.ColorCode == colorCode).ToList();
-        public (int, string) CreateRawLot(string lineId, string equipId, MoldItemMapDto map, long shot)
+        public (int, string) CreateRawLot(string lineId, string equipId, MoldItemDto map, long shot)
         {
             if (FailCreateFor?.Invoke(map) == true) throw new InvalidOperationException("db down");
             Created.Add((lineId, equipId, map, shot));
@@ -74,6 +75,7 @@ public class MachinePollerTests
             if (FailSaveInspection) throw new InvalidOperationException("db down");
             Inspections.Add((lotId, overallNg));
         }
+        public void MarkLabelPrinted(int lotId) => LabelPrinted.Add(lotId);
         public void MarkNgBlocked(int lotId) => NgBlocked.Add(lotId);
         public List<InjCondItemDto> GetCondItems(string lineId) => CondItems;
         public void InsertCondLog(string lineId, string itemCode, long shotSeq, decimal? s, decimal? a)
@@ -126,6 +128,7 @@ public class MachinePollerTests
         Assert.Equal("RH", s.Created[1].Map.CavityPos);
         Assert.Equal(56, s.Created[0].Shot);
         Assert.Equal(2, p.Printed.Count);
+        Assert.Equal(new[] { 100, 101 }, s.LabelPrinted);   // 발행 성공 → PrintedCount 반영
         // 로봇 송신: 금형(5700) + 1st LOT(5100)/품번(5800) + 2nd LOT(5200)/품번(5900)
         Assert.Contains(r.StringWrites, w => w.Addr == 5700 && w.Value == "LQ2DTMDCBK");
         Assert.Contains(r.StringWrites, w => w.Addr == 5100);
@@ -145,7 +148,7 @@ public class MachinePollerTests
 
         m.MoldRaw = "LQ2DTRUCBK";
         // 매핑 추가
-        s.Map.Add(new MoldItemMapDto { MoldCode = "LQ2DTRU", ColorCode = "CBK", CavityNo = 1, CavityPos = "LH", ItemNo = "I3", MoldId = "MOLD-2" });
+        s.Map.Add(new MoldItemDto { MoldCode = "LQ2DTRU", ColorCode = "CBK", CavityNo = 1, CavityPos = "LH", ItemNo = "I3", MoldId = "MOLD-2" });
         poller.PollOnce();
         Assert.Single(s.Created);
         Assert.Equal("LQ2DTRU", s.Created[0].Map.MoldCode);

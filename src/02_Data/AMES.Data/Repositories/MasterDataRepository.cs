@@ -1058,12 +1058,16 @@ public sealed class MasterDataRepository
     // ║  MD_Mold (MD-007)                                                ║
     // ╚══════════════════════════════════════════════════════════════════╝
 
+    // CarType/RefCode/AssyInjResultFlag/CumulativeShots 는 SIS 정합화(migrate_mold_master.sql)
+    // 추가 컬럼 — 뒤쪽 기본값 파라미터라 기존 위치 인자 호출과 호환된다.
     public record MoldRow(
         string MoldID, string? MoldName,
         int? RatedShots, int? CurrentShots, int? CavityCount, int? Tonnage,
         string? StorageLoc, DateOnly? LastMaintDate, string? Status,
         string? CreatedBy, DateTime? CreatedTS,
-        string? ModifiedBy, DateTime? ModifiedTS);
+        string? ModifiedBy, DateTime? ModifiedTS,
+        string? CarType = null, string? RefCode = null,
+        bool AssyInjResultFlag = false, long CumulativeShots = 0);
 
     public List<MoldRow> ListMolds()
     {
@@ -1072,7 +1076,8 @@ public sealed class MasterDataRepository
             SELECT MoldID, MoldName,
                    RatedShots, CurrentShots, CavityCount, Tonnage,
                    StorageLoc, LastMaintDate, Status,
-                   CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
+                   CreatedBy, CreatedTS, ModifiedBy, ModifiedTS,
+                   CarType, RefCode, AssyInjResultFlag, CumulativeShots
             FROM   dbo.MD_Mold
             ORDER  BY MoldID;
             """, conn);
@@ -1092,7 +1097,11 @@ public sealed class MasterDataRepository
                 r["CreatedBy"]     as string,
                 r["CreatedTS"]     as DateTime?,
                 r["ModifiedBy"]    as string,
-                r["ModifiedTS"]    as DateTime?));
+                r["ModifiedTS"]    as DateTime?,
+                r["CarType"]       as string,
+                r["RefCode"]       as string,
+                r["AssyInjResultFlag"] is bool af && af,
+                r["CumulativeShots"]   is long cum ? cum : 0));
         return list;
     }
 
@@ -1108,17 +1117,22 @@ public sealed class MasterDataRepository
     public void InsertMold(
         string moldId, string? moldName,
         int? ratedShots, int? currentShots, int? cavityCount, int? tonnage,
-        string? storageLoc, DateOnly? lastMaintDate, string? status, string createdBy)
+        string? storageLoc, DateOnly? lastMaintDate, string? status, string createdBy,
+        string? carType = null, string? refCode = null, bool assyInjResultFlag = false)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             INSERT INTO dbo.MD_Mold
               (MoldID, MoldName, RatedShots, CurrentShots, CavityCount, Tonnage,
-               StorageLoc, LastMaintDate, Status, CreatedBy, CreatedTS)
+               StorageLoc, LastMaintDate, Status, CarType, RefCode, AssyInjResultFlag,
+               CreatedBy, CreatedTS)
             VALUES
               (@ID, @Name, @RS, @CS, @CC, @Ton,
-               @Loc, @Maint, @St, @By, SYSDATETIME());
+               @Loc, @Maint, @St, @Car, @Ref, @Assy, @By, SYSDATETIME());
             """, conn);
+        cmd.Parameters.Add("@Car",  SqlDbType.VarChar, 20).Value = (object?)carType ?? DBNull.Value;
+        cmd.Parameters.Add("@Ref",  SqlDbType.VarChar, 20).Value = (object?)refCode ?? DBNull.Value;
+        cmd.Parameters.Add("@Assy", SqlDbType.Bit).Value         = assyInjResultFlag;
         cmd.Parameters.Add("@ID",    SqlDbType.VarChar,  20).Value = moldId;
         cmd.Parameters.Add("@Name",  SqlDbType.NVarChar, 50).Value = (object?)moldName     ?? DBNull.Value;
         cmd.Parameters.Add("@RS",    SqlDbType.Int).Value          = (object?)ratedShots   ?? DBNull.Value;
@@ -1137,7 +1151,8 @@ public sealed class MasterDataRepository
     public void UpdateMold(
         string moldId, string? moldName,
         int? ratedShots, int? currentShots, int? cavityCount, int? tonnage,
-        string? storageLoc, DateOnly? lastMaintDate, string? status, string modifiedBy)
+        string? storageLoc, DateOnly? lastMaintDate, string? status, string modifiedBy,
+        string? carType = null, string? refCode = null, bool assyInjResultFlag = false)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
@@ -1145,9 +1160,13 @@ public sealed class MasterDataRepository
               MoldName=@Name, RatedShots=@RS, CurrentShots=@CS,
               CavityCount=@CC, Tonnage=@Ton, StorageLoc=@Loc,
               LastMaintDate=@Maint, Status=@St,
+              CarType=@Car, RefCode=@Ref, AssyInjResultFlag=@Assy,
               ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  MoldID=@ID;
             """, conn);
+        cmd.Parameters.Add("@Car",  SqlDbType.VarChar, 20).Value = (object?)carType ?? DBNull.Value;
+        cmd.Parameters.Add("@Ref",  SqlDbType.VarChar, 20).Value = (object?)refCode ?? DBNull.Value;
+        cmd.Parameters.Add("@Assy", SqlDbType.Bit).Value         = assyInjResultFlag;
         cmd.Parameters.Add("@ID",    SqlDbType.VarChar,   20).Value = moldId;
         cmd.Parameters.Add("@Name",  SqlDbType.NVarChar,  50).Value = (object?)moldName     ?? DBNull.Value;
         cmd.Parameters.Add("@RS",    SqlDbType.Int).Value           = (object?)ratedShots   ?? DBNull.Value;
@@ -1168,6 +1187,279 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "DELETE FROM dbo.MD_Mold WHERE MoldID=@I;", conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = moldId;
+        cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>
+    /// ZPD20041 삭제 가드: 금형이 제품정보(MD_MoldItem)·라인배정(MD_MoldLine)에서
+    /// 사용 중이면 삭제를 막기 위한 사용처 카운트.
+    /// </summary>
+    public (int ItemCount, int LineCount, int ColorCount) MoldUsage(string moldId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT
+              (SELECT COUNT(*) FROM dbo.MD_MoldItem  WHERE MoldID=@I) AS I,
+              (SELECT COUNT(*) FROM dbo.MD_MoldLine  WHERE MoldID=@I) AS L,
+              (SELECT COUNT(*) FROM dbo.MD_MoldColor WHERE MoldID=@I) AS C;
+            """, conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = moldId;
+        using var r = cmd.ExecuteReader();
+        return r.Read()
+            ? (Convert.ToInt32(r["I"]), Convert.ToInt32(r["L"]), Convert.ToInt32(r["C"]))
+            : (0, 0, 0);
+    }
+
+    // ╔══════════════════════════════════════════════════════════════════╗
+    // ║  MD_MoldColor (ZPD20041 — 금형 색상)                             ║
+    // ╚══════════════════════════════════════════════════════════════════╝
+
+    public record MoldColorRow(string MoldID, string Color, string? CreatedBy, DateTime? CreatedTS);
+
+    public List<MoldColorRow> ListMoldColors(string moldId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT MoldID, Color, CreatedBy, CreatedTS
+            FROM   dbo.MD_MoldColor
+            WHERE  MoldID=@I
+            ORDER  BY Color;
+            """, conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = moldId;
+        using var r = cmd.ExecuteReader();
+        var list = new List<MoldColorRow>();
+        while (r.Read())
+            list.Add(new MoldColorRow(
+                (string)r["MoldID"], (string)r["Color"],
+                r["CreatedBy"] as string, r["CreatedTS"] as DateTime?));
+        return list;
+    }
+
+    public void InsertMoldColor(string moldId, string color, string createdBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            IF NOT EXISTS (SELECT 1 FROM dbo.MD_MoldColor WHERE MoldID=@I AND Color=@C)
+              INSERT INTO dbo.MD_MoldColor (MoldID, Color, CreatedBy, CreatedTS)
+              VALUES (@I, @C, @By, SYSDATETIME());
+            """, conn);
+        cmd.Parameters.Add("@I",  SqlDbType.VarChar, 20).Value = moldId;
+        cmd.Parameters.Add("@C",  SqlDbType.VarChar, 10).Value = color;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = createdBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeleteMoldColor(string moldId, string color)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "DELETE FROM dbo.MD_MoldColor WHERE MoldID=@I AND Color=@C;", conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = moldId;
+        cmd.Parameters.Add("@C", SqlDbType.VarChar, 10).Value = color;
+        cmd.ExecuteNonQuery();
+    }
+
+    // ╔══════════════════════════════════════════════════════════════════╗
+    // ║  MD_MoldItem (ZPD20042 — 금형별 제품정보, SIS APM2120)           ║
+    // ╚══════════════════════════════════════════════════════════════════╝
+
+    public record MoldItemRow(
+        string MoldID, string ItemNo, string? ItemName,
+        string? Color, int CavitySeq, string? CavityPos,
+        decimal? Usage, string? ResinItemNo, decimal? ResinUsage,
+        int CavityCount, string? MoldCategory, bool ActiveFlag,
+        string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
+
+    public List<MoldItemRow> ListMoldItems(string moldId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT mi.MoldID, mi.ItemNo, i.ItemName,
+                   mi.Color, mi.CavitySeq, mi.CavityPos,
+                   mi.[Usage], mi.ResinItemNo, mi.ResinUsage,
+                   mi.CavityCount, mi.MoldCategory, mi.ActiveFlag,
+                   mi.CreatedBy, mi.CreatedTS, mi.ModifiedBy, mi.ModifiedTS
+            FROM   dbo.MD_MoldItem mi
+            LEFT   JOIN dbo.MD_Item i ON i.ItemNo = mi.ItemNo
+            WHERE  mi.MoldID=@I
+            ORDER  BY mi.CavitySeq, mi.ItemNo;
+            """, conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = moldId;
+        using var r = cmd.ExecuteReader();
+        var list = new List<MoldItemRow>();
+        while (r.Read())
+            list.Add(new MoldItemRow(
+                (string)r["MoldID"], (string)r["ItemNo"], r["ItemName"] as string,
+                r["Color"] as string, Convert.ToInt32(r["CavitySeq"]), r["CavityPos"] as string,
+                r["Usage"]      is decimal u  ? u  : null,
+                r["ResinItemNo"] as string,
+                r["ResinUsage"] is decimal ru ? ru : null,
+                Convert.ToInt32(r["CavityCount"]), r["MoldCategory"] as string,
+                r["ActiveFlag"] is bool af && af,
+                r["CreatedBy"] as string, r["CreatedTS"] as DateTime?,
+                r["ModifiedBy"] as string, r["ModifiedTS"] as DateTime?));
+        return list;
+    }
+
+    public bool MoldItemExists(string moldId, string itemNo)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "SELECT 1 FROM dbo.MD_MoldItem WHERE MoldID=@I AND ItemNo=@P;", conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = moldId;
+        cmd.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = itemNo;
+        return cmd.ExecuteScalar() is not null;
+    }
+
+    public void InsertMoldItem(
+        string moldId, string itemNo, string? color, int cavitySeq, string? cavityPos,
+        decimal? usage, string? resinItemNo, decimal? resinUsage,
+        int cavityCount, string? moldCategory, bool activeFlag, string createdBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            INSERT INTO dbo.MD_MoldItem
+              (MoldID, ItemNo, Color, CavitySeq, CavityPos,
+               [Usage], ResinItemNo, ResinUsage, CavityCount, MoldCategory, ActiveFlag,
+               CreatedBy, CreatedTS)
+            VALUES
+              (@I, @P, @Col, @Seq, @Pos, @U, @RI, @RU, @CC, @Cat, @Act, @By, SYSDATETIME());
+            """, conn);
+        FillMoldItemParams(cmd, moldId, itemNo, color, cavitySeq, cavityPos,
+                           usage, resinItemNo, resinUsage, cavityCount, moldCategory, activeFlag);
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = createdBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void UpdateMoldItem(
+        string moldId, string itemNo, string? color, int cavitySeq, string? cavityPos,
+        decimal? usage, string? resinItemNo, decimal? resinUsage,
+        int cavityCount, string? moldCategory, bool activeFlag, string modifiedBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            UPDATE dbo.MD_MoldItem SET
+              Color=@Col, CavitySeq=@Seq, CavityPos=@Pos,
+              [Usage]=@U, ResinItemNo=@RI, ResinUsage=@RU,
+              CavityCount=@CC, MoldCategory=@Cat, ActiveFlag=@Act,
+              ModifiedBy=@By, ModifiedTS=SYSDATETIME()
+            WHERE  MoldID=@I AND ItemNo=@P;
+            """, conn);
+        FillMoldItemParams(cmd, moldId, itemNo, color, cavitySeq, cavityPos,
+                           usage, resinItemNo, resinUsage, cavityCount, moldCategory, activeFlag);
+        cmd.Parameters.Add("@By", SqlDbType.NVarChar, 450).Value = modifiedBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    static void FillMoldItemParams(SqlCommand cmd,
+        string moldId, string itemNo, string? color, int cavitySeq, string? cavityPos,
+        decimal? usage, string? resinItemNo, decimal? resinUsage,
+        int cavityCount, string? moldCategory, bool activeFlag)
+    {
+        cmd.Parameters.Add("@I",   SqlDbType.VarChar, 20).Value = moldId;
+        cmd.Parameters.Add("@P",   SqlDbType.VarChar, 20).Value = itemNo;
+        cmd.Parameters.Add("@Col", SqlDbType.VarChar, 10).Value = (object?)color        ?? DBNull.Value;
+        cmd.Parameters.Add("@Seq", SqlDbType.Int).Value         = cavitySeq;
+        cmd.Parameters.Add("@Pos", SqlDbType.VarChar,  4).Value = (object?)cavityPos    ?? DBNull.Value;
+        cmd.Parameters.Add("@U",   SqlDbType.Decimal).Value     = (object?)usage        ?? DBNull.Value;
+        cmd.Parameters.Add("@RI",  SqlDbType.VarChar, 20).Value = (object?)resinItemNo  ?? DBNull.Value;
+        cmd.Parameters.Add("@RU",  SqlDbType.Decimal).Value     = (object?)resinUsage   ?? DBNull.Value;
+        cmd.Parameters.Add("@CC",  SqlDbType.Int).Value         = cavityCount;
+        cmd.Parameters.Add("@Cat", SqlDbType.VarChar, 20).Value = (object?)moldCategory ?? DBNull.Value;
+        cmd.Parameters.Add("@Act", SqlDbType.Bit).Value         = activeFlag;
+    }
+
+    public void DeleteMoldItem(string moldId, string itemNo)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "DELETE FROM dbo.MD_MoldItem WHERE MoldID=@I AND ItemNo=@P;", conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = moldId;
+        cmd.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = itemNo;
+        cmd.ExecuteNonQuery();
+    }
+
+    // ╔══════════════════════════════════════════════════════════════════╗
+    // ║  MD_MoldLine (ZPD20043 — 라인별 금형, SIS APM2130)               ║
+    // ╚══════════════════════════════════════════════════════════════════╝
+
+    public record MoldLineRow(
+        string LineCode, string MoldID, string? MoldName,
+        decimal? UPH, decimal? PrepTime,
+        string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
+
+    public List<MoldLineRow> ListMoldLines(string lineCode)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT ml.LineCode, ml.MoldID, m.MoldName, ml.UPH, ml.PrepTime,
+                   ml.CreatedBy, ml.CreatedTS, ml.ModifiedBy, ml.ModifiedTS
+            FROM   dbo.MD_MoldLine ml
+            LEFT   JOIN dbo.MD_Mold m ON m.MoldID = ml.MoldID
+            WHERE  ml.LineCode=@L
+            ORDER  BY ml.MoldID;
+            """, conn);
+        cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineCode;
+        using var r = cmd.ExecuteReader();
+        var list = new List<MoldLineRow>();
+        while (r.Read())
+            list.Add(new MoldLineRow(
+                (string)r["LineCode"], (string)r["MoldID"], r["MoldName"] as string,
+                r["UPH"]      is decimal u ? u : null,
+                r["PrepTime"] is decimal p ? p : null,
+                r["CreatedBy"] as string, r["CreatedTS"] as DateTime?,
+                r["ModifiedBy"] as string, r["ModifiedTS"] as DateTime?));
+        return list;
+    }
+
+    public bool MoldLineExists(string lineCode, string moldId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "SELECT 1 FROM dbo.MD_MoldLine WHERE LineCode=@L AND MoldID=@I;", conn);
+        cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineCode;
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = moldId;
+        return cmd.ExecuteScalar() is not null;
+    }
+
+    public void InsertMoldLine(string lineCode, string moldId, decimal? uph, decimal? prepTime, string createdBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            INSERT INTO dbo.MD_MoldLine (LineCode, MoldID, UPH, PrepTime, CreatedBy, CreatedTS)
+            VALUES (@L, @I, @U, @P, @By, SYSDATETIME());
+            """, conn);
+        cmd.Parameters.Add("@L",  SqlDbType.VarChar, 20).Value = lineCode;
+        cmd.Parameters.Add("@I",  SqlDbType.VarChar, 20).Value = moldId;
+        cmd.Parameters.Add("@U",  SqlDbType.Decimal).Value     = (object?)uph      ?? DBNull.Value;
+        cmd.Parameters.Add("@P",  SqlDbType.Decimal).Value     = (object?)prepTime ?? DBNull.Value;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = createdBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void UpdateMoldLine(string lineCode, string moldId, decimal? uph, decimal? prepTime, string modifiedBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            UPDATE dbo.MD_MoldLine SET
+              UPH=@U, PrepTime=@P, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
+            WHERE  LineCode=@L AND MoldID=@I;
+            """, conn);
+        cmd.Parameters.Add("@L",  SqlDbType.VarChar, 20).Value = lineCode;
+        cmd.Parameters.Add("@I",  SqlDbType.VarChar, 20).Value = moldId;
+        cmd.Parameters.Add("@U",  SqlDbType.Decimal).Value     = (object?)uph      ?? DBNull.Value;
+        cmd.Parameters.Add("@P",  SqlDbType.Decimal).Value     = (object?)prepTime ?? DBNull.Value;
+        cmd.Parameters.Add("@By", SqlDbType.NVarChar, 450).Value = modifiedBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeleteMoldLine(string lineCode, string moldId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "DELETE FROM dbo.MD_MoldLine WHERE LineCode=@L AND MoldID=@I;", conn);
+        cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineCode;
         cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = moldId;
         cmd.ExecuteNonQuery();
     }

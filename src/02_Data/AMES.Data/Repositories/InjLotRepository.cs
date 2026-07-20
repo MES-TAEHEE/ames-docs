@@ -15,29 +15,34 @@ public sealed class InjLotRepository
     private readonly AmesConnectionFactory _factory;
     public InjLotRepository(AmesConnectionFactory f) => _factory = f;
 
-    public List<MoldItemMapDto> GetMoldItems(string moldCode, string colorCode)
+    /// <summary>
+    /// PLC 금형코드(dash 제거)+색상 → 품번·캐비티 (SIS APM2120 = MD_MoldItem).
+    /// MoldCodeClean 등치 seek — SIS 원본의 LIKE 접두 매칭 대신 사전계산 컬럼을 쓴다.
+    /// </summary>
+    public List<MoldItemDto> GetMoldItems(string moldCode, string colorCode)
     {
         const string sql = """
-            SELECT m.MoldCode, m.ColorCode, m.CavityNo, m.CavityPos, m.ItemNo, m.MoldID,
+            SELECT m.MoldID, m.MoldCodeClean, mi.Color, mi.CavitySeq, mi.CavityPos, mi.ItemNo,
                    i.ItemName
-            FROM   dbo.MD_MoldItemMap m
-            LEFT   JOIN dbo.MD_Item i ON i.ItemNo = m.ItemNo
-            WHERE  m.MoldCode = @M AND m.ColorCode = @C AND m.ActiveFlag = 1
-            ORDER  BY m.CavityNo;
+            FROM   dbo.MD_MoldItem mi
+            JOIN   dbo.MD_Mold m ON m.MoldID = mi.MoldID
+            LEFT   JOIN dbo.MD_Item i ON i.ItemNo = mi.ItemNo
+            WHERE  m.MoldCodeClean = @M AND mi.Color = @C AND mi.ActiveFlag = 1
+            ORDER  BY mi.CavitySeq;
             """;
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@M", SqlDbType.VarChar, 20).Value = moldCode;
         cmd.Parameters.Add("@C", SqlDbType.VarChar, 10).Value = colorCode;
         using var rdr = cmd.ExecuteReader();
-        var list = new List<MoldItemMapDto>();
+        var list = new List<MoldItemDto>();
         while (rdr.Read())
-            list.Add(new MoldItemMapDto
+            list.Add(new MoldItemDto
             {
-                MoldCode  = (string)rdr["MoldCode"],
-                ColorCode = (string)rdr["ColorCode"],
-                CavityNo  = (int)rdr["CavityNo"],
-                CavityPos = (string)rdr["CavityPos"],
+                MoldCode  = (string)rdr["MoldCodeClean"],
+                ColorCode = (string)rdr["Color"],
+                CavityNo  = (int)rdr["CavitySeq"],
+                CavityPos = rdr["CavityPos"] as string ?? string.Empty,
                 ItemNo    = (string)rdr["ItemNo"],
                 ItemName  = rdr["ItemName"] as string,
                 MoldId    = rdr["MoldID"] as string,
@@ -51,7 +56,7 @@ public sealed class InjLotRepository
     /// (2캐비티 = 같은 샷이므로 이중 가산 방지).
     /// </summary>
     public (int LotId, string LotCode) CreateRawLot(
-        string lineId, string equipId, MoldItemMapDto map, long machineShotCount)
+        string lineId, string equipId, MoldItemDto map, long machineShotCount)
     {
         using var conn = _factory.OpenConnection();
         using var tx   = conn.BeginTransaction();
@@ -100,7 +105,9 @@ public sealed class InjLotRepository
             {
                 using (var cmd = new SqlCommand("""
                     UPDATE dbo.MD_Mold
-                    SET    CurrentShots = ISNULL(CurrentShots,0) + 1,
+                    SET    CurrentShots    = ISNULL(CurrentShots,0) + 1,      -- 장착 후 타수 (Inj06 교체 시 리셋)
+                           CumulativeShots = CumulativeShots + 1,             -- 수명 누적 (SIS CUM_SHOTS, 리셋 금지)
+                           ShotsUpdatedTS  = SYSDATETIME(),
                            ModifiedBy = 'AGENT', ModifiedTS = SYSDATETIME()
                     WHERE  MoldID = @Mold;
                     """, conn, tx))
@@ -114,13 +121,13 @@ public sealed class InjLotRepository
                        ON t.MoldID = s.MoldID AND t.RecordDate = s.D
                     WHEN MATCHED THEN UPDATE SET
                          ShotsAdded      = ISNULL(t.ShotsAdded,0) + 1,
-                         CumulativeShots = (SELECT CurrentShots FROM dbo.MD_Mold WHERE MoldID = @Mold),
+                         CumulativeShots = (SELECT CumulativeShots FROM dbo.MD_Mold WHERE MoldID = @Mold),
                          RecordedAt      = SYSDATETIME()
                     WHEN NOT MATCHED THEN INSERT
                          (MoldID, RecordDate, ShotsAdded, CumulativeShots, RatedShots, RecordedAt, CreatedBy, CreatedTS)
                          VALUES (@Mold, s.D, 1,
-                                 (SELECT CurrentShots FROM dbo.MD_Mold WHERE MoldID = @Mold),
-                                 (SELECT RatedShots   FROM dbo.MD_Mold WHERE MoldID = @Mold),
+                                 (SELECT CumulativeShots FROM dbo.MD_Mold WHERE MoldID = @Mold),
+                                 (SELECT RatedShots      FROM dbo.MD_Mold WHERE MoldID = @Mold),
                                  SYSDATETIME(), 'AGENT', SYSDATETIME());
                     """, conn, tx))
                 {
@@ -138,7 +145,7 @@ public sealed class InjLotRepository
     const string SelectLotView = """
         SELECT l.LotID, l.LotCode, l.ItemNo, mi.ItemName, l.LineID,
                e.EquipID, e.MoldCode, e.ColorCode, e.MoldID, e.CavityNo, e.CavityPos,
-               e.PressType, e.ConfirmStatus, e.MachineShotCount, l.CreatedTS,
+               e.PressType, e.ConfirmStatus, e.MachineShotCount, e.PrintedCount, l.CreatedTS,
                ri.OverallNg,
                CASE WHEN ri.InspectionID IS NULL THEN NULL ELSE
                  LTRIM(STUFF(
@@ -170,6 +177,7 @@ public sealed class InjLotRepository
         PressType         = rdr["PressType"] as string,
         ConfirmStatus     = (string)rdr["ConfirmStatus"],
         MachineShotCount  = rdr["MachineShotCount"] as long?,
+        PrintedCount      = (int)rdr["PrintedCount"],
         CreatedTS         = rdr["CreatedTS"] as DateTime? ?? default,
         OverallNg         = rdr["OverallNg"] as bool?,
         InspectionSummary = rdr["InspectionSummary"] as string,
@@ -223,6 +231,21 @@ public sealed class InjLotRepository
         cmd.Parameters.Add("@Code", SqlDbType.VarChar, 40).Value = lotCode;
         using var rdr = cmd.ExecuteReader();
         return rdr.Read() ? MapToDto(rdr) : null;
+    }
+
+    /// <summary>라벨 발행 성공 시 +1 (에이전트 최초 발행·Inj04 재출력 공용). 반환 = 누적 횟수.</summary>
+    public int IncrementPrintedCount(int lotId)
+    {
+        const string sql = """
+            UPDATE dbo.PR_InjLot
+            SET    PrintedCount = PrintedCount + 1, ModifiedTS = SYSDATETIME()
+            OUTPUT INSERTED.PrintedCount
+            WHERE  LotID = @L;
+            """;
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@L", SqlDbType.Int).Value = lotId;
+        return cmd.ExecuteScalar() as int? ?? 0;
     }
 
     /// <summary>

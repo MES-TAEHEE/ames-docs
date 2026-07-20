@@ -33,8 +33,9 @@ public interface IRobotLink
 /// <summary>DB 저장소 시야 (Repository 어댑터). Task 7/8 에서 구현.</summary>
 public interface IInjAgentStore
 {
-    List<MoldItemMapDto> GetMoldItems(string moldCode, string colorCode);
-    (int LotId, string LotCode) CreateRawLot(string lineId, string equipId, MoldItemMapDto map, long machineShotCount);
+    List<MoldItemDto> GetMoldItems(string moldCode, string colorCode);
+    (int LotId, string LotCode) CreateRawLot(string lineId, string equipId, MoldItemDto map, long machineShotCount);
+    void MarkLabelPrinted(int lotId);
     void SaveInspection(int lotId, string equipId, string cavityPos,
                         string shortMold, string weldLine, string gas, string weight, bool overallNg);
     void MarkNgBlocked(int lotId);

@@ -113,7 +113,6 @@ IF OBJECT_ID(N'dbo.PR_RobotInspection', N'U') IS NOT NULL DROP TABLE dbo.PR_Robo
 IF OBJECT_ID(N'dbo.PR_InjLot', N'U') IS NOT NULL DROP TABLE dbo.PR_InjLot;
 IF OBJECT_ID(N'dbo.PR_InjCondLog', N'U') IS NOT NULL DROP TABLE dbo.PR_InjCondLog;
 IF OBJECT_ID(N'dbo.MD_InjCondItem', N'U') IS NOT NULL DROP TABLE dbo.MD_InjCondItem;
-IF OBJECT_ID(N'dbo.MD_MoldItemMap', N'U') IS NOT NULL DROP TABLE dbo.MD_MoldItemMap;
 IF OBJECT_ID(N'dbo.tbl_Lot', N'U') IS NOT NULL DROP TABLE dbo.tbl_Lot;
 IF OBJECT_ID(N'dbo.PP_ProductionCalendarOverride', N'U') IS NOT NULL DROP TABLE dbo.PP_ProductionCalendarOverride;
 IF OBJECT_ID(N'dbo.PP_LineOEE', N'U') IS NOT NULL DROP TABLE dbo.PP_LineOEE;
@@ -361,7 +360,6 @@ GO
 CREATE TABLE dbo.MD_Mold (
   [MoldID]                    VARCHAR(20)          NOT NULL,
   [MoldName]                  NVARCHAR(50)             NULL,
-  [CompatItemsJSON]           NVARCHAR(MAX)            NULL,
   [RatedShots]                INT                      NULL,
   [CurrentShots]              INT                      NULL,
   [CavityCount]               INT                      NULL,
@@ -1721,25 +1719,6 @@ GO
 CREATE INDEX IX_PR_InjLot_Status ON dbo.PR_InjLot([ConfirmStatus], [EquipID]);
 GO
 CREATE INDEX IX_PR_InjLot_Equip ON dbo.PR_InjLot([EquipID]) INCLUDE([CavityPos], [MachineShotCount]);
-GO
-
--- ── MD_MoldItemMap  (금형코드+색상 → 품번·캐비티, SEOYON APM2120 대응)
-CREATE TABLE dbo.MD_MoldItemMap (
-  [MapID]                     INT IDENTITY         NOT NULL,
-  [MoldCode]                  VARCHAR(20)          NOT NULL,
-  [ColorCode]                 VARCHAR(10)          NOT NULL,
-  [CavityNo]                  INT                  NOT NULL,  -- 1 / 2
-  [CavityPos]                 VARCHAR(4)           NOT NULL,  -- LH / RH
-  [ItemNo]                    VARCHAR(20)          NOT NULL,  -- FK -> MD_Item.ItemNo
-  [MoldID]                    VARCHAR(20)              NULL,  -- FK -> MD_Mold.MoldID
-  [ActiveFlag]                BIT                  NOT NULL DEFAULT 1,
-  [CreatedBy]                 VARCHAR(50)          NOT NULL,
-  [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
-  [ModifiedBy]                NVARCHAR(450)            NULL,
-  CONSTRAINT PK_MD_MoldItemMap PRIMARY KEY CLUSTERED ([MapID]),
-  CONSTRAINT UQ_MD_MoldItemMap UNIQUE ([MoldCode], [ColorCode], [CavityNo])
-);
 GO
 
 -- ── MD_InjCondItem  (사출조건 항목 마스터, SEOYON ZINJ0150 대응)
@@ -4661,27 +4640,20 @@ GO
 --   색상코드 = 뒤 3자리, 금형코드 = 나머지 (원본 Main.cs 규칙)
 --   품번은 위 시드의 실존 MD_Item 사용
 -- ════════════════════════════════════════════════════════════════════════
-DELETE FROM dbo.MD_Mold WHERE MoldID IN ('MOLD-LQ2-DTMD','MOLD-LQ2-DTRU','MOLD-MEA-DTRCT','MOLD-NEA-FUC');
+DELETE FROM dbo.MD_Mold WHERE MoldID IN ('LQ2-DTMD','LQ2-DTRU','MEA-DTRCT','NEA-FUC');
 GO
 INSERT INTO dbo.MD_Mold (MoldID, MoldName, RatedShots, CurrentShots, CavityCount, Tonnage, Status, CreatedBy, CreatedTS) VALUES
-  ('MOLD-LQ2-DTMD',  N'LQ2 Door Trim MD (2-cav)',  500000, 0, 2, 650, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('MOLD-LQ2-DTRU',  N'LQ2 Door Trim RU (2-cav)',  500000, 0, 2, 650, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('MOLD-MEA-DTRCT', N'MEA Door Trim CT (1-cav)',  300000, 0, 1, 650, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('MOLD-NEA-FUC',   N'NEA FUC (1-cav)',           300000, 0, 1, 650, 'ACTIVE', 'admin', SYSDATETIME());
+  ('LQ2-DTMD',  N'LQ2 Door Trim MD (2-cav)',  500000, 0, 2, 650, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LQ2-DTRU',  N'LQ2 Door Trim RU (2-cav)',  500000, 0, 2, 650, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('MEA-DTRCT', N'MEA Door Trim CT (1-cav)',  300000, 0, 1, 650, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('NEA-FUC',   N'NEA FUC (1-cav)',           300000, 0, 1, 650, 'ACTIVE', 'admin', SYSDATETIME());
 GO
-INSERT INTO dbo.MD_MoldItemMap (MoldCode, ColorCode, CavityNo, CavityPos, ItemNo, MoldID, CreatedBy) VALUES
-  ('LQ2DTMD',  'CBK', 1, 'LH', '83335-P8000RBQ',  'MOLD-LQ2-DTMD',  'admin'),
-  ('LQ2DTMD',  'CBK', 2, 'RH', '83345-P8000RBQ',  'MOLD-LQ2-DTMD',  'admin'),
-  ('LQ2DTRU',  'CBK', 1, 'LH', 'M83371-P8000RBQ', 'MOLD-LQ2-DTRU',  'admin'),
-  ('LQ2DTRU',  'CBK', 2, 'RH', 'M83381-P8000RBQ', 'MOLD-LQ2-DTRU',  'admin'),
-  ('MEADTRCT', 'NNB', 1, 'LH', '83314-P8000',     'MOLD-MEA-DTRCT', 'admin'),
-  ('NEAFUC',   'NNB', 1, 'LH', '83314-P8010',     'MOLD-NEA-FUC',   'admin');
-GO
+-- 금형→품번 매핑 시드는 MD_MoldItem 생성 이후인 dist/migrate_mold_master.sql 에서 수행
 INSERT INTO dbo.MD_InjCondItem (LineID, ItemCode, ItemName, SetAddress, ActualAddress, DataType, CreatedBy) VALUES
   ('LINE-INJ-01', 'TEMP',  N'배럴온도', 5400, 5404, 'FLOAT', 'admin'),
   ('LINE-INJ-01', 'PRESS', N'사출압력', 5410, 5414, 'LONG',  'admin');
 GO
-PRINT '✓ Seed data inserted: 4 Molds, 6 MoldItemMap, 2 InjCondItem (사출 자동수집)';
+PRINT '✓ Seed data inserted: 4 Molds, 2 InjCondItem (사출 자동수집)';
 GO
 
 -- ════════════════════════════════════════════════════════════════════════

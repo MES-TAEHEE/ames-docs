@@ -5592,4 +5592,58 @@
   <data name="Modal.Edit" xml:space="preserve">
     <value>Edit</value>
   </data>
+  <data name="MD.MoldItem.Title" xml:space="preserve">
+    <value>Mold Item Master</value>
+  </data>
+  <data name="MD.MoldItem.SelectHint" xml:space="preserve">
+    <value>Select a mold on the left</value>
+  </data>
+  <data name="MD.MoldLine.Title" xml:space="preserve">
+    <value>Mold Line Master</value>
+  </data>
+  <data name="MD.MoldLine.SelectHint" xml:space="preserve">
+    <value>Select a line on the left</value>
+  </data>
+  <data name="Col.ShotsCumulative" xml:space="preserve">
+    <value>Cumulative Shots</value>
+  </data>
+  <data name="Col.RefCode" xml:space="preserve">
+    <value>Ref Code</value>
+  </data>
+  <data name="Col.AssyInjResult" xml:space="preserve">
+    <value>Assy Inj Result</value>
+  </data>
+  <data name="Col.Color" xml:space="preserve">
+    <value>Color</value>
+  </data>
+  <data name="Col.CavitySeq" xml:space="preserve">
+    <value>Cavity Seq</value>
+  </data>
+  <data name="Col.CavityPos" xml:space="preserve">
+    <value>Cavity Pos</value>
+  </data>
+  <data name="Col.Usage" xml:space="preserve">
+    <value>Usage</value>
+  </data>
+  <data name="Col.ResinItemNo" xml:space="preserve">
+    <value>Resin Item</value>
+  </data>
+  <data name="Col.ResinUsage" xml:space="preserve">
+    <value>Resin Usage</value>
+  </data>
+  <data name="Col.MoldCategory" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="Col.UPH" xml:space="preserve">
+    <value>UPH</value>
+  </data>
+  <data name="Col.PrepTime" xml:space="preserve">
+    <value>Prep Time</value>
+  </data>
+  <data name="Err.MoldInUse" xml:space="preserve">
+    <value>Cannot delete: used by {0} item(s) and {1} line assignment(s)</value>
+  </data>
+  <data name="MD.Mold.Tab.Master" xml:space="preserve">
+    <value>Mold Master</value>
+  </data>
 </root>

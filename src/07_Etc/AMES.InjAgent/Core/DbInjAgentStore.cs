@@ -15,11 +15,13 @@ public sealed class DbInjAgentStore : IInjAgentStore
         _cond = cond;
     }
 
-    public List<MoldItemMapDto> GetMoldItems(string moldCode, string colorCode)
+    public List<MoldItemDto> GetMoldItems(string moldCode, string colorCode)
         => _lots.GetMoldItems(moldCode, colorCode);
 
-    public (int LotId, string LotCode) CreateRawLot(string lineId, string equipId, MoldItemMapDto map, long machineShotCount)
+    public (int LotId, string LotCode) CreateRawLot(string lineId, string equipId, MoldItemDto map, long machineShotCount)
         => _lots.CreateRawLot(lineId, equipId, map, machineShotCount);
+
+    public void MarkLabelPrinted(int lotId) => _lots.IncrementPrintedCount(lotId);
 
     public void SaveInspection(int lotId, string equipId, string cavityPos,
         string shortMold, string weldLine, string gas, string weight, bool overallNg)

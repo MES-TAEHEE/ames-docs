@@ -43,8 +43,9 @@ public class PollerRunnerTests
 
     sealed class NopStore : IInjAgentStore
     {
-        public List<MoldItemMapDto> GetMoldItems(string m, string c) => new();
-        public (int, string) CreateRawLot(string l, string e, MoldItemMapDto m, long s) => (1, "L");
+        public List<MoldItemDto> GetMoldItems(string m, string c) => new();
+        public (int, string) CreateRawLot(string l, string e, MoldItemDto m, long s) => (1, "L");
+        public void MarkLabelPrinted(int lotId) { }
         public void SaveInspection(int a, string b, string c, string d, string e, string f, string g, bool h) { }
         public void MarkNgBlocked(int lotId) { }
         public List<InjCondItemDto> GetCondItems(string lineId) => new();

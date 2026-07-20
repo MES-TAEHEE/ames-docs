@@ -132,7 +132,7 @@ public sealed class MachinePoller : IDisposable
         var (mold, color) = PlcCodec.SplitMoldColor(_moldRaw);
         if (mold.Length == 0) { _log("No mold code — skipping LOT creation"); return; }
 
-        List<Contracts.Dto.MoldItemMapDto> map;
+        List<Contracts.Dto.MoldItemDto> map;
         try { map = _store.GetMoldItems(mold, color); }
         catch (Exception ex) { _log($"Mold mapping lookup failed: {ex.Message} — LOT for this shot is lost (same policy as original, manual entry required)"); return; }
         if (map.Count == 0) { _log($"Mold code not found in master data: {mold}+{color} — no LOT created"); return; }
@@ -146,7 +146,12 @@ public sealed class MachinePoller : IDisposable
                 var (lotId, lotCode) = _store.CreateRawLot(_cfg.LineId, _cfg.EquipId, m, shot);
                 _slots[slot] = new CavityLot(lotId, lotCode, m.ItemNo, m.CavityPos);
                 _log($"{m.CavityPos} LOT created: {lotCode}");
-                try { _printer.PrintLabel(lotCode, m.ItemNo, m.ItemName, m.ColorCode, m.CavityPos, _cfg.LineId); }
+                try
+                {
+                    _printer.PrintLabel(lotCode, m.ItemNo, m.ItemName, m.ColorCode, m.CavityPos, _cfg.LineId);
+                    try { _store.MarkLabelPrinted(lotId); }
+                    catch (Exception ex) { _log($"Printed-count update failed ({lotCode}): {ex.Message}"); }
+                }
                 catch (Exception ex) { _log($"Label print failed ({lotCode}): {ex.Message}"); }
             }
             catch (Exception ex)

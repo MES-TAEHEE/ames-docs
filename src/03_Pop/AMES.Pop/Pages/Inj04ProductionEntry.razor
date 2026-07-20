@@ -91,7 +91,7 @@
                                     <td style="padding:6px 4px;">@(isNg ? $"NG차단 ({lot.InspectionSummary})" : "RAW")</td>
                                     <td style="padding:6px 4px;">
                                         <button class="entry-btn" style="padding:4px 8px; font-size:12px;"
-                                                @onclick="@(() => Reprint(lot))">🖨 재출력</button>
+                                                @onclick="@(() => Reprint(lot))">🖨 재출력@(lot.PrintedCount > 1 ? $" ×{lot.PrintedCount}" : "")</button>
                                     </td>
                                 </tr>
                             }
@@ -288,7 +288,9 @@
                 lot.LotCode, lot.ItemNo, lot.ItemName, lot.ColorCode, lot.CavityPos,
                 lot.LineId ?? Session?.LineId ?? "", lot.CreatedTS));
             printer.Print(zpl, lot.LotCode);
-            Toasts.Ok($"라벨 재출력: {lot.LotCode}");
+            var printed = PopServices.InjLots.IncrementPrintedCount(lot.LotId);
+            Toasts.Ok($"라벨 재출력: {lot.LotCode} (누적 {printed}회)");
+            Refresh();
         }
         catch (Exception ex)
         {

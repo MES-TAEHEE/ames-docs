@@ -1,7 +1,7 @@
 namespace AMES.Contracts.Dto;
 
-/// <summary>MD_MoldItemMap 1행 — 금형코드+색상 → 품번·캐비티 (SEOYON APM2120 대응).</summary>
-public sealed class MoldItemMapDto
+/// <summary>MD_MoldItem 조회 1행 — 금형코드+색상 → 품번·캐비티 (SEOYON APM2120 대응).</summary>
+public sealed class MoldItemDto
 {
     public string  MoldCode  { get; init; } = string.Empty;
     public string  ColorCode { get; init; } = string.Empty;
