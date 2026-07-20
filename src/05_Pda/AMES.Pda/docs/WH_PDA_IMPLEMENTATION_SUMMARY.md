@@ -514,11 +514,11 @@ Inbound test data:
 - 입고 완료 후 자동 초기화와 Clear 버튼을 추가했다.
 - WH002에서 수량 조정 버튼은 제거하고, 별도 `Adjust` 메뉴로 분리했다.
 
-## WH004 Inventory Status
+## Inventory Status
 
 ### 화면 목적
 
-`WH-004 INVENTORY`는 현재 재고 기준으로 자재별 재고 상태를 보여주는 화면이다. 실제 route/component는 기존 코드 호환을 위해 `/wh/03`, `Wh03InventoryStatus.razor`를 사용한다.
+`Inventory`는 현재 재고 기준으로 자재별 재고 상태를 보여주는 화면이다. 실제 route/component는 기존 코드 호환을 위해 `/wh/03`, `Wh03InventoryStatus.razor`를 사용한다.
 
 기획 문서의 `WH03`에서 말한 재고 부족/상태 표시를 기존 SIS Current Stock 화면들과 Min/Max 기준 화면을 참고해 PDA 카드 형태로 구현했다.
 
@@ -532,15 +532,14 @@ Inbound test data:
 - Clear
 - Apply
 - Refresh
-- Last Updated
 
-WH004 Inventory는 현재 날짜 필터 중심으로만 동작한다. 위치 조건으로 재고를 찾는 `Location Search` 코드는 유지하지만, 현재 대메뉴에서는 숨겨 두었다.
+Inventory는 현재 날짜 필터 중심으로만 동작한다. 위치 조건으로 재고를 찾는 `Location Search` 코드는 유지하지만, 현재 대메뉴에서는 숨겨 두었다.
 
 상태 요약 카드:
 
 - Total
+- Out
 - Below Min
-- Low Stock
 - Over Max
 - Normal
 
@@ -548,18 +547,14 @@ WH004 Inventory는 현재 날짜 필터 중심으로만 동작한다. 위치 조
 
 자재 카드:
 
-- Material No
-- Material Name
-- Car
-- Unit
+- Part No
+- Stock Qty + Unit
+- Part Name
 - Status badge
-- On Hand
-- Min Qty
-- Max Qty
-- Main Location
-- Locations count
+- Locations displays the primary location
+- Tapping Locations opens the full location stock list
 
-`Locations`를 누르면 위치별 재고 상세 모달을 표시한다.
+자재 카드의 `Locations` 영역을 누르면 위치별 재고 상세 모달을 표시한다.
 
 Location detail:
 
@@ -578,12 +573,15 @@ Location detail:
 PDA 코드 호출:
 
 - `PdaApi.WhInventoryAsync(q, dateFrom, dateTo)`
+- `PdaApi.WhInventoryScanAsync(scanText)`
 - `PdaApi.WhInventoryLocationsAsync(itemNo, dateFrom, dateTo)`
 
 프로시저:
 
-- `SIS_TEST.PDA_WH03_INVENTORY_STATUS`
-- `SIS_TEST.PDA_WH03_INVENTORY_LOCATIONS`
+- `dbo.WH_PDA_INVENTORY_STATUS_LIST`
+- `dbo.WH_PDA_INVENTORY_SCAN_LOOKUP`
+- `dbo.WH_PDA_INVENTORY_LOCATION_LIST`
+- Legacy fallback: `SIS_TEST.PDA_WH03_INVENTORY_STATUS`, `SIS_TEST.PDA_WH03_INVENTORY_LOCATIONS`
 
 `PDA_WH03_INVENTORY_STATUS` 주요 기준:
 
@@ -601,16 +599,15 @@ PDA 코드 호출:
 - `SIS_TEST.WMS1020`: Area master
 - `SIS_TEST.WMS1030`: Zone master
 
-WH004 Inventory는 현재 재고 화면이므로 `SUM(QTY) > 0`인 현재 재고만 표시한다. 자재 마스터에는 있지만 실제 재고가 없는 품목은 카드에 표시하지 않는다.
+Inventory는 현재 재고 화면이므로 현재 재고 집계와 Min/Max 기준으로 상태를 표시한다. 조정으로 수량이 0이 된 품목은 `Out` 상태로 표시할 수 있다.
 
 ### 상태 기준
 
 `PDA_WH03_INVENTORY_STATUS`에서 아래 기준으로 상태를 계산한다.
 
-- `BELOW_MIN`: `SUM_QTY < MIN_INV_QTY`
-- `LOW_STOCK`: `SUM_QTY < MIN_INV_QTY * 1.3`
+- `OUT`: `SUM_QTY <= 0`
+- `BELOW_MIN`: `SUM_QTY > 0 AND SUM_QTY < MIN_INV_QTY`
 - `OVER_MAX`: `SUM_QTY > MAX_INV_QTY`
-- `NO_BASELINE`: Min/Max 기준이 없는 자재
 - `NORMAL`: 위 조건에 걸리지 않는 정상 상태
 
 처음에는 기획 문서의 `MD 09/10 시 노란색` 문구가 애매했기 때문에, 실제 SIS DB에서 재고 기준을 찾았다. 그 결과 `ACD0020.MIN_INV_QTY`, `ACD0020.MAX_INV_QTY`와 기존 `WM30910` 계열의 min/max 재고 상태 기준이 더 직접적인 기준이라고 판단했다.
@@ -667,7 +664,7 @@ SQL Server `SIS_TEST`에 아래 항목을 준비했다.
 - `Last Received`, `Lots`는 카드에서 제거했다.
 - 같은 자재가 여러 Location에 있을 경우 하나의 자재 카드에 합산 재고를 표시하고, `Locations`를 눌러 위치별 상세를 보도록 바꿨다.
 - 처음에는 Inventory 안에 Date/Location 탭을 같이 두는 안도 검토했지만, Inventory와 Location Search의 역할이 겹쳐서 Inventory에서는 Location 필터를 제거했다.
-- WH004 Inventory의 날짜 입력 영역은 버튼과 입력칸이 너무 붙어 보이지 않도록 `CLEAR`, `APPLY` 간격과 버튼 높이를 조정했다.
+- Inventory의 날짜 입력 영역은 버튼과 입력칸이 너무 붙어 보이지 않도록 `CLEAR`, `APPLY` 간격과 버튼 높이를 조정했다.
 - 기존 SIS 그리드 방식 대신 PDA 카드 + 모달 방식으로 변경했다.
 - 날짜 필터는 `<input type="date">`를 쓰면 WebView/OS locale 때문에 한국어 날짜 UI가 뜨는 문제가 있어, `YYYY-MM-DD` 텍스트 입력으로 바꿨다.
 - 모든 화면 문구는 영어 기준으로 정리했다.
@@ -733,7 +730,7 @@ API route:
 수량 조정 시 갱신/기록되는 테이블:
 
 - `SIS_TEST.WMS2020.QTY`: LOT별 Location 현재 수량 갱신
-- `SIS_TEST.WMS2000.QTY`: WH004 Inventory에서 보는 현재 재고 수량 동기화
+- `SIS_TEST.WMS2000.QTY`: Inventory에서 보는 현재 재고 수량 동기화
 - `SIS_TEST.PDA_WH002_ADJUST_AUDIT`: 수량 조정 감사 이력 기록
 
 `PDA_WH002_ADJUST_AUDIT` 주요 컬럼:
@@ -757,7 +754,7 @@ MAUIPDA Inventory:
 
 ### 기존과 달라진 점
 
-- 별도 component를 만들지 않고 WH004 Inventory와 같은 `Wh03InventoryStatus.razor`의 Adjust 모드로 구현했다. 화면 표시 번호와 메뉴 역할은 WH005 `Adjust`다.
+- 별도 component를 만들지 않고 Inventory와 같은 `Wh03InventoryStatus.razor`의 Adjust 모드로 구현했다. 화면 표시 번호와 메뉴 역할은 WH005 `Adjust`다.
 - 작업자는 Local/CKD를 직접 고르지 않고 LOT 스캔 결과로 감지한다.
 - 저장 버튼은 비활성화로 막기보다, 눌렀을 때 부족한 입력값을 커스텀 알럿으로 안내한다.
 - 조정 이력은 WH006 `Transactions`에서 `ADJ` 카드로 조회할 수 있다.
@@ -1163,13 +1160,13 @@ SIS/DB:
 
 질문: 같은 아이템이 서로 다른 위치에 있으면 하나의 row를 더 추가하는가?
 
-답변: 실제 재고 테이블은 LOT/Location 단위로 여러 row를 가진다. SIS 상세 화면은 여러 row로 보여주고, 요약 화면은 품번별로 합산한다. WH004 Inventory는 PDA에 맞춰 품번별 하나의 카드로 합산하고, 위치 상세는 모달에서 보여준다.
+답변: 실제 재고 테이블은 LOT/Location 단위로 여러 row를 가진다. SIS 상세 화면은 여러 row로 보여주고, 요약 화면은 품번별로 합산한다. Inventory는 PDA에 맞춰 품번별 하나의 카드로 합산하고, 위치 상세는 모달에서 보여준다.
 
 ### 재고가 있는데 입고 이력이 없는 경우
 
 질문: 재고가 있다면 입고/출고 이력이 있어야 하지 않는가?
 
-답변: 맞다. 실제 현재 재고라면 입고, 조정, 기초재고 등 어떤 이력/근거가 있어야 한다. 그래서 WH004 Inventory는 자재 마스터 기준 0재고까지 보여주는 방식이 아니라 `WMS2000` 현재 재고가 있는 데이터만 보여주도록 수정했다.
+답변: 맞다. 실제 현재 재고라면 입고, 조정, 기초재고 등 어떤 이력/근거가 있어야 한다. 그래서 Inventory는 자재 마스터 기준 0재고만 임의로 보여주는 방식이 아니라 현재 재고 테이블과 Min/Max 기준을 함께 보고 상태를 계산하도록 수정했다.
 
 ### Adjust 수량 변경 이력 위치
 
@@ -1181,7 +1178,7 @@ SIS/DB:
 
 질문: Inventory와 Location Search는 기능을 합칠 수 있지 않은가?
 
-답변: 일부 기능은 겹친다. WH004 Inventory는 자재를 먼저 보고 해당 자재가 어느 위치에 있는지 확인하는 흐름이고, Location Search는 위치를 먼저 고르고 그 위치에 어떤 자재/LOT가 있는지 확인하는 흐름이다. 따라서 Inventory 안에 위치 탭을 넣는 대신 Location Search 코드는 유지하되, 현재 대메뉴에서는 숨겼다.
+답변: 일부 기능은 겹친다. Inventory는 자재를 먼저 보고 해당 자재가 어느 위치에 있는지 확인하는 흐름이고, Location Search는 위치를 먼저 고르고 그 위치에 어떤 자재/LOT가 있는지 확인하는 흐름이다. 따라서 Inventory 안에 위치 탭을 넣는 대신 Location Search 코드는 유지하되, 현재 대메뉴에서는 숨겼다.
 
 질문: Location Map을 격자형으로 보여주면 PDA에서 괜찮은가?
 
@@ -1219,7 +1216,7 @@ SIS/DB:
 
 - `SIS_TEST`는 테스트용 스키마다. 운영 반영 시에는 실제 SIS/MES DB 스키마와 권한, 프로시저 배포 방식이 별도로 필요하다.
 - WH002의 입고/취소 로직은 테스트 구현이므로 실제 운영에서는 기존 Oracle 패키지의 예외 처리, 트랜잭션, 인터페이스 테이블 반영 범위를 더 확인해야 한다.
-- WH004 Inventory의 `WMS2000`은 테스트 DB에 맞춰 생성/시드했다. 운영 DB에 실제 `WMS2000`이 있다면 해당 구조에 맞춰 프로시저를 다시 정렬해야 한다.
+- Inventory의 `WMS2000`은 테스트 DB에 맞춰 생성/시드했다. 운영 DB에 실제 `WMS2000`이 있다면 해당 구조에 맞춰 프로시저를 다시 정렬해야 한다.
 - 숨겨 둔 `Location Search`는 현재 `PdaApi.cs`에서 직접 SQL로 조회한다. 운영 반영 시에는 `PDA_WH04_LOCATION_SEARCH`, `PDA_WH04_LOCATION_ITEMS` 같은 프로시저로 분리하는 편이 유지보수에 좋다.
 - 숨겨 둔 `Location Search`는 SIS_TEST 직접 조회가 실패하면 API `/api/wh/locations`로 fallback한다. fallback 테이블인 `dbo.MD_Location`은 로컬 개발 DB 기준이므로 실제 운영 Location master와 혼동하지 않아야 한다.
 - WH001의 PO 조회는 `WM40120` 기준으로 만들었고, SCM에서 PO가 신규 생성되는 원천 화면/배치까지 완전히 대체한 것은 아니다.
@@ -1228,7 +1225,7 @@ SIS/DB:
 - WH003 Release의 운영 분석 기준은 `WMS3050` Pick Slip과 `WMS2020` 현재 재고지만, 현재 PDA 테스트 구현은 `dbo.WH_ReleaseSchedule`, `dbo.WH_Inventory`, `dbo.tbl_Lot`, `dbo.WH_ReleasePicking`, `dbo.WH_TransactionHistory`와 `dbo.WH_PDA_RELEASE_*` 프로시저로 재명명해 연결했다. 실제 route/component는 `/wh/07`, `Wh07PdaRelease.razor`다.
 - WH006은 현재 redirect 화면이다. 운영에서 별도 Release Schedule 화면이 다시 필요해지면 WH001 Release 탭의 `Wh001ScheduleReleaseAsync()` 호출부와 카드 UI를 분리해서 재사용할 수 있다.
 - WH006 Transactions는 `WMS2030`이 있으면 우선 사용하도록 만들었지만, 현재 테스트 DB에는 `WMS2030`이 없어 `WMS2010`, `WMS2020`, `PDA_WH002_ADJUST_AUDIT`를 조합한다. 운영 반영 시에는 실제 Transaction History 표준 테이블/프로시저 기준으로 재정렬해야 한다. 실제 route/component는 `/wh/08`, `Wh08TransactionHistory.razor`다.
-- WH005 Adjust는 별도 component를 만들지 않고 WH004 Inventory와 같은 `Wh03InventoryStatus.razor`의 Adjust 모드로 구현했다. 운영 정책상 완전한 독립 화면이 필요하면 현재 `PDA_WH002_ADJUST_QTY` 호출부를 재사용해 별도 component로 분리할 수 있다.
+- WH005 Adjust는 별도 component를 만들지 않고 Inventory와 같은 `Wh03InventoryStatus.razor`의 Adjust 모드로 구현했다. 운영 정책상 완전한 독립 화면이 필요하면 현재 `PDA_WH002_ADJUST_QTY` 호출부를 재사용해 별도 component로 분리할 수 있다.
 
 ## 다음 개발 요청용 프롬프트
 
@@ -1243,7 +1240,7 @@ Warehouse PDA 현재 표시 화면은 아래 기준이야.
 - WH001 Schedule: /wh/01
 - WH002 Inbound: /wh/02
 - WH003 Release: /wh/07
-- WH004 Inventory: /wh/03
+- Inventory: /wh/03
 - WH005 Adjust: /wh/03?tab=adjust
 - WH006 Transactions: /wh/08
 

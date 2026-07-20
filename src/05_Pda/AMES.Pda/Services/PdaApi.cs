@@ -160,10 +160,12 @@ public sealed class PdaApi
         int? LotId, decimal OnHandQty, decimal ReservedQty, DateTime? ExpiryDate,
         string? CarCode = null, string? Unit = null, decimal? MinDays = null, decimal? MinQty = null,
         decimal? MaxDays = null, decimal? MaxQty = null, int LotCount = 0, int LocationCount = 0,
-        string? Status = null, string? StatusName = null, DateTime? LastReceivedDate = null);
+        string? Status = null, string? StatusName = null, DateTime? LastReceivedDate = null,
+        string? LotNo = null);
     public sealed record InventoryLocationRow(int RowNo, string ItemNo, string LocationId, string? LocationName,
         string? WarehouseCode, string? WarehouseName, string? AreaCode, string? AreaName,
         string? ZoneCode, string? ZoneName, string? RackX, string? RackY, string? RackZ, decimal Qty);
+    public sealed record InventoryScanLookupRow(string SearchKind, string SearchText, string? DisplayText);
     public sealed record LocationRow(string LocationId, string? LocationName, string? Zone, int LineCount, decimal TotalQty,
         string? WarehouseCode = null, string? WarehouseName = null, string? AreaCode = null, string? AreaName = null,
         string? ZoneName = null, string? X = null, string? Y = null, string? Z = null,
@@ -219,6 +221,23 @@ public sealed class PdaApi
             return await Get<List<InventoryRow>>("/api/wh/inventory" + (string.IsNullOrEmpty(q) ? "" : $"?q={Uri.EscapeDataString(q)}"));
         }
     }
+
+    public async Task<InventoryScanLookupRow?> WhInventoryScanAsync(string? scanText)
+    {
+        if (string.IsNullOrWhiteSpace(scanText))
+            return null;
+
+        var value = scanText.Trim();
+        try
+        {
+            return await QueryWhInventoryScanDbAsync(value);
+        }
+        catch
+        {
+            return new InventoryScanLookupRow("TEXT", value, null);
+        }
+    }
+
     public async Task<List<InventoryLocationRow>> WhInventoryLocationsAsync(string itemNo, DateTime? dateFrom = null, DateTime? dateTo = null)
     {
         try
@@ -929,19 +948,34 @@ public sealed class PdaApi
     {
         await using var conn = _db.CreateConnection();
         await conn.OpenAsync();
-        await using var cmd = new SqlCommand("[SIS_TEST].[PDA_WH03_INVENTORY_STATUS]", conn)
+        var usePdaProcedure = await ProcedureExistsAsync(conn, "dbo", "WH_PDA_INVENTORY_STATUS_LIST");
+        await using var cmd = new SqlCommand(
+            usePdaProcedure ? "[dbo].[WH_PDA_INVENTORY_STATUS_LIST]" : "[SIS_TEST].[PDA_WH03_INVENTORY_STATUS]",
+            conn)
         {
             CommandType = CommandType.StoredProcedure
         };
-        cmd.Parameters.Add("@IN_CORCD", SqlDbType.NVarChar, 10).Value = WhLocationCorcd;
-        cmd.Parameters.Add("@IN_BIZCD", SqlDbType.NVarChar, 10).Value = WhLocationBizcd;
-        cmd.Parameters.Add("@IN_Q", SqlDbType.NVarChar, 80).Value =
-            string.IsNullOrWhiteSpace(q) ? DBNull.Value : q.Trim();
-        cmd.Parameters.Add("@IN_DATE_FROM", SqlDbType.Date).Value =
-            dateFrom.HasValue ? dateFrom.Value.Date : (object)DBNull.Value;
-        cmd.Parameters.Add("@IN_DATE_TO", SqlDbType.Date).Value =
-            dateTo.HasValue ? dateTo.Value.Date : (object)DBNull.Value;
-        cmd.Parameters.Add("@IN_LANG_SET", SqlDbType.NVarChar, 10).Value = "EN";
+        if (usePdaProcedure)
+        {
+            cmd.Parameters.Add("@SearchText", SqlDbType.NVarChar, 80).Value =
+                string.IsNullOrWhiteSpace(q) ? DBNull.Value : q.Trim();
+            cmd.Parameters.Add("@StockDateFrom", SqlDbType.Date).Value =
+                dateFrom.HasValue ? dateFrom.Value.Date : (object)DBNull.Value;
+            cmd.Parameters.Add("@StockDateTo", SqlDbType.Date).Value =
+                dateTo.HasValue ? dateTo.Value.Date : (object)DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@IN_CORCD", SqlDbType.NVarChar, 10).Value = WhLocationCorcd;
+            cmd.Parameters.Add("@IN_BIZCD", SqlDbType.NVarChar, 10).Value = WhLocationBizcd;
+            cmd.Parameters.Add("@IN_Q", SqlDbType.NVarChar, 80).Value =
+                string.IsNullOrWhiteSpace(q) ? DBNull.Value : q.Trim();
+            cmd.Parameters.Add("@IN_DATE_FROM", SqlDbType.Date).Value =
+                dateFrom.HasValue ? dateFrom.Value.Date : (object)DBNull.Value;
+            cmd.Parameters.Add("@IN_DATE_TO", SqlDbType.Date).Value =
+                dateTo.HasValue ? dateTo.Value.Date : (object)DBNull.Value;
+            cmd.Parameters.Add("@IN_LANG_SET", SqlDbType.NVarChar, 10).Value = "EN";
+        }
 
         await using var rdr = await cmd.ExecuteReaderAsync();
         var rows = new List<InventoryRow>();
@@ -953,22 +987,155 @@ public sealed class PdaApi
         return rows;
     }
 
+    private async Task<InventoryScanLookupRow> QueryWhInventoryScanDbAsync(string scanText)
+    {
+        await using var conn = _db.CreateConnection();
+        await conn.OpenAsync();
+
+        if (await ProcedureExistsAsync(conn, "dbo", "WH_PDA_INVENTORY_SCAN_LOOKUP"))
+        {
+            await using var cmd = new SqlCommand("[dbo].[WH_PDA_INVENTORY_SCAN_LOOKUP]", conn)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            cmd.Parameters.Add("@ScanText", SqlDbType.NVarChar, 80).Value = scanText.Trim();
+
+            await using var rdr = await cmd.ExecuteReaderAsync();
+            if (await rdr.ReadAsync())
+                return ReadInventoryScanLookupRow(rdr, scanText);
+        }
+
+        if (await TableExistsAsync(conn, "dbo", "MD_Location"))
+        {
+            var locationId = await FirstStringAsync(conn, """
+                SELECT TOP (1) L.LocationID
+                FROM dbo.MD_Location L
+                WHERE UPPER(L.LocationID) = UPPER(@ScanText)
+                  AND COALESCE(L.ActiveFlag, 1) = 1;
+                """, scanText);
+            if (!string.IsNullOrWhiteSpace(locationId))
+                return new InventoryScanLookupRow("LOCATION", locationId, null);
+        }
+
+        if (await TableExistsAsync(conn, "dbo", "tbl_Lot"))
+        {
+            var partNo = await FirstStringAsync(conn, """
+                SELECT TOP (1) L.ItemNo
+                FROM dbo.tbl_Lot L
+                WHERE UPPER(L.LotCode) = UPPER(@ScanText)
+                   OR UPPER(L.ItemNo) = UPPER(@ScanText)
+                ORDER BY CASE WHEN UPPER(L.LotCode) = UPPER(@ScanText) THEN 0 ELSE 1 END, L.LotID DESC;
+                """, scanText);
+            if (!string.IsNullOrWhiteSpace(partNo))
+                return new InventoryScanLookupRow("PART", partNo, null);
+        }
+
+        if (await TableExistsAsync(conn, "dbo", "MD_Item"))
+        {
+            var partNo = await FirstStringAsync(conn, """
+                SELECT TOP (1) I.ItemNo
+                FROM dbo.MD_Item I
+                WHERE UPPER(I.ItemNo) = UPPER(@ScanText)
+                  AND COALESCE(I.ActiveFlag, 1) = 1;
+                """, scanText);
+            if (!string.IsNullOrWhiteSpace(partNo))
+                return new InventoryScanLookupRow("PART", partNo, null);
+        }
+
+        if (await TableExistsAsync(conn, "SIS_TEST", "WMS1040"))
+        {
+            var locationId = await FirstStringAsync(conn, """
+                SELECT TOP (1) L.LOCATION_NO
+                FROM SIS_TEST.WMS1040 L
+                WHERE UPPER(L.LOCATION_NO) = UPPER(@ScanText)
+                  AND COALESCE(L.USE_YN, N'Y') = N'Y';
+                """, scanText);
+            if (!string.IsNullOrWhiteSpace(locationId))
+                return new InventoryScanLookupRow("LOCATION", locationId, null);
+        }
+
+        if (await TableExistsAsync(conn, "SIS_TEST", "WMS2000"))
+        {
+            var locationId = await FirstStringAsync(conn, """
+                SELECT TOP (1) S.LOCATION_NO
+                FROM SIS_TEST.WMS2000 S
+                WHERE UPPER(S.LOCATION_NO) = UPPER(@ScanText)
+                  AND COALESCE(S.QTY, 0) > 0;
+                """, scanText);
+            if (!string.IsNullOrWhiteSpace(locationId))
+                return new InventoryScanLookupRow("LOCATION", locationId, null);
+        }
+
+        if (await TableExistsAsync(conn, "SIS_TEST", "WMS2020"))
+        {
+            var partNo = await FirstStringAsync(conn, """
+                SELECT TOP (1) S.PARTNO
+                FROM SIS_TEST.WMS2020 S
+                WHERE UPPER(S.LOTNO) = UPPER(@ScanText)
+                   OR UPPER(S.PARTNO) = UPPER(@ScanText)
+                ORDER BY CASE WHEN UPPER(S.LOTNO) = UPPER(@ScanText) THEN 0 ELSE 1 END;
+                """, scanText);
+            if (!string.IsNullOrWhiteSpace(partNo))
+                return new InventoryScanLookupRow("PART", partNo, null);
+        }
+
+        if (await TableExistsAsync(conn, "SIS_TEST", "WMS2010"))
+        {
+            var partNo = await FirstStringAsync(conn, """
+                SELECT TOP (1) H.PARTNO
+                FROM SIS_TEST.WMS2010 H
+                WHERE UPPER(H.LOTNO) = UPPER(@ScanText)
+                   OR UPPER(H.PARTNO) = UPPER(@ScanText)
+                ORDER BY CASE WHEN UPPER(H.LOTNO) = UPPER(@ScanText) THEN 0 ELSE 1 END;
+                """, scanText);
+            if (!string.IsNullOrWhiteSpace(partNo))
+                return new InventoryScanLookupRow("PART", partNo, null);
+        }
+
+        if (await TableExistsAsync(conn, "SIS_TEST", "ACD0020"))
+        {
+            var partNo = await FirstStringAsync(conn, """
+                SELECT TOP (1) P.PARTNO
+                FROM SIS_TEST.ACD0020 P
+                WHERE UPPER(P.PARTNO) = UPPER(@ScanText);
+                """, scanText);
+            if (!string.IsNullOrWhiteSpace(partNo))
+                return new InventoryScanLookupRow("PART", partNo, null);
+        }
+
+        return new InventoryScanLookupRow("TEXT", scanText, null);
+    }
+
     private async Task<List<InventoryLocationRow>> QueryWhInventoryLocationsDbAsync(string itemNo, DateTime? dateFrom, DateTime? dateTo)
     {
         await using var conn = _db.CreateConnection();
         await conn.OpenAsync();
-        await using var cmd = new SqlCommand("[SIS_TEST].[PDA_WH03_INVENTORY_LOCATIONS]", conn)
+        var usePdaProcedure = await ProcedureExistsAsync(conn, "dbo", "WH_PDA_INVENTORY_LOCATION_LIST");
+        await using var cmd = new SqlCommand(
+            usePdaProcedure ? "[dbo].[WH_PDA_INVENTORY_LOCATION_LIST]" : "[SIS_TEST].[PDA_WH03_INVENTORY_LOCATIONS]",
+            conn)
         {
             CommandType = CommandType.StoredProcedure
         };
-        cmd.Parameters.Add("@IN_CORCD", SqlDbType.NVarChar, 10).Value = WhLocationCorcd;
-        cmd.Parameters.Add("@IN_BIZCD", SqlDbType.NVarChar, 10).Value = WhLocationBizcd;
-        cmd.Parameters.Add("@IN_PARTNO", SqlDbType.NVarChar, 40).Value = itemNo.Trim();
-        cmd.Parameters.Add("@IN_DATE_FROM", SqlDbType.Date).Value =
-            dateFrom.HasValue ? dateFrom.Value.Date : (object)DBNull.Value;
-        cmd.Parameters.Add("@IN_DATE_TO", SqlDbType.Date).Value =
-            dateTo.HasValue ? dateTo.Value.Date : (object)DBNull.Value;
-        cmd.Parameters.Add("@IN_LANG_SET", SqlDbType.NVarChar, 10).Value = "EN";
+        if (usePdaProcedure)
+        {
+            cmd.Parameters.Add("@ItemNo", SqlDbType.NVarChar, 40).Value = itemNo.Trim();
+            cmd.Parameters.Add("@StockDateFrom", SqlDbType.Date).Value =
+                dateFrom.HasValue ? dateFrom.Value.Date : (object)DBNull.Value;
+            cmd.Parameters.Add("@StockDateTo", SqlDbType.Date).Value =
+                dateTo.HasValue ? dateTo.Value.Date : (object)DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@IN_CORCD", SqlDbType.NVarChar, 10).Value = WhLocationCorcd;
+            cmd.Parameters.Add("@IN_BIZCD", SqlDbType.NVarChar, 10).Value = WhLocationBizcd;
+            cmd.Parameters.Add("@IN_PARTNO", SqlDbType.NVarChar, 40).Value = itemNo.Trim();
+            cmd.Parameters.Add("@IN_DATE_FROM", SqlDbType.Date).Value =
+                dateFrom.HasValue ? dateFrom.Value.Date : (object)DBNull.Value;
+            cmd.Parameters.Add("@IN_DATE_TO", SqlDbType.Date).Value =
+                dateTo.HasValue ? dateTo.Value.Date : (object)DBNull.Value;
+            cmd.Parameters.Add("@IN_LANG_SET", SqlDbType.NVarChar, 10).Value = "EN";
+        }
 
         await using var rdr = await cmd.ExecuteReaderAsync();
         var rows = new List<InventoryLocationRow>();
@@ -1052,10 +1219,26 @@ public sealed class PdaApi
         return value == DBNull.Value ? null : Convert.ToString(value);
     }
 
+    private static async Task<string?> FirstStringAsync(SqlConnection conn, string sql, string scanText)
+    {
+        await using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@ScanText", SqlDbType.NVarChar, 80).Value = scanText.Trim();
+        var value = await cmd.ExecuteScalarAsync();
+        return value == DBNull.Value ? null : Convert.ToString(value);
+    }
+
     private static async Task<bool> TableExistsAsync(SqlConnection conn, string schema, string table)
     {
         await using var cmd = new SqlCommand("SELECT CASE WHEN OBJECT_ID(@ObjectName, N'U') IS NULL THEN 0 ELSE 1 END;", conn);
         cmd.Parameters.Add("@ObjectName", SqlDbType.NVarChar, 256).Value = $"{schema}.{table}";
+        var value = await cmd.ExecuteScalarAsync();
+        return Convert.ToInt32(value) == 1;
+    }
+
+    private static async Task<bool> ProcedureExistsAsync(SqlConnection conn, string schema, string procedure)
+    {
+        await using var cmd = new SqlCommand("SELECT CASE WHEN OBJECT_ID(@ObjectName, N'P') IS NULL THEN 0 ELSE 1 END;", conn);
+        cmd.Parameters.Add("@ObjectName", SqlDbType.NVarChar, 256).Value = $"{schema}.{procedure}";
         var value = await cmd.ExecuteScalarAsync();
         return Convert.ToInt32(value) == 1;
     }
@@ -1223,7 +1406,8 @@ public sealed class PdaApi
             GetInt(rdr, "LOCATION_COUNT") ?? 0,
             GetString(rdr, "STATUS"),
             GetString(rdr, "STATUSNM"),
-            GetDate(rdr, "LAST_RECEIVED_DATE"));
+            GetDate(rdr, "LAST_RECEIVED_DATE"),
+            GetString(rdr, "LOTNO"));
     }
 
     private static InventoryLocationRow ReadInventoryLocationRow(SqlDataReader rdr)
@@ -1243,6 +1427,16 @@ public sealed class PdaApi
             GetString(rdr, "RACK_Y"),
             GetString(rdr, "RACK_Z"),
             GetDecimal(rdr, "SUM_QTY"));
+    }
+
+    private static InventoryScanLookupRow ReadInventoryScanLookupRow(SqlDataReader rdr, string fallback)
+    {
+        var kind = GetString(rdr, "SEARCH_KIND");
+        var text = GetString(rdr, "SEARCH_TEXT");
+        return new InventoryScanLookupRow(
+            string.IsNullOrWhiteSpace(kind) ? "TEXT" : kind.Trim().ToUpperInvariant(),
+            string.IsNullOrWhiteSpace(text) ? fallback : text.Trim(),
+            GetString(rdr, "DISPLAY_TEXT"));
     }
 
     private static bool HasColumn(SqlDataReader rdr, string name)
