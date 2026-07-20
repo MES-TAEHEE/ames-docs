@@ -16,6 +16,9 @@
 <PageTitle>MD-007 @L["MD.Mold.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-007" TitleKey="MD.Mold.Title" />
 
+<AmesTabs>
+<AmesTab Title="@L["MD.Mold.Tab.Master"].Value">
+
 @* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi">
@@ -80,6 +83,9 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="CurrentShots" Title="@L["Col.ShotsCurrent"]" Width="100px" TextAlign="TextAlign.Right">
                 <Template Context="r">@(r.CurrentShots?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="CumulativeShots" Title="@L["Col.ShotsCumulative"]" Width="110px" TextAlign="TextAlign.Right">
+                <Template Context="r">@r.CumulativeShots.ToString("N0")</Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Title="@L["Col.UsagePct"]" Width="80px" TextAlign="TextAlign.Right" Sortable="false">
                 <Template Context="r">
                     @{
@@ -113,6 +119,17 @@
         </Columns>
     </RadzenDataGrid>
 </div>
+
+</AmesTab>
+
+<AmesTab Title="@L["MD.MoldItem.Title"].Value">
+    <MoldItemPanel />
+</AmesTab>
+
+<AmesTab Title="@L["MD.MoldLine.Title"].Value">
+    <MoldLinePanel />
+</AmesTab>
+</AmesTabs>
 
 @* ── Create Modal ─────────────────────────────────────────────────── *@
 @if (_modal == "create")
@@ -170,6 +187,22 @@
                     <RadzenDropDown @bind-Value="_f.Status" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.CarType"]" />
+                    <RadzenTextBox @bind-Value="_f.CarType" MaxLength="20" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.RefCode"]" />
+                    <RadzenTextBox @bind-Value="_f.RefCode" MaxLength="20" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:8px;">
+                <RadzenCheckBox TValue="bool" @bind-Value="_f.AssyInjResultFlag" Name="CreateChkAssyInj" />
+                <RadzenLabel Text="@L["Col.AssyInjResult"]" Component="CreateChkAssyInj" style="cursor:pointer;" />
+            </RadzenStack>
 
             @if (!string.IsNullOrEmpty(_modalErr))
             {
@@ -236,6 +269,41 @@
                 </RadzenColumn>
             </RadzenRow>
 
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.CarType"]" />
+                    <RadzenTextBox @bind-Value="_f.CarType" MaxLength="20" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.RefCode"]" />
+                    <RadzenTextBox @bind-Value="_f.RefCode" MaxLength="20" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:8px;">
+                <RadzenCheckBox TValue="bool" @bind-Value="_f.AssyInjResultFlag" Name="EditChkAssyInj" />
+                <RadzenLabel Text="@L["Col.AssyInjResult"]" Component="EditChkAssyInj" style="cursor:pointer;" />
+            </RadzenStack>
+
+            @* ── 색상 관리 (MD_MoldColor, ZPD20041) ── *@
+            <div style="margin-top:10px;">
+                <RadzenLabel Text="@L["Col.Color"]" />
+                <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:4px;">
+                    @foreach (var c in _colors)
+                    {
+                        <span class="pill info" style="display:inline-flex;align-items:center;gap:5px;">
+                            @c.Color
+                            <span style="cursor:pointer;font-weight:700;line-height:1;" title="@L["Btn.Delete"]" @onclick="() => RemoveColor(c.Color)">×</span>
+                        </span>
+                    }
+                    @if (_colors.Count == 0) { <span class="dim" style="font-size:.85em;">—</span> }
+                </div>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-top:6px;">
+                    <RadzenTextBox @bind-Value="_newColor" @onkeydown="OnColorKeyDown" Placeholder="예: BLK" MaxLength="10" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;text-transform:uppercase;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenButton Text="@L["Btn.Add"]" Icon="add" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@AddColor" Disabled="@_busy" class="ames-rz-btn" />
+                </RadzenStack>
+            </div>
+
             @* 삭제 버튼 클릭 후 인라인 확인 *@
             @if (_confirmDelete)
             {
@@ -265,8 +333,10 @@
     bool _showPagerSummary = true;
     List<MasterDataRepository.MoldRow>     _allRows    = new();
     List<MasterDataRepository.MoldRow>     _rows       = new();
-    List<MasterDataRepository.CodeItemRow> _moldStatus = new();
+    List<MasterDataRepository.CodeItemRow>  _moldStatus = new();
+    List<MasterDataRepository.MoldColorRow> _colors     = new();
     MasterDataRepository.MoldRow? _sel;
+    string _newColor = "";
 
     string _fSearch = "";
     string? _fStatus, _fLoc;
@@ -345,16 +415,21 @@
         _sel = r; _modalErr = ""; _confirmDelete = false;
         _f = new()
         {
-            MoldID        = r.MoldID,
-            MoldName      = r.MoldName      ?? "",
-            RatedShots    = r.RatedShots,
-            CurrentShots  = r.CurrentShots,
-            CavityCount   = r.CavityCount,
-            Tonnage       = r.Tonnage,
-            StorageLoc    = r.StorageLoc    ?? "",
-            LastMaintDate = r.LastMaintDate,
-            Status        = r.Status        ?? "AVAILABLE",
+            MoldID            = r.MoldID,
+            MoldName          = r.MoldName      ?? "",
+            RatedShots        = r.RatedShots,
+            CurrentShots      = r.CurrentShots,
+            CavityCount       = r.CavityCount,
+            Tonnage           = r.Tonnage,
+            StorageLoc        = r.StorageLoc    ?? "",
+            LastMaintDate     = r.LastMaintDate,
+            Status            = r.Status        ?? "AVAILABLE",
+            CarType           = r.CarType       ?? "",
+            RefCode           = r.RefCode       ?? "",
+            AssyInjResultFlag = r.AssyInjResultFlag,
         };
+        _newColor = "";
+        try { _colors = MD.ListMoldColors(r.MoldID); } catch { _colors = new(); }
         _modal = "edit";
     }
 
@@ -374,7 +449,8 @@
         {
             MD.InsertMold(_f.MoldID.Trim(), _f.MoldName,
                 _f.RatedShots, _f.CurrentShots, _f.CavityCount, _f.Tonnage,
-                NE(_f.StorageLoc), _f.LastMaintDate, _f.Status, _actor);
+                NE(_f.StorageLoc), _f.LastMaintDate, _f.Status, _actor,
+                carType: NE(_f.CarType), refCode: NE(_f.RefCode), assyInjResultFlag: _f.AssyInjResultFlag);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.MoldName} {L["Msg.Created"]}", false);
         }
@@ -392,7 +468,8 @@
         {
             MD.UpdateMold(_sel.MoldID, _f.MoldName,
                 _f.RatedShots, _f.CurrentShots, _f.CavityCount, _f.Tonnage,
-                NE(_f.StorageLoc), _f.LastMaintDate, _f.Status, _actor);
+                NE(_f.StorageLoc), _f.LastMaintDate, _f.Status, _actor,
+                carType: NE(_f.CarType), refCode: NE(_f.RefCode), assyInjResultFlag: _f.AssyInjResultFlag);
             var name = _f.MoldName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
@@ -407,6 +484,17 @@
         _busy = true;
         try
         {
+            // ZPD20041 삭제 가드: 제품정보/라인배정에서 사용 중이면 삭제 불가
+            var (ic, lc, cc) = MD.MoldUsage(_sel.MoldID);
+            if (ic > 0 || lc > 0)
+            {
+                _modalErr = string.Format(L["Err.MoldInUse"], ic, lc);
+                _confirmDelete = false;
+                return;
+            }
+            if (cc > 0)
+                foreach (var c in MD.ListMoldColors(_sel.MoldID))
+                    MD.DeleteMoldColor(_sel.MoldID, c.Color);
             var name = _sel.MoldName ?? _sel.MoldID;
             MD.DeleteMold(_sel.MoldID);
             CloseModal(); await ReloadRestorePage();
@@ -415,6 +503,34 @@
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
         finally { _busy = false; }
     }
+
+    // ── 색상 관리 (edit 모달) ─────────────────────────────────────────────
+    void AddColor()
+    {
+        if (_sel is null || string.IsNullOrWhiteSpace(_newColor)) return;
+        _modalErr = "";
+        try
+        {
+            MD.InsertMoldColor(_sel.MoldID, _newColor.Trim().ToUpper(), _actor);
+            _newColor = "";
+            _colors = MD.ListMoldColors(_sel.MoldID);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+    }
+
+    void RemoveColor(string color)
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        try
+        {
+            MD.DeleteMoldColor(_sel.MoldID, color);
+            _colors = MD.ListMoldColors(_sel.MoldID);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+    }
+
+    void OnColorKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") AddColor(); }
 
     void ShowMsg(string msg, bool isErr)
     {
@@ -426,14 +542,17 @@
 
     class FormModel
     {
-        public string    MoldID        { get; set; } = "";
-        public string    MoldName      { get; set; } = "";
-        public int?      RatedShots    { get; set; }
-        public int?      CurrentShots  { get; set; }
-        public int?      CavityCount   { get; set; }
-        public int?      Tonnage       { get; set; }
-        public string    StorageLoc    { get; set; } = "";
-        public DateOnly? LastMaintDate { get; set; }
-        public string    Status        { get; set; } = "AVAILABLE";
+        public string    MoldID            { get; set; } = "";
+        public string    MoldName          { get; set; } = "";
+        public int?      RatedShots        { get; set; }
+        public int?      CurrentShots      { get; set; }
+        public int?      CavityCount       { get; set; }
+        public int?      Tonnage           { get; set; }
+        public string    StorageLoc        { get; set; } = "";
+        public DateOnly? LastMaintDate     { get; set; }
+        public string    Status            { get; set; } = "AVAILABLE";
+        public string    CarType           { get; set; } = "";
+        public string    RefCode           { get; set; } = "";
+        public bool      AssyInjResultFlag { get; set; }
     }
 }

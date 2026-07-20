@@ -1,0 +1,306 @@
+@* MD-007 금형 마스터 탭 패널 — 라인별 금형 관리 (SIS ZPD20043) *@
+@using AMES.Data.Repositories
+@using AMES.Web.Services
+@using Radzen
+
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject MasterDataRepository MD
+@inject IStringLocalizer<SharedResources> L
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
+}
+
+<div style="display:flex;gap:14px;height:calc(100vh - 120px);">
+
+    @* ── 좌: 라인 목록 ──────────────────────────────────────────────── *@
+    <div style="flex:0 0 420px;display:flex;flex-direction:column;min-height:0;">
+        <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;">
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-bottom:8px;">
+                <RadzenTextBox @bind-Value="_search" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="LineID / LineName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;" />
+                <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyLineFilter" class="ames-rz-btn" />
+            </RadzenStack>
+            <div style="flex:1;min-height:0;overflow:hidden;">
+                <RadzenDataGrid TItem="MasterDataRepository.LineRow" Data="_lines" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center"
+                                ShowPagingSummary="false" RowRender="LineRowRender" RowSelect="OnLineRowSelect" EmptyText="@L["Msg.NoData"]" Class="ames-rz-grid">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LineID" Title="@L["Col.LineId"]" Width="130px">
+                            <Template Context="l"><span class="code">@l.LineID</span></Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LineName" Title="@L["Col.LineName"]">
+                            <Template Context="l">@MasterDataRepository.LocalName(l.LineName, l.LineNameEn)</Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+            </div>
+        </div>
+    </div>
+
+    @* ── 우: 선택 라인의 금형 배정 (MD_MoldLine) ─────────────────────── *@
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;">
+        <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;">
+
+            @if (_selLine is null)
+            {
+                <div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;">
+                    <div style="font-size:2.4em;opacity:.15;">🏭</div>
+                    <div class="dim" style="font-size:.9em;">@L["MD.MoldLine.SelectHint"]</div>
+                </div>
+            }
+            else
+            {
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                    <span style="font-weight:600;font-size:1em;">
+                        <span class="code" style="font-size:.9em;margin-right:6px;">@_selLine.LineID</span>
+                        @MasterDataRepository.LocalName(_selLine.LineName, _selLine.LineNameEn)
+                        <span class="dim" style="font-weight:400;margin-left:6px;">· @_moldLines.Count @L["Lbl.Items"]</span>
+                    </span>
+                    @if (_canEdit)
+                    {
+                        <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
+                    }
+                </div>
+                <div style="flex:1;min-height:0;overflow:hidden;">
+                    <RadzenDataGrid TItem="MasterDataRepository.MoldLineRow" Data="_moldLines" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center"
+                                    ShowPagingSummary="@_showPagerSummary" PageSizeOptions="@_pageSizeOptions" RowRender="MoldLineRowRender" RowSelect="OpenEdit" EmptyText="@L["Msg.NoData"]" Class="ames-rz-grid">
+                        <Columns>
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldLineRow" Property="MoldID" Title="@L["Col.MoldId"]" Width="140px">
+                                <Template Context="ml"><span class="code">@ml.MoldID</span></Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldLineRow" Property="MoldName" Title="@L["Col.MoldName"]">
+                                <Template Context="ml"><span class="dim">@(ml.MoldName ?? "—")</span></Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldLineRow" Property="UPH" Title="@L["Col.UPH"]" Width="90px" TextAlign="TextAlign.Right">
+                                <Template Context="ml"><span class="code">@(ml.UPH?.ToString("N1") ?? "—")</span></Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldLineRow" Property="PrepTime" Title="@L["Col.PrepTime"]" Width="110px" TextAlign="TextAlign.Right">
+                                <Template Context="ml"><span class="code">@(ml.PrepTime?.ToString("N1") ?? "—")</span></Template>
+                            </RadzenDataGridColumn>
+                        </Columns>
+                    </RadzenDataGrid>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@* ── 등록 모달 ──────────────────────────────────────────────────────── *@
+@if (_modal == "create" && _selLine is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
+        <div class="ames-modal" style="max-width:480px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.MoldLine.Title"] — @L["Modal.Create"] <span class="code" style="font-weight:400;font-size:.9em;">@_selLine.LineID</span></div>
+            @FormFields(false)
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Create"])" Click="@SaveCreate" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@* ── 수정/삭제 모달 ─────────────────────────────────────────────────── *@
+@if (_modal == "edit" && _selLine is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
+        <div class="ames-modal" style="max-width:480px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.MoldLine.Title"] — @L["Modal.Edit"] <span class="code" style="font-weight:400;font-size:.9em;">@_selLine.LineID · @_f.MoldID</span></div>
+            @FormFields(true)
+            @if (_confirmDelete)
+            {
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _confirmDelete = false' class="ames-rz-btn" />
+                    <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
+                </RadzenStack>
+            }
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@code {
+    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    bool _showPagerSummary = true;
+    List<MasterDataRepository.LineRow>     _allLines  = new();
+    List<MasterDataRepository.LineRow>     _lines     = new();
+    List<MasterDataRepository.MoldLineRow> _moldLines = new();
+    List<MasterDataRepository.MoldRow>     _moldList  = new();
+    MasterDataRepository.LineRow? _selLine;
+
+    string _search = "";
+    string _modal = "", _modalErr = "", _msg = "";
+    bool   _isErr, _busy, _bgDown, _confirmDelete;
+    bool   _canEdit;
+    string _actor = "system";
+
+    FormModel _f = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
+        _actor   = auth.User.Identity?.Name ?? "system";
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("md/re/mold");
+        try { _moldList = MD.ListMolds(); } catch { }
+        LoadLines();
+    }
+
+    void LoadLines() { try { _allLines = MD.ListLines(); } catch { _allLines = new(); } ApplyLineFilter(); }
+
+    void ApplyLineFilter()
+    {
+        _lines = _allLines.Where(l =>
+            string.IsNullOrEmpty(_search) ||
+            l.LineID.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+            (l.LineName ?? "").Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+            (l.LineNameEn ?? "").Contains(_search, StringComparison.OrdinalIgnoreCase)
+        ).ToList();
+    }
+
+    void OnSearchChanged(string value) => _search = value ?? "";
+
+    void OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") ApplyLineFilter(); }
+
+    void LoadMoldLines() { try { _moldLines = _selLine is null ? new() : MD.ListMoldLines(_selLine.LineID); } catch { _moldLines = new(); } }
+
+    void LineRowRender(RowRenderEventArgs<MasterDataRepository.LineRow> args)
+    {
+        var cls = "ames-row-link";
+        if (_selLine?.LineID == args.Data?.LineID) cls += " ames-row-selected";
+        args.Attributes["class"] = cls;
+    }
+
+    void MoldLineRowRender(RowRenderEventArgs<MasterDataRepository.MoldLineRow> args)
+    {
+        if (!_canEdit) return;
+        if (!args.Attributes.TryGetValue("class", out var cls)) cls = "";
+        args.Attributes["class"] = cls + " ames-row-link";
+    }
+
+    void OnLineRowSelect(MasterDataRepository.LineRow l) { _selLine = l; LoadMoldLines(); }
+
+    void CloseModal() { _modal = ""; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgDown()  => _bgDown = true;
+    void OnBgClick() { if (_bgDown) CloseModal(); _bgDown = false; }
+
+    void OpenCreate()
+    {
+        if (_selLine is null) return;
+        _f = new();
+        _confirmDelete = false; _modalErr = "";
+        _modal = "create";
+    }
+
+    void OpenEdit(MasterDataRepository.MoldLineRow ml)
+    {
+        if (!_canEdit) return;
+        _f = new()
+        {
+            MoldID   = ml.MoldID,
+            UPH      = ml.UPH,
+            PrepTime = ml.PrepTime,
+        };
+        _confirmDelete = false; _modalErr = "";
+        _modal = "edit";
+    }
+
+    void SaveCreate()
+    {
+        if (_selLine is null) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.MoldID)) { _modalErr = L["Err.MoldIdRequired"]; return; }
+        _busy = true;
+        try
+        {
+            var moldId = _f.MoldID.Trim();
+            if (MD.MoldLineExists(_selLine.LineID, moldId)) { _modalErr = $"'{moldId}' {L["Err.AlreadyExists"]}"; return; }
+            MD.InsertMoldLine(_selLine.LineID, moldId, _f.UPH, _f.PrepTime, _actor);
+            LoadMoldLines(); CloseModal();
+            ShowMsg($"{moldId} {L["Msg.Created"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveEdit()
+    {
+        if (_selLine is null || string.IsNullOrWhiteSpace(_f.MoldID)) return;
+        _modalErr = "";
+        _busy = true;
+        try
+        {
+            MD.UpdateMoldLine(_selLine.LineID, _f.MoldID, _f.UPH, _f.PrepTime, _actor);
+            LoadMoldLines(); CloseModal();
+            ShowMsg($"{_f.MoldID} {L["Msg.Updated"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveDelete()
+    {
+        if (_selLine is null || string.IsNullOrWhiteSpace(_f.MoldID)) return;
+        _busy = true;
+        try
+        {
+            MD.DeleteMoldLine(_selLine.LineID, _f.MoldID);
+            LoadMoldLines(); CloseModal();
+            ShowMsg($"{_f.MoldID} {L["Msg.Deleted"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    // ── Form fragment (create/edit 공유) ──────────────────────────────────
+    RenderFragment FormFields(bool editMode) =>
+    @<div>
+        <RadzenRow Gap="8px">
+            <RadzenColumn Size="12">
+                <RadzenLabel Text='@($"{L["Col.MoldId"]} *")' />
+                <RadzenDropDown TValue="string" @bind-Value="_f.MoldID" Data="@_moldList" ValueProperty="MoldID" AllowClear="true" AllowFiltering="true" Disabled="@editMode" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;">
+                    <Template Context="m">@m.MoldID — @m.MoldName</Template>
+                </RadzenDropDown>
+            </RadzenColumn>
+        </RadzenRow>
+
+        <RadzenRow Gap="8px" Style="margin-top:6px;">
+            <RadzenColumn Size="6">
+                <RadzenLabel Text="@L["Col.UPH"]" />
+                <RadzenNumeric TValue="decimal?" @bind-Value="_f.UPH" Min="0" Step="0.1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            </RadzenColumn>
+            <RadzenColumn Size="6">
+                <RadzenLabel Text="@L["Col.PrepTime"]" />
+                <RadzenNumeric TValue="decimal?" @bind-Value="_f.PrepTime" Min="0" Step="0.1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            </RadzenColumn>
+        </RadzenRow>
+    </div>;
+
+    class FormModel
+    {
+        public string?  MoldID   { get; set; }
+        public decimal? UPH      { get; set; }
+        public decimal? PrepTime { get; set; }
+    }
+}

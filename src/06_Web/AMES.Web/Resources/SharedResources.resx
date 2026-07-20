@@ -4887,4 +4887,58 @@
   <data name="SYS.Notifications.Lbl.NoRoles" xml:space="preserve">
     <value>역할 없음</value>
   </data>
+  <data name="MD.MoldItem.Title" xml:space="preserve">
+    <value>금형별 제품 관리</value>
+  </data>
+  <data name="MD.MoldItem.SelectHint" xml:space="preserve">
+    <value>좌측에서 금형을 선택하세요</value>
+  </data>
+  <data name="MD.MoldLine.Title" xml:space="preserve">
+    <value>라인별 금형 관리</value>
+  </data>
+  <data name="MD.MoldLine.SelectHint" xml:space="preserve">
+    <value>좌측에서 라인을 선택하세요</value>
+  </data>
+  <data name="Col.ShotsCumulative" xml:space="preserve">
+    <value>누적타수</value>
+  </data>
+  <data name="Col.RefCode" xml:space="preserve">
+    <value>참조코드</value>
+  </data>
+  <data name="Col.AssyInjResult" xml:space="preserve">
+    <value>조립사출실적</value>
+  </data>
+  <data name="Col.Color" xml:space="preserve">
+    <value>색상</value>
+  </data>
+  <data name="Col.CavitySeq" xml:space="preserve">
+    <value>캐비티순번</value>
+  </data>
+  <data name="Col.CavityPos" xml:space="preserve">
+    <value>캐비티위치</value>
+  </data>
+  <data name="Col.Usage" xml:space="preserve">
+    <value>유서지</value>
+  </data>
+  <data name="Col.ResinItemNo" xml:space="preserve">
+    <value>수지품번</value>
+  </data>
+  <data name="Col.ResinUsage" xml:space="preserve">
+    <value>수지사용량</value>
+  </data>
+  <data name="Col.MoldCategory" xml:space="preserve">
+    <value>금형구분</value>
+  </data>
+  <data name="Col.UPH" xml:space="preserve">
+    <value>UPH</value>
+  </data>
+  <data name="Col.PrepTime" xml:space="preserve">
+    <value>준비시간(분)</value>
+  </data>
+  <data name="Err.MoldInUse" xml:space="preserve">
+    <value>제품정보 {0}건·라인배정 {1}건에서 사용 중이라 삭제할 수 없습니다</value>
+  </data>
+  <data name="MD.Mold.Tab.Master" xml:space="preserve">
+    <value>Mold Master</value>
+  </data>
 </root>
