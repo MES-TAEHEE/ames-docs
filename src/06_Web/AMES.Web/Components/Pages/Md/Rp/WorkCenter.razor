@@ -61,7 +61,7 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid TItem="MasterDataRepository.WorkCenterRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.WorkCenterRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.WorkCenter.Empty"]" Class="ames-rz-grid">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="WCID" Title="@L["Col.WCID"]" Width="110px">
@@ -125,7 +125,7 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.LineId"]" />
+                    <RadzenLabel Text="@L["Col.Line"]" />
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Change="@OnLineChanged" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
@@ -188,7 +188,7 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.LineId"]" />
+                    <RadzenLabel Text="@L["Col.Line"]" />
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Change="@OnLineChanged" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
@@ -290,6 +290,21 @@
         Reload();
     }
 
+    RadzenDataGrid<MasterDataRepository.WorkCenterRow>? _pgGrid;
+    int _pgIndex;
+    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
+
+    async Task ReloadRestorePage()
+    {
+        Reload();
+        await InvokeAsync(StateHasChanged);
+        if (_pgGrid is not null)
+        {
+            int pages = Math.Max(1, (int)Math.Ceiling(_rows.Count / (double)_pgGrid.PageSize));
+            await _pgGrid.GoToPage(Math.Min(_pgIndex, pages - 1));
+        }
+    }
+
     void Reload() { _allRows = MD.ListWorkCenters(); ApplyFilter(); }
 
     void ApplyFilter() { _rows = _allRows.Where(r =>
@@ -350,7 +365,7 @@
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
-    void SaveCreate()
+    async Task SaveCreate()
     {
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.WCID))   { _modalErr = L["Err.WcIdRequired"]; return; }
@@ -362,14 +377,14 @@
             MD.InsertWorkCenter(_f.WCID.Trim(), _f.WCName, NE(_f.ProcessCode),
                 NE(_f.LineID), _f.DailyCapacity, _f.StdManpower,
                 NE(_f.CostCenterCode), NE(_f.LocationDesc), _f.ActiveFlag, _actor);
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.WCName} {L["Msg.Created"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveEdit()
+    async Task SaveEdit()
     {
         if (_sel is null) return;
         _modalErr = "";
@@ -381,14 +396,14 @@
                 NE(_f.LineID), _f.DailyCapacity, _f.StdManpower,
                 NE(_f.CostCenterCode), NE(_f.LocationDesc), _f.ActiveFlag, _actor);
             var name = _f.WCName;
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveDelete()
+    async Task SaveDelete()
     {
         if (_sel is null) return;
         _busy = true;
@@ -396,7 +411,7 @@
         {
             var name = _sel.WCName ?? _sel.WCID;
             MD.DeleteWorkCenter(_sel.WCID);
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }

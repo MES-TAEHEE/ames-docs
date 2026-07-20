@@ -62,7 +62,7 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid TItem="SysRepository.ScreenRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="SysRepository.ScreenRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SYS.Screen.Empty"]" Class="ames-rz-grid">
         <Columns>
             <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenCode" Title="@L["SYS.Screen.Col.Code"]">
@@ -315,6 +315,21 @@
         Reload();
     }
 
+    RadzenDataGrid<SysRepository.ScreenRow>? _pgGrid;
+    int _pgIndex;
+    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
+
+    async Task ReloadRestorePage()
+    {
+        Reload();
+        await InvokeAsync(StateHasChanged);
+        if (_pgGrid is not null)
+        {
+            int pages = Math.Max(1, (int)Math.Ceiling(_rows.Count / (double)_pgGrid.PageSize));
+            await _pgGrid.GoToPage(Math.Min(_pgIndex, pages - 1));
+        }
+    }
+
     void Reload() { _allRows = Sys.ListScreens(); ApplyFilter(); }
 
     void ApplyFilter() => _rows = _allRows.Where(r =>
@@ -377,7 +392,7 @@
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
-    void SaveCreate()
+    async Task SaveCreate()
     {
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.ScreenCode)) { _modalErr = L["SYS.Screen.Err.CodeRequired"].Value;   return; }
@@ -391,14 +406,14 @@
                 Nz(_f.SubProcessCode),
                 _f.ScreenName.Trim(), Nz(_f.ScreenNameEn), Nz(_f.HRef), Nz(_f.LidLabel),
                 _f.SortOrder, _f.IsVisible, _actor);
-            Reload(); CloseModal();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Screen.Ok.Created"].Value, _f.ScreenCode), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveEdit()
+    async Task SaveEdit()
     {
         if (_sel is null) return;
         _modalErr = "";
@@ -413,14 +428,14 @@
                 Nz(_f.SubProcessCode),
                 _f.ScreenName.Trim(), Nz(_f.ScreenNameEn), Nz(_f.HRef), Nz(_f.LidLabel),
                 _f.SortOrder, _f.IsVisible, _actor);
-            Reload(); CloseModal();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Screen.Ok.Updated"].Value, _f.ScreenCode), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveDelete()
+    async Task SaveDelete()
     {
         if (_sel is null) return;
         _busy = true;
@@ -428,7 +443,7 @@
         {
             var code = _sel.ScreenCode;
             Sys.DeleteScreen(_sel.ScreenId, _actor);
-            Reload(); CloseModal();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Screen.Ok.Deleted"].Value, code), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }

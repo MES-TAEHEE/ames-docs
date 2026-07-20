@@ -17,15 +17,6 @@
     <resheader name="version">2.0</resheader>
     <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
     <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
-    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
-    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
-    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
-        <value>[base64 mime encoded serialized .NET Framework object]</value>
-    </data>
-    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
-        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
-        <comment>This is a comment</comment>
-    </data>
                 
     There are any number of "resheader" rows that contain simple 
     name/value pairs.
@@ -1437,9 +1428,6 @@
   <data name="MD.Line.Lbl.LineNameEn" xml:space="preserve">
     <value>라인명 (영문)</value>
   </data>
-  <data name="MD.Line.Lbl.PlantId" xml:space="preserve">
-    <value>공장 ID</value>
-  </data>
   <data name="MD.Line.Lbl.DefaultWcid" xml:space="preserve">
     <value>기준 작업장 (WCID)</value>
   </data>
@@ -1789,7 +1777,7 @@
     <value>등록된 협력업체가 없습니다.</value>
   </data>
   <data name="MD.WorkCenter.Title" xml:space="preserve">
-    <value>Work Center 관리</value>
+    <value>작업장 관리</value>
   </data>
   <data name="MD.WorkCenter.List" xml:space="preserve">
     <value>작업장 목록</value>
@@ -3265,7 +3253,7 @@
     <value>설비ID</value>
   </data>
   <data name="Col.WorkCenter" xml:space="preserve">
-    <value>Work Center</value>
+    <value>작업장</value>
   </data>
   <data name="Col.MakerModel" xml:space="preserve">
     <value>제조사/모델</value>
@@ -4880,5 +4868,23 @@
   </data>
   <data name="MD.Bop.CopyOk" xml:space="preserve">
     <value>{0}개 단계를 복사했습니다</value>
+  </data>
+  <data name="MD.PmTemplate.Steps" xml:space="preserve">
+    <value>점검 단계</value>
+  </data>
+  <data name="MD.ReasonCode.Ph.Description" xml:space="preserve">
+    <value>사유에 대한 상세 설명</value>
+  </data>
+  <data name="SYS.Audit.Sect.Basic" xml:space="preserve">
+    <value>기본 정보</value>
+  </data>
+  <data name="SYS.Audit.Sect.Event" xml:space="preserve">
+    <value>이벤트 정보</value>
+  </data>
+  <data name="SYS.Notifications.Lbl.NoChannels" xml:space="preserve">
+    <value>채널 없음</value>
+  </data>
+  <data name="SYS.Notifications.Lbl.NoRoles" xml:space="preserve">
+    <value>역할 없음</value>
   </data>
 </root>

@@ -24,7 +24,7 @@
     </div>
     <div class="ames-kpi ok">
         <div class="ames-kpi-l">@L["Lbl.Active"]</div>
-        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Active")</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "ACTIVE" || r.Status == "Active")</div>
     </div>
     <div class="ames-kpi warn">
         <div class="ames-kpi-l">@L["MD.DefectCause.Kpi.RootCause"]</div>
@@ -61,7 +61,7 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid TItem="MasterDataRepository.DefectCauseRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.DefectCauseRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.DefectCause.Empty"]" Class="ames-rz-grid">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Property="CauseCode" Title="@L["Col.CauseCode"]" Width="140px">
@@ -70,7 +70,10 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Property="CauseName" Title="@L["Col.CauseName"]" Width="160px" />
             <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Property="CauseCategory" Title="@L["Col.Category"]" Width="110px">
                 <Template Context="r">
-                    @if (r.CauseCategory != null) { <span class="pill">@r.CauseCategory</span> }
+                    @if (r.CauseCategory != null)
+                    {
+                        <span class="pill">@(_categoryItems.FirstOrDefault(c => c.CodeValue == r.CauseCategory) is { } cf ? MasterDataRepository.LocalName(cf) : r.CauseCategory)</span>
+                    }
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
@@ -133,12 +136,12 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.Category"]" />
-                    <RadzenTextBox @bind-Value="_f.CauseCategory" Placeholder="MACHINE, MAN" MaxLength="9" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.ProcessCode"]" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.ProcessCode" Data="ProcessOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.ProcessCode"]" />
-                    <RadzenTextBox @bind-Value="_f.ProcessCode" Placeholder="INJ" MaxLength="10" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.Category"]" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.CauseCategory" Data="CategoryOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -209,12 +212,12 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.Category"]" />
-                    <RadzenTextBox @bind-Value="_f.CauseCategory" MaxLength="9" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.ProcessCode"]" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.ProcessCode" Data="ProcessOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.ProcessCode"]" />
-                    <RadzenTextBox @bind-Value="_f.ProcessCode" MaxLength="10" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.Category"]" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.CauseCategory" Data="CategoryOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -290,6 +293,7 @@
     List<MasterDataRepository.CodeItemRow> _deptCodes = new();
     List<MasterDataRepository.CodeItemRow> _causeStatus = new();
     List<MasterDataRepository.CodeItemRow> _processItems = new();
+    List<MasterDataRepository.CodeItemRow> _categoryItems = new();
     MasterDataRepository.DefectCauseRow? _sel;
 
     string _fSearch = "";
@@ -303,8 +307,10 @@
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
-    IEnumerable<DropDownItem> CategoryFilterOptions => _allRows.Select(r => r.CauseCategory).Where(x => x != null).Distinct().OrderBy(x => x).Select(c => new DropDownItem { Value = c!, Text = c! });
+    IEnumerable<DropDownItem> CategoryFilterOptions => _categoryItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = MasterDataRepository.LocalName(c) });
     IEnumerable<DropDownItem> ProcessFilterOptions => _allRows.Select(r => r.ProcessCode).Where(x => x != null).Distinct().OrderBy(x => x).Select(p => new DropDownItem { Value = p!, Text = p! });
+    IEnumerable<DropDownItem> ProcessOptions  => _processItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    IEnumerable<DropDownItem> CategoryOptions => _categoryItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     IEnumerable<DropDownItem> StatusFilterOptions => _causeStatus.Where(s => s.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = MasterDataRepository.LocalName(s) });
     IEnumerable<DropDownItem> StatusModalOptions => _causeStatus.Where(s => s.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = MasterDataRepository.LocalName(s) });
     IEnumerable<DropDownItem> DeptOptions => _deptCodes.Where(d => d.UseFlag).Select(d => new DropDownItem { Value = d.CodeValue ?? "", Text = MasterDataRepository.LocalName(d) });
@@ -315,10 +321,26 @@
         _actor = auth.User.Identity?.Name ?? "system";
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/ql/defect-cause");
-        try { _deptCodes   = MD.ListCodeItems("DEPARTMENT");         } catch { }
-        try { _causeStatus = MD.ListCodeItems("DEFECT_CAUSE_STATUS"); } catch { }
-        try { _processItems = MD.ListCodeItems("PROCESS"); } catch { }
+        try { _deptCodes    = MD.ListCodeItems("DEPARTMENT");     } catch { }
+        try { _causeStatus  = MD.ListCodeItems("CAUSE_STATUS");   } catch { }
+        try { _processItems = MD.ListCodeItems("PROCESS");        } catch { }
+        try { _categoryItems = MD.ListCodeItems("CAUSE_CATEGORY"); } catch { }
         Reload();
+    }
+
+    RadzenDataGrid<MasterDataRepository.DefectCauseRow>? _pgGrid;
+    int _pgIndex;
+    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
+
+    async Task ReloadRestorePage()
+    {
+        Reload();
+        await InvokeAsync(StateHasChanged);
+        if (_pgGrid is not null)
+        {
+            int pages = Math.Max(1, (int)Math.Ceiling(_rows.Count / (double)_pgGrid.PageSize));
+            await _pgGrid.GoToPage(Math.Min(_pgIndex, pages - 1));
+        }
     }
 
     void Reload() { _allRows = MD.ListDefectCauses(); ApplyFilter(); }
@@ -350,7 +372,7 @@
         if (args.Data is not null) OpenEdit(args.Data);
     }
 
-    void OpenCreate() { _f = new() { Status = "Active" }; _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+    void OpenCreate() { _f = new() { Status = "ACTIVE" }; _modalErr = ""; _confirmDelete = false; _modal = "create"; }
 
     void OpenEdit(MasterDataRepository.DefectCauseRow r)
     {
@@ -379,7 +401,7 @@
 
     static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
 
-    void SaveCreate()
+    async Task SaveCreate()
     {
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.CauseCode)) { _modalErr = L["Err.CauseCodeRequired"]; return; }
@@ -392,14 +414,14 @@
                 _f.ParentCauseCode, NE(_f.ProcessCode), _f.RootCauseFlag,
                 NE(_f.CorrectiveGuide), _f.ResponsibleDept, _f.SortOrder,
                 NE(_f.Status), _actor);
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.CauseName} {L["Msg.Created"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveEdit()
+    async Task SaveEdit()
     {
         if (_sel is null) return;
         _modalErr = "";
@@ -412,14 +434,14 @@
                 NE(_f.CorrectiveGuide), _f.ResponsibleDept, _f.SortOrder,
                 NE(_f.Status), _actor);
             var name = _f.CauseName;
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveDelete()
+    async Task SaveDelete()
     {
         if (_sel is null) return;
         _busy = true;
@@ -427,7 +449,7 @@
         {
             var name = _sel.CauseName ?? _sel.CauseCode;
             MD.DeleteDefectCause(_sel.CauseCode);
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
@@ -451,6 +473,6 @@
         public string  CorrectiveGuide { get; set; } = "";
         public string? ResponsibleDept { get; set; }
         public int?    SortOrder       { get; set; }
-        public string  Status          { get; set; } = "Active";
+        public string  Status          { get; set; } = "ACTIVE";
     }
 }

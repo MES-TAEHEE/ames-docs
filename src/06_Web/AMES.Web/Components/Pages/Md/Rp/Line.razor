@@ -59,7 +59,7 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid TItem="MasterDataRepository.LineRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.LineRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Line.Empty"]" Class="ames-rz-grid">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LineID" Title="@L["Col.LineId"]" Width="100px">
@@ -146,7 +146,7 @@
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["MD.Line.Lbl.PlantId"]" />
+                    <RadzenLabel Text="@L["Col.Plant"]" />
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
@@ -214,7 +214,7 @@
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["MD.Line.Lbl.PlantId"]" />
+                    <RadzenLabel Text="@L["Col.Plant"]" />
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
@@ -316,6 +316,21 @@
         Reload();
     }
 
+    RadzenDataGrid<MasterDataRepository.LineRow>? _pgGrid;
+    int _pgIndex;
+    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
+
+    async Task ReloadRestorePage()
+    {
+        Reload();
+        await InvokeAsync(StateHasChanged);
+        if (_pgGrid is not null)
+        {
+            int pages = Math.Max(1, (int)Math.Ceiling(_rows.Count / (double)_pgGrid.PageSize));
+            await _pgGrid.GoToPage(Math.Min(_pgIndex, pages - 1));
+        }
+    }
+
     void Reload() { _allRows = MD.ListLines(); ApplyFilter(); }
 
     void ApplyFilter()
@@ -370,7 +385,7 @@
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
-    void SaveCreate()
+    async Task SaveCreate()
     {
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.LineID))   { _modalErr = L["MD.Line.Err.IDRequired"]; return; }
@@ -383,14 +398,14 @@
                 NE(_f.PlantCode), NE(_f.DefaultWCID),
                 _f.DailyCap, NE(_f.ShiftPattern),
                 _f.RfidEnabledFlag, _f.Status, _actor);
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Line.Ok.Created"].Value, _f.LineName), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveEdit()
+    async Task SaveEdit()
     {
         if (_sel is null) return;
         _modalErr = "";
@@ -403,14 +418,14 @@
                 _f.DailyCap, NE(_f.ShiftPattern),
                 _f.RfidEnabledFlag, _f.Status, _actor);
             var name = _f.LineName;
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Line.Ok.Updated"].Value, name), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveDelete()
+    async Task SaveDelete()
     {
         if (_sel is null) return;
         _busy = true;
@@ -418,7 +433,7 @@
         {
             var name = _sel.LineName ?? _sel.LineID;
             MD.DeleteLine(_sel.LineID);
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Line.Ok.Deleted"].Value, name), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }

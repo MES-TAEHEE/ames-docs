@@ -89,7 +89,7 @@
             </RadzenStack>
         </div>
 
-        <RadzenDataGrid TItem="SysRepository.NotifRuleRow" Data="@_ruleRows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+        <RadzenDataGrid @ref="_ruleGrid" Page="OnRulePage" TItem="SysRepository.NotifRuleRow" Data="@_ruleRows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                         PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRuleRowClick" RowRender="@RuleRowRender" EmptyText="@L["SYS.Notifications.Rules.Empty"]" Class="ames-rz-grid">
             <Columns>
                 <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="EventTypeCode" Title="@L["Col.EventCode"]" Width="130px">
@@ -148,7 +148,7 @@
                 }
             </RadzenStack>
         </div>
-        <RadzenDataGrid TItem="SysRepository.NotifChannelRow" Data="@_chRows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+        <RadzenDataGrid @ref="_chGrid" Page="OnChPage" TItem="SysRepository.NotifChannelRow" Data="@_chRows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                         PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnChRowClick" RowRender="@ChRowRender" EmptyText="@L["SYS.Notifications.Channels.Empty"]" Class="ames-rz-grid">
             <Columns>
                 <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="UserName" Title="@L["Col.User"]" Width="160px">
@@ -601,6 +601,29 @@
         Reload();
     }
 
+    RadzenDataGrid<SysRepository.NotifRuleRow>?    _ruleGrid;
+    RadzenDataGrid<SysRepository.NotifChannelRow>? _chGrid;
+    int _rulePage, _chPage;
+    void OnRulePage(PagerEventArgs args) => _rulePage = args.PageIndex;
+    void OnChPage(PagerEventArgs args)   => _chPage   = args.PageIndex;
+
+    // Reload 후 규칙/채널 목록의 현재 페이지를 유지 (Reload가 두 목록을 함께 재로딩)
+    async Task ReloadRestore()
+    {
+        Reload();
+        await InvokeAsync(StateHasChanged);
+        if (_ruleGrid is not null)
+        {
+            int pages = Math.Max(1, (int)Math.Ceiling(_ruleRows.Count / (double)_ruleGrid.PageSize));
+            await _ruleGrid.GoToPage(Math.Min(_rulePage, pages - 1));
+        }
+        if (_chGrid is not null)
+        {
+            int pages = Math.Max(1, (int)Math.Ceiling(_chRows.Count / (double)_chGrid.PageSize));
+            await _chGrid.GoToPage(Math.Min(_chPage, pages - 1));
+        }
+    }
+
     void Reload()
     {
         try { _rules    = Sys.ListNotificationRules(); }    catch { }
@@ -688,7 +711,7 @@
         else _rf.SelectedRoles.Remove(role);
     }
 
-    void SaveRuleCreate()
+    async Task SaveRuleCreate()
     {
         _ruleModalErr = "";
         if (string.IsNullOrWhiteSpace(_rf.EventTypeCode))
@@ -700,13 +723,13 @@
                 NE(_rf.EventTypeCode), NE(_rf.EventName), NE(_rf.ModuleCode),
                 NE(_rf.ProcessCode), NE(_rf.TriggerCondition), _rf.IsEnabled,
                 NE(_rf.ChannelsJson), NE(_rf.RecipientRolesJson), _actor);
-            CloseRuleModal(); Reload();
+            CloseRuleModal(); await ReloadRestore();
         }
         catch (Exception ex) { _ruleModalErr = ex.Message; }
         finally { _ruleBusy = false; }
     }
 
-    void SaveRuleEdit()
+    async Task SaveRuleEdit()
     {
         if (_ruleSel is null) return;
         _ruleModalErr = "";
@@ -720,17 +743,17 @@
                 NE(_rf.EventTypeCode), NE(_rf.EventName), NE(_rf.ModuleCode),
                 NE(_rf.ProcessCode), NE(_rf.TriggerCondition), _rf.IsEnabled,
                 NE(_rf.ChannelsJson), NE(_rf.RecipientRolesJson), _actor);
-            CloseRuleModal(); Reload();
+            CloseRuleModal(); await ReloadRestore();
         }
         catch (Exception ex) { _ruleModalErr = ex.Message; }
         finally { _ruleBusy = false; }
     }
 
-    void SaveRuleDelete()
+    async Task SaveRuleDelete()
     {
         if (_ruleSel is null) return;
         _ruleBusy = true;
-        try { Sys.DeleteNotificationRule(_ruleSel.NotificationRuleId); CloseRuleModal(); Reload(); }
+        try { Sys.DeleteNotificationRule(_ruleSel.NotificationRuleId); CloseRuleModal(); await ReloadRestore(); }
         catch (Exception ex) { _ruleModalErr = ex.Message; _ruleConfirmDelete = false; }
         finally { _ruleBusy = false; }
     }
@@ -788,7 +811,7 @@
         };
     }
 
-    void SaveChCreate()
+    async Task SaveChCreate()
     {
         _chModalErr = "";
         if (string.IsNullOrWhiteSpace(_cf.Channel)) { _chModalErr = L["SYS.Notifications.Err.ChannelRequired"]; return; }
@@ -800,13 +823,13 @@
                 _cf.QuietStart.HasValue ? _cf.QuietStart.Value.ToTimeSpan() : null,
                 _cf.QuietEnd.HasValue   ? _cf.QuietEnd.Value.ToTimeSpan()   : null,
                 _actor);
-            CloseChModal(); Reload();
+            CloseChModal(); await ReloadRestore();
         }
         catch (Exception ex) { _chModalErr = ex.Message; }
         finally { _chBusy = false; }
     }
 
-    void SaveChEdit()
+    async Task SaveChEdit()
     {
         if (_chSel is null) return;
         _chBusy = true;
@@ -818,17 +841,17 @@
                 _cf.QuietStart.HasValue ? _cf.QuietStart.Value.ToTimeSpan() : null,
                 _cf.QuietEnd.HasValue   ? _cf.QuietEnd.Value.ToTimeSpan()   : null,
                 _actor);
-            CloseChModal(); Reload();
+            CloseChModal(); await ReloadRestore();
         }
         catch (Exception ex) { _chModalErr = ex.Message; }
         finally { _chBusy = false; }
     }
 
-    void SaveChDelete()
+    async Task SaveChDelete()
     {
         if (_chSel is null) return;
         _chBusy = true;
-        try { Sys.DeleteNotificationChannel(_chSel.NotificationChannelId); CloseChModal(); Reload(); }
+        try { Sys.DeleteNotificationChannel(_chSel.NotificationChannelId); CloseChModal(); await ReloadRestore(); }
         catch (Exception ex) { _chModalErr = ex.Message; _chConfirmDelete = false; }
         finally { _chBusy = false; }
     }

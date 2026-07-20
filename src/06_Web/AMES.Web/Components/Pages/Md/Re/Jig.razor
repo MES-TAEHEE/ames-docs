@@ -65,7 +65,7 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid TItem="MasterDataRepository.JigRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.JigRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Jig.Empty"]" Class="ames-rz-grid">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="JigID" Title="@L["Col.JigId"]" Width="110px">
@@ -153,7 +153,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.ReadFailRate"]" />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.ReadFailRate" Min="0m" Max="100m" Step="0.01m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.ReadFailRate" Min="0m" Max="100m" Step="0.01" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -216,7 +216,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.ReadFailRate"]" />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.ReadFailRate" Min="0m" Max="100m" Step="0.01m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.ReadFailRate" Min="0m" Max="100m" Step="0.01" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -300,6 +300,21 @@
         Reload();
     }
 
+    RadzenDataGrid<MasterDataRepository.JigRow>? _pgGrid;
+    int _pgIndex;
+    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
+
+    async Task ReloadRestorePage()
+    {
+        Reload();
+        await InvokeAsync(StateHasChanged);
+        if (_pgGrid is not null)
+        {
+            int pages = Math.Max(1, (int)Math.Ceiling(_rows.Count / (double)_pgGrid.PageSize));
+            await _pgGrid.GoToPage(Math.Min(_pgIndex, pages - 1));
+        }
+    }
+
     void Reload() { _allRows = MD.ListJigs(); ApplyFilter(); }
 
     void ApplyFilter() { _rows = _allRows.Where(r =>
@@ -354,7 +369,7 @@
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
-    void SaveCreate()
+    async Task SaveCreate()
     {
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.JigID))  { _modalErr = L["Err.JigIdRequired"]; return; }
@@ -366,14 +381,14 @@
             MD.InsertJig(_f.JigID.Trim(), _f.JigName, _f.HangerCount,
                 _f.RatedCycle, _f.CycleCount, _f.ReadFailRate,
                 NE(_f.HealthStatus), _f.LastServiceDate, _f.ActiveFlag, _actor);
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.JigName} {L["Msg.Created"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveEdit()
+    async Task SaveEdit()
     {
         if (_sel is null) return;
         _modalErr = "";
@@ -385,14 +400,14 @@
                 _f.RatedCycle, _f.CycleCount, _f.ReadFailRate,
                 NE(_f.HealthStatus), _f.LastServiceDate, _f.ActiveFlag, _actor);
             var name = _f.JigName;
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveDelete()
+    async Task SaveDelete()
     {
         if (_sel is null) return;
         _busy = true;
@@ -400,7 +415,7 @@
         {
             var name = _sel.JigName ?? _sel.JigID;
             MD.DeleteJig(_sel.JigID);
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }

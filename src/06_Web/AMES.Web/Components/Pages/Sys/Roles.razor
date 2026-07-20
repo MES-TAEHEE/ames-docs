@@ -50,7 +50,7 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid TItem="SysRepository.RoleRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="SysRepository.RoleRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SYS.Roles.Empty"]" Class="ames-rz-grid">
         <Columns>
             <RadzenDataGridColumn TItem="SysRepository.RoleRow" Property="RoleName" Title="@L["Col.RoleName"]">
@@ -174,6 +174,21 @@
         Reload();
     }
 
+    RadzenDataGrid<SysRepository.RoleRow>? _pgGrid;
+    int _pgIndex;
+    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
+
+    async Task ReloadRestorePage()
+    {
+        Reload();
+        await InvokeAsync(StateHasChanged);
+        if (_pgGrid is not null)
+        {
+            int pages = Math.Max(1, (int)Math.Ceiling(_rows.Count / (double)_pgGrid.PageSize));
+            await _pgGrid.GoToPage(Math.Min(_pgIndex, pages - 1));
+        }
+    }
+
     void Reload() { _rows = Sys.ListRoles(); }
 
     void OpenCreate()
@@ -229,7 +244,7 @@
                 return;
             }
             var name = _roleName.Trim();
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Roles.Ok.Created"].Value, name), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
@@ -256,7 +271,7 @@
                 return;
             }
             var name = _roleName.Trim();
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Roles.Ok.Updated"].Value, name), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
@@ -273,7 +288,7 @@
             if (role is not null) await RoleMgr.DeleteAsync(role);
 
             var name = _sel.RoleName;
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Roles.Ok.Deleted"].Value, name), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }

@@ -45,7 +45,7 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.LabelTpl.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.LabelTemplate.Ph.Search"]" Style="width:150px;" />
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.LabelTemplate.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
             <RadzenLabel Text="@L["Col.Type"]" Component="DropDownType" />
             <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="@LabelTypeFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
 
@@ -57,7 +57,7 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid TItem="MasterDataRepository.LabelTemplateRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.LabelTemplateRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.LabelTpl.Empty"]" Class="ames-rz-grid">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="LabelTemplateID" Title="@L["Col.TemplateId"]" Width="120px">
@@ -284,6 +284,21 @@
         Reload();
     }
 
+    RadzenDataGrid<MasterDataRepository.LabelTemplateRow>? _pgGrid;
+    int _pgIndex;
+    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
+
+    async Task ReloadRestorePage()
+    {
+        Reload();
+        await InvokeAsync(StateHasChanged);
+        if (_pgGrid is not null)
+        {
+            int pages = Math.Max(1, (int)Math.Ceiling(_rows.Count / (double)_pgGrid.PageSize));
+            await _pgGrid.GoToPage(Math.Min(_pgIndex, pages - 1));
+        }
+    }
+
     void Reload() { try { _allRows = MD.ListLabelTemplates(); } catch { _allRows = new(); } ApplyFilter(); }
 
     void ApplyFilter() { _rows = _allRows.Where(r =>
@@ -336,7 +351,7 @@
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
-    void SaveCreate()
+    async Task SaveCreate()
     {
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.LabelTemplateID)) { _modalErr = L["Err.TemplateIdRequired"]; return; }
@@ -348,14 +363,14 @@
             MD.InsertLabelTemplate(id, NE(_f.TemplateName), _f.LabelType,
                 NE(_f.PaperSize), _f.BarcodeType, NE(_f.CustomerID),
                 _f.Version, NE(_f.PrinterModel), NE(_f.Status), _actor);
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Created"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveEdit()
+    async Task SaveEdit()
     {
         if (_sel is null) return;
         _busy = true;
@@ -364,14 +379,14 @@
             MD.UpdateLabelTemplate(_sel.LabelTemplateID, NE(_f.TemplateName), _f.LabelType,
                 NE(_f.PaperSize), _f.BarcodeType, NE(_f.CustomerID),
                 _f.Version, NE(_f.PrinterModel), NE(_f.Status), _actor);
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_sel.LabelTemplateID} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveDelete()
+    async Task SaveDelete()
     {
         if (_sel is null) return;
         _busy = true;
@@ -379,7 +394,7 @@
         {
             var id = _sel.LabelTemplateID;
             MD.DeleteLabelTemplate(_sel.LabelTemplateID);
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Deleted"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }

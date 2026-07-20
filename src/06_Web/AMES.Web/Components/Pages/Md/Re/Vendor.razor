@@ -59,7 +59,7 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid TItem="MasterDataRepository.VendorRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.VendorRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Vendor.Empty"]" Class="ames-rz-grid">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="VendorID" Title="@L["Col.VendorId"]" Width="110px">
@@ -156,7 +156,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["MD.Vendor.Lbl.OtdTarget"]" />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.OtdTargetRate" Min="0m" Max="100m" Step="0.1m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.OtdTargetRate" Min="0m" Max="100m" Step="0.1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -243,7 +243,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["MD.Vendor.Lbl.OtdTarget"]" />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.OtdTargetRate" Min="0m" Max="100m" Step="0.1m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.OtdTargetRate" Min="0m" Max="100m" Step="0.1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -326,6 +326,21 @@
         Reload();
     }
 
+    RadzenDataGrid<MasterDataRepository.VendorRow>? _pgGrid;
+    int _pgIndex;
+    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
+
+    async Task ReloadRestorePage()
+    {
+        Reload();
+        await InvokeAsync(StateHasChanged);
+        if (_pgGrid is not null)
+        {
+            int pages = Math.Max(1, (int)Math.Ceiling(_rows.Count / (double)_pgGrid.PageSize));
+            await _pgGrid.GoToPage(Math.Min(_pgIndex, pages - 1));
+        }
+    }
+
     void Reload() { _allRows = MD.ListVendors(); ApplyFilter(); }
 
     void ApplyFilter() { _rows = _allRows.Where(r =>
@@ -381,7 +396,7 @@
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
-    void SaveCreate()
+    async Task SaveCreate()
     {
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.VendorName)) { _modalErr = L["MD.Vendor.Err.NameRequired"]; return; }
@@ -393,14 +408,14 @@
                 NE(_f.BizRegNo), NE(_f.ContactPerson), NE(_f.Phone), NE(_f.Email),
                 NE(_f.ScmURL), _f.EdiFlag, _f.OtdTargetRate,
                 NE(_f.PaymentTerms), _f.ActiveFlag, _actor);
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Vendor.Ok.Created"].Value, _f.VendorName), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveEdit()
+    async Task SaveEdit()
     {
         if (_sel is null) return;
         _modalErr = "";
@@ -413,14 +428,14 @@
                 NE(_f.ScmURL), _f.EdiFlag, _f.OtdTargetRate,
                 NE(_f.PaymentTerms), _f.ActiveFlag, _actor);
             var name = _f.VendorName;
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Vendor.Ok.Updated"].Value, name), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveDelete()
+    async Task SaveDelete()
     {
         if (_sel is null) return;
         _busy = true;
@@ -428,7 +443,7 @@
         {
             var name = _sel.VendorName ?? _sel.VendorID;
             MD.DeleteVendor(_sel.VendorID);
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Vendor.Ok.Deleted"].Value, name), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }

@@ -64,7 +64,7 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid TItem="SysRepository.UserRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="SysRepository.UserRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SYS.Users.Empty"]" Class="ames-rz-grid">
         <Columns>
             <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="UserName" Title="@L["SYS.Users.Col.UserName"]">
@@ -402,6 +402,21 @@
         Reload();
     }
 
+    RadzenDataGrid<SysRepository.UserRow>? _pgGrid;
+    int _pgIndex;
+    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
+
+    async Task ReloadRestorePage()
+    {
+        Reload();
+        await InvokeAsync(StateHasChanged);
+        if (_pgGrid is not null)
+        {
+            int pages = Math.Max(1, (int)Math.Ceiling(_rows.Count / (double)_pgGrid.PageSize));
+            await _pgGrid.GoToPage(Math.Min(_pgIndex, pages - 1));
+        }
+    }
+
     void Reload() { _allRows = Sys.ListUsers(); ApplyFilter(); }
 
     void ApplyFilter()
@@ -526,7 +541,7 @@
             if (!string.IsNullOrEmpty(_f.Role))
                 await UserMgr.AddToRoleAsync(user, _f.Role);
 
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Users.Ok.Created"].Value, _f.Email), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
@@ -582,7 +597,7 @@
             }
 
             var email = _sel.Email;
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Users.Ok.Updated"].Value, email), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
@@ -600,7 +615,7 @@
             if (u is not null) await UserMgr.DeleteAsync(u);
 
             var email = _sel.Email;
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Users.Ok.Deleted"].Value, email), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
@@ -614,7 +629,7 @@
         if (u is null) return;
         await UserMgr.SetLockoutEndDateAsync(u, null);
         await UserMgr.ResetAccessFailedCountAsync(u);
-        CloseModal(); Reload();
+        CloseModal(); await ReloadRestorePage();
         ShowMsg(string.Format(L["SYS.Users.Ok.Unlocked"].Value, _sel.Email), false);
     }
 
@@ -629,7 +644,7 @@
             await UserMgr.ResetAccessFailedCountAsync(u);
         }
         var email = _sel.Email;
-        CloseModal(); Reload();
+        CloseModal(); await ReloadRestorePage();
         ShowMsg(string.Format(L["SYS.Users.Ok.DomainUnlocked"].Value, email), false);
     }
 

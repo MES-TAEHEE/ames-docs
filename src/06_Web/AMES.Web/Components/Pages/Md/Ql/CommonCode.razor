@@ -33,8 +33,8 @@
                     <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenGroupCreate" class="ames-rz-btn" />
                 }
             </div>
-            <RadzenDataGrid TItem="MasterDataRepository.CodeGroupRow" Data="_groups" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center"
-                            ShowPagingSummary="false" RowRender="GrpRowRender" RowSelect="OnGroupRowSelect" Class="ames-rz-grid">
+            <RadzenDataGrid @ref="_grpGrid" TItem="MasterDataRepository.CodeGroupRow" Data="_groups" AllowPaging="true" PageSize="GrpPageSize" PagerHorizontalAlign="HorizontalAlign.Center"
+                            ShowPagingSummary="false" Page="OnGrpPage" RowRender="GrpRowRender" RowSelect="OnGroupRowSelect" Class="ames-rz-grid">
                 <Columns>
                     <RadzenDataGridColumn Property="GroupCode" Title='@L["Col.GroupCode"]' Width="160px">
                         <Template Context="g"><span class="code">@g.GroupCode</span></Template>
@@ -80,9 +80,8 @@
                         <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenItemCreate" class="ames-rz-btn" />
                     }
                 </div>
-                <RadzenDataGrid Data="_items" TItem="MasterDataRepository.CodeItemRow"
-                                RowRender="ItemRowRender" RowSelect="OpenItemEdit"
-                                AllowPaging="false" Class="ames-rz-grid">
+                <RadzenDataGrid TItem="MasterDataRepository.CodeItemRow" Data="_items" AllowPaging="false"
+                                RowRender="ItemRowRender" RowSelect="OpenItemEdit" Class="ames-rz-grid">
                     <Columns>
                         <RadzenDataGridColumn Property="SortOrder" Title='@L["Col.Seq"]' Width="60px" TextAlign="TextAlign.Right">
                             <Template Context="i">@i.SortOrder</Template>
@@ -222,7 +221,7 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text='@($"{L["MD.CommonCode.Lbl.CodeId"]} {L["MD.CommonCode.Lbl.CodeIdHint"]}")' class="ames-rz-modal-label" Component="ItemCreateTextBoxCodeId" />
-                <RadzenTextBox Name="ItemCreateTextBoxCodeId" @bind-Value="_fItem.CodeId" MaxLength="41" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="ItemCreateTextBoxCodeId" Value="@_fItem.CodeId" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
@@ -359,9 +358,14 @@
 }
 
 @code {
+    const int GrpPageSize = 15;
+
     List<MasterDataRepository.CodeGroupRow> _groups = new();
     List<MasterDataRepository.CodeItemRow>  _items  = new();
     MasterDataRepository.CodeGroupRow?      _selGroup;
+
+    RadzenDataGrid<MasterDataRepository.CodeGroupRow>? _grpGrid;
+    int _grpPage;
 
     string _modal    = "", _modalErr = "", _msg = "";
     bool   _isErr, _busy, _bgDown;
@@ -384,6 +388,21 @@
     }
 
     void LoadGroups() { try { _groups = MD.ListCodeGroups(); } catch { _groups = new(); } }
+
+    void OnGrpPage(PagerEventArgs args) => _grpPage = args.PageIndex;
+
+    // 등록/수정/삭제 후 그룹 목록을 다시 읽되, 사용자가 보던 페이지를 유지한다.
+    async Task ReloadGroupsKeepPage()
+    {
+        LoadGroups();
+        await InvokeAsync(StateHasChanged);
+        if (_grpGrid is not null)
+        {
+            int pages  = Math.Max(1, (int)Math.Ceiling(_groups.Count / (double)GrpPageSize));
+            int target = Math.Min(_grpPage, pages - 1);
+            await _grpGrid.GoToPage(target);
+        }
+    }
 
     void LoadItems()
     {
@@ -440,7 +459,7 @@
         _modal = "grp-edit";
     }
 
-    void SaveGroupCreate()
+    async Task SaveGroupCreate()
     {
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_fGroup.GroupCode)) { _modalErr = L["Err.GroupCodeRequired"]; return; }
@@ -451,14 +470,15 @@
             var code = _fGroup.GroupCode.Trim().ToUpper();
             if (MD.CodeGroupExists(code)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], code); return; }
             MD.InsertCodeGroup(code, _fGroup.GroupName.Trim(), NE(_fGroup.GroupNameEn), NE(_fGroup.Description), _fGroup.UseFlag, _actor);
-            LoadGroups(); CloseModal();
+            CloseModal();
+            await ReloadGroupsKeepPage();
             ShowMsg($"{code} {L["Msg.Created"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveGroupEdit()
+    async Task SaveGroupEdit()
     {
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_fGroup.GroupName)) { _modalErr = L["Err.GroupNameRequired"]; return; }
@@ -466,17 +486,17 @@
         try
         {
             MD.UpdateCodeGroup(_fGroup.GroupCode, _fGroup.GroupName.Trim(), NE(_fGroup.GroupNameEn), NE(_fGroup.Description), _fGroup.UseFlag, _actor);
-            LoadGroups();
+            CloseModal();
+            await ReloadGroupsKeepPage();
             if (_selGroup?.GroupCode == _fGroup.GroupCode)
                 _selGroup = _groups.FirstOrDefault(g => g.GroupCode == _fGroup.GroupCode);
-            CloseModal();
             ShowMsg($"{_fGroup.GroupCode} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveGroupDelete()
+    async Task SaveGroupDelete()
     {
         _busy = true;
         try
@@ -484,7 +504,8 @@
             foreach (var item in _items) MD.DeleteCodeItem(item.CodeID);
             MD.DeleteCodeGroup(_fGroup.GroupCode);
             if (_selGroup?.GroupCode == _fGroup.GroupCode) { _selGroup = null; _items = new(); }
-            LoadGroups(); CloseModal();
+            CloseModal();
+            await ReloadGroupsKeepPage();
             ShowMsg($"{L["Msg.Deleted"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }

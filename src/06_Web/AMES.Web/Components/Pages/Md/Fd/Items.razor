@@ -63,7 +63,7 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid TItem="MasterDataRepository.ItemRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.ItemRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Items.Empty"]" Class="ames-rz-grid">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemNo" Title="@L["Col.ItemNo"]" Width="130px">
@@ -231,6 +231,21 @@
         Reload();
     }
 
+    RadzenDataGrid<MasterDataRepository.ItemRow>? _pgGrid;
+    int _pgIndex;
+    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
+
+    async Task ReloadRestorePage()
+    {
+        Reload();
+        await InvokeAsync(StateHasChanged);
+        if (_pgGrid is not null)
+        {
+            int pages = Math.Max(1, (int)Math.Ceiling(_rows.Count / (double)_pgGrid.PageSize));
+            await _pgGrid.GoToPage(Math.Min(_pgIndex, pages - 1));
+        }
+    }
+
     void Reload() { try { _allRows = MD.ListItems(""); } catch { _allRows = new(); } ApplyFilter(); }
 
     void ApplyFilter()
@@ -300,7 +315,7 @@
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
-    void SaveCreate()
+    async Task SaveCreate()
     {
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.ItemNo))   { _modalErr = L["MD.Items.Err.NoRequired"]; return; }
@@ -320,14 +335,14 @@
                 _actor, _clientIp,
                 note: $"Created MD_Item '{no}' (ItemName='{_f.ItemName.Trim()}'" +
                       $", Type='{N(_f.ItemType) ?? "-"}', UOM='{N(_f.Uom) ?? "-"}') by '{_actor}'");
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Items.Ok.Created"].Value, no), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveEdit()
+    async Task SaveEdit()
     {
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.ItemName)) { _modalErr = L["MD.Items.Err.NameRequired"]; return; }
@@ -348,14 +363,14 @@
                 note: $"Updated MD_Item '{_f.ItemNo}' (ItemName='{_f.ItemName.Trim()}'" +
                       $", Type='{N(_f.ItemType) ?? "-"}', UOM='{N(_f.Uom) ?? "-"}'," +
                       $" Active={_f.ActiveFlag}) by '{_actor}'");
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Items.Ok.Updated"].Value, _f.ItemNo), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveDelete()
+    async Task SaveDelete()
     {
         _busy = true;
         try
@@ -369,7 +384,7 @@
                 _actor, _clientIp,
                 note: $"Deleted MD_Item '{_f.ItemNo}'" +
                       $" (ItemName='{_sel?.ItemName ?? "-"}', Type='{_sel?.ItemType ?? "-"}') by '{_actor}'");
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Items.Ok.Deleted"].Value, _f.ItemNo), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
@@ -426,22 +441,22 @@
         <RadzenRow Gap="8px" Style="margin-top:6px;">
             <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["MD.Items.Lbl.SafetyStock"]" />
-                <RadzenNumeric TValue="decimal" @bind-Value="_f.SafetyStock" Min="0" Step="0.0001m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenNumeric TValue="decimal" @bind-Value="_f.SafetyStock" Min="0" Step="0.0001" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["MD.Items.Lbl.MinStock"]" />
-                <RadzenNumeric TValue="decimal" @bind-Value="_f.MinStock" Min="0" Step="0.0001m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenNumeric TValue="decimal" @bind-Value="_f.MinStock" Min="0" Step="0.0001" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["MD.Items.Lbl.MaxStock"]" />
-                <RadzenNumeric TValue="decimal" @bind-Value="_f.MaxStock" Min="0" Step="0.0001m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenNumeric TValue="decimal" @bind-Value="_f.MaxStock" Min="0" Step="0.0001" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
         </RadzenRow>
 
         <RadzenRow Gap="8px" Style="margin-top:6px;">
             <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["MD.Items.Lbl.UnitCost"]" />
-                <RadzenNumeric TValue="decimal" @bind-Value="_f.UnitCost" Min="0" Step="0.01m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenNumeric TValue="decimal" @bind-Value="_f.UnitCost" Min="0" Step="0.01" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="4">
                 <RadzenLabel Text="PGN" />

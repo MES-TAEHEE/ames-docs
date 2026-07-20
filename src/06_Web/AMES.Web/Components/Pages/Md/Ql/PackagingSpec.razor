@@ -45,7 +45,7 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.PackSpec.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.PackagingSpec.Ph.Search"]" Style="width:140px;" />
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.PackagingSpec.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
             <RadzenLabel Text="@L["Col.Type"]" Component="DropDownType" />
             <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="@PackTypeFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
 
@@ -57,14 +57,22 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid TItem="MasterDataRepository.PackagingSpecRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.PackagingSpecRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.PackSpec.Empty"]" Class="ames-rz-grid">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="PackSpecID" Title="@L["Col.SpecId"]" Width="110px">
                 <Template Context="r"><span class="code">@r.PackSpecID</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="ItemID" Title="@L["Col.ItemNo"]" Width="100px">
-                <Template Context="r"><span class="dim">@(r.ItemID ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="ItemID" Title="@L["Col.Item"]" Width="160px">
+                <Template Context="r">
+                    @{ var it = r.ItemID != null ? _items.FirstOrDefault(x => x.ItemNo == r.ItemID) : null; }
+                    @if (r.ItemID != null)
+                    {
+                        <span class="code">@r.ItemID</span>
+                        @if (it != null) { <span class="dim" style="font-size:.8em;margin-left:4px;">@it.ItemName</span> }
+                    }
+                    else { <span class="dim">—</span> }
+                </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="PackType" Title="@L["Col.PackType"]" Width="110px">
                 <Template Context="r">
@@ -120,8 +128,8 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.ItemNo"]" />
-                    <RadzenTextBox @bind-Value="_f.ItemID" Placeholder="ITEM-001" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.Item"]" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.ItemID" Data="ItemOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.PackType"]" />
@@ -130,47 +138,41 @@
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.InnerQty"]" />
                     <RadzenNumeric TValue="int?" @bind-Value="_f.QtyPerInner" Placeholder="10" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.InnerPerOuter"]" />
                     <RadzenNumeric TValue="int?" @bind-Value="_f.InnerPerOuter" Placeholder="5" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
-            </RadzenRow>
-
-            <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.OuterPerPallet"]" />
                     <RadzenNumeric TValue="int?" @bind-Value="_f.OuterPerPallet" Placeholder="20" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
-                <RadzenColumn Size="6">
-                    <RadzenLabel Text='@($"{L["Col.NetWeight"]} (kg)")' />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.NetWeightKg" Step="0.001m" Placeholder="0.500" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
-                    <RadzenLabel Text='@($"{L["Col.GrossWeight"]} (kg)")' />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.GrossWeightKg" Step="0.001m" Placeholder="0.600" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text='@($"{L["Col.NetWeight"]} (kg)")' />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.NetWeightKg" Step="0.001" Placeholder="0.500" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text='@($"{L["Col.GrossWeight"]} (kg)")' />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.GrossWeightKg" Step="0.001" Placeholder="0.600" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.LabelTemplate"]" />
                     <RadzenTextBox @bind-Value="_f.LabelTemplateID" Placeholder="LBL-001" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="12">
+                <RadzenColumn Size="8">
                     <RadzenLabel Text='@($"{L["Col.Dimensions"]} (L×W×H mm)")' />
                     <RadzenTextBox @bind-Value="_f.DimLxWxH" Placeholder="400x300x200" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
-            </RadzenRow>
-
-            <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.Status"]" />
                     <RadzenDropDown @bind-Value="_f.Status" Data="StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
@@ -203,8 +205,8 @@
 
             <RadzenRow Gap="8px">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.ItemNo"]" />
-                    <RadzenTextBox @bind-Value="_f.ItemID" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.Item"]" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.ItemID" Data="ItemOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.PackType"]" />
@@ -213,47 +215,41 @@
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.InnerQty"]" />
                     <RadzenNumeric TValue="int?" @bind-Value="_f.QtyPerInner" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.InnerPerOuter"]" />
                     <RadzenNumeric TValue="int?" @bind-Value="_f.InnerPerOuter" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
-            </RadzenRow>
-
-            <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.OuterPerPallet"]" />
                     <RadzenNumeric TValue="int?" @bind-Value="_f.OuterPerPallet" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
-                <RadzenColumn Size="6">
-                    <RadzenLabel Text='@($"{L["Col.NetWeight"]} (kg)")' />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.NetWeightKg" Step="0.001m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
-                    <RadzenLabel Text='@($"{L["Col.GrossWeight"]} (kg)")' />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.GrossWeightKg" Step="0.001m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text='@($"{L["Col.NetWeight"]} (kg)")' />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.NetWeightKg" Step="0.001" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text='@($"{L["Col.GrossWeight"]} (kg)")' />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.GrossWeightKg" Step="0.001" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.LabelTemplate"]" />
                     <RadzenTextBox @bind-Value="_f.LabelTemplateID" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="12">
+                <RadzenColumn Size="8">
                     <RadzenLabel Text="@L["Col.Dimensions"]" />
                     <RadzenTextBox @bind-Value="_f.DimLxWxH" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
-            </RadzenRow>
-
-            <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.Status"]" />
                     <RadzenDropDown @bind-Value="_f.Status" Data="StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
@@ -295,6 +291,7 @@
     List<MasterDataRepository.PackagingSpecRow> _rows = new();
     List<MasterDataRepository.CodeItemRow> _packingTypes = new();
     List<MasterDataRepository.CodeItemRow> _packStatus = new();
+    List<MasterDataRepository.ItemRow>     _items = new();
     MasterDataRepository.PackagingSpecRow? _sel;
 
     string _fSearch = "";
@@ -311,6 +308,7 @@
     IEnumerable<DropDownItem> PackTypeFilterOptions => _packingTypes.Where(x => x.UseFlag).Select(t => new DropDownItem { Value = t.CodeValue ?? "", Text = MasterDataRepository.LocalName(t) });
     IEnumerable<DropDownItem> PackTypeOptions => _packingTypes.Where(x => x.UseFlag).Select(t => new DropDownItem { Value = t.CodeValue ?? "", Text = $"[{t.CodeValue}] {MasterDataRepository.LocalName(t)}" });
     IEnumerable<DropDownItem> StatusOptions => _packStatus.Where(x => x.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = MasterDataRepository.LocalName(s) });
+    IEnumerable<DropDownItem> ItemOptions => _items.Where(i => i.ActiveFlag).Select(i => new DropDownItem { Value = i.ItemNo, Text = $"[{i.ItemNo}] {i.ItemName}" });
 
     protected override async Task OnInitializedAsync()
     {
@@ -320,7 +318,23 @@
         _canEdit = PermSvc.CanEdit("md/ql/packaging-spec");
         try { _packingTypes = MD.ListCodeItems("PACKING_TYPE"); } catch { }
         try { _packStatus   = MD.ListCodeItems("PACK_STATUS");  } catch { }
+        try { _items = MD.ListItems(); } catch { }
         Reload();
+    }
+
+    RadzenDataGrid<MasterDataRepository.PackagingSpecRow>? _pgGrid;
+    int _pgIndex;
+    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
+
+    async Task ReloadRestorePage()
+    {
+        Reload();
+        await InvokeAsync(StateHasChanged);
+        if (_pgGrid is not null)
+        {
+            int pages = Math.Max(1, (int)Math.Ceiling(_rows.Count / (double)_pgGrid.PageSize));
+            await _pgGrid.GoToPage(Math.Min(_pgIndex, pages - 1));
+        }
     }
 
     void Reload() { try { _allRows = MD.ListPackagingSpecs(); } catch { _allRows = new(); } ApplyFilter(); }
@@ -378,7 +392,7 @@
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
-    void SaveCreate()
+    async Task SaveCreate()
     {
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.PackSpecID)) { _modalErr = L["Err.SpecIdRequired"]; return; }
@@ -391,14 +405,14 @@
                 _f.QtyPerInner, _f.InnerPerOuter, _f.OuterPerPallet,
                 _f.NetWeightKg, _f.GrossWeightKg, NE(_f.DimLxWxH),
                 _f.ReturnableFlag, NE(_f.LabelTemplateID), NE(_f.Status), _actor);
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Created"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveEdit()
+    async Task SaveEdit()
     {
         if (_sel is null) return;
         _busy = true;
@@ -408,14 +422,14 @@
                 _f.QtyPerInner, _f.InnerPerOuter, _f.OuterPerPallet,
                 _f.NetWeightKg, _f.GrossWeightKg, NE(_f.DimLxWxH),
                 _f.ReturnableFlag, NE(_f.LabelTemplateID), NE(_f.Status), _actor);
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_sel.PackSpecID} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveDelete()
+    async Task SaveDelete()
     {
         if (_sel is null) return;
         _busy = true;
@@ -423,7 +437,7 @@
         {
             var id = _sel.PackSpecID;
             MD.DeletePackagingSpec(_sel.PackSpecID);
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Deleted"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }

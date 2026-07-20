@@ -57,7 +57,7 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid TItem="MasterDataRepository.ShipmentDestRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.ShipmentDestRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.ShipDest.Empty"]" Class="ames-rz-grid">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="ShipDestID" Title="@L["Col.ShipDestId"]" Width="140px">
@@ -67,11 +67,20 @@
                 <Template Context="r">@(r.CustomerName ?? r.CustomerID ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="DestName" Title="@L["Col.ShipDestName"]" />
-            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="DestType" Title="@L["Col.Type"]" Width="90px">
-                <Template Context="r"><span class="pill">@(r.DestType ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="DestType" Title="@L["Col.Type"]" Width="100px">
+                <Template Context="r">
+                    @if (r.DestType != null)
+                    {
+                        <span class="pill">@(_destTypeItems.FirstOrDefault(c => c.CodeValue == r.DestType) is { } df ? MasterDataRepository.LocalName(df) : r.DestType)</span>
+                    }
+                    else { <span class="dim">—</span> }
+                </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="Country" Title="@L["Col.Country"]" Width="80px">
-                <Template Context="r"><span class="dim">@(r.Country ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="Country" Title="@L["Col.Country"]" Width="110px">
+                <Template Context="r">
+                    @{ var nf = r.Country != null ? _nationItems.FirstOrDefault(c => c.CodeValue == r.Country) : null; }
+                    <span class="dim">@(nf != null ? MasterDataRepository.LocalName(nf) : r.Country ?? "—")</span>
+                </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="DeliveryDock" Title="@L["Col.Dock"]" Width="100px">
                 <Template Context="r"><span class="dim">@(r.DeliveryDock ?? "—")</span></Template>
@@ -112,11 +121,11 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Type"]" />
-                    <RadzenDropDown @bind-Value="_f.DestType" Data="_destTypeOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown @bind-Value="_f.DestType" Data="DestTypeOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.CountryCode"]" />
-                    <RadzenTextBox @bind-Value="_f.Country" Placeholder="KOR" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.Country" Data="NationOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -189,11 +198,11 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Type"]" />
-                    <RadzenDropDown @bind-Value="_f.DestType" Data="_destTypeOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown @bind-Value="_f.DestType" Data="DestTypeOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.CountryCode"]" />
-                    <RadzenTextBox @bind-Value="_f.Country" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.Country" Data="NationOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -263,6 +272,8 @@
     List<MasterDataRepository.ShipmentDestRow> _allRows   = new();
     List<MasterDataRepository.ShipmentDestRow> _rows      = new();
     List<MasterDataRepository.CustomerRow>     _customers = new();
+    List<MasterDataRepository.CodeItemRow>     _destTypeItems = new();
+    List<MasterDataRepository.CodeItemRow>     _nationItems   = new();
     MasterDataRepository.ShipmentDestRow? _sel;
 
     string _fSearch = "";
@@ -276,13 +287,9 @@
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
-    DropDownItem[] _destTypeOptions =
-    {
-        new() { Value = "PLANT",  Text = "PLANT"  },
-        new() { Value = "DC",     Text = "DC"     },
-        new() { Value = "PORT",   Text = "PORT"   },
-        new() { Value = "DEALER", Text = "DEALER" },
-    };
+    IEnumerable<DropDownItem> DestTypeOptions => _destTypeItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    IEnumerable<DropDownItem> NationOptions   => _nationItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+
     DropDownItem[] _statusOptions =
     {
         new() { Value = "Active",   Text = "Active"   },
@@ -297,7 +304,24 @@
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/ql/shipment-dest");
         _customers = MD.ListCustomers();
+        try { _destTypeItems = MD.ListCodeItems("SHIPMENT_DEST_TYPE"); } catch { }
+        try { _nationItems   = MD.ListCodeItems("NATION_CODE"); } catch { }
         Reload();
+    }
+
+    RadzenDataGrid<MasterDataRepository.ShipmentDestRow>? _pgGrid;
+    int _pgIndex;
+    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
+
+    async Task ReloadRestorePage()
+    {
+        Reload();
+        await InvokeAsync(StateHasChanged);
+        if (_pgGrid is not null)
+        {
+            int pages = Math.Max(1, (int)Math.Ceiling(_rows.Count / (double)_pgGrid.PageSize));
+            await _pgGrid.GoToPage(Math.Min(_pgIndex, pages - 1));
+        }
     }
 
     void Reload() { _allRows = MD.ListShipmentDests(); ApplyFilter(); }
@@ -354,7 +378,7 @@
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
-    void SaveCreate()
+    async Task SaveCreate()
     {
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.DestName)) { _modalErr = L["Err.DestNameRequired"]; return; }
@@ -365,14 +389,14 @@
             MD.InsertShipmentDest(newId, _f.CustomerID, _f.DestName, _f.DestType,
                 NE(_f.Address), NE(_f.Country), NE(_f.DeliveryDock), _f.LeadTimeDays,
                 NE(_f.DefaultCarrier), NE(_f.DeliveryWindow), _f.Status, _actor);
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.DestName} {L["Msg.Created"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveEdit()
+    async Task SaveEdit()
     {
         if (_sel is null) return;
         _modalErr = "";
@@ -384,14 +408,14 @@
                 NE(_f.Address), NE(_f.Country), NE(_f.DeliveryDock), _f.LeadTimeDays,
                 NE(_f.DefaultCarrier), NE(_f.DeliveryWindow), _f.Status, _actor);
             var name = _f.DestName;
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveDelete()
+    async Task SaveDelete()
     {
         if (_sel is null) return;
         _busy = true;
@@ -399,7 +423,7 @@
         {
             var name = _sel.DestName ?? _sel.ShipDestID;
             MD.DeleteShipmentDest(_sel.ShipDestID);
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
