@@ -47,7 +47,7 @@
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Line.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenLabel Text="@L["Col.ProcessCode"]" Component="DropDownType" />
-            <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownType" @bind-Value="_fType" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
             <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@LineStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
 
@@ -76,7 +76,7 @@
                     @if (r.ProcessCode != null)
                     {
                         var procName = _processItems.FirstOrDefault(c2 => c2.CodeValue == r.ProcessCode) is { } pf ? MasterDataRepository.LocalName(pf) : null;
-                        <span class="pill @TypeClass(r.ProcessCode)">@r.ProcessCode</span>
+                        <span class="pill @Ui.ProcessClass(r.ProcessCode)">@r.ProcessCode</span>
                         @if (procName != null) { <span class="dim" style="font-size:.8em;margin-left:4px;">@procName</span> }
                     }
                     else { <span class="dim">—</span> }
@@ -126,7 +126,7 @@
             <div class="ames-modal-h">@L["MD.Line.Title"] — @L["Modal.Create"]</div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
-                <RadzenLabel Text='@(L["MD.Line.Lbl.LineId"] + "  (예: INJ-L01)")' class="ames-rz-modal-label" Component="CreateTextBoxLineID" />
+                <RadzenLabel Text="@L["MD.Line.Lbl.LineId"]" class="ames-rz-modal-label" Component="CreateTextBoxLineID" />
                 <RadzenTextBox Name="CreateTextBoxLineID" @bind-Value="_f.LineID" Placeholder="INJ-L01" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
@@ -143,18 +143,18 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.ProcessCode"]" />
-                    <RadzenDropDown @bind-Value="_f.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["MD.Line.Lbl.PlantId"]" />
-                    <RadzenDropDown @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["MD.Line.Lbl.DefaultWcid"]" />
-                    <RadzenDropDown @bind-Value="_f.DefaultWCID" Data="@WcOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.DefaultWCID" Data="@WcOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["MD.Line.Lbl.DailyCap"]" />
@@ -211,18 +211,18 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.ProcessCode"]" />
-                    <RadzenDropDown @bind-Value="_f.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["MD.Line.Lbl.PlantId"]" />
-                    <RadzenDropDown @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["MD.Line.Lbl.DefaultWcid"]" />
-                    <RadzenDropDown @bind-Value="_f.DefaultWCID" Data="@WcOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.DefaultWCID" Data="@WcOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["MD.Line.Lbl.DailyCap"]" />
@@ -432,17 +432,6 @@
     }
 
     static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
-
-    static string TypeClass(string? t) => t switch
-    {
-        "INJ" => "info",
-        "IMG" => "warn",
-        "PNT" => "bad",
-        "QC"  => "ok",
-        "WH"  => "",
-        "FG"  => "ok",
-        _     => ""
-    };
 
     class FormModel
     {

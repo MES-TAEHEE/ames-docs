@@ -47,7 +47,7 @@
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Station.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
             <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
-            <RadzenDropDown Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.ProcessCode"]" Component="DropDownType" />
             <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="@TypeFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
@@ -86,8 +86,16 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="ProcessCode" Title="@L["Col.ProcessCode"]" Width="90px">
-                <Template Context="r"><span class="pill">@(r.ProcessCode ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="ProcessCode" Title="@L["Col.ProcessCode"]" Width="130px">
+                <Template Context="r">
+                    @if (r.ProcessCode != null)
+                    {
+                        var procName = _processItems.FirstOrDefault(c2 => c2.CodeValue == r.ProcessCode) is { } pf ? MasterDataRepository.LocalName(pf) : null;
+                        <span class="pill @Ui.ProcessClass(r.ProcessCode)">@r.ProcessCode</span>
+                        @if (procName != null) { <span class="dim" style="font-size:.8em;margin-left:4px;">@procName</span> }
+                    }
+                    else { <span class="dim">—</span> }
+                </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="OrderSeq" Title="@L["Col.Seq"]" Width="60px" TextAlign="TextAlign.Right">
                 <Template Context="r">@(r.OrderSeq?.ToString() ?? "—")</Template>
@@ -109,11 +117,11 @@
 @if (_modal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Station.Title"] — @L["Modal.Create"]</div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
-                <RadzenLabel Text='@(L["Col.StationCode"] + " *  (예: ST-INJ-001)")' class="ames-rz-modal-label" Component="CreateTextBoxStationCode" />
+                <RadzenLabel Text='@($"{L["Col.StationCode"]} *")' class="ames-rz-modal-label" Component="CreateTextBoxStationCode" />
                 <RadzenTextBox Name="CreateTextBoxStationCode" @bind-Value="_f.StationCode" Placeholder="ST-INJ-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
@@ -130,7 +138,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.LineId"]" />
-                    <RadzenDropDown @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Change="@OnLineChanged" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Change="@OnLineChanged" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.WorkCenter"]" />
@@ -173,7 +181,7 @@
 @if (_modal == "edit" && _sel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Station.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.StationCode</span></div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -189,7 +197,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.LineId"]" />
-                    <RadzenDropDown @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Change="@OnLineChanged" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Change="@OnLineChanged" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.WorkCenter"]" />
@@ -245,6 +253,7 @@
     List<MasterDataRepository.StationRow>  _allRows       = new();
     List<MasterDataRepository.StationRow>  _rows          = new();
     List<MasterDataRepository.CodeItemRow> _stationStatus = new();
+    List<MasterDataRepository.CodeItemRow> _processItems  = new();
     List<MasterDataRepository.LineRow>     _lineList      = new();
     List<MasterDataRepository.WorkCenterRow> _wcList      = new();
     MasterDataRepository.StationRow? _sel;
@@ -277,6 +286,7 @@
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/rp/station");
         try { _stationStatus = MD.ListCodeItems("STATION_STATUS"); } catch { }
+        try { _processItems = MD.ListCodeItems("PROCESS"); } catch { }
         try { _lineList = MD.ListLines(); } catch { }
         try { _wcList = MD.ListWorkCenters(); } catch { }
         Reload();
@@ -350,7 +360,7 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.StationCode))   { _modalErr = L["Err.StationIdRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.StationName)) { _modalErr = L["Err.StationNameRequired"]; return; }
-        if (MD.StationExists(_f.StationCode.Trim()))     { _modalErr = $"작업 위치 ID '{_f.StationCode.Trim()}' 이 {L["Err.AlreadyExists"]}"; return; }
+        if (MD.StationExists(_f.StationCode.Trim()))     { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], _f.StationCode.Trim()); return; }
         _busy = true;
         try
         {

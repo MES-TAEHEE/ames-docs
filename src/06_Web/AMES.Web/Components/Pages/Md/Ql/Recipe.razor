@@ -81,7 +81,7 @@
                 <Template Context="r"><span class="dim">@(r.Version ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="EffectiveDate" Title="@L["Col.EffectiveDate"]" Width="105px">
-                <Template Context="r"><span class="dim">@(r.EffectiveDate?.ToString("yy-MM-dd") ?? "—")</span></Template>
+                <Template Context="r"><span class="dim">@(r.EffectiveDate?.ToString(DateFmt.DateShort) ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="Status" Title="@L["Col.Status"]" Width="95px">
                 <Template Context="r">
@@ -97,7 +97,7 @@
 @if (_modal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Recipe.Title"] — @L["Modal.Create"]</div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -123,7 +123,7 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@($"{L["Col.CycleTime"]} (초)")' />
+                    <RadzenLabel Text="@L["Col.CycleTime"]" />
                     <RadzenNumeric TValue="int?" @bind-Value="_f.CycleTime" Placeholder="30" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
@@ -135,7 +135,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.EffectiveDate"]" />
-                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.EffectiveDate" DateFormat="yyyy-MM-dd" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.EffectiveDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Status"]" />
@@ -160,7 +160,7 @@
 @if (_modal == "edit" && _sel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Recipe.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.RecipeID</span></div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -181,7 +181,7 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@($"{L["Col.CycleTime"]} (초)")' />
+                    <RadzenLabel Text="@L["Col.CycleTime"]" />
                     <RadzenNumeric TValue="int?" @bind-Value="_f.CycleTime" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
@@ -193,7 +193,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.EffectiveDate"]" />
-                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.EffectiveDate" DateFormat="yyyy-MM-dd" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.EffectiveDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Status"]" />
@@ -324,7 +324,7 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.RecipeID)) { _modalErr = L["Err.RecipeIdRequired"]; return; }
         var id = _f.RecipeID.Trim();
-        if (Md.RecipeExists(id)) { _modalErr = $"'{id}' ID가 {L["Err.AlreadyExists"]}"; return; }
+        if (Md.RecipeExists(id)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], id); return; }
         _busy = true;
         try
         {

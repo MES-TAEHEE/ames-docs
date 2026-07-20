@@ -78,8 +78,8 @@
                         <td class="dim">@(r.LineID ?? "—")</td>
                         <td>@(r.DayType ?? "—")</td>
                         <td>@(r.ShiftModel ?? "—")</td>
-                        <td class="dim">@(r.EffectiveFrom?.ToString("yy-MM-dd") ?? "—")</td>
-                        <td class="dim">@(r.EffectiveTo?.ToString("yy-MM-dd") ?? "—")</td>
+                        <td class="dim">@(r.EffectiveFrom?.ToString(DateFmt.DateShort) ?? "—")</td>
+                        <td class="dim">@(r.EffectiveTo?.ToString(DateFmt.DateShort) ?? "—")</td>
                         <td class="num">@(r.TotalOperatingMin?.ToString() ?? "—")</td>
                         <td class="num">@(r.TotalPlannedDownMin?.ToString() ?? "—")</td>
                         <td><span class="pill @(r.Status == "ACTIVE" ? "ok" : "warn")">@(r.Status ?? "—")</span></td>
@@ -154,10 +154,10 @@
             <input class="ames-input" @bind="_f.ShiftModel" placeholder="2SHIFT / 3SHIFT" autocomplete="off" />
 
             <label>@L["Col.StartDate"]</label>
-            <input class="ames-input" type="text" @bind="_f.EffectiveFrom" placeholder="yyyy-MM-dd" autocomplete="off" />
+            <input class="ames-input" type="text" @bind="_f.EffectiveFrom" placeholder=DateFmt.Date autocomplete="off" />
 
             <label>@L["Col.EndDate"]</label>
-            <input class="ames-input" type="text" @bind="_f.EffectiveTo" placeholder="yyyy-MM-dd" autocomplete="off" />
+            <input class="ames-input" type="text" @bind="_f.EffectiveTo" placeholder=DateFmt.Date autocomplete="off" />
 
             <label>@L["Col.OperatingMin"]</label>
             <input class="ames-input" type="number" @bind="_f.TotalOperatingMin" placeholder="1380" min="0" autocomplete="off" />
@@ -216,10 +216,10 @@
             <input class="ames-input" @bind="_f.ShiftModel" autocomplete="off" />
 
             <label>@L["Col.StartDate"]</label>
-            <input class="ames-input" type="text" @bind="_f.EffectiveFrom" placeholder="yyyy-MM-dd" autocomplete="off" />
+            <input class="ames-input" type="text" @bind="_f.EffectiveFrom" placeholder=DateFmt.Date autocomplete="off" />
 
             <label>@L["Col.EndDate"]</label>
-            <input class="ames-input" type="text" @bind="_f.EffectiveTo" placeholder="yyyy-MM-dd" autocomplete="off" />
+            <input class="ames-input" type="text" @bind="_f.EffectiveTo" placeholder=DateFmt.Date autocomplete="off" />
 
             <label>@L["Col.OperatingMin"]</label>
             <input class="ames-input" type="number" @bind="_f.TotalOperatingMin" min="0" autocomplete="off" />
@@ -347,7 +347,7 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.PatternID)) { _modalErr = L["Err.PatternIdRequired"]; return; }
         var id = _f.PatternID.Trim();
-        if (Md.LineTimePatternExists(id)) { _modalErr = $"'{id}' ID가 {L["Err.AlreadyExists"]}"; return; }
+        if (Md.LineTimePatternExists(id)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], id); return; }
         DateOnly? effFrom = DateOnly.TryParse(_f.EffectiveFrom, out var d1) ? d1 : null;
         DateOnly? effTo   = DateOnly.TryParse(_f.EffectiveTo,   out var d2) ? d2 : null;
         _busy = true;

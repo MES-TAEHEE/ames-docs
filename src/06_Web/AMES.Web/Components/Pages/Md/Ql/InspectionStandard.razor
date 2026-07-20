@@ -49,7 +49,7 @@
             <RadzenLabel Text="@L["Col.Type"]" Component="DropDownType" />
             <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="@TypeFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Process"]" Component="DropDownProcess" />
-            <RadzenDropDown Name="DropDownProcess" @bind-Value="_fProcess" Data="@ProcessFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownProcess" @bind-Value="_fProcess" Data="@ProcessFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
             <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@_statusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
 
@@ -70,8 +70,16 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="ItemID" Title="@L["Col.ItemNo"]" Width="100px">
                 <Template Context="r"><span class="dim">@(r.ItemID ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="ProcessCode" Title="@L["Col.ProcessName"]" Width="80px">
-                <Template Context="r"><span class="dim">@(r.ProcessCode ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="ProcessCode" Title="@L["Col.ProcessName"]" Width="130px">
+                <Template Context="r">
+                    @if (r.ProcessCode != null)
+                    {
+                        var procName = _processItems.FirstOrDefault(c2 => c2.CodeValue == r.ProcessCode) is { } pf ? MasterDataRepository.LocalName(pf) : null;
+                        <span class="pill @Ui.ProcessClass(r.ProcessCode)">@r.ProcessCode</span>
+                        @if (procName != null) { <span class="dim" style="font-size:.8em;margin-left:4px;">@procName</span> }
+                    }
+                    else { <span class="dim">—</span> }
+                </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="InspType" Title="@L["Col.InspType"]" Width="100px">
                 <Template Context="r">
@@ -105,7 +113,7 @@
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="EffectiveDate" Title="@L["Col.EffectiveDate"]" Width="110px">
-                <Template Context="r"><span class="dim">@(r.EffectiveDate?.ToString("yyyy-MM-dd") ?? "—")</span></Template>
+                <Template Context="r"><span class="dim">@(r.EffectiveDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="Status" Title="@L["Col.Status"]" Width="90px">
                 <Template Context="r"><span class="pill @(r.Status == "Active" ? "ok" : "bad")">@(r.Status ?? "—")</span></Template>
@@ -118,11 +126,11 @@
 @if (_modal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.InspStd.Title"] — @L["Modal.Create"]</div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
-                <RadzenLabel Text='@($"{L["Col.InspStdId"]} * (예: IS-INJ-001)")' class="ames-rz-modal-label" Component="CreateTextBoxInspStdID" />
+                <RadzenLabel Text='@($"{L["Col.InspStdId"]} *")' class="ames-rz-modal-label" Component="CreateTextBoxInspStdID" />
                 <RadzenTextBox Name="CreateTextBoxInspStdID" @bind-Value="_f.InspStdID" Placeholder="IS-INJ-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
@@ -175,7 +183,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text='@L["Col.EffectiveDate"]' />
-                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.EffectiveDate" DateFormat="yyyy-MM-dd" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.EffectiveDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -215,7 +223,7 @@
 @if (_modal == "edit" && _sel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.InspStd.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.InspStdID</span></div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -267,7 +275,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text='@L["Col.EffectiveDate"]' />
-                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.EffectiveDate" DateFormat="yyyy-MM-dd" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.EffectiveDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -320,6 +328,7 @@
     List<MasterDataRepository.InspectionStandardRow> _allRows = new();
     List<MasterDataRepository.InspectionStandardRow> _rows    = new();
     MasterDataRepository.InspectionStandardRow? _sel;
+    List<MasterDataRepository.CodeItemRow> _processItems = new();
 
     string _fSearch = "";
     string? _fType, _fProcess, _fStatus;
@@ -346,6 +355,7 @@
         _actor = auth.User.Identity?.Name ?? "system";
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/ql/inspection-standard");
+        try { _processItems = MD.ListCodeItems("PROCESS"); } catch { }
         Reload();
     }
 
@@ -415,7 +425,7 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.InspStdID)) { _modalErr = L["Err.InspStdIdRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.CharName))  { _modalErr = L["Err.CharNameRequired"]; return; }
-        if (MD.InspectionStandardExists(_f.InspStdID.Trim())) { _modalErr = $"기준 ID '{_f.InspStdID.Trim()}' 이 {L["Err.AlreadyExists"]}"; return; }
+        if (MD.InspectionStandardExists(_f.InspStdID.Trim())) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], _f.InspStdID.Trim()); return; }
         _busy = true;
         try
         {

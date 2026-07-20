@@ -48,9 +48,9 @@
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["SYS.Screen.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:220px;" />
             <RadzenLabel Text="@L["Col.Module"]" Component="DropDownModule" />
-            <RadzenDropDown Name="DropDownModule" @bind-Value="_fModule" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownModule" @bind-Value="_fModule" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenLabel Text="@L["Col.Process"]" Component="DropDownProcess" />
-            <RadzenDropDown Name="DropDownProcess" @bind-Value="_fProcess" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownProcess" @bind-Value="_fProcess" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
             <RadzenLabel Text="@L["Lbl.Visible"]" Component="DropDownVisible" />
             <RadzenDropDown Name="DropDownVisible" @bind-Value="_fVisible" Data="@VisibleList" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
 
@@ -73,10 +73,13 @@
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ProcessCode" Title="@L["SYS.Screen.Col.Process"]">
                 <Template Context="r">
-                    @if (r.ProcessCode is not null)
-                    { <span class="pill" style="background:rgba(56,189,248,.12);color:#7dd3fc;">@r.ProcessCode</span> }
-                    else
-                    { <span class="dim">—</span> }
+                    @if (r.ProcessCode != null)
+                    {
+                        var procName = _processItems.FirstOrDefault(c2 => c2.CodeValue == r.ProcessCode) is { } pf ? MasterDataRepository.LocalName(pf) : null;
+                        <span class="pill @Ui.ProcessClass(r.ProcessCode)">@r.ProcessCode</span>
+                        @if (procName != null) { <span class="dim" style="font-size:.8em;margin-left:4px;">@procName</span> }
+                    }
+                    else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="SubProcessCode" Title="@L["SYS.Screen.Col.SubProcess"]">
@@ -131,17 +134,17 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@(L["Col.Module"].Value + " *")" class="ames-rz-modal-label" Component="CreateDropDownModuleCode" />
-                    <RadzenDropDown Name="CreateDropDownModuleCode" @bind-Value="_f.ModuleCode" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" Name="CreateDropDownModuleCode" @bind-Value="_f.ModuleCode" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.Process"]" class="ames-rz-modal-label" Component="CreateDropDownProcessCode" />
-                    <RadzenDropDown Name="CreateDropDownProcessCode" @bind-Value="_f.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" Name="CreateDropDownProcessCode" @bind-Value="_f.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="Sub-Process" class="ames-rz-modal-label" Component="CreateDropDownSubProcessCode" />
-                    <RadzenDropDown Name="CreateDropDownSubProcessCode" @bind-Value="_f.SubProcessCode" Data="@SubProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" Name="CreateDropDownSubProcessCode" @bind-Value="_f.SubProcessCode" Data="@SubProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -203,17 +206,17 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@(L["Col.Module"].Value + " *")" class="ames-rz-modal-label" Component="EditDropDownModuleCode" />
-                    <RadzenDropDown Name="EditDropDownModuleCode" @bind-Value="_f.ModuleCode" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" Name="EditDropDownModuleCode" @bind-Value="_f.ModuleCode" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.Process"]" class="ames-rz-modal-label" Component="EditDropDownProcessCode" />
-                    <RadzenDropDown Name="EditDropDownProcessCode" @bind-Value="_f.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" Name="EditDropDownProcessCode" @bind-Value="_f.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="Sub-Process" class="ames-rz-modal-label" Component="EditDropDownSubProcessCode" />
-                    <RadzenDropDown Name="EditDropDownSubProcessCode" @bind-Value="_f.SubProcessCode" Data="@SubProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" Name="EditDropDownSubProcessCode" @bind-Value="_f.SubProcessCode" Data="@SubProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">

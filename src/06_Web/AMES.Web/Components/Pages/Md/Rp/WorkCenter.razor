@@ -47,7 +47,7 @@
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_fSearch" Placeholder="@L["MD.WorkCenter.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' />
             <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
-            <RadzenDropDown Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.ProcessCode"]" Component="DropDownProcessType" />
             <RadzenDropDown Name="DropDownProcessType" @bind-Value="_fType" Data="@TypeFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Active"]" Component="DropDownActive" />
@@ -73,8 +73,16 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="LineID" Title="@L["Col.Line"]" Width="90px">
                 <Template Context="r"><span class="dim">@(r.LineID ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="ProcessCode" Title="@L["Col.ProcessCode"]" Width="100px">
-                <Template Context="r"><span class="pill">@(r.ProcessCode ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="ProcessCode" Title="@L["Col.ProcessCode"]" Width="130px">
+                <Template Context="r">
+                    @if (r.ProcessCode != null)
+                    {
+                        var procName = _processItems.FirstOrDefault(c2 => c2.CodeValue == r.ProcessCode) is { } pf ? MasterDataRepository.LocalName(pf) : null;
+                        <span class="pill @Ui.ProcessClass(r.ProcessCode)">@r.ProcessCode</span>
+                        @if (procName != null) { <span class="dim" style="font-size:.8em;margin-left:4px;">@procName</span> }
+                    }
+                    else { <span class="dim">—</span> }
+                </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="DailyCapacity" Title="@L["Col.Capacity"]" Width="80px" TextAlign="TextAlign.Right">
                 <Template Context="r">@(r.DailyCapacity?.ToString("N0") ?? "—")</Template>
@@ -102,11 +110,11 @@
 @if (_modal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.WorkCenter.Title"] — @L["Modal.Create"]</div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
-                <RadzenLabel Text='@(L["Col.WCID"] + " *  (예: WC-INJ-001)")' class="ames-rz-modal-label" Component="CreateTextBoxWCID" />
+                <RadzenLabel Text='@($"{L["Col.WCID"]} *")' class="ames-rz-modal-label" Component="CreateTextBoxWCID" />
                 <RadzenTextBox Name="CreateTextBoxWCID" @bind-Value="_f.WCID" Placeholder="WC-INJ-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
@@ -118,7 +126,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.LineId"]" />
-                    <RadzenDropDown @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Change="@OnLineChanged" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Change="@OnLineChanged" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.ProcessCode"]" />
@@ -170,7 +178,7 @@
 @if (_modal == "edit" && _sel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.WorkCenter.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.WCID</span></div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -181,7 +189,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.LineId"]" />
-                    <RadzenDropDown @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Change="@OnLineChanged" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Change="@OnLineChanged" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.ProcessCode"]" />
@@ -246,6 +254,7 @@
     List<MasterDataRepository.WorkCenterRow> _allRows  = new();
     List<MasterDataRepository.WorkCenterRow> _rows     = new();
     List<MasterDataRepository.LineRow>       _lineList = new();
+    List<MasterDataRepository.CodeItemRow>   _processItems = new();
     MasterDataRepository.WorkCenterRow? _sel;
 
     string _fSearch = "";
@@ -277,6 +286,7 @@
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/rp/work-center");
         try { _lineList = MD.ListLines(); } catch { }
+        try { _processItems = MD.ListCodeItems("PROCESS"); } catch { }
         Reload();
     }
 
@@ -345,7 +355,7 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.WCID))   { _modalErr = L["Err.WcIdRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.WCName))  { _modalErr = L["Err.NameRequired"]; return; }
-        if (MD.WorkCenterExists(_f.WCID.Trim()))   { _modalErr = $"WC ID '{_f.WCID.Trim()}' 이 {L["Err.AlreadyExists"]}"; return; }
+        if (MD.WorkCenterExists(_f.WCID.Trim()))   { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], _f.WCID.Trim()); return; }
         _busy = true;
         try
         {

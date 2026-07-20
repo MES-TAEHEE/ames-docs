@@ -75,9 +75,9 @@
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
                 <RadzenTextBox @bind-Value="_fRuleSearch" Change="@OnRuleSearchChanged" @onkeydown="OnRuleSearchKeyDown" Immediate="true" Placeholder="@L["SYS.Notifications.Ph.RuleSearch"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
                 <RadzenLabel Text="@L["Col.Module"]" Component="DropDownRuleModule" />
-                <RadzenDropDown Name="DropDownRuleModule" @bind-Value="_fRuleModule" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+                <RadzenDropDown AllowFiltering="true" Name="DropDownRuleModule" @bind-Value="_fRuleModule" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
                 <RadzenLabel Text="@L["Col.ProcessCode"]" Component="DropDownRuleProcess" />
-                <RadzenDropDown Name="DropDownRuleProcess" @bind-Value="_fRuleProcess" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+                <RadzenDropDown AllowFiltering="true" Name="DropDownRuleProcess" @bind-Value="_fRuleProcess" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
                 <RadzenLabel Text="@L["Col.Status"]" Component="DropDownRuleStatus" />
                 <RadzenDropDown Name="DropDownRuleStatus" @bind-Value="_fRuleStatus" Data="@NotifStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
 
@@ -102,7 +102,15 @@
                     <Template Context="r"><span class="pill info">@(r.ModuleCode ?? "—")</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="ProcessCode" Title="@L["Col.ProcessCode"]" Width="110px">
-                    <Template Context="r"><span class="code dim" style="font-size:13px;">@(r.ProcessCode ?? "—")</span></Template>
+                    <Template Context="r">
+                        @if (r.ProcessCode != null)
+                        {
+                            var procName = _processItems.FirstOrDefault(c2 => c2.CodeValue == r.ProcessCode) is { } pf ? MasterDataRepository.LocalName(pf) : null;
+                            <span class="pill @Ui.ProcessClass(r.ProcessCode)">@r.ProcessCode</span>
+                            @if (procName != null) { <span class="dim" style="font-size:.8em;margin-left:4px;">@procName</span> }
+                        }
+                        else { <span class="dim">—</span> }
+                    </Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="TriggerCondition" Title="@L["Col.TriggerCond"]">
                     <Template Context="r"><span class="dim" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;display:block;">@(r.TriggerCondition ?? "—")</span></Template>
@@ -164,7 +172,7 @@
                     <Template Context="c"><span class="dim">@(c.QuietHoursEnd?.ToString(@"hh\:mm") ?? "—")</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="VerifiedAt" Title="@L["Col.AuthTs"]" Width="120px">
-                    <Template Context="c"><span class="dim">@(c.VerifiedAt?.ToString("MM-dd HH:mm") ?? L["SYS.Notifications.Lbl.Unverified"].Value)</span></Template>
+                    <Template Context="c"><span class="dim">@(c.VerifiedAt?.ToString(DateFmt.MonthDayTime) ?? L["SYS.Notifications.Lbl.Unverified"].Value)</span></Template>
                 </RadzenDataGridColumn>
             </Columns>
         </RadzenDataGrid>
@@ -180,7 +188,7 @@
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
                 <RadzenTextBox @bind-Value="_fHistSearch" Change="@OnHistSearchChanged" @onkeydown="OnHistSearchKeyDown" Immediate="true" Placeholder="@L["SYS.Notifications.Ph.HistSearch"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
                 <RadzenLabel Text="@L["Col.Channel"]" Component="DropDownHistChannel" />
-                <RadzenDropDown Name="DropDownHistChannel" @bind-Value="_fHistChannel" Data="@ChannelCodeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
+                <RadzenDropDown AllowFiltering="true" Name="DropDownHistChannel" @bind-Value="_fHistChannel" Data="@ChannelCodeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
                 <RadzenLabel Text="@L["Col.Status"]" Component="DropDownHistStatus" />
                 <RadzenDropDown Name="DropDownHistStatus" @bind-Value="_fHistStatus" Data="@DeliveryStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
 
@@ -191,7 +199,7 @@
                         PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["SYS.Notifications.History.Empty"]" Class="ames-rz-grid">
             <Columns>
                 <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="SentAt" Title="@L["Col.SentAt"]" Width="110px">
-                    <Template Context="h"><span class="dim">@(h.SentAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
+                    <Template Context="h"><span class="dim">@(h.SentAt?.ToString(DateFmt.MonthDayTime) ?? "—")</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="EventTypeCode" Title="@L["Col.EventName"]" Width="130px">
                     <Template Context="h"><span class="code">@(h.EventTypeCode ?? "—")</span></Template>
@@ -239,17 +247,17 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.Module"]" class="ames-rz-modal-label" Component="CreateRuleDropDownModule" />
-                    <RadzenDropDown Name="CreateRuleDropDownModule" @bind-Value="_rf.ModuleCode" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" Name="CreateRuleDropDownModule" @bind-Value="_rf.ModuleCode" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.ProcessCode"]" class="ames-rz-modal-label" Component="CreateRuleDropDownProcess" />
-                    <RadzenDropDown Name="CreateRuleDropDownProcess" @bind-Value="_rf.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" Name="CreateRuleDropDownProcess" @bind-Value="_rf.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Start" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.TriggerCond"]" class="ames-rz-modal-label" Component="CreateRuleTextAreaTrigger" />
-                    <RadzenTextArea Name="CreateRuleTextAreaTrigger" @bind-Value="_rf.TriggerCondition" Rows="2" Placeholder="예: DefectCount > 5" class="ames-rz-input" Style="flex:1;width:100%;resize:vertical;" />
+                    <RadzenTextArea Name="CreateRuleTextAreaTrigger" @bind-Value="_rf.TriggerCondition" Rows="2" Placeholder="DefectCount > 5" class="ames-rz-input" Style="flex:1;width:100%;resize:vertical;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Start" Gap="1rem" Style="width:100%;">
@@ -336,12 +344,12 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.Module"]" class="ames-rz-modal-label" Component="EditRuleDropDownModule" />
-                    <RadzenDropDown Name="EditRuleDropDownModule" @bind-Value="_rf.ModuleCode" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" Name="EditRuleDropDownModule" @bind-Value="_rf.ModuleCode" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.ProcessCode"]" class="ames-rz-modal-label" Component="EditRuleDropDownProcess" />
-                    <RadzenDropDown Name="EditRuleDropDownProcess" @bind-Value="_rf.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" Name="EditRuleDropDownProcess" @bind-Value="_rf.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Start" Gap="1rem" Style="width:100%;">
@@ -432,12 +440,12 @@
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.User"]" class="ames-rz-modal-label" Component="CreateChDropDownUser" />
-                    <RadzenDropDown Name="CreateChDropDownUser" @bind-Value="_cf.UserId" Data="@UserOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" Change="@(_ => AutoFillAddress())" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" Name="CreateChDropDownUser" @bind-Value="_cf.UserId" Data="@UserOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" Change="@(_ => AutoFillAddress())" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.Channel"]" class="ames-rz-modal-label" Component="CreateChDropDownChannel" />
-                    <RadzenDropDown Name="CreateChDropDownChannel" @bind-Value="_cf.Channel" Data="@ChannelCodeOptions" TextProperty="Text" ValueProperty="Value" Change="@(_ => AutoFillAddress())" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" Name="CreateChDropDownChannel" @bind-Value="_cf.Channel" Data="@ChannelCodeOptions" TextProperty="Text" ValueProperty="Value" Change="@(_ => AutoFillAddress())" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -484,7 +492,7 @@
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.Channel"]" class="ames-rz-modal-label" Component="EditChDropDownChannel" />
-                    <RadzenDropDown Name="EditChDropDownChannel" @bind-Value="_cf.Channel" Data="@ChannelCodeOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" Name="EditChDropDownChannel" @bind-Value="_cf.Channel" Data="@ChannelCodeOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">

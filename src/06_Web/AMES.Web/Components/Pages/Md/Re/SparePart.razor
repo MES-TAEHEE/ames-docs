@@ -48,7 +48,7 @@
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.SparePart.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
             <RadzenLabel Text="@L["Col.Category"]" Component="DropDownCategory" />
-            <RadzenDropDown Name="DropDownCategory" @bind-Value="_fCat" Data="@CategoryFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownCategory" @bind-Value="_fCat" Data="@CategoryFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
             <RadzenDropDown Name="DropDownStatus" @bind-Value="_fActive" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:90px;" />
 
@@ -110,7 +110,7 @@
 @if (_modal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.SparePart.Title"] — @L["Modal.Create"]</div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -196,7 +196,7 @@
 @if (_modal == "edit" && _sel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.SparePart.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.PartNo</span></div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -387,7 +387,7 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.PartNo)) { _modalErr = L["Err.PartNoRequired"]; return; }
         var no = _f.PartNo.Trim();
-        if (Md.SparePartExists(no)) { _modalErr = $"'{no}' 품번이 {L["Err.AlreadyExists"]}"; return; }
+        if (Md.SparePartExists(no)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], no); return; }
         _busy = true;
         try
         {

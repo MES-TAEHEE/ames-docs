@@ -180,17 +180,11 @@
   <data name="Lbl.Loading" xml:space="preserve">
     <value>Loading...</value>
   </data>
-  <data name="Lbl.MaxRows" xml:space="preserve">
-    <value>Max {0} rows shown.</value>
-  </data>
   <data name="Unit.Min" xml:space="preserve">
     <value> min</value>
   </data>
   <data name="Lbl.TotalOf" xml:space="preserve">
     <value>total</value>
-  </data>
-  <data name="Ph.LineID" xml:space="preserve">
-    <value>Line ID</value>
   </data>
   <data name="Err.LoadFailed" xml:space="preserve">
     <value>Data load error: {0}</value>
@@ -237,24 +231,6 @@
   <data name="Col.To" xml:space="preserve">
     <value>To</value>
   </data>
-  <data name="Col.CreatedBy" xml:space="preserve">
-    <value>Created By</value>
-  </data>
-  <data name="Col.CreatedTs" xml:space="preserve">
-    <value>Created</value>
-  </data>
-  <data name="Col.ModifiedBy" xml:space="preserve">
-    <value>Modified By</value>
-  </data>
-  <data name="Col.ModifiedTs" xml:space="preserve">
-    <value>Modified</value>
-  </data>
-  <data name="Col.Count" xml:space="preserve">
-    <value>Count</value>
-  </data>
-  <data name="Col.Desc" xml:space="preserve">
-    <value>Description</value>
-  </data>
   <data name="Col.Seq" xml:space="preserve">
     <value>Seq</value>
   </data>
@@ -288,15 +264,6 @@
   <data name="Lbl.Days" xml:space="preserve">
     <value> days</value>
   </data>
-  <data name="Lbl.Months" xml:space="preserve">
-    <value>months</value>
-  </data>
-  <data name="Lbl.Rank" xml:space="preserve">
-    <value>Rank</value>
-  </data>
-  <data name="Msg.NoData" xml:space="preserve">
-    <value>No results found.</value>
-  </data>
   <data name="Msg.Saving" xml:space="preserve">
     <value>Saving…</value>
   </data>
@@ -318,14 +285,8 @@
   <data name="MNT.Dashboard.Title" xml:space="preserve">
     <value>Dashboard</value>
   </data>
-  <data name="MNT.Dashboard.Sub" xml:space="preserve">
-    <value>Equipment · Failure · PM · Parts Overview</value>
-  </data>
   <data name="MNT.EquipmentCard.Title" xml:space="preserve">
     <value>Equipment Card</value>
-  </data>
-  <data name="MNT.EquipmentCard.Sub" xml:space="preserve">
-    <value>Real-time equipment status cards</value>
   </data>
   <data name="MNT.EquipmentCard.List" xml:space="preserve">
     <value>Equipment List</value>
@@ -333,20 +294,11 @@
   <data name="MNT.EquipmentCard.Empty" xml:space="preserve">
     <value>No equipment data for the selected criteria.</value>
   </data>
-  <data name="MNT.EquipmentCard.Ph.Line" xml:space="preserve">
-    <value>Search line</value>
-  </data>
-  <data name="MNT.EquipmentCard.Ph.Name" xml:space="preserve">
-    <value>Search equipment name</value>
-  </data>
   <data name="MNT.EquipmentCard.Ph.Search" xml:space="preserve">
     <value>line/equipment name</value>
   </data>
   <data name="MNT.WorkOrder.Title" xml:space="preserve">
     <value>Work Order</value>
-  </data>
-  <data name="MNT.WorkOrder.Sub" xml:space="preserve">
-    <value>Maintenance work orders — in-progress / completed</value>
   </data>
   <data name="MNT.WorkOrder.List" xml:space="preserve">
     <value>Maintenance Work Orders</value>
@@ -363,9 +315,6 @@
   <data name="MNT.PmSchedule.Title" xml:space="preserve">
     <value>PM Schedule</value>
   </data>
-  <data name="MNT.PmSchedule.Sub" xml:space="preserve">
-    <value>Preventive maintenance schedule</value>
-  </data>
   <data name="MNT.PmSchedule.List" xml:space="preserve">
     <value>PM Schedule</value>
   </data>
@@ -375,23 +324,14 @@
   <data name="MNT.Downtime.Title" xml:space="preserve">
     <value>Downtime History</value>
   </data>
-  <data name="MNT.Downtime.Sub" xml:space="preserve">
-    <value>Line downtime event log</value>
-  </data>
   <data name="MNT.Downtime.List" xml:space="preserve">
     <value>Downtime Events</value>
   </data>
   <data name="MNT.Downtime.Empty" xml:space="preserve">
     <value>No downtime data in the selected period.</value>
   </data>
-  <data name="MNT.Downtime.Ph.Line" xml:space="preserve">
-    <value>Search line</value>
-  </data>
   <data name="MNT.Failure.Title" xml:space="preserve">
     <value>Failure Register</value>
-  </data>
-  <data name="MNT.Failure.Sub" xml:space="preserve">
-    <value>Failure event log and registration</value>
   </data>
   <data name="MNT.Failure.List" xml:space="preserve">
     <value>Failure Events</value>
@@ -420,9 +360,6 @@
   <data name="MNT.Mold.Title" xml:space="preserve">
     <value>Mold Management</value>
   </data>
-  <data name="MNT.Mold.Sub" xml:space="preserve">
-    <value>Mold shot counter + refurbish threshold</value>
-  </data>
   <data name="MNT.Mold.List" xml:space="preserve">
     <value>Mold List</value>
   </data>
@@ -435,9 +372,6 @@
   <data name="MNT.OeeAnalysis.Title" xml:space="preserve">
     <value>OEE Analysis</value>
   </data>
-  <data name="MNT.OeeAnalysis.Sub" xml:space="preserve">
-    <value>Equipment × Shift OEE aggregation</value>
-  </data>
   <data name="MNT.OeeAnalysis.List" xml:space="preserve">
     <value>OEE Data</value>
   </data>
@@ -449,9 +383,6 @@
   </data>
   <data name="MNT.SpareParts.Title" xml:space="preserve">
     <value>Spare Parts</value>
-  </data>
-  <data name="MNT.SpareParts.Sub" xml:space="preserve">
-    <value>Spare parts master + recent transactions</value>
   </data>
   <data name="MNT.SpareParts.List" xml:space="preserve">
     <value>Spare Parts Master</value>
@@ -480,17 +411,11 @@
   <data name="RPT.DailyProduction.Title" xml:space="preserve">
     <value>Daily Production Results</value>
   </data>
-  <data name="RPT.DailyProduction.Sub" xml:space="preserve">
-    <value>Daily / line production qty and yield rate</value>
-  </data>
   <data name="RPT.DailyProduction.List" xml:space="preserve">
     <value>Daily Aggregation</value>
   </data>
   <data name="RPT.DailyProduction.Empty" xml:space="preserve">
     <value>No results found.</value>
-  </data>
-  <data name="RPT.DailyProduction.Ph.Line" xml:space="preserve">
-    <value>Search line</value>
   </data>
   <data name="RPT.DailyProduction.Kpi.Days" xml:space="preserve">
     <value>Days</value>
@@ -503,9 +428,6 @@
   </data>
   <data name="RPT.DailyProduction.Kpi.Yield" xml:space="preserve">
     <value>Yield Rate</value>
-  </data>
-  <data name="RPT.DailyProduction.Col.Day" xml:space="preserve">
-    <value>Date</value>
   </data>
   <data name="RPT.DailyProduction.Col.Entries" xml:space="preserve">
     <value>Entries</value>
@@ -521,9 +443,6 @@
   </data>
   <data name="RPT.DefectPareto.Title" xml:space="preserve">
     <value>Defect Pareto</value>
-  </data>
-  <data name="RPT.DefectPareto.Sub" xml:space="preserve">
-    <value>Defect code Pareto analysis</value>
   </data>
   <data name="RPT.DefectPareto.List" xml:space="preserve">
     <value>Pareto Ranking</value>
@@ -570,9 +489,6 @@
   <data name="RPT.DailyShipment.Title" xml:space="preserve">
     <value>Daily Shipment Status</value>
   </data>
-  <data name="RPT.DailyShipment.Sub" xml:space="preserve">
-    <value>Shipment orders / qty / customer count</value>
-  </data>
   <data name="RPT.DailyShipment.List" xml:space="preserve">
     <value>Daily Shipment Aggregation</value>
   </data>
@@ -609,9 +525,6 @@
   <data name="RPT.OnTime.Title" xml:space="preserve">
     <value>On-Time Delivery</value>
   </data>
-  <data name="RPT.OnTime.Sub" xml:space="preserve">
-    <value>Daily On-Time Delivery % analysis</value>
-  </data>
   <data name="RPT.OnTime.List" xml:space="preserve">
     <value>Daily OTD</value>
   </data>
@@ -627,23 +540,11 @@
   <data name="RPT.OnTime.Kpi.Late" xml:space="preserve">
     <value>Late</value>
   </data>
-  <data name="RPT.OnTime.Col.Total" xml:space="preserve">
-    <value>Total Orders</value>
-  </data>
-  <data name="RPT.OnTime.Col.OnTime" xml:space="preserve">
-    <value>On Time</value>
-  </data>
-  <data name="RPT.OnTime.Col.Late" xml:space="preserve">
-    <value>Late</value>
-  </data>
   <data name="RPT.OnTime.Col.Trend" xml:space="preserve">
     <value>Trend</value>
   </data>
   <data name="RPT.Inventory.Title" xml:space="preserve">
     <value>Inventory Status</value>
-  </data>
-  <data name="RPT.Inventory.Sub" xml:space="preserve">
-    <value>Finished goods inventory — part × location</value>
   </data>
   <data name="RPT.Inventory.List" xml:space="preserve">
     <value>Inventory Aggregation</value>
@@ -684,23 +585,14 @@
   <data name="RPT.Inventory.Col.HoldQty" xml:space="preserve">
     <value>Hold Qty</value>
   </data>
-  <data name="RPT.Inventory.Col.HoldPct" xml:space="preserve">
-    <value>Hold%</value>
-  </data>
   <data name="RPT.EquipmentOee.Title" xml:space="preserve">
     <value>Equipment OEE</value>
-  </data>
-  <data name="RPT.EquipmentOee.Sub" xml:space="preserve">
-    <value>Availability · Performance · Quality · OEE by equipment</value>
   </data>
   <data name="RPT.EquipmentOee.List" xml:space="preserve">
     <value>Equipment Ranking</value>
   </data>
   <data name="RPT.EquipmentOee.Empty" xml:space="preserve">
     <value>No OEE data in the selected period.</value>
-  </data>
-  <data name="RPT.EquipmentOee.Ph.Line" xml:space="preserve">
-    <value>Search line</value>
   </data>
   <data name="RPT.EquipmentOee.Kpi.EquipCount" xml:space="preserve">
     <value>Equipment</value>
@@ -722,9 +614,6 @@
   </data>
   <data name="RPT.MonthlyKpi.Title" xml:space="preserve">
     <value>Monthly KPI</value>
-  </data>
-  <data name="RPT.MonthlyKpi.Sub" xml:space="preserve">
-    <value>Monthly integrated KPIs — Production / Shipment / Maintenance / OEE</value>
   </data>
   <data name="RPT.MonthlyKpi.List" xml:space="preserve">
     <value>Monthly Aggregation</value>
@@ -771,17 +660,11 @@
   <data name="RPT.ScheduleAdherence.Title" xml:space="preserve">
     <value>Schedule Adherence</value>
   </data>
-  <data name="RPT.ScheduleAdherence.Sub" xml:space="preserve">
-    <value>Actual vs. planned production — daily by line</value>
-  </data>
   <data name="RPT.ScheduleAdherence.List" xml:space="preserve">
     <value>Daily Aggregation</value>
   </data>
   <data name="RPT.ScheduleAdherence.Empty" xml:space="preserve">
     <value>No plan or production data in the selected period.</value>
-  </data>
-  <data name="RPT.ScheduleAdherence.Ph.Line" xml:space="preserve">
-    <value>Search line</value>
   </data>
   <data name="RPT.ScheduleAdherence.Kpi.Count" xml:space="preserve">
     <value>Result Count</value>
@@ -810,14 +693,8 @@
   <data name="RPT.ReportCenter.Title" xml:space="preserve">
     <value>Report Center</value>
   </data>
-  <data name="RPT.ReportCenter.Sub" xml:space="preserve">
-    <value>Full report catalog — by category</value>
-  </data>
   <data name="RPT.ReportBuilder.Title" xml:space="preserve">
     <value>Report Builder</value>
-  </data>
-  <data name="RPT.ReportBuilder.Sub" xml:space="preserve">
-    <value>Ad-hoc report builder — preview / next milestone</value>
   </data>
   <data name="RPT.ReportBuilder.Preview" xml:space="preserve">
     <value>Builder Preview</value>
@@ -846,9 +723,6 @@
   <data name="SYS.Users.Title" xml:space="preserve">
     <value>User Management</value>
   </data>
-  <data name="SYS.Users.Sub" xml:space="preserve">
-    <value>ASP.NET Identity users + SYS_UserProfile join</value>
-  </data>
   <data name="SYS.Users.List" xml:space="preserve">
     <value>User List</value>
   </data>
@@ -864,14 +738,8 @@
   <data name="SYS.Users.Kpi.RecentLogin" xml:space="preserve">
     <value>Recent Login</value>
   </data>
-  <data name="SYS.Users.Ph.UserName" xml:space="preserve">
-    <value>User ID / Email / Emp.No / Name / Dept</value>
-  </data>
   <data name="SYS.Users.Ph.Name" xml:space="preserve">
     <value>Full name</value>
-  </data>
-  <data name="SYS.Users.Ph.Dept" xml:space="preserve">
-    <value>Department</value>
   </data>
   <data name="SYS.Users.Col.UserName" xml:space="preserve">
     <value>User ID</value>
@@ -896,12 +764,6 @@
   </data>
   <data name="SYS.Users.Col.LastLogin" xml:space="preserve">
     <value>Last Login</value>
-  </data>
-  <data name="SYS.Users.Modal.Create" xml:space="preserve">
-    <value>New User</value>
-  </data>
-  <data name="SYS.Users.Modal.Edit" xml:space="preserve">
-    <value>Edit User</value>
   </data>
   <data name="SYS.Users.Lbl.EmployeeNo" xml:space="preserve">
     <value>Employee No *</value>
@@ -966,9 +828,6 @@
   <data name="SYS.Users.Opt.NoRole" xml:space="preserve">
     <value>— None —</value>
   </data>
-  <data name="SYS.Users.Hint.Lines" xml:space="preserve">
-    <value>(blank = all lines)</value>
-  </data>
   <data name="SYS.Users.Err.EmailRequired" xml:space="preserve">
     <value>Email is required.</value>
   </data>
@@ -1008,9 +867,6 @@
   <data name="SYS.Roles.Title" xml:space="preserve">
     <value>Role Management</value>
   </data>
-  <data name="SYS.Roles.Sub" xml:space="preserve">
-    <value>ASP.NET Identity role management</value>
-  </data>
   <data name="SYS.Roles.List" xml:space="preserve">
     <value>Role List</value>
   </data>
@@ -1023,20 +879,8 @@
   <data name="SYS.Roles.Kpi.Unused" xml:space="preserve">
     <value>Unused</value>
   </data>
-  <data name="SYS.Roles.Col.RoleName" xml:space="preserve">
-    <value>Role Name</value>
-  </data>
-  <data name="SYS.Roles.Col.UserCount" xml:space="preserve">
-    <value>Users</value>
-  </data>
-  <data name="SYS.Roles.Modal.Create" xml:space="preserve">
-    <value>New Role</value>
-  </data>
   <data name="SYS.Roles.Lbl.RoleName" xml:space="preserve">
     <value>Role Name *</value>
-  </data>
-  <data name="SYS.Roles.Modal.Edit" xml:space="preserve">
-    <value>Edit Role</value>
   </data>
   <data name="SYS.Roles.InUseBy" xml:space="preserve">
     <value>Users assigned to this role:</value>
@@ -1061,9 +905,6 @@
   </data>
   <data name="SYS.Rbac.Title" xml:space="preserve">
     <value>Role / Permission Management (RBAC)</value>
-  </data>
-  <data name="SYS.Rbac.Sub" xml:space="preserve">
-    <value>Role × screen permission matrix</value>
   </data>
   <data name="SYS.Rbac.Roles" xml:space="preserve">
     <value>Roles</value>
@@ -1092,17 +933,11 @@
   <data name="SYS.Rbac.Col.Screen" xml:space="preserve">
     <value>Screen</value>
   </data>
-  <data name="SYS.Rbac.Col.All" xml:space="preserve">
-    <value>All</value>
-  </data>
   <data name="SYS.Rbac.NoPerm" xml:space="preserve">
     <value>No permissions</value>
   </data>
   <data name="SYS.Screen.Title" xml:space="preserve">
     <value>Screen Management</value>
-  </data>
-  <data name="SYS.Screen.Sub" xml:space="preserve">
-    <value>MD_Screen — screen visibility and navigation</value>
   </data>
   <data name="SYS.Screen.List" xml:space="preserve">
     <value>Screen List</value>
@@ -1128,9 +963,6 @@
   <data name="SYS.Screen.Col.Code" xml:space="preserve">
     <value>Code</value>
   </data>
-  <data name="SYS.Screen.Col.Module" xml:space="preserve">
-    <value>Module</value>
-  </data>
   <data name="SYS.Screen.Col.Process" xml:space="preserve">
     <value>Process</value>
   </data>
@@ -1155,17 +987,8 @@
   <data name="SYS.Screen.Filter.Hidden" xml:space="preserve">
     <value>Hidden</value>
   </data>
-  <data name="SYS.Screen.Btn.Save" xml:space="preserve">
-    <value>Save</value>
-  </data>
-  <data name="SYS.Screen.Ok.Saved" xml:space="preserve">
-    <value>{0} saved.</value>
-  </data>
   <data name="SYS.Calendar.Title" xml:space="preserve">
     <value>Factory Calendar</value>
-  </data>
-  <data name="SYS.Calendar.Sub" xml:space="preserve">
-    <value>Factory calendar — shift × date management</value>
   </data>
   <data name="SYS.Calendar.Kpi.Days" xml:space="preserve">
     <value>Days</value>
@@ -1200,15 +1023,6 @@
   <data name="SYS.Calendar.Col.HolidayName" xml:space="preserve">
     <value>Holiday Name</value>
   </data>
-  <data name="SYS.Calendar.Legend.Work" xml:space="preserve">
-    <value>Work Day</value>
-  </data>
-  <data name="SYS.Calendar.Legend.Weekend" xml:space="preserve">
-    <value>Weekend</value>
-  </data>
-  <data name="SYS.Calendar.Legend.Holiday" xml:space="preserve">
-    <value>Holiday</value>
-  </data>
   <data name="SYS.Calendar.Btn.Today" xml:space="preserve">
     <value>Today</value>
   </data>
@@ -1224,20 +1038,11 @@
   <data name="SYS.Roles.Empty" xml:space="preserve">
     <value>No roles found.</value>
   </data>
-  <data name="SYS.Calendar.Badge.Holiday" xml:space="preserve">
-    <value>Holiday</value>
-  </data>
-  <data name="SYS.Calendar.Badge.Weekend" xml:space="preserve">
-    <value>Weekend</value>
-  </data>
   <data name="SYS.Calendar.Modal.Generate" xml:space="preserve">
     <value>Auto-Generate Schedule</value>
   </data>
   <data name="SYS.Interfaces.Title" xml:space="preserve">
     <value>Interface Monitor</value>
-  </data>
-  <data name="SYS.Interfaces.Sub" xml:space="preserve">
-    <value>SAP / PLC / WMS / EDI connection status</value>
   </data>
   <data name="SYS.Interfaces.List" xml:space="preserve">
     <value>Interface List</value>
@@ -1290,9 +1095,6 @@
   <data name="SYS.Audit.Title" xml:space="preserve">
     <value>Audit Log</value>
   </data>
-  <data name="SYS.Audit.Sub" xml:space="preserve">
-    <value>Audit log — last 200 entries (append-only)</value>
-  </data>
   <data name="SYS.Audit.List" xml:space="preserve">
     <value>Recent Audit Events</value>
   </data>
@@ -1343,9 +1145,6 @@
   </data>
   <data name="SYS.Notifications.Title" xml:space="preserve">
     <value>Notification Management</value>
-  </data>
-  <data name="SYS.Notifications.Sub" xml:space="preserve">
-    <value>Notification rules · Channel settings · Send history</value>
   </data>
   <data name="SYS.Notifications.Kpi.Rules" xml:space="preserve">
     <value>Rules</value>
@@ -1398,14 +1197,8 @@
   <data name="SYS.Notifications.Ph.HistSearch" xml:space="preserve">
     <value>Code / recipient / subject</value>
   </data>
-  <data name="SYS.Notifications.Filter.Active" xml:space="preserve">
-    <value>Active</value>
-  </data>
   <data name="SYS.Notifications.Filter.Inactive" xml:space="preserve">
     <value>Inactive</value>
-  </data>
-  <data name="SYS.Notifications.Btn.Apply" xml:space="preserve">
-    <value>Apply</value>
   </data>
   <data name="SYS.Notifications.Kpi.AllRules" xml:space="preserve">
     <value>All Rules</value>
@@ -1425,44 +1218,11 @@
   <data name="SYS.Notifications.Modal.CreateRule" xml:space="preserve">
     <value>Create Notification Rule</value>
   </data>
-  <data name="SYS.Notifications.Lbl.SourceModule" xml:space="preserve">
-    <value>Source Module</value>
-  </data>
-  <data name="SYS.Notifications.Mod.PP" xml:space="preserve">
-    <value>PP (Production Planning)</value>
-  </data>
-  <data name="SYS.Notifications.Mod.MNT" xml:space="preserve">
-    <value>MNT (Maintenance)</value>
-  </data>
-  <data name="SYS.Notifications.Mod.QC" xml:space="preserve">
-    <value>QC (Quality)</value>
-  </data>
-  <data name="SYS.Notifications.Mod.WH" xml:space="preserve">
-    <value>WH (Warehouse)</value>
-  </data>
-  <data name="SYS.Notifications.Mod.FG" xml:space="preserve">
-    <value>FG (Finished Goods)</value>
-  </data>
-  <data name="SYS.Notifications.Mod.SYS" xml:space="preserve">
-    <value>SYS (System)</value>
-  </data>
-  <data name="SYS.Notifications.Lbl.ChannelsJson" xml:space="preserve">
-    <value>Channels JSON</value>
-  </data>
-  <data name="SYS.Notifications.Lbl.RecipientRolesJson" xml:space="preserve">
-    <value>Recipient Roles JSON</value>
-  </data>
-  <data name="SYS.Notifications.Lbl.EnabledImmediate" xml:space="preserve">
-    <value>Enabled (immediate)</value>
-  </data>
   <data name="SYS.Notifications.Modal.EditRule" xml:space="preserve">
     <value>Edit Notification Rule</value>
   </data>
   <data name="SYS.Notifications.Modal.CreateChannel" xml:space="preserve">
     <value>Create Channel</value>
-  </data>
-  <data name="SYS.Notifications.Hint.AddressAutoFill" xml:space="preserve">
-    <value>EMAIL/SMS auto-filled on user selection</value>
   </data>
   <data name="SYS.Notifications.Lbl.DndStart" xml:space="preserve">
     <value>Do Not Disturb Start (HH:mm)</value>
@@ -1481,9 +1241,6 @@
   </data>
   <data name="SYS.Config.Title" xml:space="preserve">
     <value>System Configuration</value>
-  </data>
-  <data name="SYS.Config.Sub" xml:space="preserve">
-    <value>Configuration (Key-Value) — by category</value>
   </data>
   <data name="SYS.Config.Empty" xml:space="preserve">
     <value>No configuration keys found.</value>
@@ -1523,9 +1280,6 @@
   </data>
   <data name="SYS.Health.Title" xml:space="preserve">
     <value>System Health</value>
-  </data>
-  <data name="SYS.Health.Sub" xml:space="preserve">
-    <value>System KPIs · Notification queue · DB status</value>
   </data>
   <data name="SYS.Health.Kpi.Users" xml:space="preserve">
     <value>Users</value>
@@ -1659,9 +1413,6 @@
   <data name="MD.Line.Title" xml:space="preserve">
     <value>Factory / Line Master</value>
   </data>
-  <data name="MD.Line.Sub" xml:space="preserve">
-    <value>MD_Line master — line type, daily capacity, shift pattern, RFID</value>
-  </data>
   <data name="MD.Line.List" xml:space="preserve">
     <value>Production Line List</value>
   </data>
@@ -1671,41 +1422,11 @@
   <data name="MD.Line.Ph.Search" xml:space="preserve">
     <value>Line ID/name</value>
   </data>
-  <data name="MD.Line.Kpi.Total" xml:space="preserve">
-    <value>Total</value>
-  </data>
-  <data name="MD.Line.Kpi.Active" xml:space="preserve">
-    <value>Active</value>
-  </data>
   <data name="MD.Line.Kpi.Rfid" xml:space="preserve">
     <value>RFID Active</value>
   </data>
   <data name="MD.Line.Kpi.Plants" xml:space="preserve">
     <value>Plants</value>
-  </data>
-  <data name="MD.Line.Col.LineId" xml:space="preserve">
-    <value>Line ID</value>
-  </data>
-  <data name="MD.Line.Col.LineName" xml:space="preserve">
-    <value>Line Name</value>
-  </data>
-  <data name="MD.Line.Col.Type" xml:space="preserve">
-    <value>Type</value>
-  </data>
-  <data name="MD.Line.Col.Plant" xml:space="preserve">
-    <value>Plant</value>
-  </data>
-  <data name="MD.Line.Col.DefaultWc" xml:space="preserve">
-    <value>Default WC</value>
-  </data>
-  <data name="MD.Line.Col.DailyCap" xml:space="preserve">
-    <value>Daily Cap</value>
-  </data>
-  <data name="MD.Line.Col.ShiftPattern" xml:space="preserve">
-    <value>Shift Pattern</value>
-  </data>
-  <data name="MD.Line.Modal.Create" xml:space="preserve">
-    <value>New Production Line</value>
   </data>
   <data name="MD.Line.Lbl.LineId" xml:space="preserve">
     <value>Line ID *</value>
@@ -1715,9 +1436,6 @@
   </data>
   <data name="MD.Line.Lbl.LineNameEn" xml:space="preserve">
     <value>Line Name (EN)</value>
-  </data>
-  <data name="MD.Line.Lbl.LineType" xml:space="preserve">
-    <value>Line Type</value>
   </data>
   <data name="MD.Line.Lbl.PlantId" xml:space="preserve">
     <value>Plant ID</value>
@@ -1733,9 +1451,6 @@
   </data>
   <data name="MD.Line.Lbl.RfidEnabled" xml:space="preserve">
     <value>RFID Active</value>
-  </data>
-  <data name="MD.Line.Modal.Edit" xml:space="preserve">
-    <value>Edit Line</value>
   </data>
   <data name="MD.Line.Err.IDRequired" xml:space="preserve">
     <value>Line ID is required.</value>
@@ -1758,38 +1473,11 @@
   <data name="MD.Bom.Title" xml:space="preserve">
     <value>BOM Management</value>
   </data>
-  <data name="MD.Bom.Sub" xml:space="preserve">
-    <value>Bill of Materials — component parts by product</value>
-  </data>
-  <data name="MD.Bom.List" xml:space="preserve">
-    <value>BOM List</value>
-  </data>
-  <data name="MD.Bom.Empty" xml:space="preserve">
-    <value>No BOM records found.</value>
-  </data>
   <data name="MD.Bop.Title" xml:space="preserve">
     <value>BOP Management</value>
   </data>
-  <data name="MD.Bop.Sub" xml:space="preserve">
-    <value>Bill of Process — production operation sequence</value>
-  </data>
-  <data name="MD.Bop.List" xml:space="preserve">
-    <value>BOP List</value>
-  </data>
-  <data name="MD.Bop.Empty" xml:space="preserve">
-    <value>No BOP records found.</value>
-  </data>
   <data name="MD.CommonCode.Title" xml:space="preserve">
     <value>Common Code Master</value>
-  </data>
-  <data name="MD.CommonCode.Sub" xml:space="preserve">
-    <value>System common code master data</value>
-  </data>
-  <data name="MD.CommonCode.List" xml:space="preserve">
-    <value>Common Code List</value>
-  </data>
-  <data name="MD.CommonCode.Empty" xml:space="preserve">
-    <value>No common codes found.</value>
   </data>
   <data name="MD.CommonCode.GrpHeader" xml:space="preserve">
     <value>Code Groups</value>
@@ -1869,9 +1557,6 @@
   <data name="MD.Customer.Title" xml:space="preserve">
     <value>Customer Master</value>
   </data>
-  <data name="MD.Customer.Sub" xml:space="preserve">
-    <value>Customer master data</value>
-  </data>
   <data name="MD.Customer.List" xml:space="preserve">
     <value>Customer List</value>
   </data>
@@ -1880,9 +1565,6 @@
   </data>
   <data name="MD.DefectCause.Title" xml:space="preserve">
     <value>Defect Cause Master</value>
-  </data>
-  <data name="MD.DefectCause.Sub" xml:space="preserve">
-    <value>Defect cause code master data</value>
   </data>
   <data name="MD.DefectCause.List" xml:space="preserve">
     <value>Defect Cause List</value>
@@ -1893,9 +1575,6 @@
   <data name="MD.DefectCode.Title" xml:space="preserve">
     <value>Defect Code Master</value>
   </data>
-  <data name="MD.DefectCode.Sub" xml:space="preserve">
-    <value>Defect code master data</value>
-  </data>
   <data name="MD.DefectCode.List" xml:space="preserve">
     <value>Defect Code List</value>
   </data>
@@ -1904,9 +1583,6 @@
   </data>
   <data name="MD.Equipment.Title" xml:space="preserve">
     <value>Equipment Master</value>
-  </data>
-  <data name="MD.Equipment.Sub" xml:space="preserve">
-    <value>Production equipment master data</value>
   </data>
   <data name="MD.Equipment.List" xml:space="preserve">
     <value>Equipment List</value>
@@ -1917,9 +1593,6 @@
   <data name="MD.InspStd.Title" xml:space="preserve">
     <value>Inspection Standard Master</value>
   </data>
-  <data name="MD.InspStd.Sub" xml:space="preserve">
-    <value>Inspection standard by part</value>
-  </data>
   <data name="MD.InspStd.List" xml:space="preserve">
     <value>Inspection Standard List</value>
   </data>
@@ -1928,9 +1601,6 @@
   </data>
   <data name="MD.Items.Title" xml:space="preserve">
     <value>Product Item Master</value>
-  </data>
-  <data name="MD.Items.Sub" xml:space="preserve">
-    <value>Item master — raw material, semi-finished, finished goods</value>
   </data>
   <data name="MD.Items.List" xml:space="preserve">
     <value>Part List</value>
@@ -1941,9 +1611,6 @@
   <data name="MD.Jig.Title" xml:space="preserve">
     <value>Jig Master</value>
   </data>
-  <data name="MD.Jig.Sub" xml:space="preserve">
-    <value>Production jig &amp; fixture master</value>
-  </data>
   <data name="MD.Jig.List" xml:space="preserve">
     <value>Jig List</value>
   </data>
@@ -1952,9 +1619,6 @@
   </data>
   <data name="MD.LabelTpl.Title" xml:space="preserve">
     <value>Label Template Master</value>
-  </data>
-  <data name="MD.LabelTpl.Sub" xml:space="preserve">
-    <value>Print label format master</value>
   </data>
   <data name="MD.LabelTpl.List" xml:space="preserve">
     <value>Label Template List</value>
@@ -1965,9 +1629,6 @@
   <data name="MD.LinePat.Title" xml:space="preserve">
     <value>Line Time Pattern Master</value>
   </data>
-  <data name="MD.LinePat.Sub" xml:space="preserve">
-    <value>Shift and break time patterns by line</value>
-  </data>
   <data name="MD.LinePat.List" xml:space="preserve">
     <value>Time Pattern List</value>
   </data>
@@ -1976,9 +1637,6 @@
   </data>
   <data name="MD.Location.Title" xml:space="preserve">
     <value>Warehouse Location Master</value>
-  </data>
-  <data name="MD.Location.Sub" xml:space="preserve">
-    <value>Warehouse location master</value>
   </data>
   <data name="MD.Location.List" xml:space="preserve">
     <value>Location List</value>
@@ -1989,9 +1647,6 @@
   <data name="MD.Mold.Title" xml:space="preserve">
     <value>Mold Master</value>
   </data>
-  <data name="MD.Mold.Sub" xml:space="preserve">
-    <value>Injection mold master</value>
-  </data>
   <data name="MD.Mold.List" xml:space="preserve">
     <value>Mold List</value>
   </data>
@@ -2000,9 +1655,6 @@
   </data>
   <data name="MD.Oven.Title" xml:space="preserve">
     <value>Oven Master</value>
-  </data>
-  <data name="MD.Oven.Sub" xml:space="preserve">
-    <value>Paint oven equipment master</value>
   </data>
   <data name="MD.Oven.List" xml:space="preserve">
     <value>Oven List</value>
@@ -2013,9 +1665,6 @@
   <data name="MD.PackSpec.Title" xml:space="preserve">
     <value>Packaging Spec Master</value>
   </data>
-  <data name="MD.PackSpec.Sub" xml:space="preserve">
-    <value>Packaging specification master</value>
-  </data>
   <data name="MD.PackSpec.List" xml:space="preserve">
     <value>Packaging Spec List</value>
   </data>
@@ -2024,9 +1673,6 @@
   </data>
   <data name="MD.PaintFabric.Title" xml:space="preserve">
     <value>Paint &amp; Fabric Master</value>
-  </data>
-  <data name="MD.PaintFabric.Sub" xml:space="preserve">
-    <value>Paint and fabric master data</value>
   </data>
   <data name="MD.PaintFabric.List" xml:space="preserve">
     <value>Paint/Fabric List</value>
@@ -2037,9 +1683,6 @@
   <data name="MD.PmTemplate.Title" xml:space="preserve">
     <value>PM Template Master</value>
   </data>
-  <data name="MD.PmTemplate.Sub" xml:space="preserve">
-    <value>Preventive maintenance checklist master</value>
-  </data>
   <data name="MD.PmTemplate.List" xml:space="preserve">
     <value>PM Template List</value>
   </data>
@@ -2048,9 +1691,6 @@
   </data>
   <data name="MD.RalColor.Title" xml:space="preserve">
     <value>RAL Color Master</value>
-  </data>
-  <data name="MD.RalColor.Sub" xml:space="preserve">
-    <value>Standard RAL color master</value>
   </data>
   <data name="MD.RalColor.List" xml:space="preserve">
     <value>RAL Color List</value>
@@ -2061,9 +1701,6 @@
   <data name="MD.ReasonCode.Title" xml:space="preserve">
     <value>Reason Code Master</value>
   </data>
-  <data name="MD.ReasonCode.Sub" xml:space="preserve">
-    <value>Stoppage and rejection reason codes</value>
-  </data>
   <data name="MD.ReasonCode.List" xml:space="preserve">
     <value>Reason Code List</value>
   </data>
@@ -2072,9 +1709,6 @@
   </data>
   <data name="MD.Recipe.Title" xml:space="preserve">
     <value>Recipe Master</value>
-  </data>
-  <data name="MD.Recipe.Sub" xml:space="preserve">
-    <value>Process recipe master</value>
   </data>
   <data name="MD.Recipe.List" xml:space="preserve">
     <value>Recipe List</value>
@@ -2085,9 +1719,6 @@
   <data name="MD.RfidReader.Title" xml:space="preserve">
     <value>RFID Reader Master</value>
   </data>
-  <data name="MD.RfidReader.Sub" xml:space="preserve">
-    <value>RFID reader master data</value>
-  </data>
   <data name="MD.RfidReader.List" xml:space="preserve">
     <value>RFID Reader List</value>
   </data>
@@ -2096,9 +1727,6 @@
   </data>
   <data name="MD.RfidTag.Title" xml:space="preserve">
     <value>RFID Tag Master</value>
-  </data>
-  <data name="MD.RfidTag.Sub" xml:space="preserve">
-    <value>RFID tag master data</value>
   </data>
   <data name="MD.RfidTag.List" xml:space="preserve">
     <value>RFID Tag List</value>
@@ -2109,9 +1737,6 @@
   <data name="MD.ShipDest.Title" xml:space="preserve">
     <value>Shipment Destination Master</value>
   </data>
-  <data name="MD.ShipDest.Sub" xml:space="preserve">
-    <value>Shipment destination master data</value>
-  </data>
   <data name="MD.ShipDest.List" xml:space="preserve">
     <value>Shipment Destination List</value>
   </data>
@@ -2121,9 +1746,6 @@
   <data name="MD.SparePart.Title" xml:space="preserve">
     <value>Spare Part Master</value>
   </data>
-  <data name="MD.SparePart.Sub" xml:space="preserve">
-    <value>Equipment spare parts master</value>
-  </data>
   <data name="MD.SparePart.List" xml:space="preserve">
     <value>Spare Part List</value>
   </data>
@@ -2132,9 +1754,6 @@
   </data>
   <data name="MD.Station.Title" xml:space="preserve">
     <value>Station Master</value>
-  </data>
-  <data name="MD.Station.Sub" xml:space="preserve">
-    <value>Work station master by process</value>
   </data>
   <data name="MD.Station.List" xml:space="preserve">
     <value>Station List</value>
@@ -2154,9 +1773,6 @@
   <data name="MD.Uom.Title" xml:space="preserve">
     <value>UOM Master</value>
   </data>
-  <data name="MD.Uom.Sub" xml:space="preserve">
-    <value>Unit of measure master</value>
-  </data>
   <data name="MD.Uom.List" xml:space="preserve">
     <value>UOM List</value>
   </data>
@@ -2166,9 +1782,6 @@
   <data name="MD.Vendor.Title" xml:space="preserve">
     <value>Vendor Master</value>
   </data>
-  <data name="MD.Vendor.Sub" xml:space="preserve">
-    <value>Raw material supplier master</value>
-  </data>
   <data name="MD.Vendor.List" xml:space="preserve">
     <value>Vendor List</value>
   </data>
@@ -2177,9 +1790,6 @@
   </data>
   <data name="MD.WorkCenter.Title" xml:space="preserve">
     <value>Work Center Management</value>
-  </data>
-  <data name="MD.WorkCenter.Sub" xml:space="preserve">
-    <value>Work center master by process</value>
   </data>
   <data name="MD.WorkCenter.List" xml:space="preserve">
     <value>Work Center List</value>
@@ -2195,12 +1805,6 @@
   </data>
   <data name="PP.Calendar.Title" xml:space="preserve">
     <value>Calendar</value>
-  </data>
-  <data name="PP.Calendar.Sub" xml:space="preserve">
-    <value>WO due-date monthly / weekly view · D-3 alert · Reschedule</value>
-  </data>
-  <data name="PP.Calendar.Empty" xml:space="preserve">
-    <value>No calendar entries for this period.</value>
   </data>
   <data name="PP.Calendar.Kpi.TotalSub" xml:space="preserve">
     <value>With due date</value>
@@ -2340,9 +1944,6 @@
   <data name="PP.Delivery.Title" xml:space="preserve">
     <value>On-Time Delivery</value>
   </data>
-  <data name="PP.Delivery.Sub" xml:space="preserve">
-    <value>Shipment Orders · On-Time Delivery Analysis</value>
-  </data>
   <data name="PP.Delivery.Empty" xml:space="preserve">
     <value>No shipment history matches the conditions.</value>
   </data>
@@ -2388,9 +1989,6 @@
   <data name="PP.Downtime.Title" xml:space="preserve">
     <value>Downtime Log</value>
   </data>
-  <data name="PP.Downtime.Sub" xml:space="preserve">
-    <value>Line Downtime Event History</value>
-  </data>
   <data name="PP.Downtime.Empty" xml:space="preserve">
     <value>No downtime events match the conditions.</value>
   </data>
@@ -2405,12 +2003,6 @@
   </data>
   <data name="PP.DowntimeMonitor.Title" xml:space="preserve">
     <value>Downtime Monitor</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Sub" xml:space="preserve">
-    <value>Real-time Line Availability Status</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Empty" xml:space="preserve">
-    <value>No monitoring data available.</value>
   </data>
   <data name="PP.DowntimeMonitor.Kpi.Lines" xml:space="preserve">
     <value>Lines Monitored</value>
@@ -2459,12 +2051,6 @@
   </data>
   <data name="PP.DowntimeMonitor.Tl.Now" xml:space="preserve">
     <value>Now</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Stat.Work" xml:space="preserve">
-    <value>Run {0} min</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Stat.Unplan" xml:space="preserve">
-    <value>Unplanned {0} min</value>
   </data>
   <data name="PP.DowntimeMonitor.Stat.Age" xml:space="preserve">
     <value>{0} min ago</value>
@@ -2547,14 +2133,8 @@
   <data name="PP.Forecast.Title" xml:space="preserve">
     <value>Forecast</value>
   </data>
-  <data name="PP.Forecast.Sub" xml:space="preserve">
-    <value>Customer Part Demand Forecast</value>
-  </data>
   <data name="PP.Forecast.Empty" xml:space="preserve">
     <value>No forecast data matches the conditions.</value>
-  </data>
-  <data name="Pager.Summary" xml:space="preserve">
-    <value>Page {0} / {1} · {2} total</value>
   </data>
   <data name="PP.Forecast.Tab.Status" xml:space="preserve">
     <value>Forecast Status</value>
@@ -2595,9 +2175,6 @@
   <data name="PP.Forecast.Upload.Hint" xml:space="preserve">
     <value>ZMM30004 .xls/.xlsx file · max 10 MB</value>
   </data>
-  <data name="PP.Forecast.Err.NoCustomer" xml:space="preserve">
-    <value>Select a customer first.</value>
-  </data>
   <data name="PP.Forecast.Err.Parse" xml:space="preserve">
     <value>Unrecognized file format. Check that it is a ZMM30004 weekly purchase plan file.</value>
   </data>
@@ -2606,9 +2183,6 @@
   </data>
   <data name="PP.Forecast.Err.ItemNoLen" xml:space="preserve">
     <value>Part number '{0}' exceeds 20 characters.</value>
-  </data>
-  <data name="PP.Forecast.Preview.Title" xml:space="preserve">
-    <value>Upload Preview</value>
   </data>
   <data name="PP.Forecast.Preview.Summary" xml:space="preserve">
     <value>{0} parts × {1} weeks · {2:MM/dd}–{3:MM/dd}</value>
@@ -2648,12 +2222,6 @@
   </data>
   <data name="PP.LineSchedule.Title" xml:space="preserve">
     <value>Line Schedule</value>
-  </data>
-  <data name="PP.LineSchedule.Sub" xml:space="preserve">
-    <value>Minute-level Gantt · WORK / Planned-Down bands · WO placement · Capacity check</value>
-  </data>
-  <data name="PP.LineSchedule.Empty" xml:space="preserve">
-    <value>No schedule entries match the conditions.</value>
   </data>
   <data name="PP.LineSchedule.Kpi.WorkCap" xml:space="preserve">
     <value>Work Capacity</value>
@@ -2781,20 +2349,11 @@
   <data name="PP.Mrp.Title" xml:space="preserve">
     <value>MRP</value>
   </data>
-  <data name="PP.Mrp.Sub" xml:space="preserve">
-    <value>Material Requirements Planning Run History</value>
-  </data>
   <data name="PP.Mrp.Empty" xml:space="preserve">
     <value>No MRP run history available.</value>
   </data>
   <data name="PP.Oee.Title" xml:space="preserve">
     <value>Line OEE</value>
-  </data>
-  <data name="PP.Oee.Sub" xml:space="preserve">
-    <value>Time-loss model · A × P × Q → OEE · Periodic snapshot storage</value>
-  </data>
-  <data name="PP.Oee.Empty" xml:space="preserve">
-    <value>No OEE data matches the conditions.</value>
   </data>
   <data name="PP.Oee.Kpi.HistAvg" xml:space="preserve">
     <value>Historical Avg</value>
@@ -2994,12 +2553,6 @@
   <data name="PP.PlanConfirm.Title" xml:space="preserve">
     <value>Plan Confirm</value>
   </data>
-  <data name="PP.PlanConfirm.Sub" xml:space="preserve">
-    <value>Production Plan Confirmation &amp; Approval</value>
-  </data>
-  <data name="PP.PlanConfirm.List" xml:space="preserve">
-    <value>Plan Confirmation List</value>
-  </data>
   <data name="PP.PlanConfirm.Empty" xml:space="preserve">
     <value>No confirmed orders are pending work-order creation.</value>
   </data>
@@ -3072,17 +2625,11 @@
   <data name="PP.PurchaseReq.Title" xml:space="preserve">
     <value>Purchase Requisition</value>
   </data>
-  <data name="PP.PurchaseReq.Sub" xml:space="preserve">
-    <value>MRP-generated Purchase Requisition Management</value>
-  </data>
   <data name="PP.PurchaseReq.Empty" xml:space="preserve">
     <value>No purchase requisitions match the conditions.</value>
   </data>
   <data name="PP.SupplyPlanImport.Title" xml:space="preserve">
     <value>Supply Plan Import</value>
-  </data>
-  <data name="PP.SupplyPlanImport.Sub" xml:space="preserve">
-    <value>SAP Delivery Order Integration</value>
   </data>
   <data name="PP.SupplyPlanImport.Empty" xml:space="preserve">
     <value>No SAP import data matches the conditions.</value>
@@ -3165,9 +2712,6 @@
   <data name="PP.WoRelease.Title" xml:space="preserve">
     <value>WO Release</value>
   </data>
-  <data name="PP.WoRelease.Sub" xml:space="preserve">
-    <value>Work Order Release · Process Assignment</value>
-  </data>
   <data name="PP.WoRelease.Empty" xml:space="preserve">
     <value>No work orders match the conditions.</value>
   </data>
@@ -3186,17 +2730,8 @@
   <data name="PP.WorkOrder.Title" xml:space="preserve">
     <value>Work Order</value>
   </data>
-  <data name="PP.WorkOrder.Sub" xml:space="preserve">
-    <value>Production Work Order Management</value>
-  </data>
-  <data name="PP.WorkOrder.List" xml:space="preserve">
-    <value>Work Order List</value>
-  </data>
   <data name="PP.WorkOrder.Empty" xml:space="preserve">
     <value>No work orders match the conditions.</value>
-  </data>
-  <data name="PP.WorkOrder.Kpi.Unshipped" xml:space="preserve">
-    <value>Unshipped WOs</value>
   </data>
   <data name="PP.WorkOrder.Kpi.Waiting" xml:space="preserve">
     <value>Terminal Waiting</value>
@@ -3219,12 +2754,6 @@
   <data name="PP.WorkOrder.Filter.Closed90" xml:space="preserve">
     <value>Closed 90d</value>
   </data>
-  <data name="PP.WorkOrder.Ttl.IMG" xml:space="preserve">
-    <value>Wrapping (IMG)</value>
-  </data>
-  <data name="PP.WorkOrder.Ttl.PNT" xml:space="preserve">
-    <value>Painting (PNT)</value>
-  </data>
   <data name="PP.WorkOrder.Ttl.Phase0Fail" xml:space="preserve">
     <value>BOM/BOP not registered — shipping blocked</value>
   </data>
@@ -3233,9 +2762,6 @@
   </data>
   <data name="PP.WorkOrder.Filter.ClosedDays" xml:space="preserve">
     <value>Closed (days)</value>
-  </data>
-  <data name="PP.WorkOrder.Kpi.Critical" xml:space="preserve">
-    <value>Due in 3 days or less</value>
   </data>
   <data name="PP.WorkOrder.Col.Action" xml:space="preserve">
     <value>Action</value>
@@ -3375,29 +2901,11 @@
   <data name="Col.Comment" xml:space="preserve">
     <value>Comment</value>
   </data>
-  <data name="Col.Minute" xml:space="preserve">
-    <value>Minute</value>
-  </data>
-  <data name="Col.State" xml:space="preserve">
-    <value>State</value>
-  </data>
   <data name="Col.Plan" xml:space="preserve">
     <value>Plan</value>
   </data>
-  <data name="Col.Run" xml:space="preserve">
-    <value>Run</value>
-  </data>
-  <data name="Col.Month" xml:space="preserve">
-    <value>Month</value>
-  </data>
-  <data name="Col.Confidence" xml:space="preserve">
-    <value>Confidence</value>
-  </data>
   <data name="Col.Source" xml:space="preserve">
     <value>Source</value>
-  </data>
-  <data name="Col.Batch" xml:space="preserve">
-    <value>Batch</value>
   </data>
   <data name="Col.Planned" xml:space="preserve">
     <value>Planned</value>
@@ -3443,15 +2951,6 @@
   </data>
   <data name="Col.Total" xml:space="preserve">
     <value>Total</value>
-  </data>
-  <data name="Col.Period" xml:space="preserve">
-    <value>Period</value>
-  </data>
-  <data name="Col.Lines" xml:space="preserve">
-    <value>Lines</value>
-  </data>
-  <data name="Col.TotalQty" xml:space="preserve">
-    <value>Total Qty</value>
   </data>
   <data name="Col.PrNo" xml:space="preserve">
     <value>PR No</value>
@@ -3636,26 +3135,11 @@
   <data name="Col.HolidayName" xml:space="preserve">
     <value>Holiday Name</value>
   </data>
-  <data name="Col.MenuSection" xml:space="preserve">
-    <value>Section</value>
-  </data>
-  <data name="Col.MenuName" xml:space="preserve">
-    <value>Menu Name (KO)</value>
-  </data>
-  <data name="Col.MenuNameEn" xml:space="preserve">
-    <value>Menu Name (EN)</value>
-  </data>
   <data name="Col.Routing" xml:space="preserve">
     <value>Routing</value>
   </data>
-  <data name="Col.Visible" xml:space="preserve">
-    <value>Visible</value>
-  </data>
   <data name="Col.RoleName" xml:space="preserve">
     <value>Role Name</value>
-  </data>
-  <data name="Col.Permission" xml:space="preserve">
-    <value>Permission</value>
   </data>
   <data name="Col.EventCode" xml:space="preserve">
     <value>Event Code</value>
@@ -3714,9 +3198,6 @@
   <data name="Col.CodeValue" xml:space="preserve">
     <value>Code Value</value>
   </data>
-  <data name="Col.CodeName" xml:space="preserve">
-    <value>Code Name</value>
-  </data>
   <data name="Col.Attr1" xml:space="preserve">
     <value>Attribute1</value>
   </data>
@@ -3725,9 +3206,6 @@
   </data>
   <data name="Col.CustomerName" xml:space="preserve">
     <value>Customer Name (KO)</value>
-  </data>
-  <data name="Col.NameEn" xml:space="preserve">
-    <value>English Name</value>
   </data>
   <data name="Col.Country" xml:space="preserve">
     <value>Country</value>
@@ -3908,9 +3386,6 @@
   </data>
   <data name="Col.EndMin" xml:space="preserve">
     <value>End (min)</value>
-  </data>
-  <data name="Col.ShiftCode" xml:space="preserve">
-    <value>Shift</value>
   </data>
   <data name="Col.ReasonCode" xml:space="preserve">
     <value>Reason Code</value>
@@ -4170,9 +3645,6 @@
   <data name="Col.WcName" xml:space="preserve">
     <value>Name</value>
   </data>
-  <data name="Col.ProcessType" xml:space="preserve">
-    <value>Process Type</value>
-  </data>
   <data name="Col.StdHeadcount" xml:space="preserve">
     <value>Std Headcount</value>
   </data>
@@ -4191,9 +3663,6 @@
   <data name="Col.ScrapPct" xml:space="preserve">
     <value>Scrap %</value>
   </data>
-  <data name="Col.ProcessWC" xml:space="preserve">
-    <value>Process / WC</value>
-  </data>
   <data name="Col.CycleSetup" xml:space="preserve">
     <value>Cycle / Setup (s)</value>
   </data>
@@ -4203,20 +3672,8 @@
   <data name="Col.Progress" xml:space="preserve">
     <value>Progress</value>
   </data>
-  <data name="MD.Items.Kpi.FG" xml:space="preserve">
-    <value>Finished Goods (FG)</value>
-  </data>
-  <data name="MD.Items.Kpi.WIP" xml:space="preserve">
-    <value>Semi-finished (WIP)</value>
-  </data>
   <data name="MD.Items.Ph.Search" xml:space="preserve">
     <value>Part No/Name/Car Type/PGN/ALC</value>
-  </data>
-  <data name="MD.Items.Modal.Create" xml:space="preserve">
-    <value>Create Part</value>
-  </data>
-  <data name="MD.Items.Modal.Edit" xml:space="preserve">
-    <value>Edit Part</value>
   </data>
   <data name="MD.Items.Lbl.ItemNo" xml:space="preserve">
     <value>Part No. *</value>
@@ -4229,9 +3686,6 @@
   </data>
   <data name="MD.Items.Lbl.ItemName" xml:space="preserve">
     <value>Part Name *</value>
-  </data>
-  <data name="MD.Items.Lbl.ItemNameEn" xml:space="preserve">
-    <value>Part Name (EN)</value>
   </data>
   <data name="MD.Items.Lbl.ItemType" xml:space="preserve">
     <value>Part Type</value>
@@ -4250,12 +3704,6 @@
   </data>
   <data name="MD.Items.Lbl.UnitCost" xml:space="preserve">
     <value>Unit Cost</value>
-  </data>
-  <data name="MD.Items.Lbl.CustSav" xml:space="preserve">
-    <value>Customer P/N (SAV)</value>
-  </data>
-  <data name="MD.Items.Lbl.CustGeo" xml:space="preserve">
-    <value>Customer P/N (GEO)</value>
   </data>
   <data name="MD.Items.Lbl.DrawingNo" xml:space="preserve">
     <value>Drawing No.</value>
@@ -4286,12 +3734,6 @@
   </data>
   <data name="MD.Customer.Ph.Search" xml:space="preserve">
     <value>Customer code/Name</value>
-  </data>
-  <data name="MD.Customer.Modal.Create" xml:space="preserve">
-    <value>New Customer</value>
-  </data>
-  <data name="MD.Customer.Modal.Edit" xml:space="preserve">
-    <value>Edit Customer</value>
   </data>
   <data name="MD.Customer.Lbl.CustomerCode" xml:space="preserve">
     <value>Customer Code</value>
@@ -4328,12 +3770,6 @@
   </data>
   <data name="MD.Vendor.Ph.Search" xml:space="preserve">
     <value>Vendor name</value>
-  </data>
-  <data name="MD.Vendor.Modal.Create" xml:space="preserve">
-    <value>New Vendor</value>
-  </data>
-  <data name="MD.Vendor.Modal.Edit" xml:space="preserve">
-    <value>Edit Vendor</value>
   </data>
   <data name="MD.Vendor.Lbl.VendorName" xml:space="preserve">
     <value>Vendor Name *</value>
@@ -4382,12 +3818,6 @@
   </data>
   <data name="MD.Location.Ph.Search" xml:space="preserve">
     <value>Location ID/Name</value>
-  </data>
-  <data name="MD.Location.Modal.Create" xml:space="preserve">
-    <value>New Location</value>
-  </data>
-  <data name="MD.Location.Modal.Edit" xml:space="preserve">
-    <value>Edit Location</value>
   </data>
   <data name="MD.Location.Lbl.LocationID" xml:space="preserve">
     <value>Location ID *</value>
@@ -4487,9 +3917,6 @@
   </data>
   <data name="SYS.Calendar.Lbl.Plant" xml:space="preserve">
     <value>Plant</value>
-  </data>
-  <data name="SYS.Calendar.Ph.Plant" xml:space="preserve">
-    <value>e.g. SAV, TCS</value>
   </data>
   <data name="SYS.Calendar.Lbl.ShiftConfig" xml:space="preserve">
     <value>Shift Configuration</value>
@@ -4701,9 +4128,6 @@
   <data name="Kpi.LineCount" xml:space="preserve">
     <value>Lines</value>
   </data>
-  <data name="Kpi.TypeCount" xml:space="preserve">
-    <value>Types</value>
-  </data>
   <data name="Kpi.ProcessCount" xml:space="preserve">
     <value>Processes</value>
   </data>
@@ -4790,9 +4214,6 @@
   </data>
   <data name="MD.Uom.Kpi.BaseUnit" xml:space="preserve">
     <value>Base Unit</value>
-  </data>
-  <data name="MD.InspStd.Kpi.ProcessCount" xml:space="preserve">
-    <value>Processes</value>
   </data>
   <data name="Col.JigName" xml:space="preserve">
     <value>Jig Name</value>
@@ -5019,9 +4440,6 @@
   <data name="Msg.Deleted" xml:space="preserve">
     <value>deleted.</value>
   </data>
-  <data name="Msg.GroupDeleted" xml:space="preserve">
-    <value>Group deleted.</value>
-  </data>
   <data name="Msg.Approved" xml:space="preserve">
     <value>approved.</value>
   </data>
@@ -5034,9 +4452,6 @@
   <data name="Msg.Revived" xml:space="preserve">
     <value>revived to DRAFT.</value>
   </data>
-  <data name="Msg.BomVersionCreated" xml:space="preserve">
-    <value>BOM version created.</value>
-  </data>
   <data name="Msg.BomLineAdded" xml:space="preserve">
     <value>BOM line added.</value>
   </data>
@@ -5046,8 +4461,11 @@
   <data name="Msg.BomLineDeleted" xml:space="preserve">
     <value>BOM line deleted.</value>
   </data>
-  <data name="Err.AlreadyExists" xml:space="preserve">
-    <value>already exists.</value>
+  <data name="Err.AlreadyExistsFmt" xml:space="preserve">
+    <value>'{0}' already exists.</value>
+  </data>
+  <data name="Lbl.Required" xml:space="preserve">
+    <value>Required</value>
   </data>
   <data name="Err.VersionIdRequired" xml:space="preserve">
     <value>Version ID is required.</value>
@@ -5108,9 +4526,6 @@
   </data>
   <data name="MD.PaintFabric.Ph.Search" xml:space="preserve">
     <value>LOT ID/Mat. Code/Name</value>
-  </data>
-  <data name="MD.PmTemplate.Ph.Search" xml:space="preserve">
-    <value>Template ID/Name</value>
   </data>
   <data name="MD.RalColor.Ph.Search" xml:space="preserve">
     <value>RAL code/Color name</value>
@@ -5274,12 +4689,6 @@
   <data name="MD.Bom.NoLines" xml:space="preserve">
     <value>No component lines</value>
   </data>
-  <data name="MD.Bom.NoLinesHint" xml:space="preserve">
-    <value>— Use the + Line button above to add</value>
-  </data>
-  <data name="MD.Bom.Modal.CreateVersion" xml:space="preserve">
-    <value>Register BOM Version</value>
-  </data>
   <data name="MD.Bom.Modal.AddLine" xml:space="preserve">
     <value>Add BOM Line</value>
   </data>
@@ -5309,12 +4718,6 @@
   </data>
   <data name="MD.Bop.NoSteps" xml:space="preserve">
     <value>No process steps — use the + Add Step button above</value>
-  </data>
-  <data name="MD.Bop.Modal.AddStep" xml:space="preserve">
-    <value>Add BOP Step</value>
-  </data>
-  <data name="MD.Bop.Modal.EditStep" xml:space="preserve">
-    <value>Edit BOP Step</value>
   </data>
   <data name="MD.Bop.ConfirmDeleteStep" xml:space="preserve">
     <value>Delete {0} Step {1}?</value>
@@ -5366,9 +4769,6 @@
   </data>
   <data name="PP.LineSchedule.ClickHint" xml:space="preserve">
     <value>Click an existing band to delete</value>
-  </data>
-  <data name="PP.Wo.P0Title" xml:space="preserve">
-    <value>Phase-0: Item·BOM·BOP complete (BR-PP-001)</value>
   </data>
   <data name="PP.Calendar.WoTooltip.Line" xml:space="preserve">
     <value>Line</value>
@@ -5424,15 +4824,6 @@
   <data name="SYS.Users.Ph.Search" xml:space="preserve">
     <value>User ID/Email/Emp.No/Name/Dept</value>
   </data>
-  <data name="PP.SapImport.Title" xml:space="preserve">
-    <value>SAP Import</value>
-  </data>
-  <data name="PP.SapImport.Sub" xml:space="preserve">
-    <value>SAP Delivery Order Integration</value>
-  </data>
-  <data name="PP.SapImport.Empty" xml:space="preserve">
-    <value>No SAP import data matches the conditions.</value>
-  </data>
   <data name="SYS.Users.Lbl.Email" xml:space="preserve">
     <value>Email *</value>
   </data>
@@ -5447,12 +4838,6 @@
   </data>
   <data name="SYS.Screen.Col.SubProcess" xml:space="preserve">
     <value>Sub</value>
-  </data>
-  <data name="SYS.Screen.Modal.Create" xml:space="preserve">
-    <value>New screen</value>
-  </data>
-  <data name="SYS.Screen.Modal.Edit" xml:space="preserve">
-    <value>Edit Screen</value>
   </data>
   <data name="Col.CarType" xml:space="preserve">
     <value>Car Type</value>

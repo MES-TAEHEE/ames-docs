@@ -28,7 +28,7 @@
 <div class="ames-card-h" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;text-transform:none;">
     <div class="ames-fld">
         <label>@L["Col.Customer"]</label>
-        <RadzenDropDown Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
+        <RadzenDropDown AllowFiltering="true" Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
                         @bind-Value="_fCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
                         Style="width:200px" />
     </div>

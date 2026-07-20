@@ -160,7 +160,7 @@
 @if (_modal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Bop.Title"] — @L["Modal.Create"]</div>
 
             @StepFormFields(false)
@@ -182,7 +182,7 @@
 @if (_modal == "edit")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">
                 @L["MD.Bop.Title"] — @L["Modal.Edit"]
                 <span class="pill info" style="margin-left:8px;font-size:.8em;">@_f.RoutingType</span>
@@ -492,7 +492,7 @@
     @<div>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
             <RadzenLabel Text='@($"{L["Col.ItemNo"]} *")' class="ames-rz-modal-label" Component="StepFormItemNo" />
-            <RadzenDropDown Name="StepFormItemNo" @bind-Value="_f.ItemNo" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" Disabled="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+            <RadzenDropDown AllowFiltering="true" Name="StepFormItemNo" @bind-Value="_f.ItemNo" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" Disabled="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
         </RadzenStack>
 
         <RadzenRow Gap="8px" Style="margin-top:6px;">

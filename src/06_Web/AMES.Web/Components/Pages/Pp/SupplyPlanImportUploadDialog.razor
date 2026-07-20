@@ -6,7 +6,7 @@
 
 <div style="display:flex;flex-direction:column;gap:6px;min-width:440px;">
     <label>① @L["Col.Customer"]</label>
-    <RadzenDropDown Data="Customers" TextProperty="CustomerName" ValueProperty="CustomerID"
+    <RadzenDropDown AllowFiltering="true" Data="Customers" TextProperty="CustomerName" ValueProperty="CustomerID"
                     @bind-Value="_upCustomer" Disabled="_busy" AllowClear="true"
                     Placeholder="—" Style="width:100%" />
 

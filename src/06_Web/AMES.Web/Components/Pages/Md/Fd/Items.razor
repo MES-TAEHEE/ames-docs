@@ -124,7 +124,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text='@(L["MD.Items.Lbl.Uom"] + " (UOM)")' />
-                    <RadzenDropDown @bind-Value="_f.Uom" Data="@UomOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.Uom" Data="@UomOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -157,7 +157,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text='@(L["MD.Items.Lbl.Uom"] + " (UOM)")' />
-                    <RadzenDropDown @bind-Value="_f.Uom" Data="@UomOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.Uom" Data="@UomOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -309,7 +309,7 @@
         try
         {
             var no = _f.ItemNo.Trim().ToUpper();
-            if (MD.ItemExists(no)) { _modalErr = $"'{no}' 품목번호가 {L["Err.AlreadyExists"]}"; return; }
+            if (MD.ItemExists(no)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], no); return; }
             MD.InsertItem(no, _f.ItemName.Trim(), N(_f.ItemType),
                 N(_f.ItemCategory), N(_f.CarType), N(_f.Uom), N(_f.RoutingType),
                 Nz(_f.MinStock), Nz(_f.MaxStock), Nz(_f.SafetyStock), Nz(_f.UnitCost),
@@ -404,7 +404,7 @@
             </RadzenColumn>
             <RadzenColumn Size="6">
                 <RadzenLabel Text="@L["MD.Items.Lbl.CarType"]" />
-                <RadzenTextBox @bind-Value="_f.CarType" Placeholder="예: LQ2" MaxLength="10" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenTextBox @bind-Value="_f.CarType" Placeholder="LQ2" MaxLength="10" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
         </RadzenRow>
 
@@ -415,7 +415,7 @@
             </RadzenColumn>
             <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["MD.Items.Lbl.Category"]" />
-                <RadzenTextBox @bind-Value="_f.ItemCategory" Placeholder="예: BUMPER, DOOR" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenTextBox @bind-Value="_f.ItemCategory" Placeholder="BUMPER, DOOR" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="4">
                 <RadzenLabel Text="Routing" />

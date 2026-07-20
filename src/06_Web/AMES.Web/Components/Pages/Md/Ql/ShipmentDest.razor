@@ -96,12 +96,12 @@
 @if (_modal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.ShipDest.Title"] — @L["Modal.Create"]</div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text='@($"{L["Col.CustomerCode"]} *")' class="ames-rz-modal-label" Component="CreateDropDownCustomerID" />
-                <RadzenDropDown Name="CreateDropDownCustomerID" @bind-Value="_f.CustomerID" Data="CustomerOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                <RadzenDropDown AllowFiltering="true" Name="CreateDropDownCustomerID" @bind-Value="_f.CustomerID" Data="CustomerOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
@@ -173,12 +173,12 @@
 @if (_modal == "edit" && _sel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.ShipDest.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.ShipDestID</span></div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text='@($"{L["Col.CustomerCode"]} *")' class="ames-rz-modal-label" Component="EditDropDownCustomerID" />
-                <RadzenDropDown Name="EditDropDownCustomerID" @bind-Value="_f.CustomerID" Data="CustomerOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                <RadzenDropDown AllowFiltering="true" Name="EditDropDownCustomerID" @bind-Value="_f.CustomerID" Data="CustomerOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">

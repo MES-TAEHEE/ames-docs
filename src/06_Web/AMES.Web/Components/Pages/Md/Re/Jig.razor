@@ -106,7 +106,7 @@
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="LastServiceDate" Title="@L["Col.LastMaint"]" Width="100px">
-                <Template Context="r"><span class="dim">@(r.LastServiceDate?.ToString("yyyy-MM-dd") ?? "—")</span></Template>
+                <Template Context="r"><span class="dim">@(r.LastServiceDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="ActiveFlag" Title="@L["Col.Active"]" Width="80px" TextAlign="TextAlign.Center">
                 <Template Context="r">
@@ -122,7 +122,7 @@
 @if (_modal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Jig.Title"] — @L["Modal.Create"]</div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -164,7 +164,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.LastService"]" />
-                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.LastServiceDate" DateFormat="yyyy-MM-dd" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.LastServiceDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -190,7 +190,7 @@
 @if (_modal == "edit" && _sel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Jig.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.JigID</span></div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -227,7 +227,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.LastService"]" />
-                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.LastServiceDate" DateFormat="yyyy-MM-dd" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.LastServiceDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -359,7 +359,7 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.JigID))  { _modalErr = L["Err.JigIdRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.JigName)) { _modalErr = L["Err.NameRequired"]; return; }
-        if (MD.JigExists(_f.JigID.Trim())) { _modalErr = $"지그 ID '{_f.JigID.Trim()}' 이 {L["Err.AlreadyExists"]}"; return; }
+        if (MD.JigExists(_f.JigID.Trim())) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], _f.JigID.Trim()); return; }
         _busy = true;
         try
         {

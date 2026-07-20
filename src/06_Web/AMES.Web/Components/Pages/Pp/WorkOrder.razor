@@ -45,7 +45,7 @@
     </div>
     <div class="ames-fld">
         <label>@L["PP.WorkOrder.Filter.ClosedDays"]</label>
-        <RadzenDropDown Data="_dayOpts" @bind-Value="_recentDays" @bind-Value:after="Reload" Style="width:130px" />
+        <RadzenDropDown AllowFiltering="true" Data="_dayOpts" @bind-Value="_recentDays" @bind-Value:after="Reload" Style="width:130px" />
     </div>
     <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
         <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" Click="Reload" />

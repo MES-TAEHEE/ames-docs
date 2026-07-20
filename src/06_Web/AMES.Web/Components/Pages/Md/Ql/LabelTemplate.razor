@@ -104,7 +104,7 @@
 @if (_modal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.LabelTpl.Title"] — @L["Modal.Create"]</div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -174,7 +174,7 @@
 @if (_modal == "edit" && _sel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.LabelTpl.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.LabelTemplateID</span></div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -341,7 +341,7 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.LabelTemplateID)) { _modalErr = L["Err.TemplateIdRequired"]; return; }
         var id = _f.LabelTemplateID.Trim();
-        if (MD.LabelTemplateExists(id)) { _modalErr = $"'{id}' ID가 {L["Err.AlreadyExists"]}"; return; }
+        if (MD.LabelTemplateExists(id)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], id); return; }
         _busy = true;
         try
         {

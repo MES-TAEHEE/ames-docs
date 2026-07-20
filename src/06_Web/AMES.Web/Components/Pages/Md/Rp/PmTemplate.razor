@@ -137,7 +137,7 @@
 @if (_modal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.PmTemplate.Title"] — @L["Modal.Create"]</div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -174,7 +174,7 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@(L["Col.StdDuration"] + " (분)")' />
+                    <RadzenLabel Text="@L["Col.StdDuration"]" />
                     <RadzenNumeric TValue="int?" @bind-Value="_f.StdDurationMin" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
@@ -182,7 +182,7 @@
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1.5rem" Style="margin-top:8px;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
                     <RadzenCheckBox TValue="bool" @bind-Value="_f.SafetyLOTOFlag" Name="CreateChkLoto" />
-                    <RadzenLabel Text="@($"{L["Col.LOTO"]} 필요")" Component="CreateChkLoto" style="cursor:pointer;" />
+                    <RadzenLabel Text="@($"{L["Col.LOTO"]} {L["Lbl.Required"]}")" Component="CreateChkLoto" style="cursor:pointer;" />
                 </RadzenStack>
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
                     <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="CreateChkActive" />
@@ -207,7 +207,7 @@
 @if (_modal == "edit" && _sel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.PmTemplate.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.PMTemplateID</span></div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -239,7 +239,7 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@(L["Col.StdDuration"] + " (분)")' />
+                    <RadzenLabel Text="@L["Col.StdDuration"]" />
                     <RadzenNumeric TValue="int?" @bind-Value="_f.StdDurationMin" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
@@ -247,7 +247,7 @@
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1.5rem" Style="margin-top:8px;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
                     <RadzenCheckBox TValue="bool" @bind-Value="_f.SafetyLOTOFlag" Name="EditChkLoto" />
-                    <RadzenLabel Text="@($"{L["Col.LOTO"]} 필요")" Component="EditChkLoto" style="cursor:pointer;" />
+                    <RadzenLabel Text="@($"{L["Col.LOTO"]} {L["Lbl.Required"]}")" Component="EditChkLoto" style="cursor:pointer;" />
                 </RadzenStack>
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
                     <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="EditChkActive" />
@@ -398,7 +398,7 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.PMTemplateID)) { _modalErr = L["Err.TemplateIdRequired"]; return; }
         var id = _f.PMTemplateID.Trim();
-        if (MD.PmTemplateExists(id)) { _modalErr = $"'{id}' ID가 {L["Err.AlreadyExists"]}"; return; }
+        if (MD.PmTemplateExists(id)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], id); return; }
         _busy = true;
         try
         {

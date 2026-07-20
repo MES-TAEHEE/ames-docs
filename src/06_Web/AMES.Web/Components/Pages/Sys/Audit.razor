@@ -51,15 +51,15 @@
         <span style="white-space:nowrap;">▼ @L["SYS.Audit.List"] · @_rows.Count @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="@L["Lbl.Period"]" />
-            <RadzenDatePicker TValue="DateTime" @bind-Value="_fFrom" DateFormat="yyyy-MM-dd" InputSize="InputSize.Small" class="ames-rz-input" Style="width:125px;" />
+            <RadzenDatePicker TValue="DateTime" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:125px;" />
             <span class="dim">~</span>
-            <RadzenDatePicker TValue="DateTime" @bind-Value="_fTo" DateFormat="yyyy-MM-dd" InputSize="InputSize.Small" class="ames-rz-input" Style="width:125px;" />
+            <RadzenDatePicker TValue="DateTime" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:125px;" />
 
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["SYS.Audit.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
             <RadzenLabel Text="@L["Col.Module"]" Component="DropDownModule" />
-            <RadzenDropDown Name="DropDownModule" @bind-Value="_fModule" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownModule" @bind-Value="_fModule" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenLabel Text="@L["Col.Process"]" Component="DropDownProcess" />
-            <RadzenDropDown Name="DropDownProcess" @bind-Value="_fProcess" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownProcess" @bind-Value="_fProcess" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
             <RadzenLabel Text="@L["Lbl.Result"]" Component="DropDownResult" />
             <RadzenDropDown Name="DropDownResult" @bind-Value="_fResult" Data="@ResultOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:90px;" />
 
@@ -71,7 +71,7 @@
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SYS.Audit.Empty"]" Class="ames-rz-grid">
         <Columns>
             <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="EventTs" Title="@L["SYS.Audit.Col.Time"]" Width="140px">
-                <Template Context="a"><span class="code dim" style="font-size:13px;white-space:nowrap;">@(a.EventTs?.ToString("MM-dd HH:mm:ss") ?? "—")</span></Template>
+                <Template Context="a"><span class="code dim" style="font-size:13px;white-space:nowrap;">@(a.EventTs?.ToString(DateFmt.MonthDayTimeSec) ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="ActorUserId" Title="@L["SYS.Audit.Col.Actor"]" Width="150px">
                 <Template Context="a"><span class="dim" style="font-family:'JetBrains Mono',monospace;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:140px;">@(a.ActorUserId ?? "—")</span></Template>
@@ -80,7 +80,15 @@
                 <Template Context="a"><span class="pill @ModClass(a.ModuleCode)">@(a.ModuleCode ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="ProcessCode" Title="@L["Col.ProcessCode"]" Width="110px">
-                <Template Context="a"><span class="code dim" style="font-size:13px;">@(a.ProcessCode ?? "—")</span></Template>
+                <Template Context="a">
+                    @if (a.ProcessCode != null)
+                    {
+                        var procName = _processItems.FirstOrDefault(c2 => c2.CodeValue == a.ProcessCode) is { } pf ? MasterDataRepository.LocalName(pf) : null;
+                        <span class="pill @Ui.ProcessClass(a.ProcessCode)">@a.ProcessCode</span>
+                        @if (procName != null) { <span class="dim" style="font-size:.8em;margin-left:4px;">@procName</span> }
+                    }
+                    else { <span class="dim">—</span> }
+                </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="ScreenCode" Title="@L["SYS.Audit.Col.Screen"]" Width="110px">
                 <Template Context="a"><span class="code" style="font-size:13px;">@(a.ScreenCode ?? "—")</span></Template>
@@ -119,7 +127,7 @@
             <div class="audit-detail-grid">
                 <div class="audit-kv">
                     <span class="audit-kv-l">@L["SYS.Audit.Col.Time"]</span>
-                    <span class="audit-kv-v code">@(_sel.EventTs?.ToString("yyyy-MM-dd HH:mm:ss") ?? "—")</span>
+                    <span class="audit-kv-v code">@(_sel.EventTs?.ToString(DateFmt.DateTimeSec) ?? "—")</span>
                 </div>
                 <div class="audit-kv">
                     <span class="audit-kv-l">@L["SYS.Audit.Col.Actor"]</span>

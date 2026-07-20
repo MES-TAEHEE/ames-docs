@@ -117,7 +117,7 @@
             <RadzenDataGridColumn TItem="SysRepository.UserRow" Title="@L["SYS.Users.Col.LastLogin"]">
                 <Template Context="u">
                     <span class="dim">
-                        @(u.LastLoginTs?.ToString("MM-dd HH:mm") ?? "—")
+                        @(u.LastLoginTs?.ToString(DateFmt.MonthDayTime) ?? "—")
                     </span>
                 </Template>
             </RadzenDataGridColumn>
@@ -164,12 +164,12 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.Dept"]" class="ames-rz-modal-label" Component="CreateDropDownDepartment" />
-                    <RadzenDropDown Name="CreateDropDownDepartment" @bind-Value="_f.Department" Data="@DeptOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" Name="CreateDropDownDepartment" @bind-Value="_f.Department" Data="@DeptOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
                 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.Plant"]" class="ames-rz-modal-label" Component="CreateDropDownPlantCode" />
-                    <RadzenDropDown Name="CreateDropDownPlantCode" @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" Name="CreateDropDownPlantCode" @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -179,7 +179,7 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.Role"]" class="ames-rz-modal-label" Component="CreateDropDownRole" />
-                    <RadzenDropDown Name="CreateDropDownRole" @bind-Value="_f.Role" Data="@_roles" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" Name="CreateDropDownRole" @bind-Value="_f.Role" Data="@_roles" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenLabel Text="@L["SYS.Users.Lbl.Lines"]" />
@@ -239,12 +239,12 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.Dept"]" class="ames-rz-modal-label" Component="EditDropDownDepartment" />
-                    <RadzenDropDown Name="EditDropDownDepartment" @bind-Value="_f.Department" Data="@DeptOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" Name="EditDropDownDepartment" @bind-Value="_f.Department" Data="@DeptOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.Plant"]" class="ames-rz-modal-label" Component="EditDropDownPlantCode" />
-                    <RadzenDropDown Name="EditDropDownPlantCode" @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" Name="EditDropDownPlantCode" @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -276,7 +276,7 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.Role"]" class="ames-rz-modal-label" Component="EditDropDownRole" />
-                    <RadzenDropDown Name="EditDropDownRole" @bind-Value="_f.Role" Data="@_roles" Placeholder="@L["SYS.Users.Opt.NoRole"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" Name="EditDropDownRole" @bind-Value="_f.Role" Data="@_roles" Placeholder="@L["SYS.Users.Opt.NoRole"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Vertical" Gap="0.5rem" Style="width:100%;">

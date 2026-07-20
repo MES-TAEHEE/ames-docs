@@ -180,17 +180,11 @@
   <data name="Lbl.Loading" xml:space="preserve">
     <value>조회 중...</value>
   </data>
-  <data name="Lbl.MaxRows" xml:space="preserve">
-    <value>최대 {0}건 표시.</value>
-  </data>
   <data name="Unit.Min" xml:space="preserve">
     <value>분</value>
   </data>
   <data name="Lbl.TotalOf" xml:space="preserve">
     <value>전체</value>
-  </data>
-  <data name="Ph.LineID" xml:space="preserve">
-    <value>라인 ID</value>
   </data>
   <data name="Err.LoadFailed" xml:space="preserve">
     <value>데이터 조회 오류: {0}</value>
@@ -237,24 +231,6 @@
   <data name="Col.To" xml:space="preserve">
     <value>종료</value>
   </data>
-  <data name="Col.CreatedBy" xml:space="preserve">
-    <value>등록자</value>
-  </data>
-  <data name="Col.CreatedTs" xml:space="preserve">
-    <value>등록일시</value>
-  </data>
-  <data name="Col.ModifiedBy" xml:space="preserve">
-    <value>수정자</value>
-  </data>
-  <data name="Col.ModifiedTs" xml:space="preserve">
-    <value>수정일시</value>
-  </data>
-  <data name="Col.Count" xml:space="preserve">
-    <value>건수</value>
-  </data>
-  <data name="Col.Desc" xml:space="preserve">
-    <value>설명</value>
-  </data>
   <data name="Col.Seq" xml:space="preserve">
     <value>순서</value>
   </data>
@@ -288,15 +264,6 @@
   <data name="Lbl.Days" xml:space="preserve">
     <value>일</value>
   </data>
-  <data name="Lbl.Months" xml:space="preserve">
-    <value>개월</value>
-  </data>
-  <data name="Lbl.Rank" xml:space="preserve">
-    <value>순위</value>
-  </data>
-  <data name="Msg.NoData" xml:space="preserve">
-    <value>조회 결과가 없습니다.</value>
-  </data>
   <data name="Msg.Saving" xml:space="preserve">
     <value>저장 중…</value>
   </data>
@@ -318,14 +285,8 @@
   <data name="MNT.Dashboard.Title" xml:space="preserve">
     <value>대시보드</value>
   </data>
-  <data name="MNT.Dashboard.Sub" xml:space="preserve">
-    <value>설비 · 고장 · PM · 자재 통합 현황</value>
-  </data>
   <data name="MNT.EquipmentCard.Title" xml:space="preserve">
     <value>설비 카드</value>
-  </data>
-  <data name="MNT.EquipmentCard.Sub" xml:space="preserve">
-    <value>설비별 실시간 상태 카드</value>
   </data>
   <data name="MNT.EquipmentCard.List" xml:space="preserve">
     <value>설비 목록</value>
@@ -333,20 +294,11 @@
   <data name="MNT.EquipmentCard.Empty" xml:space="preserve">
     <value>해당 조건에 설비 데이터가 없습니다.</value>
   </data>
-  <data name="MNT.EquipmentCard.Ph.Line" xml:space="preserve">
-    <value>라인 검색</value>
-  </data>
-  <data name="MNT.EquipmentCard.Ph.Name" xml:space="preserve">
-    <value>설비명 검색</value>
-  </data>
   <data name="MNT.EquipmentCard.Ph.Search" xml:space="preserve">
     <value>라인/설비명</value>
   </data>
   <data name="MNT.WorkOrder.Title" xml:space="preserve">
     <value>작업 지시</value>
-  </data>
-  <data name="MNT.WorkOrder.Sub" xml:space="preserve">
-    <value>정비 작업지시 — 진행/완료</value>
   </data>
   <data name="MNT.WorkOrder.List" xml:space="preserve">
     <value>정비 작업지시</value>
@@ -363,9 +315,6 @@
   <data name="MNT.PmSchedule.Title" xml:space="preserve">
     <value>PM 일정</value>
   </data>
-  <data name="MNT.PmSchedule.Sub" xml:space="preserve">
-    <value>예방정비 일정 — 조회 기간 설정</value>
-  </data>
   <data name="MNT.PmSchedule.List" xml:space="preserve">
     <value>PM 일정</value>
   </data>
@@ -375,23 +324,14 @@
   <data name="MNT.Downtime.Title" xml:space="preserve">
     <value>비가동 이력</value>
   </data>
-  <data name="MNT.Downtime.Sub" xml:space="preserve">
-    <value>라인 다운타임 이벤트 조회</value>
-  </data>
   <data name="MNT.Downtime.List" xml:space="preserve">
     <value>비가동 이벤트</value>
   </data>
   <data name="MNT.Downtime.Empty" xml:space="preserve">
     <value>해당 기간에 비가동 데이터가 없습니다.</value>
   </data>
-  <data name="MNT.Downtime.Ph.Line" xml:space="preserve">
-    <value>라인 검색</value>
-  </data>
   <data name="MNT.Failure.Title" xml:space="preserve">
     <value>고장 등록</value>
-  </data>
-  <data name="MNT.Failure.Sub" xml:space="preserve">
-    <value>고장 이벤트 조회 및 등록</value>
   </data>
   <data name="MNT.Failure.List" xml:space="preserve">
     <value>고장 이벤트</value>
@@ -420,9 +360,6 @@
   <data name="MNT.Mold.Title" xml:space="preserve">
     <value>금형 관리</value>
   </data>
-  <data name="MNT.Mold.Sub" xml:space="preserve">
-    <value>금형 쇼트 카운터 + Refurbish 임계</value>
-  </data>
   <data name="MNT.Mold.List" xml:space="preserve">
     <value>금형 목록</value>
   </data>
@@ -435,9 +372,6 @@
   <data name="MNT.OeeAnalysis.Title" xml:space="preserve">
     <value>OEE 분석</value>
   </data>
-  <data name="MNT.OeeAnalysis.Sub" xml:space="preserve">
-    <value>설비×Shift OEE 집계</value>
-  </data>
   <data name="MNT.OeeAnalysis.List" xml:space="preserve">
     <value>OEE 데이터</value>
   </data>
@@ -449,9 +383,6 @@
   </data>
   <data name="MNT.SpareParts.Title" xml:space="preserve">
     <value>예비 부품</value>
-  </data>
-  <data name="MNT.SpareParts.Sub" xml:space="preserve">
-    <value>예비품 마스터 + 최근 입출고</value>
   </data>
   <data name="MNT.SpareParts.List" xml:space="preserve">
     <value>예비품 마스터</value>
@@ -480,17 +411,11 @@
   <data name="RPT.DailyProduction.Title" xml:space="preserve">
     <value>일별 생산 실적</value>
   </data>
-  <data name="RPT.DailyProduction.Sub" xml:space="preserve">
-    <value>일별·라인별 생산량 / 양품률</value>
-  </data>
   <data name="RPT.DailyProduction.List" xml:space="preserve">
     <value>일별 집계</value>
   </data>
   <data name="RPT.DailyProduction.Empty" xml:space="preserve">
     <value>조회 결과가 없습니다.</value>
-  </data>
-  <data name="RPT.DailyProduction.Ph.Line" xml:space="preserve">
-    <value>라인 검색</value>
   </data>
   <data name="RPT.DailyProduction.Kpi.Days" xml:space="preserve">
     <value>집계 일수</value>
@@ -503,9 +428,6 @@
   </data>
   <data name="RPT.DailyProduction.Kpi.Yield" xml:space="preserve">
     <value>양품률</value>
-  </data>
-  <data name="RPT.DailyProduction.Col.Day" xml:space="preserve">
-    <value>날짜</value>
   </data>
   <data name="RPT.DailyProduction.Col.Entries" xml:space="preserve">
     <value>건수</value>
@@ -521,9 +443,6 @@
   </data>
   <data name="RPT.DefectPareto.Title" xml:space="preserve">
     <value>불량 파레토</value>
-  </data>
-  <data name="RPT.DefectPareto.Sub" xml:space="preserve">
-    <value>불량 코드 파레토 분석</value>
   </data>
   <data name="RPT.DefectPareto.List" xml:space="preserve">
     <value>파레토 순위</value>
@@ -570,9 +489,6 @@
   <data name="RPT.DailyShipment.Title" xml:space="preserve">
     <value>일별 출하 현황</value>
   </data>
-  <data name="RPT.DailyShipment.Sub" xml:space="preserve">
-    <value>출하 주문 / 수량 / 고객 수</value>
-  </data>
   <data name="RPT.DailyShipment.List" xml:space="preserve">
     <value>일별 출하 집계</value>
   </data>
@@ -609,9 +525,6 @@
   <data name="RPT.OnTime.Title" xml:space="preserve">
     <value>납기 준수율</value>
   </data>
-  <data name="RPT.OnTime.Sub" xml:space="preserve">
-    <value>일별 On-Time Delivery % 분석</value>
-  </data>
   <data name="RPT.OnTime.List" xml:space="preserve">
     <value>일별 OTD</value>
   </data>
@@ -627,23 +540,11 @@
   <data name="RPT.OnTime.Kpi.Late" xml:space="preserve">
     <value>납기 지연</value>
   </data>
-  <data name="RPT.OnTime.Col.Total" xml:space="preserve">
-    <value>총 주문</value>
-  </data>
-  <data name="RPT.OnTime.Col.OnTime" xml:space="preserve">
-    <value>납기 준수</value>
-  </data>
-  <data name="RPT.OnTime.Col.Late" xml:space="preserve">
-    <value>납기 지연</value>
-  </data>
   <data name="RPT.OnTime.Col.Trend" xml:space="preserve">
     <value>트렌드</value>
   </data>
   <data name="RPT.Inventory.Title" xml:space="preserve">
     <value>재고 현황</value>
-  </data>
-  <data name="RPT.Inventory.Sub" xml:space="preserve">
-    <value>완제품 재고 — 품목 × 위치 집계</value>
   </data>
   <data name="RPT.Inventory.List" xml:space="preserve">
     <value>재고 집계</value>
@@ -684,23 +585,14 @@
   <data name="RPT.Inventory.Col.HoldQty" xml:space="preserve">
     <value>홀드 수량</value>
   </data>
-  <data name="RPT.Inventory.Col.HoldPct" xml:space="preserve">
-    <value>홀드율</value>
-  </data>
   <data name="RPT.EquipmentOee.Title" xml:space="preserve">
     <value>설비 OEE</value>
-  </data>
-  <data name="RPT.EquipmentOee.Sub" xml:space="preserve">
-    <value>설비별 가동률(A) · 성능률(P) · 품질률(Q) · OEE 집계</value>
   </data>
   <data name="RPT.EquipmentOee.List" xml:space="preserve">
     <value>설비 순위</value>
   </data>
   <data name="RPT.EquipmentOee.Empty" xml:space="preserve">
     <value>해당 기간에 OEE 데이터가 없습니다.</value>
-  </data>
-  <data name="RPT.EquipmentOee.Ph.Line" xml:space="preserve">
-    <value>라인 검색</value>
   </data>
   <data name="RPT.EquipmentOee.Kpi.EquipCount" xml:space="preserve">
     <value>설비 수</value>
@@ -722,9 +614,6 @@
   </data>
   <data name="RPT.MonthlyKpi.Title" xml:space="preserve">
     <value>월간 KPI</value>
-  </data>
-  <data name="RPT.MonthlyKpi.Sub" xml:space="preserve">
-    <value>월간 통합 지표 — 생산·출하·보전·OEE</value>
   </data>
   <data name="RPT.MonthlyKpi.List" xml:space="preserve">
     <value>월간 집계</value>
@@ -771,17 +660,11 @@
   <data name="RPT.ScheduleAdherence.Title" xml:space="preserve">
     <value>계획 준수율</value>
   </data>
-  <data name="RPT.ScheduleAdherence.Sub" xml:space="preserve">
-    <value>생산 계획 대비 실생산 — 일별·라인별</value>
-  </data>
   <data name="RPT.ScheduleAdherence.List" xml:space="preserve">
     <value>일별 집계</value>
   </data>
   <data name="RPT.ScheduleAdherence.Empty" xml:space="preserve">
     <value>해당 기간에 계획 또는 생산 데이터가 없습니다.</value>
-  </data>
-  <data name="RPT.ScheduleAdherence.Ph.Line" xml:space="preserve">
-    <value>라인 검색</value>
   </data>
   <data name="RPT.ScheduleAdherence.Kpi.Count" xml:space="preserve">
     <value>집계 건수</value>
@@ -810,14 +693,8 @@
   <data name="RPT.ReportCenter.Title" xml:space="preserve">
     <value>리포트 센터</value>
   </data>
-  <data name="RPT.ReportCenter.Sub" xml:space="preserve">
-    <value>전체 리포트 카탈로그 — 카테고리별</value>
-  </data>
   <data name="RPT.ReportBuilder.Title" xml:space="preserve">
     <value>리포트 빌더</value>
-  </data>
-  <data name="RPT.ReportBuilder.Sub" xml:space="preserve">
-    <value>Ad-hoc 리포트 빌더 — preview / 다음 마일스톤</value>
   </data>
   <data name="RPT.ReportBuilder.Preview" xml:space="preserve">
     <value>Builder preview</value>
@@ -846,9 +723,6 @@
   <data name="SYS.Users.Title" xml:space="preserve">
     <value>사용자 관리</value>
   </data>
-  <data name="SYS.Users.Sub" xml:space="preserve">
-    <value>ASP.NET Identity 사용자 + SYS_UserProfile 조인</value>
-  </data>
   <data name="SYS.Users.List" xml:space="preserve">
     <value>사용자 목록</value>
   </data>
@@ -864,14 +738,8 @@
   <data name="SYS.Users.Kpi.RecentLogin" xml:space="preserve">
     <value>최근 로그인</value>
   </data>
-  <data name="SYS.Users.Ph.UserName" xml:space="preserve">
-    <value>사용자ID · 이메일 · 사번 · 성명 · 부서</value>
-  </data>
   <data name="SYS.Users.Ph.Name" xml:space="preserve">
     <value>성명</value>
-  </data>
-  <data name="SYS.Users.Ph.Dept" xml:space="preserve">
-    <value>부서</value>
   </data>
   <data name="SYS.Users.Col.UserName" xml:space="preserve">
     <value>사용자ID</value>
@@ -896,12 +764,6 @@
   </data>
   <data name="SYS.Users.Col.LastLogin" xml:space="preserve">
     <value>최근 로그인</value>
-  </data>
-  <data name="SYS.Users.Modal.Create" xml:space="preserve">
-    <value>신규 사용자 등록</value>
-  </data>
-  <data name="SYS.Users.Modal.Edit" xml:space="preserve">
-    <value>사용자 수정</value>
   </data>
   <data name="SYS.Users.Lbl.EmployeeNo" xml:space="preserve">
     <value>사원번호 *</value>
@@ -966,9 +828,6 @@
   <data name="SYS.Users.Opt.NoRole" xml:space="preserve">
     <value>— 없음 —</value>
   </data>
-  <data name="SYS.Users.Hint.Lines" xml:space="preserve">
-    <value>(미선택 = 전 라인 허용)</value>
-  </data>
   <data name="SYS.Users.Err.EmailRequired" xml:space="preserve">
     <value>Email을 입력하세요.</value>
   </data>
@@ -1008,9 +867,6 @@
   <data name="SYS.Roles.Title" xml:space="preserve">
     <value>역할 관리</value>
   </data>
-  <data name="SYS.Roles.Sub" xml:space="preserve">
-    <value>ASP.NET Identity 역할 관리</value>
-  </data>
   <data name="SYS.Roles.List" xml:space="preserve">
     <value>역할 목록</value>
   </data>
@@ -1023,20 +879,8 @@
   <data name="SYS.Roles.Kpi.Unused" xml:space="preserve">
     <value>미사용</value>
   </data>
-  <data name="SYS.Roles.Col.RoleName" xml:space="preserve">
-    <value>역할명</value>
-  </data>
-  <data name="SYS.Roles.Col.UserCount" xml:space="preserve">
-    <value>사용자 수</value>
-  </data>
-  <data name="SYS.Roles.Modal.Create" xml:space="preserve">
-    <value>신규 역할 등록</value>
-  </data>
   <data name="SYS.Roles.Lbl.RoleName" xml:space="preserve">
     <value>역할 이름 *</value>
-  </data>
-  <data name="SYS.Roles.Modal.Edit" xml:space="preserve">
-    <value>역할 수정</value>
   </data>
   <data name="SYS.Roles.InUseBy" xml:space="preserve">
     <value>이 역할을 사용 중인 사용자:</value>
@@ -1061,9 +905,6 @@
   </data>
   <data name="SYS.Rbac.Title" xml:space="preserve">
     <value>역할/권한 관리 (RBAC)</value>
-  </data>
-  <data name="SYS.Rbac.Sub" xml:space="preserve">
-    <value>역할 × 화면 권한 매트릭스</value>
   </data>
   <data name="SYS.Rbac.Roles" xml:space="preserve">
     <value>역할</value>
@@ -1092,17 +933,11 @@
   <data name="SYS.Rbac.Col.Screen" xml:space="preserve">
     <value>화면</value>
   </data>
-  <data name="SYS.Rbac.Col.All" xml:space="preserve">
-    <value>전체</value>
-  </data>
   <data name="SYS.Rbac.NoPerm" xml:space="preserve">
     <value>권한 없음</value>
   </data>
   <data name="SYS.Screen.Title" xml:space="preserve">
     <value>화면 관리</value>
-  </data>
-  <data name="SYS.Screen.Sub" xml:space="preserve">
-    <value>MD_Screen — 화면 가시성 · 내비게이션 관리</value>
   </data>
   <data name="SYS.Screen.List" xml:space="preserve">
     <value>화면 목록</value>
@@ -1128,9 +963,6 @@
   <data name="SYS.Screen.Col.Code" xml:space="preserve">
     <value>코드</value>
   </data>
-  <data name="SYS.Screen.Col.Module" xml:space="preserve">
-    <value>모듈</value>
-  </data>
   <data name="SYS.Screen.Col.Process" xml:space="preserve">
     <value>프로세스</value>
   </data>
@@ -1155,17 +987,8 @@
   <data name="SYS.Screen.Filter.Hidden" xml:space="preserve">
     <value>숨김</value>
   </data>
-  <data name="SYS.Screen.Btn.Save" xml:space="preserve">
-    <value>저장</value>
-  </data>
-  <data name="SYS.Screen.Ok.Saved" xml:space="preserve">
-    <value>{0} 저장 완료.</value>
-  </data>
   <data name="SYS.Calendar.Title" xml:space="preserve">
     <value>공장 캘린더</value>
-  </data>
-  <data name="SYS.Calendar.Sub" xml:space="preserve">
-    <value>공장 달력 — 교대 × 일자 관리</value>
   </data>
   <data name="SYS.Calendar.Kpi.Days" xml:space="preserve">
     <value>일수</value>
@@ -1200,15 +1023,6 @@
   <data name="SYS.Calendar.Col.HolidayName" xml:space="preserve">
     <value>공휴일명</value>
   </data>
-  <data name="SYS.Calendar.Legend.Work" xml:space="preserve">
-    <value>작업일</value>
-  </data>
-  <data name="SYS.Calendar.Legend.Weekend" xml:space="preserve">
-    <value>주말</value>
-  </data>
-  <data name="SYS.Calendar.Legend.Holiday" xml:space="preserve">
-    <value>공휴일</value>
-  </data>
   <data name="SYS.Calendar.Btn.Today" xml:space="preserve">
     <value>오늘</value>
   </data>
@@ -1224,20 +1038,11 @@
   <data name="SYS.Roles.Empty" xml:space="preserve">
     <value>등록된 역할이 없습니다.</value>
   </data>
-  <data name="SYS.Calendar.Badge.Holiday" xml:space="preserve">
-    <value>공휴일</value>
-  </data>
-  <data name="SYS.Calendar.Badge.Weekend" xml:space="preserve">
-    <value>주말</value>
-  </data>
   <data name="SYS.Calendar.Modal.Generate" xml:space="preserve">
     <value>일정 자동 생성</value>
   </data>
   <data name="SYS.Interfaces.Title" xml:space="preserve">
     <value>인터페이스 모니터</value>
-  </data>
-  <data name="SYS.Interfaces.Sub" xml:space="preserve">
-    <value>SAP / PLC / WMS / EDI 연결 상태</value>
   </data>
   <data name="SYS.Interfaces.List" xml:space="preserve">
     <value>인터페이스 목록</value>
@@ -1290,9 +1095,6 @@
   <data name="SYS.Audit.Title" xml:space="preserve">
     <value>감사 로그</value>
   </data>
-  <data name="SYS.Audit.Sub" xml:space="preserve">
-    <value>감사 로그 — 최근 200건 (append-only)</value>
-  </data>
   <data name="SYS.Audit.List" xml:space="preserve">
     <value>최근 감사 이벤트</value>
   </data>
@@ -1343,9 +1145,6 @@
   </data>
   <data name="SYS.Notifications.Title" xml:space="preserve">
     <value>알림 관리</value>
-  </data>
-  <data name="SYS.Notifications.Sub" xml:space="preserve">
-    <value>알림 규칙 · 채널 설정 · 발송 이력</value>
   </data>
   <data name="SYS.Notifications.Kpi.Rules" xml:space="preserve">
     <value>규칙</value>
@@ -1398,14 +1197,8 @@
   <data name="SYS.Notifications.Ph.HistSearch" xml:space="preserve">
     <value>코드 / 수신자 / 제목</value>
   </data>
-  <data name="SYS.Notifications.Filter.Active" xml:space="preserve">
-    <value>활성</value>
-  </data>
   <data name="SYS.Notifications.Filter.Inactive" xml:space="preserve">
     <value>비활성</value>
-  </data>
-  <data name="SYS.Notifications.Btn.Apply" xml:space="preserve">
-    <value>적용</value>
   </data>
   <data name="SYS.Notifications.Kpi.AllRules" xml:space="preserve">
     <value>전체 규칙</value>
@@ -1425,44 +1218,11 @@
   <data name="SYS.Notifications.Modal.CreateRule" xml:space="preserve">
     <value>알림 규칙 등록</value>
   </data>
-  <data name="SYS.Notifications.Lbl.SourceModule" xml:space="preserve">
-    <value>소스 모듈</value>
-  </data>
-  <data name="SYS.Notifications.Mod.PP" xml:space="preserve">
-    <value>PP (생산계획)</value>
-  </data>
-  <data name="SYS.Notifications.Mod.MNT" xml:space="preserve">
-    <value>MNT (설비보전)</value>
-  </data>
-  <data name="SYS.Notifications.Mod.QC" xml:space="preserve">
-    <value>QC (품질)</value>
-  </data>
-  <data name="SYS.Notifications.Mod.WH" xml:space="preserve">
-    <value>WH (창고)</value>
-  </data>
-  <data name="SYS.Notifications.Mod.FG" xml:space="preserve">
-    <value>FG (완성품)</value>
-  </data>
-  <data name="SYS.Notifications.Mod.SYS" xml:space="preserve">
-    <value>SYS (시스템)</value>
-  </data>
-  <data name="SYS.Notifications.Lbl.ChannelsJson" xml:space="preserve">
-    <value>채널 JSON</value>
-  </data>
-  <data name="SYS.Notifications.Lbl.RecipientRolesJson" xml:space="preserve">
-    <value>수신 역할 JSON</value>
-  </data>
-  <data name="SYS.Notifications.Lbl.EnabledImmediate" xml:space="preserve">
-    <value>활성 (즉시 적용)</value>
-  </data>
   <data name="SYS.Notifications.Modal.EditRule" xml:space="preserve">
     <value>알림 규칙 수정</value>
   </data>
   <data name="SYS.Notifications.Modal.CreateChannel" xml:space="preserve">
     <value>신규 채널 등록</value>
-  </data>
-  <data name="SYS.Notifications.Hint.AddressAutoFill" xml:space="preserve">
-    <value>EMAIL·SMS는 사용자 선택 시 자동 입력</value>
   </data>
   <data name="SYS.Notifications.Lbl.DndStart" xml:space="preserve">
     <value>방해금지 시작 (HH:mm)</value>
@@ -1481,9 +1241,6 @@
   </data>
   <data name="SYS.Config.Title" xml:space="preserve">
     <value>시스템 설정</value>
-  </data>
-  <data name="SYS.Config.Sub" xml:space="preserve">
-    <value>환경설정 (Key-Value) — 카테고리별</value>
   </data>
   <data name="SYS.Config.Empty" xml:space="preserve">
     <value>설정 키가 없습니다.</value>
@@ -1523,9 +1280,6 @@
   </data>
   <data name="SYS.Health.Title" xml:space="preserve">
     <value>시스템 상태</value>
-  </data>
-  <data name="SYS.Health.Sub" xml:space="preserve">
-    <value>전체 시스템 KPI · 알림 큐 · DB 현황</value>
   </data>
   <data name="SYS.Health.Kpi.Users" xml:space="preserve">
     <value>사용자</value>
@@ -1659,9 +1413,6 @@
   <data name="MD.Line.Title" xml:space="preserve">
     <value>공장/라인 기준정보 관리</value>
   </data>
-  <data name="MD.Line.Sub" xml:space="preserve">
-    <value>MD_Line 마스터 — 라인 유형·일생산능력·교대패턴·RFID 설정</value>
-  </data>
   <data name="MD.Line.List" xml:space="preserve">
     <value>생산 라인 목록</value>
   </data>
@@ -1671,41 +1422,11 @@
   <data name="MD.Line.Ph.Search" xml:space="preserve">
     <value>라인 ID/명칭</value>
   </data>
-  <data name="MD.Line.Kpi.Total" xml:space="preserve">
-    <value>전체</value>
-  </data>
-  <data name="MD.Line.Kpi.Active" xml:space="preserve">
-    <value>활성</value>
-  </data>
   <data name="MD.Line.Kpi.Rfid" xml:space="preserve">
     <value>RFID 활성</value>
   </data>
   <data name="MD.Line.Kpi.Plants" xml:space="preserve">
     <value>공장 수</value>
-  </data>
-  <data name="MD.Line.Col.LineId" xml:space="preserve">
-    <value>라인 ID</value>
-  </data>
-  <data name="MD.Line.Col.LineName" xml:space="preserve">
-    <value>라인명</value>
-  </data>
-  <data name="MD.Line.Col.Type" xml:space="preserve">
-    <value>유형</value>
-  </data>
-  <data name="MD.Line.Col.Plant" xml:space="preserve">
-    <value>공장</value>
-  </data>
-  <data name="MD.Line.Col.DefaultWc" xml:space="preserve">
-    <value>기준 WC</value>
-  </data>
-  <data name="MD.Line.Col.DailyCap" xml:space="preserve">
-    <value>일생산능력</value>
-  </data>
-  <data name="MD.Line.Col.ShiftPattern" xml:space="preserve">
-    <value>교대패턴</value>
-  </data>
-  <data name="MD.Line.Modal.Create" xml:space="preserve">
-    <value>신규 생산 라인 등록</value>
   </data>
   <data name="MD.Line.Lbl.LineId" xml:space="preserve">
     <value>라인 ID *</value>
@@ -1715,9 +1436,6 @@
   </data>
   <data name="MD.Line.Lbl.LineNameEn" xml:space="preserve">
     <value>라인명 (영문)</value>
-  </data>
-  <data name="MD.Line.Lbl.LineType" xml:space="preserve">
-    <value>라인 유형</value>
   </data>
   <data name="MD.Line.Lbl.PlantId" xml:space="preserve">
     <value>공장 ID</value>
@@ -1733,9 +1451,6 @@
   </data>
   <data name="MD.Line.Lbl.RfidEnabled" xml:space="preserve">
     <value>RFID 활성</value>
-  </data>
-  <data name="MD.Line.Modal.Edit" xml:space="preserve">
-    <value>라인 수정</value>
   </data>
   <data name="MD.Line.Err.IDRequired" xml:space="preserve">
     <value>라인 ID를 입력하세요.</value>
@@ -1758,38 +1473,11 @@
   <data name="MD.Bom.Title" xml:space="preserve">
     <value>BOM 관리</value>
   </data>
-  <data name="MD.Bom.Sub" xml:space="preserve">
-    <value>자재명세서 — 품목별 구성 자재 관리</value>
-  </data>
-  <data name="MD.Bom.List" xml:space="preserve">
-    <value>BOM 목록</value>
-  </data>
-  <data name="MD.Bom.Empty" xml:space="preserve">
-    <value>등록된 BOM이 없습니다.</value>
-  </data>
   <data name="MD.Bop.Title" xml:space="preserve">
     <value>BOP 관리</value>
   </data>
-  <data name="MD.Bop.Sub" xml:space="preserve">
-    <value>생산 작업 순서 (공정 흐름) 관리</value>
-  </data>
-  <data name="MD.Bop.List" xml:space="preserve">
-    <value>BOP 목록</value>
-  </data>
-  <data name="MD.Bop.Empty" xml:space="preserve">
-    <value>등록된 BOP가 없습니다.</value>
-  </data>
   <data name="MD.CommonCode.Title" xml:space="preserve">
     <value>코드 기준정보 관리</value>
-  </data>
-  <data name="MD.CommonCode.Sub" xml:space="preserve">
-    <value>시스템 공통 코드 기준정보</value>
-  </data>
-  <data name="MD.CommonCode.List" xml:space="preserve">
-    <value>공통코드 목록</value>
-  </data>
-  <data name="MD.CommonCode.Empty" xml:space="preserve">
-    <value>등록된 공통코드가 없습니다.</value>
   </data>
   <data name="MD.CommonCode.GrpHeader" xml:space="preserve">
     <value>코드 그룹</value>
@@ -1869,9 +1557,6 @@
   <data name="MD.Customer.Title" xml:space="preserve">
     <value>고객사 기준정보 관리</value>
   </data>
-  <data name="MD.Customer.Sub" xml:space="preserve">
-    <value>납품 고객사 기준정보</value>
-  </data>
   <data name="MD.Customer.List" xml:space="preserve">
     <value>고객사 목록</value>
   </data>
@@ -1880,9 +1565,6 @@
   </data>
   <data name="MD.DefectCause.Title" xml:space="preserve">
     <value>불량원인 기준정보 관리</value>
-  </data>
-  <data name="MD.DefectCause.Sub" xml:space="preserve">
-    <value>불량 원인 코드 기준정보</value>
   </data>
   <data name="MD.DefectCause.List" xml:space="preserve">
     <value>불량원인 목록</value>
@@ -1893,9 +1575,6 @@
   <data name="MD.DefectCode.Title" xml:space="preserve">
     <value>불량유형 기준정보 관리</value>
   </data>
-  <data name="MD.DefectCode.Sub" xml:space="preserve">
-    <value>불량 유형 코드 기준정보</value>
-  </data>
   <data name="MD.DefectCode.List" xml:space="preserve">
     <value>불량코드 목록</value>
   </data>
@@ -1904,9 +1583,6 @@
   </data>
   <data name="MD.Equipment.Title" xml:space="preserve">
     <value>설비 기준정보 관리</value>
-  </data>
-  <data name="MD.Equipment.Sub" xml:space="preserve">
-    <value>생산 설비 기준정보</value>
   </data>
   <data name="MD.Equipment.List" xml:space="preserve">
     <value>설비 목록</value>
@@ -1917,9 +1593,6 @@
   <data name="MD.InspStd.Title" xml:space="preserve">
     <value>검사기준 기준정보 관리</value>
   </data>
-  <data name="MD.InspStd.Sub" xml:space="preserve">
-    <value>품목별 검사 기준정보</value>
-  </data>
   <data name="MD.InspStd.List" xml:space="preserve">
     <value>검사기준서 목록</value>
   </data>
@@ -1928,9 +1601,6 @@
   </data>
   <data name="MD.Items.Title" xml:space="preserve">
     <value>제품 기준정보 관리</value>
-  </data>
-  <data name="MD.Items.Sub" xml:space="preserve">
-    <value>원자재·반제품·완제품 기준정보</value>
   </data>
   <data name="MD.Items.List" xml:space="preserve">
     <value>품목 목록</value>
@@ -1941,9 +1611,6 @@
   <data name="MD.Jig.Title" xml:space="preserve">
     <value>지그 기준정보 관리</value>
   </data>
-  <data name="MD.Jig.Sub" xml:space="preserve">
-    <value>생산 지그 및 치공구 기준정보</value>
-  </data>
   <data name="MD.Jig.List" xml:space="preserve">
     <value>지그 목록</value>
   </data>
@@ -1952,9 +1619,6 @@
   </data>
   <data name="MD.LabelTpl.Title" xml:space="preserve">
     <value>라벨 템플릿 관리</value>
-  </data>
-  <data name="MD.LabelTpl.Sub" xml:space="preserve">
-    <value>인쇄 라벨 포맷 기준정보</value>
   </data>
   <data name="MD.LabelTpl.List" xml:space="preserve">
     <value>라벨 템플릿 목록</value>
@@ -1965,9 +1629,6 @@
   <data name="MD.LinePat.Title" xml:space="preserve">
     <value>라인 시간 패턴 관리</value>
   </data>
-  <data name="MD.LinePat.Sub" xml:space="preserve">
-    <value>라인별 교대·휴식 시간 패턴</value>
-  </data>
   <data name="MD.LinePat.List" xml:space="preserve">
     <value>시간패턴 목록</value>
   </data>
@@ -1976,9 +1637,6 @@
   </data>
   <data name="MD.Location.Title" xml:space="preserve">
     <value>창고/로케이션 기준정보 관리</value>
-  </data>
-  <data name="MD.Location.Sub" xml:space="preserve">
-    <value>창고 위치 기준정보</value>
   </data>
   <data name="MD.Location.List" xml:space="preserve">
     <value>위치 목록</value>
@@ -1989,9 +1647,6 @@
   <data name="MD.Mold.Title" xml:space="preserve">
     <value>금형 기준정보 관리</value>
   </data>
-  <data name="MD.Mold.Sub" xml:space="preserve">
-    <value>사출 금형 기준정보</value>
-  </data>
   <data name="MD.Mold.List" xml:space="preserve">
     <value>금형 목록</value>
   </data>
@@ -2000,9 +1655,6 @@
   </data>
   <data name="MD.Oven.Title" xml:space="preserve">
     <value>건조로 기준정보 관리</value>
-  </data>
-  <data name="MD.Oven.Sub" xml:space="preserve">
-    <value>도장 오븐 설비 기준정보</value>
   </data>
   <data name="MD.Oven.List" xml:space="preserve">
     <value>오븐 목록</value>
@@ -2013,9 +1665,6 @@
   <data name="MD.PackSpec.Title" xml:space="preserve">
     <value>포장 사양 관리</value>
   </data>
-  <data name="MD.PackSpec.Sub" xml:space="preserve">
-    <value>포장 규격 기준정보</value>
-  </data>
   <data name="MD.PackSpec.List" xml:space="preserve">
     <value>포장사양 목록</value>
   </data>
@@ -2024,9 +1673,6 @@
   </data>
   <data name="MD.PaintFabric.Title" xml:space="preserve">
     <value>원부자재 기준정보 관리</value>
-  </data>
-  <data name="MD.PaintFabric.Sub" xml:space="preserve">
-    <value>도료 · 원단 기준정보</value>
   </data>
   <data name="MD.PaintFabric.List" xml:space="preserve">
     <value>도장/원단 목록</value>
@@ -2037,9 +1683,6 @@
   <data name="MD.PmTemplate.Title" xml:space="preserve">
     <value>PM 템플릿 관리</value>
   </data>
-  <data name="MD.PmTemplate.Sub" xml:space="preserve">
-    <value>예방보전 점검 항목 기준정보</value>
-  </data>
   <data name="MD.PmTemplate.List" xml:space="preserve">
     <value>PM 템플릿 목록</value>
   </data>
@@ -2048,9 +1691,6 @@
   </data>
   <data name="MD.RalColor.Title" xml:space="preserve">
     <value>RAL 색상 관리</value>
-  </data>
-  <data name="MD.RalColor.Sub" xml:space="preserve">
-    <value>표준 RAL 색상 기준정보</value>
   </data>
   <data name="MD.RalColor.List" xml:space="preserve">
     <value>RAL 색상 목록</value>
@@ -2061,9 +1701,6 @@
   <data name="MD.ReasonCode.Title" xml:space="preserve">
     <value>사유 코드 관리</value>
   </data>
-  <data name="MD.ReasonCode.Sub" xml:space="preserve">
-    <value>정지/불합격 사유 코드 기준정보</value>
-  </data>
   <data name="MD.ReasonCode.List" xml:space="preserve">
     <value>사유코드 목록</value>
   </data>
@@ -2072,9 +1709,6 @@
   </data>
   <data name="MD.Recipe.Title" xml:space="preserve">
     <value>레시피 관리</value>
-  </data>
-  <data name="MD.Recipe.Sub" xml:space="preserve">
-    <value>공정 조건 레시피 기준정보</value>
   </data>
   <data name="MD.Recipe.List" xml:space="preserve">
     <value>레시피 목록</value>
@@ -2085,9 +1719,6 @@
   <data name="MD.RfidReader.Title" xml:space="preserve">
     <value>RFID 리더 관리</value>
   </data>
-  <data name="MD.RfidReader.Sub" xml:space="preserve">
-    <value>RFID 리더기 기준정보</value>
-  </data>
   <data name="MD.RfidReader.List" xml:space="preserve">
     <value>RFID 리더기 목록</value>
   </data>
@@ -2096,9 +1727,6 @@
   </data>
   <data name="MD.RfidTag.Title" xml:space="preserve">
     <value>RFID 태그 관리</value>
-  </data>
-  <data name="MD.RfidTag.Sub" xml:space="preserve">
-    <value>RFID 태그 기준정보</value>
   </data>
   <data name="MD.RfidTag.List" xml:space="preserve">
     <value>RFID 태그 목록</value>
@@ -2109,9 +1737,6 @@
   <data name="MD.ShipDest.Title" xml:space="preserve">
     <value>출하처 기준정보 관리</value>
   </data>
-  <data name="MD.ShipDest.Sub" xml:space="preserve">
-    <value>출하 목적지 기준정보</value>
-  </data>
   <data name="MD.ShipDest.List" xml:space="preserve">
     <value>출하처 목록</value>
   </data>
@@ -2121,9 +1746,6 @@
   <data name="MD.SparePart.Title" xml:space="preserve">
     <value>예비품 마스터</value>
   </data>
-  <data name="MD.SparePart.Sub" xml:space="preserve">
-    <value>설비 예비부품 기준정보</value>
-  </data>
   <data name="MD.SparePart.List" xml:space="preserve">
     <value>예비부품 목록</value>
   </data>
@@ -2132,9 +1754,6 @@
   </data>
   <data name="MD.Station.Title" xml:space="preserve">
     <value>작업 위치 관리</value>
-  </data>
-  <data name="MD.Station.Sub" xml:space="preserve">
-    <value>작업 위치 기준정보</value>
   </data>
   <data name="MD.Station.List" xml:space="preserve">
     <value>작업 위치 목록</value>
@@ -2154,9 +1773,6 @@
   <data name="MD.Uom.Title" xml:space="preserve">
     <value>단위 관리</value>
   </data>
-  <data name="MD.Uom.Sub" xml:space="preserve">
-    <value>측정 단위 기준정보</value>
-  </data>
   <data name="MD.Uom.List" xml:space="preserve">
     <value>단위 목록</value>
   </data>
@@ -2166,9 +1782,6 @@
   <data name="MD.Vendor.Title" xml:space="preserve">
     <value>공급업체 기준정보 관리</value>
   </data>
-  <data name="MD.Vendor.Sub" xml:space="preserve">
-    <value>원자재 공급업체 기준정보</value>
-  </data>
   <data name="MD.Vendor.List" xml:space="preserve">
     <value>협력업체 목록</value>
   </data>
@@ -2177,9 +1790,6 @@
   </data>
   <data name="MD.WorkCenter.Title" xml:space="preserve">
     <value>Work Center 관리</value>
-  </data>
-  <data name="MD.WorkCenter.Sub" xml:space="preserve">
-    <value>공정별 작업장 기준정보</value>
   </data>
   <data name="MD.WorkCenter.List" xml:space="preserve">
     <value>작업장 목록</value>
@@ -2195,12 +1805,6 @@
   </data>
   <data name="PP.Calendar.Title" xml:space="preserve">
     <value>캘린더</value>
-  </data>
-  <data name="PP.Calendar.Sub" xml:space="preserve">
-    <value>WO 납기 기준 월/주 시각화 · D-3 빨강 강조 · 납기 변경</value>
-  </data>
-  <data name="PP.Calendar.Empty" xml:space="preserve">
-    <value>해당 기간에 캘린더 항목이 없습니다.</value>
   </data>
   <data name="PP.Calendar.Kpi.TotalSub" xml:space="preserve">
     <value>납기 등록</value>
@@ -2340,9 +1944,6 @@
   <data name="PP.Delivery.Title" xml:space="preserve">
     <value>납기 준수율</value>
   </data>
-  <data name="PP.Delivery.Sub" xml:space="preserve">
-    <value>출하 주문 · 납기 준수 분석</value>
-  </data>
   <data name="PP.Delivery.Empty" xml:space="preserve">
     <value>해당 조건에 출하 이력이 없습니다.</value>
   </data>
@@ -2388,9 +1989,6 @@
   <data name="PP.Downtime.Title" xml:space="preserve">
     <value>비가동 이력</value>
   </data>
-  <data name="PP.Downtime.Sub" xml:space="preserve">
-    <value>라인 비가동 이벤트 이력</value>
-  </data>
   <data name="PP.Downtime.Empty" xml:space="preserve">
     <value>해당 조건에 비가동 이력이 없습니다.</value>
   </data>
@@ -2405,12 +2003,6 @@
   </data>
   <data name="PP.DowntimeMonitor.Title" xml:space="preserve">
     <value>비가동 모니터</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Sub" xml:space="preserve">
-    <value>라인별 실시간 가동 상태</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Empty" xml:space="preserve">
-    <value>모니터링 데이터가 없습니다.</value>
   </data>
   <data name="PP.DowntimeMonitor.Kpi.Lines" xml:space="preserve">
     <value>모니터링 라인</value>
@@ -2459,12 +2051,6 @@
   </data>
   <data name="PP.DowntimeMonitor.Tl.Now" xml:space="preserve">
     <value>현재</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Stat.Work" xml:space="preserve">
-    <value>가동 {0}분</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Stat.Unplan" xml:space="preserve">
-    <value>실제비가동 {0}분</value>
   </data>
   <data name="PP.DowntimeMonitor.Stat.Age" xml:space="preserve">
     <value>{0}분전</value>
@@ -2547,14 +2133,8 @@
   <data name="PP.Forecast.Title" xml:space="preserve">
     <value>수요 예측</value>
   </data>
-  <data name="PP.Forecast.Sub" xml:space="preserve">
-    <value>고객별 품목 수요 예측</value>
-  </data>
   <data name="PP.Forecast.Empty" xml:space="preserve">
     <value>해당 조건에 수요 예측이 없습니다.</value>
-  </data>
-  <data name="Pager.Summary" xml:space="preserve">
-    <value>{0} / {1} 페이지 · 총 {2}건</value>
   </data>
   <data name="PP.Forecast.Tab.Status" xml:space="preserve">
     <value>예측 현황</value>
@@ -2595,9 +2175,6 @@
   <data name="PP.Forecast.Upload.Hint" xml:space="preserve">
     <value>ZMM30004 .xls/.xlsx 파일 · 최대 10MB</value>
   </data>
-  <data name="PP.Forecast.Err.NoCustomer" xml:space="preserve">
-    <value>고객사를 먼저 선택하세요.</value>
-  </data>
   <data name="PP.Forecast.Err.Parse" xml:space="preserve">
     <value>파일 형식을 인식할 수 없습니다. ZMM30004 주간 구매계획 파일인지 확인하세요.</value>
   </data>
@@ -2606,9 +2183,6 @@
   </data>
   <data name="PP.Forecast.Err.ItemNoLen" xml:space="preserve">
     <value>품번 '{0}'이(가) 20자를 초과합니다.</value>
-  </data>
-  <data name="PP.Forecast.Preview.Title" xml:space="preserve">
-    <value>업로드 미리보기</value>
   </data>
   <data name="PP.Forecast.Preview.Summary" xml:space="preserve">
     <value>품목 {0}개 × {1}주 · {2:MM/dd}–{3:MM/dd}</value>
@@ -2648,12 +2222,6 @@
   </data>
   <data name="PP.LineSchedule.Title" xml:space="preserve">
     <value>라인 일정</value>
-  </data>
-  <data name="PP.LineSchedule.Sub" xml:space="preserve">
-    <value>분단위 간트 · 가동/계획비가동 밴드 · WO 배치 · 캐파 초과 차단</value>
-  </data>
-  <data name="PP.LineSchedule.Empty" xml:space="preserve">
-    <value>해당 조건에 일정이 없습니다.</value>
   </data>
   <data name="PP.LineSchedule.Kpi.WorkCap" xml:space="preserve">
     <value>가동 캐파</value>
@@ -2781,20 +2349,11 @@
   <data name="PP.Mrp.Title" xml:space="preserve">
     <value>MRP</value>
   </data>
-  <data name="PP.Mrp.Sub" xml:space="preserve">
-    <value>자재 소요량 계획 실행 이력</value>
-  </data>
   <data name="PP.Mrp.Empty" xml:space="preserve">
     <value>MRP 실행 이력이 없습니다.</value>
   </data>
   <data name="PP.Oee.Title" xml:space="preserve">
     <value>라인 OEE</value>
-  </data>
-  <data name="PP.Oee.Sub" xml:space="preserve">
-    <value>시간손실 모델 · A × P × Q → OEE · 기간별 스냅샷 저장</value>
-  </data>
-  <data name="PP.Oee.Empty" xml:space="preserve">
-    <value>해당 조건에 OEE 데이터가 없습니다.</value>
   </data>
   <data name="PP.Oee.Kpi.HistAvg" xml:space="preserve">
     <value>이력 평균</value>
@@ -2994,12 +2553,6 @@
   <data name="PP.PlanConfirm.Title" xml:space="preserve">
     <value>계획 확정</value>
   </data>
-  <data name="PP.PlanConfirm.Sub" xml:space="preserve">
-    <value>생산 계획 확정 및 승인</value>
-  </data>
-  <data name="PP.PlanConfirm.List" xml:space="preserve">
-    <value>계획 확정 목록</value>
-  </data>
   <data name="PP.PlanConfirm.Empty" xml:space="preserve">
     <value>WO 생성 대기 중인 확정 수주가 없습니다.</value>
   </data>
@@ -3072,17 +2625,11 @@
   <data name="PP.PurchaseReq.Title" xml:space="preserve">
     <value>구매 요청</value>
   </data>
-  <data name="PP.PurchaseReq.Sub" xml:space="preserve">
-    <value>MRP 생성 구매 요청 관리</value>
-  </data>
   <data name="PP.PurchaseReq.Empty" xml:space="preserve">
     <value>해당 조건에 구매 요청이 없습니다.</value>
   </data>
   <data name="PP.SupplyPlanImport.Title" xml:space="preserve">
     <value>공급계획 가져오기</value>
-  </data>
-  <data name="PP.SupplyPlanImport.Sub" xml:space="preserve">
-    <value>SAP 납품 오더 연동</value>
   </data>
   <data name="PP.SupplyPlanImport.Empty" xml:space="preserve">
     <value>해당 조건에 SAP 연동 데이터가 없습니다.</value>
@@ -3165,9 +2712,6 @@
   <data name="PP.WoRelease.Title" xml:space="preserve">
     <value>작업 지시 릴리스</value>
   </data>
-  <data name="PP.WoRelease.Sub" xml:space="preserve">
-    <value>작업 지시 릴리스 · 공정 배정</value>
-  </data>
   <data name="PP.WoRelease.Empty" xml:space="preserve">
     <value>해당 조건에 작업 지시가 없습니다.</value>
   </data>
@@ -3186,17 +2730,8 @@
   <data name="PP.WorkOrder.Title" xml:space="preserve">
     <value>작업 지시</value>
   </data>
-  <data name="PP.WorkOrder.Sub" xml:space="preserve">
-    <value>생산 작업 지시 조회</value>
-  </data>
-  <data name="PP.WorkOrder.List" xml:space="preserve">
-    <value>작업 지시 목록</value>
-  </data>
   <data name="PP.WorkOrder.Empty" xml:space="preserve">
     <value>해당 조건에 작업 지시가 없습니다.</value>
-  </data>
-  <data name="PP.WorkOrder.Kpi.Unshipped" xml:space="preserve">
-    <value>미출하 작업지시</value>
   </data>
   <data name="PP.WorkOrder.Kpi.Waiting" xml:space="preserve">
     <value>터미널 대기</value>
@@ -3219,12 +2754,6 @@
   <data name="PP.WorkOrder.Filter.Closed90" xml:space="preserve">
     <value>완료 90일</value>
   </data>
-  <data name="PP.WorkOrder.Ttl.IMG" xml:space="preserve">
-    <value>감싸기 (IMG)</value>
-  </data>
-  <data name="PP.WorkOrder.Ttl.PNT" xml:space="preserve">
-    <value>도색 (PNT)</value>
-  </data>
   <data name="PP.WorkOrder.Ttl.Phase0Fail" xml:space="preserve">
     <value>BOM/BOP 미등록 — 출하 차단</value>
   </data>
@@ -3233,9 +2762,6 @@
   </data>
   <data name="PP.WorkOrder.Filter.ClosedDays" xml:space="preserve">
     <value>마감 (일)</value>
-  </data>
-  <data name="PP.WorkOrder.Kpi.Critical" xml:space="preserve">
-    <value>납기 D-3 이하</value>
   </data>
   <data name="PP.WorkOrder.Col.Action" xml:space="preserve">
     <value>작업</value>
@@ -3375,29 +2901,11 @@
   <data name="Col.Comment" xml:space="preserve">
     <value>비고</value>
   </data>
-  <data name="Col.Minute" xml:space="preserve">
-    <value>분</value>
-  </data>
-  <data name="Col.State" xml:space="preserve">
-    <value>상태</value>
-  </data>
   <data name="Col.Plan" xml:space="preserve">
     <value>계획</value>
   </data>
-  <data name="Col.Run" xml:space="preserve">
-    <value>가동</value>
-  </data>
-  <data name="Col.Month" xml:space="preserve">
-    <value>월</value>
-  </data>
-  <data name="Col.Confidence" xml:space="preserve">
-    <value>신뢰도</value>
-  </data>
   <data name="Col.Source" xml:space="preserve">
     <value>출처</value>
-  </data>
-  <data name="Col.Batch" xml:space="preserve">
-    <value>배치</value>
   </data>
   <data name="Col.Planned" xml:space="preserve">
     <value>계획량</value>
@@ -3443,15 +2951,6 @@
   </data>
   <data name="Col.Total" xml:space="preserve">
     <value>합계</value>
-  </data>
-  <data name="Col.Period" xml:space="preserve">
-    <value>기간</value>
-  </data>
-  <data name="Col.Lines" xml:space="preserve">
-    <value>라인수</value>
-  </data>
-  <data name="Col.TotalQty" xml:space="preserve">
-    <value>합계수량</value>
   </data>
   <data name="Col.PrNo" xml:space="preserve">
     <value>구매요청번호</value>
@@ -3636,26 +3135,11 @@
   <data name="Col.HolidayName" xml:space="preserve">
     <value>공휴일명</value>
   </data>
-  <data name="Col.MenuSection" xml:space="preserve">
-    <value>섹션코드</value>
-  </data>
-  <data name="Col.MenuName" xml:space="preserve">
-    <value>메뉴명 (한국어)</value>
-  </data>
-  <data name="Col.MenuNameEn" xml:space="preserve">
-    <value>영문명</value>
-  </data>
   <data name="Col.Routing" xml:space="preserve">
     <value>경로</value>
   </data>
-  <data name="Col.Visible" xml:space="preserve">
-    <value>표시</value>
-  </data>
   <data name="Col.RoleName" xml:space="preserve">
     <value>역할명</value>
-  </data>
-  <data name="Col.Permission" xml:space="preserve">
-    <value>권한</value>
   </data>
   <data name="Col.EventCode" xml:space="preserve">
     <value>이벤트 코드</value>
@@ -3714,9 +3198,6 @@
   <data name="Col.CodeValue" xml:space="preserve">
     <value>코드값</value>
   </data>
-  <data name="Col.CodeName" xml:space="preserve">
-    <value>코드명</value>
-  </data>
   <data name="Col.Attr1" xml:space="preserve">
     <value>Attribute1</value>
   </data>
@@ -3725,9 +3206,6 @@
   </data>
   <data name="Col.CustomerName" xml:space="preserve">
     <value>고객명 (국문)</value>
-  </data>
-  <data name="Col.NameEn" xml:space="preserve">
-    <value>영문명</value>
   </data>
   <data name="Col.Country" xml:space="preserve">
     <value>국가</value>
@@ -3908,9 +3386,6 @@
   </data>
   <data name="Col.EndMin" xml:space="preserve">
     <value>종료(분)</value>
-  </data>
-  <data name="Col.ShiftCode" xml:space="preserve">
-    <value>교대</value>
   </data>
   <data name="Col.ReasonCode" xml:space="preserve">
     <value>사유 코드</value>
@@ -4170,9 +3645,6 @@
   <data name="Col.WcName" xml:space="preserve">
     <value>명칭</value>
   </data>
-  <data name="Col.ProcessType" xml:space="preserve">
-    <value>공정유형</value>
-  </data>
   <data name="Col.StdHeadcount" xml:space="preserve">
     <value>표준인원</value>
   </data>
@@ -4191,9 +3663,6 @@
   <data name="Col.ScrapPct" xml:space="preserve">
     <value>불량율%</value>
   </data>
-  <data name="Col.ProcessWC" xml:space="preserve">
-    <value>공정 / 작업장</value>
-  </data>
   <data name="Col.CycleSetup" xml:space="preserve">
     <value>사이클 / 준비 (s)</value>
   </data>
@@ -4203,20 +3672,8 @@
   <data name="Col.Progress" xml:space="preserve">
     <value>진행률</value>
   </data>
-  <data name="MD.Items.Kpi.FG" xml:space="preserve">
-    <value>완제품(FG)</value>
-  </data>
-  <data name="MD.Items.Kpi.WIP" xml:space="preserve">
-    <value>반제품(WIP)</value>
-  </data>
   <data name="MD.Items.Ph.Search" xml:space="preserve">
     <value>품목번호/품목명/차종/PGN/ALC</value>
-  </data>
-  <data name="MD.Items.Modal.Create" xml:space="preserve">
-    <value>품목 등록</value>
-  </data>
-  <data name="MD.Items.Modal.Edit" xml:space="preserve">
-    <value>품목 수정</value>
   </data>
   <data name="MD.Items.Lbl.ItemNo" xml:space="preserve">
     <value>품목번호 *</value>
@@ -4229,9 +3686,6 @@
   </data>
   <data name="MD.Items.Lbl.ItemName" xml:space="preserve">
     <value>품목명 *</value>
-  </data>
-  <data name="MD.Items.Lbl.ItemNameEn" xml:space="preserve">
-    <value>품목명(영문)</value>
   </data>
   <data name="MD.Items.Lbl.ItemType" xml:space="preserve">
     <value>품목유형</value>
@@ -4250,12 +3704,6 @@
   </data>
   <data name="MD.Items.Lbl.UnitCost" xml:space="preserve">
     <value>단가</value>
-  </data>
-  <data name="MD.Items.Lbl.CustSav" xml:space="preserve">
-    <value>고객품번(SAV)</value>
-  </data>
-  <data name="MD.Items.Lbl.CustGeo" xml:space="preserve">
-    <value>고객품번(GEO)</value>
   </data>
   <data name="MD.Items.Lbl.DrawingNo" xml:space="preserve">
     <value>도면번호</value>
@@ -4286,12 +3734,6 @@
   </data>
   <data name="MD.Customer.Ph.Search" xml:space="preserve">
     <value>고객코드/고객명</value>
-  </data>
-  <data name="MD.Customer.Modal.Create" xml:space="preserve">
-    <value>신규 고객사 등록</value>
-  </data>
-  <data name="MD.Customer.Modal.Edit" xml:space="preserve">
-    <value>고객사 수정</value>
   </data>
   <data name="MD.Customer.Lbl.CustomerCode" xml:space="preserve">
     <value>고객 코드</value>
@@ -4328,12 +3770,6 @@
   </data>
   <data name="MD.Vendor.Ph.Search" xml:space="preserve">
     <value>거래선명</value>
-  </data>
-  <data name="MD.Vendor.Modal.Create" xml:space="preserve">
-    <value>신규 거래선 등록</value>
-  </data>
-  <data name="MD.Vendor.Modal.Edit" xml:space="preserve">
-    <value>거래선 수정</value>
   </data>
   <data name="MD.Vendor.Lbl.VendorName" xml:space="preserve">
     <value>거래선명 *</value>
@@ -4382,12 +3818,6 @@
   </data>
   <data name="MD.Location.Ph.Search" xml:space="preserve">
     <value>로케이션 ID/명칭</value>
-  </data>
-  <data name="MD.Location.Modal.Create" xml:space="preserve">
-    <value>신규 로케이션 등록</value>
-  </data>
-  <data name="MD.Location.Modal.Edit" xml:space="preserve">
-    <value>로케이션 수정</value>
   </data>
   <data name="MD.Location.Lbl.LocationID" xml:space="preserve">
     <value>로케이션 ID *</value>
@@ -4487,9 +3917,6 @@
   </data>
   <data name="SYS.Calendar.Lbl.Plant" xml:space="preserve">
     <value>Plant</value>
-  </data>
-  <data name="SYS.Calendar.Ph.Plant" xml:space="preserve">
-    <value>예: SAV, TCS</value>
   </data>
   <data name="SYS.Calendar.Lbl.ShiftConfig" xml:space="preserve">
     <value>교대 설정</value>
@@ -4701,9 +4128,6 @@
   <data name="Kpi.LineCount" xml:space="preserve">
     <value>라인 수</value>
   </data>
-  <data name="Kpi.TypeCount" xml:space="preserve">
-    <value>유형 수</value>
-  </data>
   <data name="Kpi.ProcessCount" xml:space="preserve">
     <value>공정 수</value>
   </data>
@@ -4790,9 +4214,6 @@
   </data>
   <data name="MD.Uom.Kpi.BaseUnit" xml:space="preserve">
     <value>기준단위</value>
-  </data>
-  <data name="MD.InspStd.Kpi.ProcessCount" xml:space="preserve">
-    <value>공정 수</value>
   </data>
   <data name="Col.JigName" xml:space="preserve">
     <value>지그명</value>
@@ -5019,9 +4440,6 @@
   <data name="Msg.Deleted" xml:space="preserve">
     <value>삭제 완료.</value>
   </data>
-  <data name="Msg.GroupDeleted" xml:space="preserve">
-    <value>그룹 삭제 완료.</value>
-  </data>
   <data name="Msg.Approved" xml:space="preserve">
     <value>승인 완료.</value>
   </data>
@@ -5034,9 +4452,6 @@
   <data name="Msg.Revived" xml:space="preserve">
     <value>DRAFT로 재활성화.</value>
   </data>
-  <data name="Msg.BomVersionCreated" xml:space="preserve">
-    <value>BOM 버전 등록 완료.</value>
-  </data>
   <data name="Msg.BomLineAdded" xml:space="preserve">
     <value>BOM 라인 추가 완료.</value>
   </data>
@@ -5046,8 +4461,11 @@
   <data name="Msg.BomLineDeleted" xml:space="preserve">
     <value>BOM 라인 삭제 완료.</value>
   </data>
-  <data name="Err.AlreadyExists" xml:space="preserve">
-    <value>이미 존재합니다.</value>
+  <data name="Err.AlreadyExistsFmt" xml:space="preserve">
+    <value>'{0}' 은(는) 이미 존재합니다.</value>
+  </data>
+  <data name="Lbl.Required" xml:space="preserve">
+    <value>필요</value>
   </data>
   <data name="Err.VersionIdRequired" xml:space="preserve">
     <value>VersionID를 입력하세요.</value>
@@ -5108,9 +4526,6 @@
   </data>
   <data name="MD.PaintFabric.Ph.Search" xml:space="preserve">
     <value>LOT ID/자재코드/자재명</value>
-  </data>
-  <data name="MD.PmTemplate.Ph.Search" xml:space="preserve">
-    <value>템플릿ID/템플릿명</value>
   </data>
   <data name="MD.RalColor.Ph.Search" xml:space="preserve">
     <value>RAL코드/색상명</value>
@@ -5274,12 +4689,6 @@
   <data name="MD.Bom.NoLines" xml:space="preserve">
     <value>구성 라인 없음</value>
   </data>
-  <data name="MD.Bom.NoLinesHint" xml:space="preserve">
-    <value>— 상단 + 라인 버튼으로 등록하세요</value>
-  </data>
-  <data name="MD.Bom.Modal.CreateVersion" xml:space="preserve">
-    <value>BOM 버전 등록</value>
-  </data>
   <data name="MD.Bom.Modal.AddLine" xml:space="preserve">
     <value>BOM 라인 추가</value>
   </data>
@@ -5309,12 +4718,6 @@
   </data>
   <data name="MD.Bop.NoSteps" xml:space="preserve">
     <value>공정 단계 없음 — + 단계 추가 버튼으로 등록하세요</value>
-  </data>
-  <data name="MD.Bop.Modal.AddStep" xml:space="preserve">
-    <value>BOP 단계 추가</value>
-  </data>
-  <data name="MD.Bop.Modal.EditStep" xml:space="preserve">
-    <value>BOP 단계 수정</value>
   </data>
   <data name="MD.Bop.ConfirmDeleteStep" xml:space="preserve">
     <value>{0} Step {1} 을(를) 삭제합니까?</value>
@@ -5366,9 +4769,6 @@
   </data>
   <data name="PP.LineSchedule.ClickHint" xml:space="preserve">
     <value>기존 밴드 클릭 시 삭제</value>
-  </data>
-  <data name="PP.Wo.P0Title" xml:space="preserve">
-    <value>Phase-0: Item·BOM·BOP 완료 (BR-PP-001)</value>
   </data>
   <data name="PP.Calendar.WoTooltip.Line" xml:space="preserve">
     <value>라인</value>
@@ -5424,15 +4824,6 @@
   <data name="SYS.Users.Ph.Search" xml:space="preserve">
     <value>사용자ID/이메일/사번/성명/부서</value>
   </data>
-  <data name="PP.SapImport.Title" xml:space="preserve">
-    <value>SAP 연동</value>
-  </data>
-  <data name="PP.SapImport.Sub" xml:space="preserve">
-    <value>SAP 납품 오더 연동</value>
-  </data>
-  <data name="PP.SapImport.Empty" xml:space="preserve">
-    <value>해당 조건에 SAP 연동 데이터가 없습니다.</value>
-  </data>
   <data name="SYS.Users.Lbl.Email" xml:space="preserve">
     <value>이메일 *</value>
   </data>
@@ -5447,12 +4838,6 @@
   </data>
   <data name="SYS.Screen.Col.SubProcess" xml:space="preserve">
     <value>서브</value>
-  </data>
-  <data name="SYS.Screen.Modal.Create" xml:space="preserve">
-    <value>신규 화면 등록</value>
-  </data>
-  <data name="SYS.Screen.Modal.Edit" xml:space="preserve">
-    <value>화면 수정</value>
   </data>
   <data name="Col.CarType" xml:space="preserve">
     <value>차종</value>

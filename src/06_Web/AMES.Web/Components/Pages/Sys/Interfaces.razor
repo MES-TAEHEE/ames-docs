@@ -86,7 +86,7 @@
                     <Template Context="i"><span class="pill @StClass(i.ConnStatus)">@StatusName(i.ConnStatus)</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SysRepository.InterfaceRow" Property="LastSyncTs" Title="@L["SYS.Interfaces.Col.LastSync"]">
-                    <Template Context="i"><span class="dim">@(i.LastSyncTs?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
+                    <Template Context="i"><span class="dim">@(i.LastSyncTs?.ToString(DateFmt.MonthDayTime) ?? "—")</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SysRepository.InterfaceRow" Property="MinutesSinceSync" Title="@L["SYS.Interfaces.Col.Elapsed"]" TextAlign="TextAlign.Right" />
                 <RadzenDataGridColumn TItem="SysRepository.InterfaceRow" Property="LastRecordCount" Title="@L["SYS.Interfaces.Col.LastCount"]" TextAlign="TextAlign.Right">

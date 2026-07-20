@@ -113,12 +113,12 @@
 @if (_modal == "grp-create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.CommonCode.Grp.Create"]</div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text='@($"{L["MD.CommonCode.Lbl.GroupCode"]} {L["MD.CommonCode.Lbl.GroupCodeHint"]}")' class="ames-rz-modal-label" Component="GrpCreateTextBoxGroupCode" />
-                <RadzenTextBox Name="GrpCreateTextBoxGroupCode" @bind-Value="_fGroup.GroupCode" Placeholder="예: DEFECT_TYPE" MaxLength="20" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="GrpCreateTextBoxGroupCode" @bind-Value="_fGroup.GroupCode" Placeholder="DEFECT_TYPE" MaxLength="20" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
@@ -128,7 +128,7 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text='@L["MD.CommonCode.Lbl.GroupNameEn"]' class="ames-rz-modal-label" Component="GrpCreateTextBoxGroupNameEn" />
-                <RadzenTextBox Name="GrpCreateTextBoxGroupNameEn" @bind-Value="_fGroup.GroupNameEn" Placeholder="예: Defect Type" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="GrpCreateTextBoxGroupNameEn" @bind-Value="_fGroup.GroupNameEn" Placeholder="Defect Type" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -160,7 +160,7 @@
 @if (_modal == "grp-edit")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.CommonCode.Grp.Edit"] — <span class="code" style="font-weight:400;font-size:.9em;">@_fGroup.GroupCode</span></div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -212,12 +212,12 @@
 @if (_modal == "item-create" && _selGroup is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.CommonCode.Item.Create"] — <span class="code" style="font-weight:400;font-size:.9em;">@_selGroup.GroupCode</span></div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text='@($"{L["MD.CommonCode.Lbl.CodeValue"]} {L["MD.CommonCode.Lbl.CodeValueHint"]}")' class="ames-rz-modal-label" Component="ItemCreateTextBoxCodeValue" />
-                <RadzenTextBox Name="ItemCreateTextBoxCodeValue" Value="@_fItem.CodeValue" ValueChanged="OnCodeValueInput" Immediate="true" Placeholder="예: SCRAP" MaxLength="20" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="ItemCreateTextBoxCodeValue" Value="@_fItem.CodeValue" ValueChanged="OnCodeValueInput" Immediate="true" Placeholder="SCRAP" MaxLength="20" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
@@ -238,7 +238,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="12">
                     <RadzenLabel Text='@($"{L["MD.CommonCode.Lbl.ParentCode"]} {L["MD.CommonCode.Lbl.ParentCodeOpt"]}")' />
-                    <RadzenDropDown @bind-Value="_fItem.ParentCodeId" Data="@(_items.Select(p => new DropDownItem { Value = p.CodeID, Text = $"[{p.CodeValue}] {p.CodeName}" }))" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder='@L["MD.CommonCode.Opt.None"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_fItem.ParentCodeId" Data="@(_items.Select(p => new DropDownItem { Value = p.CodeID, Text = $"[{p.CodeValue}] {p.CodeName}" }))" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder='@L["MD.CommonCode.Opt.None"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -282,7 +282,7 @@
 @if (_modal == "item-edit")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.CommonCode.Item.Edit"] — <span class="code" style="font-weight:400;font-size:.9em;">@_fItem.CodeId</span></div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -308,7 +308,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="12">
                     <RadzenLabel Text='@($"{L["MD.CommonCode.Lbl.ParentCode"]} {L["MD.CommonCode.Lbl.ParentCodeOpt"]}")' />
-                    <RadzenDropDown @bind-Value="_fItem.ParentCodeId" Data="@(_items.Where(i => i.CodeID != _fItem.CodeId).Select(p => new DropDownItem { Value = p.CodeID, Text = $"[{p.CodeValue}] {p.CodeName}" }))" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder='@L["MD.CommonCode.Opt.None"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_fItem.ParentCodeId" Data="@(_items.Where(i => i.CodeID != _fItem.CodeId).Select(p => new DropDownItem { Value = p.CodeID, Text = $"[{p.CodeValue}] {p.CodeName}" }))" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder='@L["MD.CommonCode.Opt.None"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -449,10 +449,10 @@
         try
         {
             var code = _fGroup.GroupCode.Trim().ToUpper();
-            if (MD.CodeGroupExists(code)) { _modalErr = $"'{code}' {L["Err.AlreadyExists"]}"; return; }
+            if (MD.CodeGroupExists(code)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], code); return; }
             MD.InsertCodeGroup(code, _fGroup.GroupName.Trim(), NE(_fGroup.GroupNameEn), NE(_fGroup.Description), _fGroup.UseFlag, _actor);
             LoadGroups(); CloseModal();
-            ShowMsg($"{code} 그룹 {L["Msg.Created"]}", false);
+            ShowMsg($"{code} {L["Msg.Created"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -485,7 +485,7 @@
             MD.DeleteCodeGroup(_fGroup.GroupCode);
             if (_selGroup?.GroupCode == _fGroup.GroupCode) { _selGroup = null; _items = new(); }
             LoadGroups(); CloseModal();
-            ShowMsg($"그룹 {L["Msg.Deleted"]}", false);
+            ShowMsg($"{L["Msg.Deleted"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -536,12 +536,12 @@
         try
         {
             var id = _fItem.CodeId.Trim().ToUpper();
-            if (MD.CodeItemExists(id)) { _modalErr = $"CodeID '{id}' {L["Err.AlreadyExists"]}"; return; }
+            if (MD.CodeItemExists(id)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], id); return; }
             MD.InsertCodeItem(id, _selGroup!.GroupCode, _fItem.CodeValue.Trim(), _fItem.CodeName.Trim(),
                 NE(_fItem.CodeNameEn), _fItem.SortOrder, NE(_fItem.Attribute1), _fItem.UseFlag, NE(_fItem.Description), _actor,
                 _fItem.ParentCodeId);
             LoadItems(); CloseModal();
-            ShowMsg($"{id} 항목 {L["Msg.Created"]}", false);
+            ShowMsg($"{id} {L["Msg.Created"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }

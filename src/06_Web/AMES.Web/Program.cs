@@ -195,11 +195,14 @@ if (httpsPort.HasValue)
 }
 
 
-var supportedCultures = new[] { "ko", "en" };
-app.UseRequestLocalization(new RequestLocalizationOptions()
-    .SetDefaultCulture("ko")
-    .AddSupportedCultures(supportedCultures)
-    .AddSupportedUICultures(supportedCultures));
+// 서식(날짜/숫자)은 특정 문화권(ko-KR/en-US), 리소스(resx)는 중립(ko/en)
+var locOptions = new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture(culture: "ko-KR", uiCulture: "ko")
+};
+locOptions.AddSupportedCultures("ko-KR", "en-US");
+locOptions.AddSupportedUICultures("ko", "en");
+app.UseRequestLocalization(locOptions);
 
 app.UseStaticFiles();
 

@@ -93,9 +93,9 @@
                     </span>
                     <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
                         <RadzenLabel Text="@L["Col.Module"]" Component="DropDownModule" />
-                        <RadzenDropDown Name="DropDownModule" @bind-Value="_fModule" @bind-Value:after="OnModuleChanged" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+                        <RadzenDropDown AllowFiltering="true" Name="DropDownModule" @bind-Value="_fModule" @bind-Value:after="OnModuleChanged" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
                         <RadzenLabel Text="@L["SYS.Screen.Col.Process"]" Component="DropDownProcess" />
-                        <RadzenDropDown Name="DropDownProcess" @bind-Value="_fProcess" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+                        <RadzenDropDown AllowFiltering="true" Name="DropDownProcess" @bind-Value="_fProcess" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
 
                         @if (_canEdit)
                         {
