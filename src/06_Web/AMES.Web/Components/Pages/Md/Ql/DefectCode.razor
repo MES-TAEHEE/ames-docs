@@ -323,8 +323,8 @@
         _actor = auth.User.Identity?.Name ?? "system";
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/ql/defect-code");
-        try { _severityCodes = MD.ListCodeItems("DEFECT_CODE_SEVERITY"); } catch { }
-        try { _statusCodes   = MD.ListCodeItems("DEFECT_CODE_STATUS");   } catch { }
+        try { _severityCodes = MD.ListCodeItems("DEFECT_SEVERITY"); } catch { }
+        try { _statusCodes   = MD.ListCodeItems("DEFECT_STATUS");   } catch { }
         try { _processItems  = MD.ListCodeItems("PROCESS");              } catch { }
         try { _categoryItems = MD.ListCodeItems("DEFECT_CATEGORY");      } catch { }
         try { _causes        = MD.ListDefectCauses().OrderBy(r => r.CauseCode).ToList(); } catch { }

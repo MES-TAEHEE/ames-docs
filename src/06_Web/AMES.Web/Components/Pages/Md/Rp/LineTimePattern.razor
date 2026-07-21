@@ -463,7 +463,7 @@
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/rp/line-time-pattern");
         try { _lineList    = MD.ListLines(); } catch { }
-        try { _dayTypes    = MD.ListCodeItems("CALENDAR_DAY_TYPE"); } catch { }
+        try { _dayTypes    = MD.ListCodeItems("DAY_TYPE"); } catch { }
         try { _shiftModels = MD.ListCodeItems("SHIFT_PATTERN"); } catch { }
         try { _segStates   = MD.ListCodeItems("SEGMENT_STATE"); } catch { }
         try { _workShifts  = MD.ListCodeItems("WORK_SHIFT"); } catch { }

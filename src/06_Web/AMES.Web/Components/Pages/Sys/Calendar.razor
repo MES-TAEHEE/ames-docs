@@ -464,14 +464,14 @@
         _actor = auth.User.Identity?.Name ?? "system";
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("sys/calendar");
-        try { _dayTypes = MD.ListCodeItems("CALENDAR_DAY_TYPE"); } catch { }
+        try { _dayTypes = MD.ListCodeItems("DAY_TYPE"); } catch { }
         try { _plants = MD.ListCodeItems("PLANT"); } catch { }
         if (_dayTypes.Count == 0)
             _dayTypes = new()
             {
-                new("CAL_DAY_WORKDAY", "CALENDAR_DAY_TYPE", "WORKDAY", "근무일", "Workday", null, 1, null, true, null, null, null, null, null),
-                new("CAL_DAY_WEEKEND", "CALENDAR_DAY_TYPE", "WEEKEND", "주말",   "Weekend", null, 2, null, true, null, null, null, null, null),
-                new("CAL_DAY_HOLIDAY", "CALENDAR_DAY_TYPE", "HOLIDAY", "공휴일", "Holiday", null, 3, null, true, null, null, null, null, null),
+                new("DAY_TYPE_WORKDAY", "DAY_TYPE", "WORKDAY", "근무일", "Workday", null, 1, null, true, null, null, null, null, null),
+                new("DAY_TYPE_WEEKEND", "DAY_TYPE", "WEEKEND", "주말",   "Weekend", null, 2, null, true, null, null, null, null, null),
+                new("DAY_TYPE_HOLIDAY", "DAY_TYPE", "HOLIDAY", "공휴일", "Holiday", null, 3, null, true, null, null, null, null, null),
             };
         Reload();
     }
