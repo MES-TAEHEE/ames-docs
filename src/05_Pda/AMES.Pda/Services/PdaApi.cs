@@ -1,4 +1,5 @@
 using System.Data;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -150,7 +151,7 @@ public sealed class PdaApi
         int? PoSeq, string? VendorId, string? VendorName, DateTime? ProductionDate, DateTime? DeliveryDate,
         DateTime? ArrivalDate, DateTime? ShipDate, DateTime? PackDate, string? ReceivedLocation,
         string? ReceivedStatus);
-    public sealed record InboundTransactionLogRow(long RowNo, string? LotNo, string? PartNo,
+    public sealed record WarehouseTransactionRow(long RowNo, string? LotNo, string? PartNo,
         string? WorkDate, string? WorkTime, string? LocationId, decimal Qty, string Status,
         string Direction, string? WorkerId, string? ReasonCode, string? ReasonNote,
         string? Supervisor, decimal? BeforeQty, decimal? DeltaQty, decimal? AfterQty,
@@ -193,6 +194,8 @@ public sealed class PdaApi
     public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId);
     public sealed record InboundCancelReq(string Mode, string Barcode);
     public sealed record InboundAdjustReq(string Mode, string Barcode, decimal DeltaQty, string ReasonCode,
+        string? ReasonNote, string SupervisorPin);
+    public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
         string? ReasonNote, string SupervisorPin);
     public sealed record InboundReceiveResult(bool Success, string Message, InboundScanRow? Row);
     public sealed record AdjustReq(string ItemNo, string LocationId, decimal Delta, string ReasonCode, string? Note);
@@ -303,8 +306,11 @@ public sealed class PdaApi
             Authorize();
             var url = $"/api/wh/location/scan?locationId={Uri.EscapeDataString(locationId.Trim())}";
             var resp = await _http.GetAsync(url);
+            if (resp.StatusCode == HttpStatusCode.Unauthorized)
+                throw new InvalidOperationException("Session expired. Sign in again.");
+
             if (!resp.IsSuccessStatusCode)
-                throw new InvalidOperationException("Warehouse location service is unavailable.");
+                throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Warehouse location service is unavailable."));
 
             return await resp.Content.ReadFromJsonAsync<LocationRow>();
         }
@@ -385,15 +391,51 @@ public sealed class PdaApi
         }
     }
 
-    public async Task<List<InboundTransactionLogRow>> WhInboundTransactionLogsAsync(string? lotNo = null, DateTime? dateFrom = null, DateTime? dateTo = null)
+    public async Task<InboundScanRow?> WhScanAdjustAsync(string scanText)
     {
         try
         {
-            return await QueryWhInboundTransactionLogsDbAsync(lotNo, dateFrom, dateTo);
+            Authorize();
+            var url = $"/api/wh/adjust/scan?scanText={Uri.EscapeDataString(scanText.Trim())}";
+            var resp = await _http.GetAsync(url);
+            if (!resp.IsSuccessStatusCode)
+                throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Warehouse adjust scan service is unavailable."));
+
+            return await resp.Content.ReadFromJsonAsync<InboundScanRow>();
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
         }
         catch
         {
-            return new List<InboundTransactionLogRow>();
+            throw new InvalidOperationException("Warehouse adjust scan service is unavailable.");
+        }
+    }
+
+    public async Task<List<WarehouseTransactionRow>> WhWarehouseTransactionsAsync(string? search = null, DateTime? dateFrom = null, DateTime? dateTo = null)
+    {
+        try
+        {
+            Authorize();
+            var query = new List<string>();
+            if (!string.IsNullOrWhiteSpace(search))
+                query.Add($"search={Uri.EscapeDataString(search.Trim())}");
+            if (dateFrom.HasValue)
+                query.Add($"dateFrom={Uri.EscapeDataString(dateFrom.Value.ToString("yyyy-MM-dd"))}");
+            if (dateTo.HasValue)
+                query.Add($"dateTo={Uri.EscapeDataString(dateTo.Value.ToString("yyyy-MM-dd"))}");
+
+            var url = "/api/wh/warehouse-transactions";
+            if (query.Count > 0)
+                url += "?" + string.Join("&", query);
+
+            return await _http.GetFromJsonAsync<List<WarehouseTransactionRow>>(url)
+                ?? new List<WarehouseTransactionRow>();
+        }
+        catch
+        {
+            return new List<WarehouseTransactionRow>();
         }
     }
 
@@ -459,12 +501,12 @@ public sealed class PdaApi
         }
     }
 
-    public async Task<InboundReceiveResult> WhAdjustInboundQtyAsync(InboundAdjustReq body)
+    public async Task<InboundReceiveResult> WhSaveAdjustQtyAsync(AdjustSaveReq body)
     {
         try
         {
             Authorize();
-            var resp = await _http.PostAsJsonAsync("/api/wh/inbound/adjust-qty", body);
+            var resp = await _http.PostAsJsonAsync("/api/wh/adjust/save", body);
             return await ReadInboundReceiveResultAsync(resp);
         }
         catch
@@ -472,6 +514,15 @@ public sealed class PdaApi
             return new InboundReceiveResult(false, "Warehouse adjustment service is unavailable.", null);
         }
     }
+
+    public Task<InboundReceiveResult> WhAdjustInboundQtyAsync(InboundAdjustReq body) =>
+        WhSaveAdjustQtyAsync(new AdjustSaveReq(
+            body.Mode,
+            body.Barcode,
+            body.DeltaQty,
+            body.ReasonCode,
+            body.ReasonNote,
+            body.SupervisorPin));
 
     public Task<HttpResponseMessage> WhAdjustAsync (AdjustReq  body) => Post("/api/wh/inventory/adjust", body);
     public Task<HttpResponseMessage> WhPickAsync   (PickReq    body) => Post("/api/wh/release/pick",      body);
@@ -547,8 +598,11 @@ public sealed class PdaApi
 
     private static async Task<InboundReceiveResult> ReadInboundReceiveResultAsync(HttpResponseMessage resp)
     {
+        if (resp.StatusCode == HttpStatusCode.Unauthorized)
+            return new InboundReceiveResult(false, "Session expired. Sign in again.", null);
+
         if (!resp.IsSuccessStatusCode)
-            return new InboundReceiveResult(false, "Warehouse service is unavailable.", null);
+            return new InboundReceiveResult(false, await ReadServiceErrorAsync(resp, "Warehouse service is unavailable."), null);
 
         return await resp.Content.ReadFromJsonAsync<InboundReceiveResult>()
                ?? new InboundReceiveResult(false, "Warehouse service returned an empty response.", null);
@@ -590,15 +644,34 @@ public sealed class PdaApi
         return fallback;
     }
 
-    private async Task<List<InboundTransactionLogRow>> QueryWhInboundTransactionLogsDbAsync(string? lotNo, DateTime? dateFrom, DateTime? dateTo)
+    private async Task<List<WarehouseTransactionRow>> QueryWhWarehouseTransactionsDbAsync(string? search, DateTime? dateFrom, DateTime? dateTo)
     {
-        var rows = new List<InboundTransactionLogRow>();
-        var searchFilter = string.IsNullOrWhiteSpace(lotNo) ? null : $"%{EscapeLikePattern(lotNo.Trim())}%";
+        var rows = new List<WarehouseTransactionRow>();
+        var searchFilter = string.IsNullOrWhiteSpace(search) ? null : $"%{EscapeLikePattern(search.Trim())}%";
         var fromFilter = dateFrom?.Date ?? DateTime.Today.AddDays(-7);
         var toFilter = dateTo?.Date ?? DateTime.Today;
 
         await using var conn = _db.CreateConnection();
         await conn.OpenAsync();
+
+        if (await ProcedureExistsAsync(conn, "dbo", "WH_PDA_TRANSACTION_LIST"))
+        {
+            await using var proc = new SqlCommand("[dbo].[WH_PDA_TRANSACTION_LIST]", conn)
+            {
+                CommandType = CommandType.StoredProcedure,
+                CommandTimeout = 15
+            };
+            proc.Parameters.Add("@SearchText", SqlDbType.NVarChar, 120).Value =
+                string.IsNullOrWhiteSpace(search) ? DBNull.Value : search.Trim();
+            proc.Parameters.Add("@DateFrom", SqlDbType.Date).Value = fromFilter;
+            proc.Parameters.Add("@DateTo", SqlDbType.Date).Value = toFilter;
+
+            await using var procRdr = await proc.ExecuteReaderAsync();
+            while (await procRdr.ReadAsync())
+                rows.Add(ReadWarehouseTransactionRow(procRdr));
+
+            return rows;
+        }
 
         var hasWms2030 = await TableExistsAsync(conn, "SIS_TEST", "WMS2030");
         var sql = hasWms2030
@@ -719,30 +792,36 @@ public sealed class PdaApi
 
                     SELECT
                         3 AS SORT_BUCKET,
-                        A.LOTNO,
-                        A.PARTNO,
-                        A.WORK_DATE AS WDATE,
-                        A.WORK_TIME AS WTIME,
-                        A.LOCATION_NO,
-                        COALESCE(A.AFTER_QTY, 0) AS QTY,
+                        L.LotCode AS LOTNO,
+                        A.ItemNo AS PARTNO,
+                        CONVERT(nvarchar(10), A.CreatedTS, 23) AS WDATE,
+                        CONVERT(nvarchar(8), A.CreatedTS, 108) AS WTIME,
+                        A.LocationID AS LOCATION_NO,
+                        COALESCE(A.QtyAfter, 0) AS QTY,
                         N'Adjust' AS STATUS,
                         N'ADJ' AS DIRECTION,
-                        A.USER_ID AS WORKER_ID,
-                        A.REASON_CODE,
-                        A.REASON_NOTE,
-                        A.USER_ID AS SUPERVISOR,
-                        A.BEFORE_QTY,
-                        A.DELTA_QTY,
-                        A.AFTER_QTY,
+                        COALESCE(A.ApprovedBy, A.RequestedBy, A.CreatedBy) AS WORKER_ID,
+                        A.ReasonCode AS REASON_CODE,
+                        A.ReasonNote AS REASON_NOTE,
+                        COALESCE(A.ApprovedBy, A.RequestedBy, A.CreatedBy) AS SUPERVISOR,
+                        A.QtyBefore AS BEFORE_QTY,
+                        A.Delta AS DELTA_QTY,
+                        A.QtyAfter AS AFTER_QTY,
                         N'QTY BEFORE' AS BEFORE_STATUS,
                         N'QTY AFTER' AS AFTER_STATUS,
-                        A.LOCATION_NO AS BEFORE_LOCATION,
-                        A.LOCATION_NO AS AFTER_LOCATION,
-                        N'PDA_WH002_ADJUST_AUDIT' AS SOURCE,
-                        CONCAT(A.REASON_CODE, N' ', CASE WHEN A.DELTA_QTY > 0 THEN N'+' ELSE N'' END, CONVERT(nvarchar(40), A.DELTA_QTY)) AS NOTE,
-                        COALESCE(A.INSERT_DATE, SYSUTCDATETIME()) AS SORT_TS
-                    FROM SIS_TEST.PDA_WH002_ADJUST_AUDIT A
-                    WHERE (@IN_SEARCH IS NULL OR A.LOTNO LIKE @IN_SEARCH ESCAPE N'\' OR A.PARTNO LIKE @IN_SEARCH ESCAPE N'\')
+                        A.LocationID AS BEFORE_LOCATION,
+                        A.LocationID AS AFTER_LOCATION,
+                        N'WH_InventoryAdjust' AS SOURCE,
+                        CONCAT(A.ReasonCode, N' ', CASE WHEN A.Delta > 0 THEN N'+' ELSE N'' END, CONVERT(nvarchar(40), A.Delta)) AS NOTE,
+                        COALESCE(A.CreatedTS, SYSUTCDATETIME()) AS SORT_TS
+                    FROM dbo.WH_InventoryAdjust A
+                    LEFT JOIN dbo.tbl_Lot L
+                           ON L.LotID = A.LotID
+                    WHERE (@IN_SEARCH IS NULL
+                        OR L.LotCode LIKE @IN_SEARCH ESCAPE N'\'
+                        OR A.ItemNo LIKE @IN_SEARCH ESCAPE N'\'
+                        OR A.LocationID LIKE @IN_SEARCH ESCAPE N'\'
+                        OR A.ReasonCode LIKE @IN_SEARCH ESCAPE N'\')
                 )
                 SELECT TOP (200)
                     ROW_NUMBER() OVER (ORDER BY SORT_TS DESC, SORT_BUCKET DESC) AS ROW_NO,
@@ -782,7 +861,7 @@ public sealed class PdaApi
         await using var rdr = await cmd.ExecuteReaderAsync();
         while (await rdr.ReadAsync())
         {
-            rows.Add(ReadInboundTransactionLogRow(rdr));
+            rows.Add(ReadWarehouseTransactionRow(rdr));
         }
 
         return rows;
@@ -1273,9 +1352,9 @@ public sealed class PdaApi
             GetString(rdr, "RECEIVED_STATUS"));
     }
 
-    private static InboundTransactionLogRow ReadInboundTransactionLogRow(SqlDataReader rdr)
+    private static WarehouseTransactionRow ReadWarehouseTransactionRow(SqlDataReader rdr)
     {
-        return new InboundTransactionLogRow(
+        return new WarehouseTransactionRow(
             GetLong(rdr, "ROW_NO") ?? 0,
             GetString(rdr, "LOTNO"),
             GetString(rdr, "PARTNO"),

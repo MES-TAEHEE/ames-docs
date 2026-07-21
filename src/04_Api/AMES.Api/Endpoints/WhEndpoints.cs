@@ -1,5 +1,7 @@
 using AMES.Api.Auth;
+using AMES.Api.Logging;
 using AMES.Data.Connection;
+using AMES.Data.Security;
 using System.Data;
 using Microsoft.Data.SqlClient;
 
@@ -15,6 +17,8 @@ public static class WhEndpoints
     private const string PdaInboundReceiveLotProcedure = "WH_PDA_INBOUND_RECEIVE_LOT";
     private const string PdaInboundMoveLocationProcedure = "WH_PDA_INBOUND_MOVE_LOCATION";
     private const string PdaInboundCancelReceiptProcedure = "WH_PDA_INBOUND_CANCEL_RECEIPT";
+    private const string PdaAdjustScanStockProcedure = "WH_PDA_ADJUST_SCAN_STOCK";
+    private const string PdaAdjustSaveQtyProcedure = "WH_PDA_ADJUST_SAVE_QTY";
     private const string PdaReleaseSlipStatusProcedure = "WH_PDA_RELEASE_SLIP_STATUS";
     private const string PdaReleasePickLinesProcedure = "WH_PDA_RELEASE_PICK_LINES";
     private const string PdaReleaseScanLotProcedure = "WH_PDA_RELEASE_SCAN_LOT";
@@ -43,9 +47,10 @@ public static class WhEndpoints
 
     public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId);
     public sealed record InboundCancelReq(string Mode, string Barcode);
-    public sealed record InboundAdjustReq(string Mode, string Barcode, decimal DeltaQty, string ReasonCode,
+    public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
         string? ReasonNote, string SupervisorPin);
     public sealed record InboundReceiveResult(bool Success, string Message, InboundScanRow? Row);
+    private sealed record SupervisorPinProfile(string UserId, string EmployeeNo);
 
     public sealed record Wh001ScheduleReleaseItem(string PickSlipNo, string? DestinationLocation, DateTime? RequiredDate,
         string? RequiredTime, DateTime? PrintedAt, DateTime? ClosedAt, string? ClosedBy,
@@ -67,6 +72,13 @@ public static class WhEndpoints
 
     public sealed record TransactionRow(long TxnId, DateTime TxnTime, string TxnType, string? ItemNo,
         string? LocationId, decimal QtyBefore, decimal Delta, decimal QtyAfter, string? ReasonCode);
+
+    public sealed record WarehouseTransactionRow(long RowNo, string? LotNo, string? PartNo,
+        string? WorkDate, string? WorkTime, string? LocationId, decimal Qty, string Status,
+        string Direction, string? WorkerId, string? ReasonCode, string? ReasonNote,
+        string? Supervisor, decimal? BeforeQty, decimal? DeltaQty, decimal? AfterQty,
+        string? BeforeStatus, string? AfterStatus, string? BeforeLocation, string? AfterLocation,
+        string? Source, string? Note);
 
     public sealed record ReceiveReq(string LotCode, decimal Qty, string LocationId);
     public sealed record AdjustReq(string ItemNo, string LocationId, decimal Delta, string ReasonCode, string? Note);
@@ -135,11 +147,15 @@ public static class WhEndpoints
 
         g.MapGet("/inbound/scan", (HttpContext ctx, string mode, string barcode) =>
         {
-            if (ctx.GetSession() is null) return Results.Unauthorized();
+            if (ctx.GetSession() is not { } s) return Results.Unauthorized();
 
             try
             {
-                return Results.Ok(ExecuteInboundScan(factory, mode, barcode));
+                var row = ExecuteInboundScan(factory, mode, barcode);
+                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                    s, "SCAN_LOT", "WH002", "LOT", barcode, "SUCCESS", "Inbound LOT scanned",
+                    lotNo: row?.LotNo ?? barcode, partNo: row?.PartNo, locationId: row?.ReceivedLocation, qty: row?.Qty));
+                return Results.Ok(row);
             }
             catch (Exception ex)
             {
@@ -149,6 +165,9 @@ public static class WhEndpoints
                     && sqlEx.Errors[0].Number >= 51400
                     && sqlEx.Errors[0].Number < 51500;
 
+                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                    s, "SCAN_LOT", "WH002", "LOT", barcode, "FAIL", WarehouseProcedureMessage(ex),
+                    lotNo: barcode));
                 return Results.Problem(
                     WarehouseProcedureMessage(ex),
                     statusCode: isValidationError
@@ -161,7 +180,11 @@ public static class WhEndpoints
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
 
-            return Results.Ok(ExecuteInboundReceive(factory, body, s.EmployeeNo, PdaInboundReceiveLotProcedure, "Received"));
+            var result = ExecuteInboundReceive(factory, body, s.EmployeeNo, PdaInboundReceiveLotProcedure, "Received");
+            WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                s, "RECEIVE", "WH002", "LOT", body.Barcode, result.Success ? "SUCCESS" : "FAIL", result.Message,
+                lotNo: result.Row?.LotNo ?? body.Barcode, partNo: result.Row?.PartNo, locationId: body.LocationId, qty: result.Row?.Qty));
+            return Results.Ok(result);
         }
 
         g.MapPost("/inbound/receive-lot", ReceiveInboundLot);
@@ -171,33 +194,113 @@ public static class WhEndpoints
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
 
-            return Results.Ok(ExecuteInboundReceive(factory, body, s.EmployeeNo, PdaInboundMoveLocationProcedure, "Location changed"));
+            try
+            {
+                var result = ExecuteInboundReceive(factory, body, s.EmployeeNo, PdaInboundMoveLocationProcedure, "Location changed");
+                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                    s, "MOVE_LOCATION", "WH002", "LOCATION", body.LocationId, result.Success ? "SUCCESS" : "FAIL", result.Message,
+                    lotNo: result.Row?.LotNo ?? body.Barcode, partNo: result.Row?.PartNo, locationId: body.LocationId, qty: result.Row?.Qty));
+                return Results.Ok(result);
+            }
+            catch (Exception ex)
+            {
+                var isValidationError =
+                    ex is SqlException sqlEx
+                    && sqlEx.Errors.Count > 0
+                    && sqlEx.Errors[0].Number >= 51400
+                    && sqlEx.Errors[0].Number < 51500;
+
+                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                    s, "MOVE_LOCATION", "WH002", "LOCATION", body.LocationId, "FAIL", WarehouseProcedureMessage(ex),
+                    lotNo: body.Barcode, locationId: body.LocationId));
+                return Results.Problem(
+                    WarehouseProcedureMessage(ex),
+                    statusCode: isValidationError
+                        ? StatusCodes.Status400BadRequest
+                        : StatusCodes.Status503ServiceUnavailable);
+            }
         });
 
         g.MapPost("/inbound/cancel", (HttpContext ctx, InboundCancelReq body) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
 
-            return Results.Ok(ExecuteInboundCancel(factory, body, s.EmployeeNo));
+            var result = ExecuteInboundCancel(factory, body, s.EmployeeNo);
+            WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                s, "CANCEL_RECEIPT", "WH002", "LOT", body.Barcode, result.Success ? "SUCCESS" : "FAIL", result.Message,
+                lotNo: result.Row?.LotNo ?? body.Barcode, partNo: result.Row?.PartNo, locationId: result.Row?.ReceivedLocation, qty: result.Row?.Qty));
+            return Results.Ok(result);
         });
 
-        g.MapPost("/inbound/adjust-qty", (HttpContext ctx, InboundAdjustReq body) =>
+        g.MapGet("/adjust/scan", (HttpContext ctx, string scanText) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
 
-            return Results.Ok(ExecuteInboundAdjust(factory, body, s.EmployeeNo));
+            try
+            {
+                var row = ExecuteAdjustScan(factory, scanText);
+                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                    s, "SCAN_STOCK", "WH005", "LOT_PART", scanText, "SUCCESS", "Adjustment stock scanned",
+                    lotNo: row?.LotNo, partNo: row?.PartNo ?? scanText, locationId: row?.ReceivedLocation, qty: row?.Qty));
+                return Results.Ok(row);
+            }
+            catch (Exception ex)
+            {
+                var isValidationError =
+                    ex is SqlException sqlEx
+                    && sqlEx.Errors.Count > 0
+                    && sqlEx.Errors[0].Number >= 51500
+                    && sqlEx.Errors[0].Number < 51600;
+
+                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                    s, "SCAN_STOCK", "WH005", "LOT_PART", scanText, "FAIL", WarehouseProcedureMessage(ex),
+                    lotNo: scanText, partNo: scanText));
+                return Results.Problem(
+                    WarehouseProcedureMessage(ex),
+                    statusCode: isValidationError
+                        ? StatusCodes.Status400BadRequest
+                        : StatusCodes.Status503ServiceUnavailable);
+            }
         });
+
+        IResult SaveAdjustQuantity(HttpContext ctx, AdjustSaveReq body)
+        {
+            if (ctx.GetSession() is not { } s) return Results.Unauthorized();
+
+            var result = ExecuteAdjustSave(factory, body, s.EmployeeNo);
+            WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                s, "ADJUST_SAVE", "WH005", "LOT_PART", body.Barcode, result.Success ? "SUCCESS" : "FAIL", result.Message,
+                lotNo: result.Row?.LotNo, partNo: result.Row?.PartNo ?? body.Barcode,
+                locationId: result.Row?.ReceivedLocation, qty: body.DeltaQty));
+            return Results.Ok(result);
+        }
+
+        g.MapPost("/adjust/save", SaveAdjustQuantity);
+        g.MapPost("/inbound/adjust-qty", SaveAdjustQuantity);
 
         g.MapGet("/location/scan", (HttpContext ctx, string locationId) =>
         {
-            if (ctx.GetSession() is null) return Results.Unauthorized();
+            if (ctx.GetSession() is not { } s) return Results.Unauthorized();
+            if (string.IsNullOrWhiteSpace(locationId))
+                return Results.Problem("Scan Location No.", statusCode: StatusCodes.Status400BadRequest);
 
             try
             {
-                return Results.Ok(QuerySisLocation(factory, locationId));
+                var location = QuerySisLocation(factory, locationId);
+                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                    s, "SCAN_LOCATION", "WH002", "LOCATION", locationId,
+                    location is null ? "FAIL" : "SUCCESS",
+                    location is null ? "Location not found." : "Location scanned",
+                    locationId: location?.LocationId ?? locationId, qty: location?.TotalQty));
+                return location is null
+                    ? Results.Problem("Location not found.", statusCode: StatusCodes.Status404NotFound)
+                    : Results.Ok(location);
             }
-            catch
+            catch (Exception ex)
             {
+                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                    s, "SCAN_LOCATION", "WH002", "LOCATION", locationId, "FAIL", WarehouseProcedureMessage(ex),
+                    locationId: locationId));
                 return Results.Problem("Warehouse database is unavailable.", statusCode: StatusCodes.Status503ServiceUnavailable);
             }
         });
@@ -281,8 +384,13 @@ public static class WhEndpoints
 
         g.MapGet("/release/schedule/{pickSlipNo}/status", (HttpContext ctx, string pickSlipNo) =>
         {
-            if (ctx.GetSession() is null) return Results.Unauthorized();
-            return Results.Ok(QueryReleaseSlipStatus(factory, pickSlipNo));
+            if (ctx.GetSession() is not { } s) return Results.Unauthorized();
+            var status = QueryReleaseSlipStatus(factory, pickSlipNo);
+            WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                s, "SCAN_PICK_SLIP", "WH003", "PICK_SLIP", pickSlipNo,
+                status.Exists ? "SUCCESS" : "FAIL", status.Message,
+                refDocType: "PICK_SLIP", refDocNo: status.PickSlipNo));
+            return Results.Ok(status);
         });
 
         g.MapGet("/release/schedule/{pickSlipNo}/lines", (HttpContext ctx, string pickSlipNo) =>
@@ -293,9 +401,14 @@ public static class WhEndpoints
 
         g.MapGet("/release/lot", (HttpContext ctx, string pickSlipNo, string lotNo) =>
         {
-            if (ctx.GetSession() is null) return Results.Unauthorized();
+            if (ctx.GetSession() is not { } s) return Results.Unauthorized();
             using var conn = factory.OpenConnection();
             var row = ValidateReleaseLot(conn, null, pickSlipNo, lotNo);
+            WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                s, "SCAN_RELEASE_LOT", "WH003", "LOT", lotNo,
+                row.IsValid ? "SUCCESS" : "FAIL", row.Message,
+                refDocType: "PICK_SLIP", refDocNo: pickSlipNo, lotNo: row.LotNo ?? lotNo,
+                partNo: row.ItemNo, locationId: row.LocationNo, qty: row.Qty));
             return Results.Ok(row);
         });
 
@@ -308,6 +421,12 @@ public static class WhEndpoints
             if (ProcedureExists(conn, "dbo", PdaReleasePickLotProcedure))
             {
                 var result = ExecuteReleasePickStoredProcedure(conn, body, s.EmployeeNo, s.TerminalId);
+                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                    s, "RELEASE_PICK", "WH003", "LOT", body.LotNo,
+                    result.Success ? "SUCCESS" : "FAIL", result.Message,
+                    refDocType: "PICK_SLIP", refDocNo: body.PickSlipNo,
+                    lotNo: result.Row?.LotNo ?? body.LotNo, partNo: result.Row?.ItemNo,
+                    locationId: result.Row?.LocationNo, qty: result.Row?.Qty ?? body.Qty));
                 return result.Success ? Results.Ok(result) : Results.BadRequest(result);
             }
 
@@ -317,6 +436,10 @@ public static class WhEndpoints
             if (!row.IsValid)
             {
                 tx.Rollback();
+                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                    s, "RELEASE_PICK", "WH003", "LOT", body.LotNo, "FAIL", row.Message,
+                    refDocType: "PICK_SLIP", refDocNo: body.PickSlipNo,
+                    lotNo: row.LotNo ?? body.LotNo, partNo: row.ItemNo, locationId: row.LocationNo, qty: body.Qty));
                 return Results.BadRequest(new PickResult(false, row.Message ?? "LOT cannot be picked.", row));
             }
 
@@ -324,6 +447,11 @@ public static class WhEndpoints
             if (pickQty != row.Qty)
             {
                 tx.Rollback();
+                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                    s, "RELEASE_PICK", "WH003", "LOT", body.LotNo, "FAIL",
+                    "Partial LOT split is not supported in this PDA flow yet. Pick the full LOT quantity.",
+                    refDocType: "PICK_SLIP", refDocNo: body.PickSlipNo,
+                    lotNo: row.LotNo ?? body.LotNo, partNo: row.ItemNo, locationId: row.LocationNo, qty: pickQty));
                 return Results.BadRequest(new PickResult(false,
                     "Partial LOT split is not supported in this PDA flow yet. Pick the full LOT quantity.", row));
             }
@@ -349,6 +477,19 @@ public static class WhEndpoints
                 VALUES
                     (@PickSlipNo, @LotNo, @PartNo, @Qty, @LocationNo, @BeforeStatus, N'O1',
                      @By, @TerminalId, SYSDATETIME());
+
+                IF OBJECT_ID(N'dbo.WH_InventoryTransaction', N'U') IS NOT NULL
+                BEGIN
+                    INSERT INTO dbo.WH_InventoryTransaction
+                    (
+                        TransactionType, ItemNo, LocationID, LotID, QtyBefore, QtyChange, QtyAfter,
+                        ReasonCode, RefDocType, RefDocID, OperatorID, Note, CreatedBy, CreatedTS
+                    )
+                    SELECT TOP (1)
+                        'OUT', @PartNo, @LocationNo, NULL, @Qty, -@Qty, 0,
+                        'RELEASE_PICK', 'PICK_SLIP', TRY_CONVERT(int, REPLACE(@PickSlipNo, N'RS-', N'')), @By,
+                        CONCAT('PDA release pick ', @PickSlipNo), @By, SYSDATETIME();
+                END
                 """, conn, tx);
             cmd.Parameters.AddWithValue("@PickSlipNo", body.PickSlipNo.Trim());
             cmd.Parameters.AddWithValue("@LotNo", body.LotNo.Trim());
@@ -363,32 +504,43 @@ public static class WhEndpoints
             if (affected < 2)
             {
                 tx.Rollback();
+                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                    s, "RELEASE_PICK", "WH003", "LOT", body.LotNo, "FAIL", "LOT status changed before picking. Scan again.",
+                    refDocType: "PICK_SLIP", refDocNo: body.PickSlipNo,
+                    lotNo: row.LotNo ?? body.LotNo, partNo: row.ItemNo, locationId: row.LocationNo, qty: pickQty));
                 return Results.BadRequest(new PickResult(false, "LOT status changed before picking. Scan again.", row));
             }
 
             tx.Commit();
-            return Results.Ok(new PickResult(true, "Release pick completed.", row with
+            var pickResult = new PickResult(true, "Release pick completed.", row with
             {
                 InvStatus = "O1",
                 Message = "Release pick completed."
-            }));
+            });
+            WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                s, "RELEASE_PICK", "WH003", "LOT", body.LotNo, "SUCCESS", pickResult.Message,
+                refDocType: "PICK_SLIP", refDocNo: body.PickSlipNo,
+                lotNo: row.LotNo ?? body.LotNo, partNo: row.ItemNo, locationId: row.LocationNo, qty: pickQty));
+            return Results.Ok(pickResult);
         });
 
-        // WH-08 Transaction History
+        // WH-06 Inventory Transactions
         g.MapGet("/transactions", (HttpContext ctx, int? days) =>
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
             var d = days ?? 7;
             var sql = $$"""
-                SELECT TOP 100 TxnID, TxnTime, ISNULL(TxnType,'?') AS TxnType,
+                SELECT TOP 100 TransactionID AS TxnID,
+                       TransactionTime AS TxnTime,
+                       ISNULL(TransactionType,'?') AS TxnType,
                        ItemNo, LocationID,
                        ISNULL(QtyBefore,0) AS QtyBefore,
-                       ISNULL(Delta,0)     AS Delta,
+                       ISNULL(QtyChange,0) AS Delta,
                        ISNULL(QtyAfter,0)  AS QtyAfter,
                        ReasonCode
-                FROM   dbo.WH_TransactionHistory
-                WHERE  TxnTime > DATEADD(day, -{{d}}, SYSDATETIME())
-                ORDER BY TxnTime DESC;
+                FROM   dbo.WH_InventoryTransaction
+                WHERE  TransactionTime > DATEADD(day, -{{d}}, SYSDATETIME())
+                ORDER BY TransactionTime DESC;
                 """;
             return Query(factory, sql, r => new TransactionRow(
                 (long)r["TxnID"], (DateTime)r["TxnTime"], r["TxnType"] as string ?? "?",
@@ -397,6 +549,16 @@ public static class WhEndpoints
                 r.GetDecimal(r.GetOrdinal("Delta")),
                 r.GetDecimal(r.GetOrdinal("QtyAfter")),
                 r["ReasonCode"] as string));
+        });
+
+        g.MapGet("/warehouse-transactions", (
+            HttpContext ctx,
+            string? search,
+            DateTime? dateFrom,
+            DateTime? dateTo) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+            return Results.Ok(QueryWarehouseTransactions(factory, search, dateFrom, dateTo));
         });
     }
 
@@ -685,6 +847,36 @@ public static class WhEndpoints
                 GetString(rdr, "LOC_03"),
                 GetString(rdr, "STATUS") ?? "Open"));
         }
+
+        return rows;
+    }
+
+    private static List<WarehouseTransactionRow> QueryWarehouseTransactions(
+        AmesConnectionFactory factory,
+        string? search,
+        DateTime? dateFrom,
+        DateTime? dateTo)
+    {
+        using var conn = factory.OpenConnection();
+        if (!ProcedureExists(conn, "dbo", "WH_PDA_TRANSACTION_LIST"))
+            return new List<WarehouseTransactionRow>();
+
+        using var cmd = new SqlCommand("[dbo].[WH_PDA_TRANSACTION_LIST]", conn)
+        {
+            CommandType = CommandType.StoredProcedure,
+            CommandTimeout = 15
+        };
+        cmd.Parameters.Add("@SearchText", SqlDbType.NVarChar, 120).Value =
+            string.IsNullOrWhiteSpace(search) ? DBNull.Value : search.Trim();
+        cmd.Parameters.Add("@DateFrom", SqlDbType.Date).Value =
+            dateFrom.HasValue ? dateFrom.Value.Date : DateTime.Today.AddDays(-7);
+        cmd.Parameters.Add("@DateTo", SqlDbType.Date).Value =
+            dateTo.HasValue ? dateTo.Value.Date : DateTime.Today;
+
+        using var rdr = cmd.ExecuteReader();
+        var rows = new List<WarehouseTransactionRow>();
+        while (rdr.Read())
+            rows.Add(ReadWarehouseTransactionRow(rdr));
 
         return rows;
     }
@@ -1119,6 +1311,20 @@ public static class WhEndpoints
         return rdr.Read() ? ReadInboundScanRow(rdr) : null;
     }
 
+    private static InboundScanRow? ExecuteAdjustScan(AmesConnectionFactory factory, string scanText)
+    {
+        using var conn = factory.OpenConnection();
+        using var cmd = new SqlCommand($"[dbo].[{PdaAdjustScanStockProcedure}]", conn)
+        {
+            CommandType = CommandType.StoredProcedure,
+            CommandTimeout = 15
+        };
+        cmd.Parameters.Add("@ScanText", SqlDbType.NVarChar, 80).Value = scanText.Trim();
+
+        using var rdr = cmd.ExecuteReader();
+        return rdr.Read() ? ReadInboundScanRow(rdr) : null;
+    }
+
     private static InboundReceiveResult ExecuteInboundReceive(
         AmesConnectionFactory factory,
         InboundReceiveReq body,
@@ -1173,121 +1379,179 @@ public static class WhEndpoints
         }
     }
 
-    private static InboundReceiveResult ExecuteInboundAdjust(AmesConnectionFactory factory, InboundAdjustReq body, string userId)
+    private static InboundReceiveResult ExecuteAdjustSave(AmesConnectionFactory factory, AdjustSaveReq body, string userId)
     {
         try
         {
             using var conn = factory.OpenConnection();
-            using var cmd = new SqlCommand("[SIS_TEST].[PDA_WH002_ADJUST_QTY]", conn)
+            var supervisor = FindSupervisorByPin(conn, body.SupervisorPin);
+            if (supervisor is null)
+                return new InboundReceiveResult(false, "Supervisor PIN is invalid.", null);
+
+            using var cmd = new SqlCommand($"[dbo].[{PdaAdjustSaveQtyProcedure}]", conn)
             {
                 CommandType = CommandType.StoredProcedure,
                 CommandTimeout = 15
             };
-            cmd.Parameters.Add("@IN_MODE", SqlDbType.NVarChar, 10).Value = body.Mode.Trim();
-            cmd.Parameters.Add("@IN_BARCODE", SqlDbType.NVarChar, 50).Value = body.Barcode.Trim();
-            cmd.Parameters.Add("@IN_DELTA_QTY", SqlDbType.Decimal).Value = body.DeltaQty;
-            cmd.Parameters["@IN_DELTA_QTY"].Precision = 18;
-            cmd.Parameters["@IN_DELTA_QTY"].Scale = 3;
-            cmd.Parameters.Add("@IN_REASON_CODE", SqlDbType.NVarChar, 30).Value = body.ReasonCode.Trim();
-            cmd.Parameters.Add("@IN_REASON_NOTE", SqlDbType.NVarChar, 500).Value =
+            cmd.Parameters.Add("@ScanText", SqlDbType.NVarChar, 80).Value = body.Barcode.Trim();
+            cmd.Parameters.Add("@DeltaQty", SqlDbType.Decimal).Value = body.DeltaQty;
+            cmd.Parameters["@DeltaQty"].Precision = 18;
+            cmd.Parameters["@DeltaQty"].Scale = 3;
+            cmd.Parameters.Add("@ReasonCode", SqlDbType.NVarChar, 30).Value = body.ReasonCode.Trim();
+            cmd.Parameters.Add("@ReasonNote", SqlDbType.NVarChar, 500).Value =
                 string.IsNullOrWhiteSpace(body.ReasonNote) ? DBNull.Value : body.ReasonNote.Trim();
-            cmd.Parameters.Add("@IN_SUPERVISOR_PIN", SqlDbType.NVarChar, 40).Value = body.SupervisorPin.Trim();
-            cmd.Parameters.Add("@IN_USERID", SqlDbType.NVarChar, 40).Value = userId;
+            cmd.Parameters.Add("@SupervisorPin", SqlDbType.NVarChar, 40).Value = body.SupervisorPin.Trim();
+            cmd.Parameters.Add("@SupervisorUserId", SqlDbType.NVarChar, 450).Value = supervisor.UserId;
+            cmd.Parameters.Add("@SupervisorEmployeeNo", SqlDbType.NVarChar, 40).Value = supervisor.EmployeeNo;
+            cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 40).Value = userId;
 
             using var rdr = cmd.ExecuteReader();
             var row = rdr.Read() ? ReadInboundScanRow(rdr) : null;
             return new InboundReceiveResult(true, "Quantity adjusted", row);
         }
-        catch
+        catch (Exception ex)
         {
-            return new InboundReceiveResult(false, "Warehouse database is unavailable.", null);
+            return new InboundReceiveResult(false, WarehouseProcedureMessage(ex), null);
         }
+    }
+
+    private static SupervisorPinProfile? FindSupervisorByPin(SqlConnection conn, string? supervisorPin)
+    {
+        var pin = supervisorPin?.Trim();
+        if (string.IsNullOrWhiteSpace(pin) || pin.Length < 4)
+            return null;
+
+        const string sql = """
+            SELECT
+                COALESCE(NULLIF(UserID, N''), EmployeeNo) AS UserID,
+                EmployeeNo,
+                PinHash
+            FROM dbo.SYS_UserProfile
+            WHERE PinHash IS NOT NULL
+              AND ISNULL(AccountStatus, 'Active') = 'Active';
+            """;
+
+        using var cmd = new SqlCommand(sql, conn) { CommandTimeout = 15 };
+        using var rdr = cmd.ExecuteReader();
+        while (rdr.Read())
+        {
+            var pinHash = rdr["PinHash"] as string;
+            if (!PinHasher.Verify(pin, pinHash))
+                continue;
+
+            return new SupervisorPinProfile(
+                Convert.ToString(rdr["UserID"]) ?? "",
+                Convert.ToString(rdr["EmployeeNo"]) ?? "");
+        }
+
+        return null;
     }
 
     private static LocationRow? QuerySisLocation(AmesConnectionFactory factory, string locationId)
     {
         using var conn = factory.OpenConnection();
-        if (!TableExists(conn, null, "SIS_TEST", "WMS1040"))
-        {
-            using var dboCmd = new SqlCommand("""
-                SELECT TOP (1)
-                    L.LocationID,
-                    L.LocationName,
-                    L.ZoneCode,
-                    CAST(NULL AS nvarchar(20)) AS WarehouseCode,
-                    CAST(NULL AS nvarchar(80)) AS WarehouseName,
-                    L.PlantCode AS AreaCode,
-                    L.PlantCode AS AreaName,
-                    L.ZoneCode AS ZoneName,
-                    L.Aisle,
-                    L.Bay,
-                    L.Slot,
-                    L.PlantCode,
-                    L.LocationType,
-                    L.Capacity,
-                    COUNT(I.InventoryID) AS LineCount,
-                    COALESCE(SUM(I.OnHandQty), 0) AS TotalQty
-                FROM dbo.MD_Location L
-                LEFT JOIN dbo.WH_Inventory I
-                    ON I.LocationID = L.LocationID
-                   AND COALESCE(I.Status, 'Received') <> 'Canceled'
-                   AND COALESCE(I.OnHandQty, 0) > 0
-                WHERE COALESCE(L.ActiveFlag, 1) = 1
-                  AND UPPER(L.LocationID) = UPPER(@LocationID)
-                GROUP BY L.LocationID, L.LocationName, L.ZoneCode, L.Aisle, L.Bay, L.Slot,
-                    L.PlantCode, L.LocationType, L.Capacity
-                ORDER BY L.LocationID;
-                """, conn)
-            {
-                CommandTimeout = 15
-            };
-            dboCmd.Parameters.Add("@LocationID", SqlDbType.NVarChar, 30).Value = locationId.Trim();
+        var dboLocation = QueryDboLocation(conn, locationId);
+        if (dboLocation is not null)
+            return dboLocation;
 
-            using var dboRdr = dboCmd.ExecuteReader();
-            return dboRdr.Read() ? ReadLocationRow(dboRdr) : null;
+        if (!TableExists(conn, null, "SIS_TEST", "WMS1040"))
+            return null;
+
+        var hasWarehouseMaster = TableExists(conn, null, "SIS_TEST", "WMS1010");
+        var hasAreaMaster = TableExists(conn, null, "SIS_TEST", "WMS1020");
+        var hasZoneMaster = TableExists(conn, null, "SIS_TEST", "WMS1030");
+        var hasStock = TableExists(conn, null, "SIS_TEST", "WMS2020");
+
+        var joins = "";
+        var warehouseName = "CAST(NULL AS nvarchar(80)) AS WarehouseName";
+        var areaName = "CAST(NULL AS nvarchar(80)) AS AreaName";
+        var zoneName = "CAST(NULL AS nvarchar(80)) AS ZoneName";
+        var stockJoin = "";
+        var lineCount = "CAST(0 AS int) AS LineCount";
+        var totalQty = "CAST(0 AS decimal(18,3)) AS TotalQty";
+        var groupNames = "";
+
+        if (hasWarehouseMaster)
+        {
+            joins += """
+
+            LEFT JOIN SIS_TEST.WMS1010 W
+                ON W.CORCD = L.CORCD
+               AND W.BIZCD = L.BIZCD
+               AND W.WHCD = L.WHCD
+            """;
+            warehouseName = "W.WHNM AS WarehouseName";
+            groupNames += ", W.WHNM";
         }
 
-        using var cmd = new SqlCommand("""
+        if (hasAreaMaster)
+        {
+            joins += """
+
+            LEFT JOIN SIS_TEST.WMS1020 A
+                ON A.CORCD = L.CORCD
+               AND A.BIZCD = L.BIZCD
+               AND A.AREACD = L.AREACD
+            """;
+            areaName = "A.AREANM AS AreaName";
+            groupNames += ", A.AREANM";
+        }
+
+        if (hasZoneMaster)
+        {
+            joins += """
+
+            LEFT JOIN SIS_TEST.WMS1030 Z
+                ON Z.CORCD = L.CORCD
+               AND Z.BIZCD = L.BIZCD
+               AND Z.ZONECD = L.ZONECD
+            """;
+            zoneName = "Z.ZONENM AS ZoneName";
+            groupNames += ", Z.ZONENM";
+        }
+
+        if (hasStock)
+        {
+            stockJoin = """
+
+            LEFT JOIN SIS_TEST.WMS2020 S
+                ON S.LOCATION_NO = L.LOCATION_NO
+            """;
+            lineCount = "COUNT(S.LOTNO) AS LineCount";
+            totalQty = "COALESCE(SUM(S.QTY), 0) AS TotalQty";
+        }
+
+        var sql = $"""
             SELECT TOP (1)
                 L.LOCATION_NO AS LocationID,
                 L.LOCATION_NM AS LocationName,
                 L.ZONECD AS ZoneCode,
                 L.WHCD AS WarehouseCode,
-                W.WHNM AS WarehouseName,
+                {warehouseName},
                 L.AREACD AS AreaCode,
-                A.AREANM AS AreaName,
-                Z.ZONENM AS ZoneName,
+                {areaName},
+                {zoneName},
                 L.RACK_X AS Aisle,
                 L.RACK_Y AS Bay,
                 L.RACK_Z AS Slot,
                 CAST(NULL AS nvarchar(20)) AS PlantCode,
                 CAST(N'SIS' AS nvarchar(20)) AS LocationType,
                 CAST(NULL AS decimal(18,3)) AS Capacity,
-                COUNT(S.LOTNO) AS LineCount,
-                COALESCE(SUM(S.QTY), 0) AS TotalQty
+                {lineCount},
+                {totalQty}
             FROM SIS_TEST.WMS1040 L
-            LEFT JOIN SIS_TEST.WMS1010 W
-                ON W.CORCD = L.CORCD
-               AND W.BIZCD = L.BIZCD
-               AND W.WHCD = L.WHCD
-            LEFT JOIN SIS_TEST.WMS1020 A
-                ON A.CORCD = L.CORCD
-               AND A.BIZCD = L.BIZCD
-               AND A.AREACD = L.AREACD
-            LEFT JOIN SIS_TEST.WMS1030 Z
-                ON Z.CORCD = L.CORCD
-               AND Z.BIZCD = L.BIZCD
-               AND Z.ZONECD = L.ZONECD
-            LEFT JOIN SIS_TEST.WMS2020 S
-                ON S.LOCATION_NO = L.LOCATION_NO
+            {joins}
+            {stockJoin}
             WHERE L.CORCD = @LocationCorcd
               AND L.BIZCD = @LocationBizcd
               AND COALESCE(L.USE_YN, N'Y') = N'Y'
               AND UPPER(L.LOCATION_NO) = UPPER(@LocationID)
-            GROUP BY L.LOCATION_NO, L.LOCATION_NM, L.ZONECD, L.WHCD, W.WHNM,
-                L.AREACD, A.AREANM, Z.ZONENM, L.RACK_X, L.RACK_Y, L.RACK_Z
+            GROUP BY L.LOCATION_NO, L.LOCATION_NM, L.ZONECD, L.WHCD,
+                L.AREACD, L.RACK_X, L.RACK_Y, L.RACK_Z{groupNames}
             ORDER BY L.LOCATION_NO;
-            """, conn)
+            """;
+
+        using var cmd = new SqlCommand(sql, conn)
         {
             CommandTimeout = 15
         };
@@ -1297,6 +1561,49 @@ public static class WhEndpoints
 
         using var rdr = cmd.ExecuteReader();
         return rdr.Read() ? ReadLocationRow(rdr) : null;
+    }
+
+    private static LocationRow? QueryDboLocation(SqlConnection conn, string locationId)
+    {
+        if (!TableExists(conn, null, "dbo", "MD_Location"))
+            return null;
+
+        using var dboCmd = new SqlCommand("""
+            SELECT TOP (1)
+                L.LocationID,
+                L.LocationName,
+                L.ZoneCode,
+                CAST(NULL AS nvarchar(20)) AS WarehouseCode,
+                CAST(NULL AS nvarchar(80)) AS WarehouseName,
+                L.PlantCode AS AreaCode,
+                L.PlantCode AS AreaName,
+                L.ZoneCode AS ZoneName,
+                L.Aisle,
+                L.Bay,
+                L.Slot,
+                L.PlantCode,
+                L.LocationType,
+                L.Capacity,
+                COUNT(I.InventoryID) AS LineCount,
+                COALESCE(SUM(I.OnHandQty), 0) AS TotalQty
+            FROM dbo.MD_Location L
+            LEFT JOIN dbo.WH_Inventory I
+                ON I.LocationID = L.LocationID
+               AND COALESCE(I.Status, 'Received') <> 'Canceled'
+               AND COALESCE(I.OnHandQty, 0) > 0
+            WHERE COALESCE(L.ActiveFlag, 1) = 1
+              AND UPPER(L.LocationID) = UPPER(@LocationID)
+            GROUP BY L.LocationID, L.LocationName, L.ZoneCode, L.Aisle, L.Bay, L.Slot,
+                L.PlantCode, L.LocationType, L.Capacity
+            ORDER BY L.LocationID;
+            """, conn)
+        {
+            CommandTimeout = 15
+        };
+        dboCmd.Parameters.Add("@LocationID", SqlDbType.NVarChar, 30).Value = locationId.Trim();
+
+        using var dboRdr = dboCmd.ExecuteReader();
+        return dboRdr.Read() ? ReadLocationRow(dboRdr) : null;
     }
 
     private static string WarehouseProcedureMessage(Exception ex)
@@ -1358,6 +1665,33 @@ public static class WhEndpoints
             GetNullableDecimal(rdr, "Capacity"));
     }
 
+    private static WarehouseTransactionRow ReadWarehouseTransactionRow(SqlDataReader rdr)
+    {
+        return new WarehouseTransactionRow(
+            GetLong(rdr, "ROW_NO") ?? 0,
+            GetString(rdr, "LOTNO"),
+            GetString(rdr, "PARTNO"),
+            GetString(rdr, "WDATE"),
+            GetString(rdr, "WTIME"),
+            GetString(rdr, "LOCATION_NO"),
+            GetDecimal(rdr, "QTY"),
+            GetString(rdr, "STATUS") ?? "-",
+            GetString(rdr, "DIRECTION") ?? "OTHER",
+            GetString(rdr, "WORKER_ID"),
+            GetString(rdr, "REASON_CODE"),
+            GetString(rdr, "REASON_NOTE"),
+            GetString(rdr, "SUPERVISOR"),
+            GetNullableDecimal(rdr, "BEFORE_QTY"),
+            GetNullableDecimal(rdr, "DELTA_QTY"),
+            GetNullableDecimal(rdr, "AFTER_QTY"),
+            GetString(rdr, "BEFORE_STATUS"),
+            GetString(rdr, "AFTER_STATUS"),
+            GetString(rdr, "BEFORE_LOCATION"),
+            GetString(rdr, "AFTER_LOCATION"),
+            GetString(rdr, "SOURCE"),
+            GetString(rdr, "NOTE"));
+    }
+
     private static IResult Query<T>(AmesConnectionFactory factory, string sql, Func<SqlDataReader, T> map)
     {
         using var conn = factory.OpenConnection();
@@ -1401,6 +1735,13 @@ public static class WhEndpoints
         if (!HasColumn(rdr, name)) return null;
         var value = rdr[name];
         return value == DBNull.Value ? null : Convert.ToInt32(value);
+    }
+
+    private static long? GetLong(SqlDataReader rdr, string name)
+    {
+        if (!HasColumn(rdr, name)) return null;
+        var value = rdr[name];
+        return value == DBNull.Value ? null : Convert.ToInt64(value);
     }
 
     private static decimal GetDecimal(SqlDataReader rdr, string name)

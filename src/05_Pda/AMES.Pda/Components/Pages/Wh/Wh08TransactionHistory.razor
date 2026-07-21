@@ -189,15 +189,15 @@
     private bool _loading;
     private bool _showFilters;
     private DateTime? _lastUpdated;
-    private List<PdaApi.InboundTransactionLogRow> _rows = new();
+    private List<PdaApi.WarehouseTransactionRow> _rows = new();
     private readonly HashSet<long> _expandedRows = new();
 
     private string LastUpdatedText => _lastUpdated?.ToString("HH:mm:ss") ?? "-";
     private DateTime? DateFrom => TryDate(_dateFrom);
     private DateTime? DateTo => TryDate(_dateTo);
     private string RangeLabel => $"{Text(_dateFrom)} - {Text(_dateTo)}";
-    private IEnumerable<PdaApi.InboundTransactionLogRow> ConditionRows => _rows.Where(MatchesConditions).ToList();
-    private IEnumerable<PdaApi.InboundTransactionLogRow> FilteredRows => ConditionRows.Where(MatchesType).ToList();
+    private IEnumerable<PdaApi.WarehouseTransactionRow> ConditionRows => _rows.Where(MatchesConditions).ToList();
+    private IEnumerable<PdaApi.WarehouseTransactionRow> FilteredRows => ConditionRows.Where(MatchesType).ToList();
     private string FilterButtonClass => $"wh08-filter-toggle {(HasAdvancedFilters ? "on" : "")}";
     private bool HasAdvancedFilters => !string.IsNullOrWhiteSpace(_worker)
                                        || !string.IsNullOrWhiteSpace(_reason)
@@ -254,7 +254,7 @@
                 return;
             }
 
-            _rows = await Api.WhInboundTransactionLogsAsync(_search, DateFrom, DateTo);
+            _rows = await Api.WhWarehouseTransactionsAsync(_search, DateFrom, DateTo);
             _expandedRows.Clear();
             _lastUpdated = DateTime.Now;
             _msg = string.IsNullOrWhiteSpace(_search)
@@ -327,21 +327,21 @@
             _expandedRows.Remove(rowNo);
     }
 
-    private bool MatchesConditions(PdaApi.InboundTransactionLogRow row)
+    private bool MatchesConditions(PdaApi.WarehouseTransactionRow row)
     {
         return MatchesSearch(row)
             && Contains(row.WorkerId, _worker)
             && (string.IsNullOrWhiteSpace(_reason) || string.Equals(row.ReasonCode, _reason, StringComparison.OrdinalIgnoreCase));
     }
 
-    private bool MatchesSearch(PdaApi.InboundTransactionLogRow row)
+    private bool MatchesSearch(PdaApi.WarehouseTransactionRow row)
     {
         return string.IsNullOrWhiteSpace(_search)
             || Contains(row.LotNo, _search)
             || Contains(row.PartNo, _search);
     }
 
-    private bool MatchesType(PdaApi.InboundTransactionLogRow row)
+    private bool MatchesType(PdaApi.WarehouseTransactionRow row)
     {
         return string.IsNullOrWhiteSpace(_type) || IsDirection(row, _type);
     }
@@ -376,17 +376,17 @@
         return value.Value > 0 ? "plus" : "minus";
     }
 
-    private static string LogDateText(PdaApi.InboundTransactionLogRow row)
+    private static string LogDateText(PdaApi.WarehouseTransactionRow row)
     {
         var date = Text(row.WorkDate);
         return string.IsNullOrWhiteSpace(row.WorkTime) ? date : $"{date} {row.WorkTime}";
     }
 
-    private static bool IsAdjust(PdaApi.InboundTransactionLogRow row) => IsDirection(row, "ADJ");
-    private static bool IsDirection(PdaApi.InboundTransactionLogRow row, string direction)
+    private static bool IsAdjust(PdaApi.WarehouseTransactionRow row) => IsDirection(row, "ADJ");
+    private static bool IsDirection(PdaApi.WarehouseTransactionRow row, string direction)
         => string.Equals(row.Direction, direction, StringComparison.OrdinalIgnoreCase);
 
-    private static string RowCardClass(PdaApi.InboundTransactionLogRow row)
+    private static string RowCardClass(PdaApi.WarehouseTransactionRow row)
         => row.Direction?.ToUpperInvariant() switch
         {
             "IN" => "inbound",
