@@ -74,7 +74,7 @@
         </div>
     }
 
-    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.LineTimePatternRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.LineTimePatternRow" Data="@_rows" AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.LinePat.Empty"]" Class="ames-rz-grid">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="PatternID" Title="@L["Col.PatternId"]" Width="130px">
@@ -101,7 +101,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="Status" Title="@L["Col.Status"]" Width="90px" TextAlign="TextAlign.Center">
                 <Template Context="r"><span class="pill @(r.Status == "ACTIVE" ? "ok" : "warn")">@(r.Status ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Title="@L["MD.LineTimePattern.Col.Schedule"]" Width="350px" Sortable="false">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Title="@L["MD.LineTimePattern.Col.Schedule"]" Width="240px" Sortable="false">
                 <Template Context="r">
                     @{ var segs = _allSegList.Where(s => s.PatternID == r.PatternID).ToList(); }
                     @if (segs.Count == 0)
@@ -145,7 +145,7 @@
             <RadzenStack Orientation="Orientation.Horizontal" Gap="0.4rem" AlignItems="AlignItems.Center">
                 @if (_canEdit)
                 {
-                    <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Disabled="@(_busy || !_dirty)" Click="@SaveEditor" class="ames-rz-btn" />
+                    <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Disabled="@(_busy || !_dirty)" Click="@SaveAndClose" class="ames-rz-btn" />
                 }
                 <RadzenButton Text="@L["MD.LineTimePattern.Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@TryCloseEditor" class="ames-rz-btn" />
             </RadzenStack>
@@ -224,6 +224,29 @@
             </span>
             <span class="dim">@string.Format(L["MD.LineTimePattern.Stat.Segments"].Value, _segments.Count)</span>
         </div>
+
+        @if (!string.IsNullOrEmpty(_editorMsg))
+        {
+            <div style="padding:0 14px 8px;">
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_editorMsg</RadzenAlert>
+            </div>
+        }
+
+        @* ── 계획비가동 사유코드·설명 (계획비가동 밴드가 있을 때) ── *@
+        @if (HasPlannedDown())
+        {
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 14px 12px;border-top:1px solid rgba(255,255,255,.06);">
+                <span class="pill bad" style="font-size:.72em;">@SegLabel("PLANNED_DOWNTIME")</span>
+                <RadzenLabel Text="@L["MD.LineTimePattern.Lbl.DownReason"]" />
+                <RadzenDropDown TValue="string" @bind-Value="_downReason" Change="@(_ => OnDownInputChanged())" Data="@PlannedReasonOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Disabled="@(!_canEdit)" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
+                <RadzenLabel Text="@L["Col.Description"]" />
+                <RadzenTextBox @bind-Value="_downDesc" Change="@(_ => OnDownInputChanged())" Disabled="@(!_canEdit)" Placeholder="@L["MD.LineTimePattern.Ph.DownDesc"]" MaxLength="120" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;min-width:200px;" />
+                @if (SelectedReasonRequiresComment())
+                {
+                    <span class="pill warn" style="font-size:.7em;" title="@L["MD.LineTimePattern.Err.CommentRequired"]">*</span>
+                }
+            </div>
+        }
         </div>
     </div>
 }
@@ -393,7 +416,7 @@
 }
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 10, 20, 50, 100 };
     bool _showPagerSummary = true;
     List<MasterDataRepository.LineTimePatternRow>  _allRows  = new();
     List<MasterDataRepository.LineTimePatternRow>  _rows     = new();
@@ -405,6 +428,7 @@
     List<MasterDataRepository.CodeItemRow>  _shiftModels = new();
     List<MasterDataRepository.CodeItemRow>  _segStates   = new();
     List<MasterDataRepository.CodeItemRow>  _workShifts  = new();
+    List<MasterDataRepository.ReasonCodeRow> _reasonCodes = new();
 
     string  _fSearch = "";
     string? _fLine;
@@ -421,8 +445,12 @@
     string  _segState = "OPERATING";
     (int S, int E, string? Sh)? _lastPaint;
     (string Sh, int S, int E, string St)? _confirmBand;
-    bool _dirty;
+    bool _dirty;        // 메모리 세그먼트가 저장본과 다름 → 저장(Save) 가능. 자동 기본채움도 포함.
+    bool _userEdited;   // 사용자가 실제로 편집(드로잉/삭제/전체삭제)함 → 닫기 시 확인 대상. 자동 기본채움은 제외.
     bool _confirmClose;
+    string? _downReason;      // 계획비가동 사유코드 (패턴의 PLANNED_DOWNTIME 세그먼트 공통)
+    string  _downDesc = "";   // 계획비가동 사유 설명
+    string  _editorMsg = "";  // 편집기 모달 내부 메시지 (검증/저장오류) — 페이지 상단 대신 모달 안에 표시
     DotNetObjectReference<LineTimePattern>? _ref;
     bool _jsReady;
 
@@ -437,6 +465,7 @@
         "OPERATING"        => "#86efac",
         "PLANNED_DOWNTIME" => "#fca5a5",
         "BREAK"            => "#fde68a",
+        "IDLE"             => "#cbd5e1",
         _                  => "#93c5fd"
     };
 
@@ -467,6 +496,7 @@
         try { _shiftModels = MD.ListCodeItems("SHIFT_PATTERN"); } catch { }
         try { _segStates   = MD.ListCodeItems("SEGMENT_STATE"); } catch { }
         try { _workShifts  = MD.ListCodeItems("WORK_SHIFT"); } catch { }
+        try { _reasonCodes = MD.ListReasonCodes(); } catch { }
         Reload();
     }
 
@@ -526,20 +556,59 @@
     void OpenEditor(string patternId)
     {
         _editId = patternId;
-        _lastPaint = null; _confirmBand = null; _dirty = false; _confirmClose = false;
+        _lastPaint = null; _confirmBand = null; _dirty = false; _userEdited = false; _confirmClose = false; _editorMsg = "";
         ReloadSegments();
+        // 기존 계획비가동 세그먼트에서 사유코드·설명 선로딩 (패턴 공통 값으로 취급)
+        var pd = _segments.FirstOrDefault(s => s.SegmentState == "PLANNED_DOWNTIME");
+        _downReason = pd?.ReasonCode;
+        _downDesc   = pd?.Description ?? "";
         EnsureBaseFill();
     }
 
-    // 각 Shift 창을 OPERATING(가동)으로 기본 채움 (해당 Shift 세그먼트가 없을 때) — 메모리에만
+    // 패턴에 계획비가동 밴드가 존재하는지
+    bool HasPlannedDown() => _segments.Any(s => s.SegmentState == "PLANNED_DOWNTIME" && (s.EndMin ?? 0) > (s.StartMin ?? 0));
+    // 계획비가동(PlannedFlag=1) 사유코드 옵션 (비활성 제외)
+    IEnumerable<DropDownItem> PlannedReasonOptions => _reasonCodes
+        .Where(r => r.PlannedFlag && !string.Equals(r.Status, "INACTIVE", StringComparison.OrdinalIgnoreCase))
+        .Select(r => new DropDownItem { Value = r.ReasonCode, Text = $"[{r.ReasonCode}] {r.ReasonName ?? r.ReasonCode}" });
+    // 선택된 사유가 설명(코멘트)을 필수로 요구하는지
+    bool SelectedReasonRequiresComment()
+        => _reasonCodes.FirstOrDefault(r => r.ReasonCode == _downReason)?.RequiresComment ?? false;
+    // 사유코드·설명 변경 = 사용자 편집 (입력하면 검증 메시지 해제)
+    void OnDownInputChanged() { _dirty = true; _userEdited = true; _editorMsg = ""; }
+
+    // 편집 중 패턴의 ShiftPattern → 기본 가동 교대 수. 순번이 이 수 미만인 교대는 OPERATING, 나머지는 IDLE(유휴) 기본.
+    //   SHIFT1=1교대만 가동 / SHIFT2=앞 2교대 가동 / SHIFT3=전 교대 가동 / 미지정=전 교대 가동(기존 동작 유지)
+    int OperatingShiftCount()
+        => _allRows.FirstOrDefault(r => r.PatternID == _editId)?.ShiftPattern switch
+        {
+            "SHIFT1_SCHEDULE" => 1,
+            "SHIFT2_SCHEDULE" => 2,
+            "SHIFT3_SCHEDULE" => 3,
+            _                 => int.MaxValue
+        };
+
+    // 교대 순번(0=Shift1)에 따른 기본 상태
+    string DefaultShiftState(int index) => index < OperatingShiftCount() ? "OPERATING" : "IDLE";
+
+    // 교대 코드 → 기본 상태 (삭제/되돌리기 복원용)
+    string DefaultShiftStateOf(string? shiftCode)
+    {
+        int idx = ActiveShifts().FindIndex(x => string.Equals(x.Code, shiftCode, StringComparison.Ordinal));
+        return idx < 0 ? "OPERATING" : DefaultShiftState(idx);
+    }
+
+    // 각 Shift 창을 기본 상태(가동/유휴)로 채움 (해당 Shift 세그먼트가 없을 때) — 메모리에만
     void EnsureBaseFill()
     {
         if (_editId is null || !_canEdit) return;
         bool changed = false;
-        foreach (var sh in ActiveShifts())
+        var shifts = ActiveShifts();
+        for (int i = 0; i < shifts.Count; i++)
         {
+            var sh = shifts[i];
             if (_segments.Any(s => s.ShiftCode == sh.Code)) continue;
-            _segments.Add(NewSeg(sh.Start, sh.End, "OPERATING", null, sh.Code));
+            _segments.Add(NewSeg(sh.Start, sh.End, DefaultShiftState(i), null, sh.Code));
             changed = true;
         }
         if (changed) { _segments = MergeLocal(_segments); _dirty = true; }
@@ -549,20 +618,23 @@
     void OnEditorBgDown() => _editorBgDown = true;
     void OnEditorBgClick() { var close = _editorBgDown; _editorBgDown = false; if (close) TryCloseEditor(); }
 
-    // 닫기 시 미저장 변경이 있으면 확인
+    // 닫기 시 사용자가 실제 편집한 경우에만 확인 (자동 기본채움은 확인 없이 닫힘)
     void TryCloseEditor()
     {
-        if (_dirty) { _confirmClose = true; return; }
+        if (_userEdited) { _confirmClose = true; return; }
         _ = CloseEditor();
     }
     async Task SaveAndClose() { await SaveEditor(); if (!_dirty) { _confirmClose = false; await CloseEditor(); } }
-    async Task DiscardClose() { _confirmClose = false; _dirty = false; await CloseEditor(); }
+    async Task DiscardClose() { _confirmClose = false; _dirty = false; _userEdited = false; await CloseEditor(); }
 
     async Task CloseEditor()
     {
-        if (_jsReady) { await JS.InvokeVoidAsync("linePatternDrag.destroy"); _jsReady = false; }
-        _editId = null; _segments = new(); _lastPaint = null; _confirmBand = null; _dirty = false; _confirmClose = false;
+        // JS 파괴 실패가 닫힘을 막지 않도록 방어. await 이후 상태변경은 자동 렌더 밖이므로 끝에서 StateHasChanged 필수.
+        if (_jsReady) { try { await JS.InvokeVoidAsync("linePatternDrag.destroy"); } catch { } _jsReady = false; }
+        _editId = null; _segments = new(); _lastPaint = null; _confirmBand = null; _dirty = false; _userEdited = false; _confirmClose = false;
+        _downReason = null; _downDesc = ""; _editorMsg = "";
         Reload();   // 목록 요약·합계 새로고침
+        await InvokeAsync(StateHasChanged);
     }
 
     void ReloadSegments()
@@ -575,19 +647,28 @@
     async Task SaveEditor()
     {
         if (_editId is null || !_canEdit || _busy) return;
+        // 계획비가동이 있으면 사유코드(필수) + 설명(사유가 코멘트 필수일 때) 입력 유도 — 메시지는 모달 내부에 표시
+        if (HasPlannedDown())
+        {
+            if (string.IsNullOrWhiteSpace(_downReason)) { _editorMsg = L["MD.LineTimePattern.Err.ReasonRequired"].Value; return; }
+            if (SelectedReasonRequiresComment() && string.IsNullOrWhiteSpace(_downDesc)) { _editorMsg = L["MD.LineTimePattern.Err.CommentRequired"].Value; return; }
+        }
         _busy = true;
         try
         {
-            var payload = new List<(int, int, string, string?, string?)>();
+            var payload = new List<(int, int, string, string?, string?, string?)>();
             foreach (var sh in ActiveShifts())
                 foreach (var b in ShiftBands(sh))
-                    payload.Add((b.S, b.E, b.St, (string?)null, (string?)sh.Code));
+                {
+                    bool pd = b.St == "PLANNED_DOWNTIME";
+                    payload.Add((b.S, b.E, b.St, pd ? NE(_downReason) : null, sh.Code, pd ? NE(_downDesc) : null));
+                }
             MD.SaveLineTimeSegments(_editId, payload, _actor);
             ReloadSegments();          // 저장된 실제 SegmentID/SeqNo 재로딩
-            _dirty = false; _lastPaint = null;
+            _dirty = false; _userEdited = false; _lastPaint = null; _editorMsg = "";
             ShowMsg(L["Msg.Saved"].Value, false);
         }
-        catch (Exception ex) { ShowMsg(ex.Message, true); }
+        catch (Exception ex) { _editorMsg = ex.Message; }
         finally { _busy = false; await InvokeAsync(StateHasChanged); }
     }
 
@@ -605,7 +686,7 @@
         var kept = _segments.Where(x => !string.Equals(x.ShiftCode, shift, StringComparison.Ordinal)).ToList();
         kept.AddRange(BuildShiftRuns(sh, (start, end, state)));
         _segments = kept.OrderBy(s => s.ShiftCode).ThenBy(s => s.StartMin ?? 0).ToList();
-        _dirty = true;
+        _dirty = true; _userEdited = true;
     }
 
     // 한 Shift 창을 분단위 배열로 정규화 → 연속 런을 세그먼트로 반환. overlay가 있으면 그 구간을 덮어씀.
@@ -691,33 +772,34 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    // 밴드 삭제 = 해당 구간을 OPERATING(가동)으로 되돌림 (전체 커버리지 유지)
+    // 밴드 삭제 = 해당 구간을 그 교대의 기본 상태(가동/유휴)로 되돌림 (전체 커버리지 유지)
     void ConfirmDeleteSeg()
     {
         if (_confirmBand is not { } cb || _editId is null) { _confirmBand = null; return; }
         _confirmBand = null;
-        PaintLocal(cb.S, cb.E, "OPERATING", cb.Sh);
+        PaintLocal(cb.S, cb.E, DefaultShiftStateOf(cb.Sh), cb.Sh);
         _lastPaint = null;
     }
 
-    // 마지막 밴드 되돌리기 = 해당 구간 OPERATING 복원 (같은 Shift 유지)
+    // 마지막 밴드 되돌리기 = 해당 구간을 그 교대의 기본 상태로 복원 (같은 Shift 유지)
     void UndoLast()
     {
         if (_editId is null || _lastPaint is not { } lp) return;
         _lastPaint = null;
-        PaintLocal(lp.S, lp.E, "OPERATING", lp.Sh);
+        PaintLocal(lp.S, lp.E, DefaultShiftStateOf(lp.Sh), lp.Sh);
     }
 
-    // 전체삭제 = 각 Shift 창을 OPERATING 단일 밴드로 초기화
+    // 전체삭제 = 각 Shift 창을 기본 상태(가동/유휴) 단일 밴드로 초기화
     void ClearAll()
     {
         if (_editId is null) return;
         _lastPaint = null;
+        var shifts = ActiveShifts();
         var next = new List<MasterDataRepository.LineTimeSegmentRow>();
-        foreach (var sh in ActiveShifts())
-            next.Add(NewSeg(sh.Start, sh.End, "OPERATING", null, sh.Code));
+        for (int i = 0; i < shifts.Count; i++)
+            next.Add(NewSeg(shifts[i].Start, shifts[i].End, DefaultShiftState(i), null, shifts[i].Code));
         _segments = next;
-        _dirty = true;
+        _dirty = true; _userEdited = true;
     }
 
     // ── Shift 창 & Gantt 계산 헬퍼 ──
@@ -744,10 +826,11 @@
     string SegClass(string? st) => st switch {
         "OPERATING"          => "pp-gantt-band pp-gantt-band--work",
         "PLANNED_DOWNTIME" => "pp-gantt-band pp-gantt-band--down",
+        "IDLE"             => "pp-gantt-band pp-gantt-band--idle",
         _                  => "pp-gantt-band pp-gantt-band--break"
     };
-    ButtonStyle PaletteStyle(string? st) => st switch { "OPERATING" => ButtonStyle.Success, "PLANNED_DOWNTIME" => ButtonStyle.Danger, _ => ButtonStyle.Warning };
-    string PillClass(string? st) => st switch { "OPERATING" => "ok", "PLANNED_DOWNTIME" => "bad", "BREAK" => "warn", _ => "info" };
+    ButtonStyle PaletteStyle(string? st) => st switch { "OPERATING" => ButtonStyle.Success, "PLANNED_DOWNTIME" => ButtonStyle.Danger, "IDLE" => ButtonStyle.Secondary, _ => ButtonStyle.Warning };
+    string PillClass(string? st) => st switch { "OPERATING" => "ok", "PLANNED_DOWNTIME" => "bad", "BREAK" => "warn", "IDLE" => "idle", _ => "info" };
     // 코드값 → 2글자 축약어 (여러 단어면 각 첫 글자, 단일 단어면 앞 2글자)
     static string Abbr(string? code)
     {

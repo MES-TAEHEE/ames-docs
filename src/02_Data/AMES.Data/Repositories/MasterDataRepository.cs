@@ -3757,6 +3757,58 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
+    // ── MD_PmTemplateStep CRUD ───────────────────────────────────────
+    public string InsertPmTemplateStep(string templateId, int? stepSeq, string? stepDescription,
+        string? acceptanceCriteria, string? requiredPartNo, decimal? requiredQty, int? stepDurationMin, string createdBy)
+    {
+        var id = "PMS" + Guid.NewGuid().ToString("N")[..21];
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "INSERT INTO dbo.MD_PmTemplateStep(PMStepID,PMTemplateID,StepSeq,StepDescription," +
+            "AcceptanceCriteria,RequiredPartNo,RequiredQty,StepDurationMin,CreatedBy)" +
+            " VALUES(@Id,@T,@Sq,@SD,@AC,@RP,@RQ,@DM,@CB);", conn);
+        cmd.Parameters.Add("@Id", SqlDbType.VarChar,  24).Value = id;
+        cmd.Parameters.Add("@T",  SqlDbType.VarChar,  20).Value = templateId;
+        cmd.Parameters.Add("@Sq", SqlDbType.Int).Value            = (object?)stepSeq            ?? DBNull.Value;
+        cmd.Parameters.Add("@SD", SqlDbType.NVarChar,400).Value = (object?)stepDescription    ?? DBNull.Value;
+        cmd.Parameters.Add("@AC", SqlDbType.NVarChar,400).Value = (object?)acceptanceCriteria ?? DBNull.Value;
+        cmd.Parameters.Add("@RP", SqlDbType.VarChar,  20).Value = (object?)requiredPartNo     ?? DBNull.Value;
+        var pRq = cmd.Parameters.Add("@RQ", SqlDbType.Decimal); pRq.Precision = 10; pRq.Scale = 3;
+        pRq.Value = (object?)requiredQty ?? DBNull.Value;
+        cmd.Parameters.Add("@DM", SqlDbType.Int).Value            = (object?)stepDurationMin    ?? DBNull.Value;
+        cmd.Parameters.Add("@CB", SqlDbType.VarChar,  50).Value = createdBy;
+        cmd.ExecuteNonQuery();
+        return id;
+    }
+
+    public void UpdatePmTemplateStep(string stepId, int? stepSeq, string? stepDescription,
+        string? acceptanceCriteria, string? requiredPartNo, decimal? requiredQty, int? stepDurationMin, string modifiedBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "UPDATE dbo.MD_PmTemplateStep SET StepSeq=@Sq,StepDescription=@SD," +
+            "AcceptanceCriteria=@AC,RequiredPartNo=@RP,RequiredQty=@RQ,StepDurationMin=@DM," +
+            "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE PMStepID=@Id;", conn);
+        cmd.Parameters.Add("@Id", SqlDbType.VarChar,  24).Value = stepId;
+        cmd.Parameters.Add("@Sq", SqlDbType.Int).Value            = (object?)stepSeq            ?? DBNull.Value;
+        cmd.Parameters.Add("@SD", SqlDbType.NVarChar,400).Value = (object?)stepDescription    ?? DBNull.Value;
+        cmd.Parameters.Add("@AC", SqlDbType.NVarChar,400).Value = (object?)acceptanceCriteria ?? DBNull.Value;
+        cmd.Parameters.Add("@RP", SqlDbType.VarChar,  20).Value = (object?)requiredPartNo     ?? DBNull.Value;
+        var pRq = cmd.Parameters.Add("@RQ", SqlDbType.Decimal); pRq.Precision = 10; pRq.Scale = 3;
+        pRq.Value = (object?)requiredQty ?? DBNull.Value;
+        cmd.Parameters.Add("@DM", SqlDbType.Int).Value            = (object?)stepDurationMin    ?? DBNull.Value;
+        cmd.Parameters.Add("@MB", SqlDbType.NVarChar,450).Value = modifiedBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeletePmTemplateStep(string stepId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("DELETE FROM dbo.MD_PmTemplateStep WHERE PMStepID=@Id;", conn);
+        cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = stepId;
+        cmd.ExecuteNonQuery();
+    }
+
     // ── MD_LineTimePattern CRUD ──────────────────────────────────────
     public bool LineTimePatternExists(string patternId)
     {
@@ -3938,7 +3990,7 @@ public sealed class MasterDataRepository
     // 편집기 드래프트 전체 저장: 기존 세그먼트 삭제 후 전달된 세그먼트로 재구성(트랜잭션).
     // 화면에서 겹침을 이미 정리한 상태로 넘겨받으며, 병합·SeqNo·헤더 합계·플래그는 여기서 재계산.
     public void SaveLineTimeSegments(string patternId,
-        IEnumerable<(int Start, int End, string State, string? Reason, string? Shift)> segments, string actor)
+        IEnumerable<(int Start, int End, string State, string? Reason, string? Shift, string? Description)> segments, string actor)
     {
         using var conn = _factory.OpenConnection();
         using var tx   = conn.BeginTransaction();
@@ -3954,7 +4006,7 @@ public sealed class MasterDataRepository
                 using var cmd = new SqlCommand("""
                     INSERT INTO dbo.MD_LineTimeSegment
                         (SegmentID, PatternID, StartMin, EndMin, SegmentState, ReasonCode, ShiftCode, Description, CreatedBy, CreatedTS, ModifiedBy, ModifiedTS)
-                    VALUES (@Id, @P, @S, @E, @St, @R, @Sh, NULL, @By, SYSDATETIME(), @By, SYSDATETIME());
+                    VALUES (@Id, @P, @S, @E, @St, @R, @Sh, @D, @By, SYSDATETIME(), @By, SYSDATETIME());
                     """, conn, tx);
                 cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = id;
                 cmd.Parameters.Add("@P",  SqlDbType.VarChar, 20).Value = patternId;
@@ -3963,6 +4015,7 @@ public sealed class MasterDataRepository
                 cmd.Parameters.Add("@St", SqlDbType.VarChar, 20).Value = (object?)s.State  ?? DBNull.Value;
                 cmd.Parameters.Add("@R",  SqlDbType.VarChar, 16).Value = (object?)s.Reason ?? DBNull.Value;
                 cmd.Parameters.Add("@Sh", SqlDbType.VarChar, 10).Value = (object?)s.Shift  ?? DBNull.Value;
+                cmd.Parameters.Add("@D",  SqlDbType.NVarChar,120).Value = (object?)s.Description ?? DBNull.Value;
                 cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor    ?? DBNull.Value;
                 cmd.ExecuteNonQuery();
             }

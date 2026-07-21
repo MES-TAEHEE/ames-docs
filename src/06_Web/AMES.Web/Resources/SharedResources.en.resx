@@ -4881,6 +4881,12 @@
   <data name="MD.PmTemplate.Steps" xml:space="preserve">
     <value>Steps</value>
   </data>
+  <data name="MD.PmTemplate.NoSteps" xml:space="preserve">
+    <value>No inspection steps.</value>
+  </data>
+  <data name="MD.PmTemplate.Err.StepDescRequired" xml:space="preserve">
+    <value>Enter the check item description.</value>
+  </data>
   <data name="MD.ReasonCode.Ph.Description" xml:space="preserve">
     <value>Detailed description of the reason</value>
   </data>
@@ -4958,6 +4964,18 @@
   </data>
   <data name="MD.LineTimePattern.Lbl.BandType" xml:space="preserve">
     <value>Band type</value>
+  </data>
+  <data name="MD.LineTimePattern.Lbl.DownReason" xml:space="preserve">
+    <value>Planned Downtime Reason</value>
+  </data>
+  <data name="MD.LineTimePattern.Ph.DownDesc" xml:space="preserve">
+    <value>Enter reason description</value>
+  </data>
+  <data name="MD.LineTimePattern.Err.ReasonRequired" xml:space="preserve">
+    <value>Select a planned-downtime reason code.</value>
+  </data>
+  <data name="MD.LineTimePattern.Err.CommentRequired" xml:space="preserve">
+    <value>The selected reason requires a description.</value>
   </data>
   <data name="MD.LineTimePattern.Lbl.ShiftPreset" xml:space="preserve">
     <value>Shift preset</value>
