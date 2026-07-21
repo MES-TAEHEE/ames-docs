@@ -71,8 +71,8 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="RecipeType" Title="@L["Col.Type"]" Width="110px">
                 <Template Context="r">@(r.RecipeType ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="ItemNo" Title="@L["Col.ItemNo"]" Width="100px">
-                <Template Context="r"><span class="dim">@(r.ItemNo ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="ItemNo" Title="@L["Col.ItemNo"]" Width="160px">
+                <Template Context="r"><span class="dim">@ItemName(r.ItemNo)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="CycleTime" Title="@L["Col.CycleTime"]" Width="90px" TextAlign="TextAlign.Right">
                 <Template Context="r">@(r.CycleTime?.ToString() ?? "—")</Template>
@@ -117,7 +117,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.ItemNo"]" />
-                    <RadzenTextBox @bind-Value="_f.ItemNo" Placeholder="ITEM-001" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" AllowClear="true" @bind-Value="_f.ItemNo" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -175,7 +175,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.ItemNo"]" />
-                    <RadzenTextBox @bind-Value="_f.ItemNo" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" AllowClear="true" @bind-Value="_f.ItemNo" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -230,6 +230,7 @@
     bool _showPagerSummary = true;
     List<MasterDataRepository.RecipeRow> _allRows = new();
     List<MasterDataRepository.RecipeRow> _rows    = new();
+    List<MasterDataRepository.ItemRow> _items = new();
     MasterDataRepository.RecipeRow? _sel;
 
     string _fSearch = "";
@@ -257,6 +258,16 @@
     };
 
     IEnumerable<DropDownItem> TypeFilterOptions => _allRows.Select(r => r.RecipeType).Where(x => x != null).Distinct().OrderBy(x => x).Select(t => new DropDownItem { Value = t!, Text = t! });
+    IEnumerable<DropDownItem> ItemOptions => _items
+        .Where(i => i.ActiveFlag)
+        .Select(i => new DropDownItem { Value = i.ItemNo, Text = $"[{i.ItemNo}] {i.ItemName}" });
+    // 목록 표시용: ItemNo → 품목명, 없으면 ID
+    string ItemName(string? itemNo)
+    {
+        if (string.IsNullOrEmpty(itemNo)) return "—";
+        var i = _items.FirstOrDefault(x => x.ItemNo == itemNo);
+        return i is null ? itemNo : i.ItemName;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -264,6 +275,7 @@
         _actor = auth.User.Identity?.Name ?? "system";
         await Perm.EnsureAsync(Auth);
         _canEdit = Perm.CanEdit("md/ql/recipe");
+        try { _items = Md.ListItems(); } catch { }
         Reload();
     }
 

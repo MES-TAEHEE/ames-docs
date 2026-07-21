@@ -81,8 +81,8 @@
                     <span class="dim">@(btEntry != null ? MasterDataRepository.LocalName(btEntry) : r.BarcodeType ?? "—")</span>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="CustomerID" Title="@L["Col.Customer"]" Width="100px">
-                <Template Context="r"><span class="dim">@(r.CustomerID ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="CustomerID" Title="@L["Col.Customer"]" Width="150px">
+                <Template Context="r"><span class="dim">@CustomerName(r.CustomerID)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="Version" Title="@L["Col.Version"]" Width="75px" TextAlign="TextAlign.Right">
                 <Template Context="r">@(r.Version?.ToString() ?? "—")</Template>
@@ -135,7 +135,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Customer"]" />
-                    <RadzenTextBox @bind-Value="_f.CustomerID" Placeholder="CUST-001" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" AllowClear="true" @bind-Value="_f.CustomerID" Data="@CustomerOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -200,7 +200,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Customer"]" />
-                    <RadzenTextBox @bind-Value="_f.CustomerID" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" AllowClear="true" @bind-Value="_f.CustomerID" Data="@CustomerOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -254,6 +254,7 @@
     List<MasterDataRepository.CodeItemRow> _labelTypes = new();
     List<MasterDataRepository.CodeItemRow> _barcodeTypes = new();
     List<MasterDataRepository.CodeItemRow> _labelStatuses = new();
+    List<MasterDataRepository.CustomerRow> _customers = new();
     MasterDataRepository.LabelTemplateRow? _sel;
 
     string _fSearch = "";
@@ -271,6 +272,18 @@
     IEnumerable<DropDownItem> LabelTypeOptions => _labelTypes.Where(x => x.UseFlag).Select(t => new DropDownItem { Value = t.CodeValue ?? "", Text = $"[{t.CodeValue}] {MasterDataRepository.LocalName(t)}" });
     IEnumerable<DropDownItem> BarcodeTypeOptions => _barcodeTypes.Where(x => x.UseFlag).Select(b => new DropDownItem { Value = b.CodeValue ?? "", Text = $"[{b.CodeValue}] {MasterDataRepository.LocalName(b)}" });
     IEnumerable<DropDownItem> StatusOptions => _labelStatuses.Where(x => x.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = MasterDataRepository.LocalName(s) });
+    IEnumerable<DropDownItem> CustomerOptions => _customers
+        .Where(c => !string.Equals(c.Status, "INACTIVE", StringComparison.OrdinalIgnoreCase))
+        .Select(c => new DropDownItem { Value = c.CustomerID, Text = CustomerText(c) });
+    static string CustomerText(MasterDataRepository.CustomerRow c)
+    { var nm = MasterDataRepository.LocalName(c.CustomerName, c.CustomerNameEn); return string.IsNullOrEmpty(nm) ? c.CustomerID : $"[{c.CustomerID}] {nm}"; }
+    // 목록 표시용: CustomerID → 고객명(다국어), 없으면 ID
+    string CustomerName(string? id)
+    {
+        if (string.IsNullOrEmpty(id)) return "—";
+        var c = _customers.FirstOrDefault(x => x.CustomerID == id);
+        return c is null ? id : (MasterDataRepository.LocalName(c.CustomerName, c.CustomerNameEn) is { Length: > 0 } nm ? nm : id);
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -281,6 +294,7 @@
         try { _labelTypes    = MD.ListCodeItems("LABEL_TYPE");   } catch { }
         try { _barcodeTypes  = MD.ListCodeItems("BARCODE_TYPE"); } catch { }
         try { _labelStatuses = MD.ListCodeItems("LABEL_STATUS"); } catch { }
+        try { _customers     = MD.ListCustomers(); } catch { }
         Reload();
     }
 
