@@ -1307,7 +1307,7 @@ select.ames-rz-input {
 
 /* ── PP-LSB Gantt Board ──────────────────────────────────────── */
 .pp-gantt-wrap  { overflow-x: hidden; position: relative; border-radius: 6px; }
-.pp-gantt-inner { position: relative; width: 100%; padding: 0 10px; box-sizing: border-box; }
+.pp-gantt-inner { position: relative; width: 100%; padding: 0 20px; box-sizing: border-box; }
 .pp-gantt-ruler {
     height: 26px; position: relative;
     border-bottom: 1px solid rgba(255,255,255,.08);
