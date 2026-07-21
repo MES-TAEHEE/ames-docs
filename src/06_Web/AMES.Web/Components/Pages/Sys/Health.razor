@@ -3,14 +3,15 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Data.Repositories
+@using AMES.Web.Services
 @using Radzen
 
 @attribute [Authorize]
 
 @inject ServerMonitorService SrvMntSvc
-@inject SysRepository Sys
-@inject AMES.Web.Services.PermissionService Perm
 @inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject SysRepository Sys
 @inject IStringLocalizer<SharedResources> L
 
 @implements IDisposable
@@ -219,7 +220,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        try { await Perm.EnsureAsync(AuthPrvd); } catch { }
+        try { await PermSvc.EnsureAsync(AuthPrvd); } catch { }
         try { _k = Sys.GetHealth(); } catch { }
         try { _events = Sys.ListAudit(8); } catch { }
     }
@@ -227,8 +228,7 @@
     // NavMenu 와 동일하게 권한(PermissionService.IsVisible)에 따라 타일 활성/비활성
     RenderFragment Tile(string href, string icon, string title, string sub) => __builder =>
     {
-        if (Perm.IsVisible(href))
-        {
+        if (PermSvc.IsVisible(href))     {
             <a class="ames-tile sys" href="@("/" + href)">
                 <div class="ames-tile-ic">@icon</div>
                 <div class="ames-tile-h">@title</div>

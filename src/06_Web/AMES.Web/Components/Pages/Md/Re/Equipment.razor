@@ -47,7 +47,7 @@
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Equipment.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:160px;" />
             <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
-            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
             <RadzenLabel Text="@L["Col.Type"]" Component="DropDownType" />
             <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="@EquipTypeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenLabel Text="@L["Col.Active"]" Component="DropDownActive" />
@@ -306,8 +306,8 @@
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
-    IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = l.LineID + (l.LineName != null ? $" {l.LineName}" : "") });
-    IEnumerable<DropDownItem> LineOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = $"[{l.LineID}]" + (l.LineName != null ? $" {l.LineName}" : "") });
+    IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"{l.LineID} {nm}" : l.LineID });
+    IEnumerable<DropDownItem> LineOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
     IEnumerable<DropDownItem> EquipTypeOptions => _allRows.Select(r => r.EquipType).Where(x => x != null).Distinct().OrderBy(x => x).Select(t => new DropDownItem { Value = t!, Text = t! });
     IEnumerable<DropDownItem> WcOptions => _wcList.Where(w => w.ActiveFlag).Select(w => new DropDownItem { Value = w.WCID, Text = $"[{w.WCID}]" + (w.WCName != null ? $" {w.WCName}" : "") });
     IEnumerable<DropDownItem> EquipStatusOptions => _equipStatus.Where(s => s.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = MasterDataRepository.LocalName(s) });

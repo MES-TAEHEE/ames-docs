@@ -825,6 +825,7 @@ a:hover { color: #c4dafe; }
     max-height: calc(100vh - 40px); overflow-y: auto;
 }
 .ames-modal.ames-modal-wide { max-width: 800px; }
+.ames-modal.ames-modal-fullwide { max-width: 1400px; }
 .ames-modal-h {
     font-family: 'JetBrains Mono', monospace; font-size: 16px;
     color: #93c5fd; letter-spacing: 1px; text-transform: uppercase;
@@ -1306,7 +1307,7 @@ select.ames-rz-input {
 
 /* ── PP-LSB Gantt Board ──────────────────────────────────────── */
 .pp-gantt-wrap  { overflow-x: hidden; position: relative; border-radius: 6px; }
-.pp-gantt-inner { position: relative; width: 100%; }
+.pp-gantt-inner { position: relative; width: 100%; padding: 0 10px; box-sizing: border-box; }
 .pp-gantt-ruler {
     height: 26px; position: relative;
     border-bottom: 1px solid rgba(255,255,255,.08);

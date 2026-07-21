@@ -822,11 +822,13 @@ CREATE TABLE dbo.MD_LineTimePattern (
   [LineID]                    VARCHAR(20)              NULL,  -- FK -> MD_Line.LineID
   [PatternName]               NVARCHAR(50)             NULL,
   [DayType]                   VARCHAR(10)              NULL,
-  [ShiftModel]                VARCHAR(12)              NULL,
+  [ShiftPattern]              VARCHAR(20)              NULL,
   [EffectiveFrom]             DATE                     NULL,
   [EffectiveTo]               DATE                     NULL,
   [TotalOperatingMin]         INT                      NULL,
   [TotalPlannedDownMin]       INT                      NULL,
+  [OperatingFlag]             CHAR(1440)           NOT NULL CONSTRAINT DF_MD_LineTimePattern_OperatingFlag DEFAULT REPLICATE('0',1440),  -- 분단위 가동플래그 (SEGMENT_STATE.Attribute1 ':' 앞)
+  [SegmentFlag]               CHAR(1440)           NOT NULL CONSTRAINT DF_MD_LineTimePattern_SegmentFlag   DEFAULT REPLICATE('0',1440),  -- 분단위 구간유형 (SEGMENT_STATE.Attribute1 ':' 뒤)
   [TimeZone]                  VARCHAR(20)              NULL,
   [Status]                    VARCHAR(8)               NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
@@ -844,7 +846,7 @@ CREATE TABLE dbo.MD_LineTimeSegment (
   [SeqNo]                     INT                      NULL,
   [StartMin]                  SMALLINT                 NULL,
   [EndMin]                    SMALLINT                 NULL,
-  [SegmentState]              VARCHAR(14)              NULL,
+  [SegmentState]              VARCHAR(20)              NULL,
   [ReasonCode]                VARCHAR(16)              NULL,  -- FK -> MD_ReasonCode.ReasonCode
   [ShiftCode]                 VARCHAR(10)              NULL,
   [Description]               NVARCHAR(60)             NULL,

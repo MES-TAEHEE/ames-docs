@@ -47,7 +47,7 @@
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_fSearch" Placeholder="@L["MD.WorkCenter.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' />
             <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
-            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
             <RadzenLabel Text="@L["Col.ProcessCode"]" Component="DropDownProcessType" />
             <RadzenDropDown Name="DropDownProcessType" @bind-Value="_fType" Data="@TypeFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Active"]" Component="DropDownActive" />
@@ -270,8 +270,8 @@
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
-    IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = l.LineID + (l.LineName != null ? $" {l.LineName}" : "") });
-    IEnumerable<DropDownItem> LineOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = $"[{l.LineID}]" + (l.LineName != null ? $" {l.LineName}" : "") });
+    IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"{l.LineID} {nm}" : l.LineID });
+    IEnumerable<DropDownItem> LineOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
     IEnumerable<DropDownItem> TypeFilterOptions => _allRows.Select(r => r.ProcessCode).Where(x => x != null).Distinct().OrderBy(x => x).Select(t => new DropDownItem { Value = t!, Text = t! });
     private List<DropDownItem> ActiveFilterOptions => new()
     {

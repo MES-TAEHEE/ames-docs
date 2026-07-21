@@ -17,6 +17,15 @@
     <resheader name="version">2.0</resheader>
     <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
     <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
                 
     There are any number of "resheader" rows that contain simple 
     name/value pairs.
@@ -4940,5 +4949,68 @@
   </data>
   <data name="MD.Mold.Tab.Master" xml:space="preserve">
     <value>Mold Master</value>
+  </data>
+  <data name="MD.LineTimePattern.Editor.Title" xml:space="preserve">
+    <value>Band editor</value>
+  </data>
+  <data name="MD.LineTimePattern.Editor.SelectHint" xml:space="preserve">
+    <value>Select a pattern from the list to edit its bands</value>
+  </data>
+  <data name="MD.LineTimePattern.Lbl.BandType" xml:space="preserve">
+    <value>Band type</value>
+  </data>
+  <data name="MD.LineTimePattern.Lbl.ShiftPreset" xml:space="preserve">
+    <value>Shift preset</value>
+  </data>
+  <data name="MD.LineTimePattern.DragHint" xml:space="preserve">
+    <value>Drag on the timeline to draw a band · click a band to delete</value>
+  </data>
+  <data name="MD.LineTimePattern.Btn.Undo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="MD.LineTimePattern.Btn.Clear" xml:space="preserve">
+    <value>Clear all</value>
+  </data>
+  <data name="MD.LineTimePattern.Btn.EditBands" xml:space="preserve">
+    <value>Schedule</value>
+  </data>
+  <data name="MD.LineTimePattern.Btn.Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="MD.LineTimePattern.Stat.Operating" xml:space="preserve">
+    <value>Operating {0}min</value>
+  </data>
+  <data name="MD.LineTimePattern.Stat.Down" xml:space="preserve">
+    <value>Non-operating {0}min</value>
+  </data>
+  <data name="MD.LineTimePattern.Stat.Segments" xml:space="preserve">
+    <value>{0} segments</value>
+  </data>
+  <data name="MD.LineTimePattern.Modal.DeleteBand" xml:space="preserve">
+    <value>Delete band</value>
+  </data>
+  <data name="MD.LineTimePattern.Global" xml:space="preserve">
+    <value>Global</value>
+  </data>
+  <data name="MD.LineTimePattern.NoShiftTime" xml:space="preserve">
+    <value>Shift default time not set</value>
+  </data>
+  <data name="Col.PatternName" xml:space="preserve">
+    <value>Pattern Name</value>
+  </data>
+  <data name="MD.LineTimePattern.Col.Schedule" xml:space="preserve">
+    <value>Schedule</value>
+  </data>
+  <data name="MD.LineTimePattern.Lbl.MinShort" xml:space="preserve">
+    <value>M</value>
+  </data>
+  <data name="MD.LineTimePattern.Unsaved" xml:space="preserve">
+    <value>Unsaved</value>
+  </data>
+  <data name="MD.LineTimePattern.Modal.CloseDirty" xml:space="preserve">
+    <value>You have unsaved changes. Close anyway?</value>
+  </data>
+  <data name="MD.LineTimePattern.Btn.DiscardClose" xml:space="preserve">
+    <value>Discard</value>
   </data>
 </root>

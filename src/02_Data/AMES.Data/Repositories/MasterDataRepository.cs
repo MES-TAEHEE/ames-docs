@@ -3063,7 +3063,7 @@ public sealed class MasterDataRepository
     // ── MD_LineTimePattern ───────────────────────────────────────────
     public record LineTimePatternRow(
         string PatternID, string? LineID, string? PatternName,
-        string? DayType, string? ShiftModel,
+        string? DayType, string? ShiftPattern,
         DateOnly? EffectiveFrom, DateOnly? EffectiveTo,
         int? TotalOperatingMin, int? TotalPlannedDownMin,
         string? TimeZone, string? Status,
@@ -3071,7 +3071,7 @@ public sealed class MasterDataRepository
 
     public List<LineTimePatternRow> ListLineTimePatterns() => Query("""
         SELECT PatternID, LineID, PatternName,
-               DayType, ShiftModel, EffectiveFrom, EffectiveTo,
+               DayType, ShiftPattern, EffectiveFrom, EffectiveTo,
                TotalOperatingMin, TotalPlannedDownMin,
                TimeZone, Status,
                CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
@@ -3081,7 +3081,7 @@ public sealed class MasterDataRepository
             r["LineID"]              as string,
             r["PatternName"]         as string,
             r["DayType"]             as string,
-            r["ShiftModel"]          as string,
+            r["ShiftPattern"]          as string,
             r["EffectiveFrom"]       is DateTime ef  ? DateOnly.FromDateTime(ef)  : null,
             r["EffectiveTo"]         is DateTime eto ? DateOnly.FromDateTime(eto) : null,
             r["TotalOperatingMin"]   is int     tom ? tom : null,
@@ -3118,6 +3118,26 @@ public sealed class MasterDataRepository
             r["CreatedBy"]    as string,
             r["CreatedTS"]    is DateTime ct ? ct : null),
         ("@P", (object?)patternId));
+
+    // 목록 요약용: 전체 패턴의 세그먼트 (PatternID·SeqNo 순)
+    public List<LineTimeSegmentRow> ListAllLineTimeSegments() => Query("""
+        SELECT SegmentID, PatternID, SeqNo,
+               StartMin, EndMin, SegmentState,
+               ReasonCode, ShiftCode, Description,
+               CreatedBy, CreatedTS
+        FROM dbo.MD_LineTimeSegment ORDER BY PatternID, ISNULL(SeqNo,9999)
+        """, r => new LineTimeSegmentRow(
+            r.GetString("SegmentID"),
+            r["PatternID"]    as string,
+            r["SeqNo"]        is int     sno ? sno : null,
+            r["StartMin"]     is short   sm1 ? (int)sm1 : (int?)null,
+            r["EndMin"]       is short   em1 ? (int)em1 : (int?)null,
+            r["SegmentState"] as string,
+            r["ReasonCode"]   as string,
+            r["ShiftCode"]    as string,
+            r["Description"]  as string,
+            r["CreatedBy"]    as string,
+            r["CreatedTS"]    is DateTime ct ? ct : null));
 
     // ── MD_Recipe ────────────────────────────────────────────────────
     public record RecipeRow(
@@ -3747,7 +3767,7 @@ public sealed class MasterDataRepository
     }
 
     public void InsertLineTimePattern(string patternId, string? lineId, string? patternName,
-        string? dayType, string? shiftModel,
+        string? dayType, string? shiftPattern,
         DateOnly? effectiveFrom, DateOnly? effectiveTo,
         int? totalOperatingMin, int? totalPlannedDownMin,
         string? timeZone, string? status, string createdBy)
@@ -3755,14 +3775,14 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "INSERT INTO dbo.MD_LineTimePattern(PatternID,LineID,PatternName," +
-            "DayType,ShiftModel,EffectiveFrom,EffectiveTo," +
+            "DayType,ShiftPattern,EffectiveFrom,EffectiveTo," +
             "TotalOperatingMin,TotalPlannedDownMin,TimeZone,Status,CreatedBy)" +
             " VALUES(@I,@LI,@PN,@DT,@SM,@EF,@ET,@TOM,@TPD,@TZ,@ST,@CB);", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = patternId;
         cmd.Parameters.Add("@LI",  SqlDbType.VarChar,   20).Value = (object?)lineId           ?? DBNull.Value;
         cmd.Parameters.Add("@PN",  SqlDbType.NVarChar, 100).Value = (object?)patternName      ?? DBNull.Value;
         cmd.Parameters.Add("@DT",  SqlDbType.VarChar,   10).Value = (object?)dayType          ?? DBNull.Value;
-        cmd.Parameters.Add("@SM",  SqlDbType.VarChar,   20).Value = (object?)shiftModel       ?? DBNull.Value;
+        cmd.Parameters.Add("@SM",  SqlDbType.VarChar,   20).Value = (object?)shiftPattern       ?? DBNull.Value;
         cmd.Parameters.Add("@EF",  SqlDbType.Date).Value          = effectiveFrom.HasValue    ? (object)effectiveFrom.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
         cmd.Parameters.Add("@ET",  SqlDbType.Date).Value          = effectiveTo.HasValue      ? (object)effectiveTo.Value.ToDateTime(TimeOnly.MinValue)   : DBNull.Value;
         cmd.Parameters.Add("@TOM", SqlDbType.Int).Value           = (object?)totalOperatingMin   ?? DBNull.Value;
@@ -3774,7 +3794,7 @@ public sealed class MasterDataRepository
     }
 
     public void UpdateLineTimePattern(string patternId, string? lineId, string? patternName,
-        string? dayType, string? shiftModel,
+        string? dayType, string? shiftPattern,
         DateOnly? effectiveFrom, DateOnly? effectiveTo,
         int? totalOperatingMin, int? totalPlannedDownMin,
         string? timeZone, string? status, string modifiedBy)
@@ -3782,14 +3802,14 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_LineTimePattern SET LineID=@LI,PatternName=@PN," +
-            "DayType=@DT,ShiftModel=@SM,EffectiveFrom=@EF,EffectiveTo=@ET," +
+            "DayType=@DT,ShiftPattern=@SM,EffectiveFrom=@EF,EffectiveTo=@ET," +
             "TotalOperatingMin=@TOM,TotalPlannedDownMin=@TPD,TimeZone=@TZ,Status=@ST," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE PatternID=@I;", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value  = patternId;
         cmd.Parameters.Add("@LI",  SqlDbType.VarChar,   20).Value  = (object?)lineId           ?? DBNull.Value;
         cmd.Parameters.Add("@PN",  SqlDbType.NVarChar, 100).Value  = (object?)patternName      ?? DBNull.Value;
         cmd.Parameters.Add("@DT",  SqlDbType.VarChar,   10).Value  = (object?)dayType          ?? DBNull.Value;
-        cmd.Parameters.Add("@SM",  SqlDbType.VarChar,   20).Value  = (object?)shiftModel       ?? DBNull.Value;
+        cmd.Parameters.Add("@SM",  SqlDbType.VarChar,   20).Value  = (object?)shiftPattern       ?? DBNull.Value;
         cmd.Parameters.Add("@EF",  SqlDbType.Date).Value           = effectiveFrom.HasValue    ? (object)effectiveFrom.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
         cmd.Parameters.Add("@ET",  SqlDbType.Date).Value           = effectiveTo.HasValue      ? (object)effectiveTo.Value.ToDateTime(TimeOnly.MinValue)   : DBNull.Value;
         cmd.Parameters.Add("@TOM", SqlDbType.Int).Value            = (object?)totalOperatingMin   ?? DBNull.Value;
@@ -3803,9 +3823,336 @@ public sealed class MasterDataRepository
     public void DeleteLineTimePattern(string patternId)
     {
         using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("DELETE FROM dbo.MD_LineTimePattern WHERE PatternID=@I;", conn);
-        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = patternId;
-        cmd.ExecuteNonQuery();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            using (var c1 = new SqlCommand("DELETE FROM dbo.MD_LineTimeSegment WHERE PatternID=@I;", conn, tx))
+            { c1.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = patternId; c1.ExecuteNonQuery(); }
+            using (var c2 = new SqlCommand("DELETE FROM dbo.MD_LineTimePattern WHERE PatternID=@I;", conn, tx))
+            { c2.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = patternId; c2.ExecuteNonQuery(); }
+            tx.Commit();
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    // ── MD_LineTimeSegment 밴드 편집 (PP-LSB PaintBand 이식) ──────────────
+    // 드래그로 그린 밴드를 세그먼트로 반영. 겹치는 기존 세그먼트를 트림/분할/삭제 후 신규 삽입. 반환: 새 SegmentID.
+    public string PaintLineTimeSegment(string patternId, int startMin, int endMin,
+        string segmentState, string? reasonCode, string? shiftCode, string actor)
+    {
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            // 1) 겹치는 기존 세그먼트
+            var overlapping = new List<(string Id, int Start, int End, string? State, string? Reason, string? Shift, string? Desc)>();
+            using (var cmd = new SqlCommand("""
+                SELECT SegmentID, StartMin, EndMin, SegmentState, ReasonCode, ShiftCode, Description
+                FROM   dbo.MD_LineTimeSegment
+                WHERE  PatternID = @P AND StartMin < @End AND EndMin > @Start
+                ORDER  BY StartMin;
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@P",     SqlDbType.VarChar, 20).Value = patternId;
+                cmd.Parameters.Add("@Start", SqlDbType.SmallInt).Value    = (short)startMin;
+                cmd.Parameters.Add("@End",   SqlDbType.SmallInt).Value    = (short)endMin;
+                using var rdr = cmd.ExecuteReader();
+                while (rdr.Read())
+                    overlapping.Add((
+                        (string)rdr["SegmentID"],
+                        (int)(short)rdr["StartMin"], (int)(short)rdr["EndMin"],
+                        rdr["SegmentState"] as string, rdr["ReasonCode"] as string,
+                        rdr["ShiftCode"] as string, rdr["Description"] as string));
+            }
+
+            string InsertSeg(int s, int e, string? state, string? reason, string? shift, string? desc)
+            {
+                var id = "SEG" + Guid.NewGuid().ToString("N")[..21];
+                using var cmd = new SqlCommand("""
+                    INSERT INTO dbo.MD_LineTimeSegment
+                        (SegmentID, PatternID, StartMin, EndMin, SegmentState, ReasonCode, ShiftCode, Description, CreatedBy, CreatedTS, ModifiedBy, ModifiedTS)
+                    VALUES (@Id, @P, @S, @E, @St, @R, @Sh, @D, @By, SYSDATETIME(), @By, SYSDATETIME());
+                    """, conn, tx);
+                cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = id;
+                cmd.Parameters.Add("@P",  SqlDbType.VarChar, 20).Value = patternId;
+                cmd.Parameters.Add("@S",  SqlDbType.SmallInt).Value    = (short)s;
+                cmd.Parameters.Add("@E",  SqlDbType.SmallInt).Value    = (short)e;
+                cmd.Parameters.Add("@St", SqlDbType.VarChar, 20).Value = (object?)state  ?? DBNull.Value;
+                cmd.Parameters.Add("@R",  SqlDbType.VarChar, 16).Value = (object?)reason ?? DBNull.Value;
+                cmd.Parameters.Add("@Sh", SqlDbType.VarChar, 10).Value = (object?)shift  ?? DBNull.Value;
+                cmd.Parameters.Add("@D",  SqlDbType.NVarChar,60).Value = (object?)desc   ?? DBNull.Value;
+                cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor  ?? DBNull.Value;
+                cmd.ExecuteNonQuery();
+                return id;
+            }
+
+            // 2) 겹치는 각 세그먼트 트림/분할/삭제
+            foreach (var seg in overlapping)
+            {
+                bool leftFree  = seg.Start < startMin;
+                bool rightFree = seg.End   > endMin;
+                if (!leftFree && !rightFree)
+                {
+                    using var cmd = new SqlCommand("DELETE FROM dbo.MD_LineTimeSegment WHERE SegmentID=@Id;", conn, tx);
+                    cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = seg.Id;
+                    cmd.ExecuteNonQuery();
+                }
+                else if (leftFree && rightFree)
+                {
+                    using (var cmd = new SqlCommand("UPDATE dbo.MD_LineTimeSegment SET EndMin=@E, ModifiedBy=@By, ModifiedTS=SYSDATETIME() WHERE SegmentID=@Id;", conn, tx))
+                    {
+                        cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = seg.Id;
+                        cmd.Parameters.Add("@E",  SqlDbType.SmallInt).Value    = (short)startMin;
+                        cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor ?? DBNull.Value;
+                        cmd.ExecuteNonQuery();
+                    }
+                    InsertSeg(endMin, seg.End, seg.State, seg.Reason, seg.Shift, seg.Desc);
+                }
+                else if (leftFree)
+                {
+                    using var cmd = new SqlCommand("UPDATE dbo.MD_LineTimeSegment SET EndMin=@E, ModifiedBy=@By, ModifiedTS=SYSDATETIME() WHERE SegmentID=@Id;", conn, tx);
+                    cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = seg.Id;
+                    cmd.Parameters.Add("@E",  SqlDbType.SmallInt).Value    = (short)startMin;
+                    cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor ?? DBNull.Value;
+                    cmd.ExecuteNonQuery();
+                }
+                else // rightFree
+                {
+                    using var cmd = new SqlCommand("UPDATE dbo.MD_LineTimeSegment SET StartMin=@S, ModifiedBy=@By, ModifiedTS=SYSDATETIME() WHERE SegmentID=@Id;", conn, tx);
+                    cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = seg.Id;
+                    cmd.Parameters.Add("@S",  SqlDbType.SmallInt).Value    = (short)endMin;
+                    cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor ?? DBNull.Value;
+                    cmd.ExecuteNonQuery();
+                }
+            }
+
+            // 3) 새 세그먼트 삽입 + 재계산
+            var newId = InsertSeg(startMin, endMin, segmentState, reasonCode, shiftCode, null);
+            RenumberAndRecalc(patternId, actor, conn, tx);
+            tx.Commit();
+            return newId;
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    // 편집기 드래프트 전체 저장: 기존 세그먼트 삭제 후 전달된 세그먼트로 재구성(트랜잭션).
+    // 화면에서 겹침을 이미 정리한 상태로 넘겨받으며, 병합·SeqNo·헤더 합계·플래그는 여기서 재계산.
+    public void SaveLineTimeSegments(string patternId,
+        IEnumerable<(int Start, int End, string State, string? Reason, string? Shift)> segments, string actor)
+    {
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            using (var del = new SqlCommand("DELETE FROM dbo.MD_LineTimeSegment WHERE PatternID=@P;", conn, tx))
+            { del.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = patternId; del.ExecuteNonQuery(); }
+
+            foreach (var s in segments)
+            {
+                if (s.End <= s.Start) continue;
+                var id = "SEG" + Guid.NewGuid().ToString("N")[..21];
+                using var cmd = new SqlCommand("""
+                    INSERT INTO dbo.MD_LineTimeSegment
+                        (SegmentID, PatternID, StartMin, EndMin, SegmentState, ReasonCode, ShiftCode, Description, CreatedBy, CreatedTS, ModifiedBy, ModifiedTS)
+                    VALUES (@Id, @P, @S, @E, @St, @R, @Sh, NULL, @By, SYSDATETIME(), @By, SYSDATETIME());
+                    """, conn, tx);
+                cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = id;
+                cmd.Parameters.Add("@P",  SqlDbType.VarChar, 20).Value = patternId;
+                cmd.Parameters.Add("@S",  SqlDbType.SmallInt).Value    = (short)s.Start;
+                cmd.Parameters.Add("@E",  SqlDbType.SmallInt).Value    = (short)s.End;
+                cmd.Parameters.Add("@St", SqlDbType.VarChar, 20).Value = (object?)s.State  ?? DBNull.Value;
+                cmd.Parameters.Add("@R",  SqlDbType.VarChar, 16).Value = (object?)s.Reason ?? DBNull.Value;
+                cmd.Parameters.Add("@Sh", SqlDbType.VarChar, 10).Value = (object?)s.Shift  ?? DBNull.Value;
+                cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor    ?? DBNull.Value;
+                cmd.ExecuteNonQuery();
+            }
+
+            RenumberAndRecalc(patternId, actor, conn, tx);
+            tx.Commit();
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    public void DeleteLineTimeSegment(string segmentId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            string? pid;
+            using (var cmd = new SqlCommand("SELECT PatternID FROM dbo.MD_LineTimeSegment WHERE SegmentID=@Id;", conn, tx))
+            { cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = segmentId; pid = cmd.ExecuteScalar() as string; }
+            using (var cmd = new SqlCommand("DELETE FROM dbo.MD_LineTimeSegment WHERE SegmentID=@Id;", conn, tx))
+            { cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = segmentId; cmd.ExecuteNonQuery(); }
+            if (pid is not null) RenumberAndRecalc(pid, "system", conn, tx);
+            tx.Commit();
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    public void ClearLineTimeSegments(string patternId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            using (var cmd = new SqlCommand("DELETE FROM dbo.MD_LineTimeSegment WHERE PatternID=@P;", conn, tx))
+            { cmd.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = patternId; cmd.ExecuteNonQuery(); }
+            RenumberAndRecalc(patternId, "system", conn, tx);
+            tx.Commit();
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    // 인접 세그먼트 병합: 앞.End == 뒤.Start 이고 상태·Shift·사유가 같으면 하나로 합침
+    private static void MergeAdjacentSegments(string patternId, string? actor, SqlConnection conn, SqlTransaction tx)
+    {
+        var segs = new List<(string Id, int Start, int End, string? State, string? Reason, string? Shift)>();
+        using (var cmd = new SqlCommand("SELECT SegmentID, StartMin, EndMin, SegmentState, ReasonCode, ShiftCode FROM dbo.MD_LineTimeSegment WHERE PatternID=@P ORDER BY StartMin;", conn, tx))
+        {
+            cmd.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = patternId;
+            using var rdr = cmd.ExecuteReader();
+            while (rdr.Read())
+                segs.Add((
+                    (string)rdr["SegmentID"],
+                    rdr["StartMin"] is short a ? a : 0,
+                    rdr["EndMin"]   is short b ? b : 0,
+                    rdr["SegmentState"] as string,
+                    rdr["ReasonCode"]   as string,
+                    rdr["ShiftCode"]    as string));
+        }
+        for (int i = 0; i < segs.Count - 1; )
+        {
+            var cur = segs[i]; var nxt = segs[i + 1];
+            if (cur.End == nxt.Start
+                && string.Equals(cur.State,  nxt.State,  StringComparison.Ordinal)
+                && string.Equals(cur.Shift,  nxt.Shift,  StringComparison.Ordinal)
+                && string.Equals(cur.Reason, nxt.Reason, StringComparison.Ordinal))
+            {
+                using (var cmd = new SqlCommand("UPDATE dbo.MD_LineTimeSegment SET EndMin=@E, ModifiedBy=@By, ModifiedTS=SYSDATETIME() WHERE SegmentID=@Id;", conn, tx))
+                { cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = cur.Id; cmd.Parameters.Add("@E", SqlDbType.SmallInt).Value = (short)nxt.End; cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor ?? DBNull.Value; cmd.ExecuteNonQuery(); }
+                using (var cmd = new SqlCommand("DELETE FROM dbo.MD_LineTimeSegment WHERE SegmentID=@Id;", conn, tx))
+                { cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = nxt.Id; cmd.ExecuteNonQuery(); }
+                segs[i] = (cur.Id, cur.Start, nxt.End, cur.State, cur.Reason, cur.Shift);
+                segs.RemoveAt(i + 1);
+            }
+            else i++;
+        }
+    }
+
+    // 세그먼트 SeqNo 재부여(StartMin 순) + 헤더 가동/비가동 합계·수정자 갱신
+    private static void RenumberAndRecalc(string patternId, string? actor, SqlConnection conn, SqlTransaction tx)
+    {
+        MergeAdjacentSegments(patternId, actor, conn, tx);
+
+        using (var cmd = new SqlCommand("""
+            WITH o AS (SELECT SegmentID, ROW_NUMBER() OVER (ORDER BY StartMin) AS rn
+                       FROM dbo.MD_LineTimeSegment WHERE PatternID=@P)
+            UPDATE s SET s.SeqNo = o.rn
+            FROM dbo.MD_LineTimeSegment s JOIN o ON o.SegmentID = s.SegmentID;
+            """, conn, tx))
+        { cmd.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = patternId; cmd.ExecuteNonQuery(); }
+
+        using (var cmd = new SqlCommand("""
+            UPDATE dbo.MD_LineTimePattern
+            SET TotalOperatingMin   = (SELECT ISNULL(SUM(EndMin-StartMin),0) FROM dbo.MD_LineTimeSegment WHERE PatternID=@P AND SegmentState='OPERATING'),
+                TotalPlannedDownMin = (SELECT ISNULL(SUM(EndMin-StartMin),0) FROM dbo.MD_LineTimeSegment WHERE PatternID=@P AND SegmentState<>'OPERATING'),
+                ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+            WHERE PatternID=@P;
+            """, conn, tx))
+        { cmd.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = patternId; cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor ?? DBNull.Value; cmd.ExecuteNonQuery(); }
+
+        RebuildMinuteFlags(patternId, actor, conn, tx);
+    }
+
+    // 분단위(1440) 플래그 재생성 — WORK_SHIFT 정렬순(A,B,C)으로 각 교대 창을 이어붙임.
+    //   SEGMENT_STATE.Attribute1 = 'op:seg' 에서 ':' 앞 → OperatingFlag, ':' 뒤 → SegmentFlag.
+    //   교대 창을 못 채운 자리·창 미정의는 '0', 전체 1440자로 패딩.
+    private static void RebuildMinuteFlags(string patternId, string? actor, SqlConnection conn, SqlTransaction tx)
+    {
+        // SEGMENT_STATE 코드 → (op, seg) 문자 맵
+        var stateMap = new Dictionary<string, (char Op, char Seg)>(StringComparer.OrdinalIgnoreCase);
+        using (var cmd = new SqlCommand("SELECT CodeValue, Attribute1 FROM dbo.MD_CodeItem WHERE GroupCode='SEGMENT_STATE';", conn, tx))
+        using (var rdr = cmd.ExecuteReader())
+            while (rdr.Read())
+            {
+                if (rdr["CodeValue"] as string is not { } cv) continue;
+                char op = '0', sg = '0';
+                if (rdr["Attribute1"] as string is { Length: > 0 } a1)
+                {
+                    var parts = a1.Split(':');
+                    if (parts.Length > 0 && parts[0].Length > 0) op = parts[0][0];
+                    if (parts.Length > 1 && parts[1].Length > 0) sg = parts[1][0];
+                }
+                stateMap[cv] = (op, sg);
+            }
+
+        // WORK_SHIFT 창(정렬순: A,B,C). Attribute1 'HHMM-HHMM'
+        var shifts = new List<(string Code, int Start, int End)>();
+        using (var cmd = new SqlCommand("SELECT CodeValue, Attribute1 FROM dbo.MD_CodeItem WHERE GroupCode='WORK_SHIFT' AND ISNULL(UseFlag,1)=1 ORDER BY ISNULL(SortOrder,0), CodeValue;", conn, tx))
+        using (var rdr = cmd.ExecuteReader())
+            while (rdr.Read())
+            {
+                if (rdr["CodeValue"] as string is not { } code) continue;
+                if (TryParseShiftWindow(rdr["Attribute1"] as string, out int s, out int e) && e > s)
+                    shifts.Add((code, s, e));
+            }
+
+        var segs = new List<(int Start, int End, string? State, string? Shift)>();
+        using (var cmd = new SqlCommand("SELECT StartMin, EndMin, SegmentState, ShiftCode FROM dbo.MD_LineTimeSegment WHERE PatternID=@P;", conn, tx))
+        {
+            cmd.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = patternId;
+            using var rdr = cmd.ExecuteReader();
+            while (rdr.Read())
+                segs.Add((
+                    rdr["StartMin"] is short a ? a : 0,
+                    rdr["EndMin"]   is short b ? b : 0,
+                    rdr["SegmentState"] as string,
+                    rdr["ShiftCode"]    as string));
+        }
+
+        var opSb = new System.Text.StringBuilder(1440);
+        var sgSb = new System.Text.StringBuilder(1440);
+        foreach (var sh in shifts)
+            for (int m = sh.Start; m < sh.End; m++)
+            {
+                char op = '0', sg = '0';
+                foreach (var s in segs)
+                    if (string.Equals(s.Shift, sh.Code, StringComparison.Ordinal)
+                        && s.Start <= m && m < s.End
+                        && s.State is not null && stateMap.TryGetValue(s.State, out var f))
+                    { op = f.Op; sg = f.Seg; break; }
+                opSb.Append(op); sgSb.Append(sg);
+            }
+
+        string opStr = opSb.ToString(), sgStr = sgSb.ToString();
+        opStr = opStr.Length < 1440 ? opStr.PadRight(1440, '0') : opStr[..1440];
+        sgStr = sgStr.Length < 1440 ? sgStr.PadRight(1440, '0') : sgStr[..1440];
+
+        using (var cmd = new SqlCommand("UPDATE dbo.MD_LineTimePattern SET OperatingFlag=@O, SegmentFlag=@S, ModifiedBy=@By, ModifiedTS=SYSDATETIME() WHERE PatternID=@P;", conn, tx))
+        {
+            cmd.Parameters.Add("@O",  SqlDbType.Char, 1440).Value = opStr;
+            cmd.Parameters.Add("@S",  SqlDbType.Char, 1440).Value = sgStr;
+            cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor ?? DBNull.Value;
+            cmd.Parameters.Add("@P",  SqlDbType.VarChar, 20).Value = patternId;
+            cmd.ExecuteNonQuery();
+        }
+    }
+
+    // 'HHMM-HHMM' → 시작/종료 분. 2400 = 1440.
+    private static bool TryParseShiftWindow(string? a, out int start, out int end)
+    {
+        start = 0; end = 0;
+        if (string.IsNullOrWhiteSpace(a)) return false;
+        var parts = a.Split('-');
+        return parts.Length == 2 && TryHHMM(parts[0], out start) && TryHHMM(parts[1], out end);
+    }
+    private static bool TryHHMM(string s, out int min)
+    {
+        min = 0; s = s.Trim();
+        if (s.Length != 4 || !int.TryParse(s[..2], out var h) || !int.TryParse(s.Substring(2, 2), out var m)) return false;
+        if (h < 0 || h > 24 || m < 0 || m > 59) return false;
+        min = h * 60 + m; return true;
     }
 
     // ── MD_Recipe CRUD ───────────────────────────────────────────────
