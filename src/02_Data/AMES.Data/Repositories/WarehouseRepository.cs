@@ -69,18 +69,28 @@ public sealed class WarehouseRepository
         decimal WPct,
         decimal HPct);
 
-    public record TransactionLogRow(
-        long RowNo,
-        DateTime? TxnTs,
-        string TxnType,
+    public record OperationLogRow(
+        long OperationLogId,
+        DateTime? EventTime,
+        string EventType,
+        string? ScreenCode,
+        string? EmployeeNo,
+        string? EmployeeName,
+        string? WorkerId,
+        string? TerminalId,
+        string? LineId,
+        string? ShiftCode,
+        string? ScanType,
+        string? ScanValue,
+        string Result,
+        string? Message,
+        string? ClientIp,
+        string? RefDocType,
+        string? RefDocNo,
         string? LotNo,
         string? PartNo,
-        string? LocationNo,
-        decimal Qty,
-        string? WorkerId,
-        string? ReasonCode,
-        string? Note,
-        string Source);
+        string? LocationId,
+        decimal? Qty);
 
     public record InventorySettingRow(
         string ItemNo,
@@ -483,88 +493,56 @@ public sealed class WarehouseRepository
         cmd.ExecuteNonQuery();
     }
 
-    public List<TransactionLogRow> ListTransactions(
+    public List<OperationLogRow> ListOperationLogs(
         string? search = null,
-        string? txnType = null,
+        string? eventType = null,
         DateTime? from = null,
         DateTime? to = null)
     {
-        var like = Like(search);
-        return Query("""
-            WITH TX AS (
-                SELECT
-                    CAST(A.AUDIT_ID AS bigint) AS ROW_NO,
-                    A.CREATED_AT AS TXN_TS,
-                    CAST(N'OUT' AS nvarchar(20)) AS TXN_TYPE,
-                    A.LOTNO,
-                    A.PARTNO,
-                    A.LOCATION_NO,
-                    CAST(COALESCE(A.QTY, 0) AS decimal(18,3)) AS QTY,
-                    A.WORKER_ID,
-                    CAST(NULL AS nvarchar(30)) AS REASON_CODE,
-                    CONCAT(N'Pick Slip ', A.PICK_SLIPNO, N' / ', A.BEFORE_STATUS, N' -> ', A.AFTER_STATUS) AS NOTE,
-                    CAST(N'Release Audit' AS nvarchar(40)) AS SOURCE
-                FROM SIS_TEST.PDA_WH_RELEASE_PICK_AUDIT A
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("[dbo].[WH_WEB_LOG_HISTORY_LIST]", conn)
+        {
+            CommandType = CommandType.StoredProcedure,
+            CommandTimeout = 15
+        };
+        cmd.Parameters.Add("@SearchText", SqlDbType.NVarChar, 120).Value =
+            string.IsNullOrWhiteSpace(search) ? DBNull.Value : search.Trim();
+        cmd.Parameters.Add("@EventType", SqlDbType.VarChar, 40).Value =
+            string.IsNullOrWhiteSpace(eventType) ? DBNull.Value : eventType.Trim().ToUpperInvariant();
+        cmd.Parameters.Add("@DateFrom", SqlDbType.Date).Value =
+            from.HasValue ? (object)from.Value.Date : DBNull.Value;
+        cmd.Parameters.Add("@DateTo", SqlDbType.Date).Value =
+            to.HasValue ? (object)to.Value.Date : DBNull.Value;
 
-                UNION ALL
+        using var rdr = cmd.ExecuteReader();
+        var list = new List<OperationLogRow>();
+        while (rdr.Read())
+        {
+            list.Add(new OperationLogRow(
+                GetLong(rdr, "OperationLogID"),
+                GetDateTime(rdr, "EventTime"),
+                GetString(rdr, "EventType") ?? "",
+                GetString(rdr, "ScreenCode"),
+                GetString(rdr, "EmployeeNo"),
+                GetString(rdr, "EmployeeName"),
+                GetString(rdr, "WorkerID"),
+                GetString(rdr, "TerminalID"),
+                GetString(rdr, "LineID"),
+                GetString(rdr, "ShiftCode"),
+                GetString(rdr, "ScanType"),
+                GetString(rdr, "ScanValue"),
+                GetString(rdr, "Result") ?? "INFO",
+                GetString(rdr, "Message"),
+                GetString(rdr, "ClientIP"),
+                GetString(rdr, "RefDocType"),
+                GetString(rdr, "RefDocNo"),
+                GetString(rdr, "LotNo"),
+                GetString(rdr, "PartNo"),
+                GetString(rdr, "LocationID"),
+                GetNullableDecimal(rdr, "Qty")));
+        }
 
-                SELECT
-                    CAST(H.TxnID AS bigint) AS ROW_NO,
-                    H.TxnTime AS TXN_TS,
-                    CAST(COALESCE(H.TxnType, 'ADJ') AS nvarchar(20)) AS TXN_TYPE,
-                    CONVERT(nvarchar(50), H.LotID) AS LOTNO,
-                    H.ItemNo AS PARTNO,
-                    H.LocationID AS LOCATION_NO,
-                    CAST(COALESCE(H.Delta, 0) AS decimal(18,3)) AS QTY,
-                    H.OperatorID AS WORKER_ID,
-                    H.ReasonCode AS REASON_CODE,
-                    H.Note AS NOTE,
-                    CAST(N'Inventory History' AS nvarchar(40)) AS SOURCE
-                FROM dbo.WH_TransactionHistory H
-
-                UNION ALL
-
-                SELECT
-                    CAST(1000000000 + ROW_NUMBER() OVER (ORDER BY COALESCE(S.UPDATE_DATE, TRY_CONVERT(datetime2, S.RCV_DATE), SYSUTCDATETIME()), S.LOTNO) AS bigint) AS ROW_NO,
-                    COALESCE(S.UPDATE_DATE, TRY_CONVERT(datetime2, S.RCV_DATE), SYSUTCDATETIME()) AS TXN_TS,
-                    CASE WHEN COALESCE(S.INV_STATUS, N'') IN (N'I0', N'IN', N'RECEIVED') THEN N'IN' ELSE N'STOCK' END AS TXN_TYPE,
-                    S.LOTNO,
-                    S.PARTNO,
-                    S.LOCATION_NO,
-                    CAST(COALESCE(S.QTY, 0) AS decimal(18,3)) AS QTY,
-                    COALESCE(S.USER_ID, S.UPDATE_ID) AS WORKER_ID,
-                    S.INV_STATUS AS REASON_CODE,
-                    CONCAT(N'Current stock snapshot / status ', COALESCE(S.INV_STATUS, N'-')) AS NOTE,
-                    CAST(N'WMS2020 Stock' AS nvarchar(40)) AS SOURCE
-                FROM SIS_TEST.WMS2020 S
-            )
-            SELECT ROW_NO, TXN_TS, TXN_TYPE, LOTNO, PARTNO, LOCATION_NO, QTY, WORKER_ID, REASON_CODE, NOTE, SOURCE
-            FROM TX
-            WHERE (@Search IS NULL
-                   OR LOTNO LIKE @Search
-                   OR PARTNO LIKE @Search
-                   OR LOCATION_NO LIKE @Search
-                   OR WORKER_ID LIKE @Search)
-              AND (@TxnType IS NULL OR TXN_TYPE = @TxnType)
-              AND (@From IS NULL OR TXN_TS >= @From)
-              AND (@To IS NULL OR TXN_TS < DATEADD(day, 1, @To))
-            ORDER BY TXN_TS DESC, ROW_NO DESC;
-            """, r => new TransactionLogRow(
-                GetLong(r, "ROW_NO"),
-                GetDateTime(r, "TXN_TS"),
-                GetString(r, "TXN_TYPE") ?? "",
-                GetString(r, "LOTNO"),
-                GetString(r, "PARTNO"),
-                GetString(r, "LOCATION_NO"),
-                GetDecimal(r, "QTY"),
-                GetString(r, "WORKER_ID"),
-                GetString(r, "REASON_CODE"),
-                GetString(r, "NOTE"),
-                GetString(r, "SOURCE") ?? ""),
-            ("@Search", like),
-            ("@TxnType", NullIfBlank(txnType)),
-            ("@From", from),
-            ("@To", to));
+        return list;
     }
 
     public List<InventorySettingRow> ListInventorySettings(string? search = null, string? status = null)
@@ -824,6 +802,12 @@ public sealed class WarehouseRepository
     {
         var value = r[name];
         return value == DBNull.Value ? 0m : Convert.ToDecimal(value);
+    }
+
+    private static decimal? GetNullableDecimal(SqlDataReader r, string name)
+    {
+        var value = r[name];
+        return value == DBNull.Value ? null : Convert.ToDecimal(value);
     }
 
     private static DateTime? GetDateTime(SqlDataReader r, string name)
