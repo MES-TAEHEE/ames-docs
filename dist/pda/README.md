@@ -20,6 +20,9 @@ Examples:
 - `dbo.WH_PDA_INBOUND_RECEIVE_LOT`
 - `dbo.WH_PDA_INBOUND_MOVE_LOCATION`
 - `dbo.WH_PDA_INBOUND_CANCEL_RECEIPT`
+- `dbo.WH_PDA_INVENTORY_STATUS_LIST`
+- `dbo.WH_PDA_INVENTORY_LOCATION_LIST`
+- `dbo.WH_PDA_INVENTORY_SCAN_LOOKUP`
 - `dbo.WH_PDA_RELEASE_SLIP_STATUS`
 - `dbo.WH_PDA_RELEASE_PICK_LINES`
 - `dbo.WH_PDA_RELEASE_SCAN_LOT`
@@ -37,6 +40,7 @@ sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -d AMES_DEV -i dist\pda\m
 sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -d AMES_DEV -i dist\pda\seed_pda_wh_demo_data.sql
 sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -d AMES_DEV -i dist\pda\migrate_pda_wh_inbound.sql
 sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -d AMES_DEV -i dist\pda\seed_pda_wh_inbound_demo_data.sql
+sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -d AMES_DEV -i dist\pda\migrate_pda_wh_inventory.sql
 sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -d AMES_DEV -i dist\pda\migrate_pda_wh_release.sql
 sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -d AMES_DEV -i dist\pda\seed_pda_wh_release_demo_data.sql
 ```

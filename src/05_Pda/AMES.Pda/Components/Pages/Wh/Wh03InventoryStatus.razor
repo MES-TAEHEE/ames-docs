@@ -7,43 +7,33 @@
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/wh"))' Text="&lt;" />
         <div class="wh03-tbar-title">
             <span class="pda-tbar-brand">@PageTitle</span>
-            <span class="wh03-last-updated">Last Updated @LastUpdatedText</span>
         </div>
-        <RadzenButton class="wh03-refresh" Click="@Load" Disabled="@_isLoading" Text="REFRESH" />
+        <div class="wh03-tbar-actions">
+            <RadzenButton class="wh03-refresh" Click="@Load" Disabled="@_isLoading" Text="REFRESH" />
+        </div>
     </div>
 
     <div class="pda-bd wh03-body">
         @if (IsSearchTab)
         {
-            <RadzenCard class="wh03-search-card">
+            <div class="wh03-filter-strip">
+                <RadzenButton class="@($"wh03-filter-toggle {(HasDateFilter ? "on" : "")}")"
+                              Click="@OpenDateFilters"
+                              Disabled="@_isLoading"
+                              Icon="filter_alt"
+                              Text="" />
+            </div>
+
+            <RadzenCard class="wh03-search-card wh03-scan-card">
                 <div class="pda-fld">
-                    <label>MATERIAL SEARCH</label>
+                    <label>INVENTORY SCAN</label>
                     <RadzenTextBox class="pda-input wh03-search-input"
                                    Value="@_q"
-                                   @oninput="OnSearchInput"
+                                   @oninput="OnScanInput"
                                    @onkeydown="OnKey"
-                                   Placeholder="Search material, name, or car" />
+                                   Placeholder="Scan Lot, Part, Location No" />
                 </div>
-                <RadzenButton class="wh03-search-btn" Click="@Load" Disabled="@_isLoading" Text="SEARCH" />
-            </RadzenCard>
-
-            <RadzenCard class="wh03-filter-card">
-                <div class="wh03-date-panel">
-                    <div class="pda-fld">
-                        <label>STOCK DATE FROM</label>
-                        <input class="pda-input wh03-date-input" type="text" inputmode="numeric"
-                               value="@_dateFrom" @onchange="OnDateFromChanged" placeholder="YYYY-MM-DD" />
-                    </div>
-                    <div class="pda-fld">
-                        <label>STOCK DATE TO</label>
-                        <input class="pda-input wh03-date-input" type="text" inputmode="numeric"
-                               value="@_dateTo" @onchange="OnDateToChanged" placeholder="YYYY-MM-DD" />
-                    </div>
-                    <div class="wh03-date-actions">
-                        <RadzenButton class="wh03-date-clear" Click="@ClearDateFilter" Disabled="@_isLoading" Text="CLEAR" />
-                        <RadzenButton class="wh03-date-apply" Click="@Load" Disabled="@_isLoading" Text="APPLY" />
-                    </div>
-                </div>
+                <RadzenButton class="wh03-search-btn" Click="@ScanInventoryFilter" Disabled="@_isLoading" Text="SCAN" />
             </RadzenCard>
 
             <RadzenCard class="wh03-head">
@@ -53,13 +43,13 @@
                         <span>Total</span>
                         <strong>@_rows.Count</strong>
                     </button>
+                    <button type="button" class='@SummaryClass("OUT")' @onclick='@(() => SetFilter("OUT"))'>
+                        <span>Out</span>
+                        <strong>@CountStatus("OUT")</strong>
+                    </button>
                     <button type="button" class='@SummaryClass("BELOW_MIN")' @onclick='@(() => SetFilter("BELOW_MIN"))'>
                         <span>Below Min</span>
                         <strong>@CountStatus("BELOW_MIN")</strong>
-                    </button>
-                    <button type="button" class='@SummaryClass("LOW_STOCK")' @onclick='@(() => SetFilter("LOW_STOCK"))'>
-                        <span>Low Stock</span>
-                        <strong>@CountStatus("LOW_STOCK")</strong>
                     </button>
                     <button type="button" class='@SummaryClass("OVER_MAX")' @onclick='@(() => SetFilter("OVER_MAX"))'>
                         <span>Over Max</span>
@@ -81,45 +71,19 @@
                 <div class="wh03-list">
                     @foreach (var row in VisibleRows)
                     {
-                        <RadzenCard class="@($"wh03-stock-card {StatusClass(row)}")">
-                            <div class="wh03-card-top">
-                                <div class="wh03-part-main">
-                                    <div class="wh03-part-no">@Text(row.ItemNo)</div>
-                                    <div class="wh03-part-name">@Text(row.ItemName)</div>
-                                    <div class="wh03-part-sub">CAR @Text(row.CarCode) / UNIT @Unit(row.Unit)</div>
-                                </div>
+                        <RadzenCard class="@($"wh03-stock-card wh03-stock-compact {StatusClass(row)}")">
+                            <div class="wh03-compact-row main">
+                                <strong>@Text(row.ItemNo)</strong>
+                                <span>@Qty(row.OnHandQty, row.Unit)</span>
+                            </div>
+                            <div class="wh03-compact-row sub">
+                                <span>@Text(row.ItemName)</span>
                                 <RadzenBadge class="@($"wh03-status-badge {StatusClass(row)}")" Text="@StatusText(row)" />
                             </div>
-
-                            <div class="wh03-onhand">
-                                <span>On Hand</span>
-                                <strong>@Qty(row.OnHandQty, row.Unit)</strong>
-                            </div>
-
-                            <div class="wh03-threshold-grid">
-                                <div class="wh03-threshold">
-                                    <span>Min Qty</span>
-                                    <strong>@Qty(row.MinQty, row.Unit)</strong>
-                                    <em>@Days(row.MinDays)</em>
-                                </div>
-                                <div class="wh03-threshold">
-                                    <span>Max Qty</span>
-                                    <strong>@Qty(row.MaxQty, row.Unit)</strong>
-                                    <em>@Days(row.MaxDays)</em>
-                                </div>
-                            </div>
-
-                            <div class="wh03-meta-grid">
-                                <div>
-                                    <span>Main Location</span>
-                                    <strong>@Text(row.LocationId)</strong>
-                                </div>
-                                <button class="wh03-location-link" @onclick="@(() => OpenLocations(row))">
-                                    <span>Locations</span>
-                                    <strong>@row.LocationCount</strong>
-                                    <em>View Detail</em>
-                                </button>
-                            </div>
+                            <button type="button" class="wh03-compact-location" @onclick="@(() => OpenLocations(row))">
+                                <span>Locations</span>
+                                <strong>@Text(row.LocationId)</strong>
+                            </button>
                         </RadzenCard>
                     }
                 </div>
@@ -133,7 +97,10 @@
                         <span>@_workTab.ToUpperInvariant()</span>
                         <strong>@(IsAdjustTab ? "Inventory Quantity Adjustment" : "Inventory Location Change")</strong>
                     </div>
-                    <em>Scan LOT No first</em>
+                    @if (!IsAdjustTab)
+                    {
+                        <em>Scan LOT No first</em>
+                    }
                 </div>
 
                 @if (!IsAdjustTab)
@@ -146,7 +113,7 @@
 
                 <div class="wh03-work-scan">
                     <div class="pda-fld">
-                        <label>LOT NO SCAN</label>
+                        <label>@(IsAdjustTab ? "LOT / PART NO SCAN" : "LOT NO SCAN")</label>
                         <RadzenTextBox class="pda-input wh03-work-input"
                                        Value="@_invBarcode"
                                        @oninput="OnInventoryBarcodeInput"
@@ -214,7 +181,19 @@
                         </div>
                         <div class="pda-fld">
                             <label>ADJUST QTY (+/-)</label>
-                            <input class="pda-input wh03-work-input" type="number" step="1" @bind="_invAdjustDelta" disabled="@(!InventoryAlreadyReceived || InventoryBusy)" />
+                            <div class="wh03-qty-stepper">
+                                <button type="button"
+                                        class="wh03-qty-step"
+                                        @onclick="@(() => StepInventoryAdjust(-1))"
+                                        disabled="@DisableAdjustQtyMinus">-</button>
+                                <div class="@($"wh03-qty-readout {AdjustDeltaClass}")">
+                                    <strong>@SignedQty(_invAdjustDelta, _invScan?.Unit)</strong>
+                                </div>
+                                <button type="button"
+                                        class="wh03-qty-step"
+                                        @onclick="@(() => StepInventoryAdjust(1))"
+                                        disabled="@DisableAdjustQtyPlus">+</button>
+                            </div>
                         </div>
                         <div class="pda-fld">
                             <label>SUPERVISOR PIN</label>
@@ -302,6 +281,37 @@
         }
     </div>
 
+    @if (_dateFilterOpen)
+    {
+        <div class="wh03-filter-backdrop" @onclick="CloseDateFilters">
+            <RadzenCard class="wh03-filter-sheet" @onclick:stopPropagation="true">
+                <div class="wh03-filter-sheet-head">
+                    <div>
+                        <span>DATE FILTER</span>
+                        <strong>Stock Date</strong>
+                    </div>
+                    <RadzenButton class="wh03-sheet-close" Click="@CloseDateFilters" Icon="close" Text="" />
+                </div>
+                <div class="wh03-date-panel">
+                    <div class="pda-fld">
+                        <label>FROM</label>
+                        <input class="pda-input wh03-date-input" type="text" inputmode="numeric"
+                               value="@_dateFrom" @onchange="OnDateFromChanged" placeholder="YYYY-MM-DD" />
+                    </div>
+                    <div class="pda-fld">
+                        <label>TO</label>
+                        <input class="pda-input wh03-date-input" type="text" inputmode="numeric"
+                               value="@_dateTo" @onchange="OnDateToChanged" placeholder="YYYY-MM-DD" />
+                    </div>
+                    <div class="wh03-date-actions">
+                        <RadzenButton class="wh03-date-clear" Click="@ClearDateFilter" Disabled="@_isLoading" Text="CLEAR" />
+                        <RadzenButton class="wh03-date-apply" Click="@ApplyDateFilter" Disabled="@_isLoading" Text="APPLY" />
+                    </div>
+                </div>
+            </RadzenCard>
+        </div>
+    }
+
     @if (_modalOpen)
     {
         <div class="wh-modal-backdrop" @onclick="DismissModal">
@@ -322,12 +332,25 @@
             <RadzenCard class="wh-modal-card wh03-location-modal" @onclick:stopPropagation="true">
                 <div class="wh03-location-modal-head">
                     <div>
-                        <span>LOCATION DETAIL</span>
+                        <span>INVENTORY DETAIL</span>
                         <strong>@Text(_locationItem?.ItemNo)</strong>
                         <em>@Text(_locationItem?.ItemName)</em>
                     </div>
                     <RadzenButton class="wh03-location-close" Click="@CloseLocations" Text="CLOSE" />
                 </div>
+
+                @if (_locationItem is not null)
+                {
+                    <div class="wh03-inventory-detail-grid">
+                        @foreach (var field in InventoryDetailFields(_locationItem))
+                        {
+                            <div>
+                                <span>@field.Label</span>
+                                <strong>@field.Value</strong>
+                            </div>
+                        }
+                    </div>
+                }
 
                 @if (_locationsLoading)
                 {
@@ -399,6 +422,7 @@
     private bool _isInventoryAdjusting;
     private bool _isInventoryMoving;
     private bool _modalOpen;
+    private bool _dateFilterOpen;
     private DateTime? _lastSyncAt;
     private string _modalTitle = "";
     private string _modalMessage = "";
@@ -420,11 +444,11 @@
         ("OTHER", "Other")
     ];
 
-    private string PageTitle => IsAdjustTab ? "WH-005 ADJUST" : "WH-004 INVENTORY";
-    private string LastUpdatedText => _lastSyncAt?.ToString("HH:mm:ss") ?? "-";
+    private string PageTitle => IsAdjustTab ? "Adjust" : "Inventory";
     private string EmptyMessage => _rows.Count == 0 ? _msg : "No items in this status.";
     private DateTime? DateFrom => TryDate(_dateFrom);
     private DateTime? DateTo => TryDate(_dateTo);
+    private bool HasDateFilter => !string.IsNullOrWhiteSpace(_dateFrom) || !string.IsNullOrWhiteSpace(_dateTo);
     private bool IsSearchTab => string.Equals(_workTab, "Search", StringComparison.OrdinalIgnoreCase);
     private bool IsAdjustTab => string.Equals(_workTab, "Adjust", StringComparison.OrdinalIgnoreCase);
     private bool IsLocatingTab => string.Equals(_workTab, "Locating", StringComparison.OrdinalIgnoreCase);
@@ -432,18 +456,24 @@
     private bool InventoryAlreadyReceived => string.Equals(_invScan?.Yn, "N", StringComparison.OrdinalIgnoreCase);
     private bool DisableInventoryScan => InventoryBusy || string.IsNullOrWhiteSpace(_invBarcode);
     private bool DisableInventoryLocationScan => !InventoryAlreadyReceived || InventoryBusy || string.IsNullOrWhiteSpace(_invLocationNo);
-    private bool DisableInventoryAdjust => !InventoryAlreadyReceived || InventoryBusy || _invAdjustDelta == 0 || InventoryAfterQty < 0
+    private bool DisableInventoryAdjust => !InventoryAlreadyReceived || InventoryBusy || _invAdjustDelta == 0 || IsAdjustQtyBelowStock
         || string.IsNullOrWhiteSpace(_invAdjustReason) || string.IsNullOrWhiteSpace(_invAdjustSupervisorPin);
     private bool DisableInventoryMove => !InventoryAlreadyReceived || InventoryBusy || _invTargetLocation is null || InventoryTargetSameAsCurrent;
+    private bool DisableAdjustQtyControls => !InventoryAlreadyReceived || InventoryBusy;
+    private bool DisableAdjustQtyMinus => DisableAdjustQtyControls || _invAdjustDelta <= -InventoryBeforeQty;
+    private bool DisableAdjustQtyPlus => DisableAdjustQtyControls;
     private decimal InventoryBeforeQty => _invScan?.Qty ?? 0;
     private decimal InventoryAfterQty => InventoryBeforeQty + _invAdjustDelta;
-    private string InventoryBarcodePlaceholder => IsAdjustTab ? "Scan Lot No" : _invMode == "CKD" ? "Scan CKD lot no" : "Scan local lot no";
+    private bool IsAdjustQtyBelowStock => _invAdjustDelta < -InventoryBeforeQty;
+    private string InventoryBarcodePlaceholder => IsAdjustTab ? "Scan Lot or Part No" : _invMode == "CKD" ? "Scan CKD lot no" : "Scan local lot no";
     private string InventoryLotCardClass => InventoryAlreadyReceived ? "ready" : "blocked";
     private string InventoryStatusClass => InventoryAlreadyReceived ? "normal" : "below";
     private string InventoryStatusLabel => _invScan is null
         ? "-"
         : InventoryAlreadyReceived
-            ? $"Incoming {Text(_invScan.ReceivedStatus)}"
+            ? IsAdjustTab
+                ? $"In Stock {Text(_invScan.ReceivedStatus)}"
+                : $"Incoming {Text(_invScan.ReceivedStatus)}"
             : "Not Incoming";
     private string AdjustDeltaClass => _invAdjustDelta < 0 ? "minus" : _invAdjustDelta > 0 ? "plus" : "";
     private bool InventoryTargetSameAsCurrent
@@ -459,7 +489,7 @@
     private List<PdaApi.InventoryRow> VisibleRows
         => _statusFilter == "ALL"
             ? _rows
-            : _rows.Where(row => string.Equals(row.Status, _statusFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+            : _rows.Where(row => string.Equals(StockStatus(row), _statusFilter, StringComparison.OrdinalIgnoreCase)).ToList();
 
     protected override async Task OnInitializedAsync()
     {
@@ -507,7 +537,7 @@
     private string InvModeClass(string mode)
         => $"wh03-mode-btn {(string.Equals(_invMode, mode, StringComparison.OrdinalIgnoreCase) ? "on" : "")}";
 
-    private void OnSearchInput(ChangeEventArgs e)
+    private void OnScanInput(ChangeEventArgs e)
     {
         _q = Convert.ToString(e.Value) ?? "";
     }
@@ -526,8 +556,18 @@
     {
         if (e.Key == "Enter")
         {
-            await Load();
+            await ScanInventoryFilter();
         }
+    }
+
+    private void OpenDateFilters()
+    {
+        _dateFilterOpen = true;
+    }
+
+    private void CloseDateFilters()
+    {
+        _dateFilterOpen = false;
     }
 
     private void OnInventoryBarcodeInput(ChangeEventArgs e)
@@ -546,6 +586,18 @@
     {
         if (e.Key == "Enter")
             await ScanInventoryLot();
+    }
+
+    private void StepInventoryAdjust(decimal delta)
+    {
+        if (DisableAdjustQtyControls)
+            return;
+
+        var next = _invAdjustDelta + delta;
+        if (next < -InventoryBeforeQty)
+            next = -InventoryBeforeQty;
+
+        _invAdjustDelta = next;
     }
 
     private async Task OnInventoryLocationKey(KeyboardEventArgs e)
@@ -579,6 +631,9 @@
 
             _rows = await Api.WhInventoryAsync(_q, DateFrom, DateTo);
             _lastSyncAt = DateTime.Now;
+            if (!StockStatuses.Contains(_statusFilter, StringComparer.OrdinalIgnoreCase))
+                _statusFilter = "ALL";
+
             if (_rows.Count == 0)
             {
                 _msg = "No inventory matches.";
@@ -590,10 +645,33 @@
         }
     }
 
+    private async Task ScanInventoryFilter()
+    {
+        if (_isLoading) return;
+
+        var scanText = _q.Trim();
+        if (!string.IsNullOrWhiteSpace(scanText))
+        {
+            var lookup = await Api.WhInventoryScanAsync(scanText);
+            if (lookup is not null && !string.IsNullOrWhiteSpace(lookup.SearchText))
+                _q = lookup.SearchText.Trim();
+        }
+
+        await Load();
+    }
+
+    private async Task ApplyDateFilter()
+    {
+        await Load();
+        if (!HasInvalidDate && !(DateFrom.HasValue && DateTo.HasValue && DateFrom.Value > DateTo.Value))
+            _dateFilterOpen = false;
+    }
+
     private async Task ClearDateFilter()
     {
         _dateFrom = "";
         _dateTo = "";
+        _dateFilterOpen = false;
         await Load();
     }
 
@@ -622,7 +700,7 @@
         if (DisableInventoryScan) return;
 
         _isInventoryScanning = true;
-        _invMsg = "Scanning LOT No...";
+        _invMsg = IsAdjustTab ? "Scanning Lot or Part No..." : "Scanning LOT No...";
         _invCls = "dim";
         _invScan = null;
         _inventoryCurrentLocation = null;
@@ -635,7 +713,9 @@
             var row = await ScanInventoryLotByModeAsync(_invBarcode.Trim());
             if (row is null)
             {
-                _invMsg = "LOT No was not found in the PO list.";
+                _invMsg = IsAdjustTab
+                    ? "Lot or Part No was not found in current inventory."
+                    : "LOT No was not found in the PO list.";
                 _invCls = "fail";
                 return;
             }
@@ -671,29 +751,9 @@
             return row;
         }
 
-        Exception? firstError = null;
-        foreach (var mode in new[] { "LOCAL", "CKD" })
-        {
-            try
-            {
-                var row = await Api.WhScanInboundAsync(mode, barcode);
-                if (row is null)
-                    continue;
-
-                _invMode = mode;
-                ApplyDetectedMode(row);
-                return row;
-            }
-            catch (Exception ex)
-            {
-                firstError ??= ex;
-            }
-        }
-
-        if (firstError is not null)
-            throw firstError;
-
-        return null;
+        var adjustRow = await Api.WhScanAdjustAsync(barcode);
+        ApplyDetectedMode(adjustRow);
+        return adjustRow;
     }
 
     private void ApplyDetectedMode(PdaApi.InboundScanRow? row)
@@ -766,7 +826,7 @@
 
         if (_invScan is null)
         {
-            ShowAlert("LOT Required", "Scan a LOT No first.", "warn");
+            ShowAlert("Scan Required", "Scan a Lot or Part No first.", "warn");
             return;
         }
 
@@ -782,9 +842,9 @@
             return;
         }
 
-        if (InventoryAfterQty < 0)
+        if (IsAdjustQtyBelowStock)
         {
-            ShowAlert("Invalid Quantity", "After Qty cannot be below zero.", "warn");
+            ShowAlert("Invalid Quantity", "Adjustment Qty cannot be less than the current stock quantity.", "warn");
             return;
         }
 
@@ -810,7 +870,7 @@
 
         try
         {
-            var result = await Api.WhAdjustInboundQtyAsync(new PdaApi.InboundAdjustReq(
+            var result = await Api.WhSaveAdjustQtyAsync(new PdaApi.AdjustSaveReq(
                 _invMode,
                 _invScan.Barcode,
                 deltaQty,
@@ -825,7 +885,7 @@
                 return;
             }
 
-            _invScan = result.Row ?? await Api.WhScanInboundAsync(_invMode, _invScan.Barcode);
+            _invScan = result.Row ?? await Api.WhScanAdjustAsync(_invScan.Barcode);
             if (_invScan is not null && !string.IsNullOrWhiteSpace(_invScan.ReceivedLocation))
                 _inventoryCurrentLocation = await Api.WhScanLocationAsync(_invScan.ReceivedLocation);
 
@@ -930,7 +990,7 @@
     }
 
     private int CountStatus(string status)
-        => _rows.Count(row => string.Equals(row.Status, status, StringComparison.OrdinalIgnoreCase));
+        => _rows.Count(row => string.Equals(StockStatus(row), status, StringComparison.OrdinalIgnoreCase));
 
     private string SummaryClass(string status)
         => $"wh03-stat {StatusClass(status)} {(string.Equals(_statusFilter, status, StringComparison.OrdinalIgnoreCase) ? "on" : "")}";
@@ -955,6 +1015,17 @@
         yield return ("Current Loc", Text(_invScan.ReceivedLocation));
     }
 
+    private IEnumerable<(string Label, string Value)> InventoryDetailFields(PdaApi.InventoryRow row)
+    {
+        yield return ("Part No", Text(row.ItemNo));
+        yield return ("Status", StatusText(row));
+        yield return ("Stock Qty", Qty(row.OnHandQty, row.Unit));
+        yield return ("Locations", Text(row.LocationId));
+        yield return ("Car Type", Text(row.CarCode));
+        yield return ("Min Qty", Qty(row.MinQty, row.Unit));
+        yield return ("Max Qty", Qty(row.MaxQty, row.Unit));
+    }
+
     private static IEnumerable<(string Label, string Value)> LocationFieldsFor(PdaApi.LocationRow location)
     {
         yield return ("WH", CodeName(location.WarehouseCode, location.WarehouseName));
@@ -963,30 +1034,44 @@
         yield return ("Rack", Rack(location.X, location.Y, location.Z));
     }
 
+    private static readonly string[] StockStatuses = ["ALL", "OUT", "BELOW_MIN", "OVER_MAX", "NORMAL"];
+
+    private static string StockStatus(PdaApi.InventoryRow row)
+    {
+        if (row.OnHandQty <= 0)
+            return "OUT";
+
+        if (row.MinQty.HasValue && row.MinQty.Value > 0 && row.OnHandQty < row.MinQty.Value)
+            return "BELOW_MIN";
+
+        if (row.MaxQty.HasValue && row.MaxQty.Value > 0 && row.OnHandQty > row.MaxQty.Value)
+            return "OVER_MAX";
+
+        return "NORMAL";
+    }
+
     private static string StatusText(PdaApi.InventoryRow row)
-        => string.IsNullOrWhiteSpace(row.StatusName) ? StatusText(row.Status) : row.StatusName;
+        => StatusText(StockStatus(row));
 
     private static string StatusText(string? status)
         => (status ?? "").ToUpperInvariant() switch
         {
+            "OUT" => "Out",
             "BELOW_MIN" => "Below Min",
-            "LOW_STOCK" => "Low Stock",
             "OVER_MAX" => "Over Max",
-            "NO_BASELINE" => "No Baseline",
             "NORMAL" => "Normal",
             _ => "Normal"
         };
 
-    private static string StatusClass(PdaApi.InventoryRow row) => StatusClass(row.Status);
+    private static string StatusClass(PdaApi.InventoryRow row) => StatusClass(StockStatus(row));
 
     private static string StatusClass(string? status)
         => (status ?? "").ToUpperInvariant() switch
         {
             "ALL" => "all",
+            "OUT" => "out",
             "BELOW_MIN" => "below",
-            "LOW_STOCK" => "low",
             "OVER_MAX" => "over",
-            "NO_BASELINE" => "baseline",
             "NORMAL" => "normal",
             _ => "normal"
         };
@@ -997,6 +1082,15 @@
             return "-";
 
         return value.Trim();
+    }
+
+    private static string LotText(PdaApi.InventoryRow row)
+    {
+        var lot = Text(row.LotNo);
+        if (lot != "-" && row.LotCount > 1)
+            return $"{lot} +{row.LotCount - 1}";
+
+        return lot;
     }
 
     private static DateTime? TryDate(string? value)
@@ -1020,6 +1114,9 @@
         var prefix = value > 0 ? "+" : "";
         return $"{prefix}{value:N0} {Unit(unit)}";
     }
+
+    private static string DateText(DateTime? value)
+        => value?.ToString("yyyy-MM-dd") ?? "-";
 
     private static string Days(decimal? value)
         => value.HasValue ? $"{value.Value:N0} days" : "-";

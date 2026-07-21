@@ -172,7 +172,8 @@ BEGIN
         @ActualMode nvarchar(10),
         @Qty decimal(14,3),
         @PoID int,
-        @VendorID varchar(20);
+        @VendorID varchar(20),
+        @ReceivingID int;
 
     SELECT TOP (1)
         @LotID = LotID,
@@ -211,17 +212,22 @@ BEGIN
 
     BEGIN TRANSACTION;
 
+    DECLARE @InsertedReceiving TABLE (ReceivingID int NOT NULL);
+
     INSERT INTO dbo.WH_Receiving
     (
         ReceivingNo, PoID, ItemNo, VendorID, ReceivedQty, LocationID, LotCode,
         ReceivedAt, ReceivedBy, TerminalID, QcStatus, LabelPrinted, CreatedBy, CreatedTS
     )
+    OUTPUT INSERTED.ReceivingID INTO @InsertedReceiving
     VALUES
     (
         CONCAT('RCV-', FORMAT(SYSDATETIME(), 'yyMMddHHmmssfff')),
         @PoID, @ItemNo, @VendorID, @Qty, @Location, @Barcode,
         SYSDATETIME(), @User, 'PDA', 'Received', 0, @User, SYSDATETIME()
     );
+
+    SELECT TOP (1) @ReceivingID = ReceivingID FROM @InsertedReceiving;
 
     INSERT INTO dbo.WH_Inventory
     (
@@ -252,8 +258,20 @@ BEGIN
                END,
                ModifiedBy = @User,
                ModifiedTS = SYSDATETIME()
-         WHERE PoID = @PoID;
+          WHERE PoID = @PoID;
     END;
+
+    INSERT INTO dbo.WH_InventoryTransaction
+    (
+        TransactionType, ItemNo, LocationID, LotID, QtyBefore, QtyChange, QtyAfter,
+        ReasonCode, RefDocType, RefDocID, OperatorID, Note, CreatedBy, CreatedTS
+    )
+    VALUES
+    (
+        'IN', @ItemNo, @Location, @LotID, 0, @Qty, @Qty,
+        'INBOUND_RECEIVE', 'WH_Receiving', @ReceivingID, @User,
+        CONCAT('PDA inbound receive ', @Barcode), @User, SYSDATETIME()
+    );
 
     COMMIT TRANSACTION;
 

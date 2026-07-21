@@ -466,9 +466,9 @@ BEGIN
     FROM dbo.WH_ReleaseSchedule
     WHERE ReleaseScheduleID = @ReleaseScheduleID;
 
-    INSERT INTO dbo.WH_TransactionHistory
+    INSERT INTO dbo.WH_InventoryTransaction
     (
-        TxnTime, TxnType, ItemNo, LocationID, LotID, QtyBefore, Delta, QtyAfter,
+        TransactionTime, TransactionType, ItemNo, LocationID, LotID, QtyBefore, QtyChange, QtyAfter,
         ReasonCode, RefDocType, RefDocID, OperatorID, Note, CreatedBy, CreatedTS
     )
     VALUES
