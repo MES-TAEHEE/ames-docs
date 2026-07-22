@@ -4947,6 +4947,12 @@
   <data name="MD.MoldLine.Title" xml:space="preserve">
     <value>라인별 금형 관리</value>
   </data>
+  <data name="MD.MoldItem.Empty" xml:space="preserve">
+    <value>등록된 제품이 없습니다.</value>
+  </data>
+  <data name="MD.MoldLine.Ph.Search" xml:space="preserve">
+    <value>라인ID / 라인명</value>
+  </data>
   <data name="MD.MoldLine.SelectHint" xml:space="preserve">
     <value>좌측에서 라인을 선택하세요</value>
   </data>

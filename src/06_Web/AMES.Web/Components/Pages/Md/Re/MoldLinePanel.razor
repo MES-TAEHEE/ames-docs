@@ -19,7 +19,7 @@
     <div style="flex:0 0 420px;display:flex;flex-direction:column;min-height:0;">
         <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;">
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-bottom:8px;">
-                <RadzenTextBox @bind-Value="_search" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="LineID / LineName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;" />
+                <RadzenTextBox @bind-Value="_search" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.MoldLine.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;" />
                 <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyLineFilter" class="ames-rz-btn" />
             </RadzenStack>
             <div style="flex:1;min-height:0;overflow:hidden;">
@@ -90,7 +90,7 @@
 @if (_modal == "create" && _selLine is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
-        <div class="ames-modal" style="max-width:480px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.MoldLine.Title"] — @L["Modal.Create"] <span class="code" style="font-weight:400;font-size:.9em;">@_selLine.LineID</span></div>
             @FormFields(false)
             @if (!string.IsNullOrEmpty(_modalErr))
@@ -109,7 +109,7 @@
 @if (_modal == "edit" && _selLine is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
-        <div class="ames-modal" style="max-width:480px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.MoldLine.Title"] — @L["Modal.Edit"] <span class="code" style="font-weight:400;font-size:.9em;">@_selLine.LineID · @_f.MoldID</span></div>
             @FormFields(true)
             @if (_confirmDelete)
