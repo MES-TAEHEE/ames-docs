@@ -79,10 +79,10 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="CarType" Title="@L["Col.CarType"]" Width="70px">
                 <Template Context="item"><span class="code dim">@(item.CarType ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="PGN" Title="PGN" Width="60px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="PGN" Title="@L["Col.PGN"]" Width="60px">
                 <Template Context="item"><span class="code dim">@(item.PGN ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ALC" Title="ALC" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ALC" Title="@L["Col.ALC"]" Width="70px">
                 <Template Context="item"><span class="code dim">@(item.ALC ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="DefaultUOM" Title="@L["Col.Uom"]" Width="60px">
@@ -433,7 +433,7 @@
                 <RadzenTextBox @bind-Value="_f.ItemCategory" Placeholder="BUMPER, DOOR" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="4">
-                <RadzenLabel Text="Routing" />
+                <RadzenLabel Text="@L["Col.Routing"]" />
                 <RadzenDropDown @bind-Value="_f.RoutingType" Data="@RoutingOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
         </RadzenRow>
@@ -459,11 +459,11 @@
                 <RadzenNumeric TValue="decimal" @bind-Value="_f.UnitCost" Min="0" Step="0.01" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="4">
-                <RadzenLabel Text="PGN" />
+                <RadzenLabel Text="@L["Col.PGN"]" />
                 <RadzenTextBox @bind-Value="_f.Pgn" MaxLength="4" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="4">
-                <RadzenLabel Text="ALC" />
+                <RadzenLabel Text="@L["Col.ALC"]" />
                 <RadzenTextBox @bind-Value="_f.Alc" MaxLength="10" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
         </RadzenRow>

@@ -299,7 +299,7 @@
                     @if (_colors.Count == 0) { <span class="dim" style="font-size:.85em;">—</span> }
                 </div>
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-top:6px;">
-                    <RadzenTextBox @bind-Value="_newColor" @onkeydown="OnColorKeyDown" Placeholder="예: BLK" MaxLength="10" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;text-transform:uppercase;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox @bind-Value="_newColor" @onkeydown="OnColorKeyDown" Placeholder="@L["MD.Mold.Ph.Color"]" MaxLength="10" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;text-transform:uppercase;" AutoCompleteType="AutoCompleteType.Off" />
                     <RadzenButton Text="@L["Btn.Add"]" Icon="add" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@AddColor" Disabled="@_busy" class="ames-rz-btn" />
                 </RadzenStack>
             </div>
